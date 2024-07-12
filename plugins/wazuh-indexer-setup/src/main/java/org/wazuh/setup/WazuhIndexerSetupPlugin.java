@@ -10,6 +10,7 @@ package org.wazuh.setup;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.opensearch.action.admin.indices.create.CreateIndexResponse;
+import org.opensearch.action.support.master.AcknowledgedResponse;
 import org.opensearch.client.Client;
 import org.opensearch.cluster.metadata.IndexNameExpressionResolver;
 import org.opensearch.cluster.node.DiscoveryNode;
@@ -62,6 +63,18 @@ public class WazuhIndexerSetupPlugin extends Plugin implements ClusterPlugin {
     public void onNodeStarted(DiscoveryNode localNode) {
 
         try {
+            this.indices.putTemplate(new ActionListener<>() {
+                @Override
+                public void onResponse(AcknowledgedResponse acknowledgedResponse) {
+                    log.info("template created");
+                }
+
+                @Override
+                public void onFailure(Exception e) {
+                    log.error("template creation failed");
+                }
+            });
+
             this.indices.create(new ActionListener<>() {
                 @Override
                 public void onResponse(CreateIndexResponse createIndexResponse) {
