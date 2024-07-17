@@ -7,33 +7,38 @@
  */
 package org.wazuh.setup.index;
 
+import java.io.ByteArrayOutputStream;
+import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
 import org.junit.Before;
-import org.opensearch.test.OpenSearchTestCase;
 import org.opensearch.client.Client;
 import org.opensearch.cluster.service.ClusterService;
+import org.opensearch.common.util.io.Streams;
+import org.opensearch.test.OpenSearchTestCase;
 
 public class WazuhIndexerSetupTests extends OpenSearchTestCase {
 
 private WazuhIndices wazuhIndices;
 private Client client;
 private ClusterService clusterService;
+public static final String INDEX_NAME = "wazuh-indexer-setup-plugin";
+private static final String INDEX_MAPPING_FILE_NAME = "index-mapping.yml";
+private static final String INDEX_SETTING_FILE_NAME = "index-settings.yml";
 
   @Before
   public void setUp() throws Exception {
-    //public static final String INDEX_NAME = "wazuh-indexer-setup-plugin";
-    //private static final String INDEX_MAPPING_FILE_NAME = "index-mapping.yml";
-    //private static final String INDEX_SETTING_FILE_NAME = "index-settings.yml";
     super.setUp();
     this.wazuhIndices = new WazuhIndices(client, clusterService);
   }
 
   public void testGetIndexMapping() {
-    //String indexMapping = getIndexMapping();
-    //InputStream is = getClass().getClassLoader().getResourceAsStream(INDEX_MAPPING_FILE_NAME)
-    //ByteArrayOutputStream out = new ByteArrayOutputStream();
-    //Streams.copy(is, out);
-    //return out.toString(StandardCharsets.UTF_8);
-    assertEquals(0,0);
+    String indexMapping = wazuhIndices.getIndexMapping();
+    //InputStream is = getClass().getClassLoader().getResourceAsStream(INDEX_MAPPING_FILE_NAME);
+    InputStream is = WazuhIndexerSetupTests.class.getResourceAsStream(INDEX_MAPPING_FILE_NAME);
+    ByteArrayOutputStream out = new ByteArrayOutputStream();
+    logger.info(out);
+    Streams.copy(is, out);
+    assertEquals(wazuhIndices.getIndexMapping(), out.toString(StandardCharsets.UTF_8));
   }
 
   public void testGetIndexSettings() {
