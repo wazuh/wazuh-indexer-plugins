@@ -8,8 +8,12 @@
 package org.wazuh.setup.index;
 
 import java.io.ByteArrayOutputStream;
+import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
+import java.text.MessageFormat;
+import java.util.Locale;
+
 import org.junit.Before;
 import org.opensearch.client.Client;
 import org.opensearch.cluster.service.ClusterService;
@@ -31,19 +35,19 @@ private static final String INDEX_SETTING_FILE_NAME = "index-settings.yml";
     this.wazuhIndices = new WazuhIndices(client, clusterService);
   }
 
-  public void testGetIndexMapping() {
+  public void testGetIndexMapping() throws IOException {
     String indexMapping = wazuhIndices.getIndexMapping();
-    //InputStream is = getClass().getClassLoader().getResourceAsStream(INDEX_MAPPING_FILE_NAME);
-    InputStream is = WazuhIndexerSetupTests.class.getResourceAsStream(INDEX_MAPPING_FILE_NAME);
+    InputStream is = WazuhIndices.class.getClassLoader().getResourceAsStream(INDEX_MAPPING_FILE_NAME);
     ByteArrayOutputStream out = new ByteArrayOutputStream();
-    logger.info(out);
     Streams.copy(is, out);
-    assertEquals(wazuhIndices.getIndexMapping(), out.toString(StandardCharsets.UTF_8));
+    assertEquals(out.toString(StandardCharsets.UTF_8),wazuhIndices.getIndexMapping());
   }
 
-  public void testGetIndexSettings() {
-    assertEquals(0,0);
-
+  public void testGetIndexSettings() throws IOException {
+    InputStream is = getClass().getClassLoader().getResourceAsStream(INDEX_SETTING_FILE_NAME);
+    ByteArrayOutputStream out = new ByteArrayOutputStream();
+    Streams.copy(is, out);
+    assertEquals(out.toString(StandardCharsets.UTF_8), wazuhIndices.getIndexSettings());
   }
 
   public void testPutTemplate() {
