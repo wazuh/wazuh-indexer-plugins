@@ -11,28 +11,53 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
-import java.text.MessageFormat;
-import java.util.Locale;
-
+import org.junit.After;
 import org.junit.Before;
+import org.opensearch.action.support.master.AcknowledgedResponse;
+import org.opensearch.client.AdminClient;
 import org.opensearch.client.Client;
+import org.opensearch.client.IndicesAdminClient;
 import org.opensearch.cluster.service.ClusterService;
 import org.opensearch.common.util.io.Streams;
+import org.opensearch.core.action.ActionListener;
 import org.opensearch.test.OpenSearchTestCase;
+import org.opensearch.threadpool.TestThreadPool;
+import org.opensearch.threadpool.ThreadPool;
+
+import static org.mockito.Mockito.*;
+import static org.opensearch.test.ClusterServiceUtils.createClusterService;
 
 public class WazuhIndexerSetupTests extends OpenSearchTestCase {
 
-private WazuhIndices wazuhIndices;
-private Client client;
-private ClusterService clusterService;
-public static final String INDEX_NAME = "wazuh-indexer-setup-plugin";
-private static final String INDEX_MAPPING_FILE_NAME = "index-mapping.yml";
-private static final String INDEX_SETTING_FILE_NAME = "index-settings.yml";
+  private WazuhIndices wazuhIndices;
+  private ThreadPool threadPool;
+  private ClusterService clusterService;
+  private static final String INDEX_MAPPING_FILE_NAME = "index-mapping.yml";
+  private static final String INDEX_SETTING_FILE_NAME = "index-settings.yml";
 
   @Before
   public void setUp() throws Exception {
     super.setUp();
-    this.wazuhIndices = new WazuhIndices(client, clusterService);
+
+    threadPool = new TestThreadPool("WazuhIndexerSetupPluginServiceTests");
+    clusterService = createClusterService(threadPool);
+
+
+    Client mockClient = mock(Client.class);
+    AdminClient mockAdminClient = mock(AdminClient.class);
+    IndicesAdminClient mockIndicesAdminClient = mock(IndicesAdminClient.class);
+    when(mockClient.admin()).thenReturn(mockAdminClient);
+    when(mockAdminClient.indices()).thenReturn(mockIndicesAdminClient);
+
+
+    this.wazuhIndices = new WazuhIndices(mockClient, clusterService);
+
+  }
+
+  @After
+  public void testTearDown() throws Exception {
+    threadPool.shutdownNow();
+    clusterService.close();
   }
 
   public void testGetIndexMapping() throws IOException {
@@ -51,8 +76,14 @@ private static final String INDEX_SETTING_FILE_NAME = "index-settings.yml";
   }
 
   public void testPutTemplate() {
-    assertEquals(0,0);
-
+    ActionListener<AcknowledgedResponse> actionListener = mock(ActionListener.class);
+    doAnswer( invocation -> {
+      AcknowledgedResponse response = invocation.getArgument(0);
+      logger.error(response);
+      assertTrue(response.isAcknowledged());
+      return null;
+    }).when(actionListener).onResponse(any(AcknowledgedResponse.class));
+    this.wazuhIndices.putTemplate(actionListener);
   }
 
   public void testCreate() {
@@ -62,7 +93,5 @@ private static final String INDEX_SETTING_FILE_NAME = "index-settings.yml";
 
   public void testIndexExists() {
     assertEquals(0,0);
-
   }
-
 }

@@ -93,15 +93,18 @@ public class WazuhIndices {
                 .name(indexTemplate)
                 .patterns(List.of("wazuh-*"));
         try {
-            client.admin().indices().putTemplate(putRequest, actionListener);
+            this.client.admin().indices().putTemplate(putRequest, actionListener);
 
         } catch (Exception e) {
-            String errorMessage = new MessageFormat(
-                    "failed to create index template [{0}]",
-                    Locale.ROOT
-            ).format(indexTemplate);
-            log.error(errorMessage, e);
-            throw new IllegalStateException(errorMessage, e);
+            //String errorMessage = new MessageFormat(
+            //        "failed to create index template [{0}]",
+            //        Locale.ROOT
+            //).format(indexTemplate);
+            //log.error(errorMessage, e);
+            //throw new IllegalStateException(errorMessage, e);
+            log.error("Failed to create index template {0}");
+            throw new IllegalStateException(e);
+
         }
     }
 
