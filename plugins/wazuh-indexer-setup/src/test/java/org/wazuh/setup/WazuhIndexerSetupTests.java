@@ -21,6 +21,7 @@ import org.opensearch.action.support.master.AcknowledgedResponse;
 import org.opensearch.client.AdminClient;
 import org.opensearch.client.Client;
 import org.opensearch.client.IndicesAdminClient;
+import org.opensearch.cluster.ClusterState;
 import org.opensearch.cluster.routing.RoutingTable;
 import org.opensearch.cluster.service.ClusterService;
 import org.opensearch.common.util.io.Streams;
@@ -36,7 +37,7 @@ public class WazuhIndexerSetupTests extends OpenSearchTestCase {
 
   private WazuhIndices wazuhIndices;
   private ThreadPool threadPool;
-  private ClusterService clusterService;
+  public ClusterService clusterService;
   private static final String INDEX_MAPPING_FILE_NAME = "index-mapping.yml";
   private static final String INDEX_SETTING_FILE_NAME = "index-settings.yml";
   private Client mockClient;
@@ -47,7 +48,7 @@ public class WazuhIndexerSetupTests extends OpenSearchTestCase {
     super.setUp();
 
     this.threadPool = new TestThreadPool("WazuhIndexerSetupPluginServiceTests");
-    this.clusterService = createClusterService(threadPool);
+    this.clusterService = spy(createClusterService(threadPool));
     this.mockClient = mock(Client.class);
     this.wazuhIndices = new WazuhIndices(mockClient, clusterService);
   }
@@ -160,13 +161,15 @@ public class WazuhIndexerSetupTests extends OpenSearchTestCase {
 
   @Test
   public void testIndexExists() {
-    RoutingTable spyRoutingTable = spy(this.clusterService.state().getRoutingTable());
-
-    when(spyRoutingTable.hasIndex(WazuhIndices.INDEX_NAME)).thenReturn(true);
+    ClusterState mockClusterState = mock(ClusterState.class);
+    RoutingTable mockRoutingTable = mock(RoutingTable.class);
+    when(this.clusterService.state()).thenReturn(mockClusterState);
+    when(mockClusterState.getRoutingTable()).thenReturn(mockRoutingTable);
+    /* Test with existent index response */
+    when(mockRoutingTable.hasIndex(anyString())).thenReturn(true);
     logger.error(this.wazuhIndices.indexExists(WazuhIndices.INDEX_NAME));
-
-    when(spyRoutingTable.hasIndex(WazuhIndices.INDEX_NAME)).thenReturn(false);
+    /* Test with non-existent index response */
+    when(mockRoutingTable.hasIndex(anyString())).thenReturn(false);
     logger.error(this.wazuhIndices.indexExists(WazuhIndices.INDEX_NAME));
-
   }
 }
