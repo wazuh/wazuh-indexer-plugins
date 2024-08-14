@@ -59,17 +59,18 @@ jobs:
           distribution: temurin
           java-version: 11 # TODO update to Java 21
 
-      - name: Setup Gradle
-        uses: gradle/actions/setup-gradle@v3
-
       - name: Get version
         id: version
         run: |
           echo "version=$(<VERSION)" >> "$GITHUB_OUTPUT"
 
-      - name: Run `gradlew build`
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Build with Gradle
         run: |
-          cd ${{ inputs.plugin }}
+          echo "Building ${{ inputs.plugin }} plugin"
+          cd plugins/${{ inputs.plugin }}
           ./gradlew build -Dwazuh.version=${{ steps.version.outputs.version }}
 
       # - name: Test RPM package
@@ -89,6 +90,6 @@ jobs:
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
-          name: ${{ inputs.plugin }}-${{ inputs.id }}-${{ inputs.revision }}.zip
-          path: artifacts/dist/${{ steps.package.outputs.name }}
+          name: ${{ inputs.plugin }}-${{ steps.version.outputs.version }}-${{ inputs.revision }}.zip
+          path: plugins/${{ inputs.plugin }}/build/distributions/${{ inputs.plugin }}-${{ steps.version.outputs.version }}-${{ inputs.revision }}.zip
           if-no-files-found: error
