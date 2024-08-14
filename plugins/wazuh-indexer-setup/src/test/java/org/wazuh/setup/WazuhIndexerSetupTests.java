@@ -50,7 +50,7 @@ public class WazuhIndexerSetupTests extends OpenSearchTestCase {
     this.threadPool = new TestThreadPool("WazuhIndexerSetupPluginServiceTests");
     this.clusterService = spy(createClusterService(threadPool));
     this.mockClient = mock(Client.class);
-    this.wazuhIndices = new WazuhIndices(mockClient, clusterService);
+    this.wazuhIndices = new WazuhIndices(mockClient, clusterService, threadPool);
   }
 
   @After

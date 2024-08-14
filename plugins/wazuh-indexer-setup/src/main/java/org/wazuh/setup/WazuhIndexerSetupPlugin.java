@@ -54,7 +54,7 @@ public class WazuhIndexerSetupPlugin extends Plugin implements ClusterPlugin {
             IndexNameExpressionResolver indexNameExpressionResolver,
             Supplier<RepositoriesService> repositoriesServiceSupplier
     ) {
-        this.indices = new WazuhIndices(client, clusterService);
+        this.indices = new WazuhIndices(client, clusterService, threadPool);
 
         return Collections.emptyList();
     }
