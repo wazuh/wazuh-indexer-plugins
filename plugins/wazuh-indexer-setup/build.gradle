@@ -12,7 +12,6 @@ def pluginDescription = 'Wazuh Indexer setup plugin'
 def projectPath = 'org.wazuh'
 def pathToPlugin = 'setup'
 def pluginClassName = 'WazuhIndexerSetupPlugin'
-group = "WazuhIndexerSetupGroup"
 
 tasks.register("preparePluginPathDirs") {
     mustRunAfter clean
@@ -38,7 +37,7 @@ publishing {
               }
               developers {
                 developer {
-                  name = "OpenSearch"
+                  name = "Wazuh"
                   url = "https://github.com/opensearch-project/opensearch-plugin-template-java"
                 }
               }
@@ -64,6 +63,7 @@ validateNebulaPom.enabled = false
 buildscript {
     ext {
         opensearch_version = System.getProperty("opensearch.version", "2.14.0")
+        wazuh_version = System.getProperty("wazuh.version", "5.0.0")
     }
 
     repositories {
@@ -76,6 +76,11 @@ buildscript {
     dependencies {
         classpath "org.opensearch.gradle:build-tools:${opensearch_version}"
     }
+}
+
+allprojects {
+    group = 'org.wazuh'
+    version = "${wazuh_version}" + '.0'
 }
 
 repositories {
