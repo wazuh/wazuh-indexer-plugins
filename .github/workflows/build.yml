@@ -4,7 +4,6 @@ name: Build packages
 # This workflow runs when any of the following occur:
 # - Run manually
 # - Invoked from another workflow
-# - On push to branches named after ci/*
 on:
     workflow_dispatch:
         inputs:
@@ -34,10 +33,6 @@ on:
                 description: "ID used to identify the workflow uniquely."
                 type: string
                 required: false
-    push:
-        # Sequence of patterns matched against refs/heads
-        branches:
-            - "ci/*"
 
 # ==========================
 # Bibliography
