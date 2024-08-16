@@ -14,7 +14,6 @@ on:
             plugin:
                 description: "Name of the plugin to build"
                 type: string
-                required: true
                 default: "wazuh-indexer-setup"
             id:
                 description: "ID used to identify the workflow uniquely."
@@ -29,9 +28,9 @@ on:
             plugin:
                 description: "Name of the plugin to build"
                 type: string
-                required: true
                 default: "wazuh-indexer-setup"
             id:
+                description: "ID used to identify the workflow uniquely."
                 type: string
                 required: false
 
