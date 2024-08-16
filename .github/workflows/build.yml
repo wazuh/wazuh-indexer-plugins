@@ -64,7 +64,7 @@ jobs:
 
             - name: Build with Gradle
               working-directory: ./plugins/${{ inputs.plugin }}
-              run: ./gradlew build -Dwazuh.version=${{ steps.version.outputs.version }} -Drevision=${{ inputs.revision }}
+              run: ./gradlew build -Dversion=${{ steps.version.outputs.version }} -Drevision=${{ inputs.revision }}
 
             # - name: Test RPM package
             #   if: ${{ matrix.distribution == 'rpm' }}

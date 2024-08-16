@@ -63,7 +63,7 @@ validateNebulaPom.enabled = false
 buildscript {
     ext {
         opensearch_version = System.getProperty("opensearch.version", "2.14.0")
-        wazuh_version = System.getProperty("wazuh.version", "5.0.0")
+        version = System.getProperty("version", "5.0.0")
         revision = System.getProperty("revision", "0")
     }
 
@@ -81,7 +81,7 @@ buildscript {
 
 allprojects {
     group = 'org.wazuh'
-    version = "${wazuh_version}" + ".${revision}"
+    version = "${version}" + ".${revision}"
 }
 
 repositories {
