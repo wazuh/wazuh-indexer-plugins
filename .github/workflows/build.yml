@@ -5,35 +5,35 @@ name: Build packages (on demand)
 # - Run manually
 # - Invoked from another workflow
 on:
-  workflow_dispatch:
-    inputs:
-      revision:
-        description: "Revision"
-        type: string
-        default: "0"
-      plugin:
-        description: 'Name of the plugin to build'
-        type: string
-        required: true
-        default: 'wazuh-indexer-setup'
-      id:
-        description: "ID used to identify the workflow uniquely."
-        type: string
-        required: false
-  workflow_call:
-    inputs:
-      revision:
-        description: "Revision"
-        type: string
-        default: "0"
-      plugin:
-        description: 'Name of the plugin to build'
-        type: string
-        required: true
-        default: 'wazuh-indexer-setup'
-      id:
-        type: string
-        required: false
+    workflow_dispatch:
+        inputs:
+            revision:
+                description: "Revision"
+                type: string
+                default: "0"
+            plugin:
+                description: "Name of the plugin to build"
+                type: string
+                required: true
+                default: "wazuh-indexer-setup"
+            id:
+                description: "ID used to identify the workflow uniquely."
+                type: string
+                required: false
+    workflow_call:
+        inputs:
+            revision:
+                description: "Revision"
+                type: string
+                default: "0"
+            plugin:
+                description: "Name of the plugin to build"
+                type: string
+                required: true
+                default: "wazuh-indexer-setup"
+            id:
+                type: string
+                required: false
 
 # ==========================
 # Bibliography
@@ -49,47 +49,40 @@ on:
 #   | https://docs.github.com/en/actions/learn-github-actions/expressions#example
 
 jobs:
+    build:
+        runs-on: ubuntu-latest
+        steps:
+            - uses: actions/checkout@v4
+            - uses: actions/setup-java@v4
+              with:
+                  distribution: temurin
+                  java-version: 21
 
-  build:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-java@v4
-        with:
-          distribution: temurin
-          java-version: 11 # TODO update to Java 21
+            - name: Get version
+              id: version
+              run: echo "version=$(<VERSION)" >> "$GITHUB_OUTPUT"
 
-      - name: Get version
-        id: version
-        run: |
-          echo "version=$(<VERSION)" >> "$GITHUB_OUTPUT"
+            - name: Build with Gradle
+              working-directory: ./plugins/${{ inputs.plugin }}
+              run: ./gradlew build -Dwazuh.version=${{ steps.version.outputs.version }} -Drevision=${{ inputs.revision }}
 
-      - name: Setup Gradle
-        uses: gradle/actions/setup-gradle@v4
+            # - name: Test RPM package
+            #   if: ${{ matrix.distribution == 'rpm' }}
+            #   uses: addnab/docker-run-action@v3
+            #   with:
+            #     image: redhat/ubi9:latest
+            #     options: -v ${{ github.workspace }}/artifacts/dist:/artifacts/dist
+            #     run: |
+            #       yum localinstall "/artifacts/dist/${{ steps.package.outputs.name }}" -y
 
-      - name: Build with Gradle
-        run: |
-          echo "Building ${{ inputs.plugin }} plugin"
-          cd plugins/${{ inputs.plugin }}
-          ./gradlew build -Dwazuh.version=${{ steps.version.outputs.version }}
+            # - name: Test DEB package
+            #   if: ${{ matrix.distribution == 'deb' }}
+            #   run: |
+            #     sudo dpkg -i "artifacts/dist/${{ steps.package.outputs.name }}"
 
-      # - name: Test RPM package
-      #   if: ${{ matrix.distribution == 'rpm' }}
-      #   uses: addnab/docker-run-action@v3
-      #   with:
-      #     image: redhat/ubi9:latest
-      #     options: -v ${{ github.workspace }}/artifacts/dist:/artifacts/dist
-      #     run: |
-      #       yum localinstall "/artifacts/dist/${{ steps.package.outputs.name }}" -y
-
-      # - name: Test DEB package
-      #   if: ${{ matrix.distribution == 'deb' }}
-      #   run: |
-      #     sudo dpkg -i "artifacts/dist/${{ steps.package.outputs.name }}"
-
-      - name: Upload artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: ${{ inputs.plugin }}-${{ steps.version.outputs.version }}.${{ inputs.revision }}.zip
-          path: plugins/${{ inputs.plugin }}/build/distributions/${{ inputs.plugin }}-${{ steps.version.outputs.version }}.${{ inputs.revision }}.zip
-          if-no-files-found: error
+            - name: Upload artifact
+              uses: actions/upload-artifact@v4
+              with:
+                  name: ${{ inputs.plugin }}-${{ steps.version.outputs.version }}.${{ inputs.revision }}.zip
+                  path: plugins/${{ inputs.plugin }}/build/distributions/${{ inputs.plugin }}-${{ steps.version.outputs.version }}.${{ inputs.revision }}.zip
+                  if-no-files-found: error

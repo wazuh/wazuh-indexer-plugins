@@ -64,6 +64,7 @@ buildscript {
     ext {
         opensearch_version = System.getProperty("opensearch.version", "2.14.0")
         wazuh_version = System.getProperty("wazuh.version", "5.0.0")
+        revision = System.getProperty("revision", "0")
     }
 
     repositories {
@@ -80,7 +81,7 @@ buildscript {
 
 allprojects {
     group = 'org.wazuh'
-    version = "${wazuh_version}" + '.0'
+    version = "${wazuh_version}" + ".${revision}"
 }
 
 repositories {
