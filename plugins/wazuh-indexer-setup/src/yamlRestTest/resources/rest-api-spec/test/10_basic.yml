@@ -11,18 +11,7 @@
 ---
 "Check index is created":
   - do:
-      indices.create:
-        index: test_index
-  - do:
-      indices.create:
-        index: test_index2
-  - do:
-      indices.create:
-        index: test_index3
-  - do:
-      indices.flush:
-        force: true
-  - do:
       cat.indices: {}
 
   - match: { $body: /.+wazuh-indexer-setup-plugin.+/ }
+

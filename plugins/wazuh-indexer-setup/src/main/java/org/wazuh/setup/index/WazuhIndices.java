@@ -22,7 +22,6 @@ import org.opensearch.cluster.ClusterState;
 import org.opensearch.cluster.service.ClusterService;
 import org.opensearch.common.unit.TimeValue;
 import org.opensearch.common.util.io.Streams;
-import org.opensearch.common.xcontent.XContentType;
 import org.opensearch.core.action.ActionListener;
 import org.opensearch.core.concurrency.OpenSearchRejectedExecutionException;
 import org.opensearch.threadpool.ThreadPool;
@@ -40,141 +39,112 @@ import static org.opensearch.common.unit.TimeValue.timeValueMillis;
 
 public class WazuhIndices {
 
-    private static final Logger log = LogManager.getLogger(WazuhIndices.class);
+  private static final Logger log = LogManager.getLogger(WazuhIndices.class);
 
-    private final Client client;
-    private final ClusterService clusterService;
-    private final ThreadPool threadPool;
+  private final Client client;
+  private final ClusterService clusterService;
+  private final ThreadPool threadPool;
 
-    public static final String INDEX_NAME = "wazuh-indexer-setup-plugin";
-    private static final String INDEX_MAPPING_FILE_NAME = "index-mapping.yml";
-    private static final String INDEX_SETTING_FILE_NAME = "index-settings.yml";
-    static final BackoffPolicy STORE_BACKOFF_POLICY = BackoffPolicy.exponentialBackoff(timeValueMillis(250), 14);
+  public static final String INDEX_NAME = "wazuh-indexer-setup-plugin";
+  private static final String INDEX_MAPPING_FILE_NAME = "index-mapping.yml";
+  private static final String INDEX_SETTING_FILE_NAME = "index-settings.yml";
+  public static final List<String> INDEX_NAMES = List.of(WazuhIndices.INDEX_NAME);
 
-    /**
-     * Constructor
-     * @param client Client
-     * @param clusterService ClusterService
-     */
-    public WazuhIndices(Client client, ClusterService clusterService, ThreadPool threadPool) {
-        this.client = client;
-        this.clusterService = clusterService;
-        this.threadPool = threadPool;
+  /**
+   * Constructor
+   * @param client Client
+   * @param clusterService ClusterService
+   */
+  public WazuhIndices(Client client, ClusterService clusterService, ThreadPool threadPool) {
+    this.client = client;
+    this.clusterService = clusterService;
+    this.threadPool = threadPool;
+  }
+
+  /**
+   * Retrieves mappings from yaml files
+   * @return string
+   */
+  public String getIndexMapping() {
+    try (InputStream is = getClass().getClassLoader().getResourceAsStream(INDEX_MAPPING_FILE_NAME)) {
+      ByteArrayOutputStream out = new ByteArrayOutputStream();
+      Streams.copy(is, out);
+      return out.toString(StandardCharsets.UTF_8);
+    } catch (Exception e) {
+      String errorMessage = new MessageFormat(
+          "failed to load index mapping file [{0}]",
+          Locale.ROOT
+      ).format(INDEX_MAPPING_FILE_NAME);
+      log.error(errorMessage, e);
+      throw new IllegalStateException(errorMessage, e);
     }
+  }
 
-    /**
-     *
-     * @return string
-     */
-    public String getIndexMapping() {
-        try (InputStream is = getClass().getClassLoader().getResourceAsStream(INDEX_MAPPING_FILE_NAME)) {
-            ByteArrayOutputStream out = new ByteArrayOutputStream();
-            Streams.copy(is, out);
-            return out.toString(StandardCharsets.UTF_8);
-        } catch (Exception e) {
-            String errorMessage = new MessageFormat(
-                "failed to load index mapping file [{0}]",
-                Locale.ROOT
-            ).format(INDEX_MAPPING_FILE_NAME);
-            log.error(errorMessage, e);
-            throw new IllegalStateException(errorMessage, e);
-        }
+  /**
+   * Retrieves index settings from yaml files
+   * @return string
+   */
+  public String getIndexSettings() {
+    try (InputStream is = getClass().getClassLoader().getResourceAsStream(INDEX_SETTING_FILE_NAME)) {
+      ByteArrayOutputStream out = new ByteArrayOutputStream();
+      Streams.copy(is, out);
+      return out.toString(StandardCharsets.UTF_8);
+    } catch (Exception e) {
+      String errorMessage = new MessageFormat(
+          "failed to load index settings file [{0}]",
+          Locale.ROOT
+      ).format(INDEX_SETTING_FILE_NAME);
+      log.error(errorMessage, e);
+      throw new IllegalStateException(errorMessage, e);
     }
+  }
 
-    /**
-     *
-     * @return string
-     */
-    public String getIndexSettings() {
-        try (InputStream is = getClass().getClassLoader().getResourceAsStream(INDEX_SETTING_FILE_NAME)) {
-            ByteArrayOutputStream out = new ByteArrayOutputStream();
-            Streams.copy(is, out);
-            return out.toString(StandardCharsets.UTF_8);
-        } catch (Exception e) {
-            String errorMessage = new MessageFormat(
-                "failed to load index settings file [{0}]",
-                Locale.ROOT
-            ).format(INDEX_SETTING_FILE_NAME);
-            log.error(errorMessage, e);
-            throw new IllegalStateException(errorMessage, e);
-        }
+  /**
+   *  Loads a template
+   * @param actionListener: The ActionListener that will handle the response.
+   */
+  public void putTemplate(ActionListener<AcknowledgedResponse> actionListener) throws IOException {
+    String indexTemplate = "wazuh";
+    PutIndexTemplateRequest putRequest = new PutIndexTemplateRequest()
+        .name(indexTemplate)
+        .patterns(List.of("wazuh-*"));
+    try {
+      this.client.admin().indices().putTemplate(putRequest, actionListener);
+
+    } catch (Exception e) {
+      //String errorMessage = new MessageFormat(
+      //        "failed to create index template [{0}]",
+      //        Locale.ROOT
+      //).format(indexTemplate);
+      //log.error(errorMessage, e);
+      //throw new IllegalStateException(errorMessage, e);
+      log.error("Failed to create index template {0}");
+      throw new IllegalStateException(e);
     }
+  }
 
-    public void putTemplate(ActionListener<AcknowledgedResponse> actionListener) {
-        String indexTemplate = "wazuh";
-        PutIndexTemplateRequest putRequest = new PutIndexTemplateRequest()
-                .name(indexTemplate)
-                .patterns(List.of("wazuh-*"));
-        try {
-            this.client.admin().indices().putTemplate(putRequest, actionListener);
-
-        } catch (Exception e) {
-            //String errorMessage = new MessageFormat(
-            //        "failed to create index template [{0}]",
-            //        Locale.ROOT
-            //).format(indexTemplate);
-            //log.error(errorMessage, e);
-            //throw new IllegalStateException(errorMessage, e);
-            log.error("Failed to create index template {0}");
-            throw new IllegalStateException(e);
-
-        }
+  /**
+   * Create Wazuh's Indices.
+   * @param indexName: Name of the index to be created
+   */
+  public void create(String indexName) {
+    try {
+      if (!indexExists(WazuhIndices.INDEX_NAME)) {
+        CreateIndexRequest request = new CreateIndexRequest(indexName);
+        CreateIndexResponse createIndexResponse = client.admin().indices().create(request).actionGet();
+        log.info("Index created successfully: {}", createIndexResponse);
+      }
+    } catch (Exception e) {
+      log.error("Error while creating index: {}", e.getMessage());
     }
+  }
 
-    /**
-     * Create Wazuh's Indices.
-     */
-    public void create(ActionListener<CreateIndexResponse> actionListener) throws IOException {
-
-        if (!indexExists(WazuhIndices.INDEX_NAME)) {
-            CreateIndexRequest indexRequest = new CreateIndexRequest(WazuhIndices.INDEX_NAME)
-                    .mapping(getIndexMapping(), XContentType.YAML)
-                    .settings(getIndexSettings(), XContentType.YAML);
-            client.admin().indices().create(indexRequest, new ActionListener<CreateIndexResponse>() {
-
-                @Override
-                public void onResponse(CreateIndexResponse createIndexResponse) {
-                    IndexRequestBuilder index = client.prepareIndex(WazuhIndices.INDEX_NAME);
-                    Iterator<TimeValue> backoff = STORE_BACKOFF_POLICY.iterator();
-                    doStoreResult(backoff, index, actionListener);
-                }
-
-                @Override
-                public void onFailure(Exception e) {
-
-                }
-            } );
-        }
-    }
-
-    private void doStoreResult(Iterator<TimeValue> backoff, IndexRequestBuilder index, ActionListener<CreateIndexResponse> actionListener) {
-
-        index.execute(new ActionListener<IndexResponse>() {
-            @Override
-            public void onResponse(IndexResponse indexResponse) {
-                actionListener.onResponse(null);
-            }
-
-            @Override
-            public void onFailure(Exception e) {
-                if (!(e instanceof OpenSearchRejectedExecutionException) || !backoff.hasNext()) {
-                    actionListener.onFailure(e);
-                } else {
-                    TimeValue wait = backoff.next();
-                    log.warn(() -> new ParameterizedMessage("failed to store task result, retrying in [{}]", wait), e);
-                    threadPool.schedule(() -> doStoreResult(backoff, index, actionListener), wait, ThreadPool.Names.SAME);
-                }
-            }
-        });
-
-    }
-
-
-    /**
-     * Generic indexExists method
-     */
-    public boolean indexExists(String indexName) {
-        ClusterState clusterState = clusterService.state();
-        return clusterState.getRoutingTable().hasIndex(indexName);
-    }
+  /**
+   * Generic indexExists method
+   * @param indexName: The index name to be checked for
+   */
+  public boolean indexExists(String indexName) {
+    ClusterState clusterState = this.clusterService.state();
+    return clusterState.getRoutingTable().hasIndex(indexName);
+  }
 }

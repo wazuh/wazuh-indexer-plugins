@@ -13,7 +13,6 @@ import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import org.junit.After;
 import org.junit.Before;
-import org.junit.Test;
 import org.opensearch.action.admin.indices.create.CreateIndexRequest;
 import org.opensearch.action.admin.indices.create.CreateIndexResponse;
 import org.opensearch.action.admin.indices.template.put.PutIndexTemplateRequest;
@@ -42,7 +41,10 @@ public class WazuhIndexerSetupTests extends OpenSearchTestCase {
   private static final String INDEX_SETTING_FILE_NAME = "index-settings.yml";
   private Client mockClient;
 
-
+  /**
+   * Creates the necessary mocks and spies
+   * @throws Exception
+   */
   @Before
   public void setUp() throws Exception {
     super.setUp();
@@ -53,13 +55,21 @@ public class WazuhIndexerSetupTests extends OpenSearchTestCase {
     this.wazuhIndices = new WazuhIndices(mockClient, clusterService, threadPool);
   }
 
+  /**
+   * Shuts the test cluster down properly after tests are done
+   * @throws Exception
+   */
   @After
   public void testTearDown() throws Exception {
     this.threadPool.shutdownNow();
     this.clusterService.close();
   }
 
-  @Test
+  /**
+   * Tests if the index mappings returned by the getIndexMapping() function
+   * match the contents of the yaml file
+   * @throws IOException
+   */
   public void testGetIndexMapping() throws IOException {
     String indexMapping = this.wazuhIndices.getIndexMapping();
     InputStream is = WazuhIndices.class.getClassLoader().getResourceAsStream(INDEX_MAPPING_FILE_NAME);
@@ -68,7 +78,6 @@ public class WazuhIndexerSetupTests extends OpenSearchTestCase {
     assertEquals(out.toString(StandardCharsets.UTF_8),this.wazuhIndices.getIndexMapping());
   }
 
-  @Test
   public void testGetIndexSettings() throws IOException {
     InputStream is = getClass().getClassLoader().getResourceAsStream(INDEX_SETTING_FILE_NAME);
     ByteArrayOutputStream out = new ByteArrayOutputStream();
@@ -76,7 +85,10 @@ public class WazuhIndexerSetupTests extends OpenSearchTestCase {
     assertEquals(out.toString(StandardCharsets.UTF_8), this.wazuhIndices.getIndexSettings());
   }
 
-  @Test
+  /**
+   * Tests the putTemplate method
+   */
+
   public void testPutTemplate() {
 
     AdminClient mockAdminClient = mock(AdminClient.class);
@@ -112,7 +124,9 @@ public class WazuhIndexerSetupTests extends OpenSearchTestCase {
     this.wazuhIndices.putTemplate(actionListener);
   }
 
-  @Test
+  /**
+   * Tests creating an index
+   */
   public void testCreate() {
     AdminClient mockAdminClient = mock(AdminClient.class);
     IndicesAdminClient mockIndicesAdminClient = mock(IndicesAdminClient.class);
@@ -139,7 +153,7 @@ public class WazuhIndexerSetupTests extends OpenSearchTestCase {
     };
 
     try {
-      this.wazuhIndices.create(actionListener);
+      this.wazuhIndices.create(WazuhIndices.INDEX_NAME);
     }
     catch (Exception e) {
       logger.error(e);
@@ -152,14 +166,16 @@ public class WazuhIndexerSetupTests extends OpenSearchTestCase {
     }).when(mockIndicesAdminClient).create(any(CreateIndexRequest.class), any(ActionListener.class));
 
     try {
-      this.wazuhIndices.create(actionListener);
+      this.wazuhIndices.create(WazuhIndices.INDEX_NAME);
     }
     catch (Exception e) {
       logger.error(e);
     }
   }
 
-  @Test
+  /**
+   * Tests the indexExists() method
+   */
   public void testIndexExists() {
     ClusterState mockClusterState = mock(ClusterState.class);
     RoutingTable mockRoutingTable = mock(RoutingTable.class);
