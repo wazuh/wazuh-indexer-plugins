@@ -78,6 +78,10 @@ public class WazuhIndexerSetupTests extends OpenSearchTestCase {
     assertEquals(out.toString(StandardCharsets.UTF_8),this.wazuhIndices.getIndexMapping());
   }
 
+  /**
+   * Tests if the return of getIndexSettings match the context of the reference yaml file
+   * @throws IOException
+   */
   public void testGetIndexSettings() throws IOException {
     InputStream is = getClass().getClassLoader().getResourceAsStream(INDEX_SETTING_FILE_NAME);
     ByteArrayOutputStream out = new ByteArrayOutputStream();
