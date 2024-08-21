@@ -65,40 +65,27 @@ public class WazuhIndices {
    * Retrieves mappings from yaml files
    * @return string
    */
-  public String getIndexMapping() {
-    try (InputStream is = getClass().getClassLoader().getResourceAsStream(INDEX_MAPPING_FILE_NAME)) {
-      ByteArrayOutputStream out = new ByteArrayOutputStream();
-      Streams.copy(is, out);
-      return out.toString(StandardCharsets.UTF_8);
-    } catch (Exception e) {
-      String errorMessage = new MessageFormat(
-          "failed to load index mapping file [{0}]",
-          Locale.ROOT
-      ).format(INDEX_MAPPING_FILE_NAME);
-      log.error(errorMessage, e);
-      throw new IllegalStateException(errorMessage, e);
-    }
+  public Map<String, Object> getIndexMapping(String indexName) {
+    String indexTemplate = templates.get(indexName);
+    String indexTemplateFileName = indexTemplate + ".json";
+    return (Map<String, Object>) stringToMap(getIndexTemplateFromFile(indexTemplateFileName)).get("mappings");
   }
 
   /**
    * Retrieves index settings from yaml files
    * @return string
    */
-  public String getIndexSettings() {
-    try (InputStream is = getClass().getClassLoader().getResourceAsStream(INDEX_SETTING_FILE_NAME)) {
-      ByteArrayOutputStream out = new ByteArrayOutputStream();
-      Streams.copy(is, out);
-      return out.toString(StandardCharsets.UTF_8);
-    } catch (Exception e) {
-      String errorMessage = new MessageFormat(
-          "failed to load index settings file [{0}]",
-          Locale.ROOT
-      ).format(INDEX_SETTING_FILE_NAME);
-      log.error(errorMessage, e);
-      throw new IllegalStateException(errorMessage, e);
-    }
+  public Map<String,Object> getIndexSettings(String indexName) {
+    String indexTemplate = templates.get(indexName);
+    String indexTemplateFileName = indexTemplate + ".json";
+    return (Map<String, Object>) stringToMap(getIndexTemplateFromFile(indexTemplateFileName)).get("settings");
   }
 
+  /**
+   * Get the templates from accordingly named files
+   * @param indexTemplateFileName: the filename to get the json-formatted template from
+   * @return a string with the json contents
+   */
   public String getIndexTemplateFromFile(String indexTemplateFileName) {
     try (InputStream is = getClass().getClassLoader().getResourceAsStream(indexTemplateFileName)) {
       ByteArrayOutputStream out = new ByteArrayOutputStream();
@@ -135,10 +122,8 @@ public class WazuhIndices {
   public void putTemplate(String indexName) throws IOException {
     String indexTemplate = templates.get(indexName);
     String indexTemplateFileName = indexTemplate + ".json";
-    Map<String, Object> template = stringToMap(getIndexTemplateFromFile(indexTemplateFileName));
-    // TODO: Avoid using raw types
-    PutIndexTemplateRequest putRequest = new PutIndexTemplateRequest(indexTemplate).mapping((Map<String, Object>) template.get("mappings"))
-        .settings((Map<String, Object>) template.get("settings"))
+    PutIndexTemplateRequest putRequest = new PutIndexTemplateRequest(indexTemplate).mapping(getIndexMapping(indexName))
+        .settings(getIndexSettings(indexName))
         .name(indexTemplate)
         .patterns(List.of(indexName + "-*"));
     try {
