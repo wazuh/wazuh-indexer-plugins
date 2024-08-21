@@ -28,8 +28,10 @@ import org.opensearch.watcher.ResourceWatcherService;
 import org.wazuh.setup.index.WazuhIndices;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.List;
 import java.util.function.Supplier;
 
 
@@ -59,25 +61,15 @@ public class WazuhIndexerSetupPlugin extends Plugin implements ClusterPlugin {
 
   @Override
    public void onNodeStarted(DiscoveryNode localNode) {
-
     try {
-      this.indices.putTemplate(new ActionListener<>() {
-        @Override
-        public void onResponse(AcknowledgedResponse acknowledgedResponse) {
-          log.info("template created");
-        }
-
-        @Override
-        public void onFailure(Exception e) {
-          log.error("template creation failed");
-        }
-      });
+      List<String> indexNames = new ArrayList<String>(WazuhIndices.templates.keySet());
+      for(String s : indexNames) {
+        this.indices.putTemplate(s);
+        this.indices.create(s);
+      }
 
     } catch (IOException e) {
       throw new RuntimeException(e);
-    }
-    for(String s : WazuhIndices.INDEX_NAMES) {
-      this.indices.create(s);
     }
     ClusterPlugin.super.onNodeStarted(localNode);
   }

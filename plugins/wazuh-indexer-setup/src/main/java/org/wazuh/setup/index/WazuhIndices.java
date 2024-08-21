@@ -7,35 +7,33 @@
  */
 package org.wazuh.setup.index;
 
+import com.fasterxml.jackson.core.JsonParser;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.apache.logging.log4j.message.ParameterizedMessage;
 import org.opensearch.action.admin.indices.create.CreateIndexRequest;
 import org.opensearch.action.admin.indices.create.CreateIndexResponse;
 import org.opensearch.action.admin.indices.template.put.PutIndexTemplateRequest;
-import org.opensearch.action.bulk.BackoffPolicy;
-import org.opensearch.action.index.IndexRequestBuilder;
-import org.opensearch.action.index.IndexResponse;
 import org.opensearch.action.support.master.AcknowledgedResponse;
 import org.opensearch.client.Client;
 import org.opensearch.cluster.ClusterState;
 import org.opensearch.cluster.service.ClusterService;
-import org.opensearch.common.unit.TimeValue;
 import org.opensearch.common.util.io.Streams;
+import org.opensearch.common.xcontent.json.JsonXContent;
+import org.opensearch.common.xcontent.json.JsonXContentParser;
 import org.opensearch.core.action.ActionListener;
-import org.opensearch.core.concurrency.OpenSearchRejectedExecutionException;
+import org.opensearch.core.xcontent.DeprecationHandler;
+import org.opensearch.core.xcontent.NamedXContentRegistry;
+import org.opensearch.core.xcontent.XContentBuilder;
+import org.opensearch.core.xcontent.XContentParser;
 import org.opensearch.threadpool.ThreadPool;
+import com.fasterxml.jackson.core.JsonFactory;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.text.MessageFormat;
-import java.util.List;
-import java.util.Iterator;
-import java.util.Locale;
-
-import static org.opensearch.common.unit.TimeValue.timeValueMillis;
+import java.util.*;
 
 public class WazuhIndices {
 
@@ -49,6 +47,7 @@ public class WazuhIndices {
   private static final String INDEX_MAPPING_FILE_NAME = "index-mapping.yml";
   private static final String INDEX_SETTING_FILE_NAME = "index-settings.yml";
   public static final List<String> INDEX_NAMES = List.of(WazuhIndices.INDEX_NAME);
+  public static final Map<String, String> templates = new HashMap<>();
 
   /**
    * Constructor
@@ -59,6 +58,7 @@ public class WazuhIndices {
     this.client = client;
     this.clusterService = clusterService;
     this.threadPool = threadPool;
+    templates.put(WazuhIndices.INDEX_NAME, String.format("%s-template", WazuhIndices.INDEX_NAME));
   }
 
   /**
@@ -99,17 +99,56 @@ public class WazuhIndices {
     }
   }
 
+  public String getIndexTemplateFromFile(String indexTemplateFileName) {
+    try (InputStream is = getClass().getClassLoader().getResourceAsStream(indexTemplateFileName)) {
+      ByteArrayOutputStream out = new ByteArrayOutputStream();
+      Streams.copy(is, out);
+      return out.toString(StandardCharsets.UTF_8);
+    } catch (Exception e) {
+      String errorMessage = new MessageFormat(
+          "failed to load index template file [{0}]",
+          Locale.ROOT
+      ).format(indexTemplateFileName);
+      log.error(errorMessage, e);
+      throw new IllegalStateException(errorMessage, e);
+    }
+  }
+
+  public Map<String, Object> stringToMap(String template) {
+    try (XContentParser parser = JsonXContent.jsonXContent.createParser(NamedXContentRegistry.EMPTY, DeprecationHandler.THROW_UNSUPPORTED_OPERATION,template)) {
+      parser.nextToken();
+      return parser.map();
+    } catch (IOException e) {
+      throw new RuntimeException(e);
+    }
+  }
+
   /**
    *  Loads a template
-   * @param actionListener: The ActionListener that will handle the response.
+   * @param indexName: The index name to load the template for
    */
-  public void putTemplate(ActionListener<AcknowledgedResponse> actionListener) throws IOException {
-    String indexTemplate = "wazuh";
-    PutIndexTemplateRequest putRequest = new PutIndexTemplateRequest()
+  public void putTemplate(String indexName) throws IOException {
+    String indexTemplate = templates.get(indexName);
+    String indexTemplateFileName = indexTemplate + ".json";
+    Map<String, Object> template = stringToMap(getIndexTemplateFromFile(indexTemplateFileName));
+    // TODO: Avoid using raw types
+    PutIndexTemplateRequest putRequest = new PutIndexTemplateRequest(indexTemplate).mapping((Map<String, Object>) template.get("mappings"))
+        .settings((Map<String, Object>) template.get("settings"))
         .name(indexTemplate)
-        .patterns(List.of("wazuh-*"));
+        .patterns(List.of(indexName + "-*"));
     try {
-      this.client.admin().indices().putTemplate(putRequest, actionListener);
+      this.client.admin().indices().putTemplate(putRequest, new ActionListener<>() {
+
+        @Override
+        public void onResponse(AcknowledgedResponse acknowledgedResponse) {
+          log.info("template created");
+        }
+
+        @Override
+        public void onFailure(Exception e) {
+          log.error("template creation failed");
+        }
+      });
 
     } catch (Exception e) {
       //String errorMessage = new MessageFormat(
