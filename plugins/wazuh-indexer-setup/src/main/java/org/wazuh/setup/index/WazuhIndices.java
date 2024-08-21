@@ -114,6 +114,11 @@ public class WazuhIndices {
     }
   }
 
+  /**
+   * Convert from a JSON string into a <String, Object> map
+   * @param template: the json formatted string
+   * @return a map with the json string contents.
+   */
   public Map<String, Object> stringToMap(String template) {
     try (XContentParser parser = JsonXContent.jsonXContent.createParser(NamedXContentRegistry.EMPTY, DeprecationHandler.THROW_UNSUPPORTED_OPERATION,template)) {
       parser.nextToken();
