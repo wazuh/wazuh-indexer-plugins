@@ -1,0 +1,6 @@
+---
+"Check index is created":
+  - do:
+      cat.indices: {}
+
+  - match: { $body: /.+wazuh-indexer-setup-plugin.+/ }
