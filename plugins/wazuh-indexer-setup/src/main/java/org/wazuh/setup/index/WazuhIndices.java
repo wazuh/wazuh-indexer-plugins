@@ -156,14 +156,8 @@ public class WazuhIndices {
         }
       });
     } catch (Exception e) {
-      //String errorMessage = new MessageFormat(
-      //        "failed to create index template [{0}]",
-      //        Locale.ROOT
-      //).format(indexTemplate);
-      //log.error(errorMessage, e);
-      //throw new IllegalStateException(errorMessage, e);
       log.error("Failed to create index template {0}");
-      throw new IllegalStateException(e);
+      throw new IllegalStateException(e.toString());
     }
   }
 

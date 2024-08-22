@@ -37,6 +37,9 @@ public class WazuhIndexerSetupPlugin extends Plugin implements ClusterPlugin {
   private static final Logger log = LogManager.getLogger(WazuhIndexerSetupPlugin.class);
 
   private WazuhIndices indices;
+  private Client client;
+  private ClusterService clusterService;
+  private ThreadPool threadPool;
 
   @Override
   public Collection<Object> createComponents(
@@ -52,13 +55,16 @@ public class WazuhIndexerSetupPlugin extends Plugin implements ClusterPlugin {
       IndexNameExpressionResolver indexNameExpressionResolver,
       Supplier<RepositoriesService> repositoriesServiceSupplier
   ) {
-    this.indices = new WazuhIndices(client, clusterService, threadPool);
+    this.client = client;
+    this.clusterService = clusterService;
+    this.threadPool = threadPool;
     return Collections.emptyList();
   }
 
   @Override
    public void onNodeStarted(DiscoveryNode localNode) {
     try {
+      this.indices = new WazuhIndices(this.client, this.clusterService, this.threadPool);
       List<String> indexNames = new ArrayList<String>(this.indices.getIndexTemplateNamesMap().keySet());
       for(String s : indexNames) {
         this.indices.putTemplate(s);
