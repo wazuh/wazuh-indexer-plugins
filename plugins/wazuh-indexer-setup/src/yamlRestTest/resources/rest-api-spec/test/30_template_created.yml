@@ -1,0 +1,8 @@
+---
+"Check template is created":
+
+    - do:
+        cat.templates: {}
+
+    - match:
+        $body: /^wazuh-indexer-setup-plugin-template.+$/
