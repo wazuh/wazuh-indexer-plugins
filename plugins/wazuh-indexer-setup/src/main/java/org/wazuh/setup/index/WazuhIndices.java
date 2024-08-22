@@ -16,7 +16,6 @@ import org.opensearch.action.support.master.AcknowledgedResponse;
 import org.opensearch.client.Client;
 import org.opensearch.cluster.ClusterState;
 import org.opensearch.cluster.service.ClusterService;
-import org.opensearch.common.util.io.Streams;
 import org.opensearch.common.xcontent.json.JsonXContent;
 import org.opensearch.core.action.ActionListener;
 import org.opensearch.core.xcontent.DeprecationHandler;
@@ -24,11 +23,9 @@ import org.opensearch.core.xcontent.NamedXContentRegistry;
 import org.opensearch.core.xcontent.XContentParser;
 import org.opensearch.threadpool.ThreadPool;
 
-import java.io.ByteArrayOutputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
-import java.nio.charset.StandardCharsets;
 import java.text.MessageFormat;
 import java.util.*;
 
@@ -63,20 +60,16 @@ public class WazuhIndices {
    * Retrieves mappings from yaml files
    * @return string
    */
-  public Map<String, Object> getIndexMapping(String indexName) {
-    String indexTemplate = getTemplates().get(indexName);
-    String indexTemplateFileName = indexTemplate + ".json";
-    return (Map<String, Object>) stringToMap(getIndexTemplateFromFile(indexTemplateFileName)).get("mappings");
+  public Map<String,Object> getIndexMappings(Map<String, Object> template) {
+    return (Map<String, Object>) template.get("mappings");
   }
 
   /**
    * Retrieves index settings from yaml files
    * @return string
    */
-  public Map<String,Object> getIndexSettings(String indexName) {
-    String indexTemplate = getTemplates().get(indexName);
-    String indexTemplateFileName = indexTemplate + ".json";
-    return (Map<String, Object>) stringToMap(getIndexTemplateFromFile(indexTemplateFileName)).get("settings");
+  public Map<String,Object> getIndexSettings(Map<String, Object> template) {
+    return (Map<String, Object>) template.get("settings");
   }
 
   /**
@@ -84,19 +77,18 @@ public class WazuhIndices {
    * @param indexTemplateFileName: the filename to get the json-formatted template from
    * @return a string with the json contents
    */
-  public String getIndexTemplateFromFile(String indexTemplateFileName) {
+  public Map<String,Object> getIndexTemplateFromFile(String indexTemplateFileName) throws FileNotFoundException {
     try (InputStream is = getClass().getClassLoader().getResourceAsStream(indexTemplateFileName)) {
-      ByteArrayOutputStream out = new ByteArrayOutputStream();
-      Streams.copy(is, out);
-      return out.toString(StandardCharsets.UTF_8);
+      //ByteArrayOutputStream out = new ByteArrayOutputStream();
+      //Streams.copy(is, out);
+      return toMap(is);
     } catch (Exception e) {
       String errorMessage = new MessageFormat(
           "failed to load index template file [{0}]",
           Locale.ROOT
       ).format(indexTemplateFileName);
       log.error(errorMessage, e);
-      //throw new IllegalStateException(errorMessage, e);
-      throw new FileNotFoundException(errorMessage, e);
+      throw new FileNotFoundException("File not found");
     }
   }
 
@@ -105,8 +97,22 @@ public class WazuhIndices {
    * @param template: the json formatted string
    * @return a map with the json string contents.
    */
-  public Map<String, Object> stringToMap(String template) {
+  public Map<String, Object> toMap(String template) {
     try (XContentParser parser = JsonXContent.jsonXContent.createParser(NamedXContentRegistry.EMPTY, DeprecationHandler.THROW_UNSUPPORTED_OPERATION,template)) {
+      parser.nextToken();
+      return parser.map();
+    } catch (IOException e) {
+      throw new RuntimeException(e);
+    }
+  }
+
+  /**
+   * Convert from a JSON InputStream into a <String, Object> map
+   * @param template: the json formatted InputStream
+   * @return a map with the json string contents.
+   */
+  public Map<String, Object> toMap(InputStream template) {
+    try (XContentParser parser = JsonXContent.jsonXContent.createParser(NamedXContentRegistry.EMPTY, DeprecationHandler.THROW_UNSUPPORTED_OPERATION, template)) {
       parser.nextToken();
       return parser.map();
     } catch (IOException e) {
@@ -121,8 +127,10 @@ public class WazuhIndices {
   public void putTemplate(String indexName) throws IOException {
     String indexTemplate = getTemplates().get(indexName);
     String indexTemplateFileName = indexTemplate + ".json";
-    PutIndexTemplateRequest putRequest = new PutIndexTemplateRequest(indexTemplate).mapping(getIndexMapping(indexName))
-        .settings(getIndexSettings(indexName))
+    Map<String, Object> template = getIndexTemplateFromFile(indexTemplateFileName);
+    PutIndexTemplateRequest putRequest = new PutIndexTemplateRequest(indexTemplate)
+        .mapping(getIndexMappings(template))
+        .settings(getIndexSettings(template))
         .name(indexTemplate)
         .patterns(List.of(indexName + "-*"));
     try {
