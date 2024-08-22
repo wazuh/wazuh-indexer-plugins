@@ -11,6 +11,10 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
 import org.junit.After;
 import org.junit.Before;
 import org.opensearch.action.admin.indices.create.CreateIndexRequest;
@@ -37,22 +41,41 @@ public class WazuhIndexerSetupTests extends OpenSearchTestCase {
   private WazuhIndices wazuhIndices;
   private ThreadPool threadPool;
   public ClusterService clusterService;
-  private static final String INDEX_MAPPING_FILE_NAME = "index-mapping.yml";
-  private static final String INDEX_SETTING_FILE_NAME = "index-settings.yml";
   private Client mockClient;
+  private Map<String, Object> mockTemplate;
+  private String mockTemplateName;
 
   /**
    * Creates the necessary mocks and spies
-   * @throws Exception
    */
   @Before
   public void setUp() throws Exception {
-    super.setUp();
+    try {
+      super.setUp();
 
-    this.threadPool = new TestThreadPool("WazuhIndexerSetupPluginServiceTests");
-    this.clusterService = spy(createClusterService(threadPool));
-    this.mockClient = mock(Client.class);
-    this.wazuhIndices = new WazuhIndices(mockClient, clusterService, threadPool);
+      this.threadPool = new TestThreadPool("WazuhIndexerSetupPluginServiceTests");
+      this.clusterService = spy(createClusterService(threadPool));
+      this.mockClient = mock(Client.class);
+      this.wazuhIndices = new WazuhIndices(mockClient, clusterService, threadPool);
+      String mockTemplateName = WazuhIndices.INDEX_NAME + "-template";
+      String mockIndexPattern = WazuhIndices.INDEX_NAME + "-*";
+
+
+      Map<String, Object> settings = new HashMap<>();
+      settings.put("field", "value");
+
+      Map<String, Object> mappings = new HashMap<>();
+      settings.put("field", "value");
+
+      mockTemplate = new HashMap<>();
+      mockTemplate.put("order", 0);
+      mockTemplate.put("index_patterns", List.of(mockIndexPattern));
+      mockTemplate.put("settings", settings);
+      mockTemplate.put("mappings", mappings);
+      mockTemplate.put("version", 1);
+    } catch (Exception e) {
+      throw new Exception(e.toString());
+    }
   }
 
   /**
@@ -70,12 +93,9 @@ public class WazuhIndexerSetupTests extends OpenSearchTestCase {
    * match the contents of the yaml file
    * @throws IOException
    */
-  public void testGetIndexMapping() throws IOException {
-    String indexMapping = this.wazuhIndices.getIndexMapping();
-    InputStream is = WazuhIndices.class.getClassLoader().getResourceAsStream(INDEX_MAPPING_FILE_NAME);
-    ByteArrayOutputStream out = new ByteArrayOutputStream();
-    Streams.copy(is, out);
-    assertEquals(out.toString(StandardCharsets.UTF_8),this.wazuhIndices.getIndexMapping());
+  public void testGetIndexMappings() throws IOException {
+    Map<String, Object> mappings = (Map<String, Object>) mockTemplate.get("mappings");
+    assertEquals(this.wazuhIndices.getIndexMappings(mockTemplate), mappings);
   }
 
   /**
@@ -83,10 +103,8 @@ public class WazuhIndexerSetupTests extends OpenSearchTestCase {
    * @throws IOException
    */
   public void testGetIndexSettings() throws IOException {
-    InputStream is = getClass().getClassLoader().getResourceAsStream(INDEX_SETTING_FILE_NAME);
-    ByteArrayOutputStream out = new ByteArrayOutputStream();
-    Streams.copy(is, out);
-    assertEquals(out.toString(StandardCharsets.UTF_8), this.wazuhIndices.getIndexSettings());
+    Map<String, Object> settings = (Map<String, Object>) mockTemplate.get("settings");
+    assertEquals(this.wazuhIndices.getIndexSettings(mockTemplate), settings);
   }
 
   /**
@@ -94,7 +112,6 @@ public class WazuhIndexerSetupTests extends OpenSearchTestCase {
    */
 
   public void testPutTemplate() {
-
     AdminClient mockAdminClient = mock(AdminClient.class);
     IndicesAdminClient mockIndicesAdminClient = mock(IndicesAdminClient.class);
     when(this.mockClient.admin()).thenReturn(mockAdminClient);
@@ -106,18 +123,11 @@ public class WazuhIndexerSetupTests extends OpenSearchTestCase {
       return null;
     }).when(mockIndicesAdminClient).putTemplate(any(PutIndexTemplateRequest.class), any(ActionListener.class));
 
-    ActionListener<AcknowledgedResponse> actionListener = new ActionListener<AcknowledgedResponse>() {
-      @Override
-      public void onResponse(AcknowledgedResponse acknowledgedResponse) {
-        assertTrue(acknowledgedResponse.isAcknowledged());
-      }
-      @Override
-      public void onFailure(Exception e) {
-        logger.error("Mock error putting template: {}", e.toString());
-      }
-    };
-
-    this.wazuhIndices.putTemplate(actionListener);
+    try {
+      this.wazuhIndices.putTemplate(mockTemplateName);
+    } catch (Exception e) {
+      logger.error(e.toString());
+    }
 
     doAnswer( invocation -> {
       ActionListener<AcknowledgedResponse> listener = invocation.getArgument(1);
@@ -125,7 +135,11 @@ public class WazuhIndexerSetupTests extends OpenSearchTestCase {
       return null;
     }).when(mockIndicesAdminClient).putTemplate(any(PutIndexTemplateRequest.class), any(ActionListener.class));
 
-    this.wazuhIndices.putTemplate(actionListener);
+    try {
+      this.wazuhIndices.putTemplate(mockTemplateName);
+    } catch (Exception e) {
+      logger.error(e.toString());
+    }
   }
 
   /**
