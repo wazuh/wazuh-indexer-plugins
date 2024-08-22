@@ -9,12 +9,10 @@ package org.wazuh.setup;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.opensearch.action.support.master.AcknowledgedResponse;
 import org.opensearch.client.Client;
 import org.opensearch.cluster.metadata.IndexNameExpressionResolver;
 import org.opensearch.cluster.node.DiscoveryNode;
 import org.opensearch.cluster.service.ClusterService;
-import org.opensearch.core.action.ActionListener;
 import org.opensearch.core.common.io.stream.NamedWriteableRegistry;
 import org.opensearch.core.xcontent.NamedXContentRegistry;
 import org.opensearch.env.Environment;
@@ -62,13 +60,12 @@ public class WazuhIndexerSetupPlugin extends Plugin implements ClusterPlugin {
   @Override
    public void onNodeStarted(DiscoveryNode localNode) {
     try {
-      List<String> indexNames = new ArrayList<String>(this.indices.getTemplates().keySet());
+      List<String> indexNames = new ArrayList<String>(this.indices.getIndexTemplateNamesMap().keySet());
       for(String s : indexNames) {
         this.indices.putTemplate(s);
         this.indices.create(s);
       }
-
-    } catch (IOException e) {
+    } catch (Exception e) {
       throw new RuntimeException(e);
     }
     ClusterPlugin.super.onNodeStarted(localNode);

@@ -23,7 +23,6 @@ import org.opensearch.core.xcontent.NamedXContentRegistry;
 import org.opensearch.core.xcontent.XContentParser;
 import org.opensearch.threadpool.ThreadPool;
 
-import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.text.MessageFormat;
@@ -38,7 +37,7 @@ public class WazuhIndices {
   private final ThreadPool threadPool;
 
   public static final String INDEX_NAME = "wazuh-indexer-setup-plugin";
-  public final Map<String, String> templates = new HashMap<>();
+  public final Map<String, String> indexTemplateNamesMap = new HashMap<>();
 
   /**
    * Constructor
@@ -49,27 +48,35 @@ public class WazuhIndices {
     this.client = client;
     this.clusterService = clusterService;
     this.threadPool = threadPool;
-    this.templates.put(WazuhIndices.INDEX_NAME, String.format("%s-template", WazuhIndices.INDEX_NAME));
+    this.indexTemplateNamesMap.put(WazuhIndices.INDEX_NAME, String.format("%s-template", WazuhIndices.INDEX_NAME));
   }
 
-  public Map<String, String> getTemplates() {
-    return this.templates;
+  public Map<String, String> getIndexTemplateNamesMap() {
+    return this.indexTemplateNamesMap;
   }
 
   /**
    * Retrieves mappings from yaml files
    * @return string
    */
-  public Map<String,Object> getIndexMappings(Map<String, Object> template) {
-    return (Map<String, Object>) template.get("mappings");
+  public Map<String,Object> getIndexMappings(Map<String, Object> template) throws IOException {
+    try {
+      return (Map<String, Object>) template.get("mappings");
+    } catch (Exception e) {
+      throw new IOException("Could not retrieve mappings out of template file");
+    }
   }
 
   /**
    * Retrieves index settings from yaml files
    * @return string
    */
-  public Map<String,Object> getIndexSettings(Map<String, Object> template) {
-    return (Map<String, Object>) template.get("settings");
+  public Map<String,Object> getIndexSettings(Map<String, Object> template) throws IOException {
+    try {
+      return (Map<String, Object>) template.get("settings");
+    } catch (Exception e) {
+      throw new IOException("Could not settings mappings out of template file");
+    }
   }
 
   /**
@@ -77,18 +84,15 @@ public class WazuhIndices {
    * @param indexTemplateFileName: the filename to get the json-formatted template from
    * @return a string with the json contents
    */
-  public Map<String,Object> getIndexTemplateFromFile(String indexTemplateFileName) throws FileNotFoundException {
+  public Map<String,Object> getIndexTemplateFromFile(String indexTemplateFileName) throws IOException {
     try (InputStream is = getClass().getClassLoader().getResourceAsStream(indexTemplateFileName)) {
-      //ByteArrayOutputStream out = new ByteArrayOutputStream();
-      //Streams.copy(is, out);
       return toMap(is);
-    } catch (Exception e) {
+    } catch (IOException e) {
       String errorMessage = new MessageFormat(
           "failed to load index template file [{0}]",
           Locale.ROOT
       ).format(indexTemplateFileName);
-      log.error(errorMessage, e);
-      throw new FileNotFoundException("File not found");
+      throw new IOException(errorMessage);
     }
   }
 
@@ -97,7 +101,7 @@ public class WazuhIndices {
    * @param template: the json formatted string
    * @return a map with the json string contents.
    */
-  public Map<String, Object> toMap(String template) {
+  public Map<String, Object> toMap(String template) throws RuntimeException {
     try (XContentParser parser = JsonXContent.jsonXContent.createParser(NamedXContentRegistry.EMPTY, DeprecationHandler.THROW_UNSUPPORTED_OPERATION,template)) {
       parser.nextToken();
       return parser.map();
@@ -111,7 +115,7 @@ public class WazuhIndices {
    * @param template: the json formatted InputStream
    * @return a map with the json string contents.
    */
-  public Map<String, Object> toMap(InputStream template) {
+  public Map<String, Object> toMap(InputStream template) throws RuntimeException {
     try (XContentParser parser = JsonXContent.jsonXContent.createParser(NamedXContentRegistry.EMPTY, DeprecationHandler.THROW_UNSUPPORTED_OPERATION, template)) {
       parser.nextToken();
       return parser.map();
@@ -124,15 +128,20 @@ public class WazuhIndices {
    *  Loads a template
    * @param indexName: The index name to load the template for
    */
-  public void putTemplate(String indexName) throws IOException {
-    String indexTemplate = getTemplates().get(indexName);
-    String indexTemplateFileName = indexTemplate + ".json";
+  public void putTemplate(String indexName) throws Exception {
+    String indexTemplateName = getIndexTemplateNamesMap().get(indexName);
+    String indexTemplateFileName = indexTemplateName + ".json";
     Map<String, Object> template = getIndexTemplateFromFile(indexTemplateFileName);
-    PutIndexTemplateRequest putRequest = new PutIndexTemplateRequest(indexTemplate)
-        .mapping(getIndexMappings(template))
-        .settings(getIndexSettings(template))
-        .name(indexTemplate)
-        .patterns(List.of(indexName + "-*"));
+    PutIndexTemplateRequest putRequest;
+    try {
+      putRequest = new PutIndexTemplateRequest(indexTemplateName)
+          .mapping(getIndexMappings(template))
+          .settings(getIndexSettings(template))
+          .name(indexTemplateName)
+          .patterns(List.of(indexName + "-*"));
+    } catch (Exception e) {
+      throw new Exception(e.toString());
+    }
     try {
       this.client.admin().indices().putTemplate(putRequest, new ActionListener<>() {
 
@@ -146,7 +155,6 @@ public class WazuhIndices {
           log.error("template creation failed");
         }
       });
-
     } catch (Exception e) {
       //String errorMessage = new MessageFormat(
       //        "failed to create index template [{0}]",
@@ -180,7 +188,13 @@ public class WazuhIndices {
    * @param indexName: The index name to be checked for
    */
   public boolean indexExists(String indexName) {
-    ClusterState clusterState = this.clusterService.state();
-    return clusterState.getRoutingTable().hasIndex(indexName);
+    boolean indexExists = false;
+    try {
+      ClusterState clusterState = this.clusterService.state();
+      indexExists = clusterState.getRoutingTable().hasIndex(indexName);
+    } catch ( Exception e) {
+      log.error(e.toString());
+    }
+    return indexExists;
   }
 }
