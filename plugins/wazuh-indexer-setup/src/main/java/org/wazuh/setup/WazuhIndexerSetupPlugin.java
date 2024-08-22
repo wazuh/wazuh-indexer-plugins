@@ -62,7 +62,7 @@ public class WazuhIndexerSetupPlugin extends Plugin implements ClusterPlugin {
   @Override
    public void onNodeStarted(DiscoveryNode localNode) {
     try {
-      List<String> indexNames = new ArrayList<String>(WazuhIndices.templates.keySet());
+      List<String> indexNames = new ArrayList<String>(this.indices.getTemplates().keySet());
       for(String s : indexNames) {
         this.indices.putTemplate(s);
         this.indices.create(s);

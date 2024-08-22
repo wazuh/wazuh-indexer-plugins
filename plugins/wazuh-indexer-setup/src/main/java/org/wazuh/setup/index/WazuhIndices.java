@@ -7,7 +7,6 @@
  */
 package org.wazuh.setup.index;
 
-import com.fasterxml.jackson.core.JsonParser;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.opensearch.action.admin.indices.create.CreateIndexRequest;
@@ -19,16 +18,14 @@ import org.opensearch.cluster.ClusterState;
 import org.opensearch.cluster.service.ClusterService;
 import org.opensearch.common.util.io.Streams;
 import org.opensearch.common.xcontent.json.JsonXContent;
-import org.opensearch.common.xcontent.json.JsonXContentParser;
 import org.opensearch.core.action.ActionListener;
 import org.opensearch.core.xcontent.DeprecationHandler;
 import org.opensearch.core.xcontent.NamedXContentRegistry;
-import org.opensearch.core.xcontent.XContentBuilder;
 import org.opensearch.core.xcontent.XContentParser;
 import org.opensearch.threadpool.ThreadPool;
-import com.fasterxml.jackson.core.JsonFactory;
 
 import java.io.ByteArrayOutputStream;
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
@@ -44,10 +41,7 @@ public class WazuhIndices {
   private final ThreadPool threadPool;
 
   public static final String INDEX_NAME = "wazuh-indexer-setup-plugin";
-  private static final String INDEX_MAPPING_FILE_NAME = "index-mapping.yml";
-  private static final String INDEX_SETTING_FILE_NAME = "index-settings.yml";
-  public static final List<String> INDEX_NAMES = List.of(WazuhIndices.INDEX_NAME);
-  public static final Map<String, String> templates = new HashMap<>();
+  public final Map<String, String> templates = new HashMap<>();
 
   /**
    * Constructor
@@ -58,7 +52,11 @@ public class WazuhIndices {
     this.client = client;
     this.clusterService = clusterService;
     this.threadPool = threadPool;
-    templates.put(WazuhIndices.INDEX_NAME, String.format("%s-template", WazuhIndices.INDEX_NAME));
+    this.templates.put(WazuhIndices.INDEX_NAME, String.format("%s-template", WazuhIndices.INDEX_NAME));
+  }
+
+  public Map<String, String> getTemplates() {
+    return this.templates;
   }
 
   /**
@@ -66,7 +64,7 @@ public class WazuhIndices {
    * @return string
    */
   public Map<String, Object> getIndexMapping(String indexName) {
-    String indexTemplate = templates.get(indexName);
+    String indexTemplate = getTemplates().get(indexName);
     String indexTemplateFileName = indexTemplate + ".json";
     return (Map<String, Object>) stringToMap(getIndexTemplateFromFile(indexTemplateFileName)).get("mappings");
   }
@@ -76,7 +74,7 @@ public class WazuhIndices {
    * @return string
    */
   public Map<String,Object> getIndexSettings(String indexName) {
-    String indexTemplate = templates.get(indexName);
+    String indexTemplate = getTemplates().get(indexName);
     String indexTemplateFileName = indexTemplate + ".json";
     return (Map<String, Object>) stringToMap(getIndexTemplateFromFile(indexTemplateFileName)).get("settings");
   }
@@ -97,7 +95,8 @@ public class WazuhIndices {
           Locale.ROOT
       ).format(indexTemplateFileName);
       log.error(errorMessage, e);
-      throw new IllegalStateException(errorMessage, e);
+      //throw new IllegalStateException(errorMessage, e);
+      throw new FileNotFoundException(errorMessage, e);
     }
   }
 
@@ -120,7 +119,7 @@ public class WazuhIndices {
    * @param indexName: The index name to load the template for
    */
   public void putTemplate(String indexName) throws IOException {
-    String indexTemplate = templates.get(indexName);
+    String indexTemplate = getTemplates().get(indexName);
     String indexTemplateFileName = indexTemplate + ".json";
     PutIndexTemplateRequest putRequest = new PutIndexTemplateRequest(indexTemplate).mapping(getIndexMapping(indexName))
         .settings(getIndexSettings(indexName))
