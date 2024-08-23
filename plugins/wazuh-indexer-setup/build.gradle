@@ -62,7 +62,7 @@ validateNebulaPom.enabled = false
 
 buildscript {
     ext {
-        opensearch_version = System.getProperty("opensearch.version", "2.14.0")
+        opensearch_version = System.getProperty("opensearch.version", "2.15.0")
         wazuh_version = System.getProperty("version", "5.0.0")
         revision = System.getProperty("revision", "0")
     }
