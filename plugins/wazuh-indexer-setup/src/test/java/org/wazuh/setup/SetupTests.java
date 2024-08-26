@@ -7,10 +7,7 @@
  */
 package org.wazuh.setup.index;
 
-import java.io.ByteArrayOutputStream;
 import java.io.IOException;
-import java.io.InputStream;
-import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -27,7 +24,6 @@ import org.opensearch.client.IndicesAdminClient;
 import org.opensearch.cluster.ClusterState;
 import org.opensearch.cluster.routing.RoutingTable;
 import org.opensearch.cluster.service.ClusterService;
-import org.opensearch.common.util.io.Streams;
 import org.opensearch.core.action.ActionListener;
 import org.opensearch.test.OpenSearchTestCase;
 import org.opensearch.threadpool.TestThreadPool;
@@ -36,7 +32,7 @@ import org.opensearch.threadpool.ThreadPool;
 import static org.mockito.Mockito.*;
 import static org.opensearch.test.ClusterServiceUtils.createClusterService;
 
-public class WazuhIndexerSetupTests extends OpenSearchTestCase {
+public class SetupTests extends OpenSearchTestCase {
 
   private WazuhIndices wazuhIndices;
   private ThreadPool threadPool;
@@ -171,7 +167,7 @@ public class WazuhIndexerSetupTests extends OpenSearchTestCase {
     };
 
     try {
-      this.wazuhIndices.create(WazuhIndices.INDEX_NAME);
+      this.wazuhIndices.putIndex(WazuhIndices.INDEX_NAME);
     }
     catch (Exception e) {
       logger.error(e);
@@ -184,7 +180,7 @@ public class WazuhIndexerSetupTests extends OpenSearchTestCase {
     }).when(mockIndicesAdminClient).create(any(CreateIndexRequest.class), any(ActionListener.class));
 
     try {
-      this.wazuhIndices.create(WazuhIndices.INDEX_NAME);
+      this.wazuhIndices.putIndex(WazuhIndices.INDEX_NAME);
     }
     catch (Exception e) {
       logger.error(e);

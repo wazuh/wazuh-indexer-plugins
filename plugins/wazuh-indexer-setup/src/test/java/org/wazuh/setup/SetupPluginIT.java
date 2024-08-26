@@ -24,11 +24,11 @@ import static org.hamcrest.Matchers.containsString;
 
 @ThreadLeakScope(ThreadLeakScope.Scope.NONE)
 @OpenSearchIntegTestCase.ClusterScope(scope = OpenSearchIntegTestCase.Scope.SUITE)
-public class WazuhIndexerSetupPluginIT extends OpenSearchIntegTestCase {
+public class SetupPluginIT extends OpenSearchIntegTestCase {
 
     @Override
     protected Collection<Class<? extends Plugin>> nodePlugins() {
-        return Collections.singletonList(WazuhIndexerSetupPlugin.class);
+        return Collections.singletonList(SetupPlugin.class);
     }
 
     public void testPluginInstalled() throws IOException, ParseException {

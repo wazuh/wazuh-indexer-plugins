@@ -11,18 +11,8 @@ def pluginName = 'wazuh-indexer-setup'
 def pluginDescription = 'Wazuh Indexer setup plugin'
 def projectPath = 'org.wazuh'
 def pathToPlugin = 'setup'
-def pluginClassName = 'WazuhIndexerSetupPlugin'
+def pluginClassName = 'SetupPlugin'
 group = "WazuhIndexerSetupGroup"
-
-tasks.register("preparePluginPathDirs") {
-    mustRunAfter clean
-    doLast {
-        def newPath = pathToPlugin.replace(".", "/")
-        mkdir "src/main/java/org/wazuh/$newPath"
-        mkdir "src/test/java/org/wazuh/$newPath"
-        mkdir "src/yamlRestTest/java/org/wazuh/$newPath"
-    }
-}
 
 publishing {
     publications {
@@ -38,8 +28,8 @@ publishing {
               }
               developers {
                 developer {
-                  name = "OpenSearch"
-                  url = "https://github.com/opensearch-project/opensearch-plugin-template-java"
+                  name = "Wazuh "
+                  url = "https://wazuh.com"
                 }
               }
             }
