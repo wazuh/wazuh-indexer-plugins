@@ -7,7 +7,6 @@
  */
 package org.wazuh.setup;
 
-import java.io.IOException;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -35,6 +34,7 @@ import static org.opensearch.test.ClusterServiceUtils.createClusterService;
 
 public class SetupTests extends OpenSearchTestCase {
 
+  public static final String INDEX_NAME = "wazuh-indexer-setup-test-index";
   private WazuhIndices wazuhIndices;
   private ThreadPool threadPool;
   public ClusterService clusterService;
@@ -54,8 +54,8 @@ public class SetupTests extends OpenSearchTestCase {
       this.clusterService = spy(createClusterService(threadPool));
       this.mockClient = mock(Client.class);
       this.wazuhIndices = new WazuhIndices(mockClient, clusterService);
-      String mockTemplateName = WazuhIndices.INDEX_NAME + "-template";
-      String mockIndexPattern = WazuhIndices.INDEX_NAME + "-*";
+      String mockTemplateName = INDEX_NAME + "-template";
+      String mockIndexPattern = INDEX_NAME + "-*";
 
 
       Map<String, Object> settings = new HashMap<>();
@@ -131,7 +131,7 @@ public class SetupTests extends OpenSearchTestCase {
 
     doAnswer( invocation -> {
       ActionListener<CreateIndexResponse> listener = invocation.getArgument(1);
-      listener.onResponse(new CreateIndexResponse(true,true, WazuhIndices.INDEX_NAME));
+      listener.onResponse(new CreateIndexResponse(true,true, INDEX_NAME));
       return null;
     }).when(mockIndicesAdminClient).create(any(CreateIndexRequest.class), any(ActionListener.class));
 
@@ -149,7 +149,7 @@ public class SetupTests extends OpenSearchTestCase {
     };
 
     try {
-      this.wazuhIndices.putIndex(WazuhIndices.INDEX_NAME);
+      this.wazuhIndices.putIndex(INDEX_NAME);
     }
     catch (Exception e) {
       logger.error(e);
@@ -162,7 +162,7 @@ public class SetupTests extends OpenSearchTestCase {
     }).when(mockIndicesAdminClient).create(any(CreateIndexRequest.class), any(ActionListener.class));
 
     try {
-      this.wazuhIndices.putIndex(WazuhIndices.INDEX_NAME);
+      this.wazuhIndices.putIndex(INDEX_NAME);
     }
     catch (Exception e) {
       logger.error(e);
@@ -179,9 +179,9 @@ public class SetupTests extends OpenSearchTestCase {
     when(mockClusterState.getRoutingTable()).thenReturn(mockRoutingTable);
     /* Test with existent index response */
     when(mockRoutingTable.hasIndex(anyString())).thenReturn(true);
-    logger.error(this.wazuhIndices.indexExists(WazuhIndices.INDEX_NAME));
+    logger.error(this.wazuhIndices.indexExists(INDEX_NAME));
     /* Test with non-existent index response */
     when(mockRoutingTable.hasIndex(anyString())).thenReturn(false);
-    logger.error(this.wazuhIndices.indexExists(WazuhIndices.INDEX_NAME));
+    logger.error(this.wazuhIndices.indexExists(INDEX_NAME));
   }
 }

@@ -31,7 +31,11 @@ public class WazuhIndices {
     private final Client client;
     private final ClusterService clusterService;
 
-    public static final String INDEX_NAME = "wazuh-indexer-setup-plugin";
+    /**
+     * | Key                 | value      |
+     * | ------------------- | ---------- |
+     * | Index template name | index name |
+     */
     public final Map<String, String> indexTemplates = new HashMap<>();
 
     /**
@@ -105,7 +109,8 @@ public class WazuhIndices {
     /**
      * Returns whether the index exists
      *
-     * @param indexName: The index name to be checked for
+     * @param indexName the name of the index to check
+     * @return true of the index exists on the cluster, false otherwise
      */
     public boolean indexExists(String indexName) {
         return this.clusterService.state().getRoutingTable().hasIndex(indexName);

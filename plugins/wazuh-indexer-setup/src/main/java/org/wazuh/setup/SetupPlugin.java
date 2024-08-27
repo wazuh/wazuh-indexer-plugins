@@ -34,6 +34,11 @@ import java.util.function.Supplier;
  */
 public class SetupPlugin extends Plugin implements ClusterPlugin {
 
+    /**
+     * Default constructor
+     */
+    public SetupPlugin() {}
+
     private WazuhIndices indices;
 
     @Override
