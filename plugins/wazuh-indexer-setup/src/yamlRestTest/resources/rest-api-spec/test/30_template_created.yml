@@ -5,4 +5,4 @@
         cat.templates: {}
 
     - match:
-        $body: /^wazuh-indexer-setup-plugin-template.+$/
+        $body: /^index-template-agents.+$/

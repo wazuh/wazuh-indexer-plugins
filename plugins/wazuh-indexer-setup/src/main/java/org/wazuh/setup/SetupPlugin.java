@@ -56,8 +56,6 @@ public class SetupPlugin extends Plugin implements ClusterPlugin {
 
     @Override
     public void onNodeStarted(DiscoveryNode localNode) {
-
         this.indices.initialize();
-        ClusterPlugin.super.onNodeStarted(localNode);
     }
 }

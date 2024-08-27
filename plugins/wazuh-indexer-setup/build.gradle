@@ -12,7 +12,6 @@ def pluginDescription = 'Wazuh Indexer setup plugin'
 def projectPath = 'org.wazuh'
 def pathToPlugin = 'setup'
 def pluginClassName = 'SetupPlugin'
-group = "WazuhIndexerSetupGroup"
 
 publishing {
     publications {
@@ -35,6 +34,12 @@ publishing {
             }
         }
     }
+}
+
+allprojects {
+    group = "${projectPath}"
+    targetCompatibility = JavaVersion.VERSION_11
+    sourceCompatibility = JavaVersion.VERSION_11
 }
 
 opensearchplugin {

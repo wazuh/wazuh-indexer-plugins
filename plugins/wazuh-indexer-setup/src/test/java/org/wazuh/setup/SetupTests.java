@@ -5,7 +5,7 @@
  * this file be licensed under the Apache-2.0 license or a
  * compatible open source license.
  */
-package org.wazuh.setup.index;
+package org.wazuh.setup;
 
 import java.io.IOException;
 import java.util.HashMap;
@@ -28,6 +28,7 @@ import org.opensearch.core.action.ActionListener;
 import org.opensearch.test.OpenSearchTestCase;
 import org.opensearch.threadpool.TestThreadPool;
 import org.opensearch.threadpool.ThreadPool;
+import org.wazuh.setup.index.WazuhIndices;
 
 import static org.mockito.Mockito.*;
 import static org.opensearch.test.ClusterServiceUtils.createClusterService;
@@ -52,7 +53,7 @@ public class SetupTests extends OpenSearchTestCase {
       this.threadPool = new TestThreadPool("WazuhIndexerSetupPluginServiceTests");
       this.clusterService = spy(createClusterService(threadPool));
       this.mockClient = mock(Client.class);
-      this.wazuhIndices = new WazuhIndices(mockClient, clusterService, threadPool);
+      this.wazuhIndices = new WazuhIndices(mockClient, clusterService);
       String mockTemplateName = WazuhIndices.INDEX_NAME + "-template";
       String mockIndexPattern = WazuhIndices.INDEX_NAME + "-*";
 
@@ -82,25 +83,6 @@ public class SetupTests extends OpenSearchTestCase {
   public void testTearDown() throws Exception {
     this.threadPool.shutdownNow();
     this.clusterService.close();
-  }
-
-  /**
-   * Tests if the index mappings returned by the getIndexMapping() function
-   * match the contents of the yaml file
-   * @throws IOException
-   */
-  public void testGetIndexMappings() throws IOException {
-    Map<String, Object> mappings = (Map<String, Object>) mockTemplate.get("mappings");
-    assertEquals(this.wazuhIndices.getIndexMappings(mockTemplate), mappings);
-  }
-
-  /**
-   * Tests if the return of getIndexSettings match the context of the reference yaml file
-   * @throws IOException
-   */
-  public void testGetIndexSettings() throws IOException {
-    Map<String, Object> settings = (Map<String, Object>) mockTemplate.get("settings");
-    assertEquals(this.wazuhIndices.getIndexSettings(mockTemplate), settings);
   }
 
   /**
