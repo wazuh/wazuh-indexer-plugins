@@ -12,6 +12,7 @@ import org.opensearch.common.xcontent.json.JsonXContent;
 import org.opensearch.core.xcontent.DeprecationHandler;
 import org.opensearch.core.xcontent.NamedXContentRegistry;
 import org.opensearch.core.xcontent.XContentParser;
+import reactor.util.annotation.NonNull;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -25,7 +26,8 @@ public class IndexTemplateUtils {
     /**
      * Default constructor
      */
-    public IndexTemplateUtils() {}
+    public IndexTemplateUtils() {
+    }
 
     /**
      * Read index template file from the resources folder and returns its JSON
@@ -35,7 +37,8 @@ public class IndexTemplateUtils {
      * @return the JSON index template as a map
      * @throws IOException file not found or could not be read
      */
-    public static Map<String, Object> fromFile(String filename) throws IOException {
+
+    public static Map<String, Object> fromFile(@NonNull String filename) throws IOException {
         InputStream is = IndexTemplateUtils.class.getClassLoader().getResourceAsStream(filename);
         return IndexTemplateUtils.toMap(is);
     }

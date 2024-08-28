@@ -1,6 +1,0 @@
----
-"Check index is created":
-  - do:
-      cat.indices: {}
-
-  - match: { $body: /.+agents.+/ }

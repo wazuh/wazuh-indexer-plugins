@@ -66,7 +66,7 @@ public class WazuhIndices {
                     .mapping(IndexTemplateUtils.get(template, "mappings"))
                     .settings(IndexTemplateUtils.get(template, "settings"))
                     .name(templateName)
-                    .patterns((List<String>) template.get("index_patterns")); // FIXME
+                    .patterns((List<String>) template.get("index_patterns"));
 
             AcknowledgedResponse createIndexTemplateResponse = this.client
                     .admin()

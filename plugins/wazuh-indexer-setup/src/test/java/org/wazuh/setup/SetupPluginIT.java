@@ -17,8 +17,23 @@ import org.opensearch.test.OpenSearchIntegTestCase;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
-import java.util.Collection;
+
+import org.junit.Assert;
+import org.opensearch.action.admin.cluster.health.ClusterHealthRequest;
+import org.opensearch.action.admin.cluster.health.ClusterHealthResponse;
+import org.opensearch.action.admin.cluster.node.info.NodeInfo;
+import org.opensearch.action.admin.cluster.node.info.NodesInfoRequest;
+import org.opensearch.action.admin.cluster.node.info.NodesInfoResponse;
+import org.opensearch.action.admin.cluster.node.info.PluginsAndModules;
+import org.opensearch.cluster.health.ClusterHealthStatus;
+import org.opensearch.plugins.PluginInfo;
+
 import java.util.Collections;
+import java.util.Collection;
+import java.util.List;
+import java.util.function.Function;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import static org.hamcrest.Matchers.containsString;
 
@@ -37,5 +52,38 @@ public class SetupPluginIT extends OpenSearchIntegTestCase {
 
         logger.info("response body: {}", body);
         assertThat(body, containsString("wazuh-indexer-setup"));
+    }
+
+
+    public void testPluginsAreInstalled() {
+        ClusterHealthRequest request = new ClusterHealthRequest();
+        ClusterHealthResponse response = OpenSearchIntegTestCase
+                .client()
+                .admin().
+                cluster()
+                .health(request)
+                .actionGet();
+        Assert.assertEquals(ClusterHealthStatus.GREEN, response.getStatus());
+
+        NodesInfoRequest nodesInfoRequest = new NodesInfoRequest();
+        nodesInfoRequest.addMetric(NodesInfoRequest.Metric.PLUGINS.metricName());
+        NodesInfoResponse nodesInfoResponse = OpenSearchIntegTestCase
+                .client()
+                .admin()
+                .cluster().
+                nodesInfo(nodesInfoRequest)
+                .actionGet();
+        List<PluginInfo> pluginInfos = nodesInfoResponse.getNodes()
+                .stream()
+                .flatMap((Function<NodeInfo, Stream<PluginInfo>>) nodeInfo ->
+                        nodeInfo
+                                .getInfo(PluginsAndModules.class)
+                                .getPluginInfos()
+                                .stream()
+                )
+                .collect(Collectors.toList());
+        Assert.assertTrue(pluginInfos.stream().anyMatch(
+                pluginInfo -> pluginInfo.getName().equals("wazuh-indexer-setup"))
+        );
     }
 }

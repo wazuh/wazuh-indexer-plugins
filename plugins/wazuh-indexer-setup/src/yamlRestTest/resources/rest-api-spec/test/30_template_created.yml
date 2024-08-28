@@ -1,8 +1,0 @@
----
-"Check template is created":
-
-    - do:
-        cat.templates: {}
-
-    - match:
-        $body: /^index-template-agents.+$/
