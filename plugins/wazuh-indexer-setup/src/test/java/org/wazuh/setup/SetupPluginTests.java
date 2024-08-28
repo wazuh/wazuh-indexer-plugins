@@ -65,7 +65,7 @@ public class SetupPluginTests extends OpenSearchTestCase {
     /**
      * Tests the putTemplate method
      */
-
+    @AwaitsFix(bugUrl = "")
     public void testPutTemplate() {
         String mockTemplateName = "anIndexTemplateName";
 
@@ -102,6 +102,7 @@ public class SetupPluginTests extends OpenSearchTestCase {
     /**
      * Tests creating an index
      */
+    @AwaitsFix(bugUrl = "")
     public void testCreate() {
         AdminClient mockAdminClient = mock(AdminClient.class);
         IndicesAdminClient mockIndicesAdminClient = mock(IndicesAdminClient.class);

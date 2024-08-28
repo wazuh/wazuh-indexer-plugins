@@ -1,3 +1,10 @@
+/*
+ * SPDX-License-Identifier: Apache-2.0
+ *
+ * The OpenSearch Contributors require contributions made to
+ * this file be licensed under the Apache-2.0 license or a
+ * compatible open source license.
+ */
 package org.wazuh.setup.index;
 
 import org.junit.Before;
@@ -73,7 +80,7 @@ public class WazuhIndicesTests extends OpenSearchTestCase {
 
     // FIXME The used MockMaker SubclassByteBuddyMockMaker does not support the creation of static mocks
     // adding mockito-inline seems to have no effect
-    @Ignore
+    @AwaitsFix(bugUrl = "")
     public void testPutTemplate_Successful() {
         // Arrange
         String templateName = "index-template-agent";
@@ -104,7 +111,7 @@ public class WazuhIndicesTests extends OpenSearchTestCase {
 
     // FIXME The used MockMaker SubclassByteBuddyMockMaker does not support the creation of static mocks
     // adding mockito-inline seems to have no effect
-    @Ignore
+    @AwaitsFix(bugUrl = "")
     public void testPutTemplate_IOException() {
         // Arrange
         String templateName = "index-template-agent";
@@ -122,7 +129,7 @@ public class WazuhIndicesTests extends OpenSearchTestCase {
     }
 
     // FIXME the return value of "org.opensearch.client.IndicesAdminClient.create(org.opensearch.action.admin.indices.create.CreateIndexRequest)" is null
-    @Ignore
+    @AwaitsFix(bugUrl = "")
     public void testPutIndex_IndexDoesNotExist() {
         // Arrange
         String indexName = ".agents";
@@ -173,7 +180,7 @@ public class WazuhIndicesTests extends OpenSearchTestCase {
     }
 
 
-    @Ignore
+    @AwaitsFix(bugUrl = "")
     public void testInitialize() throws IOException {
         // Arrange
         String templateName = "index-template-agent";
