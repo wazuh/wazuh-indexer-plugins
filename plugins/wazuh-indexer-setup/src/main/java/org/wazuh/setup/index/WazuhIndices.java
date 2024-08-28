@@ -14,116 +14,118 @@ import org.opensearch.action.admin.indices.create.CreateIndexResponse;
 import org.opensearch.action.admin.indices.template.put.PutIndexTemplateRequest;
 import org.opensearch.action.support.master.AcknowledgedResponse;
 import org.opensearch.client.Client;
-import org.opensearch.cluster.ClusterState;
 import org.opensearch.cluster.service.ClusterService;
-import org.opensearch.common.util.io.Streams;
-import org.opensearch.common.xcontent.XContentType;
-import org.opensearch.core.action.ActionListener;
 
-import java.io.ByteArrayOutputStream;
+import org.wazuh.setup.utils.IndexTemplateUtils;
+
 import java.io.IOException;
-import java.io.InputStream;
-import java.nio.charset.StandardCharsets;
-import java.text.MessageFormat;
-import java.util.List;
-import java.util.Locale;
+import java.util.*;
 
+/**
+ * This class contains the logic to create the index templates and the indices
+ * required by Wazuh.
+ */
 public class WazuhIndices {
-
     private static final Logger log = LogManager.getLogger(WazuhIndices.class);
 
     private final Client client;
     private final ClusterService clusterService;
 
-    public static final String INDEX_NAME = "wazuh-indexer-setup-plugin";
-    private static final String INDEX_MAPPING_FILE_NAME = "index-mapping.yml";
-    private static final String INDEX_SETTING_FILE_NAME = "index-settings.yml";
+    /**
+     * | Key                 | value      |
+     * | ------------------- | ---------- |
+     * | Index template name | index name |
+     */
+    public final Map<String, String> indexTemplates = new HashMap<>();
 
     /**
      * Constructor
-     * @param client Client
+     *
+     * @param client         Client
      * @param clusterService ClusterService
      */
     public WazuhIndices(Client client, ClusterService clusterService) {
         this.client = client;
         this.clusterService = clusterService;
+
+        // Create Index Templates - Indices map
+        this.indexTemplates.put("index-template-agent", ".agents");
     }
 
     /**
+     * Inserts an index template
      *
-     * @return string
+     * @param templateName: The name if the index template to load
      */
-    public String getIndexMapping() {
-        try (InputStream is = getClass().getClassLoader().getResourceAsStream(INDEX_MAPPING_FILE_NAME)) {
-            ByteArrayOutputStream out = new ByteArrayOutputStream();
-            Streams.copy(is, out);
-            return out.toString(StandardCharsets.UTF_8);
-        } catch (Exception e) {
-            String errorMessage = new MessageFormat(
-                "failed to load index mapping file [{0}]",
-                Locale.ROOT
-            ).format(INDEX_MAPPING_FILE_NAME);
-            log.error(errorMessage, e);
-            throw new IllegalStateException(errorMessage, e);
-        }
-    }
-
-    /**
-     *
-     * @return string
-     */
-    public String getIndexSettings() {
-        try (InputStream is = getClass().getClassLoader().getResourceAsStream(INDEX_SETTING_FILE_NAME)) {
-            ByteArrayOutputStream out = new ByteArrayOutputStream();
-            Streams.copy(is, out);
-            return out.toString(StandardCharsets.UTF_8);
-        } catch (Exception e) {
-            String errorMessage = new MessageFormat(
-                "failed to load index settings file [{0}]",
-                Locale.ROOT
-            ).format(INDEX_SETTING_FILE_NAME);
-            log.error(errorMessage, e);
-            throw new IllegalStateException(errorMessage, e);
-        }
-    }
-
-    public void putTemplate(ActionListener<AcknowledgedResponse> actionListener) {
-        String indexTemplate = "wazuh";
-        PutIndexTemplateRequest putRequest = new PutIndexTemplateRequest()
-                .name(indexTemplate)
-                .patterns(List.of("wazuh-*"));
+    public void putTemplate(String templateName) {
         try {
-            client.admin().indices().putTemplate(putRequest, actionListener);
+            // @throws IOException
+            Map<String, Object> template = IndexTemplateUtils.fromFile(templateName + ".json");
 
-        } catch (Exception e) {
-            String errorMessage = new MessageFormat(
-                    "failed to create index template [{0}]",
-                    Locale.ROOT
-            ).format(indexTemplate);
-            log.error(errorMessage, e);
-            throw new IllegalStateException(errorMessage, e);
+            PutIndexTemplateRequest putIndexTemplateRequest = new PutIndexTemplateRequest()
+                    .mapping(IndexTemplateUtils.get(template, "mappings"))
+                    .settings(IndexTemplateUtils.get(template, "settings"))
+                    .name(templateName)
+                    .patterns((List<String>) template.get("index_patterns"));
+
+            AcknowledgedResponse createIndexTemplateResponse = this.client
+                    .admin()
+                    .indices()
+                    .putTemplate(putIndexTemplateRequest)
+                    .actionGet();
+
+            log.info(
+                    "Index template created successfully: {} {}",
+                    templateName,
+                    createIndexTemplateResponse.isAcknowledged()
+            );
+
+        } catch (IOException e) {
+            log.error("Error reading index template from filesystem {}", templateName);
         }
     }
 
     /**
-     * Create Wazuh's Indices.
+     * Creates an index
+     *
+     * @param indexName: Name of the index to be created
      */
-    public void create(ActionListener<CreateIndexResponse> actionListener) throws IOException {
-
-        if (!indexExists(WazuhIndices.INDEX_NAME)) {
-            CreateIndexRequest indexRequest = new CreateIndexRequest(WazuhIndices.INDEX_NAME)
-                    .mapping(getIndexMapping(), XContentType.YAML)
-                    .settings(getIndexSettings(), XContentType.YAML);
-            client.admin().indices().create(indexRequest, actionListener);
+    public void putIndex(String indexName) {
+        if (!indexExists(indexName)) {
+            CreateIndexRequest request = new CreateIndexRequest(indexName);
+            CreateIndexResponse createIndexResponse = this.client
+                    .admin()
+                    .indices()
+                    .create(request)
+                    .actionGet();
+            log.info(
+                    "Index created successfully: {} {}",
+                    createIndexResponse.index(),
+                    createIndexResponse.isAcknowledged()
+            );
         }
     }
 
-
     /**
-     * Generic indexExists method
+     * Returns whether the index exists
+     *
+     * @param indexName the name of the index to check
+     * @return true of the index exists on the cluster, false otherwise
      */
     public boolean indexExists(String indexName) {
-        ClusterState clusterState = clusterService.state();
-        return clusterState.getRoutingTable().hasIndex(indexName);
+        return this.clusterService.state().getRoutingTable().hasIndex(indexName);
+    }
+
+    /**
+     * Creates each index template and index in {@link #indexTemplates}.
+     */
+    public void initialize() {
+        // 1. Read index templates from files
+        // 2. Upsert index template
+        // 3. Create index
+        this.indexTemplates.forEach((k, v) -> {
+            this.putTemplate(k);
+            this.putIndex(v);
+        });
     }
 }

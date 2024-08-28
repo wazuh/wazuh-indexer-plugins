@@ -11,39 +11,36 @@ def pluginName = 'wazuh-indexer-setup'
 def pluginDescription = 'Wazuh Indexer setup plugin'
 def projectPath = 'org.wazuh'
 def pathToPlugin = 'setup'
-def pluginClassName = 'WazuhIndexerSetupPlugin'
+def pluginClassName = 'SetupPlugin'
 
-tasks.register("preparePluginPathDirs") {
-    mustRunAfter clean
-    doLast {
-        def newPath = pathToPlugin.replace(".", "/")
-        mkdir "src/main/java/org/wazuh/$newPath"
-        mkdir "src/test/java/org/wazuh/$newPath"
-        mkdir "src/yamlRestTest/java/org/wazuh/$newPath"
-    }
-}
 
 publishing {
     publications {
         pluginZip(MavenPublication) { publication ->
             pom {
-              name = pluginName
-              description = pluginDescription
-              licenses {
-                license {
-                  name = "The Apache License, Version 2.0"
-                  url = "http://www.apache.org/licenses/LICENSE-2.0.txt"
+                name = pluginName
+                description = pluginDescription
+                licenses {
+                    license {
+                        name = "The Apache License, Version 2.0"
+                        url = "http://www.apache.org/licenses/LICENSE-2.0.txt"
+                    }
                 }
-              }
-              developers {
-                developer {
-                  name = "Wazuh"
-                  url = "https://github.com/opensearch-project/opensearch-plugin-template-java"
+                developers {
+                    developer {
+                        name = "Wazuh "
+                        url = "https://wazuh.com"
+                    }
                 }
-              }
             }
         }
     }
+}
+
+allprojects {
+    group = "${projectPath}"
+    targetCompatibility = JavaVersion.VERSION_11
+    sourceCompatibility = JavaVersion.VERSION_11
 }
 
 opensearchplugin {
@@ -126,8 +123,8 @@ task updateVersion {
     doLast {
         ext.newVersion = System.getProperty('newVersion')
         println "Setting version to ${newVersion}."
-         // String tokenization to support -SNAPSHOT
-        ant.replaceregexp(file:'build.gradle', match: '"opensearch.version", "\\d.*"', replace: '"opensearch.version", "' + newVersion.tokenize('-')[0] + '-SNAPSHOT"', flags:'g', byline:true)
+        // String tokenization to support -SNAPSHOT
+        ant.replaceregexp(file: 'build.gradle', match: '"opensearch.version", "\\d.*"', replace: '"opensearch.version", "' + newVersion.tokenize('-')[0] + '-SNAPSHOT"', flags: 'g', byline: true)
     }
 }
 

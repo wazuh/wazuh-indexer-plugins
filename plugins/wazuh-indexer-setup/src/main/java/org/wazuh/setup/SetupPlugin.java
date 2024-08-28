@@ -7,15 +7,10 @@
  */
 package org.wazuh.setup;
 
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
-import org.opensearch.action.admin.indices.create.CreateIndexResponse;
-import org.opensearch.action.support.master.AcknowledgedResponse;
 import org.opensearch.client.Client;
 import org.opensearch.cluster.metadata.IndexNameExpressionResolver;
 import org.opensearch.cluster.node.DiscoveryNode;
 import org.opensearch.cluster.service.ClusterService;
-import org.opensearch.core.action.ActionListener;
 import org.opensearch.core.common.io.stream.NamedWriteableRegistry;
 import org.opensearch.core.xcontent.NamedXContentRegistry;
 import org.opensearch.env.Environment;
@@ -28,15 +23,21 @@ import org.opensearch.threadpool.ThreadPool;
 import org.opensearch.watcher.ResourceWatcherService;
 import org.wazuh.setup.index.WazuhIndices;
 
-import java.io.IOException;
 import java.util.Collection;
-import java.util.Collections;
+import java.util.List;
 import java.util.function.Supplier;
 
+/**
+ * Main class of the Indexer Setup plugin. This plugin is responsible for
+ * the creation of the index templates and indices required by Wazuh to
+ * work properly.
+ */
+public class SetupPlugin extends Plugin implements ClusterPlugin {
 
-public class WazuhIndexerSetupPlugin extends Plugin implements ClusterPlugin {
-    // Implement the relevant Plugin Interfaces here
-    private static final Logger log = LogManager.getLogger(WazuhIndexerSetupPlugin.class);
+    /**
+     * Default constructor
+     */
+    public SetupPlugin() {}
 
     private WazuhIndices indices;
 
@@ -55,41 +56,11 @@ public class WazuhIndexerSetupPlugin extends Plugin implements ClusterPlugin {
             Supplier<RepositoriesService> repositoriesServiceSupplier
     ) {
         this.indices = new WazuhIndices(client, clusterService);
-
-        return Collections.emptyList();
+        return List.of(this.indices);
     }
 
     @Override
     public void onNodeStarted(DiscoveryNode localNode) {
-
-        try {
-            this.indices.putTemplate(new ActionListener<>() {
-                @Override
-                public void onResponse(AcknowledgedResponse acknowledgedResponse) {
-                    log.info("template created");
-                }
-
-                @Override
-                public void onFailure(Exception e) {
-                    log.error("template creation failed");
-                }
-            });
-
-            this.indices.create(new ActionListener<>() {
-                @Override
-                public void onResponse(CreateIndexResponse createIndexResponse) {
-                    log.info("{} index created", WazuhIndices.INDEX_NAME);
-                }
-
-                @Override
-                public void onFailure(Exception e) {
-                    log.error("error creating index: {}", e.toString());
-                }
-            });
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
-
-        ClusterPlugin.super.onNodeStarted(localNode);
+        this.indices.initialize();
     }
 }
