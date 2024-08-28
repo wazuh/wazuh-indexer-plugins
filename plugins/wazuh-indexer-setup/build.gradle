@@ -13,6 +13,7 @@ def projectPath = 'org.wazuh'
 def pathToPlugin = 'setup'
 def pluginClassName = 'SetupPlugin'
 
+
 publishing {
     publications {
         pluginZip(MavenPublication) { publication ->
@@ -58,7 +59,9 @@ validateNebulaPom.enabled = false
 
 buildscript {
     ext {
-        opensearch_version = System.getProperty("opensearch.version", "2.14.0-SNAPSHOT")
+        opensearch_version = System.getProperty("opensearch.version", "2.15.0")
+        wazuh_version = System.getProperty("version", "5.0.0")
+        revision = System.getProperty("revision", "0")
     }
 
     repositories {
@@ -71,6 +74,11 @@ buildscript {
     dependencies {
         classpath "org.opensearch.gradle:build-tools:${opensearch_version}"
     }
+}
+
+allprojects {
+    group = 'org.wazuh'
+    version = "${wazuh_version}" + ".${revision}"
 }
 
 repositories {
