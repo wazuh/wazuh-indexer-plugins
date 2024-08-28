@@ -47,6 +47,7 @@ This package uses the [Gradle](https://docs.gradle.org/current/userguide/usergui
 
 1. `./gradlew build` builds and tests all subprojects.
 2. `./gradlew run` launches a single node cluster with the plugin installed.
+3. `./gradlew publishToMavenLocal` promotes the plugin into your local maven repository.
 
 When launching a cluster using one of the above commands, logs are placed in `build/testclusters/integTest-0/logs/`. Though the logs are teed to the console, in practice it's best to check the actual log file.
 
