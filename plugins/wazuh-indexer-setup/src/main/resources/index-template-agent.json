@@ -1,70 +1,78 @@
 {
-    "index_patterns": [
-      ".agents"
-    ],
-    "mappings": {
-      "date_detection": false,
-      "dynamic": "strict",
-      "properties": {
-        "agent": {
-          "properties": {
-            "groups": {
-              "ignore_above": 1024,
-              "type": "keyword"
-            },
-            "id": {
-              "ignore_above": 1024,
-              "type": "keyword"
-            },
-            "key": {
-              "ignore_above": 1024,
-              "type": "keyword"
-            },
-            "last_login": {
-              "type": "date"
-            },
-            "name": {
-              "ignore_above": 1024,
-              "type": "keyword"
-            },
-            "persistent_connection_node": {
-              "ignore_above": 1024,
-              "type": "keyword"
-            },
-            "type": {
-              "ignore_above": 1024,
-              "type": "keyword"
-            },
-            "version": {
-              "ignore_above": 1024,
-              "type": "keyword"
+  "index_patterns": [
+    ".agents*"
+  ],
+  "mappings": {
+    "date_detection": false,
+    "dynamic": "strict",
+    "properties": {
+      "agent": {
+        "properties": {
+          "groups": {
+            "ignore_above": 1024,
+            "type": "keyword"
+          },
+          "id": {
+            "ignore_above": 1024,
+            "type": "keyword"
+          },
+          "is_connected": {
+            "type": "boolean"
+          },
+          "key": {
+            "ignore_above": 1024,
+            "type": "keyword"
+          },
+          "last_login": {
+            "type": "date"
+          },
+          "name": {
+            "ignore_above": 1024,
+            "type": "keyword"
+          },
+          "type": {
+            "ignore_above": 1024,
+            "type": "keyword"
+          },
+          "version": {
+            "ignore_above": 1024,
+            "type": "keyword"
+          }
+        }
+      },
+      "host": {
+        "properties": {
+          "ip": {
+            "type": "ip"
+          },
+          "os": {
+            "properties": {
+              "full": {
+                "ignore_above": 1024,
+                "type": "keyword"
+              }
             }
           }
-        },
-        "message": {
-          "type": "text"
-        },
-        "tags": {
-          "ignore_above": 1024,
-          "type": "keyword"
         }
       }
-    },
-    "order": 1,
-    "settings": {
-      "index": {
-        "hidden": true,
-        "number_of_replicas": "0",
-        "number_of_shards": "1",
-        "query.default_field": [
-          "agent.id",
-          "agent.name",
-          "agent.type",
-          "agent.version",
-          "agent.name"
-        ],
-        "refresh_interval": "5s"
-      }
+    }
+  },
+  "order": 1,
+  "settings": {
+    "index": {
+      "hidden": true,
+      "number_of_replicas": "0",
+      "number_of_shards": "1",
+      "query.default_field": [
+        "agent.id",
+        "agent.name",
+        "agent.type",
+        "agent.version",
+        "agent.name",
+        "host.os.full",
+        "host.ip"
+      ],
+      "refresh_interval": "5s"
     }
   }
-  
+}
