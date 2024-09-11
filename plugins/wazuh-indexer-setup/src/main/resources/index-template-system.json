@@ -1,0 +1,32 @@
+{
+  "index_patterns": [
+    "wazuh-states-inventory-system*"
+  ],
+  "priority": 1,
+  "template": {
+    "settings": {
+      "index": {
+        "hidden": true,
+        "number_of_replicas": "0",
+        "number_of_shards": "1",
+        "query.default_field": [
+          "agent.id",
+          "agent.groups",
+          "host.name",
+          "host.os.type",
+          "host.os.version"
+        ],
+        "refresh_interval": "5s"
+      }
+    },
+    "mappings": {
+      "date_detection": false,
+      "dynamic": "strict",
+      "properties": {
+        "@timestamp": {
+          "type": "date"
+        }
+      }
+    }
+  }
+}
