@@ -2,41 +2,43 @@
   "index_patterns": [
     "wazuh-states-fim*"
   ],
-  "mappings": {
-    "date_detection": false,
-    "dynamic": "strict",
-    "properties": {
-      "agent": {
-        "properties": {
-          "groups": {
-            "ignore_above": 1024,
-            "type": "keyword"
-          },
-          "id": {
-            "ignore_above": 1024,
-            "type": "keyword"
+  "priority": 1,
+  "template": {
+    "settings": {
+      "index": {
+        "hidden": true,
+        "number_of_replicas": "0",
+        "number_of_shards": "1",
+        "query.default_field": [
+          "agent.id",
+          "agent.groups",
+          "file.name",
+          "file.path",
+          "file.target_path",
+          "file.group",
+          "file.uid",
+          "file.gid"
+        ],
+        "refresh_interval": "5s"
+      }
+    },
+    "mappings": {
+      "date_detection": false,
+      "dynamic": "strict",
+      "properties": {
+        "agent": {
+          "properties": {
+            "groups": {
+              "ignore_above": 1024,
+              "type": "keyword"
+            },
+            "id": {
+              "ignore_above": 1024,
+              "type": "keyword"
+            }
           }
         }
       }
-    }
-  },
-  "order": 1,
-  "settings": {
-    "index": {
-      "hidden": true,
-      "number_of_replicas": "0",
-      "number_of_shards": "1",
-      "query.default_field": [
-        "agent.id",
-        "agent.groups",
-        "file.name",
-        "file.path",
-        "file.target_path",
-        "file.group",
-        "file.uid",
-        "file.gid"
-      ],
-      "refresh_interval": "5s"
     }
   }
 }
