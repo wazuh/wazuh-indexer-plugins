@@ -1,0 +1,33 @@
+{
+  "index_patterns": [
+    "wazuh-states-vulnerabilities*"
+  ],
+  "priority": 1,
+  "template": {
+    "settings": {
+      "index": {
+        "hidden": true,
+        "number_of_replicas": "0",
+        "number_of_shards": "1",
+        "query.default_field": [
+          "agent.id",
+          "agent.group",
+          "host.os.full",
+          "host.os.version",
+          "package.name",
+          "package.version",
+          "vulnerability.id",
+          "vulnerability.description",
+          "vulnerability.severity",
+          "wazuh.cluster.name"
+        ],
+        "refresh_interval": "5s"
+      }
+    },
+    "mappings": {
+      "date_detection": false,
+      "dynamic": "strict",
+      "properties": {}
+    }
+  }
+}
