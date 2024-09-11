@@ -50,6 +50,7 @@ public class WazuhIndices {
 
         // Create Index Templates - Indices map
         this.indexTemplates.put("index-template-agent", ".agents");
+        this.indexTemplates.put("index-template-fim", "wazuh-states-fim");
     }
 
     /**
