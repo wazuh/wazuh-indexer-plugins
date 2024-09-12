@@ -5,8 +5,9 @@
  * this file be licensed under the Apache-2.0 license or a
  * compatible open source license.
  */
-package org.wazuh.setup;
+package com.wazuh.setup;
 
+import com.wazuh.setup.index.WazuhIndices;
 import org.junit.After;
 import org.junit.Before;
 import org.opensearch.action.admin.indices.create.CreateIndexRequest;
@@ -23,7 +24,6 @@ import org.opensearch.core.action.ActionListener;
 import org.opensearch.test.OpenSearchTestCase;
 import org.opensearch.threadpool.TestThreadPool;
 import org.opensearch.threadpool.ThreadPool;
-import org.wazuh.setup.index.WazuhIndices;
 
 import static org.mockito.Mockito.*;
 import static org.opensearch.test.ClusterServiceUtils.createClusterService;

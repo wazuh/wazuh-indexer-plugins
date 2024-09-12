@@ -5,8 +5,9 @@
  * this file be licensed under the Apache-2.0 license or a
  * compatible open source license.
  */
-package org.wazuh.setup.index;
+package com.wazuh.setup.index;
 
+import com.wazuh.setup.utils.IndexTemplateUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.opensearch.action.admin.indices.create.CreateIndexRequest;
@@ -15,8 +16,6 @@ import org.opensearch.action.admin.indices.template.put.PutIndexTemplateRequest;
 import org.opensearch.action.support.master.AcknowledgedResponse;
 import org.opensearch.client.Client;
 import org.opensearch.cluster.service.ClusterService;
-
-import org.wazuh.setup.utils.IndexTemplateUtils;
 
 import java.io.IOException;
 import java.util.*;

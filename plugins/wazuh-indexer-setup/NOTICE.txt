@@ -1,0 +1,4 @@
+OpenSearch (https://opensearch.org/)
+Copyright OpenSearch Contributors
+Wazuh (https://wazuh.com/)
+Copyright Wazuh Contributors

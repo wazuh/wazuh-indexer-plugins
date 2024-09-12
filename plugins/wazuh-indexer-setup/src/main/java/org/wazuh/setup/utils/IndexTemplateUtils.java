@@ -6,7 +6,7 @@
  * compatible open source license.
  */
 
-package org.wazuh.setup.utils;
+package com.wazuh.setup.utils;
 
 import org.opensearch.common.xcontent.json.JsonXContent;
 import org.opensearch.core.xcontent.DeprecationHandler;
