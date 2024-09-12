@@ -57,7 +57,7 @@
                   "name": {
                     "fields": {
                       "text": {
-                        "type": "text"
+                        "type": "match_only_text"
                       }
                     },
                     "ignore_above": 1024,
@@ -169,7 +169,7 @@
               "full_name": {
                 "fields": {
                   "text": {
-                    "type": "text"
+                    "type": "match_only_text"
                   }
                 },
                 "ignore_above": 1024,
@@ -202,7 +202,7 @@
               "name": {
                 "fields": {
                   "text": {
-                    "type": "text"
+                    "type": "match_only_text"
                   }
                 },
                 "ignore_above": 1024,
@@ -545,7 +545,7 @@
                   "name": {
                     "fields": {
                       "text": {
-                        "type": "text"
+                        "type": "match_only_text"
                       }
                     },
                     "ignore_above": 1024,
@@ -657,7 +657,7 @@
               "full_name": {
                 "fields": {
                   "text": {
-                    "type": "text"
+                    "type": "match_only_text"
                   }
                 },
                 "ignore_above": 1024,
@@ -690,7 +690,7 @@
               "name": {
                 "fields": {
                   "text": {
-                    "type": "text"
+                    "type": "match_only_text"
                   }
                 },
                 "ignore_above": 1024,
@@ -1103,7 +1103,7 @@
           "subject": {
             "fields": {
               "text": {
-                "type": "text"
+                "type": "match_only_text"
               }
             },
             "ignore_above": 1024,
@@ -1134,12 +1134,12 @@
             "type": "keyword"
           },
           "message": {
-            "type": "text"
+            "type": "match_only_text"
           },
           "stack_trace": {
             "fields": {
               "text": {
-                "type": "text"
+                "type": "match_only_text"
               }
             },
             "type": "wildcard"
@@ -1626,7 +1626,7 @@
           "path": {
             "fields": {
               "text": {
-                "type": "text"
+                "type": "match_only_text"
               }
             },
             "ignore_above": 1024,
@@ -1724,7 +1724,7 @@
           "target_path": {
             "fields": {
               "text": {
-                "type": "text"
+                "type": "match_only_text"
               }
             },
             "ignore_above": 1024,
@@ -2076,7 +2076,7 @@
                   "content": {
                     "fields": {
                       "text": {
-                        "type": "text"
+                        "type": "match_only_text"
                       }
                     },
                     "type": "wildcard"
@@ -2114,7 +2114,7 @@
                   "content": {
                     "fields": {
                       "text": {
-                        "type": "text"
+                        "type": "match_only_text"
                       }
                     },
                     "type": "wildcard"
@@ -2235,7 +2235,7 @@
         }
       },
       "message": {
-        "type": "text"
+        "type": "match_only_text"
       },
       "network": {
         "properties": {
@@ -2458,7 +2458,7 @@
               "full": {
                 "fields": {
                   "text": {
-                    "type": "text"
+                    "type": "match_only_text"
                   }
                 },
                 "ignore_above": 1024,
@@ -2471,7 +2471,7 @@
               "name": {
                 "fields": {
                   "text": {
-                    "type": "text"
+                    "type": "match_only_text"
                   }
                 },
                 "ignore_above": 1024,
@@ -2597,7 +2597,7 @@
           "name": {
             "fields": {
               "text": {
-                "type": "text"
+                "type": "match_only_text"
               }
             },
             "ignore_above": 1024,
@@ -2707,7 +2707,7 @@
           "command_line": {
             "fields": {
               "text": {
-                "type": "text"
+                "type": "match_only_text"
               }
             },
             "type": "wildcard"
@@ -2891,7 +2891,7 @@
                   "name": {
                     "fields": {
                       "text": {
-                        "type": "text"
+                        "type": "match_only_text"
                       }
                     },
                     "ignore_above": 1024,
@@ -2902,7 +2902,7 @@
               "command_line": {
                 "fields": {
                   "text": {
-                    "type": "text"
+                    "type": "match_only_text"
                   }
                 },
                 "type": "wildcard"
@@ -2929,7 +2929,7 @@
               "executable": {
                 "fields": {
                   "text": {
-                    "type": "text"
+                    "type": "match_only_text"
                   }
                 },
                 "ignore_above": 1024,
@@ -2953,7 +2953,7 @@
               "name": {
                 "fields": {
                   "text": {
-                    "type": "text"
+                    "type": "match_only_text"
                   }
                 },
                 "ignore_above": 1024,
@@ -3017,7 +3017,7 @@
                   "name": {
                     "fields": {
                       "text": {
-                        "type": "text"
+                        "type": "match_only_text"
                       }
                     },
                     "ignore_above": 1024,
@@ -3049,7 +3049,7 @@
                   "name": {
                     "fields": {
                       "text": {
-                        "type": "text"
+                        "type": "match_only_text"
                       }
                     },
                     "ignore_above": 1024,
@@ -3096,7 +3096,7 @@
                   "name": {
                     "fields": {
                       "text": {
-                        "type": "text"
+                        "type": "match_only_text"
                       }
                     },
                     "ignore_above": 1024,
@@ -3110,7 +3110,7 @@
               "working_directory": {
                 "fields": {
                   "text": {
-                    "type": "text"
+                    "type": "match_only_text"
                   }
                 },
                 "ignore_above": 1024,
@@ -3125,7 +3125,7 @@
           "executable": {
             "fields": {
               "text": {
-                "type": "text"
+                "type": "match_only_text"
               }
             },
             "ignore_above": 1024,
@@ -3146,7 +3146,7 @@
               "command_line": {
                 "fields": {
                   "text": {
-                    "type": "text"
+                    "type": "match_only_text"
                   }
                 },
                 "type": "wildcard"
@@ -3158,7 +3158,7 @@
               "executable": {
                 "fields": {
                   "text": {
-                    "type": "text"
+                    "type": "match_only_text"
                   }
                 },
                 "ignore_above": 1024,
@@ -3182,7 +3182,7 @@
               "name": {
                 "fields": {
                   "text": {
-                    "type": "text"
+                    "type": "match_only_text"
                   }
                 },
                 "ignore_above": 1024,
@@ -3212,7 +3212,7 @@
                   "name": {
                     "fields": {
                       "text": {
-                        "type": "text"
+                        "type": "match_only_text"
                       }
                     },
                     "ignore_above": 1024,
@@ -3244,7 +3244,7 @@
                   "name": {
                     "fields": {
                       "text": {
-                        "type": "text"
+                        "type": "match_only_text"
                       }
                     },
                     "ignore_above": 1024,
@@ -3291,7 +3291,7 @@
                   "name": {
                     "fields": {
                       "text": {
-                        "type": "text"
+                        "type": "match_only_text"
                       }
                     },
                     "ignore_above": 1024,
@@ -3305,7 +3305,7 @@
               "working_directory": {
                 "fields": {
                   "text": {
-                    "type": "text"
+                    "type": "match_only_text"
                   }
                 },
                 "ignore_above": 1024,
@@ -3441,7 +3441,7 @@
           "name": {
             "fields": {
               "text": {
-                "type": "text"
+                "type": "match_only_text"
               }
             },
             "ignore_above": 1024,
@@ -3495,7 +3495,7 @@
               "command_line": {
                 "fields": {
                   "text": {
-                    "type": "text"
+                    "type": "match_only_text"
                   }
                 },
                 "type": "wildcard"
@@ -3656,7 +3656,7 @@
               "executable": {
                 "fields": {
                   "text": {
-                    "type": "text"
+                    "type": "match_only_text"
                   }
                 },
                 "ignore_above": 1024,
@@ -3790,7 +3790,7 @@
               "name": {
                 "fields": {
                   "text": {
-                    "type": "text"
+                    "type": "match_only_text"
                   }
                 },
                 "ignore_above": 1024,
@@ -3909,7 +3909,7 @@
                   "name": {
                     "fields": {
                       "text": {
-                        "type": "text"
+                        "type": "match_only_text"
                       }
                     },
                     "ignore_above": 1024,
@@ -3938,7 +3938,7 @@
                   "name": {
                     "fields": {
                       "text": {
-                        "type": "text"
+                        "type": "match_only_text"
                       }
                     },
                     "ignore_above": 1024,
@@ -3987,7 +3987,7 @@
               "title": {
                 "fields": {
                   "text": {
-                    "type": "text"
+                    "type": "match_only_text"
                   }
                 },
                 "ignore_above": 1024,
@@ -4020,7 +4020,7 @@
                   "name": {
                     "fields": {
                       "text": {
-                        "type": "text"
+                        "type": "match_only_text"
                       }
                     },
                     "ignore_above": 1024,
@@ -4034,7 +4034,7 @@
               "working_directory": {
                 "fields": {
                   "text": {
-                    "type": "text"
+                    "type": "match_only_text"
                   }
                 },
                 "ignore_above": 1024,
@@ -4146,7 +4146,7 @@
               "executable": {
                 "fields": {
                   "text": {
-                    "type": "text"
+                    "type": "match_only_text"
                   }
                 },
                 "ignore_above": 1024,
@@ -4175,7 +4175,7 @@
               "name": {
                 "fields": {
                   "text": {
-                    "type": "text"
+                    "type": "match_only_text"
                   }
                 },
                 "ignore_above": 1024,
@@ -4204,7 +4204,7 @@
               "name": {
                 "fields": {
                   "text": {
-                    "type": "text"
+                    "type": "match_only_text"
                   }
                 },
                 "ignore_above": 1024,
@@ -4224,7 +4224,7 @@
               "command_line": {
                 "fields": {
                   "text": {
-                    "type": "text"
+                    "type": "match_only_text"
                   }
                 },
                 "type": "wildcard"
@@ -4236,7 +4236,7 @@
               "executable": {
                 "fields": {
                   "text": {
-                    "type": "text"
+                    "type": "match_only_text"
                   }
                 },
                 "ignore_above": 1024,
@@ -4260,7 +4260,7 @@
               "name": {
                 "fields": {
                   "text": {
-                    "type": "text"
+                    "type": "match_only_text"
                   }
                 },
                 "ignore_above": 1024,
@@ -4324,7 +4324,7 @@
                   "name": {
                     "fields": {
                       "text": {
-                        "type": "text"
+                        "type": "match_only_text"
                       }
                     },
                     "ignore_above": 1024,
@@ -4356,7 +4356,7 @@
                   "name": {
                     "fields": {
                       "text": {
-                        "type": "text"
+                        "type": "match_only_text"
                       }
                     },
                     "ignore_above": 1024,
@@ -4403,7 +4403,7 @@
                   "name": {
                     "fields": {
                       "text": {
-                        "type": "text"
+                        "type": "match_only_text"
                       }
                     },
                     "ignore_above": 1024,
@@ -4417,7 +4417,7 @@
               "working_directory": {
                 "fields": {
                   "text": {
-                    "type": "text"
+                    "type": "match_only_text"
                   }
                 },
                 "ignore_above": 1024,
@@ -4466,7 +4466,7 @@
           "title": {
             "fields": {
               "text": {
-                "type": "text"
+                "type": "match_only_text"
               }
             },
             "ignore_above": 1024,
@@ -4505,7 +4505,7 @@
               "name": {
                 "fields": {
                   "text": {
-                    "type": "text"
+                    "type": "match_only_text"
                   }
                 },
                 "ignore_above": 1024,
@@ -4519,7 +4519,7 @@
           "working_directory": {
             "fields": {
               "text": {
-                "type": "text"
+                "type": "match_only_text"
               }
             },
             "ignore_above": 1024,
@@ -4641,7 +4641,7 @@
                   "name": {
                     "fields": {
                       "text": {
-                        "type": "text"
+                        "type": "match_only_text"
                       }
                     },
                     "ignore_above": 1024,
@@ -4753,7 +4753,7 @@
               "full_name": {
                 "fields": {
                   "text": {
-                    "type": "text"
+                    "type": "match_only_text"
                   }
                 },
                 "ignore_above": 1024,
@@ -4786,7 +4786,7 @@
               "name": {
                 "fields": {
                   "text": {
-                    "type": "text"
+                    "type": "match_only_text"
                   }
                 },
                 "ignore_above": 1024,
@@ -4972,7 +4972,7 @@
                   "name": {
                     "fields": {
                       "text": {
-                        "type": "text"
+                        "type": "match_only_text"
                       }
                     },
                     "ignore_above": 1024,
@@ -5084,7 +5084,7 @@
               "full_name": {
                 "fields": {
                   "text": {
-                    "type": "text"
+                    "type": "match_only_text"
                   }
                 },
                 "ignore_above": 1024,
@@ -5117,7 +5117,7 @@
               "name": {
                 "fields": {
                   "text": {
-                    "type": "text"
+                    "type": "match_only_text"
                   }
                 },
                 "ignore_above": 1024,
@@ -5155,7 +5155,7 @@
                           "name": {
                             "fields": {
                               "text": {
-                                "type": "text"
+                                "type": "match_only_text"
                               }
                             },
                             "ignore_above": 1024,
@@ -5464,7 +5464,7 @@
                       "path": {
                         "fields": {
                           "text": {
-                            "type": "text"
+                            "type": "match_only_text"
                           }
                         },
                         "ignore_above": 1024,
@@ -5562,7 +5562,7 @@
                       "target_path": {
                         "fields": {
                           "text": {
-                            "type": "text"
+                            "type": "match_only_text"
                           }
                         },
                         "ignore_above": 1024,
@@ -5832,7 +5832,7 @@
                       "full": {
                         "fields": {
                           "text": {
-                            "type": "text"
+                            "type": "match_only_text"
                           }
                         },
                         "type": "wildcard"
@@ -5840,7 +5840,7 @@
                       "original": {
                         "fields": {
                           "text": {
-                            "type": "text"
+                            "type": "match_only_text"
                           }
                         },
                         "type": "wildcard"
@@ -6076,7 +6076,7 @@
                       "name": {
                         "fields": {
                           "text": {
-                            "type": "text"
+                            "type": "match_only_text"
                           }
                         },
                         "ignore_above": 1024,
@@ -6385,7 +6385,7 @@
                   "path": {
                     "fields": {
                       "text": {
-                        "type": "text"
+                        "type": "match_only_text"
                       }
                     },
                     "ignore_above": 1024,
@@ -6483,7 +6483,7 @@
                   "target_path": {
                     "fields": {
                       "text": {
-                        "type": "text"
+                        "type": "match_only_text"
                       }
                     },
                     "ignore_above": 1024,
@@ -6753,7 +6753,7 @@
                   "full": {
                     "fields": {
                       "text": {
-                        "type": "text"
+                        "type": "match_only_text"
                       }
                     },
                     "type": "wildcard"
@@ -6761,7 +6761,7 @@
                   "original": {
                     "fields": {
                       "text": {
-                        "type": "text"
+                        "type": "match_only_text"
                       }
                     },
                     "type": "wildcard"
@@ -6963,7 +6963,7 @@
               "name": {
                 "fields": {
                   "text": {
-                    "type": "text"
+                    "type": "match_only_text"
                   }
                 },
                 "ignore_above": 1024,
@@ -6982,7 +6982,7 @@
                   "name": {
                     "fields": {
                       "text": {
-                        "type": "text"
+                        "type": "match_only_text"
                       }
                     },
                     "ignore_above": 1024,
@@ -7373,7 +7373,7 @@
           "full": {
             "fields": {
               "text": {
-                "type": "text"
+                "type": "match_only_text"
               }
             },
             "type": "wildcard"
@@ -7381,7 +7381,7 @@
           "original": {
             "fields": {
               "text": {
-                "type": "text"
+                "type": "match_only_text"
               }
             },
             "type": "wildcard"
@@ -7437,7 +7437,7 @@
               "full_name": {
                 "fields": {
                   "text": {
-                    "type": "text"
+                    "type": "match_only_text"
                   }
                 },
                 "ignore_above": 1024,
@@ -7470,7 +7470,7 @@
               "name": {
                 "fields": {
                   "text": {
-                    "type": "text"
+                    "type": "match_only_text"
                   }
                 },
                 "ignore_above": 1024,
@@ -7499,7 +7499,7 @@
               "full_name": {
                 "fields": {
                   "text": {
-                    "type": "text"
+                    "type": "match_only_text"
                   }
                 },
                 "ignore_above": 1024,
@@ -7532,7 +7532,7 @@
               "name": {
                 "fields": {
                   "text": {
-                    "type": "text"
+                    "type": "match_only_text"
                   }
                 },
                 "ignore_above": 1024,
@@ -7551,7 +7551,7 @@
           "full_name": {
             "fields": {
               "text": {
-                "type": "text"
+                "type": "match_only_text"
               }
             },
             "ignore_above": 1024,
@@ -7584,7 +7584,7 @@
           "name": {
             "fields": {
               "text": {
-                "type": "text"
+                "type": "match_only_text"
               }
             },
             "ignore_above": 1024,
@@ -7631,7 +7631,7 @@
               "full_name": {
                 "fields": {
                   "text": {
-                    "type": "text"
+                    "type": "match_only_text"
                   }
                 },
                 "ignore_above": 1024,
@@ -7664,7 +7664,7 @@
               "name": {
                 "fields": {
                   "text": {
-                    "type": "text"
+                    "type": "match_only_text"
                   }
                 },
                 "ignore_above": 1024,
@@ -7695,7 +7695,7 @@
           "original": {
             "fields": {
               "text": {
-                "type": "text"
+                "type": "match_only_text"
               }
             },
             "ignore_above": 1024,
@@ -7710,7 +7710,7 @@
               "full": {
                 "fields": {
                   "text": {
-                    "type": "text"
+                    "type": "match_only_text"
                   }
                 },
                 "ignore_above": 1024,
@@ -7723,7 +7723,7 @@
               "name": {
                 "fields": {
                   "text": {
-                    "type": "text"
+                    "type": "match_only_text"
                   }
                 },
                 "ignore_above": 1024,
