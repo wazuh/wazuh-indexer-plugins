@@ -425,8 +425,7 @@
           "cpu": {
             "properties": {
               "usage": {
-                "scaling_factor": 1000,
-                "type": "scaled_float"
+                "type": "float"
               }
             }
           },
@@ -478,8 +477,7 @@
           "memory": {
             "properties": {
               "usage": {
-                "scaling_factor": 1000,
-                "type": "scaled_float"
+                "type": "float"
               }
             }
           },
@@ -1881,8 +1879,7 @@
           "cpu": {
             "properties": {
               "usage": {
-                "scaling_factor": 1000,
-                "type": "scaled_float"
+                "type": "float"
               }
             }
           },
