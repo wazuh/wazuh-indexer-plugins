@@ -1,0 +1,134 @@
+{
+  "index_patterns": [
+    "wazuh-states-inventory-processes*"
+  ],
+  "mappings": {
+    "date_detection": false,
+    "dynamic": "strict",
+    "properties": {
+      "@timestamp": {
+        "type": "date"
+      },
+      "agent": {
+        "properties": {
+          "groups": {
+            "ignore_above": 1024,
+            "type": "keyword"
+          },
+          "id": {
+            "ignore_above": 1024,
+            "type": "keyword"
+          }
+        }
+      },
+      "process": {
+        "properties": {
+          "args": {
+            "ignore_above": 1024,
+            "type": "keyword"
+          },
+          "command_line": {
+            "fields": {
+              "text": {
+                "type": "text"
+              }
+            },
+            "type": "wildcard"
+          },
+          "group": {
+            "properties": {
+              "id": {
+                "ignore_above": 1024,
+                "type": "keyword"
+              }
+            }
+          },
+          "name": {
+            "fields": {
+              "text": {
+                "type": "text"
+              }
+            },
+            "ignore_above": 1024,
+            "type": "keyword"
+          },
+          "parent": {
+            "properties": {
+              "pid": {
+                "type": "long"
+              }
+            }
+          },
+          "pid": {
+            "type": "long"
+          },
+          "real_group": {
+            "properties": {
+              "id": {
+                "ignore_above": 1024,
+                "type": "keyword"
+              }
+            }
+          },
+          "real_user": {
+            "properties": {
+              "id": {
+                "ignore_above": 1024,
+                "type": "keyword"
+              }
+            }
+          },
+          "saved_group": {
+            "properties": {
+              "id": {
+                "ignore_above": 1024,
+                "type": "keyword"
+              }
+            }
+          },
+          "saved_user": {
+            "properties": {
+              "id": {
+                "ignore_above": 1024,
+                "type": "keyword"
+              }
+            }
+          },
+          "start": {
+            "type": "date"
+          },
+          "thread": {
+            "properties": {
+              "id": {
+                "type": "long"
+              }
+            }
+          },
+          "user": {
+            "properties": {
+              "id": {
+                "ignore_above": 1024,
+                "type": "keyword"
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "order": 1,
+  "settings": {
+    "index": {
+      "number_of_replicas": "0",
+      "number_of_shards": "1",
+      "query.default_field": [
+        "agent.id",
+        "agent.groups",
+        "process.name",
+        "process.pid",
+        "process.command_line"
+      ],
+      "refresh_interval": "5s"
+    }
+  }
+}
