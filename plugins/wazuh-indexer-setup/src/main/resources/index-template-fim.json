@@ -70,7 +70,7 @@
           "path": {
             "fields": {
               "text": {
-                "type": "text"
+                "type": "match_only_text"
               }
             },
             "ignore_above": 1024,
@@ -82,7 +82,7 @@
           "target_path": {
             "fields": {
               "text": {
-                "type": "text"
+                "type": "match_only_text"
               }
             },
             "ignore_above": 1024,
