@@ -28,7 +28,7 @@ publishing {
                 }
                 developers {
                     developer {
-                        name = "Wazuh "
+                        name = "Wazuh"
                         url = "https://wazuh.com"
                     }
                 }
@@ -39,6 +39,7 @@ publishing {
 
 allprojects {
     group = "${projectPath}"
+    version = "${wazuh_version}" + ".${revision}"
     targetCompatibility = JavaVersion.VERSION_11
     sourceCompatibility = JavaVersion.VERSION_11
 }
@@ -74,11 +75,6 @@ buildscript {
     dependencies {
         classpath "org.opensearch.gradle:build-tools:${opensearch_version}"
     }
-}
-
-allprojects {
-    group = 'org.wazuh'
-    version = "${wazuh_version}" + ".${revision}"
 }
 
 repositories {
