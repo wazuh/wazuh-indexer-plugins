@@ -47,6 +47,7 @@ opensearchplugin {
     name pluginName
     description pluginDescription
     classname "${projectPath}.${pathToPlugin}.${pluginClassName}"
+    extendedPlugins = ['opensearch-job-scheduler']
     licenseFile rootProject.file('LICENSE.txt')
     noticeFile rootProject.file('NOTICE.txt')
 }
@@ -81,6 +82,10 @@ repositories {
     maven { url "https://aws.oss.sonatype.org/content/repositories/snapshots" }
     mavenCentral()
     maven { url "https://plugins.gradle.org/m2/" }
+}
+
+dependencies {
+    compileOnly "org.opensearch:opensearch-job-scheduler-spi:${opensearch_version}.0"
 }
 
 test {
