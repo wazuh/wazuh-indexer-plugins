@@ -83,6 +83,10 @@ repositories {
     maven { url "https://plugins.gradle.org/m2/" }
 }
 
+dependencies {
+    implementation("com.google.guava:guava:33.3.0-jre")
+}
+
 test {
     include '**/*Tests.class'
 }
