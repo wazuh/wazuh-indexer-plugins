@@ -17,11 +17,9 @@ buildscript {
     if (isSnapshot) {
       opensearch_build += "-SNAPSHOT"
     }
-
-    //common_utils_version = System.getProperty("common_utils.version", opensearch_build)
     job_scheduler_version = System.getProperty("job_scheduler.version", opensearch_build)
-    //kotlin_version = System.getProperty("kotlin.version", "1.8.21")
-    //jackson_version = "2.14.1"
+    wazuh_version = System.getProperty("version", "5.0.0")
+    revision = System.getProperty("revision", "0")
   }
 
   repositories {
@@ -42,6 +40,12 @@ plugins {
   id 'java-library'
 }
 
+def pluginName = 'wazuh-indexer-command-manager'
+def pluginDescription = 'The Command Manager plugin handles and distributes commands across your Wazuh environment.'
+def projectPath = 'com.wazuh'
+def pathToPlugin = 'commandmanager'
+def pluginClassName = 'CommandManagerPlugin'
+
 apply plugin: 'java'
 apply plugin: 'idea'
 apply plugin: 'opensearch.opensearchplugin'
@@ -49,19 +53,22 @@ apply plugin: 'opensearch.pluginzip'
 apply plugin: 'opensearch.testclusters'
 
 opensearchplugin {
-  name 'wazuh-indexer-command-manager'
-  description 'Scheduler for Dashboards Reports Plugin'
-  classname "com.wazuh.commandmanager.CommandManagerPlugin"
+  name pluginName
+  description pluginDescription
+  classname "${projectPath}.${pathToPlugin}.${pluginClassName}"
   extendedPlugins = ['opensearch-job-scheduler']
+  licenseFile rootProject.file('LICENSE.txt')
+  noticeFile rootProject.file('NOTICE.txt')
 }
 
 publishing {
   publications {
     pluginZip(MavenPublication) { publication ->
       pom {
-        name = 'wazuh-indexer-command-manager'
-        description = 'Scheduler for Dashboards Reports Plugin'
-        groupId = "org.opensearch.plugin"
+        name = pluginName
+        description = pluginDescription
+        //groupId = "org.opensearch.plugin"
+        groupId = projectPath
         licenses {
           license {
             name = 'The Apache License, Version 2.0'
@@ -70,8 +77,8 @@ publishing {
         }
         developers {
           developer {
-            name = 'OpenSearch'
-            url = 'https://github.com/opensearch-project/reporting'
+            name = 'Wazuh'
+            url = 'https://www.wazuh.com'
           }
         }
       }
@@ -106,6 +113,14 @@ plugins.withId('java') {
 allprojects {
   group = "org.opensearch"
   version = "${opensearch_build}"
+  plugins.withId('java') {
+    sourceCompatibility = targetCompatibility = "11"
+  }
+}
+
+subprojects {
+  group = "${projectPath}"
+  version = "${wazuh_version}" + ".${revision}"
   plugins.withId('java') {
     sourceCompatibility = targetCompatibility = "11"
   }
