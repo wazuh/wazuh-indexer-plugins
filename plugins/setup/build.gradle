@@ -9,7 +9,7 @@ apply plugin: 'opensearch.pluginzip'
 
 def pluginName = 'wazuh-indexer-setup'
 def pluginDescription = 'Wazuh Indexer setup plugin'
-def projectPath = 'org.wazuh'
+def projectPath = 'com.wazuh'
 def pathToPlugin = 'setup'
 def pluginClassName = 'SetupPlugin'
 

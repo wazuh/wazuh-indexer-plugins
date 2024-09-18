@@ -5,10 +5,10 @@
  * this file be licensed under the Apache-2.0 license or a
  * compatible open source license.
  */
-package org.wazuh.setup.index;
+package com.wazuh.setup.index;
 
+import com.wazuh.setup.utils.IndexTemplateUtils;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.mockito.*;
 import org.opensearch.action.admin.indices.create.CreateIndexRequest;
 import org.opensearch.action.admin.indices.create.CreateIndexResponse;
@@ -17,12 +17,10 @@ import org.opensearch.action.support.master.AcknowledgedResponse;
 import org.opensearch.client.AdminClient;
 import org.opensearch.client.Client;
 import org.opensearch.client.IndicesAdminClient;
-import org.opensearch.cluster.service.ClusterService;
-import org.opensearch.cluster.routing.RoutingTable;
 import org.opensearch.cluster.ClusterState;
-
+import org.opensearch.cluster.routing.RoutingTable;
+import org.opensearch.cluster.service.ClusterService;
 import org.opensearch.test.OpenSearchTestCase;
-import org.wazuh.setup.utils.IndexTemplateUtils;
 
 import java.io.IOException;
 import java.util.HashMap;
