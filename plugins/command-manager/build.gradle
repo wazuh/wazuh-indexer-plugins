@@ -56,6 +56,7 @@ opensearchplugin {
   name pluginName
   description pluginDescription
   classname "${projectPath}.${pathToPlugin}.${pluginClassName}"
+  version = "${wazuh_version}" + ".${revision}"
   extendedPlugins = ['opensearch-job-scheduler']
   licenseFile rootProject.file('LICENSE.txt')
   noticeFile rootProject.file('NOTICE.txt')
@@ -113,14 +114,6 @@ plugins.withId('java') {
 allprojects {
   group = "org.opensearch"
   version = "${opensearch_build}"
-  plugins.withId('java') {
-    sourceCompatibility = targetCompatibility = "11"
-  }
-}
-
-subprojects {
-  group = "${projectPath}"
-  version = "${wazuh_version}" + ".${revision}"
   plugins.withId('java') {
     sourceCompatibility = targetCompatibility = "11"
   }
