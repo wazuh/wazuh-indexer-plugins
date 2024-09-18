@@ -1,11 +1,44 @@
 import org.opensearch.gradle.test.RestIntegTestTask
+import java.util.concurrent.Callable
 
-apply plugin: 'java'
-apply plugin: 'idea'
-apply plugin: 'eclipse'
-apply plugin: 'opensearch.opensearchplugin'
-apply plugin: 'opensearch.yaml-rest-test'
-apply plugin: 'opensearch.pluginzip'
+buildscript {
+  ext {
+    opensearch_group = "org.opensearch"
+
+    isSnapshot = "true" == System.getProperty("build.snapshot", "true")
+    opensearch_version = System.getProperty("opensearch.version", "2.16.0-SNAPSHOT")
+    buildVersionQualifier = System.getProperty("build.version_qualifier", "")
+    // 2.0.0-rc1-SNAPSHOT -> 2.0.0.0-rc1-SNAPSHOT
+    version_tokens = opensearch_version.tokenize('-')
+    opensearch_build = version_tokens[0] + '.0'
+    if (buildVersionQualifier) {
+      opensearch_build += "-${buildVersionQualifier}"
+    }
+    if (isSnapshot) {
+      opensearch_build += "-SNAPSHOT"
+    }
+    job_scheduler_version = System.getProperty("job_scheduler.version", opensearch_build)
+    wazuh_version = System.getProperty("version", "5.0.0")
+    revision = System.getProperty("revision", "0")
+  }
+
+  repositories {
+    mavenLocal()
+    maven { url "https://aws.oss.sonatype.org/content/repositories/snapshots" }
+    mavenCentral()
+    maven { url "https://plugins.gradle.org/m2/" }
+  }
+
+  dependencies {
+    classpath "${opensearch_group}.gradle:build-tools:${opensearch_version}"
+  }
+}
+
+plugins {
+  id "com.netflix.nebula.ospackage-base" version "11.6.0"
+  //id "com.dorongold.task-tree" version "1.5"
+  id 'java-library'
+}
 
 def pluginName = 'wazuh-indexer-command-manager'
 def pluginDescription = 'The Command Manager plugin handles and distributes commands across your Wazuh environment.'
@@ -13,118 +46,211 @@ def projectPath = 'com.wazuh'
 def pathToPlugin = 'commandmanager'
 def pluginClassName = 'CommandManagerPlugin'
 
+apply plugin: 'java'
+apply plugin: 'idea'
+apply plugin: 'opensearch.opensearchplugin'
+apply plugin: 'opensearch.pluginzip'
+apply plugin: 'opensearch.testclusters'
+
+opensearchplugin {
+  name pluginName
+  description pluginDescription
+  classname "${projectPath}.${pathToPlugin}.${pluginClassName}"
+  version = "${wazuh_version}" + ".${revision}"
+  extendedPlugins = ['opensearch-job-scheduler']
+  licenseFile rootProject.file('LICENSE.txt')
+  noticeFile rootProject.file('NOTICE.txt')
+}
+
 publishing {
-    publications {
-        pluginZip(MavenPublication) { publication ->
-            pom {
-                name = pluginName
-                description = pluginDescription
-                licenses {
-                    license {
-                        name = "The Apache License, Version 2.0"
-                        url = "http://www.apache.org/licenses/LICENSE-2.0.txt"
-                    }
-                }
-                developers {
-                    developer {
-                        name = "Wazuh"
-                        url = "https://wazuh.com"
-                    }
-                }
-            }
+  publications {
+    pluginZip(MavenPublication) { publication ->
+      pom {
+        name = pluginName
+        description = pluginDescription
+        //groupId = "org.opensearch.plugin"
+        groupId = projectPath
+        licenses {
+          license {
+            name = 'The Apache License, Version 2.0'
+            url = 'http://www.apache.org/licenses/LICENSE-2.0.txt'
+          }
         }
+        developers {
+          developer {
+            name = 'Wazuh'
+            url = 'https://www.wazuh.com'
+          }
+        }
+      }
     }
+  }
+  repositories {
+    maven {
+      name = "Snapshots" //  optional target repository name
+      url = "https://aws.oss.sonatype.org/content/repositories/snapshots"
+      credentials {
+        username "$System.env.SONATYPE_USERNAME"
+        password "$System.env.SONATYPE_PASSWORD"
+      }
+    }
+  }
+}
+
+configurations {
+  zipArchive
+}
+
+ext {
+  projectSubstitutions = [:]
+  licenseFile = rootProject.file('LICENSE.txt')
+  noticeFile = rootProject.file('NOTICE.txt')
+}
+
+plugins.withId('java') {
+  sourceCompatibility = targetCompatibility = "11"
 }
 
 allprojects {
-    group = "${projectPath}"
-    version = "${wazuh_version}" + ".${revision}"
-    targetCompatibility = JavaVersion.VERSION_11
-    sourceCompatibility = JavaVersion.VERSION_11
-}
-
-opensearchplugin {
-    name pluginName
-    description pluginDescription
-    classname "${projectPath}.${pathToPlugin}.${pluginClassName}"
-    extendedPlugins = ['opensearch-job-scheduler']
-    licenseFile rootProject.file('LICENSE.txt')
-    noticeFile rootProject.file('NOTICE.txt')
-}
-
-// This requires an additional Jar not published as part of build-tools
-loggerUsageCheck.enabled = false
-
-// No need to validate pom, as we do not upload to maven/sonatype
-validateNebulaPom.enabled = false
-
-buildscript {
-    ext {
-        opensearch_version = System.getProperty("opensearch.version", "2.16.0")
-        wazuh_version = System.getProperty("version", "5.0.0")
-        revision = System.getProperty("revision", "0")
-    }
-
-    repositories {
-        mavenLocal()
-        maven { url "https://aws.oss.sonatype.org/content/repositories/snapshots" }
-        mavenCentral()
-        maven { url "https://plugins.gradle.org/m2/" }
-    }
-
-    dependencies {
-        classpath "org.opensearch.gradle:build-tools:${opensearch_version}"
-    }
+  group = "org.opensearch"
+  version = "${opensearch_build}"
+  plugins.withId('java') {
+    sourceCompatibility = targetCompatibility = "11"
+  }
 }
 
 repositories {
-    mavenLocal()
-    maven { url "https://aws.oss.sonatype.org/content/repositories/snapshots" }
-    mavenCentral()
-    maven { url "https://plugins.gradle.org/m2/" }
+  mavenLocal()
+  maven { url "https://aws.oss.sonatype.org/content/repositories/snapshots" }
+  mavenCentral()
+  maven { url "https://plugins.gradle.org/m2/" }
 }
 
 dependencies {
-    compileOnly "org.opensearch:opensearch-job-scheduler-spi:${opensearch_version}.0"
+  zipArchive group: 'org.opensearch.plugin', name:'opensearch-job-scheduler', version: "${opensearch_build}"
+  implementation "org.opensearch:opensearch:${opensearch_version}"
+  compileOnly "${group}:opensearch-job-scheduler-spi:${job_scheduler_version}"
 }
 
+javadoc.enabled = false // turn off javadoc as it barfs on Kotlin code
+licenseHeaders.enabled = true
+// no need to validate pom, as we do not upload to maven/sonatype
+validateNebulaPom.enabled = false
+dependencyLicenses.enabled = false
+thirdPartyAudit.enabled = false
+// Allow @Test to be used in test classes not inherited from LuceneTestCase.
+forbiddenApis.ignoreFailures = true
+// Allow test cases to be named Tests without having to be inherited from LuceneTestCase.
+testingConventions.enabled = false
+loggerUsageCheck.enabled = false
+
 test {
-    include '**/*Tests.class'
+  systemProperty 'tests.security.manager', 'false'
+  useJUnitPlatform()
+}
+
+File repo = file("$buildDir/testclusters/repo")
+def _numNodes = findProperty('numNodes') as Integer ?: 1
+
+def opensearch_tmp_dir = rootProject.file('build/private/es_tmp').absoluteFile
+opensearch_tmp_dir.mkdirs()
+
+// As of ES 7.7 the sample-extension-plugin is being added to the list of plugins for the testCluster during build before
+// the job-scheduler plugin is causing build failures.
+// The job-scheduler zip is added explicitly above but the sample-extension-plugin is added implicitly at some time during evaluation.
+// Will need to do a deep dive to find out exactly what task adds the sample-extension-plugin and add job-scheduler there but a temporary hack is to
+// reorder the plugins list after evaluation but prior to task execution when the plugins are installed.
+afterEvaluate {
+  testClusters.integTest.nodes.each { node ->
+    def plugins = node.plugins
+    def firstPlugin = plugins.get(0)
+    plugins.remove(0)
+    plugins.add(firstPlugin)
+  }
+}
+
+tasks.withType(licenseHeaders.class) {
+  additionalLicense 'AL   ', 'Apache', 'Licensed under the Apache License, Version 2.0 (the "License")'
 }
 
 task integTest(type: RestIntegTestTask) {
-    description = "Run tests against a cluster"
-    testClassesDirs = sourceSets.test.output.classesDirs
-    classpath = sourceSets.test.runtimeClasspath
+  description = "Run tests against a cluster"
+  testClassesDirs = sourceSets.test.output.classesDirs
+  classpath = sourceSets.test.runtimeClasspath
 }
 tasks.named("check").configure { dependsOn(integTest) }
 
 integTest {
-    // The --debug-jvm command-line option makes the cluster debuggable; this makes the tests debuggable
-    if (System.getProperty("test.debug") != null) {
-        jvmArgs '-agentlib:jdwp=transport=dt_socket,server=y,suspend=y,address=*:5005'
+  dependsOn "bundlePlugin"
+  systemProperty 'tests.security.manager', 'false'
+  systemProperty 'java.io.tmpdir', opensearch_tmp_dir.absolutePath
+
+  systemProperty "https", System.getProperty("https")
+  systemProperty "user", System.getProperty("user")
+  systemProperty "password", System.getProperty("password")
+  // Tell the test JVM if the cluster JVM is running under a debugger so that tests can use longer timeouts for
+  // requests. The 'doFirst' delays reading the debug setting on the cluster till execution time.
+  doFirst {
+    // Tell the test JVM if the cluster JVM is running under a debugger so that tests can
+    // use longer timeouts for requests.
+    def isDebuggingCluster = getDebug() || System.getProperty("test.debug") != null
+    systemProperty 'cluster.debug', isDebuggingCluster
+    // Set number of nodes system property to be used in tests
+    systemProperty 'cluster.number_of_nodes', "${_numNodes}"
+    // There seems to be an issue when running multi node run or integ tasks with unicast_hosts
+    // not being written, the waitForAllConditions ensures it's written
+    getClusters().forEach { cluster ->
+      cluster.waitForAllConditions()
     }
+  }
+
+  // The -Dcluster.debug option makes the cluster debuggable; this makes the tests debuggable
+  if (System.getProperty("test.debug") != null) {
+    jvmArgs '-agentlib:jdwp=transport=dt_socket,server=n,suspend=y,address=8000'
+  }
 }
 
-testClusters.integTest {
-    testDistribution = "INTEG_TEST"
+Zip bundle = (Zip) project.getTasks().getByName("bundlePlugin");
+integTest.dependsOn(bundle)
+integTest.getClusters().forEach{c -> c.plugin(project.getObjects().fileProperty().value(bundle.getArchiveFile()))}
 
-    // This installs our plugin into the testClusters
-    plugin(project.tasks.bundlePlugin.archiveFile)
+testClusters.integTest {
+  testDistribution = "INTEG_TEST"
+  // need to install job-scheduler first, need to assemble job-scheduler first
+  plugin(provider(new Callable<RegularFile>(){
+    @Override
+    RegularFile call() throws Exception {
+      return new RegularFile() {
+        @Override
+        File getAsFile() {
+          return configurations.zipArchive.asFileTree.getSingleFile()
+        }
+      }
+    }
+  }))
+
+  // Cluster shrink exception thrown if we try to set numberOfNodes to 1, so only apply if > 1
+  if (_numNodes > 1) numberOfNodes = _numNodes
+  // When running integration tests it doesn't forward the --debug-jvm to the cluster anymore
+  // i.e. we have to use a custom property to flag when we want to debug opensearch JVM
+  // since we also support multi node integration tests we increase debugPort per node
+  if (System.getProperty("cluster.debug") != null) {
+    def debugPort = 5005
+    nodes.forEach { node ->
+      node.jvmArgs("-agentlib:jdwp=transport=dt_socket,server=n,suspend=y,address=*:${debugPort}")
+      debugPort += 1
+    }
+  }
+  setting 'path.repo', repo.absolutePath
 }
 
 run {
-    useCluster testClusters.integTest
-}
-
-// updateVersion: Task to auto update version to the next development iteration
-task updateVersion {
-    onlyIf { System.getProperty('newVersion') }
-    doLast {
-        ext.newVersion = System.getProperty('newVersion')
-        println "Setting version to ${newVersion}."
-         // String tokenization to support -SNAPSHOT
-        ant.replaceregexp(file: 'build.gradle', match: '"opensearch.version", "\\d.*"', replace: '"opensearch.version", "' + newVersion.tokenize('-')[0] + '-SNAPSHOT"', flags: 'g', byline: true)
+  doFirst {
+    // There seems to be an issue when running multi node run or integ tasks with unicast_hosts
+    // not being written, the waitForAllConditions ensures it's written
+    getClusters().forEach { cluster ->
+      cluster.waitForAllConditions()
     }
+  }
+  useCluster testClusters.integTest
 }
-
