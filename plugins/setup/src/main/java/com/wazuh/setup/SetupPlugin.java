@@ -5,8 +5,9 @@
  * this file be licensed under the Apache-2.0 license or a
  * compatible open source license.
  */
-package org.wazuh.setup;
+package com.wazuh.setup;
 
+import com.wazuh.setup.index.WazuhIndices;
 import org.opensearch.client.Client;
 import org.opensearch.cluster.metadata.IndexNameExpressionResolver;
 import org.opensearch.cluster.node.DiscoveryNode;
@@ -21,7 +22,6 @@ import org.opensearch.repositories.RepositoriesService;
 import org.opensearch.script.ScriptService;
 import org.opensearch.threadpool.ThreadPool;
 import org.opensearch.watcher.ResourceWatcherService;
-import org.wazuh.setup.index.WazuhIndices;
 
 import java.util.Collection;
 import java.util.List;
@@ -34,12 +34,13 @@ import java.util.function.Supplier;
  */
 public class SetupPlugin extends Plugin implements ClusterPlugin {
 
+    private WazuhIndices indices;
+
     /**
      * Default constructor
      */
-    public SetupPlugin() {}
-
-    private WazuhIndices indices;
+    public SetupPlugin() {
+    }
 
     @Override
     public Collection<Object> createComponents(
