@@ -5,8 +5,9 @@
  * this file be licensed under the Apache-2.0 license or a
  * compatible open source license.
  */
-package org.wazuh.setup.index;
+package com.wazuh.setup.index;
 
+import com.wazuh.setup.utils.IndexTemplateUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.opensearch.action.admin.indices.create.CreateIndexRequest;
@@ -16,10 +17,10 @@ import org.opensearch.action.support.master.AcknowledgedResponse;
 import org.opensearch.client.Client;
 import org.opensearch.cluster.service.ClusterService;
 
-import org.wazuh.setup.utils.IndexTemplateUtils;
-
 import java.io.IOException;
-import java.util.*;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 /**
  * This class contains the logic to create the index templates and the indices
@@ -27,16 +28,14 @@ import java.util.*;
  */
 public class WazuhIndices {
     private static final Logger log = LogManager.getLogger(WazuhIndices.class);
-
-    private final Client client;
-    private final ClusterService clusterService;
-
     /**
      * | Key                 | value      |
      * | ------------------- | ---------- |
      * | Index template name | index name |
      */
     public final Map<String, String> indexTemplates = new HashMap<>();
+    private final Client client;
+    private final ClusterService clusterService;
 
     /**
      * Constructor
