@@ -32,6 +32,10 @@ public class RestPostCommandAction extends BaseRestHandler {
 
     public CommandManagerService commandManagerService;
 
+    public RestPostCommandAction(final CommandManagerService commandManagerService) {
+        this.commandManagerService = commandManagerService;
+    }
+
     public String getName() {
         return POST_COMMAND_ACTION_REQUEST_DETAILS;
     }
@@ -39,12 +43,21 @@ public class RestPostCommandAction extends BaseRestHandler {
     @Override
     public List<Route> routes() {
         return Collections.singletonList(
+//            new Route(
+//                POST,
+//                String.format(
+//                    Locale.ROOT,
+//                    "%s",
+//                    CommandManagerPlugin.COMMAND_MANAGER_BASE_URI
+//                )
+//            ),
             new Route(
                 POST,
                 String.format(
                     Locale.ROOT,
-                    "%s",
-                    CommandManagerPlugin.COMMAND_MANAGER_BASE_URI
+                    "%s/{%s}",
+                    CommandManagerPlugin.COMMAND_MANAGER_BASE_URI,
+                    PostCommandRequest.DOCUMENT_ID
                 )
             )
         );
