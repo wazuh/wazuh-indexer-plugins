@@ -7,7 +7,6 @@
  */
 package com.wazuh.commandmanager;
 
-import com.google.common.collect.ImmutableList;
 import com.wazuh.commandmanager.rest.action.RestPostCommandAction;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -22,6 +21,7 @@ import org.opensearch.plugins.Plugin;
 import org.opensearch.rest.RestController;
 import org.opensearch.rest.RestHandler;
 
+import java.util.Collections;
 import java.util.List;
 import java.util.function.Supplier;
 
@@ -31,16 +31,15 @@ public class CommandManagerPlugin extends Plugin implements ActionPlugin {
   public static final String COMMAND_MANAGER_INDEX_NAME = "command-manager";
   private static final Logger log = LogManager.getLogger(CommandManagerPlugin.class);
 
-  public List<RestHandler> getRestHandlers(
-      Settings settings,
-      RestController restController,
-      ClusterSettings clusterSettings,
-      IndexScopedSettings indexScopedSettings,
-      SettingsFilter settingsFilter,
-      IndexNameExpressionResolver indexNameExpressionResolver,
-      Supplier<DiscoveryNodes> nodesInCluster
-  ) {
-    RestPostCommandAction restPostCommandAction = new RestPostCommandAction();
-    return ImmutableList.of(restPostCommandAction);
-  }
+    public List<RestHandler> getRestHandlers(
+            Settings settings,
+            RestController restController,
+            ClusterSettings clusterSettings,
+            IndexScopedSettings indexScopedSettings,
+            SettingsFilter settingsFilter,
+            IndexNameExpressionResolver indexNameExpressionResolver,
+            Supplier<DiscoveryNodes> nodesInCluster
+    ) {
+        return Collections.singletonList(new RestPostCommandAction());
+    }
 }
