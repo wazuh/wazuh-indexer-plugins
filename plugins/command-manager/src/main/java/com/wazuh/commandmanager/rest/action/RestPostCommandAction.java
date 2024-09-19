@@ -43,10 +43,8 @@ public class RestPostCommandAction extends BaseRestHandler {
                 POST,
                 String.format(
                     Locale.ROOT,
-                    "%s/%s/{%s}",
-                    CommandManagerPlugin.COMMAND_MANAGER_BASE_URI,
-                    "create",
-                    "id"
+                    "%s",
+                    CommandManagerPlugin.COMMAND_MANAGER_BASE_URI
                 )
             )
         );
