@@ -33,6 +33,7 @@ public class CommandManagerService implements IndexingOperationListener {
 
     private static final Logger logger = LogManager.getLogger(CommandManagerService.class);
 
+    public static Long TIME_OUT_FOR_REQUEST = 15L;
     private final Client client;
     private final ClusterService clusterService;
 
