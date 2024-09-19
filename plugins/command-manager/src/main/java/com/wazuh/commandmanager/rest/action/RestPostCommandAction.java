@@ -1,6 +1,7 @@
 package com.wazuh.commandmanager.rest.action;
 
 import com.wazuh.commandmanager.CommandManagerPlugin;
+import com.wazuh.commandmanager.rest.request.PostCommandRequest;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.opensearch.action.DocWriteRequest;
@@ -19,6 +20,7 @@ import org.opensearch.rest.action.RestStatusToXContentListener;
 import java.io.IOException;
 import java.util.*;
 
+import static org.opensearch.core.xcontent.XContentParserUtils.ensureExpectedToken;
 import static org.opensearch.rest.RestRequest.Method.POST;
 
 public class RestPostCommandAction extends BaseRestHandler {
@@ -34,21 +36,22 @@ public class RestPostCommandAction extends BaseRestHandler {
     @Override
     public List<Route> routes() {
         return Collections.singletonList(
-                new Route(
-                        POST,
-                        String.format(
-                                Locale.ROOT,
-                                "%s/%s/{%s}",
-                                CommandManagerPlugin.COMMAND_MANAGER_BASE_URI,
-                                "create",
-                                "id"
-                        )
+            new Route(
+                POST,
+                String.format(
+                    Locale.ROOT,
+                    "%s/%s/{%s}",
+                    CommandManagerPlugin.COMMAND_MANAGER_BASE_URI,
+                    "create",
+                    "id"
                 )
+            )
         );
     }
 
     @Override
     protected RestChannelConsumer prepareRequest(final RestRequest request, final NodeClient client) throws IOException {
+
         IndexRequest indexRequest = new IndexRequest(CommandManagerPlugin.COMMAND_MANAGER_INDEX_NAME);
         // ID. Document ID. Generated combining the Order ID and the Command Request ID.
         indexRequest.id(request.param("id"));
@@ -61,6 +64,22 @@ public class RestPostCommandAction extends BaseRestHandler {
         indexRequest.setIfSeqNo(request.paramAsLong("if_seq_no", indexRequest.ifSeqNo()));
         indexRequest.setIfPrimaryTerm(request.paramAsLong("if_primary_term", indexRequest.ifPrimaryTerm()));
         indexRequest.setRequireAlias(request.paramAsBoolean(DocWriteRequest.REQUIRE_ALIAS, indexRequest.isRequireAlias()));
+
+        XContentParser parser = request.contentParser();
+        ensureExpectedToken(XContentParser.Token.START_OBJECT, parser.nextToken(), parser);
+
+        PostCommandRequest postCommandRequest = PostCommandRequest.parse(parser);
+
+        String documentId = request.param(PostCommandRequest.DOCUMENT_ID);
+        String commandOrderId = postCommandRequest.getCommandOrderId();
+        String commandRequestId = postCommandRequest.getCommandRequestId();
+        String commandSource = postCommandRequest.getCommandSource();
+        String commandTarget = postCommandRequest.getCommandTarget();
+        String commandTimeout = postCommandRequest.getCommandTimeout();
+        String commandType = postCommandRequest.getCommandType();
+        String commandUser = postCommandRequest.getCommandUser();
+        Map<String,Object> commandAction = postCommandRequest.getCommandAction();
+        Map<String,Object> commandResult = postCommandRequest.getCommandResult();
 
         Map<String, Object> requestBodyMap;
 
