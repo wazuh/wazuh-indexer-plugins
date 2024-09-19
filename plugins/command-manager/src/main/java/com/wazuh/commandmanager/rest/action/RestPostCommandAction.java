@@ -8,7 +8,6 @@ import org.opensearch.action.index.IndexRequest;
 import org.opensearch.action.support.ActiveShardCount;
 import org.opensearch.client.node.NodeClient;
 import org.opensearch.common.xcontent.XContentFactory;
-import org.opensearch.core.xcontent.XContent;
 import org.opensearch.core.xcontent.XContentBuilder;
 import org.opensearch.core.xcontent.XContentParser;
 import org.opensearch.index.VersionType;
