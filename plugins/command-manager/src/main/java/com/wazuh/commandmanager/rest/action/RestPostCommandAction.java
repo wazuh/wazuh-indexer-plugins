@@ -102,7 +102,7 @@ public class RestPostCommandAction extends BaseRestHandler {
 
                 @Override
                 public void onFailure(Exception e) {
-                    logger.info("could not process job index", e);
+                    logger.info("could not process command", e);
                     inProgressFuture.completeExceptionally(e);
                 }
             }
@@ -112,7 +112,7 @@ public class RestPostCommandAction extends BaseRestHandler {
             inProgressFuture.orTimeout(CommandManagerService.TIME_OUT_FOR_REQUEST, TimeUnit.SECONDS);
         } catch (CompletionException e) {
             if (e.getCause() instanceof TimeoutException) {
-                logger.error("Get Job Details timed out ", e);
+                logger.error("Get Command Details timed out ", e);
             }
             if (e.getCause() instanceof RuntimeException) {
                 throw (RuntimeException) e.getCause();

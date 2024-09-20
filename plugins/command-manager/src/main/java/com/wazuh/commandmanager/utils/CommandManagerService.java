@@ -27,7 +27,6 @@ import org.opensearch.index.seqno.SequenceNumbers;
 import org.opensearch.index.shard.IndexingOperationListener;
 
 import java.io.IOException;
-import java.lang.reflect.Array;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -132,7 +131,7 @@ public class CommandManagerService implements IndexingOperationListener {
             // Create index request, document Id will be randomly generated
             final IndexRequest request = new IndexRequest(CommandManagerPlugin.COMMAND_MANAGER_INDEX_NAME).source(
                 tempCommandDetails.toXContent(XContentFactory.jsonBuilder(), ToXContent.EMPTY_PARAMS)
-            ).setIfSeqNo(SequenceNumbers.UNASSIGNED_SEQ_NO).setIfPrimaryTerm(SequenceNumbers.UNASSIGNED_PRIMARY_TERM).create(true);
+            ).setIfSeqNo(SequenceNumbers.UNASSIGNED_SEQ_NO).setIfPrimaryTerm(SequenceNumbers.UNASSIGNED_PRIMARY_TERM).id(tempCommandDetails.getCommandOrderId() + tempCommandDetails.getCommandRequestId()).create(true);
 
             client.index(request, ActionListener.wrap(response -> { listener.onResponse(response.getId()); }, exception -> {
                 if (exception instanceof IOException) {
