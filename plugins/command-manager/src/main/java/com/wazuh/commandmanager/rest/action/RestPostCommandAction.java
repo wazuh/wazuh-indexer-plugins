@@ -55,9 +55,8 @@ public class RestPostCommandAction extends BaseRestHandler {
                 POST,
                 String.format(
                     Locale.ROOT,
-                    "%s/{%s}",
-                    CommandManagerPlugin.COMMAND_MANAGER_BASE_URI,
-                    PostCommandRequest.DOCUMENT_ID
+                    "%s",
+                    CommandManagerPlugin.COMMAND_MANAGER_BASE_URI
                 )
             )
         );
@@ -69,9 +68,10 @@ public class RestPostCommandAction extends BaseRestHandler {
         ensureExpectedToken(XContentParser.Token.START_OBJECT, parser.nextToken(), parser);
 
         PostCommandRequest postCommandRequest = PostCommandRequest.parse(parser);
-        String documentId = restRequest.param(PostCommandRequest.DOCUMENT_ID);
-        String commandOrderId = postCommandRequest.getCommandOrderId();
-        String commandRequestId = postCommandRequest.getCommandRequestId();
+        String commandOrderId = commandManagerService.generateRandomString(4);
+        String commandRequestId = commandManagerService.generateRandomString(4);
+        // The document ID is a concatenation of the orderId and the requestId
+        String documentId = commandOrderId + commandRequestId;
         String commandSource = postCommandRequest.getCommandSource();
         String commandTarget = postCommandRequest.getCommandTarget();
         String commandTimeout = postCommandRequest.getCommandTimeout();

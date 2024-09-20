@@ -27,7 +27,11 @@ import org.opensearch.index.seqno.SequenceNumbers;
 import org.opensearch.index.shard.IndexingOperationListener;
 
 import java.io.IOException;
+import java.lang.reflect.Array;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
+import java.util.Random;
 
 public class CommandManagerService implements IndexingOperationListener {
 
@@ -245,6 +249,36 @@ public class CommandManagerService implements IndexingOperationListener {
                     }
                 }));
         }
+    }
+
+    public String generateRandomString(int stringLength) {
+        Random random = new Random();
+        String randomString = "";
+        // Build a list of ascii indices for Alphanumeric characters
+        // to be accessed by index
+        List<Integer> asciiCharIndices = new ArrayList<>();
+        // Decimal numbers
+        for(int i = 48; i <= 57 ; i++)
+        {
+            asciiCharIndices.add(i);
+        }
+        // Uppercase Latin Characters
+        for(int i = 65; i <= 90 ; i++)
+        {
+            asciiCharIndices.add(i);
+        }
+        // Lowercase Latin Characters
+        for(int i = 97; i <= 122 ; i++)
+        {
+            asciiCharIndices.add(i);
+        }
+        for(int i = 0; i <= stringLength; i++)
+        {
+            //randomString = randomString + (char) random.nextInt(asciiCharIndices.size());
+            randomString = randomString + (char) (int) asciiCharIndices.get(random.nextInt(asciiCharIndices.size()));
+            logger.info((char) random.nextInt(asciiCharIndices.size()));
+        }
+        return randomString;
     }
 
 }
