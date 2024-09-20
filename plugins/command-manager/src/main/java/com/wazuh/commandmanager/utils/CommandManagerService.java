@@ -94,45 +94,24 @@ public class CommandManagerService implements IndexingOperationListener {
                 if (created) {
                     try {
                         // Update entry request
-                        if (documentId != null) {
-                            // Recover entry via documentId
-                            findCommandDetails(documentId, ActionListener.wrap(existingCommandDetails -> {
-                                CommandDetails updateCommandDetails = new CommandDetails(existingCommandDetails);
+                        // Create CommandDetails from params
+                        CommandDetails tempCommandDetails = new CommandDetails(
+                            commandOrderId,
+                            commandRequestId,
+                            commandSource,
+                            commandTarget,
+                            commandTimeout,
+                            commandType,
+                            commandUser,
+                            commandAction,
+                            commandResult
+                        );
 
-                                // Set updated fields
-                                updateCommandDetails.setCommandOrderId(commandOrderId);
-                                updateCommandDetails.setCommandRequestId(commandRequestId);
-                                updateCommandDetails.setCommandSource(commandSource);
-                                updateCommandDetails.setCommandTarget(commandTarget);
-                                updateCommandDetails.setCommandTimeout(commandTimeout);
-                                updateCommandDetails.setCommandType(commandType);
-                                updateCommandDetails.setCommandUser(commandUser);
-                                updateCommandDetails.setCommandAction(commandAction);
-                                updateCommandDetails.setCommandResult(commandResult);
-
-                                // Send update Request
-                                updateCommandDetails(documentId, updateCommandDetails, listener);
-                            }, listener::onFailure));
-                        } else {
-                            // Create CommandDetails from params
-                            CommandDetails tempCommandDetails = new CommandDetails(
-                                commandOrderId,
-                                commandRequestId,
-                                commandSource,
-                                commandTarget,
-                                commandTimeout,
-                                commandType,
-                                commandUser,
-                                commandAction,
-                                commandResult
-                            );
-
-                            // Index new command Details entry
-                            logger.info(
-                                "Creating command details" + " : " + tempCommandDetails.toString()
-                            );
-                            createCommandDetails(tempCommandDetails, listener);
-                        }
+                        // Index new command Details entry
+                        logger.info(
+                            "Creating command details" + " : " + tempCommandDetails.toString()
+                        );
+                        createCommandDetails(tempCommandDetails, listener);
                     } catch (VersionConflictEngineException e) {
                         logger.debug("could not process command" + commandOrderId, e.getMessage());
                         listener.onResponse(null);
@@ -173,6 +152,7 @@ public class CommandManagerService implements IndexingOperationListener {
         GetRequest getRequest = new GetRequest(CommandManagerPlugin.COMMAND_MANAGER_INDEX_NAME).id(documentId);
         client.get(getRequest, ActionListener.wrap(response -> {
             if (!response.isExists()) {
+                logger.info("Non-existent command: " + documentId);
                 listener.onResponse(null);
             } else {
                 try {
