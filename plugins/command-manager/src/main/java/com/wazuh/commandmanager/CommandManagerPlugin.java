@@ -8,7 +8,7 @@
 package com.wazuh.commandmanager;
 
 import com.wazuh.commandmanager.rest.action.RestPostCommandAction;
-import com.wazuh.commandmanager.utils.CommandManagerService;
+import com.wazuh.commandmanager.index.CommandIndex;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.opensearch.client.Client;
@@ -41,9 +41,8 @@ import java.util.function.Supplier;
 public class CommandManagerPlugin extends Plugin implements ActionPlugin {
   public static final String COMMAND_MANAGER_BASE_URI = "/_plugins/_commandmanager";
   public static final String COMMAND_MANAGER_INDEX_NAME = "command-manager";
-  private static final Logger log = LogManager.getLogger(CommandManagerPlugin.class);
 
-  private CommandManagerService commandManagerService;
+  private CommandIndex commandIndex;
 
   @Override
   public Collection<Object> createComponents(
@@ -59,8 +58,7 @@ public class CommandManagerPlugin extends Plugin implements ActionPlugin {
       IndexNameExpressionResolver indexNameExpressionResolver,
       Supplier<RepositoriesService> repositoriesServiceSupplier
   ) {
-    this.commandManagerService = new CommandManagerService(client, clusterService);
-
+    this.commandIndex = new CommandIndex(client, clusterService);
     return Collections.emptyList();
   }
 
@@ -73,7 +71,6 @@ public class CommandManagerPlugin extends Plugin implements ActionPlugin {
             IndexNameExpressionResolver indexNameExpressionResolver,
             Supplier<DiscoveryNodes> nodesInCluster
     ) {
-        RestPostCommandAction restPostCommandAction = new RestPostCommandAction(commandManagerService);
-        return Collections.singletonList(restPostCommandAction);
+        return Collections.singletonList(new RestPostCommandAction(this.commandIndex));
     }
 }
