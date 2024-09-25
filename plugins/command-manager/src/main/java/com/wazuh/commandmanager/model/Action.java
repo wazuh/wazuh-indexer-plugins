@@ -7,6 +7,8 @@
  */
 package com.wazuh.commandmanager.model;
 
+import org.opensearch.core.xcontent.ToXContentObject;
+import org.opensearch.core.xcontent.XContentBuilder;
 import org.opensearch.core.xcontent.XContentParser;
 
 import java.io.IOException;
@@ -14,7 +16,7 @@ import java.io.IOException;
 /**
  * Command's action fields.
  */
-public class Action {
+public class Action implements ToXContentObject {
 
     public static final String TYPE = "type";
     public static final String ARGS = "args";
@@ -92,5 +94,14 @@ public class Action {
      */
     public String getVersion() {
         return this.version;
+    }
+
+    @Override
+    public XContentBuilder toXContent(XContentBuilder builder, Params params) throws IOException {
+        builder.startObject("action");
+        builder.field(TYPE, this.type);
+        builder.field(ARGS, this.args);
+        builder.field(VERSION, this.version);
+        return builder.endObject();
     }
 }

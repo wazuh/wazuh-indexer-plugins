@@ -58,7 +58,7 @@ public class CommandManagerPlugin extends Plugin implements ActionPlugin {
       IndexNameExpressionResolver indexNameExpressionResolver,
       Supplier<RepositoriesService> repositoriesServiceSupplier
   ) {
-    this.commandIndex = new CommandIndex(client, clusterService);
+    this.commandIndex = new CommandIndex(client);
     return Collections.emptyList();
   }
 

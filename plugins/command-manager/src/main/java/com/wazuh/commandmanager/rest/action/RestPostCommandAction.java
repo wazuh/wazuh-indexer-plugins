@@ -10,17 +10,17 @@ package com.wazuh.commandmanager.rest.action;
 import com.wazuh.commandmanager.CommandManagerPlugin;
 import com.wazuh.commandmanager.index.CommandIndex;
 import com.wazuh.commandmanager.model.Command;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
 import org.opensearch.action.index.IndexResponse;
 import org.opensearch.client.node.NodeClient;
 import org.opensearch.common.Randomness;
+import org.opensearch.core.rest.RestStatus;
 import org.opensearch.core.xcontent.XContentBuilder;
 import org.opensearch.core.xcontent.XContentParser;
 import org.opensearch.rest.BaseRestHandler;
 import org.opensearch.rest.BytesRestResponse;
 import org.opensearch.rest.RestRequest;
 
+import java.awt.event.ActionListener;
 import java.io.IOException;
 import java.util.Collections;
 import java.util.List;
@@ -37,8 +37,6 @@ import static org.opensearch.rest.RestRequest.Method.POST;
 public class RestPostCommandAction extends BaseRestHandler {
 
     public static final String POST_COMMAND_ACTION_REQUEST_DETAILS = "post_command_action_request_details";
-
-    private final Logger logger = LogManager.getLogger(RestPostCommandAction.class);
 
     private final CommandIndex commandIndex;
 
@@ -94,7 +92,7 @@ public class RestPostCommandAction extends BaseRestHandler {
         Command command = Command.parse(requestId, orderId, parser);
 
         // Persist command
-        IndexResponse indexResponse = this.commandIndex.create(command).actionGet();
+        RestStatus status = this.commandIndex.create(command);
 
         // Send response
         return channel -> {
@@ -102,7 +100,7 @@ public class RestPostCommandAction extends BaseRestHandler {
                 builder.startObject();
                 builder.field("command", command.getId());
                 builder.endObject();
-                channel.sendResponse(new BytesRestResponse(indexResponse.status(), builder));
+                channel.sendResponse(new BytesRestResponse(status, builder));
             }
         };
     }

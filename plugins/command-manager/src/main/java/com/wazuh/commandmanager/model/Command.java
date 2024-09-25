@@ -7,17 +7,17 @@
  */
 package com.wazuh.commandmanager.model;
 
-import org.opensearch.action.ActionRequest;
-import org.opensearch.action.ActionRequestValidationException;
+import org.opensearch.core.xcontent.ToXContent;
 import org.opensearch.core.xcontent.ToXContentObject;
 import org.opensearch.core.xcontent.XContentBuilder;
 import org.opensearch.core.xcontent.XContentParser;
+import reactor.util.annotation.NonNull;
 
 import java.io.IOException;
 
 import static org.opensearch.core.xcontent.XContentParserUtils.ensureExpectedToken;
 
-public class Command extends ActionRequest implements ToXContentObject {
+public class Command implements ToXContentObject {
 
     public static final String ORDER_ID = "order_id";
     public static final String REQUEST_ID = "request_id";
@@ -52,14 +52,14 @@ public class Command extends ActionRequest implements ToXContentObject {
      * @param action    target action type and additional parameters
      */
     public Command(
-            String requestID,
-            String orderID,
-            String source,
-            String target,
-            Integer timeout,
-            String type,
-            String user,
-            Action action
+            @NonNull String requestID,
+            @NonNull String orderID,
+            @NonNull String source,
+            @NonNull String target,
+            @NonNull Integer timeout,
+            @NonNull String type,
+            @NonNull String user,
+            @NonNull Action action
     ) {
         this.id = orderID + requestID;
         this.requestId = requestID;
@@ -73,6 +73,14 @@ public class Command extends ActionRequest implements ToXContentObject {
         this.status = Status.PENDING;
     }
 
+    /**
+     *
+     * @param requestId
+     * @param orderId
+     * @param parser
+     * @return
+     * @throws IOException
+     */
     public static Command parse(String requestId, String orderId, XContentParser parser) throws IOException {
         String source = null;
         String target = null;
@@ -111,6 +119,9 @@ public class Command extends ActionRequest implements ToXContentObject {
             }
         }
 
+        assert source != null;
+        assert target != null;
+        assert timeout != null;
         return new Command(
                 requestId,
                 orderId,
@@ -123,100 +134,29 @@ public class Command extends ActionRequest implements ToXContentObject {
         );
     }
 
-    /**
-     * @return
-     */
-    @Override
-    public ActionRequestValidationException validate() {
-        return null;
-    }
-
     @Override
     public XContentBuilder toXContent(XContentBuilder builder, Params params) throws IOException {
-        XContentBuilder xContentBuilder = builder.startObject();
+        builder.startObject();
 
-        // @TODO review whether these IFs are necessary
-        if (this.source != null) {
-            xContentBuilder.field(SOURCE, this.source);
-        }
-        if (this.user != null) {
-            xContentBuilder.field(USER, this.user);
-        }
-        if (this.target != null) {
-            xContentBuilder.field(TARGET, this.target);
-        }
-        if (this.type != null) {
-            xContentBuilder.field(TYPE, this.type);
-        }
-        if (this.action != null) {
-            xContentBuilder.field(ACTION, this.action);
-        }
-        if (timeout != null) {
-            xContentBuilder.field(TIMEOUT, timeout);
-        }
+        builder.field(SOURCE, this.source);
+        builder.field(USER, this.user);
+        builder.field(TARGET, this.target);
+        builder.field(TYPE, this.type);
+        this.action.toXContent(builder, ToXContent.EMPTY_PARAMS);
+        builder.field(TIMEOUT, timeout);
+        builder.field(STATUS, this.status);
+        builder.field(ORDER_ID, this.orderId);
+        builder.field(REQUEST_ID, this.requestId);
 
-        xContentBuilder.field(STATUS, this.status);
-        xContentBuilder.field(ORDER_ID, this.orderId);
-        xContentBuilder.field(REQUEST_ID, this.requestId);
-
-        return xContentBuilder.endObject();
+        return builder.endObject();
     }
 
     /**
-     *
-     * @return
-     */
-    public String getOrderId() {
-        return this.orderId;
-    }
-
-    /**
-     *
-     * @return
-     */
-    public String getRequestId() {
-        return this.requestId;
-    }
-
-    /**
-     *
      * @return
      */
     public String getId() {
         return this.id;
     }
-
-//    @Override
-//    public boolean equals(Object o) {
-//        if (this == o) return true;
-//        if (o == null || getClass() != o.getClass()) return false;
-//        Command that = (Command) o;
-//        return Objects.equals(orderID, that.orderID)
-//            && Objects.equals(requestID, that.requestID)
-//            && Objects.equals(source, that.source)
-//            && Objects.equals(target, that.target)
-//            && Objects.equals(timeout, that.timeout)
-//            && Objects.equals(type, that.type)
-//            && Objects.equals(user, that.user)
-//            && Objects.equals(action, that.action)
-//            && Objects.equals(result, that.result);
-//    }
-
-//    @Override
-//    public int hashCode() {
-//        return Objects.hash(
-//                orderID,
-//                requestID,
-//                source,
-//                target,
-//                timeout,
-//                type,
-//                user,
-//                action,
-//                result
-//        );
-//    }
-
 
     @Override
     public String toString() {
