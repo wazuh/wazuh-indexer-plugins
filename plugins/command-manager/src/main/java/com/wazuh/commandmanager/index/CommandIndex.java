@@ -12,13 +12,16 @@ import com.wazuh.commandmanager.model.Command;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.opensearch.action.index.IndexRequest;
+import org.opensearch.action.index.IndexResponse;
 import org.opensearch.client.Client;
 import org.opensearch.common.xcontent.XContentFactory;
+import org.opensearch.core.action.ActionListener;
 import org.opensearch.core.rest.RestStatus;
 import org.opensearch.core.xcontent.ToXContent;
 import org.opensearch.index.shard.IndexingOperationListener;
 
 import java.io.IOException;
+import java.util.concurrent.CompletableFuture;
 
 public class CommandIndex implements IndexingOperationListener {
 
@@ -36,7 +39,8 @@ public class CommandIndex implements IndexingOperationListener {
     }
 
     /**
-     * @param command
+     *
+     * @param command: Command to persist to an index
      * @return
      */
     public RestStatus create(Command command) {
@@ -47,7 +51,24 @@ public class CommandIndex implements IndexingOperationListener {
                     .id(command.getId())
                     .create(true);
 
-            return this.client.index(request).actionGet().status();
+            //return this.client.index(request).actionGet().status();
+            CompletableFuture<IndexResponse> inProgressFuture = new CompletableFuture<>();
+
+            client.index(
+                request,
+                new ActionListener<IndexResponse>() {
+                    @Override
+                    public void onResponse(IndexResponse indexResponse) {
+                        inProgressFuture.complete(indexResponse);
+                    }
+
+                    @Override
+                    public void onFailure(Exception e) {
+                        logger.info("Could not process command", e);
+                        inProgressFuture.completeExceptionally(e);
+                    }
+                }
+            );
         } catch (IOException e) {
             logger.error("IOException occurred creating command details", e);
         }
