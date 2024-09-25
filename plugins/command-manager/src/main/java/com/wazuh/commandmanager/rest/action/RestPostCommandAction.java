@@ -10,7 +10,6 @@ package com.wazuh.commandmanager.rest.action;
 import com.wazuh.commandmanager.CommandManagerPlugin;
 import com.wazuh.commandmanager.index.CommandIndex;
 import com.wazuh.commandmanager.model.Command;
-import org.opensearch.action.index.IndexResponse;
 import org.opensearch.client.node.NodeClient;
 import org.opensearch.common.Randomness;
 import org.opensearch.core.rest.RestStatus;
@@ -20,7 +19,6 @@ import org.opensearch.rest.BaseRestHandler;
 import org.opensearch.rest.BytesRestResponse;
 import org.opensearch.rest.RestRequest;
 
-import java.awt.event.ActionListener;
 import java.io.IOException;
 import java.util.Collections;
 import java.util.List;
