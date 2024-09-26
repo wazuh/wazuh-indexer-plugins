@@ -22,6 +22,7 @@ import org.opensearch.index.shard.IndexingOperationListener;
 
 import java.io.IOException;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
 
 public class CommandIndex implements IndexingOperationListener {
 
@@ -39,10 +40,14 @@ public class CommandIndex implements IndexingOperationListener {
     }
 
     /**
-     * @param command: Command to persist to an index
-     * @return
+     *
+     * @param command a Command class command
+     * @return Indexing operation RestStatus response
+     * @throws ExecutionException
+     * @throws InterruptedException
      */
-    public RestStatus create(Command command) {
+    public RestStatus create(Command command) throws ExecutionException, InterruptedException {
+        CompletableFuture<IndexResponse> inProgressFuture = new CompletableFuture<>();
         try {
             IndexRequest request = new IndexRequest()
                     .index(CommandManagerPlugin.COMMAND_MANAGER_INDEX_NAME)
@@ -51,7 +56,6 @@ public class CommandIndex implements IndexingOperationListener {
                     .create(true);
 
             //return this.client.index(request).actionGet().status();
-            CompletableFuture<IndexResponse> inProgressFuture = new CompletableFuture<>();
 
             client.index(
                     request,
@@ -71,6 +75,6 @@ public class CommandIndex implements IndexingOperationListener {
         } catch (IOException e) {
             logger.error("IOException occurred creating command details", e);
         }
-        return RestStatus.INTERNAL_SERVER_ERROR;
+        return inProgressFuture.get().status();
     }
 }

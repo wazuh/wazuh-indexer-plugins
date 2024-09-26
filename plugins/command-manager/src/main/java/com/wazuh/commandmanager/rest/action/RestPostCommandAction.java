@@ -23,6 +23,7 @@ import java.io.IOException;
 import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
+import java.util.concurrent.ExecutionException;
 
 import static org.opensearch.core.xcontent.XContentParserUtils.ensureExpectedToken;
 import static org.opensearch.rest.RestRequest.Method.POST;
@@ -90,7 +91,12 @@ public class RestPostCommandAction extends BaseRestHandler {
         Command command = Command.parse(requestId, orderId, parser);
 
         // Persist command
-        RestStatus status = this.commandIndex.create(command);
+        RestStatus status;
+        try {
+            status = this.commandIndex.create(command);
+        } catch (ExecutionException | InterruptedException e) {
+            throw new RuntimeException(e);
+        }
 
         // Send response
         return channel -> {
