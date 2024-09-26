@@ -12,6 +12,7 @@ import org.opensearch.core.xcontent.XContentBuilder;
 import org.opensearch.core.xcontent.XContentParser;
 
 import java.io.IOException;
+import java.util.List;
 
 /**
  * Command's action fields.
@@ -22,7 +23,7 @@ public class Action implements ToXContentObject {
     public static final String ARGS = "args";
     public static final String VERSION = "version";
     private final String type;
-    private final String args;
+    private final List<String> args;
     private final String version;
 
     /**
@@ -32,7 +33,7 @@ public class Action implements ToXContentObject {
      * @param args    actual command.
      * @param version version of the action.
      */
-    public Action(String type, String args, String version) {
+    public Action(String type, List<String> args, String version) {
         this.type = type;
         this.args = args;
         this.version = version;
@@ -45,7 +46,7 @@ public class Action implements ToXContentObject {
      */
     public static Action parse(XContentParser parser) throws IOException {
         String type = "";
-        String args = "";
+        List<Object> args = List.of();
         String version = "";
 
         while (parser.nextToken() != XContentParser.Token.END_OBJECT) {
@@ -56,7 +57,7 @@ public class Action implements ToXContentObject {
                     type = parser.text();
                     break;
                 case ARGS:
-                    args = parser.text();
+                    args = parser.list();
                     break;
                 case VERSION:
                     version = parser.text();
@@ -66,7 +67,10 @@ public class Action implements ToXContentObject {
                     break;
             }
         }
-        return new Action(type, args, version);
+
+        // Cast args field Object list to String list
+        List<String> convertedArgsFields = (List<String>) (List<?>) (args);
+        return new Action(type, convertedArgsFields, version);
     }
 
     /**
@@ -83,7 +87,7 @@ public class Action implements ToXContentObject {
      *
      * @return args
      */
-    public String getArgs() {
+    public List<String> getArgs() {
         return this.args;
     }
 

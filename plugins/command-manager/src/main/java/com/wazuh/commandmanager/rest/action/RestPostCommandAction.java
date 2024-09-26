@@ -96,7 +96,9 @@ public class RestPostCommandAction extends BaseRestHandler {
         return channel -> {
             try (XContentBuilder builder = channel.newBuilder()) {
                 builder.startObject();
-                builder.field("command", command.getId());
+                builder.field("_index", CommandManagerPlugin.COMMAND_MANAGER_INDEX_NAME);
+                builder.field("_id", command.getId());
+                builder.field("result", status.name());
                 builder.endObject();
                 channel.sendResponse(new BytesRestResponse(status, builder));
             }

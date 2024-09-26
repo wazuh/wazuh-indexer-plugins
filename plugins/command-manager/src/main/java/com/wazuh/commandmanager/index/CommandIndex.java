@@ -39,7 +39,6 @@ public class CommandIndex implements IndexingOperationListener {
     }
 
     /**
-     *
      * @param command: Command to persist to an index
      * @return
      */
@@ -55,19 +54,19 @@ public class CommandIndex implements IndexingOperationListener {
             CompletableFuture<IndexResponse> inProgressFuture = new CompletableFuture<>();
 
             client.index(
-                request,
-                new ActionListener<IndexResponse>() {
-                    @Override
-                    public void onResponse(IndexResponse indexResponse) {
-                        inProgressFuture.complete(indexResponse);
-                    }
+                    request,
+                    new ActionListener<>() {
+                        @Override
+                        public void onResponse(IndexResponse indexResponse) {
+                            inProgressFuture.complete(indexResponse);
+                        }
 
-                    @Override
-                    public void onFailure(Exception e) {
-                        logger.info("Could not process command", e);
-                        inProgressFuture.completeExceptionally(e);
+                        @Override
+                        public void onFailure(Exception e) {
+                            logger.info("Could not process command", e);
+                            inProgressFuture.completeExceptionally(e);
+                        }
                     }
-                }
             );
         } catch (IOException e) {
             logger.error("IOException occurred creating command details", e);
