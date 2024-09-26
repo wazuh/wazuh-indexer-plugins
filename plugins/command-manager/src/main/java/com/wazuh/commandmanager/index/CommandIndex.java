@@ -49,13 +49,12 @@ public class CommandIndex implements IndexingOperationListener {
     public RestStatus create(Command command) throws ExecutionException, InterruptedException {
         CompletableFuture<IndexResponse> inProgressFuture = new CompletableFuture<>();
         try {
+            logger.info("Creating request for command: {}", command.getId());
             IndexRequest request = new IndexRequest()
                     .index(CommandManagerPlugin.COMMAND_MANAGER_INDEX_NAME)
                     .source(command.toXContent(XContentFactory.jsonBuilder(), ToXContent.EMPTY_PARAMS))
                     .id(command.getId())
                     .create(true);
-
-            //return this.client.index(request).actionGet().status();
 
             client.index(
                     request,
@@ -67,7 +66,7 @@ public class CommandIndex implements IndexingOperationListener {
 
                         @Override
                         public void onFailure(Exception e) {
-                            logger.info("Could not process command", e);
+                            logger.info("Could not process command: {}", command.getId(), e);
                             inProgressFuture.completeExceptionally(e);
                         }
                     }

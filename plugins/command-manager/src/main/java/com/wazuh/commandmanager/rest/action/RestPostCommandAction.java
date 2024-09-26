@@ -10,6 +10,8 @@ package com.wazuh.commandmanager.rest.action;
 import com.wazuh.commandmanager.CommandManagerPlugin;
 import com.wazuh.commandmanager.index.CommandIndex;
 import com.wazuh.commandmanager.model.Command;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.opensearch.client.node.NodeClient;
 import org.opensearch.common.Randomness;
 import org.opensearch.core.rest.RestStatus;
@@ -38,6 +40,8 @@ public class RestPostCommandAction extends BaseRestHandler {
     public static final String POST_COMMAND_ACTION_REQUEST_DETAILS = "post_command_action_request_details";
 
     private final CommandIndex commandIndex;
+
+    private static final Logger logger = LogManager.getLogger(RestPostCommandAction.class);
 
     /**
      * Default constructor
@@ -93,8 +97,10 @@ public class RestPostCommandAction extends BaseRestHandler {
         // Persist command
         RestStatus status;
         try {
+            logger.info("Sending request to create command: {}", command.getId());
             status = this.commandIndex.create(command);
         } catch (ExecutionException | InterruptedException e) {
+            logger.error("Could not send request to create command", e);
             throw new RuntimeException(e);
         }
 
