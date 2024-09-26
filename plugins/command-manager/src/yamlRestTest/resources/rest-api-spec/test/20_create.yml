@@ -1,0 +1,35 @@
+---
+"Create command":
+    - do:
+          _plugins._commandmanager:
+              body:
+                  source: "Users/Services"
+                  user: "user13"
+                  target: "WazuhServerCluster5"
+                  type: "agent_group"
+                  action: {
+                      type: "Server cluster",
+                      args: [ "/path/to/executable/arg8" ],
+                      version: "v4"
+                  }
+                  timeout: 100
+
+    - set: { _id: document_id }
+    - match: { _index: command-manager }
+
+    - do:
+          get:
+              index: command-manager
+              id: $document_id
+    - match: { _source.source: "Users/Services" }
+    - match: { _source.user: "user13" }
+    - match: { _source.target: "WazuhServerCluster5" }
+    - match: { _source.type: "agent_group" }
+    - match: { _source.action:
+                 {
+                     type: "Server cluster",
+                     args: [ "/path/to/executable/arg8" ],
+                     version: "v4"
+                 }
+    }
+    - match: { _source.timeout: 100 }
