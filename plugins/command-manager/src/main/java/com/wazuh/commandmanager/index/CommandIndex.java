@@ -14,15 +14,18 @@ import org.apache.logging.log4j.Logger;
 import org.opensearch.action.index.IndexRequest;
 import org.opensearch.action.index.IndexResponse;
 import org.opensearch.client.Client;
+import org.opensearch.common.util.concurrent.ThreadContext;
 import org.opensearch.common.xcontent.XContentFactory;
 import org.opensearch.core.action.ActionListener;
 import org.opensearch.core.rest.RestStatus;
 import org.opensearch.core.xcontent.ToXContent;
 import org.opensearch.index.shard.IndexingOperationListener;
+import org.opensearch.threadpool.ThreadPool;
 
 import java.io.IOException;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
 
 public class CommandIndex implements IndexingOperationListener {
 
@@ -38,11 +41,12 @@ public class CommandIndex implements IndexingOperationListener {
     }
 
     /**
-     * @param command a Command class command
+     * @param command    a Command class command
+     * @param threadPool
      * @return Indexing operation RestStatus response
      * @throws ExecutionException
      */
-    public RestStatus create(Command command) throws ExecutionException, InterruptedException {
+    public RestStatus create(Command command, ThreadPool threadPool) throws ExecutionException, InterruptedException {
         CompletableFuture<IndexResponse> inProgressFuture = new CompletableFuture<>();
         try {
             logger.info("Creating request for command: {}", command.getId());
@@ -72,4 +76,30 @@ public class CommandIndex implements IndexingOperationListener {
         }
         return inProgressFuture.get().status();
     }
+
+    public CompletableFuture<RestStatus> performAsyncCreate(Command command, ThreadPool threadPool)  {
+        CompletableFuture<RestStatus> future = new CompletableFuture<>();
+        ExecutorService executor = threadPool.executor(ThreadPool.Names.WRITE);
+        try {
+            IndexRequest request = new IndexRequest()
+                .index(CommandManagerPlugin.COMMAND_MANAGER_INDEX_NAME)
+                .source(command.toXContent(XContentFactory.jsonBuilder(), ToXContent.EMPTY_PARAMS))
+                .id(command.getId())
+                .create(true);
+            executor.submit(
+                () -> {
+                    try (ThreadContext.StoredContext ignored = threadPool.getThreadContext().stashContext()) {
+                        RestStatus result = client.index(request).actionGet().status();
+                        future.complete(result);
+                    } catch (Exception e) {
+                        future.completeExceptionally(e);
+                    }
+                }
+            );
+        } catch (Exception e) {
+            logger.error(e);
+        }
+        return future;
+    }
+
 }
