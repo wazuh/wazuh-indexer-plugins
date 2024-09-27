@@ -42,11 +42,10 @@ public class CommandIndex implements IndexingOperationListener {
 
     /**
      * @param command    a Command class command
-     * @param threadPool
      * @return Indexing operation RestStatus response
      * @throws ExecutionException
      */
-    public RestStatus create(Command command, ThreadPool threadPool) throws ExecutionException, InterruptedException {
+    public RestStatus create(Command command) throws ExecutionException, InterruptedException {
         CompletableFuture<IndexResponse> inProgressFuture = new CompletableFuture<>();
         try {
             logger.info("Creating request for command: {}", command.getId());
