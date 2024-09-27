@@ -12,6 +12,7 @@ import com.wazuh.commandmanager.index.CommandIndex;
 import com.wazuh.commandmanager.model.Command;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.ThreadContext;
 import org.opensearch.client.node.NodeClient;
 import org.opensearch.core.rest.RestStatus;
 import org.opensearch.core.xcontent.XContentBuilder;
@@ -19,6 +20,7 @@ import org.opensearch.core.xcontent.XContentParser;
 import org.opensearch.rest.BaseRestHandler;
 import org.opensearch.rest.BytesRestResponse;
 import org.opensearch.rest.RestRequest;
+import org.opensearch.threadpool.ThreadPool;
 
 import java.io.IOException;
 import java.util.Collections;
@@ -39,14 +41,18 @@ public class RestPostCommandAction extends BaseRestHandler {
     public static final String POST_COMMAND_ACTION_REQUEST_DETAILS = "post_command_action_request_details";
     private static final Logger logger = LogManager.getLogger(RestPostCommandAction.class);
     private final CommandIndex commandIndex;
+    private final ThreadPool threadPool;
 
     /**
      * Default constructor
      *
      * @param commandIndex persistence layer
+     * @param threadPool
      */
-    public RestPostCommandAction(CommandIndex commandIndex) {
+    public RestPostCommandAction(CommandIndex commandIndex, ThreadPool threadPool) {
         this.commandIndex = commandIndex;
+        this.threadPool = threadPool;
+
     }
 
     public String getName() {

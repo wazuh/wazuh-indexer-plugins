@@ -41,6 +41,7 @@ public class CommandManagerPlugin extends Plugin implements ActionPlugin {
     public static final String COMMAND_MANAGER_INDEX_NAME = "command-manager";
 
     private CommandIndex commandIndex;
+    private ThreadPool threadPool;
 
     @Override
     public Collection<Object> createComponents(
@@ -57,6 +58,7 @@ public class CommandManagerPlugin extends Plugin implements ActionPlugin {
             Supplier<RepositoriesService> repositoriesServiceSupplier
     ) {
         this.commandIndex = new CommandIndex(client);
+        this.threadPool = threadPool;
         return Collections.emptyList();
     }
 
@@ -69,6 +71,6 @@ public class CommandManagerPlugin extends Plugin implements ActionPlugin {
             IndexNameExpressionResolver indexNameExpressionResolver,
             Supplier<DiscoveryNodes> nodesInCluster
     ) {
-        return Collections.singletonList(new RestPostCommandAction(this.commandIndex));
+        return Collections.singletonList(new RestPostCommandAction(this.commandIndex, this.threadPool));
     }
 }
