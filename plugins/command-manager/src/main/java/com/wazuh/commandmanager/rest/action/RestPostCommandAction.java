@@ -12,7 +12,6 @@ import com.wazuh.commandmanager.index.CommandIndex;
 import com.wazuh.commandmanager.model.Command;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.apache.logging.log4j.ThreadContext;
 import org.opensearch.client.node.NodeClient;
 import org.opensearch.core.rest.RestStatus;
 import org.opensearch.core.xcontent.XContentBuilder;
@@ -26,7 +25,6 @@ import java.io.IOException;
 import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
-import java.util.concurrent.ExecutionException;
 
 import static org.opensearch.core.xcontent.XContentParserUtils.ensureExpectedToken;
 import static org.opensearch.rest.RestRequest.Method.POST;
@@ -73,40 +71,6 @@ public class RestPostCommandAction extends BaseRestHandler {
         );
     }
 
-//    @Override
-//    protected RestChannelConsumer prepareRequest(
-//            final RestRequest restRequest,
-//            final NodeClient client
-//    ) throws IOException {
-//        // Get request details
-//        XContentParser parser = restRequest.contentParser();
-//        ensureExpectedToken(XContentParser.Token.START_OBJECT, parser.nextToken(), parser);
-//
-//        Command command = Command.parse(parser);
-//
-//        // Persist command
-//        RestStatus status;
-//        try {
-//            logger.info("Sending request to create command: {}", command.getId());
-//            status = this.commandIndex.create(command,threadPool);
-//        } catch (ExecutionException | InterruptedException e) {
-//            logger.error("Could not send request to create command", e);
-//            throw new RuntimeException(e);
-//        }
-//
-//        // Send response
-//        return channel -> {
-//            try (XContentBuilder builder = channel.newBuilder()) {
-//                builder.startObject();
-//                builder.field("_index", CommandManagerPlugin.COMMAND_MANAGER_INDEX_NAME);
-//                builder.field("_id", command.getId());
-//                builder.field("result", status.name());
-//                builder.endObject();
-//                channel.sendResponse(new BytesRestResponse(status, builder));
-//            }
-//        };
-//    }
-
     @Override
     protected RestChannelConsumer prepareRequest(
         final RestRequest restRequest,
@@ -120,14 +84,23 @@ public class RestPostCommandAction extends BaseRestHandler {
 
         // Send response
         return channel -> {
-            commandIndex.performAsyncCreate(command, this.threadPool)
-                .thenAccept(result -> {
-                    channel.sendResponse(new BytesRestResponse(RestStatus.OK, result.toString()));
-                }).exceptionally( e -> {
-                    channel.sendResponse(new BytesRestResponse(RestStatus.INTERNAL_SERVER_ERROR, e.getMessage()));
-                    return null;
-                });
-        };
+                commandIndex.asyncCreate(command, this.threadPool)
+                    .thenAccept(restStatus -> {
+                        try (XContentBuilder builder = channel.newBuilder()) {
+                            builder.startObject();
+                            builder.field("_index", CommandManagerPlugin.COMMAND_MANAGER_INDEX_NAME);
+                            builder.field("_id", command.getId());
+                            builder.field("result", restStatus.name());
+                            builder.endObject();
+                            channel.sendResponse(new BytesRestResponse(restStatus, builder));
+                        } catch (Exception e) {
+                            logger.error("Error indexing command: ",e);
+                        }
+                    }).exceptionally(e -> {
+                        channel.sendResponse(new BytesRestResponse(RestStatus.INTERNAL_SERVER_ERROR, e.getMessage()));
+                        return null;
+                    });
 
+        };
     }
 }

@@ -77,7 +77,14 @@ public class CommandIndex implements IndexingOperationListener {
         return inProgressFuture.get().status();
     }
 
-    public CompletableFuture<RestStatus> performAsyncCreate(Command command, ThreadPool threadPool)  {
+    /**
+     *
+     * @param command: A Command model object
+     * @param threadPool: An OpenSearch ThreadPool as passed to the createComponents() method
+     * @return A CompletableFuture with the RestStatus response from the operation
+     */
+
+    public CompletableFuture<RestStatus> asyncCreate(Command command, ThreadPool threadPool)  {
         CompletableFuture<RestStatus> future = new CompletableFuture<>();
         ExecutorService executor = threadPool.executor(ThreadPool.Names.WRITE);
         try {
@@ -89,8 +96,8 @@ public class CommandIndex implements IndexingOperationListener {
             executor.submit(
                 () -> {
                     try (ThreadContext.StoredContext ignored = threadPool.getThreadContext().stashContext()) {
-                        RestStatus result = client.index(request).actionGet().status();
-                        future.complete(result);
+                        RestStatus restStatus = client.index(request).actionGet().status();
+                        future.complete(restStatus);
                     } catch (Exception e) {
                         future.completeExceptionally(e);
                     }
