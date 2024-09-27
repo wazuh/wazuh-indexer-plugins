@@ -33,18 +33,14 @@ public class CommandIndex implements IndexingOperationListener {
     /**
      * @param client
      */
-    public CommandIndex(
-            final Client client
-    ) {
+    public CommandIndex(Client client) {
         this.client = client;
     }
 
     /**
-     *
      * @param command a Command class command
      * @return Indexing operation RestStatus response
      * @throws ExecutionException
-     * @throws InterruptedException
      */
     public RestStatus create(Command command) throws ExecutionException, InterruptedException {
         CompletableFuture<IndexResponse> inProgressFuture = new CompletableFuture<>();

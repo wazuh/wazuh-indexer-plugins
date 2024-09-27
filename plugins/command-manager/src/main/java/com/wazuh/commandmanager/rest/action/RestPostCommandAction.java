@@ -13,7 +13,6 @@ import com.wazuh.commandmanager.model.Command;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.opensearch.client.node.NodeClient;
-import org.opensearch.common.Randomness;
 import org.opensearch.core.rest.RestStatus;
 import org.opensearch.core.xcontent.XContentBuilder;
 import org.opensearch.core.xcontent.XContentParser;
@@ -38,10 +37,8 @@ import static org.opensearch.rest.RestRequest.Method.POST;
 public class RestPostCommandAction extends BaseRestHandler {
 
     public static final String POST_COMMAND_ACTION_REQUEST_DETAILS = "post_command_action_request_details";
-
-    private final CommandIndex commandIndex;
-
     private static final Logger logger = LogManager.getLogger(RestPostCommandAction.class);
+    private final CommandIndex commandIndex;
 
     /**
      * Default constructor
@@ -70,16 +67,6 @@ public class RestPostCommandAction extends BaseRestHandler {
         );
     }
 
-    /**
-     * Generates a random ID as string on range 0 to 10.
-     *
-     * @return random int as string
-     * TODO To be removed in future iterations
-     */
-    private String getRandomId() {
-        return "" + Randomness.get().nextInt();
-    }
-
     @Override
     protected RestChannelConsumer prepareRequest(
             final RestRequest restRequest,
@@ -89,10 +76,7 @@ public class RestPostCommandAction extends BaseRestHandler {
         XContentParser parser = restRequest.contentParser();
         ensureExpectedToken(XContentParser.Token.START_OBJECT, parser.nextToken(), parser);
 
-        // Placeholders. These IDs will be generated properly on next iterations.
-        String requestId = getRandomId();
-        String orderId = getRandomId();
-        Command command = Command.parse(requestId, orderId, parser);
+        Command command = Command.parse(parser);
 
         // Persist command
         RestStatus status;

@@ -7,10 +7,8 @@
  */
 package com.wazuh.commandmanager;
 
-import com.wazuh.commandmanager.rest.action.RestPostCommandAction;
 import com.wazuh.commandmanager.index.CommandIndex;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
+import com.wazuh.commandmanager.rest.action.RestPostCommandAction;
 import org.opensearch.client.Client;
 import org.opensearch.cluster.metadata.IndexNameExpressionResolver;
 import org.opensearch.cluster.node.DiscoveryNodes;
@@ -39,28 +37,28 @@ import java.util.function.Supplier;
 
 
 public class CommandManagerPlugin extends Plugin implements ActionPlugin {
-  public static final String COMMAND_MANAGER_BASE_URI = "/_plugins/_commandmanager";
-  public static final String COMMAND_MANAGER_INDEX_NAME = "command-manager";
+    public static final String COMMAND_MANAGER_BASE_URI = "/_plugins/_commandmanager";
+    public static final String COMMAND_MANAGER_INDEX_NAME = "command-manager";
 
-  private CommandIndex commandIndex;
+    private CommandIndex commandIndex;
 
-  @Override
-  public Collection<Object> createComponents(
-      Client client,
-      ClusterService clusterService,
-      ThreadPool threadPool,
-      ResourceWatcherService resourceWatcherService,
-      ScriptService scriptService,
-      NamedXContentRegistry xContentRegistry,
-      Environment environment,
-      NodeEnvironment nodeEnvironment,
-      NamedWriteableRegistry namedWriteableRegistry,
-      IndexNameExpressionResolver indexNameExpressionResolver,
-      Supplier<RepositoriesService> repositoriesServiceSupplier
-  ) {
-    this.commandIndex = new CommandIndex(client);
-    return Collections.emptyList();
-  }
+    @Override
+    public Collection<Object> createComponents(
+            Client client,
+            ClusterService clusterService,
+            ThreadPool threadPool,
+            ResourceWatcherService resourceWatcherService,
+            ScriptService scriptService,
+            NamedXContentRegistry xContentRegistry,
+            Environment environment,
+            NodeEnvironment nodeEnvironment,
+            NamedWriteableRegistry namedWriteableRegistry,
+            IndexNameExpressionResolver indexNameExpressionResolver,
+            Supplier<RepositoriesService> repositoriesServiceSupplier
+    ) {
+        this.commandIndex = new CommandIndex(client);
+        return Collections.emptyList();
+    }
 
     public List<RestHandler> getRestHandlers(
             Settings settings,
