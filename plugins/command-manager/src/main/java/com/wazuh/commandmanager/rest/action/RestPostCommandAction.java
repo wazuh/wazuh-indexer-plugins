@@ -46,7 +46,6 @@ public class RestPostCommandAction extends BaseRestHandler {
      */
     public RestPostCommandAction(CommandIndex commandIndex) {
         this.commandIndex = commandIndex;
-
     }
 
     public String getName() {

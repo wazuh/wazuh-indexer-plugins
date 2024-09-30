@@ -47,6 +47,7 @@ public class CommandManagerPlugin extends Plugin implements ActionPlugin {
     public static final String COMMAND_MANAGER_INDEX_TEMPLATE_NAME = "index-template-commands";
 
     private CommandIndex commandIndex;
+    private ThreadPool threadPool;
 
     @Override
     public Collection<Object> createComponents(
