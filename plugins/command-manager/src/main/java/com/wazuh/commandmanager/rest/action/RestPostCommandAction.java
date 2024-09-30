@@ -19,7 +19,6 @@ import org.opensearch.core.xcontent.XContentParser;
 import org.opensearch.rest.BaseRestHandler;
 import org.opensearch.rest.BytesRestResponse;
 import org.opensearch.rest.RestRequest;
-import org.opensearch.threadpool.ThreadPool;
 
 import java.io.IOException;
 import java.util.Collections;
@@ -39,17 +38,14 @@ public class RestPostCommandAction extends BaseRestHandler {
     public static final String POST_COMMAND_ACTION_REQUEST_DETAILS = "post_command_action_request_details";
     private static final Logger logger = LogManager.getLogger(RestPostCommandAction.class);
     private final CommandIndex commandIndex;
-    private final ThreadPool threadPool;
 
     /**
      * Default constructor
      *
      * @param commandIndex persistence layer
-     * @param threadPool
      */
-    public RestPostCommandAction(CommandIndex commandIndex, ThreadPool threadPool) {
+    public RestPostCommandAction(CommandIndex commandIndex) {
         this.commandIndex = commandIndex;
-        this.threadPool = threadPool;
 
     }
 
@@ -60,21 +56,21 @@ public class RestPostCommandAction extends BaseRestHandler {
     @Override
     public List<Route> routes() {
         return Collections.singletonList(
-            new Route(
-                POST,
-                String.format(
-                    Locale.ROOT,
-                    "%s",
-                    CommandManagerPlugin.COMMAND_MANAGER_BASE_URI
+                new Route(
+                        POST,
+                        String.format(
+                                Locale.ROOT,
+                                "%s",
+                                CommandManagerPlugin.COMMAND_MANAGER_BASE_URI
+                        )
                 )
-            )
         );
     }
 
     @Override
     protected RestChannelConsumer prepareRequest(
-        final RestRequest restRequest,
-        final NodeClient client
+            final RestRequest restRequest,
+            final NodeClient client
     ) throws IOException {
         // Get request details
         XContentParser parser = restRequest.contentParser();
@@ -84,7 +80,7 @@ public class RestPostCommandAction extends BaseRestHandler {
 
         // Send response
         return channel -> {
-                commandIndex.asyncCreate(command, this.threadPool)
+            this.commandIndex.asyncCreate(command)
                     .thenAccept(restStatus -> {
                         try (XContentBuilder builder = channel.newBuilder()) {
                             builder.startObject();
@@ -94,7 +90,7 @@ public class RestPostCommandAction extends BaseRestHandler {
                             builder.endObject();
                             channel.sendResponse(new BytesRestResponse(restStatus, builder));
                         } catch (Exception e) {
-                            logger.error("Error indexing command: ",e);
+                            logger.error("Error indexing command: ", e);
                         }
                     }).exceptionally(e -> {
                         channel.sendResponse(new BytesRestResponse(RestStatus.INTERNAL_SERVER_ERROR, e.getMessage()));

@@ -7,6 +7,8 @@
  */
 package com.wazuh.commandmanager.model;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.opensearch.common.UUIDs;
 import org.opensearch.core.xcontent.ToXContent;
 import org.opensearch.core.xcontent.ToXContentObject;
@@ -19,7 +21,7 @@ import java.io.IOException;
 import static org.opensearch.core.xcontent.XContentParserUtils.ensureExpectedToken;
 
 public class Command implements ToXContentObject {
-
+    public static final String NAME = "command";
     public static final String ORDER_ID = "order_id";
     public static final String REQUEST_ID = "request_id";
     public static final String SOURCE = "source";
@@ -85,10 +87,12 @@ public class Command implements ToXContentObject {
         String user = null;
         Action action = null;
 
-        // @TODO check if this call is necessary as ensureExpectedToken is invoked previously
-        ensureExpectedToken(XContentParser.Token.START_OBJECT, parser.currentToken(), parser);
+        // skips JSON's root level "command"
+        ensureExpectedToken(XContentParser.Token.FIELD_NAME, parser.nextToken(), parser);
+        ensureExpectedToken(XContentParser.Token.START_OBJECT, parser.nextToken(), parser);
         while (parser.nextToken() != XContentParser.Token.END_OBJECT) {
             String fieldName = parser.currentName();
+
             parser.nextToken();
             switch (fieldName) {
                 case SOURCE:
@@ -132,6 +136,7 @@ public class Command implements ToXContentObject {
     public XContentBuilder toXContent(XContentBuilder builder, Params params) throws IOException {
         builder.startObject();
 
+        builder.startObject(NAME);
         builder.field(SOURCE, this.source);
         builder.field(USER, this.user);
         builder.field(TARGET, this.target);
@@ -141,6 +146,7 @@ public class Command implements ToXContentObject {
         builder.field(STATUS, this.status);
         builder.field(ORDER_ID, this.orderId);
         builder.field(REQUEST_ID, this.requestId);
+        builder.endObject();
 
         return builder.endObject();
     }
