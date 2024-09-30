@@ -1,0 +1,18 @@
+{
+  "_plugins._commandmanager": {
+    "stability" : "stable",
+    "url": {
+      "paths": [
+        {
+          "path": "/_plugins/_commandmanager",
+          "methods": [
+            "POST"
+          ]
+        }
+      ]
+    },
+    "body": {
+      "description": "The document"
+    }
+  }
+}
