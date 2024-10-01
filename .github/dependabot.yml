@@ -1,5 +1,7 @@
 updates:
-  - directory: /plugins
+  - directories:
+      - "/plugins/setup"
+      - "/plugins/command-manager"
     open-pull-requests-limit: 1
     package-ecosystem: gradle
     schedule:
