@@ -1,0 +1,63 @@
+name: Continuous Integration
+
+on:
+    push:
+        paths:
+            - "plugins/**/*.java"     # Match changes in Java files.
+            - "plugins/**/*.gradle"   # Match changes in Gradle configuration.
+    pull_request:
+        paths:
+            - "plugins/**/*.java"     # Match changes in Java files.
+            - "plugins/**/*.gradle"   # Match changes in Gradle configuration.
+
+jobs:
+    ci:
+        runs-on: ubuntu-22.04
+        steps:
+            - uses: actions/checkout@v4
+
+            - uses: actions/setup-java@v4
+              with:
+                  distribution: temurin
+                  java-version: 21
+
+            - name: Setup Gradle
+              uses: gradle/actions/setup-gradle@v4
+
+            # Step to find which project folder contains modified files
+            - name: Detect modified plugins
+              id: detect_changes
+              run: |
+                # Capture the list of modified files
+                CHANGED_FILES=$(git diff --name-only HEAD~1 HEAD)
+                
+                # Check if any files are modified in wazuh-indexer-setup
+                if echo "$CHANGED_FILES" | grep -q "^plugins/setup/"; then
+                  echo "setup" >> affected_projects.txt
+                fi
+                
+                # Check if any files are modified in wazuh-command-manager
+                if echo "$CHANGED_FILES" | grep -q "^plugins/command-manager/"; then
+                  echo "command-manager" >> affected_projects.txt
+                fi
+
+                # Output the list of affected projects
+                if [ -f affected_projects.txt ]; then
+                  echo "::set-output name=projects::$(cat affected_projects.txt | paste -sd,)"
+                else
+                  echo "::set-output name=projects::none"
+                fi
+
+            # Run tests for affected projects
+            - name: Run tests for affected projects
+              run: |
+                if [[ "${{ steps.detect_changes.outputs.projects }}" != "none" ]]; then
+                  for project in $(echo "${{ steps.detect_changes.outputs.projects }}" | tr ',' ' '); do
+                    echo "Running tests for $project"
+                    cd plugins/$project
+                    ./gradlew check
+                    cd - # Go back to the root folder
+                  done
+                else
+                  echo "No changes in Java or Gradle files to test."
+                fi
