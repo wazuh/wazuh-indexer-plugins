@@ -108,4 +108,13 @@ public class Action implements ToXContentObject {
         builder.field(VERSION, this.version);
         return builder.endObject();
     }
+
+    @Override
+    public String toString() {
+        return "Action{" +
+                "type='" + type + '\'' +
+                ", args=" + args +
+                ", version='" + version + '\'' +
+                '}';
+    }
 }

@@ -35,13 +35,18 @@ import java.util.Collections;
 import java.util.List;
 import java.util.function.Supplier;
 
-
+/**
+ * The Command Manager plugin exposes an HTTP API with a single endpoint to
+ * receive raw commands from the Wazuh Server. These commands are processed,
+ * indexed and sent back to the Server for its delivery to, in most cases, the
+ * Agents.
+ */
 public class CommandManagerPlugin extends Plugin implements ActionPlugin {
     public static final String COMMAND_MANAGER_BASE_URI = "/_plugins/_commandmanager";
-    public static final String COMMAND_MANAGER_INDEX_NAME = "command-manager";
+    public static final String COMMAND_MANAGER_INDEX_NAME = ".commands";
+    public static final String COMMAND_MANAGER_INDEX_TEMPLATE_NAME = "index-template-commands";
 
     private CommandIndex commandIndex;
-    private ThreadPool threadPool;
 
     @Override
     public Collection<Object> createComponents(
@@ -57,8 +62,7 @@ public class CommandManagerPlugin extends Plugin implements ActionPlugin {
             IndexNameExpressionResolver indexNameExpressionResolver,
             Supplier<RepositoriesService> repositoriesServiceSupplier
     ) {
-        this.commandIndex = new CommandIndex(client);
-        this.threadPool = threadPool;
+        this.commandIndex = new CommandIndex(client, clusterService, threadPool);
         return Collections.emptyList();
     }
 
@@ -71,6 +75,6 @@ public class CommandManagerPlugin extends Plugin implements ActionPlugin {
             IndexNameExpressionResolver indexNameExpressionResolver,
             Supplier<DiscoveryNodes> nodesInCluster
     ) {
-        return Collections.singletonList(new RestPostCommandAction(this.commandIndex, this.threadPool));
+        return Collections.singletonList(new RestPostCommandAction(this.commandIndex));
     }
 }
