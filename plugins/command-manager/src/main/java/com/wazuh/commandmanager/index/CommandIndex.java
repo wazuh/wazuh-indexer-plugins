@@ -64,10 +64,10 @@ public class CommandIndex implements IndexingOperationListener {
         if (!indexTemplateExists(CommandManagerPlugin.COMMAND_MANAGER_INDEX_TEMPLATE_NAME)) {
             putIndexTemplate(CommandManagerPlugin.COMMAND_MANAGER_INDEX_TEMPLATE_NAME);
         } else {
-            logger.info(String.format(
-                    "Index template %s already exists. Skipping creation.",
+            logger.info(
+                    "Index template {} already exists. Skipping creation.",
                     CommandManagerPlugin.COMMAND_MANAGER_INDEX_TEMPLATE_NAME
-            ));
+            );
         }
 
         logger.debug("Indexing command {}", command);
@@ -88,7 +88,8 @@ public class CommandIndex implements IndexingOperationListener {
                     }
             );
         } catch (IOException e) {
-            logger.error(e);
+            logger.error(
+                    "Failed to index command with ID {}: {}", command.getId(), e);
         }
         return future;
     }
