@@ -39,7 +39,7 @@ import static java.util.Collections.singletonList;
 
 public class HttpRequestsPlugin extends Plugin implements ActionPlugin {
     static final String INDEX_NAME = "httprequests";
-    static final String BASE_URI = "/_plugins/" + INDEX_NAME;
+    static final String BASE_URI = "/_plugins/httprequests";
     static final HttpHost TARGET = new HttpHost("jsonplaceholder.typicode.com");
     static final String REQUEST_URI = "/todos/1";
     ThreadPool threadPool;
