@@ -18,6 +18,8 @@ import org.opensearch.plugins.ActionPlugin;
 import org.opensearch.plugins.Plugin;
 import org.opensearch.rest.RestController;
 import org.opensearch.rest.RestHandler;
+import org.opensearch.threadpool.ThreadPool;
+
 import java.util.List;
 import java.util.function.Supplier;
 
