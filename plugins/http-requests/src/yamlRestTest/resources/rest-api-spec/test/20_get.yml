@@ -1,0 +1,7 @@
+---
+"Perform GET":
+    - do:
+        _plugins.httprequests:
+            body: ""
+    - match:
+        body: ""

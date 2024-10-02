@@ -1,0 +1,18 @@
+{
+  "_plugins.httprequests": {
+    "stability" : "stable",
+    "url": {
+      "paths": [
+        {
+          "path": "/_plugins/httprequests",
+          "methods": [
+            "GET"
+          ]
+        }
+      ]
+    },
+    "body": {
+      "description": "The document"
+    }
+  }
+}
