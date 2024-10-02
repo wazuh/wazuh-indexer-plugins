@@ -98,7 +98,6 @@ public class AsyncHttpService {
 
         // @Todo: Modify the plugin to handle multiple requests concurrently
 
-        final CountDownLatch latch = new CountDownLatch(1);
         this.requester.execute(
             AsyncRequestBuilder.get()
                 .setHttpHost(target)
@@ -114,25 +113,21 @@ public class AsyncHttpService {
                     final String body = message.getBody();
                     System.out.println(requestUri + "->" + response.getCode());
                     System.out.println(body);
-                    latch.countDown();
                     future.complete(body);
                 }
 
                 @Override
                 public void failed(final Exception ex) {
                     System.out.println(requestUri + "->" + ex);
-                    latch.countDown();
                 }
 
                 @Override
                 public void cancelled() {
                     System.out.println(requestUri + " cancelled");
-                    latch.countDown();
                 }
 
             });
 
-        latch.await();
         System.out.println("Shutting down I/O reactor");
         this.requester.initiateShutdown();
         return future;
