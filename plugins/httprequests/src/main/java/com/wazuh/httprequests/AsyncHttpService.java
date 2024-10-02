@@ -49,11 +49,6 @@ import org.apache.hc.core5.util.Timeout;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-/**
- * Example of asynchronous HTTP/1.1 request execution.
- */
-
-
 public class AsyncHttpService {
 
     private static final Logger logger = LogManager.getLogger(AsyncHttpService.class);
@@ -71,20 +66,20 @@ public class AsyncHttpService {
 
                 @Override
                 public void onRequestHead(final HttpConnection connection, final HttpRequest request) {
-                    logger.info(connection.getRemoteAddress() + " " + new RequestLine(request));
+                    logger.info("{} {}", connection.getRemoteAddress(), new RequestLine(request));
                 }
 
                 @Override
                 public void onResponseHead(final HttpConnection connection, final HttpResponse response) {
-                    logger.info(connection.getRemoteAddress() + " " + new StatusLine(response));
+                    logger.info("{} {}", connection.getRemoteAddress(), new StatusLine(response));
                 }
 
                 @Override
                 public void onExchangeComplete(final HttpConnection connection, final boolean keepAlive) {
                     if (keepAlive) {
-                        logger.info(connection.getRemoteAddress() + " exchange completed (connection kept alive)");
+                        logger.info("{} exchange completed (connection kept alive)", connection.getRemoteAddress());
                     } else {
-                        logger.info(connection.getRemoteAddress() + " exchange completed (connection closed)");
+                        logger.info("{} exchange completed (connection closed)", connection.getRemoteAddress());
                     }
                 }
 
@@ -112,14 +107,14 @@ public class AsyncHttpService {
                 public void completed(final Message<HttpResponse, String> message) {
                     final HttpResponse response = message.getHead();
                     final String body = message.getBody();
-                    logger.info(requestUri + "->" + response.getCode());
+                    logger.info(requestUri + "->{}", response.getCode());
                     logger.info(body);
                     future.complete(body);
                 }
 
                 @Override
                 public void failed(final Exception ex) {
-                    logger.info(requestUri + "->" + ex);
+                    logger.info(requestUri + "->{}", String.valueOf(ex));
                 }
 
                 @Override
