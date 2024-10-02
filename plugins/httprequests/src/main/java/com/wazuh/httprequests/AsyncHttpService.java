@@ -27,7 +27,6 @@
 package com.wazuh.httprequests;
 
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.hc.core5.concurrent.FutureCallback;
@@ -47,6 +46,8 @@ import org.apache.hc.core5.http.nio.support.AsyncRequestBuilder;
 import org.apache.hc.core5.http.nio.support.BasicResponseConsumer;
 import org.apache.hc.core5.reactor.IOReactorConfig;
 import org.apache.hc.core5.util.Timeout;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 /**
  * Example of asynchronous HTTP/1.1 request execution.
@@ -54,6 +55,8 @@ import org.apache.hc.core5.util.Timeout;
 
 
 public class AsyncHttpService {
+
+    private static final Logger logger = LogManager.getLogger(AsyncHttpService.class);
     HttpAsyncRequester requester;
 
     public void prepareAsyncRequest() {
@@ -68,20 +71,20 @@ public class AsyncHttpService {
 
                 @Override
                 public void onRequestHead(final HttpConnection connection, final HttpRequest request) {
-                    System.out.println(connection.getRemoteAddress() + " " + new RequestLine(request));
+                    logger.info(connection.getRemoteAddress() + " " + new RequestLine(request));
                 }
 
                 @Override
                 public void onResponseHead(final HttpConnection connection, final HttpResponse response) {
-                    System.out.println(connection.getRemoteAddress() + " " + new StatusLine(response));
+                    logger.info(connection.getRemoteAddress() + " " + new StatusLine(response));
                 }
 
                 @Override
                 public void onExchangeComplete(final HttpConnection connection, final boolean keepAlive) {
                     if (keepAlive) {
-                        System.out.println(connection.getRemoteAddress() + " exchange completed (connection kept alive)");
+                        logger.info(connection.getRemoteAddress() + " exchange completed (connection kept alive)");
                     } else {
-                        System.out.println(connection.getRemoteAddress() + " exchange completed (connection closed)");
+                        logger.info(connection.getRemoteAddress() + " exchange completed (connection closed)");
                     }
                 }
 
@@ -96,8 +99,6 @@ public class AsyncHttpService {
 
         CompletableFuture<String> future = new CompletableFuture<>();
 
-        // @Todo: Modify the plugin to handle multiple requests concurrently
-
         this.requester.execute(
             AsyncRequestBuilder.get()
                 .setHttpHost(target)
@@ -111,30 +112,30 @@ public class AsyncHttpService {
                 public void completed(final Message<HttpResponse, String> message) {
                     final HttpResponse response = message.getHead();
                     final String body = message.getBody();
-                    System.out.println(requestUri + "->" + response.getCode());
-                    System.out.println(body);
+                    logger.info(requestUri + "->" + response.getCode());
+                    logger.info(body);
                     future.complete(body);
                 }
 
                 @Override
                 public void failed(final Exception ex) {
-                    System.out.println(requestUri + "->" + ex);
+                    logger.info(requestUri + "->" + ex);
                 }
 
                 @Override
                 public void cancelled() {
-                    System.out.println(requestUri + " cancelled");
+                    logger.info(requestUri + " cancelled");
                 }
 
             });
 
-        System.out.println("Shutting down I/O reactor");
+        logger.info("Shutting down I/O reactor");
         this.requester.initiateShutdown();
         return future;
     }
 
     public void close() {
-        System.out.println("HTTP requester shutting down");
+        logger.info("HTTP requester shutting down");
         this.requester.close(CloseMode.GRACEFUL);
     }
 }
