@@ -89,10 +89,6 @@ dependencies {
     api "org.apache.httpcomponents.core5:httpcore5:${versions.httpcore5}"
     api "org.apache.httpcomponents.core5:httpcore5-h2:${versions.httpcore5}"
     api "org.apache.httpcomponents.core5:httpcore5-reactive:${versions.httpcore5}"
-    //api "org.slf4j:slf4j-api:2.0.12"
-    //api 'org.slf4j:slf4j-simple:2.0.13'
-    //compile 'org.slf4j:slf4j-api:1.7.24'
-    //compile 'org.slf4j:slf4j-simple:1.7.24'
 }
 
 repositories {

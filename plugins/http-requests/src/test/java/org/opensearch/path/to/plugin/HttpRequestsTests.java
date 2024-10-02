@@ -9,6 +9,6 @@ package com.wazuh.httprequests;
 
 import org.opensearch.test.OpenSearchTestCase;
 
-public class RenameTests extends OpenSearchTestCase {
+public class HttpRequestsTests extends OpenSearchTestCase {
     // Add unit tests for your plugin
 }

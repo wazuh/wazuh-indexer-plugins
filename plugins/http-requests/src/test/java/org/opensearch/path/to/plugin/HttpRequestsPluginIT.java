@@ -24,11 +24,11 @@ import static org.hamcrest.Matchers.containsString;
 
 @ThreadLeakScope(ThreadLeakScope.Scope.NONE)
 @OpenSearchIntegTestCase.ClusterScope(scope = OpenSearchIntegTestCase.Scope.SUITE)
-public class OutgoingHTTPRequestPluginIT extends OpenSearchIntegTestCase {
+public class HttpRequestsPluginIT extends OpenSearchIntegTestCase {
 
     @Override
     protected Collection<Class<? extends Plugin>> nodePlugins() {
-        return Collections.singletonList(OutgoingHTTPRequestPlugin.class);
+        return Collections.singletonList(com.wazuh.httprequests.HttpRequestsPlugin.class);
     }
 
     public void testPluginInstalled() throws IOException, ParseException {
@@ -36,6 +36,6 @@ public class OutgoingHTTPRequestPluginIT extends OpenSearchIntegTestCase {
         String body = EntityUtils.toString(response.getEntity(), StandardCharsets.UTF_8);
 
         logger.info("response body: {}", body);
-        assertThat(body, containsString("rename"));
+        assertThat(body, containsString("httprequests"));
     }
 }
