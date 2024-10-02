@@ -33,7 +33,7 @@ public class HttpRequestsPluginIT extends OpenSearchIntegTestCase {
 
     public void testPluginInstalled() throws IOException, ParseException {
         Response response = getRestClient().performRequest(new Request("GET", "/_cat/plugins"));
-        String body = EntityUtils.toString(response.getEntity(), StandardCharsets.UTF_8);
+        String body = org.apache.http.util.EntityUtils.toString(response.getEntity(), StandardCharsets.UTF_8);
 
         logger.info("response body: {}", body);
         assertThat(body, containsString("httprequests"));
