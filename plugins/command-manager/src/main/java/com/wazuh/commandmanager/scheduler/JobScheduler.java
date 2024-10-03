@@ -6,14 +6,15 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.opensearch.threadpool.ThreadPool;
 
-import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
 
 public class JobScheduler {
 
     private static final Logger logger = LogManager.getLogger(JobScheduler.class);
+    private final ConfigReader configReader;
 
-    public JobScheduler(ThreadPool threadPool) {
+    public JobScheduler(ThreadPool threadPool, ConfigReader configReader) {
+        this.configReader = configReader;
         start(threadPool);
     }
 
@@ -25,8 +26,7 @@ public class JobScheduler {
                     try {
                         Thread.sleep(5000);
                         logger.info("Running task");
-                        ConfigReader configReader = new ConfigReader();
-                        AsyncRequestRepository asyncRequestRepository = new AsyncRequestRepository(configReader);
+                        AsyncRequestRepository asyncRequestRepository = new AsyncRequestRepository(this.configReader);
                         asyncRequestRepository.performAsyncRequest()
                             .thenAccept(
                                 logger::info

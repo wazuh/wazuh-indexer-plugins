@@ -9,17 +9,19 @@ public class ConfigReader {
     String password;
 
     public ConfigReader() {
-        // Hardcoded output API values for testing purposes
-        //this.ipAddress = "127.0.0.1";
-        //this.port = 5000;
-        //this.path = "/test/post";
-        //this.username = "admin";
-        //this.password = "admin";
         this.hostName = "jsonplaceholder.typicode.com";
         this.port = 80;
         this.path = "/posts/1";
         this.username = "admin";
         this.password = "admin";
+    }
+
+    public ConfigReader(String hostName, int port, String path, String username, String password) {
+        this.hostName = hostName;
+        this.port = port;
+        this.path = path;
+        this.username = username;
+        this.password = password;
     }
 
     public String getHostName() {

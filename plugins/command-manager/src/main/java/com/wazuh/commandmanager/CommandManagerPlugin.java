@@ -7,6 +7,7 @@
  */
 package com.wazuh.commandmanager;
 
+import com.wazuh.commandmanager.config.reader.ConfigReader;
 import com.wazuh.commandmanager.index.CommandIndex;
 import com.wazuh.commandmanager.rest.action.RestPostCommandAction;
 import com.wazuh.commandmanager.scheduler.JobScheduler;
@@ -48,7 +49,6 @@ public class CommandManagerPlugin extends Plugin implements ActionPlugin {
     public static final String COMMAND_MANAGER_INDEX_TEMPLATE_NAME = "index-template-commands";
 
     private CommandIndex commandIndex;
-    private JobScheduler jobScheduler;
 
     @Override
     public Collection<Object> createComponents(
@@ -65,7 +65,8 @@ public class CommandManagerPlugin extends Plugin implements ActionPlugin {
             Supplier<RepositoriesService> repositoriesServiceSupplier
     ) {
         this.commandIndex = new CommandIndex(client, clusterService, threadPool);
-        this.jobScheduler =  new JobScheduler(threadPool);
+        ConfigReader configReader = new ConfigReader("127.0.0.1", 8080, "", "admin", "admin");
+        JobScheduler jobScheduler = new JobScheduler(threadPool, configReader);
         return Collections.emptyList();
     }
 

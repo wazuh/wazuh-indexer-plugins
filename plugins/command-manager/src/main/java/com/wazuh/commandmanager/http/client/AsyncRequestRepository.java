@@ -43,6 +43,7 @@ import org.apache.hc.core5.util.Timeout;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import java.nio.charset.StandardCharsets;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 
@@ -93,16 +94,14 @@ public class AsyncRequestRepository {
     }
 
     public CompletableFuture<String> performAsyncRequest() throws Exception {
-        // @Todo: Remove hardcoded values
-
         this.requester.start();
-
         CompletableFuture<String> future = new CompletableFuture<>();
 
         this.requester.execute(
-            AsyncRequestBuilder.get()
+            AsyncRequestBuilder.post()
                 .setHttpHost(this.target)
                 .setPath(this.requestUri)
+                .setEntity("{\"field\":\"value\"}",ContentType.APPLICATION_JSON)
                 .build(),
             new BasicResponseConsumer<>(new StringAsyncEntityConsumer()),
             Timeout.ofSeconds(5),
