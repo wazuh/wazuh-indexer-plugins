@@ -26,6 +26,7 @@
  */
 package com.wazuh.commandmanager.http.client;
 
+import com.wazuh.commandmanager.config.reader.ConfigReader;
 import org.apache.hc.core5.concurrent.FutureCallback;
 import org.apache.hc.core5.http.*;
 import org.apache.hc.core5.http.impl.Http1StreamListener;
@@ -45,10 +46,18 @@ import org.apache.logging.log4j.Logger;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 
-public class AsyncRequestService {
+public class AsyncRequestRepository {
 
-    private static final Logger logger = LogManager.getLogger(AsyncHttpService.class);
+    private static final Logger logger = LogManager.getLogger(AsyncRequestRepository.class);
+    private final HttpHost target;
+    private final String requestUri;
     HttpAsyncRequester requester;
+
+    public AsyncRequestRepository(ConfigReader configReader) throws Exception {
+        this.target = new HttpHost(configReader.getHostName(), configReader.getPort());
+        this.requestUri = configReader.getPath();
+        prepareAsyncRequest();
+    }
 
     public void prepareAsyncRequest() {
         IOReactorConfig ioReactorConfig = IOReactorConfig.custom()
@@ -84,16 +93,16 @@ public class AsyncRequestService {
     }
 
     public CompletableFuture<String> performAsyncRequest() throws Exception {
+        // @Todo: Remove hardcoded values
+
         this.requester.start();
-        final HttpHost target = HttpRequestsPlugin.TARGET;
-        final String requestUri = HttpRequestsPlugin.REQUEST_URI;
 
         CompletableFuture<String> future = new CompletableFuture<>();
 
         this.requester.execute(
             AsyncRequestBuilder.get()
-                .setHttpHost(target)
-                .setPath(requestUri)
+                .setHttpHost(this.target)
+                .setPath(this.requestUri)
                 .build(),
             new BasicResponseConsumer<>(new StringAsyncEntityConsumer()),
             Timeout.ofSeconds(5),
@@ -110,12 +119,12 @@ public class AsyncRequestService {
 
                 @Override
                 public void failed(final Exception ex) {
-                    logger.info(requestUri + "->{}", String.valueOf(ex));
+                    logger.info("{}->{}", requestUri, String.valueOf(ex));
                 }
 
                 @Override
                 public void cancelled() {
-                    logger.info(requestUri + " cancelled");
+                    logger.info("{} cancelled", requestUri);
                 }
 
             });

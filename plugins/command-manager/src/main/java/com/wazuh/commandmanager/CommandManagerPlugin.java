@@ -9,6 +9,7 @@ package com.wazuh.commandmanager;
 
 import com.wazuh.commandmanager.index.CommandIndex;
 import com.wazuh.commandmanager.rest.action.RestPostCommandAction;
+import com.wazuh.commandmanager.scheduler.JobScheduler;
 import org.opensearch.client.Client;
 import org.opensearch.cluster.metadata.IndexNameExpressionResolver;
 import org.opensearch.cluster.node.DiscoveryNodes;
@@ -47,6 +48,7 @@ public class CommandManagerPlugin extends Plugin implements ActionPlugin {
     public static final String COMMAND_MANAGER_INDEX_TEMPLATE_NAME = "index-template-commands";
 
     private CommandIndex commandIndex;
+    private JobScheduler jobScheduler;
 
     @Override
     public Collection<Object> createComponents(
@@ -63,6 +65,7 @@ public class CommandManagerPlugin extends Plugin implements ActionPlugin {
             Supplier<RepositoriesService> repositoriesServiceSupplier
     ) {
         this.commandIndex = new CommandIndex(client, clusterService, threadPool);
+        this.jobScheduler =  new JobScheduler(threadPool);
         return Collections.emptyList();
     }
 
