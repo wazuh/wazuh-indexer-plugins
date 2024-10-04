@@ -27,6 +27,7 @@ public class JobScheduler {
                         Thread.sleep(5000);
                         logger.info("Running task");
                         AsyncRequestRepository asyncRequestRepository = new AsyncRequestRepository(this.configReader);
+                        asyncRequestRepository.prepareAsyncRequest();
                         asyncRequestRepository.performAsyncRequest()
                             .thenAccept(
                                 logger::info

@@ -57,10 +57,10 @@ public class AsyncRequestRepository {
     public AsyncRequestRepository(ConfigReader configReader) throws Exception {
         this.target = new HttpHost(configReader.getHostName(), configReader.getPort());
         this.requestUri = configReader.getPath();
-        prepareAsyncRequest();
     }
 
     public void prepareAsyncRequest() {
+        logger.info("Preparing Async Request");
         IOReactorConfig ioReactorConfig = IOReactorConfig.custom()
             .setSoTimeout(5, TimeUnit.SECONDS)
             .build();
@@ -98,10 +98,11 @@ public class AsyncRequestRepository {
         CompletableFuture<String> future = new CompletableFuture<>();
 
         this.requester.execute(
-            AsyncRequestBuilder.post()
+            AsyncRequestBuilder.get()
                 .setHttpHost(this.target)
                 .setPath(this.requestUri)
-                .setEntity("{\"field\":\"value\"}",ContentType.APPLICATION_JSON)
+                .addHeader("Content-Type", "application/json")
+                .setEntity("{\"field\":\"value\"}")
                 .build(),
             new BasicResponseConsumer<>(new StringAsyncEntityConsumer()),
             Timeout.ofSeconds(5),
@@ -112,7 +113,6 @@ public class AsyncRequestRepository {
                     final HttpResponse response = message.getHead();
                     final String body = message.getBody();
                     logger.info(requestUri + "->{}", response.getCode());
-                    logger.info(body);
                     future.complete(body);
                 }
 
