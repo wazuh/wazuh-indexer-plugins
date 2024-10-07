@@ -1,6 +1,10 @@
 name: Continuous Integration
 
 on:
+    push:
+        paths:
+            - "plugins/**/*.java"     # Match changes in Java files.
+            - "plugins/**/*.gradle"   # Match changes in Gradle configuration.
     pull_request:
         paths:
             - "plugins/**/*.java"     # Match changes in Java files.
@@ -21,7 +25,9 @@ jobs:
 
             - name: Setup Gradle
               uses: gradle/actions/setup-gradle@v4
-            
+              with:
+                  gradle-version: 7.5.1 # Optional, specify Gradle version if needed
+
             # Step to fetch the base branch for comparison
             - name: Fetch base branch
               run: |
@@ -34,15 +40,16 @@ jobs:
               run: |
                 # Compare the changes between the current branch and the base branch
                 CHANGED_FILES=$(git diff --name-only origin/${{ github.event.pull_request.base.ref }})
+                echo $CHANGE_FILES
 
                 # Check if any files are modified in wazuh-indexer-setup
-                if echo "$CHANGED_FILES" | grep -q "^plugins/wazuh-indexer-setup/"; then
-                  echo "wazuh-indexer-setup" >> affected_projects.txt
+                if echo "$CHANGED_FILES" | grep -q "^plugins/setup/"; then
+                  echo "setup" >> affected_projects.txt
                 fi
                 
                 # Check if any files are modified in wazuh-command-manager
-                if echo "$CHANGED_FILES" | grep -q "^plugins/wazuh-command-manager/"; then
-                  echo "wazuh-command-manager" >> affected_projects.txt
+                if echo "$CHANGED_FILES" | grep -q "^plugins/command-manager/"; then
+                  echo "command-manager" >> affected_projects.txt
                 fi
 
                 # Output the list of affected projects
