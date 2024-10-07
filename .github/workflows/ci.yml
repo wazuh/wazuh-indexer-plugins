@@ -1,10 +1,6 @@
 name: Continuous Integration
 
 on:
-    push:
-        paths:
-            - "plugins/**/*.java"     # Match changes in Java files.
-            - "plugins/**/*.gradle"   # Match changes in Gradle configuration.
     pull_request:
         paths:
             - "plugins/**/*.java"     # Match changes in Java files.
@@ -15,8 +11,6 @@ jobs:
         runs-on: ubuntu-22.04
         steps:
             - uses: actions/checkout@v4
-              with:
-                fetch-depth: 0  # Fetch all history so we can compare branches
 
             - uses: actions/setup-java@v4
               with:
@@ -25,8 +19,6 @@ jobs:
 
             - name: Setup Gradle
               uses: gradle/actions/setup-gradle@v4
-              with:
-                  gradle-version: 7.5.1 # Optional, specify Gradle version if needed
 
             # Step to fetch the base branch for comparison
             - name: Fetch base branch
@@ -40,7 +32,7 @@ jobs:
               run: |
                 # Compare the changes between the current branch and the base branch
                 CHANGED_FILES=$(git diff --name-only origin/${{ github.event.pull_request.base.ref }})
-                echo $CHANGE_FILES
+                echo $CHANGED_FILES
 
                 # Check if any files are modified in wazuh-indexer-setup
                 if echo "$CHANGED_FILES" | grep -q "^plugins/setup/"; then
@@ -54,9 +46,9 @@ jobs:
 
                 # Output the list of affected projects
                 if [ -f affected_projects.txt ]; then
-                  echo "::set-output name=projects::$(cat affected_projects.txt | paste -sd,)"
+                  echo "projects=$(cat affected_projects.txt | paste -sd,)" >> $GITHUB_OUTPUT
                 else
-                  echo "::set-output name=projects::none"
+                  echo "projects=none" >> $GITHUB_OUTPUT
                 fi
 
             # Run tests for affected projects
