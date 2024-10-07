@@ -11,6 +11,8 @@ jobs:
         runs-on: ubuntu-22.04
         steps:
             - uses: actions/checkout@v4
+              with:
+                fetch-depth: 0  # Fetch all history so we can compare branches
 
             - uses: actions/setup-java@v4
               with:
@@ -25,7 +27,7 @@ jobs:
               id: detect_changes
               run: |
                 # Compare the changes between the current branch and the base branch
-                CHANGED_FILES=$(git diff --name-only origin/${{ github.event.pull_request.base.ref }})
+                CHANGED_FILES=$(git diff --name-only ${{ github.event.pull_request.base.ref }})
 
                 # Check if any files are modified in wazuh-indexer-setup
                 if echo "$CHANGED_FILES" | grep -q "^plugins/wazuh-indexer-setup/"; then
