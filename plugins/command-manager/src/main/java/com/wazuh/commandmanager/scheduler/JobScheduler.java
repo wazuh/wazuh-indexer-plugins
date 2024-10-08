@@ -34,7 +34,7 @@ public class JobScheduler {
                             )
                             .exceptionally(
                                 e -> {
-                                    logger.error(e);
+                                    logger.error("Exception found {}", e.getMessage());
                                     return null;
                                 }
                             );
