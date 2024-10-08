@@ -1,10 +1,6 @@
 name: Continuous Integration
 
 on:
-    push:
-        paths:
-            - "plugins/**/*.java"     # Match changes in Java files.
-            - "plugins/**/*.gradle"   # Match changes in Gradle configuration.
     pull_request:
         paths:
             - "plugins/**/*.java"     # Match changes in Java files.
@@ -24,13 +20,20 @@ jobs:
             - name: Setup Gradle
               uses: gradle/actions/setup-gradle@v4
 
+            # Step to fetch the base branch for comparison
+            - name: Fetch base branch
+              run: |
+                # Fetch the base branch (e.g., main or develop) to compare against
+                git fetch origin ${{ github.event.pull_request.base.ref }}:refs/remotes/origin/${{ github.event.pull_request.base.ref }}
+
             # Step to find which project folder contains modified files
             - name: Detect modified plugins
               id: detect_changes
               run: |
-                # Capture the list of modified files
-                CHANGED_FILES=$(git diff --name-only HEAD~1 HEAD)
-                
+                # Compare the changes between the current branch and the base branch
+                CHANGED_FILES=$(git diff --name-only origin/${{ github.event.pull_request.base.ref }})
+                echo $CHANGED_FILES
+
                 # Check if any files are modified in wazuh-indexer-setup
                 if echo "$CHANGED_FILES" | grep -q "^plugins/setup/"; then
                   echo "setup" >> affected_projects.txt
@@ -43,9 +46,9 @@ jobs:
 
                 # Output the list of affected projects
                 if [ -f affected_projects.txt ]; then
-                  echo "::set-output name=projects::$(cat affected_projects.txt | paste -sd,)"
+                  echo "projects=$(cat affected_projects.txt | paste -sd,)" >> $GITHUB_OUTPUT
                 else
-                  echo "::set-output name=projects::none"
+                  echo "projects=none" >> $GITHUB_OUTPUT
                 fi
 
             # Run tests for affected projects
