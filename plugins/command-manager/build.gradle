@@ -52,16 +52,16 @@ opensearchplugin {
 }
 
 def versions = [
-    httpclient5: "5.3.1",
-    httpcore5: "5.2.5",
-    httpasyncclient5: "4.1.5"
+    httpclient5: "5.4",
+    httpcore5: "5.3",
+    slf4j: "1.7.36"
 ]
 
 dependencies {
-//    api "org.apache.httpcomponents.client5:httpclient5:5.3"
+    api "org.apache.httpcomponents.client5:httpclient5:${versions.httpclient5}"
+    api "org.apache.httpcomponents.core5:httpcore5-h2:${versions.httpcore5}"
     api "org.apache.httpcomponents.core5:httpcore5:${versions.httpcore5}"
-//    api "org.apache.httpcomponents.core5:httpcore5-h2:${versions.httpcore5}"
-//    api "org.apache.httpcomponents.core5:httpcore5-reactive:${versions.httpcore5}"
+    api "org.slf4j:slf4j-api:${versions.slf4j}"
 }
 
 // This requires an additional Jar not published as part of build-tools

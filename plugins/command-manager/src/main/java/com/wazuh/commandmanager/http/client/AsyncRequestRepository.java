@@ -27,24 +27,20 @@
 package com.wazuh.commandmanager.http.client;
 
 import com.wazuh.commandmanager.config.reader.ConfigReader;
+import org.apache.hc.client5.http.async.methods.*;
+import org.apache.hc.client5.http.impl.async.CloseableHttpAsyncClient;
+import org.apache.hc.client5.http.impl.async.HttpAsyncClients;
 import org.apache.hc.core5.concurrent.FutureCallback;
-import org.apache.hc.core5.http.*;
-import org.apache.hc.core5.http.impl.Http1StreamListener;
-import org.apache.hc.core5.http.impl.bootstrap.AsyncRequesterBootstrap;
-import org.apache.hc.core5.http.impl.bootstrap.HttpAsyncRequester;
-import org.apache.hc.core5.http.message.RequestLine;
+import org.apache.hc.core5.http.HttpHost;
 import org.apache.hc.core5.http.message.StatusLine;
-import org.apache.hc.core5.http.nio.entity.StringAsyncEntityConsumer;
-import org.apache.hc.core5.http.nio.support.AsyncRequestBuilder;
-import org.apache.hc.core5.http.nio.support.BasicResponseConsumer;
 import org.apache.hc.core5.io.CloseMode;
 import org.apache.hc.core5.reactor.IOReactorConfig;
-import org.apache.hc.core5.util.Timeout;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import java.nio.charset.StandardCharsets;
+import java.io.IOException;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 
 public class AsyncRequestRepository {
@@ -52,89 +48,66 @@ public class AsyncRequestRepository {
     private static final Logger logger = LogManager.getLogger(AsyncRequestRepository.class);
     private final HttpHost target;
     private final String requestUri;
-    HttpAsyncRequester requester;
+    private final CloseableHttpAsyncClient client;
 
     public AsyncRequestRepository(ConfigReader configReader) throws Exception {
         this.target = new HttpHost(configReader.getHostName(), configReader.getPort());
         this.requestUri = configReader.getPath();
+        this.client = prepareAsyncRequest();
     }
 
-    public void prepareAsyncRequest() {
+    public CloseableHttpAsyncClient prepareAsyncRequest() throws IOException {
         logger.info("Preparing Async Request");
         IOReactorConfig ioReactorConfig = IOReactorConfig.custom()
             .setSoTimeout(5, TimeUnit.SECONDS)
             .build();
 
-        // Create and start requester
-        this.requester = AsyncRequesterBootstrap.bootstrap()
+        try (CloseableHttpAsyncClient client = HttpAsyncClients.custom()
             .setIOReactorConfig(ioReactorConfig)
-            .setStreamListener(new Http1StreamListener() {
-
-                @Override
-                public void onRequestHead(final HttpConnection connection, final HttpRequest request) {
-                    logger.info("{} {}", connection.getRemoteAddress(), new RequestLine(request));
-                }
-
-                @Override
-                public void onResponseHead(final HttpConnection connection, final HttpResponse response) {
-                    logger.info("{} {}", connection.getRemoteAddress(), new StatusLine(response));
-                }
-
-                @Override
-                public void onExchangeComplete(final HttpConnection connection, final boolean keepAlive) {
-                    if (keepAlive) {
-                        logger.info("{} exchange completed (connection kept alive)", connection.getRemoteAddress());
-                    } else {
-                        logger.info("{} exchange completed (connection closed)", connection.getRemoteAddress());
-                    }
-                }
-
-            })
-            .create();
+            .build()) {
+            client.start();
+            return client;
+        }
     }
 
-    public CompletableFuture<String> performAsyncRequest() throws Exception {
-        this.requester.start();
-        CompletableFuture<String> future = new CompletableFuture<>();
+    public CompletableFuture<SimpleBody> performAsyncRequest() throws Exception {
 
-        this.requester.execute(
-            AsyncRequestBuilder.get()
-                .setHttpHost(this.target)
-                .setPath(this.requestUri)
-                .addHeader("Content-Type", "application/json")
-                .setEntity("{\"field\":\"value\"}")
-                .build(),
-            new BasicResponseConsumer<>(new StringAsyncEntityConsumer()),
-            Timeout.ofSeconds(5),
-            new FutureCallback<Message<HttpResponse, String>>() {
+        final SimpleHttpRequest request = SimpleRequestBuilder.post()
+            .setHttpHost(target)
+            .setPath(requestUri)
+            .build();
 
+        logger.info("Executing request {}", request);
+
+        CompletableFuture<SimpleBody> completableFuture = new CompletableFuture<>();
+
+        final Future<SimpleHttpResponse> future = this.client.execute(
+            SimpleRequestProducer.create(request),
+            SimpleResponseConsumer.create(),
+            new FutureCallback<SimpleHttpResponse>() {
                 @Override
-                public void completed(final Message<HttpResponse, String> message) {
-                    final HttpResponse response = message.getHead();
-                    final String body = message.getBody();
-                    logger.info(requestUri + "->{}", response.getCode());
-                    future.complete(body);
+                public void completed(final SimpleHttpResponse response) {
+                    logger.info("{}->{}", request, new StatusLine(response));
+                    completableFuture.complete(response.getBody());
                 }
 
                 @Override
                 public void failed(final Exception ex) {
-                    logger.info("{}->{}", requestUri, String.valueOf(ex));
+                    logger.info("{}->{}", request, ex);
                 }
 
                 @Override
                 public void cancelled() {
-                    logger.info("{} cancelled", requestUri);
+                    logger.info("{} cancelled", request);
                 }
+            }
+        );
+        return completableFuture;
 
-            });
-
-        logger.info("Shutting down I/O reactor");
-        this.requester.initiateShutdown();
-        return future;
     }
 
     public void close() {
         logger.info("HTTP requester shutting down");
-        this.requester.close(CloseMode.GRACEFUL);
+        this.client.close(CloseMode.GRACEFUL);
     }
 }
