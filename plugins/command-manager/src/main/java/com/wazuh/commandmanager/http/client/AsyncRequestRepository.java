@@ -31,6 +31,7 @@ import org.apache.hc.client5.http.async.methods.*;
 import org.apache.hc.client5.http.impl.async.CloseableHttpAsyncClient;
 import org.apache.hc.client5.http.impl.async.HttpAsyncClients;
 import org.apache.hc.core5.concurrent.FutureCallback;
+import org.apache.hc.core5.http.ContentType;
 import org.apache.hc.core5.http.HttpHost;
 import org.apache.hc.core5.http.message.StatusLine;
 import org.apache.hc.core5.io.CloseMode;
@@ -75,16 +76,17 @@ public class AsyncRequestRepository {
         final SimpleHttpRequest request = SimpleRequestBuilder.post()
             .setHttpHost(target)
             .setPath(requestUri)
+            .setBody("{\"field\":\"value\"}", ContentType.APPLICATION_JSON)
             .build();
 
-        logger.info("Executing request {}", request);
+        logger.info("Executing {} request", request);
 
         CompletableFuture<SimpleBody> completableFuture = new CompletableFuture<>();
 
-        final Future<SimpleHttpResponse> future = this.client.execute(
+        Future<SimpleHttpResponse> future = this.client.execute(
             SimpleRequestProducer.create(request),
             SimpleResponseConsumer.create(),
-            new FutureCallback<SimpleHttpResponse>() {
+            new FutureCallback<>() {
                 @Override
                 public void completed(final SimpleHttpResponse response) {
                     logger.info("{}->{}", request, new StatusLine(response));
@@ -93,15 +95,16 @@ public class AsyncRequestRepository {
 
                 @Override
                 public void failed(final Exception ex) {
-                    logger.info("{}->{}", request, ex);
+                    logger.error("Could not process {} request: {}", request, ex.getMessage());
                 }
 
                 @Override
                 public void cancelled() {
-                    logger.info("{} cancelled", request);
+                    logger.error("{} cancelled", request);
                 }
             }
         );
+        future.get();
         return completableFuture;
 
     }
