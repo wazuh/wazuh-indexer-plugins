@@ -65,9 +65,7 @@ public class CommandManagerPlugin extends Plugin implements ActionPlugin {
             Supplier<RepositoriesService> repositoriesServiceSupplier
     ) {
         this.commandIndex = new CommandIndex(client, clusterService, threadPool);
-        //ConfigReader configReader = new ConfigReader("127.0.0.1", 8080, "/", "admin", "admin");
         ConfigReader configReader = new ConfigReader("httpbin.org", 80, "/post", "admin", "admin");
-        //ConfigReader configReader = new ConfigReader();
         JobScheduler jobScheduler = new JobScheduler(threadPool, configReader);
         return Collections.emptyList();
     }

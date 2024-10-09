@@ -34,15 +34,11 @@ import org.apache.hc.core5.concurrent.FutureCallback;
 import org.apache.hc.core5.http.ContentType;
 import org.apache.hc.core5.http.HttpHost;
 import org.apache.hc.core5.http.message.StatusLine;
-import org.apache.hc.core5.io.CloseMode;
 import org.apache.hc.core5.reactor.IOReactorConfig;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import java.io.IOException;
-import java.security.AccessController;
-import java.security.PrivilegedAction;
-import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 
@@ -51,15 +47,17 @@ public class AsyncRequestRepository {
     private static final Logger logger = LogManager.getLogger(AsyncRequestRepository.class);
     private final HttpHost target;
     private final String requestUri;
-    private final CloseableHttpAsyncClient client;
 
     public AsyncRequestRepository(ConfigReader configReader) throws Exception {
         this.target = new HttpHost(configReader.getHostName(), configReader.getPort());
         this.requestUri = configReader.getPath();
-        this.client = prepareAsyncRequest();
     }
 
     public CloseableHttpAsyncClient prepareAsyncRequest() throws IOException {
+        return null;
+    }
+
+    public Future<SimpleHttpResponse> performAsyncRequest() throws Exception {
         logger.info("Preparing Async Request");
         IOReactorConfig ioReactorConfig = IOReactorConfig.custom()
             .setSoTimeout(5, TimeUnit.SECONDS)
@@ -69,10 +67,6 @@ public class AsyncRequestRepository {
             .setIOReactorConfig(ioReactorConfig)
             .build();
         client.start();
-        return client;
-    }
-
-    public CompletableFuture<SimpleBody> performAsyncRequest() throws Exception {
 
         final SimpleHttpRequest request = SimpleRequestBuilder.post()
             .setHttpHost(target)
@@ -82,36 +76,29 @@ public class AsyncRequestRepository {
 
         logger.info("Executing {} request", request);
 
-        CompletableFuture<SimpleBody> completableFuture = new CompletableFuture<>();
-        AccessController.doPrivileged(
-            (PrivilegedAction<Future<SimpleHttpResponse>>) () -> this.client.execute(
-                SimpleRequestProducer.create(request),
-                SimpleResponseConsumer.create(),
-                new FutureCallback<>() {
-                    @Override
-                    public void completed(final SimpleHttpResponse response) {
-                        logger.info("{}->{}", request, new StatusLine(response));
-                        completableFuture.complete(response.getBody());
-                    }
-
-                    @Override
-                    public void failed(final Exception ex) {
-                        logger.error("Could not process {} request: {}", request, ex.getMessage());
-                    }
-
-                    @Override
-                    public void cancelled() {
-                        logger.error("{} cancelled", request);
-                    }
+        return client.execute(
+            SimpleRequestProducer.create(request),
+            SimpleResponseConsumer.create(),
+            new FutureCallback<>() {
+                @Override
+                public void completed(final SimpleHttpResponse response) {
+                    logger.info("{}->{}", request, new StatusLine(response));
                 }
-            )
+
+                @Override
+                public void failed(final Exception ex) {
+                    logger.error("Could not process {} request: {}", request, ex.getMessage());
+                }
+
+                @Override
+                public void cancelled() {
+                    logger.error("{} cancelled", request);
+                }
+            }
         );
-        //future.get();
-        return completableFuture;
     }
 
     public void close() {
         logger.info("HTTP requester shutting down");
-        this.client.close(CloseMode.GRACEFUL);
     }
 }

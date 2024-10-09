@@ -2,12 +2,16 @@ package com.wazuh.commandmanager.scheduler;
 
 import com.wazuh.commandmanager.config.reader.ConfigReader;
 import com.wazuh.commandmanager.http.client.AsyncRequestRepository;
+import org.apache.hc.client5.http.async.methods.SimpleHttpResponse;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.opensearch.threadpool.ThreadPool;
 
 
+import java.security.AccessController;
+import java.security.PrivilegedAction;
 import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Future;
 
 public class JobScheduler {
 
@@ -21,23 +25,23 @@ public class JobScheduler {
 
     private void start(ThreadPool threadPool) {
         ExecutorService executorService = threadPool.executor(ThreadPool.Names.GENERIC);
+        Future<SimpleHttpResponse> future = AccessController.doPrivileged(
+            (PrivilegedAction<Future<SimpleHttpResponse>>) () -> {
+                try {
+                    return new AsyncRequestRepository(configReader).performAsyncRequest();
+                } catch (Exception e) {
+                    throw new RuntimeException(e);
+                }
+            }
+        );
         executorService.submit(
             () -> {
                 while(!Thread.currentThread().isInterrupted()) {
                     try {
                         Thread.sleep(5000);
-                        logger.info("Running task");
-                        AsyncRequestRepository asyncRequestRepository = new AsyncRequestRepository(this.configReader);
-                        asyncRequestRepository.performAsyncRequest()
-                            .thenAccept(
-                                logger::info
-                            )
-                            .exceptionally(
-                                e -> {
-                                    logger.error("Exception found {}", e.getMessage());
-                                    return null;
-                                }
-                            );
+                        logger.info("Running HTTP Request");
+                        logger.info(future.get().getBodyText());
+
                     } catch (InterruptedException e) {
                         Thread.currentThread().interrupt();
                         logger.info("Exiting scheduler");
