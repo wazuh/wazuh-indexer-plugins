@@ -40,6 +40,8 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import java.io.IOException;
+import java.security.AccessController;
+import java.security.PrivilegedAction;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
@@ -63,12 +65,11 @@ public class AsyncRequestRepository {
             .setSoTimeout(5, TimeUnit.SECONDS)
             .build();
 
-        try (CloseableHttpAsyncClient client = HttpAsyncClients.custom()
+        CloseableHttpAsyncClient client = HttpAsyncClients.custom()
             .setIOReactorConfig(ioReactorConfig)
-            .build()) {
-            client.start();
-            return client;
-        }
+            .build();
+        client.start();
+        return client;
     }
 
     public CompletableFuture<SimpleBody> performAsyncRequest() throws Exception {
@@ -82,31 +83,31 @@ public class AsyncRequestRepository {
         logger.info("Executing {} request", request);
 
         CompletableFuture<SimpleBody> completableFuture = new CompletableFuture<>();
+        AccessController.doPrivileged(
+            (PrivilegedAction<Future<SimpleHttpResponse>>) () -> this.client.execute(
+                SimpleRequestProducer.create(request),
+                SimpleResponseConsumer.create(),
+                new FutureCallback<>() {
+                    @Override
+                    public void completed(final SimpleHttpResponse response) {
+                        logger.info("{}->{}", request, new StatusLine(response));
+                        completableFuture.complete(response.getBody());
+                    }
 
-        Future<SimpleHttpResponse> future = this.client.execute(
-            SimpleRequestProducer.create(request),
-            SimpleResponseConsumer.create(),
-            new FutureCallback<>() {
-                @Override
-                public void completed(final SimpleHttpResponse response) {
-                    logger.info("{}->{}", request, new StatusLine(response));
-                    completableFuture.complete(response.getBody());
-                }
+                    @Override
+                    public void failed(final Exception ex) {
+                        logger.error("Could not process {} request: {}", request, ex.getMessage());
+                    }
 
-                @Override
-                public void failed(final Exception ex) {
-                    logger.error("Could not process {} request: {}", request, ex.getMessage());
+                    @Override
+                    public void cancelled() {
+                        logger.error("{} cancelled", request);
+                    }
                 }
-
-                @Override
-                public void cancelled() {
-                    logger.error("{} cancelled", request);
-                }
-            }
+            )
         );
-        future.get();
+        //future.get();
         return completableFuture;
-
     }
 
     public void close() {
