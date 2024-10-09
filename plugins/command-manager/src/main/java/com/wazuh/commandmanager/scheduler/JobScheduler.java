@@ -5,6 +5,9 @@ import com.wazuh.commandmanager.http.client.AsyncRequestRepository;
 import org.apache.hc.client5.http.async.methods.SimpleHttpResponse;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.opensearch.common.lifecycle.Lifecycle;
+import org.opensearch.common.lifecycle.LifecycleComponent;
+import org.opensearch.common.lifecycle.LifecycleListener;
 import org.opensearch.threadpool.ThreadPool;
 
 
@@ -13,7 +16,7 @@ import java.security.PrivilegedAction;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
 
-public class JobScheduler {
+public class JobScheduler implements LifecycleComponent {
 
     private static final Logger logger = LogManager.getLogger(JobScheduler.class);
     private final ConfigReader configReader;
@@ -27,8 +30,8 @@ public class JobScheduler {
         ExecutorService executorService = threadPool.executor(ThreadPool.Names.GENERIC);
         Future<SimpleHttpResponse> future = AccessController.doPrivileged(
             (PrivilegedAction<Future<SimpleHttpResponse>>) () -> {
-                try {
-                    return new AsyncRequestRepository(configReader).performAsyncRequest();
+                try (AsyncRequestRepository asyncRequestRepository = new AsyncRequestRepository(configReader)){
+                    return asyncRequestRepository.performAsyncRequest();
                 } catch (Exception e) {
                     throw new RuntimeException(e);
                 }
@@ -52,5 +55,35 @@ public class JobScheduler {
                 }
             }
         );
+    }
+
+    @Override
+    public Lifecycle.State lifecycleState() {
+        return null;
+    }
+
+    @Override
+    public void addLifecycleListener(LifecycleListener lifecycleListener) {
+
+    }
+
+    @Override
+    public void removeLifecycleListener(LifecycleListener lifecycleListener) {
+
+    }
+
+    @Override
+    public void start() {
+
+    }
+
+    @Override
+    public void stop() {
+
+    }
+
+    @Override
+    public void close() {
+
     }
 }
