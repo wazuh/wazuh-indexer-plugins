@@ -34,27 +34,26 @@ import org.apache.hc.core5.concurrent.FutureCallback;
 import org.apache.hc.core5.http.ContentType;
 import org.apache.hc.core5.http.HttpHost;
 import org.apache.hc.core5.http.message.StatusLine;
+import org.apache.hc.core5.io.CloseMode;
 import org.apache.hc.core5.reactor.IOReactorConfig;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import java.io.Closeable;
 import java.io.IOException;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 
-public class AsyncRequestRepository {
+public class AsyncRequestRepository implements Closeable {
 
     private static final Logger logger = LogManager.getLogger(AsyncRequestRepository.class);
     private final HttpHost target;
     private final String requestUri;
+    private CloseableHttpAsyncClient client;
 
     public AsyncRequestRepository(ConfigReader configReader) throws Exception {
         this.target = new HttpHost(configReader.getHostName(), configReader.getPort());
         this.requestUri = configReader.getPath();
-    }
-
-    public CloseableHttpAsyncClient prepareAsyncRequest() throws IOException {
-        return null;
     }
 
     public Future<SimpleHttpResponse> performAsyncRequest() throws Exception {
@@ -63,10 +62,10 @@ public class AsyncRequestRepository {
             .setSoTimeout(5, TimeUnit.SECONDS)
             .build();
 
-        CloseableHttpAsyncClient client = HttpAsyncClients.custom()
+        this.client = HttpAsyncClients.custom()
             .setIOReactorConfig(ioReactorConfig)
             .build();
-        client.start();
+        this.client.start();
 
         final SimpleHttpRequest request = SimpleRequestBuilder.post()
             .setHttpHost(target)
@@ -76,7 +75,8 @@ public class AsyncRequestRepository {
 
         logger.info("Executing {} request", request);
 
-        return client.execute(
+
+        return this.client.execute(
             SimpleRequestProducer.create(request),
             SimpleResponseConsumer.create(),
             new FutureCallback<>() {
@@ -100,5 +100,9 @@ public class AsyncRequestRepository {
 
     public void close() {
         logger.info("HTTP requester shutting down");
+        if (this.client == null) {
+            return;
+        }
+        this.client.close(CloseMode.GRACEFUL);
     }
 }
