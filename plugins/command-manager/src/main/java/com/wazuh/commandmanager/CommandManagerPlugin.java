@@ -8,8 +8,10 @@
 package com.wazuh.commandmanager;
 
 import com.wazuh.commandmanager.config.reader.ConfigReader;
+import com.wazuh.commandmanager.http.client.AsyncRequestRepository;
 import com.wazuh.commandmanager.index.CommandIndex;
 import com.wazuh.commandmanager.rest.action.RestPostCommandAction;
+import com.wazuh.commandmanager.scheduler.AsyncHttpQueryJobRunner;
 import com.wazuh.commandmanager.scheduler.JobScheduler;
 import org.opensearch.client.Client;
 import org.opensearch.cluster.metadata.IndexNameExpressionResolver;
@@ -50,6 +52,7 @@ public class CommandManagerPlugin extends Plugin implements ActionPlugin, JobSch
     public static final String COMMAND_MANAGER_BASE_URI = "/_plugins/_commandmanager";
     public static final String COMMAND_MANAGER_INDEX_NAME = ".commands";
     public static final String COMMAND_MANAGER_INDEX_TEMPLATE_NAME = "index-template-commands";
+    public static final String COMMAND_MANAGER_THREAD_POOL_NAME = "command-manager-thread";
 
     private CommandIndex commandIndex;
 
@@ -69,7 +72,9 @@ public class CommandManagerPlugin extends Plugin implements ActionPlugin, JobSch
     ) {
         this.commandIndex = new CommandIndex(client, clusterService, threadPool);
         ConfigReader configReader = ConfigReader.getInstance("httpbin.org", 80, "/post", "admin", "admin");
-        JobScheduler jobScheduler = new JobScheduler(threadPool, configReader);
+        //JobScheduler jobScheduler = new JobScheduler(threadPool, configReader);
+        AsyncHttpQueryJobRunner.getJobRunnerInstance().loadJobResource(client, clusterService, threadPool, configReader);
+
         return Collections.emptyList();
     }
 
