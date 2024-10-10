@@ -7,8 +7,10 @@
  */
 package com.wazuh.commandmanager;
 
+import com.wazuh.commandmanager.config.reader.ConfigReader;
 import com.wazuh.commandmanager.index.CommandIndex;
 import com.wazuh.commandmanager.rest.action.RestPostCommandAction;
+import com.wazuh.commandmanager.scheduler.JobScheduler;
 import org.opensearch.client.Client;
 import org.opensearch.cluster.metadata.IndexNameExpressionResolver;
 import org.opensearch.cluster.node.DiscoveryNodes;
@@ -63,6 +65,8 @@ public class CommandManagerPlugin extends Plugin implements ActionPlugin {
             Supplier<RepositoriesService> repositoriesServiceSupplier
     ) {
         this.commandIndex = new CommandIndex(client, clusterService, threadPool);
+        ConfigReader configReader = new ConfigReader("httpbin.org", 80, "/post", "admin", "admin");
+        JobScheduler jobScheduler = new JobScheduler(threadPool, configReader);
         return Collections.emptyList();
     }
 
