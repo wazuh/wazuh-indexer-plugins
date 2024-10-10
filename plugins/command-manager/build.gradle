@@ -55,7 +55,8 @@ def versions = [
     httpclient5: "5.4",
     httpcore5: "5.3",
     slf4j: "1.7.36",
-    log4j: "2.23.1"
+    log4j: "2.23.1",
+    conscrypt: "2.5.2"
 ]
 
 dependencies {
@@ -64,6 +65,7 @@ dependencies {
     api "org.apache.httpcomponents.core5:httpcore5:${versions.httpcore5}"
     api "org.apache.logging.log4j:log4j-slf4j-impl:${versions.log4j}"
     api "org.slf4j:slf4j-api:${versions.slf4j}"
+    api "org.conscrypt:conscrypt-openjdk-uber:${versions.conscrypt}"
 }
 
 // This requires an additional Jar not published as part of build-tools
@@ -137,4 +139,3 @@ task updateVersion {
         ant.replaceregexp(file: 'build.gradle', match: '"opensearch.version", "\\d.*"', replace: '"opensearch.version", "' + newVersion.tokenize('-')[0] + '-SNAPSHOT"', flags: 'g', byline: true)
     }
 }
-

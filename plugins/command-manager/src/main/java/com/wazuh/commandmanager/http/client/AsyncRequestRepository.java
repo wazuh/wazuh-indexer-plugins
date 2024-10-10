@@ -112,3 +112,4 @@ public class AsyncRequestRepository implements Closeable {
         this.client.close(CloseMode.GRACEFUL);
     }
 }
+
