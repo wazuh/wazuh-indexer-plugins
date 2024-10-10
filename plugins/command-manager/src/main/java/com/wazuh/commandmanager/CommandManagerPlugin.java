@@ -23,6 +23,9 @@ import org.opensearch.core.common.io.stream.NamedWriteableRegistry;
 import org.opensearch.core.xcontent.NamedXContentRegistry;
 import org.opensearch.env.Environment;
 import org.opensearch.env.NodeEnvironment;
+import org.opensearch.jobscheduler.spi.JobSchedulerExtension;
+import org.opensearch.jobscheduler.spi.ScheduledJobParser;
+import org.opensearch.jobscheduler.spi.ScheduledJobRunner;
 import org.opensearch.plugins.ActionPlugin;
 import org.opensearch.plugins.Plugin;
 import org.opensearch.repositories.RepositoriesService;
@@ -43,7 +46,7 @@ import java.util.function.Supplier;
  * indexed and sent back to the Server for its delivery to, in most cases, the
  * Agents.
  */
-public class CommandManagerPlugin extends Plugin implements ActionPlugin {
+public class CommandManagerPlugin extends Plugin implements ActionPlugin, JobSchedulerExtension {
     public static final String COMMAND_MANAGER_BASE_URI = "/_plugins/_commandmanager";
     public static final String COMMAND_MANAGER_INDEX_NAME = ".commands";
     public static final String COMMAND_MANAGER_INDEX_TEMPLATE_NAME = "index-template-commands";
@@ -65,7 +68,7 @@ public class CommandManagerPlugin extends Plugin implements ActionPlugin {
             Supplier<RepositoriesService> repositoriesServiceSupplier
     ) {
         this.commandIndex = new CommandIndex(client, clusterService, threadPool);
-        ConfigReader configReader = new ConfigReader("httpbin.org", 80, "/post", "admin", "admin");
+        ConfigReader configReader = ConfigReader.getInstance("httpbin.org", 80, "/post", "admin", "admin");
         JobScheduler jobScheduler = new JobScheduler(threadPool, configReader);
         return Collections.emptyList();
     }
@@ -80,5 +83,25 @@ public class CommandManagerPlugin extends Plugin implements ActionPlugin {
             Supplier<DiscoveryNodes> nodesInCluster
     ) {
         return Collections.singletonList(new RestPostCommandAction(this.commandIndex));
+    }
+
+    @Override
+    public String getJobType() {
+        return "";
+    }
+
+    @Override
+    public String getJobIndex() {
+        return "";
+    }
+
+    @Override
+    public ScheduledJobRunner getJobRunner() {
+        return null;
+    }
+
+    @Override
+    public ScheduledJobParser getJobParser() {
+        return null;
     }
 }

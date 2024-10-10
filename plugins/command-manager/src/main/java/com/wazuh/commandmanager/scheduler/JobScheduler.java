@@ -22,14 +22,12 @@ import java.util.concurrent.Future;
 public class JobScheduler {
 
     private static final Logger logger = LogManager.getLogger(JobScheduler.class);
-    private final ConfigReader configReader;
 
     public JobScheduler(ThreadPool threadPool, ConfigReader configReader) {
-        this.configReader = configReader;
-        start(threadPool);
+        start(threadPool, configReader);
     }
 
-    private void start(ThreadPool threadPool) {
+    private void start(ThreadPool threadPool, ConfigReader configReader) {
         ExecutorService executorService = threadPool.executor(ThreadPool.Names.GENERIC);
         Future<SimpleHttpResponse> future = AccessController.doPrivileged(
             (PrivilegedAction<Future<SimpleHttpResponse>>) () -> {
