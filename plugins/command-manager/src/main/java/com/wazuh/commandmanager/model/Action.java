@@ -18,23 +18,23 @@ import java.util.List;
  * Command's action fields.
  */
 public class Action implements ToXContentObject {
-
-    public static final String TYPE = "type";
+    public static final String ACTION = "action";
+    public static final String NAME = "name";
     public static final String ARGS = "args";
     public static final String VERSION = "version";
-    private final String type;
+    private final String name;
     private final List<String> args;
     private final String version;
 
     /**
      * Default constructor.
      *
-     * @param type    action type to be executed on the target,
+     * @param name    action to be executed on the target,
      * @param args    actual command.
      * @param version version of the action.
      */
-    public Action(String type, List<String> args, String version) {
-        this.type = type;
+    public Action(String name, List<String> args, String version) {
+        this.name = name;
         this.args = args;
         this.version = version;
     }
@@ -45,7 +45,7 @@ public class Action implements ToXContentObject {
      * @throws IOException
      */
     public static Action parse(XContentParser parser) throws IOException {
-        String type = "";
+        String name = "";
         List<Object> args = List.of();
         String version = "";
 
@@ -53,8 +53,8 @@ public class Action implements ToXContentObject {
             String fieldName = parser.currentName();
             parser.nextToken();
             switch (fieldName) {
-                case TYPE:
-                    type = parser.text();
+                case NAME:
+                    name = parser.text();
                     break;
                 case ARGS:
                     args = parser.list();
@@ -70,40 +70,13 @@ public class Action implements ToXContentObject {
 
         // Cast args field Object list to String list
         List<String> convertedArgsFields = (List<String>) (List<?>) (args);
-        return new Action(type, convertedArgsFields, version);
-    }
-
-    /**
-     * Return action's type field.
-     *
-     * @return type
-     */
-    public String getType() {
-        return this.type;
-    }
-
-    /**
-     * Returns action's args field.
-     *
-     * @return args
-     */
-    public List<String> getArgs() {
-        return this.args;
-    }
-
-    /**
-     * Returns action's version field.
-     *
-     * @return version
-     */
-    public String getVersion() {
-        return this.version;
+        return new Action(name, convertedArgsFields, version);
     }
 
     @Override
     public XContentBuilder toXContent(XContentBuilder builder, Params params) throws IOException {
-        builder.startObject("action");
-        builder.field(TYPE, this.type);
+        builder.startObject(ACTION);
+        builder.field(NAME, this.name);
         builder.field(ARGS, this.args);
         builder.field(VERSION, this.version);
         return builder.endObject();
@@ -112,7 +85,7 @@ public class Action implements ToXContentObject {
     @Override
     public String toString() {
         return "Action{" +
-                "type='" + type + '\'' +
+                "name='" + name + '\'' +
                 ", args=" + args +
                 ", version='" + version + '\'' +
                 '}';

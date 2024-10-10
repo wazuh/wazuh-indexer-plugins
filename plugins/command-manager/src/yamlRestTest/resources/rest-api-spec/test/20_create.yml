@@ -6,10 +6,12 @@
                   command:
                       source: "Users/Services"
                       user: "user13"
-                      target: "WazuhServerCluster5"
-                      type: "agent_group"
+                      target: {
+                          id: "target4",
+                          type: "agent"
+                      }
                       action: {
-                          type: "Server cluster",
+                          name: "change_group",
                           args: [ "/path/to/executable/arg8" ],
                           version: "v4"
                       }
@@ -24,11 +26,11 @@
               id: $document_id
     - match: { _source.command.source: "Users/Services" }
     - match: { _source.command.user: "user13" }
-    - match: { _source.command.target: "WazuhServerCluster5" }
-    - match: { _source.command.type: "agent_group" }
+    - match: { _source.command.target.type: "agent" }
+    - match: { _source.command.target.id: "target4" }
     - match: { _source.command.action:
                  {
-                     type: "Server cluster",
+                     name: "change_group",
                      args: [ "/path/to/executable/arg8" ],
                      version: "v4"
                  }
