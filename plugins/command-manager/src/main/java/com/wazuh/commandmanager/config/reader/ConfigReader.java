@@ -9,26 +9,26 @@ package com.wazuh.commandmanager.config.reader;
 
 public class ConfigReader {
 
-    String hostName;
-    int port;
-    String path;
-    String username;
-    String password;
+    private String hostName;
+    private int port;
+    private String path;
+    private String username;
+    private String password;
+    private static ConfigReader instance;
 
-    public ConfigReader() {
-        this.hostName = "jsonplaceholder.typicode.com";
-        this.port = 80;
-        this.path = "/posts/1";
-        this.username = "admin";
-        this.password = "admin";
-    }
-
-    public ConfigReader(String hostName, int port, String path, String username, String password) {
+    private ConfigReader(String hostName, int port, String path, String username, String password) {
         this.hostName = hostName;
         this.port = port;
         this.path = path;
         this.username = username;
         this.password = password;
+    }
+
+    public static ConfigReader getInstance(String hostName, int port, String path, String username, String password) {
+        if ( instance == null ) {
+            instance = new ConfigReader(hostName, port, path, username, password);
+        }
+        return instance;
     }
 
     public String getHostName() {
