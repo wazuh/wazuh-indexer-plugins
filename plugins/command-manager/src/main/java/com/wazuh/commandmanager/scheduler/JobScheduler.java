@@ -16,7 +16,7 @@ import java.security.PrivilegedAction;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
 
-public class JobScheduler implements LifecycleComponent {
+public class JobScheduler {
 
     private static final Logger logger = LogManager.getLogger(JobScheduler.class);
     private final ConfigReader configReader;
@@ -30,7 +30,7 @@ public class JobScheduler implements LifecycleComponent {
         ExecutorService executorService = threadPool.executor(ThreadPool.Names.GENERIC);
         Future<SimpleHttpResponse> future = AccessController.doPrivileged(
             (PrivilegedAction<Future<SimpleHttpResponse>>) () -> {
-                try (AsyncRequestRepository asyncRequestRepository = new AsyncRequestRepository(configReader)){
+                try (AsyncRequestRepository asyncRequestRepository = AsyncRequestRepository.getInstance(configReader)){
                     return asyncRequestRepository.performAsyncRequest();
                 } catch (Exception e) {
                     throw new RuntimeException(e);
@@ -55,35 +55,5 @@ public class JobScheduler implements LifecycleComponent {
                 }
             }
         );
-    }
-
-    @Override
-    public Lifecycle.State lifecycleState() {
-        return null;
-    }
-
-    @Override
-    public void addLifecycleListener(LifecycleListener lifecycleListener) {
-
-    }
-
-    @Override
-    public void removeLifecycleListener(LifecycleListener lifecycleListener) {
-
-    }
-
-    @Override
-    public void start() {
-
-    }
-
-    @Override
-    public void stop() {
-
-    }
-
-    @Override
-    public void close() {
-
     }
 }

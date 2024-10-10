@@ -44,15 +44,22 @@ import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 
 public class AsyncRequestRepository implements Closeable {
-
+    private static AsyncRequestRepository instance;
     private static final Logger logger = LogManager.getLogger(AsyncRequestRepository.class);
     private final HttpHost target;
     private final String requestUri;
     private CloseableHttpAsyncClient client;
 
-    public AsyncRequestRepository(ConfigReader configReader) throws Exception {
+    private AsyncRequestRepository(ConfigReader configReader) throws Exception {
         this.target = new HttpHost(configReader.getHostName(), configReader.getPort());
         this.requestUri = configReader.getPath();
+    }
+
+    public static AsyncRequestRepository getInstance(ConfigReader configReader) throws Exception {
+        if (instance == null) {
+            instance = new AsyncRequestRepository(configReader);
+        }
+        return instance;
     }
 
     public Future<SimpleHttpResponse> performAsyncRequest() throws Exception {
