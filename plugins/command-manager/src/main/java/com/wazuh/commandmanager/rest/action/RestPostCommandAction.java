@@ -9,7 +9,7 @@ package com.wazuh.commandmanager.rest.action;
 
 import com.wazuh.commandmanager.CommandManagerPlugin;
 import com.wazuh.commandmanager.index.CommandIndex;
-import com.wazuh.commandmanager.model.Command;
+import com.wazuh.commandmanager.model.Document;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.opensearch.client.node.NodeClient;
@@ -76,16 +76,16 @@ public class RestPostCommandAction extends BaseRestHandler {
         XContentParser parser = restRequest.contentParser();
         ensureExpectedToken(XContentParser.Token.START_OBJECT, parser.nextToken(), parser);
 
-        Command command = Command.parse(parser);
+        Document document = Document.parse(parser);
 
         // Send response
         return channel -> {
-            this.commandIndex.asyncCreate(command)
+            this.commandIndex.asyncCreate(document)
                     .thenAccept(restStatus -> {
                         try (XContentBuilder builder = channel.newBuilder()) {
                             builder.startObject();
                             builder.field("_index", CommandManagerPlugin.COMMAND_MANAGER_INDEX_NAME);
-                            builder.field("_id", command.getId());
+                            builder.field("_id", document.getId());
                             builder.field("result", restStatus.name());
                             builder.endObject();
                             channel.sendResponse(new BytesRestResponse(restStatus, builder));
