@@ -108,7 +108,7 @@ testClusters.integTest {
     plugin(project.tasks.bundlePlugin.archiveFile)
 
     // add customized keystore
-    keystore 'wazuh-indexer.keystore', new File("$projectDir/src/test/resources/", 'wazuh-indexer.keystore.json')
+    keystore 'command.manager.access_key', new File("$projectDir/src/test/resources/", 'wazuh-indexer.keystore.json')
 }
 
 run {
