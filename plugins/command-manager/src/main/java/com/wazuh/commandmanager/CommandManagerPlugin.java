@@ -9,15 +9,14 @@ package com.wazuh.commandmanager;
 
 import com.wazuh.commandmanager.index.CommandIndex;
 import com.wazuh.commandmanager.rest.action.RestPostCommandAction;
+import com.wazuh.commandmanager.settings.PluginSettings;
 import org.opensearch.client.Client;
 import org.opensearch.cluster.metadata.IndexNameExpressionResolver;
 import org.opensearch.cluster.node.DiscoveryNodes;
 import org.opensearch.cluster.service.ClusterService;
-import org.opensearch.common.settings.ClusterSettings;
-import org.opensearch.common.settings.IndexScopedSettings;
-import org.opensearch.common.settings.Settings;
-import org.opensearch.common.settings.SettingsFilter;
+import org.opensearch.common.settings.*;
 import org.opensearch.core.common.io.stream.NamedWriteableRegistry;
+import org.opensearch.core.common.settings.SecureString;
 import org.opensearch.core.xcontent.NamedXContentRegistry;
 import org.opensearch.env.Environment;
 import org.opensearch.env.NodeEnvironment;
@@ -47,6 +46,8 @@ public class CommandManagerPlugin extends Plugin implements ActionPlugin {
     public static final String COMMAND_MANAGER_INDEX_TEMPLATE_NAME = "index-template-commands";
 
     private CommandIndex commandIndex;
+    private PluginSettings pluginSettings;
+    private static Environment env;
 
     @Override
     public Collection<Object> createComponents(
@@ -63,6 +64,8 @@ public class CommandManagerPlugin extends Plugin implements ActionPlugin {
             Supplier<RepositoriesService> repositoriesServiceSupplier
     ) {
         this.commandIndex = new CommandIndex(client, clusterService, threadPool);
+        this.pluginSettings = PluginSettings.getPluginSettingsInstance();
+        pluginSettings.setEnv(environment);
         return Collections.emptyList();
     }
 
