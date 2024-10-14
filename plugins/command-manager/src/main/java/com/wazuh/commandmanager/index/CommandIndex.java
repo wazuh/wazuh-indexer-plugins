@@ -56,7 +56,7 @@ public class CommandIndex implements IndexingOperationListener {
     }
 
     /**
-     * @param command A Command model object
+     * @param document instance of the document model to persist in the index.
      * @return A CompletableFuture with the RestStatus response from the operation
      */
     public CompletableFuture<RestStatus> asyncCreate(Document document) {
@@ -131,7 +131,11 @@ public class CommandIndex implements IndexingOperationListener {
                     .patterns((List<String>) template.get("index_patterns"));
 
             executor.submit(() -> {
-                AcknowledgedResponse acknowledgedResponse = this.client.admin().indices().putTemplate(putIndexTemplateRequest).actionGet();
+                AcknowledgedResponse acknowledgedResponse = this.client
+                        .admin()
+                        .indices()
+                        .putTemplate(putIndexTemplateRequest)
+                        .actionGet();
                 if (acknowledgedResponse.isAcknowledged()) {
                     logger.info(
                             "Index template created successfully: {}",
