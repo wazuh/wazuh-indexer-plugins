@@ -31,6 +31,9 @@ import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
 
+/**
+ * Class to manage the Command Manager index and index template.
+ */
 public class CommandIndex implements IndexingOperationListener {
 
     private static final Logger logger = LogManager.getLogger(CommandIndex.class);
@@ -53,7 +56,7 @@ public class CommandIndex implements IndexingOperationListener {
     }
 
     /**
-     * @param document: A Command model object
+     * @param document instance of the document model to persist in the index.
      * @return A CompletableFuture with the RestStatus response from the operation
      */
     public CompletableFuture<RestStatus> asyncCreate(Document document) {
@@ -95,9 +98,10 @@ public class CommandIndex implements IndexingOperationListener {
     }
 
     /**
+     * Checks for the existence of the given index template in the cluster.
      *
-     * @param template_name
-     * @return
+     * @param template_name index template name within the resources folder
+     * @return whether the index template exists.
      */
     public boolean indexTemplateExists(String template_name) {
         Map<String, IndexTemplateMetadata> templates = this.clusterService
@@ -127,7 +131,11 @@ public class CommandIndex implements IndexingOperationListener {
                     .patterns((List<String>) template.get("index_patterns"));
 
             executor.submit(() -> {
-                AcknowledgedResponse acknowledgedResponse = this.client.admin().indices().putTemplate(putIndexTemplateRequest).actionGet();
+                AcknowledgedResponse acknowledgedResponse = this.client
+                        .admin()
+                        .indices()
+                        .putTemplate(putIndexTemplateRequest)
+                        .actionGet();
                 if (acknowledgedResponse.isAcknowledged()) {
                     logger.info(
                             "Index template created successfully: {}",
