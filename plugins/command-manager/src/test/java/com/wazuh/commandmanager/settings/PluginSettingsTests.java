@@ -1,3 +1,10 @@
+/*
+ * SPDX-License-Identifier: Apache-2.0
+ *
+ * The OpenSearch Contributors require contributions made to
+ * this file be licensed under the Apache-2.0 license or a
+ * compatible open source license.
+ */
 package com.wazuh.commandmanager.settings;
 
 import org.junit.After;
@@ -13,7 +20,7 @@ import java.nio.file.Path;
 import static org.mockito.Mockito.*;
 
 @OpenSearchIntegTestCase.ClusterScope(scope = OpenSearchIntegTestCase.Scope.SUITE)
-public class PluginSettingsTest extends OpenSearchIntegTestCase {
+public class PluginSettingsTests extends OpenSearchIntegTestCase {
 
     private PluginSettings pluginSettings;
     private Environment mockEnvironment;
@@ -35,7 +42,7 @@ public class PluginSettingsTest extends OpenSearchIntegTestCase {
     }
 
     public void testLoadSecureSettings_keystoreNotExist() throws Exception {
-        // Setup the mock to return a specific path for the config file
+        // Set up the mock to return a specific path for the config file
         Path keyStorePath = Path.of("plugins/command-manager/src/test/resources/wazuh-indexer.keystoreUNEXISTENT.json");
         when(mockEnvironment.configFile()).thenReturn(keyStorePath);
 
@@ -44,14 +51,14 @@ public class PluginSettingsTest extends OpenSearchIntegTestCase {
         when(KeyStoreWrapper.load(any(), any())).thenReturn(null);
 
         // Check that the keystore is created
-        SecureSettings result = pluginSettings.loadSecureSettings(secureString);
+        SecureSettings result = PluginSettings.loadSecureSettings(secureString);
 
         assertNotNull(result);
         verify(keyStoreWrapperMock, times(1)).save(any(), any());
     }
 
     public void testLoadSecureSettings_keystoreExists() throws Exception {
-        // Setup the mock to return a specific path for the config file
+        // Set up the mock to return a specific path for the config file
         Path keyStorePath = Path.of("plugins/command-manager/src/test/resources/");
         when(mockEnvironment.configFile()).thenReturn(keyStorePath);
 
@@ -63,7 +70,7 @@ public class PluginSettingsTest extends OpenSearchIntegTestCase {
         keyStoreWrapperMock.decrypt(passToTest);
 
         // Load secure settings
-        SecureSettings result = pluginSettings.loadSecureSettings(secureString);
+        SecureSettings result = PluginSettings.loadSecureSettings(secureString);
 
         assertNotNull(result);
         verify(keyStoreWrapperMock, times(1)).decrypt(secureString.getChars());
