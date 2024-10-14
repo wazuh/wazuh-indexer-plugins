@@ -8,7 +8,7 @@
 package com.wazuh.commandmanager.index;
 
 import com.wazuh.commandmanager.CommandManagerPlugin;
-import com.wazuh.commandmanager.model.Command;
+import com.wazuh.commandmanager.model.Document;
 import com.wazuh.commandmanager.utils.IndexTemplateUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -59,7 +59,7 @@ public class CommandIndex implements IndexingOperationListener {
      * @param command A Command model object
      * @return A CompletableFuture with the RestStatus response from the operation
      */
-    public CompletableFuture<RestStatus> asyncCreate(Command command) {
+    public CompletableFuture<RestStatus> asyncCreate(Document document) {
         CompletableFuture<RestStatus> future = new CompletableFuture<>();
         ExecutorService executor = this.threadPool.executor(ThreadPool.Names.WRITE);
 
@@ -73,12 +73,12 @@ public class CommandIndex implements IndexingOperationListener {
             );
         }
 
-        logger.debug("Indexing command {}", command);
+        logger.debug("Indexing command {}", document);
         try {
             IndexRequest request = new IndexRequest()
                     .index(CommandManagerPlugin.COMMAND_MANAGER_INDEX_NAME)
-                    .source(command.toXContent(XContentFactory.jsonBuilder(), ToXContent.EMPTY_PARAMS))
-                    .id(command.getId())
+                    .source(document.toXContent(XContentFactory.jsonBuilder(), ToXContent.EMPTY_PARAMS))
+                    .id(document.getId())
                     .create(true);
             executor.submit(
                     () -> {
@@ -92,7 +92,7 @@ public class CommandIndex implements IndexingOperationListener {
             );
         } catch (IOException e) {
             logger.error(
-                    "Failed to index command with ID {}: {}", command.getId(), e);
+                    "Failed to index command with ID {}: {}", document.getId(), e);
         }
         return future;
     }
