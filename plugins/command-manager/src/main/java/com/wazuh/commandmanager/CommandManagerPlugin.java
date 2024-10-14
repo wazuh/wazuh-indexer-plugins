@@ -7,10 +7,10 @@
  */
 package com.wazuh.commandmanager;
 
-import com.wazuh.commandmanager.config.reader.ConfigReader;
 import com.wazuh.commandmanager.index.CommandIndex;
 import com.wazuh.commandmanager.rest.action.RestPostCommandAction;
-import com.wazuh.commandmanager.scheduler.JobScheduler;
+import com.wazuh.commandmanager.utils.httpclient.HttpRestClient;
+import com.wazuh.commandmanager.utils.httpclient.HttpRestClientDemo;
 import org.opensearch.client.Client;
 import org.opensearch.cluster.metadata.IndexNameExpressionResolver;
 import org.opensearch.cluster.node.DiscoveryNodes;
@@ -32,6 +32,7 @@ import org.opensearch.script.ScriptService;
 import org.opensearch.threadpool.ThreadPool;
 import org.opensearch.watcher.ResourceWatcherService;
 
+import java.io.IOException;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
@@ -65,8 +66,11 @@ public class CommandManagerPlugin extends Plugin implements ActionPlugin {
             Supplier<RepositoriesService> repositoriesServiceSupplier
     ) {
         this.commandIndex = new CommandIndex(client, clusterService, threadPool);
-        ConfigReader configReader = new ConfigReader("httpbin.org", 80, "/post", "admin", "admin");
-        JobScheduler jobScheduler = new JobScheduler(threadPool, configReader);
+
+        // HttpRestClient stuff
+        String uri = "https://httpbin.org/post";
+        String payload = "{\"message\": \"Hello world!\"}";
+        HttpRestClientDemo.run(uri, payload);
         return Collections.emptyList();
     }
 
@@ -80,5 +84,16 @@ public class CommandManagerPlugin extends Plugin implements ActionPlugin {
             Supplier<DiscoveryNodes> nodesInCluster
     ) {
         return Collections.singletonList(new RestPostCommandAction(this.commandIndex));
+    }
+
+    /**
+     * Close the resources opened by this plugin.
+     *
+     * @throws IOException if the plugin failed to close its resources
+     */
+    @Override
+    public void close() throws IOException {
+        super.close();
+        HttpRestClient.getInstance().stopHttpAsyncClient();
     }
 }

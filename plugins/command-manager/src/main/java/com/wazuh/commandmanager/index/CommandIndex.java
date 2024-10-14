@@ -95,6 +95,8 @@ public class CommandIndex implements IndexingOperationListener {
     }
 
     /**
+     *
+     * @param template_name
      * @return
      */
     public boolean indexTemplateExists(String template_name) {
