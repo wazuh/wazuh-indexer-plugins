@@ -17,10 +17,19 @@ import java.net.URISyntaxException;
 import java.security.AccessController;
 import java.security.PrivilegedAction;
 
+/**
+ * Demo class to test the {@link HttpRestClient} class.
+ */
 public class HttpRestClientDemo {
 
     private static final Logger log = LogManager.getLogger(HttpRestClientDemo.class);
 
+    /**
+     * Demo method to test the {@link HttpRestClient} class.
+     *
+     * @param endpoint POST's requests endpoint as a well-formed URI
+     * @param body     POST's request body as a JSON string.
+     */
     public static void run(String endpoint, String body) {
         log.info("Executing POST request");
         AccessController.doPrivileged(

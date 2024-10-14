@@ -10,7 +10,6 @@ package com.wazuh.commandmanager;
 import com.wazuh.commandmanager.utils.httpclient.HttpRestClient;
 import org.apache.hc.client5.http.async.methods.SimpleHttpResponse;
 import org.junit.Assert;
-import org.junit.Test;
 import org.opensearch.test.OpenSearchTestCase;
 
 import java.net.URI;
@@ -53,6 +52,9 @@ public class CommandManagerTests extends OpenSearchTestCase {
         }
     }
 
-    public void testPost_badUri() {}
-    public void testPost_badPayload() {}
+    public void testPost_badUri() {
+    }
+
+    public void testPost_badPayload() {
+    }
 }
