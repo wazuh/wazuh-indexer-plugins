@@ -8,7 +8,7 @@
 package com.wazuh.commandmanager.index;
 
 import com.wazuh.commandmanager.CommandManagerPlugin;
-import com.wazuh.commandmanager.model.Command;
+import com.wazuh.commandmanager.model.Document;
 import com.wazuh.commandmanager.utils.IndexTemplateUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -31,6 +31,9 @@ import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
 
+/**
+ * Class to manage the Command Manager index and index template.
+ */
 public class CommandIndex implements IndexingOperationListener {
 
     private static final Logger logger = LogManager.getLogger(CommandIndex.class);
@@ -53,10 +56,10 @@ public class CommandIndex implements IndexingOperationListener {
     }
 
     /**
-     * @param command: A Command model object
+     * @param document instance of the document model to persist in the index.
      * @return A CompletableFuture with the RestStatus response from the operation
      */
-    public CompletableFuture<RestStatus> asyncCreate(Command command) {
+    public CompletableFuture<RestStatus> asyncCreate(Document document) {
         CompletableFuture<RestStatus> future = new CompletableFuture<>();
         ExecutorService executor = this.threadPool.executor(ThreadPool.Names.WRITE);
 
@@ -70,12 +73,12 @@ public class CommandIndex implements IndexingOperationListener {
             );
         }
 
-        logger.debug("Indexing command {}", command);
+        logger.debug("Indexing command {}", document);
         try {
             IndexRequest request = new IndexRequest()
                     .index(CommandManagerPlugin.COMMAND_MANAGER_INDEX_NAME)
-                    .source(command.toXContent(XContentFactory.jsonBuilder(), ToXContent.EMPTY_PARAMS))
-                    .id(command.getId())
+                    .source(document.toXContent(XContentFactory.jsonBuilder(), ToXContent.EMPTY_PARAMS))
+                    .id(document.getId())
                     .create(true);
             executor.submit(
                     () -> {
@@ -89,13 +92,16 @@ public class CommandIndex implements IndexingOperationListener {
             );
         } catch (IOException e) {
             logger.error(
-                    "Failed to index command with ID {}: {}", command.getId(), e);
+                    "Failed to index command with ID {}: {}", document.getId(), e);
         }
         return future;
     }
 
     /**
-     * @return
+     * Checks for the existence of the given index template in the cluster.
+     *
+     * @param template_name index template name within the resources folder
+     * @return whether the index template exists.
      */
     public boolean indexTemplateExists(String template_name) {
         Map<String, IndexTemplateMetadata> templates = this.clusterService
@@ -125,7 +131,11 @@ public class CommandIndex implements IndexingOperationListener {
                     .patterns((List<String>) template.get("index_patterns"));
 
             executor.submit(() -> {
-                AcknowledgedResponse acknowledgedResponse = this.client.admin().indices().putTemplate(putIndexTemplateRequest).actionGet();
+                AcknowledgedResponse acknowledgedResponse = this.client
+                        .admin()
+                        .indices()
+                        .putTemplate(putIndexTemplateRequest)
+                        .actionGet();
                 if (acknowledgedResponse.isAcknowledged()) {
                     logger.info(
                             "Index template created successfully: {}",
