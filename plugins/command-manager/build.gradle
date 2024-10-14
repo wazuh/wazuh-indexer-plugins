@@ -112,11 +112,66 @@ plugins.withId('java') {
 }
 
 allprojects {
-  group = "org.opensearch"
-  version = "${opensearch_build}"
-  plugins.withId('java') {
-    sourceCompatibility = targetCompatibility = "11"
-  }
+    group = "${projectPath}"
+    version = "${wazuh_version}" + ".${revision}"
+    targetCompatibility = JavaVersion.VERSION_11
+    sourceCompatibility = JavaVersion.VERSION_11
+}
+
+opensearchplugin {
+    name pluginName
+    description pluginDescription
+    classname "${projectPath}.${pathToPlugin}.${pluginClassName}"
+    licenseFile rootProject.file('LICENSE.txt')
+    noticeFile rootProject.file('NOTICE.txt')
+}
+
+def versions = [
+    httpclient5: "5.4",
+    httpcore5: "5.3",
+    slf4j: "1.7.36",
+    log4j: "2.23.1",
+    conscrypt: "2.5.2"
+]
+
+dependencies {
+    api "org.apache.httpcomponents.client5:httpclient5:${versions.httpclient5}"
+    api "org.apache.httpcomponents.core5:httpcore5-h2:${versions.httpcore5}"
+    api "org.apache.httpcomponents.core5:httpcore5:${versions.httpcore5}"
+    api "org.apache.logging.log4j:log4j-slf4j-impl:${versions.log4j}"
+    api "org.slf4j:slf4j-api:${versions.slf4j}"
+    api "org.conscrypt:conscrypt-openjdk-uber:${versions.conscrypt}"
+}
+
+// This requires an additional Jar not published as part of build-tools
+loggerUsageCheck.enabled = false
+
+// No need to validate pom, as we do not upload to maven/sonatype
+validateNebulaPom.enabled = false
+
+// Skip forbiddenAPIs check on dependencies
+thirdPartyAudit.enabled = false
+
+//Skip checking for third party licenses
+dependencyLicenses.enabled = false
+
+buildscript {
+    ext {
+        opensearch_version = System.getProperty("opensearch.version", "2.16.0")
+        wazuh_version = System.getProperty("version", "5.0.0")
+        revision = System.getProperty("revision", "0")
+    }
+
+    repositories {
+        mavenLocal()
+        maven { url "https://aws.oss.sonatype.org/content/repositories/snapshots" }
+        mavenCentral()
+        maven { url "https://plugins.gradle.org/m2/" }
+    }
+
+    dependencies {
+        classpath "org.opensearch.gradle:build-tools:${opensearch_version}"
+    }
 }
 
 repositories {
@@ -131,18 +186,6 @@ dependencies {
   implementation "org.opensearch:opensearch:${opensearch_version}"
   compileOnly "${group}:opensearch-job-scheduler-spi:${job_scheduler_version}"
 }
-
-javadoc.enabled = false // turn off javadoc as it barfs on Kotlin code
-licenseHeaders.enabled = true
-// no need to validate pom, as we do not upload to maven/sonatype
-validateNebulaPom.enabled = false
-dependencyLicenses.enabled = false
-thirdPartyAudit.enabled = false
-// Allow @Test to be used in test classes not inherited from LuceneTestCase.
-forbiddenApis.ignoreFailures = true
-// Allow test cases to be named Tests without having to be inherited from LuceneTestCase.
-testingConventions.enabled = false
-loggerUsageCheck.enabled = false
 
 test {
   systemProperty 'tests.security.manager', 'false'
@@ -167,10 +210,6 @@ afterEvaluate {
     plugins.remove(0)
     plugins.add(firstPlugin)
   }
-}
-
-tasks.withType(licenseHeaders.class) {
-  additionalLicense 'AL   ', 'Apache', 'Licensed under the Apache License, Version 2.0 (the "License")'
 }
 
 task integTest(type: RestIntegTestTask) {

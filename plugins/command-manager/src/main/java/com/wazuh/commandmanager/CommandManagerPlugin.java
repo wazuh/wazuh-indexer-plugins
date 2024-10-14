@@ -12,6 +12,8 @@ import com.wazuh.commandmanager.index.CommandIndex;
 import com.wazuh.commandmanager.rest.action.RestPostCommandAction;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import com.wazuh.commandmanager.utils.httpclient.HttpRestClient;
+import com.wazuh.commandmanager.utils.httpclient.HttpRestClientDemo;
 import org.opensearch.client.Client;
 import org.opensearch.cluster.metadata.IndexNameExpressionResolver;
 import org.opensearch.cluster.node.DiscoveryNodes;
@@ -80,10 +82,16 @@ public class CommandManagerPlugin extends Plugin implements ActionPlugin, JobSch
     ) {
         this.commandIndex = new CommandIndex(client, clusterService, threadPool);
 
+        // JobSchedulerExtension stuff
         CommandManagerJobRunner jobRunner = CommandManagerJobRunner.getJobRunnerInstance();
         jobRunner.setClusterService(clusterService);
         jobRunner.setThreadPool(threadPool);
         jobRunner.setClient(client);
+
+        // HttpRestClient stuff
+        String uri = "https://httpbin.org/post";
+        String payload = "{\"message\": \"Hello world!\"}";
+        HttpRestClientDemo.run(uri, payload);
 
         return Collections.emptyList();
     }
@@ -165,5 +173,16 @@ public class CommandManagerPlugin extends Plugin implements ActionPlugin, JobSch
         }
         XContentParserUtils.throwUnknownToken(parser.currentToken(), parser.getTokenLocation());
         return null;
+    }
+
+    /**
+     * Close the resources opened by this plugin.
+     *
+     * @throws IOException if the plugin failed to close its resources
+     */
+    @Override
+    public void close() throws IOException {
+        super.close();
+        HttpRestClient.getInstance().stopHttpAsyncClient();
     }
 }
