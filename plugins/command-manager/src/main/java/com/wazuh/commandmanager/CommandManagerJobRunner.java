@@ -41,7 +41,7 @@ import java.util.UUID;
  */
 public class CommandManagerJobRunner implements ScheduledJobRunner {
 
-    private static final Logger log = LogManager.getLogger(ScheduledJobRunner.class);
+    private static final Logger log = LogManager.getLogger(CommandManagerJobRunner.class);
 
     private static CommandManagerJobRunner INSTANCE;
     private ClusterService clusterService;
