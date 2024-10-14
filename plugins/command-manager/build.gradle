@@ -1,11 +1,12 @@
 import org.opensearch.gradle.test.RestIntegTestTask
 
+import java.util.concurrent.Callable
+
 apply plugin: 'java'
 apply plugin: 'idea'
-apply plugin: 'eclipse'
 apply plugin: 'opensearch.opensearchplugin'
-apply plugin: 'opensearch.yaml-rest-test'
 apply plugin: 'opensearch.pluginzip'
+apply plugin: 'opensearch.testclusters'
 
 def pluginName = 'wazuh-indexer-command-manager'
 def pluginDescription = 'The Command Manager plugin handles and distributes commands across your Wazuh environment.'
@@ -47,16 +48,22 @@ opensearchplugin {
     name pluginName
     description pluginDescription
     classname "${projectPath}.${pathToPlugin}.${pluginClassName}"
+    version = "${wazuh_version}" + ".${revision}"
+    extendedPlugins = ['opensearch-job-scheduler']
     licenseFile rootProject.file('LICENSE.txt')
     noticeFile rootProject.file('NOTICE.txt')
 }
 
+configurations {
+    zipArchive
+}
+
 def versions = [
-    httpclient5: "5.4",
-    httpcore5: "5.3",
-    slf4j: "1.7.36",
-    log4j: "2.23.1",
-    conscrypt: "2.5.2"
+        httpclient5: "5.4",
+        httpcore5  : "5.3",
+        slf4j      : "1.7.36",
+        log4j      : "2.23.1",
+        conscrypt  : "2.5.2"
 ]
 
 dependencies {
@@ -66,6 +73,11 @@ dependencies {
     api "org.apache.logging.log4j:log4j-slf4j-impl:${versions.log4j}"
     api "org.slf4j:slf4j-api:${versions.slf4j}"
     api "org.conscrypt:conscrypt-openjdk-uber:${versions.conscrypt}"
+
+    /// Job Scheduler stuff
+    zipArchive group: 'org.opensearch.plugin', name: 'opensearch-job-scheduler', version: "${opensearch_build}"
+    implementation "org.opensearch:opensearch:${opensearch_version}"
+    compileOnly "org.opensearch:opensearch-job-scheduler-spi:${job_scheduler_version}"
 }
 
 // This requires an additional Jar not published as part of build-tools
@@ -83,6 +95,8 @@ dependencyLicenses.enabled = false
 buildscript {
     ext {
         opensearch_version = System.getProperty("opensearch.version", "2.16.0")
+        opensearch_build = opensearch_version + ".0"
+        job_scheduler_version = System.getProperty("job_scheduler.version", opensearch_build)
         wazuh_version = System.getProperty("version", "5.0.0")
         revision = System.getProperty("revision", "0")
     }
@@ -110,6 +124,20 @@ test {
     include '**/*Tests.class'
 }
 
+// As of ES 7.7 the sample-extension-plugin is being added to the list of plugins for the testCluster during build before
+// the job-scheduler plugin is causing build failures.
+// The job-scheduler zip is added explicitly above but the sample-extension-plugin is added implicitly at some time during evaluation.
+// Will need to do a deep dive to find out exactly what task adds the sample-extension-plugin and add job-scheduler there but a temporary hack is to
+// reorder the plugins list after evaluation but prior to task execution when the plugins are installed.
+afterEvaluate {
+    testClusters.integTest.nodes.each { node ->
+        def plugins = node.plugins
+        def firstPlugin = plugins.get(0)
+        plugins.remove(0)
+        plugins.add(firstPlugin)
+    }
+}
+
 task integTest(type: RestIntegTestTask) {
     description = "Run tests against a cluster"
     testClassesDirs = sourceSets.test.output.classesDirs
@@ -118,17 +146,33 @@ task integTest(type: RestIntegTestTask) {
 tasks.named("check").configure { dependsOn(integTest) }
 
 integTest {
-    // The --debug-jvm command-line option makes the cluster debuggable; this makes the tests debuggable
+    // The -Dcluster.debug option makes the cluster debuggable; this makes the tests debuggable
     if (System.getProperty("test.debug") != null) {
-        jvmArgs '-agentlib:jdwp=transport=dt_socket,server=y,suspend=y,address=*:5005'
+        jvmArgs '-agentlib:jdwp=transport=dt_socket,server=n,suspend=y,address=8000'
     }
 }
 
+Zip bundle = (Zip) project.getTasks().getByName("bundlePlugin");
+integTest.dependsOn(bundle)
+integTest.getClusters().forEach{c -> c.plugin(project.getObjects().fileProperty().value(bundle.getArchiveFile()))}
+
 testClusters.integTest {
     testDistribution = "INTEG_TEST"
+    // need to install job-scheduler first, need to assemble job-scheduler first
+    plugin(provider(new Callable<RegularFile>() {
+        @Override
+        RegularFile call() throws Exception {
+            return new RegularFile() {
+                @Override
+                File getAsFile() {
+                    return configurations.zipArchive.asFileTree.getSingleFile()
+                }
+            }
+        }
+    }))
 
     // This installs our plugin into the testClusters
-    plugin(project.tasks.bundlePlugin.archiveFile)
+    // plugin(project.tasks.bundlePlugin.archiveFile)
 }
 
 run {
@@ -141,7 +185,7 @@ task updateVersion {
     doLast {
         ext.newVersion = System.getProperty('newVersion')
         println "Setting version to ${newVersion}."
-         // String tokenization to support -SNAPSHOT
+        // String tokenization to support -SNAPSHOT
         ant.replaceregexp(file: 'build.gradle', match: '"opensearch.version", "\\d.*"', replace: '"opensearch.version", "' + newVersion.tokenize('-')[0] + '-SNAPSHOT"', flags: 'g', byline: true)
     }
 }
