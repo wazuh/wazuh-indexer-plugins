@@ -126,12 +126,17 @@ integTest {
 
 testClusters.integTest {
     testDistribution = "INTEG_TEST"
-
+    //testDistribution =  "ARCHIVE"
     // This installs our plugin into the testClusters
     plugin(project.tasks.bundlePlugin.archiveFile)
 
     // add customized keystore
-    keystore 'command.manager.access_key', new File("$projectDir/src/test/resources/", 'wazuh-indexer.keystore.json')
+    keystore 'command.manager.keystore', new File("$projectDir/src/test/resources/", 'wazuh-indexer.keystore.json')
+    //keystore 'command.manager.uri', 'http://localhost:9090'
+    //keystore 'command.manager.auth.type', 'basicauth'
+    keystore 'command.manager.auth.username', 'admin'
+    keystore 'command.manager.auth.password', 'type'
+
 }
 
 run {

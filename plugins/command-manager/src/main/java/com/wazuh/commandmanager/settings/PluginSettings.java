@@ -25,44 +25,43 @@ public class PluginSettings {
 
     private static final String KEYSTORE_FILENAME = "wazuh-indexer.keystore";
 
-    private static KeyStoreWrapper keyStoreWrapper = KeyStoreWrapper.create();
-    private static Environment env;
+    private KeyStoreWrapper keyStoreWrapper = KeyStoreWrapper.create();
+    private Environment environment;
 
-    private PluginSettings() {
+    private PluginSettings(KeyStoreWrapper keyStoreWrapper) {
         // Singleton class, use getPluginSettings method instead of constructor
+        this.keyStoreWrapper = keyStoreWrapper;
     }
 
-    public static PluginSettings getPluginSettingsInstance() {
-        if (INSTANCE != null) {
-            return INSTANCE;
-        }
+    public static PluginSettings getInstance() {
         synchronized (PluginSettings.class) {
             if (INSTANCE != null) {
                 return INSTANCE;
             }
-            INSTANCE = new PluginSettings();
+            KeyStoreWrapper keyStoreWrapper1 = KeyStoreWrapper.create();
+            INSTANCE = new PluginSettings(keyStoreWrapper1);
             return INSTANCE;
         }
     }
 
-    public void setEnv(Environment env) {
-        PluginSettings.env = env;
+    public void setEnvironment(Environment environment) {
+        this.environment = environment;
     }
 
-    static SecureSettings loadSecureSettings(SecureString secureSettingsPassword) throws CommandManagerSettingsException, GeneralSecurityException {
+    public SecureSettings loadSecureSettings(SecureString secureSettingsPassword) throws CommandManagerSettingsException, GeneralSecurityException {
         try {
             //Open the keystore file
-            keyStoreWrapper = KeyStoreWrapper.load(env.configFile(),KEYSTORE_FILENAME);
-            if (keyStoreWrapper == null) {
-                logger.info(CommandManagerSettingsException.keystoreNotExist(env.configFile().toString()).getMessage());
+            this.keyStoreWrapper = KeyStoreWrapper.load( this.environment.configFile(),KEYSTORE_FILENAME);
+            if ( this.keyStoreWrapper == null) {
+                logger.info(CommandManagerSettingsException.keystoreNotExist( this.environment.configFile().toString()).getMessage());
 
                 //Create keystore file if it doesn't exist
-                keyStoreWrapper = KeyStoreWrapper.create();
-                keyStoreWrapper.save(env.configFile(), new char[0]);
+                this.keyStoreWrapper = KeyStoreWrapper.create();
+                this.keyStoreWrapper.save( this.environment.configFile(), new char[0]);
 
             } else {
                 // Decrypt the keystore using the password from the request
-                keyStoreWrapper.decrypt(secureSettingsPassword.getChars());
+                this.keyStoreWrapper.decrypt(secureSettingsPassword.getChars());
                 //Here TransportNodesReloadSecureSettingsAction reload the plugins, but our PLugin isn't ReloadablePlugin
                 // final Settings settingsWithKeystore = Settings.builder().setSecureSettings(keyStoreWrapper).build();
             }
@@ -73,16 +72,16 @@ public class PluginSettings {
         } finally {
             secureSettingsPassword.close();
         }
-        return keyStoreWrapper;
+        return  this.keyStoreWrapper;
     }
 
     public SecureSettings upgradeKeyStore( char[] password){
         try {
-            KeyStoreWrapper.upgrade(keyStoreWrapper, env.configFile(), password);
+            KeyStoreWrapper.upgrade( this.keyStoreWrapper,  this.environment.configFile(), password);
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
-        return keyStoreWrapper;
+        return  this.keyStoreWrapper;
     }
 
 }

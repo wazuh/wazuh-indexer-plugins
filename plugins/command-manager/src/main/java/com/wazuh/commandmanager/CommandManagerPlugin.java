@@ -51,7 +51,6 @@ public class CommandManagerPlugin extends Plugin implements ActionPlugin, Reload
     public static final String COMMAND_MANAGER_INDEX_TEMPLATE_NAME = "index-template-commands";
 
     private CommandIndex commandIndex;
-    private PluginSettings pluginSettings;
 
     @Override
     public Collection<Object> createComponents(
@@ -68,8 +67,7 @@ public class CommandManagerPlugin extends Plugin implements ActionPlugin, Reload
             Supplier<RepositoriesService> repositoriesServiceSupplier
     ) {
         this.commandIndex = new CommandIndex(client, clusterService, threadPool);
-        this.pluginSettings = PluginSettings.getPluginSettingsInstance();
-        pluginSettings.setEnv(environment);
+        PluginSettings.getInstance().setEnvironment(environment);
 
         // HttpRestClient stuff
         String uri = "https://httpbin.org/post";
@@ -93,12 +91,12 @@ public class CommandManagerPlugin extends Plugin implements ActionPlugin, Reload
     @Override
     public List<Setting<?>> getSettings() {
         return Arrays.asList(
-                // Register EC2 discovery settings: discovery.ec2
-                CommandManagerSettings.ACCESS_KEY_SETTING,
-                CommandManagerSettings.SECRET_KEY_SETTING,
-                CommandManagerSettings.SESSION_TOKEN_SETTING,
-                CommandManagerSettings.PROXY_HOST_SETTING,
-                CommandManagerSettings.PROXY_PORT_SETTING
+                // Register API settings
+                CommandManagerSettings.KEYSTORE,
+                CommandManagerSettings.AUTH_USERNAME,
+                CommandManagerSettings.AUTH_PASSWORD,
+                CommandManagerSettings.URI,
+                CommandManagerSettings.AUTH_TYPE
         );
     }
 

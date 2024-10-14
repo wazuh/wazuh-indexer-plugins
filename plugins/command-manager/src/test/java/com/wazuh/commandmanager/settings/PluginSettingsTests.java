@@ -31,8 +31,8 @@ public class PluginSettingsTests extends OpenSearchIntegTestCase {
         // Create a mock Environment
         mockEnvironment = mock(Environment.class);
         // Instantiate PluginSettings
-        pluginSettings = PluginSettings.getPluginSettingsInstance();
-        pluginSettings.setEnv(mockEnvironment);
+        pluginSettings = PluginSettings.getInstance();
+        pluginSettings.setEnvironment(mockEnvironment);
     }
 
     @After
@@ -51,7 +51,7 @@ public class PluginSettingsTests extends OpenSearchIntegTestCase {
         when(KeyStoreWrapper.load(any(), any())).thenReturn(null);
 
         // Check that the keystore is created
-        SecureSettings result = PluginSettings.loadSecureSettings(secureString);
+        SecureSettings result = this.pluginSettings.loadSecureSettings(secureString);
 
         assertNotNull(result);
         verify(keyStoreWrapperMock, times(1)).save(any(), any());
@@ -70,7 +70,7 @@ public class PluginSettingsTests extends OpenSearchIntegTestCase {
         keyStoreWrapperMock.decrypt(passToTest);
 
         // Load secure settings
-        SecureSettings result = PluginSettings.loadSecureSettings(secureString);
+        SecureSettings result = this.pluginSettings.loadSecureSettings(secureString);
 
         assertNotNull(result);
         verify(keyStoreWrapperMock, times(1)).decrypt(secureString.getChars());

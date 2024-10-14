@@ -7,73 +7,70 @@
  */
 package com.wazuh.commandmanager.settings;
 import org.opensearch.common.settings.Setting;
-import org.opensearch.common.settings.Setting.Property;
 import org.opensearch.common.settings.SecureSetting;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.core.common.settings.SecureString;
 
 
 public final class CommandManagerSettings {
-//THE DEFINITIONS OF WHAT KEYS ARE NECESSARY ARE PENDING
 
-    /** The access key (ie login id) for connecting to ec2. */
-    public static final Setting<SecureString> ACCESS_KEY_SETTING = SecureSetting.secureString("command.manager.access_key", null);
+    /** The access key (ie login id) for connecting to api. */
+    public static final Setting<SecureString> KEYSTORE = SecureSetting.secureString("command.manager.keystore", null);
 
-    /** The secret key (ie password) for connecting to ec2. */
-    public static final Setting<SecureString> SECRET_KEY_SETTING = SecureSetting.secureString("command.manager.secret_key", null);
+    /** The access key (ie login username) for connecting to api. */
+    public static final Setting<SecureString> AUTH_USERNAME = SecureSetting.secureString("command.manager.auth.username", null);
 
-    /** The session token for connecting to ec2. */
-    public static final Setting<SecureString> SESSION_TOKEN_SETTING = SecureSetting.secureString("command.manager.session_token", null);
+    /** The secret key (ie password) for connecting to api. */
+    public static final Setting<SecureString> AUTH_PASSWORD = SecureSetting.secureString("command.manager.auth.password", null);
 
-    /** The host name of a proxy to connect to ec2 through. */
-    public static final Setting<String> PROXY_HOST_SETTING = Setting.simpleString("command.manager.proxy.host", Property.NodeScope);
+    /** The uri for connecting to api. */
+    public static final Setting<String> URI = SecureSetting.simpleString("command.manager.uri", Setting.Property.NodeScope);
 
-    /** The port of a proxy to connect to ec2 through. */
-    public static final Setting<Integer> PROXY_PORT_SETTING = Setting.intSetting("command.manager.proxy.port", 80, 0, 1 << 16, Property.NodeScope);
+    /** The auth type for connecting to api. */
+    public static final Setting<String> AUTH_TYPE = Setting.simpleString("command.manager.auth.type", Setting.Property.NodeScope);
 
-    /** An optional proxy host that requests to ec2 should be made through. */
-    final String accessKey;
+    /** The access key (ie login username) for connecting to api. */
+    final String keystore;
 
-    /** The secret key (ie password) for connecting to ec2. */
-    final String secretKey;
+    /** The access key (ie login username) for connecting to api. */
+    final String authUsername;
 
-    /** The session token for connecting to ec2. */
-    final String sessionToken;
+    /** The password for connecting to api. */
+    final String authPassword;
 
-    /** An optional proxy host that requests to ec2 should be made through. */
-    final String proxyHost;
+    /** The uri for connecting to api. */
+    final String uri;
 
-    /** The port number the proxy host should be connected on. */
-    final int proxyPort;
+    /** The auth type for connecting to api. */
+    final String authType;
 
 
     protected CommandManagerSettings(
-            String accessKey,
-            String secretKey,
-            String sessionToken,
-            String proxyHost,
-            int proxyPort
+            String keystore,
+            String authUsername,
+            String authPassword,
+            String uri,
+            String authType
     ) {
-        this.accessKey = accessKey;
-        this.secretKey = secretKey;
-        this.sessionToken = sessionToken;
-        this.proxyHost = proxyHost;
-        this.proxyPort = proxyPort;}
+        this.keystore = keystore;
+        this.authUsername = authUsername;
+        this.authPassword = authPassword;
+        this.uri = uri;
+        this.authType = authType;}
 
     /** Parse settings for a single client. */
     public static CommandManagerSettings getClientSettings(Settings settings) {
-        //final AwsCredentials credentials = loadCredentials(settings); no estoy segura de si tendríamos que configurar algo asociado a AWS, supongo que no
             try(
-                    SecureString accessKey = ACCESS_KEY_SETTING.get(settings);
-                    SecureString secretKey = SECRET_KEY_SETTING.get(settings);
-                    SecureString sessionToken = SESSION_TOKEN_SETTING.get(settings);
+                    SecureString keystore = KEYSTORE.get(settings);
+                    SecureString authUsername = AUTH_USERNAME.get(settings);
+                    SecureString authPassword = AUTH_PASSWORD.get(settings);
                     ){
                 return new CommandManagerSettings(
-                        accessKey.toString(),
-                        secretKey.toString(),
-                        sessionToken.toString(),
-                        PROXY_HOST_SETTING.get(settings),
-                        PROXY_PORT_SETTING.get(settings)
+                        keystore.toString(),
+                        authUsername.toString(),
+                        authPassword.toString(),
+                        URI.get(settings),
+                        AUTH_TYPE.get(settings)
                 );
         }
     }
