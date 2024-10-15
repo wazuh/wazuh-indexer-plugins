@@ -1,8 +1,38 @@
 import org.opensearch.gradle.test.RestIntegTestTask
 
-apply plugin: 'java'
-apply plugin: 'idea'
-apply plugin: 'eclipse'
+buildscript {
+    ext {
+        opensearch_version = System.getProperty("opensearch.version", "2.16.0")
+        wazuh_version = System.getProperty("version", "5.0.0")
+        revision = System.getProperty("revision", "0")
+    }
+
+    repositories {
+        mavenLocal()
+        maven { url "https://aws.oss.sonatype.org/content/repositories/snapshots" }
+        mavenCentral()
+        maven { url "https://plugins.gradle.org/m2/" }
+    }
+
+    dependencies {
+        classpath "org.opensearch.gradle:build-tools:${opensearch_version}"
+        configurations.all {
+            resolutionStrategy {
+                force("org.eclipse.platform:org.eclipse.core.runtime:4.29.0") // CVE for < 4.29
+                force("org.eclipse.platform:org.eclipse.core.resources:4.20.0") // CVE for < 4.20
+            }
+        }
+    }
+}
+
+plugins {
+    id 'java-library'
+    id 'java-test-fixtures'
+    id 'idea'
+    id "com.diffplug.spotless" version "6.25.0" apply false
+}
+
+apply from: 'gradle/formatting.gradle'
 apply plugin: 'opensearch.opensearchplugin'
 apply plugin: 'opensearch.yaml-rest-test'
 apply plugin: 'opensearch.pluginzip'
@@ -68,6 +98,9 @@ dependencies {
     api "org.conscrypt:conscrypt-openjdk-uber:${versions.conscrypt}"
 }
 
+// Add the spotlessCheck to gradle check
+check.dependsOn spotlessCheck
+
 // This requires an additional Jar not published as part of build-tools
 loggerUsageCheck.enabled = false
 
@@ -79,25 +112,6 @@ thirdPartyAudit.enabled = false
 
 //Skip checking for third party licenses
 dependencyLicenses.enabled = false
-
-buildscript {
-    ext {
-        opensearch_version = System.getProperty("opensearch.version", "2.16.0")
-        wazuh_version = System.getProperty("version", "5.0.0")
-        revision = System.getProperty("revision", "0")
-    }
-
-    repositories {
-        mavenLocal()
-        maven { url "https://aws.oss.sonatype.org/content/repositories/snapshots" }
-        mavenCentral()
-        maven { url "https://plugins.gradle.org/m2/" }
-    }
-
-    dependencies {
-        classpath "org.opensearch.gradle:build-tools:${opensearch_version}"
-    }
-}
 
 repositories {
     mavenLocal()
