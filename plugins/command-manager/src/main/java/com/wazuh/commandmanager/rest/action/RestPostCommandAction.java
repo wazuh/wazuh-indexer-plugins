@@ -69,11 +69,28 @@ public class RestPostCommandAction extends BaseRestHandler {
 
     @Override
     protected RestChannelConsumer prepareRequest(
-            final RestRequest restRequest,
+            final RestRequest request,
             final NodeClient client
     ) throws IOException {
+        switch (request.method()) {
+            case POST:
+                return handlePost(request);
+            default:
+                throw new IllegalArgumentException(
+                        "Unsupported HTTP method " + request.method().name());
+        }
+    }
+
+    /**
+     * Handles a POST HTTP request.
+     *
+     * @param request POST HTTP request
+     * @return a response to the request as BytesRestResponse.
+     * @throws IOException thrown by the XContentParser methods.
+     */
+    private RestChannelConsumer handlePost(RestRequest request) throws IOException {
         // Get request details
-        XContentParser parser = restRequest.contentParser();
+        XContentParser parser = request.contentParser();
         ensureExpectedToken(XContentParser.Token.START_OBJECT, parser.nextToken(), parser);
 
         Document document = Document.parse(parser);
