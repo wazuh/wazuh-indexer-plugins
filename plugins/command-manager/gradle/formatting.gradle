@@ -1,0 +1,14 @@
+import org.opensearch.gradle.BuildPlugin
+
+allprojects {
+    plugins.withType(BuildPlugin).whenPluginAdded {
+        project.apply plugin: "com.diffplug.spotless"
+
+        spotless {
+            target 'src/**/*.java'
+            removeUnusedImports()
+            trimTrailingWhitespace()
+        }
+        precommit.dependsOn 'spotlessJavaCheck'
+    }
+}
