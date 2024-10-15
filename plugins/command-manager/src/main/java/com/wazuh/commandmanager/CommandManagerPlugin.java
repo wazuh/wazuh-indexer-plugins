@@ -105,7 +105,7 @@ public class CommandManagerPlugin extends Plugin implements ActionPlugin, Reload
         // secure settings should be readable
         final CommandManagerSettings commandManagerSettings = CommandManagerSettings.getClientSettings(settings);
         //I don't know what I have to do when we want to reload the settings already
-        //ec2Service.refreshAndClearCache(commandManagerSettings);
+        //xxxService.refreshAndClearCache(commandManagerSettings);
     }
 
     /**

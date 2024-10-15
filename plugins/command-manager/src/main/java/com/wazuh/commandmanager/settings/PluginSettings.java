@@ -7,15 +7,16 @@
  */
 package com.wazuh.commandmanager.settings;
 
+import com.wazuh.commandmanager.CommandManagerPlugin;
 import com.wazuh.commandmanager.CommandManagerSettingsException;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.core.Logger;
 import org.opensearch.common.settings.KeyStoreWrapper;
 import org.opensearch.common.settings.SecureSettings;
+import org.opensearch.common.settings.Settings;
 import org.opensearch.core.common.settings.SecureString;
 import org.opensearch.env.Environment;
 
-import java.io.IOException;
 import java.security.GeneralSecurityException;
 
 public class PluginSettings {
@@ -57,18 +58,20 @@ public class PluginSettings {
 
                 //Create keystore file if it doesn't exist
                 this.keyStoreWrapper = KeyStoreWrapper.create();
-                this.keyStoreWrapper.save( this.environment.configFile(), new char[0]);
-
+                this.keyStoreWrapper.save( this.environment.configFile(), secureSettingsPassword.getChars());
             } else {
                 // Decrypt the keystore using the password from the request
                 this.keyStoreWrapper.decrypt(secureSettingsPassword.getChars());
-                //Here TransportNodesReloadSecureSettingsAction reload the plugins, but our PLugin isn't ReloadablePlugin
-                // final Settings settingsWithKeystore = Settings.builder().setSecureSettings(keyStoreWrapper).build();
+                final Settings settingsWithKeystore = Settings.builder().setSecureSettings(keyStoreWrapper).build();
+                CommandManagerPlugin commandManagerPlugin = new CommandManagerPlugin();
+                try {
+                    commandManagerPlugin.reload(settingsWithKeystore);
+                }catch (final Exception e) {
+                    logger.warn(CommandManagerSettingsException.reloadPluginFailed(commandManagerPlugin.getClass().getSimpleName()));
+                }
             }
-        } catch (IOException e) {
+        } catch (Exception e) {
             throw new CommandManagerSettingsException(e);
-         } catch (Exception e) {
-            throw new RuntimeException(e);
         } finally {
             secureSettingsPassword.close();
         }
