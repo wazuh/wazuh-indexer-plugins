@@ -45,7 +45,8 @@ import java.util.function.Supplier;
  * Agents.
  */
 public class CommandManagerPlugin extends Plugin implements ActionPlugin {
-    public static final String COMMAND_MANAGER_BASE_URI = "/_plugins/_commandmanager";
+    public static final String COMMAND_MANAGER_BASE_URI = "/_plugins/_command_manager";
+    public static final String COMMANDS_URI = COMMAND_MANAGER_BASE_URI + "/commands";
     public static final String COMMAND_MANAGER_INDEX_NAME = ".commands";
     public static final String COMMAND_MANAGER_INDEX_TEMPLATE_NAME = "index-template-commands";
 

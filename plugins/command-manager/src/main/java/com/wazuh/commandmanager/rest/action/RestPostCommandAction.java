@@ -30,7 +30,7 @@ import static org.opensearch.rest.RestRequest.Method.POST;
 
 /**
  * Handles HTTP requests to the POST
- * {@value com.wazuh.commandmanager.CommandManagerPlugin#COMMAND_MANAGER_BASE_URI}
+ * {@value com.wazuh.commandmanager.CommandManagerPlugin#COMMANDS_URI}
  * endpoint.
  */
 public class RestPostCommandAction extends BaseRestHandler {
@@ -61,7 +61,7 @@ public class RestPostCommandAction extends BaseRestHandler {
                         String.format(
                                 Locale.ROOT,
                                 "%s",
-                                CommandManagerPlugin.COMMAND_MANAGER_BASE_URI
+                                CommandManagerPlugin.COMMANDS_URI
                         )
                 )
         );

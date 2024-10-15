@@ -1,7 +1,7 @@
 ---
 "Create command":
     - do:
-          _plugins._commandmanager:
+          _plugins._command_manager:
               body:
                   command:
                       source: "Users/Services"
