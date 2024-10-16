@@ -27,14 +27,14 @@ public class CommandManagerTests extends OpenSearchTestCase {
             AccessController.doPrivileged(
                     (PrivilegedAction<SimpleHttpResponse>) () -> {
                         this.httpClient = HttpRestClient.getInstance();
-                        URI uri = null;
+                        URI uri;
                         try {
                             uri = new URI("https://httpbin.org/post");
                         } catch (URISyntaxException e) {
                             throw new RuntimeException(e);
                         }
                         String payload = "{\"message\": \"Hello world!\"}";
-                        SimpleHttpResponse postResponse = this.httpClient.post(uri, payload);
+                        SimpleHttpResponse postResponse = this.httpClient.post(uri, payload, "randomId");
 
                         String responseText = postResponse.getBodyText();
                         assertNotEquals(null, postResponse);
