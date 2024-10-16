@@ -1,5 +1,4 @@
 /*
- * Copyright OpenSearch Contributors
  * SPDX-License-Identifier: Apache-2.0
  *
  * The OpenSearch Contributors require contributions made to
@@ -18,7 +17,9 @@ import java.net.URISyntaxException;
 import java.security.AccessController;
 import java.security.PrivilegedAction;
 
-/** Demo class to test the {@link HttpRestClient} class. */
+/**
+ * Demo class to test the {@link HttpRestClient} class.
+ */
 public class HttpRestClientDemo {
 
     private static final Logger log = LogManager.getLogger(HttpRestClientDemo.class);
@@ -27,23 +28,25 @@ public class HttpRestClientDemo {
      * Demo method to test the {@link HttpRestClient} class.
      *
      * @param endpoint POST's requests endpoint as a well-formed URI
-     * @param body POST's request body as a JSON string.
+     * @param body     POST's request body as a JSON string.
      */
     public static void run(String endpoint, String body) {
         log.info("Executing POST request");
         AccessController.doPrivileged(
-                (PrivilegedAction<SimpleHttpResponse>)
-                        () -> {
-                            HttpRestClient httpClient = HttpRestClient.getInstance();
-                            URI host;
-                            try {
-                                host = new URIBuilder(endpoint).build();
-                            } catch (URISyntaxException e) {
-                                throw new RuntimeException(e);
-                            }
-                            SimpleHttpResponse postResponse = httpClient.post(host, body);
-                            log.info(postResponse.getBodyText());
-                            return postResponse;
-                        });
+                (PrivilegedAction<SimpleHttpResponse>) () -> {
+                    HttpRestClient httpClient = HttpRestClient.getInstance();
+                    try {
+                        URI host = new URIBuilder(endpoint).build();
+                        SimpleHttpResponse response = httpClient.post(host, body, "randomId");
+                        log.info("Received response to POST request with code {}", response.getCode());
+                        log.info("Raw response:\n{}", response.getBodyText());
+                    } catch (URISyntaxException e) {
+                        log.error("Bad URI:{}", e.getMessage());
+                    } catch (Exception e) {
+                        log.error("Error reading response: {}", e.getMessage());
+                    }
+                    return null;
+                }
+        );
     }
 }

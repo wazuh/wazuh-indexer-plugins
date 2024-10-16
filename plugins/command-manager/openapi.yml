@@ -1,0 +1,64 @@
+openapi: "3.0.3"
+info:
+  title: Wazuh Indexer Command Manager API
+  version: "1.0"
+servers:
+  - url: http://127.0.0.1:9200/_plugins/_command_manager
+paths:
+  /commands:
+    post:
+      tags:
+        - "commands"
+      summary: Add a new command to the queue.
+      description: Add a new command to the queue.
+      requestBody:
+        required: true
+        content:
+          "application/json":
+            schema:
+              $ref: "#/components/schemas/Command"
+      responses:
+        "200":
+          description: OK
+
+components:
+  schemas:
+    Command:
+      type: object
+      properties:
+        source:
+          type: string
+          example: "Engine"
+        user:
+          type: string
+          example: "user53"
+        target:
+          $ref: '#/components/schemas/Target'
+        action:
+          $ref: '#/components/schemas/Action'
+        timeout:
+          type: integer
+          example: 30
+    Target:
+      type: object
+      properties:
+        id:
+          type: string
+          example: "target4"
+        type:
+          type: string
+          example: "agent"
+    Action:
+      type: object
+      properties:
+        name:
+          type: string
+          example: "restart"
+        args:
+          type: array
+          items:
+            type: string
+            example: "/path/to/executable/arg6"
+        version:
+          type: string
+          example: "v4"
