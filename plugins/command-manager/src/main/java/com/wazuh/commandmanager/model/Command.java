@@ -1,4 +1,5 @@
 /*
+ * Copyright OpenSearch Contributors
  * SPDX-License-Identifier: Apache-2.0
  *
  * The OpenSearch Contributors require contributions made to
@@ -12,10 +13,11 @@ import org.opensearch.core.xcontent.ToXContent;
 import org.opensearch.core.xcontent.ToXContentObject;
 import org.opensearch.core.xcontent.XContentBuilder;
 import org.opensearch.core.xcontent.XContentParser;
-import reactor.util.annotation.NonNull;
 
 import java.io.IOException;
 import java.util.ArrayList;
+
+import reactor.util.annotation.NonNull;
 
 public class Command implements ToXContentObject {
     public static final String COMMAND = "command";
@@ -37,19 +39,18 @@ public class Command implements ToXContentObject {
     /**
      * Default constructor
      *
-     * @param source  origin of the request.
-     * @param target  {@link Target}
+     * @param source origin of the request.
+     * @param target {@link Target}
      * @param timeout time window in which the command has to be sent to its target.
-     * @param user    the user that originated the request
-     * @param action  {@link Action}
+     * @param user the user that originated the request
+     * @param action {@link Action}
      */
     public Command(
             @NonNull String source,
             @NonNull Target target,
             @NonNull Integer timeout,
             @NonNull String user,
-            @NonNull Action action
-    ) {
+            @NonNull Action action) {
         this.requestId = UUIDs.base64UUID();
         this.orderId = UUIDs.base64UUID();
         this.source = source;
@@ -65,10 +66,11 @@ public class Command implements ToXContentObject {
      *
      * @param parser XContentParser from the Rest Request
      * @return instance of Command
-     * @throws IOException              error parsing request content
+     * @throws IOException error parsing request content
      * @throws IllegalArgumentException missing arguments
      */
-    public static Command parse(XContentParser parser) throws IOException, IllegalArgumentException {
+    public static Command parse(XContentParser parser)
+            throws IOException, IllegalArgumentException {
         String source = null;
         Target target = null;
         Integer timeout = null;
@@ -121,13 +123,7 @@ public class Command implements ToXContentObject {
         if (!nullArguments.isEmpty()) {
             throw new IllegalArgumentException("Missing arguments: " + nullArguments);
         } else {
-            return new Command(
-                    source,
-                    target,
-                    timeout,
-                    user,
-                    action
-            );
+            return new Command(source, target, timeout, user, action);
         }
     }
 
@@ -148,15 +144,27 @@ public class Command implements ToXContentObject {
 
     @Override
     public String toString() {
-        return "Command{" +
-                "orderId='" + orderId + '\'' +
-                ", requestId='" + requestId + '\'' +
-                ", source='" + source + '\'' +
-                ", target=" + target +
-                ", timeout=" + timeout +
-                ", user='" + user + '\'' +
-                ", status=" + status +
-                ", action=" + action +
-                '}';
+        return "Command{"
+                + "orderId='"
+                + orderId
+                + '\''
+                + ", requestId='"
+                + requestId
+                + '\''
+                + ", source='"
+                + source
+                + '\''
+                + ", target="
+                + target
+                + ", timeout="
+                + timeout
+                + ", user='"
+                + user
+                + '\''
+                + ", status="
+                + status
+                + ", action="
+                + action
+                + '}';
     }
 }
