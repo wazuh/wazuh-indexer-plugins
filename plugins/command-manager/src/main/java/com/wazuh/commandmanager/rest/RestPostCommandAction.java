@@ -5,7 +5,7 @@
  * this file be licensed under the Apache-2.0 license or a
  * compatible open source license.
  */
-package com.wazuh.commandmanager.rest.action;
+package com.wazuh.commandmanager.rest;
 
 import com.wazuh.commandmanager.CommandManagerPlugin;
 import com.wazuh.commandmanager.index.CommandIndex;

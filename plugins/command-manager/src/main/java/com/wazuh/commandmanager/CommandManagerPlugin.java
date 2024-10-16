@@ -8,7 +8,7 @@
 package com.wazuh.commandmanager;
 
 import com.wazuh.commandmanager.index.CommandIndex;
-import com.wazuh.commandmanager.rest.action.RestPostCommandAction;
+import com.wazuh.commandmanager.rest.RestPostCommandAction;
 import com.wazuh.commandmanager.utils.httpclient.HttpRestClient;
 import com.wazuh.commandmanager.utils.httpclient.HttpRestClientDemo;
 import org.opensearch.client.Client;
