@@ -1,6 +1,10 @@
 /*
- *  Copyright OpenSearch Contributors
- *  SPDX-License-Identifier: Apache-2.0
+ * Copyright OpenSearch Contributors
+ * SPDX-License-Identifier: Apache-2.0
+ *
+ * The OpenSearch Contributors require contributions made to
+ * this file be licensed under the Apache-2.0 license or a
+ * compatible open source license.
  */
 
 allprojects {
@@ -9,10 +13,13 @@ allprojects {
         java {
             target 'src/**/*.java'
             removeUnusedImports()
-            eclipse().configFile rootProject.file('buildSrc/formatterConfig.xml')
+            eclipse().configFile rootProject.file('formatter/formatterConfig.xml')
             trimTrailingWhitespace()
             endWithNewline()
         }
+        format("license", {
+            licenseHeaderFile("${rootProject.file("formatter/license-header.txt")}", "package ");
+            target("src/*/java/**/*.java")
+        })
     }
-    precommit.dependsOn 'spotlessJavaCheck'
 }
