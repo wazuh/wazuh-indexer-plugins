@@ -36,7 +36,7 @@ import java.util.concurrent.ExecutorService;
  */
 public class CommandIndex implements IndexingOperationListener {
 
-    private static final Logger logger = LogManager.getLogger(CommandIndex.class);
+    private static final Logger log = LogManager.getLogger(CommandIndex.class);
 
     private final Client client;
     private final ClusterService clusterService;
@@ -67,13 +67,13 @@ public class CommandIndex implements IndexingOperationListener {
         if (!indexTemplateExists(CommandManagerPlugin.COMMAND_MANAGER_INDEX_TEMPLATE_NAME)) {
             putIndexTemplate(CommandManagerPlugin.COMMAND_MANAGER_INDEX_TEMPLATE_NAME);
         } else {
-            logger.info(
+            log.info(
                     "Index template {} already exists. Skipping creation.",
                     CommandManagerPlugin.COMMAND_MANAGER_INDEX_TEMPLATE_NAME
             );
         }
 
-        logger.debug("Indexing command {}", document);
+        log.info("Indexing command with id [{}]", document.getId());
         try {
             IndexRequest request = new IndexRequest()
                     .index(CommandManagerPlugin.COMMAND_MANAGER_INDEX_NAME)
@@ -91,8 +91,8 @@ public class CommandIndex implements IndexingOperationListener {
                     }
             );
         } catch (IOException e) {
-            logger.error(
-                    "Failed to index command with ID {}: {}", document.getId(), e);
+            log.error(
+                    "Error indexing command with id [{}] due to {}", document.getId(), e);
         }
         return future;
     }
@@ -108,7 +108,7 @@ public class CommandIndex implements IndexingOperationListener {
                 .state()
                 .metadata()
                 .templates();
-        logger.debug("Existing index templates: {} ", templates);
+        log.debug("Existing index templates: {} ", templates);
 
         return templates.containsKey(template_name);
     }
@@ -137,15 +137,15 @@ public class CommandIndex implements IndexingOperationListener {
                         .putTemplate(putIndexTemplateRequest)
                         .actionGet();
                 if (acknowledgedResponse.isAcknowledged()) {
-                    logger.info(
-                            "Index template created successfully: {}",
+                    log.info(
+                            "Index template [{}] created successfully",
                             templateName
                     );
                 }
             });
 
         } catch (IOException e) {
-            logger.error("Error reading index template from filesystem {}", templateName);
+            log.error("Error reading index template [{}] from filesystem", templateName);
         }
     }
 }

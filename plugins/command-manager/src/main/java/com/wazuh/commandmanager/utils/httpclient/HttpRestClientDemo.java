@@ -35,15 +35,17 @@ public class HttpRestClientDemo {
         AccessController.doPrivileged(
                 (PrivilegedAction<SimpleHttpResponse>) () -> {
                     HttpRestClient httpClient = HttpRestClient.getInstance();
-                    URI host;
                     try {
-                        host = new URIBuilder(endpoint).build();
+                        URI host = new URIBuilder(endpoint).build();
+                        SimpleHttpResponse response = httpClient.post(host, body, "randomId");
+                        log.info("Received response to POST request with code {}", response.getCode());
+                        log.info("Raw response:\n{}", response.getBodyText());
                     } catch (URISyntaxException e) {
-                        throw new RuntimeException(e);
+                        log.error("Bad URI:{}", e.getMessage());
+                    } catch (Exception e) {
+                        log.error("Error reading response: {}", e.getMessage());
                     }
-                    SimpleHttpResponse postResponse = httpClient.post(host, body);
-                    log.info(postResponse.getBodyText());
-                    return postResponse;
+                    return null;
                 }
         );
     }
