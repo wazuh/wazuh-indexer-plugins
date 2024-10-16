@@ -82,7 +82,7 @@ public class CommandManagerJobRunner implements ScheduledJobRunner {
     public void runJob(ScheduledJobParameter jobParameter, JobExecutionContext context) {
         if (!(jobParameter instanceof CommandManagerJobParameter)) {
             throw new IllegalStateException(
-                    "Job parameter is not instance of SampleJobParameter, type: " + jobParameter.getClass().getCanonicalName()
+                    "Job parameter is not instance of CommandManagerJobParameter, type: " + jobParameter.getClass().getCanonicalName()
             );
         }
 

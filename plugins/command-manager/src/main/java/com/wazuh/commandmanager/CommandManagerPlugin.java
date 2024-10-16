@@ -58,9 +58,10 @@ import java.util.function.Supplier;
  */
 public class CommandManagerPlugin extends Plugin implements ActionPlugin, JobSchedulerExtension {
     public static final String COMMAND_MANAGER_BASE_URI = "/_plugins/_commandmanager";
+    public static final String COMMAND_MANAGER_SCHEDULER_URI = COMMAND_MANAGER_BASE_URI + "/schedule";
     public static final String COMMAND_MANAGER_INDEX_NAME = ".commands";
     public static final String COMMAND_MANAGER_INDEX_TEMPLATE_NAME = "index-template-commands";
-    public static final String JOB_INDEX_NAME = ".commands";
+    public static final String JOB_INDEX_NAME = ".scheduled-commands";
 
     private static final Logger log = LogManager.getLogger(CommandManagerPlugin.class);
 
@@ -141,10 +142,10 @@ public class CommandManagerPlugin extends Plugin implements ActionPlugin, JobSch
                     case CommandManagerJobParameter.NAME_FIELD:
                         jobParameter.setJobName(parser.text());
                         break;
-                    case CommandManagerJobParameter.ENABLED_FILED:
+                    case CommandManagerJobParameter.ENABLED_FIELD:
                         jobParameter.setEnabled(parser.booleanValue());
                         break;
-                    case CommandManagerJobParameter.ENABLED_TIME_FILED:
+                    case CommandManagerJobParameter.ENABLED_TIME_FIELD:
                         jobParameter.setEnabledTime(parseInstantValue(parser));
                         break;
                     case CommandManagerJobParameter.LAST_UPDATE_TIME_FIELD:
@@ -152,6 +153,9 @@ public class CommandManagerPlugin extends Plugin implements ActionPlugin, JobSch
                         break;
                     case CommandManagerJobParameter.SCHEDULE_FIELD:
                         jobParameter.setSchedule(ScheduleParser.parse(parser));
+                        break;
+                    case CommandManagerJobParameter.LOCK_DURATION_SECONDS:
+                        jobParameter.setLockDurationSeconds(parser.longValue());
                         break;
                     case CommandManagerJobParameter.INDEX_NAME_FIELD:
                         jobParameter.setIndexToWatch(parser.text());

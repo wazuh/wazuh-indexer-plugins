@@ -7,21 +7,30 @@
  */
 package com.wazuh.commandmanager.rest.action;
 
+import com.wazuh.commandmanager.CommandManagerJobParameter;
 import com.wazuh.commandmanager.CommandManagerPlugin;
 import com.wazuh.commandmanager.index.CommandIndex;
 import com.wazuh.commandmanager.model.Document;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.opensearch.action.index.IndexRequest;
+import org.opensearch.action.index.IndexResponse;
+import org.opensearch.action.support.WriteRequest;
 import org.opensearch.client.node.NodeClient;
+import org.opensearch.common.xcontent.json.JsonXContent;
+import org.opensearch.core.action.ActionListener;
 import org.opensearch.core.rest.RestStatus;
 import org.opensearch.core.xcontent.XContentBuilder;
 import org.opensearch.core.xcontent.XContentParser;
+import org.opensearch.jobscheduler.spi.schedule.IntervalSchedule;
 import org.opensearch.rest.BaseRestHandler;
 import org.opensearch.rest.BytesRestResponse;
 import org.opensearch.rest.RestRequest;
+import org.opensearch.rest.RestResponse;
 
 import java.io.IOException;
-import java.util.Collections;
+import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.Locale;
 
@@ -55,15 +64,23 @@ public class RestPostCommandAction extends BaseRestHandler {
 
     @Override
     public List<Route> routes() {
-        return Collections.singletonList(
-                new Route(
-                        POST,
-                        String.format(
-                                Locale.ROOT,
-                                "%s",
-                                CommandManagerPlugin.COMMAND_MANAGER_BASE_URI
-                        )
+        return List.of(
+            new Route(
+                POST,
+                String.format(
+                    Locale.ROOT,
+                    "%s",
+                    CommandManagerPlugin.COMMAND_MANAGER_BASE_URI
                 )
+            ),
+            new Route(
+                POST,
+                String.format(
+                    Locale.ROOT,
+                    "%s",
+                    CommandManagerPlugin.COMMAND_MANAGER_SCHEDULER_URI
+                )
+            )
         );
     }
 
@@ -73,30 +90,75 @@ public class RestPostCommandAction extends BaseRestHandler {
             final NodeClient client
     ) throws IOException {
         // Get request details
-        XContentParser parser = restRequest.contentParser();
-        ensureExpectedToken(XContentParser.Token.START_OBJECT, parser.nextToken(), parser);
-
-        Document document = Document.parse(parser);
-
-        // Send response
-        return channel -> {
-            this.commandIndex.asyncCreate(document)
-                    .thenAccept(restStatus -> {
-                        try (XContentBuilder builder = channel.newBuilder()) {
-                            builder.startObject();
-                            builder.field("_index", CommandManagerPlugin.COMMAND_MANAGER_INDEX_NAME);
-                            builder.field("_id", document.getId());
-                            builder.field("result", restStatus.name());
-                            builder.endObject();
-                            channel.sendResponse(new BytesRestResponse(restStatus, builder));
-                        } catch (Exception e) {
-                            logger.error("Error indexing command: ", e);
+        switch(restRequest.path()) {
+            case CommandManagerPlugin.COMMAND_MANAGER_BASE_URI:
+                XContentParser parser = restRequest.contentParser();
+                ensureExpectedToken(XContentParser.Token.START_OBJECT, parser.nextToken(), parser);
+                Document document = Document.parse(parser);
+                // Send response
+                return channel -> {
+                    this.commandIndex.asyncCreate(document)
+                        .thenAccept(restStatus -> {
+                            try (XContentBuilder builder = channel.newBuilder()) {
+                                builder.startObject();
+                                builder.field("_index", CommandManagerPlugin.COMMAND_MANAGER_INDEX_NAME);
+                                builder.field("_id", document.getId());
+                                builder.field("result", restStatus.name());
+                                builder.endObject();
+                                channel.sendResponse(new BytesRestResponse(restStatus, builder));
+                            } catch (Exception e) {
+                                logger.error("Error indexing command: ", e);
+                            }
+                        }).exceptionally(e -> {
+                            channel.sendResponse(new BytesRestResponse(RestStatus.INTERNAL_SERVER_ERROR, e.getMessage()));
+                            return null;
+                        });
+                };
+            case CommandManagerPlugin.COMMAND_MANAGER_SCHEDULER_URI:
+                // compose CommandManagerJobParameter object from restRequest
+                String id = restRequest.param("id");
+                String indexName = restRequest.param("index");
+                String jobName = restRequest.param("job_name");
+                String interval = restRequest.param("interval");
+                String lockDurationSecondsString = restRequest.param("lock_duration_seconds");
+                Long lockDurationSeconds = lockDurationSecondsString != null ? Long.parseLong(lockDurationSecondsString) : null;
+                if (id == null || indexName == null) {
+                    logger.error("Index: {}, id: {}", indexName, id);
+                    throw new IllegalArgumentException("Must specify id and index parameter");
+                }
+                CommandManagerJobParameter jobParameter = new CommandManagerJobParameter(
+                    jobName,
+                    indexName,
+                    new IntervalSchedule(Instant.now(), Integer.parseInt(interval), ChronoUnit.MINUTES),
+                    lockDurationSeconds
+                );
+                IndexRequest indexRequest = new IndexRequest().index(CommandManagerPlugin.JOB_INDEX_NAME)
+                    .id(id)
+                    .source(jobParameter.toXContent(JsonXContent.contentBuilder(), null))
+                    .setRefreshPolicy(WriteRequest.RefreshPolicy.IMMEDIATE);
+                return restChannel -> {
+                    // index the job parameter
+                    client.index(indexRequest, new ActionListener<IndexResponse>() {
+                        @Override
+                        public void onResponse(IndexResponse indexResponse) {
+                            try {
+                                RestResponse restResponse = new BytesRestResponse(
+                                    RestStatus.OK,
+                                    indexResponse.toXContent(JsonXContent.contentBuilder(), null)
+                                );
+                                restChannel.sendResponse(restResponse);
+                            } catch (IOException e) {
+                                restChannel.sendResponse(new BytesRestResponse(RestStatus.INTERNAL_SERVER_ERROR, e.getMessage()));
+                            }
                         }
-                    }).exceptionally(e -> {
-                        channel.sendResponse(new BytesRestResponse(RestStatus.INTERNAL_SERVER_ERROR, e.getMessage()));
-                        return null;
-                    });
 
-        };
+                        @Override
+                        public void onFailure(Exception e) {
+                            restChannel.sendResponse(new BytesRestResponse(RestStatus.INTERNAL_SERVER_ERROR, e.getMessage()));
+                        }
+                    });
+                };
+        }
+        return null;
     }
 }

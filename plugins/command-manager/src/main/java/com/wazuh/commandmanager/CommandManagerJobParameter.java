@@ -22,12 +22,13 @@ import java.time.Instant;
  */
 public class CommandManagerJobParameter implements ScheduledJobParameter {
     public static final String NAME_FIELD = "name";
-    public static final String ENABLED_FILED = "enabled";
+    public static final String ENABLED_FIELD = "enabled";
     public static final String LAST_UPDATE_TIME_FIELD = "last_update_time";
     public static final String LAST_UPDATE_TIME_FIELD_READABLE = "last_update_time_field";
     public static final String SCHEDULE_FIELD = "schedule";
-    public static final String ENABLED_TIME_FILED = "enabled_time";
-    public static final String ENABLED_TIME_FILED_READABLE = "enabled_time_field";
+    public static final String LOCK_DURATION_SECONDS = "lock_duration_seconds";
+    public static final String ENABLED_TIME_FIELD = "enabled_time";
+    public static final String ENABLED_TIME_FIELD_READABLE = "enabled_time_field";
     public static final String INDEX_NAME_FIELD = "index_name_to_watch";
 
     private String jobName;
@@ -37,12 +38,15 @@ public class CommandManagerJobParameter implements ScheduledJobParameter {
     private Schedule schedule;
     private String indexToWatch;
 
+    private Long lockDurationSeconds;
+
     public CommandManagerJobParameter() {}
 
-    public CommandManagerJobParameter(String name, String indexToWatch, Schedule schedule) {
+    public CommandManagerJobParameter(String name, String indexToWatch, Schedule schedule, Long lockDurationSeconds) {
         this.jobName = name;
         this.indexToWatch = indexToWatch;
         this.schedule = schedule;
+        this.lockDurationSeconds = lockDurationSeconds;
 
         Instant now = Instant.now();
         this.isEnabled = true;
@@ -74,6 +78,10 @@ public class CommandManagerJobParameter implements ScheduledJobParameter {
         return this.schedule;
     }
 
+    @Override
+    public Long getLockDurationSeconds() {
+        return lockDurationSeconds;
+    }
 
     @Override
     public boolean isEnabled() {
@@ -104,6 +112,10 @@ public class CommandManagerJobParameter implements ScheduledJobParameter {
         this.schedule = schedule;
     }
 
+    public void setLockDurationSeconds(Long lockDurationSeconds) {
+        this.lockDurationSeconds = lockDurationSeconds;
+    }
+
     public void setIndexToWatch(String indexToWatch) {
         this.indexToWatch = indexToWatch;
     }
@@ -112,11 +124,11 @@ public class CommandManagerJobParameter implements ScheduledJobParameter {
     public XContentBuilder toXContent(XContentBuilder builder, Params params) throws IOException {
         builder.startObject();
         builder.field(NAME_FIELD, this.jobName);
-        builder.field(ENABLED_FILED, this.isEnabled);
+        builder.field(ENABLED_FIELD, this.isEnabled);
         builder.field(SCHEDULE_FIELD, this.schedule);
         builder.field(INDEX_NAME_FIELD, this.indexToWatch);
         if (this.enabledTime != null) {
-            builder.timeField(ENABLED_TIME_FILED, ENABLED_TIME_FILED_READABLE, this.enabledTime.toEpochMilli());
+            builder.timeField(ENABLED_TIME_FIELD, ENABLED_TIME_FIELD_READABLE, this.enabledTime.toEpochMilli());
         }
         if (this.lastUpdateTime != null) {
             builder.timeField(LAST_UPDATE_TIME_FIELD, LAST_UPDATE_TIME_FIELD_READABLE, this.lastUpdateTime.toEpochMilli());
