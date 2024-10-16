@@ -11,6 +11,8 @@ allprojects {
             removeUnusedImports()
             eclipse().configFile rootProject.file('buildSrc/formatterConfig.xml')
             trimTrailingWhitespace()
+            endWithNewline()
         }
     }
+    precommit.dependsOn 'spotlessJavaCheck'
 }

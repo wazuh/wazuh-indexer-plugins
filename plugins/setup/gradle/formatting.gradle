@@ -1,14 +1,18 @@
-import org.opensearch.gradle.BuildPlugin
+/*
+ *  Copyright OpenSearch Contributors
+ *  SPDX-License-Identifier: Apache-2.0
+ */
 
 allprojects {
-    plugins.withType(BuildPlugin).whenPluginAdded {
-        project.apply plugin: "com.diffplug.spotless"
-
-        spotless {
+    project.apply plugin: "com.diffplug.spotless"
+    spotless {
+        java {
             target 'src/**/*.java'
             removeUnusedImports()
+            eclipse().configFile rootProject.file('buildSrc/formatterConfig.xml')
             trimTrailingWhitespace()
+            endWithNewline()
         }
-        precommit.dependsOn 'spotlessJavaCheck'
     }
+    precommit.dependsOn 'spotlessJavaCheck'
 }
