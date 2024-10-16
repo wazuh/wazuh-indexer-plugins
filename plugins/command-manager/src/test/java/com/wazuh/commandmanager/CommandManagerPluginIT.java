@@ -1,4 +1,5 @@
 /*
+ * Copyright OpenSearch Contributors
  * SPDX-License-Identifier: Apache-2.0
  *
  * The OpenSearch Contributors require contributions made to
@@ -8,6 +9,7 @@
 package com.wazuh.commandmanager;
 
 import com.carrotsearch.randomizedtesting.annotations.ThreadLeakScope;
+
 import org.apache.http.ParseException;
 import org.apache.http.util.EntityUtils;
 import org.opensearch.client.Request;

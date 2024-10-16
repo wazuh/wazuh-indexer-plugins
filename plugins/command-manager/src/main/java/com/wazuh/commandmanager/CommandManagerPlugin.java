@@ -1,4 +1,5 @@
 /*
+ * Copyright OpenSearch Contributors
  * SPDX-License-Identifier: Apache-2.0
  *
  * The OpenSearch Contributors require contributions made to
@@ -7,10 +8,6 @@
  */
 package com.wazuh.commandmanager;
 
-import com.wazuh.commandmanager.index.CommandIndex;
-import com.wazuh.commandmanager.rest.action.RestPostCommandAction;
-import com.wazuh.commandmanager.utils.httpclient.HttpRestClient;
-import com.wazuh.commandmanager.utils.httpclient.HttpRestClientDemo;
 import org.opensearch.client.Client;
 import org.opensearch.cluster.metadata.IndexNameExpressionResolver;
 import org.opensearch.cluster.node.DiscoveryNodes;
@@ -38,11 +35,15 @@ import java.util.Collections;
 import java.util.List;
 import java.util.function.Supplier;
 
+import com.wazuh.commandmanager.index.CommandIndex;
+import com.wazuh.commandmanager.rest.action.RestPostCommandAction;
+import com.wazuh.commandmanager.utils.httpclient.HttpRestClient;
+import com.wazuh.commandmanager.utils.httpclient.HttpRestClientDemo;
+
 /**
- * The Command Manager plugin exposes an HTTP API with a single endpoint to
- * receive raw commands from the Wazuh Server. These commands are processed,
- * indexed and sent back to the Server for its delivery to, in most cases, the
- * Agents.
+ * The Command Manager plugin exposes an HTTP API with a single endpoint to receive raw commands
+ * from the Wazuh Server. These commands are processed, indexed and sent back to the Server for its
+ * delivery to, in most cases, the Agents.
  */
 public class CommandManagerPlugin extends Plugin implements ActionPlugin {
     public static final String COMMAND_MANAGER_BASE_URI = "/_plugins/_commandmanager";
@@ -63,8 +64,7 @@ public class CommandManagerPlugin extends Plugin implements ActionPlugin {
             NodeEnvironment nodeEnvironment,
             NamedWriteableRegistry namedWriteableRegistry,
             IndexNameExpressionResolver indexNameExpressionResolver,
-            Supplier<RepositoriesService> repositoriesServiceSupplier
-    ) {
+            Supplier<RepositoriesService> repositoriesServiceSupplier) {
         this.commandIndex = new CommandIndex(client, clusterService, threadPool);
 
         // HttpRestClient stuff
@@ -81,8 +81,7 @@ public class CommandManagerPlugin extends Plugin implements ActionPlugin {
             IndexScopedSettings indexScopedSettings,
             SettingsFilter settingsFilter,
             IndexNameExpressionResolver indexNameExpressionResolver,
-            Supplier<DiscoveryNodes> nodesInCluster
-    ) {
+            Supplier<DiscoveryNodes> nodesInCluster) {
         return Collections.singletonList(new RestPostCommandAction(this.commandIndex));
     }
 

@@ -1,4 +1,5 @@
 /*
+ * Copyright OpenSearch Contributors
  * SPDX-License-Identifier: Apache-2.0
  *
  * The OpenSearch Contributors require contributions made to
@@ -24,19 +25,14 @@ import org.opensearch.common.Randomness;
 import java.net.URI;
 import java.util.concurrent.Future;
 
-/**
- * HTTP Rest client. Currently used to perform
- * POST requests against the Wazuh Server.
- */
+/** HTTP Rest client. Currently used to perform POST requests against the Wazuh Server. */
 public class HttpRestClient {
 
     private static final Logger log = LogManager.getLogger(HttpRestClient.class);
     private static HttpRestClient instance;
     private CloseableHttpAsyncClient httpClient;
 
-    /**
-     * Private default constructor
-     */
+    /** Private default constructor */
     private HttpRestClient() {
         startHttpAsyncClient();
     }
@@ -53,23 +49,21 @@ public class HttpRestClient {
         return HttpRestClient.instance;
     }
 
-    /**
-     * Starts http async client.
-     */
+    /** Starts http async client. */
     private void startHttpAsyncClient() {
         if (this.httpClient == null) {
             try {
                 PoolingAsyncClientConnectionManager cm =
                         PoolingAsyncClientConnectionManagerBuilder.create().build();
 
-                IOReactorConfig ioReactorConfig = IOReactorConfig.custom()
-                        .setSoTimeout(Timeout.ofSeconds(5))
-                        .build();
+                IOReactorConfig ioReactorConfig =
+                        IOReactorConfig.custom().setSoTimeout(Timeout.ofSeconds(5)).build();
 
-                httpClient = HttpAsyncClients.custom()
-                        .setIOReactorConfig(ioReactorConfig)
-                        .setConnectionManager(cm)
-                        .build();
+                httpClient =
+                        HttpAsyncClients.custom()
+                                .setIOReactorConfig(ioReactorConfig)
+                                .setConnectionManager(cm)
+                                .build();
 
                 httpClient.start();
             } catch (Exception e) {
@@ -79,9 +73,7 @@ public class HttpRestClient {
         }
     }
 
-    /**
-     * Stop http async client.
-     */
+    /** Stop http async client. */
     public void stopHttpAsyncClient() {
         if (this.httpClient != null) {
             log.info("Shutting down.");
@@ -93,7 +85,7 @@ public class HttpRestClient {
     /**
      * Sends a POST request.
      *
-     * @param uri     Well-formed URI
+     * @param uri Well-formed URI
      * @param payload data to send
      * @return HTTP response
      */
@@ -104,12 +96,12 @@ public class HttpRestClient {
             // Create request
             HttpHost httpHost = HttpHost.create(uri.getHost());
 
-            SimpleHttpRequest httpPostRequest = SimpleRequestBuilder
-                    .post()
-                    .setHttpHost(httpHost)
-                    .setPath(uri.getPath())
-                    .setBody(payload, ContentType.APPLICATION_JSON)
-                    .build();
+            SimpleHttpRequest httpPostRequest =
+                    SimpleRequestBuilder.post()
+                            .setHttpHost(httpHost)
+                            .setPath(uri.getPath())
+                            .setBody(payload, ContentType.APPLICATION_JSON)
+                            .build();
 
             // log request
             Future<SimpleHttpResponse> future =
@@ -117,10 +109,7 @@ public class HttpRestClient {
                             SimpleRequestProducer.create(httpPostRequest),
                             SimpleResponseConsumer.create(),
                             new HttpResponseCallback(
-                                    httpPostRequest,
-                                    "Failed to send data for ID: " + id
-                            )
-                    );
+                                    httpPostRequest, "Failed to send data for ID: " + id));
 
             return future.get();
         } catch (Exception e) {
