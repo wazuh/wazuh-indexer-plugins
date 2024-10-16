@@ -19,17 +19,12 @@ buildscript {
     }
 }
 
-plugins {
-    id "com.diffplug.spotless" version "6.25.0"
-}
-
 apply plugin: 'java'
 apply plugin: 'idea'
 apply plugin: 'eclipse'
 apply plugin: 'opensearch.opensearchplugin'
 apply plugin: 'opensearch.yaml-rest-test'
 apply plugin: 'opensearch.pluginzip'
-apply from: 'gradle/formatting.gradle'
 
 def pluginName = 'wazuh-indexer-command-manager'
 def pluginDescription = 'The Command Manager plugin handles and distributes commands across your Wazuh environment.'
@@ -91,9 +86,6 @@ dependencies {
     api "org.slf4j:slf4j-api:${versions.slf4j}"
     api "org.conscrypt:conscrypt-openjdk-uber:${versions.conscrypt}"
 }
-
-// Add the spotlessCheck to gradle check
-check.dependsOn spotlessCheck
 
 // This requires an additional Jar not published as part of build-tools
 loggerUsageCheck.enabled = false

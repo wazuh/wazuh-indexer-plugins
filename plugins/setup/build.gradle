@@ -19,17 +19,12 @@ buildscript {
     }
 }
 
-plugins {
-    id "com.diffplug.spotless" version "6.25.0"
-}
-
 apply plugin: 'java'
 apply plugin: 'idea'
 apply plugin: 'eclipse'
 apply plugin: 'opensearch.opensearchplugin'
 apply plugin: 'opensearch.yaml-rest-test'
 apply plugin: 'opensearch.pluginzip'
-apply from: 'gradle/formatting.gradle'
 
 def pluginName = 'wazuh-indexer-setup'
 def pluginDescription = 'Wazuh Indexer setup plugin'
@@ -74,9 +69,6 @@ opensearchplugin {
     licenseFile rootProject.file('LICENSE.txt')
     noticeFile rootProject.file('NOTICE.txt')
 }
-
-// Add the spotlessCheck to gradle check
-check.dependsOn spotlessCheck
 
 // This requires an additional Jar not published as part of build-tools
 loggerUsageCheck.enabled = false
