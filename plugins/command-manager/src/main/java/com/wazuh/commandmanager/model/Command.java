@@ -15,6 +15,7 @@ import org.opensearch.core.xcontent.XContentParser;
 import reactor.util.annotation.NonNull;
 
 import java.io.IOException;
+import java.util.ArrayList;
 
 public class Command implements ToXContentObject {
     public static final String COMMAND = "command";
@@ -64,9 +65,10 @@ public class Command implements ToXContentObject {
      *
      * @param parser XContentParser from the Rest Request
      * @return instance of Command
-     * @throws IOException
+     * @throws IOException              error parsing request content
+     * @throws IllegalArgumentException missing arguments
      */
-    public static Command parse(XContentParser parser) throws IOException {
+    public static Command parse(XContentParser parser) throws IOException, IllegalArgumentException {
         String source = null;
         Target target = null;
         Integer timeout = null;
@@ -99,14 +101,34 @@ public class Command implements ToXContentObject {
             }
         }
 
-        // TODO add proper validation
-        return new Command(
-                source,
-                target,
-                timeout,
-                user,
-                action
-        );
+        ArrayList<String> nullArguments = new ArrayList<>();
+        if (source == null) {
+            nullArguments.add("source");
+        }
+        if (target == null) {
+            nullArguments.add("target");
+        }
+        if (timeout == null) {
+            nullArguments.add("timeout");
+        }
+        if (user == null) {
+            nullArguments.add("user");
+        }
+        if (action == null) {
+            nullArguments.add("action");
+        }
+
+        if (!nullArguments.isEmpty()) {
+            throw new IllegalArgumentException("Missing arguments: " + nullArguments);
+        } else {
+            return new Command(
+                    source,
+                    target,
+                    timeout,
+                    user,
+                    action
+            );
+        }
     }
 
     @Override

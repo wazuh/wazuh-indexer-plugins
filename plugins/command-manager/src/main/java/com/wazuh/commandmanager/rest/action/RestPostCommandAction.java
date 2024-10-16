@@ -9,6 +9,8 @@ package com.wazuh.commandmanager.rest.action;
 
 import com.wazuh.commandmanager.CommandManagerPlugin;
 import com.wazuh.commandmanager.index.CommandIndex;
+import com.wazuh.commandmanager.model.Agent;
+import com.wazuh.commandmanager.model.Command;
 import com.wazuh.commandmanager.model.Document;
 import com.wazuh.commandmanager.utils.httpclient.HttpRestClient;
 import org.apache.hc.client5.http.async.methods.SimpleHttpResponse;
@@ -107,7 +109,11 @@ public class RestPostCommandAction extends BaseRestHandler {
         XContentParser parser = request.contentParser();
         ensureExpectedToken(XContentParser.Token.START_OBJECT, parser.nextToken(), parser);
 
-        Document document = Document.parse(parser);
+        Command command = Command.parse(parser);
+        Document document = new Document(
+                new Agent(List.of("groups000")), // TODO read agent from .agents index
+                command
+        );
 
         // Commands delivery to the Management API.
         // Note: needs to be decoupled from the Rest handler (job scheduler task).

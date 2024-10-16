@@ -26,22 +26,19 @@ components:
     Command:
       type: object
       properties:
-        command:
-          type: object
-          properties:
-            source:
-              type: string
-              example: "Engine"
-            user:
-              type: string
-              example: "user53"
-            target:
-              $ref: '#/components/schemas/Target'
-            action:
-              $ref: '#/components/schemas/Action'
-            timeout:
-              type: integer
-              example: 30
+        source:
+          type: string
+          example: "Engine"
+        user:
+          type: string
+          example: "user53"
+        target:
+          $ref: '#/components/schemas/Target'
+        action:
+          $ref: '#/components/schemas/Action'
+        timeout:
+          type: integer
+          example: 30
     Target:
       type: object
       properties:
