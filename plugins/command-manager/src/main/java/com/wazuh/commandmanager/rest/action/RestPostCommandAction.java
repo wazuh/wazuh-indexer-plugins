@@ -97,7 +97,7 @@ public class RestPostCommandAction extends BaseRestHandler {
      */
     private RestChannelConsumer handlePost(RestRequest request) throws IOException {
         log.info(
-                "Received {} {} request id:{} from host:{}",
+                "Received {} {} request id [{}] from host [{}]",
                 request.method().name(),
                 request.uri(),
                 request.getRequestId(),
@@ -119,10 +119,10 @@ public class RestPostCommandAction extends BaseRestHandler {
                     .build();
             String payload = document.toXContent(XContentFactory.jsonBuilder(), ToXContent.EMPTY_PARAMS).toString();
             SimpleHttpResponse response = httpClient.post(receiverURI, payload, document.getId());
-            log.info("Received response to POST request with code {}", response.getCode());
+            log.info("Received response to POST request with code [{}]", response.getCode());
             log.info("Raw response:\n{}", response.getBodyText());
         } catch (URISyntaxException e) {
-            log.error("Bad URI:{}", e.getMessage());
+            log.error("Bad URI: {}", e.getMessage());
         } catch (Exception e) {
             log.error("Error reading response: {}", e.getMessage());
         }
@@ -138,8 +138,12 @@ public class RestPostCommandAction extends BaseRestHandler {
                             builder.field("result", restStatus.name());
                             builder.endObject();
                             channel.sendResponse(new BytesRestResponse(restStatus, builder));
-                        } catch (Exception e) {
-                            log.error("Error indexing command: ", e);
+                        } catch (IOException e) {
+                            log.error("Error preparing response to [{}] request with id [{}] due to {}",
+                                      request.method().name(),
+                                      request.getRequestId(),
+                                      e.getMessage()
+                            );
                         }
                     }).exceptionally(e -> {
                         channel.sendResponse(new BytesRestResponse(RestStatus.INTERNAL_SERVER_ERROR, e.getMessage()));

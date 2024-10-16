@@ -73,7 +73,7 @@ public class CommandIndex implements IndexingOperationListener {
             );
         }
 
-        log.info("Indexing command with id:{}", document.getId());
+        log.info("Indexing command with id [{}]", document.getId());
         try {
             IndexRequest request = new IndexRequest()
                     .index(CommandManagerPlugin.COMMAND_MANAGER_INDEX_NAME)
@@ -92,7 +92,7 @@ public class CommandIndex implements IndexingOperationListener {
             );
         } catch (IOException e) {
             log.error(
-                    "Error indexing command with id:{} due to {}", document.getId(), e);
+                    "Error indexing command with id [{}] due to {}", document.getId(), e);
         }
         return future;
     }
@@ -138,14 +138,14 @@ public class CommandIndex implements IndexingOperationListener {
                         .actionGet();
                 if (acknowledgedResponse.isAcknowledged()) {
                     log.info(
-                            "Index template created successfully: {}",
+                            "Index template [{}] created successfully",
                             templateName
                     );
                 }
             });
 
         } catch (IOException e) {
-            log.error("Error reading index template '{}' from filesystem", templateName);
+            log.error("Error reading index template [{}] from filesystem", templateName);
         }
     }
 }

@@ -107,7 +107,7 @@ public class HttpRestClient {
             HttpHost httpHost = HttpHost.create(receiverURI);
 
             log.info(
-                    "Sending payload with id {} to {}",
+                    "Sending payload with id [{}] to [{}]",
                     payloadId,
                     receiverURI
             );
@@ -125,7 +125,7 @@ public class HttpRestClient {
                             SimpleResponseConsumer.create(),
                             new HttpResponseCallback(
                                     httpPostRequest,
-                                    "Failed to execute outgoing POST request with payload id:" + payloadId
+                                    "Failed to execute outgoing POST request with payload id [" + payloadId + "]"
                             )
                     );
 
@@ -137,7 +137,7 @@ public class HttpRestClient {
         } catch (TimeoutException e) {
             log.error("Operation timed out {}", e.getMessage());
         } catch (Exception e) {
-            log.error("Error sending payload with id:{} due to {}", payloadId, e);
+            log.error("Error sending payload with id [{}] due to {}", payloadId, e);
         }
 
         return null;
