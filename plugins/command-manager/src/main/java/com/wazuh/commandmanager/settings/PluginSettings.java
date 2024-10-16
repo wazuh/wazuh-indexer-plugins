@@ -26,7 +26,7 @@ public class PluginSettings {
 
     private static final String KEYSTORE_FILENAME = "wazuh-indexer.keystore";
 
-    private KeyStoreWrapper keyStoreWrapper = KeyStoreWrapper.create();
+    private KeyStoreWrapper keyStoreWrapper;
     private Environment environment;
 
     private PluginSettings(KeyStoreWrapper keyStoreWrapper) {
@@ -61,13 +61,16 @@ public class PluginSettings {
                 this.keyStoreWrapper.save( this.environment.configFile(), secureSettingsPassword.getChars());
             } else {
                 // Decrypt the keystore using the password from the request
-                this.keyStoreWrapper.decrypt(secureSettingsPassword.getChars());
+                if(this.keyStoreWrapper.hasPassword()){
+                    this.keyStoreWrapper.decrypt(secureSettingsPassword.getChars());
+                }
                 final Settings settingsWithKeystore = Settings.builder().setSecureSettings(keyStoreWrapper).build();
-                CommandManagerPlugin commandManagerPlugin = new CommandManagerPlugin();
+                //CommandManagerPlugin commandManagerPlugin = new CommandManagerPlugin();
                 try {
-                    commandManagerPlugin.reload(settingsWithKeystore);
+                    /* HERE WE HAVE TO RELOAD THE PLUGIN BUT I DON'T LIKE THE IDEA OF CREATE A NEW PLUGIN TO RELOAD IT*/
+                    //commandManagerPlugin.reload(settingsWithKeystore);
                 }catch (final Exception e) {
-                    logger.warn(CommandManagerSettingsException.reloadPluginFailed(commandManagerPlugin.getClass().getSimpleName()));
+                    //logger.warn(CommandManagerSettingsException.reloadPluginFailed(commandManagerPlugin.getClass().getSimpleName()));
                 }
             }
         } catch (Exception e) {
@@ -75,7 +78,7 @@ public class PluginSettings {
         } finally {
             secureSettingsPassword.close();
         }
-        return  this.keyStoreWrapper;
+        return this.keyStoreWrapper;
     }
 
     public SecureSettings upgradeKeyStore( char[] password){
@@ -87,4 +90,8 @@ public class PluginSettings {
         return  this.keyStoreWrapper;
     }
 
+    // Keep this method package-private for test access
+    KeyStoreWrapper getKeyStoreWrapper() {
+        return this.keyStoreWrapper;
+    }
 }
