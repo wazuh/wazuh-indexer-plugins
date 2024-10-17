@@ -104,25 +104,8 @@ public class CommandManagerJobRunner implements ScheduledJobRunner {
                     }
 
                     CommandManagerJobParameter parameter = (CommandManagerJobParameter) jobParameter;
-                    StringBuilder msg = new StringBuilder();
-                    msg.append("Watching index ").append(parameter.getIndexToWatch()).append("\n");
 
-                    List<ShardRouting> shardRoutingList = this.clusterService
-                            .state()
-                            .routingTable()
-                            .allShards(parameter.getIndexToWatch());
-
-                    for (ShardRouting shardRouting : shardRoutingList) {
-                        msg.append(shardRouting.shardId().getId())
-                                .append("\t")
-                                .append(shardRouting.currentNodeId())
-                                .append("\t")
-                                .append(shardRouting.active() ? "active" : "inactive")
-                                .append("\n");
-                    }
-                    log.info(msg.toString());
-                    runTaskForIntegrationTests(parameter);
-                    runTaskForLockIntegrationTests(parameter);
+                    log.info("Watching index {}\n", parameter.getIndexToWatch());
 
                     lockService.release(
                             lock,
@@ -141,16 +124,4 @@ public class CommandManagerJobRunner implements ScheduledJobRunner {
         threadPool.generic().submit(runnable);
     }
 
-    private void runTaskForIntegrationTests(CommandManagerJobParameter jobParameter) {
-        this.client.index(
-                new IndexRequest(jobParameter.getIndexToWatch()).id(UUID.randomUUID().toString())
-                        .source("{\"message\": \"message\"}", XContentType.JSON)
-        );
-    }
-
-    private void runTaskForLockIntegrationTests(CommandManagerJobParameter jobParameter) throws InterruptedException {
-        if (jobParameter.getName().equals("sample-job-lock-test-it")) {
-            Thread.sleep(180000);
-        }
-    }
 }

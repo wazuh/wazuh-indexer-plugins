@@ -16,6 +16,7 @@ import org.apache.logging.log4j.Logger;
 import org.opensearch.action.index.IndexRequest;
 import org.opensearch.action.index.IndexResponse;
 import org.opensearch.action.support.WriteRequest;
+import org.opensearch.client.Client;
 import org.opensearch.client.node.NodeClient;
 import org.opensearch.common.xcontent.json.JsonXContent;
 import org.opensearch.core.action.ActionListener;
@@ -34,6 +35,7 @@ import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.Locale;
 
+import static com.wazuh.commandmanager.CommandManagerPlugin.JOB_INDEX_NAME;
 import static org.opensearch.core.xcontent.XContentParserUtils.ensureExpectedToken;
 import static org.opensearch.rest.RestRequest.Method.POST;
 
@@ -45,7 +47,7 @@ import static org.opensearch.rest.RestRequest.Method.POST;
 public class RestPostCommandAction extends BaseRestHandler {
 
     public static final String POST_COMMAND_ACTION_REQUEST_DETAILS = "post_command_action_request_details";
-    private static final Logger logger = LogManager.getLogger(RestPostCommandAction.class);
+    private static final Logger log = LogManager.getLogger(RestPostCommandAction.class);
     private final CommandIndex commandIndex;
 
     /**
@@ -95,6 +97,10 @@ public class RestPostCommandAction extends BaseRestHandler {
                 XContentParser parser = restRequest.contentParser();
                 ensureExpectedToken(XContentParser.Token.START_OBJECT, parser.nextToken(), parser);
                 Document document = Document.parse(parser);
+
+                initJobScheduler(client);
+
+
                 // Send response
                 return channel -> {
                     this.commandIndex.asyncCreate(document)
@@ -107,7 +113,7 @@ public class RestPostCommandAction extends BaseRestHandler {
                                 builder.endObject();
                                 channel.sendResponse(new BytesRestResponse(restStatus, builder));
                             } catch (Exception e) {
-                                logger.error("Error indexing command: ", e);
+                                log.error("Error indexing command: ", e);
                             }
                         }).exceptionally(e -> {
                             channel.sendResponse(new BytesRestResponse(RestStatus.INTERNAL_SERVER_ERROR, e.getMessage()));
@@ -123,7 +129,7 @@ public class RestPostCommandAction extends BaseRestHandler {
                 String lockDurationSecondsString = restRequest.param("lock_duration_seconds");
                 Long lockDurationSeconds = lockDurationSecondsString != null ? Long.parseLong(lockDurationSecondsString) : null;
                 if (id == null || indexName == null) {
-                    logger.error("Index: {}, id: {}", indexName, id);
+                    log.error("Index: {}, id: {}", indexName, id);
                     throw new IllegalArgumentException("Must specify id and index parameter");
                 }
                 CommandManagerJobParameter jobParameter = new CommandManagerJobParameter(
@@ -132,7 +138,7 @@ public class RestPostCommandAction extends BaseRestHandler {
                     new IntervalSchedule(Instant.now(), Integer.parseInt(interval), ChronoUnit.MINUTES),
                     lockDurationSeconds
                 );
-                IndexRequest indexRequest = new IndexRequest().index(CommandManagerPlugin.JOB_INDEX_NAME)
+                IndexRequest indexRequest = new IndexRequest().index(CommandManagerPlugin.COMMAND_MANAGER_INDEX_NAME)
                     .id(id)
                     .source(jobParameter.toXContent(JsonXContent.contentBuilder(), null))
                     .setRefreshPolicy(WriteRequest.RefreshPolicy.IMMEDIATE);
@@ -160,5 +166,35 @@ public class RestPostCommandAction extends BaseRestHandler {
                 };
         }
         return null;
+    }
+
+
+    private static void initJobScheduler(Client client) {
+
+        CommandManagerJobParameter jobParameter = new CommandManagerJobParameter(
+                "test-job",
+                CommandManagerPlugin.JOB_INDEX_NAME,
+                new IntervalSchedule(Instant.now(), 1, ChronoUnit.MINUTES),
+                5L
+        );
+        try {
+            IndexRequest indexRequest = new IndexRequest().index(CommandManagerPlugin.JOB_INDEX_NAME)
+                    .id("test-job-id")
+                    .source(jobParameter.toXContent(JsonXContent.contentBuilder(), null))
+                    .setRefreshPolicy(WriteRequest.RefreshPolicy.IMMEDIATE);
+            client.index(indexRequest, new ActionListener<>() {
+                @Override
+                public void onResponse(IndexResponse indexResponse) {
+                    log.info("Job Scheduler initialized");
+                }
+
+                @Override
+                public void onFailure(Exception e) {
+                    throw new RuntimeException(e);
+                }
+            });
+        } catch (IOException | RuntimeException e) {
+            log.error("Error initializing the Job Scheduler task: {}", e.getMessage());
+        }
     }
 }
