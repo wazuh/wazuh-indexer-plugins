@@ -10,16 +10,16 @@ package com.wazuh.commandmanager;
 import com.wazuh.commandmanager.index.CommandIndex;
 import com.wazuh.commandmanager.rest.action.RestPostCommandAction;
 import com.wazuh.commandmanager.settings.CommandManagerSettings;
-import com.wazuh.commandmanager.settings.PluginSettings;
 import com.wazuh.commandmanager.utils.httpclient.HttpRestClient;
 import com.wazuh.commandmanager.utils.httpclient.HttpRestClientDemo;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.opensearch.client.Client;
 import org.opensearch.cluster.metadata.IndexNameExpressionResolver;
 import org.opensearch.cluster.node.DiscoveryNodes;
 import org.opensearch.cluster.service.ClusterService;
 import org.opensearch.common.settings.*;
 import org.opensearch.core.common.io.stream.NamedWriteableRegistry;
-import org.opensearch.core.common.settings.SecureString;
 import org.opensearch.core.xcontent.NamedXContentRegistry;
 import org.opensearch.env.Environment;
 import org.opensearch.env.NodeEnvironment;
@@ -50,6 +50,7 @@ public class CommandManagerPlugin extends Plugin implements ActionPlugin, Reload
     public static final String COMMAND_MANAGER_BASE_URI = "/_plugins/_commandmanager";
     public static final String COMMAND_MANAGER_INDEX_NAME = ".commands";
     public static final String COMMAND_MANAGER_INDEX_TEMPLATE_NAME = "index-template-commands";
+    private static final Logger log = LogManager.getLogger(CommandManagerPlugin.class);
 
     private CommandIndex commandIndex;
     private  CommandManagerSettings commandManagerSettings;

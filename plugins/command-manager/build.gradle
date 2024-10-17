@@ -1,4 +1,6 @@
+
 import org.opensearch.gradle.test.RestIntegTestTask
+
 
 apply plugin: 'java'
 apply plugin: 'idea'
@@ -104,6 +106,8 @@ buildscript {
     }
 }
 
+
+
 repositories {
     mavenLocal()
     maven { url "https://aws.oss.sonatype.org/content/repositories/snapshots" }
@@ -122,6 +126,53 @@ task integTest(type: RestIntegTestTask) {
     classpath = sourceSets.test.runtimeClasspath
 }
 tasks.named("check").configure { dependsOn(integTest) }
+
+
+//OPCION 1
+/*
+// needed to be consistent with ssl host checking
+String host = InetAddress.getLoopbackAddress().getHostAddress()
+
+// location of keystore and files to generate it
+File keystore = new File(project.buildDir, 'keystore/wazuh-indexer.keystore.jks')
+
+// generate the keystore
+
+TaskProvider createKey = tasks.register("createKey", LoggedExec) {
+    doFirst {
+        delete(keystore.parentFile)
+        keystore.parentFile.mkdirs()
+    }
+    outputs.file(keystore).withPropertyName('keystoreFile')
+    executable = "${BuildParams.runtimeJavaHome}/bin/keytool"
+    standardInput = new ByteArrayInputStream('FirstName LastName\nUnit\nOrganization\nCity\nState\nNL\nyes\n\n'.getBytes('UTF-8'))
+    args '-genkey',
+            '-alias', 'test-node',
+            '-keystore', keystore,
+            '-keyalg', 'RSA',
+            '-keysize', '2048',
+            '-validity', '712',
+            '-dname', 'CN=' + host,
+            '-keypass', 'keypass',
+            '-storepass', 'keypass'
+}
+
+//no unit tests
+tasks.named("test").configure { enabled = false }
+// add keystore to test classpath: it expects it there
+tasks.named("processInternalClusterTestResources").configure {
+    from createKey
+}
+
+normalization {
+    runtimeClasspath {
+        ignore 'test-node.jks'
+    }
+}
+
+ */
+
+//OPCION 2
 
 integTest {
     // The --debug-jvm command-line option makes the cluster debuggable; this makes the tests debuggable
