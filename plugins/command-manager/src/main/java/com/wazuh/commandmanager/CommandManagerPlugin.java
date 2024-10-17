@@ -19,6 +19,7 @@ import org.opensearch.cluster.node.DiscoveryNodes;
 import org.opensearch.cluster.service.ClusterService;
 import org.opensearch.common.settings.*;
 import org.opensearch.core.common.io.stream.NamedWriteableRegistry;
+import org.opensearch.core.common.settings.SecureString;
 import org.opensearch.core.xcontent.NamedXContentRegistry;
 import org.opensearch.env.Environment;
 import org.opensearch.env.NodeEnvironment;
@@ -51,6 +52,7 @@ public class CommandManagerPlugin extends Plugin implements ActionPlugin, Reload
     public static final String COMMAND_MANAGER_INDEX_TEMPLATE_NAME = "index-template-commands";
 
     private CommandIndex commandIndex;
+    private  CommandManagerSettings commandManagerSettings;
 
     @Override
     public Collection<Object> createComponents(
@@ -67,7 +69,8 @@ public class CommandManagerPlugin extends Plugin implements ActionPlugin, Reload
             Supplier<RepositoriesService> repositoriesServiceSupplier
     ) {
         this.commandIndex = new CommandIndex(client, clusterService, threadPool);
-        PluginSettings.getInstance().setEnvironment(environment);
+
+        commandManagerSettings = CommandManagerSettings.getSettings(environment);
 
         // HttpRestClient stuff
         String uri = "https://httpbin.org/post";
@@ -103,7 +106,7 @@ public class CommandManagerPlugin extends Plugin implements ActionPlugin, Reload
     @Override
     public void reload(Settings settings) {
         // secure settings should be readable
-        final CommandManagerSettings commandManagerSettings = CommandManagerSettings.getClientSettings(settings);
+        //final CommandManagerSettings commandManagerSettings = CommandManagerSettings.getClientSettings(secureSettingsPassword);
         //I don't know what I have to do when we want to reload the settings already
         //xxxService.refreshAndClearCache(commandManagerSettings);
     }

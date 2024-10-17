@@ -40,6 +40,16 @@ public class CommandManagerSettingsException extends Exception {
         return new CommandManagerSettingsException("The keystore is empty at the path: " + keystorePath);
     }
 
+    // Exception for the case when load keystore failed
+    public static CommandManagerSettingsException loadKeystoreFailed(String keyStorePath) {
+        return new CommandManagerSettingsException("Load keystore: "+ keyStorePath +" failed.");
+    }
+
+    // Exception for the case when load keystore failed
+    public static CommandManagerSettingsException decryptKeystoreFailed(String keyStorePath) {
+        return new CommandManagerSettingsException("Decrypt keystore: "+ keyStorePath +" failed.");
+    }
+
     // Exception for the case when reload plugin with the keystore failed
     public static CommandManagerSettingsException reloadPluginFailed(String pluginName) {
         return new CommandManagerSettingsException("Reload failed for plugin: " + pluginName);
