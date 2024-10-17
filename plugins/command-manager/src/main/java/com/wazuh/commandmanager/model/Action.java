@@ -1,4 +1,5 @@
 /*
+ * Copyright OpenSearch Contributors
  * SPDX-License-Identifier: Apache-2.0
  *
  * The OpenSearch Contributors require contributions made to
@@ -14,9 +15,7 @@ import org.opensearch.core.xcontent.XContentParser;
 import java.io.IOException;
 import java.util.List;
 
-/**
- * Command's action fields.
- */
+/** Command's action fields. */
 public class Action implements ToXContentObject {
     public static final String ACTION = "action";
     public static final String NAME = "name";
@@ -29,8 +28,8 @@ public class Action implements ToXContentObject {
     /**
      * Default constructor.
      *
-     * @param name    action to be executed on the target,
-     * @param args    actual command.
+     * @param name action to be executed on the target,
+     * @param args actual command.
      * @param version version of the action.
      */
     public Action(String name, List<String> args, String version) {
@@ -84,10 +83,15 @@ public class Action implements ToXContentObject {
 
     @Override
     public String toString() {
-        return "Action{" +
-                "name='" + name + '\'' +
-                ", args=" + args +
-                ", version='" + version + '\'' +
-                '}';
+        return "Action{"
+                + "name='"
+                + name
+                + '\''
+                + ", args="
+                + args
+                + ", version='"
+                + version
+                + '\''
+                + '}';
     }
 }

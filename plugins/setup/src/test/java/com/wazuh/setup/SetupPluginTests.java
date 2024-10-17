@@ -1,4 +1,5 @@
 /*
+ * Copyright OpenSearch Contributors
  * SPDX-License-Identifier: Apache-2.0
  *
  * The OpenSearch Contributors require contributions made to
@@ -7,9 +8,6 @@
  */
 package com.wazuh.setup;
 
-import com.wazuh.setup.index.WazuhIndices;
-import org.junit.After;
-import org.junit.Before;
 import org.opensearch.action.admin.indices.create.CreateIndexRequest;
 import org.opensearch.action.admin.indices.create.CreateIndexResponse;
 import org.opensearch.action.admin.indices.template.put.PutIndexTemplateRequest;
@@ -24,9 +22,13 @@ import org.opensearch.core.action.ActionListener;
 import org.opensearch.test.OpenSearchTestCase;
 import org.opensearch.threadpool.TestThreadPool;
 import org.opensearch.threadpool.ThreadPool;
+import org.junit.After;
+import org.junit.Before;
 
-import static org.mockito.Mockito.*;
+import com.wazuh.setup.index.WazuhIndices;
+
 import static org.opensearch.test.ClusterServiceUtils.createClusterService;
+import static org.mockito.Mockito.*;
 
 public class SetupPluginTests extends OpenSearchTestCase {
 
@@ -36,9 +38,7 @@ public class SetupPluginTests extends OpenSearchTestCase {
     private ThreadPool threadPool;
     private Client mockClient;
 
-    /**
-     * Creates the necessary mocks and spies
-     */
+    /** Creates the necessary mocks and spies */
     @Before
     public void setUp() throws Exception {
         try {
@@ -53,18 +53,14 @@ public class SetupPluginTests extends OpenSearchTestCase {
         }
     }
 
-    /**
-     * Shuts the test cluster down properly after tests are done
-     */
+    /** Shuts the test cluster down properly after tests are done */
     @After
     public void testTearDown() {
         this.threadPool.shutdownNow();
         this.clusterService.close();
     }
 
-    /**
-     * Tests the putTemplate method
-     */
+    /** Tests the putTemplate method */
     @AwaitsFix(bugUrl = "")
     public void testPutTemplate() {
         String mockTemplateName = "anIndexTemplateName";
@@ -74,11 +70,15 @@ public class SetupPluginTests extends OpenSearchTestCase {
         when(this.mockClient.admin()).thenReturn(mockAdminClient);
         when(mockAdminClient.indices()).thenReturn(mockIndicesAdminClient);
 
-        doAnswer(invocation -> {
-            ActionListener<AcknowledgedResponse> listener = invocation.getArgument(1);
-            listener.onResponse(new AcknowledgedResponse(true));
-            return null;
-        }).when(mockIndicesAdminClient).putTemplate(any(PutIndexTemplateRequest.class), any(ActionListener.class));
+        doAnswer(
+                        invocation -> {
+                            ActionListener<AcknowledgedResponse> listener =
+                                    invocation.getArgument(1);
+                            listener.onResponse(new AcknowledgedResponse(true));
+                            return null;
+                        })
+                .when(mockIndicesAdminClient)
+                .putTemplate(any(PutIndexTemplateRequest.class), any(ActionListener.class));
 
         try {
             this.wazuhIndices.putTemplate(mockTemplateName);
@@ -86,11 +86,15 @@ public class SetupPluginTests extends OpenSearchTestCase {
             fail(e.toString());
         }
 
-        doAnswer(invocation -> {
-            ActionListener<AcknowledgedResponse> listener = invocation.getArgument(1);
-            listener.onFailure(new Exception("Mock exception on putTemplate"));
-            return null;
-        }).when(mockIndicesAdminClient).putTemplate(any(PutIndexTemplateRequest.class), any(ActionListener.class));
+        doAnswer(
+                        invocation -> {
+                            ActionListener<AcknowledgedResponse> listener =
+                                    invocation.getArgument(1);
+                            listener.onFailure(new Exception("Mock exception on putTemplate"));
+                            return null;
+                        })
+                .when(mockIndicesAdminClient)
+                .putTemplate(any(PutIndexTemplateRequest.class), any(ActionListener.class));
 
         try {
             this.wazuhIndices.putTemplate(mockTemplateName);
@@ -99,9 +103,7 @@ public class SetupPluginTests extends OpenSearchTestCase {
         }
     }
 
-    /**
-     * Tests creating an index
-     */
+    /** Tests creating an index */
     @AwaitsFix(bugUrl = "")
     public void testCreate() {
         AdminClient mockAdminClient = mock(AdminClient.class);
@@ -109,24 +111,29 @@ public class SetupPluginTests extends OpenSearchTestCase {
         when(this.mockClient.admin()).thenReturn(mockAdminClient);
         when(mockAdminClient.indices()).thenReturn(mockIndicesAdminClient);
 
-        doAnswer(invocation -> {
-            ActionListener<CreateIndexResponse> listener = invocation.getArgument(1);
-            listener.onResponse(new CreateIndexResponse(true, true, INDEX_NAME));
-            return null;
-        }).when(mockIndicesAdminClient).create(any(CreateIndexRequest.class), any(ActionListener.class));
+        doAnswer(
+                        invocation -> {
+                            ActionListener<CreateIndexResponse> listener =
+                                    invocation.getArgument(1);
+                            listener.onResponse(new CreateIndexResponse(true, true, INDEX_NAME));
+                            return null;
+                        })
+                .when(mockIndicesAdminClient)
+                .create(any(CreateIndexRequest.class), any(ActionListener.class));
 
-        ActionListener<CreateIndexResponse> actionListener = new ActionListener<>() {
-            @Override
-            public void onResponse(CreateIndexResponse createIndexResponse) {
-                logger.info("Mock successful index creation");
-                assertTrue(createIndexResponse.isAcknowledged());
-            }
+        ActionListener<CreateIndexResponse> actionListener =
+                new ActionListener<>() {
+                    @Override
+                    public void onResponse(CreateIndexResponse createIndexResponse) {
+                        logger.info("Mock successful index creation");
+                        assertTrue(createIndexResponse.isAcknowledged());
+                    }
 
-            @Override
-            public void onFailure(Exception e) {
-                logger.error("Mock error creating index: {}", e.toString());
-            }
-        };
+                    @Override
+                    public void onFailure(Exception e) {
+                        logger.error("Mock error creating index: {}", e.toString());
+                    }
+                };
 
         try {
             this.wazuhIndices.putIndex(INDEX_NAME);
@@ -134,11 +141,15 @@ public class SetupPluginTests extends OpenSearchTestCase {
             fail(e.toString());
         }
 
-        doAnswer(invocation -> {
-            ActionListener<CreateIndexResponse> listener = invocation.getArgument(1);
-            listener.onFailure(new Exception("Mock Exception"));
-            return null;
-        }).when(mockIndicesAdminClient).create(any(CreateIndexRequest.class), any(ActionListener.class));
+        doAnswer(
+                        invocation -> {
+                            ActionListener<CreateIndexResponse> listener =
+                                    invocation.getArgument(1);
+                            listener.onFailure(new Exception("Mock Exception"));
+                            return null;
+                        })
+                .when(mockIndicesAdminClient)
+                .create(any(CreateIndexRequest.class), any(ActionListener.class));
 
         try {
             this.wazuhIndices.putIndex(INDEX_NAME);
@@ -147,9 +158,7 @@ public class SetupPluginTests extends OpenSearchTestCase {
         }
     }
 
-    /**
-     * Tests the indexExists() method
-     */
+    /** Tests the indexExists() method */
     public void testIndexExists() {
         ClusterState mockClusterState = mock(ClusterState.class);
         RoutingTable mockRoutingTable = mock(RoutingTable.class);

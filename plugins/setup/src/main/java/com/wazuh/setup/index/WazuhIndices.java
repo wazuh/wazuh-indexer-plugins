@@ -1,4 +1,5 @@
 /*
+ * Copyright OpenSearch Contributors
  * SPDX-License-Identifier: Apache-2.0
  *
  * The OpenSearch Contributors require contributions made to
@@ -7,7 +8,6 @@
  */
 package com.wazuh.setup.index;
 
-import com.wazuh.setup.utils.IndexTemplateUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.opensearch.action.admin.indices.create.CreateIndexRequest;
@@ -22,25 +22,24 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import com.wazuh.setup.utils.IndexTemplateUtils;
+
 /**
- * This class contains the logic to create the index templates and the indices
- * required by Wazuh.
+ * This class contains the logic to create the index templates and the indices required by Wazuh.
  */
 public class WazuhIndices {
     private static final Logger log = LogManager.getLogger(WazuhIndices.class);
-    /**
-     * | Key                 | value      |
-     * | ------------------- | ---------- |
-     * | Index template name | index name |
-     */
+
+    /** | Key | value | | ------------------- | ---------- | | Index template name | index name | */
     public final Map<String, String> indexTemplates = new HashMap<>();
+
     private final Client client;
     private final ClusterService clusterService;
 
     /**
      * Constructor
      *
-     * @param client         Client
+     * @param client Client
      * @param clusterService ClusterService
      */
     public WazuhIndices(Client client, ClusterService clusterService) {
@@ -67,23 +66,20 @@ public class WazuhIndices {
             // @throws IOException
             Map<String, Object> template = IndexTemplateUtils.fromFile(templateName + ".json");
 
-            PutIndexTemplateRequest putIndexTemplateRequest = new PutIndexTemplateRequest()
-                    .mapping(IndexTemplateUtils.get(template, "mappings"))
-                    .settings(IndexTemplateUtils.get(template, "settings"))
-                    .name(templateName)
-                    .patterns((List<String>) template.get("index_patterns"));
+            PutIndexTemplateRequest putIndexTemplateRequest =
+                    new PutIndexTemplateRequest()
+                            .mapping(IndexTemplateUtils.get(template, "mappings"))
+                            .settings(IndexTemplateUtils.get(template, "settings"))
+                            .name(templateName)
+                            .patterns((List<String>) template.get("index_patterns"));
 
-            AcknowledgedResponse createIndexTemplateResponse = this.client
-                    .admin()
-                    .indices()
-                    .putTemplate(putIndexTemplateRequest)
-                    .actionGet();
+            AcknowledgedResponse createIndexTemplateResponse =
+                    this.client.admin().indices().putTemplate(putIndexTemplateRequest).actionGet();
 
             log.info(
                     "Index template created successfully: {} {}",
                     templateName,
-                    createIndexTemplateResponse.isAcknowledged()
-            );
+                    createIndexTemplateResponse.isAcknowledged());
 
         } catch (IOException e) {
             log.error("Error reading index template from filesystem {}", templateName);
@@ -98,16 +94,12 @@ public class WazuhIndices {
     public void putIndex(String indexName) {
         if (!indexExists(indexName)) {
             CreateIndexRequest request = new CreateIndexRequest(indexName);
-            CreateIndexResponse createIndexResponse = this.client
-                    .admin()
-                    .indices()
-                    .create(request)
-                    .actionGet();
+            CreateIndexResponse createIndexResponse =
+                    this.client.admin().indices().create(request).actionGet();
             log.info(
                     "Index created successfully: {} {}",
                     createIndexResponse.index(),
-                    createIndexResponse.isAcknowledged()
-            );
+                    createIndexResponse.isAcknowledged());
         }
     }
 
@@ -121,16 +113,15 @@ public class WazuhIndices {
         return this.clusterService.state().getRoutingTable().hasIndex(indexName);
     }
 
-    /**
-     * Creates each index template and index in {@link #indexTemplates}.
-     */
+    /** Creates each index template and index in {@link #indexTemplates}. */
     public void initialize() {
         // 1. Read index templates from files
         // 2. Upsert index template
         // 3. Create index
-        this.indexTemplates.forEach((k, v) -> {
-            this.putTemplate(k);
-            this.putIndex(v);
-        });
+        this.indexTemplates.forEach(
+                (k, v) -> {
+                    this.putTemplate(k);
+                    this.putIndex(v);
+                });
     }
 }

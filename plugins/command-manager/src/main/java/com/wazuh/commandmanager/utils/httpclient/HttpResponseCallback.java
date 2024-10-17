@@ -1,4 +1,5 @@
 /*
+ * Copyright OpenSearch Contributors
  * SPDX-License-Identifier: Apache-2.0
  *
  * The OpenSearch Contributors require contributions made to
@@ -18,18 +19,13 @@ public class HttpResponseCallback implements FutureCallback<SimpleHttpResponse> 
 
     private static final Logger log = LogManager.getLogger(HttpResponseCallback.class);
 
-    /**
-     * The Http get request.
-     */
+    /** The Http get request. */
     SimpleHttpRequest httpRequest;
 
-    /**
-     * The Error message.
-     */
+    /** The Error message. */
     String errorMessage;
 
-    public HttpResponseCallback(SimpleHttpRequest httpRequest,
-                                String errorMessage) {
+    public HttpResponseCallback(SimpleHttpRequest httpRequest, String errorMessage) {
         this.httpRequest = httpRequest;
         this.errorMessage = errorMessage;
     }
@@ -43,7 +39,7 @@ public class HttpResponseCallback implements FutureCallback<SimpleHttpResponse> 
     @Override
     public void failed(Exception ex) {
         log.error("{}->{}", httpRequest, ex);
-//        throw new HttpException(errorMessage, ex);
+        // throw new HttpException(errorMessage, ex);
     }
 
     @Override

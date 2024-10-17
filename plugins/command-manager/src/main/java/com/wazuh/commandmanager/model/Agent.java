@@ -1,4 +1,5 @@
 /*
+ * Copyright OpenSearch Contributors
  * SPDX-License-Identifier: Apache-2.0
  *
  * The OpenSearch Contributors require contributions made to
@@ -14,9 +15,7 @@ import org.opensearch.core.xcontent.XContentParser;
 import java.io.IOException;
 import java.util.List;
 
-/**
- * Command's agent fields.
- */
+/** Command's agent fields. */
 public class Agent implements ToXContentObject {
     public static final String AGENT = "agent";
     public static final String GROUPS = "groups";
@@ -63,8 +62,6 @@ public class Agent implements ToXContentObject {
 
     @Override
     public String toString() {
-        return "Agent{" +
-                "groups=" + groups +
-                '}';
+        return "Agent{" + "groups=" + groups + '}';
     }
 }
