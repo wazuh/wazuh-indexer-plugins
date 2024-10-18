@@ -6,56 +6,53 @@
  * compatible open source license.
  */
 package com.wazuh.commandmanager.settings;
+
 import com.wazuh.commandmanager.CommandManagerSettingsException;
-import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.LogManager;
-import org.opensearch.common.io.PathUtils;
+import org.apache.logging.log4j.Logger;
 import org.opensearch.common.settings.KeyStoreWrapper;
-import org.opensearch.common.settings.Setting;
 import org.opensearch.common.settings.SecureSetting;
+import org.opensearch.common.settings.Setting;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.core.common.settings.SecureString;
 import org.opensearch.env.Environment;
 
 import java.io.IOException;
 import java.nio.file.Files;
-import java.nio.file.LinkOption;
 import java.nio.file.Path;
 import java.security.GeneralSecurityException;
 
 public final class CommandManagerSettings {
+    /**
+     * The access key (ie login id) for connecting to api.
+     */
+    public static final Setting<SecureString> KEYSTORE =
+            SecureSetting.secureString("command.manager.keystore", null);
+    /**
+     * The access key (ie login username) for connecting to api.
+     */
+    public static final Setting<SecureString> AUTH_USERNAME =
+            SecureSetting.secureString("command.manager.auth.username", null);
+    /**
+     * The secret key (ie password) for connecting to api.
+     */
+    public static final Setting<SecureString> AUTH_PASSWORD =
+            SecureSetting.secureString("command.manager.auth.password", null);
+    /**
+     * The uri for connecting to api.
+     */
+    public static final Setting<String> URI =
+            SecureSetting.simpleString("command.manager.uri", Setting.Property.NodeScope);
+    /**
+     * The auth type for connecting to api.
+     */
+    public static final Setting<String> AUTH_TYPE =
+            Setting.simpleString("command.manager.auth.type", Setting.Property.NodeScope);
     private static final Logger log = LogManager.getLogger(CommandManagerSettings.class);
-
     /**
      * The name of own keystore.
      */
     private static final String KEYSTORE_FILENAME = "opensearch.keystore"; //"wazuh-indexer.keystore";
-
-    /**
-     * The access key (ie login id) for connecting to api.
-     */
-    public static final Setting<SecureString> KEYSTORE = SecureSetting.secureString("command.manager.keystore", null);
-
-    /**
-     * The access key (ie login username) for connecting to api.
-     */
-    public static final Setting<SecureString> AUTH_USERNAME = SecureSetting.secureString("command.manager.auth.username", null);
-
-    /**
-     * The secret key (ie password) for connecting to api.
-     */
-    public static final Setting<SecureString> AUTH_PASSWORD = SecureSetting.secureString("command.manager.auth.password", null);
-
-    /**
-     * The uri for connecting to api.
-     */
-    public static final Setting<String> URI = SecureSetting.simpleString("command.manager.uri", Setting.Property.NodeScope);
-
-    /**
-     * The auth type for connecting to api.
-     */
-    public static final Setting<String> AUTH_TYPE = Setting.simpleString("command.manager.auth.type", Setting.Property.NodeScope);
-
     /**
      * The access key (ie login username) for connecting to api.
      */
@@ -81,7 +78,7 @@ public final class CommandManagerSettings {
      */
     final String authType;
 
-    protected CommandManagerSettings(
+    private CommandManagerSettings(
             String keystore,
             String authUsername,
             String authPassword,
@@ -93,6 +90,7 @@ public final class CommandManagerSettings {
         this.authPassword = authPassword;
         this.uri = uri;
         this.authType = authType;
+        log.info("Plugin settings: {}", this.toString());
     }
 
     /**
@@ -105,7 +103,7 @@ public final class CommandManagerSettings {
         try {
             keyStoreWrapper = KeyStoreWrapper.load(environment.configFile(), KEYSTORE_FILENAME);
         } catch (IOException e) {
-            log.error(CommandManagerSettingsException.loadKeystoreFailed(environment.configFile().toAbsolutePath().toString() + KEYSTORE_FILENAME).getMessage());
+            log.error(CommandManagerSettingsException.loadKeystoreFailed(environment.configFile().toAbsolutePath() + KEYSTORE_FILENAME).getMessage());
         }
 
         if (keyStoreWrapper == null) {
@@ -143,14 +141,14 @@ public final class CommandManagerSettings {
      */
     public static CommandManagerSettings getSettings(Environment environment) {
         KeyStoreWrapper keyStoreWrapper = null;
-        Path keystoreFile = Path.of(environment.configFile()+"/"+KEYSTORE_FILENAME);
+        Path keystoreFile = Path.of(environment.configFile() + "/" + KEYSTORE_FILENAME);
         try {
-            if (!Files.exists(keystoreFile)){
+            if (!Files.exists(keystoreFile)) {
                 throw CommandManagerSettingsException.keystoreNotExist(keystoreFile.toAbsolutePath().toString());
                 //Path keyStorePath = Files.createFile(keystoreFile);
                 //log.warn("CREADA KeyStoreWrapper en "+keyStorePath.toString());
-            }else{
-                log.warn("Por hacer load de KeyStoreWrapper en "+environment.configFile().toString());
+            } else {
+                log.warn("Por hacer load de KeyStoreWrapper en " + environment.configFile().toString());
                 keyStoreWrapper = KeyStoreWrapper.load(environment.configFile(), KEYSTORE_FILENAME);
             }
         } catch (Exception e) {
@@ -162,11 +160,11 @@ public final class CommandManagerSettings {
             return null;
         } else {
             // Decrypt the keystore using the password from the request
-                try {
-                    keyStoreWrapper.decrypt(new char[0]);
-                } catch (GeneralSecurityException | IOException e) {
-                    log.error(CommandManagerSettingsException.decryptKeystoreFailed(KEYSTORE_FILENAME).getMessage());
-                }
+            try {
+                keyStoreWrapper.decrypt(new char[0]);
+            } catch (GeneralSecurityException | IOException e) {
+                log.error(CommandManagerSettingsException.decryptKeystoreFailed(KEYSTORE_FILENAME).getMessage());
+            }
 
             final Settings settings = Settings.builder().setSecureSettings(keyStoreWrapper).build();
 
@@ -183,6 +181,18 @@ public final class CommandManagerSettings {
                 );
             }
         }
+    }
+
+
+    @Override
+    public String toString() {
+        return "CommandManagerSettings{" +
+                "keystore='" + keystore + '\'' +
+                ", authUsername='" + authUsername + '\'' +
+                ", authPassword='" + authPassword + '\'' +
+                ", uri='" + uri + '\'' +
+                ", authType='" + authType + '\'' +
+                '}';
     }
 }
 

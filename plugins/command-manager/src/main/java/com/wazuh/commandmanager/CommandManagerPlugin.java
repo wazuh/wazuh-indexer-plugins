@@ -52,7 +52,6 @@ public class CommandManagerPlugin extends Plugin implements ActionPlugin, Reload
     public static final String COMMANDS_URI = COMMAND_MANAGER_BASE_URI + "/commands";
     public static final String COMMAND_MANAGER_INDEX_NAME = ".commands";
     public static final String COMMAND_MANAGER_INDEX_TEMPLATE_NAME = "index-template-commands";
-    private static final Logger log = LogManager.getLogger(CommandManagerPlugin.class);
 
     private CommandIndex commandIndex;
     private CommandManagerSettings commandManagerSettings;
