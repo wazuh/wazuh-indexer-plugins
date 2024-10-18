@@ -8,6 +8,7 @@
 package com.wazuh.commandmanager.rest.action;
 
 import com.wazuh.commandmanager.CommandManagerJobParameter;
+import com.wazuh.commandmanager.CommandManagerJobRunner;
 import com.wazuh.commandmanager.CommandManagerPlugin;
 import com.wazuh.commandmanager.index.CommandIndex;
 import com.wazuh.commandmanager.model.Document;
@@ -115,50 +116,53 @@ public class RestPostCommandAction extends BaseRestHandler {
                         });
                 };
             case CommandManagerPlugin.COMMAND_MANAGER_SCHEDULER_URI:
-                // compose CommandManagerJobParameter object from restRequest
-                String id = restRequest.param("id");
-                String indexName = restRequest.param("index");
-                String jobName = restRequest.param("job_name");
-                String interval = restRequest.param("interval");
-                String lockDurationSecondsString = restRequest.param("lock_duration_seconds");
-                Long lockDurationSeconds = lockDurationSecondsString != null ? Long.parseLong(lockDurationSecondsString) : null;
-                if (id == null || indexName == null) {
-                    logger.error("Index: {}, id: {}", indexName, id);
-                    throw new IllegalArgumentException("Must specify id and index parameter");
-                }
-                CommandManagerJobParameter jobParameter = new CommandManagerJobParameter(
-                    jobName,
-                    indexName,
-                    new IntervalSchedule(Instant.now(), Integer.parseInt(interval), ChronoUnit.MINUTES),
-                    lockDurationSeconds
-                );
-                IndexRequest indexRequest = new IndexRequest().index(CommandManagerPlugin.JOB_INDEX_NAME)
-                    .id(id)
-                    .source(jobParameter.toXContent(JsonXContent.contentBuilder(), null))
-                    .setRefreshPolicy(WriteRequest.RefreshPolicy.IMMEDIATE);
-                return restChannel -> {
-                    // index the job parameter
-                    client.index(indexRequest, new ActionListener<IndexResponse>() {
-                        @Override
-                        public void onResponse(IndexResponse indexResponse) {
-                            try {
-                                RestResponse restResponse = new BytesRestResponse(
-                                    RestStatus.OK,
-                                    indexResponse.toXContent(JsonXContent.contentBuilder(), null)
-                                );
-                                restChannel.sendResponse(restResponse);
-                            } catch (IOException e) {
-                                restChannel.sendResponse(new BytesRestResponse(RestStatus.INTERNAL_SERVER_ERROR, e.getMessage()));
-                            }
-                        }
-
-                        @Override
-                        public void onFailure(Exception e) {
-                            restChannel.sendResponse(new BytesRestResponse(RestStatus.INTERNAL_SERVER_ERROR, e.getMessage()));
-                        }
-                    });
-                };
+                return createJob(client);
         }
         return null;
+    }
+
+    private static RestChannelConsumer createJob(NodeClient client) throws IOException {
+        String id = "test-id";
+        String indexName = "test-index";
+        String jobName = "test-job-name";
+        String interval = "1";
+        String lockDurationSecondsString = "1";
+        Long lockDurationSeconds = Long.parseLong(lockDurationSecondsString);
+
+        CommandManagerJobParameter jobParameter = new CommandManagerJobParameter(
+            jobName,
+            indexName,
+            new IntervalSchedule(Instant.now(), Integer.parseInt(interval), ChronoUnit.MINUTES),
+            lockDurationSeconds
+        );
+
+        IndexRequest indexRequest = new IndexRequest().index(CommandManagerPlugin.JOB_INDEX_NAME)
+            .id(id)
+            .source(jobParameter.toXContent(JsonXContent.contentBuilder(), null))
+            .setRefreshPolicy(WriteRequest.RefreshPolicy.IMMEDIATE);
+
+        return restChannel -> {
+            client.index(indexRequest, new ActionListener<>() {
+                @Override
+                public void onResponse(IndexResponse indexResponse) {
+                    try {
+                        RestResponse restResponse = new BytesRestResponse(
+                            RestStatus.OK,
+                            indexResponse.toXContent(JsonXContent.contentBuilder(), null)
+                        );
+                        restChannel.sendResponse(restResponse);
+                    } catch (IOException e) {
+                        restChannel.sendResponse(new BytesRestResponse(RestStatus.INTERNAL_SERVER_ERROR, e.getMessage()));
+                    }
+                    logger.info("Scheduled job {}", jobName);
+                }
+
+                @Override
+                public void onFailure(Exception e) {
+                    restChannel.sendResponse(new BytesRestResponse(RestStatus.INTERNAL_SERVER_ERROR, e.getMessage()));
+                    logger.error("Failed to schedule job {}, exception: {}", jobName, e.getMessage());
+                }
+            });
+        };
     }
 }

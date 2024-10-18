@@ -85,9 +85,7 @@ public class CommandManagerPlugin extends Plugin implements ActionPlugin, JobSch
 
         // JobSchedulerExtension stuff
         CommandManagerJobRunner jobRunner = CommandManagerJobRunner.getJobRunnerInstance();
-        jobRunner.setClusterService(clusterService);
         jobRunner.setThreadPool(threadPool);
-        jobRunner.setClient(client);
 
         // HttpRestClient stuff
         String uri = "https://httpbin.org/post";
@@ -122,11 +120,13 @@ public class CommandManagerPlugin extends Plugin implements ActionPlugin, JobSch
 
     @Override
     public ScheduledJobRunner getJobRunner() {
+        log.info("getJobRunner() executed");
         return CommandManagerJobRunner.getJobRunnerInstance();
     }
 
     @Override
     public ScheduledJobParser getJobParser() {
+        log.info("getJobParser() executed");
         return (parser, id, jobDocVersion) -> {
             CommandManagerJobParameter jobParameter = new CommandManagerJobParameter();
             XContentParserUtils.ensureExpectedToken(
@@ -153,12 +153,6 @@ public class CommandManagerPlugin extends Plugin implements ActionPlugin, JobSch
                         break;
                     case CommandManagerJobParameter.SCHEDULE_FIELD:
                         jobParameter.setSchedule(ScheduleParser.parse(parser));
-                        break;
-                    case CommandManagerJobParameter.LOCK_DURATION_SECONDS:
-                        jobParameter.setLockDurationSeconds(parser.longValue());
-                        break;
-                    case CommandManagerJobParameter.INDEX_NAME_FIELD:
-                        jobParameter.setIndexToWatch(parser.text());
                         break;
                     default:
                         XContentParserUtils.throwUnknownToken(parser.currentToken(), parser.getTokenLocation());

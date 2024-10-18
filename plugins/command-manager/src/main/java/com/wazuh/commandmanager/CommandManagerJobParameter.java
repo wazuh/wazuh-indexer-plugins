@@ -38,7 +38,6 @@ public class CommandManagerJobParameter implements ScheduledJobParameter {
     private Schedule schedule;
     private String indexToWatch;
 
-    private Long lockDurationSeconds;
 
     public CommandManagerJobParameter() {}
 
@@ -46,7 +45,6 @@ public class CommandManagerJobParameter implements ScheduledJobParameter {
         this.jobName = name;
         this.indexToWatch = indexToWatch;
         this.schedule = schedule;
-        this.lockDurationSeconds = lockDurationSeconds;
 
         Instant now = Instant.now();
         this.isEnabled = true;
@@ -79,11 +77,6 @@ public class CommandManagerJobParameter implements ScheduledJobParameter {
     }
 
     @Override
-    public Long getLockDurationSeconds() {
-        return lockDurationSeconds;
-    }
-
-    @Override
     public boolean isEnabled() {
         return this.isEnabled;
     }
@@ -110,14 +103,6 @@ public class CommandManagerJobParameter implements ScheduledJobParameter {
 
     public void setSchedule(Schedule schedule) {
         this.schedule = schedule;
-    }
-
-    public void setLockDurationSeconds(Long lockDurationSeconds) {
-        this.lockDurationSeconds = lockDurationSeconds;
-    }
-
-    public void setIndexToWatch(String indexToWatch) {
-        this.indexToWatch = indexToWatch;
     }
 
     @Override
