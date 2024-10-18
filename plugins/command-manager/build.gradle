@@ -1,3 +1,4 @@
+
 import org.opensearch.gradle.test.RestIntegTestTask
 
 buildscript {
@@ -75,7 +76,9 @@ def versions = [
     httpcore5: "5.3",
     slf4j: "1.7.36",
     log4j: "2.23.1",
-    conscrypt: "2.5.2"
+    conscrypt: "2.5.2",
+    mockito: "4.1.0",
+    junit:"4.13.2"
 ]
 
 dependencies {
@@ -85,6 +88,9 @@ dependencies {
     api "org.apache.logging.log4j:log4j-slf4j-impl:${versions.log4j}"
     api "org.slf4j:slf4j-api:${versions.slf4j}"
     api "org.conscrypt:conscrypt-openjdk-uber:${versions.conscrypt}"
+
+    testImplementation "org.mockito:mockito-inline:${versions.mockito}"
+    testImplementation "junit:junit:${versions.junit}"
 }
 
 // This requires an additional Jar not published as part of build-tools
@@ -108,6 +114,7 @@ repositories {
 
 test {
     include '**/*Tests.class'
+    jvmArgs "-Djava.security.policy=./plugins/command-manager/src/main/plugin-metadata/plugin-security.policy/plugin-security.policy"
 }
 
 task integTest(type: RestIntegTestTask) {
@@ -116,6 +123,53 @@ task integTest(type: RestIntegTestTask) {
     classpath = sourceSets.test.runtimeClasspath
 }
 tasks.named("check").configure { dependsOn(integTest) }
+
+
+//OPCION 1
+/*
+// needed to be consistent with ssl host checking
+String host = InetAddress.getLoopbackAddress().getHostAddress()
+
+// location of keystore and files to generate it
+File keystore = new File(project.buildDir, 'keystore/wazuh-indexer.keystore.jks')
+
+// generate the keystore
+
+TaskProvider createKey = tasks.register("createKey", LoggedExec) {
+    doFirst {
+        delete(keystore.parentFile)
+        keystore.parentFile.mkdirs()
+    }
+    outputs.file(keystore).withPropertyName('keystoreFile')
+    executable = "${BuildParams.runtimeJavaHome}/bin/keytool"
+    standardInput = new ByteArrayInputStream('FirstName LastName\nUnit\nOrganization\nCity\nState\nNL\nyes\n\n'.getBytes('UTF-8'))
+    args '-genkey',
+            '-alias', 'test-node',
+            '-keystore', keystore,
+            '-keyalg', 'RSA',
+            '-keysize', '2048',
+            '-validity', '712',
+            '-dname', 'CN=' + host,
+            '-keypass', 'keypass',
+            '-storepass', 'keypass'
+}
+
+//no unit tests
+tasks.named("test").configure { enabled = false }
+// add keystore to test classpath: it expects it there
+tasks.named("processInternalClusterTestResources").configure {
+    from createKey
+}
+
+normalization {
+    runtimeClasspath {
+        ignore 'test-node.jks'
+    }
+}
+
+ */
+
+//OPCION 2
 
 integTest {
     // The --debug-jvm command-line option makes the cluster debuggable; this makes the tests debuggable
@@ -126,9 +180,15 @@ integTest {
 
 testClusters.integTest {
     testDistribution = "INTEG_TEST"
-
+    //testDistribution =  "ARCHIVE"
     // This installs our plugin into the testClusters
     plugin(project.tasks.bundlePlugin.archiveFile)
+
+    // add customized keystore
+    keystore 'command.manager.keystore', new File("$projectDir/src/test/resources/", 'wazuh-indexer.keystore.json')
+    keystore 'command.manager.auth.username', 'admin'
+    keystore 'command.manager.auth.password', 'test'
+
 }
 
 run {
