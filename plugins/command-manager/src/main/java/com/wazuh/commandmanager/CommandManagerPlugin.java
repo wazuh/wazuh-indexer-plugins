@@ -8,9 +8,6 @@
  */
 package com.wazuh.commandmanager;
 
-import com.wazuh.commandmanager.settings.CommandManagerSettings;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
 import org.opensearch.client.Client;
 import org.opensearch.cluster.metadata.IndexNameExpressionResolver;
 import org.opensearch.cluster.node.DiscoveryNodes;
@@ -39,6 +36,7 @@ import java.util.function.Supplier;
 
 import com.wazuh.commandmanager.index.CommandIndex;
 import com.wazuh.commandmanager.rest.RestPostCommandAction;
+import com.wazuh.commandmanager.settings.CommandManagerSettings;
 import com.wazuh.commandmanager.utils.httpclient.HttpRestClient;
 import com.wazuh.commandmanager.utils.httpclient.HttpRestClientDemo;
 
@@ -99,16 +97,16 @@ public class CommandManagerPlugin extends Plugin implements ActionPlugin, Reload
                 CommandManagerSettings.AUTH_USERNAME,
                 CommandManagerSettings.AUTH_PASSWORD,
                 CommandManagerSettings.URI,
-                CommandManagerSettings.AUTH_TYPE
-        );
+                CommandManagerSettings.AUTH_TYPE);
     }
 
     @Override
     public void reload(Settings settings) {
         // secure settings should be readable
-        //final CommandManagerSettings commandManagerSettings = CommandManagerSettings.getClientSettings(secureSettingsPassword);
-        //I don't know what I have to do when we want to reload the settings already
-        //xxxService.refreshAndClearCache(commandManagerSettings);
+        // final CommandManagerSettings commandManagerSettings =
+        // CommandManagerSettings.getClientSettings(secureSettingsPassword);
+        // I don't know what I have to do when we want to reload the settings already
+        // xxxService.refreshAndClearCache(commandManagerSettings);
     }
 
     /**

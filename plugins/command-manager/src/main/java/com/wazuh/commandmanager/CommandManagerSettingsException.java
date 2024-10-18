@@ -1,4 +1,5 @@
 /*
+ * Copyright OpenSearch Contributors
  * SPDX-License-Identifier: Apache-2.0
  *
  * The OpenSearch Contributors require contributions made to
@@ -6,7 +7,6 @@
  * compatible open source license.
  */
 package com.wazuh.commandmanager;
-
 
 public class CommandManagerSettingsException extends Exception {
 
@@ -32,22 +32,25 @@ public class CommandManagerSettingsException extends Exception {
 
     // Exception for the case when the keystore does not exist
     public static CommandManagerSettingsException keystoreNotExist(String keystorePath) {
-        return new CommandManagerSettingsException("The keystore does not exist at the path: " + keystorePath);
+        return new CommandManagerSettingsException(
+                "The keystore does not exist at the path: " + keystorePath);
     }
 
     // Exception for the case when the keystore is empty
     public static CommandManagerSettingsException keystoreEmpty(String keystorePath) {
-        return new CommandManagerSettingsException("The keystore is empty at the path: " + keystorePath);
+        return new CommandManagerSettingsException(
+                "The keystore is empty at the path: " + keystorePath);
     }
 
     // Exception for the case when load keystore failed
     public static CommandManagerSettingsException loadKeystoreFailed(String keyStorePath) {
-        return new CommandManagerSettingsException("Load keystore: "+ keyStorePath +" failed.");
+        return new CommandManagerSettingsException("Load keystore: " + keyStorePath + " failed.");
     }
 
     // Exception for the case when load keystore failed
     public static CommandManagerSettingsException decryptKeystoreFailed(String keyStorePath) {
-        return new CommandManagerSettingsException("Decrypt keystore: "+ keyStorePath +" failed.");
+        return new CommandManagerSettingsException(
+                "Decrypt keystore: " + keyStorePath + " failed.");
     }
 
     // Exception for the case when reload plugin with the keystore failed
@@ -55,4 +58,3 @@ public class CommandManagerSettingsException extends Exception {
         return new CommandManagerSettingsException("Reload failed for plugin: " + pluginName);
     }
 }
-
