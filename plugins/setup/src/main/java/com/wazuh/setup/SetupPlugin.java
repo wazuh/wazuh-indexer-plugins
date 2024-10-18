@@ -1,4 +1,5 @@
 /*
+ * Copyright OpenSearch Contributors
  * SPDX-License-Identifier: Apache-2.0
  *
  * The OpenSearch Contributors require contributions made to
@@ -7,7 +8,6 @@
  */
 package com.wazuh.setup;
 
-import com.wazuh.setup.index.WazuhIndices;
 import org.opensearch.client.Client;
 import org.opensearch.cluster.metadata.IndexNameExpressionResolver;
 import org.opensearch.cluster.node.DiscoveryNode;
@@ -27,20 +27,18 @@ import java.util.Collection;
 import java.util.List;
 import java.util.function.Supplier;
 
+import com.wazuh.setup.index.WazuhIndices;
+
 /**
- * Main class of the Indexer Setup plugin. This plugin is responsible for
- * the creation of the index templates and indices required by Wazuh to
- * work properly.
+ * Main class of the Indexer Setup plugin. This plugin is responsible for the creation of the index
+ * templates and indices required by Wazuh to work properly.
  */
 public class SetupPlugin extends Plugin implements ClusterPlugin {
 
     private WazuhIndices indices;
 
-    /**
-     * Default constructor
-     */
-    public SetupPlugin() {
-    }
+    /** Default constructor */
+    public SetupPlugin() {}
 
     @Override
     public Collection<Object> createComponents(
@@ -54,8 +52,7 @@ public class SetupPlugin extends Plugin implements ClusterPlugin {
             NodeEnvironment nodeEnvironment,
             NamedWriteableRegistry namedWriteableRegistry,
             IndexNameExpressionResolver indexNameExpressionResolver,
-            Supplier<RepositoriesService> repositoriesServiceSupplier
-    ) {
+            Supplier<RepositoriesService> repositoriesServiceSupplier) {
         this.indices = new WazuhIndices(client, clusterService);
         return List.of(this.indices);
     }

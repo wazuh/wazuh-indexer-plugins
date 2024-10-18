@@ -1,4 +1,5 @@
 /*
+ * Copyright OpenSearch Contributors
  * SPDX-License-Identifier: Apache-2.0
  *
  * The OpenSearch Contributors require contributions made to
@@ -15,9 +16,7 @@ import org.opensearch.core.xcontent.XContentParser;
 import java.io.IOException;
 import java.util.List;
 
-/**
- * Command's target fields.
- */
+/** Command's target fields. */
 public class Document implements ToXContentObject {
     private final Agent agent;
     private final Command command;
@@ -74,9 +73,6 @@ public class Document implements ToXContentObject {
 
     @Override
     public String toString() {
-        return "Document{" +
-                "agent=" + agent +
-                ", command=" + command +
-                '}';
+        return "Document{" + "agent=" + agent + ", command=" + command + '}';
     }
 }

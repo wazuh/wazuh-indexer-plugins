@@ -1,4 +1,5 @@
 /*
+ * Copyright OpenSearch Contributors
  * SPDX-License-Identifier: Apache-2.0
  *
  * The OpenSearch Contributors require contributions made to
@@ -7,9 +8,6 @@
  */
 package com.wazuh.commandmanager.index;
 
-import com.wazuh.commandmanager.CommandManagerPlugin;
-import com.wazuh.commandmanager.model.Document;
-import com.wazuh.commandmanager.utils.IndexTemplateUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.opensearch.action.admin.indices.template.put.PutIndexTemplateRequest;
@@ -31,12 +29,14 @@ import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
 
-/**
- * Class to manage the Command Manager index and index template.
- */
+import com.wazuh.commandmanager.CommandManagerPlugin;
+import com.wazuh.commandmanager.model.Document;
+import com.wazuh.commandmanager.utils.IndexTemplateUtils;
+
+/** Class to manage the Command Manager index and index template. */
 public class CommandIndex implements IndexingOperationListener {
 
-    private static final Logger logger = LogManager.getLogger(CommandIndex.class);
+    private static final Logger log = LogManager.getLogger(CommandIndex.class);
 
     private final Client client;
     private final ClusterService clusterService;
@@ -45,9 +45,9 @@ public class CommandIndex implements IndexingOperationListener {
     /**
      * Default constructor
      *
-     * @param client         OpenSearch client.
+     * @param client OpenSearch client.
      * @param clusterService OpenSearch cluster service.
-     * @param threadPool     An OpenSearch ThreadPool.
+     * @param threadPool An OpenSearch ThreadPool.
      */
     public CommandIndex(Client client, ClusterService clusterService, ThreadPool threadPool) {
         this.client = client;
@@ -67,32 +67,33 @@ public class CommandIndex implements IndexingOperationListener {
         if (!indexTemplateExists(CommandManagerPlugin.COMMAND_MANAGER_INDEX_TEMPLATE_NAME)) {
             putIndexTemplate(CommandManagerPlugin.COMMAND_MANAGER_INDEX_TEMPLATE_NAME);
         } else {
-            logger.info(
+            log.info(
                     "Index template {} already exists. Skipping creation.",
-                    CommandManagerPlugin.COMMAND_MANAGER_INDEX_TEMPLATE_NAME
-            );
+                    CommandManagerPlugin.COMMAND_MANAGER_INDEX_TEMPLATE_NAME);
         }
 
-        logger.debug("Indexing command {}", document);
+        log.info("Indexing command with id [{}]", document.getId());
         try {
-            IndexRequest request = new IndexRequest()
-                    .index(CommandManagerPlugin.COMMAND_MANAGER_INDEX_NAME)
-                    .source(document.toXContent(XContentFactory.jsonBuilder(), ToXContent.EMPTY_PARAMS))
-                    .id(document.getId())
-                    .create(true);
+            IndexRequest request =
+                    new IndexRequest()
+                            .index(CommandManagerPlugin.COMMAND_MANAGER_INDEX_NAME)
+                            .source(
+                                    document.toXContent(
+                                            XContentFactory.jsonBuilder(), ToXContent.EMPTY_PARAMS))
+                            .id(document.getId())
+                            .create(true);
             executor.submit(
                     () -> {
-                        try (ThreadContext.StoredContext ignored = this.threadPool.getThreadContext().stashContext()) {
+                        try (ThreadContext.StoredContext ignored =
+                                this.threadPool.getThreadContext().stashContext()) {
                             RestStatus restStatus = client.index(request).actionGet().status();
                             future.complete(restStatus);
                         } catch (Exception e) {
                             future.completeExceptionally(e);
                         }
-                    }
-            );
+                    });
         } catch (IOException e) {
-            logger.error(
-                    "Failed to index command with ID {}: {}", document.getId(), e);
+            log.error("Error indexing command with id [{}] due to {}", document.getId(), e);
         }
         return future;
     }
@@ -104,11 +105,9 @@ public class CommandIndex implements IndexingOperationListener {
      * @return whether the index template exists.
      */
     public boolean indexTemplateExists(String template_name) {
-        Map<String, IndexTemplateMetadata> templates = this.clusterService
-                .state()
-                .metadata()
-                .templates();
-        logger.debug("Existing index templates: {} ", templates);
+        Map<String, IndexTemplateMetadata> templates =
+                this.clusterService.state().metadata().templates();
+        log.debug("Existing index templates: {} ", templates);
 
         return templates.containsKey(template_name);
     }
@@ -124,28 +123,28 @@ public class CommandIndex implements IndexingOperationListener {
             // @throws IOException
             Map<String, Object> template = IndexTemplateUtils.fromFile(templateName + ".json");
 
-            PutIndexTemplateRequest putIndexTemplateRequest = new PutIndexTemplateRequest()
-                    .mapping(IndexTemplateUtils.get(template, "mappings"))
-                    .settings(IndexTemplateUtils.get(template, "settings"))
-                    .name(templateName)
-                    .patterns((List<String>) template.get("index_patterns"));
+            PutIndexTemplateRequest putIndexTemplateRequest =
+                    new PutIndexTemplateRequest()
+                            .mapping(IndexTemplateUtils.get(template, "mappings"))
+                            .settings(IndexTemplateUtils.get(template, "settings"))
+                            .name(templateName)
+                            .patterns((List<String>) template.get("index_patterns"));
 
-            executor.submit(() -> {
-                AcknowledgedResponse acknowledgedResponse = this.client
-                        .admin()
-                        .indices()
-                        .putTemplate(putIndexTemplateRequest)
-                        .actionGet();
-                if (acknowledgedResponse.isAcknowledged()) {
-                    logger.info(
-                            "Index template created successfully: {}",
-                            templateName
-                    );
-                }
-            });
+            executor.submit(
+                    () -> {
+                        AcknowledgedResponse acknowledgedResponse =
+                                this.client
+                                        .admin()
+                                        .indices()
+                                        .putTemplate(putIndexTemplateRequest)
+                                        .actionGet();
+                        if (acknowledgedResponse.isAcknowledged()) {
+                            log.info("Index template [{}] created successfully", templateName);
+                        }
+                    });
 
         } catch (IOException e) {
-            logger.error("Error reading index template from filesystem {}", templateName);
+            log.error("Error reading index template [{}] from filesystem", templateName);
         }
     }
 }

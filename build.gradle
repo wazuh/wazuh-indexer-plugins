@@ -1,0 +1,25 @@
+/*
+ * Copyright OpenSearch Contributors
+ * SPDX-License-Identifier: Apache-2.0
+ *
+ * The OpenSearch Contributors require contributions made to
+ * this file be licensed under the Apache-2.0 license or a
+ * compatible open source license.
+ */
+plugins { id "com.diffplug.spotless" version "6.25.0" }
+repositories { mavenCentral() }
+
+apply plugin: 'java'
+apply from: 'gradle/formatting.gradle'
+
+task installLocalGitHook(type: Copy){
+    from new File(rootProject.rootDir, 'scripts/pre-commit')
+    into { new File(rootProject.rootDir, '.git/hooks')}
+    fileMode 0775
+}
+
+// Install git pre-commit hook on the project.
+build.dependsOn installLocalGitHook
+
+// Add the spotlessCheck to gradle check
+check.dependsOn spotlessCheck

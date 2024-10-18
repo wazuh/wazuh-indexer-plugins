@@ -1,10 +1,10 @@
 {
-  "_plugins._commandmanager": {
+  "_plugins._command_manager": {
     "stability" : "stable",
     "url": {
       "paths": [
         {
-          "path": "/_plugins/_commandmanager",
+          "path": "/_plugins/_command_manager/commands",
           "methods": [
             "POST"
           ]

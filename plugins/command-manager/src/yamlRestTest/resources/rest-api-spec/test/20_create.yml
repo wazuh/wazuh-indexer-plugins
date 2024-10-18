@@ -1,21 +1,20 @@
 ---
 "Create command":
     - do:
-          _plugins._commandmanager:
+          _plugins._command_manager:
               body:
-                  command:
-                      source: "Users/Services"
-                      user: "user13"
-                      target: {
-                          id: "target4",
-                          type: "agent"
-                      }
-                      action: {
-                          name: "change_group",
-                          args: [ "/path/to/executable/arg8" ],
-                          version: "v4"
-                      }
-                      timeout: 100
+                  source: "Users/Services"
+                  user: "user13"
+                  target: {
+                      id: "target4",
+                      type: "agent"
+                  }
+                  action: {
+                      name: "change_group",
+                      args: [ "/path/to/executable/arg8" ],
+                      version: "v4"
+                  }
+                  timeout: 100
 
     - set: { _id: document_id }
     - match: { _index: .commands }

@@ -1,4 +1,5 @@
 /*
+ * Copyright OpenSearch Contributors
  * SPDX-License-Identifier: Apache-2.0
  *
  * The OpenSearch Contributors require contributions made to
@@ -13,9 +14,7 @@ import org.opensearch.core.xcontent.XContentParser;
 
 import java.io.IOException;
 
-/**
- * Command's target fields.
- */
+/** Command's target fields. */
 public class Target implements ToXContentObject {
     public static final String TARGET = "target";
     public static final String TYPE = "type";
@@ -27,7 +26,7 @@ public class Target implements ToXContentObject {
      * Default constructor.
      *
      * @param type The destination type. One of [`group`, `agent`, `server`]
-     * @param id   Unique identifier of the destination to send the command to.
+     * @param id Unique identifier of the destination to send the command to.
      */
     public Target(String type, String id) {
         this.type = type;
@@ -72,9 +71,6 @@ public class Target implements ToXContentObject {
 
     @Override
     public String toString() {
-        return "Target{" +
-                "type='" + type + '\'' +
-                ", id='" + id + '\'' +
-                '}';
+        return "Target{" + "type='" + type + '\'' + ", id='" + id + '\'' + '}';
     }
 }
