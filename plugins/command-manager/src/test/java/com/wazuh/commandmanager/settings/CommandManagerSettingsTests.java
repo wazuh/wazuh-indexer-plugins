@@ -77,11 +77,10 @@ public class CommandManagerSettingsTests extends OpenSearchIntegTestCase {
                                     log.warn("test INSIDE+EE");
 
                                     this.commandManagerSettings =
-                                            CommandManagerSettings.getSettings(mockEnvironment);
+                                            CommandManagerSettings.getSettings(mockEnvironment, null);
 
                                     assertNotNull(commandManagerSettings);
-                                    log.warn("keystore INSIDE" + commandManagerSettings.keystore);
-                                    // verify(keyStoreWrapper,
+                                    log.info("Plugin settings: {}", commandManagerSettings.toString());                                    // verify(keyStoreWrapper,
                                     // times(1)).decrypt(secureString.getChars());
                                 } catch (IOException e) {
                                     log.warn("ERROR TEST: " + e.getMessage());
