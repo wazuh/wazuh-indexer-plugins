@@ -93,7 +93,6 @@ public final class CommandManagerSettings {
             return null;
         } else {
             // Decrypt the keystore using the password from the request
-
             try {
                 log.info("Decrypting the keystore.");
                 if (secureSettingsPassword == null || secureSettingsPassword.length() == 0) {
