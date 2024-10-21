@@ -124,7 +124,7 @@ public class RestPostCommandAction extends BaseRestHandler {
     private static RestChannelConsumer createJob(NodeClient client) throws IOException {
         String id = "test-id";
         String indexName = "test-index";
-        String jobName = "test-job-name";
+        String jobName = "command_manager_scheduler_extension";
         String interval = "1";
         String lockDurationSecondsString = "1";
         Long lockDurationSeconds = Long.parseLong(lockDurationSecondsString);

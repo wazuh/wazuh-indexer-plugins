@@ -46,26 +46,29 @@ public class CommandManagerJobRunner implements ScheduledJobRunner {
 
     @Override
     public void runJob(ScheduledJobParameter jobParameter, JobExecutionContext context) {
-        final LockService lockService = context.getLockService();
         Runnable runnable = () -> {
-            lockService.acquireLock(jobParameter, context, ActionListener.wrap(
-                lock -> {
-                    log.info("Running Job");
-                    lockService.release(
-                        lock,
-                        ActionListener.wrap(
-                            released -> {
-                                log.info("Released lock for job {}", jobParameter.getName());
-                            }, exception -> {
-                                throw new IllegalStateException("Failed to release lock");
-                            }
-                        )
-                    );
-                }, exception -> {
-                    throw new IllegalStateException("Failed to acquire lock");
-                }
-            ));
+            log.info("Running job");
         };
+        //final LockService lockService = context.getLockService();
+        //Runnable runnable = () -> {
+        //    lockService.acquireLock(jobParameter, context, ActionListener.wrap(
+        //        lock -> {
+        //            log.info("Running Job");
+        //            lockService.release(
+        //                lock,
+        //                ActionListener.wrap(
+        //                    released -> {
+        //                        log.info("Released lock for job {}", jobParameter.getName());
+        //                    }, exception -> {
+        //                        throw new IllegalStateException("Failed to release lock");
+        //                    }
+        //                )
+        //            );
+        //        }, exception -> {
+        //            throw new IllegalStateException("Failed to acquire lock");
+        //        }
+        //    ));
+        //};
         threadPool.generic().submit(runnable);
     }
 }
