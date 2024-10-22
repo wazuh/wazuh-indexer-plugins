@@ -103,7 +103,7 @@ public class CommandManagerPlugin extends Plugin implements ActionPlugin, JobSch
         jobRunner.setThreadPool(threadPool);
 
         clusterService.addListener(event -> {
-            if(event.localNodeClusterManager()) {
+            if(event.localNodeClusterManager() && event.isNewCluster()) {
                 jobDocument = JobDocument.getInstance();
                 CompletableFuture<IndexResponse> indexResponseCompletableFuture = jobDocument.create(client, threadPool, UUIDs.base64UUID(), getJobType(), JOB_PERIOD_MINUTES);
                 indexResponseCompletableFuture.thenAccept(
