@@ -28,15 +28,15 @@ public final class CommandManagerSettings {
 
     /** The access key (ie login username) for connecting to api. */
     public static final Setting<SecureString> M_API_USERNAME =
-            SecureSetting.secureString("command.manager.auth.username", null);
+            SecureSetting.secureString("m.api.username", null);
 
     /** The secret key (ie password) for connecting to api. */
     public static final Setting<SecureString> M_API_PASSWORD =
-            SecureSetting.secureString("command.manager.auth.password", null);
+            SecureSetting.secureString("m.api.password", null);
 
     /** The uri for connecting to api. */
     public static final Setting<SecureString> M_API_URI =
-            SecureSetting.secureString("command.manager.uri", null);
+            SecureSetting.secureString("m.api.uri", null);
 
 
     private static final Logger log = LogManager.getLogger(CommandManagerSettings.class);
