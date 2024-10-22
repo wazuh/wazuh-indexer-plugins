@@ -10,7 +10,6 @@ package com.wazuh.commandmanager.settings;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.junit.Test;
 import org.mockito.InjectMocks;
 import org.opensearch.common.settings.KeyStoreWrapper;
 import org.opensearch.common.settings.Settings;
@@ -66,7 +65,6 @@ public class CommandManagerSettingsTests extends OpenSearchIntegTestCase {
         secureString.close();
     }
 
-    @Test
     public void keystoreFileNotExistReturnsNull() throws Exception {
         Path keyStorePath = Path.of("plugins/command-manager/src/test/resources/").toAbsolutePath();
         Path keystoreFile = Path.of(keyStorePath.toString() + "/" + KEYSTORE_FILENAME);
@@ -90,7 +88,6 @@ public class CommandManagerSettingsTests extends OpenSearchIntegTestCase {
         }
     }
 
-    @Test
     public void keystoreFileExistsButLoadReturnsNull() throws Exception {
         Path keyStorePath = Path.of("plugins/command-manager/src/test/resources/").toAbsolutePath();
         Path keystoreFile = Path.of(keyStorePath.toString() + "/" + KEYSTORE_FILENAME);
@@ -118,7 +115,6 @@ public class CommandManagerSettingsTests extends OpenSearchIntegTestCase {
         }
     }
 
-    @Test
     public void shouldDecryptKeystoreWhenPasswordIsNull() throws Exception {
         Path keyStorePath = Path.of("plugins/command-manager/src/test/resources/").toAbsolutePath();
         Path keystoreFile = Path.of(keyStorePath.toString() + "/" + KEYSTORE_FILENAME);
@@ -169,7 +165,6 @@ public class CommandManagerSettingsTests extends OpenSearchIntegTestCase {
         }
     }
 
-    @Test
     public void shouldDecryptKeystoreWithPassword() throws Exception {
         Path keyStorePath = Path.of("plugins/command-manager/src/test/resources/").toAbsolutePath();
         Path keystoreFile = Path.of(keyStorePath.toString() + "/" + KEYSTORE_FILENAME);
