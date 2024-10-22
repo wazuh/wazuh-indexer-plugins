@@ -20,6 +20,8 @@ import org.apache.logging.log4j.Logger;
 import org.opensearch.action.index.IndexRequest;
 import org.opensearch.action.index.IndexResponse;
 import org.opensearch.client.Client;
+import org.opensearch.cluster.ClusterChangedEvent;
+import org.opensearch.cluster.ClusterStateListener;
 import org.opensearch.cluster.metadata.IndexNameExpressionResolver;
 import org.opensearch.cluster.node.DiscoveryNodes;
 import org.opensearch.cluster.service.ClusterService;
@@ -78,6 +80,7 @@ public class CommandManagerPlugin extends Plugin implements ActionPlugin, JobSch
     private static final Logger log = LogManager.getLogger(CommandManagerPlugin.class);
 
     private CommandIndex commandIndex;
+    private JobDocument jobDocument;
 
     @Override
     public Collection<Object> createComponents(
@@ -98,7 +101,18 @@ public class CommandManagerPlugin extends Plugin implements ActionPlugin, JobSch
         // JobSchedulerExtension stuff
         CommandManagerJobRunner jobRunner = CommandManagerJobRunner.getJobRunnerInstance();
         jobRunner.setThreadPool(threadPool);
-        JobDocument.create(client, threadPool, UUIDs.base64UUID(), getJobType(), CommandManagerPlugin.JOB_PERIOD_MINUTES);
+
+        clusterService.addListener(event -> {
+            if(event.localNodeClusterManager()) {
+                jobDocument = JobDocument.getInstance();
+                CompletableFuture<IndexResponse> indexResponseCompletableFuture = jobDocument.create(client, threadPool, UUIDs.base64UUID(), getJobType(), JOB_PERIOD_MINUTES);
+                indexResponseCompletableFuture.thenAccept(
+                    indexResponse -> {
+                        log.info("Scheduled task successfully, response: {}", indexResponse.getResult().toString());
+                    }
+                );
+            }
+        });
 
         // HttpRestClient stuff
         String uri = "https://httpbin.org/post";

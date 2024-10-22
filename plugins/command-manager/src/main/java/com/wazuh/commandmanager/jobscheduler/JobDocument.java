@@ -19,8 +19,26 @@ import java.util.concurrent.ExecutorService;
 
 public class JobDocument {
     private static final Logger log = LogManager.getLogger(JobDocument.class);
+    private static JobDocument INSTANCE;
 
-    public static void create(Client client, ThreadPool threadPool, String id, String jobName, Integer interval) {
+    private JobDocument() {
+    }
+
+    public static JobDocument getInstance() {
+        log.info("Getting JobDocument Instance");
+        if (INSTANCE != null) {
+            return INSTANCE;
+        }
+        synchronized (JobDocument.class) {
+            if (INSTANCE != null) {
+                return INSTANCE;
+            }
+            INSTANCE = new JobDocument();
+            return INSTANCE;
+        }
+    }
+
+    public CompletableFuture<IndexResponse> create(Client client, ThreadPool threadPool, String id, String jobName, Integer interval) {
         CompletableFuture<IndexResponse> completableFuture = new CompletableFuture<>();
         ExecutorService executorService = threadPool.executor(ThreadPool.Names.WRITE);
         CommandManagerJobParameter jobParameter = new CommandManagerJobParameter(
@@ -46,5 +64,6 @@ public class JobDocument {
         } catch (IOException e) {
             log.error("Failed to index command with ID {}: {}", id, e);
         }
+        return completableFuture;
     }
 }
