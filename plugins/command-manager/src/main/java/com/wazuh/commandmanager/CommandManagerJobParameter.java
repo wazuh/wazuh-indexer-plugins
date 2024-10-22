@@ -38,7 +38,6 @@ public class CommandManagerJobParameter implements ScheduledJobParameter {
     private Schedule schedule;
     private String indexToWatch;
 
-    private Long lockDurationSeconds;
 
     public CommandManagerJobParameter() {}
 
@@ -46,7 +45,6 @@ public class CommandManagerJobParameter implements ScheduledJobParameter {
         this.jobName = name;
         this.indexToWatch = indexToWatch;
         this.schedule = schedule;
-        this.lockDurationSeconds = lockDurationSeconds;
 
         Instant now = Instant.now();
         this.isEnabled = true;
@@ -79,11 +77,6 @@ public class CommandManagerJobParameter implements ScheduledJobParameter {
     }
 
     @Override
-    public Long getLockDurationSeconds() {
-        return lockDurationSeconds;
-    }
-
-    @Override
     public boolean isEnabled() {
         return this.isEnabled;
     }
@@ -112,21 +105,12 @@ public class CommandManagerJobParameter implements ScheduledJobParameter {
         this.schedule = schedule;
     }
 
-    public void setLockDurationSeconds(Long lockDurationSeconds) {
-        this.lockDurationSeconds = lockDurationSeconds;
-    }
-
-    public void setIndexToWatch(String indexToWatch) {
-        this.indexToWatch = indexToWatch;
-    }
-
     @Override
     public XContentBuilder toXContent(XContentBuilder builder, Params params) throws IOException {
         builder.startObject();
         builder.field(NAME_FIELD, this.jobName);
         builder.field(ENABLED_FIELD, this.isEnabled);
         builder.field(SCHEDULE_FIELD, this.schedule);
-        builder.field(INDEX_NAME_FIELD, this.indexToWatch);
         if (this.enabledTime != null) {
             builder.timeField(ENABLED_TIME_FIELD, ENABLED_TIME_FIELD_READABLE, this.enabledTime.toEpochMilli());
         }
