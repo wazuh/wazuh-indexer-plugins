@@ -29,7 +29,7 @@ import static org.opensearch.rest.RestRequest.Method.POST;
 
 /**
  * Handles HTTP requests to the POST
- * {@value com.wazuh.commandmanager.CommandManagerPlugin#COMMAND_MANAGER_BASE_URI}
+ * {@value CommandManagerPlugin#COMMAND_MANAGER_BASE_URI}
  * endpoint.
  */
 public class RestPostCommandAction extends BaseRestHandler {
@@ -104,10 +104,9 @@ public class RestPostCommandAction extends BaseRestHandler {
                             return null;
                         });
                 };
-            case CommandManagerPlugin.COMMAND_MANAGER_SCHEDULER_URI:
-                return createJob(nodeClient);
+            default:
+                throw new IllegalStateException("Unexpected value: " + restRequest.path());
         }
-        return null;
     }
 
 }
