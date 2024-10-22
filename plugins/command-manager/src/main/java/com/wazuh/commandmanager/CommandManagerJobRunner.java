@@ -28,6 +28,8 @@ public class CommandManagerJobRunner implements ScheduledJobRunner {
     }
 
     public static CommandManagerJobRunner getJobRunnerInstance() {
+
+        log.info("Getting Job Runner Instance");
         if (INSTANCE != null) {
             return INSTANCE;
         }
