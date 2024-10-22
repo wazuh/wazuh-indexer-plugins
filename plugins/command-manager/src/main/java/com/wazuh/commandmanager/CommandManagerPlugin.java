@@ -16,19 +16,18 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.opensearch.action.index.IndexRequest;
 import org.opensearch.action.index.IndexResponse;
-import org.opensearch.action.support.WriteRequest;
 import org.opensearch.client.Client;
 import org.opensearch.cluster.metadata.IndexNameExpressionResolver;
 import org.opensearch.cluster.node.DiscoveryNodes;
 import org.opensearch.cluster.service.ClusterService;
+import org.opensearch.common.UUIDs;
 import org.opensearch.common.settings.ClusterSettings;
 import org.opensearch.common.settings.IndexScopedSettings;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.common.settings.SettingsFilter;
+import org.opensearch.common.util.concurrent.ThreadContext;
 import org.opensearch.common.xcontent.json.JsonXContent;
-import org.opensearch.core.action.ActionListener;
 import org.opensearch.core.common.io.stream.NamedWriteableRegistry;
-import org.opensearch.core.rest.RestStatus;
 import org.opensearch.core.xcontent.NamedXContentRegistry;
 import org.opensearch.core.xcontent.XContentParser;
 import org.opensearch.core.xcontent.XContentParserUtils;
@@ -42,10 +41,7 @@ import org.opensearch.jobscheduler.spi.schedule.ScheduleParser;
 import org.opensearch.plugins.ActionPlugin;
 import org.opensearch.plugins.Plugin;
 import org.opensearch.repositories.RepositoriesService;
-import org.opensearch.rest.BytesRestResponse;
-import org.opensearch.rest.RestController;
-import org.opensearch.rest.RestHandler;
-import org.opensearch.rest.RestResponse;
+import org.opensearch.rest.*;
 import org.opensearch.script.ScriptService;
 import org.opensearch.threadpool.ThreadPool;
 import org.opensearch.watcher.ResourceWatcherService;
@@ -56,6 +52,8 @@ import java.time.temporal.ChronoUnit;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutorService;
 import java.util.function.Supplier;
 
 /**
@@ -72,6 +70,7 @@ public class CommandManagerPlugin extends Plugin implements ActionPlugin, JobSch
     public static final String COMMAND_MANAGER_INDEX_NAME = ".commands";
     public static final String COMMAND_MANAGER_INDEX_TEMPLATE_NAME = "index-template-commands";
     public static final String JOB_INDEX_NAME = ".scheduled-commands";
+    public static final Integer JOB_PERIOD_MINUTES = 1;
 
     private static final Logger log = LogManager.getLogger(CommandManagerPlugin.class);
 
@@ -79,23 +78,28 @@ public class CommandManagerPlugin extends Plugin implements ActionPlugin, JobSch
 
     @Override
     public Collection<Object> createComponents(
-            Client client,
-            ClusterService clusterService,
-            ThreadPool threadPool,
-            ResourceWatcherService resourceWatcherService,
-            ScriptService scriptService,
-            NamedXContentRegistry xContentRegistry,
-            Environment environment,
-            NodeEnvironment nodeEnvironment,
-            NamedWriteableRegistry namedWriteableRegistry,
-            IndexNameExpressionResolver indexNameExpressionResolver,
-            Supplier<RepositoriesService> repositoriesServiceSupplier
+        Client client,
+        ClusterService clusterService,
+        ThreadPool threadPool,
+        ResourceWatcherService resourceWatcherService,
+        ScriptService scriptService,
+        NamedXContentRegistry xContentRegistry,
+        Environment environment,
+        NodeEnvironment nodeEnvironment,
+        NamedWriteableRegistry namedWriteableRegistry,
+        IndexNameExpressionResolver indexNameExpressionResolver,
+        Supplier<RepositoriesService> repositoriesServiceSupplier
     ) {
         this.commandIndex = new CommandIndex(client, clusterService, threadPool);
 
         // JobSchedulerExtension stuff
         CommandManagerJobRunner jobRunner = CommandManagerJobRunner.getJobRunnerInstance();
         jobRunner.setThreadPool(threadPool);
+        try {
+            createJob(client, threadPool, UUIDs.base64UUID(), getJobType());
+        } catch (IOException e) {
+            log.error("Could not index job");
+        }
 
         // HttpRestClient stuff
         String uri = "https://httpbin.org/post";
@@ -107,13 +111,13 @@ public class CommandManagerPlugin extends Plugin implements ActionPlugin, JobSch
 
     @Override
     public List<RestHandler> getRestHandlers(
-            Settings settings,
-            RestController restController,
-            ClusterSettings clusterSettings,
-            IndexScopedSettings indexScopedSettings,
-            SettingsFilter settingsFilter,
-            IndexNameExpressionResolver indexNameExpressionResolver,
-            Supplier<DiscoveryNodes> nodesInCluster
+        Settings settings,
+        RestController restController,
+        ClusterSettings clusterSettings,
+        IndexScopedSettings indexScopedSettings,
+        SettingsFilter settingsFilter,
+        IndexNameExpressionResolver indexNameExpressionResolver,
+        Supplier<DiscoveryNodes> nodesInCluster
     ) {
         return Collections.singletonList(new RestPostCommandAction(this.commandIndex));
     }
@@ -140,9 +144,9 @@ public class CommandManagerPlugin extends Plugin implements ActionPlugin, JobSch
         return (parser, id, jobDocVersion) -> {
             CommandManagerJobParameter jobParameter = new CommandManagerJobParameter();
             XContentParserUtils.ensureExpectedToken(
-                    XContentParser.Token.START_OBJECT,
-                    parser.nextToken(),
-                    parser
+                XContentParser.Token.START_OBJECT,
+                parser.nextToken(),
+                parser
             );
 
             while (!parser.nextToken().equals(XContentParser.Token.END_OBJECT)) {
@@ -170,6 +174,35 @@ public class CommandManagerPlugin extends Plugin implements ActionPlugin, JobSch
             }
             return jobParameter;
         };
+    }
+
+    private void createJob(Client client, ThreadPool threadPool, String id, String jobName) throws IOException {
+        CompletableFuture<IndexResponse> completableFuture = new CompletableFuture<>();
+        ExecutorService executorService = threadPool.executor(ThreadPool.Names.WRITE);
+        CommandManagerJobParameter jobParameter = new CommandManagerJobParameter(
+            jobName,
+            new IntervalSchedule(Instant.now(), CommandManagerPlugin.JOB_PERIOD_MINUTES, ChronoUnit.MINUTES)
+        );
+        try {
+            IndexRequest indexRequest = new IndexRequest()
+                .index(CommandManagerPlugin.JOB_INDEX_NAME)
+                .id(id)
+                .source(jobParameter.toXContent(JsonXContent.contentBuilder(), null))
+                .create(true);
+            executorService.submit(
+                () -> {
+                    try (ThreadContext.StoredContext ignored = threadPool.getThreadContext().stashContext()) {
+                        IndexResponse indexResponse = client.index(indexRequest).actionGet();
+                        completableFuture.complete(indexResponse);
+                    } catch (Exception e) {
+                        completableFuture.completeExceptionally(e);
+                    }
+                }
+            );
+        } catch (IOException e) {
+            log.error(
+                "Failed to index command with ID {}: {}", id, e);
+        }
     }
 
     private Instant parseInstantValue(XContentParser parser) throws IOException {

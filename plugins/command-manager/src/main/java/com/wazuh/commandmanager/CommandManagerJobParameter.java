@@ -14,36 +14,26 @@ import org.opensearch.jobscheduler.spi.schedule.Schedule;
 import java.io.IOException;
 import java.time.Instant;
 
-/**
- * A sample job parameter.
- * <p>
- * It adds "indexToWatch" field to {@link ScheduledJobParameter}, which stores the index
- * the job runner will watch.
- */
 public class CommandManagerJobParameter implements ScheduledJobParameter {
     public static final String NAME_FIELD = "name";
     public static final String ENABLED_FIELD = "enabled";
     public static final String LAST_UPDATE_TIME_FIELD = "last_update_time";
     public static final String LAST_UPDATE_TIME_FIELD_READABLE = "last_update_time_field";
     public static final String SCHEDULE_FIELD = "schedule";
-    public static final String LOCK_DURATION_SECONDS = "lock_duration_seconds";
     public static final String ENABLED_TIME_FIELD = "enabled_time";
     public static final String ENABLED_TIME_FIELD_READABLE = "enabled_time_field";
-    public static final String INDEX_NAME_FIELD = "index_name_to_watch";
 
     private String jobName;
     private Instant lastUpdateTime;
     private Instant enabledTime;
     private boolean isEnabled;
     private Schedule schedule;
-    private String indexToWatch;
 
 
     public CommandManagerJobParameter() {}
 
-    public CommandManagerJobParameter(String name, String indexToWatch, Schedule schedule, Long lockDurationSeconds) {
-        this.jobName = name;
-        this.indexToWatch = indexToWatch;
+    public CommandManagerJobParameter(String jobName, Schedule schedule) {
+        this.jobName = jobName;
         this.schedule = schedule;
 
         Instant now = Instant.now();
@@ -79,10 +69,6 @@ public class CommandManagerJobParameter implements ScheduledJobParameter {
     @Override
     public boolean isEnabled() {
         return this.isEnabled;
-    }
-
-    public String getIndexToWatch() {
-        return indexToWatch;
     }
 
     public void setJobName(String jobName) {

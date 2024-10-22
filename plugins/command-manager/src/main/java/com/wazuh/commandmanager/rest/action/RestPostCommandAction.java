@@ -88,7 +88,7 @@ public class RestPostCommandAction extends BaseRestHandler {
     @Override
     protected RestChannelConsumer prepareRequest(
             final RestRequest restRequest,
-            final NodeClient client
+            final NodeClient nodeClient
     ) throws IOException {
         // Get request details
         switch(restRequest.path()) {
@@ -116,53 +116,9 @@ public class RestPostCommandAction extends BaseRestHandler {
                         });
                 };
             case CommandManagerPlugin.COMMAND_MANAGER_SCHEDULER_URI:
-                return createJob(client);
+                return createJob(nodeClient);
         }
         return null;
     }
 
-    private static RestChannelConsumer createJob(NodeClient client) throws IOException {
-        String id = "test-id";
-        String indexName = "test-index";
-        String jobName = "command_manager_scheduler_extension";
-        String interval = "1";
-        String lockDurationSecondsString = "1";
-        Long lockDurationSeconds = Long.parseLong(lockDurationSecondsString);
-
-        CommandManagerJobParameter jobParameter = new CommandManagerJobParameter(
-            jobName,
-            indexName,
-            new IntervalSchedule(Instant.now(), Integer.parseInt(interval), ChronoUnit.MINUTES),
-            lockDurationSeconds
-        );
-
-        IndexRequest indexRequest = new IndexRequest().index(CommandManagerPlugin.JOB_INDEX_NAME)
-            .id(id)
-            .source(jobParameter.toXContent(JsonXContent.contentBuilder(), null))
-            .setRefreshPolicy(WriteRequest.RefreshPolicy.IMMEDIATE);
-
-        return restChannel -> {
-            client.index(indexRequest, new ActionListener<>() {
-                @Override
-                public void onResponse(IndexResponse indexResponse) {
-                    try {
-                        RestResponse restResponse = new BytesRestResponse(
-                            RestStatus.OK,
-                            indexResponse.toXContent(JsonXContent.contentBuilder(), null)
-                        );
-                        restChannel.sendResponse(restResponse);
-                    } catch (IOException e) {
-                        restChannel.sendResponse(new BytesRestResponse(RestStatus.INTERNAL_SERVER_ERROR, e.getMessage()));
-                    }
-                    logger.info("Scheduled job {}", jobName);
-                }
-
-                @Override
-                public void onFailure(Exception e) {
-                    restChannel.sendResponse(new BytesRestResponse(RestStatus.INTERNAL_SERVER_ERROR, e.getMessage()));
-                    logger.error("Failed to schedule job {}, exception: {}", jobName, e.getMessage());
-                }
-            });
-        };
-    }
 }
