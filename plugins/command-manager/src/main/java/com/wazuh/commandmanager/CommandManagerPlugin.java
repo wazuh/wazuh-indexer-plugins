@@ -9,6 +9,9 @@ package com.wazuh.commandmanager;
 
 
 import com.wazuh.commandmanager.index.CommandIndex;
+import com.wazuh.commandmanager.jobscheduler.CommandManagerJobParameter;
+import com.wazuh.commandmanager.jobscheduler.CommandManagerJobRunner;
+import com.wazuh.commandmanager.jobscheduler.JobDocument;
 import com.wazuh.commandmanager.rest.action.RestPostCommandAction;
 import com.wazuh.commandmanager.utils.httpclient.HttpRestClient;
 import com.wazuh.commandmanager.utils.httpclient.HttpRestClientDemo;
@@ -95,11 +98,7 @@ public class CommandManagerPlugin extends Plugin implements ActionPlugin, JobSch
         // JobSchedulerExtension stuff
         CommandManagerJobRunner jobRunner = CommandManagerJobRunner.getJobRunnerInstance();
         jobRunner.setThreadPool(threadPool);
-        try {
-            createJob(client, threadPool, UUIDs.base64UUID(), getJobType());
-        } catch (IOException e) {
-            log.error("Could not index job");
-        }
+        JobDocument.create(client, threadPool, UUIDs.base64UUID(), getJobType(), CommandManagerPlugin.JOB_PERIOD_MINUTES);
 
         // HttpRestClient stuff
         String uri = "https://httpbin.org/post";
@@ -176,34 +175,6 @@ public class CommandManagerPlugin extends Plugin implements ActionPlugin, JobSch
         };
     }
 
-    private void createJob(Client client, ThreadPool threadPool, String id, String jobName) throws IOException {
-        CompletableFuture<IndexResponse> completableFuture = new CompletableFuture<>();
-        ExecutorService executorService = threadPool.executor(ThreadPool.Names.WRITE);
-        CommandManagerJobParameter jobParameter = new CommandManagerJobParameter(
-            jobName,
-            new IntervalSchedule(Instant.now(), CommandManagerPlugin.JOB_PERIOD_MINUTES, ChronoUnit.MINUTES)
-        );
-        try {
-            IndexRequest indexRequest = new IndexRequest()
-                .index(CommandManagerPlugin.JOB_INDEX_NAME)
-                .id(id)
-                .source(jobParameter.toXContent(JsonXContent.contentBuilder(), null))
-                .create(true);
-            executorService.submit(
-                () -> {
-                    try (ThreadContext.StoredContext ignored = threadPool.getThreadContext().stashContext()) {
-                        IndexResponse indexResponse = client.index(indexRequest).actionGet();
-                        completableFuture.complete(indexResponse);
-                    } catch (Exception e) {
-                        completableFuture.completeExceptionally(e);
-                    }
-                }
-            );
-        } catch (IOException e) {
-            log.error(
-                "Failed to index command with ID {}: {}", id, e);
-        }
-    }
 
     private Instant parseInstantValue(XContentParser parser) throws IOException {
         if (XContentParser.Token.VALUE_NULL.equals(parser.currentToken())) {
