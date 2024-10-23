@@ -16,6 +16,7 @@ import org.opensearch.action.search.SearchResponse;
 import org.opensearch.client.Client;
 import org.opensearch.core.action.ActionListener;
 import org.opensearch.core.common.Strings;
+import org.opensearch.index.query.TermQueryBuilder;
 import org.opensearch.index.reindex.ScrollableHitSource;
 import org.opensearch.jobscheduler.spi.JobExecutionContext;
 import org.opensearch.jobscheduler.spi.ScheduledJobParameter;
@@ -58,24 +59,23 @@ public class CommandManagerJobRunner implements ScheduledJobRunner {
 
     private void searchJob(String index, Integer resultsPerPage) {
         SearchRequest searchRequest = new SearchRequest();
-            searchRequest
-                .source(new SearchSourceBuilder())
+        SearchSourceBuilder searchSourceBuilder = new SearchSourceBuilder();
+        TermQueryBuilder termQueryBuilder = new TermQueryBuilder("status","PENDING");
+        searchSourceBuilder.query(termQueryBuilder);
+        searchRequest
+                .source(searchSourceBuilder)
                 .indices(index);
-
         searchRequest.source().size(resultsPerPage);
         this.client.execute(SearchAction.INSTANCE, searchRequest, new ActionListener<SearchResponse>() {
             @Override
             public void onResponse(SearchResponse searchResponse) {
                 log.info(searchResponse.toString());
             }
-
             @Override
             public void onFailure(Exception e) {
                 log.error("Failed executing search: {}", e.getMessage());
             }
         });
-
-
     }
 
     @Override
@@ -84,26 +84,6 @@ public class CommandManagerJobRunner implements ScheduledJobRunner {
             log.info("Running job");
             searchJob(CommandManagerPlugin.COMMAND_MANAGER_INDEX_NAME, 10);
         };
-        //final LockService lockService = context.getLockService();
-        //Runnable runnable = () -> {
-        //    lockService.acquireLock(jobParameter, context, ActionListener.wrap(
-        //        lock -> {
-        //            log.info("Running Job");
-        //            lockService.release(
-        //                lock,
-        //                ActionListener.wrap(
-        //                    released -> {
-        //                        log.info("Released lock for job {}", jobParameter.getName());
-        //                    }, exception -> {
-        //                        throw new IllegalStateException("Failed to release lock");
-        //                    }
-        //                )
-        //            );
-        //        }, exception -> {
-        //            throw new IllegalStateException("Failed to acquire lock");
-        //        }
-        //    ));
-        //};
         threadPool.generic().submit(runnable);
     }
 
