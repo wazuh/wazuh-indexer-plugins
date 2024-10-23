@@ -17,7 +17,6 @@ import org.opensearch.env.Environment;
 import org.opensearch.test.OpenSearchIntegTestCase;
 import org.junit.After;
 import org.junit.Before;
-import org.junit.Ignore;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -65,10 +64,10 @@ public class CommandManagerSettingsTests extends OpenSearchIntegTestCase {
         secureString.close();
     }
 
-    @Ignore
-    public void testKeystoreFileNotExistReturnsNull() throws Exception {
+    @AwaitsFix(bugUrl = "")
+    public void testKeystoreFileNotExistReturnsNull() {
         Path keyStorePath = Path.of("plugins/command-manager/src/test/resources/").toAbsolutePath();
-        Path keystoreFile = Path.of(keyStorePath.toString() + "/" + KEYSTORE_FILENAME);
+        Path keystoreFile = Path.of(keyStorePath + "/" + KEYSTORE_FILENAME);
         when(mockEnvironment.configFile()).thenReturn(keystoreFile);
 
         try {
@@ -88,15 +87,15 @@ public class CommandManagerSettingsTests extends OpenSearchIntegTestCase {
 
                                 return null;
                             });
-        } catch (AccessControlException e) {
+        } catch (AccessControlException ignored) {
 
         }
     }
 
-    @Ignore
-    public void testKeystoreFileExistsButLoadReturnsNull() throws Exception {
+    @AwaitsFix(bugUrl = "")
+    public void testKeystoreFileExistsButLoadReturnsNull() {
         Path keyStorePath = Path.of("plugins/command-manager/src/test/resources/").toAbsolutePath();
-        Path keystoreFile = Path.of(keyStorePath.toString() + "/" + KEYSTORE_FILENAME);
+        Path keystoreFile = Path.of(keyStorePath + "/" + KEYSTORE_FILENAME);
         when(mockEnvironment.configFile()).thenReturn(keystoreFile);
 
         try {
@@ -125,10 +124,10 @@ public class CommandManagerSettingsTests extends OpenSearchIntegTestCase {
         }
     }
 
-    @Ignore
-    public void testShouldDecryptKeystoreWhenPasswordIsNull() throws Exception {
+    @AwaitsFix(bugUrl = "")
+    public void testShouldDecryptKeystoreWhenPasswordIsNull() {
         Path keyStorePath = Path.of("plugins/command-manager/src/test/resources/").toAbsolutePath();
-        Path keystoreFile = Path.of(keyStorePath.toString() + "/" + KEYSTORE_FILENAME);
+        Path keystoreFile = Path.of(keyStorePath + "/" + KEYSTORE_FILENAME);
         when(mockEnvironment.configFile()).thenReturn(keystoreFile);
 
         try {
@@ -197,10 +196,10 @@ public class CommandManagerSettingsTests extends OpenSearchIntegTestCase {
         }
     }
 
-    @Ignore
-    public void testShouldDecryptKeystoreWithPassword() throws Exception {
+    @AwaitsFix(bugUrl = "")
+    public void testShouldDecryptKeystoreWithPassword() {
         Path keyStorePath = Path.of("plugins/command-manager/src/test/resources/").toAbsolutePath();
-        Path keystoreFile = Path.of(keyStorePath.toString() + "/" + KEYSTORE_FILENAME);
+        Path keystoreFile = Path.of(keyStorePath + "/" + KEYSTORE_FILENAME);
         when(mockEnvironment.configFile()).thenReturn(keystoreFile);
 
         try {
@@ -273,8 +272,8 @@ public class CommandManagerSettingsTests extends OpenSearchIntegTestCase {
         }
     }
 
-    @Ignore
-    public void testValuesOfGetSettings_keystoreExists() throws Exception {
+    @AwaitsFix(bugUrl = "")
+    public void testValuesOfGetSettings_keystoreExists() {
         // Set up the mock to return a specific path for the config file
         Path keyStorePath =
                 Path.of("command-manager/build/testclusters/integTest-0/config").toAbsolutePath();
