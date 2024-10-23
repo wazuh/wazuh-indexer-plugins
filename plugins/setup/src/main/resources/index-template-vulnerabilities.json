@@ -24,6 +24,10 @@
             "ignore_above": 1024,
             "type": "keyword"
           },
+          "groups": {
+            "ignore_above": 1024,
+            "type": "keyword"
+          },
           "name": {
             "ignore_above": 1024,
             "type": "keyword"
@@ -238,6 +242,7 @@
       "query.default_field": [
         "base.tags",
         "agent.id",
+        "agent.groups",
         "host.os.family",
         "host.os.full.text",
         "host.os.version",

@@ -27,6 +27,10 @@
             "ignore_above": 1024,
             "type": "keyword"
           },
+          "groups": {
+            "ignore_above": 1024,
+            "type": "keyword"
+          },
           "name": {
             "ignore_above": 1024,
             "type": "keyword"
