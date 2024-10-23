@@ -17,11 +17,8 @@ import com.wazuh.commandmanager.utils.httpclient.HttpRestClient;
 import com.wazuh.commandmanager.utils.httpclient.HttpRestClientDemo;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.opensearch.action.index.IndexRequest;
 import org.opensearch.action.index.IndexResponse;
 import org.opensearch.client.Client;
-import org.opensearch.cluster.ClusterChangedEvent;
-import org.opensearch.cluster.ClusterStateListener;
 import org.opensearch.cluster.metadata.IndexNameExpressionResolver;
 import org.opensearch.cluster.node.DiscoveryNodes;
 import org.opensearch.cluster.service.ClusterService;
@@ -30,8 +27,6 @@ import org.opensearch.common.settings.ClusterSettings;
 import org.opensearch.common.settings.IndexScopedSettings;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.common.settings.SettingsFilter;
-import org.opensearch.common.util.concurrent.ThreadContext;
-import org.opensearch.common.xcontent.json.JsonXContent;
 import org.opensearch.core.common.io.stream.NamedWriteableRegistry;
 import org.opensearch.core.xcontent.NamedXContentRegistry;
 import org.opensearch.core.xcontent.XContentParser;
@@ -41,7 +36,6 @@ import org.opensearch.env.NodeEnvironment;
 import org.opensearch.jobscheduler.spi.JobSchedulerExtension;
 import org.opensearch.jobscheduler.spi.ScheduledJobParser;
 import org.opensearch.jobscheduler.spi.ScheduledJobRunner;
-import org.opensearch.jobscheduler.spi.schedule.IntervalSchedule;
 import org.opensearch.jobscheduler.spi.schedule.ScheduleParser;
 import org.opensearch.plugins.ActionPlugin;
 import org.opensearch.plugins.Plugin;
@@ -53,12 +47,10 @@ import org.opensearch.watcher.ResourceWatcherService;
 
 import java.io.IOException;
 import java.time.Instant;
-import java.time.temporal.ChronoUnit;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ExecutorService;
 import java.util.function.Supplier;
 
 /**
@@ -102,6 +94,17 @@ public class CommandManagerPlugin extends Plugin implements ActionPlugin, JobSch
         CommandManagerJobRunner jobRunner = CommandManagerJobRunner.getJobRunnerInstance();
         jobRunner.setThreadPool(threadPool);
 
+        scheduleCommandJob(client, clusterService, threadPool);
+
+        // HttpRestClient stuff
+        String uri = "https://httpbin.org/post";
+        String payload = "{\"message\": \"Hello world!\"}";
+        HttpRestClientDemo.run(uri, payload);
+
+        return Collections.emptyList();
+    }
+
+    private void scheduleCommandJob(Client client, ClusterService clusterService, ThreadPool threadPool) {
         clusterService.addListener(event -> {
             if(event.localNodeClusterManager() && event.isNewCluster()) {
                 jobDocument = JobDocument.getInstance();
@@ -113,13 +116,6 @@ public class CommandManagerPlugin extends Plugin implements ActionPlugin, JobSch
                 );
             }
         });
-
-        // HttpRestClient stuff
-        String uri = "https://httpbin.org/post";
-        String payload = "{\"message\": \"Hello world!\"}";
-        HttpRestClientDemo.run(uri, payload);
-
-        return Collections.emptyList();
     }
 
     @Override
