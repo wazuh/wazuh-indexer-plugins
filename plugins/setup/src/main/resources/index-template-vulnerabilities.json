@@ -20,6 +20,10 @@
             "ignore_above": 1024,
             "type": "keyword"
           },
+          "groups": {
+            "ignore_above": 1024,
+            "type": "keyword"
+          },
           "id": {
             "ignore_above": 1024,
             "type": "keyword"
@@ -231,7 +235,7 @@
       "number_of_shards": "1",
       "query.default_field": [
         "agent.id",
-        "agent.group",
+        "agent.groups",
         "host.os.full",
         "host.os.version",
         "package.name",
