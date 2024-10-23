@@ -115,9 +115,6 @@ public class RestPostCommandAction extends BaseRestHandler {
                             .toString();
             SimpleHttpResponse response =
                     HttpRestClientDemo.runWithResponse(receiverURI, payload, document.getId());
-
-            //            SimpleHttpResponse response = httpClient.post(receiverURI, payload,
-            // document.getId());
             log.info("Received response to POST request with code [{}]", response.getCode());
             log.info("Raw response:\n{}", response.getBodyText());
         } catch (Exception e) {

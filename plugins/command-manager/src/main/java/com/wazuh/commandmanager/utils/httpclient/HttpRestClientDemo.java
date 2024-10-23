@@ -29,28 +29,28 @@ public class HttpRestClientDemo {
      * @param endpoint POST's requests endpoint as a well-formed URI
      * @param body POST's request body as a JSON string.
      */
-    //    public static void run(String endpoint, String body) {
-    //        log.info("Executing POST request");
-    //        AccessController.doPrivileged(
-    //                (PrivilegedAction<SimpleHttpResponse>)
-    //                        () -> {
-    //                            HttpRestClient httpClient = HttpRestClient.getInstance();
-    //                            try {
-    //                                URI host = new URIBuilder(endpoint).build();
-    //                                SimpleHttpResponse response =
-    //                                        httpClient.post(host, body, "randomId");
-    //                                log.info(
-    //                                        "Received response to POST request with code {}",
-    //                                        response.getCode());
-    //                                log.info("Raw response:\n{}", response.getBodyText());
-    //                            } catch (URISyntaxException e) {
-    //                                log.error("Bad URI:{}", e.getMessage());
-    //                            } catch (Exception e) {
-    //                                log.error("Error reading response: {}", e.getMessage());
-    //                            }
-    //                            return null;
-    //                        });
-    //    }
+    public static void run(String endpoint, String body) {
+        log.info("Executing POST request");
+        AccessController.doPrivileged(
+                (PrivilegedAction<SimpleHttpResponse>)
+                        () -> {
+                            HttpRestClient httpClient = HttpRestClient.getInstance();
+                            try {
+                                URI host = new URIBuilder(endpoint).build();
+                                SimpleHttpResponse response =
+                                        httpClient.post(host, body, "randomId");
+                                log.info(
+                                        "Received response to POST request with code {}",
+                                        response.getCode());
+                                log.info("Raw response:\n{}", response.getBodyText());
+                            } catch (URISyntaxException e) {
+                                log.error("Bad URI:{}", e.getMessage());
+                            } catch (Exception e) {
+                                log.error("Error reading response: {}", e.getMessage());
+                            }
+                            return null;
+                        });
+    }
 
     /**
      * Demo method to test the {@link HttpRestClient} class.
