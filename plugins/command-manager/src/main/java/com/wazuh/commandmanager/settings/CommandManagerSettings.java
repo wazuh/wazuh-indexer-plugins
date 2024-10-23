@@ -38,7 +38,6 @@ public final class CommandManagerSettings {
     public static final Setting<SecureString> M_API_URI =
             SecureSetting.secureString("m.api.uri", null);
 
-
     private static final Logger log = LogManager.getLogger(CommandManagerSettings.class);
 
     /** The name of own keystore. */
@@ -53,31 +52,32 @@ public final class CommandManagerSettings {
     /** The uri for connecting to api. */
     final String uri;
 
+    private final Settings settings;
+
     private CommandManagerSettings(
-            String authUsername,
-            String authPassword,
-            String uri) {
+            String authUsername, String authPassword, String uri, Settings settings) {
         this.authUsername = authUsername;
         this.authPassword = authPassword;
         this.uri = uri;
+        this.settings = settings;
         log.info("CommandManagerSettings created ");
     }
 
-
     /** Parse settings for a single client. */
-    public static CommandManagerSettings getSettings(Environment environment, SecureString secureSettingsPassword) {
+    public static CommandManagerSettings getSettings(
+            Environment environment, SecureString secureSettingsPassword) {
         KeyStoreWrapper keyStoreWrapper = null;
         Path keystoreFile = Path.of(environment.configFile() + "/" + KEYSTORE_FILENAME);
         try {
             if (!Files.exists(keystoreFile)) {
-                log.error(CommandManagerSettingsException.keystoreNotExist(
-                        keystoreFile.toAbsolutePath().toString()).getMessage());
+                log.error(
+                        CommandManagerSettingsException.keystoreNotExist(
+                                        keystoreFile.toAbsolutePath().toString())
+                                .getMessage());
                 return null;
             } else {
                 keyStoreWrapper = KeyStoreWrapper.load(environment.configFile(), KEYSTORE_FILENAME);
-                log.info(
-                        "Keystore load: "
-                                + keystoreFile.toAbsolutePath().toString());
+                log.info("Keystore load: " + keystoreFile.toAbsolutePath().toString());
             }
         } catch (Exception e) {
             log.error(
@@ -110,14 +110,27 @@ public final class CommandManagerSettings {
             log.info("Settings created with the keystore information.");
 
             try (SecureString authUsername = M_API_USERNAME.get(settings);
-                 SecureString authPassword = M_API_PASSWORD.get(settings);
-                 SecureString uri = M_API_URI.get(settings);) {
+                    SecureString authPassword = M_API_PASSWORD.get(settings);
+                    SecureString uri = M_API_URI.get(settings); ) {
                 return new CommandManagerSettings(
                         authUsername.toString(),
                         authPassword.toString(),
-                        uri.toString());
+                        uri.toString(),
+                        environment.settings());
             }
         }
+    }
+
+    public String getAuthPassword() {
+        return M_API_PASSWORD.get(this.settings).toString();
+    }
+
+    public String getAuthUsername() {
+        return M_API_USERNAME.get(this.settings).toString();
+    }
+
+    public String getUri() {
+        return this.uri;
     }
 
     @Override
