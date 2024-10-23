@@ -23,11 +23,11 @@
             "ignore_above": 1024,
             "type": "keyword"
           },
-          "id": {
+          "groups": {
             "ignore_above": 1024,
             "type": "keyword"
           },
-          "groups": {
+          "id": {
             "ignore_above": 1024,
             "type": "keyword"
           },
