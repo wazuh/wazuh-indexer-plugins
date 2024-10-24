@@ -42,15 +42,13 @@ public class CommandManagerSettings {
 
     private static final Logger log = LogManager.getLogger(CommandManagerSettings.class);
     private static CommandManagerSettings instance;
-    private final Settings settings;
 
     /** Private default constructor */
     private CommandManagerSettings(
-            String authUsername, String authPassword, String uri, Settings settings) {
+            String authUsername, String authPassword, String uri) {
         this.authUsername = authUsername;
         this.authPassword = authPassword;
         this.uri = uri;
-        this.settings = settings;
         log.info("CommandManagerSettings created ");
     }
 
@@ -71,19 +69,20 @@ public class CommandManagerSettings {
             Environment environment) {
 
         final Settings settings = environment.settings();
-        assert settings != null;
-        log.info("Settings created with the keystore information.");
-
+        if (settings != null) {
+            log.info("Settings created with the keystore information.");
             try (SecureString authUsername = M_API_AUTH_USERNAME.get(settings);
                  SecureString authPassword = M_API_AUTH_PASSWORD.get(settings);
                  SecureString uri = M_API_URI.get(settings); ) {
                 return new CommandManagerSettings(
                         authUsername.toString(),
                         authPassword.toString(),
-                        uri.toString(),
-                        settings);
+                        uri.toString());
             }
+        }else{
+            return null;
         }
+    }
 
 
     public String getAuthPassword() {
