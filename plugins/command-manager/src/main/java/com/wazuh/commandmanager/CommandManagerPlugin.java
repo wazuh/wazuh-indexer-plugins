@@ -52,6 +52,7 @@ public class CommandManagerPlugin extends Plugin implements ActionPlugin, Reload
 
     private CommandIndex commandIndex;
     private CommandManagerSettings commandManagerSettings;
+   // private static final Logger log = LogManager.getLogger(CommandManagerSettings.class);
 
     @Override
     public Collection<Object> createComponents(
@@ -68,7 +69,10 @@ public class CommandManagerPlugin extends Plugin implements ActionPlugin, Reload
             Supplier<RepositoriesService> repositoriesServiceSupplier) {
         this.commandIndex = new CommandIndex(client, clusterService, threadPool);
 
-        this.commandManagerSettings = CommandManagerSettings.getSettings(environment, null);
+        this.commandManagerSettings = CommandManagerSettings.getInstance(environment);
+        //log.info("Plugin uri: {}", commandManagerSettings.getUri());
+        //log.info("Plugin username: {}", commandManagerSettings.getAuthUsername());
+        //log.info("Plugin password: {}", commandManagerSettings.getAuthPassword());
 
         // HttpRestClient stuff
         //        String uri = "https://httpbin.org/post";
@@ -93,8 +97,8 @@ public class CommandManagerPlugin extends Plugin implements ActionPlugin, Reload
     public List<Setting<?>> getSettings() {
         return Arrays.asList(
                 // Register API settings
-                CommandManagerSettings.M_API_USERNAME,
-                CommandManagerSettings.M_API_PASSWORD,
+                CommandManagerSettings.M_API_AUTH_USERNAME,
+                CommandManagerSettings.M_API_AUTH_PASSWORD,
                 CommandManagerSettings.M_API_URI);
     }
 

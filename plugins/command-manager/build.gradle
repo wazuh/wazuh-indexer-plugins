@@ -139,9 +139,9 @@ testClusters.integTest {
     plugin(project.tasks.bundlePlugin.archiveFile)
 
     // add customized keystore
-    keystore 'm.api.username', 'admin'
-    keystore 'm.api.password', 'test'
-    keystore 'm.api.uri', 'https://httpbin.org/post'
+    keystore 'm_api.auth.username', 'admin'
+    keystore 'm_api.auth.password', 'test'
+    keystore 'm_api.uri', 'https://httpbin.org/post'
 }
 
 run {

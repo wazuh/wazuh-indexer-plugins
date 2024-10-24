@@ -6,7 +6,7 @@
  * this file be licensed under the Apache-2.0 license or a
  * compatible open source license.
  */
-package com.wazuh.commandmanager;
+package com.wazuh.commandmanager.settings;
 
 public class CommandManagerSettingsException extends Exception {
 
@@ -30,27 +30,9 @@ public class CommandManagerSettingsException extends Exception {
         super(cause);
     }
 
-    // Exception for the case when the keystore does not exist
-    public static CommandManagerSettingsException keystoreNotExist(String keystorePath) {
-        return new CommandManagerSettingsException(
-                "The keystore does not exist at the path: " + keystorePath);
-    }
-
-    // Exception for the case when the keystore is empty
-    public static CommandManagerSettingsException keystoreEmpty(String keystorePath) {
-        return new CommandManagerSettingsException(
-                "The keystore is empty at the path: " + keystorePath);
-    }
-
     // Exception for the case when load keystore failed
-    public static CommandManagerSettingsException loadKeystoreFailed(String keyStorePath) {
-        return new CommandManagerSettingsException("Load keystore: " + keyStorePath + " failed.");
-    }
-
-    // Exception for the case when load keystore failed
-    public static CommandManagerSettingsException decryptKeystoreFailed(String keyStorePath) {
-        return new CommandManagerSettingsException(
-                "Decrypt keystore: " + keyStorePath + " failed.");
+    public static CommandManagerSettingsException loadSettingsFailed(String keyStorePath, String errorMessage) {
+        return new CommandManagerSettingsException("Load settings from: " + keyStorePath + " failed. Error: " + errorMessage);
     }
 
     // Exception for the case when reload plugin with the keystore failed

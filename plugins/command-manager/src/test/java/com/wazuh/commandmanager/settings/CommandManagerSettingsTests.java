@@ -79,7 +79,7 @@ public class CommandManagerSettingsTests extends OpenSearchIntegTestCase {
                                         .thenReturn(keyStorePath.toString());
 
                                 CommandManagerSettings result =
-                                        CommandManagerSettings.getSettings(mockEnvironment, null);
+                                        CommandManagerSettings.getSettings(mockEnvironment);
 
                                 assertNull(
                                         "Expected settings to be null when keystore file does not exist.",
@@ -111,7 +111,7 @@ public class CommandManagerSettingsTests extends OpenSearchIntegTestCase {
                                 }
 
                                 CommandManagerSettings result =
-                                        CommandManagerSettings.getSettings(mockEnvironment, null);
+                                        CommandManagerSettings.getSettings(mockEnvironment);
 
                                 assertNull(
                                         "Expected settings to be null when keystore load returns null.",
@@ -165,28 +165,28 @@ public class CommandManagerSettingsTests extends OpenSearchIntegTestCase {
                                 SecureString uri =
                                         new SecureString("http://localhost".toCharArray());
 
-                                when(CommandManagerSettings.M_API_USERNAME.get(any()))
+                                when(CommandManagerSettings.M_API_AUTH_USERNAME.get(any()))
                                         .thenReturn(authUsername);
-                                when(CommandManagerSettings.M_API_PASSWORD.get(any()))
+                                when(CommandManagerSettings.M_API_AUTH_PASSWORD.get(any()))
                                         .thenReturn(authPassword);
                                 when(CommandManagerSettings.M_API_URI.get(any())).thenReturn(uri);
 
                                 CommandManagerSettings result =
-                                        CommandManagerSettings.getSettings(mockEnvironment, null);
+                                        CommandManagerSettings.getSettings(mockEnvironment);
 
                                 assertNotNull(
                                         "Expected CommandManagerSettings to be created.", result);
                                 assertEquals(
                                         "userTesting",
-                                        result.authUsername,
+                                        result.getAuthUsername(),
                                         "The username should match the configured value.");
                                 assertEquals(
                                         "passTesting",
-                                        result.authPassword,
+                                        result.getAuthPassword(),
                                         "The password should match the configured value.");
                                 assertEquals(
                                         "http://localhost",
-                                        result.uri,
+                                        result.getUri(),
                                         "The URI should match the configured value.");
 
                                 return null;
@@ -241,28 +241,28 @@ public class CommandManagerSettingsTests extends OpenSearchIntegTestCase {
                                 SecureString uri =
                                         new SecureString("http://localhost".toCharArray());
 
-                                when(CommandManagerSettings.M_API_USERNAME.get(any()))
+                                when(CommandManagerSettings.M_API_AUTH_USERNAME.get(any()))
                                         .thenReturn(authUsername);
-                                when(CommandManagerSettings.M_API_PASSWORD.get(any()))
+                                when(CommandManagerSettings.M_API_AUTH_PASSWORD.get(any()))
                                         .thenReturn(authPassword);
                                 when(CommandManagerSettings.M_API_URI.get(any())).thenReturn(uri);
 
                                 CommandManagerSettings result =
-                                        CommandManagerSettings.getSettings(mockEnvironment, null);
+                                        CommandManagerSettings.getSettings(mockEnvironment);
 
                                 assertNotNull(
                                         "Expected CommandManagerSettings to be created.", result);
                                 assertEquals(
                                         "userTesting",
-                                        result.authUsername,
+                                        result.getAuthUsername(),
                                         "The username should match the configured value.");
                                 assertEquals(
                                         "passTesting",
-                                        result.authPassword,
+                                        result.getAuthPassword(),
                                         "The password should match the configured value.");
                                 assertEquals(
                                         "http://localhost",
-                                        result.uri,
+                                        result.getUri(),
                                         "The URI should match the configured value.");
 
                                 return null;
@@ -294,7 +294,7 @@ public class CommandManagerSettingsTests extends OpenSearchIntegTestCase {
 
                                     this.commandManagerSettings =
                                             CommandManagerSettings.getSettings(
-                                                    mockEnvironment, null);
+                                                    mockEnvironment);
 
                                     assertNotNull(commandManagerSettings);
                                     log.info(
