@@ -51,4 +51,30 @@ public class HttpRestClientDemo {
                             return null;
                         });
     }
+
+    /**
+     * Demo method to test the {@link HttpRestClient} class.
+     *
+     * @param endpoint POST's requests endpoint as a well-formed URI
+     * @param body POST's request body as a JSON string.
+     * @return
+     */
+    public static SimpleHttpResponse runWithResponse(String endpoint, String body, String docId) {
+        log.info("Executing POST request");
+        SimpleHttpResponse response;
+        response =
+                AccessController.doPrivileged(
+                        (PrivilegedAction<SimpleHttpResponse>)
+                                () -> {
+                                    HttpRestClient httpClient = HttpRestClient.getInstance();
+                                    try {
+                                        URI host = new URIBuilder(endpoint).build();
+                                        return httpClient.post(host, body, docId);
+                                    } catch (URISyntaxException e) {
+                                        log.error("Bad URI:{}", e.getMessage());
+                                    }
+                                    return null;
+                                });
+        return response;
+    }
 }
