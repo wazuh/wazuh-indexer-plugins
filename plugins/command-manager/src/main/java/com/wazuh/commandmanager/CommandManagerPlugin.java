@@ -38,6 +38,7 @@ import com.wazuh.commandmanager.index.CommandIndex;
 import com.wazuh.commandmanager.rest.RestPostCommandAction;
 import com.wazuh.commandmanager.settings.CommandManagerSettings;
 import com.wazuh.commandmanager.utils.httpclient.HttpRestClient;
+import com.wazuh.commandmanager.utils.httpclient.HttpRestClientDemo;
 
 /**
  * The Command Manager plugin exposes an HTTP API with a single endpoint to receive raw commands
@@ -75,9 +76,9 @@ public class CommandManagerPlugin extends Plugin implements ActionPlugin, Reload
         //log.info("Plugin password: {}", commandManagerSettings.getAuthPassword());
 
         // HttpRestClient stuff
-        //        String uri = "https://httpbin.org/post";
-        //        String payload = "{\"message\": \"Hello world!\"}";
-        //        HttpRestClientDemo.run(uri, payload);
+        String uri = "https://httpbin.org/post";
+        String payload = "{\"message\": \"Hello world!\"}";
+        HttpRestClientDemo.run(uri, payload);
         return Collections.emptyList();
     }
 

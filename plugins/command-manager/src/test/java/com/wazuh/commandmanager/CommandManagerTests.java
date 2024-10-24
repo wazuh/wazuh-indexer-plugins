@@ -38,7 +38,7 @@ public class CommandManagerTests extends OpenSearchTestCase {
                                 }
                                 String payload = "{\"message\": \"Hello world!\"}";
                                 SimpleHttpResponse postResponse =
-                                        this.httpClient.post(uri, payload, "randomId");
+                                        this.httpClient.post(uri, payload, "randomId", null);
 
                                 String responseText = postResponse.getBodyText();
                                 assertNotEquals(null, postResponse);

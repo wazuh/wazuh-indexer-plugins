@@ -86,15 +86,15 @@ public class CommandManagerSettings {
 
 
     public String getAuthPassword() {
-        return authPassword;
+        return this.authPassword;
     }
 
     public String getAuthUsername() {
-        return authUsername;
+        return this.authUsername;
     }
 
     public String getUri() {
-        return uri;
+        return this.uri;
     }
 
     @Override

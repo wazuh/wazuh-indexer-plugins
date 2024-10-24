@@ -5,6 +5,15 @@ info:
 servers:
   - url: http://127.0.0.1:9200/_plugins/_command_manager
 paths:
+  /security/user/authenticate:
+    post:
+      tags:
+        - "authentication"
+      summary: Add a new command to the queue.
+      description: Add a new command to the queue.
+      responses:
+        "200":
+          description: OK
   /commands:
     post:
       tags:

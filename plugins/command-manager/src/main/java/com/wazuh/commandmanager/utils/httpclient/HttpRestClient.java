@@ -27,6 +27,9 @@ import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
+import reactor.util.annotation.NonNull;
+import reactor.util.annotation.Nullable;
+
 /** HTTP Rest client. Currently used to perform POST requests against the Wazuh Server. */
 public class HttpRestClient {
 
@@ -36,9 +39,14 @@ public class HttpRestClient {
     private static HttpRestClient instance;
     private CloseableHttpAsyncClient httpClient;
 
+    /** Token for the Wazuh API as obtained from /security/user/authenticate */
+    private String token;
+
     /** Private default constructor */
     private HttpRestClient() {
         startHttpAsyncClient();
+
+        token = "";
     }
 
     /**
@@ -92,20 +100,29 @@ public class HttpRestClient {
      * @param receiverURI Well-formed URI
      * @param payload data to send
      * @param payloadId payload ID
+     * @param auth
      * @return SimpleHttpResponse response
      */
-    public SimpleHttpResponse post(URI receiverURI, String payload, String payloadId) {
+    public SimpleHttpResponse post(
+            @NonNull URI receiverURI,
+            @Nullable String payload,
+            @Nullable String payloadId,
+            @Nullable String auth) {
         try {
             HttpHost httpHost = HttpHost.create(receiverURI);
 
             log.info("Sending payload with id [{}] to [{}]", payloadId, receiverURI);
 
+            SimpleRequestBuilder builder = SimpleRequestBuilder.post();
+            if (payload != null) {
+                builder.setBody(payload, ContentType.APPLICATION_JSON);
+            }
+            if (auth != null) {
+                builder.setHeader("Authorization", auth);
+            }
+
             SimpleHttpRequest httpPostRequest =
-                    SimpleRequestBuilder.post()
-                            .setHttpHost(httpHost)
-                            .setPath(receiverURI.getPath())
-                            .setBody(payload, ContentType.APPLICATION_JSON)
-                            .build();
+                    builder.setHttpHost(httpHost).setPath(receiverURI.getPath()).build();
 
             Future<SimpleHttpResponse> future =
                     this.httpClient.execute(
@@ -125,7 +142,7 @@ public class HttpRestClient {
         } catch (TimeoutException e) {
             log.error("Operation timed out {}", e.getMessage());
         } catch (Exception e) {
-            log.error("Error sending payload with id [{}] due to {}", payloadId, e);
+            log.error("Error sending payload with id [{}] due to {}", payloadId, e.toString());
         }
 
         return null;
