@@ -94,6 +94,7 @@ public class CommandManagerPlugin extends Plugin implements ActionPlugin, JobSch
         CommandManagerJobRunner jobRunner = CommandManagerJobRunner.getJobRunnerInstance();
         jobRunner.setThreadPool(threadPool);
         jobRunner.setClient(client);
+        jobRunner.setClusterService(clusterService);
 
         scheduleCommandJob(client, clusterService, threadPool);
 
