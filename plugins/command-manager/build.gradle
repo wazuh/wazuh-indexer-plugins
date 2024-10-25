@@ -85,6 +85,7 @@ def versions = [
     // Jackson is used to manage JSON objects (serialization / deserialization)
     jackson: "2.17.2",
     jackson_databind: "2.17.2",
+    // Used to mock the Wazuh Server API
     imposter: "4.1.2"
 ]
 

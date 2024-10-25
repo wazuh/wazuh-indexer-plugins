@@ -38,7 +38,6 @@ import com.wazuh.commandmanager.index.CommandIndex;
 import com.wazuh.commandmanager.rest.RestPostCommandAction;
 import com.wazuh.commandmanager.settings.CommandManagerSettings;
 import com.wazuh.commandmanager.utils.httpclient.HttpRestClient;
-import com.wazuh.commandmanager.utils.httpclient.HttpRestClientDemo;
 
 /**
  * The Command Manager plugin exposes an HTTP API with a single endpoint to receive raw commands
@@ -68,17 +67,8 @@ public class CommandManagerPlugin extends Plugin implements ActionPlugin, Reload
             IndexNameExpressionResolver indexNameExpressionResolver,
             Supplier<RepositoriesService> repositoriesServiceSupplier) {
         this.commandIndex = new CommandIndex(client, clusterService, threadPool);
-
-        // Plugin settings initialization
         this.pluginSettings = CommandManagerSettings.getInstance(environment.settings());
-        // log.info("Plugin uri: {}", commandManagerSettings.getUri());
-        // log.info("Plugin username: {}", commandManagerSettings.getAuthUsername());
-        // log.info("Plugin password: {}", commandManagerSettings.getAuthPassword());
 
-        // HttpRestClient stuff
-        String uri = "https://httpbin.org/post";
-        String payload = "{\"message\": \"Hello world!\"}";
-        HttpRestClientDemo.run(uri, payload);
         return Collections.emptyList();
     }
 
@@ -91,6 +81,24 @@ public class CommandManagerPlugin extends Plugin implements ActionPlugin, Reload
             IndexNameExpressionResolver indexNameExpressionResolver,
             Supplier<DiscoveryNodes> nodesInCluster) {
         return Collections.singletonList(new RestPostCommandAction(this.commandIndex));
+    }
+
+    @Override
+    public List<Setting<?>> getSettings() {
+        return Arrays.asList(
+                // Register API settings
+                CommandManagerSettings.M_API_AUTH_USERNAME,
+                CommandManagerSettings.M_API_AUTH_PASSWORD,
+                CommandManagerSettings.M_API_URI);
+    }
+
+    @Override
+    public void reload(Settings settings) {
+        // secure settings should be readable
+        // final CommandManagerSettings commandManagerSettings =
+        // CommandManagerSettings.getClientSettings(secureSettingsPassword);
+        // I don't know what I have to do when we want to reload the settings already
+        // xxxService.refreshAndClearCache(commandManagerSettings);
     }
 
     @Override

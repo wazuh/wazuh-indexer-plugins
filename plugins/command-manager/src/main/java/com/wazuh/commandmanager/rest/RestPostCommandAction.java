@@ -119,7 +119,6 @@ public class RestPostCommandAction extends BaseRestHandler {
         // Commands delivery to the Management API.
         // Note: needs to be decoupled from the Rest handler (job scheduler task).
         try {
-            //            String receiverURI = this.settings.getUri();
             String payload =
                     document.toXContent(XContentFactory.jsonBuilder(), ToXContent.EMPTY_PARAMS)
                             .toString();
