@@ -14,6 +14,7 @@ import org.apache.hc.client5.http.impl.async.HttpAsyncClients;
 import org.apache.hc.client5.http.impl.nio.PoolingAsyncClientConnectionManager;
 import org.apache.hc.client5.http.impl.nio.PoolingAsyncClientConnectionManagerBuilder;
 import org.apache.hc.core5.http.ContentType;
+import org.apache.hc.core5.http.Header;
 import org.apache.hc.core5.http.HttpHost;
 import org.apache.hc.core5.io.CloseMode;
 import org.apache.hc.core5.reactor.IOReactorConfig;
@@ -27,17 +28,22 @@ import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
+import reactor.util.annotation.NonNull;
+import reactor.util.annotation.Nullable;
+
 /** HTTP Rest client. Currently used to perform POST requests against the Wazuh Server. */
 public class HttpRestClient {
 
     public static final long TIMEOUT = 4;
     public static final TimeUnit TIME_UNIT = TimeUnit.SECONDS;
+    public static final int MAX_RETRIES = 3;
+
     private static final Logger log = LogManager.getLogger(HttpRestClient.class);
-    private static HttpRestClient instance;
+    static HttpRestClient instance;
     private CloseableHttpAsyncClient httpClient;
 
     /** Private default constructor */
-    private HttpRestClient() {
+    HttpRestClient() {
         startHttpAsyncClient();
     }
 
@@ -92,20 +98,29 @@ public class HttpRestClient {
      * @param receiverURI Well-formed URI
      * @param payload data to send
      * @param payloadId payload ID
+     * @param headers auth value (Basic "user:password", "Bearer token")
      * @return SimpleHttpResponse response
      */
-    public SimpleHttpResponse post(URI receiverURI, String payload, String payloadId) {
+    public SimpleHttpResponse post(
+            @NonNull URI receiverURI,
+            @Nullable String payload,
+            @Nullable String payloadId,
+            @Nullable Header... headers) {
         try {
             HttpHost httpHost = HttpHost.create(receiverURI);
 
             log.info("Sending payload with id [{}] to [{}]", payloadId, receiverURI);
 
+            SimpleRequestBuilder builder = SimpleRequestBuilder.post();
+            if (payload != null) {
+                builder.setBody(payload, ContentType.APPLICATION_JSON);
+            }
+            if (headers != null) {
+                builder.setHeaders(headers);
+            }
+
             SimpleHttpRequest httpPostRequest =
-                    SimpleRequestBuilder.post()
-                            .setHttpHost(httpHost)
-                            .setPath(receiverURI.getPath())
-                            .setBody(payload, ContentType.APPLICATION_JSON)
-                            .build();
+                    builder.setHttpHost(httpHost).setPath(receiverURI.getPath()).build();
 
             Future<SimpleHttpResponse> future =
                     this.httpClient.execute(
@@ -125,7 +140,7 @@ public class HttpRestClient {
         } catch (TimeoutException e) {
             log.error("Operation timed out {}", e.getMessage());
         } catch (Exception e) {
-            log.error("Error sending payload with id [{}] due to {}", payloadId, e);
+            log.error("Error sending payload with id [{}] due to {}", payloadId, e.toString());
         }
 
         return null;
