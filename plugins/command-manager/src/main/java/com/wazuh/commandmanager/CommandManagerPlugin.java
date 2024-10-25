@@ -52,8 +52,7 @@ public class CommandManagerPlugin extends Plugin implements ActionPlugin, Reload
     public static final String COMMAND_MANAGER_INDEX_TEMPLATE_NAME = "index-template-commands";
 
     private CommandIndex commandIndex;
-    private CommandManagerSettings commandManagerSettings;
-   // private static final Logger log = LogManager.getLogger(CommandManagerSettings.class);
+    private CommandManagerSettings pluginSettings;
 
     @Override
     public Collection<Object> createComponents(
@@ -70,10 +69,11 @@ public class CommandManagerPlugin extends Plugin implements ActionPlugin, Reload
             Supplier<RepositoriesService> repositoriesServiceSupplier) {
         this.commandIndex = new CommandIndex(client, clusterService, threadPool);
 
-        this.commandManagerSettings = CommandManagerSettings.getInstance(environment);
-        //log.info("Plugin uri: {}", commandManagerSettings.getUri());
-        //log.info("Plugin username: {}", commandManagerSettings.getAuthUsername());
-        //log.info("Plugin password: {}", commandManagerSettings.getAuthPassword());
+        // Plugin settings initialization
+        this.pluginSettings = CommandManagerSettings.getInstance(environment.settings());
+        // log.info("Plugin uri: {}", commandManagerSettings.getUri());
+        // log.info("Plugin username: {}", commandManagerSettings.getAuthUsername());
+        // log.info("Plugin password: {}", commandManagerSettings.getAuthPassword());
 
         // HttpRestClient stuff
         String uri = "https://httpbin.org/post";
@@ -90,8 +90,7 @@ public class CommandManagerPlugin extends Plugin implements ActionPlugin, Reload
             SettingsFilter settingsFilter,
             IndexNameExpressionResolver indexNameExpressionResolver,
             Supplier<DiscoveryNodes> nodesInCluster) {
-        return Collections.singletonList(
-                new RestPostCommandAction(this.commandIndex, this.commandManagerSettings));
+        return Collections.singletonList(new RestPostCommandAction(this.commandIndex));
     }
 
     @Override

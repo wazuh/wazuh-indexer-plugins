@@ -16,6 +16,7 @@ import org.junit.Before;
 
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
+
 import static org.mockito.Mockito.*;
 
 @OpenSearchIntegTestCase.ClusterScope(scope = OpenSearchIntegTestCase.Scope.SUITE)
@@ -30,42 +31,55 @@ public class CommandManagerSettingsTests extends OpenSearchIntegTestCase {
     @Override
     public void setUp() throws Exception {
         mockEnvironment = mock(Environment.class);
-        commandManagerSettings = CommandManagerSettings.getInstance(mockEnvironment);
+        commandManagerSettings = CommandManagerSettings.getInstance(mockEnvironment.settings());
         super.setUp();
     }
 
-    public void testGetSettingsWithValidValues() throws Exception{
+    public void testInitializeWithValidValues() throws Exception {
         final MockSecureSettings secureSettings = new MockSecureSettings();
-        try{
+        try {
             secureSettings.setString("m_api.auth.username", "testUser");
             secureSettings.setString("m_api.auth.password", "testPassword");
             secureSettings.setString("m_api.uri", "https://httpbin.org/post");
             testSettings = Settings.builder().setSecureSettings(secureSettings).build();
-        }finally {
+        } finally {
             when(mockEnvironment.settings()).thenReturn(testSettings);
 
             // Call getSettings and expect a CommandManagerSettings object
-            commandManagerSettings = CommandManagerSettings.getSettings(mockEnvironment);
+            commandManagerSettings = CommandManagerSettings.getInstance(mockEnvironment.settings());
 
-            assertNotNull("Expect that the CommandManagerSettings object is not null",commandManagerSettings);
-            assertEquals("The m_api.auth.username must be the same","testUser", commandManagerSettings.getAuthUsername());
-            assertEquals("The m_api.auth.password must be the same","testPassword", commandManagerSettings.getAuthPassword());
-            assertEquals("The m_api.uri must be the same","https://httpbin.org/post", commandManagerSettings.getUri());// Cleanup
+            assertNotNull(
+                    "Expect that the CommandManagerSettings object is not null",
+                    commandManagerSettings);
+            assertEquals(
+                    "The m_api.auth.username must be the same",
+                    "testUser",
+                    commandManagerSettings.getAuthUsername());
+            assertEquals(
+                    "The m_api.auth.password must be the same",
+                    "testPassword",
+                    commandManagerSettings.getAuthPassword());
+            assertEquals(
+                    "The m_api.uri must be the same",
+                    "https://httpbin.org/post",
+                    commandManagerSettings.getUri()); // Cleanup
             secureSettings.close();
         }
     }
 
     public void testSingletonBehavior() throws Exception {
         final MockSecureSettings secureSettings = new MockSecureSettings();
-        try{
+        try {
             secureSettings.setString("m_api.auth.username", "testUser");
             testSettings = Settings.builder().setSecureSettings(secureSettings).build();
-        }finally {
+        } finally {
             when(mockEnvironment.settings()).thenReturn(testSettings);
 
-            CommandManagerSettings settings1 = CommandManagerSettings.getInstance(mockEnvironment);
-            CommandManagerSettings settings2 = CommandManagerSettings.getInstance(mockEnvironment);
-            assertEquals("Both instances should be the same",settings1, settings2);
+            CommandManagerSettings settings1 =
+                    CommandManagerSettings.getInstance(mockEnvironment.settings());
+            CommandManagerSettings settings2 =
+                    CommandManagerSettings.getInstance(mockEnvironment.settings());
+            assertEquals("Both instances should be the same", settings1, settings2);
         }
     }
 }

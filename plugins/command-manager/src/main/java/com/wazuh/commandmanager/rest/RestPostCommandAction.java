@@ -30,7 +30,6 @@ import com.wazuh.commandmanager.index.CommandIndex;
 import com.wazuh.commandmanager.model.Agent;
 import com.wazuh.commandmanager.model.Command;
 import com.wazuh.commandmanager.model.Document;
-import com.wazuh.commandmanager.settings.CommandManagerSettings;
 import com.wazuh.commandmanager.utils.httpclient.HttpRestClientDemo;
 
 import static org.opensearch.core.xcontent.XContentParserUtils.ensureExpectedToken;
@@ -47,16 +46,14 @@ public class RestPostCommandAction extends BaseRestHandler {
             "post_command_action_request_details";
     private static final Logger log = LogManager.getLogger(RestPostCommandAction.class);
     private final CommandIndex commandIndex;
-    private final CommandManagerSettings settings;
 
     /**
      * Default constructor
      *
      * @param commandIndex persistence layer
      */
-    public RestPostCommandAction(CommandIndex commandIndex, CommandManagerSettings settings) {
+    public RestPostCommandAction(CommandIndex commandIndex) {
         this.commandIndex = commandIndex;
-        this.settings = settings;
     }
 
     public String getName() {
@@ -122,13 +119,12 @@ public class RestPostCommandAction extends BaseRestHandler {
         // Commands delivery to the Management API.
         // Note: needs to be decoupled from the Rest handler (job scheduler task).
         try {
-            String receiverURI = this.settings.getUri();
+            //            String receiverURI = this.settings.getUri();
             String payload =
                     document.toXContent(XContentFactory.jsonBuilder(), ToXContent.EMPTY_PARAMS)
                             .toString();
             SimpleHttpResponse response =
-                    HttpRestClientDemo.runWithResponse(
-                            receiverURI, payload, document.getId(), settings);
+                    HttpRestClientDemo.runWithResponse(payload, document.getId());
             log.info("Received response to POST request with code [{}]", response.getCode());
             log.info("Raw response:\n{}", response.getBodyText());
         } catch (Exception e) {

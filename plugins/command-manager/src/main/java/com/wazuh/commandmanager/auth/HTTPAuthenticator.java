@@ -10,11 +10,11 @@ package com.wazuh.commandmanager.auth;
 
 public interface HTTPAuthenticator {
 
-    String getType();
+    //    String getType();
 
     AuthCredentials getCredentials();
 
-    void authenticate(AuthCredentials credentials);
+    void authenticate();
 
     //    Optional<SimpleResponse> reAuthenticate(AuthCredentials credentials);
 

@@ -15,18 +15,19 @@ import org.apache.hc.core5.http.message.BasicHeader;
 import reactor.util.annotation.Nullable;
 
 public class AuthCredentials {
-    private String username;
-    private String password;
+    /** Wazuh API username for basic authentication */
+    private final String username;
+
+    /** Wazuh API password for basic authentication */
+    private final String password;
+
+    /** Token for the Wazuh API as obtained from /security/user/authenticate */
     private String token;
 
     public AuthCredentials(String username, String password) {
         this.username = username;
         this.password = password;
         this.token = null;
-    }
-
-    public AuthCredentials() {
-        //        CommandManagerSettings.M_API_PASSWORD.get()
     }
 
     private Header getTokenHeader() {
@@ -45,7 +46,19 @@ public class AuthCredentials {
         return getBasicAuthHeader();
     }
 
+    /**
+     * @param token
+     */
     public void setToken(@Nullable String token) {
         this.token = token;
+    }
+
+    /**
+     * Checks if the token is different from null.
+     *
+     * @return
+     */
+    public boolean isTokenSet() {
+        return this.token != null;
     }
 }

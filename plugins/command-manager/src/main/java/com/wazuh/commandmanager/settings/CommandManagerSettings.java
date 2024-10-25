@@ -14,8 +14,8 @@ import org.opensearch.common.settings.SecureSetting;
 import org.opensearch.common.settings.Setting;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.core.common.settings.SecureString;
-import org.opensearch.env.Environment;
 
+import reactor.util.annotation.NonNull;
 
 public class CommandManagerSettings {
 
@@ -31,25 +31,37 @@ public class CommandManagerSettings {
     public static final Setting<SecureString> M_API_URI =
             SecureSetting.secureString("m_api.uri", null);
 
-    /** The access key (ie login username) for connecting to api. */
-    private final String authUsername;
-
-    /** The password for connecting to api. */
-    private final String authPassword;
-
-    /** The uri for connecting to api. */
-    private final String uri;
-
     private static final Logger log = LogManager.getLogger(CommandManagerSettings.class);
     private static CommandManagerSettings instance;
 
+    /** The access key (ie login username) for connecting to api. */
+    private SecureString authUsername;
+
+    /** The password for connecting to api. */
+    private SecureString authPassword;
+
+    /** The uri for connecting to api. */
+    private SecureString uri;
+
     /** Private default constructor */
-    private CommandManagerSettings(
-            String authUsername, String authPassword, String uri) {
-        this.authUsername = authUsername;
-        this.authPassword = authPassword;
-        this.uri = uri;
-        log.info("CommandManagerSettings created ");
+    private CommandManagerSettings(@NonNull final Settings settings) {
+        log.info("Plugin created with the keystore information.");
+
+        this.authUsername = M_API_AUTH_USERNAME.get(settings);
+        this.authPassword = M_API_AUTH_PASSWORD.get(settings);
+        this.uri = M_API_URI.get(settings);
+    }
+
+    /**
+     * Singleton instance accessor. Initializes the settings
+     *
+     * @return {@link CommandManagerSettings#instance}
+     */
+    public static CommandManagerSettings getInstance(@NonNull final Settings settings) {
+        if (CommandManagerSettings.instance == null) {
+            instance = new CommandManagerSettings(settings);
+        }
+        return instance;
     }
 
     /**
@@ -57,57 +69,36 @@ public class CommandManagerSettings {
      *
      * @return {@link CommandManagerSettings#instance}
      */
-    public static CommandManagerSettings getInstance(Environment environment) {
+    public static CommandManagerSettings getInstance() {
         if (CommandManagerSettings.instance == null) {
-            instance = CommandManagerSettings.getSettings(environment);
+            throw new IllegalStateException("Plugin settings have not been initialized.");
         }
-        return CommandManagerSettings.instance;
+        return instance;
     }
-
-    /** Parse settings for a single client. */
-    public static CommandManagerSettings getSettings(
-            Environment environment) {
-
-        final Settings settings = environment.settings();
-        if (settings != null) {
-            log.info("Settings created with the keystore information.");
-            try (SecureString authUsername = M_API_AUTH_USERNAME.get(settings);
-                 SecureString authPassword = M_API_AUTH_PASSWORD.get(settings);
-                 SecureString uri = M_API_URI.get(settings); ) {
-                return new CommandManagerSettings(
-                        authUsername.toString(),
-                        authPassword.toString(),
-                        uri.toString());
-            }
-        }else{
-            return null;
-        }
-    }
-
 
     public String getAuthPassword() {
-        return this.authPassword;
+        return this.authPassword.toString();
     }
 
     public String getAuthUsername() {
-        return this.authUsername;
+        return this.authUsername.toString();
     }
 
     public String getUri() {
-        return this.uri;
+        return this.uri.toString();
     }
 
     @Override
     public String toString() {
         return "CommandManagerSettings{"
-                + " authUsername='"
-                + authUsername
+                + "authUsername='"
+                + getAuthUsername()
                 + '\''
                 + ", authPassword='"
-                + authPassword
+                + getAuthUsername()
                 + '\''
                 + ", uri='"
-                + uri
+                + getUri()
                 + '\''
                 + '}';
     }

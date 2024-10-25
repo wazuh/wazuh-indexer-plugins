@@ -36,18 +36,15 @@ public class HttpRestClient {
 
     public static final long TIMEOUT = 4;
     public static final TimeUnit TIME_UNIT = TimeUnit.SECONDS;
+    public static final int MAX_RETRIES = 3;
+
     private static final Logger log = LogManager.getLogger(HttpRestClient.class);
-    private static HttpRestClient instance;
+    static HttpRestClient instance;
     private CloseableHttpAsyncClient httpClient;
 
-    /** Token for the Wazuh API as obtained from /security/user/authenticate */
-    private String token;
-
     /** Private default constructor */
-    private HttpRestClient() {
+    HttpRestClient() {
         startHttpAsyncClient();
-
-        this.token = "";
     }
 
     /**
