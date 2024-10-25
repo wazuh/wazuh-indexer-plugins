@@ -1,3 +1,4 @@
+
 import org.opensearch.gradle.test.RestIntegTestTask
 
 buildscript {
@@ -75,7 +76,9 @@ def versions = [
     httpcore5: "5.3.1",
     slf4j: "2.0.16",
     log4j: "2.23.1",
-    conscrypt: "2.5.2"
+    conscrypt: "2.5.2",
+    mockito: "5.12.0",
+    junit:"4.13.2"
 ]
 
 dependencies {
@@ -85,6 +88,9 @@ dependencies {
     api "org.apache.logging.log4j:log4j-slf4j-impl:${versions.log4j}"
     api "org.slf4j:slf4j-api:${versions.slf4j}"
     api "org.conscrypt:conscrypt-openjdk-uber:${versions.conscrypt}"
+
+    testImplementation "org.mockito:mockito-core:${versions.mockito}"
+    testImplementation "junit:junit:${versions.junit}"
 }
 
 // This requires an additional Jar not published as part of build-tools
@@ -108,6 +114,7 @@ repositories {
 
 test {
     include '**/*Tests.class'
+    jvmArgs "-Djava.security.policy=./plugins/command-manager/src/main/plugin-metadata/plugin-security.policy/plugin-security.policy"
 }
 
 task integTest(type: RestIntegTestTask) {
@@ -116,6 +123,7 @@ task integTest(type: RestIntegTestTask) {
     classpath = sourceSets.test.runtimeClasspath
 }
 tasks.named("check").configure { dependsOn(integTest) }
+
 
 integTest {
     // The --debug-jvm command-line option makes the cluster debuggable; this makes the tests debuggable
@@ -126,9 +134,14 @@ integTest {
 
 testClusters.integTest {
     testDistribution = "INTEG_TEST"
-
+    //testDistribution =  "ARCHIVE"
     // This installs our plugin into the testClusters
     plugin(project.tasks.bundlePlugin.archiveFile)
+
+    // add customized keystore
+    keystore 'm_api.auth.username', 'admin'
+    keystore 'm_api.auth.password', 'test'
+    keystore 'm_api.uri', 'https://httpbin.org/post'
 }
 
 run {
