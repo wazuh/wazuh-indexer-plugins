@@ -52,7 +52,8 @@ public class CommandManagerPlugin extends Plugin implements ActionPlugin, Reload
 
     private CommandIndex commandIndex;
     private CommandManagerSettings commandManagerSettings;
-   // private static final Logger log = LogManager.getLogger(CommandManagerSettings.class);
+
+    // private static final Logger log = LogManager.getLogger(CommandManagerSettings.class);
 
     @Override
     public Collection<Object> createComponents(
@@ -70,7 +71,7 @@ public class CommandManagerPlugin extends Plugin implements ActionPlugin, Reload
         this.commandIndex = new CommandIndex(client, clusterService, threadPool);
 
         this.commandManagerSettings = CommandManagerSettings.getInstance(environment);
-        
+
         return Collections.emptyList();
     }
 

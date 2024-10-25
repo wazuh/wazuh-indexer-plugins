@@ -31,8 +31,10 @@ public class CommandManagerSettingsException extends Exception {
     }
 
     // Exception for the case when load keystore failed
-    public static CommandManagerSettingsException loadSettingsFailed(String keyStorePath, String errorMessage) {
-        return new CommandManagerSettingsException("Load settings from: " + keyStorePath + " failed. Error: " + errorMessage);
+    public static CommandManagerSettingsException loadSettingsFailed(
+            String keyStorePath, String errorMessage) {
+        return new CommandManagerSettingsException(
+                "Load settings from: " + keyStorePath + " failed. Error: " + errorMessage);
     }
 
     // Exception for the case when reload plugin with the keystore failed

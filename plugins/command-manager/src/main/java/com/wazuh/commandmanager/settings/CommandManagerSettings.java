@@ -16,7 +16,6 @@ import org.opensearch.common.settings.Settings;
 import org.opensearch.core.common.settings.SecureString;
 import org.opensearch.env.Environment;
 
-
 public class CommandManagerSettings {
 
     /** The access key (ie login username) for connecting to api. */
@@ -44,8 +43,7 @@ public class CommandManagerSettings {
     private static CommandManagerSettings instance;
 
     /** Private default constructor */
-    private CommandManagerSettings(
-            String authUsername, String authPassword, String uri) {
+    private CommandManagerSettings(String authUsername, String authPassword, String uri) {
         this.authUsername = authUsername;
         this.authPassword = authPassword;
         this.uri = uri;
@@ -65,25 +63,21 @@ public class CommandManagerSettings {
     }
 
     /** Parse settings for a single client. */
-    public static CommandManagerSettings getSettings(
-            Environment environment) {
+    public static CommandManagerSettings getSettings(Environment environment) {
 
         final Settings settings = environment.settings();
         if (settings != null) {
             log.info("Settings created with the keystore information.");
             try (SecureString authUsername = M_API_AUTH_USERNAME.get(settings);
-                 SecureString authPassword = M_API_AUTH_PASSWORD.get(settings);
-                 SecureString uri = M_API_URI.get(settings); ) {
+                    SecureString authPassword = M_API_AUTH_PASSWORD.get(settings);
+                    SecureString uri = M_API_URI.get(settings); ) {
                 return new CommandManagerSettings(
-                        authUsername.toString(),
-                        authPassword.toString(),
-                        uri.toString());
+                        authUsername.toString(), authPassword.toString(), uri.toString());
             }
-        }else{
+        } else {
             return null;
         }
     }
-
 
     public String getAuthPassword() {
         return authPassword;
