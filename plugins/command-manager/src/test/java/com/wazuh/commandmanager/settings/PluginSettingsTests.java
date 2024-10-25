@@ -25,26 +25,25 @@ public class PluginSettingsTests extends OpenSearchIntegTestCase {
 
     @InjectMocks private PluginSettings pluginSettings;
 
+    MockSecureSettings secureSettings;
+
     Settings testSettings;
 
     @Before
     @Override
     public void setUp() throws Exception {
+        secureSettings = new MockSecureSettings();
+        secureSettings.setString("m_api.auth.username", "testUser");
+        secureSettings.setString("m_api.auth.password", "testPassword");
+        secureSettings.setString("m_api.uri", "https://httpbin.org/post");
+        testSettings = Settings.builder().setSecureSettings(secureSettings).build();
         mockEnvironment = mock(Environment.class);
+        when(mockEnvironment.settings()).thenReturn(testSettings);
         pluginSettings = PluginSettings.getInstance(mockEnvironment.settings());
         super.setUp();
     }
 
     public void testInitializeWithValidValues() throws Exception {
-        final MockSecureSettings secureSettings = new MockSecureSettings();
-        try {
-            secureSettings.setString("m_api.auth.username", "testUser");
-            secureSettings.setString("m_api.auth.password", "testPassword");
-            secureSettings.setString("m_api.uri", "https://httpbin.org/post");
-            testSettings = Settings.builder().setSecureSettings(secureSettings).build();
-        } finally {
-            when(mockEnvironment.settings()).thenReturn(testSettings);
-
             // Call getSettings and expect a PluginSettings object
             pluginSettings = PluginSettings.getInstance(mockEnvironment.settings());
 
@@ -62,20 +61,12 @@ public class PluginSettingsTests extends OpenSearchIntegTestCase {
                     "https://httpbin.org/post",
                     pluginSettings.getUri()); // Cleanup
             secureSettings.close();
-        }
     }
 
     public void testSingletonBehavior() throws Exception {
         final MockSecureSettings secureSettings = new MockSecureSettings();
-        try {
-            secureSettings.setString("m_api.auth.username", "testUser");
-            testSettings = Settings.builder().setSecureSettings(secureSettings).build();
-        } finally {
-            when(mockEnvironment.settings()).thenReturn(testSettings);
-
-            PluginSettings settings1 = PluginSettings.getInstance(mockEnvironment.settings());
-            PluginSettings settings2 = PluginSettings.getInstance(mockEnvironment.settings());
-            assertEquals("Both instances should be the same", settings1, settings2);
-        }
+        PluginSettings settings1 = PluginSettings.getInstance(mockEnvironment.settings());
+        PluginSettings settings2 = PluginSettings.getInstance(mockEnvironment.settings());
+        assertEquals("Both instances should be the same", settings1, settings2);
     }
 }
