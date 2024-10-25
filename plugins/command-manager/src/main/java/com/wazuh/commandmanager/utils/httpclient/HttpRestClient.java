@@ -14,6 +14,7 @@ import org.apache.hc.client5.http.impl.async.HttpAsyncClients;
 import org.apache.hc.client5.http.impl.nio.PoolingAsyncClientConnectionManager;
 import org.apache.hc.client5.http.impl.nio.PoolingAsyncClientConnectionManagerBuilder;
 import org.apache.hc.core5.http.ContentType;
+import org.apache.hc.core5.http.Header;
 import org.apache.hc.core5.http.HttpHost;
 import org.apache.hc.core5.io.CloseMode;
 import org.apache.hc.core5.reactor.IOReactorConfig;
@@ -46,7 +47,7 @@ public class HttpRestClient {
     private HttpRestClient() {
         startHttpAsyncClient();
 
-        token = "";
+        this.token = "";
     }
 
     /**
@@ -100,14 +101,14 @@ public class HttpRestClient {
      * @param receiverURI Well-formed URI
      * @param payload data to send
      * @param payloadId payload ID
-     * @param auth
+     * @param headers auth value (Basic "user:password", "Bearer token")
      * @return SimpleHttpResponse response
      */
     public SimpleHttpResponse post(
             @NonNull URI receiverURI,
             @Nullable String payload,
             @Nullable String payloadId,
-            @Nullable String auth) {
+            @Nullable Header... headers) {
         try {
             HttpHost httpHost = HttpHost.create(receiverURI);
 
@@ -117,8 +118,8 @@ public class HttpRestClient {
             if (payload != null) {
                 builder.setBody(payload, ContentType.APPLICATION_JSON);
             }
-            if (auth != null) {
-                builder.setHeader("Authorization", auth);
+            if (headers != null) {
+                builder.setHeaders(headers);
             }
 
             SimpleHttpRequest httpPostRequest =

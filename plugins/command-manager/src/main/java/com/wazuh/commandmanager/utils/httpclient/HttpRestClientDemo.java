@@ -23,6 +23,7 @@ import java.security.AccessController;
 import java.security.PrivilegedAction;
 import java.util.Arrays;
 
+import com.wazuh.commandmanager.auth.BasicAuthenticator;
 import com.wazuh.commandmanager.settings.CommandManagerSettings;
 
 import static com.wazuh.commandmanager.CommandManagerPlugin.COMMAND_MANAGER_BASE_URI;
@@ -81,11 +82,15 @@ public class HttpRestClientDemo {
                                     HttpRestClient httpClient = HttpRestClient.getInstance();
 
                                     try {
-                                        // Login
-                                        URI loginUri =
-                                                new URIBuilder(endpoint)
-                                                        .setPath(SECURITY_USER_AUTHENTICATE)
-                                                        .build();
+                                        BasicAuthenticator auth = new BasicAuthenticator("m_API");
+                                        auth.
+
+                                                        // Login
+                                                        URI
+                                                loginUri =
+                                                        new URIBuilder(endpoint)
+                                                                .setPath(SECURITY_USER_AUTHENTICATE)
+                                                                .build();
                                         log.info("Login in at [{}]", loginUri);
                                         String basicAuth =
                                                 settings.getAuthUsername()
@@ -109,47 +114,6 @@ public class HttpRestClientDemo {
                                         String token = root.path("data").path("token").asText();
                                         System.out.println("JWT Token: " + token);
 
-                                        //                                        JsonFactory
-                                        // factory = new JsonFactory();
-                                        //                                        JsonParser parser
-                                        // = factory.createParser(loginResponse.getBodyText());
-                                        //                                        while
-                                        // (!parser.isClosed()) {
-                                        //
-                                        // parser.nextToken();
-                                        //                                            String
-                                        // fieldName = parser.currentName();
-                                        //
-                                        // System.out.println(fieldName);
-                                        //                                            if (fieldName
-                                        // == null) {
-                                        //
-                                        // parser.skipChildren();
-                                        //                                            } else if
-                                        // (fieldName.equals("token")) {
-                                        //                                                token =
-                                        // parser.getText();
-                                        //                                            } else {
-                                        //
-                                        // parser.skipChildren();
-                                        //                                            }
-                                        //                                        }
-
-                                        //                                        while
-                                        // (parser.nextToken() != JsonToken.END_OBJECT) {
-                                        //                                            String
-                                        // fieldName = parser.currentName();
-                                        //
-                                        // parser.nextToken();
-                                        //                                            if
-                                        // (fieldName.equals("token")) {
-                                        //                                                token =
-                                        // parser.getText();
-                                        //                                            } else {
-                                        //
-                                        // parser.skipChildren();
-                                        //                                            }
-                                        //                                        }
                                         if (token.isEmpty()) {
                                             throw new RuntimeException("Auth token is empty");
                                         }
