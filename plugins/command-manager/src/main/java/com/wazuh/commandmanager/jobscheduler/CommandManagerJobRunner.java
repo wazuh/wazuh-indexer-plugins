@@ -90,7 +90,7 @@ public class CommandManagerJobRunner implements ScheduledJobRunner {
         TermQueryBuilder termQueryBuilder = QueryBuilders.termQuery("command.status.keyword","PENDING");
         searchSourceBuilder.query(termQueryBuilder)
             .size(resultsPerPage)
-            .sort(Command.COMMAND + Command.TIMEOUT, SortOrder.ASC);
+            .sort(Command.COMMAND + "." + Command.TIMEOUT, SortOrder.ASC);
 
         searchRequest
             .source(searchSourceBuilder)
