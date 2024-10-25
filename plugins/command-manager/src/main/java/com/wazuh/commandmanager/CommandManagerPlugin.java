@@ -70,14 +70,7 @@ public class CommandManagerPlugin extends Plugin implements ActionPlugin, Reload
         this.commandIndex = new CommandIndex(client, clusterService, threadPool);
 
         this.commandManagerSettings = CommandManagerSettings.getInstance(environment);
-        //log.info("Plugin uri: {}", commandManagerSettings.getUri());
-        //log.info("Plugin username: {}", commandManagerSettings.getAuthUsername());
-        //log.info("Plugin password: {}", commandManagerSettings.getAuthPassword());
-
-        // HttpRestClient stuff
-        //        String uri = "https://httpbin.org/post";
-        //        String payload = "{\"message\": \"Hello world!\"}";
-        //        HttpRestClientDemo.run(uri, payload);
+        
         return Collections.emptyList();
     }
 
