@@ -34,6 +34,8 @@ import org.opensearch.threadpool.ThreadPool;
 import java.io.ByteArrayOutputStream;
 import java.io.PrintStream;
 import java.util.Arrays;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
 import java.util.function.IntConsumer;
 
@@ -69,6 +71,22 @@ public class CommandManagerJobRunner implements ScheduledJobRunner {
         this.threadPool = threadPool;
     }
 
+    private CompletableFuture<SearchResponse> asyncSearch(SearchRequest searchRequest) {
+        CompletableFuture<SearchResponse> completableFuture = new CompletableFuture<>();
+        ExecutorService executorService = this.threadPool.executor(ThreadPool.Names.SEARCH);
+        executorService.submit(
+            () -> {
+                try {
+                    SearchResponse searchResponse = client.search(searchRequest).actionGet();
+                    completableFuture.complete(searchResponse);
+                } catch (Exception e) {
+                    completableFuture.completeExceptionally(e);
+                }
+            }
+        );
+        return completableFuture;
+    }
+
     private void searchJob(String index, Integer resultsPerPage) {
         SearchRequest searchRequest = new SearchRequest(index);
         SearchSourceBuilder searchSourceBuilder = new SearchSourceBuilder();
@@ -78,22 +96,27 @@ public class CommandManagerJobRunner implements ScheduledJobRunner {
             .size(resultsPerPage);
         searchRequest.source(searchSourceBuilder);
 
-        this.client.execute(SearchAction.INSTANCE, searchRequest, new ActionListener<>() {
-            @Override
-            public void onResponse(SearchResponse searchResponse) {
-                SearchHits searchHits = searchResponse.getHits();
-                for (SearchHit hit: searchHits) {
-                    log.info(Arrays.toString(hit.getSourceAsMap().entrySet().toArray()));
+        asyncSearch(searchRequest)
+            .thenAccept(
+                CommandManagerJobRunner::handleSearchResponse
+            )
+            .exceptionally(
+                e -> {
+                    ByteArrayOutputStream baos = new ByteArrayOutputStream();
+                    PrintStream ps = new PrintStream(baos);
+                    e.printStackTrace(ps);
+                    log.error(baos.toString());
+                    return null;
                 }
-            }
-            @Override
-            public void onFailure(Exception e) {
-                ByteArrayOutputStream baos = new ByteArrayOutputStream();
-                PrintStream ps = new PrintStream(baos);
-                e.printStackTrace(ps);
-                log.error(baos.toString());
-            }
-        });
+            )
+        ;
+    }
+
+    private static void handleSearchResponse(SearchResponse searchResponse) {
+        SearchHits searchHits = searchResponse.getHits();
+        for (SearchHit hit: searchHits) {
+            log.info(Arrays.toString(hit.getSourceAsMap().entrySet().toArray()));
+        }
     }
 
     private boolean indexExists(String indexName) {
