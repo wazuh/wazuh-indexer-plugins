@@ -16,6 +16,7 @@ import org.opensearch.common.settings.Settings;
 import org.opensearch.core.common.settings.SecureString;
 import org.opensearch.env.Environment;
 
+/** This class manages the configuration of the plugin. */
 public class CommandManagerSettings {
 
     /** The access key (ie login username) for connecting to api. */

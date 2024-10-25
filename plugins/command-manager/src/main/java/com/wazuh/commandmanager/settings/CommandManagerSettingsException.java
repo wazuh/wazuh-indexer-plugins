@@ -10,24 +10,9 @@ package com.wazuh.commandmanager.settings;
 
 public class CommandManagerSettingsException extends Exception {
 
-    // Default constructor
-    public CommandManagerSettingsException() {
-        super();
-    }
-
     // Constructor that accepts a message
     public CommandManagerSettingsException(String message) {
         super(message);
-    }
-
-    // Constructor that accepts a message and a cause
-    public CommandManagerSettingsException(String message, Throwable cause) {
-        super(message, cause);
-    }
-
-    // Constructor that accepts a cause
-    public CommandManagerSettingsException(Throwable cause) {
-        super(cause);
     }
 
     // Exception for the case when load keystore failed

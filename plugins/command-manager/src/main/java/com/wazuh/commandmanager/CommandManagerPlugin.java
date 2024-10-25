@@ -53,8 +53,6 @@ public class CommandManagerPlugin extends Plugin implements ActionPlugin, Reload
     private CommandIndex commandIndex;
     private CommandManagerSettings commandManagerSettings;
 
-    // private static final Logger log = LogManager.getLogger(CommandManagerSettings.class);
-
     @Override
     public Collection<Object> createComponents(
             Client client,
