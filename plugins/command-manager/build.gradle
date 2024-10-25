@@ -72,7 +72,7 @@ opensearchplugin {
 
 def versions = [
     httpclient5: "5.4",
-    httpcore5: "5.3",
+    httpcore5: "5.3.1",
     slf4j: "2.0.16",
     log4j: "2.23.1",
     conscrypt: "2.5.2"
