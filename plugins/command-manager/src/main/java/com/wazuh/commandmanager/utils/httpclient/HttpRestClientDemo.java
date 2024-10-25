@@ -19,7 +19,7 @@ import java.net.URISyntaxException;
 import java.security.AccessController;
 import java.security.PrivilegedAction;
 
-import com.wazuh.commandmanager.settings.CommandManagerSettings;
+import com.wazuh.commandmanager.settings.PluginSettings;
 
 import static com.wazuh.commandmanager.CommandManagerPlugin.COMMAND_MANAGER_BASE_URI;
 
@@ -62,7 +62,7 @@ public class HttpRestClientDemo {
      */
     public static SimpleHttpResponse runWithResponse(String body, String docId) {
         log.info("Executing POST request");
-        String mApiURI = CommandManagerSettings.getInstance().getUri();
+        String mApiURI = PluginSettings.getInstance().getUri();
         SimpleHttpResponse response;
         response =
                 AccessController.doPrivileged(

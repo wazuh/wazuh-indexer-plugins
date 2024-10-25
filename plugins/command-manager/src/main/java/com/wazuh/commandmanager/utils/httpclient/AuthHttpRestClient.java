@@ -26,7 +26,7 @@ import java.util.Locale;
 
 import com.wazuh.commandmanager.auth.AuthCredentials;
 import com.wazuh.commandmanager.auth.HTTPAuthenticator;
-import com.wazuh.commandmanager.settings.CommandManagerSettings;
+import com.wazuh.commandmanager.settings.PluginSettings;
 
 public class AuthHttpRestClient extends HttpRestClient implements HTTPAuthenticator {
 
@@ -41,8 +41,8 @@ public class AuthHttpRestClient extends HttpRestClient implements HTTPAuthentica
 
         this.credentials =
                 new AuthCredentials(
-                        CommandManagerSettings.getInstance().getAuthUsername(),
-                        CommandManagerSettings.getInstance().getAuthPassword());
+                        PluginSettings.getInstance().getAuthUsername(),
+                        PluginSettings.getInstance().getAuthPassword());
     }
 
     /**
@@ -122,7 +122,7 @@ public class AuthHttpRestClient extends HttpRestClient implements HTTPAuthentica
     @Override
     public void authenticate() {
         // Replace with PluginSettings.getInstance().getAPI();
-        String mApiURI = CommandManagerSettings.getInstance().getUri();
+        String mApiURI = PluginSettings.getInstance().getUri();
         try {
             URI loginUri = new URIBuilder(mApiURI).appendPath(SECURITY_USER_AUTHENTICATE).build();
 

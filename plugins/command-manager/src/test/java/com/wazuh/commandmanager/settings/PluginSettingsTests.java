@@ -20,10 +20,10 @@ import org.mockito.Mock;
 import static org.mockito.Mockito.*;
 
 @OpenSearchIntegTestCase.ClusterScope(scope = OpenSearchIntegTestCase.Scope.SUITE)
-public class CommandManagerSettingsTests extends OpenSearchIntegTestCase {
+public class PluginSettingsTests extends OpenSearchIntegTestCase {
     @Mock private Environment mockEnvironment;
 
-    @InjectMocks private CommandManagerSettings commandManagerSettings;
+    @InjectMocks private PluginSettings pluginSettings;
 
     Settings testSettings;
 
@@ -31,7 +31,7 @@ public class CommandManagerSettingsTests extends OpenSearchIntegTestCase {
     @Override
     public void setUp() throws Exception {
         mockEnvironment = mock(Environment.class);
-        commandManagerSettings = CommandManagerSettings.getInstance(mockEnvironment.settings());
+        pluginSettings = PluginSettings.getInstance(mockEnvironment.settings());
         super.setUp();
     }
 
@@ -45,24 +45,22 @@ public class CommandManagerSettingsTests extends OpenSearchIntegTestCase {
         } finally {
             when(mockEnvironment.settings()).thenReturn(testSettings);
 
-            // Call getSettings and expect a CommandManagerSettings object
-            commandManagerSettings = CommandManagerSettings.getInstance(mockEnvironment.settings());
+            // Call getSettings and expect a PluginSettings object
+            pluginSettings = PluginSettings.getInstance(mockEnvironment.settings());
 
-            assertNotNull(
-                    "Expect that the CommandManagerSettings object is not null",
-                    commandManagerSettings);
+            assertNotNull("Expect that the PluginSettings object is not null", pluginSettings);
             assertEquals(
                     "The m_api.auth.username must be the same",
                     "testUser",
-                    commandManagerSettings.getAuthUsername());
+                    pluginSettings.getAuthUsername());
             assertEquals(
                     "The m_api.auth.password must be the same",
                     "testPassword",
-                    commandManagerSettings.getAuthPassword());
+                    pluginSettings.getAuthPassword());
             assertEquals(
                     "The m_api.uri must be the same",
                     "https://httpbin.org/post",
-                    commandManagerSettings.getUri()); // Cleanup
+                    pluginSettings.getUri()); // Cleanup
             secureSettings.close();
         }
     }
@@ -75,10 +73,8 @@ public class CommandManagerSettingsTests extends OpenSearchIntegTestCase {
         } finally {
             when(mockEnvironment.settings()).thenReturn(testSettings);
 
-            CommandManagerSettings settings1 =
-                    CommandManagerSettings.getInstance(mockEnvironment.settings());
-            CommandManagerSettings settings2 =
-                    CommandManagerSettings.getInstance(mockEnvironment.settings());
+            PluginSettings settings1 = PluginSettings.getInstance(mockEnvironment.settings());
+            PluginSettings settings2 = PluginSettings.getInstance(mockEnvironment.settings());
             assertEquals("Both instances should be the same", settings1, settings2);
         }
     }

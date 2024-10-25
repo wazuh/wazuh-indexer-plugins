@@ -17,7 +17,7 @@ import org.opensearch.core.common.settings.SecureString;
 
 import reactor.util.annotation.NonNull;
 
-public class CommandManagerSettings {
+public class PluginSettings {
 
     /** The access key (ie login username) for connecting to api. */
     public static final Setting<SecureString> M_API_AUTH_USERNAME =
@@ -31,20 +31,20 @@ public class CommandManagerSettings {
     public static final Setting<SecureString> M_API_URI =
             SecureSetting.secureString("m_api.uri", null);
 
-    private static final Logger log = LogManager.getLogger(CommandManagerSettings.class);
-    private static CommandManagerSettings instance;
+    private static final Logger log = LogManager.getLogger(PluginSettings.class);
+    private static PluginSettings instance;
 
     /** The access key (ie login username) for connecting to api. */
-    private SecureString authUsername;
+    private final SecureString authUsername;
 
     /** The password for connecting to api. */
-    private SecureString authPassword;
+    private final SecureString authPassword;
 
     /** The uri for connecting to api. */
-    private SecureString uri;
+    private final SecureString uri;
 
     /** Private default constructor */
-    private CommandManagerSettings(@NonNull final Settings settings) {
+    private PluginSettings(@NonNull final Settings settings) {
         log.info("Plugin created with the keystore information.");
 
         this.authUsername = M_API_AUTH_USERNAME.get(settings);
@@ -55,11 +55,11 @@ public class CommandManagerSettings {
     /**
      * Singleton instance accessor. Initializes the settings
      *
-     * @return {@link CommandManagerSettings#instance}
+     * @return {@link PluginSettings#instance}
      */
-    public static CommandManagerSettings getInstance(@NonNull final Settings settings) {
-        if (CommandManagerSettings.instance == null) {
-            instance = new CommandManagerSettings(settings);
+    public static PluginSettings getInstance(@NonNull final Settings settings) {
+        if (PluginSettings.instance == null) {
+            instance = new PluginSettings(settings);
         }
         return instance;
     }
@@ -67,10 +67,10 @@ public class CommandManagerSettings {
     /**
      * Singleton instance accessor
      *
-     * @return {@link CommandManagerSettings#instance}
+     * @return {@link PluginSettings#instance}
      */
-    public static CommandManagerSettings getInstance() {
-        if (CommandManagerSettings.instance == null) {
+    public static PluginSettings getInstance() {
+        if (PluginSettings.instance == null) {
             throw new IllegalStateException("Plugin settings have not been initialized.");
         }
         return instance;
@@ -90,7 +90,7 @@ public class CommandManagerSettings {
 
     @Override
     public String toString() {
-        return "CommandManagerSettings{"
+        return "PluginSettings{"
                 + "authUsername='"
                 + getAuthUsername()
                 + '\''
