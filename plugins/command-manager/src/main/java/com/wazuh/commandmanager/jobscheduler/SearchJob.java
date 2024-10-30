@@ -1,12 +1,16 @@
 package com.wazuh.commandmanager.jobscheduler;
 
 import com.wazuh.commandmanager.model.Command;
+import com.wazuh.commandmanager.utils.httpclient.HttpRestClientDemo;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.opensearch.action.search.*;
 import org.opensearch.client.Client;
 import org.opensearch.common.unit.TimeValue;
+import org.opensearch.common.xcontent.XContentFactory;
 import org.opensearch.core.action.ActionListener;
+import org.opensearch.core.xcontent.ToXContent;
+import org.opensearch.core.xcontent.XContentBuilder;
 import org.opensearch.index.query.QueryBuilders;
 import org.opensearch.index.query.TermQueryBuilder;
 import org.opensearch.search.Scroll;
@@ -19,8 +23,10 @@ import org.opensearch.search.sort.SortOrder;
 import org.opensearch.threadpool.ThreadPool;
 
 import java.io.ByteArrayOutputStream;
+import java.io.IOException;
 import java.io.PrintStream;
 import java.util.Arrays;
+import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
 
@@ -60,7 +66,13 @@ public class SearchJob {
         }
     }
 
-    private CompletableFuture<SearchResponse> search(SearchRequest searchRequest) {
+    public CompletableFuture<SearchResponse> search(String index, Integer resultsPerPage) {
+        SearchRequest searchRequest = new SearchRequest(index);
+        TermQueryBuilder termQueryBuilder = QueryBuilders.termQuery("command.status.keyword","PENDING");
+        getSearchSourceBuilder().query(termQueryBuilder)
+            .size(resultsPerPage);
+        searchRequest.source(getSearchSourceBuilder());
+
         CompletableFuture<SearchResponse> completableFuture = new CompletableFuture<>();
         ExecutorService executorService = this.threadPool.executor(ThreadPool.Names.SEARCH);
         executorService.submit(
@@ -92,10 +104,13 @@ public class SearchJob {
         return completableFuture;
     }
 
-    private void handleSearchResponse(SearchResponse searchResponse) {
+    public void handleSearchResponse(SearchResponse searchResponse) throws Exception {
         SearchHits searchHits = searchResponse.getHits();
         for (SearchHit hit: searchHits) {
-            log.info(Arrays.toString(hit.getSourceAsMap().entrySet().toArray()));
+            XContentBuilder xContentBuilder = XContentFactory.jsonBuilder();
+            hit.toXContent(xContentBuilder, ToXContent.EMPTY_PARAMS);
+            String uri = "https://httpbin.org/post";
+            HttpRestClientDemo.run(uri, xContentBuilder.toString());
         }
     }
 
@@ -124,8 +139,12 @@ public class SearchJob {
         client.search(searchRequest, new ActionListener<>() {
             @Override
             public void onResponse(SearchResponse searchResponse) {
-                setSearchResponse(searchResponse);
-                handleSearchResponse(searchResponse);
+                try {
+                    setSearchResponse(searchResponse);
+                    handleSearchResponse(searchResponse);
+                } catch (Exception e) {
+                    throw new RuntimeException(e);
+                }
             }
             @Override
             public void onFailure(Exception e) {
@@ -154,7 +173,11 @@ public class SearchJob {
             @Override
             public void onResponse(SearchResponse searchResponse) {
                 log.info("First search iteration completed successfully");
-                handleSearchResponse(searchResponse);
+                try {
+                    handleSearchResponse(searchResponse);
+                } catch (Exception e) {
+                    throw new RuntimeException(e);
+                }
                 setScrollId(searchResponse);
                 setSearchResponse(searchResponse);
             }
@@ -174,7 +197,11 @@ public class SearchJob {
                 @Override
                 public void onResponse(SearchResponse searchResponse) {
                     log.info("Get next page of results");
-                    handleSearchResponse(searchResponse);
+                    try {
+                        handleSearchResponse(searchResponse);
+                    } catch (Exception e) {
+                        throw new RuntimeException(e);
+                    }
                     setScrollId(searchResponse);
                     setSearchResponse(searchResponse);
                 }
