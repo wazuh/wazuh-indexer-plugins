@@ -100,9 +100,9 @@ public class CommandManagerPlugin extends Plugin implements ActionPlugin, JobSch
         scheduleCommandJob(client, clusterService, threadPool);
 
         // HttpRestClient stuff
-        String uri = "https://httpbin.org/post";
-        String payload = "{\"message\": \"Hello world!\"}";
-        HttpRestClientDemo.run(uri, payload);
+        //String uri = "https://httpbin.org/post";
+        //String payload = "{\"message\": \"Hello world!\"}";
+        //HttpRestClientDemo.run(uri, payload);
 
         return Collections.emptyList();
     }

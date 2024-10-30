@@ -58,7 +58,7 @@ public class CommandManagerJobRunner implements ScheduledJobRunner {
         Runnable runnable = () -> {
             this.searchJob.setClient(client);
             this.searchJob.setThreadPool(threadPool);
-            this.searchJob.searchJob(CommandManagerPlugin.COMMAND_MANAGER_INDEX_NAME, CommandManagerPlugin.COMMAND_BATCH_SIZE);
+            this.searchJob.scrollSearchJob(CommandManagerPlugin.COMMAND_MANAGER_INDEX_NAME, CommandManagerPlugin.COMMAND_BATCH_SIZE);
         };
         threadPool.generic().submit(runnable);
     }
