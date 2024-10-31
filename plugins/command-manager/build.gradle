@@ -180,7 +180,7 @@ testClusters.integTest {
     }))
 
     // This installs our plugin into the testClusters
-    plugin(project.tasks.bundlePlugin.archiveFile)
+    //plugin(project.tasks.bundlePlugin.archiveFile)
 
     // add customized keystore
     keystore 'm_api.auth.username', 'admin'
