@@ -59,7 +59,7 @@ import java.util.function.Supplier;
 
 import com.wazuh.commandmanager.index.CommandIndex;
 import com.wazuh.commandmanager.rest.RestPostCommandAction;
-import com.wazuh.commandmanager.settings.CommandManagerSettings;
+import com.wazuh.commandmanager.settings.PluginSettings;
 import com.wazuh.commandmanager.utils.httpclient.HttpRestClient;
 
 /**
@@ -102,8 +102,7 @@ public class CommandManagerPlugin extends Plugin implements ActionPlugin, Reload
             IndexNameExpressionResolver indexNameExpressionResolver,
             Supplier<RepositoriesService> repositoriesServiceSupplier) {
         this.commandIndex = new CommandIndex(client, clusterService, threadPool);
-
-        this.commandManagerSettings = CommandManagerSettings.getInstance(environment);
+        PluginSettings.getInstance(environment.settings());
 
         // JobSchedulerExtension stuff
         CommandManagerJobRunner jobRunner = CommandManagerJobRunner.getJobRunnerInstance();
@@ -144,24 +143,23 @@ public class CommandManagerPlugin extends Plugin implements ActionPlugin, Reload
             SettingsFilter settingsFilter,
             IndexNameExpressionResolver indexNameExpressionResolver,
             Supplier<DiscoveryNodes> nodesInCluster) {
-        return Collections.singletonList(
-                new RestPostCommandAction(this.commandIndex, this.commandManagerSettings));
+        return Collections.singletonList(new RestPostCommandAction(this.commandIndex));
     }
 
     @Override
     public List<Setting<?>> getSettings() {
         return Arrays.asList(
                 // Register API settings
-                CommandManagerSettings.M_API_AUTH_USERNAME,
-                CommandManagerSettings.M_API_AUTH_PASSWORD,
-                CommandManagerSettings.M_API_URI);
+                PluginSettings.M_API_AUTH_USERNAME,
+                PluginSettings.M_API_AUTH_PASSWORD,
+                PluginSettings.M_API_URI);
     }
 
     @Override
     public void reload(Settings settings) {
         // secure settings should be readable
-        // final CommandManagerSettings commandManagerSettings =
-        // CommandManagerSettings.getClientSettings(secureSettingsPassword);
+        // final PluginSettings commandManagerSettings =
+        // PluginSettings.getClientSettings(secureSettingsPassword);
         // I don't know what I have to do when we want to reload the settings already
         // xxxService.refreshAndClearCache(commandManagerSettings);
     }
