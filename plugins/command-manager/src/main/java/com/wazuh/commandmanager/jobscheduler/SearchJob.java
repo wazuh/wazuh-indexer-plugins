@@ -1,8 +1,13 @@
+/*
+ * Copyright OpenSearch Contributors
+ * SPDX-License-Identifier: Apache-2.0
+ *
+ * The OpenSearch Contributors require contributions made to
+ * this file be licensed under the Apache-2.0 license or a
+ * compatible open source license.
+ */
 package com.wazuh.commandmanager.jobscheduler;
 
-import com.wazuh.commandmanager.CommandManagerPlugin;
-import com.wazuh.commandmanager.model.Command;
-import com.wazuh.commandmanager.utils.httpclient.HttpRestClientDemo;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.opensearch.action.index.IndexRequest;
@@ -31,6 +36,10 @@ import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
 
+import com.wazuh.commandmanager.CommandManagerPlugin;
+import com.wazuh.commandmanager.model.Command;
+import com.wazuh.commandmanager.utils.httpclient.HttpRestClientDemo;
+
 public class SearchJob {
     private static final Logger log = LogManager.getLogger(SearchJob.class);
     private static SearchJob INSTANCE;
@@ -42,8 +51,6 @@ public class SearchJob {
     private SearchResponse searchResponse;
     private SearchSourceBuilder searchSourceBuilder = new SearchSourceBuilder();
 
-
-
     public void setPitId(String pitId) {
         this.pitId = pitId;
     }
@@ -51,7 +58,6 @@ public class SearchJob {
     public String getPitId() {
         return pitId;
     }
-
 
     public static SearchJob getSearchJobInstance() {
         log.info("Getting Job Runner Instance");
@@ -69,45 +75,45 @@ public class SearchJob {
 
     public CompletableFuture<SearchResponse> search(String index, Integer resultsPerPage) {
         SearchRequest searchRequest = new SearchRequest(index);
-        TermQueryBuilder termQueryBuilder = QueryBuilders.termQuery("command.status.keyword","PENDING");
-        getSearchSourceBuilder().query(termQueryBuilder)
-            .size(resultsPerPage);
+        TermQueryBuilder termQueryBuilder =
+                QueryBuilders.termQuery("command.status.keyword", "PENDING");
+        getSearchSourceBuilder().query(termQueryBuilder).size(resultsPerPage);
         searchRequest.source(getSearchSourceBuilder());
 
         CompletableFuture<SearchResponse> completableFuture = new CompletableFuture<>();
         ExecutorService executorService = this.threadPool.executor(ThreadPool.Names.SEARCH);
         executorService.submit(
-            () -> {
-                try {
-                    SearchResponse searchResponse = client.search(searchRequest).actionGet();
-                    completableFuture.complete(searchResponse);
-                } catch (Exception e) {
-                    completableFuture.completeExceptionally(e);
-                }
-            }
-        );
+                () -> {
+                    try {
+                        SearchResponse searchResponse = client.search(searchRequest).actionGet();
+                        completableFuture.complete(searchResponse);
+                    } catch (Exception e) {
+                        completableFuture.completeExceptionally(e);
+                    }
+                });
         return completableFuture;
     }
 
-    private CompletableFuture<SearchResponse> scrollSearch(SearchScrollRequest searchScrollRequest) {
+    private CompletableFuture<SearchResponse> scrollSearch(
+            SearchScrollRequest searchScrollRequest) {
         CompletableFuture<SearchResponse> completableFuture = new CompletableFuture<>();
         ExecutorService executorService = this.threadPool.executor(ThreadPool.Names.SEARCH);
         executorService.submit(
-            () -> {
-                try {
-                    SearchResponse searchResponse = client.searchScroll(searchScrollRequest).actionGet();
-                    completableFuture.complete(searchResponse);
-                } catch (Exception e) {
-                    completableFuture.completeExceptionally(e);
-                }
-            }
-        );
+                () -> {
+                    try {
+                        SearchResponse searchResponse =
+                                client.searchScroll(searchScrollRequest).actionGet();
+                        completableFuture.complete(searchResponse);
+                    } catch (Exception e) {
+                        completableFuture.completeExceptionally(e);
+                    }
+                });
         return completableFuture;
     }
 
     Map<String, Object> checkAndTransform(Map<String, Object> inputMap) throws ClassCastException {
         Map<String, Object> result = new HashMap<>();
-        for ( Map.Entry<String, Object> entry : inputMap.entrySet() ) {
+        for (Map.Entry<String, Object> entry : inputMap.entrySet()) {
             try {
                 result.put(entry.getKey(), entry.getValue());
             } catch (ClassCastException e) {
@@ -123,33 +129,39 @@ public class SearchJob {
         if (type.isInstance(value)) {
             return type.cast(value);
         } else {
-            throw new ClassCastException("Expected " + type + " but found " + (value != null ? value.getClass() : "null"));
+            throw new ClassCastException(
+                    "Expected "
+                            + type
+                            + " but found "
+                            + (value != null ? value.getClass() : "null"));
         }
     }
 
     public void handleSearchResponse(SearchResponse searchResponse) throws Exception {
         SearchHits searchHits = searchResponse.getHits();
-        for (SearchHit hit: searchHits) {
-            Map<String,Object> commandMap = getNestedValue(hit.getSourceAsMap(), "command", Map.class);
+        for (SearchHit hit : searchHits) {
+            Map<String, Object> commandMap =
+                    getNestedValue(hit.getSourceAsMap(), "command", Map.class);
             commandMap.put("status", "DONE");
             hit.getSourceAsMap().put("command", commandMap);
-            IndexRequest indexRequest = new IndexRequest()
-                .index(CommandManagerPlugin.COMMAND_MANAGER_INDEX_NAME)
-                .source(hit.getSourceAsMap())
-                .id(hit.getId());
+            IndexRequest indexRequest =
+                    new IndexRequest()
+                            .index(CommandManagerPlugin.COMMAND_MANAGER_INDEX_NAME)
+                            .source(hit.getSourceAsMap())
+                            .id(hit.getId());
             client.index(
-                indexRequest,
-                new ActionListener<IndexResponse>() {
-                    @Override
-                    public void onResponse(IndexResponse indexResponse) {
-                       log.debug("Updated command with document id: {}", hit.getId());
-                    }
-                    @Override
-                    public void onFailure(Exception e) {
-                        logStackTrace(e);
-                    }
-                }
-            );
+                    indexRequest,
+                    new ActionListener<IndexResponse>() {
+                        @Override
+                        public void onResponse(IndexResponse indexResponse) {
+                            log.debug("Updated command with document id: {}", hit.getId());
+                        }
+
+                        @Override
+                        public void onFailure(Exception e) {
+                            logStackTrace(e);
+                        }
+                    });
             XContentBuilder xContentBuilder = XContentFactory.jsonBuilder();
             hit.toXContent(xContentBuilder, ToXContent.EMPTY_PARAMS);
             String uri = "https://httpbin.org/post";
@@ -158,42 +170,51 @@ public class SearchJob {
     }
 
     public void pointInTimeSearch(String index, Integer resultsPerPage) {
-        CreatePitRequest createPitRequest = new CreatePitRequest(TimeValue.timeValueMinutes(1L), false, index);
-        client.createPit(createPitRequest, new ActionListener<>() {
-            @Override
-            public void onResponse(CreatePitResponse createPitResponse) {
-                setPitId(createPitResponse.getId());
-            }
-            @Override
-            public void onFailure(Exception e) {
-                logStackTrace(e);
-            }
-        });
+        CreatePitRequest createPitRequest =
+                new CreatePitRequest(TimeValue.timeValueMinutes(1L), false, index);
+        client.createPit(
+                createPitRequest,
+                new ActionListener<>() {
+                    @Override
+                    public void onResponse(CreatePitResponse createPitResponse) {
+                        setPitId(createPitResponse.getId());
+                    }
+
+                    @Override
+                    public void onFailure(Exception e) {
+                        logStackTrace(e);
+                    }
+                });
         SearchRequest searchRequest = new SearchRequest(index);
         final PointInTimeBuilder pointInTimeBuilder = new PointInTimeBuilder(getPitId());
         pointInTimeBuilder.setKeepAlive(TimeValue.timeValueMinutes(1L));
-        TermQueryBuilder termQueryBuilder = QueryBuilders.termQuery("command.status.keyword","PENDING");
-        getSearchSourceBuilder().query(termQueryBuilder)
-            .size(resultsPerPage)
-            .sort(Command.COMMAND + "." + Command.ORDER_ID, SortOrder.ASC)
-            .sort(Command.COMMAND + "." + Command.TIMEOUT, SortOrder.ASC)
-            .pointInTimeBuilder(pointInTimeBuilder);
+        TermQueryBuilder termQueryBuilder =
+                QueryBuilders.termQuery("command.status.keyword", "PENDING");
+        getSearchSourceBuilder()
+                .query(termQueryBuilder)
+                .size(resultsPerPage)
+                .sort(Command.COMMAND + "." + Command.ORDER_ID, SortOrder.ASC)
+                .sort(Command.COMMAND + "." + Command.TIMEOUT, SortOrder.ASC)
+                .pointInTimeBuilder(pointInTimeBuilder);
         searchRequest.source(getSearchSourceBuilder());
-        client.search(searchRequest, new ActionListener<>() {
-            @Override
-            public void onResponse(SearchResponse searchResponse) {
-                try {
-                    setSearchResponse(searchResponse);
-                    handleSearchResponse(searchResponse);
-                } catch (Exception e) {
-                    throw new RuntimeException(e);
-                }
-            }
-            @Override
-            public void onFailure(Exception e) {
-                logStackTrace(e);
-            }
-        });
+        client.search(
+                searchRequest,
+                new ActionListener<>() {
+                    @Override
+                    public void onResponse(SearchResponse searchResponse) {
+                        try {
+                            setSearchResponse(searchResponse);
+                            handleSearchResponse(searchResponse);
+                        } catch (Exception e) {
+                            throw new RuntimeException(e);
+                        }
+                    }
+
+                    @Override
+                    public void onFailure(Exception e) {
+                        logStackTrace(e);
+                    }
+                });
 
         SearchHit[] searchHits = getSearchResponse().getHits().getHits();
         if (searchHits != null && searchHits.length > 0) {
@@ -207,73 +228,80 @@ public class SearchJob {
         SearchRequest searchRequest = new SearchRequest(index);
         searchRequest.scroll(scroll);
         SearchSourceBuilder searchSourceBuilder = new SearchSourceBuilder();
-        TermQueryBuilder termQueryBuilder = QueryBuilders.termQuery("command.status.keyword","PENDING");
-        searchSourceBuilder.query(termQueryBuilder)
-            .size(resultsPerPage)
-            .sort(Command.COMMAND + "." + Command.TIMEOUT, SortOrder.ASC);
+        TermQueryBuilder termQueryBuilder =
+                QueryBuilders.termQuery("command.status.keyword", "PENDING");
+        searchSourceBuilder
+                .query(termQueryBuilder)
+                .size(resultsPerPage)
+                .sort(Command.COMMAND + "." + Command.TIMEOUT, SortOrder.ASC);
         searchRequest.source(searchSourceBuilder);
-        client.search(searchRequest, new ActionListener<>() {
-            @Override
-            public void onResponse(SearchResponse searchResponse) {
-                log.info("First search iteration completed successfully");
-                try {
-                    handleSearchResponse(searchResponse);
-                } catch (Exception e) {
-                    throw new RuntimeException(e);
-                }
-                setScrollId(searchResponse);
-                setSearchResponse(searchResponse);
-            }
+        client.search(
+                searchRequest,
+                new ActionListener<>() {
+                    @Override
+                    public void onResponse(SearchResponse searchResponse) {
+                        log.info("First search iteration completed successfully");
+                        try {
+                            handleSearchResponse(searchResponse);
+                        } catch (Exception e) {
+                            throw new RuntimeException(e);
+                        }
+                        setScrollId(searchResponse);
+                        setSearchResponse(searchResponse);
+                    }
 
-            @Override
-            public void onFailure(Exception e) {
-                logStackTrace(e);
-            }
-        });
+                    @Override
+                    public void onFailure(Exception e) {
+                        logStackTrace(e);
+                    }
+                });
 
         SearchHit[] searchHits = searchResponse.getHits().getHits();
 
-        while ( searchHits != null && searchHits.length > 0 ) {
+        while (searchHits != null && searchHits.length > 0) {
             SearchScrollRequest scrollRequest = new SearchScrollRequest(scrollId);
             scrollRequest.scroll(scroll);
-            client.searchScroll(scrollRequest, new ActionListener<>() {
-                @Override
-                public void onResponse(SearchResponse searchResponse) {
-                    log.info("Get next page of results");
-                    try {
-                        handleSearchResponse(searchResponse);
-                    } catch (Exception e) {
-                        throw new RuntimeException(e);
-                    }
-                    setScrollId(searchResponse);
-                    setSearchResponse(searchResponse);
-                }
-                @Override
-                public void onFailure(Exception e) {
-                    logStackTrace(e);
-                }
-            });
+            client.searchScroll(
+                    scrollRequest,
+                    new ActionListener<>() {
+                        @Override
+                        public void onResponse(SearchResponse searchResponse) {
+                            log.info("Get next page of results");
+                            try {
+                                handleSearchResponse(searchResponse);
+                            } catch (Exception e) {
+                                throw new RuntimeException(e);
+                            }
+                            setScrollId(searchResponse);
+                            setSearchResponse(searchResponse);
+                        }
+
+                        @Override
+                        public void onFailure(Exception e) {
+                            logStackTrace(e);
+                        }
+                    });
             searchHits = searchResponse.getHits().getHits();
         }
 
         ClearScrollRequest clearScrollRequest = new ClearScrollRequest();
         clearScrollRequest.addScrollId(scrollId);
-        client.clearScroll(clearScrollRequest, new ActionListener<>() {
-            @Override
-            public void onResponse(ClearScrollResponse clearScrollResponse) {
-                log.info("Scroll successfully cleaned");
-            }
+        client.clearScroll(
+                clearScrollRequest,
+                new ActionListener<>() {
+                    @Override
+                    public void onResponse(ClearScrollResponse clearScrollResponse) {
+                        log.info("Scroll successfully cleaned");
+                    }
 
-            @Override
-            public void onFailure(Exception e) {
-                logStackTrace(e);
-            }
-        });
+                    @Override
+                    public void onFailure(Exception e) {
+                        logStackTrace(e);
+                    }
+                });
     }
 
-    public void pointInTimeSearchJob(String index, Integer resultsPerPage) {
-
-    }
+    public void pointInTimeSearchJob(String index, Integer resultsPerPage) {}
 
     public void setThreadPool(ThreadPool threadPool) {
         this.threadPool = threadPool;

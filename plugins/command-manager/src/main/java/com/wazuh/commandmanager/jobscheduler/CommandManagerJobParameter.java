@@ -1,4 +1,5 @@
 /*
+ * Copyright OpenSearch Contributors
  * SPDX-License-Identifier: Apache-2.0
  *
  * The OpenSearch Contributors require contributions made to
@@ -29,7 +30,6 @@ public class CommandManagerJobParameter implements ScheduledJobParameter {
     private boolean isEnabled;
     private Schedule schedule;
 
-
     public CommandManagerJobParameter() {}
 
     public CommandManagerJobParameter(String jobName, Schedule schedule) {
@@ -42,24 +42,20 @@ public class CommandManagerJobParameter implements ScheduledJobParameter {
         this.lastUpdateTime = now;
     }
 
-
     @Override
     public String getName() {
         return this.jobName;
     }
-
 
     @Override
     public Instant getLastUpdateTime() {
         return this.lastUpdateTime;
     }
 
-
     @Override
     public Instant getEnabledTime() {
         return this.enabledTime;
     }
-
 
     @Override
     public Schedule getSchedule() {
@@ -98,10 +94,16 @@ public class CommandManagerJobParameter implements ScheduledJobParameter {
         builder.field(ENABLED_FIELD, this.isEnabled);
         builder.field(SCHEDULE_FIELD, this.schedule);
         if (this.enabledTime != null) {
-            builder.timeField(ENABLED_TIME_FIELD, ENABLED_TIME_FIELD_READABLE, this.enabledTime.toEpochMilli());
+            builder.timeField(
+                    ENABLED_TIME_FIELD,
+                    ENABLED_TIME_FIELD_READABLE,
+                    this.enabledTime.toEpochMilli());
         }
         if (this.lastUpdateTime != null) {
-            builder.timeField(LAST_UPDATE_TIME_FIELD, LAST_UPDATE_TIME_FIELD_READABLE, this.lastUpdateTime.toEpochMilli());
+            builder.timeField(
+                    LAST_UPDATE_TIME_FIELD,
+                    LAST_UPDATE_TIME_FIELD_READABLE,
+                    this.lastUpdateTime.toEpochMilli());
         }
         builder.endObject();
 
