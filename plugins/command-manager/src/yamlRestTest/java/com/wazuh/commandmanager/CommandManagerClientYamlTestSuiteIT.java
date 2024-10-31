@@ -1,4 +1,5 @@
 /*
+ * Copyright OpenSearch Contributors
  * SPDX-License-Identifier: Apache-2.0
  *
  * The OpenSearch Contributors require contributions made to
@@ -9,13 +10,14 @@ package com.wazuh.commandmanager;
 
 import com.carrotsearch.randomizedtesting.annotations.Name;
 import com.carrotsearch.randomizedtesting.annotations.ParametersFactory;
+
 import org.opensearch.test.rest.yaml.ClientYamlTestCandidate;
 import org.opensearch.test.rest.yaml.OpenSearchClientYamlSuiteTestCase;
 
-
 public class CommandManagerClientYamlTestSuiteIT extends OpenSearchClientYamlSuiteTestCase {
 
-    public CommandManagerClientYamlTestSuiteIT(@Name("yaml") ClientYamlTestCandidate testCandidate) {
+    public CommandManagerClientYamlTestSuiteIT(
+            @Name("yaml") ClientYamlTestCandidate testCandidate) {
         super(testCandidate);
     }
 

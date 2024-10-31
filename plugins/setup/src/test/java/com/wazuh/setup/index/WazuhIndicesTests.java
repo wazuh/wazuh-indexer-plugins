@@ -1,4 +1,5 @@
 /*
+ * Copyright OpenSearch Contributors
  * SPDX-License-Identifier: Apache-2.0
  *
  * The OpenSearch Contributors require contributions made to
@@ -7,9 +8,6 @@
  */
 package com.wazuh.setup.index;
 
-import com.wazuh.setup.utils.IndexTemplateUtils;
-import org.junit.Before;
-import org.mockito.*;
 import org.opensearch.action.admin.indices.create.CreateIndexRequest;
 import org.opensearch.action.admin.indices.create.CreateIndexResponse;
 import org.opensearch.action.admin.indices.template.put.PutIndexTemplateRequest;
@@ -21,10 +19,14 @@ import org.opensearch.cluster.ClusterState;
 import org.opensearch.cluster.routing.RoutingTable;
 import org.opensearch.cluster.service.ClusterService;
 import org.opensearch.test.OpenSearchTestCase;
+import org.junit.Before;
 
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
+
+import com.wazuh.setup.utils.IndexTemplateUtils;
+import org.mockito.*;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
@@ -32,32 +34,23 @@ import static org.mockito.Mockito.*;
 
 public class WazuhIndicesTests extends OpenSearchTestCase {
 
-    @Mock
-    private Client client;
+    @Mock private Client client;
 
-    @Mock
-    private ClusterService clusterService;
+    @Mock private ClusterService clusterService;
 
-    @Mock
-    private AdminClient adminClient;
+    @Mock private AdminClient adminClient;
 
-    @Mock
-    private IndicesAdminClient indicesAdminClient;
+    @Mock private IndicesAdminClient indicesAdminClient;
 
-    @Mock
-    private ClusterState clusterState;
+    @Mock private ClusterState clusterState;
 
-    @Mock
-    private RoutingTable routingTable;
+    @Mock private RoutingTable routingTable;
 
-    @InjectMocks
-    private WazuhIndices wazuhIndices;
+    @InjectMocks private WazuhIndices wazuhIndices;
 
-    @Captor
-    private ArgumentCaptor<PutIndexTemplateRequest> putIndexTemplateRequestCaptor;
+    @Captor private ArgumentCaptor<PutIndexTemplateRequest> putIndexTemplateRequestCaptor;
 
-    @Captor
-    private ArgumentCaptor<CreateIndexRequest> createIndexRequestCaptor;
+    @Captor private ArgumentCaptor<CreateIndexRequest> createIndexRequestCaptor;
 
     @Before
     public void setup() {
@@ -76,7 +69,8 @@ public class WazuhIndicesTests extends OpenSearchTestCase {
         this.wazuhIndices = new WazuhIndices(this.client, this.clusterService);
     }
 
-    // FIXME The used MockMaker SubclassByteBuddyMockMaker does not support the creation of static mocks
+    // FIXME The used MockMaker SubclassByteBuddyMockMaker does not support the creation of static
+    // mocks
     // adding mockito-inline seems to have no effect
     @AwaitsFix(bugUrl = "")
     public void testPutTemplate_Successful() {
@@ -88,8 +82,11 @@ public class WazuhIndicesTests extends OpenSearchTestCase {
         template.put("index_patterns", new HashMap<>());
 
         // Mock the static method call
-        try (MockedStatic<IndexTemplateUtils> mockedStatic = Mockito.mockStatic(IndexTemplateUtils.class)) {
-            mockedStatic.when(() -> IndexTemplateUtils.fromFile(eq(templateName + ".json"))).thenReturn(template);
+        try (MockedStatic<IndexTemplateUtils> mockedStatic =
+                Mockito.mockStatic(IndexTemplateUtils.class)) {
+            mockedStatic
+                    .when(() -> IndexTemplateUtils.fromFile(eq(templateName + ".json")))
+                    .thenReturn(template);
 
             when(indicesAdminClient.putTemplate(any(PutIndexTemplateRequest.class)).actionGet())
                     .thenReturn(mock(AcknowledgedResponse.class));
@@ -107,7 +104,8 @@ public class WazuhIndicesTests extends OpenSearchTestCase {
         }
     }
 
-    // FIXME The used MockMaker SubclassByteBuddyMockMaker does not support the creation of static mocks
+    // FIXME The used MockMaker SubclassByteBuddyMockMaker does not support the creation of static
+    // mocks
     // adding mockito-inline seems to have no effect
     @AwaitsFix(bugUrl = "")
     public void testPutTemplate_IOException() {
@@ -115,8 +113,11 @@ public class WazuhIndicesTests extends OpenSearchTestCase {
         String templateName = "index-template-agent";
 
         // Mock the static method to throw IOException
-        try (MockedStatic<IndexTemplateUtils> mockedStatic = Mockito.mockStatic(IndexTemplateUtils.class)) {
-            mockedStatic.when(() -> IndexTemplateUtils.fromFile(eq(templateName + ".json"))).thenThrow(IOException.class);
+        try (MockedStatic<IndexTemplateUtils> mockedStatic =
+                Mockito.mockStatic(IndexTemplateUtils.class)) {
+            mockedStatic
+                    .when(() -> IndexTemplateUtils.fromFile(eq(templateName + ".json")))
+                    .thenThrow(IOException.class);
 
             // Act
             wazuhIndices.putTemplate(templateName);
@@ -126,16 +127,13 @@ public class WazuhIndicesTests extends OpenSearchTestCase {
         }
     }
 
-    // FIXME the return value of "org.opensearch.client.IndicesAdminClient.create(org.opensearch.action.admin.indices.create.CreateIndexRequest)" is null
+    // FIXME the return value of
+    // "org.opensearch.client.IndicesAdminClient.create(org.opensearch.action.admin.indices.create.CreateIndexRequest)" is null
     @AwaitsFix(bugUrl = "")
     public void testPutIndex_IndexDoesNotExist() {
         // Arrange
         String indexName = ".agents";
-        CreateIndexResponse createIndexResponse = new CreateIndexResponse(
-                true,
-                true,
-                indexName
-        );
+        CreateIndexResponse createIndexResponse = new CreateIndexResponse(true, true, indexName);
 
         when(routingTable.hasIndex(indexName)).thenReturn(false);
         when(indicesAdminClient.create(any(CreateIndexRequest.class)).actionGet())
@@ -151,7 +149,6 @@ public class WazuhIndicesTests extends OpenSearchTestCase {
         assertEquals(indexName, capturedRequest.index());
     }
 
-
     public void testPutIndex_IndexExists() {
         // Arrange
         String indexName = ".agents";
@@ -164,7 +161,6 @@ public class WazuhIndicesTests extends OpenSearchTestCase {
         verify(indicesAdminClient, never()).create(any(CreateIndexRequest.class));
     }
 
-
     public void testIndexExists() {
         // Arrange
         String indexName = ".agents";
@@ -176,7 +172,6 @@ public class WazuhIndicesTests extends OpenSearchTestCase {
         // Assert
         assertTrue(exists);
     }
-
 
     @AwaitsFix(bugUrl = "")
     public void testInitialize() throws IOException {
@@ -204,4 +199,3 @@ public class WazuhIndicesTests extends OpenSearchTestCase {
         verify(indicesAdminClient).create(any(CreateIndexRequest.class));
     }
 }
-

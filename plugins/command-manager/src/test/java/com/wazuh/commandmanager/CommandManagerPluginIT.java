@@ -1,4 +1,5 @@
 /*
+ * Copyright OpenSearch Contributors
  * SPDX-License-Identifier: Apache-2.0
  *
  * The OpenSearch Contributors require contributions made to
@@ -8,8 +9,11 @@
 package com.wazuh.commandmanager;
 
 import com.carrotsearch.randomizedtesting.annotations.ThreadLeakScope;
+
 import org.apache.http.ParseException;
 import org.apache.http.util.EntityUtils;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.opensearch.client.Request;
 import org.opensearch.client.Response;
 import org.opensearch.plugins.Plugin;
@@ -26,6 +30,8 @@ import static org.hamcrest.Matchers.containsString;
 @OpenSearchIntegTestCase.ClusterScope(scope = OpenSearchIntegTestCase.Scope.SUITE)
 public class CommandManagerPluginIT extends OpenSearchIntegTestCase {
 
+    private static final Logger log = LogManager.getLogger(CommandManagerPluginIT.class);
+
     @Override
     protected Collection<Class<? extends Plugin>> nodePlugins() {
         return Collections.singletonList(CommandManagerPlugin.class);
@@ -35,7 +41,7 @@ public class CommandManagerPluginIT extends OpenSearchIntegTestCase {
         Response response = getRestClient().performRequest(new Request("GET", "/_cat/plugins"));
         String body = EntityUtils.toString(response.getEntity(), StandardCharsets.UTF_8);
 
-        logger.info("response body: {}", body);
+        log.info("response body: {}", body);
         assertThat(body, containsString("command-manager"));
     }
 }

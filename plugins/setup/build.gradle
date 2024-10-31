@@ -1,5 +1,24 @@
 import org.opensearch.gradle.test.RestIntegTestTask
 
+buildscript {
+    ext {
+        opensearch_version = System.getProperty("opensearch.version", "2.16.0")
+        wazuh_version = System.getProperty("version", "5.0.0")
+        revision = System.getProperty("revision", "0")
+    }
+
+    repositories {
+        mavenLocal()
+        maven { url "https://aws.oss.sonatype.org/content/repositories/snapshots" }
+        mavenCentral()
+        maven { url "https://plugins.gradle.org/m2/" }
+    }
+
+    dependencies {
+        classpath "org.opensearch.gradle:build-tools:${opensearch_version}"
+    }
+}
+
 apply plugin: 'java'
 apply plugin: 'idea'
 apply plugin: 'eclipse'
@@ -12,7 +31,6 @@ def pluginDescription = 'Wazuh Indexer setup plugin'
 def projectPath = 'com.wazuh'
 def pathToPlugin = 'setup'
 def pluginClassName = 'SetupPlugin'
-
 
 publishing {
     publications {
@@ -57,25 +75,6 @@ loggerUsageCheck.enabled = false
 
 // No need to validate pom, as we do not upload to maven/sonatype
 validateNebulaPom.enabled = false
-
-buildscript {
-    ext {
-        opensearch_version = System.getProperty("opensearch.version", "2.16.0")
-        wazuh_version = System.getProperty("version", "5.0.0")
-        revision = System.getProperty("revision", "0")
-    }
-
-    repositories {
-        mavenLocal()
-        maven { url "https://aws.oss.sonatype.org/content/repositories/snapshots" }
-        mavenCentral()
-        maven { url "https://plugins.gradle.org/m2/" }
-    }
-
-    dependencies {
-        classpath "org.opensearch.gradle:build-tools:${opensearch_version}"
-    }
-}
 
 repositories {
     mavenLocal()

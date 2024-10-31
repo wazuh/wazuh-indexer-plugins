@@ -1,6 +1,26 @@
+
 import org.opensearch.gradle.test.RestIntegTestTask
 
 import java.util.concurrent.Callable
+
+buildscript {
+    ext {
+        opensearch_version = System.getProperty("opensearch.version", "2.16.0")
+        wazuh_version = System.getProperty("version", "5.0.0")
+        revision = System.getProperty("revision", "0")
+    }
+
+    repositories {
+        mavenLocal()
+        maven { url "https://aws.oss.sonatype.org/content/repositories/snapshots" }
+        mavenCentral()
+        maven { url "https://plugins.gradle.org/m2/" }
+    }
+
+    dependencies {
+        classpath "org.opensearch.gradle:build-tools:${opensearch_version}"
+    }
+}
 
 apply plugin: 'java'
 apply plugin: 'idea'
@@ -59,11 +79,13 @@ configurations {
 }
 
 def versions = [
-        httpclient5: "5.4",
-        httpcore5  : "5.3",
-        slf4j      : "1.7.36",
-        log4j      : "2.23.1",
-        conscrypt  : "2.5.2"
+    httpclient5: "5.4",
+    httpcore5: "5.3.1",
+    slf4j: "2.0.16",
+    log4j: "2.23.1",
+    conscrypt: "2.5.2",
+    mockito: "5.12.0",
+    junit:"4.13.2"
 ]
 
 dependencies {
@@ -78,6 +100,9 @@ dependencies {
     zipArchive group: 'org.opensearch.plugin', name: 'opensearch-job-scheduler', version: "${opensearch_build}"
     implementation "org.opensearch:opensearch:${opensearch_version}"
     compileOnly "org.opensearch:opensearch-job-scheduler-spi:${job_scheduler_version}"
+
+    testImplementation "org.mockito:mockito-core:${versions.mockito}"
+    testImplementation "junit:junit:${versions.junit}"
 }
 
 // This requires an additional Jar not published as part of build-tools
@@ -122,6 +147,7 @@ repositories {
 
 test {
     include '**/*Tests.class'
+    jvmArgs "-Djava.security.policy=./plugins/command-manager/src/main/plugin-metadata/plugin-security.policy/plugin-security.policy"
 }
 
 // As of ES 7.7 the sample-extension-plugin is being added to the list of plugins for the testCluster during build before
@@ -145,6 +171,7 @@ task integTest(type: RestIntegTestTask) {
 }
 tasks.named("check").configure { dependsOn(integTest) }
 
+
 integTest {
     // The -Dcluster.debug option makes the cluster debuggable; this makes the tests debuggable
     if (System.getProperty("test.debug") != null) {
@@ -158,6 +185,7 @@ integTest.getClusters().forEach{c -> c.plugin(project.getObjects().fileProperty(
 
 testClusters.integTest {
     testDistribution = "INTEG_TEST"
+    //testDistribution =  "ARCHIVE"
     // need to install job-scheduler first, need to assemble job-scheduler first
     plugin(provider(new Callable<RegularFile>() {
         @Override
@@ -172,6 +200,12 @@ testClusters.integTest {
     }))
 
     // This installs our plugin into the testClusters
+    plugin(project.tasks.bundlePlugin.archiveFile)
+
+    // add customized keystore
+    keystore 'm_api.auth.username', 'admin'
+    keystore 'm_api.auth.password', 'test'
+    keystore 'm_api.uri', 'https://httpbin.org/post'
     // plugin(project.tasks.bundlePlugin.archiveFile)
 }
 

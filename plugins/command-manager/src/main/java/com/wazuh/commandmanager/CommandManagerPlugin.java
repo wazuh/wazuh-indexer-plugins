@@ -1,4 +1,5 @@
 /*
+ * Copyright OpenSearch Contributors
  * SPDX-License-Identifier: Apache-2.0
  *
  * The OpenSearch Contributors require contributions made to
@@ -22,6 +23,7 @@ import org.opensearch.client.Client;
 import org.opensearch.cluster.metadata.IndexNameExpressionResolver;
 import org.opensearch.cluster.node.DiscoveryNodes;
 import org.opensearch.cluster.service.ClusterService;
+import org.opensearch.common.settings.*;
 import org.opensearch.common.UUIDs;
 import org.opensearch.common.settings.ClusterSettings;
 import org.opensearch.common.settings.IndexScopedSettings;
@@ -39,6 +41,7 @@ import org.opensearch.jobscheduler.spi.ScheduledJobRunner;
 import org.opensearch.jobscheduler.spi.schedule.ScheduleParser;
 import org.opensearch.plugins.ActionPlugin;
 import org.opensearch.plugins.Plugin;
+import org.opensearch.plugins.ReloadablePlugin;
 import org.opensearch.repositories.RepositoriesService;
 import org.opensearch.rest.*;
 import org.opensearch.script.ScriptService;
@@ -46,6 +49,7 @@ import org.opensearch.threadpool.ThreadPool;
 import org.opensearch.watcher.ResourceWatcherService;
 
 import java.io.IOException;
+import java.util.Arrays;
 import java.time.Instant;
 import java.util.Collection;
 import java.util.Collections;
@@ -53,7 +57,15 @@ import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Supplier;
 
+import com.wazuh.commandmanager.index.CommandIndex;
+import com.wazuh.commandmanager.rest.RestPostCommandAction;
+import com.wazuh.commandmanager.settings.CommandManagerSettings;
+import com.wazuh.commandmanager.utils.httpclient.HttpRestClient;
+
 /**
+ * The Command Manager plugin exposes an HTTP API with a single endpoint to receive raw commands
+ * from the Wazuh Server. These commands are processed, indexed and sent back to the Server for its
+ * delivery to, in most cases, the Agents.
  * The Command Manager plugin exposes an HTTP API with a single endpoint to
  * receive raw commands from the Wazuh Server. These commands are processed,
  * indexed and sent back to the Server for its delivery to, in most cases, the
@@ -61,6 +73,9 @@ import java.util.function.Supplier;
  * <p>
  * The Command Manager plugin is also a JobScheduler extension plugin.
  */
+public class CommandManagerPlugin extends Plugin implements ActionPlugin, ReloadablePlugin {
+    public static final String COMMAND_MANAGER_BASE_URI = "/_plugins/_command_manager";
+    public static final String COMMANDS_URI = COMMAND_MANAGER_BASE_URI + "/commands";
 public class CommandManagerPlugin extends Plugin implements ActionPlugin, JobSchedulerExtension {
     public static final String COMMAND_MANAGER_BASE_URI = "/_plugins/_commandmanager";
     public static final String COMMAND_MANAGER_SCHEDULER_URI = COMMAND_MANAGER_BASE_URI + "/schedule";
@@ -73,23 +88,25 @@ public class CommandManagerPlugin extends Plugin implements ActionPlugin, JobSch
     private static final Logger log = LogManager.getLogger(CommandManagerPlugin.class);
 
     private CommandIndex commandIndex;
+    private CommandManagerSettings commandManagerSettings;
     private JobDocument jobDocument;
 
     @Override
     public Collection<Object> createComponents(
-        Client client,
-        ClusterService clusterService,
-        ThreadPool threadPool,
-        ResourceWatcherService resourceWatcherService,
-        ScriptService scriptService,
-        NamedXContentRegistry xContentRegistry,
-        Environment environment,
-        NodeEnvironment nodeEnvironment,
-        NamedWriteableRegistry namedWriteableRegistry,
-        IndexNameExpressionResolver indexNameExpressionResolver,
-        Supplier<RepositoriesService> repositoriesServiceSupplier
-    ) {
+            Client client,
+            ClusterService clusterService,
+            ThreadPool threadPool,
+            ResourceWatcherService resourceWatcherService,
+            ScriptService scriptService,
+            NamedXContentRegistry xContentRegistry,
+            Environment environment,
+            NodeEnvironment nodeEnvironment,
+            NamedWriteableRegistry namedWriteableRegistry,
+            IndexNameExpressionResolver indexNameExpressionResolver,
+            Supplier<RepositoriesService> repositoriesServiceSupplier) {
         this.commandIndex = new CommandIndex(client, clusterService, threadPool);
+
+        this.commandManagerSettings = CommandManagerSettings.getInstance(environment);
 
         // JobSchedulerExtension stuff
         CommandManagerJobRunner jobRunner = CommandManagerJobRunner.getJobRunnerInstance();
@@ -123,15 +140,33 @@ public class CommandManagerPlugin extends Plugin implements ActionPlugin, JobSch
 
     @Override
     public List<RestHandler> getRestHandlers(
-        Settings settings,
-        RestController restController,
-        ClusterSettings clusterSettings,
-        IndexScopedSettings indexScopedSettings,
-        SettingsFilter settingsFilter,
-        IndexNameExpressionResolver indexNameExpressionResolver,
-        Supplier<DiscoveryNodes> nodesInCluster
-    ) {
-        return Collections.singletonList(new RestPostCommandAction(this.commandIndex));
+            Settings settings,
+            RestController restController,
+            ClusterSettings clusterSettings,
+            IndexScopedSettings indexScopedSettings,
+            SettingsFilter settingsFilter,
+            IndexNameExpressionResolver indexNameExpressionResolver,
+            Supplier<DiscoveryNodes> nodesInCluster) {
+        return Collections.singletonList(
+                new RestPostCommandAction(this.commandIndex, this.commandManagerSettings));
+    }
+
+    @Override
+    public List<Setting<?>> getSettings() {
+        return Arrays.asList(
+                // Register API settings
+                CommandManagerSettings.M_API_AUTH_USERNAME,
+                CommandManagerSettings.M_API_AUTH_PASSWORD,
+                CommandManagerSettings.M_API_URI);
+    }
+
+    @Override
+    public void reload(Settings settings) {
+        // secure settings should be readable
+        // final CommandManagerSettings commandManagerSettings =
+        // CommandManagerSettings.getClientSettings(secureSettingsPassword);
+        // I don't know what I have to do when we want to reload the settings already
+        // xxxService.refreshAndClearCache(commandManagerSettings);
     }
 
     @Override
