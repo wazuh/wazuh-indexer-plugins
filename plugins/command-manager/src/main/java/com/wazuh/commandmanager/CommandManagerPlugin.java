@@ -13,7 +13,7 @@ import com.wazuh.commandmanager.index.CommandIndex;
 import com.wazuh.commandmanager.jobscheduler.CommandManagerJobParameter;
 import com.wazuh.commandmanager.jobscheduler.CommandManagerJobRunner;
 import com.wazuh.commandmanager.jobscheduler.JobDocument;
-import com.wazuh.commandmanager.rest.action.RestPostCommandAction;
+import com.wazuh.commandmanager.rest.RestPostCommandAction;
 import com.wazuh.commandmanager.utils.httpclient.HttpRestClient;
 import com.wazuh.commandmanager.utils.httpclient.HttpRestClientDemo;
 import org.apache.logging.log4j.LogManager;
@@ -73,12 +73,9 @@ import com.wazuh.commandmanager.utils.httpclient.HttpRestClient;
  * <p>
  * The Command Manager plugin is also a JobScheduler extension plugin.
  */
-public class CommandManagerPlugin extends Plugin implements ActionPlugin, ReloadablePlugin {
+public class CommandManagerPlugin extends Plugin implements ActionPlugin, ReloadablePlugin, JobSchedulerExtension {
     public static final String COMMAND_MANAGER_BASE_URI = "/_plugins/_command_manager";
     public static final String COMMANDS_URI = COMMAND_MANAGER_BASE_URI + "/commands";
-public class CommandManagerPlugin extends Plugin implements ActionPlugin, JobSchedulerExtension {
-    public static final String COMMAND_MANAGER_BASE_URI = "/_plugins/_commandmanager";
-    public static final String COMMAND_MANAGER_SCHEDULER_URI = COMMAND_MANAGER_BASE_URI + "/schedule";
     public static final String COMMAND_MANAGER_INDEX_NAME = ".commands";
     public static final String COMMAND_MANAGER_INDEX_TEMPLATE_NAME = "index-template-commands";
     public static final String JOB_INDEX_NAME = ".scheduled-commands";
