@@ -1,9 +1,12 @@
 package com.wazuh.commandmanager.jobscheduler;
 
+import com.wazuh.commandmanager.CommandManagerPlugin;
 import com.wazuh.commandmanager.model.Command;
 import com.wazuh.commandmanager.utils.httpclient.HttpRestClientDemo;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.opensearch.action.index.IndexRequest;
+import org.opensearch.action.index.IndexResponse;
 import org.opensearch.action.search.*;
 import org.opensearch.client.Client;
 import org.opensearch.common.unit.TimeValue;
@@ -18,14 +21,12 @@ import org.opensearch.search.SearchHit;
 import org.opensearch.search.SearchHits;
 import org.opensearch.search.builder.PointInTimeBuilder;
 import org.opensearch.search.builder.SearchSourceBuilder;
-import org.opensearch.search.searchafter.SearchAfterBuilder;
 import org.opensearch.search.sort.SortOrder;
 import org.opensearch.threadpool.ThreadPool;
 
 import java.io.ByteArrayOutputStream;
-import java.io.IOException;
 import java.io.PrintStream;
-import java.util.Arrays;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
@@ -104,9 +105,51 @@ public class SearchJob {
         return completableFuture;
     }
 
+    Map<String, Object> checkAndTransform(Map<String, Object> inputMap) throws ClassCastException {
+        Map<String, Object> result = new HashMap<>();
+        for ( Map.Entry<String, Object> entry : inputMap.entrySet() ) {
+            try {
+                result.put(entry.getKey(), entry.getValue());
+            } catch (ClassCastException e) {
+                logStackTrace(e);
+            }
+        }
+        return result;
+    }
+
+    @SuppressWarnings("Unchecked")
+    public static <T> T getNestedValue(Map<String, Object> map, String key, Class<T> type) {
+        Object value = map.get(key);
+        if (type.isInstance(value)) {
+            return type.cast(value);
+        } else {
+            throw new ClassCastException("Expected " + type + " but found " + (value != null ? value.getClass() : "null"));
+        }
+    }
+
     public void handleSearchResponse(SearchResponse searchResponse) throws Exception {
         SearchHits searchHits = searchResponse.getHits();
         for (SearchHit hit: searchHits) {
+            Map<String,Object> commandMap = getNestedValue(hit.getSourceAsMap(), "command", Map.class);
+            commandMap.put("status", "DONE");
+            hit.getSourceAsMap().put("command", commandMap);
+            IndexRequest indexRequest = new IndexRequest()
+                .index(CommandManagerPlugin.COMMAND_MANAGER_INDEX_NAME)
+                .source(hit.getSourceAsMap())
+                .id(hit.getId());
+            client.index(
+                indexRequest,
+                new ActionListener<IndexResponse>() {
+                    @Override
+                    public void onResponse(IndexResponse indexResponse) {
+                       log.debug("Updated command with document id: {}", hit.getId());
+                    }
+                    @Override
+                    public void onFailure(Exception e) {
+                        logStackTrace(e);
+                    }
+                }
+            );
             XContentBuilder xContentBuilder = XContentFactory.jsonBuilder();
             hit.toXContent(xContentBuilder, ToXContent.EMPTY_PARAMS);
             String uri = "https://httpbin.org/post";
