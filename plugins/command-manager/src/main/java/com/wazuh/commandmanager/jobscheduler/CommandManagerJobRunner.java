@@ -27,7 +27,7 @@ public class CommandManagerJobRunner implements ScheduledJobRunner {
     private ClusterService clusterService;
 
     private Client client;
-    private final SearchJob searchJob = SearchJob.getSearchJobInstance();
+    private final SearchJob searchJob = SearchJob.getInstance();
 
     private CommandManagerJobRunner() {
         // Singleton class, use getJobRunner method instead of constructor
@@ -55,33 +55,33 @@ public class CommandManagerJobRunner implements ScheduledJobRunner {
     public void runJob(ScheduledJobParameter jobParameter, JobExecutionContext context) {
         if (!indexExists(CommandManagerPlugin.COMMAND_MANAGER_INDEX_NAME)) {
             log.info(
-                    "{} index not yet created, not running command manager jobs",
-                    CommandManagerPlugin.COMMAND_MANAGER_INDEX_NAME);
+                "{} index not yet created, not running command manager jobs",
+                CommandManagerPlugin.COMMAND_MANAGER_INDEX_NAME);
             return;
         }
         Runnable runnable =
-                () -> {
-                    this.searchJob.setClient(client);
-                    this.searchJob.setThreadPool(threadPool);
-                    // this.searchJob.scrollSearchJob(CommandManagerPlugin.COMMAND_MANAGER_INDEX_NAME, CommandManagerPlugin.COMMAND_BATCH_SIZE);
-                    this.searchJob
-                            .search(
-                                    CommandManagerPlugin.COMMAND_MANAGER_INDEX_NAME,
-                                    CommandManagerPlugin.COMMAND_BATCH_SIZE)
-                            .thenAccept(
-                                    searchResponse -> {
-                                        try {
-                                            this.searchJob.handleSearchResponse(searchResponse);
-                                        } catch (Exception e) {
-                                            throw new RuntimeException(e);
-                                        }
-                                    })
-                            .exceptionally(
-                                    e -> {
-                                        log.error(e.getMessage());
-                                        return null;
-                                    });
-                };
+            () -> {
+                this.searchJob.setClient(client);
+                this.searchJob.setThreadPool(threadPool);
+                // this.searchJob.scrollSearchJob(CommandManagerPlugin.COMMAND_MANAGER_INDEX_NAME, CommandManagerPlugin.COMMAND_BATCH_SIZE);
+                this.searchJob
+                    .simpleSearch(
+                        CommandManagerPlugin.COMMAND_MANAGER_INDEX_NAME,
+                        CommandManagerPlugin.COMMAND_BATCH_SIZE)
+                    .thenAccept(
+                        searchResponse -> {
+                            try {
+                                this.searchJob.handleFirstPage(searchResponse);
+                            } catch (Exception e) {
+                                throw new RuntimeException(e);
+                            }
+                        })
+                    .exceptionally(
+                        e -> {
+                            log.error(e.getMessage());
+                            return null;
+                        });
+            };
         threadPool.generic().submit(runnable);
     }
 
