@@ -41,7 +41,7 @@ public class SearchJob {
     private static SearchJob INSTANCE;
     private String pitId;
     private Object[] searchAfter = null;
-    private final SearchSourceBuilder searchSourceBuilder = new SearchSourceBuilder();
+    private SearchSourceBuilder searchSourceBuilder = new SearchSourceBuilder();
     private SearchResponse currentPage = null;
 
     public static SearchJob getInstance() {
@@ -135,11 +135,15 @@ public class SearchJob {
             .query(termQueryBuilder)
             .size(resultsPerPage)
             .trackTotalHits(true)
-            .sort(Command.COMMAND + "." + Command.ORDER_ID + ".keyword", SortOrder.ASC)
-            .sort(Command.COMMAND + "." + Command.TIMEOUT, SortOrder.ASC)
             .pointInTimeBuilder(
                 PointInTime.getInstance(client, index).getPointInTimeBuilder()
             );
+        if( getSearchSourceBuilder().sorts() == null ) {
+            getSearchSourceBuilder()
+                .sort(Command.COMMAND + "." + Command.ORDER_ID + ".keyword", SortOrder.ASC)
+                .sort(Command.COMMAND + "." + Command.TIMEOUT, SortOrder.ASC);
+
+        }
         if (searchAfter != null) {
             getSearchSourceBuilder().searchAfter(searchAfter);
         }
@@ -190,15 +194,19 @@ public class SearchJob {
         return Objects.requireNonNull(getCurrentPage().getHits().getTotalHits()).value;
     }
 
-    public SearchSourceBuilder getSearchSourceBuilder() {
+    private void setSearchSourceBuilder(SearchSourceBuilder searchSourceBuilder) {
+        this.searchSourceBuilder = searchSourceBuilder;
+    }
+
+    private SearchSourceBuilder getSearchSourceBuilder() {
         return searchSourceBuilder;
     }
 
-    public SearchResponse getCurrentPage() {
+    private SearchResponse getCurrentPage() {
         return currentPage;
     }
 
-    public void setCurrentPage(Client client, String index, Integer resultsPerPage) throws IOException, IllegalStateException {
+    private void setCurrentPage(Client client, String index, Integer resultsPerPage) throws IOException, IllegalStateException {
         this.currentPage =
             preparePitSearch(
                 client,
@@ -208,7 +216,7 @@ public class SearchJob {
             );
     }
 
-    public Object[] getSearchAfter() {
+    private Object[] getSearchAfter() {
         if (getCurrentPage() == null) {
             return null;
         }
