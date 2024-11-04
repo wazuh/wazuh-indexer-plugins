@@ -135,9 +135,7 @@ public class SearchJob {
             .query(termQueryBuilder)
             .size(resultsPerPage)
             .trackTotalHits(true)
-            .sort(Command.COMMAND + "." + Command.ORDER_ID + ".keyword" +
-                "" +
-                "", SortOrder.ASC)
+            .sort(Command.COMMAND + "." + Command.ORDER_ID + ".keyword", SortOrder.ASC)
             .sort(Command.COMMAND + "." + Command.TIMEOUT, SortOrder.ASC)
             .pointInTimeBuilder(
                 PointInTime.getInstance(client, index).getPointInTimeBuilder()
