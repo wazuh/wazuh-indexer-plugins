@@ -33,7 +33,7 @@ public class CommandManagerJobRunner implements ScheduledJobRunner {
         // Singleton class, use getJobRunner method instead of constructor
     }
 
-    public static CommandManagerJobRunner getJobRunnerInstance() {
+    public static CommandManagerJobRunner getInstance() {
         log.info("Getting Job Runner Instance");
         if (INSTANCE != null) {
             return INSTANCE;
@@ -59,30 +59,14 @@ public class CommandManagerJobRunner implements ScheduledJobRunner {
                 CommandManagerPlugin.COMMAND_MANAGER_INDEX_NAME);
             return;
         }
-        Runnable runnable =
-            () -> {
-                this.searchJob.setClient(client);
-                this.searchJob.setThreadPool(threadPool);
-                // this.searchJob.scrollSearchJob(CommandManagerPlugin.COMMAND_MANAGER_INDEX_NAME, CommandManagerPlugin.COMMAND_BATCH_SIZE);
-                this.searchJob
-                    .simpleSearch(
-                        CommandManagerPlugin.COMMAND_MANAGER_INDEX_NAME,
-                        CommandManagerPlugin.COMMAND_BATCH_SIZE)
-                    .thenAccept(
-                        searchResponse -> {
-                            try {
-                                this.searchJob.handleFirstPage(searchResponse);
-                            } catch (Exception e) {
-                                throw new RuntimeException(e);
-                            }
-                        })
-                    .exceptionally(
-                        e -> {
-                            log.error(e.getMessage());
-                            return null;
-                        });
-            };
-        threadPool.generic().submit(runnable);
+        threadPool.generic()
+            .submit(
+                this.searchJob.searchJobRunnable(
+                    this.client,
+                    CommandManagerPlugin.COMMAND_MANAGER_INDEX_NAME,
+                    CommandManagerPlugin.COMMAND_BATCH_SIZE
+                )
+            );
     }
 
     public void setClusterService(ClusterService clusterService) {
@@ -93,7 +77,15 @@ public class CommandManagerJobRunner implements ScheduledJobRunner {
         this.client = client;
     }
 
+    public Client getClient() {
+        return client;
+    }
+
     public void setThreadPool(ThreadPool threadPool) {
         this.threadPool = threadPool;
+    }
+
+    public ThreadPool getThreadPool() {
+        return threadPool;
     }
 }

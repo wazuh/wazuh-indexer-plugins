@@ -21,7 +21,7 @@ public class PointInTime {
     private CreatePitResponse createPitResponse;
     private TimeValue keepAlive = TimeValue.timeValueSeconds(60L);
 
-    public PointInTimeBuilder createPit(Client client, String index) {
+    public void createPit(Client client, String index) {
         Boolean allowPartialPitCreation = false;
         setCreatePitRequest(
             new CreatePitRequest(getKeepAlive(), allowPartialPitCreation, index)
@@ -44,7 +44,6 @@ public class PointInTime {
                     log.error(e);
                 }
             });
-        return getPointInTimeBuilder();
     }
 
 
@@ -68,7 +67,7 @@ public class PointInTime {
     }
 
     public CreatePitRequest getCreatePitRequest() {
-        return createPitRequest;
+        return this.createPitRequest;
     }
 
     public void setCreatePitRequest(CreatePitRequest createPitRequest) {
@@ -91,7 +90,7 @@ public class PointInTime {
         this.keepAlive = keepAlive;
     }
 
-    public static PointInTime getInstance() {
+    public static PointInTime getInstance(Client client, String index) {
         log.info("Getting Job Runner Instance");
         if (INSTANCE != null) {
             return INSTANCE;
@@ -101,6 +100,7 @@ public class PointInTime {
                 return INSTANCE;
             }
             INSTANCE = new PointInTime();
+            INSTANCE.createPit(client, index);
             return INSTANCE;
         }
     }

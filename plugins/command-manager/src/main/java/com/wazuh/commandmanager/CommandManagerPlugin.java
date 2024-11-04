@@ -75,6 +75,7 @@ public class CommandManagerPlugin extends Plugin
     public static final String JOB_INDEX_NAME = ".scheduled-commands";
     public static final Integer JOB_PERIOD_MINUTES = 1;
     public static final Integer COMMAND_BATCH_SIZE = 10;
+    public static final Long SEARCH_QUERY_TIMEOUT = 10L;
 
     private static final Logger log = LogManager.getLogger(CommandManagerPlugin.class);
 
@@ -99,7 +100,7 @@ public class CommandManagerPlugin extends Plugin
         PluginSettings.getInstance(environment.settings());
 
         // JobSchedulerExtension stuff
-        CommandManagerJobRunner jobRunner = CommandManagerJobRunner.getJobRunnerInstance();
+        CommandManagerJobRunner jobRunner = CommandManagerJobRunner.getInstance();
         jobRunner.setThreadPool(threadPool);
         jobRunner.setClient(client);
         jobRunner.setClusterService(clusterService);
@@ -180,7 +181,7 @@ public class CommandManagerPlugin extends Plugin
     @Override
     public ScheduledJobRunner getJobRunner() {
         log.info("getJobRunner() executed");
-        return CommandManagerJobRunner.getJobRunnerInstance();
+        return CommandManagerJobRunner.getInstance();
     }
 
     @Override
