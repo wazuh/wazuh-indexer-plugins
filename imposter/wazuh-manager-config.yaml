@@ -1,0 +1,31 @@
+plugin: openapi
+specFile: https://raw.githubusercontent.com/wazuh/wazuh/refs/heads/master/api/api/spec/spec.yaml
+resources:
+  # ===================================================== #
+  #   SECURITY
+  # ===================================================== #
+
+  # Login
+  ## Wazuh 4.3
+  - method: GET
+    path: /security/user/authenticate
+    response:
+      statusCode: 200
+      scriptFile: security/login.js
+
+  ## Wazuh >= 4.4
+  - method: POST
+    path: /security/user/authenticate
+    response:
+      statusCode: 200
+      scriptFile: security/login.js
+
+  # Login auth_context
+  - method: POST
+    path: /security/user/authenticate/run_as
+
+  # Orders
+  - method: POST
+    path: /orders
+    response:
+      statusCode: 200
