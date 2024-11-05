@@ -1,5 +1,6 @@
 package com.wazuh.commandmanager.jobscheduler;
 
+import com.wazuh.commandmanager.CommandManagerPlugin;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.opensearch.action.search.CreatePitRequest;
@@ -9,7 +10,6 @@ import org.opensearch.common.unit.TimeValue;
 import org.opensearch.core.action.ActionListener;
 import org.opensearch.search.builder.PointInTimeBuilder;
 
-import javax.swing.*;
 import java.sql.Time;
 
 public class PointInTime {
@@ -19,7 +19,11 @@ public class PointInTime {
     private CreatePitRequest createPitRequest;
     private PointInTimeBuilder pointInTimeBuilder;
     private CreatePitResponse createPitResponse;
-    private TimeValue keepAlive = TimeValue.timeValueSeconds(60L);
+    private final TimeValue keepAlive = TimeValue.timeValueSeconds(30L);
+
+    public PointInTime(Client client, String index) {
+        createPit(client, index);
+    }
 
     public void createPit(Client client, String index) {
         Boolean allowPartialPitCreation = false;
@@ -36,7 +40,11 @@ public class PointInTime {
                     setPointInTimeBuilder(
                         new PointInTimeBuilder(createPitResponse.getId())
                     );
-                    getPointInTimeBuilder().setKeepAlive(getKeepAlive());
+                    getPointInTimeBuilder().setKeepAlive(
+                        TimeValue.timeValueSeconds(
+                            CommandManagerPlugin.PIT_KEEPALIVE_SECONDS
+                        )
+                    );
                 }
 
                 @Override
@@ -46,13 +54,12 @@ public class PointInTime {
             });
     }
 
-
-    public CreatePitResponse getCreatePitResponse() {
-        return createPitResponse;
-    }
-
     public void setCreatePitResponse(CreatePitResponse createPitResponse) {
         this.createPitResponse = createPitResponse;
+    }
+
+    private CreatePitResponse getCreatePitResponse() {
+        return this.createPitResponse;
     }
 
     public PointInTimeBuilder getPointInTimeBuilder() {
@@ -61,9 +68,6 @@ public class PointInTime {
 
     public void setPointInTimeBuilder(PointInTimeBuilder pointInTimeBuilder) {
         this.pointInTimeBuilder = pointInTimeBuilder;
-    }
-
-    public PointInTime() {
     }
 
     public CreatePitRequest getCreatePitRequest() {
@@ -86,22 +90,4 @@ public class PointInTime {
         return keepAlive;
     }
 
-    public void setKeepAlive(TimeValue keepAlive) {
-        this.keepAlive = keepAlive;
-    }
-
-    public static PointInTime getInstance(Client client, String index) {
-        log.info("Getting Job Runner Instance");
-        if (INSTANCE != null) {
-            return INSTANCE;
-        }
-        synchronized (SearchJob.class) {
-            if (INSTANCE != null) {
-                return INSTANCE;
-            }
-            INSTANCE = new PointInTime();
-            INSTANCE.createPit(client, index);
-            return INSTANCE;
-        }
-    }
 }

@@ -139,7 +139,7 @@ public class SearchJob {
             .size(resultsPerPage)
             .trackTotalHits(true)
             .pointInTimeBuilder(
-                PointInTime.getInstance(client, index).getPointInTimeBuilder()
+                new PointInTime(client, index).getPointInTimeBuilder()
             );
         if( getSearchSourceBuilder().sorts() == null ) {
             getSearchSourceBuilder()

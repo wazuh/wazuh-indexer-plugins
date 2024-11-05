@@ -74,8 +74,9 @@ public class CommandManagerPlugin extends Plugin
     public static final String COMMAND_MANAGER_INDEX_TEMPLATE_NAME = "index-template-commands";
     public static final String JOB_INDEX_NAME = ".scheduled-commands";
     public static final Integer JOB_PERIOD_MINUTES = 1;
-    public static final Integer COMMAND_BATCH_SIZE = 10;
+    public static final Integer COMMAND_BATCH_SIZE = 2;
     public static final Long SEARCH_QUERY_TIMEOUT = 10L;
+    public static final Long PIT_KEEPALIVE_SECONDS = 30L;
 
     private static final Logger log = LogManager.getLogger(CommandManagerPlugin.class);
 
