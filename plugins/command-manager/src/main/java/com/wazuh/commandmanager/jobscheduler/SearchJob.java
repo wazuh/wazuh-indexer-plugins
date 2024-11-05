@@ -39,8 +39,6 @@ import com.wazuh.commandmanager.utils.httpclient.HttpRestClientDemo;
 public class SearchJob {
     private static final Logger log = LogManager.getLogger(SearchJob.class);
     private static SearchJob INSTANCE;
-    private String pitId;
-    private Object[] searchAfter = null;
     private SearchSourceBuilder searchSourceBuilder = new SearchSourceBuilder();
     private SearchResponse currentPage = null;
 
@@ -77,9 +75,14 @@ public class SearchJob {
     }
 
     public SearchHit getLastHit(SearchResponse searchResponse) {
-        return searchResponse
-            .getHits()
-            .getHits()[searchResponse.getHits().getHits().length - 1];
+        int index = searchResponse.getHits().getHits().length - 1;
+        try {
+            return searchResponse
+                .getHits()
+                .getHits()[index];
+        } catch (ArrayIndexOutOfBoundsException e) {
+            return null;
+        }
     }
 
     public void handlePage(Client client, SearchResponse searchResponse) throws IOException {
@@ -158,13 +161,21 @@ public class SearchJob {
             do {
                 try {
                     setCurrentPage(
-                        client,
-                        index,
-                        resultsPerPage
+                        preparePitSearch(
+                            client,
+                            index,
+                            resultsPerPage,
+                            getSearchAfter()
+                        )
                     );
+                    //if ( getCurrentPage().getHits().getHits().length < 1 ) {
+                    //    break;
+                    //}
                     handlePage(client, getCurrentPage());
                 } catch (IOException e) {
                     log.error("IOException retrieving page: {}", e.getMessage());
+                } catch (ArrayIndexOutOfBoundsException e) {
+                    log.error("ArrayIndexOutOfBoundsException retrieving page: {}", e.getMessage());
                 } catch (IllegalStateException e) {
                     log.error("IllegalStateException retrieving page: {}", e.getMessage());
                 } catch (RuntimeException e) {
@@ -194,10 +205,6 @@ public class SearchJob {
         return Objects.requireNonNull(getCurrentPage().getHits().getTotalHits()).value;
     }
 
-    private void setSearchSourceBuilder(SearchSourceBuilder searchSourceBuilder) {
-        this.searchSourceBuilder = searchSourceBuilder;
-    }
-
     private SearchSourceBuilder getSearchSourceBuilder() {
         return searchSourceBuilder;
     }
@@ -206,22 +213,16 @@ public class SearchJob {
         return currentPage;
     }
 
-    private void setCurrentPage(Client client, String index, Integer resultsPerPage) throws IOException, IllegalStateException {
-        this.currentPage =
-            preparePitSearch(
-                client,
-                index,
-                resultsPerPage,
-                getSearchAfter()
-            );
+    private void setCurrentPage(SearchResponse currentPage) {
+        this.currentPage = currentPage;
     }
 
     private Object[] getSearchAfter() {
-        if (getCurrentPage() == null) {
-            return null;
+        if (getLastHit(getCurrentPage()) != null) {
+            return getLastHit(getCurrentPage()).getSortValues();
         }
         else {
-            return getLastHit(getCurrentPage()).getSortValues();
+            return null;
         }
     }
 }
