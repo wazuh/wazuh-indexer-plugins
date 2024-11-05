@@ -73,18 +73,6 @@ public class RestPostCommandAction extends BaseRestHandler {
             throws IOException {
         switch (request.method()) {
             case POST:
-                if (request.uri().contains(SECURITY_USER_AUTHENTICATE)) {
-                    log.info("Mocking M_API basic authentication");
-                    return channel -> {
-                        BytesRestResponse mockResponse =
-                                new BytesRestResponse(
-                                        RestStatus.OK,
-                                        "application/json",
-                                        "{\"data\": { \"token\": \"test-jwt-token\" } }");
-                        channel.sendResponse(mockResponse);
-                    };
-                }
-
                 return handlePost(request);
             default:
                 throw new IllegalArgumentException(

@@ -100,9 +100,10 @@ dependencies {
     implementation "com.fasterxml.jackson.core:jackson-databind:${versions.jackson_databind}"
     implementation "com.fasterxml.jackson.core:jackson-annotations:${versions.jackson}"
 
-    // imposter
     testImplementation "org.mockito:mockito-core:${versions.mockito}"
     testImplementation "junit:junit:${versions.junit}"
+
+    // imposter
     testImplementation "io.gatehill.imposter:distro-embedded:${versions.imposter}"
     testImplementation "io.gatehill.imposter:imposter-server:${versions.imposter}"
     testImplementation "io.gatehill.imposter:config-dynamic:${versions.imposter}"
@@ -142,7 +143,6 @@ task integTest(type: RestIntegTestTask) {
 }
 tasks.named("check").configure { dependsOn(integTest) }
 
-
 integTest {
     // The --debug-jvm command-line option makes the cluster debuggable; this makes the tests debuggable
     if (System.getProperty("test.debug") != null) {
@@ -159,7 +159,7 @@ testClusters.integTest {
     // add customized keystore
     keystore 'm_api.auth.username', 'admin'
     keystore 'm_api.auth.password', 'test'
-    keystore 'm_api.uri', 'http://127.0.0.1:9200/_plugins/_command_manager' // base URI of the M_API
+    keystore 'm_api.uri', 'http://127.0.0.1:55000' // base URI of the M_API
 }
 
 run {
