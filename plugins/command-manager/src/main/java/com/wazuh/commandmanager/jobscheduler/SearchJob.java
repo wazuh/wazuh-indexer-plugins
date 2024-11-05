@@ -75,12 +75,12 @@ public class SearchJob {
     }
 
     public SearchHit getLastHit(SearchResponse searchResponse) {
-        int index = searchResponse.getHits().getHits().length - 1;
         try {
+            int index = searchResponse.getHits().getHits().length - 1;
             return searchResponse
                 .getHits()
                 .getHits()[index];
-        } catch (ArrayIndexOutOfBoundsException e) {
+        } catch (Exception e) {
             return null;
         }
     }
@@ -124,7 +124,7 @@ public class SearchJob {
             });
     }
 
-    public SearchResponse preparePitSearch(Client client, String index, Integer resultsPerPage, Object[] searchAfter) throws IllegalStateException {
+    public SearchResponse runPitQuery(Client client, String index, Integer resultsPerPage, Object[] searchAfter) throws IllegalStateException {
         return client.search(
             pitSearchRequest(client, index, resultsPerPage, searchAfter)
         ).actionGet(TimeValue.timeValueSeconds(CommandManagerPlugin.SEARCH_QUERY_TIMEOUT));
@@ -161,17 +161,21 @@ public class SearchJob {
             do {
                 try {
                     setCurrentPage(
-                        preparePitSearch(
+                        runPitQuery(
                             client,
                             index,
                             resultsPerPage,
                             getSearchAfter()
                         )
                     );
-                    //if ( getCurrentPage().getHits().getHits().length < 1 ) {
-                    //    break;
-                    //}
-                    handlePage(client, getCurrentPage());
+                    if (firstPage) {
+                        consumableHits = totalHits();
+                        firstPage = false;
+                    }
+                    if ( consumableHits > 0 ) {
+                        handlePage(client, getCurrentPage());
+                        consumableHits -= getPageLength();
+                    }
                 } catch (IOException e) {
                     log.error("IOException retrieving page: {}", e.getMessage());
                 } catch (ArrayIndexOutOfBoundsException e) {
@@ -184,14 +188,6 @@ public class SearchJob {
                 } catch (Exception e) {
                     log.error("Generic exception retrieving page: {}", e.getMessage());
                 }
-                if (firstPage) {
-                    if ( totalHits() < 1L ) {
-                        break;
-                    }
-                    consumableHits = totalHits();
-                    firstPage = false;
-                }
-                consumableHits -= getPageLength();
             }
             while (consumableHits > 0);
         };
