@@ -51,7 +51,6 @@ public class SearchJob {
         return CompletableFuture.completedFuture(client.search(searchRequest).actionGet());
     }
 
-    @SuppressWarnings("Unchecked")
     public static <T> T getNestedValue(Map<String, Object> map, String key, Class<T> type) {
         Object value = map.get(key);
         if (type.isInstance(value)) {
@@ -90,6 +89,7 @@ public class SearchJob {
         HttpRestClientDemo.run("https://httpbin.org/post", xContentBuilder.toString());
     }
 
+    @SuppressWarnings("unchecked")
     private void updateStatusField(Client client, SearchHit hit, Status status ) {
         Map<String, Object> commandMap =
             getNestedValue(hit.getSourceAsMap(), "command", Map.class);
@@ -110,7 +110,7 @@ public class SearchJob {
 
                 @Override
                 public void onFailure(Exception e) {
-                    log.error(e);
+                    log.error(e.getMessage());
                 }
             });
     }
@@ -175,7 +175,6 @@ public class SearchJob {
                     log.error("IllegalStateException retrieving page: {}", e.getMessage());
                 } catch (RuntimeException e) {
                     log.error("RuntimeException retrieving page: {}", e.getMessage());
-                    e.printStackTrace();
                 } catch (Exception e) {
                     log.error("Generic exception retrieving page: {}", e.getMessage());
                 }

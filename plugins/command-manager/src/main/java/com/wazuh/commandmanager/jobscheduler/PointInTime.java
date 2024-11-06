@@ -57,7 +57,7 @@ public class PointInTime {
 
                 @Override
                 public void onFailure(Exception e) {
-                    log.error(e);
+                    log.error(e.getMessage());
                 }
             });
     }
