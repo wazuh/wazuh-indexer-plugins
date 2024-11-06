@@ -38,22 +38,13 @@ import com.wazuh.commandmanager.utils.httpclient.HttpRestClientDemo;
 
 public class SearchJob {
     private static final Logger log = LogManager.getLogger(SearchJob.class);
-    private static SearchJob INSTANCE;
-    private SearchSourceBuilder searchSourceBuilder = new SearchSourceBuilder();
+    private static final SearchJob INSTANCE = new SearchJob();;
+    private final SearchSourceBuilder searchSourceBuilder = new SearchSourceBuilder();
     private SearchResponse currentPage = null;
 
     public static SearchJob getInstance() {
         log.info("Getting Job Runner Instance");
-        if (INSTANCE != null) {
-            return INSTANCE;
-        }
-        synchronized (SearchJob.class) {
-            if (INSTANCE != null) {
-                return INSTANCE;
-            }
-            INSTANCE = new SearchJob();
-            return INSTANCE;
-        }
+        return INSTANCE;
     }
 
     public CompletableFuture<SearchResponse> futureSearch(Client client, SearchRequest searchRequest) {

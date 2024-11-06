@@ -28,22 +28,13 @@ import com.wazuh.commandmanager.CommandManagerPlugin;
 
 public class JobDocument {
     private static final Logger log = LogManager.getLogger(JobDocument.class);
-    private static JobDocument INSTANCE;
+    private static final JobDocument INSTANCE = new JobDocument();
 
     private JobDocument() {}
 
     public static JobDocument getInstance() {
         log.info("Getting JobDocument Instance");
-        if (INSTANCE != null) {
-            return INSTANCE;
-        }
-        synchronized (JobDocument.class) {
-            if (INSTANCE != null) {
-                return INSTANCE;
-            }
-            INSTANCE = new JobDocument();
-            return INSTANCE;
-        }
+        return INSTANCE;
     }
 
     public CompletableFuture<IndexResponse> create(
