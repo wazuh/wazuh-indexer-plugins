@@ -8,12 +8,15 @@
  */
 package com.wazuh.commandmanager.settings;
 
+import org.apache.hc.core5.net.URIBuilder;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.opensearch.common.settings.SecureSetting;
 import org.opensearch.common.settings.Setting;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.core.common.settings.SecureString;
+
+import java.net.URISyntaxException;
 
 import reactor.util.annotation.NonNull;
 
@@ -86,6 +89,10 @@ public class PluginSettings {
 
     public String getUri() {
         return this.uri.toString();
+    }
+
+    public String getUri(String path) throws URISyntaxException {
+        return new URIBuilder(getUri()).setPath(path).build().toString();
     }
 
     @Override

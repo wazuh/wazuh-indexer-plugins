@@ -28,7 +28,7 @@ public class HttpRestClientDemo {
 
     public static final String SECURITY_USER_AUTHENTICATE =
             COMMAND_MANAGER_BASE_URI + "/security/user/authenticate";
-    public static final String ORDERS = "orders";
+    public static final String ORDERS = "/orders";
     private static final Logger log = LogManager.getLogger(HttpRestClientDemo.class);
 
     /**
@@ -60,9 +60,10 @@ public class HttpRestClientDemo {
      * @param body POST's request body as a JSON string.
      * @return
      */
-    public static SimpleHttpResponse runWithResponse(String body, String docId) {
+    public static SimpleHttpResponse runWithResponse(String body, String docId)
+            throws URISyntaxException {
         log.info("Executing POST request");
-        String mApiURI = PluginSettings.getInstance().getUri();
+        String mApiURI = PluginSettings.getInstance().getUri(ORDERS);
         SimpleHttpResponse response;
         response =
                 AccessController.doPrivileged(
