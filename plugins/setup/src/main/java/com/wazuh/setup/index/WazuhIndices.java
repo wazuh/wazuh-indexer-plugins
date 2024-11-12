@@ -55,8 +55,10 @@ public class WazuhIndices {
         this.indexTemplates.put("index-template-processes", "wazuh-states-inventory-processes");
         this.indexTemplates.put("index-template-packages", "wazuh-states-inventory-packages");
         this.indexTemplates.put("index-template-commands", ".commands");
+        this.indexTemplates.put("index-template-hotfixes", "wazuh-states-inventory-hotfixes");
         this.indexTemplates.put("index-template-ports", "wazuh-states-inventory-ports");
         this.indexTemplates.put("index-template-networks", "wazuh-states-inventory-networks");
+
     }
 
     /**
