@@ -13,10 +13,10 @@ This update is still being discussed, but we need to be aware of potential issue
 
 For that, we need to:
 
-- [ ] Review opensearch's release notes.
-- [ ] Identify improvements and potential impact.
-- [ ] Create new development branch.
-- [ ] Develop a testing environment to verify our components would work under this new build.
+- [ ] Bump `opensearch_version` in `build.gradle`.*
+
+\* Run `./gradlew updateVersion -DnewVersion="2.X.X"`.
+
 
 
 ## Issues
