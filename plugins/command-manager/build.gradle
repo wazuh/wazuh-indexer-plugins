@@ -4,9 +4,11 @@ import java.util.concurrent.Callable
 
 buildscript {
     ext {
-        opensearch_version = System.getProperty("opensearch.version", "2.16.0")
+
+        opensearch_version = System.getProperty("opensearch.version", "2.17.1")
         opensearch_build = opensearch_version + ".0"
         job_scheduler_version = System.getProperty("job_scheduler.version", opensearch_build)
+
         wazuh_version = System.getProperty("version", "5.0.0")
         revision = System.getProperty("revision", "0")
     }

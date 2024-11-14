@@ -49,12 +49,16 @@ public class WazuhIndices {
         // Create Index Templates - Indices map
         this.indexTemplates.put("index-template-agent", ".agents");
         this.indexTemplates.put("index-template-alerts", "wazuh-alerts-5.x-0001");
-        this.indexTemplates.put("index-template-fim", "wazuh-states-fim");
-        this.indexTemplates.put("index-template-vulnerabilities", "wazuh-states-vulnerabilities");
-        this.indexTemplates.put("index-template-system", "wazuh-states-inventory-system");
-        this.indexTemplates.put("index-template-processes", "wazuh-states-inventory-processes");
-        this.indexTemplates.put("index-template-packages", "wazuh-states-inventory-packages");
         this.indexTemplates.put("index-template-commands", ".commands");
+        this.indexTemplates.put("index-template-fim", "wazuh-states-fim");
+        this.indexTemplates.put("index-template-hardware", "wazuh-states-inventory-hardware");
+        this.indexTemplates.put("index-template-hotfixes", "wazuh-states-inventory-hotfixes");
+        this.indexTemplates.put("index-template-networks", "wazuh-states-inventory-networks");
+        this.indexTemplates.put("index-template-packages", "wazuh-states-inventory-packages");
+        this.indexTemplates.put("index-template-ports", "wazuh-states-inventory-ports");
+        this.indexTemplates.put("index-template-processes", "wazuh-states-inventory-processes");
+        this.indexTemplates.put("index-template-system", "wazuh-states-inventory-system");
+        this.indexTemplates.put("index-template-vulnerabilities", "wazuh-states-vulnerabilities");
     }
 
     /**

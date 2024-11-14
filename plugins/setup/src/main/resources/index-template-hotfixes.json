@@ -1,6 +1,6 @@
 {
   "index_patterns": [
-    "wazuh-states-inventory-system*"
+    "wazuh-states-inventory-hotfixes*"
   ],
   "mappings": {
     "date_detection": false,
@@ -446,6 +446,19 @@
             "type": "long"
           }
         }
+      },
+      "package": {
+        "properties": {
+          "hotfix": {
+            "properties": {
+              "name": {
+                "ignore_above": 1024,
+                "type": "keyword"
+              }
+            },
+            "type": "object"
+          }
+        }
       }
     }
   },
@@ -455,11 +468,7 @@
       "number_of_replicas": "0",
       "number_of_shards": "1",
       "query.default_field": [
-        "agent.id",
-        "agent.groups",
-        "host.name",
-        "host.os.type",
-        "host.os.version"
+        "package.hotfix.name"
       ],
       "refresh_interval": "5s"
     }

@@ -1,6 +1,6 @@
 {
   "index_patterns": [
-    "wazuh-states-inventory-system*"
+    "wazuh-states-inventory-networks*"
   ],
   "mappings": {
     "date_detection": false,
@@ -131,6 +131,12 @@
                       "bytes": {
                         "type": "long"
                       },
+                      "drops": {
+                        "type": "long"
+                      },
+                      "errors": {
+                        "type": "long"
+                      },
                       "packets": {
                         "type": "long"
                       }
@@ -139,6 +145,12 @@
                   "ingress": {
                     "properties": {
                       "bytes": {
+                        "type": "long"
+                      },
+                      "drops": {
+                        "type": "long"
+                      },
+                      "errors": {
                         "type": "long"
                       },
                       "packets": {
@@ -361,6 +373,12 @@
                   "bytes": {
                     "type": "long"
                   },
+                  "drops": {
+                    "type": "long"
+                  },
+                  "errors": {
+                    "type": "long"
+                  },
                   "packets": {
                     "type": "long"
                   }
@@ -369,6 +387,12 @@
               "ingress": {
                 "properties": {
                   "bytes": {
+                    "type": "long"
+                  },
+                  "drops": {
+                    "type": "long"
+                  },
+                  "errors": {
                     "type": "long"
                   },
                   "packets": {
@@ -446,6 +470,55 @@
             "type": "long"
           }
         }
+      },
+      "network": {
+        "properties": {
+          "broadcast": {
+            "type": "ip"
+          },
+          "dhcp": {
+            "ignore_above": 1024,
+            "type": "keyword"
+          },
+          "gateway": {
+            "type": "ip"
+          },
+          "metric": {
+            "type": "long"
+          },
+          "netmask": {
+            "type": "ip"
+          },
+          "protocol": {
+            "ignore_above": 1024,
+            "type": "keyword"
+          },
+          "type": {
+            "ignore_above": 1024,
+            "type": "keyword"
+          }
+        }
+      },
+      "observer": {
+        "properties": {
+          "ingress": {
+            "properties": {
+              "interface": {
+                "properties": {
+                  "alias": {
+                    "ignore_above": 1024,
+                    "type": "keyword"
+                  },
+                  "name": {
+                    "ignore_above": 1024,
+                    "type": "keyword"
+                  }
+                }
+              }
+            },
+            "type": "object"
+          }
+        }
       }
     }
   },
@@ -457,9 +530,12 @@
       "query.default_field": [
         "agent.id",
         "agent.groups",
-        "host.name",
-        "host.os.type",
-        "host.os.version"
+        "device.id",
+        "event.id",
+        "host.ip",
+        "observer.ingress.interface.name",
+        "observer.ingress.interface.alias",
+        "process.name"
       ],
       "refresh_interval": "5s"
     }
