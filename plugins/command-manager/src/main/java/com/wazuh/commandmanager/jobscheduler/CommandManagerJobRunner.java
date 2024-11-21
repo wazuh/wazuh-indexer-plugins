@@ -64,7 +64,7 @@ public class CommandManagerJobRunner implements ScheduledJobRunner {
                 this.searchJob.searchJobRunnable(
                     this.client,
                     CommandManagerPlugin.COMMAND_MANAGER_INDEX_NAME,
-                    CommandManagerPlugin.COMMAND_BATCH_SIZE
+                    CommandManagerPlugin.PAGE_SIZE
                 )
             );
     }

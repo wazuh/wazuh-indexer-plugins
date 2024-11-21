@@ -12,7 +12,6 @@ import com.wazuh.commandmanager.model.Status;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.opensearch.action.index.IndexRequest;
-import org.opensearch.action.index.IndexResponse;
 import org.opensearch.action.search.*;
 import org.opensearch.client.Client;
 import org.opensearch.common.unit.TimeValue;
@@ -41,16 +40,11 @@ public class SearchJob {
     private static final Logger log = LogManager.getLogger(SearchJob.class);
     private static final SearchJob INSTANCE = new SearchJob();;
     private final SearchSourceBuilder searchSourceBuilder = new SearchSourceBuilder();
-    private PointInTimeBuilder pointInTimeBuilder;
     private SearchResponse currentPage = null;
 
     public static SearchJob getInstance() {
         log.info("Getting Job Runner Instance");
         return INSTANCE;
-    }
-
-    public CompletableFuture<SearchResponse> futureSearch(Client client, SearchRequest searchRequest) {
-        return CompletableFuture.completedFuture(client.search(searchRequest).actionGet());
     }
 
     public static <T> T getNestedValue(Map<String, Object> map, String key, Class<T> type) {
@@ -77,7 +71,7 @@ public class SearchJob {
         }
     }
 
-    public void handlePage(Client client, SearchResponse searchResponse) throws IOException {
+    public void handlePage(Client client, SearchResponse searchResponse) throws IOException, IllegalStateException {
         SearchHits searchHits = searchResponse.getHits();
         for (SearchHit hit : searchHits) {
             updateStatusField(client, hit, Status.SENT);
@@ -92,7 +86,7 @@ public class SearchJob {
     }
 
     @SuppressWarnings("unchecked")
-    private void updateStatusField(Client client, SearchHit hit, Status status ) {
+    private void updateStatusField(Client client, SearchHit hit, Status status ) throws IllegalStateException {
         Map<String, Object> commandMap =
             getNestedValue(hit.getSourceAsMap(), "command", Map.class);
         commandMap.put(Command.STATUS, status);
@@ -102,22 +96,10 @@ public class SearchJob {
                 .index(CommandManagerPlugin.COMMAND_MANAGER_INDEX_NAME)
                 .source(hit.getSourceAsMap())
                 .id(hit.getId());
-        client.index(
-            indexRequest,
-            new ActionListener<>() {
-                @Override
-                public void onResponse(IndexResponse indexResponse) {
-                    log.debug("Updated command with document id: {}", hit.getId());
-                }
-
-                @Override
-                public void onFailure(Exception e) {
-                    log.error(e.getMessage());
-                }
-            });
+        client.index(indexRequest).actionGet(CommandManagerPlugin.DEFAULT_TIMEOUT);
     }
 
-    public SearchResponse pitQuery(Client client, String index, Integer resultsPerPage, Object[] searchAfter) throws IllegalStateException {
+    public SearchResponse pitQuery(Client client, String index, Integer resultsPerPage, PointInTimeBuilder pointInTimeBuilder, Object[] searchAfter) throws IllegalStateException {
         SearchRequest searchRequest = new SearchRequest(index);
         TermQueryBuilder termQueryBuilder =
             QueryBuilders.termQuery(Command.COMMAND + "." + Command.STATUS + ".keyword", Status.PENDING);
@@ -125,9 +107,8 @@ public class SearchJob {
             .query(termQueryBuilder)
             .size(resultsPerPage)
             .trackTotalHits(true)
-            .pointInTimeBuilder(
-                buildPit(client, index)
-            );
+            .timeout(TimeValue.timeValueSeconds(CommandManagerPlugin.DEFAULT_TIMEOUT))
+            .pointInTimeBuilder(pointInTimeBuilder);
         if( getSearchSourceBuilder().sorts() == null ) {
             getSearchSourceBuilder()
                 .sort(Command.COMMAND + "." + Command.ORDER_ID + ".keyword", SortOrder.ASC)
@@ -137,22 +118,23 @@ public class SearchJob {
             getSearchSourceBuilder().searchAfter(searchAfter);
         }
         searchRequest.source(getSearchSourceBuilder());
-        return client.search(
-            searchRequest
-        ).actionGet(TimeValue.timeValueSeconds(CommandManagerPlugin.SEARCH_QUERY_TIMEOUT));
+        return client.search(searchRequest)
+            .actionGet(TimeValue.timeValueSeconds(CommandManagerPlugin.DEFAULT_TIMEOUT));
     }
 
-    public Runnable searchJobRunnable(Client client, String index, Integer resultsPerPage) {
+    public Runnable searchJobRunnable(Client client, String index, Integer pageSize) {
         return () -> {
             long consumableHits = 0L;
             boolean firstPage = true;
+            PointInTimeBuilder pointInTimeBuilder = buildPit(client, index);
             do {
                 try {
                     setCurrentPage(
                         pitQuery(
                             client,
                             index,
-                            resultsPerPage,
+                            pageSize,
+                            pointInTimeBuilder,
                             getSearchAfter()
                         )
                     );
