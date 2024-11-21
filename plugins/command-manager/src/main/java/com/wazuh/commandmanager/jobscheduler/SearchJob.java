@@ -24,6 +24,7 @@ import org.opensearch.index.query.QueryBuilders;
 import org.opensearch.index.query.TermQueryBuilder;
 import org.opensearch.search.SearchHit;
 import org.opensearch.search.SearchHits;
+import org.opensearch.search.builder.PointInTimeBuilder;
 import org.opensearch.search.builder.SearchSourceBuilder;
 import org.opensearch.search.sort.SortOrder;
 
@@ -40,6 +41,7 @@ public class SearchJob {
     private static final Logger log = LogManager.getLogger(SearchJob.class);
     private static final SearchJob INSTANCE = new SearchJob();;
     private final SearchSourceBuilder searchSourceBuilder = new SearchSourceBuilder();
+    private PointInTimeBuilder pointInTimeBuilder;
     private SearchResponse currentPage = null;
 
     public static SearchJob getInstance() {
@@ -115,13 +117,7 @@ public class SearchJob {
             });
     }
 
-    public SearchResponse runPitQuery(Client client, String index, Integer resultsPerPage, Object[] searchAfter) throws IllegalStateException {
-        return client.search(
-            pitSearchRequest(client, index, resultsPerPage, searchAfter)
-        ).actionGet(TimeValue.timeValueSeconds(CommandManagerPlugin.SEARCH_QUERY_TIMEOUT));
-    }
-
-    private SearchRequest pitSearchRequest(Client client, String index, Integer resultsPerPage, Object[] searchAfter) {
+    public SearchResponse pitQuery(Client client, String index, Integer resultsPerPage, Object[] searchAfter) throws IllegalStateException {
         SearchRequest searchRequest = new SearchRequest(index);
         TermQueryBuilder termQueryBuilder =
             QueryBuilders.termQuery(Command.COMMAND + "." + Command.STATUS + ".keyword", Status.PENDING);
@@ -130,19 +126,20 @@ public class SearchJob {
             .size(resultsPerPage)
             .trackTotalHits(true)
             .pointInTimeBuilder(
-                new PointInTime(client, index).getPointInTimeBuilder()
+                buildPit(client, index)
             );
         if( getSearchSourceBuilder().sorts() == null ) {
             getSearchSourceBuilder()
                 .sort(Command.COMMAND + "." + Command.ORDER_ID + ".keyword", SortOrder.ASC)
                 .sort(Command.COMMAND + "." + Command.TIMEOUT, SortOrder.ASC);
-
         }
         if (searchAfter != null) {
             getSearchSourceBuilder().searchAfter(searchAfter);
         }
         searchRequest.source(getSearchSourceBuilder());
-        return searchRequest;
+        return client.search(
+            searchRequest
+        ).actionGet(TimeValue.timeValueSeconds(CommandManagerPlugin.SEARCH_QUERY_TIMEOUT));
     }
 
     public Runnable searchJobRunnable(Client client, String index, Integer resultsPerPage) {
@@ -152,7 +149,7 @@ public class SearchJob {
             do {
                 try {
                     setCurrentPage(
-                        runPitQuery(
+                        pitQuery(
                             client,
                             index,
                             resultsPerPage,
@@ -210,5 +207,34 @@ public class SearchJob {
         else {
             return null;
         }
+    }
+
+    private PointInTimeBuilder buildPit(Client client, String index) {
+        CompletableFuture<CreatePitResponse> future = new CompletableFuture<>();
+        ActionListener<CreatePitResponse> actionListener = new ActionListener<>() {
+            @Override
+            public void onResponse(CreatePitResponse createPitResponse) {
+                future.complete(createPitResponse);
+            }
+            @Override
+            public void onFailure(Exception e) {
+                log.error(e.getMessage());
+                future.completeExceptionally(e);
+            }
+        };
+        client.createPit(
+            new CreatePitRequest(
+                CommandManagerPlugin.PIT_KEEPALIVE_SECONDS,
+                false,
+                index
+            ),
+            actionListener
+        );
+        try {
+            return new PointInTimeBuilder(future.get().getId());
+        } catch (Exception e ) {
+            log.error(e.getMessage());
+        }
+        return null;
     }
 }
