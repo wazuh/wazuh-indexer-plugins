@@ -76,7 +76,7 @@ def versions = [
     httpclient5: "5.4",
     httpcore5: "5.3.1",
     slf4j: "2.0.16",
-    log4j: "2.23.1",
+    log4j: "2.24.2",
     // TLS support. Used by Apache Http Client ??
     conscrypt: "2.5.2",
     // Test libraries
