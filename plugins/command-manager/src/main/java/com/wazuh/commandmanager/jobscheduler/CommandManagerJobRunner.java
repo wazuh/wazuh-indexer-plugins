@@ -27,7 +27,6 @@ public class CommandManagerJobRunner implements ScheduledJobRunner {
     private ClusterService clusterService;
 
     private Client client;
-    private final SearchJob searchJob = SearchJob.getInstance();
 
     private CommandManagerJobRunner() {
         // Singleton class, use getJobRunner method instead of constructor
@@ -59,9 +58,10 @@ public class CommandManagerJobRunner implements ScheduledJobRunner {
                 CommandManagerPlugin.COMMAND_MANAGER_INDEX_NAME);
             return;
         }
+        SearchJob searchJob = new SearchJob();
         threadPool.generic()
             .submit(
-                this.searchJob.searchJobRunnable(
+                searchJob.searchJobRunnable(
                     this.client,
                     CommandManagerPlugin.COMMAND_MANAGER_INDEX_NAME,
                     CommandManagerPlugin.PAGE_SIZE

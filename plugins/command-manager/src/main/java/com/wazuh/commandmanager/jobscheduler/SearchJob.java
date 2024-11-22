@@ -38,13 +38,11 @@ import com.wazuh.commandmanager.utils.httpclient.HttpRestClientDemo;
 
 public class SearchJob {
     private static final Logger log = LogManager.getLogger(SearchJob.class);
-    private static final SearchJob INSTANCE = new SearchJob();;
     private final SearchSourceBuilder searchSourceBuilder = new SearchSourceBuilder();
     private SearchResponse currentPage = null;
 
-    public static SearchJob getInstance() {
-        log.info("Getting Job Runner Instance");
-        return INSTANCE;
+    public SearchJob() {
+
     }
 
     public static <T> T getNestedValue(Map<String, Object> map, String key, Class<T> type) {
