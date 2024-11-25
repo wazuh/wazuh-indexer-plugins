@@ -4,11 +4,9 @@ import java.util.concurrent.Callable
 
 buildscript {
     ext {
-
-        opensearch_version = System.getProperty("opensearch.version", "2.17.1")
+        opensearch_version = System.getProperty("opensearch.version", "2.18.0")
         opensearch_build = opensearch_version + ".0"
         job_scheduler_version = System.getProperty("job_scheduler.version", opensearch_build)
-
         wazuh_version = System.getProperty("version", "5.0.0")
         revision = System.getProperty("revision", "0")
     }
@@ -90,7 +88,6 @@ def versions = [
     // TLS support. Used by Apache Http Client ??
     conscrypt: "2.5.2",
     // Test libraries
-    mockito: "5.12.0",
     junit: "4.13.2",
     // Jackson is used to manage JSON objects (serialization / deserialization)
     jackson: "2.17.2",
@@ -109,6 +106,7 @@ dependencies {
     implementation "com.fasterxml.jackson.core:jackson-core:${versions.jackson}"
     implementation "com.fasterxml.jackson.core:jackson-databind:${versions.jackson_databind}"
     implementation "com.fasterxml.jackson.core:jackson-annotations:${versions.jackson}"
+
 
     // Job Scheduler stuff
     zipArchive group: 'org.opensearch.plugin', name: 'opensearch-job-scheduler', version: "${opensearch_build}"

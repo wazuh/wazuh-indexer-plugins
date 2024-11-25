@@ -2,7 +2,7 @@ import org.opensearch.gradle.test.RestIntegTestTask
 
 buildscript {
     ext {
-        opensearch_version = System.getProperty("opensearch.version", "2.17.1-SNAPSHOT")
+        opensearch_version = System.getProperty("opensearch.version", "2.18.0-SNAPSHOT")
         wazuh_version = System.getProperty("version", "5.0.0")
         revision = System.getProperty("revision", "0")
     }
