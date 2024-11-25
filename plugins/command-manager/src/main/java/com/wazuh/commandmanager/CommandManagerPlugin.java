@@ -76,7 +76,7 @@ public class CommandManagerPlugin extends Plugin
     public static final String JOB_INDEX_NAME = ".scheduled-commands";
     public static final Integer JOB_PERIOD_MINUTES = 1;
     public static final Integer PAGE_SIZE = 2;
-    public static final Long DEFAULT_TIMEOUT = 20L;
+    public static final Long DEFAULT_TIMEOUT_SECONDS = 20L;
     public static final TimeValue PIT_KEEPALIVE_SECONDS = TimeValue.timeValueSeconds(30L);
 
     private static final Logger log = LogManager.getLogger(CommandManagerPlugin.class);
