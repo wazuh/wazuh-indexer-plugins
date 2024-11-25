@@ -94,7 +94,7 @@ public class SearchJob {
                 .index(CommandManagerPlugin.COMMAND_MANAGER_INDEX_NAME)
                 .source(hit.getSourceAsMap())
                 .id(hit.getId());
-        client.index(indexRequest).actionGet(CommandManagerPlugin.DEFAULT_TIMEOUT);
+        client.index(indexRequest).actionGet(CommandManagerPlugin.DEFAULT_TIMEOUT_SECONDS * 1000);
     }
 
     public SearchResponse pitQuery(Client client, String index, Integer resultsPerPage, PointInTimeBuilder pointInTimeBuilder, Object[] searchAfter) throws IllegalStateException {
@@ -105,7 +105,7 @@ public class SearchJob {
             .query(termQueryBuilder)
             .size(resultsPerPage)
             .trackTotalHits(true)
-            .timeout(TimeValue.timeValueSeconds(CommandManagerPlugin.DEFAULT_TIMEOUT))
+            .timeout(TimeValue.timeValueSeconds(CommandManagerPlugin.DEFAULT_TIMEOUT_SECONDS))
             .pointInTimeBuilder(pointInTimeBuilder);
         if( getSearchSourceBuilder().sorts() == null ) {
             getSearchSourceBuilder()
@@ -117,7 +117,7 @@ public class SearchJob {
         }
         searchRequest.source(getSearchSourceBuilder());
         return client.search(searchRequest)
-            .actionGet(TimeValue.timeValueSeconds(CommandManagerPlugin.DEFAULT_TIMEOUT));
+            .actionGet(TimeValue.timeValueSeconds(CommandManagerPlugin.DEFAULT_TIMEOUT_SECONDS));
     }
 
     public Runnable searchJobRunnable(Client client, String index, Integer pageSize) {
@@ -150,8 +150,6 @@ public class SearchJob {
                     log.error("ArrayIndexOutOfBoundsException retrieving page: {}", e.getMessage());
                 } catch (IllegalStateException e) {
                     log.error("IllegalStateException retrieving page: {}", e.getMessage());
-                } catch (RuntimeException e) {
-                    log.error("RuntimeException retrieving page: {}", e.getMessage());
                 } catch (Exception e) {
                     log.error("Generic exception retrieving page: {}", e.getMessage());
                 }
