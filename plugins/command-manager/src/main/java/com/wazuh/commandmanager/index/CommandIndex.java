@@ -35,8 +35,6 @@ import com.wazuh.commandmanager.CommandManagerPlugin;
 import com.wazuh.commandmanager.model.Document;
 import com.wazuh.commandmanager.utils.IndexTemplateUtils;
 
-import javax.print.Doc;
-
 /** Class to manage the Command Manager index and index template. */
 public class CommandIndex implements IndexingOperationListener {
 
@@ -59,10 +57,11 @@ public class CommandIndex implements IndexingOperationListener {
         this.threadPool = threadPool;
     }
 
-    //public CompletableFuture<RestStatus> bulkIndexDocument(ArrayList<BulkOperation> ops) {
-      //  BulkRequest.Builder bulkReq = new BulkRequest.Builder().index(indexName).operations(ops).refresh(Refresh.WaitFor);
+    // public CompletableFuture<RestStatus> bulkIndexDocument(ArrayList<BulkOperation> ops) {
+    //  BulkRequest.Builder bulkReq = new
+    // BulkRequest.Builder().index(indexName).operations(ops).refresh(Refresh.WaitFor);
     //    return null;
-    //}
+    // }
 
     /**
      * @param document instance of the document model to persist in the index.
@@ -126,7 +125,7 @@ public class CommandIndex implements IndexingOperationListener {
         }
 
         BulkRequest bulkRequest = new BulkRequest();
-        for(Document document : documents) {
+        for (Document document : documents) {
             log.info("Indexing command with id [{}]", document.getId());
             try {
                 IndexRequest request =
@@ -134,7 +133,8 @@ public class CommandIndex implements IndexingOperationListener {
                                 .index(CommandManagerPlugin.COMMAND_MANAGER_INDEX_NAME)
                                 .source(
                                         document.toXContent(
-                                                XContentFactory.jsonBuilder(), ToXContent.EMPTY_PARAMS))
+                                                XContentFactory.jsonBuilder(),
+                                                ToXContent.EMPTY_PARAMS))
                                 .id(document.getId())
                                 .create(true);
                 bulkRequest.add(request);
@@ -146,7 +146,7 @@ public class CommandIndex implements IndexingOperationListener {
         executor.submit(
                 () -> {
                     try (ThreadContext.StoredContext ignored =
-                                 this.threadPool.getThreadContext().stashContext()) {
+                            this.threadPool.getThreadContext().stashContext()) {
                         RestStatus restStatus = client.bulk(bulkRequest).actionGet().status();
                         future.complete(restStatus);
                     } catch (Exception e) {

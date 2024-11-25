@@ -33,8 +33,6 @@ import com.wazuh.commandmanager.model.Command;
 import com.wazuh.commandmanager.model.Document;
 import com.wazuh.commandmanager.utils.httpclient.HttpRestClientDemo;
 
-import javax.print.Doc;
-
 import static org.opensearch.core.xcontent.XContentParserUtils.ensureExpectedToken;
 import static org.opensearch.rest.RestRequest.Method.POST;
 import static com.wazuh.commandmanager.utils.httpclient.HttpRestClientDemo.SECURITY_USER_AUTHENTICATE;
@@ -106,18 +104,19 @@ public class RestPostCommandAction extends BaseRestHandler {
         }
         XContentParser parser = request.contentParser();
         List<Command> commands = new ArrayList<>();
-        //ensureExpectedToken(XContentParser.Token.START_OBJECT, parser.nextToken(), parser);
-        if(parser.nextToken() == XContentParser.Token.START_ARRAY) {
+        ensureExpectedToken(XContentParser.Token.START_OBJECT, parser.nextToken(), parser);
+        parser.nextToken();
+        if (parser.nextToken() == XContentParser.Token.START_ARRAY) {
             while (parser.nextToken() != XContentParser.Token.END_ARRAY) {
                 Command command = Command.parse(parser);
                 commands.add(command);
             }
-        }else {
-            log.error("Token does not match {}",parser.currentToken());
+        } else {
+            log.error("Token does not match {}", parser.currentToken());
         }
 
         ArrayList<Document> documents = new ArrayList<>();
-        for(Command command : commands) {
+        for (Command command : commands) {
             Document document =
                     new Document(
                             new Agent(List.of("groups000")), // TODO read agent from .agents index
@@ -139,7 +138,6 @@ public class RestPostCommandAction extends BaseRestHandler {
             }
         }
 
-
         // Send response
         return channel -> {
             this.commandIndex
@@ -152,7 +150,7 @@ public class RestPostCommandAction extends BaseRestHandler {
                                             "_index",
                                             CommandManagerPlugin.COMMAND_MANAGER_INDEX_NAME);
                                     builder.startArray("_documents");
-                                    for(Document document : documents) {
+                                    for (Document document : documents) {
                                         builder.startObject();
                                         builder.field("_id", document.getId());
                                         builder.endObject();
