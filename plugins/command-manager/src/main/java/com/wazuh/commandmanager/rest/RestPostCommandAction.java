@@ -22,6 +22,7 @@ import org.opensearch.rest.BytesRestResponse;
 import org.opensearch.rest.RestRequest;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 
@@ -31,6 +32,8 @@ import com.wazuh.commandmanager.model.Agent;
 import com.wazuh.commandmanager.model.Command;
 import com.wazuh.commandmanager.model.Document;
 import com.wazuh.commandmanager.utils.httpclient.HttpRestClientDemo;
+
+import javax.print.Doc;
 
 import static org.opensearch.core.xcontent.XContentParserUtils.ensureExpectedToken;
 import static org.opensearch.rest.RestRequest.Method.POST;
@@ -94,34 +97,53 @@ public class RestPostCommandAction extends BaseRestHandler {
                 request.uri(),
                 request.getRequestId(),
                 request.header("Host"));
+
         // Get request details
-        XContentParser parser = request.contentParser();
-        ensureExpectedToken(XContentParser.Token.START_OBJECT, parser.nextToken(), parser);
-
-        Command command = Command.parse(parser);
-        Document document =
-                new Document(
-                        new Agent(List.of("groups000")), // TODO read agent from .agents index
-                        command);
-
-        // Commands delivery to the Management API.
-        // Note: needs to be decoupled from the Rest handler (job scheduler task).
-        try {
-            String payload =
-                    document.toXContent(XContentFactory.jsonBuilder(), ToXContent.EMPTY_PARAMS)
-                            .toString();
-            SimpleHttpResponse response =
-                    HttpRestClientDemo.runWithResponse(payload, document.getId());
-            log.info("Received response to POST request with code [{}]", response.getCode());
-            log.info("Raw response:\n{}", response.getBodyText());
-        } catch (Exception e) {
-            log.error("Error reading response: {}", e.getMessage());
+        if (!request.hasContent()) {
+            // Manejar el caso cuando no hay contenido
+            log.error("Body content is required");
+            return null;
         }
+        XContentParser parser = request.contentParser();
+        List<Command> commands = new ArrayList<>();
+        //ensureExpectedToken(XContentParser.Token.START_OBJECT, parser.nextToken(), parser);
+        if(parser.nextToken() == XContentParser.Token.START_ARRAY) {
+            while (parser.nextToken() != XContentParser.Token.END_ARRAY) {
+                Command command = Command.parse(parser);
+                commands.add(command);
+            }
+        }else {
+            log.error("Token does not match {}",parser.currentToken());
+        }
+
+        ArrayList<Document> documents = new ArrayList<>();
+        for(Command command : commands) {
+            Document document =
+                    new Document(
+                            new Agent(List.of("groups000")), // TODO read agent from .agents index
+                            command);
+            documents.add(document);
+
+            // Commands delivery to the Management API.
+            // Note: needs to be decoupled from the Rest handler (job scheduler task).
+            try {
+                String payload =
+                        document.toXContent(XContentFactory.jsonBuilder(), ToXContent.EMPTY_PARAMS)
+                                .toString();
+                SimpleHttpResponse response =
+                        HttpRestClientDemo.runWithResponse(payload, document.getId());
+                log.info("Received response to POST request with code [{}]", response.getCode());
+                log.info("Raw response:\n{}", response.getBodyText());
+            } catch (Exception e) {
+                log.error("Error reading response: {}", e.getMessage());
+            }
+        }
+
 
         // Send response
         return channel -> {
             this.commandIndex
-                    .asyncCreate(document)
+                    .asyncBulkCreate(documents)
                     .thenAccept(
                             restStatus -> {
                                 try (XContentBuilder builder = channel.newBuilder()) {
@@ -129,7 +151,13 @@ public class RestPostCommandAction extends BaseRestHandler {
                                     builder.field(
                                             "_index",
                                             CommandManagerPlugin.COMMAND_MANAGER_INDEX_NAME);
-                                    builder.field("_id", document.getId());
+                                    builder.startArray("_documents");
+                                    for(Document document : documents) {
+                                        builder.startObject();
+                                        builder.field("_id", document.getId());
+                                        builder.endObject();
+                                    }
+                                    builder.endArray();
                                     builder.field("result", restStatus.name());
                                     builder.endObject();
                                     channel.sendResponse(
