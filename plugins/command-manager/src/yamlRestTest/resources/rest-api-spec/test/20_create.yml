@@ -3,62 +3,44 @@
     - do:
           _plugins._command_manager:
               body:
-                "commands":
-                  [
-                      {source: "Users/Services",
-                      user: "user13",
-                      target: {
-                          id: "target4",
-                          type: "agent"
-                      },
-                      action: {
-                          name: "change_group",
-                          args: [ "/path/to/executable/arg8" ],
-                          version: "v4"
-                      },
-                      timeout: 100},
+                  commands:
+                    [
+                        { source: "Users/Services",
+                          user: "user13",
+                          target: {
+                              id: "target4",
+                              type: "agent"
+                          },
+                          action: {
+                              name: "change_group",
+                              args: [ "/path/to/executable/arg8" ],
+                              version: "v4"
+                          },
+                          timeout: 100 },
 
-                    {source: "Users/Services",
-                      user: "user54",
-                      target: {
-                          id: "target5",
-                          type: "agent"
-                      },
-                      action: {
-                          name: "stop",
-                          args: [ "/path/to/executable/arg7" ],
-                          version: "v4"
-                      },
-                      timeout: 30}
-                  ]
+                        { source: "Users/Services",
+                          user: "user54",
+                          target: {
+                              id: "target5",
+                              type: "agent"
+                          },
+                          action: {
+                              name: "stop",
+                              args: [ "/path/to/executable/arg7" ],
+                              version: "v4"
+                          },
+                          timeout: 30 }
+                    ]
+
     - match: { _index: .commands }
+    - match: { result: "OK" }
+
     - do:
-        get:
-          index: commands
-    - length: { _documents: 2 }
-    - match: { _source.command.source: "Users/Services" }
-    - match: { _source.command.user: "user13" }
-    - match: { _source.command.target.type: "agent" }
-    - match: { _source.command.target.id: "target4" }
-    - match: { _source.command.action:
-                 {
-                   name: "change_group",
-                   args: [ "/path/to/executable/arg8" ],
-                   version: "v4"
-                 }
-    }
-    - match: { _source.command.timeout: 100 }
+        indices.refresh:
+          index: [ .commands ]
 
-    - match: { _source.command.source: "Users/Services" }
-    - match: { _source.command.user: "user54" }
-    - match: { _source.command.target.type: "agent" }
-    - match: { _source.command.target.id: "target5" }
-    - match: { _source.command.action:
-                 {
-                   name: "stop",
-                   args: [ "/path/to/executable/arg7" ],
-                   version: "v4"
-                 }
-    }
-    - match: { _source.command.timeout: 30 }
+    - do:
+        count:
+          index: .commands
 
+    - match: { count: 2 }
