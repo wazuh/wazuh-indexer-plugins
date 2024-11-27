@@ -57,12 +57,6 @@ public class CommandIndex implements IndexingOperationListener {
         this.threadPool = threadPool;
     }
 
-    // public CompletableFuture<RestStatus> bulkIndexDocument(ArrayList<BulkOperation> ops) {
-    //  BulkRequest.Builder bulkReq = new
-    // BulkRequest.Builder().index(indexName).operations(ops).refresh(Refresh.WaitFor);
-    //    return null;
-    // }
-
     /**
      * @param document instance of the document model to persist in the index.
      * @return A CompletableFuture with the RestStatus response from the operation
