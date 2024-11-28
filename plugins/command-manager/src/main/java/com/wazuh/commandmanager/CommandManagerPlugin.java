@@ -80,6 +80,7 @@ public class CommandManagerPlugin extends Plugin
     public static final TimeValue PIT_KEEPALIVE_SECONDS = TimeValue.timeValueSeconds(30L);
 
     private static final Logger log = LogManager.getLogger(CommandManagerPlugin.class);
+    public static final String JOB_TYPE = "command_manager_scheduler_extension";
 
     private CommandIndex commandIndex;
     private JobDocument jobDocument;
@@ -107,35 +108,40 @@ public class CommandManagerPlugin extends Plugin
 
         scheduleCommandJob(client, clusterService, threadPool);
 
-        // HttpRestClient stuff
-        // String uri = "https://httpbin.org/post";
-        // String payload = "{\"message\": \"Hello world!\"}";
-        // HttpRestClientDemo.run(uri, payload);
-
         return Collections.emptyList();
     }
 
+    /**
+     * Indexes a document into the jobs index, so that JobScheduler plugin can run it
+     * @param client: The cluster client, used for indexing
+     * @param clusterService: Provides the addListener method. We use it to determine if this is a new cluster.
+     * @param threadPool: Used by jobDocument to create the document in a thread.
+     */
     private void scheduleCommandJob(
-            Client client, ClusterService clusterService, ThreadPool threadPool) {
+        Client client,
+        ClusterService clusterService,
+        ThreadPool threadPool
+    ) {
         clusterService.addListener(
-                event -> {
-                    if (event.localNodeClusterManager() && event.isNewCluster()) {
-                        jobDocument = JobDocument.getInstance();
-                        CompletableFuture<IndexResponse> indexResponseCompletableFuture =
-                                jobDocument.create(
-                                        client,
-                                        threadPool,
-                                        UUIDs.base64UUID(),
-                                        getJobType(),
-                                        JOB_PERIOD_MINUTES);
-                        indexResponseCompletableFuture.thenAccept(
-                                indexResponse -> {
-                                    log.info(
-                                            "Scheduled task successfully, response: {}",
-                                            indexResponse.getResult().toString());
-                                });
-                    }
-                });
+            event -> {
+                if (event.localNodeClusterManager() && event.isNewCluster()) {
+                    jobDocument = JobDocument.getInstance();
+                    CompletableFuture<IndexResponse> indexResponseCompletableFuture =
+                        jobDocument.create(
+                            client,
+                            threadPool,
+                            UUIDs.base64UUID(),
+                            getJobType(),
+                            JOB_PERIOD_MINUTES);
+                    indexResponseCompletableFuture.thenAccept(
+                        indexResponse -> {
+                            log.info(
+                                "Scheduled task successfully, response: {}",
+                                indexResponse.getResult().toString());
+                        });
+                }
+            }
+        );
     }
 
     @Override
@@ -170,7 +176,7 @@ public class CommandManagerPlugin extends Plugin
 
     @Override
     public String getJobType() {
-        return "command_manager_scheduler_extension";
+        return CommandManagerPlugin.JOB_TYPE;
     }
 
     @Override
