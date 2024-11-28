@@ -8,7 +8,10 @@
  */
 package com.wazuh.commandmanager.jobscheduler;
 
+import com.wazuh.commandmanager.auth.AuthCredentials;
 import com.wazuh.commandmanager.model.Status;
+import com.wazuh.commandmanager.settings.PluginSettings;
+import com.wazuh.commandmanager.utils.httpclient.HttpRestClient;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.opensearch.action.index.IndexRequest;
@@ -28,6 +31,7 @@ import org.opensearch.search.builder.SearchSourceBuilder;
 import org.opensearch.search.sort.SortOrder;
 
 import java.io.IOException;
+import java.net.URI;
 import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
@@ -111,6 +115,16 @@ public class SearchThread implements Runnable {
         try ( XContentBuilder xContentBuilder = XContentFactory.jsonBuilder() ) {
             hit.toXContent(xContentBuilder, ToXContent.EMPTY_PARAMS);
             HttpRestClientDemo.run("https://httpbin.org/post", xContentBuilder.toString());
+            PluginSettings settings = PluginSettings.getInstance();
+            HttpRestClient.getInstance().post(
+                URI.create(settings.getUri()),
+                xContentBuilder.toString(),
+                hit.getId(),
+                new AuthCredentials(
+                    settings.getAuthUsername(),
+                    settings.getAuthPassword()
+                ).getAuthAsHeaders()
+            );
         } catch (IOException e) {
             log.error("Error parsing hit contents: {}",e.getMessage());
         }
