@@ -77,11 +77,19 @@ public class SearchThread implements Runnable {
      */
     public SearchHit getLastHit(SearchResponse searchResponse) {
         try {
-            int index = searchResponse.getHits().getHits().length - 1;
-            return searchResponse
-                .getHits()
-                .getHits()[index];
+            int resultsIndex = searchResponse.getHits().getHits().length - 1;
+            if (resultsIndex > 0) {
+                return searchResponse
+                    .getHits()
+                    .getHits()[resultsIndex];
+            }
+            else {
+                return null;
+            }
         } catch (Exception e) {
+            log.error("Could not get the page's hits: {}", e.getMessage());
+            // Return null in order for getSearchAfter() to know that
+            // there are no more search results
             return null;
         }
     }
