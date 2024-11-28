@@ -106,7 +106,7 @@ public class SearchThread implements Runnable {
     public void handlePage(SearchResponse searchResponse) throws IllegalStateException {
         SearchHits searchHits = searchResponse.getHits();
         for (SearchHit hit : searchHits) {
-            updateStatusField(this.client, hit, Status.SENT);
+            setSentStatus(hit);
             deliverOrders(hit);
         }
     }
@@ -130,18 +130,23 @@ public class SearchThread implements Runnable {
         }
     }
 
+    /**
+     * Retrieves the hit's contents and updates the command.status field to "SENT"
+     * @param hit: The page's result we are to update
+     * @throws IllegalStateException: Rethrown this from actionGet
+     */
     @SuppressWarnings("unchecked")
-    private void updateStatusField(Client client, SearchHit hit, Status status ) throws IllegalStateException {
+    private void setSentStatus(SearchHit hit) throws IllegalStateException {
         Map<String, Object> commandMap =
             getNestedValue(hit.getSourceAsMap(), "command", Map.class);
-        commandMap.put(Command.STATUS, status);
+        commandMap.put(Command.STATUS, Status.SENT);
         hit.getSourceAsMap().put("command", commandMap);
         IndexRequest indexRequest =
             new IndexRequest()
                 .index(CommandManagerPlugin.COMMAND_MANAGER_INDEX_NAME)
                 .source(hit.getSourceAsMap())
                 .id(hit.getId());
-        client.index(indexRequest).actionGet(CommandManagerPlugin.DEFAULT_TIMEOUT_SECONDS * 1000);
+        this.client.index(indexRequest).actionGet(CommandManagerPlugin.DEFAULT_TIMEOUT_SECONDS * 1000);
     }
 
     public SearchResponse pitQuery(Client client, String index, Integer resultsPerPage, PointInTimeBuilder pointInTimeBuilder, Object[] searchAfter) throws IllegalStateException {
