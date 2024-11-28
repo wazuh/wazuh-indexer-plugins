@@ -82,7 +82,6 @@ public class CommandManagerPlugin extends Plugin
     private static final Logger log = LogManager.getLogger(CommandManagerPlugin.class);
 
     private CommandIndex commandIndex;
-    private PluginSettings commandManagerSettings;
     private JobDocument jobDocument;
 
     @Override
@@ -99,7 +98,6 @@ public class CommandManagerPlugin extends Plugin
             IndexNameExpressionResolver indexNameExpressionResolver,
             Supplier<RepositoriesService> repositoriesServiceSupplier) {
         this.commandIndex = new CommandIndex(client, clusterService, threadPool);
-        this.commandManagerSettings = PluginSettings.getInstance(environment.settings());
 
         // JobSchedulerExtension stuff
         CommandManagerJobRunner jobRunner = CommandManagerJobRunner.getInstance();
