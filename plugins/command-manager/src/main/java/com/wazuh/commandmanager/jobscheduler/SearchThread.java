@@ -36,6 +36,9 @@ import com.wazuh.commandmanager.CommandManagerPlugin;
 import com.wazuh.commandmanager.model.Command;
 import com.wazuh.commandmanager.utils.httpclient.HttpRestClientDemo;
 
+/**
+ * The class in charge of searching for PENDING commands and of submitting them to the destination client
+ */
 public class SearchThread implements Runnable {
     private static final Logger log = LogManager.getLogger(SearchThread.class);
     private final SearchSourceBuilder searchSourceBuilder = new SearchSourceBuilder();
@@ -46,6 +49,14 @@ public class SearchThread implements Runnable {
         this.client = client;
     }
 
+    /**
+     * Retrieves a nested value from a Map<String, Object> in a (somewhat) safe way
+     * @param map: The parent map to look at
+     * @param key: The key our nested object is found under
+     * @param type: The type we expect the nested object to be of
+     * @return the nested object cast into the proper type
+     * @param <T>: The type of the nested object
+     */
     public static <T> T getNestedValue(Map<String, Object> map, String key, Class<T> type) {
         Object value = map.get(key);
         if (type.isInstance(value)) {
@@ -59,6 +70,11 @@ public class SearchThread implements Runnable {
         }
     }
 
+    /**
+     * Gets the last search result from a page
+     * @param searchResponse: The search response page
+     * @return the last SearchHit of a search page
+     */
     public SearchHit getLastHit(SearchResponse searchResponse) {
         try {
             int index = searchResponse.getHits().getHits().length - 1;
@@ -70,18 +86,26 @@ public class SearchThread implements Runnable {
         }
     }
 
-    public void handlePage(Client client, SearchResponse searchResponse) throws IOException, IllegalStateException {
+    /**
+     * Iterates over search results, updating their status field and submitting them to the destination
+     * @param searchResponse: The search results page
+     * @throws IllegalStateException: Rethrown from updateStatusField()
+     */
+    public void handlePage(SearchResponse searchResponse) throws IllegalStateException {
         SearchHits searchHits = searchResponse.getHits();
         for (SearchHit hit : searchHits) {
-            updateStatusField(client, hit, Status.SENT);
-            commandHttpRequest(hit);
+            updateStatusField(this.client, hit, Status.SENT);
+            deliverOrders(hit);
         }
     }
 
-    private static void commandHttpRequest(SearchHit hit) throws IOException {
-        XContentBuilder xContentBuilder = XContentFactory.jsonBuilder();
-        hit.toXContent(xContentBuilder, ToXContent.EMPTY_PARAMS);
-        HttpRestClientDemo.run("https://httpbin.org/post", xContentBuilder.toString());
+    private static void deliverOrders(SearchHit hit) {
+        try ( XContentBuilder xContentBuilder = XContentFactory.jsonBuilder() ) {
+            hit.toXContent(xContentBuilder, ToXContent.EMPTY_PARAMS);
+            HttpRestClientDemo.run("https://httpbin.org/post", xContentBuilder.toString());
+        } catch (IOException e) {
+            log.error("Error parsing hit contents: {}",e.getMessage());
+        }
     }
 
     @SuppressWarnings("unchecked")
@@ -142,12 +166,10 @@ public class SearchThread implements Runnable {
                     firstPage = false;
                 }
                 if ( consumableHits > 0 ) {
-                    handlePage(this.client, getCurrentPage());
+                    handlePage(getCurrentPage());
                     consumableHits -= getPageLength();
                 }
-            } catch (IOException e) {
-                log.error("IOException retrieving page: {}", e.getMessage());
-            } catch (ArrayIndexOutOfBoundsException e) {
+            }  catch (ArrayIndexOutOfBoundsException e) {
                 log.error("ArrayIndexOutOfBoundsException retrieving page: {}", e.getMessage());
             } catch (IllegalStateException e) {
                 log.error("IllegalStateException retrieving page: {}", e.getMessage());
