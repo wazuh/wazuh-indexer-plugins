@@ -40,6 +40,7 @@ import java.util.concurrent.CompletableFuture;
 import com.wazuh.commandmanager.CommandManagerPlugin;
 import com.wazuh.commandmanager.model.Command;
 import com.wazuh.commandmanager.utils.httpclient.HttpRestClientDemo;
+import reactor.util.annotation.NonNull;
 
 /**
  * The class in charge of searching for PENDING commands and of submitting them to the destination client
@@ -162,7 +163,7 @@ public class SearchThread implements Runnable {
      * @throws IllegalStateException: Rethrown from actionGet()
      */
     public SearchResponse pitQuery(
-        PointInTimeBuilder pointInTimeBuilder,
+        @NonNull PointInTimeBuilder pointInTimeBuilder,
         @Nullable Object[] searchAfter
     ) throws IllegalStateException {
         SearchRequest searchRequest = new SearchRequest(CommandManagerPlugin.COMMAND_MANAGER_INDEX_NAME);
@@ -224,8 +225,14 @@ public class SearchThread implements Runnable {
         return getCurrentPage().getHits().getHits().length;
     }
 
-    private long totalHits() throws NullPointerException {
-        return Objects.requireNonNull(getCurrentPage().getHits().getTotalHits()).value;
+    private long totalHits() {
+        if (getCurrentPage().getHits().getTotalHits() != null) {
+            log.warn("Query did not return any hits: totalHits is null");
+            return getCurrentPage().getHits().getTotalHits().value;
+        }
+        else {
+            return 0;
+        }
     }
 
     private SearchSourceBuilder getSearchSourceBuilder() {
