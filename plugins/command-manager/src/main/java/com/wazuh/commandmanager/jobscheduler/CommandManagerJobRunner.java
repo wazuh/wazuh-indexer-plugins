@@ -19,6 +19,9 @@ import org.opensearch.threadpool.ThreadPool;
 
 import com.wazuh.commandmanager.CommandManagerPlugin;
 
+/**
+ * Implements the ScheduledJobRunner interface, which exposes the runJob() method, which executes the job's logic in its own thread.
+ */
 public class CommandManagerJobRunner implements ScheduledJobRunner {
 
     private static final Logger log = LogManager.getLogger(CommandManagerJobRunner.class);
