@@ -49,13 +49,13 @@ public class CommandManagerJobRunner implements ScheduledJobRunner {
         }
     }
 
-    private boolean indexExists(String indexName) {
-        return this.clusterService.state().routingTable().hasIndex(indexName);
+    private boolean commandManagerIndexExists() {
+        return this.clusterService.state().routingTable().hasIndex(CommandManagerPlugin.COMMAND_MANAGER_INDEX_NAME);
     }
 
     @Override
     public void runJob(ScheduledJobParameter jobParameter, JobExecutionContext context) {
-        if (!indexExists(CommandManagerPlugin.COMMAND_MANAGER_INDEX_NAME)) {
+        if (!commandManagerIndexExists()) {
             log.info(
                 "{} index not yet created, not running command manager jobs",
                 CommandManagerPlugin.COMMAND_MANAGER_INDEX_NAME);
