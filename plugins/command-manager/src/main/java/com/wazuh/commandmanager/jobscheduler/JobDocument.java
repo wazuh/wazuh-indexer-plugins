@@ -26,6 +26,9 @@ import java.util.concurrent.ExecutorService;
 
 import com.wazuh.commandmanager.CommandManagerPlugin;
 
+/**
+ * Indexes the command job to the Jobs index.
+ */
 public class JobDocument {
     private static final Logger log = LogManager.getLogger(JobDocument.class);
     private static final JobDocument INSTANCE = new JobDocument();
@@ -38,29 +41,34 @@ public class JobDocument {
     }
 
     public CompletableFuture<IndexResponse> create(
-            Client client, ThreadPool threadPool, String id, String jobName, Integer interval) {
+        Client client,
+        ThreadPool threadPool,
+        String id,
+        String jobName,
+        Integer interval
+    ) {
         CompletableFuture<IndexResponse> completableFuture = new CompletableFuture<>();
         ExecutorService executorService = threadPool.executor(ThreadPool.Names.WRITE);
         CommandManagerJobParameter jobParameter =
-                new CommandManagerJobParameter(
-                        jobName, new IntervalSchedule(Instant.now(), interval, ChronoUnit.MINUTES));
+            new CommandManagerJobParameter(
+                jobName, new IntervalSchedule(Instant.now(), interval, ChronoUnit.MINUTES));
         try {
             IndexRequest indexRequest =
-                    new IndexRequest()
-                            .index(CommandManagerPlugin.JOB_INDEX_NAME)
-                            .id(id)
-                            .source(jobParameter.toXContent(JsonXContent.contentBuilder(), null))
-                            .create(true);
+                new IndexRequest()
+                    .index(CommandManagerPlugin.JOB_INDEX_NAME)
+                    .id(id)
+                    .source(jobParameter.toXContent(JsonXContent.contentBuilder(), null))
+                    .create(true);
             executorService.submit(
-                    () -> {
-                        try (ThreadContext.StoredContext ignored =
-                                threadPool.getThreadContext().stashContext()) {
-                            IndexResponse indexResponse = client.index(indexRequest).actionGet();
-                            completableFuture.complete(indexResponse);
-                        } catch (Exception e) {
-                            completableFuture.completeExceptionally(e);
-                        }
-                    });
+                () -> {
+                    try (ThreadContext.StoredContext ignored =
+                             threadPool.getThreadContext().stashContext()) {
+                        IndexResponse indexResponse = client.index(indexRequest).actionGet();
+                        completableFuture.complete(indexResponse);
+                    } catch (Exception e) {
+                        completableFuture.completeExceptionally(e);
+                    }
+                });
         } catch (IOException e) {
             log.error("Failed to index command with ID {}: {}", id, e);
         }
