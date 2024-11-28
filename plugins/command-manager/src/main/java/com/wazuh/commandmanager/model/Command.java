@@ -27,7 +27,6 @@ public class Command implements ToXContentObject {
     public static final String TIMEOUT = "timeout";
     public static final String USER = "user";
     public static final String STATUS = "status";
-    public static final String TIMESTAMP = "@timestamp";
     private final String orderId;
     private final String requestId;
     private final String source;
