@@ -84,8 +84,8 @@ public class Document implements ToXContentObject {
         builder.startObject();
         this.agent.toXContent(builder, ToXContentObject.EMPTY_PARAMS);
         this.command.toXContent(builder, ToXContentObject.EMPTY_PARAMS);
-        builder.field("timestamp", this.timestamp);
-        builder.field("deliveryTimestamp", this.deliveryTimestamp);
+        builder.field("@timestamp", this.timestamp);
+        builder.field("delivery_timestamp", this.deliveryTimestamp);
         return builder.endObject();
     }
 
@@ -94,6 +94,8 @@ public class Document implements ToXContentObject {
         return "Document{"
                 + "@timestamp="
                 + timestamp
+                + ", delivery_timestamp="
+                + deliveryTimestamp
                 + ", agent="
                 + agent
                 + ", command="
