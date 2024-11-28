@@ -138,9 +138,9 @@ public class SearchThread implements Runnable {
     @SuppressWarnings("unchecked")
     private void setSentStatus(SearchHit hit) throws IllegalStateException {
         Map<String, Object> commandMap =
-            getNestedValue(hit.getSourceAsMap(), "command", Map.class);
+            getNestedValue(hit.getSourceAsMap(), CommandManagerPlugin.COMMAND_DOCUMENT_PARENT_OBJECT_NAME, Map.class);
         commandMap.put(Command.STATUS, Status.SENT);
-        hit.getSourceAsMap().put("command", commandMap);
+        hit.getSourceAsMap().put(CommandManagerPlugin.COMMAND_DOCUMENT_PARENT_OBJECT_NAME, commandMap);
         IndexRequest indexRequest =
             new IndexRequest()
                 .index(CommandManagerPlugin.COMMAND_MANAGER_INDEX_NAME)

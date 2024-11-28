@@ -73,6 +73,7 @@ public class CommandManagerPlugin extends Plugin
     public static final String COMMANDS_URI = COMMAND_MANAGER_BASE_URI + "/commands";
     public static final String COMMAND_MANAGER_INDEX_NAME = ".commands";
     public static final String COMMAND_MANAGER_INDEX_TEMPLATE_NAME = "index-template-commands";
+    public static final String COMMAND_DOCUMENT_PARENT_OBJECT_NAME = "command";
     public static final String JOB_INDEX_NAME = ".scheduled-commands";
     public static final Integer JOB_PERIOD_MINUTES = 1;
     public static final Integer PAGE_SIZE = 2;
