@@ -35,7 +35,9 @@ import java.io.IOException;
 import java.net.URI;
 import java.util.Map;
 import java.util.Objects;
+import java.util.concurrent.CancellationException;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
 
 import com.wazuh.commandmanager.CommandManagerPlugin;
 import com.wazuh.commandmanager.model.Command;
@@ -242,6 +244,10 @@ public class SearchThread implements Runnable {
         }
     }
 
+    /**
+     * Prepares a PointInTimeBuilder object to be used in a search
+     * @return a PointInTimeBuilder or null
+     */
     private PointInTimeBuilder buildPit() {
         CompletableFuture<CreatePitResponse> future = new CompletableFuture<>();
         ActionListener<CreatePitResponse> actionListener = new ActionListener<>() {
@@ -265,8 +271,12 @@ public class SearchThread implements Runnable {
         );
         try {
             return new PointInTimeBuilder(future.get().getId());
-        } catch (Exception e ) {
-            log.error(e.getMessage());
+        } catch (CancellationException e ) {
+            log.error("Building PIT was cancelled: {}",e.getMessage());
+        } catch (ExecutionException e ) {
+            log.error("Error building PIT: {}",e.getMessage());
+        } catch (InterruptedException e ) {
+            log.error("Building PIT was interrupted: {}",e.getMessage());
         }
         return null;
     }
