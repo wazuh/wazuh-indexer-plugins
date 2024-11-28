@@ -105,7 +105,8 @@ public class CommandManagerPlugin extends Plugin
         CommandManagerJobRunner.getInstance()
             .setThreadPool(threadPool)
             .setClient(client)
-            .setClusterService(clusterService);
+            .setClusterService(clusterService)
+            .setEnvironment(environment);
 
         scheduleCommandJob(client, clusterService, threadPool);
 

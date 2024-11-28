@@ -12,6 +12,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.opensearch.client.Client;
 import org.opensearch.cluster.service.ClusterService;
+import org.opensearch.env.Environment;
 import org.opensearch.jobscheduler.spi.JobExecutionContext;
 import org.opensearch.jobscheduler.spi.ScheduledJobParameter;
 import org.opensearch.jobscheduler.spi.ScheduledJobRunner;
@@ -30,6 +31,7 @@ public class CommandManagerJobRunner implements ScheduledJobRunner {
     private ClusterService clusterService;
 
     private Client client;
+    private Environment environment;
 
     private CommandManagerJobRunner() {
         // Singleton class, use getJobRunner method instead of constructor
@@ -61,7 +63,7 @@ public class CommandManagerJobRunner implements ScheduledJobRunner {
                 CommandManagerPlugin.COMMAND_MANAGER_INDEX_NAME);
             return;
         }
-        SearchThread searchThread = new SearchThread(this.client);
+        SearchThread searchThread = new SearchThread(this.client, this.environment);
         threadPool.generic()
             .submit(
                 searchThread
@@ -75,6 +77,11 @@ public class CommandManagerJobRunner implements ScheduledJobRunner {
 
     public CommandManagerJobRunner setClient(Client client) {
         this.client = client;
+        return getInstance();
+    }
+
+    public CommandManagerJobRunner setEnvironment(Environment environment) {
+        this.environment = environment;
         return getInstance();
     }
 

@@ -12,6 +12,7 @@ import com.wazuh.commandmanager.auth.AuthCredentials;
 import com.wazuh.commandmanager.model.Status;
 import com.wazuh.commandmanager.settings.PluginSettings;
 import com.wazuh.commandmanager.utils.httpclient.HttpRestClient;
+import org.apache.hc.core5.net.URIBuilder;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.opensearch.action.index.IndexRequest;
@@ -23,6 +24,8 @@ import org.opensearch.common.xcontent.XContentFactory;
 import org.opensearch.core.action.ActionListener;
 import org.opensearch.core.xcontent.ToXContent;
 import org.opensearch.core.xcontent.XContentBuilder;
+import org.opensearch.env.Environment;
+import org.opensearch.env.EnvironmentSettingsResponse;
 import org.opensearch.index.query.QueryBuilders;
 import org.opensearch.index.query.TermQueryBuilder;
 import org.opensearch.search.SearchHit;
@@ -33,6 +36,7 @@ import org.opensearch.search.sort.SortOrder;
 
 import java.io.IOException;
 import java.net.URI;
+import java.net.URISyntaxException;
 import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.CancellationException;
@@ -55,9 +59,11 @@ public class SearchThread implements Runnable {
     private final SearchSourceBuilder searchSourceBuilder = new SearchSourceBuilder();
     private SearchResponse currentPage = null;
     private final Client client;
+    private final Environment environment;
 
-    public SearchThread(Client client) {
+    public SearchThread(Client client, Environment environment) {
         this.client = client;
+        this.environment = environment;
     }
 
     /**
@@ -118,22 +124,23 @@ public class SearchThread implements Runnable {
         }
     }
 
-    private static void deliverOrders(SearchHit hit) {
+    /**
+     * Send the actual command order over HTTP
+     * @param hit: The command order
+     */
+    private void deliverOrders(SearchHit hit) {
         try ( XContentBuilder xContentBuilder = XContentFactory.jsonBuilder() ) {
+            PluginSettings settings = PluginSettings.getInstance(this.environment.settings());
             hit.toXContent(xContentBuilder, ToXContent.EMPTY_PARAMS);
-            HttpRestClientDemo.run("https://httpbin.org/post", xContentBuilder.toString());
-            PluginSettings settings = PluginSettings.getInstance();
             HttpRestClient.getInstance().post(
-                URI.create(settings.getUri()),
+                new URIBuilder(settings.getUri()).build(),
                 xContentBuilder.toString(),
-                hit.getId(),
-                new AuthCredentials(
-                    settings.getAuthUsername(),
-                    settings.getAuthPassword()
-                ).getAuthAsHeaders()
+                hit.getId()
             );
         } catch (IOException e) {
             log.error("Error parsing hit contents: {}",e.getMessage());
+        } catch (URISyntaxException e) {
+            log.error("Invalid URI: {}", e.getMessage());
         }
     }
 
@@ -196,8 +203,9 @@ public class SearchThread implements Runnable {
         long consumableHits = 0L;
         boolean firstPage = true;
         PointInTimeBuilder pointInTimeBuilder = buildPit();
-        do {
-            try {
+        try {
+            do {
+                assert pointInTimeBuilder != null;
                 this.currentPage = pitQuery(
                     pointInTimeBuilder,
                     getSearchAfter()
@@ -210,15 +218,15 @@ public class SearchThread implements Runnable {
                     handlePage(this.currentPage);
                     consumableHits -= getPageLength();
                 }
-            }  catch (ArrayIndexOutOfBoundsException e) {
-                log.error("ArrayIndexOutOfBoundsException retrieving page: {}", e.getMessage());
-            } catch (IllegalStateException e) {
-                log.error("IllegalStateException retrieving page: {}", e.getMessage());
-            } catch (Exception e) {
-                log.error("Generic exception retrieving page: {}", e.getMessage());
             }
+            while (consumableHits > 0);
+        }  catch (ArrayIndexOutOfBoundsException e) {
+            log.error("ArrayIndexOutOfBoundsException retrieving page: {}", e.getMessage());
+        } catch (IllegalStateException e) {
+            log.error("IllegalStateException retrieving page: {}", e.getMessage());
+        } catch (Exception e) {
+            log.error("Generic exception retrieving page: {}", e.getMessage());
         }
-        while (consumableHits > 0);
     }
 
     private long getPageLength() {
