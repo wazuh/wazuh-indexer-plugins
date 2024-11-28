@@ -69,23 +69,18 @@ public class CommandManagerJobRunner implements ScheduledJobRunner {
             );
     }
 
-    public void setClusterService(ClusterService clusterService) {
+    public CommandManagerJobRunner setClusterService(ClusterService clusterService) {
         this.clusterService = clusterService;
+        return getInstance();
     }
 
-    public void setClient(Client client) {
+    public CommandManagerJobRunner setClient(Client client) {
         this.client = client;
+        return getInstance();
     }
 
-    public Client getClient() {
-        return client;
-    }
-
-    public void setThreadPool(ThreadPool threadPool) {
+    public CommandManagerJobRunner setThreadPool(ThreadPool threadPool) {
         this.threadPool = threadPool;
-    }
-
-    public ThreadPool getThreadPool() {
-        return threadPool;
+        return getInstance();
     }
 }

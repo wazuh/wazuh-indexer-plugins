@@ -100,10 +100,10 @@ public class CommandManagerPlugin extends Plugin
         this.commandIndex = new CommandIndex(client, clusterService, threadPool);
 
         // JobSchedulerExtension stuff
-        CommandManagerJobRunner jobRunner = CommandManagerJobRunner.getInstance();
-        jobRunner.setThreadPool(threadPool);
-        jobRunner.setClient(client);
-        jobRunner.setClusterService(clusterService);
+        CommandManagerJobRunner.getInstance()
+            .setThreadPool(threadPool)
+            .setClient(client)
+            .setClusterService(clusterService);
 
         scheduleCommandJob(client, clusterService, threadPool);
 
