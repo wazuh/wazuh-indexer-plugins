@@ -226,6 +226,10 @@ public class CommandManagerPlugin extends Plugin
         };
     }
 
+    /**
+     * Returns the proper Instant object with milliseconds from the Unix epoch when the current token actually holds a value.
+     * @param parser: The parser as provided by JobScheduler
+     */
     private Instant parseInstantValue(XContentParser parser) throws IOException {
         if (XContentParser.Token.VALUE_NULL.equals(parser.currentToken())) {
             return null;
