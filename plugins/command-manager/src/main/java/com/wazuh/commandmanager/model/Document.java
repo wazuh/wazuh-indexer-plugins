@@ -21,6 +21,8 @@ public class Document implements ToXContentObject {
     private final Agent agent;
     private final Command command;
     private final String id;
+    private final long timestamp;
+    private final long deliveryTimestamp;
 
     /**
      * Default constructor
@@ -32,6 +34,20 @@ public class Document implements ToXContentObject {
         this.agent = agent;
         this.command = command;
         this.id = UUIDs.base64UUID();
+        this.timestamp = System.currentTimeMillis();
+        this.deliveryTimestamp = calculateDeliveryTimestamp(this.timestamp, command.getTimeout());
+    }
+
+    /**
+     * Calculates the delivery timestamp by adding a specified timeout to the given timestamp.
+     *
+     * @param timestamp the initial timestamp in milliseconds.
+     * @param timeout the time in seconds to be added to the timestamp.
+     * @return a new timestamp representing the delivery time.
+     */
+    private long calculateDeliveryTimestamp(long timestamp, int timeout) {
+        long timeoutInMillis = timeout * 1000L;
+        return timestamp + timeoutInMillis;
     }
 
     /**
@@ -68,11 +84,20 @@ public class Document implements ToXContentObject {
         builder.startObject();
         this.agent.toXContent(builder, ToXContentObject.EMPTY_PARAMS);
         this.command.toXContent(builder, ToXContentObject.EMPTY_PARAMS);
+        builder.field("timestamp", this.timestamp);
+        builder.field("deliveryTimestamp", this.deliveryTimestamp);
         return builder.endObject();
     }
 
     @Override
     public String toString() {
-        return "Document{" + "agent=" + agent + ", command=" + command + '}';
+        return "Document{"
+                + "@timestamp="
+                + timestamp
+                + ", agent="
+                + agent
+                + ", command="
+                + command
+                + '}';
     }
 }

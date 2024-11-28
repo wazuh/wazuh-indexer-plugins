@@ -15,9 +15,7 @@ import org.opensearch.core.xcontent.XContentBuilder;
 import org.opensearch.core.xcontent.XContentParser;
 
 import java.io.IOException;
-import java.sql.Timestamp;
 import java.util.ArrayList;
-import java.util.Calendar;
 
 import reactor.util.annotation.NonNull;
 
@@ -30,7 +28,6 @@ public class Command implements ToXContentObject {
     public static final String USER = "user";
     public static final String STATUS = "status";
     public static final String TIMESTAMP = "@timestamp";
-    public static final String DELIVERY_TIMESTAMP = "delivery_timestamp";
     private final String orderId;
     private final String requestId;
     private final String source;
@@ -39,8 +36,6 @@ public class Command implements ToXContentObject {
     private final String user;
     private final Status status;
     private final Action action;
-    private final Timestamp timestamp;
-    private final Timestamp deliveryTimestamp;
 
     /**
      * Default constructor
@@ -65,22 +60,15 @@ public class Command implements ToXContentObject {
         this.user = user;
         this.action = action;
         this.status = Status.PENDING;
-        this.timestamp = new Timestamp(System.currentTimeMillis());
-        this.deliveryTimestamp = calculateDeliveryTimestamp(this.timestamp, this.timeout);
     }
 
     /**
-     * Calculates the delivery timestamp by adding a specified timeout to the given timestamp.
+     * Retrieves the timeout value for this command.
      *
-     * @param timestamp the initial timestamp to which the timeout will be added.
-     * @param timeout the time in seconds to be added to the timestamp.
-     * @return a new {@link Timestamp} representing the delivery time.
+     * @return the timeout value in milliseconds.
      */
-    private Timestamp calculateDeliveryTimestamp(Timestamp timestamp, int timeout) {
-        Calendar cal = Calendar.getInstance();
-        cal.setTimeInMillis(timestamp.getTime());
-        cal.add(Calendar.SECOND, timeout);
-        return new Timestamp(cal.getTimeInMillis());
+    public Integer getTimeout() {
+        return timeout;
     }
 
     /**
@@ -160,8 +148,6 @@ public class Command implements ToXContentObject {
         builder.field(STATUS, this.status);
         builder.field(ORDER_ID, this.orderId);
         builder.field(REQUEST_ID, this.requestId);
-        builder.field(TIMESTAMP, this.timestamp);
-        builder.field(DELIVERY_TIMESTAMP, this.deliveryTimestamp);
 
         return builder.endObject();
     }
@@ -189,12 +175,6 @@ public class Command implements ToXContentObject {
                 + status
                 + ", action="
                 + action
-                + ", @timestamp='"
-                + timestamp
-                + '\''
-                + ", delivery_timestamp='"
-                + deliveryTimestamp
-                + '\''
                 + '}';
     }
 }
