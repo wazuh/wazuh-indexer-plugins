@@ -15,6 +15,9 @@ import org.opensearch.jobscheduler.spi.schedule.Schedule;
 import java.io.IOException;
 import java.time.Instant;
 
+/**
+ * A model for the parameters and schema to be indexed to the jobs index.
+ */
 public class CommandManagerJobParameter implements ScheduledJobParameter {
     public static final String NAME_FIELD = "name";
     public static final String ENABLED_FIELD = "enabled";
