@@ -113,7 +113,6 @@ dependencies {
     implementation "org.opensearch:opensearch:${opensearch_version}"
     compileOnly "org.opensearch:opensearch-job-scheduler-spi:${job_scheduler_version}"
 
-    testImplementation "org.mockito:mockito-core:${versions.mockito}"
     testImplementation "junit:junit:${versions.junit}"
 
     // imposter
