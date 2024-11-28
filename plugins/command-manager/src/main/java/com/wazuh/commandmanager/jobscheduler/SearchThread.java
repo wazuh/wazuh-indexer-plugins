@@ -17,6 +17,7 @@ import org.apache.logging.log4j.Logger;
 import org.opensearch.action.index.IndexRequest;
 import org.opensearch.action.search.*;
 import org.opensearch.client.Client;
+import org.opensearch.common.Nullable;
 import org.opensearch.common.unit.TimeValue;
 import org.opensearch.common.xcontent.XContentFactory;
 import org.opensearch.core.action.ActionListener;
@@ -45,6 +46,9 @@ import com.wazuh.commandmanager.utils.httpclient.HttpRestClientDemo;
  */
 public class SearchThread implements Runnable {
     private static final Logger log = LogManager.getLogger(SearchThread.class);
+    public static final String COMMAND_STATUS_FIELD = Command.COMMAND + "." + Command.STATUS + ".keyword";
+    public static final String COMMAND_ORDERID_FIELD = Command.COMMAND + "." + Command.ORDER_ID + ".keyword";
+    public static final String COMMAND_TIMEOUT_FIELD = Command.COMMAND + "." + Command.TIMEOUT;
     private final SearchSourceBuilder searchSourceBuilder = new SearchSourceBuilder();
     private SearchResponse currentPage = null;
     private final Client client;
@@ -149,27 +153,39 @@ public class SearchThread implements Runnable {
         this.client.index(indexRequest).actionGet(CommandManagerPlugin.DEFAULT_TIMEOUT_SECONDS * 1000);
     }
 
-    public SearchResponse pitQuery(Client client, String index, Integer resultsPerPage, PointInTimeBuilder pointInTimeBuilder, Object[] searchAfter) throws IllegalStateException {
-        SearchRequest searchRequest = new SearchRequest(index);
+    /**
+     * Runs a PIT style query against the Commands index
+     *
+     * @param pointInTimeBuilder: A pit builder object used to run the query
+     * @param searchAfter: An array of objects containing the last page's values of the sort fields
+     * @return The search response
+     * @throws IllegalStateException: Rethrown from actionGet()
+     */
+    public SearchResponse pitQuery(
+        PointInTimeBuilder pointInTimeBuilder,
+        @Nullable Object[] searchAfter
+    ) throws IllegalStateException {
+        SearchRequest searchRequest = new SearchRequest(CommandManagerPlugin.COMMAND_MANAGER_INDEX_NAME);
         TermQueryBuilder termQueryBuilder =
-            QueryBuilders.termQuery(Command.COMMAND + "." + Command.STATUS + ".keyword", Status.PENDING);
+            QueryBuilders.termQuery(SearchThread.COMMAND_STATUS_FIELD, Status.PENDING);
+        TimeValue timeout = TimeValue.timeValueSeconds(CommandManagerPlugin.DEFAULT_TIMEOUT_SECONDS);
         getSearchSourceBuilder()
             .query(termQueryBuilder)
-            .size(resultsPerPage)
+            .size(CommandManagerPlugin.PAGE_SIZE)
             .trackTotalHits(true)
-            .timeout(TimeValue.timeValueSeconds(CommandManagerPlugin.DEFAULT_TIMEOUT_SECONDS))
+            .timeout(timeout)
             .pointInTimeBuilder(pointInTimeBuilder);
         if( getSearchSourceBuilder().sorts() == null ) {
             getSearchSourceBuilder()
-                .sort(Command.COMMAND + "." + Command.ORDER_ID + ".keyword", SortOrder.ASC)
-                .sort(Command.COMMAND + "." + Command.TIMEOUT, SortOrder.ASC);
+                .sort(SearchThread.COMMAND_ORDERID_FIELD, SortOrder.ASC)
+                .sort(SearchThread.COMMAND_TIMEOUT_FIELD, SortOrder.ASC);
         }
         if (searchAfter != null) {
             getSearchSourceBuilder().searchAfter(searchAfter);
         }
         searchRequest.source(getSearchSourceBuilder());
-        return client.search(searchRequest)
-            .actionGet(TimeValue.timeValueSeconds(CommandManagerPlugin.DEFAULT_TIMEOUT_SECONDS));
+        return this.client.search(searchRequest)
+            .actionGet(timeout);
     }
 
     @Override
@@ -181,9 +197,6 @@ public class SearchThread implements Runnable {
             try {
                 setCurrentPage(
                     pitQuery(
-                        this.client,
-                        CommandManagerPlugin.COMMAND_MANAGER_INDEX_NAME,
-                        CommandManagerPlugin.PAGE_SIZE,
                         pointInTimeBuilder,
                         getSearchAfter()
                     )
