@@ -170,21 +170,21 @@ public class SearchThread implements Runnable {
         TermQueryBuilder termQueryBuilder =
             QueryBuilders.termQuery(SearchThread.COMMAND_STATUS_FIELD, Status.PENDING);
         TimeValue timeout = TimeValue.timeValueSeconds(CommandManagerPlugin.DEFAULT_TIMEOUT_SECONDS);
-        getSearchSourceBuilder()
+        this.searchSourceBuilder
             .query(termQueryBuilder)
             .size(CommandManagerPlugin.PAGE_SIZE)
             .trackTotalHits(true)
             .timeout(timeout)
             .pointInTimeBuilder(pointInTimeBuilder);
-        if( getSearchSourceBuilder().sorts() == null ) {
-            getSearchSourceBuilder()
+        if( this.searchSourceBuilder.sorts() == null ) {
+            this.searchSourceBuilder
                 .sort(SearchThread.COMMAND_ORDERID_FIELD, SortOrder.ASC)
                 .sort(SearchThread.COMMAND_TIMEOUT_FIELD, SortOrder.ASC);
         }
         if (searchAfter != null) {
-            getSearchSourceBuilder().searchAfter(searchAfter);
+            this.searchSourceBuilder.searchAfter(searchAfter);
         }
-        searchRequest.source(getSearchSourceBuilder());
+        searchRequest.source(this.searchSourceBuilder);
         return this.client.search(searchRequest)
             .actionGet(timeout);
     }
@@ -196,18 +196,16 @@ public class SearchThread implements Runnable {
         PointInTimeBuilder pointInTimeBuilder = buildPit();
         do {
             try {
-                setCurrentPage(
-                    pitQuery(
-                        pointInTimeBuilder,
-                        getSearchAfter()
-                    )
+                this.currentPage = pitQuery(
+                    pointInTimeBuilder,
+                    getSearchAfter()
                 );
                 if (firstPage) {
                     consumableHits = totalHits();
                     firstPage = false;
                 }
                 if ( consumableHits > 0 ) {
-                    handlePage(getCurrentPage());
+                    handlePage(this.currentPage);
                     consumableHits -= getPageLength();
                 }
             }  catch (ArrayIndexOutOfBoundsException e) {
@@ -222,34 +220,22 @@ public class SearchThread implements Runnable {
     }
 
     private long getPageLength() {
-        return getCurrentPage().getHits().getHits().length;
+        return this.currentPage.getHits().getHits().length;
     }
 
     private long totalHits() {
-        if (getCurrentPage().getHits().getTotalHits() != null) {
+        if (this.currentPage.getHits().getTotalHits() != null) {
             log.warn("Query did not return any hits: totalHits is null");
-            return getCurrentPage().getHits().getTotalHits().value;
+            return this.currentPage.getHits().getTotalHits().value;
         }
         else {
             return 0;
         }
     }
 
-    private SearchSourceBuilder getSearchSourceBuilder() {
-        return searchSourceBuilder;
-    }
-
-    private SearchResponse getCurrentPage() {
-        return currentPage;
-    }
-
-    private void setCurrentPage(SearchResponse currentPage) {
-        this.currentPage = currentPage;
-    }
-
     private Object[] getSearchAfter() {
-        if (getLastHit(getCurrentPage()) != null) {
-            return getLastHit(getCurrentPage()).getSortValues();
+        if (getLastHit(this.currentPage) != null) {
+            return getLastHit(this.currentPage).getSortValues();
         }
         else {
             return null;
