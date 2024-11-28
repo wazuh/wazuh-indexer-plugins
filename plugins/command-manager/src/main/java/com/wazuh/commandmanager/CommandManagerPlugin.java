@@ -181,7 +181,7 @@ public class CommandManagerPlugin extends Plugin
 
     @Override
     public String getJobIndex() {
-        return JOB_INDEX_NAME;
+        return CommandManagerPlugin.JOB_INDEX_NAME;
     }
 
     @Override
