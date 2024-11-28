@@ -61,14 +61,10 @@ public class CommandManagerJobRunner implements ScheduledJobRunner {
                 CommandManagerPlugin.COMMAND_MANAGER_INDEX_NAME);
             return;
         }
-        SearchJob searchJob = new SearchJob();
+        SearchThread searchThread = new SearchThread(this.client);
         threadPool.generic()
             .submit(
-                searchJob.searchJobRunnable(
-                    this.client,
-                    CommandManagerPlugin.COMMAND_MANAGER_INDEX_NAME,
-                    CommandManagerPlugin.PAGE_SIZE
-                )
+                searchThread
             );
     }
 

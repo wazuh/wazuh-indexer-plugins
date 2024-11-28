@@ -36,13 +36,14 @@ import com.wazuh.commandmanager.CommandManagerPlugin;
 import com.wazuh.commandmanager.model.Command;
 import com.wazuh.commandmanager.utils.httpclient.HttpRestClientDemo;
 
-public class SearchJob {
-    private static final Logger log = LogManager.getLogger(SearchJob.class);
+public class SearchThread implements Runnable {
+    private static final Logger log = LogManager.getLogger(SearchThread.class);
     private final SearchSourceBuilder searchSourceBuilder = new SearchSourceBuilder();
     private SearchResponse currentPage = null;
+    private final Client client;
 
-    public SearchJob() {
-
+    public SearchThread(Client client) {
+        this.client = client;
     }
 
     public static <T> T getNestedValue(Map<String, Object> map, String key, Class<T> type) {
@@ -120,42 +121,41 @@ public class SearchJob {
             .actionGet(TimeValue.timeValueSeconds(CommandManagerPlugin.DEFAULT_TIMEOUT_SECONDS));
     }
 
-    public Runnable searchJobRunnable(Client client, String index, Integer pageSize) {
-        return () -> {
-            long consumableHits = 0L;
-            boolean firstPage = true;
-            PointInTimeBuilder pointInTimeBuilder = buildPit(client, index);
-            do {
-                try {
-                    setCurrentPage(
-                        pitQuery(
-                            client,
-                            index,
-                            pageSize,
-                            pointInTimeBuilder,
-                            getSearchAfter()
-                        )
-                    );
-                    if (firstPage) {
-                        consumableHits = totalHits();
-                        firstPage = false;
-                    }
-                    if ( consumableHits > 0 ) {
-                        handlePage(client, getCurrentPage());
-                        consumableHits -= getPageLength();
-                    }
-                } catch (IOException e) {
-                    log.error("IOException retrieving page: {}", e.getMessage());
-                } catch (ArrayIndexOutOfBoundsException e) {
-                    log.error("ArrayIndexOutOfBoundsException retrieving page: {}", e.getMessage());
-                } catch (IllegalStateException e) {
-                    log.error("IllegalStateException retrieving page: {}", e.getMessage());
-                } catch (Exception e) {
-                    log.error("Generic exception retrieving page: {}", e.getMessage());
+    @Override
+    public void run() {
+        long consumableHits = 0L;
+        boolean firstPage = true;
+        PointInTimeBuilder pointInTimeBuilder = buildPit();
+        do {
+            try {
+                setCurrentPage(
+                    pitQuery(
+                        this.client,
+                        CommandManagerPlugin.COMMAND_MANAGER_INDEX_NAME,
+                        CommandManagerPlugin.PAGE_SIZE,
+                        pointInTimeBuilder,
+                        getSearchAfter()
+                    )
+                );
+                if (firstPage) {
+                    consumableHits = totalHits();
+                    firstPage = false;
                 }
+                if ( consumableHits > 0 ) {
+                    handlePage(this.client, getCurrentPage());
+                    consumableHits -= getPageLength();
+                }
+            } catch (IOException e) {
+                log.error("IOException retrieving page: {}", e.getMessage());
+            } catch (ArrayIndexOutOfBoundsException e) {
+                log.error("ArrayIndexOutOfBoundsException retrieving page: {}", e.getMessage());
+            } catch (IllegalStateException e) {
+                log.error("IllegalStateException retrieving page: {}", e.getMessage());
+            } catch (Exception e) {
+                log.error("Generic exception retrieving page: {}", e.getMessage());
             }
-            while (consumableHits > 0);
-        };
+        }
+        while (consumableHits > 0);
     }
 
     private long getPageLength() {
@@ -187,7 +187,7 @@ public class SearchJob {
         }
     }
 
-    private PointInTimeBuilder buildPit(Client client, String index) {
+    private PointInTimeBuilder buildPit() {
         CompletableFuture<CreatePitResponse> future = new CompletableFuture<>();
         ActionListener<CreatePitResponse> actionListener = new ActionListener<>() {
             @Override
@@ -200,11 +200,11 @@ public class SearchJob {
                 future.completeExceptionally(e);
             }
         };
-        client.createPit(
+        this.client.createPit(
             new CreatePitRequest(
                 CommandManagerPlugin.PIT_KEEPALIVE_SECONDS,
                 false,
-                index
+                CommandManagerPlugin.COMMAND_MANAGER_INDEX_NAME
             ),
             actionListener
         );
