@@ -40,6 +40,15 @@ public class JobDocument {
         return INSTANCE;
     }
 
+    /**
+     * Writes a CommandManagerJobParameter type document to the jobs index
+     * @param client: The cluster's client
+     * @param threadPool: The cluster's threadPool
+     * @param id: The job ID to be used
+     * @param jobName: The name of the job
+     * @param interval: The interval the action is expected to run at
+     * @return a CompletableFuture that will hold the IndexResponse.
+     */
     public CompletableFuture<IndexResponse> create(
         Client client,
         ThreadPool threadPool,
