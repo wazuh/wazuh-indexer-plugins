@@ -8,12 +8,6 @@
  */
 package com.wazuh.commandmanager.jobscheduler;
 
-import com.wazuh.commandmanager.CommandManagerPlugin;
-import com.wazuh.commandmanager.auth.AuthCredentials;
-import com.wazuh.commandmanager.model.Command;
-import com.wazuh.commandmanager.model.Status;
-import com.wazuh.commandmanager.settings.PluginSettings;
-import com.wazuh.commandmanager.utils.httpclient.HttpRestClient;
 import org.apache.hc.core5.net.URIBuilder;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -23,14 +17,12 @@ import org.opensearch.action.search.CreatePitResponse;
 import org.opensearch.action.search.SearchRequest;
 import org.opensearch.action.search.SearchResponse;
 import org.opensearch.client.Client;
-import org.opensearch.common.Nullable;
 import org.opensearch.common.unit.TimeValue;
 import org.opensearch.common.xcontent.XContentFactory;
 import org.opensearch.core.action.ActionListener;
 import org.opensearch.core.xcontent.ToXContent;
 import org.opensearch.core.xcontent.XContentBuilder;
 import org.opensearch.env.Environment;
-import org.opensearch.env.EnvironmentSettingsResponse;
 import org.opensearch.index.query.QueryBuilders;
 import org.opensearch.index.query.TermQueryBuilder;
 import org.opensearch.search.SearchHit;
@@ -38,23 +30,30 @@ import org.opensearch.search.SearchHits;
 import org.opensearch.search.builder.PointInTimeBuilder;
 import org.opensearch.search.builder.SearchSourceBuilder;
 import org.opensearch.search.sort.SortOrder;
-import reactor.util.annotation.NonNull;
 
 import java.io.IOException;
-import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.*;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 
+import com.wazuh.commandmanager.CommandManagerPlugin;
+import com.wazuh.commandmanager.model.Command;
+import com.wazuh.commandmanager.model.Status;
+import com.wazuh.commandmanager.settings.PluginSettings;
+import com.wazuh.commandmanager.utils.httpclient.HttpRestClient;
+
 /**
- * The class in charge of searching and managing commands in {@link com.wazuh.commandmanager.model.Status#PENDING}
- * status and of submitting them to the destination client.
+ * The class in charge of searching and managing commands in {@link
+ * com.wazuh.commandmanager.model.Status#PENDING} status and of submitting them to the destination
+ * client.
  */
 public class SearchThread implements Runnable {
-    public static final String COMMAND_STATUS_FIELD = Command.COMMAND + "." + Command.STATUS + ".keyword";
-    public static final String COMMAND_ORDER_ID_FIELD = Command.COMMAND + "." + Command.ORDER_ID + ".keyword";
+    public static final String COMMAND_STATUS_FIELD =
+            Command.COMMAND + "." + Command.STATUS + ".keyword";
+    public static final String COMMAND_ORDER_ID_FIELD =
+            Command.COMMAND + "." + Command.ORDER_ID + ".keyword";
     public static final String COMMAND_TIMEOUT_FIELD = Command.COMMAND + "." + Command.TIMEOUT;
     private static final Logger log = LogManager.getLogger(SearchThread.class);
     private final SearchSourceBuilder searchSourceBuilder = new SearchSourceBuilder();
@@ -70,10 +69,10 @@ public class SearchThread implements Runnable {
     /**
      * Retrieves a nested value from a {@code Map<String, Object>} in a (somewhat) safe way.
      *
-     * @param map  The parent map to look at.
-     * @param key  The key our nested object is found under.
+     * @param map The parent map to look at.
+     * @param key The key our nested object is found under.
      * @param type The type we expect the nested object to be of.
-     * @param <T>  The type of the nested object.
+     * @param <T> The type of the nested object.
      * @return the nested object cast into the proper type.
      */
     public static <T> T getNestedValue(Map<String, Object> map, String key, Class<T> type) {
@@ -90,9 +89,11 @@ public class SearchThread implements Runnable {
     }
 
     /**
-     * Iterates over search results, updating their status field and submitting them to the destination
-     * @param searchResponse: The search results page
-     * @throws IllegalStateException: Rethrown from setSentStatus()
+     * Iterates over search results, updating their status field and submitting them to the
+     * destination
+     *
+     * @param searchResponse The search results page
+     * @throws IllegalStateException Rethrown from setSentStatus()
      */
     public void handlePage(SearchResponse searchResponse) throws IllegalStateException {
         SearchHits searchHits = searchResponse.getHits();
@@ -104,19 +105,20 @@ public class SearchThread implements Runnable {
 
     /**
      * Send the command order over HTTP
+     *
      * @param hit: The command order
      */
     private void deliverOrders(SearchHit hit) {
-        try ( XContentBuilder xContentBuilder = XContentFactory.jsonBuilder() ) {
+        try (XContentBuilder xContentBuilder = XContentFactory.jsonBuilder()) {
             PluginSettings settings = PluginSettings.getInstance(this.environment.settings());
             hit.toXContent(xContentBuilder, ToXContent.EMPTY_PARAMS);
-            HttpRestClient.getInstance().post(
-                new URIBuilder(settings.getUri()).build(),
-                xContentBuilder.toString(),
-                hit.getId()
-            );
+            HttpRestClient.getInstance()
+                    .post(
+                            new URIBuilder(settings.getUri()).build(),
+                            xContentBuilder.toString(),
+                            hit.getId());
         } catch (IOException e) {
-            log.error("Error parsing hit contents: {}",e.getMessage());
+            log.error("Error parsing hit contents: {}", e.getMessage());
         } catch (URISyntaxException e) {
             log.error("Invalid URI: {}", e.getMessage());
         }
@@ -127,38 +129,46 @@ public class SearchThread implements Runnable {
      * field to {@link com.wazuh.commandmanager.model.Status#SENT}.
      *
      * @param hit The page's result we are to update.
-     * @throws IllegalStateException Raised by {@link org.opensearch.common.action.ActionFuture#actionGet(long)}.
+     * @throws IllegalStateException Raised by {@link
+     *     org.opensearch.common.action.ActionFuture#actionGet(long)}.
      */
     @SuppressWarnings("unchecked")
     private void setSentStatus(SearchHit hit) throws IllegalStateException {
         Map<String, Object> commandMap =
-                getNestedValue(hit.getSourceAsMap(), CommandManagerPlugin.COMMAND_DOCUMENT_PARENT_OBJECT_NAME, Map.class);
+                getNestedValue(
+                        hit.getSourceAsMap(),
+                        CommandManagerPlugin.COMMAND_DOCUMENT_PARENT_OBJECT_NAME,
+                        Map.class);
         commandMap.put(Command.STATUS, Status.SENT);
-        hit.getSourceAsMap().put(CommandManagerPlugin.COMMAND_DOCUMENT_PARENT_OBJECT_NAME, commandMap);
+        hit.getSourceAsMap()
+                .put(CommandManagerPlugin.COMMAND_DOCUMENT_PARENT_OBJECT_NAME, commandMap);
         IndexRequest indexRequest =
                 new IndexRequest()
                         .index(CommandManagerPlugin.COMMAND_MANAGER_INDEX_NAME)
                         .source(hit.getSourceAsMap())
                         .id(hit.getId());
-        this.client.index(indexRequest).actionGet(CommandManagerPlugin.DEFAULT_TIMEOUT_SECONDS * 1000);
+        this.client
+                .index(indexRequest)
+                .actionGet(CommandManagerPlugin.DEFAULT_TIMEOUT_SECONDS * 1000);
     }
 
     /**
      * Runs a PIT style query against the Commands index.
      *
      * @param pointInTimeBuilder A pit builder object used to run the query.
-     * @param searchAfter        An array of objects containing the last page's values of the sort fields.
+     * @param searchAfter An array of objects containing the last page's values of the sort fields.
      * @return The search response.
-     * @throws IllegalStateException Raised by {@link org.opensearch.common.action.ActionFuture#actionGet(long)}.
+     * @throws IllegalStateException Raised by {@link
+     *     org.opensearch.common.action.ActionFuture#actionGet(long)}.
      */
-    public SearchResponse pitQuery(
-        PointInTimeBuilder pointInTimeBuilder,
-        Object[] searchAfter
-    ) throws IllegalStateException {
-        SearchRequest searchRequest = new SearchRequest(CommandManagerPlugin.COMMAND_MANAGER_INDEX_NAME);
+    public SearchResponse pitQuery(PointInTimeBuilder pointInTimeBuilder, Object[] searchAfter)
+            throws IllegalStateException {
+        SearchRequest searchRequest =
+                new SearchRequest(CommandManagerPlugin.COMMAND_MANAGER_INDEX_NAME);
         TermQueryBuilder termQueryBuilder =
                 QueryBuilders.termQuery(SearchThread.COMMAND_STATUS_FIELD, Status.PENDING);
-        TimeValue timeout = TimeValue.timeValueSeconds(CommandManagerPlugin.DEFAULT_TIMEOUT_SECONDS);
+        TimeValue timeout =
+                TimeValue.timeValueSeconds(CommandManagerPlugin.DEFAULT_TIMEOUT_SECONDS);
         this.searchSourceBuilder
                 .query(termQueryBuilder)
                 .size(CommandManagerPlugin.PAGE_SIZE)
@@ -174,8 +184,7 @@ public class SearchThread implements Runnable {
             this.searchSourceBuilder.searchAfter(searchAfter);
         }
         searchRequest.source(this.searchSourceBuilder);
-        return this.client.search(searchRequest)
-                .actionGet(timeout);
+        return this.client.search(searchRequest).actionGet(timeout);
     }
 
     @Override
@@ -185,10 +194,10 @@ public class SearchThread implements Runnable {
         PointInTimeBuilder pointInTimeBuilder = buildPit();
         try {
             do {
-                this.currentPage = pitQuery(
-                    pointInTimeBuilder,
-                    getSearchAfter(this.currentPage).orElse(new Object[0])
-                );
+                this.currentPage =
+                        pitQuery(
+                                pointInTimeBuilder,
+                                getSearchAfter(this.currentPage).orElse(new Object[0]));
                 if (firstPage) {
                     consumableHits = totalHits();
                     firstPage = false;
@@ -197,9 +206,8 @@ public class SearchThread implements Runnable {
                     handlePage(this.currentPage);
                     consumableHits -= getPageLength();
                 }
-            }
-            while (consumableHits > 0);
-        }  catch (ArrayIndexOutOfBoundsException e) {
+            } while (consumableHits > 0);
+        } catch (ArrayIndexOutOfBoundsException e) {
             log.error("ArrayIndexOutOfBoundsException retrieving page: {}", e.getMessage());
         } catch (IllegalStateException e) {
             log.error("IllegalStateException retrieving page: {}", e.getMessage());
@@ -222,14 +230,15 @@ public class SearchThread implements Runnable {
     }
 
     /**
-     * Gets the sort values of the last hit of a page.
-     * It is used by a PIT search to get the next page of results.
+     * Gets the sort values of the last hit of a page. It is used by a PIT search to get the next
+     * page of results.
+     *
      * @param searchResponse: The current page
-     * @return The values of the sort fields of the last hit of a page whenever present.
-     * Otherwise, an empty Optional.
+     * @return The values of the sort fields of the last hit of a page whenever present. Otherwise,
+     *     an empty Optional.
      */
     private Optional<Object[]> getSearchAfter(SearchResponse searchResponse) {
-        if ( searchResponse == null ) {
+        if (searchResponse == null) {
             log.warn("Command search response is null, not getting searchAfter values");
             return Optional.empty();
         }
@@ -253,26 +262,25 @@ public class SearchThread implements Runnable {
      */
     private PointInTimeBuilder buildPit() {
         CompletableFuture<CreatePitResponse> future = new CompletableFuture<>();
-        ActionListener<CreatePitResponse> actionListener = new ActionListener<>() {
-            @Override
-            public void onResponse(CreatePitResponse createPitResponse) {
-                future.complete(createPitResponse);
-            }
+        ActionListener<CreatePitResponse> actionListener =
+                new ActionListener<>() {
+                    @Override
+                    public void onResponse(CreatePitResponse createPitResponse) {
+                        future.complete(createPitResponse);
+                    }
 
-            @Override
-            public void onFailure(Exception e) {
-                log.error(e.getMessage());
-                future.completeExceptionally(e);
-            }
-        };
+                    @Override
+                    public void onFailure(Exception e) {
+                        log.error(e.getMessage());
+                        future.completeExceptionally(e);
+                    }
+                };
         this.client.createPit(
                 new CreatePitRequest(
                         CommandManagerPlugin.PIT_KEEPALIVE_SECONDS,
                         false,
-                        CommandManagerPlugin.COMMAND_MANAGER_INDEX_NAME
-                ),
-                actionListener
-        );
+                        CommandManagerPlugin.COMMAND_MANAGER_INDEX_NAME),
+                actionListener);
         try {
             return new PointInTimeBuilder(future.get().getId());
         } catch (CancellationException e) {

@@ -4,8 +4,9 @@ import java.util.concurrent.Callable
 
 buildscript {
     ext {
-        opensearch_version = System.getProperty("opensearch.version", "2.18.0")
-        opensearch_build = opensearch_version + ".0"
+        opensearch_version = System.getProperty("opensearch.version", "2.18.0-SNAPSHOT")
+        opensearch_no_snapshot = opensearch_version.replace("-SNAPSHOT","")
+        opensearch_build = opensearch_no_snapshot + ".0"
         job_scheduler_version = System.getProperty("job_scheduler.version", opensearch_build)
         wazuh_version = System.getProperty("version", "5.0.0")
         revision = System.getProperty("revision", "0")
@@ -25,9 +26,10 @@ buildscript {
 
 apply plugin: 'java'
 apply plugin: 'idea'
+apply plugin: 'eclipse'
 apply plugin: 'opensearch.opensearchplugin'
+apply plugin: 'opensearch.rest-test'
 apply plugin: 'opensearch.pluginzip'
-apply plugin: 'opensearch.testclusters'
 
 def pluginName = 'wazuh-indexer-command-manager'
 def pluginDescription = 'The Command Manager plugin handles and distributes commands across your Wazuh environment.'
@@ -69,14 +71,9 @@ opensearchplugin {
     name pluginName
     description pluginDescription
     classname "${projectPath}.${pathToPlugin}.${pluginClassName}"
-    version = "${wazuh_version}" + ".${revision}"
     extendedPlugins = ['opensearch-job-scheduler']
     licenseFile rootProject.file('LICENSE.txt')
     noticeFile rootProject.file('NOTICE.txt')
-}
-
-configurations {
-    zipArchive
 }
 
 def versions = [
@@ -96,6 +93,10 @@ def versions = [
     imposter: "4.1.2"
 ]
 
+configurations {
+    zipArchive
+}
+
 dependencies {
     implementation "org.apache.httpcomponents.client5:httpclient5:${versions.httpclient5}"
     implementation "org.apache.httpcomponents.core5:httpcore5-h2:${versions.httpcore5}"
@@ -107,10 +108,9 @@ dependencies {
     implementation "com.fasterxml.jackson.core:jackson-databind:${versions.jackson_databind}"
     implementation "com.fasterxml.jackson.core:jackson-annotations:${versions.jackson}"
 
-
     // Job Scheduler stuff
     zipArchive group: 'org.opensearch.plugin', name: 'opensearch-job-scheduler', version: "${opensearch_build}"
-    implementation "org.opensearch:opensearch:${opensearch_version}"
+    // implementation "org.opensearch:opensearch:${opensearch_version}"
     compileOnly "org.opensearch:opensearch-job-scheduler-spi:${job_scheduler_version}"
 
     testImplementation "junit:junit:${versions.junit}"
@@ -148,56 +148,32 @@ test {
     jvmArgs "-Djava.security.policy=./plugins/command-manager/src/main/plugin-metadata/plugin-security.policy/plugin-security.policy"
 }
 
-// As of ES 7.7 the sample-extension-plugin is being added to the list of plugins for the testCluster during build before
-// the job-scheduler plugin is causing build failures.
-// The job-scheduler zip is added explicitly above but the sample-extension-plugin is added implicitly at some time during evaluation.
-// Will need to do a deep dive to find out exactly what task adds the sample-extension-plugin and add job-scheduler there but a temporary hack is to
-// reorder the plugins list after evaluation but prior to task execution when the plugins are installed.
-afterEvaluate {
-    testClusters.integTest.nodes.each { node ->
-        def plugins = node.plugins
-        def firstPlugin = plugins.get(0)
-        plugins.remove(0)
-        plugins.add(firstPlugin)
-    }
-}
-
-task integTest(type: RestIntegTestTask) {
-    description = "Run tests against a cluster"
-    testClassesDirs = sourceSets.test.output.classesDirs
-    classpath = sourceSets.test.runtimeClasspath
-}
-tasks.named("check").configure { dependsOn(integTest) }
-
-integTest {
-    // The -Dcluster.debug option makes the cluster debuggable; this makes the tests debuggable
-    if (System.getProperty("test.debug") != null) {
-        jvmArgs '-agentlib:jdwp=transport=dt_socket,server=n,suspend=y,address=8000'
-    }
-}
-
-Zip bundle = (Zip) project.getTasks().getByName("bundlePlugin");
-integTest.dependsOn(bundle)
-integTest.getClusters().forEach{c -> c.plugin(project.getObjects().fileProperty().value(bundle.getArchiveFile()))}
-
-testClusters.integTest {
-    testDistribution = "INTEG_TEST"
-    // testDistribution =  "ARCHIVE"
-    // need to install job-scheduler first, need to assemble job-scheduler first
-    plugin(provider(new Callable<RegularFile>() {
+def getJobSchedulerPlugin() {
+    provider(new Callable<RegularFile>() {
         @Override
         RegularFile call() throws Exception {
             return new RegularFile() {
                 @Override
                 File getAsFile() {
-                    return configurations.zipArchive.asFileTree.getSingleFile()
+                    return configurations.zipArchive.asFileTree.matching {
+                        include '**/opensearch-job-scheduler*'
+                    }.singleFile
                 }
             }
         }
-    }))
+    })
+}
 
-    // This installs our plugin into the testClusters. Note: already installed above
-    // plugin(project.tasks.bundlePlugin.archiveFile)
+testClusters.integTest {
+    plugin(getJobSchedulerPlugin())
+    testDistribution = "ARCHIVE"
+    // This installs our plugin into the testClusters
+    plugin(project.tasks.bundlePlugin.archiveFile)
+
+    // The --debug-jvm command-line option makes the cluster debuggable; this makes the tests debuggable
+    if (System.getProperty("test.debug") != null) {
+        jvmArgs '-agentlib:jdwp=transport=dt_socket,server=y,suspend=y,address=*:5005'
+    }
 
     // add customized keystore
     keystore 'm_api.auth.username', 'admin'
@@ -215,7 +191,7 @@ task updateVersion {
     doLast {
         ext.newVersion = System.getProperty('newVersion')
         println "Setting version to ${newVersion}."
-        // String tokenization to support -SNAPSHOT
+         // String tokenization to support -SNAPSHOT
         ant.replaceregexp(file: 'build.gradle', match: '"opensearch.version", "\\d.*"', replace: '"opensearch.version", "' + newVersion.tokenize('-')[0] + '-SNAPSHOT"', flags: 'g', byline: true)
     }
 }

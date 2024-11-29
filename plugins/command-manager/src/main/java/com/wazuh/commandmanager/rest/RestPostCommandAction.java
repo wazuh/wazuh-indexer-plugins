@@ -8,13 +8,10 @@
  */
 package com.wazuh.commandmanager.rest;
 
-import org.apache.hc.client5.http.async.methods.SimpleHttpResponse;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.opensearch.client.node.NodeClient;
-import org.opensearch.common.xcontent.XContentFactory;
 import org.opensearch.core.rest.RestStatus;
-import org.opensearch.core.xcontent.ToXContent;
 import org.opensearch.core.xcontent.XContentBuilder;
 import org.opensearch.core.xcontent.XContentParser;
 import org.opensearch.rest.BaseRestHandler;
@@ -30,7 +27,6 @@ import com.wazuh.commandmanager.index.CommandIndex;
 import com.wazuh.commandmanager.model.Agent;
 import com.wazuh.commandmanager.model.Command;
 import com.wazuh.commandmanager.model.Document;
-import com.wazuh.commandmanager.utils.httpclient.HttpRestClientDemo;
 
 import static org.opensearch.core.xcontent.XContentParserUtils.ensureExpectedToken;
 import static org.opensearch.rest.RestRequest.Method.POST;
@@ -106,7 +102,7 @@ public class RestPostCommandAction extends BaseRestHandler {
 
         // Commands delivery to the Management API.
         // Note: needs to be decoupled from the Rest handler (job scheduler task).
-        //try {
+        // try {
         //    String payload =
         //            document.toXContent(XContentFactory.jsonBuilder(), ToXContent.EMPTY_PARAMS)
         //                    .toString();
@@ -114,9 +110,9 @@ public class RestPostCommandAction extends BaseRestHandler {
         //            HttpRestClientDemo.runWithResponse(payload, document.getId());
         //    log.info("Received response to POST request with code [{}]", response.getCode());
         //    log.info("Raw response:\n{}", response.getBodyText());
-        //} catch (Exception e) {
+        // } catch (Exception e) {
         //    log.error("Error reading response: {}", e.getMessage());
-        //}
+        // }
 
         // Send response
         return channel -> {

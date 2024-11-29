@@ -103,10 +103,10 @@ public class CommandManagerPlugin extends Plugin
 
         // JobSchedulerExtension stuff
         CommandManagerJobRunner.getInstance()
-            .setThreadPool(threadPool)
-            .setClient(client)
-            .setClusterService(clusterService)
-            .setEnvironment(environment);
+                .setThreadPool(threadPool)
+                .setClient(client)
+                .setClusterService(clusterService)
+                .setEnvironment(environment);
 
         scheduleCommandJob(client, clusterService, threadPool);
 
@@ -115,35 +115,33 @@ public class CommandManagerPlugin extends Plugin
 
     /**
      * Indexes a document into the jobs index, so that JobScheduler plugin can run it
+     *
      * @param client: The cluster client, used for indexing
-     * @param clusterService: Provides the addListener method. We use it to determine if this is a new cluster.
+     * @param clusterService: Provides the addListener method. We use it to determine if this is a
+     *     new cluster.
      * @param threadPool: Used by jobDocument to create the document in a thread.
      */
     private void scheduleCommandJob(
-        Client client,
-        ClusterService clusterService,
-        ThreadPool threadPool
-    ) {
+            Client client, ClusterService clusterService, ThreadPool threadPool) {
         clusterService.addListener(
-            event -> {
-                if (event.localNodeClusterManager() && event.isNewCluster()) {
-                    jobDocument = JobDocument.getInstance();
-                    CompletableFuture<IndexResponse> indexResponseCompletableFuture =
-                        jobDocument.create(
-                            client,
-                            threadPool,
-                            UUIDs.base64UUID(),
-                            getJobType(),
-                            JOB_PERIOD_MINUTES);
-                    indexResponseCompletableFuture.thenAccept(
-                        indexResponse -> {
-                            log.info(
-                                "Scheduled task successfully, response: {}",
-                                indexResponse.getResult().toString());
-                        });
-                }
-            }
-        );
+                event -> {
+                    if (event.localNodeClusterManager() && event.isNewCluster()) {
+                        jobDocument = JobDocument.getInstance();
+                        CompletableFuture<IndexResponse> indexResponseCompletableFuture =
+                                jobDocument.create(
+                                        client,
+                                        threadPool,
+                                        UUIDs.base64UUID(),
+                                        getJobType(),
+                                        JOB_PERIOD_MINUTES);
+                        indexResponseCompletableFuture.thenAccept(
+                                indexResponse -> {
+                                    log.info(
+                                            "Scheduled task successfully, response: {}",
+                                            indexResponse.getResult().toString());
+                                });
+                    }
+                });
     }
 
     @Override
@@ -229,7 +227,9 @@ public class CommandManagerPlugin extends Plugin
     }
 
     /**
-     * Returns the proper Instant object with milliseconds from the Unix epoch when the current token actually holds a value.
+     * Returns the proper Instant object with milliseconds from the Unix epoch when the current
+     * token actually holds a value.
+     *
      * @param parser: The parser as provided by JobScheduler
      */
     private Instant parseInstantValue(XContentParser parser) throws IOException {

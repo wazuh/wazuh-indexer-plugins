@@ -21,7 +21,8 @@ import org.opensearch.threadpool.ThreadPool;
 import com.wazuh.commandmanager.CommandManagerPlugin;
 
 /**
- * Implements the ScheduledJobRunner interface, which exposes the runJob() method, which executes the job's logic in its own thread.
+ * Implements the ScheduledJobRunner interface, which exposes the runJob() method, which executes
+ * the job's logic in its own thread.
  */
 public class CommandManagerJobRunner implements ScheduledJobRunner {
 
@@ -52,22 +53,22 @@ public class CommandManagerJobRunner implements ScheduledJobRunner {
     }
 
     private boolean commandManagerIndexExists() {
-        return this.clusterService.state().routingTable().hasIndex(CommandManagerPlugin.COMMAND_MANAGER_INDEX_NAME);
+        return this.clusterService
+                .state()
+                .routingTable()
+                .hasIndex(CommandManagerPlugin.COMMAND_MANAGER_INDEX_NAME);
     }
 
     @Override
     public void runJob(ScheduledJobParameter jobParameter, JobExecutionContext context) {
         if (!commandManagerIndexExists()) {
             log.info(
-                "{} index not yet created, not running command manager jobs",
-                CommandManagerPlugin.COMMAND_MANAGER_INDEX_NAME);
+                    "{} index not yet created, not running command manager jobs",
+                    CommandManagerPlugin.COMMAND_MANAGER_INDEX_NAME);
             return;
         }
         SearchThread searchThread = new SearchThread(this.client, this.environment);
-        threadPool.generic()
-            .submit(
-                searchThread
-            );
+        threadPool.generic().submit(searchThread);
     }
 
     public CommandManagerJobRunner setClusterService(ClusterService clusterService) {
