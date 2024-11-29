@@ -6,15 +6,27 @@
  * this file be licensed under the Apache-2.0 license or a
  * compatible open source license.
  */
+
 plugins { id "com.diffplug.spotless" version "6.25.0" }
+
 repositories { mavenCentral() }
 
 apply plugin: 'java'
-apply from: 'gradle/formatting.gradle'
+apply plugin: 'idea'
+apply plugin: 'eclipse'
+apply from: '../gradle/formatting.gradle'
+
+def projectPath = 'com.wazuh'
+
+allprojects {
+    group = "${projectPath}"
+    targetCompatibility = JavaVersion.VERSION_11
+    sourceCompatibility = JavaVersion.VERSION_11
+}
 
 task installLocalGitHook(type: Copy){
-    from new File(rootProject.rootDir, 'scripts/pre-commit')
-    into { new File(rootProject.rootDir, '.git/hooks')}
+    from new File(rootProject.rootDir, '../scripts/pre-commit')
+    into { new File(rootProject.rootDir, '../.git/hooks')}
     fileMode 0775
 }
 

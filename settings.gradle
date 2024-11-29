@@ -7,8 +7,32 @@
 
 rootProject.name = "wazuh-indexer-plugins"
 
-include(":setup")
-project(":setup").projectDir = "plugins/setup/" as File
+List projects = [
+    'setup-plugin',
+    'command-manager-plugin'
+]
 
-include(":command-manager")
-project(":command-manager").projectDir = "plugins/command-manager/" as File
+/**
+ * Iterates over sub directories, looking for build.gradle, and adds a project if found
+ * for that dir with the given path prefix. Note that this requires each level
+ * of the dir hierarchy to have a build.gradle. Otherwise we would have to iterate
+ * all files/directories in the source tree to find all projects.
+ */
+void addSubProjects(String path, File dir) {
+  if (dir.isDirectory() == false) return;
+  if (dir.name == 'buildSrc') return;
+  if (new File(dir, 'build.gradle').exists() == false) return;
+  if (findProject(dir) != null) return;
+
+  final String projectName = "${path}:${dir.name}"
+  include projectName
+  if (path.isEmpty() || path.startsWith(':example-plugins')) {
+    project(projectName).projectDir = dir
+  }
+  for (File subdir : dir.listFiles()) {
+    addSubProjects(projectName, subdir)
+  }
+}
+
+addSubProjects('', new File(rootProject.projectDir, 'plugins'))
+include projects.toArray(new String[0])
