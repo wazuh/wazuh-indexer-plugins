@@ -106,17 +106,17 @@ public class RestPostCommandAction extends BaseRestHandler {
 
         // Commands delivery to the Management API.
         // Note: needs to be decoupled from the Rest handler (job scheduler task).
-        try {
-            String payload =
-                    document.toXContent(XContentFactory.jsonBuilder(), ToXContent.EMPTY_PARAMS)
-                            .toString();
-            SimpleHttpResponse response =
-                    HttpRestClientDemo.runWithResponse(payload, document.getId());
-            log.info("Received response to POST request with code [{}]", response.getCode());
-            log.info("Raw response:\n{}", response.getBodyText());
-        } catch (Exception e) {
-            log.error("Error reading response: {}", e.getMessage());
-        }
+        //try {
+        //    String payload =
+        //            document.toXContent(XContentFactory.jsonBuilder(), ToXContent.EMPTY_PARAMS)
+        //                    .toString();
+        //    SimpleHttpResponse response =
+        //            HttpRestClientDemo.runWithResponse(payload, document.getId());
+        //    log.info("Received response to POST request with code [{}]", response.getCode());
+        //    log.info("Raw response:\n{}", response.getBodyText());
+        //} catch (Exception e) {
+        //    log.error("Error reading response: {}", e.getMessage());
+        //}
 
         // Send response
         return channel -> {

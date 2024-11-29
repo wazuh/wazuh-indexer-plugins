@@ -37,8 +37,7 @@ import org.opensearch.search.sort.SortOrder;
 import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
-import java.util.Map;
-import java.util.Objects;
+import java.util.*;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
@@ -88,44 +87,20 @@ public class SearchThread implements Runnable {
     }
 
     /**
-     * Gets the last search result from a page
-     * @param searchResponse: The search response page
-     * @return the last SearchHit of a search page
-     */
-    public SearchHit getLastHit(SearchResponse searchResponse) {
-        try {
-            int resultsIndex = searchResponse.getHits().getHits().length - 1;
-            if (resultsIndex > 0) {
-                return searchResponse
-                    .getHits()
-                    .getHits()[resultsIndex];
-            }
-            else {
-                return null;
-            }
-        } catch (Exception e) {
-            log.error("Could not get the page's hits: {}", e.getMessage());
-            // Return null in order for getSearchAfter() to know that
-            // there are no more search results
-            return null;
-        }
-    }
-
-    /**
      * Iterates over search results, updating their status field and submitting them to the destination
      * @param searchResponse: The search results page
-     * @throws IllegalStateException: Rethrown from updateStatusField()
+     * @throws IllegalStateException: Rethrown from setSentStatus()
      */
     public void handlePage(SearchResponse searchResponse) throws IllegalStateException {
         SearchHits searchHits = searchResponse.getHits();
         for (SearchHit hit : searchHits) {
-            setSentStatus(hit);
             deliverOrders(hit);
+            setSentStatus(hit);
         }
     }
 
     /**
-     * Send the actual command order over HTTP
+     * Send the command order over HTTP
      * @param hit: The command order
      */
     private void deliverOrders(SearchHit hit) {
@@ -172,8 +147,8 @@ public class SearchThread implements Runnable {
      * @throws IllegalStateException: Rethrown from actionGet()
      */
     public SearchResponse pitQuery(
-        @NonNull PointInTimeBuilder pointInTimeBuilder,
-        @Nullable Object[] searchAfter
+        PointInTimeBuilder pointInTimeBuilder,
+        Object[] searchAfter
     ) throws IllegalStateException {
         SearchRequest searchRequest = new SearchRequest(CommandManagerPlugin.COMMAND_MANAGER_INDEX_NAME);
         TermQueryBuilder termQueryBuilder =
@@ -190,7 +165,7 @@ public class SearchThread implements Runnable {
                 .sort(SearchThread.COMMAND_ORDERID_FIELD, SortOrder.ASC)
                 .sort(SearchThread.COMMAND_TIMEOUT_FIELD, SortOrder.ASC);
         }
-        if (searchAfter != null) {
+        if (searchAfter.length > 0) {
             this.searchSourceBuilder.searchAfter(searchAfter);
         }
         searchRequest.source(this.searchSourceBuilder);
@@ -205,10 +180,9 @@ public class SearchThread implements Runnable {
         PointInTimeBuilder pointInTimeBuilder = buildPit();
         try {
             do {
-                assert pointInTimeBuilder != null;
                 this.currentPage = pitQuery(
                     pointInTimeBuilder,
-                    getSearchAfter()
+                    getSearchAfter(this.currentPage).orElse(new Object[0])
                 );
                 if (firstPage) {
                     consumableHits = totalHits();
@@ -243,12 +217,28 @@ public class SearchThread implements Runnable {
         }
     }
 
-    private Object[] getSearchAfter() {
-        if (getLastHit(this.currentPage) != null) {
-            return getLastHit(this.currentPage).getSortValues();
+    /**
+     * Gets the sort values of the last hit of a page.
+     * It is used by a PIT search to get the next page of results.
+     * @param searchResponse: The current page
+     * @return The values of the sort fields of the last hit of a page whenever present.
+     * Otherwise, an empty Optional.
+     */
+    private Optional<Object[]> getSearchAfter(SearchResponse searchResponse) {
+        if ( searchResponse == null ) {
+            log.warn("Command search response is null, not getting searchAfter values");
+            return Optional.empty();
         }
-        else {
-            return null;
+        try {
+            List<SearchHit> hits = Arrays.asList(searchResponse.getHits().getHits());
+            if (hits.isEmpty()) {
+                log.warn("Empty hits page, not getting searchAfter values");
+                return Optional.empty();
+            }
+            return Optional.ofNullable(hits.get(hits.size() - 1).getSortValues());
+        } catch (NullPointerException | NoSuchElementException e) {
+            log.error("Could not get the page's searchAfter values: {}", e.getMessage());
+            return Optional.empty();
         }
     }
 
