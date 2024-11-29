@@ -67,7 +67,7 @@ public class Command implements ToXContentObject {
      * @return the timeout value in milliseconds.
      */
     public Integer getTimeout() {
-        return timeout;
+        return this.timeout;
     }
 
     /**

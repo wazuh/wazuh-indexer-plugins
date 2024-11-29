@@ -18,6 +18,8 @@ import java.util.List;
 
 /** Command's target fields. */
 public class Document implements ToXContentObject {
+    public static final String TIMESTAMP = "@timestamp";
+    public static final String DELIVERY_TIMESTAMP = "delivery_timestamp";
     private final Agent agent;
     private final Command command;
     private final String id;
@@ -84,8 +86,8 @@ public class Document implements ToXContentObject {
         builder.startObject();
         this.agent.toXContent(builder, ToXContentObject.EMPTY_PARAMS);
         this.command.toXContent(builder, ToXContentObject.EMPTY_PARAMS);
-        builder.field("@timestamp", this.timestamp);
-        builder.field("delivery_timestamp", this.deliveryTimestamp);
+        builder.field(TIMESTAMP, this.timestamp);
+        builder.field(DELIVERY_TIMESTAMP, this.deliveryTimestamp);
         return builder.endObject();
     }
 
