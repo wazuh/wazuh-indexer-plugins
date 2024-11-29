@@ -1,30 +1,21 @@
 import org.opensearch.gradle.test.RestIntegTestTask
 
-buildscript {
-    ext {
-        opensearch_version = System.getProperty("opensearch.version", "2.18.0-SNAPSHOT")
-        wazuh_version = System.getProperty("version", "5.0.0")
-        revision = System.getProperty("revision", "0")
-    }
-
-    repositories {
-        mavenLocal()
-        maven { url "https://aws.oss.sonatype.org/content/repositories/snapshots" }
-        mavenCentral()
-        maven { url "https://plugins.gradle.org/m2/" }
-    }
-
-    dependencies {
-        classpath "org.opensearch.gradle:build-tools:${opensearch_version}"
-    }
+repositories {
+    mavenLocal()
+    maven { url "https://aws.oss.sonatype.org/content/repositories/snapshots" }
+    mavenCentral()
+    maven { url "https://plugins.gradle.org/m2/" }
+}
+allprojects {
+    group = "${projectPath}"
+    version = "${wazuh_version}" + ".${revision}"
 }
 
-apply plugin: 'java'
-apply plugin: 'idea'
-apply plugin: 'eclipse'
-apply plugin: 'opensearch.opensearchplugin'
-apply plugin: 'opensearch.yaml-rest-test'
-apply plugin: 'opensearch.pluginzip'
+tasks.withType(JavaCompile) {
+    sourceCompatibility = JavaVersion.VERSION_11
+    targetCompatibility = JavaVersion.VERSION_11
+}
+
 
 def pluginName = 'wazuh-indexer-setup'
 def pluginDescription = 'Wazuh Indexer setup plugin'
@@ -32,9 +23,14 @@ def projectPath = 'com.wazuh'
 def pathToPlugin = 'setup'
 def pluginClassName = 'SetupPlugin'
 
+apply plugin: 'java'
+apply plugin: 'opensearch.opensearchplugin'
+apply plugin: 'opensearch.pluginzip'
+apply plugin: 'opensearch.testclusters'
+
 publishing {
     publications {
-        pluginZip(MavenPublication) { publication ->
+        pluginZip(MavenPublication) {
             pom {
                 name = pluginName
                 description = pluginDescription
@@ -58,29 +54,19 @@ publishing {
 allprojects {
     group = "${projectPath}"
     version = "${wazuh_version}" + ".${revision}"
-    targetCompatibility = JavaVersion.VERSION_11
+}
+
+tasks.withType(JavaCompile) {
     sourceCompatibility = JavaVersion.VERSION_11
+    targetCompatibility = JavaVersion.VERSION_11
 }
 
 opensearchplugin {
-    name pluginName
-    description pluginDescription
-    classname "${projectPath}.${pathToPlugin}.${pluginClassName}"
-    licenseFile rootProject.file('LICENSE.txt')
-    noticeFile rootProject.file('NOTICE.txt')
-}
-
-// This requires an additional Jar not published as part of build-tools
-loggerUsageCheck.enabled = false
-
-// No need to validate pom, as we do not upload to maven/sonatype
-validateNebulaPom.enabled = false
-
-repositories {
-    mavenLocal()
-    maven { url "https://aws.oss.sonatype.org/content/repositories/snapshots" }
-    mavenCentral()
-    maven { url "https://plugins.gradle.org/m2/" }
+    name = pluginName
+    description = pluginDescription
+    classname = "${projectPath}.${pathToPlugin}.${pluginClassName}"
+    licenseFile = rootProject.file('LICENSE.txt')
+    noticeFile = rootProject.file('NOTICE.txt')
 }
 
 test {
@@ -95,16 +81,17 @@ task integTest(type: RestIntegTestTask) {
 tasks.named("check").configure { dependsOn(integTest) }
 
 integTest {
-    // The --debug-jvm command-line option makes the cluster debuggable; this makes the tests debuggable
     if (System.getProperty("test.debug") != null) {
         jvmArgs '-agentlib:jdwp=transport=dt_socket,server=y,suspend=y,address=*:5005'
     }
 }
 
+Zip bundle = (Zip) project.getTasks().getByName("bundlePlugin")
+integTest.dependsOn(bundle)
+integTest.getClusters().forEach { c -> c.plugin(project.getObjects().fileProperty().value(bundle.getArchiveFile())) }
+
 testClusters.integTest {
     testDistribution = "INTEG_TEST"
-
-    // This installs our plugin into the testClusters
     plugin(project.tasks.bundlePlugin.archiveFile)
 }
 
@@ -118,8 +105,6 @@ task updateVersion {
     doLast {
         ext.newVersion = System.getProperty('newVersion')
         println "Setting version to ${newVersion}."
-        // String tokenization to support -SNAPSHOT
         ant.replaceregexp(file: 'build.gradle', match: '"opensearch.version", "\\d.*"', replace: '"opensearch.version", "' + newVersion.tokenize('-')[0] + '-SNAPSHOT"', flags: 'g', byline: true)
     }
 }
-
