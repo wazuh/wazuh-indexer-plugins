@@ -89,25 +89,6 @@ public class SearchThread implements Runnable {
         }
     }
 
-    private static void deliverOrders(SearchHit hit) {
-        try (XContentBuilder xContentBuilder = XContentFactory.jsonBuilder()) {
-            hit.toXContent(xContentBuilder, ToXContent.EMPTY_PARAMS);
-            HttpRestClientDemo.run("https://httpbin.org/post", xContentBuilder.toString());
-            PluginSettings settings = PluginSettings.getInstance();
-            HttpRestClient.getInstance().post(
-                    URI.create(settings.getUri()),
-                    xContentBuilder.toString(),
-                    hit.getId(),
-                    new AuthCredentials(
-                            settings.getAuthUsername(),
-                            settings.getAuthPassword()
-                    ).getAuthAsHeaders()
-            );
-        } catch (IOException e) {
-            log.error("Error parsing hit contents: {}", e.getMessage());
-        }
-    }
-
     /**
      * Iterates over search results, updating their status field and submitting them to the destination
      * @param searchResponse: The search results page
@@ -216,12 +197,6 @@ public class SearchThread implements Runnable {
                     handlePage(this.currentPage);
                     consumableHits -= getPageLength();
                 }
-            } catch (ArrayIndexOutOfBoundsException e) {
-                log.error("ArrayIndexOutOfBoundsException retrieving page: {}", e.getMessage());
-            } catch (IllegalStateException e) {
-                log.error("IllegalStateException retrieving page: {}", e.getMessage());
-            } catch (Exception e) {
-                log.error("Generic exception retrieving page: {}", e.getMessage());
             }
             while (consumableHits > 0);
         }  catch (ArrayIndexOutOfBoundsException e) {
