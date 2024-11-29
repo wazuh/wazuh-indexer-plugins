@@ -110,7 +110,7 @@ public class SearchThread implements Runnable {
      */
     private void deliverOrders(SearchHit hit) {
         try (XContentBuilder xContentBuilder = XContentFactory.jsonBuilder()) {
-            PluginSettings settings = PluginSettings.getInstance(this.environment.settings());
+            PluginSettings settings = PluginSettings.getInstance();
             hit.toXContent(xContentBuilder, ToXContent.EMPTY_PARAMS);
             HttpRestClient.getInstance()
                     .post(

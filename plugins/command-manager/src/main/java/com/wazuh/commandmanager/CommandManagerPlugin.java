@@ -100,6 +100,7 @@ public class CommandManagerPlugin extends Plugin
             IndexNameExpressionResolver indexNameExpressionResolver,
             Supplier<RepositoriesService> repositoriesServiceSupplier) {
         this.commandIndex = new CommandIndex(client, clusterService, threadPool);
+        PluginSettings.getInstance(environment.settings());
 
         // JobSchedulerExtension stuff
         CommandManagerJobRunner.getInstance()
