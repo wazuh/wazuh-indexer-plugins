@@ -277,6 +277,28 @@
           }
         }
       },
+      "host": {
+        "properties": {
+          "network": {
+            "properties": {
+              "egress": {
+                "properties": {
+                  "queue": {
+                    "type": "long"
+                  }
+                }
+              },
+              "ingress": {
+                "properties": {
+                  "queue": {
+                    "type": "long"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
       "network": {
         "properties": {
           "protocol": {
