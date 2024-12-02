@@ -84,6 +84,7 @@ public class CommandIndex implements IndexingOperationListener {
                             RestStatus restStatus = client.index(request).actionGet().status();
                             future.complete(restStatus);
                         } catch (Exception e) {
+                            log.error("Error indexing command with id [{}] due to {}", document.getId(), e.getMessage());
                             future.completeExceptionally(e);
                         }
                     });
@@ -130,6 +131,7 @@ public class CommandIndex implements IndexingOperationListener {
                         RestStatus restStatus = client.bulk(bulkRequest).actionGet().status();
                         future.complete(restStatus);
                     } catch (Exception e) {
+                        log.error("Error indexing commands with bulk due to {}", e.getMessage());
                         future.completeExceptionally(e);
                     }
                 });
