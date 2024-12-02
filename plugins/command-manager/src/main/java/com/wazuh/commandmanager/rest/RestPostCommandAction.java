@@ -31,6 +31,7 @@ import com.wazuh.commandmanager.index.CommandIndex;
 import com.wazuh.commandmanager.model.Agent;
 import com.wazuh.commandmanager.model.Command;
 import com.wazuh.commandmanager.model.Document;
+import com.wazuh.commandmanager.model.Documents;
 import com.wazuh.commandmanager.utils.httpclient.HttpRestClientDemo;
 
 import static org.opensearch.core.xcontent.XContentParserUtils.ensureExpectedToken;
@@ -98,30 +99,30 @@ public class RestPostCommandAction extends BaseRestHandler {
 
         // Get request details
         if (!request.hasContent()) {
-            // Manejar el caso cuando no hay contenido
-            log.error("Body content is required");
-            return null;
+            // Bad request if body doesn't exist
+            return channel -> {
+                channel.sendResponse(
+                        new BytesRestResponse(RestStatus.BAD_REQUEST, "Body content is required"));
+            };
         }
+
         XContentParser parser = request.contentParser();
         List<Command> commands = new ArrayList<>();
         ensureExpectedToken(XContentParser.Token.START_OBJECT, parser.nextToken(), parser);
         parser.nextToken();
         if (parser.nextToken() == XContentParser.Token.START_ARRAY) {
-            while (parser.nextToken() != XContentParser.Token.END_ARRAY) {
-                Command command = Command.parse(parser);
-                commands.add(command);
-            }
+            commands = Command.parseToArray(parser);
         } else {
             log.error("Token does not match {}", parser.currentToken());
         }
 
-        ArrayList<Document> documents = new ArrayList<>();
+        Documents documents = new Documents();
         for (Command command : commands) {
             Document document =
                     new Document(
                             new Agent(List.of("groups000")), // TODO read agent from .agents index
                             command);
-            documents.add(document);
+            documents.addDocument(document);
 
             // Commands delivery to the Management API.
             // Note: needs to be decoupled from the Rest handler (job scheduler task).
@@ -141,21 +142,11 @@ public class RestPostCommandAction extends BaseRestHandler {
         // Send response
         return channel -> {
             this.commandIndex
-                    .asyncBulkCreate(documents)
+                    .asyncBulkCreate(documents.getDocuments())
                     .thenAccept(
                             restStatus -> {
                                 try (XContentBuilder builder = channel.newBuilder()) {
-                                    builder.startObject();
-                                    builder.field(
-                                            "_index",
-                                            CommandManagerPlugin.COMMAND_MANAGER_INDEX_NAME);
-                                    builder.startArray("_documents");
-                                    for (Document document : documents) {
-                                        builder.startObject();
-                                        builder.field("_id", document.getId());
-                                        builder.endObject();
-                                    }
-                                    builder.endArray();
+                                    documents.toXContent(builder, ToXContent.EMPTY_PARAMS);
                                     builder.field("result", restStatus.name());
                                     builder.endObject();
                                     channel.sendResponse(

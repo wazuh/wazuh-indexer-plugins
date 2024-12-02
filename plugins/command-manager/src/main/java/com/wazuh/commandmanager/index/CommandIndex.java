@@ -76,15 +76,7 @@ public class CommandIndex implements IndexingOperationListener {
 
         log.info("Indexing command with id [{}]", document.getId());
         try {
-            BulkRequest bulkRequest = new BulkRequest();
-            IndexRequest request =
-                    new IndexRequest()
-                            .index(CommandManagerPlugin.COMMAND_MANAGER_INDEX_NAME)
-                            .source(
-                                    document.toXContent(
-                                            XContentFactory.jsonBuilder(), ToXContent.EMPTY_PARAMS))
-                            .id(document.getId())
-                            .create(true);
+            IndexRequest request = createIndexRequest(document);
             executor.submit(
                     () -> {
                         try (ThreadContext.StoredContext ignored =
@@ -122,18 +114,12 @@ public class CommandIndex implements IndexingOperationListener {
         for (Document document : documents) {
             log.info("Indexing command with id [{}]", document.getId());
             try {
-                IndexRequest request =
-                        new IndexRequest()
-                                .index(CommandManagerPlugin.COMMAND_MANAGER_INDEX_NAME)
-                                .source(
-                                        document.toXContent(
-                                                XContentFactory.jsonBuilder(),
-                                                ToXContent.EMPTY_PARAMS))
-                                .id(document.getId())
-                                .create(true);
-                bulkRequest.add(request);
+                bulkRequest.add(createIndexRequest(document));
             } catch (IOException e) {
-                log.error("Error indexing command with id [{}] due to {}", document.getId(), e);
+                log.error(
+                        "Error creating IndexRequest with document id [{}] due to {}",
+                        document.getId(),
+                        e);
             }
         }
 
@@ -198,5 +184,24 @@ public class CommandIndex implements IndexingOperationListener {
         } catch (IOException e) {
             log.error("Error reading index template [{}] from filesystem", templateName);
         }
+    }
+
+    /**
+     * Create an IndexRequest object from a Document object.
+     *
+     * @param document the document to create the IndexRequest for COMMAND_MANAGER_INDEX
+     * @return an IndexRequest object
+     * @throws IOException thrown by XContentFactory.jsonBuilder()
+     */
+    private IndexRequest createIndexRequest(Document document) throws IOException {
+        IndexRequest request =
+                new IndexRequest()
+                        .index(CommandManagerPlugin.COMMAND_MANAGER_INDEX_NAME)
+                        .source(
+                                document.toXContent(
+                                        XContentFactory.jsonBuilder(), ToXContent.EMPTY_PARAMS))
+                        .id(document.getId())
+                        .create(true);
+        return request;
     }
 }
