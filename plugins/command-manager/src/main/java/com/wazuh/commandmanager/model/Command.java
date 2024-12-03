@@ -63,6 +63,15 @@ public class Command implements ToXContentObject {
     }
 
     /**
+     * Retrieves the timeout value for this command.
+     *
+     * @return the timeout value in milliseconds.
+     */
+    public Integer getTimeout() {
+        return this.timeout;
+    }
+
+    /**
      * Parses the request's payload into the Command model.
      *
      * @param parser XContentParser from the Rest Request

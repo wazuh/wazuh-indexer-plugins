@@ -14,8 +14,6 @@ import org.opensearch.core.xcontent.XContentBuilder;
 import java.io.IOException;
 import java.util.ArrayList;
 
-import com.wazuh.commandmanager.CommandManagerPlugin;
-
 public class Documents implements ToXContentObject {
     private ArrayList<Document> documents;
 
@@ -59,17 +57,22 @@ public class Documents implements ToXContentObject {
         this.documents.add(document);
     }
 
+    /**
+     * Fit this object into a XContentBuilder parser, preparing it for the reply of POST /commands.
+     *
+     * @param builder XContentBuilder builder
+     * @param params ToXContent.EMPTY_PARAMS
+     * @return XContentBuilder builder with the representation of this object.
+     * @throws IOException parsing error.
+     */
     @Override
     public XContentBuilder toXContent(XContentBuilder builder, Params params) throws IOException {
-        builder.startObject();
-        builder.field("_index", CommandManagerPlugin.COMMAND_MANAGER_INDEX_NAME);
         builder.startArray("_documents");
         for (Document document : this.documents) {
             builder.startObject();
             builder.field("_id", document.getId());
             builder.endObject();
         }
-        builder.endArray();
-        return builder;
+        return builder.endArray();
     }
 }
