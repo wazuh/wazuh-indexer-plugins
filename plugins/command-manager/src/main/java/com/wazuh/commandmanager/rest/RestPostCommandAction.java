@@ -8,11 +8,9 @@
  */
 package com.wazuh.commandmanager.rest;
 
-import org.apache.hc.client5.http.async.methods.SimpleHttpResponse;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.opensearch.client.node.NodeClient;
-import org.opensearch.common.xcontent.XContentFactory;
 import org.opensearch.core.rest.RestStatus;
 import org.opensearch.core.xcontent.ToXContent;
 import org.opensearch.core.xcontent.XContentBuilder;
@@ -25,6 +23,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
+import java.util.concurrent.CompletableFuture;
 
 import com.wazuh.commandmanager.CommandManagerPlugin;
 import com.wazuh.commandmanager.index.CommandIndex;
@@ -32,7 +31,6 @@ import com.wazuh.commandmanager.model.Agent;
 import com.wazuh.commandmanager.model.Command;
 import com.wazuh.commandmanager.model.Document;
 import com.wazuh.commandmanager.model.Documents;
-import com.wazuh.commandmanager.utils.httpclient.HttpRestClientDemo;
 
 import static org.opensearch.core.xcontent.XContentParserUtils.ensureExpectedToken;
 import static org.opensearch.rest.RestRequest.Method.POST;
@@ -97,7 +95,9 @@ public class RestPostCommandAction extends BaseRestHandler {
                 request.getRequestId(),
                 request.header("Host"));
 
-        // Get request details
+        /// Request validation
+        /// ==================
+        /// Fail fast.
         if (!request.hasContent()) {
             // Bad request if body doesn't exist
             return channel -> {
@@ -106,11 +106,14 @@ public class RestPostCommandAction extends BaseRestHandler {
             };
         }
 
+        /// Request parsing
+        /// ===============
+        /// Retrieves and generates an array list of commands.
         XContentParser parser = request.contentParser();
         List<Command> commands = new ArrayList<>();
         ensureExpectedToken(XContentParser.Token.START_OBJECT, parser.nextToken(), parser);
         // The array of commands is inside the "commands" JSON object.
-        // This line moves the parser pointer into this object.
+        // This line moves the parser pointer to this object.
         parser.nextToken();
         if (parser.nextToken() == XContentParser.Token.START_ARRAY) {
             commands = Command.parseToArray(parser);
@@ -118,6 +121,13 @@ public class RestPostCommandAction extends BaseRestHandler {
             log.error("Token does not match {}", parser.currentToken());
         }
 
+        /// Commands expansion
+        /// ==================
+        /// Transforms the array of commands to orders.
+        /// While commands can be targeted to groups of agents, orders are targeted to individual
+        // agents.
+        /// Given a group of agents A with N agents, a total of N orders are generated. One for each
+        // agent.
         Documents documents = new Documents();
         for (Command command : commands) {
             Document document =
@@ -125,30 +135,26 @@ public class RestPostCommandAction extends BaseRestHandler {
                             new Agent(List.of("groups000")), // TODO read agent from .agents index
                             command);
             documents.addDocument(document);
-
-            // Commands delivery to the Management API.
-            // Note: needs to be decoupled from the Rest handler (job scheduler task).
-            try {
-                String payload =
-                        documents
-                                .toXContent(XContentFactory.jsonBuilder(), ToXContent.EMPTY_PARAMS)
-                                .toString();
-                SimpleHttpResponse response =
-                        HttpRestClientDemo.runWithResponse(payload, document.getId());
-                log.info("Received response to POST request with code [{}]", response.getCode());
-                log.info("Raw response:\n{}", response.getBodyText());
-            } catch (Exception e) {
-                log.error("Error reading response: {}", e.getMessage());
-            }
         }
 
-        // Send response
+        /// Orders indexing
+        /// ==================
+        /// The orders are inserted into the index.
+        CompletableFuture<RestStatus> bulkRequestFuture =
+                this.commandIndex.asyncBulkCreate(documents.getDocuments());
+
+        /// Send response
+        /// ==================
+        /// Reply to the request.
         return channel -> {
-            this.commandIndex
-                    .asyncBulkCreate(documents.getDocuments())
+            bulkRequestFuture
                     .thenAccept(
                             restStatus -> {
                                 try (XContentBuilder builder = channel.newBuilder()) {
+                                    builder.startObject();
+                                    builder.field(
+                                            "_index",
+                                            CommandManagerPlugin.COMMAND_MANAGER_INDEX_NAME);
                                     documents.toXContent(builder, ToXContent.EMPTY_PARAMS);
                                     builder.field("result", restStatus.name());
                                     builder.endObject();
