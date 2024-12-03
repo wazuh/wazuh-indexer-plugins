@@ -8,6 +8,7 @@
  */
 package com.wazuh.commandmanager.jobscheduler;
 
+import com.wazuh.commandmanager.utils.httpclient.AuthHttpRestClient;
 import org.apache.hc.client5.http.async.methods.SimpleHttpResponse;
 import org.apache.hc.core5.net.URIBuilder;
 import org.apache.logging.log4j.LogManager;
@@ -45,7 +46,6 @@ import com.wazuh.commandmanager.CommandManagerPlugin;
 import com.wazuh.commandmanager.model.Command;
 import com.wazuh.commandmanager.model.Status;
 import com.wazuh.commandmanager.settings.PluginSettings;
-import com.wazuh.commandmanager.utils.httpclient.HttpRestClient;
 
 /**
  * The class in charge of searching and managing commands in {@link
@@ -59,14 +59,13 @@ public class SearchThread implements Runnable {
             Command.COMMAND + "." + Command.ORDER_ID + ".keyword";
     public static final String COMMAND_TIMEOUT_FIELD = Command.COMMAND + "." + Command.TIMEOUT;
     private static final Logger log = LogManager.getLogger(SearchThread.class);
+    public static final String ORDERS_OBJECT = "/orders";
     private final SearchSourceBuilder searchSourceBuilder = new SearchSourceBuilder();
     private final Client client;
-    private final Environment environment;
     private SearchResponse currentPage = null;
 
-    public SearchThread(Client client, Environment environment) {
+    public SearchThread(Client client) {
         this.client = client;
-        this.environment = environment;
     }
 
     /**
@@ -78,16 +77,16 @@ public class SearchThread implements Runnable {
      * @param <T> The type of the nested object.
      * @return the nested object cast into the proper type.
      */
-    public static <T> T getNestedValue(Map<String, Object> map, String key, Class<T> type) {
+    public static <T> T getNestedObject(Map<String, Object> map, String key, Class<T> type) {
         Object value = map.get(key);
         if (type.isInstance(value)) {
             return type.cast(value);
         } else {
             throw new ClassCastException(
-                    "Expected "
-                            + type
-                            + " but found "
-                            + (value != null ? value.getClass() : "null"));
+                "Expected "
+                    + type
+                    + " but found "
+                    + (value != null ? value.getClass() : "null"));
         }
     }
 
@@ -109,19 +108,30 @@ public class SearchThread implements Runnable {
     /**
      * Send the command order over HTTP
      *
-     * @param hit: The command order
+     * @param hit The command order
      */
+    @SuppressWarnings("unchecked")
     private SimpleHttpResponse deliverOrders(SearchHit hit) {
         try (XContentBuilder xContentBuilder = XContentFactory.jsonBuilder()) {
             PluginSettings settings = PluginSettings.getInstance();
-            //hit.getSourceAsMap().toXContent(xContentBuilder, ToXContent.EMPTY_PARAMS);
-            xContentBuilder.map(hit.getSourceAsMap());
-            URI uri = new URIBuilder(settings.getUri()).build();
+            String orders = xContentBuilder.map(
+                Collections.singletonMap(
+                    "orders",
+                    new Object[]{
+                        getNestedObject(
+                            hit.getSourceAsMap(),
+                            Command.COMMAND,
+                            Map.class
+                        )
+                    }
+                )
+            ).toString();
+            URI uri = new URIBuilder(settings.getUri() + SearchThread.ORDERS_OBJECT).build();
             return AccessController.doPrivileged(
                 (PrivilegedAction<SimpleHttpResponse>)
-                    () -> HttpRestClient.getInstance().post(
+                    () -> AuthHttpRestClient.getInstance().post(
                         uri,
-                        xContentBuilder.toString(),
+                        orders,
                         hit.getId())
             );
         } catch (IOException e) {
@@ -143,7 +153,7 @@ public class SearchThread implements Runnable {
     @SuppressWarnings("unchecked")
     private void setSentStatus(SearchHit hit) throws IllegalStateException {
         Map<String, Object> commandMap =
-                getNestedValue(
+                getNestedObject(
                         hit.getSourceAsMap(),
                         CommandManagerPlugin.COMMAND_DOCUMENT_PARENT_OBJECT_NAME,
                         Map.class);
@@ -241,7 +251,7 @@ public class SearchThread implements Runnable {
      * Gets the sort values of the last hit of a page. It is used by a PIT search to get the next
      * page of results.
      *
-     * @param searchResponse: The current page
+     * @param searchResponse The current page
      * @return The values of the sort fields of the last hit of a page whenever present. Otherwise,
      *     an empty Optional.
      */
