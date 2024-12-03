@@ -19,14 +19,17 @@ import org.opensearch.rest.BytesRestResponse;
 import org.opensearch.rest.RestRequest;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
+import java.util.concurrent.CompletableFuture;
 
 import com.wazuh.commandmanager.CommandManagerPlugin;
 import com.wazuh.commandmanager.index.CommandIndex;
 import com.wazuh.commandmanager.model.Agent;
 import com.wazuh.commandmanager.model.Command;
 import com.wazuh.commandmanager.model.Document;
+import com.wazuh.commandmanager.model.Documents;
 
 import static org.opensearch.core.xcontent.XContentParserUtils.ensureExpectedToken;
 import static org.opensearch.rest.RestRequest.Method.POST;
@@ -90,20 +93,60 @@ public class RestPostCommandAction extends BaseRestHandler {
                 request.uri(),
                 request.getRequestId(),
                 request.header("Host"));
-        // Get request details
+
+        /// Request validation
+        /// ==================
+        /// Fail fast.
+        if (!request.hasContent()) {
+            // Bad request if body doesn't exist
+            return channel -> {
+                channel.sendResponse(
+                        new BytesRestResponse(RestStatus.BAD_REQUEST, "Body content is required"));
+            };
+        }
+
+        /// Request parsing
+        /// ===============
+        /// Retrieves and generates an array list of commands.
         XContentParser parser = request.contentParser();
+        List<Command> commands = new ArrayList<>();
         ensureExpectedToken(XContentParser.Token.START_OBJECT, parser.nextToken(), parser);
+        // The array of commands is inside the "commands" JSON object.
+        // This line moves the parser pointer to this object.
+        parser.nextToken();
+        if (parser.nextToken() == XContentParser.Token.START_ARRAY) {
+            commands = Command.parseToArray(parser);
+        } else {
+            log.error("Token does not match {}", parser.currentToken());
+        }
 
-        Command command = Command.parse(parser);
-        Document document =
-                new Document(
-                        new Agent(List.of("groups000")), // TODO read agent from .agents index
-                        command);
+        /// Commands expansion
+        /// ==================
+        /// Transforms the array of commands to orders.
+        /// While commands can be targeted to groups of agents, orders are targeted to individual
+        // agents.
+        /// Given a group of agents A with N agents, a total of N orders are generated. One for each
+        // agent.
+        Documents documents = new Documents();
+        for (Command command : commands) {
+            Document document =
+                    new Document(
+                            new Agent(List.of("groups000")), // TODO read agent from .agents index
+                            command);
+            documents.addDocument(document);
+        }
 
-        // Send response
+        /// Orders indexing
+        /// ==================
+        /// The orders are inserted into the index.
+        CompletableFuture<RestStatus> bulkRequestFuture =
+                this.commandIndex.asyncBulkCreate(documents.getDocuments());
+
+        /// Send response
+        /// ==================
+        /// Reply to the request.
         return channel -> {
-            this.commandIndex
-                    .asyncCreate(document)
+            bulkRequestFuture
                     .thenAccept(
                             restStatus -> {
                                 try (XContentBuilder builder = channel.newBuilder()) {
@@ -111,7 +154,7 @@ public class RestPostCommandAction extends BaseRestHandler {
                                     builder.field(
                                             "_index",
                                             CommandManagerPlugin.COMMAND_MANAGER_INDEX_NAME);
-                                    builder.field("_id", document.getId());
+                                    documents.toXContent(builder, ToXContent.EMPTY_PARAMS);
                                     builder.field("result", restStatus.name());
                                     builder.endObject();
                                     channel.sendResponse(
