@@ -9,11 +9,13 @@
 package com.wazuh.commandmanager.model;
 
 import org.opensearch.common.UUIDs;
+import org.opensearch.common.time.DateUtils;
 import org.opensearch.core.xcontent.ToXContentObject;
 import org.opensearch.core.xcontent.XContentBuilder;
 import org.opensearch.core.xcontent.XContentParser;
 
 import java.io.IOException;
+import java.time.ZonedDateTime;
 import java.util.List;
 
 /** Command's target fields. */
@@ -23,8 +25,8 @@ public class Document implements ToXContentObject {
     private final Agent agent;
     private final Command command;
     private final String id;
-    private final long timestamp;
-    private final long deliveryTimestamp;
+    private final ZonedDateTime timestamp;
+    private final ZonedDateTime deliveryTimestamp;
 
     /**
      * Default constructor
@@ -36,20 +38,8 @@ public class Document implements ToXContentObject {
         this.agent = agent;
         this.command = command;
         this.id = UUIDs.base64UUID();
-        this.timestamp = System.currentTimeMillis();
-        this.deliveryTimestamp = calculateDeliveryTimestamp(this.timestamp, command.getTimeout());
-    }
-
-    /**
-     * Calculates the delivery timestamp by adding a specified timeout to the given timestamp.
-     *
-     * @param timestamp the initial timestamp in milliseconds.
-     * @param timeout the time in seconds to be added to the timestamp.
-     * @return a new timestamp representing the delivery time.
-     */
-    private long calculateDeliveryTimestamp(long timestamp, int timeout) {
-        long timeoutInMillis = timeout * 1000L;
-        return timestamp + timeoutInMillis;
+        this.timestamp = DateUtils.nowWithMillisResolution();
+        this.deliveryTimestamp = timestamp.plusSeconds(command.getTimeout());
     }
 
     /**
