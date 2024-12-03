@@ -9,8 +9,8 @@ paths:
     post:
       tags:
         - "authentication"
-      summary: Add a new command to the queue.
-      description: Add a new command to the queue.
+      summary: Mock of the Wazuh Server M_API authentication endpoint.
+      description: Returns a JWT.
       responses:
         "200":
           description: OK
@@ -18,20 +18,31 @@ paths:
     post:
       tags:
         - "commands"
-      summary: Add a new command to the queue.
-      description: Add a new command to the queue.
+      summary: Add commands.
+      description: Receives and processes an array of commands.
       requestBody:
         required: true
         content:
           "application/json":
             schema:
-              $ref: "#/components/schemas/Command"
+              $ref: "#/components/schemas/Commands"
       responses:
         "200":
           description: OK
+        "400":
+          description: parsing_exception
+        "500":
+          description: Internal server error (boom!)
 
 components:
   schemas:
+    Commands:
+      type: object
+      properties:
+        commands:
+          type: array
+          items:
+            $ref: '#/components/schemas/Command'
     Command:
       type: object
       properties:

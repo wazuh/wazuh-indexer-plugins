@@ -1,37 +1,46 @@
 ---
 "Create command":
-    - do:
-          _plugins._command_manager:
-              body:
-                  source: "Users/Services"
-                  user: "user13"
-                  target: {
-                      id: "target4",
-                      type: "agent"
-                  }
-                  action: {
-                      name: "change_group",
-                      args: [ "/path/to/executable/arg8" ],
-                      version: "v4"
-                  }
-                  timeout: 100
+  - do:
+      _plugins._command_manager:
+        body:
+          commands:
+            [
+              {
+                source: "Users/Services",
+                user: "user13",
+                target: { id: "target4", type: "agent" },
+                action:
+                  {
+                    name: "change_group",
+                    args: ["/path/to/executable/arg8"],
+                    version: "v4",
+                  },
+                timeout: 100,
+              },
 
-    - set: { _id: document_id }
-    - match: { _index: .commands }
+              {
+                source: "Users/Services",
+                user: "user54",
+                target: { id: "target5", type: "agent" },
+                action:
+                  {
+                    name: "stop",
+                    args: ["/path/to/executable/arg7"],
+                    version: "v4",
+                  },
+                timeout: 30,
+              },
+            ]
 
-    - do:
-          get:
-              index: .commands
-              id: $document_id
-    - match: { _source.command.source: "Users/Services" }
-    - match: { _source.command.user: "user13" }
-    - match: { _source.command.target.type: "agent" }
-    - match: { _source.command.target.id: "target4" }
-    - match: { _source.command.action:
-                 {
-                     name: "change_group",
-                     args: [ "/path/to/executable/arg8" ],
-                     version: "v4"
-                 }
-    }
-    - match: { _source.command.timeout: 100 }
+  - match: { _index: .commands }
+  - match: { result: "OK" }
+
+  - do:
+      indices.refresh:
+        index: [.commands]
+
+  - do:
+      count:
+        index: .commands
+
+  - match: { count: 2 }
