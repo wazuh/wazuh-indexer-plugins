@@ -8,6 +8,7 @@
  */
 package com.wazuh.commandmanager.jobscheduler;
 
+import org.apache.hc.client5.http.async.methods.SimpleHttpResponse;
 import org.apache.hc.core5.net.URIBuilder;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -20,7 +21,6 @@ import org.opensearch.client.Client;
 import org.opensearch.common.unit.TimeValue;
 import org.opensearch.common.xcontent.XContentFactory;
 import org.opensearch.core.action.ActionListener;
-import org.opensearch.core.xcontent.ToXContent;
 import org.opensearch.core.xcontent.XContentBuilder;
 import org.opensearch.env.Environment;
 import org.opensearch.index.query.QueryBuilders;
@@ -32,7 +32,10 @@ import org.opensearch.search.builder.SearchSourceBuilder;
 import org.opensearch.search.sort.SortOrder;
 
 import java.io.IOException;
+import java.net.URI;
 import java.net.URISyntaxException;
+import java.security.AccessController;
+import java.security.PrivilegedAction;
 import java.util.*;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.CompletableFuture;
@@ -98,7 +101,7 @@ public class SearchThread implements Runnable {
     public void handlePage(SearchResponse searchResponse) throws IllegalStateException {
         SearchHits searchHits = searchResponse.getHits();
         for (SearchHit hit : searchHits) {
-            deliverOrders(hit);
+            SimpleHttpResponse response = deliverOrders(hit);
             setSentStatus(hit);
         }
     }
@@ -108,20 +111,25 @@ public class SearchThread implements Runnable {
      *
      * @param hit: The command order
      */
-    private void deliverOrders(SearchHit hit) {
+    private SimpleHttpResponse deliverOrders(SearchHit hit) {
         try (XContentBuilder xContentBuilder = XContentFactory.jsonBuilder()) {
             PluginSettings settings = PluginSettings.getInstance();
-            hit.toXContent(xContentBuilder, ToXContent.EMPTY_PARAMS);
-            HttpRestClient.getInstance()
-                    .post(
-                            new URIBuilder(settings.getUri()).build(),
-                            xContentBuilder.toString(),
-                            hit.getId());
+            //hit.getSourceAsMap().toXContent(xContentBuilder, ToXContent.EMPTY_PARAMS);
+            xContentBuilder.map(hit.getSourceAsMap());
+            URI uri = new URIBuilder(settings.getUri()).build();
+            return AccessController.doPrivileged(
+                (PrivilegedAction<SimpleHttpResponse>)
+                    () -> HttpRestClient.getInstance().post(
+                        uri,
+                        xContentBuilder.toString(),
+                        hit.getId())
+            );
         } catch (IOException e) {
             log.error("Error parsing hit contents: {}", e.getMessage());
         } catch (URISyntaxException e) {
             log.error("Invalid URI: {}", e.getMessage());
         }
+        return null;
     }
 
     /**
@@ -195,9 +203,10 @@ public class SearchThread implements Runnable {
         try {
             do {
                 this.currentPage =
-                        pitQuery(
-                                pointInTimeBuilder,
-                                getSearchAfter(this.currentPage).orElse(new Object[0]));
+                    pitQuery(
+                        pointInTimeBuilder,
+                        getSearchAfter(this.currentPage).orElse(new Object[0])
+                    );
                 if (firstPage) {
                     consumableHits = totalHits();
                     firstPage = false;
@@ -222,7 +231,6 @@ public class SearchThread implements Runnable {
 
     private long totalHits() {
         if (this.currentPage.getHits().getTotalHits() != null) {
-            log.warn("Query did not return any hits: totalHits is null");
             return this.currentPage.getHits().getTotalHits().value;
         } else {
             return 0;
@@ -239,7 +247,6 @@ public class SearchThread implements Runnable {
      */
     private Optional<Object[]> getSearchAfter(SearchResponse searchResponse) {
         if (searchResponse == null) {
-            log.warn("Command search response is null, not getting searchAfter values");
             return Optional.empty();
         }
         try {
