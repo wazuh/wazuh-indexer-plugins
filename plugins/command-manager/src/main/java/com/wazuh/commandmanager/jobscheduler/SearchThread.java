@@ -22,6 +22,7 @@ import org.opensearch.client.Client;
 import org.opensearch.common.unit.TimeValue;
 import org.opensearch.common.xcontent.XContentFactory;
 import org.opensearch.core.action.ActionListener;
+import org.opensearch.core.rest.RestStatus;
 import org.opensearch.core.xcontent.XContentBuilder;
 import org.opensearch.env.Environment;
 import org.opensearch.index.query.QueryBuilders;
@@ -101,7 +102,16 @@ public class SearchThread implements Runnable {
         SearchHits searchHits = searchResponse.getHits();
         for (SearchHit hit : searchHits) {
             SimpleHttpResponse response = deliverOrders(hit);
-            setSentStatus(hit);
+            if (response == null) {
+                return;
+            }
+            if (
+                RestStatus.fromCode(response.getCode()) == RestStatus.CREATED |
+                    RestStatus.fromCode(response.getCode()) == RestStatus.ACCEPTED |
+                    RestStatus.fromCode(response.getCode()) == RestStatus.OK
+            ) {
+                setSentStatus(hit);
+            }
         }
     }
 
