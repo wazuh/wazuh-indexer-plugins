@@ -109,6 +109,8 @@ public class RestPostCommandAction extends BaseRestHandler {
         XContentParser parser = request.contentParser();
         List<Command> commands = new ArrayList<>();
         ensureExpectedToken(XContentParser.Token.START_OBJECT, parser.nextToken(), parser);
+        // The array of commands is inside the "commands" JSON object.
+        // This line moves the parser pointer into this object.
         parser.nextToken();
         if (parser.nextToken() == XContentParser.Token.START_ARRAY) {
             commands = Command.parseToArray(parser);
@@ -128,7 +130,8 @@ public class RestPostCommandAction extends BaseRestHandler {
             // Note: needs to be decoupled from the Rest handler (job scheduler task).
             try {
                 String payload =
-                        document.toXContent(XContentFactory.jsonBuilder(), ToXContent.EMPTY_PARAMS)
+                        documents
+                                .toXContent(XContentFactory.jsonBuilder(), ToXContent.EMPTY_PARAMS)
                                 .toString();
                 SimpleHttpResponse response =
                         HttpRestClientDemo.runWithResponse(payload, document.getId());

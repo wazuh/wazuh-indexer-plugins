@@ -61,6 +61,7 @@ public class CommandIndex implements IndexingOperationListener {
      * @param document instance of the document model to persist in the index.
      * @return A CompletableFuture with the RestStatus response from the operation
      */
+    @Deprecated
     public CompletableFuture<RestStatus> asyncCreate(Document document) {
         CompletableFuture<RestStatus> future = new CompletableFuture<>();
         ExecutorService executor = this.threadPool.executor(ThreadPool.Names.WRITE);
@@ -84,7 +85,10 @@ public class CommandIndex implements IndexingOperationListener {
                             RestStatus restStatus = client.index(request).actionGet().status();
                             future.complete(restStatus);
                         } catch (Exception e) {
-                            log.error("Error indexing command with id [{}] due to {}", document.getId(), e.getMessage());
+                            log.error(
+                                    "Error indexing command with id [{}] due to {}",
+                                    document.getId(),
+                                    e.getMessage());
                             future.completeExceptionally(e);
                         }
                     });
@@ -113,7 +117,7 @@ public class CommandIndex implements IndexingOperationListener {
 
         BulkRequest bulkRequest = new BulkRequest();
         for (Document document : documents) {
-            log.info("Indexing command with id [{}]", document.getId());
+            log.info("Adding command with id [{}] to the bulk request", document.getId());
             try {
                 bulkRequest.add(createIndexRequest(document));
             } catch (IOException e) {

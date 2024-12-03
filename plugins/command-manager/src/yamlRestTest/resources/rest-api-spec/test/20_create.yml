@@ -1,46 +1,46 @@
 ---
 "Create command":
-    - do:
-          _plugins._command_manager:
-              body:
-                  commands:
-                    [
-                        { source: "Users/Services",
-                          user: "user13",
-                          target: {
-                              id: "target4",
-                              type: "agent"
-                          },
-                          action: {
-                              name: "change_group",
-                              args: [ "/path/to/executable/arg8" ],
-                              version: "v4"
-                          },
-                          timeout: 100 },
+  - do:
+      _plugins._command_manager:
+        body:
+          commands:
+            [
+              {
+                source: "Users/Services",
+                user: "user13",
+                target: { id: "target4", type: "agent" },
+                action:
+                  {
+                    name: "change_group",
+                    args: ["/path/to/executable/arg8"],
+                    version: "v4",
+                  },
+                timeout: 100,
+              },
 
-                        { source: "Users/Services",
-                          user: "user54",
-                          target: {
-                              id: "target5",
-                              type: "agent"
-                          },
-                          action: {
-                              name: "stop",
-                              args: [ "/path/to/executable/arg7" ],
-                              version: "v4"
-                          },
-                          timeout: 30 }
-                    ]
+              {
+                source: "Users/Services",
+                user: "user54",
+                target: { id: "target5", type: "agent" },
+                action:
+                  {
+                    name: "stop",
+                    args: ["/path/to/executable/arg7"],
+                    version: "v4",
+                  },
+                timeout: 30,
+              },
+            ]
 
-    - match: { _index: .commands }
-    - match: { result: "OK" }
+  - match: { _index: .commands }
+  - match: { result: "OK" }
 
-    - do:
-        indices.refresh:
-          index: [ .commands ]
+  - do:
+      indices.refresh:
+        index: [.commands]
 
-    - do:
-        count:
-          index: .commands
+  - do:
+      count:
+        index: .commands
 
-    - match: { count: 2 }
+  - match: { count: 2 }
