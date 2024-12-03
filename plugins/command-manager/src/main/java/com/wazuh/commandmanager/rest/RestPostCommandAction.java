@@ -22,6 +22,7 @@ import org.opensearch.rest.BytesRestResponse;
 import org.opensearch.rest.RestRequest;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 
@@ -30,6 +31,7 @@ import com.wazuh.commandmanager.index.CommandIndex;
 import com.wazuh.commandmanager.model.Agent;
 import com.wazuh.commandmanager.model.Command;
 import com.wazuh.commandmanager.model.Document;
+import com.wazuh.commandmanager.model.Documents;
 import com.wazuh.commandmanager.utils.httpclient.HttpRestClientDemo;
 
 import static org.opensearch.core.xcontent.XContentParserUtils.ensureExpectedToken;
@@ -94,42 +96,60 @@ public class RestPostCommandAction extends BaseRestHandler {
                 request.uri(),
                 request.getRequestId(),
                 request.header("Host"));
+
         // Get request details
+        if (!request.hasContent()) {
+            // Bad request if body doesn't exist
+            return channel -> {
+                channel.sendResponse(
+                        new BytesRestResponse(RestStatus.BAD_REQUEST, "Body content is required"));
+            };
+        }
+
         XContentParser parser = request.contentParser();
+        List<Command> commands = new ArrayList<>();
         ensureExpectedToken(XContentParser.Token.START_OBJECT, parser.nextToken(), parser);
+        // The array of commands is inside the "commands" JSON object.
+        // This line moves the parser pointer into this object.
+        parser.nextToken();
+        if (parser.nextToken() == XContentParser.Token.START_ARRAY) {
+            commands = Command.parseToArray(parser);
+        } else {
+            log.error("Token does not match {}", parser.currentToken());
+        }
 
-        Command command = Command.parse(parser);
-        Document document =
-                new Document(
-                        new Agent(List.of("groups000")), // TODO read agent from .agents index
-                        command);
+        Documents documents = new Documents();
+        for (Command command : commands) {
+            Document document =
+                    new Document(
+                            new Agent(List.of("groups000")), // TODO read agent from .agents index
+                            command);
+            documents.addDocument(document);
 
-        // Commands delivery to the Management API.
-        // Note: needs to be decoupled from the Rest handler (job scheduler task).
-        try {
-            String payload =
-                    document.toXContent(XContentFactory.jsonBuilder(), ToXContent.EMPTY_PARAMS)
-                            .toString();
-            SimpleHttpResponse response =
-                    HttpRestClientDemo.runWithResponse(payload, document.getId());
-            log.info("Received response to POST request with code [{}]", response.getCode());
-            log.info("Raw response:\n{}", response.getBodyText());
-        } catch (Exception e) {
-            log.error("Error reading response: {}", e.getMessage());
+            // Commands delivery to the Management API.
+            // Note: needs to be decoupled from the Rest handler (job scheduler task).
+            try {
+                String payload =
+                        documents
+                                .toXContent(XContentFactory.jsonBuilder(), ToXContent.EMPTY_PARAMS)
+                                .toString();
+                SimpleHttpResponse response =
+                        HttpRestClientDemo.runWithResponse(payload, document.getId());
+                log.info("Received response to POST request with code [{}]", response.getCode());
+                log.info("Raw response:\n{}", response.getBodyText());
+            } catch (Exception e) {
+                log.error("Error reading response: {}", e.getMessage());
+            }
         }
 
         // Send response
         return channel -> {
             this.commandIndex
-                    .asyncCreate(document)
+                    .asyncBulkCreate(documents.getDocuments())
                     .thenAccept(
                             restStatus -> {
                                 try (XContentBuilder builder = channel.newBuilder()) {
-                                    builder.startObject();
-                                    builder.field(
-                                            "_index",
-                                            CommandManagerPlugin.COMMAND_MANAGER_INDEX_NAME);
-                                    builder.field("_id", document.getId());
+                                    documents.toXContent(builder, ToXContent.EMPTY_PARAMS);
                                     builder.field("result", restStatus.name());
                                     builder.endObject();
                                     channel.sendResponse(
