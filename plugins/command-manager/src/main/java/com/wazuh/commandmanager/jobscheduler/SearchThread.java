@@ -8,7 +8,6 @@
  */
 package com.wazuh.commandmanager.jobscheduler;
 
-import com.wazuh.commandmanager.utils.httpclient.AuthHttpRestClient;
 import org.apache.hc.client5.http.async.methods.SimpleHttpResponse;
 import org.apache.hc.core5.net.URIBuilder;
 import org.apache.logging.log4j.LogManager;
@@ -24,7 +23,6 @@ import org.opensearch.common.xcontent.XContentFactory;
 import org.opensearch.core.action.ActionListener;
 import org.opensearch.core.rest.RestStatus;
 import org.opensearch.core.xcontent.XContentBuilder;
-import org.opensearch.env.Environment;
 import org.opensearch.index.query.QueryBuilders;
 import org.opensearch.index.query.TermQueryBuilder;
 import org.opensearch.search.SearchHit;
@@ -47,6 +45,7 @@ import com.wazuh.commandmanager.CommandManagerPlugin;
 import com.wazuh.commandmanager.model.Command;
 import com.wazuh.commandmanager.model.Status;
 import com.wazuh.commandmanager.settings.PluginSettings;
+import com.wazuh.commandmanager.utils.httpclient.AuthHttpRestClient;
 
 /**
  * The class in charge of searching and managing commands in {@link
@@ -84,10 +83,10 @@ public class SearchThread implements Runnable {
             return type.cast(value);
         } else {
             throw new ClassCastException(
-                "Expected "
-                    + type
-                    + " but found "
-                    + (value != null ? value.getClass() : "null"));
+                    "Expected "
+                            + type
+                            + " but found "
+                            + (value != null ? value.getClass() : "null"));
         }
     }
 
@@ -105,11 +104,9 @@ public class SearchThread implements Runnable {
             if (response == null) {
                 return;
             }
-            if (
-                RestStatus.fromCode(response.getCode()) == RestStatus.CREATED |
-                    RestStatus.fromCode(response.getCode()) == RestStatus.ACCEPTED |
-                    RestStatus.fromCode(response.getCode()) == RestStatus.OK
-            ) {
+            if (RestStatus.fromCode(response.getCode()) == RestStatus.CREATED
+                    | RestStatus.fromCode(response.getCode()) == RestStatus.ACCEPTED
+                    | RestStatus.fromCode(response.getCode()) == RestStatus.OK) {
                 setSentStatus(hit);
             }
         }
@@ -124,26 +121,22 @@ public class SearchThread implements Runnable {
     private SimpleHttpResponse deliverOrders(SearchHit hit) {
         try (XContentBuilder xContentBuilder = XContentFactory.jsonBuilder()) {
             PluginSettings settings = PluginSettings.getInstance();
-            String orders = xContentBuilder.map(
-                Collections.singletonMap(
-                    "orders",
-                    new Object[]{
-                        getNestedObject(
-                            hit.getSourceAsMap(),
-                            Command.COMMAND,
-                            Map.class
-                        )
-                    }
-                )
-            ).toString();
+            String orders =
+                    xContentBuilder
+                            .map(
+                                    Collections.singletonMap(
+                                            "orders",
+                                            new Object[] {
+                                                getNestedObject(
+                                                        hit.getSourceAsMap(),
+                                                        Command.COMMAND,
+                                                        Map.class)
+                                            }))
+                            .toString();
             URI uri = new URIBuilder(settings.getUri() + SearchThread.ORDERS_OBJECT).build();
             return AccessController.doPrivileged(
-                (PrivilegedAction<SimpleHttpResponse>)
-                    () -> AuthHttpRestClient.getInstance().post(
-                        uri,
-                        orders,
-                        hit.getId())
-            );
+                    (PrivilegedAction<SimpleHttpResponse>)
+                            () -> AuthHttpRestClient.getInstance().post(uri, orders, hit.getId()));
         } catch (IOException e) {
             log.error("Error parsing hit contents: {}", e.getMessage());
         } catch (URISyntaxException e) {
@@ -223,10 +216,9 @@ public class SearchThread implements Runnable {
         try {
             do {
                 this.currentPage =
-                    pitQuery(
-                        pointInTimeBuilder,
-                        getSearchAfter(this.currentPage).orElse(new Object[0])
-                    );
+                        pitQuery(
+                                pointInTimeBuilder,
+                                getSearchAfter(this.currentPage).orElse(new Object[0]));
                 if (firstPage) {
                     consumableHits = totalHits();
                     firstPage = false;
