@@ -18,6 +18,7 @@ import org.opensearch.action.search.CreatePitResponse;
 import org.opensearch.action.search.SearchRequest;
 import org.opensearch.action.search.SearchResponse;
 import org.opensearch.client.Client;
+import org.opensearch.common.action.ActionFuture;
 import org.opensearch.common.unit.TimeValue;
 import org.opensearch.common.xcontent.XContentFactory;
 import org.opensearch.core.action.ActionListener;
@@ -48,9 +49,8 @@ import com.wazuh.commandmanager.settings.PluginSettings;
 import com.wazuh.commandmanager.utils.httpclient.AuthHttpRestClient;
 
 /**
- * The class in charge of searching and managing commands in {@link
- * com.wazuh.commandmanager.model.Status#PENDING} status and of submitting them to the destination
- * client.
+ * The class in charge of searching and managing commands in {@link Status#PENDING} status and of
+ * submitting them to the destination client.
  */
 public class SearchThread implements Runnable {
     public static final String COMMAND_STATUS_FIELD =
@@ -97,17 +97,38 @@ public class SearchThread implements Runnable {
      * @param searchResponse The search results page
      * @throws IllegalStateException Rethrown from setSentStatus()
      */
+    @SuppressWarnings("unchecked")
     public void handlePage(SearchResponse searchResponse) throws IllegalStateException {
         SearchHits searchHits = searchResponse.getHits();
+        ArrayList<Object> orders = new ArrayList<>();
+
         for (SearchHit hit : searchHits) {
-            SimpleHttpResponse response = deliverOrders(hit);
+            // Create a JSON representation of each hit and add it to the orders array.
+            Map<String, Object> orderMap =
+                    getNestedObject(hit.getSourceAsMap(), Command.COMMAND, Map.class);
+            // Add document id to the object.
+            orderMap.put("document_id", hit.getId());
+            orders.add(orderMap);
+        }
+
+        String payload = null;
+        try (XContentBuilder builder = XContentFactory.jsonBuilder()) {
+            payload = builder.map(Collections.singletonMap("orders", orders)).toString();
+        } catch (IOException e) {
+            log.error("Error parsing hit contents: {}", e.getMessage());
+        }
+
+        if (payload != null) {
+            SimpleHttpResponse response = deliverOrders(payload);
             if (response == null) {
                 return;
             }
             if (RestStatus.fromCode(response.getCode()) == RestStatus.CREATED
                     | RestStatus.fromCode(response.getCode()) == RestStatus.ACCEPTED
                     | RestStatus.fromCode(response.getCode()) == RestStatus.OK) {
-                setSentStatus(hit);
+                for (SearchHit hit : searchHits) {
+                    setSentStatus(hit);
+                }
             }
         }
     }
@@ -115,27 +136,15 @@ public class SearchThread implements Runnable {
     /**
      * Send the command order over HTTP
      *
-     * @param hit The command order
+     * @param orders The list of order to send.
      */
-    @SuppressWarnings("unchecked")
-    private SimpleHttpResponse deliverOrders(SearchHit hit) {
-        try (XContentBuilder xContentBuilder = XContentFactory.jsonBuilder()) {
+    private SimpleHttpResponse deliverOrders(String orders) {
+        try {
             PluginSettings settings = PluginSettings.getInstance();
-            Map<String, Object> orderMap =
-                    getNestedObject(hit.getSourceAsMap(), Command.COMMAND, Map.class);
-            // Add document id to the object.
-            orderMap.put("document_id", hit.getId());
-            String orders =
-                    xContentBuilder
-                            .map(Collections.singletonMap("orders", new Object[] {orderMap}))
-                            .toString();
-            log.info(orders);
             URI uri = new URIBuilder(settings.getUri() + SearchThread.ORDERS_OBJECT).build();
             return AccessController.doPrivileged(
                     (PrivilegedAction<SimpleHttpResponse>)
-                            () -> AuthHttpRestClient.getInstance().post(uri, orders, hit.getId()));
-        } catch (IOException e) {
-            log.error("Error parsing hit contents: {}", e.getMessage());
+                            () -> AuthHttpRestClient.getInstance().post(uri, orders, null));
         } catch (URISyntaxException e) {
             log.error("Invalid URI: {}", e.getMessage());
         }
@@ -143,12 +152,10 @@ public class SearchThread implements Runnable {
     }
 
     /**
-     * Retrieves the hit's contents and updates the {@link com.wazuh.commandmanager.model.Status}
-     * field to {@link com.wazuh.commandmanager.model.Status#SENT}.
+     * Retrieves the hit's contents and updates the {@link Status} field to {@link Status#SENT}.
      *
      * @param hit The page's result we are to update.
-     * @throws IllegalStateException Raised by {@link
-     *     org.opensearch.common.action.ActionFuture#actionGet(long)}.
+     * @throws IllegalStateException Raised by {@link ActionFuture#actionGet(long)}.
      */
     @SuppressWarnings("unchecked")
     private void setSentStatus(SearchHit hit) throws IllegalStateException {
@@ -176,8 +183,7 @@ public class SearchThread implements Runnable {
      * @param pointInTimeBuilder A pit builder object used to run the query.
      * @param searchAfter An array of objects containing the last page's values of the sort fields.
      * @return The search response.
-     * @throws IllegalStateException Raised by {@link
-     *     org.opensearch.common.action.ActionFuture#actionGet(long)}.
+     * @throws IllegalStateException Raised by {@link ActionFuture#actionGet(long)}.
      */
     public SearchResponse pitQuery(PointInTimeBuilder pointInTimeBuilder, Object[] searchAfter)
             throws IllegalStateException {
@@ -293,7 +299,7 @@ public class SearchThread implements Runnable {
                 };
         this.client.createPit(
                 new CreatePitRequest(
-                        CommandManagerPlugin.PIT_KEEPALIVE_SECONDS,
+                        CommandManagerPlugin.PIT_KEEP_ALIVE_SECONDS,
                         false,
                         CommandManagerPlugin.COMMAND_MANAGER_INDEX_NAME),
                 actionListener);
