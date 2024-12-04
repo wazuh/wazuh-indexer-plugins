@@ -121,18 +121,15 @@ public class SearchThread implements Runnable {
     private SimpleHttpResponse deliverOrders(SearchHit hit) {
         try (XContentBuilder xContentBuilder = XContentFactory.jsonBuilder()) {
             PluginSettings settings = PluginSettings.getInstance();
+            Map<String, Object> orderMap =
+                    getNestedObject(hit.getSourceAsMap(), Command.COMMAND, Map.class);
+            // Add document id to the object.
+            orderMap.put("document_id", hit.getId());
             String orders =
                     xContentBuilder
-                            .map(
-                                    Collections.singletonMap(
-                                            "orders",
-                                            new Object[] {
-                                                getNestedObject(
-                                                        hit.getSourceAsMap(),
-                                                        Command.COMMAND,
-                                                        Map.class)
-                                            }))
+                            .map(Collections.singletonMap("orders", new Object[] {orderMap}))
                             .toString();
+            log.info(orders);
             URI uri = new URIBuilder(settings.getUri() + SearchThread.ORDERS_OBJECT).build();
             return AccessController.doPrivileged(
                     (PrivilegedAction<SimpleHttpResponse>)
