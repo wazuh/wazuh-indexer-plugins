@@ -44,6 +44,7 @@ import java.util.concurrent.ExecutionException;
 
 import com.wazuh.commandmanager.CommandManagerPlugin;
 import com.wazuh.commandmanager.model.Command;
+import com.wazuh.commandmanager.model.Document;
 import com.wazuh.commandmanager.model.Status;
 import com.wazuh.commandmanager.settings.PluginSettings;
 import com.wazuh.commandmanager.utils.httpclient.AuthHttpRestClient;
@@ -101,6 +102,9 @@ public class SearchThread implements Runnable {
     public void handlePage(SearchResponse searchResponse) throws IllegalStateException {
         SearchHits searchHits = searchResponse.getHits();
         ArrayList<Object> orders = new ArrayList<>();
+        // Get sorted hits by delivery_timestamp.
+        List<SearchHit> hitsList = getSortedHits(searchHits);
+        log.info("Hits: {}", hitsList);
 
         for (SearchHit hit : searchHits) {
             // Create a JSON representation of each hit and add it to the orders array.
@@ -131,6 +135,31 @@ public class SearchThread implements Runnable {
                 }
             }
         }
+    }
+
+    /**
+     * Converts SearchHits to a list and sorts them by the delivery_timestamp field.
+     *
+     * @param searchHits The SearchHits object containing the hits to be processed.
+     * @return A List of SearchHit objects sorted by delivery_timestamp.
+     */
+    private static List<SearchHit> getSortedHits(SearchHits searchHits) {
+        List<SearchHit> hitsList = new ArrayList<>(List.of(searchHits.getHits()));
+        hitsList.sort(
+                (hit1, hit2) -> {
+                    String timeout1 =
+                            getNestedObject(
+                                    hit1.getSourceAsMap(),
+                                    Document.DELIVERY_TIMESTAMP,
+                                    String.class);
+                    String timeout2 =
+                            getNestedObject(
+                                    hit2.getSourceAsMap(),
+                                    Document.DELIVERY_TIMESTAMP,
+                                    String.class);
+                    return timeout1.compareTo(timeout2);
+                });
+        return hitsList;
     }
 
     /**
