@@ -59,6 +59,7 @@ public class SearchThread implements Runnable {
     public static final String COMMAND_ORDER_ID_FIELD =
             Command.COMMAND + "." + Command.ORDER_ID + ".keyword";
     public static final String COMMAND_TIMEOUT_FIELD = Command.COMMAND + "." + Command.TIMEOUT;
+    public static final String DELIVERY_TIMESTAMP_FIELD = Document.DELIVERY_TIMESTAMP;
     private static final Logger log = LogManager.getLogger(SearchThread.class);
     public static final String ORDERS_OBJECT = "/orders";
     private final SearchSourceBuilder searchSourceBuilder = new SearchSourceBuilder();
@@ -102,10 +103,10 @@ public class SearchThread implements Runnable {
     public void handlePage(SearchResponse searchResponse) throws IllegalStateException {
         SearchHits searchHits = searchResponse.getHits();
         ArrayList<Object> orders = new ArrayList<>();
-        // Get sorted hits by delivery_timestamp.
-        List<SearchHit> hitsList = getSortedHits(searchHits);
-        log.info("Hits: {}", hitsList);
-
+        //        // Get sorted hits by delivery_timestamp.
+        //        List<SearchHit> hitsList = getSortedHits(searchHits);
+        //        log.info("Hits: {}", hitsList);
+        log.info("Hits: {}", searchHits);
         for (SearchHit hit : searchHits) {
             // Create a JSON representation of each hit and add it to the orders array.
             Map<String, Object> orderMap =
@@ -121,7 +122,7 @@ public class SearchThread implements Runnable {
         } catch (IOException e) {
             log.error("Error parsing hit contents: {}", e.getMessage());
         }
-
+        log.info("Payload: {}", payload);
         if (payload != null) {
             SimpleHttpResponse response = deliverOrders(payload);
             if (response == null) {
@@ -230,8 +231,9 @@ public class SearchThread implements Runnable {
                 .pointInTimeBuilder(pointInTimeBuilder);
         if (this.searchSourceBuilder.sorts() == null) {
             this.searchSourceBuilder
-                    .sort(SearchThread.COMMAND_ORDER_ID_FIELD, SortOrder.ASC)
-                    .sort(SearchThread.COMMAND_TIMEOUT_FIELD, SortOrder.ASC);
+                    // Agregar sort solo por delivery_timestamp
+                    .sort(SearchThread.DELIVERY_TIMESTAMP_FIELD, SortOrder.DESC);
+            //                    .sort(SearchThread.COMMAND_TIMEOUT_FIELD, SortOrder.ASC);
         }
         if (searchAfter.length > 0) {
             this.searchSourceBuilder.searchAfter(searchAfter);
