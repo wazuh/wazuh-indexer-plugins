@@ -103,10 +103,7 @@ public class SearchThread implements Runnable {
     public void handlePage(SearchResponse searchResponse) throws IllegalStateException {
         SearchHits searchHits = searchResponse.getHits();
         ArrayList<Object> orders = new ArrayList<>();
-        //        // Get sorted hits by delivery_timestamp.
-        //        List<SearchHit> hitsList = getSortedHits(searchHits);
-        //        log.info("Hits: {}", hitsList);
-        log.info("Hits: {}", searchHits);
+
         for (SearchHit hit : searchHits) {
             // Create a JSON representation of each hit and add it to the orders array.
             Map<String, Object> orderMap =
@@ -122,7 +119,7 @@ public class SearchThread implements Runnable {
         } catch (IOException e) {
             log.error("Error parsing hit contents: {}", e.getMessage());
         }
-        log.info("Payload: {}", payload);
+
         if (payload != null) {
             SimpleHttpResponse response = deliverOrders(payload);
             if (response == null) {
@@ -136,31 +133,6 @@ public class SearchThread implements Runnable {
                 }
             }
         }
-    }
-
-    /**
-     * Converts SearchHits to a list and sorts them by the delivery_timestamp field.
-     *
-     * @param searchHits The SearchHits object containing the hits to be processed.
-     * @return A List of SearchHit objects sorted by delivery_timestamp.
-     */
-    private static List<SearchHit> getSortedHits(SearchHits searchHits) {
-        List<SearchHit> hitsList = new ArrayList<>(List.of(searchHits.getHits()));
-        hitsList.sort(
-                (hit1, hit2) -> {
-                    String timeout1 =
-                            getNestedObject(
-                                    hit1.getSourceAsMap(),
-                                    Document.DELIVERY_TIMESTAMP,
-                                    String.class);
-                    String timeout2 =
-                            getNestedObject(
-                                    hit2.getSourceAsMap(),
-                                    Document.DELIVERY_TIMESTAMP,
-                                    String.class);
-                    return timeout1.compareTo(timeout2);
-                });
-        return hitsList;
     }
 
     /**
@@ -230,10 +202,7 @@ public class SearchThread implements Runnable {
                 .timeout(timeout)
                 .pointInTimeBuilder(pointInTimeBuilder);
         if (this.searchSourceBuilder.sorts() == null) {
-            this.searchSourceBuilder
-                    // Agregar sort solo por delivery_timestamp
-                    .sort(SearchThread.DELIVERY_TIMESTAMP_FIELD, SortOrder.DESC);
-            //                    .sort(SearchThread.COMMAND_TIMEOUT_FIELD, SortOrder.ASC);
+            this.searchSourceBuilder.sort(SearchThread.DELIVERY_TIMESTAMP_FIELD, SortOrder.ASC);
         }
         if (searchAfter.length > 0) {
             this.searchSourceBuilder.searchAfter(searchAfter);
