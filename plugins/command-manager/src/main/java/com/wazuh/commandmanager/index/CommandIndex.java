@@ -66,15 +66,6 @@ public class CommandIndex implements IndexingOperationListener {
         CompletableFuture<RestStatus> future = new CompletableFuture<>();
         ExecutorService executor = this.threadPool.executor(ThreadPool.Names.WRITE);
 
-        // Create index template if it does not exist.
-        if (!indexTemplateExists(CommandManagerPlugin.COMMAND_MANAGER_INDEX_TEMPLATE_NAME)) {
-            putIndexTemplate(CommandManagerPlugin.COMMAND_MANAGER_INDEX_TEMPLATE_NAME);
-        } else {
-            log.info(
-                    "Index template {} already exists. Skipping creation.",
-                    CommandManagerPlugin.COMMAND_MANAGER_INDEX_TEMPLATE_NAME);
-        }
-
         log.info("Indexing command with id [{}]", document.getId());
         try {
             IndexRequest request = createIndexRequest(document);
@@ -82,6 +73,17 @@ public class CommandIndex implements IndexingOperationListener {
                     () -> {
                         try (ThreadContext.StoredContext ignored =
                                 this.threadPool.getThreadContext().stashContext()) {
+                            // Create index template if it does not exist.
+                            if (!indexTemplateExists(
+                                    CommandManagerPlugin.COMMAND_MANAGER_INDEX_TEMPLATE_NAME)) {
+                                putIndexTemplate(
+                                        CommandManagerPlugin.COMMAND_MANAGER_INDEX_TEMPLATE_NAME);
+                            } else {
+                                log.info(
+                                        "Index template {} already exists. Skipping creation.",
+                                        CommandManagerPlugin.COMMAND_MANAGER_INDEX_TEMPLATE_NAME);
+                            }
+
                             RestStatus restStatus = client.index(request).actionGet().status();
                             future.complete(restStatus);
                         } catch (Exception e) {
@@ -106,15 +108,6 @@ public class CommandIndex implements IndexingOperationListener {
         CompletableFuture<RestStatus> future = new CompletableFuture<>();
         ExecutorService executor = this.threadPool.executor(ThreadPool.Names.WRITE);
 
-        // Create index template if it does not exist.
-        if (!indexTemplateExists(CommandManagerPlugin.COMMAND_MANAGER_INDEX_TEMPLATE_NAME)) {
-            putIndexTemplate(CommandManagerPlugin.COMMAND_MANAGER_INDEX_TEMPLATE_NAME);
-        } else {
-            log.info(
-                    "Index template {} already exists. Skipping creation.",
-                    CommandManagerPlugin.COMMAND_MANAGER_INDEX_TEMPLATE_NAME);
-        }
-
         BulkRequest bulkRequest = new BulkRequest();
         for (Document document : documents) {
             log.info("Adding command with id [{}] to the bulk request", document.getId());
@@ -132,6 +125,17 @@ public class CommandIndex implements IndexingOperationListener {
                 () -> {
                     try (ThreadContext.StoredContext ignored =
                             this.threadPool.getThreadContext().stashContext()) {
+                        // Create index template if it does not exist.
+                        if (!indexTemplateExists(
+                                CommandManagerPlugin.COMMAND_MANAGER_INDEX_TEMPLATE_NAME)) {
+                            putIndexTemplate(
+                                    CommandManagerPlugin.COMMAND_MANAGER_INDEX_TEMPLATE_NAME);
+                        } else {
+                            log.info(
+                                    "Index template {} already exists. Skipping creation.",
+                                    CommandManagerPlugin.COMMAND_MANAGER_INDEX_TEMPLATE_NAME);
+                        }
+
                         RestStatus restStatus = client.bulk(bulkRequest).actionGet().status();
                         future.complete(restStatus);
                     } catch (Exception e) {
@@ -174,18 +178,11 @@ public class CommandIndex implements IndexingOperationListener {
                             .name(templateName)
                             .patterns((List<String>) template.get("index_patterns"));
 
-            executor.submit(
-                    () -> {
-                        AcknowledgedResponse acknowledgedResponse =
-                                this.client
-                                        .admin()
-                                        .indices()
-                                        .putTemplate(putIndexTemplateRequest)
-                                        .actionGet();
-                        if (acknowledgedResponse.isAcknowledged()) {
-                            log.info("Index template [{}] created successfully", templateName);
-                        }
-                    });
+            AcknowledgedResponse acknowledgedResponse =
+                    this.client.admin().indices().putTemplate(putIndexTemplateRequest).actionGet();
+            if (acknowledgedResponse.isAcknowledged()) {
+                log.info("Index template [{}] created successfully", templateName);
+            }
 
         } catch (IOException e) {
             log.error("Error reading index template [{}] from filesystem", templateName);
