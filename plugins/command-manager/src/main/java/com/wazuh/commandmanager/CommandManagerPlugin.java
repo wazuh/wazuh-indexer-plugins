@@ -75,6 +75,7 @@ public class CommandManagerPlugin extends Plugin
     public static final String COMMAND_MANAGER_INDEX_TEMPLATE_NAME = "index-template-commands";
     public static final String COMMAND_DOCUMENT_PARENT_OBJECT_NAME = "command";
     public static final String JOB_INDEX_NAME = ".scheduled-commands";
+    public static final String JOB_INDEX_TEMPLATE_NAME = "index-template-scheduled-commands";
     public static final Integer JOB_PERIOD_MINUTES = 1;
     public static final Integer PAGE_SIZE = 100;
     public static final Long DEFAULT_TIMEOUT_SECONDS = 20L;
@@ -130,6 +131,7 @@ public class CommandManagerPlugin extends Plugin
                         jobDocument = JobDocument.getInstance();
                         CompletableFuture<IndexResponse> indexResponseCompletableFuture =
                                 jobDocument.create(
+                                        clusterService,
                                         client,
                                         threadPool,
                                         UUIDs.base64UUID(),
