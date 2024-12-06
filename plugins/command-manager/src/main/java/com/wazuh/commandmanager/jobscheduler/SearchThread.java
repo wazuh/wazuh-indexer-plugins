@@ -99,18 +99,6 @@ public class SearchThread implements Runnable {
                     + value.getClass().getName());
         }
     }
-    //public static <T> T getNestedObject(Map<String, Object> map, String key, Class<T> type) {
-    //    Object value = map.get(key);
-    //    if (type.isInstance(value)) {
-    //        return type.cast(value);
-    //    } else {
-    //        throw new ClassCastException(
-    //                "Expected "
-    //                        + type
-    //                        + " but found "
-    //                        + (value != null ? value.getClass() : "null"));
-    //    }
-    //}
 
     /**
      * Iterates over search results, updating their status field and submitting them to the
@@ -126,7 +114,7 @@ public class SearchThread implements Runnable {
         for (SearchHit hit : searchHits) {
             Map<String, Object> orderMap = getNestedObject(hit.getSourceAsMap(), Command.COMMAND, Map.class);
             if (orderMap != null) {
-                orderMap.put("document_id", hit.getId()); // Modifying this map won't affect the original hit data.
+                orderMap.put("document_id", hit.getId());
                 orders.add(orderMap);
             }
         }
