@@ -54,9 +54,9 @@ import com.wazuh.commandmanager.utils.httpclient.AuthHttpRestClient;
  */
 public class SearchThread implements Runnable {
     public static final String COMMAND_STATUS_FIELD =
-            Command.COMMAND + "." + Command.STATUS + ".keyword";
+            Command.COMMAND + "." + Command.STATUS;
     public static final String COMMAND_ORDER_ID_FIELD =
-            Command.COMMAND + "." + Command.ORDER_ID + ".keyword";
+            Command.COMMAND + "." + Command.ORDER_ID;
     public static final String COMMAND_TIMEOUT_FIELD = Command.COMMAND + "." + Command.TIMEOUT;
     private static final Logger log = LogManager.getLogger(SearchThread.class);
     public static final String ORDERS_OBJECT = "/orders";
@@ -79,16 +79,38 @@ public class SearchThread implements Runnable {
      */
     public static <T> T getNestedObject(Map<String, Object> map, String key, Class<T> type) {
         Object value = map.get(key);
+        if (value == null) {
+            return null;
+        }
         if (type.isInstance(value)) {
+            // Make a defensive copy for supported types like Map or List
+            if (value instanceof Map) {
+                return type.cast(new HashMap<>((Map<?, ?>) value));
+            } else if (value instanceof List) {
+                return type.cast(new ArrayList<>((List<?>) value));
+            }
+            // Return the value directly if it is immutable (e.g., String, Integer)
             return type.cast(value);
         } else {
             throw new ClassCastException(
-                    "Expected "
-                            + type
-                            + " but found "
-                            + (value != null ? value.getClass() : "null"));
+                "Expected "
+                    + type.getName()
+                    + " but found "
+                    + value.getClass().getName());
         }
     }
+    //public static <T> T getNestedObject(Map<String, Object> map, String key, Class<T> type) {
+    //    Object value = map.get(key);
+    //    if (type.isInstance(value)) {
+    //        return type.cast(value);
+    //    } else {
+    //        throw new ClassCastException(
+    //                "Expected "
+    //                        + type
+    //                        + " but found "
+    //                        + (value != null ? value.getClass() : "null"));
+    //    }
+    //}
 
     /**
      * Iterates over search results, updating their status field and submitting them to the
@@ -101,16 +123,13 @@ public class SearchThread implements Runnable {
     public void handlePage(SearchResponse searchResponse) throws IllegalStateException {
         SearchHits searchHits = searchResponse.getHits();
         ArrayList<Object> orders = new ArrayList<>();
-
         for (SearchHit hit : searchHits) {
-            // Create a JSON representation of each hit and add it to the orders array.
-            Map<String, Object> orderMap =
-                    getNestedObject(hit.getSourceAsMap(), Command.COMMAND, Map.class);
-            // Add document id to the object.
-            orderMap.put("document_id", hit.getId());
-            orders.add(orderMap);
+            Map<String, Object> orderMap = getNestedObject(hit.getSourceAsMap(), Command.COMMAND, Map.class);
+            if (orderMap != null) {
+                orderMap.put("document_id", hit.getId()); // Modifying this map won't affect the original hit data.
+                orders.add(orderMap);
+            }
         }
-
         String payload = null;
         try (XContentBuilder builder = XContentFactory.jsonBuilder()) {
             payload = builder.map(Collections.singletonMap("orders", orders)).toString();
@@ -160,21 +179,21 @@ public class SearchThread implements Runnable {
     @SuppressWarnings("unchecked")
     private void setSentStatus(SearchHit hit) throws IllegalStateException {
         Map<String, Object> commandMap =
-                getNestedObject(
-                        hit.getSourceAsMap(),
-                        CommandManagerPlugin.COMMAND_DOCUMENT_PARENT_OBJECT_NAME,
-                        Map.class);
+            getNestedObject(
+                hit.getSourceAsMap(),
+                CommandManagerPlugin.COMMAND_DOCUMENT_PARENT_OBJECT_NAME,
+                Map.class);
         commandMap.put(Command.STATUS, Status.SENT);
         hit.getSourceAsMap()
-                .put(CommandManagerPlugin.COMMAND_DOCUMENT_PARENT_OBJECT_NAME, commandMap);
+            .put(CommandManagerPlugin.COMMAND_DOCUMENT_PARENT_OBJECT_NAME, commandMap);
         IndexRequest indexRequest =
-                new IndexRequest()
-                        .index(CommandManagerPlugin.COMMAND_MANAGER_INDEX_NAME)
-                        .source(hit.getSourceAsMap())
-                        .id(hit.getId());
+            new IndexRequest()
+                .index(CommandManagerPlugin.COMMAND_MANAGER_INDEX_NAME)
+                .source(hit.getSourceAsMap())
+                .id(hit.getId());
         this.client
-                .index(indexRequest)
-                .actionGet(CommandManagerPlugin.DEFAULT_TIMEOUT_SECONDS * 1000);
+            .index(indexRequest)
+            .actionGet(CommandManagerPlugin.DEFAULT_TIMEOUT_SECONDS * 1000);
     }
 
     /**
