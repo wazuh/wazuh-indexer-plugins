@@ -74,10 +74,12 @@ public class CommandIndex implements IndexingOperationListener {
                         try (ThreadContext.StoredContext ignored =
                                 this.threadPool.getThreadContext().stashContext()) {
                             // Create index template if it does not exist.
-                            if (!indexTemplateExists(
+                            if (!IndexTemplateUtils.indexTemplateExists(
+                                    this.clusterService,
                                     CommandManagerPlugin.COMMAND_MANAGER_INDEX_TEMPLATE_NAME)) {
-                                putIndexTemplate(
-                                        CommandManagerPlugin.COMMAND_MANAGER_INDEX_TEMPLATE_NAME);
+                                IndexTemplateUtils.putIndexTemplate(
+                                    this.client,
+                                    CommandManagerPlugin.COMMAND_MANAGER_INDEX_TEMPLATE_NAME);
                             } else {
                                 log.info(
                                         "Index template {} already exists. Skipping creation.",
@@ -126,9 +128,11 @@ public class CommandIndex implements IndexingOperationListener {
                     try (ThreadContext.StoredContext ignored =
                             this.threadPool.getThreadContext().stashContext()) {
                         // Create index template if it does not exist.
-                        if (!indexTemplateExists(
+                        if (!IndexTemplateUtils.indexTemplateExists(
+                                this.clusterService,
                                 CommandManagerPlugin.COMMAND_MANAGER_INDEX_TEMPLATE_NAME)) {
-                            putIndexTemplate(
+                            IndexTemplateUtils.putIndexTemplate(
+                                    this.client,
                                     CommandManagerPlugin.COMMAND_MANAGER_INDEX_TEMPLATE_NAME);
                         } else {
                             log.info(
@@ -166,7 +170,6 @@ public class CommandIndex implements IndexingOperationListener {
      * @param templateName : The name if the index template to load
      */
     public void putIndexTemplate(String templateName) {
-        ExecutorService executor = this.threadPool.executor(ThreadPool.Names.WRITE);
         try {
             // @throws IOException
             Map<String, Object> template = IndexTemplateUtils.fromFile(templateName + ".json");

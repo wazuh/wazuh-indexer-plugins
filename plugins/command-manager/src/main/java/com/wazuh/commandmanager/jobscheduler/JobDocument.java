@@ -8,11 +8,13 @@
  */
 package com.wazuh.commandmanager.jobscheduler;
 
+import com.wazuh.commandmanager.utils.IndexTemplateUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.opensearch.action.index.IndexRequest;
 import org.opensearch.action.index.IndexResponse;
 import org.opensearch.client.Client;
+import org.opensearch.cluster.service.ClusterService;
 import org.opensearch.common.util.concurrent.ThreadContext;
 import org.opensearch.common.xcontent.json.JsonXContent;
 import org.opensearch.jobscheduler.spi.schedule.IntervalSchedule;
@@ -49,7 +51,7 @@ public class JobDocument {
      * @return a CompletableFuture that will hold the IndexResponse.
      */
     public CompletableFuture<IndexResponse> create(
-            Client client, ThreadPool threadPool, String id, String jobName, Integer interval) {
+        ClusterService clusterService, Client client, ThreadPool threadPool, String id, String jobName, Integer interval) {
         CompletableFuture<IndexResponse> completableFuture = new CompletableFuture<>();
         ExecutorService executorService = threadPool.executor(ThreadPool.Names.WRITE);
         CommandManagerJobParameter jobParameter =
@@ -65,7 +67,14 @@ public class JobDocument {
             executorService.submit(
                     () -> {
                         try (ThreadContext.StoredContext ignored =
-                                threadPool.getThreadContext().stashContext()) {
+                                 threadPool.getThreadContext().stashContext()) {
+                            if (!IndexTemplateUtils.indexTemplateExists(clusterService,CommandManagerPlugin.JOB_INDEX_TEMPLATE_NAME)) {
+                                IndexTemplateUtils.putIndexTemplate(client, CommandManagerPlugin.JOB_INDEX_TEMPLATE_NAME);
+                            } else {
+                                log.info(
+                                    "Index template {} already exists. Skipping creation.",
+                                    CommandManagerPlugin.JOB_INDEX_NAME);
+                            }
                             IndexResponse indexResponse = client.index(indexRequest).actionGet();
                             completableFuture.complete(indexResponse);
                         } catch (Exception e) {
