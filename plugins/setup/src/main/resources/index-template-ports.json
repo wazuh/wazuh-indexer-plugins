@@ -299,6 +299,14 @@
           }
         }
       },
+      "interface": {
+        "properties": {
+          "state": {
+            "ignore_above": 1024,
+            "type": "keyword"
+          }
+        }
+      },
       "network": {
         "properties": {
           "protocol": {
