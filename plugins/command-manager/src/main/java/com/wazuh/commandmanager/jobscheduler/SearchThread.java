@@ -104,11 +104,14 @@ public class SearchThread implements Runnable {
 
         for (SearchHit hit : searchHits) {
             // Create a JSON representation of each hit and add it to the orders array.
-            Map<String, Object> orderMap =
-                    getNestedObject(hit.getSourceAsMap(), Command.COMMAND, Map.class);
+            //Map<String, Object> orderMap =
+            //        getNestedObject(hit.getSourceAsMap(), Command.COMMAND, Map.class);
+            Map<String,Object> origMap = Map.copyOf(hit.getSourceAsMap());
+            //Map<String,Object> orderMap = getNestedObject(origMap,Command.COMMAND,Map.class);
+            Map<String,Object> orderMap = (Map<String, Object>) origMap.get(Command.COMMAND);
             // Add document id to the object.
-            log.info("Adding document_id: {}",hit.getId());
-            orderMap.put("document_id", hit.getId());
+            orderMap.put("document_id_2", hit.getId());
+            log.info("hit: {}", hit.getSourceAsMap());
             orders.add(orderMap);
         }
 
@@ -129,7 +132,6 @@ public class SearchThread implements Runnable {
                     | RestStatus.fromCode(response.getCode()) == RestStatus.ACCEPTED
                     | RestStatus.fromCode(response.getCode()) == RestStatus.OK) {
                 for (SearchHit hit : searchHits) {
-                    log.info("Hit: {}",hit);
                     setSentStatus(hit);
                     log.info("Updating status");
                 }
@@ -163,18 +165,20 @@ public class SearchThread implements Runnable {
      */
     @SuppressWarnings("unchecked")
     private void setSentStatus(SearchHit hit) throws IllegalStateException {
-        Map<String, Object> commandMap =
-                getNestedObject(
-                        hit.getSourceAsMap(),
-                        CommandManagerPlugin.COMMAND_DOCUMENT_PARENT_OBJECT_NAME,
-                        Map.class);
+        //Map<String, Object> commandMap =
+        //        getNestedObject(
+        //                hit.getSourceAsMap(),
+        //                CommandManagerPlugin.COMMAND_DOCUMENT_PARENT_OBJECT_NAME,
+        //                Map.class);
+        Map<String,Object> commandMap = (Map<String,Object>) hit.getSourceAsMap().get(CommandManagerPlugin.COMMAND_DOCUMENT_PARENT_OBJECT_NAME);
         commandMap.put(Command.STATUS, Status.SENT);
-        hit.getSourceAsMap()
-                .put(CommandManagerPlugin.COMMAND_DOCUMENT_PARENT_OBJECT_NAME, commandMap);
+        Map<String, Object> source = new HashMap<>();
+        source = hit.getSourceAsMap();
+        source.put(CommandManagerPlugin.COMMAND_DOCUMENT_PARENT_OBJECT_NAME, commandMap);
         IndexRequest indexRequest =
                 new IndexRequest()
                         .index(CommandManagerPlugin.COMMAND_MANAGER_INDEX_NAME)
-                        .source(hit.getSourceAsMap())
+                        .source(source)
                         .id(hit.getId());
         log.info("Attempting to update STATUS field");
         this.client
