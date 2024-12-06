@@ -54,9 +54,9 @@ import com.wazuh.commandmanager.utils.httpclient.AuthHttpRestClient;
  */
 public class SearchThread implements Runnable {
     public static final String COMMAND_STATUS_FIELD =
-            Command.COMMAND + "." + Command.STATUS + ".keyword";
+            Command.COMMAND + "." + Command.STATUS;
     public static final String COMMAND_ORDER_ID_FIELD =
-            Command.COMMAND + "." + Command.ORDER_ID + ".keyword";
+            Command.COMMAND + "." + Command.ORDER_ID;
     public static final String COMMAND_TIMEOUT_FIELD = Command.COMMAND + "." + Command.TIMEOUT;
     private static final Logger log = LogManager.getLogger(SearchThread.class);
     public static final String ORDERS_OBJECT = "/orders";
@@ -107,6 +107,7 @@ public class SearchThread implements Runnable {
             Map<String, Object> orderMap =
                     getNestedObject(hit.getSourceAsMap(), Command.COMMAND, Map.class);
             // Add document id to the object.
+            log.info("Adding document_id: {}",hit.getId());
             orderMap.put("document_id", hit.getId());
             orders.add(orderMap);
         }
@@ -120,6 +121,7 @@ public class SearchThread implements Runnable {
 
         if (payload != null) {
             SimpleHttpResponse response = deliverOrders(payload);
+            log.info("API request sent");
             if (response == null) {
                 return;
             }
@@ -127,7 +129,9 @@ public class SearchThread implements Runnable {
                     | RestStatus.fromCode(response.getCode()) == RestStatus.ACCEPTED
                     | RestStatus.fromCode(response.getCode()) == RestStatus.OK) {
                 for (SearchHit hit : searchHits) {
+                    log.info("Hit: {}",hit);
                     setSentStatus(hit);
+                    log.info("Updating status");
                 }
             }
         }
@@ -172,9 +176,11 @@ public class SearchThread implements Runnable {
                         .index(CommandManagerPlugin.COMMAND_MANAGER_INDEX_NAME)
                         .source(hit.getSourceAsMap())
                         .id(hit.getId());
+        log.info("Attempting to update STATUS field");
         this.client
                 .index(indexRequest)
                 .actionGet(CommandManagerPlugin.DEFAULT_TIMEOUT_SECONDS * 1000);
+        log.info("Status updated");
     }
 
     /**
@@ -203,9 +209,11 @@ public class SearchThread implements Runnable {
             this.searchSourceBuilder
                     .sort(SearchThread.COMMAND_ORDER_ID_FIELD, SortOrder.ASC)
                     .sort(SearchThread.COMMAND_TIMEOUT_FIELD, SortOrder.ASC);
+            log.info("Sort fields added");
         }
         if (searchAfter.length > 0) {
             this.searchSourceBuilder.searchAfter(searchAfter);
+            log.info("SearchAfter added");
         }
         searchRequest.source(this.searchSourceBuilder);
         return this.client.search(searchRequest).actionGet(timeout);
@@ -218,12 +226,15 @@ public class SearchThread implements Runnable {
         PointInTimeBuilder pointInTimeBuilder = buildPit();
         try {
             do {
+                log.info("Getting current page");
                 this.currentPage =
                         pitQuery(
                                 pointInTimeBuilder,
                                 getSearchAfter(this.currentPage).orElse(new Object[0]));
+                log.info("Pit query run");
                 if (firstPage) {
                     consumableHits = totalHits();
+                    log.info("Total hits: {}",totalHits());
                     firstPage = false;
                 }
                 if (consumableHits > 0) {
@@ -237,6 +248,7 @@ public class SearchThread implements Runnable {
             log.error("IllegalStateException retrieving page: {}", e.getMessage());
         } catch (Exception e) {
             log.error("Generic exception retrieving page: {}", e.getMessage());
+            e.printStackTrace();
         }
     }
 
