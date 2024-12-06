@@ -50,6 +50,7 @@ public class WazuhIndices {
         this.indexTemplates.put("index-template-agent", ".agents");
         this.indexTemplates.put("index-template-alerts", "wazuh-alerts-5.x-0001");
         this.indexTemplates.put("index-template-commands", ".commands");
+        this.indexTemplates.put("index-template-scheduled-commands", ".scheduled-commands");
         this.indexTemplates.put("index-template-fim", "wazuh-states-fim");
         this.indexTemplates.put("index-template-hardware", "wazuh-states-inventory-hardware");
         this.indexTemplates.put("index-template-hotfixes", "wazuh-states-inventory-hotfixes");
