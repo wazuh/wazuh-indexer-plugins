@@ -44,6 +44,7 @@ import java.util.concurrent.ExecutionException;
 
 import com.wazuh.commandmanager.CommandManagerPlugin;
 import com.wazuh.commandmanager.model.Command;
+import com.wazuh.commandmanager.model.Document;
 import com.wazuh.commandmanager.model.Status;
 import com.wazuh.commandmanager.settings.PluginSettings;
 import com.wazuh.commandmanager.utils.httpclient.AuthHttpRestClient;
@@ -58,6 +59,7 @@ public class SearchThread implements Runnable {
     public static final String COMMAND_ORDER_ID_FIELD =
             Command.COMMAND + "." + Command.ORDER_ID;
     public static final String COMMAND_TIMEOUT_FIELD = Command.COMMAND + "." + Command.TIMEOUT;
+    public static final String DELIVERY_TIMESTAMP_FIELD = Document.DELIVERY_TIMESTAMP;
     private static final Logger log = LogManager.getLogger(SearchThread.class);
     public static final String ORDERS_OBJECT = "/orders";
     private final SearchSourceBuilder searchSourceBuilder = new SearchSourceBuilder();
@@ -207,9 +209,7 @@ public class SearchThread implements Runnable {
                 .timeout(timeout)
                 .pointInTimeBuilder(pointInTimeBuilder);
         if (this.searchSourceBuilder.sorts() == null) {
-            this.searchSourceBuilder
-                    .sort(SearchThread.COMMAND_ORDER_ID_FIELD, SortOrder.ASC)
-                    .sort(SearchThread.COMMAND_TIMEOUT_FIELD, SortOrder.ASC);
+            this.searchSourceBuilder.sort(SearchThread.DELIVERY_TIMESTAMP_FIELD, SortOrder.ASC);
         }
         if (searchAfter.length > 0) {
             this.searchSourceBuilder.searchAfter(searchAfter);
