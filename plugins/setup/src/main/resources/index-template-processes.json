@@ -328,6 +328,18 @@
               }
             }
           },
+          "tty": {
+            "properties": {
+              "char_device": {
+                "properties": {
+                  "major": {
+                    "type": "long"
+                  }
+                }
+              }
+            },
+            "type": "object"
+          },
           "user": {
             "properties": {
               "id": {
