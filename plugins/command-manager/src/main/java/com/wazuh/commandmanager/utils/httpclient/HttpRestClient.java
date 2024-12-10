@@ -27,13 +27,16 @@ import org.apache.logging.log4j.Logger;
 
 import javax.net.ssl.SSLContext;
 
+import java.io.File;
 import java.net.URI;
-import java.security.cert.X509Certificate;
+import java.security.AccessController;
+import java.security.PrivilegedAction;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
+import com.wazuh.commandmanager.settings.PluginSettings2;
 import reactor.util.annotation.NonNull;
 import reactor.util.annotation.Nullable;
 
@@ -68,54 +71,44 @@ public class HttpRestClient {
     /** Starts http async client. */
     private void startHttpAsyncClient() {
         if (this.httpClient == null) {
-            try {
-                // Trust standard CA and those trusted by our custom strategy
-                final SSLContext sslContext =
-                        SSLContexts.custom()
-                                // Custom TrustStrategy implementations are intended for
-                                // verification
-                                // of certificates whose CA is not trusted by the system, and where
-                                // specifying
-                                // a custom truststore containing the certificate chain is not an
-                                // option.
-                                .loadTrustMaterial(
-                                        (chain, authType) -> {
-                                            // Please note that validation of the server certificate
-                                            // without validation
-                                            // of the entire certificate chain in this example is
-                                            // preferred to completely
-                                            // disabling trust verification, however this still
-                                            // potentially allows
-                                            // for man-in-the-middle attacks.
-                                            final X509Certificate cert = chain[0];
-                                            return "CN=httpbin.org"
-                                                    .equalsIgnoreCase(
-                                                            cert.getSubjectDN().getName());
-                                        })
-                                .build();
+            log.info("CACert path: {}", PluginSettings2.getWazuhIndexerCACertPath());
+            File caCert = new File(PluginSettings2.getWazuhIndexerCACertPath());
+            AccessController.doPrivileged(
+                    (PrivilegedAction<Void>)
+                            () -> {
+                                try {
+                                    final SSLContext sslContext =
+                                            SSLContexts.custom().loadTrustMaterial(caCert).build();
 
-                final TlsStrategy tlsStrategy =
-                        ClientTlsStrategyBuilder.create().setSslContext(sslContext).build();
+                                    final TlsStrategy tlsStrategy =
+                                            ClientTlsStrategyBuilder.create()
+                                                    .setSslContext(sslContext)
+                                                    .build();
 
-                PoolingAsyncClientConnectionManager cm =
-                        PoolingAsyncClientConnectionManagerBuilder.create()
-                                .setTlsStrategy(tlsStrategy)
-                                .build();
+                                    PoolingAsyncClientConnectionManager cm =
+                                            PoolingAsyncClientConnectionManagerBuilder.create()
+                                                    .setTlsStrategy(tlsStrategy)
+                                                    .build();
 
-                IOReactorConfig ioReactorConfig =
-                        IOReactorConfig.custom().setSoTimeout(Timeout.ofSeconds(5)).build();
+                                    IOReactorConfig ioReactorConfig =
+                                            IOReactorConfig.custom()
+                                                    .setSoTimeout(Timeout.ofSeconds(5))
+                                                    .build();
 
-                httpClient =
-                        HttpAsyncClients.custom()
-                                .setIOReactorConfig(ioReactorConfig)
-                                .setConnectionManager(cm)
-                                .build();
+                                    httpClient =
+                                            HttpAsyncClients.custom()
+                                                    .setIOReactorConfig(ioReactorConfig)
+                                                    .setConnectionManager(cm)
+                                                    .build();
 
-                httpClient.start();
-            } catch (Exception e) {
-                // handle exception
-                log.error("Error starting async Http client {}", e.getMessage());
-            }
+                                    httpClient.start();
+                                } catch (Exception e) {
+                                    // handle exception
+                                    log.error(
+                                            "Error starting async Http client {}", e.getMessage());
+                                }
+                                return null;
+                            });
         }
     }
 

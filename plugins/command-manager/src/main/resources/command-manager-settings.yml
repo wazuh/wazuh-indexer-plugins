@@ -11,5 +11,5 @@
 # Settings file for the command-manager plugin
 command-manager:
   jdk_ca_cert_path: "/home/mcasas/.jdks/temurin-16.0.2/lib/security/cacerts"#"/usr/share/wazuh-indexer/jdk/lib/security/cacerts"
-  wazuh_indexer_ca_cert_path: "$HOME/wazuh/wazuh-indexer-plugins/imposter/wazuh-certificates/root-ca.pem"#"/etc/wazuh-indexer/certs/root-ca.pem"
+  wazuh_indexer_ca_cert_path: "/home/mcasas/Documentos/Proyectos/wazuh-certificates/root-ca.pem"#"/etc/wazuh-indexer/certs/root-ca.pem"
   ca_cert_alias: "wazuh-root-ca"

@@ -14,17 +14,16 @@ import org.opensearch.common.settings.Settings;
 
 import java.io.IOException;
 import java.nio.file.Path;
-import java.security.AccessController;
-import java.security.PrivilegedAction;
 
 public class PluginSettings2 {
     private static final Logger log = LogManager.getLogger(PluginSettings2.class);
 
     private static PluginSettings2 instance;
 
-    public static final String JDK_CA_CERT_PATH = "jdkCACertPath";
-    public static final String WAZUH_INDEXER_CA_CERT_PATH = "wazuhIndexerCACertPath";
-    public static final String CA_CERT_ALIAS = "caCertAlias";
+    public static final String JDK_CA_CERT_PATH = "jdk.ca.cert.path";
+    public static final String WAZUH_INDEXER_CA_CERT_PATH =
+            "plugins.security.ssl.http.pemtrustedcas_filepath";
+    public static final String CA_CERT_ALIAS = "ca.cert.alias";
 
     private static final String DEFAULT_JDK_CA_CERT_PATH =
             "/usr/share/wazuh-indexer/jdk/lib/security/cacerts";
@@ -39,28 +38,27 @@ public class PluginSettings2 {
     /** Private default constructor */
     private PluginSettings2() {
         String configDirName =
-                "/home/mcasas/Documentos/Proyectos/wazuh-indexer-plugins/plugins/command-manager/src/main/resources/command-manager-settings.yml"; // System.getProperty("wazuh.indexer.path.conf");
+                "/home/mcasas/Documentos/Proyectos/wazuh-indexer-plugins/plugins/command-manager/build/testclusters/integTest-0/config/opensearch.yml"; // System.getProperty("wazuh.indexer.path.conf");
         log.info("configDirName: {}", configDirName);
         if (configDirName != null) {
             Path defaultSettingYmlFile = Path.of(configDirName);
             log.info("defaultSettingYmlFile: {}", defaultSettingYmlFile);
 
-            Settings settings =
-                    AccessController.doPrivileged(
-                            (PrivilegedAction<Settings>)
-                                    () -> {
-                                        try {
-                                            return Settings.builder()
-                                                    .loadFromPath(defaultSettingYmlFile)
-                                                    .build();
-                                        } catch (IOException exception) {
-                                            log.warn(
-                                                    "Failed to load settings from {} message:{}",
-                                                    defaultSettingYmlFile.toAbsolutePath(),
-                                                    exception.getMessage());
-                                        }
-                                        return null;
-                                    });
+            Settings settings = null;
+            try {
+                settings = Settings.builder().loadFromPath(defaultSettingYmlFile).build();
+            } catch (IOException exception) {
+                log.warn(
+                        "Failed to load settings from {} message:{}",
+                        defaultSettingYmlFile.toAbsolutePath(),
+                        exception.getMessage());
+            } catch (Exception exception) {
+                log.warn(
+                        "c {} with Exception {}, message:{}",
+                        defaultSettingYmlFile.toAbsolutePath(),
+                        exception.getClass().getName(),
+                        exception.getMessage());
+            }
 
             jdkCACertPath =
                     (settings != null && settings.get(JDK_CA_CERT_PATH) != null)
