@@ -13,16 +13,22 @@ import org.apache.hc.client5.http.impl.async.CloseableHttpAsyncClient;
 import org.apache.hc.client5.http.impl.async.HttpAsyncClients;
 import org.apache.hc.client5.http.impl.nio.PoolingAsyncClientConnectionManager;
 import org.apache.hc.client5.http.impl.nio.PoolingAsyncClientConnectionManagerBuilder;
+import org.apache.hc.client5.http.ssl.ClientTlsStrategyBuilder;
 import org.apache.hc.core5.http.ContentType;
 import org.apache.hc.core5.http.Header;
 import org.apache.hc.core5.http.HttpHost;
+import org.apache.hc.core5.http.nio.ssl.TlsStrategy;
 import org.apache.hc.core5.io.CloseMode;
 import org.apache.hc.core5.reactor.IOReactorConfig;
+import org.apache.hc.core5.ssl.SSLContexts;
 import org.apache.hc.core5.util.Timeout;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import javax.net.ssl.SSLContext;
+
 import java.net.URI;
+import java.security.cert.X509Certificate;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
@@ -63,8 +69,38 @@ public class HttpRestClient {
     private void startHttpAsyncClient() {
         if (this.httpClient == null) {
             try {
+                // Trust standard CA and those trusted by our custom strategy
+                final SSLContext sslContext =
+                        SSLContexts.custom()
+                                // Custom TrustStrategy implementations are intended for
+                                // verification
+                                // of certificates whose CA is not trusted by the system, and where
+                                // specifying
+                                // a custom truststore containing the certificate chain is not an
+                                // option.
+                                .loadTrustMaterial(
+                                        (chain, authType) -> {
+                                            // Please note that validation of the server certificate
+                                            // without validation
+                                            // of the entire certificate chain in this example is
+                                            // preferred to completely
+                                            // disabling trust verification, however this still
+                                            // potentially allows
+                                            // for man-in-the-middle attacks.
+                                            final X509Certificate cert = chain[0];
+                                            return "CN=httpbin.org"
+                                                    .equalsIgnoreCase(
+                                                            cert.getSubjectDN().getName());
+                                        })
+                                .build();
+
+                final TlsStrategy tlsStrategy =
+                        ClientTlsStrategyBuilder.create().setSslContext(sslContext).build();
+
                 PoolingAsyncClientConnectionManager cm =
-                        PoolingAsyncClientConnectionManagerBuilder.create().build();
+                        PoolingAsyncClientConnectionManagerBuilder.create()
+                                .setTlsStrategy(tlsStrategy)
+                                .build();
 
                 IOReactorConfig ioReactorConfig =
                         IOReactorConfig.custom().setSoTimeout(Timeout.ofSeconds(5)).build();

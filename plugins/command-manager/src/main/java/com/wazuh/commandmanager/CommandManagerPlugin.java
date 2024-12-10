@@ -56,6 +56,7 @@ import com.wazuh.commandmanager.jobscheduler.CommandManagerJobRunner;
 import com.wazuh.commandmanager.jobscheduler.JobDocument;
 import com.wazuh.commandmanager.rest.RestPostCommandAction;
 import com.wazuh.commandmanager.settings.PluginSettings;
+import com.wazuh.commandmanager.settings.PluginSettings2;
 import com.wazuh.commandmanager.utils.httpclient.HttpRestClient;
 
 /**
@@ -69,6 +70,7 @@ import com.wazuh.commandmanager.utils.httpclient.HttpRestClient;
  */
 public class CommandManagerPlugin extends Plugin
         implements ActionPlugin, ReloadablePlugin, JobSchedulerExtension {
+    public static final String PLUGIN_NAME = "command-manager";
     public static final String COMMAND_MANAGER_BASE_URI = "/_plugins/_command_manager";
     public static final String COMMANDS_URI = COMMAND_MANAGER_BASE_URI + "/commands";
     public static final String COMMAND_MANAGER_INDEX_NAME = ".commands";
@@ -102,6 +104,7 @@ public class CommandManagerPlugin extends Plugin
             Supplier<RepositoriesService> repositoriesServiceSupplier) {
         this.commandIndex = new CommandIndex(client, clusterService, threadPool);
         PluginSettings.getInstance(environment.settings());
+        PluginSettings2.getInstance();
 
         // JobSchedulerExtension stuff
         CommandManagerJobRunner.getInstance()

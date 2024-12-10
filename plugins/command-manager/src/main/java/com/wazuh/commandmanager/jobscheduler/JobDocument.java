@@ -8,7 +8,6 @@
  */
 package com.wazuh.commandmanager.jobscheduler;
 
-import com.wazuh.commandmanager.utils.IndexTemplateUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.opensearch.action.index.IndexRequest;
@@ -27,6 +26,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
 
 import com.wazuh.commandmanager.CommandManagerPlugin;
+import com.wazuh.commandmanager.utils.IndexTemplateUtils;
 
 /** Indexes the command job to the Jobs index. */
 public class JobDocument {
@@ -51,7 +51,12 @@ public class JobDocument {
      * @return a CompletableFuture that will hold the IndexResponse.
      */
     public CompletableFuture<IndexResponse> create(
-        ClusterService clusterService, Client client, ThreadPool threadPool, String id, String jobName, Integer interval) {
+            ClusterService clusterService,
+            Client client,
+            ThreadPool threadPool,
+            String id,
+            String jobName,
+            Integer interval) {
         CompletableFuture<IndexResponse> completableFuture = new CompletableFuture<>();
         ExecutorService executorService = threadPool.executor(ThreadPool.Names.WRITE);
         CommandManagerJobParameter jobParameter =
@@ -67,13 +72,15 @@ public class JobDocument {
             executorService.submit(
                     () -> {
                         try (ThreadContext.StoredContext ignored =
-                                 threadPool.getThreadContext().stashContext()) {
-                            if (!IndexTemplateUtils.indexTemplateExists(clusterService,CommandManagerPlugin.JOB_INDEX_TEMPLATE_NAME)) {
-                                IndexTemplateUtils.putIndexTemplate(client, CommandManagerPlugin.JOB_INDEX_TEMPLATE_NAME);
+                                threadPool.getThreadContext().stashContext()) {
+                            if (!IndexTemplateUtils.indexTemplateExists(
+                                    clusterService, CommandManagerPlugin.JOB_INDEX_TEMPLATE_NAME)) {
+                                IndexTemplateUtils.putIndexTemplate(
+                                        client, CommandManagerPlugin.JOB_INDEX_TEMPLATE_NAME);
                             } else {
                                 log.info(
-                                    "Index template {} already exists. Skipping creation.",
-                                    CommandManagerPlugin.JOB_INDEX_NAME);
+                                        "Index template {} already exists. Skipping creation.",
+                                        CommandManagerPlugin.JOB_INDEX_NAME);
                             }
                             IndexResponse indexResponse = client.index(indexRequest).actionGet();
                             completableFuture.complete(indexResponse);
