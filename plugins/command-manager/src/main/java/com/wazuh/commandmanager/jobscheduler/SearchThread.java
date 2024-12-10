@@ -54,10 +54,8 @@ import com.wazuh.commandmanager.utils.httpclient.AuthHttpRestClient;
  * submitting them to the destination client.
  */
 public class SearchThread implements Runnable {
-    public static final String COMMAND_STATUS_FIELD =
-            Command.COMMAND + "." + Command.STATUS;
-    public static final String COMMAND_ORDER_ID_FIELD =
-            Command.COMMAND + "." + Command.ORDER_ID;
+    public static final String COMMAND_STATUS_FIELD = Command.COMMAND + "." + Command.STATUS;
+    public static final String COMMAND_ORDER_ID_FIELD = Command.COMMAND + "." + Command.ORDER_ID;
     public static final String COMMAND_TIMEOUT_FIELD = Command.COMMAND + "." + Command.TIMEOUT;
     public static final String DELIVERY_TIMESTAMP_FIELD = Document.DELIVERY_TIMESTAMP;
     private static final Logger log = LogManager.getLogger(SearchThread.class);
@@ -95,10 +93,7 @@ public class SearchThread implements Runnable {
             return type.cast(value);
         } else {
             throw new ClassCastException(
-                "Expected "
-                    + type.getName()
-                    + " but found "
-                    + value.getClass().getName());
+                    "Expected " + type.getName() + " but found " + value.getClass().getName());
         }
     }
 
@@ -114,7 +109,8 @@ public class SearchThread implements Runnable {
         SearchHits searchHits = searchResponse.getHits();
         ArrayList<Object> orders = new ArrayList<>();
         for (SearchHit hit : searchHits) {
-            Map<String, Object> orderMap = getNestedObject(hit.getSourceAsMap(), Command.COMMAND, Map.class);
+            Map<String, Object> orderMap =
+                    getNestedObject(hit.getSourceAsMap(), Command.COMMAND, Map.class);
             if (orderMap != null) {
                 orderMap.put("document_id", hit.getId());
                 orders.add(orderMap);
@@ -169,21 +165,21 @@ public class SearchThread implements Runnable {
     @SuppressWarnings("unchecked")
     private void setSentStatus(SearchHit hit) throws IllegalStateException {
         Map<String, Object> commandMap =
-            getNestedObject(
-                hit.getSourceAsMap(),
-                CommandManagerPlugin.COMMAND_DOCUMENT_PARENT_OBJECT_NAME,
-                Map.class);
+                getNestedObject(
+                        hit.getSourceAsMap(),
+                        CommandManagerPlugin.COMMAND_DOCUMENT_PARENT_OBJECT_NAME,
+                        Map.class);
         commandMap.put(Command.STATUS, Status.SENT);
         hit.getSourceAsMap()
-            .put(CommandManagerPlugin.COMMAND_DOCUMENT_PARENT_OBJECT_NAME, commandMap);
+                .put(CommandManagerPlugin.COMMAND_DOCUMENT_PARENT_OBJECT_NAME, commandMap);
         IndexRequest indexRequest =
-            new IndexRequest()
-                .index(CommandManagerPlugin.COMMAND_MANAGER_INDEX_NAME)
-                .source(hit.getSourceAsMap())
-                .id(hit.getId());
+                new IndexRequest()
+                        .index(CommandManagerPlugin.COMMAND_MANAGER_INDEX_NAME)
+                        .source(hit.getSourceAsMap())
+                        .id(hit.getId());
         this.client
-            .index(indexRequest)
-            .actionGet(CommandManagerPlugin.DEFAULT_TIMEOUT_SECONDS * 1000);
+                .index(indexRequest)
+                .actionGet(CommandManagerPlugin.DEFAULT_TIMEOUT_SECONDS * 1000);
     }
 
     /**

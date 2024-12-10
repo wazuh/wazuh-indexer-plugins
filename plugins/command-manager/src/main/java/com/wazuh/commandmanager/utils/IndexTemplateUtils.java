@@ -8,7 +8,6 @@
  */
 package com.wazuh.commandmanager.utils;
 
-import com.wazuh.commandmanager.index.CommandIndex;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.opensearch.action.admin.indices.template.put.PutIndexTemplateRequest;
@@ -90,7 +89,7 @@ public class IndexTemplateUtils {
      */
     public static boolean indexTemplateExists(ClusterService clusterService, String templateName) {
         Map<String, IndexTemplateMetadata> templates =
-            clusterService.state().metadata().templates();
+                clusterService.state().metadata().templates();
         log.debug("Existing index templates: {} ", templates);
 
         return templates.containsKey(templateName);
@@ -98,6 +97,7 @@ public class IndexTemplateUtils {
 
     /**
      * Inserts an index template
+     *
      * @param templateName : The name if the index template to load
      */
     public static void putIndexTemplate(Client client, String templateName) {
@@ -106,14 +106,14 @@ public class IndexTemplateUtils {
             Map<String, Object> template = IndexTemplateUtils.fromFile(templateName + ".json");
 
             PutIndexTemplateRequest putIndexTemplateRequest =
-                new PutIndexTemplateRequest()
-                    .mapping(IndexTemplateUtils.get(template, "mappings"))
-                    .settings(IndexTemplateUtils.get(template, "settings"))
-                    .name(templateName)
-                    .patterns((List<String>) template.get("index_patterns"));
+                    new PutIndexTemplateRequest()
+                            .mapping(IndexTemplateUtils.get(template, "mappings"))
+                            .settings(IndexTemplateUtils.get(template, "settings"))
+                            .name(templateName)
+                            .patterns((List<String>) template.get("index_patterns"));
 
             AcknowledgedResponse acknowledgedResponse =
-                client.admin().indices().putTemplate(putIndexTemplateRequest).actionGet();
+                    client.admin().indices().putTemplate(putIndexTemplateRequest).actionGet();
             if (acknowledgedResponse.isAcknowledged()) {
                 log.info("Index template [{}] created successfully", templateName);
             }

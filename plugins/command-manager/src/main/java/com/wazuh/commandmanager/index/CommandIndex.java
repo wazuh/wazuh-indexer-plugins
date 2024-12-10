@@ -78,8 +78,8 @@ public class CommandIndex implements IndexingOperationListener {
                                     this.clusterService,
                                     CommandManagerPlugin.COMMAND_MANAGER_INDEX_TEMPLATE_NAME)) {
                                 IndexTemplateUtils.putIndexTemplate(
-                                    this.client,
-                                    CommandManagerPlugin.COMMAND_MANAGER_INDEX_TEMPLATE_NAME);
+                                        this.client,
+                                        CommandManagerPlugin.COMMAND_MANAGER_INDEX_TEMPLATE_NAME);
                             } else {
                                 log.info(
                                         "Index template {} already exists. Skipping creation.",

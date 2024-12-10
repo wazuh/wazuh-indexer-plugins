@@ -13,21 +13,30 @@ import org.apache.hc.client5.http.impl.async.CloseableHttpAsyncClient;
 import org.apache.hc.client5.http.impl.async.HttpAsyncClients;
 import org.apache.hc.client5.http.impl.nio.PoolingAsyncClientConnectionManager;
 import org.apache.hc.client5.http.impl.nio.PoolingAsyncClientConnectionManagerBuilder;
+import org.apache.hc.client5.http.ssl.ClientTlsStrategyBuilder;
 import org.apache.hc.core5.http.ContentType;
 import org.apache.hc.core5.http.Header;
 import org.apache.hc.core5.http.HttpHost;
+import org.apache.hc.core5.http.nio.ssl.TlsStrategy;
 import org.apache.hc.core5.io.CloseMode;
 import org.apache.hc.core5.reactor.IOReactorConfig;
+import org.apache.hc.core5.ssl.SSLContexts;
 import org.apache.hc.core5.util.Timeout;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import javax.net.ssl.SSLContext;
+
+import java.io.File;
 import java.net.URI;
+import java.security.AccessController;
+import java.security.PrivilegedAction;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
+import com.wazuh.commandmanager.settings.PluginSettings2;
 import reactor.util.annotation.NonNull;
 import reactor.util.annotation.Nullable;
 
@@ -62,24 +71,44 @@ public class HttpRestClient {
     /** Starts http async client. */
     private void startHttpAsyncClient() {
         if (this.httpClient == null) {
-            try {
-                PoolingAsyncClientConnectionManager cm =
-                        PoolingAsyncClientConnectionManagerBuilder.create().build();
+            log.info("CACert path: {}", PluginSettings2.getWazuhIndexerCACertPath());
+            File caCert = new File(PluginSettings2.getWazuhIndexerCACertPath());
+            AccessController.doPrivileged(
+                    (PrivilegedAction<Void>)
+                            () -> {
+                                try {
+                                    final SSLContext sslContext =
+                                            SSLContexts.custom().loadTrustMaterial(caCert).build();
 
-                IOReactorConfig ioReactorConfig =
-                        IOReactorConfig.custom().setSoTimeout(Timeout.ofSeconds(5)).build();
+                                    final TlsStrategy tlsStrategy =
+                                            ClientTlsStrategyBuilder.create()
+                                                    .setSslContext(sslContext)
+                                                    .build();
 
-                httpClient =
-                        HttpAsyncClients.custom()
-                                .setIOReactorConfig(ioReactorConfig)
-                                .setConnectionManager(cm)
-                                .build();
+                                    PoolingAsyncClientConnectionManager cm =
+                                            PoolingAsyncClientConnectionManagerBuilder.create()
+                                                    .setTlsStrategy(tlsStrategy)
+                                                    .build();
 
-                httpClient.start();
-            } catch (Exception e) {
-                // handle exception
-                log.error("Error starting async Http client {}", e.getMessage());
-            }
+                                    IOReactorConfig ioReactorConfig =
+                                            IOReactorConfig.custom()
+                                                    .setSoTimeout(Timeout.ofSeconds(5))
+                                                    .build();
+
+                                    httpClient =
+                                            HttpAsyncClients.custom()
+                                                    .setIOReactorConfig(ioReactorConfig)
+                                                    .setConnectionManager(cm)
+                                                    .build();
+
+                                    httpClient.start();
+                                } catch (Exception e) {
+                                    // handle exception
+                                    log.error(
+                                            "Error starting async Http client {}", e.getMessage());
+                                }
+                                return null;
+                            });
         }
     }
 
