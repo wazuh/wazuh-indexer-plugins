@@ -4,7 +4,7 @@
   ],
   "mappings": {
     "date_detection": false,
-    "dynamic": "strict",
+    "dynamic": true,
     "properties": {
       "@timestamp": {
         "type": "date"
