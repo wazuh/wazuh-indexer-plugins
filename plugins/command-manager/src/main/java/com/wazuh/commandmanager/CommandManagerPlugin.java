@@ -56,7 +56,6 @@ import com.wazuh.commandmanager.jobscheduler.CommandManagerJobRunner;
 import com.wazuh.commandmanager.jobscheduler.JobDocument;
 import com.wazuh.commandmanager.rest.RestPostCommandAction;
 import com.wazuh.commandmanager.settings.PluginSettings;
-import com.wazuh.commandmanager.settings.PluginSettings2;
 import com.wazuh.commandmanager.utils.httpclient.HttpRestClient;
 
 /**
@@ -104,7 +103,6 @@ public class CommandManagerPlugin extends Plugin
             Supplier<RepositoriesService> repositoriesServiceSupplier) {
         this.commandIndex = new CommandIndex(client, clusterService, threadPool);
         PluginSettings.getInstance(environment.settings());
-        PluginSettings2.getInstance();
 
         // JobSchedulerExtension stuff
         CommandManagerJobRunner.getInstance()
@@ -168,7 +166,10 @@ public class CommandManagerPlugin extends Plugin
                 // Register API settings
                 PluginSettings.M_API_AUTH_USERNAME,
                 PluginSettings.M_API_AUTH_PASSWORD,
-                PluginSettings.M_API_URI);
+                PluginSettings.M_API_URI,
+                PluginSettings.JDK_CA_CERT_PATH,
+                PluginSettings.CA_CERT_ALIAS,
+                PluginSettings.WAZUH_INDEXER_CA_CERT_PATH);
     }
 
     @Override

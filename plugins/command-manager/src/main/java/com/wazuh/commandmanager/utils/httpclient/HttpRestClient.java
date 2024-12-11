@@ -27,8 +27,8 @@ import org.apache.logging.log4j.Logger;
 
 import javax.net.ssl.SSLContext;
 
-import java.io.File;
 import java.net.URI;
+import java.nio.file.Path;
 import java.security.AccessController;
 import java.security.PrivilegedAction;
 import java.util.concurrent.ExecutionException;
@@ -36,7 +36,7 @@ import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
-import com.wazuh.commandmanager.settings.PluginSettings2;
+import com.wazuh.commandmanager.settings.PluginSettings;
 import reactor.util.annotation.NonNull;
 import reactor.util.annotation.Nullable;
 
@@ -71,8 +71,8 @@ public class HttpRestClient {
     /** Starts http async client. */
     private void startHttpAsyncClient() {
         if (this.httpClient == null) {
-            log.info("CACert path: {}", PluginSettings2.getWazuhIndexerCACertPath());
-            File caCert = new File(PluginSettings2.getWazuhIndexerCACertPath());
+            log.info("CACert path: {}", PluginSettings.getWazuhIndexerCACertPath());
+            Path caCert = Path.of(PluginSettings.getWazuhIndexerCACertPath());
             AccessController.doPrivileged(
                     (PrivilegedAction<Void>)
                             () -> {
