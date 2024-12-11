@@ -1,10 +1,7 @@
 /*
- * Copyright OpenSearch Contributors
- * SPDX-License-Identifier: Apache-2.0
- *
- * The OpenSearch Contributors require contributions made to
- * this file be licensed under the Apache-2.0 license or a
- * compatible open source license.
+ * Copyright (C) 2024 Wazuh
+ * This file is part of Wazuh Indexer Plugins, which are licensed under the AGPLv3.
+ *  See <https://www.gnu.org/licenses/agpl-3.0.txt> for the full text of the license.
  */
 package com.wazuh.commandmanager.index;
 
@@ -78,8 +75,8 @@ public class CommandIndex implements IndexingOperationListener {
                                     this.clusterService,
                                     CommandManagerPlugin.COMMAND_MANAGER_INDEX_TEMPLATE_NAME)) {
                                 IndexTemplateUtils.putIndexTemplate(
-                                    this.client,
-                                    CommandManagerPlugin.COMMAND_MANAGER_INDEX_TEMPLATE_NAME);
+                                        this.client,
+                                        CommandManagerPlugin.COMMAND_MANAGER_INDEX_TEMPLATE_NAME);
                             } else {
                                 log.info(
                                         "Index template {} already exists. Skipping creation.",

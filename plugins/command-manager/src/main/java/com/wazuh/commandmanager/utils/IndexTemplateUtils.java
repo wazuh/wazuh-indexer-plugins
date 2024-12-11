@@ -1,14 +1,10 @@
 /*
- * Copyright OpenSearch Contributors
- * SPDX-License-Identifier: Apache-2.0
- *
- * The OpenSearch Contributors require contributions made to
- * this file be licensed under the Apache-2.0 license or a
- * compatible open source license.
+ * Copyright (C) 2024 Wazuh
+ * This file is part of Wazuh Indexer Plugins, which are licensed under the AGPLv3.
+ *  See <https://www.gnu.org/licenses/agpl-3.0.txt> for the full text of the license.
  */
 package com.wazuh.commandmanager.utils;
 
-import com.wazuh.commandmanager.index.CommandIndex;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.opensearch.action.admin.indices.template.put.PutIndexTemplateRequest;
@@ -90,7 +86,7 @@ public class IndexTemplateUtils {
      */
     public static boolean indexTemplateExists(ClusterService clusterService, String templateName) {
         Map<String, IndexTemplateMetadata> templates =
-            clusterService.state().metadata().templates();
+                clusterService.state().metadata().templates();
         log.debug("Existing index templates: {} ", templates);
 
         return templates.containsKey(templateName);
@@ -98,6 +94,7 @@ public class IndexTemplateUtils {
 
     /**
      * Inserts an index template
+     *
      * @param templateName : The name if the index template to load
      */
     public static void putIndexTemplate(Client client, String templateName) {
@@ -106,14 +103,14 @@ public class IndexTemplateUtils {
             Map<String, Object> template = IndexTemplateUtils.fromFile(templateName + ".json");
 
             PutIndexTemplateRequest putIndexTemplateRequest =
-                new PutIndexTemplateRequest()
-                    .mapping(IndexTemplateUtils.get(template, "mappings"))
-                    .settings(IndexTemplateUtils.get(template, "settings"))
-                    .name(templateName)
-                    .patterns((List<String>) template.get("index_patterns"));
+                    new PutIndexTemplateRequest()
+                            .mapping(IndexTemplateUtils.get(template, "mappings"))
+                            .settings(IndexTemplateUtils.get(template, "settings"))
+                            .name(templateName)
+                            .patterns((List<String>) template.get("index_patterns"));
 
             AcknowledgedResponse acknowledgedResponse =
-                client.admin().indices().putTemplate(putIndexTemplateRequest).actionGet();
+                    client.admin().indices().putTemplate(putIndexTemplateRequest).actionGet();
             if (acknowledgedResponse.isAcknowledged()) {
                 log.info("Index template [{}] created successfully", templateName);
             }
