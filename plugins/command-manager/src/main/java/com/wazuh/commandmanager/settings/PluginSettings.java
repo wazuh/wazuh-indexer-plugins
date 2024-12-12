@@ -69,13 +69,13 @@ public class PluginSettings {
     private final SecureString uri;
 
     /** The path where is located the JDK CA certificate. */
-    private static String jdkCACertPath;
+    private final String jdkCACertPath;
 
     /** The path where is located the wazuh indexer CA certificate. */
     private static String wazuhIndexerCACertPath;
 
     /** The alias of wazuh indexer CA certificate. */
-    private static String caCertAlias;
+    private final String caCertAlias;
 
     /** Private default constructor */
     private PluginSettings(@NonNull final Settings settings) {
@@ -90,12 +90,16 @@ public class PluginSettings {
                         ? String.valueOf(settings.get(String.valueOf(JDK_CA_CERT_PATH)))
                         : DEFAULT_JDK_CA_CERT_PATH;
 
-        this.wazuhIndexerCACertPath =
+        wazuhIndexerCACertPath =
+                (settings != null
+                                && settings.get(String.valueOf(WAZUH_INDEXER_CA_CERT_PATH)) != null)
+                        ? String.valueOf(settings.get(String.valueOf(WAZUH_INDEXER_CA_CERT_PATH)))
+                        : DEFAULT_WAZUH_INDEXER_CA_CERT_PATH;
+
+        this.caCertAlias =
                 (settings != null && settings.get(String.valueOf(CA_CERT_ALIAS)) != null)
                         ? String.valueOf(settings.get(String.valueOf(CA_CERT_ALIAS)))
                         : DEFAULT_CA_CERT_ALIAS;
-
-        this.caCertAlias = CA_CERT_ALIAS.get(settings);
     }
 
     /**
@@ -138,16 +142,16 @@ public class PluginSettings {
         return new URIBuilder(getUri()).setPath(path).build().toString();
     }
 
-    public static String getJdkCACertPath() {
-        return jdkCACertPath;
+    public String getJdkCACertPath() {
+        return this.jdkCACertPath;
     }
 
     public static String getWazuhIndexerCACertPath() {
         return wazuhIndexerCACertPath;
     }
 
-    public static String getCaCertAlias() {
-        return caCertAlias;
+    public String getCaCertAlias() {
+        return this.caCertAlias;
     }
 
     @Override
