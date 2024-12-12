@@ -86,19 +86,18 @@ public class PluginSettings {
         this.uri = M_API_URI.get(settings);
 
         this.jdkCACertPath =
-                (settings != null && settings.get(String.valueOf(JDK_CA_CERT_PATH)) != null)
-                        ? String.valueOf(settings.get(String.valueOf(JDK_CA_CERT_PATH)))
+                (settings != null && JDK_CA_CERT_PATH.get(settings) != null)
+                        ? JDK_CA_CERT_PATH.get(settings)
                         : DEFAULT_JDK_CA_CERT_PATH;
 
-        wazuhIndexerCACertPath =
-                (settings != null
-                                && settings.get(String.valueOf(WAZUH_INDEXER_CA_CERT_PATH)) != null)
-                        ? String.valueOf(settings.get(String.valueOf(WAZUH_INDEXER_CA_CERT_PATH)))
+        this.wazuhIndexerCACertPath =
+                (settings != null && WAZUH_INDEXER_CA_CERT_PATH.get(settings) != null)
+                        ? WAZUH_INDEXER_CA_CERT_PATH.get(settings)
                         : DEFAULT_WAZUH_INDEXER_CA_CERT_PATH;
 
         this.caCertAlias =
-                (settings != null && settings.get(String.valueOf(CA_CERT_ALIAS)) != null)
-                        ? String.valueOf(settings.get(String.valueOf(CA_CERT_ALIAS)))
+                (settings != null && CA_CERT_ALIAS.get(settings) != null)
+                        ? CA_CERT_ALIAS.get(settings)
                         : DEFAULT_CA_CERT_ALIAS;
     }
 

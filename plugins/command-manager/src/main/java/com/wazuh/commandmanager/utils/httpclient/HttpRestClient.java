@@ -70,6 +70,7 @@ public class HttpRestClient {
 
     /** Starts http async client. */
     private void startHttpAsyncClient() {
+        System.out.println("User: " + System.getProperty("user.name"));
         if (this.httpClient == null) {
             log.info("CACert path: {}", PluginSettings.getWazuhIndexerCACertPath());
             Path caCert = Path.of(PluginSettings.getWazuhIndexerCACertPath());
