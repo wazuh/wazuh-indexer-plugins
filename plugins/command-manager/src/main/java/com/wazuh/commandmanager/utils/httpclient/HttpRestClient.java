@@ -74,42 +74,47 @@ public class HttpRestClient {
         if (this.httpClient == null) {
             log.info("CACert path: {}", PluginSettings.getWazuhIndexerCACertPath());
             Path caCert = Path.of(PluginSettings.getWazuhIndexerCACertPath());
-            AccessController.doPrivileged(
-                    (PrivilegedAction<Void>)
-                            () -> {
-                                try {
-                                    final SSLContext sslContext =
-                                            SSLContexts.custom().loadTrustMaterial(caCert).build();
+            this.httpClient =
+                    AccessController.doPrivileged(
+                            (PrivilegedAction<CloseableHttpAsyncClient>)
+                                    () -> {
+                                        try {
+                                            final SSLContext sslContext =
+                                                    SSLContexts.custom()
+                                                            .loadTrustMaterial(caCert)
+                                                            .build();
 
-                                    final TlsStrategy tlsStrategy =
-                                            ClientTlsStrategyBuilder.create()
-                                                    .setSslContext(sslContext)
-                                                    .build();
+                                            final TlsStrategy tlsStrategy =
+                                                    ClientTlsStrategyBuilder.create()
+                                                            .setSslContext(sslContext)
+                                                            .build();
 
-                                    PoolingAsyncClientConnectionManager cm =
-                                            PoolingAsyncClientConnectionManagerBuilder.create()
-                                                    .setTlsStrategy(tlsStrategy)
-                                                    .build();
+                                            PoolingAsyncClientConnectionManager cm =
+                                                    PoolingAsyncClientConnectionManagerBuilder
+                                                            .create()
+                                                            .setTlsStrategy(tlsStrategy)
+                                                            .build();
 
-                                    IOReactorConfig ioReactorConfig =
-                                            IOReactorConfig.custom()
-                                                    .setSoTimeout(Timeout.ofSeconds(5))
-                                                    .build();
+                                            IOReactorConfig ioReactorConfig =
+                                                    IOReactorConfig.custom()
+                                                            .setSoTimeout(Timeout.ofSeconds(5))
+                                                            .build();
 
-                                    httpClient =
-                                            HttpAsyncClients.custom()
-                                                    .setIOReactorConfig(ioReactorConfig)
-                                                    .setConnectionManager(cm)
-                                                    .build();
+                                            httpClient =
+                                                    HttpAsyncClients.custom()
+                                                            .setIOReactorConfig(ioReactorConfig)
+                                                            .setConnectionManager(cm)
+                                                            .build();
 
-                                    httpClient.start();
-                                } catch (Exception e) {
-                                    // handle exception
-                                    log.error(
-                                            "Error starting async Http client {}", e.getMessage());
-                                }
-                                return null;
-                            });
+                                            httpClient.start();
+                                        } catch (Exception e) {
+                                            // handle exception
+                                            log.error(
+                                                    "Error starting async Http client {}",
+                                                    e.getMessage());
+                                        }
+                                        return httpClient;
+                                    });
         }
     }
 
@@ -117,8 +122,8 @@ public class HttpRestClient {
     public void stopHttpAsyncClient() {
         if (this.httpClient != null) {
             log.info("Shutting down.");
-            httpClient.close(CloseMode.GRACEFUL);
-            httpClient = null;
+            this.httpClient.close(CloseMode.GRACEFUL);
+            this.httpClient = null;
         }
     }
 

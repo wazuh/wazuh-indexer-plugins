@@ -180,7 +180,7 @@ testClusters.integTest {
     keystore 'm_api.auth.password', 'test'
     keystore 'm_api.uri', 'https://127.0.0.1:55000' // base URI of the M_API
     setting 'jdk.ca.cert.path', '$HOME/.jdks/temurin-16.0.2/lib/security/cacerts'
-    setting 'ssl.http.pemtrustedcas_filepath', '/home/mcasas/Documentos/Proyectos/wazuh-certificates/root-ca.pem';
+    setting 'ssl.http.pemtrustedcas_filepath', '/home/mcasas/Documentos/Proyectos/wazuh-certificates/root-ca.p12';
     setting 'ca.cert.alias', 'wazuh-root-ca'
 }
 
