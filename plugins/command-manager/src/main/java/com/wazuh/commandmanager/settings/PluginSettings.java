@@ -54,7 +54,7 @@ public class PluginSettings {
 
     /** The default value to path where is located the wazuh indexer CA certificate. */
     private static final String DEFAULT_WAZUH_INDEXER_CA_CERT_PATH =
-            "/usr/share/wazuh-indexer/config/certs/root-ca.pem"; // "/etc/wazuh-indexer/certs/root-ca.pem";
+            "/etc/wazuh-indexer/certs/root-ca.pem";
 
     /** The default value to alias of wazuh indexer CA certificate. */
     private static final String DEFAULT_CA_CERT_ALIAS = "wazuh-root-ca";

@@ -79,9 +79,10 @@ public class HttpRestClient {
                             (PrivilegedAction<CloseableHttpAsyncClient>)
                                     () -> {
                                         try {
+                                            char[] pass = new char[] {'1', '2', '3', '4'};
                                             final SSLContext sslContext =
                                                     SSLContexts.custom()
-                                                            .loadTrustMaterial(caCert)
+                                                            .loadTrustMaterial(caCert, pass)
                                                             .build();
 
                                             final TlsStrategy tlsStrategy =
