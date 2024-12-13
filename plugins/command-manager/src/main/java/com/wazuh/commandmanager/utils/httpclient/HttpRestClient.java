@@ -27,13 +27,11 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URI;
-import java.security.KeyManagementException;
-import java.security.KeyStore;
-import java.security.KeyStoreException;
-import java.security.NoSuchAlgorithmException;
+import java.security.*;
 import java.security.cert.CertificateException;
 import java.security.cert.CertificateFactory;
 import java.security.cert.X509Certificate;
@@ -76,10 +74,48 @@ public class HttpRestClient {
         return HttpRestClient.instance;
     }
 
+    private InputStream loadFileWithPrivileges(String path) {
+        // AccessController.doPrivileged(
+        //    (PrivilegedAction<InputStream>)
+        //        () -> {
+        //            try (InputStream inputStream = new FileInputStream(path)){
+        //                return inputStream;
+        //            } catch (FileNotFoundException e) {
+        //                log.error("File {} not found: {}", path, e.getMessage());
+        //            } catch (IOException e) {
+        //                log.error("IOException: {}", e.getMessage());
+        //            }
+        //            return null;
+        //        }
+        //);
+        //return null;
+
+        //return AccessController.doPrivileged(
+        //    (PrivilegedAction<FileInputStream>) () -> {
+        //        try {
+        //            return new FileInputStream(path);
+        //        } catch (FileNotFoundException e) {
+        //            log.error("File {} not found: {}", path, e.getMessage());
+        //        } catch (SecurityException e) {
+        //            log.error("Security exception on {}: {}", path, e.getMessage());
+        //        }
+        //        return null;
+        //    }
+        //);
+        try {
+            return AccessController.doPrivileged(
+                (PrivilegedExceptionAction<FileInputStream>) () -> new FileInputStream(path)
+            );
+        } catch (PrivilegedActionException e) {
+            log.error("Privileged Action exception on {}: {}", path, e.getMessage());
+        }
+        return null;
+    }
+
     private TlsStrategy loadPEMCert(String cACertPath) {
         try (
             // Load the pem CA file
-            InputStream pemInputStream =  new FileInputStream(cACertPath);
+            InputStream pemInputStream = loadFileWithPrivileges(cACertPath);
         ) {
             CertificateFactory factory = CertificateFactory.getInstance("X.509");
             X509Certificate certificate = (X509Certificate) factory.generateCertificate(pemInputStream);
@@ -127,6 +163,7 @@ public class HttpRestClient {
             } catch (Exception e) {
                 // handle exception
                 log.error("Error starting async Http client {}", e.getMessage());
+                e.printStackTrace();
             }
         }
     }
