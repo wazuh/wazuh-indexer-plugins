@@ -8,28 +8,45 @@
  */
 package com.wazuh.commandmanager.utils.httpclient;
 
+import com.wazuh.commandmanager.settings.PluginSettings;
 import org.apache.hc.client5.http.async.methods.*;
 import org.apache.hc.client5.http.impl.async.CloseableHttpAsyncClient;
 import org.apache.hc.client5.http.impl.async.HttpAsyncClients;
 import org.apache.hc.client5.http.impl.nio.PoolingAsyncClientConnectionManager;
 import org.apache.hc.client5.http.impl.nio.PoolingAsyncClientConnectionManagerBuilder;
+import org.apache.hc.client5.http.ssl.ClientTlsStrategyBuilder;
 import org.apache.hc.core5.http.ContentType;
 import org.apache.hc.core5.http.Header;
 import org.apache.hc.core5.http.HttpHost;
+import org.apache.hc.core5.http.nio.ssl.TlsStrategy;
 import org.apache.hc.core5.io.CloseMode;
 import org.apache.hc.core5.reactor.IOReactorConfig;
+import org.apache.hc.core5.ssl.SSLContextBuilder;
 import org.apache.hc.core5.util.Timeout;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import java.io.FileInputStream;
+import java.io.IOException;
+import java.io.InputStream;
 import java.net.URI;
+import java.security.KeyManagementException;
+import java.security.KeyStore;
+import java.security.KeyStoreException;
+import java.security.NoSuchAlgorithmException;
+import java.security.cert.CertificateException;
+import java.security.cert.CertificateFactory;
+import java.security.cert.X509Certificate;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
+import org.opensearch.plugins.Plugin;
 import reactor.util.annotation.NonNull;
 import reactor.util.annotation.Nullable;
+
+import javax.net.ssl.SSLContext;
 
 /** HTTP Rest client. Currently used to perform POST requests against the Wazuh Server. */
 public class HttpRestClient {
@@ -59,12 +76,44 @@ public class HttpRestClient {
         return HttpRestClient.instance;
     }
 
+    private TlsStrategy loadPEMCert(String cACertPath) {
+        try (
+            // Load the pem CA file
+            InputStream pemInputStream =  new FileInputStream(cACertPath);
+        ) {
+            CertificateFactory factory = CertificateFactory.getInstance("X.509");
+            X509Certificate certificate = (X509Certificate) factory.generateCertificate(pemInputStream);
+            // Create a keystore to insert the CA cert
+            KeyStore keyStore = KeyStore.getInstance(KeyStore.getDefaultType());
+            keyStore.load(null,null);
+            keyStore.setCertificateEntry("custom-ca", certificate);
+
+            SSLContextBuilder sslContextBuilder = SSLContextBuilder.create();
+            SSLContext sslContext = sslContextBuilder.loadTrustMaterial(keyStore,null).build();
+
+            return ClientTlsStrategyBuilder.create()
+                .setSslContext(sslContext)
+                .build();
+            //@ToDo: Handle exceptions better
+        } catch (CertificateException | NoSuchAlgorithmException | IOException | KeyStoreException |
+                 KeyManagementException e) {
+            log.error(e.getMessage());
+        }
+        return null;
+    }
+
     /** Starts http async client. */
     private void startHttpAsyncClient() {
         if (this.httpClient == null) {
             try {
                 PoolingAsyncClientConnectionManager cm =
-                        PoolingAsyncClientConnectionManagerBuilder.create().build();
+                        PoolingAsyncClientConnectionManagerBuilder.create()
+                            .setTlsStrategy(
+                                loadPEMCert(
+                                    PluginSettings.getInstance().getWazuhIndexerCACertPath()
+                                )
+                            )
+                            .build();
 
                 IOReactorConfig ioReactorConfig =
                         IOReactorConfig.custom().setSoTimeout(Timeout.ofSeconds(5)).build();
@@ -74,7 +123,6 @@ public class HttpRestClient {
                                 .setIOReactorConfig(ioReactorConfig)
                                 .setConnectionManager(cm)
                                 .build();
-
                 httpClient.start();
             } catch (Exception e) {
                 // handle exception

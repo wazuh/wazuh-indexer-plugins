@@ -34,6 +34,12 @@ public class PluginSettings {
     public static final Setting<SecureString> M_API_URI =
             SecureSetting.secureString("m_api.uri", null);
 
+    public static final Setting<String> WAZUH_INDEXER_CA_CERT_PATH =
+        Setting.simpleString("ssl.http.pemtrustedcas_filepath", Setting.Property.NodeScope);
+
+    private static final Setting<String> DEFAULT_WAZUH_INDEXER_CA_CERT_PATH =
+        Setting.simpleString("/usr/share/wazuh-indexer/config/certs/root-ca.pem");
+
     private static final Logger log = LogManager.getLogger(PluginSettings.class);
     private static PluginSettings instance;
 
@@ -46,6 +52,8 @@ public class PluginSettings {
     /** The uri for connecting to api. */
     private final SecureString uri;
 
+    private final String wazuhIndexerCACertPath;
+
     /** Private default constructor */
     private PluginSettings(@NonNull final Settings settings) {
         log.info("Plugin created with the keystore information.");
@@ -53,6 +61,11 @@ public class PluginSettings {
         this.authUsername = M_API_AUTH_USERNAME.get(settings);
         this.authPassword = M_API_AUTH_PASSWORD.get(settings);
         this.uri = M_API_URI.get(settings);
+        //this.wazuhIndexerCACertPath =
+        //    (settings != null && WAZUH_INDEXER_CA_CERT_PATH.get(settings) != null)
+        //        ? WAZUH_INDEXER_CA_CERT_PATH.get(settings)
+        //        : DEFAULT_WAZUH_INDEXER_CA_CERT_PATH.get(settings);
+        this.wazuhIndexerCACertPath = WAZUH_INDEXER_CA_CERT_PATH.get(settings);
     }
 
     /**
@@ -95,18 +108,17 @@ public class PluginSettings {
         return new URIBuilder(getUri()).setPath(path).build().toString();
     }
 
+    public String getWazuhIndexerCACertPath() {
+        return wazuhIndexerCACertPath;
+    }
+
     @Override
     public String toString() {
-        return "PluginSettings{"
-                + "authUsername='"
-                + getAuthUsername()
-                + '\''
-                + ", authPassword='"
-                + getAuthUsername()
-                + '\''
-                + ", uri='"
-                + getUri()
-                + '\''
-                + '}';
+        return "PluginSettings{" +
+            "authPassword=" + authPassword +
+            ", authUsername=" + authUsername +
+            ", uri=" + uri +
+            ", wazuhIndexerCACertPath='" + wazuhIndexerCACertPath + '\'' +
+            '}';
     }
 }

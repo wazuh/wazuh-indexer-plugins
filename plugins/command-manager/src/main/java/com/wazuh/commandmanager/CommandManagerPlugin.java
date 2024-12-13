@@ -165,7 +165,9 @@ public class CommandManagerPlugin extends Plugin
                 // Register API settings
                 PluginSettings.M_API_AUTH_USERNAME,
                 PluginSettings.M_API_AUTH_PASSWORD,
-                PluginSettings.M_API_URI);
+                PluginSettings.M_API_URI,
+                PluginSettings.WAZUH_INDEXER_CA_CERT_PATH
+            );
     }
 
     @Override
