@@ -53,6 +53,8 @@ public class PluginSettings {
         this.authUsername = M_API_AUTH_USERNAME.get(settings);
         this.authPassword = M_API_AUTH_PASSWORD.get(settings);
         this.uri = M_API_URI.get(settings);
+        log.info("[SETTINGS] Username: {}", this.authUsername);
+        log.info("[SETTINGS] URI: {}", this.uri);
     }
 
     /**
