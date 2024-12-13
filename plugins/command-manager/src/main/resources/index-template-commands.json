@@ -6,6 +6,9 @@
     "date_detection": false,
     "dynamic": "strict",
     "properties": {
+      "@timestamp": {
+        "type": "date"
+      },
       "agent": {
         "properties": {
           "groups": {
@@ -83,6 +86,9 @@
             "type": "keyword"
           }
         }
+      },
+      "delivery_timestamp": {
+        "type": "date"
       }
     }
   },

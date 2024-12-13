@@ -16,6 +16,7 @@ import org.opensearch.core.xcontent.XContentParser;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.List;
 
 import reactor.util.annotation.NonNull;
 
@@ -59,6 +60,15 @@ public class Command implements ToXContentObject {
         this.user = user;
         this.action = action;
         this.status = Status.PENDING;
+    }
+
+    /**
+     * Retrieves the timeout value for this command.
+     *
+     * @return the timeout value in milliseconds.
+     */
+    public Integer getTimeout() {
+        return this.timeout;
     }
 
     /**
@@ -125,6 +135,16 @@ public class Command implements ToXContentObject {
         } else {
             return new Command(source, target, timeout, user, action);
         }
+    }
+
+    public static List<Command> parseToArray(XContentParser parser)
+            throws IOException, IllegalArgumentException {
+        List<Command> commands = new ArrayList<>();
+        while (parser.nextToken() != XContentParser.Token.END_ARRAY) {
+            Command command = Command.parse(parser);
+            commands.add(command);
+        }
+        return commands;
     }
 
     @Override
