@@ -23,28 +23,28 @@ import reactor.util.annotation.NonNull;
 public class PluginSettings {
 
     /** The access key (ie login username) for connecting to api. */
-    public static final Setting<SecureString> M_API_AUTH_USERNAME =
-            SecureSetting.secureString("m_api.auth.username", null);
+    public static final Setting<String> M_API_AUTH_USERNAME =
+            Setting.simpleString("m_api.auth.username", Setting.Property.NodeScope, Setting.Property.Filtered);
 
     /** The secret key (ie password) for connecting to api. */
-    public static final Setting<SecureString> M_API_AUTH_PASSWORD =
-            SecureSetting.secureString("m_api.auth.password", null);
+    public static final Setting<String> M_API_AUTH_PASSWORD =
+            Setting.simpleString("m_api.auth.password", Setting.Property.NodeScope, Setting.Property.Filtered);
 
     /** The uri for connecting to api. */
-    public static final Setting<SecureString> M_API_URI =
-            SecureSetting.secureString("m_api.uri", null);
+    public static final Setting<String> M_API_URI =
+            Setting.simpleString("m_api.uri", Setting.Property.NodeScope, Setting.Property.Filtered);
 
     private static final Logger log = LogManager.getLogger(PluginSettings.class);
     private static PluginSettings instance;
 
     /** The access key (ie login username) for connecting to api. */
-    private final SecureString authUsername;
+    private final String authUsername;
 
     /** The password for connecting to api. */
-    private final SecureString authPassword;
+    private final String authPassword;
 
     /** The uri for connecting to api. */
-    private final SecureString uri;
+    private final String uri;
 
     /** Private default constructor */
     private PluginSettings(@NonNull final Settings settings) {
