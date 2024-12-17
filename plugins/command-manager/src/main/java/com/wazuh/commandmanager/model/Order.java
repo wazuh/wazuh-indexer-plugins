@@ -16,6 +16,9 @@
  */
 package com.wazuh.commandmanager.model;
 
+import org.opensearch.core.xcontent.ToXContent;
+import org.opensearch.core.xcontent.ToXContentObject;
+import org.opensearch.core.xcontent.XContentBuilder;
 import org.opensearch.core.xcontent.XContentParser;
 
 import java.io.IOException;
@@ -23,7 +26,7 @@ import java.util.ArrayList;
 
 import reactor.util.annotation.NonNull;
 
-public class Order {
+public class Order implements ToXContentObject {
     public static final String SOURCE = "source";
     public static final String USER = "user";
     public static final String DOCUMENT_ID = "document_id";
@@ -31,7 +34,7 @@ public class Order {
     private final Target target;
     private final String user;
     private final Action action;
-    private final String document_id;
+    private String document_id;
 
     /**
      * Default constructor
@@ -45,13 +48,15 @@ public class Order {
             @NonNull String source,
             @NonNull Target target,
             @NonNull String user,
-            @NonNull Action action,
-            @NonNull String document_id) {
+            @NonNull Action action) {
         this.source = source;
         this.target = target;
         this.user = user;
         this.action = action;
-        this.document_id = document_id;
+    }
+
+    public void setDocumentId(String documentId) {
+        this.document_id = documentId;
     }
 
     /**
@@ -67,7 +72,6 @@ public class Order {
         Target target = null;
         String user = null;
         Action action = null;
-        String document_id = null;
 
         while (parser.nextToken() != XContentParser.Token.END_OBJECT) {
             String fieldName = parser.currentName();
@@ -91,9 +95,6 @@ public class Order {
                 case Action.ACTION:
                     action = Action.parse(parser);
                     break;
-                case DOCUMENT_ID:
-                    document_id = parser.text();
-                    break;
                 default:
                     parser.skipChildren();
                     break;
@@ -113,15 +114,25 @@ public class Order {
         if (action == null) {
             nullArguments.add("action");
         }
-        if (document_id == null) {
-            nullArguments.add("document_id");
-        }
 
         if (!nullArguments.isEmpty()) {
             throw new IllegalArgumentException("Missing arguments: " + nullArguments);
         } else {
-            return new Order(source, target, user, action, document_id);
+            return new Order(source, target, user, action);
         }
+    }
+
+    @Override
+    public XContentBuilder toXContent(XContentBuilder builder, ToXContent.Params params)
+            throws IOException {
+        builder.startObject();
+        builder.field(SOURCE, this.source);
+        builder.field(USER, this.user);
+        this.target.toXContent(builder, ToXContent.EMPTY_PARAMS);
+        this.action.toXContent(builder, ToXContent.EMPTY_PARAMS);
+        builder.field(DOCUMENT_ID, this.document_id);
+
+        return builder.endObject();
     }
 
     @Override

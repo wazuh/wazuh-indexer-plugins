@@ -126,17 +126,17 @@ public class SearchThread implements Runnable {
                                 DeprecationHandler.IGNORE_DEPRECATIONS,
                                 hit.getSourceRef().streamInput());
                 Order order = Order.parse(parser);
-
+                order.setDocumentId(hit.getId());
             } catch (IOException e) {
                 throw new RuntimeException(e);
             }
 
-            Map<String, Object> orderMap =
-                    getNestedObject(hit.getSourceAsMap(), Command.COMMAND, Map.class);
-            if (orderMap != null) {
-                orderMap.put("document_id", hit.getId());
-                orders.add(orderMap);
-            }
+            //Map<String, Object> orderMap =
+            //        getNestedObject(hit.getSourceAsMap(), Command.COMMAND, Map.class);
+            //if (orderMap != null) {
+            //    orderMap.put("document_id", hit.getId());
+            //    orders.add(orderMap);
+            //}
         }
         String payload = null;
         try (XContentBuilder builder = XContentFactory.jsonBuilder()) {
