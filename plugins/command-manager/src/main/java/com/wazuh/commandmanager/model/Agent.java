@@ -39,9 +39,11 @@ public class Agent implements ToXContentObject {
     }
 
     /**
-     * @param parser
-     * @return
-     * @throws IOException
+     * Parses data from an XContentParser into this model.
+     *
+     * @param parser xcontent parser.
+     * @return initialized instance of Agent.
+     * @throws IOException parsing error occurred.
      */
     public static Agent parse(XContentParser parser) throws IOException {
         List<Object> groups = List.of();

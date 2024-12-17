@@ -63,15 +63,18 @@ import com.wazuh.commandmanager.utils.httpclient.AuthHttpRestClient;
  */
 public class SearchThread implements Runnable {
     public static final String COMMAND_STATUS_FIELD = Command.COMMAND + "." + Command.STATUS;
-    public static final String COMMAND_ORDER_ID_FIELD = Command.COMMAND + "." + Command.ORDER_ID;
-    public static final String COMMAND_TIMEOUT_FIELD = Command.COMMAND + "." + Command.TIMEOUT;
     public static final String DELIVERY_TIMESTAMP_FIELD = Document.DELIVERY_TIMESTAMP;
     private static final Logger log = LogManager.getLogger(SearchThread.class);
-    public static final String ORDERS_OBJECT = "/orders";
+    public static final String ORDERS_ENDPOINT = "/orders";
     private final SearchSourceBuilder searchSourceBuilder = new SearchSourceBuilder();
     private final Client client;
     private SearchResponse currentPage = null;
 
+    /**
+     * Default constructor.
+     *
+     * @param client OpenSearch's client.
+     */
     public SearchThread(Client client) {
         this.client = client;
     }
@@ -124,25 +127,25 @@ public class SearchThread implements Runnable {
                 orders.add(orderMap);
             }
         }
-        String payload = null;
         try (XContentBuilder builder = XContentFactory.jsonBuilder()) {
-            payload = builder.map(Collections.singletonMap("orders", orders)).toString();
-        } catch (IOException e) {
-            log.error("Error parsing hit contents: {}", e.getMessage());
-        }
+            String payload = builder.map(Collections.singletonMap("orders", orders)).toString();
 
-        if (payload != null) {
             SimpleHttpResponse response = deliverOrders(payload);
             if (response == null) {
+                log.error("No reply from server.");
                 return;
             }
-            if (RestStatus.fromCode(response.getCode()) == RestStatus.CREATED
-                    | RestStatus.fromCode(response.getCode()) == RestStatus.ACCEPTED
-                    | RestStatus.fromCode(response.getCode()) == RestStatus.OK) {
-                for (SearchHit hit : searchHits) {
-                    setSentStatus(hit);
-                }
+            log.info("Server replied with {}. Updating orders' status.", response.getCode());
+            Status status = Status.FAILURE;
+            if (List.of(RestStatus.CREATED, RestStatus.ACCEPTED, RestStatus.OK)
+                    .contains(RestStatus.fromCode(response.getCode()))) {
+                status = Status.SENT;
             }
+            for (SearchHit hit : searchHits) {
+                setSentStatus(hit, status);
+            }
+        } catch (IOException e) {
+            log.error("Error parsing hit contents: {}", e.getMessage());
         }
     }
 
@@ -152,16 +155,24 @@ public class SearchThread implements Runnable {
      * @param orders The list of order to send.
      */
     private SimpleHttpResponse deliverOrders(String orders) {
+        SimpleHttpResponse response = null;
         try {
             PluginSettings settings = PluginSettings.getInstance();
-            URI uri = new URIBuilder(settings.getUri() + SearchThread.ORDERS_OBJECT).build();
-            return AccessController.doPrivileged(
-                    (PrivilegedAction<SimpleHttpResponse>)
-                            () -> AuthHttpRestClient.getInstance().post(uri, orders, null));
+            URI host = new URIBuilder(settings.getUri() + SearchThread.ORDERS_ENDPOINT).build();
+
+            response =
+                    AccessController.doPrivileged(
+                            (PrivilegedAction<SimpleHttpResponse>)
+                                    () -> {
+                                        AuthHttpRestClient httpClient = new AuthHttpRestClient();
+                                        return httpClient.post(host, orders, null);
+                                    });
         } catch (URISyntaxException e) {
             log.error("Invalid URI: {}", e.getMessage());
+        } catch (Exception e) {
+            log.error("Error sending data: {}", e.getMessage());
         }
-        return null;
+        return response;
     }
 
     /**
@@ -171,18 +182,18 @@ public class SearchThread implements Runnable {
      * @throws IllegalStateException Raised by {@link ActionFuture#actionGet(long)}.
      */
     @SuppressWarnings("unchecked")
-    private void setSentStatus(SearchHit hit) throws IllegalStateException {
+    private void setSentStatus(SearchHit hit, Status status) throws IllegalStateException {
         Map<String, Object> commandMap =
                 getNestedObject(
                         hit.getSourceAsMap(),
                         CommandManagerPlugin.COMMAND_DOCUMENT_PARENT_OBJECT_NAME,
                         Map.class);
-        commandMap.put(Command.STATUS, Status.SENT);
+        commandMap.put(Command.STATUS, status);
         hit.getSourceAsMap()
                 .put(CommandManagerPlugin.COMMAND_DOCUMENT_PARENT_OBJECT_NAME, commandMap);
         IndexRequest indexRequest =
                 new IndexRequest()
-                        .index(CommandManagerPlugin.COMMAND_MANAGER_INDEX_NAME)
+                        .index(CommandManagerPlugin.INDEX_NAME)
                         .source(hit.getSourceAsMap())
                         .id(hit.getId());
         this.client
@@ -200,8 +211,7 @@ public class SearchThread implements Runnable {
      */
     public SearchResponse pitQuery(PointInTimeBuilder pointInTimeBuilder, Object[] searchAfter)
             throws IllegalStateException {
-        SearchRequest searchRequest =
-                new SearchRequest(CommandManagerPlugin.COMMAND_MANAGER_INDEX_NAME);
+        SearchRequest searchRequest = new SearchRequest(CommandManagerPlugin.INDEX_NAME);
         TermQueryBuilder termQueryBuilder =
                 QueryBuilders.termQuery(SearchThread.COMMAND_STATUS_FIELD, Status.PENDING);
         TimeValue timeout =
@@ -224,6 +234,7 @@ public class SearchThread implements Runnable {
 
     @Override
     public void run() {
+        log.debug("Running scheduled job");
         long consumableHits = 0L;
         boolean firstPage = true;
         PointInTimeBuilder pointInTimeBuilder = buildPit();
@@ -234,6 +245,7 @@ public class SearchThread implements Runnable {
                                 pointInTimeBuilder,
                                 getSearchAfter(this.currentPage).orElse(new Object[0]));
                 if (firstPage) {
+                    log.debug("Query returned {} hits.", totalHits());
                     consumableHits = totalHits();
                     firstPage = false;
                 }
@@ -251,10 +263,16 @@ public class SearchThread implements Runnable {
         }
     }
 
+    /**
+     * @return SearchResponse hits.
+     */
     private long getPageLength() {
         return this.currentPage.getHits().getHits().length;
     }
 
+    /**
+     * @return SearchResponse total hits.
+     */
     private long totalHits() {
         if (this.currentPage.getHits().getTotalHits() != null) {
             return this.currentPage.getHits().getTotalHits().value;
@@ -312,7 +330,7 @@ public class SearchThread implements Runnable {
                 new CreatePitRequest(
                         CommandManagerPlugin.PIT_KEEP_ALIVE_SECONDS,
                         false,
-                        CommandManagerPlugin.COMMAND_MANAGER_INDEX_NAME),
+                        CommandManagerPlugin.INDEX_NAME),
                 actionListener);
         try {
             return new PointInTimeBuilder(future.get().getId());

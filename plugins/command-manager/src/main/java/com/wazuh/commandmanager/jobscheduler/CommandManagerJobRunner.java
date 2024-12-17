@@ -19,14 +19,13 @@ package com.wazuh.commandmanager.jobscheduler;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.opensearch.client.Client;
-import org.opensearch.cluster.service.ClusterService;
-import org.opensearch.env.Environment;
 import org.opensearch.jobscheduler.spi.JobExecutionContext;
 import org.opensearch.jobscheduler.spi.ScheduledJobParameter;
 import org.opensearch.jobscheduler.spi.ScheduledJobRunner;
 import org.opensearch.threadpool.ThreadPool;
 
 import com.wazuh.commandmanager.CommandManagerPlugin;
+import com.wazuh.commandmanager.index.CommandIndex;
 
 /**
  * Implements the ScheduledJobRunner interface, which exposes the runJob() method, which executes
@@ -35,65 +34,74 @@ import com.wazuh.commandmanager.CommandManagerPlugin;
 public class CommandManagerJobRunner implements ScheduledJobRunner {
 
     private static final Logger log = LogManager.getLogger(CommandManagerJobRunner.class);
+
+    /** Singleton instance. */
     private static CommandManagerJobRunner INSTANCE;
-    private ThreadPool threadPool;
-    private ClusterService clusterService;
 
+    /** OpenSearch's client. */
     private Client client;
-    private Environment environment;
 
-    private CommandManagerJobRunner() {
-        // Singleton class, use getJobRunner method instead of constructor
-    }
+    /** OpenSearch's thread pool. */
+    private ThreadPool threadPool;
 
+    /** Commands index repository. */
+    private CommandIndex indexManager;
+
+    /** Private constructor. */
+    private CommandManagerJobRunner() {}
+
+    /**
+     * Singleton instance access method.
+     *
+     * @return the singleton instance.
+     */
     public static CommandManagerJobRunner getInstance() {
-        log.info("Getting Job Runner Instance");
-        if (INSTANCE != null) {
-            return INSTANCE;
-        }
-        synchronized (CommandManagerJobRunner.class) {
-            if (INSTANCE != null) {
-                return INSTANCE;
-            }
+        if (CommandManagerJobRunner.INSTANCE == null) {
             INSTANCE = new CommandManagerJobRunner();
-            return INSTANCE;
         }
-    }
-
-    private boolean commandManagerIndexExists() {
-        return this.clusterService
-                .state()
-                .routingTable()
-                .hasIndex(CommandManagerPlugin.COMMAND_MANAGER_INDEX_NAME);
+        return INSTANCE;
     }
 
     @Override
     public void runJob(ScheduledJobParameter jobParameter, JobExecutionContext context) {
-        if (!commandManagerIndexExists()) {
+        if (!this.indexManager.indexExists()) {
             log.info(
                     "{} index not yet created, not running command manager jobs",
-                    CommandManagerPlugin.COMMAND_MANAGER_INDEX_NAME);
+                    CommandManagerPlugin.INDEX_NAME);
             return;
         }
-        SearchThread searchThread = new SearchThread(this.client);
-        threadPool.generic().submit(searchThread);
+        final SearchThread searchThread = new SearchThread(this.client);
+        this.threadPool.generic().submit(searchThread);
     }
 
-    public CommandManagerJobRunner setClusterService(ClusterService clusterService) {
-        this.clusterService = clusterService;
+    /**
+     * Sets the commands index repository.
+     *
+     * @param indexManager the commands index repository.
+     * @return invoking instance to allow concatenation of setWhatever() calls.
+     */
+    public CommandManagerJobRunner setIndexRepository(CommandIndex indexManager) {
+        this.indexManager = indexManager;
         return getInstance();
     }
 
+    /**
+     * Sets the client.
+     *
+     * @param client OpenSearch's client.
+     * @return invoking instance to allow concatenation of setWhatever() calls.
+     */
     public CommandManagerJobRunner setClient(Client client) {
         this.client = client;
         return getInstance();
     }
 
-    public CommandManagerJobRunner setEnvironment(Environment environment) {
-        this.environment = environment;
-        return getInstance();
-    }
-
+    /**
+     * Sets the thread pool.
+     *
+     * @param threadPool OpenSearch's thread pool.
+     * @return invoking instance to allow concatenation of setWhatever() calls.
+     */
     public CommandManagerJobRunner setThreadPool(ThreadPool threadPool) {
         this.threadPool = threadPool;
         return getInstance();

@@ -24,6 +24,11 @@ After installing Imposter, set up a new Imposter instance using the following co
 IMPOSTER_OPENAPI_REMOTE_FILE_CACHE=true IMPOSTER_JS_PLUGIN=js-graal-compat imposter up -p 55000 -t jvm
 ```
 
+Runing Imposter with SSL / TSL.
+```bash
+IMPOSTER_OPENAPI_REMOTE_FILE_CACHE=true IMPOSTER_JS_PLUGIN=js-graal-compat java -jar ~/.imposter/engines/imposter-4.2.4.jar --plugin openapi --tlsEnabled --configDir ~/wazuh/wazuh-indexer-plugins/imposter --listenPort 55000 --keystorePath ~/wazuh/wazuh-indexer-plugins/imposter/imposter.jks --keystorePassword password
+```
+
 - `IMPOSTER_OPENAPI_REMOTE_FILE_CACHE=true` enables caching the `specFile`.
 - `IMPOSTER_JS_PLUGIN=js-graal-compat` allows compatibility with JavaScript libraries for dynamic loading.
 

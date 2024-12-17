@@ -42,9 +42,11 @@ public class Target implements ToXContentObject {
     }
 
     /**
-     * @param parser
-     * @return
-     * @throws IOException
+     * Parses data from an XContentParser into this model.
+     *
+     * @param parser xcontent parser.
+     * @return initialized instance of Target.
+     * @throws IOException parsing error occurred.
      */
     public static Target parse(XContentParser parser) throws IOException {
         String type = "";

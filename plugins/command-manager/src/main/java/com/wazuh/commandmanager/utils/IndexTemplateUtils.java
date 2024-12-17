@@ -95,18 +95,21 @@ public class IndexTemplateUtils {
      * @param templateName index template name within the resources folder
      * @return whether the index template exists.
      */
-    public static boolean indexTemplateExists(ClusterService clusterService, String templateName) {
+    public static boolean isMissingIndexTemplate(
+            ClusterService clusterService, String templateName) {
         Map<String, IndexTemplateMetadata> templates =
                 clusterService.state().metadata().templates();
-        log.debug("Existing index templates: {} ", templates);
+        log.debug("Existing index templates: {} ", templates.keySet());
 
-        return templates.containsKey(templateName);
+        return !templates.containsKey(templateName);
     }
 
     /**
-     * Inserts an index template
+     * Creates an index template into the cluster.
      *
-     * @param templateName : The name if the index template to load
+     * @param client OpenSearch's client.
+     * @param templateName index template name. The index template is read from the plugin's
+     *     resources directory as "templateName.json", and created as "templateName".
      */
     public static void putIndexTemplate(Client client, String templateName) {
         try {

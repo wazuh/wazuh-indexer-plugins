@@ -47,9 +47,11 @@ public class Action implements ToXContentObject {
     }
 
     /**
-     * @param parser
-     * @return
-     * @throws IOException
+     * Parses data from an XContentParser into this model.
+     *
+     * @param parser xcontent parser.
+     * @return initialized instance of Action.
+     * @throws IOException parsing error occurred.
      */
     public static Action parse(XContentParser parser) throws IOException {
         String name = "";

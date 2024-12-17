@@ -16,14 +16,9 @@
  */
 package com.wazuh.commandmanager.auth;
 
+/** HTTPAuthenticator interface. */
 public interface HTTPAuthenticator {
 
-    //    String getType();
-
-    AuthCredentials getCredentials();
-
+    /** Authentication logic for a HTTP service such as a Restful API. */
     void authenticate();
-
-    //    Optional<SimpleResponse> reAuthenticate(AuthCredentials credentials);
-
 }

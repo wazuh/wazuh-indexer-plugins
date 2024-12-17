@@ -1,9 +1,30 @@
 plugin: openapi
 specFile: https://raw.githubusercontent.com/wazuh/wazuh/refs/heads/master/api/api/spec/spec.yaml
+
+# ===================================================== #
+#   SECURITY
+# ===================================================== #
+
+security:
+  # no requests permitted by default
+  default: Deny
+
+  # only requests meeting these conditions are permitted
+  conditions:
+    - effect: Permit
+      requestHeaders:
+        Authorization:
+          value: Bearer .*
+          operator: Matches
+        
+
 resources:
-  # ===================================================== #
-  #   SECURITY
-  # ===================================================== #
+  - method: GET
+    path: /
+    response:
+      statusCode: 200
+    security:
+      default: Permit
 
   # Login
   - method: POST
@@ -11,9 +32,14 @@ resources:
     response:
       statusCode: 200
       scriptFile: security/login.js
-
+    security:
+      conditions:
+        - effect: Permit
+          requestHeaders:
+            Authorization:
+              value: Basic .*
+              operator: Matches
+        
   # Orders
   - method: POST
     path: /orders
-    response:
-      statusCode: 200

@@ -177,8 +177,8 @@ testClusters.integTest {
     }
 
     // add customized keystore
-    keystore 'm_api.auth.username', 'admin'
-    keystore 'm_api.auth.password', 'test'
+    keystore 'm_api.auth.username', 'wazuh'
+    keystore 'm_api.auth.password', 'wazuh'
     keystore 'm_api.uri', 'https://127.0.0.1:55000' // base URI of the M_API
 }
 

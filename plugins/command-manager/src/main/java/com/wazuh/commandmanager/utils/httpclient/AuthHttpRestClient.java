@@ -28,6 +28,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.opensearch.core.rest.RestStatus;
 
+import java.net.HttpRetryException;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.Locale;
@@ -40,6 +41,7 @@ public class AuthHttpRestClient extends HttpRestClient implements HTTPAuthentica
 
     public static final String SECURITY_USER_AUTHENTICATE = "/security/user/authenticate";
     private static final Logger log = LogManager.getLogger(AuthHttpRestClient.class);
+    public static final int MAX_RETRIES = 3;
 
     private final AuthCredentials credentials;
 
@@ -80,9 +82,11 @@ public class AuthHttpRestClient extends HttpRestClient implements HTTPAuthentica
      * @param payloadId payload ID
      * @param retries retries counter
      * @return SimpleHttpResponse response
+     * @throws HttpRetryException 429 (Too Many Requests)
      */
     public SimpleHttpResponse post(
-            URI receiverURI, String payload, String payloadId, Integer retries) throws Exception {
+            URI receiverURI, String payload, String payloadId, Integer retries)
+            throws HttpRetryException {
 
         // Recursive calls exit condition.
         if (retries == MAX_RETRIES) {
@@ -93,7 +97,7 @@ public class AuthHttpRestClient extends HttpRestClient implements HTTPAuthentica
                             retries,
                             MAX_RETRIES,
                             payloadId);
-            throw new Exception(message);
+            throw new HttpRetryException(message, RestStatus.TOO_MANY_REQUESTS.getStatus());
         }
 
         // Authenticate if required.
@@ -105,11 +109,19 @@ public class AuthHttpRestClient extends HttpRestClient implements HTTPAuthentica
         SimpleHttpResponse response =
                 super.post(receiverURI, payload, payloadId, this.credentials.getAuthAsHeaders());
 
+        // TODO handle 403 forbidden
+        // TODO handle 429 maximum number of requests reached
+        // TODO prevent the above from happening: cool down + sleep between retries
+
+        if (response == null) {
+            log.error("No reply from server.");
+            return null;
+        }
         // Handle unauthorized responses.
         if (response.getCode() == RestStatus.UNAUTHORIZED.getStatus()) {
             // Invalidate current token.
             this.credentials.setToken(null);
-            log.info("Token invalidated");
+            log.info("Token invalidated.");
             // Retry request.
             this.post(receiverURI, payload, payloadId, ++retries);
         } else if (response.getCode() == RestStatus.OK.getStatus()) {
@@ -119,17 +131,8 @@ public class AuthHttpRestClient extends HttpRestClient implements HTTPAuthentica
         return null;
     }
 
-    /**
-     * @return
-     */
-    @Override
-    public AuthCredentials getCredentials() {
-        return this.credentials;
-    }
-
     @Override
     public void authenticate() {
-        // Replace with PluginSettings.getInstance().getAPI();
         String mApiURI = PluginSettings.getInstance().getUri();
         try {
             URI loginUri = new URIBuilder(mApiURI).appendPath(SECURITY_USER_AUTHENTICATE).build();
@@ -137,6 +140,11 @@ public class AuthHttpRestClient extends HttpRestClient implements HTTPAuthentica
             log.info("Attempting authentication at [{}]", loginUri);
             SimpleHttpResponse loginResponse =
                     super.post(loginUri, null, null, this.credentials.getAuthAsHeaders());
+
+            if (loginResponse == null) {
+                log.error("Authentication failed. Failure establishing connection.");
+                return;
+            }
 
             if (loginResponse.getCode() == RestStatus.OK.getStatus()) {
                 // Parse JSON response to extract and save the JWT token.
@@ -146,7 +154,10 @@ public class AuthHttpRestClient extends HttpRestClient implements HTTPAuthentica
                 this.credentials.setToken(token);
                 log.info("Authentication successful");
             } else {
-                log.error("Authentication failed due to: {}", loginResponse.getBody());
+                log.error(
+                        "Authentication failed due to: {} {}",
+                        loginResponse.getCode(),
+                        loginResponse.getBodyText());
             }
         } catch (URISyntaxException e) {
             log.error("Invalid URI. Is the IP to the Wazuh Server set? - {}", e.getMessage());
