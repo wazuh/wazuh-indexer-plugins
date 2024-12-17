@@ -16,16 +16,16 @@
  */
 package com.wazuh.commandmanager.model;
 
-import org.opensearch.common.UUIDs;
 import org.opensearch.core.xcontent.ToXContent;
 import org.opensearch.core.xcontent.ToXContentObject;
 import org.opensearch.core.xcontent.XContentBuilder;
 import org.opensearch.core.xcontent.XContentParser;
-import reactor.util.annotation.NonNull;
 
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+
+import reactor.util.annotation.NonNull;
 
 public class Order implements ToXContentObject {
     public static final String COMMAND = "command";
@@ -63,8 +63,7 @@ public class Order implements ToXContentObject {
      * @throws IOException error parsing request content
      * @throws IllegalArgumentException missing arguments
      */
-    public static Order parse(XContentParser parser)
-            throws IOException, IllegalArgumentException {
+    public static Order parse(XContentParser parser) throws IOException, IllegalArgumentException {
         String source = null;
         Target target = null;
         String user = null;
@@ -137,11 +136,17 @@ public class Order implements ToXContentObject {
 
     @Override
     public String toString() {
-        return "Order{" +
-            "action=" + action +
-            ", source='" + source + '\'' +
-            ", target=" + target +
-            ", user='" + user + '\'' +
-            '}';
+        return "Order{"
+                + "action="
+                + action
+                + ", source='"
+                + source
+                + '\''
+                + ", target="
+                + target
+                + ", user='"
+                + user
+                + '\''
+                + '}';
     }
 }
