@@ -8,7 +8,6 @@
  */
 package com.wazuh.commandmanager.utils.httpclient;
 
-import com.wazuh.commandmanager.settings.PluginSettings;
 import org.apache.hc.client5.http.async.methods.*;
 import org.apache.hc.client5.http.impl.async.CloseableHttpAsyncClient;
 import org.apache.hc.client5.http.impl.async.HttpAsyncClients;
@@ -22,15 +21,18 @@ import org.apache.hc.core5.http.nio.ssl.TlsStrategy;
 import org.apache.hc.core5.io.CloseMode;
 import org.apache.hc.core5.reactor.IOReactorConfig;
 import org.apache.hc.core5.ssl.SSLContextBuilder;
+import org.apache.hc.core5.ssl.SSLContexts;
 import org.apache.hc.core5.util.Timeout;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import javax.net.ssl.SSLContext;
+
 import java.io.FileInputStream;
-import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URI;
+import java.nio.file.Path;
 import java.security.*;
 import java.security.cert.CertificateException;
 import java.security.cert.CertificateFactory;
@@ -40,11 +42,9 @@ import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
-import org.opensearch.plugins.Plugin;
+import com.wazuh.commandmanager.settings.PluginSettings;
 import reactor.util.annotation.NonNull;
 import reactor.util.annotation.Nullable;
-
-import javax.net.ssl.SSLContext;
 
 /** HTTP Rest client. Currently used to perform POST requests against the Wazuh Server. */
 public class HttpRestClient {
@@ -74,49 +74,13 @@ public class HttpRestClient {
         return HttpRestClient.instance;
     }
 
-    private InputStream loadFileWithPrivileges(String path) {
-        // AccessController.doPrivileged(
-        //    (PrivilegedAction<InputStream>)
-        //        () -> {
-        //            try (InputStream inputStream = new FileInputStream(path)){
-        //                return inputStream;
-        //            } catch (FileNotFoundException e) {
-        //                log.error("File {} not found: {}", path, e.getMessage());
-        //            } catch (IOException e) {
-        //                log.error("IOException: {}", e.getMessage());
-        //            }
-        //            return null;
-        //        }
-        //);
-        //return null;
-
-        //return AccessController.doPrivileged(
-        //    (PrivilegedAction<FileInputStream>) () -> {
-        //        try {
-        //            return new FileInputStream(path);
-        //        } catch (FileNotFoundException e) {
-        //            log.error("File {} not found: {}", path, e.getMessage());
-        //        } catch (SecurityException e) {
-        //            log.error("Security exception on {}: {}", path, e.getMessage());
-        //        }
-        //        return null;
-        //    }
-        //);
-        try {
-            return AccessController.doPrivileged(
-                (PrivilegedExceptionAction<FileInputStream>) () -> new FileInputStream(path)
-            );
-        } catch (PrivilegedActionException e) {
-            log.error("Privileged Action exception on {}: {}", path, e.getMessage());
-        }
-        return null;
-    }
-
     private TlsStrategy loadPEMCert(String cACertPath) {
-        try (
+        try {
             // Load the pem CA file
-            InputStream pemInputStream = loadFileWithPrivileges(cACertPath);
-        ) {
+
+            InputStream pemInputStream =AccessController.doPrivileged(
+                    (PrivilegedExceptionAction<FileInputStream>) () -> new FileInputStream(cACertPath)
+            );
             CertificateFactory factory = CertificateFactory.getInstance("X.509");
             X509Certificate certificate = (X509Certificate) factory.generateCertificate(pemInputStream);
             // Create a keystore to insert the CA cert
@@ -128,12 +92,14 @@ public class HttpRestClient {
             SSLContext sslContext = sslContextBuilder.loadTrustMaterial(keyStore,null).build();
 
             return ClientTlsStrategyBuilder.create()
-                .setSslContext(sslContext)
-                .build();
+                    .setSslContext(sslContext)
+                    .build();
             //@ToDo: Handle exceptions better
         } catch (CertificateException | NoSuchAlgorithmException | IOException | KeyStoreException |
                  KeyManagementException e) {
             log.error(e.getMessage());
+        } catch (PrivilegedActionException e) {
+            log.error("DO privileged action exception: {}", e.getMessage());
         }
         return null;
     }
@@ -144,12 +110,12 @@ public class HttpRestClient {
             try {
                 PoolingAsyncClientConnectionManager cm =
                         PoolingAsyncClientConnectionManagerBuilder.create()
-                            .setTlsStrategy(
-                                loadPEMCert(
-                                    PluginSettings.getInstance().getWazuhIndexerCACertPath()
+                                .setTlsStrategy(
+                                        loadPEMCert(
+                                                PluginSettings.getInstance().getWazuhIndexerCACertPath()
+                                        )
                                 )
-                            )
-                            .build();
+                                .build();
 
                 IOReactorConfig ioReactorConfig =
                         IOReactorConfig.custom().setSoTimeout(Timeout.ofSeconds(5)).build();
@@ -172,8 +138,8 @@ public class HttpRestClient {
     public void stopHttpAsyncClient() {
         if (this.httpClient != null) {
             log.info("Shutting down.");
-            httpClient.close(CloseMode.GRACEFUL);
-            httpClient = null;
+            this.httpClient.close(CloseMode.GRACEFUL);
+            this.httpClient = null;
         }
     }
 
