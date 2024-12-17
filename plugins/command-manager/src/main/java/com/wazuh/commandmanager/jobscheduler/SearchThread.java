@@ -29,9 +29,10 @@ import org.opensearch.client.Client;
 import org.opensearch.common.action.ActionFuture;
 import org.opensearch.common.unit.TimeValue;
 import org.opensearch.common.xcontent.XContentFactory;
+import org.opensearch.common.xcontent.json.JsonXContent;
 import org.opensearch.core.action.ActionListener;
 import org.opensearch.core.rest.RestStatus;
-import org.opensearch.core.xcontent.XContentBuilder;
+import org.opensearch.core.xcontent.*;
 import org.opensearch.index.query.QueryBuilders;
 import org.opensearch.index.query.TermQueryBuilder;
 import org.opensearch.search.SearchHit;
@@ -53,6 +54,7 @@ import java.util.concurrent.ExecutionException;
 import com.wazuh.commandmanager.CommandManagerPlugin;
 import com.wazuh.commandmanager.model.Command;
 import com.wazuh.commandmanager.model.Document;
+import com.wazuh.commandmanager.model.Order;
 import com.wazuh.commandmanager.model.Status;
 import com.wazuh.commandmanager.settings.PluginSettings;
 import com.wazuh.commandmanager.utils.httpclient.AuthHttpRestClient;
@@ -117,6 +119,18 @@ public class SearchThread implements Runnable {
         SearchHits searchHits = searchResponse.getHits();
         ArrayList<Object> orders = new ArrayList<>();
         for (SearchHit hit : searchHits) {
+            try {
+                XContentParser parser =
+                        JsonXContent.jsonXContent.createParser(
+                                NamedXContentRegistry.EMPTY,
+                                DeprecationHandler.IGNORE_DEPRECATIONS,
+                                hit.getSourceRef().streamInput());
+                Order order = Order.parse(parser);
+
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
+
             Map<String, Object> orderMap =
                     getNestedObject(hit.getSourceAsMap(), Command.COMMAND, Map.class);
             if (orderMap != null) {

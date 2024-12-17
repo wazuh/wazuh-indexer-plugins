@@ -28,13 +28,14 @@ import java.util.List;
 import reactor.util.annotation.NonNull;
 
 public class Order implements ToXContentObject {
-    public static final String COMMAND = "command";
     public static final String SOURCE = "source";
     public static final String USER = "user";
+    public static final String DOCUMENT_ID = "document_id";
     private final String source;
     private final Target target;
     private final String user;
     private final Action action;
+    private final String document_id;
 
     /**
      * Default constructor
@@ -48,11 +49,13 @@ public class Order implements ToXContentObject {
             @NonNull String source,
             @NonNull Target target,
             @NonNull String user,
-            @NonNull Action action) {
+            @NonNull Action action,
+            @NonNull String document_id) {
         this.source = source;
         this.target = target;
         this.user = user;
         this.action = action;
+        this.document_id = document_id;
     }
 
     /**
@@ -68,12 +71,18 @@ public class Order implements ToXContentObject {
         Target target = null;
         String user = null;
         Action action = null;
+        String document_id = null;
 
         while (parser.nextToken() != XContentParser.Token.END_OBJECT) {
             String fieldName = parser.currentName();
 
             parser.nextToken();
             switch (fieldName) {
+                // If we find an Order nested below
+                // a Command object, parse the Order recursively
+                // and return its output
+                case Command.COMMAND:
+                    return Order.parse(parser);
                 case SOURCE:
                     source = parser.text();
                     break;
@@ -85,6 +94,9 @@ public class Order implements ToXContentObject {
                     break;
                 case Action.ACTION:
                     action = Action.parse(parser);
+                    break;
+                case DOCUMENT_ID:
+                    document_id = parser.text();
                     break;
                 default:
                     parser.skipChildren();
@@ -105,11 +117,14 @@ public class Order implements ToXContentObject {
         if (action == null) {
             nullArguments.add("action");
         }
+        if (document_id == null) {
+            nullArguments.add("document_id");
+        }
 
         if (!nullArguments.isEmpty()) {
             throw new IllegalArgumentException("Missing arguments: " + nullArguments);
         } else {
-            return new Order(source, target, user, action);
+            return new Order(source, target, user, action, document_id);
         }
     }
 
@@ -125,7 +140,7 @@ public class Order implements ToXContentObject {
 
     @Override
     public XContentBuilder toXContent(XContentBuilder builder, Params params) throws IOException {
-        builder.startObject(COMMAND);
+        builder.startObject();
         builder.field(SOURCE, this.source);
         builder.field(USER, this.user);
         this.target.toXContent(builder, ToXContent.EMPTY_PARAMS);
@@ -136,17 +151,12 @@ public class Order implements ToXContentObject {
 
     @Override
     public String toString() {
-        return "Order{"
-                + "action="
-                + action
-                + ", source='"
-                + source
-                + '\''
-                + ", target="
-                + target
-                + ", user='"
-                + user
-                + '\''
-                + '}';
+        return "Order{" +
+            "action=" + action +
+            ", source='" + source + '\'' +
+            ", target=" + target +
+            ", user='" + user + '\'' +
+            ", document_id='" + document_id + '\'' +
+            '}';
     }
 }
