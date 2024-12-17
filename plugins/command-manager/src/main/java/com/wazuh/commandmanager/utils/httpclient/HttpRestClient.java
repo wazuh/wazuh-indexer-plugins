@@ -25,7 +25,6 @@ import org.apache.hc.client5.http.impl.auth.BasicCredentialsProvider;
 import org.apache.hc.client5.http.impl.nio.PoolingAsyncClientConnectionManager;
 import org.apache.hc.client5.http.impl.nio.PoolingAsyncClientConnectionManagerBuilder;
 import org.apache.hc.client5.http.ssl.ClientTlsStrategyBuilder;
-import org.apache.hc.core5.function.Factory;
 import org.apache.hc.core5.http.ContentType;
 import org.apache.hc.core5.http.Header;
 import org.apache.hc.core5.http.HttpHost;
@@ -39,7 +38,6 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import javax.net.ssl.SSLContext;
-import javax.net.ssl.SSLEngine;
 
 import java.net.URI;
 import java.util.concurrent.ExecutionException;
@@ -87,19 +85,6 @@ public class HttpRestClient {
             try {
                 // From the official example on
                 // https://opensearch.org/docs/latest/clients/java/#initializing-the-client-with-ssl-and-tls-enabled-using-apache-httpclient-5-transport
-                // TODO extract hardcoded values to settings.
-                //                System.setProperty("javax.net.ssl.trustStore",
-                // "/usr/share/wazuh-indexer/jdk/lib/security/cacerts");
-                //                System.setProperty("javax.net.ssl.trustStorePassword", "");
-
-                //                CredentialsProvider basicCredentials =
-                // CredentialsProviderBuilder.create()
-                //                        .add(
-                //                                HttpHost.create(loginUri),
-                //                                PluginSettings.getInstance().getAuthUsername(),
-                //
-                // PluginSettings.getInstance().getAuthPassword().toCharArray()
-                //                        ).build();
 
                 // Basic auth
                 final String mApiURI = PluginSettings.getInstance().getUri();
@@ -124,14 +109,10 @@ public class HttpRestClient {
                         ClientTlsStrategyBuilder.create()
                                 .setSslContext(sslContext)
                                 .setTlsDetailsFactory(
-                                        new Factory<SSLEngine, TlsDetails>() {
-                                            @Override
-                                            public TlsDetails create(SSLEngine sslEngine) {
-                                                return new TlsDetails(
+                                        sslEngine ->
+                                                new TlsDetails(
                                                         sslEngine.getSession(),
-                                                        sslEngine.getApplicationProtocol());
-                                            }
-                                        })
+                                                        sslEngine.getApplicationProtocol()))
                                 .build();
 
                 final PoolingAsyncClientConnectionManager connectionManager =
@@ -139,7 +120,7 @@ public class HttpRestClient {
                                 .setTlsStrategy(tlsStrategy)
                                 .build();
 
-                IOReactorConfig ioReactorConfig =
+                final IOReactorConfig ioReactorConfig =
                         IOReactorConfig.custom().setSoTimeout(TIMEOUT, TimeUnit.SECONDS).build();
 
                 httpClient =
@@ -149,8 +130,7 @@ public class HttpRestClient {
                                 .setConnectionManager(connectionManager)
                                 .build();
                 httpClient.start();
-            } catch (Exception e) {
-                // handle exception
+            } catch (Exception e) { // FIXME catch of generic exception
                 log.error("Error starting async Http client {}", e.getMessage());
             }
         }
@@ -180,12 +160,12 @@ public class HttpRestClient {
             @Nullable String payloadId,
             @Nullable Header... headers) {
         try {
-            HttpHost httpHost = HttpHost.create(receiverURI);
+            final HttpHost httpHost = HttpHost.create(receiverURI);
 
             log.info("Sending payload with id [{}] to [{}]", payloadId, receiverURI);
             log.debug("Headers {}", (Object) headers);
 
-            SimpleRequestBuilder builder = SimpleRequestBuilder.post();
+            final SimpleRequestBuilder builder = SimpleRequestBuilder.post();
             if (payload != null) {
                 builder.setBody(payload, ContentType.APPLICATION_JSON);
             }
@@ -193,10 +173,10 @@ public class HttpRestClient {
                 builder.setHeaders(headers);
             }
 
-            SimpleHttpRequest httpPostRequest =
+            final SimpleHttpRequest httpPostRequest =
                     builder.setHttpHost(httpHost).setPath(receiverURI.getPath()).build();
 
-            Future<SimpleHttpResponse> future =
+            final Future<SimpleHttpResponse> future =
                     this.httpClient.execute(
                             SimpleRequestProducer.create(httpPostRequest),
                             SimpleResponseConsumer.create(),

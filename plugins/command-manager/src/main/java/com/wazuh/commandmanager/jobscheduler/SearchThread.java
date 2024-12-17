@@ -89,7 +89,7 @@ public class SearchThread implements Runnable {
      * @return the nested object cast into the proper type.
      */
     public static <T> T getNestedObject(Map<String, Object> map, String key, Class<T> type) {
-        Object value = map.get(key);
+        final Object value = map.get(key);
         if (value == null) {
             return null;
         }
@@ -120,7 +120,7 @@ public class SearchThread implements Runnable {
         SearchHits searchHits = searchResponse.getHits();
         ArrayList<Object> orders = new ArrayList<>();
         for (SearchHit hit : searchHits) {
-            Map<String, Object> orderMap =
+            final Map<String, Object> orderMap =
                     getNestedObject(hit.getSourceAsMap(), Command.COMMAND, Map.class);
             if (orderMap != null) {
                 orderMap.put("document_id", hit.getId());
@@ -128,9 +128,10 @@ public class SearchThread implements Runnable {
             }
         }
         try (XContentBuilder builder = XContentFactory.jsonBuilder()) {
-            String payload = builder.map(Collections.singletonMap("orders", orders)).toString();
+            final String payload =
+                    builder.map(Collections.singletonMap("orders", orders)).toString();
 
-            SimpleHttpResponse response = deliverOrders(payload);
+            final SimpleHttpResponse response = deliverOrders(payload);
             if (response == null) {
                 log.error("No reply from server.");
                 return;
@@ -142,7 +143,7 @@ public class SearchThread implements Runnable {
                 status = Status.SENT;
             }
             for (SearchHit hit : searchHits) {
-                setSentStatus(hit, status);
+                this.setSentStatus(hit, status);
             }
         } catch (IOException e) {
             log.error("Error parsing hit contents: {}", e.getMessage());
@@ -157,14 +158,16 @@ public class SearchThread implements Runnable {
     private SimpleHttpResponse deliverOrders(String orders) {
         SimpleHttpResponse response = null;
         try {
-            PluginSettings settings = PluginSettings.getInstance();
-            URI host = new URIBuilder(settings.getUri() + SearchThread.ORDERS_ENDPOINT).build();
+            final PluginSettings settings = PluginSettings.getInstance();
+            final URI host =
+                    new URIBuilder(settings.getUri() + SearchThread.ORDERS_ENDPOINT).build();
 
             response =
                     AccessController.doPrivileged(
                             (PrivilegedAction<SimpleHttpResponse>)
                                     () -> {
-                                        AuthHttpRestClient httpClient = new AuthHttpRestClient();
+                                        final AuthHttpRestClient httpClient =
+                                                new AuthHttpRestClient();
                                         return httpClient.post(host, orders, null);
                                     });
         } catch (URISyntaxException e) {
@@ -183,7 +186,7 @@ public class SearchThread implements Runnable {
      */
     @SuppressWarnings("unchecked")
     private void setSentStatus(SearchHit hit, Status status) throws IllegalStateException {
-        Map<String, Object> commandMap =
+        final Map<String, Object> commandMap =
                 getNestedObject(
                         hit.getSourceAsMap(),
                         CommandManagerPlugin.COMMAND_DOCUMENT_PARENT_OBJECT_NAME,
@@ -191,7 +194,7 @@ public class SearchThread implements Runnable {
         commandMap.put(Command.STATUS, status);
         hit.getSourceAsMap()
                 .put(CommandManagerPlugin.COMMAND_DOCUMENT_PARENT_OBJECT_NAME, commandMap);
-        IndexRequest indexRequest =
+        final IndexRequest indexRequest =
                 new IndexRequest()
                         .index(CommandManagerPlugin.INDEX_NAME)
                         .source(hit.getSourceAsMap())
@@ -211,10 +214,10 @@ public class SearchThread implements Runnable {
      */
     public SearchResponse pitQuery(PointInTimeBuilder pointInTimeBuilder, Object[] searchAfter)
             throws IllegalStateException {
-        SearchRequest searchRequest = new SearchRequest(CommandManagerPlugin.INDEX_NAME);
-        TermQueryBuilder termQueryBuilder =
+        final SearchRequest searchRequest = new SearchRequest(CommandManagerPlugin.INDEX_NAME);
+        final TermQueryBuilder termQueryBuilder =
                 QueryBuilders.termQuery(SearchThread.COMMAND_STATUS_FIELD, Status.PENDING);
-        TimeValue timeout =
+        final TimeValue timeout =
                 TimeValue.timeValueSeconds(CommandManagerPlugin.DEFAULT_TIMEOUT_SECONDS);
         this.searchSourceBuilder
                 .query(termQueryBuilder)
@@ -237,7 +240,7 @@ public class SearchThread implements Runnable {
         log.debug("Running scheduled job");
         long consumableHits = 0L;
         boolean firstPage = true;
-        PointInTimeBuilder pointInTimeBuilder = buildPit();
+        final PointInTimeBuilder pointInTimeBuilder = buildPit();
         try {
             do {
                 this.currentPage =
@@ -294,7 +297,7 @@ public class SearchThread implements Runnable {
             return Optional.empty();
         }
         try {
-            List<SearchHit> hits = Arrays.asList(searchResponse.getHits().getHits());
+            final List<SearchHit> hits = Arrays.asList(searchResponse.getHits().getHits());
             if (hits.isEmpty()) {
                 log.warn("Empty hits page, not getting searchAfter values");
                 return Optional.empty();
@@ -312,8 +315,8 @@ public class SearchThread implements Runnable {
      * @return a PointInTimeBuilder or null.
      */
     private PointInTimeBuilder buildPit() {
-        CompletableFuture<CreatePitResponse> future = new CompletableFuture<>();
-        ActionListener<CreatePitResponse> actionListener =
+        final CompletableFuture<CreatePitResponse> future = new CompletableFuture<>();
+        final ActionListener<CreatePitResponse> actionListener =
                 new ActionListener<>() {
                     @Override
                     public void onResponse(CreatePitResponse createPitResponse) {
