@@ -166,8 +166,6 @@ public class CommandManagerPlugin extends Plugin
                 PluginSettings.M_API_AUTH_USERNAME,
                 PluginSettings.M_API_AUTH_PASSWORD,
                 PluginSettings.M_API_URI,
-                PluginSettings.JDK_CA_CERT_PATH,
-                PluginSettings.CA_CERT_ALIAS,
                 PluginSettings.WAZUH_INDEXER_CA_CERT_PATH);
     }
 

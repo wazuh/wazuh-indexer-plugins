@@ -20,27 +20,31 @@ import org.apache.hc.core5.http.HttpHost;
 import org.apache.hc.core5.http.nio.ssl.TlsStrategy;
 import org.apache.hc.core5.io.CloseMode;
 import org.apache.hc.core5.reactor.IOReactorConfig;
-import org.apache.hc.core5.ssl.SSLContexts;
+import org.apache.hc.core5.ssl.SSLContextBuilder;
 import org.apache.hc.core5.util.Timeout;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import javax.net.ssl.SSLContext;
-
+import java.io.FileInputStream;
+import java.io.IOException;
+import java.io.InputStream;
 import java.net.URI;
-import java.nio.file.Path;
-import java.security.AccessController;
-import java.security.PrivilegedAction;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.Future;
+import java.security.*;
+import java.security.cert.CertificateException;
+import java.security.cert.CertificateFactory;
+import java.security.cert.X509Certificate;
+import java.util.concurrent.*;
+
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
 
 import com.wazuh.commandmanager.settings.PluginSettings;
 import reactor.util.annotation.NonNull;
 import reactor.util.annotation.Nullable;
 
-/** HTTP Rest client. Currently used to perform POST requests against the Wazuh Server. */
+/**
+ * HTTP Rest client. Currently used to perform POST requests against the Wazuh Server.
+ */
 public class HttpRestClient {
 
     public static final long TIMEOUT = 4;
@@ -51,7 +55,9 @@ public class HttpRestClient {
     static HttpRestClient instance;
     private CloseableHttpAsyncClient httpClient;
 
-    /** Private default constructor */
+    /**
+     * Private default constructor
+     */
     HttpRestClient() {
         startHttpAsyncClient();
     }
@@ -68,58 +74,77 @@ public class HttpRestClient {
         return HttpRestClient.instance;
     }
 
-    /** Starts http async client. */
+    /**
+     * Load the PEM certificate from a Path and return a {@link TlsStrategy} from it.
+     *
+     * @param cACertPath path to the PEM file containing the CA certificate
+     * @return a {@link TlsStrategy} usable by the HTTP client
+     */
+    private TlsStrategy loadPEMCert(String cACertPath) {
+        try {
+            // Load the pem CA file
+            InputStream pemInputStream = AccessController.doPrivileged(
+                    (PrivilegedExceptionAction<FileInputStream>) () -> new FileInputStream(cACertPath)
+            );
+            CertificateFactory factory = CertificateFactory.getInstance("X.509");
+            X509Certificate certificate = (X509Certificate) factory.generateCertificate(pemInputStream);
+            // Create a keystore to insert the CA cert
+            KeyStore keyStore = KeyStore.getInstance(KeyStore.getDefaultType());
+            keyStore.load(null, null);
+            keyStore.setCertificateEntry("custom-ca", certificate);
+
+            SSLContextBuilder sslContextBuilder = SSLContextBuilder.create();
+            SSLContext sslContext = sslContextBuilder.loadTrustMaterial(keyStore, null).build();
+
+            return ClientTlsStrategyBuilder.create()
+                    .setSslContext(sslContext)
+                    .build();
+            //@ToDo: Handle exceptions better
+        } catch (CertificateException | NoSuchAlgorithmException | IOException | KeyStoreException |
+                 KeyManagementException e) {
+            log.error(e.getMessage());
+        } catch (PrivilegedActionException e) {
+            log.error("DO privileged action exception: {}", e.getMessage());
+        }
+        return null;
+    }
+
+    /**
+     * Starts http async client.
+     */
     private void startHttpAsyncClient() {
-        System.out.println("User: " + System.getProperty("user.name"));
         if (this.httpClient == null) {
-            log.info("CACert path: {}", PluginSettings.getWazuhIndexerCACertPath());
-            Path caCert = Path.of(PluginSettings.getWazuhIndexerCACertPath());
-            this.httpClient =
-                    AccessController.doPrivileged(
-                            (PrivilegedAction<CloseableHttpAsyncClient>)
-                                    () -> {
-                                        try {
-                                            char[] pass = new char[] {'1', '2', '3', '4'};
-                                            final SSLContext sslContext =
-                                                    SSLContexts.custom()
-                                                            .loadTrustMaterial(caCert, pass)
-                                                            .build();
+            try {
+                log.info("CACERT PATH: {}", PluginSettings.getInstance().getWazuhIndexerCACertPath());
+                PoolingAsyncClientConnectionManager cm =
+                        PoolingAsyncClientConnectionManagerBuilder.create()
+                                .setTlsStrategy(
+                                        loadPEMCert(
+                                                PluginSettings.getInstance().getWazuhIndexerCACertPath()
+                                        )
+                                )
+                                .build();
 
-                                            final TlsStrategy tlsStrategy =
-                                                    ClientTlsStrategyBuilder.create()
-                                                            .setSslContext(sslContext)
-                                                            .build();
+                IOReactorConfig ioReactorConfig =
+                        IOReactorConfig.custom().setSoTimeout(Timeout.ofSeconds(5)).build();
 
-                                            PoolingAsyncClientConnectionManager cm =
-                                                    PoolingAsyncClientConnectionManagerBuilder
-                                                            .create()
-                                                            .setTlsStrategy(tlsStrategy)
-                                                            .build();
-
-                                            IOReactorConfig ioReactorConfig =
-                                                    IOReactorConfig.custom()
-                                                            .setSoTimeout(Timeout.ofSeconds(5))
-                                                            .build();
-
-                                            httpClient =
-                                                    HttpAsyncClients.custom()
-                                                            .setIOReactorConfig(ioReactorConfig)
-                                                            .setConnectionManager(cm)
-                                                            .build();
-
-                                            httpClient.start();
-                                        } catch (Exception e) {
-                                            // handle exception
-                                            log.error(
-                                                    "Error starting async Http client {}",
-                                                    e.getMessage());
-                                        }
-                                        return httpClient;
-                                    });
+                httpClient =
+                        HttpAsyncClients.custom()
+                                .setIOReactorConfig(ioReactorConfig)
+                                .setConnectionManager(cm)
+                                .build();
+                httpClient.start();
+            } catch (Exception e) {
+                // handle exception
+                log.error("Error starting async Http client {}", e.getMessage());
+                e.printStackTrace();
+            }
         }
     }
 
-    /** Stop http async client. */
+    /**
+     * Stop http async client.
+     */
     public void stopHttpAsyncClient() {
         if (this.httpClient != null) {
             log.info("Shutting down.");
@@ -132,9 +157,9 @@ public class HttpRestClient {
      * Sends a POST request.
      *
      * @param receiverURI Well-formed URI
-     * @param payload data to send
-     * @param payloadId payload ID
-     * @param headers auth value (Basic "user:password", "Bearer token")
+     * @param payload     data to send
+     * @param payloadId   payload ID
+     * @param headers     auth value (Basic "user:password", "Bearer token")
      * @return SimpleHttpResponse response
      */
     public SimpleHttpResponse post(

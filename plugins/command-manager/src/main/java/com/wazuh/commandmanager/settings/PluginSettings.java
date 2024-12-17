@@ -36,28 +36,13 @@ public class PluginSettings {
     public static final Setting<SecureString> M_API_URI =
             SecureSetting.secureString("m_api.uri", null);
 
-    /** The key of the path where is located the JDK CA certificate. */
-    public static final Setting<String> JDK_CA_CERT_PATH =
-            Setting.simpleString("jdk.ca.cert.path", Setting.Property.NodeScope);
-
     /** The key of the path where is located the wazuh indexer CA certificate. */
     public static final Setting<String> WAZUH_INDEXER_CA_CERT_PATH =
             Setting.simpleString("ssl.http.pemtrustedcas_filepath", Setting.Property.NodeScope);
 
-    /** The key of the alias of wazuh indexer CA certificate. */
-    public static final Setting<String> CA_CERT_ALIAS =
-            Setting.simpleString("ca.cert.alias", Setting.Property.NodeScope);
-
-    /** The default value to path where is located the JDK CA certificate. */
-    private static final String DEFAULT_JDK_CA_CERT_PATH =
-            "/usr/share/wazuh-indexer/jdk/lib/security/cacerts";
-
     /** The default value to path where is located the wazuh indexer CA certificate. */
     private static final String DEFAULT_WAZUH_INDEXER_CA_CERT_PATH =
             "/etc/wazuh-indexer/certs/root-ca.pem";
-
-    /** The default value to alias of wazuh indexer CA certificate. */
-    private static final String DEFAULT_CA_CERT_ALIAS = "wazuh-root-ca";
 
     /** The access key (ie login username) for connecting to api. */
     private final SecureString authUsername;
@@ -68,14 +53,8 @@ public class PluginSettings {
     /** The uri for connecting to api. */
     private final SecureString uri;
 
-    /** The path where is located the JDK CA certificate. */
-    private final String jdkCACertPath;
-
     /** The path where is located the wazuh indexer CA certificate. */
-    private static String wazuhIndexerCACertPath;
-
-    /** The alias of wazuh indexer CA certificate. */
-    private final String caCertAlias;
+    private final String wazuhIndexerCACertPath;
 
     /** Private default constructor */
     private PluginSettings(@NonNull final Settings settings) {
@@ -85,20 +64,10 @@ public class PluginSettings {
         this.authPassword = M_API_AUTH_PASSWORD.get(settings);
         this.uri = M_API_URI.get(settings);
 
-        this.jdkCACertPath =
-                (settings != null && JDK_CA_CERT_PATH.get(settings) != null)
-                        ? JDK_CA_CERT_PATH.get(settings)
-                        : DEFAULT_JDK_CA_CERT_PATH;
-
         this.wazuhIndexerCACertPath =
                 (settings != null && WAZUH_INDEXER_CA_CERT_PATH.get(settings) != null)
                         ? WAZUH_INDEXER_CA_CERT_PATH.get(settings)
                         : DEFAULT_WAZUH_INDEXER_CA_CERT_PATH;
-
-        this.caCertAlias =
-                (settings != null && CA_CERT_ALIAS.get(settings) != null)
-                        ? CA_CERT_ALIAS.get(settings)
-                        : DEFAULT_CA_CERT_ALIAS;
     }
 
     /**
@@ -141,16 +110,9 @@ public class PluginSettings {
         return new URIBuilder(getUri()).setPath(path).build().toString();
     }
 
-    public String getJdkCACertPath() {
-        return this.jdkCACertPath;
-    }
 
-    public static String getWazuhIndexerCACertPath() {
+    public String getWazuhIndexerCACertPath() {
         return wazuhIndexerCACertPath;
-    }
-
-    public String getCaCertAlias() {
-        return this.caCertAlias;
     }
 
     @Override
@@ -165,14 +127,8 @@ public class PluginSettings {
                 + ", uri='"
                 + getUri()
                 + '\''
-                + ", jdkCACertPath='"
-                + getJdkCACertPath()
-                + '\''
                 + ", wazuhIndexerCACertPath='"
                 + getWazuhIndexerCACertPath()
-                + '\''
-                + ", caCertAlias='"
-                + getCaCertAlias()
                 + '\''
                 + '}';
     }
