@@ -29,6 +29,8 @@ import java.net.URISyntaxException;
 import reactor.util.annotation.NonNull;
 
 public class PluginSettings {
+    private static final Logger log = LogManager.getLogger(PluginSettings.class);
+    private static PluginSettings instance;
 
     /** The access key (ie login username) for connecting to api. */
     public static final Setting<SecureString> M_API_AUTH_USERNAME =
@@ -42,8 +44,13 @@ public class PluginSettings {
     public static final Setting<SecureString> M_API_URI =
             SecureSetting.secureString("m_api.uri", null);
 
-    private static final Logger log = LogManager.getLogger(PluginSettings.class);
-    private static PluginSettings instance;
+    /** The key of the path where is located the wazuh indexer CA certificate. */
+    public static final Setting<String> WAZUH_INDEXER_CA_CERT_PATH =
+            Setting.simpleString("ssl.http.pemtrustedcas_filepath", Setting.Property.NodeScope);
+
+    /** The default value to path where is located the wazuh indexer CA certificate. */
+    private static final String DEFAULT_WAZUH_INDEXER_CA_CERT_PATH =
+            "/etc/wazuh-indexer/certs/root-ca.pem";
 
     /** The access key (ie login username) for connecting to api. */
     private final SecureString authUsername;
@@ -54,6 +61,9 @@ public class PluginSettings {
     /** The uri for connecting to api. */
     private final SecureString uri;
 
+    /** The path where is located the wazuh indexer CA certificate. */
+    private final String wazuhIndexerCACertPath;
+
     /** Private default constructor */
     private PluginSettings(@NonNull final Settings settings) {
         log.info("Plugin created with the keystore information.");
@@ -61,6 +71,11 @@ public class PluginSettings {
         this.authUsername = M_API_AUTH_USERNAME.get(settings);
         this.authPassword = M_API_AUTH_PASSWORD.get(settings);
         this.uri = M_API_URI.get(settings);
+
+        this.wazuhIndexerCACertPath =
+                (settings != null && WAZUH_INDEXER_CA_CERT_PATH.get(settings) != null)
+                        ? WAZUH_INDEXER_CA_CERT_PATH.get(settings)
+                        : DEFAULT_WAZUH_INDEXER_CA_CERT_PATH;
     }
 
     /**
@@ -103,6 +118,11 @@ public class PluginSettings {
         return new URIBuilder(getUri()).setPath(path).build().toString();
     }
 
+
+    public String getWazuhIndexerCACertPath() {
+        return wazuhIndexerCACertPath;
+    }
+
     @Override
     public String toString() {
         return "PluginSettings{"
@@ -114,6 +134,9 @@ public class PluginSettings {
                 + '\''
                 + ", uri='"
                 + getUri()
+                + '\''
+                + ", wazuhIndexerCACertPath='"
+                + getWazuhIndexerCACertPath()
                 + '\''
                 + '}';
     }
