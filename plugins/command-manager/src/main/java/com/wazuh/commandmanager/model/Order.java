@@ -16,18 +16,14 @@
  */
 package com.wazuh.commandmanager.model;
 
-import org.opensearch.core.xcontent.ToXContent;
-import org.opensearch.core.xcontent.ToXContentObject;
-import org.opensearch.core.xcontent.XContentBuilder;
 import org.opensearch.core.xcontent.XContentParser;
 
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.List;
 
 import reactor.util.annotation.NonNull;
 
-public class Order implements ToXContentObject {
+public class Order {
     public static final String SOURCE = "source";
     public static final String USER = "user";
     public static final String DOCUMENT_ID = "document_id";
@@ -78,9 +74,9 @@ public class Order implements ToXContentObject {
 
             parser.nextToken();
             switch (fieldName) {
-                // If we find an Order nested below
-                // a Command object, parse the Order recursively
-                // and return its output
+                    // If we find an Order nested below
+                    // a Command object, parse the Order recursively
+                    // and return its output
                 case Command.COMMAND:
                     return Order.parse(parser);
                 case SOURCE:
@@ -128,35 +124,22 @@ public class Order implements ToXContentObject {
         }
     }
 
-    public static List<Order> parseToArray(XContentParser parser)
-            throws IOException, IllegalArgumentException {
-        List<Order> commands = new ArrayList<>();
-        while (parser.nextToken() != XContentParser.Token.END_ARRAY) {
-            Order command = Order.parse(parser);
-            commands.add(command);
-        }
-        return commands;
-    }
-
-    @Override
-    public XContentBuilder toXContent(XContentBuilder builder, Params params) throws IOException {
-        builder.startObject();
-        builder.field(SOURCE, this.source);
-        builder.field(USER, this.user);
-        this.target.toXContent(builder, ToXContent.EMPTY_PARAMS);
-        this.action.toXContent(builder, ToXContent.EMPTY_PARAMS);
-
-        return builder.endObject();
-    }
-
     @Override
     public String toString() {
-        return "Order{" +
-            "action=" + action +
-            ", source='" + source + '\'' +
-            ", target=" + target +
-            ", user='" + user + '\'' +
-            ", document_id='" + document_id + '\'' +
-            '}';
+        return "Order{"
+                + "action="
+                + action
+                + ", source='"
+                + source
+                + '\''
+                + ", target="
+                + target
+                + ", user='"
+                + user
+                + '\''
+                + ", document_id='"
+                + document_id
+                + '\''
+                + '}';
     }
 }
