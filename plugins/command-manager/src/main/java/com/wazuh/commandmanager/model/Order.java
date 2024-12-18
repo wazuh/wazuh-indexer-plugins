@@ -18,10 +18,13 @@ package com.wazuh.commandmanager.model;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.opensearch.common.xcontent.XContentHelper;
+import org.opensearch.common.xcontent.XContentType;
 import org.opensearch.core.xcontent.*;
 
 import java.io.IOException;
 
+import org.opensearch.search.SearchHit;
 import reactor.util.annotation.NonNull;
 
 public class Order implements ToXContent {
@@ -58,15 +61,22 @@ public class Order implements ToXContent {
         this.documentId = documentId;
     }
 
+
     /**
      * Parses a SearchHit into an order as expected by a Wazuh Agent
-     * @param parser XContentParser with the "_source" field's contents
-     * @param documentId The document ID from the index that holds commands. Used by the agent to report back the results of the action
-     * @return An Order object in accordance to the data model
+     * @param hit The SearchHit result of a search
+     * @return An Order Object in accordance with the data model
      */
-    public static Order parse(XContentParser parser, String documentId)
+    public static Order parseSearchHit(SearchHit hit)
     {
         try {
+            XContentParser parser =
+                XContentHelper.createParser(
+                    NamedXContentRegistry.EMPTY,
+                    DeprecationHandler.IGNORE_DEPRECATIONS,
+                    hit.getSourceRef(),
+                    XContentType.JSON
+                );
             Command command = null;
             // Iterate over the JsonXContentParser's JsonToken until we hit null,
             // which corresponds to end of data
@@ -90,7 +100,7 @@ public class Order implements ToXContent {
                 command.getTarget(),
                 command.getUser(),
                 command.getAction(),
-                documentId
+                hit.getId()
             );
         } catch (IOException e) {
             log.error("Order could not be parsed: {}", e.getMessage());

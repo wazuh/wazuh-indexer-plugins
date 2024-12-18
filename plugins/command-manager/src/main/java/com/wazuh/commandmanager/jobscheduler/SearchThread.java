@@ -134,7 +134,7 @@ public class SearchThread implements Runnable {
                                 XContentType.JSON
                         );
                 // Parse the hit's order
-                Order order = Order.parse(parser,hit.getId());
+                Order order = Order.parseSearchHit(hit);
                 // Add the current order to the XContentBuilder array
                 assert order != null;
                 order.toXContent(builder,ToXContent.EMPTY_PARAMS);
