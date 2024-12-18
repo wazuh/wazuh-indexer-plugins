@@ -39,8 +39,15 @@ public class CommandManagerJobParameter implements ScheduledJobParameter {
     private boolean isEnabled;
     private Schedule schedule;
 
+    /** Default constructor. */
     public CommandManagerJobParameter() {}
 
+    /**
+     * Default constructor with parameters.
+     *
+     * @param jobName the name for the job.
+     * @param schedule the schedule for the job.
+     */
     public CommandManagerJobParameter(String jobName, Schedule schedule) {
         this.jobName = jobName;
         this.schedule = schedule;
@@ -76,22 +83,47 @@ public class CommandManagerJobParameter implements ScheduledJobParameter {
         return this.isEnabled;
     }
 
+    /**
+     * Sets the job name.
+     *
+     * @param jobName the job name.
+     */
     public void setJobName(String jobName) {
         this.jobName = jobName;
     }
 
+    /**
+     * Sets the last updated time of the job.
+     *
+     * @param lastUpdateTime the last update time of the job.
+     */
     public void setLastUpdateTime(Instant lastUpdateTime) {
         this.lastUpdateTime = lastUpdateTime;
     }
 
+    /**
+     * Sets the time the job was enabled.
+     *
+     * @param enabledTime the time the job was enabled.
+     */
     public void setEnabledTime(Instant enabledTime) {
         this.enabledTime = enabledTime;
     }
 
+    /**
+     * Enables or disables the job.
+     *
+     * @param enabled boolean value.
+     */
     public void setEnabled(boolean enabled) {
         isEnabled = enabled;
     }
 
+    /**
+     * Sets the schedule of the job.
+     *
+     * @param schedule schedule of the job.
+     */
     public void setSchedule(Schedule schedule) {
         this.schedule = schedule;
     }

@@ -23,6 +23,10 @@ import org.apache.hc.core5.http.message.StatusLine;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+/**
+ * Default callback class for SimpleHttpResponse that implements completed() and failed() response
+ * methods.
+ */
 public class HttpResponseCallback implements FutureCallback<SimpleHttpResponse> {
 
     private static final Logger log = LogManager.getLogger(HttpResponseCallback.class);
@@ -30,9 +34,15 @@ public class HttpResponseCallback implements FutureCallback<SimpleHttpResponse> 
     /** The Http get request. */
     SimpleHttpRequest httpRequest;
 
-    /** The Error message. */
+    /** The error message. */
     String errorMessage;
 
+    /**
+     * Deafult constructor
+     *
+     * @param httpRequest the request
+     * @param errorMessage the error message
+     */
     public HttpResponseCallback(SimpleHttpRequest httpRequest, String errorMessage) {
         this.httpRequest = httpRequest;
         this.errorMessage = errorMessage;
@@ -41,7 +51,7 @@ public class HttpResponseCallback implements FutureCallback<SimpleHttpResponse> 
     @Override
     public void completed(SimpleHttpResponse response) {
         log.debug("{}->{}", httpRequest, new StatusLine(response));
-        log.debug("Got response: {}", response.getBody());
+        log.debug("Got response: {} {}", response.getCode(), response.getBodyText());
     }
 
     @Override
@@ -52,6 +62,6 @@ public class HttpResponseCallback implements FutureCallback<SimpleHttpResponse> 
 
     @Override
     public void cancelled() {
-        log.debug(httpRequest + " cancelled");
+        log.debug("{} cancelled", httpRequest);
     }
 }

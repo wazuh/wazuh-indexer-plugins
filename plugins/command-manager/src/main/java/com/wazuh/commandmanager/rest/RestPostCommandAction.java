@@ -42,7 +42,6 @@ import com.wazuh.commandmanager.model.Documents;
 
 import static org.opensearch.core.xcontent.XContentParserUtils.ensureExpectedToken;
 import static org.opensearch.rest.RestRequest.Method.POST;
-import static com.wazuh.commandmanager.utils.httpclient.HttpRestClientDemo.SECURITY_USER_AUTHENTICATE;
 
 /**
  * Handles HTTP requests to the POST {@value
@@ -72,8 +71,7 @@ public class RestPostCommandAction extends BaseRestHandler {
     public List<Route> routes() {
         return List.of(
                 new Route(
-                        POST, String.format(Locale.ROOT, "%s", CommandManagerPlugin.COMMANDS_URI)),
-                new Route(POST, String.format(Locale.ROOT, "%s", SECURITY_USER_AUTHENTICATE)));
+                        POST, String.format(Locale.ROOT, "%s", CommandManagerPlugin.COMMANDS_URI)));
     }
 
     @Override
@@ -160,9 +158,7 @@ public class RestPostCommandAction extends BaseRestHandler {
                             restStatus -> {
                                 try (XContentBuilder builder = channel.newBuilder()) {
                                     builder.startObject();
-                                    builder.field(
-                                            "_index",
-                                            CommandManagerPlugin.COMMAND_MANAGER_INDEX_NAME);
+                                    builder.field("_index", CommandManagerPlugin.INDEX_NAME);
                                     documents.toXContent(builder, ToXContent.EMPTY_PARAMS);
                                     builder.field("result", restStatus.name());
                                     builder.endObject();

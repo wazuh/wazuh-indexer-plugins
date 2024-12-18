@@ -22,20 +22,15 @@ import org.opensearch.core.xcontent.XContentBuilder;
 import java.io.IOException;
 import java.util.ArrayList;
 
+/** Documents model class. */
 public class Documents implements ToXContentObject {
-    private ArrayList<Document> documents;
+    public static final String DOCUMENTS = "_documents";
+    public static final String ID = "_id";
+    private final ArrayList<Document> documents;
 
+    /** Default constructor. */
     public Documents() {
         this.documents = new ArrayList<>();
-    }
-
-    /**
-     * Default constructor
-     *
-     * @param documents
-     */
-    public Documents(ArrayList<Document> documents) {
-        this.documents = documents;
     }
 
     /**
@@ -45,15 +40,6 @@ public class Documents implements ToXContentObject {
      */
     public ArrayList<Document> getDocuments() {
         return documents;
-    }
-
-    /**
-     * Set the list of Document objects.
-     *
-     * @param documents the list of documents to set.
-     */
-    public void setDocuments(ArrayList<Document> documents) {
-        this.documents = documents;
     }
 
     /**
@@ -75,10 +61,10 @@ public class Documents implements ToXContentObject {
      */
     @Override
     public XContentBuilder toXContent(XContentBuilder builder, Params params) throws IOException {
-        builder.startArray("_documents");
+        builder.startArray(DOCUMENTS);
         for (Document document : this.documents) {
             builder.startObject();
-            builder.field("_id", document.getId());
+            builder.field(ID, document.getId());
             builder.endObject();
         }
         return builder.endArray();

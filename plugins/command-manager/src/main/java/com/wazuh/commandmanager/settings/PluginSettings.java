@@ -16,7 +16,6 @@
  */
 package com.wazuh.commandmanager.settings;
 
-import org.apache.hc.core5.net.URIBuilder;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.opensearch.common.settings.SecureSetting;
@@ -24,11 +23,12 @@ import org.opensearch.common.settings.Setting;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.core.common.settings.SecureString;
 
-import java.net.URISyntaxException;
-
 import reactor.util.annotation.NonNull;
 
+/** Singleton class to manage the plugin's settings. */
 public class PluginSettings {
+
+    private static final Logger log = LogManager.getLogger(PluginSettings.class);
 
     /** The access key (ie login username) for connecting to api. */
     public static final Setting<SecureString> M_API_AUTH_USERNAME =
@@ -42,8 +42,8 @@ public class PluginSettings {
     public static final Setting<SecureString> M_API_URI =
             SecureSetting.secureString("m_api.uri", null);
 
-    private static final Logger log = LogManager.getLogger(PluginSettings.class);
-    private static PluginSettings instance;
+    /** Singleton instance. */
+    private static PluginSettings INSTANCE;
 
     /** The access key (ie login username) for connecting to api. */
     private final SecureString authUsername;
@@ -54,7 +54,11 @@ public class PluginSettings {
     /** The uri for connecting to api. */
     private final SecureString uri;
 
-    /** Private default constructor */
+    /**
+     * Private default constructor
+     *
+     * @param settings as obtained in createComponents.
+     */
     private PluginSettings(@NonNull final Settings settings) {
         log.info("Plugin created with the keystore information.");
 
@@ -66,41 +70,53 @@ public class PluginSettings {
     /**
      * Singleton instance accessor. Initializes the settings
      *
-     * @return {@link PluginSettings#instance}
+     * @param settings as obtained in createComponents.
+     * @return {@link PluginSettings#INSTANCE}
      */
     public static PluginSettings getInstance(@NonNull final Settings settings) {
-        if (PluginSettings.instance == null) {
-            instance = new PluginSettings(settings);
+        if (PluginSettings.INSTANCE == null) {
+            INSTANCE = new PluginSettings(settings);
         }
-        return instance;
+        return INSTANCE;
     }
 
     /**
      * Singleton instance accessor
      *
-     * @return {@link PluginSettings#instance}
+     * @return {@link PluginSettings#INSTANCE}
      */
     public static PluginSettings getInstance() {
-        if (PluginSettings.instance == null) {
+        if (PluginSettings.INSTANCE == null) {
             throw new IllegalStateException("Plugin settings have not been initialized.");
         }
-        return instance;
+        return INSTANCE;
     }
 
+    /**
+     * Get M_API password.
+     *
+     * @return M_API password.
+     */
     public String getAuthPassword() {
         return this.authPassword.toString();
     }
 
+    /**
+     * Get M_API username.
+     *
+     * @return M_API username.
+     */
     public String getAuthUsername() {
         return this.authUsername.toString();
     }
 
+    /**
+     * M_API URL. For example: https://127.0.0.1:55000.
+     *
+     * @return M_API URL.
+     */
     public String getUri() {
         return this.uri.toString();
-    }
-
-    public String getUri(String path) throws URISyntaxException {
-        return new URIBuilder(getUri()).setPath(path).build().toString();
     }
 
     @Override

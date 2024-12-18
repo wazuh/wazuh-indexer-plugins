@@ -43,6 +43,11 @@ public class JobDocument {
 
     private JobDocument() {}
 
+    /**
+     * Singleton instance access.
+     *
+     * @return singleton instance
+     */
     public static JobDocument getInstance() {
         log.info("Getting JobDocument Instance");
         return INSTANCE;
@@ -51,11 +56,12 @@ public class JobDocument {
     /**
      * Writes a CommandManagerJobParameter type document to the jobs index
      *
-     * @param client: The cluster's client
-     * @param threadPool: The cluster's threadPool
-     * @param id: The job ID to be used
-     * @param jobName: The name of the job
-     * @param interval: The interval the action is expected to run at
+     * @param clusterService the cluster's service
+     * @param client the cluster's client
+     * @param threadPool the cluster's threadPool
+     * @param id the job ID to be used
+     * @param jobName rhe name of the job
+     * @param interval the interval the action is expected to run at
      * @return a CompletableFuture that will hold the IndexResponse.
      */
     public CompletableFuture<IndexResponse> create(
@@ -81,7 +87,7 @@ public class JobDocument {
                     () -> {
                         try (ThreadContext.StoredContext ignored =
                                 threadPool.getThreadContext().stashContext()) {
-                            if (!IndexTemplateUtils.indexTemplateExists(
+                            if (IndexTemplateUtils.isMissingIndexTemplate(
                                     clusterService, CommandManagerPlugin.JOB_INDEX_TEMPLATE_NAME)) {
                                 IndexTemplateUtils.putIndexTemplate(
                                         client, CommandManagerPlugin.JOB_INDEX_TEMPLATE_NAME);

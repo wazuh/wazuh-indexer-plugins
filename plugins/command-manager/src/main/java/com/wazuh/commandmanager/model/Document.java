@@ -41,10 +41,10 @@ public class Document implements ToXContentObject {
     private final ZonedDateTime deliveryTimestamp;
 
     /**
-     * Default constructor
+     * Default constructor.
      *
-     * @param agent
-     * @param command
+     * @param agent "agent" nested fields.
+     * @param command "command" nested fields.
      */
     public Document(Agent agent, Command command) {
         this.agent = agent;
@@ -55,9 +55,11 @@ public class Document implements ToXContentObject {
     }
 
     /**
-     * @param parser
-     * @return
-     * @throws IOException
+     * Parses data from an XContentParser into this model.
+     *
+     * @param parser xcontent parser.
+     * @return initialized instance of Document.
+     * @throws IOException parsing error occurred.
      */
     public static Document parse(XContentParser parser) throws IOException {
         Agent agent = new Agent(List.of("groups000")); // TODO read agent from .agents index
@@ -77,6 +79,8 @@ public class Document implements ToXContentObject {
     }
 
     /**
+     * Returns the document's "_id".
+     *
      * @return Document's ID
      */
     public String getId() {

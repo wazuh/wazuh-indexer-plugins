@@ -17,18 +17,26 @@
 package com.wazuh.commandmanager.utils.httpclient;
 
 import org.apache.hc.client5.http.async.methods.*;
+import org.apache.hc.client5.http.auth.AuthScope;
+import org.apache.hc.client5.http.auth.UsernamePasswordCredentials;
 import org.apache.hc.client5.http.impl.async.CloseableHttpAsyncClient;
 import org.apache.hc.client5.http.impl.async.HttpAsyncClients;
+import org.apache.hc.client5.http.impl.auth.BasicCredentialsProvider;
 import org.apache.hc.client5.http.impl.nio.PoolingAsyncClientConnectionManager;
 import org.apache.hc.client5.http.impl.nio.PoolingAsyncClientConnectionManagerBuilder;
+import org.apache.hc.client5.http.ssl.ClientTlsStrategyBuilder;
 import org.apache.hc.core5.http.ContentType;
 import org.apache.hc.core5.http.Header;
 import org.apache.hc.core5.http.HttpHost;
+import org.apache.hc.core5.http.nio.ssl.TlsStrategy;
 import org.apache.hc.core5.io.CloseMode;
+import org.apache.hc.core5.net.URIBuilder;
 import org.apache.hc.core5.reactor.IOReactorConfig;
-import org.apache.hc.core5.util.Timeout;
+import org.apache.hc.core5.ssl.SSLContextBuilder;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+
+import javax.net.ssl.SSLContext;
 
 import java.net.URI;
 import java.util.concurrent.ExecutionException;
@@ -36,17 +44,20 @@ import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
+import com.wazuh.commandmanager.settings.PluginSettings;
 import reactor.util.annotation.NonNull;
 import reactor.util.annotation.Nullable;
+
+import static com.wazuh.commandmanager.utils.httpclient.AuthHttpRestClient.SECURITY_USER_AUTHENTICATE;
 
 /** HTTP Rest client. Currently used to perform POST requests against the Wazuh Server. */
 public class HttpRestClient {
 
-    public static final long TIMEOUT = 4;
-    public static final TimeUnit TIME_UNIT = TimeUnit.SECONDS;
-    public static final int MAX_RETRIES = 3;
-
     private static final Logger log = LogManager.getLogger(HttpRestClient.class);
+
+    /** Seconds on which the request times outs. */
+    public static final int TIMEOUT = 5;
+
     static HttpRestClient instance;
     private CloseableHttpAsyncClient httpClient;
 
@@ -71,21 +82,46 @@ public class HttpRestClient {
     private void startHttpAsyncClient() {
         if (this.httpClient == null) {
             try {
-                PoolingAsyncClientConnectionManager cm =
-                        PoolingAsyncClientConnectionManagerBuilder.create().build();
+                // From the official example on
+                // https://opensearch.org/docs/latest/clients/java/#initializing-the-client-with-ssl-and-tls-enabled-using-apache-httpclient-5-transport
 
-                IOReactorConfig ioReactorConfig =
-                        IOReactorConfig.custom().setSoTimeout(Timeout.ofSeconds(5)).build();
+                // Basic auth
+                final String mApiURI = PluginSettings.getInstance().getUri();
+                final URI loginUri =
+                        new URIBuilder(mApiURI).appendPath(SECURITY_USER_AUTHENTICATE).build();
+                final HttpHost host = HttpHost.create(loginUri);
+                final BasicCredentialsProvider credentialsProvider = new BasicCredentialsProvider();
+                credentialsProvider.setCredentials(
+                        new AuthScope(host),
+                        new UsernamePasswordCredentials(
+                                PluginSettings.getInstance().getAuthUsername(),
+                                PluginSettings.getInstance().getAuthPassword().toCharArray()));
+
+                // Create a custom TrustManager that trusts self-signed certificates
+                final SSLContext sslContext =
+                        SSLContextBuilder.create()
+                                .loadTrustMaterial(null, (chains, authType) -> true)
+                                .build();
+
+                final TlsStrategy tlsStrategy =
+                        ClientTlsStrategyBuilder.create().setSslContext(sslContext).build();
+
+                final PoolingAsyncClientConnectionManager connectionManager =
+                        PoolingAsyncClientConnectionManagerBuilder.create()
+                                .setTlsStrategy(tlsStrategy)
+                                .build();
+
+                final IOReactorConfig ioReactorConfig =
+                        IOReactorConfig.custom().setSoTimeout(TIMEOUT, TimeUnit.SECONDS).build();
 
                 httpClient =
                         HttpAsyncClients.custom()
+                                .setDefaultCredentialsProvider(credentialsProvider)
                                 .setIOReactorConfig(ioReactorConfig)
-                                .setConnectionManager(cm)
+                                .setConnectionManager(connectionManager)
                                 .build();
-
                 httpClient.start();
-            } catch (Exception e) {
-                // handle exception
+            } catch (Exception e) { // FIXME catch of generic exception
                 log.error("Error starting async Http client {}", e.getMessage());
             }
         }
@@ -115,11 +151,12 @@ public class HttpRestClient {
             @Nullable String payloadId,
             @Nullable Header... headers) {
         try {
-            HttpHost httpHost = HttpHost.create(receiverURI);
+            final HttpHost httpHost = HttpHost.create(receiverURI);
 
             log.info("Sending payload with id [{}] to [{}]", payloadId, receiverURI);
+            log.debug("Headers {}", (Object) headers);
 
-            SimpleRequestBuilder builder = SimpleRequestBuilder.post();
+            final SimpleRequestBuilder builder = SimpleRequestBuilder.post();
             if (payload != null) {
                 builder.setBody(payload, ContentType.APPLICATION_JSON);
             }
@@ -127,10 +164,10 @@ public class HttpRestClient {
                 builder.setHeaders(headers);
             }
 
-            SimpleHttpRequest httpPostRequest =
+            final SimpleHttpRequest httpPostRequest =
                     builder.setHttpHost(httpHost).setPath(receiverURI.getPath()).build();
 
-            Future<SimpleHttpResponse> future =
+            final Future<SimpleHttpResponse> future =
                     this.httpClient.execute(
                             SimpleRequestProducer.create(httpPostRequest),
                             SimpleResponseConsumer.create(),
@@ -140,7 +177,7 @@ public class HttpRestClient {
                                             + payloadId
                                             + "]"));
 
-            return future.get(TIMEOUT, TIME_UNIT);
+            return future.get(TIMEOUT, TimeUnit.SECONDS);
         } catch (InterruptedException e) {
             log.error("Operation interrupted {}", e.getMessage());
         } catch (ExecutionException e) {

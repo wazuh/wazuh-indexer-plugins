@@ -32,6 +32,8 @@ public class CommandManagerTests extends OpenSearchTestCase {
 
     private HttpRestClient httpClient;
 
+    // FIXME Test is flaky
+    @AwaitsFix(bugUrl = "https://github.com/wazuh/wazuh-indexer-plugins/issues/163")
     public void testPost_success() {
         try {
             AccessController.doPrivileged(

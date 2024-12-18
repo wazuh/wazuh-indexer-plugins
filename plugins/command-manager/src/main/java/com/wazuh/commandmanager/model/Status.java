@@ -16,9 +16,27 @@
  */
 package com.wazuh.commandmanager.model;
 
+import java.util.Locale;
+
+/** Set of commands' statuses. */
 public enum Status {
+    /** Command has been received and indexed, but not yet processed. */
     PENDING,
+    /** Command has been sent to the target. */
     SENT,
+    /**
+     * Command has been executed successfully. Set by external actors, by directly updating the
+     * document.
+     */
     SUCCESS,
-    FAILURE
+    /**
+     * Command could not be sent to the target or the execution failed. Set by the plugin or by
+     * external actors, respectively.
+     */
+    FAILURE;
+
+    @Override
+    public String toString() {
+        return name().toLowerCase(Locale.ROOT);
+    }
 }
