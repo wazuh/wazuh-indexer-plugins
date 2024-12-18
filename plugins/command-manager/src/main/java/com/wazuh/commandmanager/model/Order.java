@@ -16,13 +16,11 @@
  */
 package com.wazuh.commandmanager.model;
 
-import com.wazuh.commandmanager.index.CommandIndex;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.opensearch.core.xcontent.*;
 
 import java.io.IOException;
-import java.util.ArrayList;
 
 import reactor.util.annotation.NonNull;
 
@@ -35,7 +33,7 @@ public class Order implements ToXContent {
     private final Target target;
     private final String user;
     private final Action action;
-    private String document_id;
+    private final String documentId;
 
     private static final Logger log = LogManager.getLogger(Order.class);
 
@@ -51,18 +49,16 @@ public class Order implements ToXContent {
             @NonNull String source,
             @NonNull Target target,
             @NonNull String user,
-            @NonNull Action action) {
+            @NonNull Action action,
+            @NonNull String documentId) {
         this.source = source;
         this.target = target;
         this.user = user;
         this.action = action;
+        this.documentId = documentId;
     }
 
-    public void setDocumentId(String documentId) {
-        this.document_id = documentId;
-    }
-
-    public static Order parse(XContentParser parser)
+    public static Order parse(XContentParser parser, String documentId)
     {
         try {
             Command command = null;
@@ -87,7 +83,8 @@ public class Order implements ToXContent {
                 command.getSource(),
                 command.getTarget(),
                 command.getUser(),
-                command.getAction()
+                command.getAction(),
+                documentId
             );
         } catch (IOException e) {
             log.error("Order could not be parsed: {}", e.getMessage());
@@ -103,7 +100,7 @@ public class Order implements ToXContent {
         builder.field(USER, this.user);
         this.target.toXContent(builder, ToXContent.EMPTY_PARAMS);
         this.action.toXContent(builder, ToXContent.EMPTY_PARAMS);
-        builder.field(DOCUMENT_ID, this.document_id);
+        builder.field(DOCUMENT_ID, this.documentId);
 
         return builder.endObject();
     }
@@ -122,7 +119,7 @@ public class Order implements ToXContent {
                 + user
                 + '\''
                 + ", document_id='"
-                + document_id
+                + documentId
                 + '\''
                 + '}';
     }

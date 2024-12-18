@@ -31,12 +31,9 @@ import org.opensearch.common.unit.TimeValue;
 import org.opensearch.common.xcontent.XContentFactory;
 import org.opensearch.common.xcontent.XContentHelper;
 import org.opensearch.common.xcontent.XContentType;
-import org.opensearch.common.xcontent.json.JsonXContent;
 import org.opensearch.core.action.ActionListener;
-import org.opensearch.core.common.bytes.BytesReference;
 import org.opensearch.core.rest.RestStatus;
 import org.opensearch.core.xcontent.*;
-import org.opensearch.index.query.QueryBuilder;
 import org.opensearch.index.query.QueryBuilders;
 import org.opensearch.index.query.TermQueryBuilder;
 import org.opensearch.search.SearchHit;
@@ -126,7 +123,9 @@ public class SearchThread implements Runnable {
             // Start an XContentBuilder array named "orders"
             builder.startObject();
             builder.startArray(Order.ORDERS);
+            // Iterate over search results
             for (SearchHit hit : searchHits) {
+                // Create a parser for each SearchHit
                 XContentParser parser =
                         XContentHelper.createParser(
                                 NamedXContentRegistry.EMPTY,
@@ -134,10 +133,10 @@ public class SearchThread implements Runnable {
                                 hit.getSourceRef(),
                                 XContentType.JSON
                         );
-                Order order = Order.parse(parser);
-                order.setDocumentId(hit.getId());
-
+                // Parse the hit's order
+                Order order = Order.parse(parser,hit.getId());
                 // Add the current order to the XContentBuilder array
+                assert order != null;
                 order.toXContent(builder,ToXContent.EMPTY_PARAMS);
             }
             // Close the object and prepare it for delivery
@@ -145,7 +144,7 @@ public class SearchThread implements Runnable {
             builder.endObject();
             payload = builder.toString();
         } catch (IOException e) {
-            log.error("Error parsing hit contents: {}", e.getMessage());
+            log.error("Error building payload from hit: {}", e.getMessage());
         }
 
         if (payload != null) {
