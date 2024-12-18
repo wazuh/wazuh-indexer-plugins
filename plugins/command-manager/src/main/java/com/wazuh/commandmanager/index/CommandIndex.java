@@ -159,48 +159,6 @@ public class CommandIndex implements IndexingOperationListener {
     }
 
     /**
-     * Checks for the existence of the given index template in the cluster.
-     *
-     * @param template_name index template name within the resources folder
-     * @return whether the index template exists.
-     */
-    public boolean indexTemplateExists(String template_name) {
-        Map<String, IndexTemplateMetadata> templates =
-                this.clusterService.state().metadata().templates();
-        log.debug("Existing index templates: {} ", templates);
-
-        return templates.containsKey(template_name);
-    }
-
-    /**
-     * Inserts an index template
-     *
-     * @param templateName : The name if the index template to load
-     */
-    public void putIndexTemplate(String templateName) {
-        try {
-            // @throws IOException
-            Map<String, Object> template = IndexTemplateUtils.fromFile(templateName + ".json");
-
-            PutIndexTemplateRequest putIndexTemplateRequest =
-                    new PutIndexTemplateRequest()
-                            .mapping(IndexTemplateUtils.get(template, "mappings"))
-                            .settings(IndexTemplateUtils.get(template, "settings"))
-                            .name(templateName)
-                            .patterns((List<String>) template.get("index_patterns"));
-
-            AcknowledgedResponse acknowledgedResponse =
-                    this.client.admin().indices().putTemplate(putIndexTemplateRequest).actionGet();
-            if (acknowledgedResponse.isAcknowledged()) {
-                log.info("Index template [{}] created successfully", templateName);
-            }
-
-        } catch (IOException e) {
-            log.error("Error reading index template [{}] from filesystem", templateName);
-        }
-    }
-
-    /**
      * Create an IndexRequest object from a Document object.
      *
      * @param document the document to create the IndexRequest for COMMAND_MANAGER_INDEX
