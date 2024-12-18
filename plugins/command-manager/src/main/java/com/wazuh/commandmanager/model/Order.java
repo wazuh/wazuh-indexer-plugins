@@ -66,18 +66,22 @@ public class Order implements ToXContent {
     {
         try {
             Command command = null;
+            // Iterate over the JsonXContentParser's JsonToken until we hit null,
+            // which corresponds to end of data
             while (parser.nextToken() != null) {
+                // Look for FIELD_NAME JsonToken s
                 if (!parser.currentToken().equals(XContentParser.Token.FIELD_NAME)) {
                    continue;
                 }
                 String fieldName = parser.currentName();
                 if (fieldName.equals(Command.COMMAND)) {
+                    // Parse Command
                     command = Command.parse(parser);
                 } else {
                     parser.skipChildren();
                 }
             }
-            log.debug("Creating new Order Object");
+            // Create a new Order object with the Command's fields
             assert command != null;
             return new Order(
                 command.getSource(),
@@ -85,8 +89,8 @@ public class Order implements ToXContent {
                 command.getUser(),
                 command.getAction()
             );
-        } catch (Exception e) {
-            e.printStackTrace();
+        } catch (IOException e) {
+            log.error("Order could not be parsed: {}", e.getMessage());
         }
         return null;
     }
