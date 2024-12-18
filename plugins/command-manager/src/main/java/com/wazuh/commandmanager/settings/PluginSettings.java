@@ -82,18 +82,18 @@ public class PluginSettings {
     private final String authUsername;
     private final String authPassword;
     private final String uri;
-    private final int retries;
-    private final int timeout;
-    private final String logging;
-    private final String jobSchedule;
-    private final int jobPageSize;
-    private final int jobKeepAlive;
-    private final String jobIndexName;
-    private final String jobIndexTemplate;
-    private final String apiPrefix;
-    private final String apiEndpoint;
-    private final String indexName;
-    private final String indexTemplate;
+    public final int retries;
+    public final int timeout;
+    public final String logging;
+    public final String jobSchedule;
+    public final int jobPageSize;
+    public final int jobKeepAlive;
+    public final String jobIndexName;
+    public final String jobIndexTemplate;
+    public final String apiPrefix;
+    public final String apiEndpoint;
+    public final String indexName;
+    public final String indexTemplate;
 
     private static final Logger log = LogManager.getLogger(PluginSettings.class);
 
@@ -104,7 +104,7 @@ public class PluginSettings {
         this.authUsername = M_API_AUTH_USERNAME.get(settings);
         this.authPassword = M_API_AUTH_PASSWORD.get(settings);
         this.uri = M_API_URI.get(settings);
-        this.retries = M_API_RETRIES.get(settings);
+        this.retries = Integer.parseInt(M_API_RETRIES.get(settings));
         this.timeout = M_API_TIMEOUT.get(settings);
         this.logging = C_M_LOGGING.get(settings);
         this.jobSchedule = C_M_JOB_SCHEDULE.get(settings);
@@ -122,6 +122,16 @@ public class PluginSettings {
         log.info("[SETTINGS] Retries: {}", this.retries);
         log.info("[SETTINGS] Timeout: {}", this.timeout);
         log.info("[SETTINGS] Logging: {}", this.logging);
+
+        log.info("[SETTINGS] jobSchedule: {}", jobSchedule);
+        log.info("[SETTINGS] jobPageSize: {}", jobPageSize);
+        log.info("[SETTINGS] jobKeepAlive: {}", jobKeepAlive);
+        log.info("[SETTINGS] jobIndexName: {}", jobIndexName);
+        log.info("[SETTINGS] jobIndexTemplate: {}", jobIndexTemplate);
+        log.info("[SETTINGS] apiPrefix: {}", apiPrefix);
+        log.info("[SETTINGS] apiEndpoint: {}", apiEndpoint);
+        log.info("[SETTINGS] indexName: {}", indexName);
+        log.info("[SETTINGS] indexTemplate: {}", indexTemplate);
     }
 
     /**
