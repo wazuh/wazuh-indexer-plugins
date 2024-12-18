@@ -79,8 +79,8 @@ public class CommandManagerPlugin extends Plugin
         implements ActionPlugin, ReloadablePlugin, JobSchedulerExtension {
     public static final String COMMAND_MANAGER_BASE_URI = "/_plugins/_command_manager";
     public static final String COMMANDS_URI = COMMAND_MANAGER_BASE_URI + "/commands";
-    public static final String COMMAND_MANAGER_INDEX_NAME = ".commands";
-    public static final String COMMAND_MANAGER_INDEX_TEMPLATE_NAME = "index-template-commands";
+    public static final String INDEX_NAME = ".commands";
+    public static final String INDEX_TEMPLATE_NAME = "index-template-commands";
     public static final String COMMAND_DOCUMENT_PARENT_OBJECT_NAME = "command";
     public static final String JOB_INDEX_NAME = ".scheduled-commands";
     public static final String JOB_INDEX_TEMPLATE_NAME = "index-template-scheduled-commands";
@@ -108,17 +108,21 @@ public class CommandManagerPlugin extends Plugin
             NamedWriteableRegistry namedWriteableRegistry,
             IndexNameExpressionResolver indexNameExpressionResolver,
             Supplier<RepositoriesService> repositoriesServiceSupplier) {
+        // Command index repository initialization.
         this.commandIndex = new CommandIndex(client, clusterService, threadPool);
+
+        // Plugin settings initialization.
         PluginSettings.getInstance(environment.settings());
 
-        // JobSchedulerExtension stuff
+        // Scheduled job initialization
+        // NOTE it's very likely that client and thread pool may not be required as the command
+        // index
+        // repository already use them. All queries to the index should be under this class.
         CommandManagerJobRunner.getInstance()
-                .setThreadPool(threadPool)
                 .setClient(client)
-                .setClusterService(clusterService)
-                .setEnvironment(environment);
-
-        scheduleCommandJob(client, clusterService, threadPool);
+                .setThreadPool(threadPool)
+                .setIndexRepository(this.commandIndex);
+        this.scheduleCommandJob(client, clusterService, threadPool);
 
         return Collections.emptyList();
     }
@@ -178,11 +182,7 @@ public class CommandManagerPlugin extends Plugin
 
     @Override
     public void reload(Settings settings) {
-        // secure settings should be readable
-        // final PluginSettings commandManagerSettings =
-        // PluginSettings.getClientSettings(secureSettingsPassword);
-        // I don't know what I have to do when we want to reload the settings already
-        // xxxService.refreshAndClearCache(commandManagerSettings);
+        // TODO
     }
 
     @Override

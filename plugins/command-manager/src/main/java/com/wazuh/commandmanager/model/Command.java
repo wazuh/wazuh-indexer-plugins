@@ -28,6 +28,7 @@ import java.util.List;
 
 import reactor.util.annotation.NonNull;
 
+/** Command's fields. */
 public class Command implements ToXContentObject {
     public static final String COMMAND = "command";
     public static final String ORDER_ID = "order_id";
@@ -145,6 +146,14 @@ public class Command implements ToXContentObject {
         }
     }
 
+    /**
+     * Parses the request's payload into the Command[] model.
+     *
+     * @param parser XContentParser from the Rest Request
+     * @return instance of Command
+     * @throws IOException error parsing request content
+     * @throws IllegalArgumentException missing arguments
+     */
     public static List<Command> parseToArray(XContentParser parser)
             throws IOException, IllegalArgumentException {
         List<Command> commands = new ArrayList<>();

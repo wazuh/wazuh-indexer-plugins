@@ -16,12 +16,16 @@
  */
 package com.wazuh.commandmanager.auth;
 
+import org.apache.hc.client5.http.utils.Base64;
 import org.apache.hc.core5.http.Header;
 import org.apache.hc.core5.http.HttpHeaders;
 import org.apache.hc.core5.http.message.BasicHeader;
 
+import java.nio.charset.StandardCharsets;
+
 import reactor.util.annotation.Nullable;
 
+/** Class that manages authorization for Wazuh's Management API. */
 public class AuthCredentials {
     /** Wazuh API username for basic authentication */
     private final String username;
@@ -32,6 +36,12 @@ public class AuthCredentials {
     /** Token for the Wazuh API as obtained from /security/user/authenticate */
     private String token;
 
+    /**
+     * Default constructor
+     *
+     * @param username username.
+     * @param password password.
+     */
     public AuthCredentials(String username, String password) {
         this.username = username;
         this.password = password;
@@ -43,10 +53,18 @@ public class AuthCredentials {
     }
 
     private Header getBasicAuthHeader() {
+        final String auth = this.username + ":" + this.password;
+        final byte[] encodedAuth = Base64.encodeBase64(auth.getBytes(StandardCharsets.ISO_8859_1));
         return new BasicHeader(
-                HttpHeaders.AUTHORIZATION, "Basic " + this.username + ":" + this.password);
+                HttpHeaders.AUTHORIZATION,
+                "Basic " + new String(encodedAuth, StandardCharsets.ISO_8859_1));
     }
 
+    /**
+     * Returns appropriate authorization headers depending on whether the token is set
+     *
+     * @return HTTP authorization hheader.
+     */
     public Header getAuthAsHeaders() {
         if (this.token != null) {
             return this.getTokenHeader();
@@ -55,7 +73,9 @@ public class AuthCredentials {
     }
 
     /**
-     * @param token
+     * Sets the token.
+     *
+     * @param token Authorization Bearer token.
      */
     public void setToken(@Nullable String token) {
         this.token = token;
@@ -64,7 +84,7 @@ public class AuthCredentials {
     /**
      * Checks if the token is different from null.
      *
-     * @return
+     * @return whether the token is set.
      */
     public boolean isTokenSet() {
         return this.token != null;
