@@ -37,10 +37,15 @@ import com.wazuh.commandmanager.auth.AuthCredentials;
 import com.wazuh.commandmanager.auth.HTTPAuthenticator;
 import com.wazuh.commandmanager.settings.PluginSettings;
 
+/** HttpRestClient with authentication. */
 public class AuthHttpRestClient extends HttpRestClient implements HTTPAuthenticator {
 
-    public static final String SECURITY_USER_AUTHENTICATE = "/security/user/authenticate";
     private static final Logger log = LogManager.getLogger(AuthHttpRestClient.class);
+
+    /** Wazuh Server Management API endpoint for basic authentication. */
+    public static final String SECURITY_USER_AUTHENTICATE = "/security/user/authenticate";
+
+    /** Maximum number of authentication retries before giving up. */
     public static final int MAX_RETRIES = 3;
 
     private final AuthCredentials credentials;

@@ -32,7 +32,6 @@ import org.apache.hc.core5.http.nio.ssl.TlsStrategy;
 import org.apache.hc.core5.io.CloseMode;
 import org.apache.hc.core5.net.URIBuilder;
 import org.apache.hc.core5.reactor.IOReactorConfig;
-import org.apache.hc.core5.reactor.ssl.TlsDetails;
 import org.apache.hc.core5.ssl.SSLContextBuilder;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -104,16 +103,8 @@ public class HttpRestClient {
                                 .loadTrustMaterial(null, (chains, authType) -> true)
                                 .build();
 
-                @SuppressWarnings("deprecation")
                 final TlsStrategy tlsStrategy =
-                        ClientTlsStrategyBuilder.create()
-                                .setSslContext(sslContext)
-                                .setTlsDetailsFactory(
-                                        sslEngine ->
-                                                new TlsDetails(
-                                                        sslEngine.getSession(),
-                                                        sslEngine.getApplicationProtocol()))
-                                .build();
+                        ClientTlsStrategyBuilder.create().setSslContext(sslContext).build();
 
                 final PoolingAsyncClientConnectionManager connectionManager =
                         PoolingAsyncClientConnectionManagerBuilder.create()
