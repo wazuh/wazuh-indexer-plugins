@@ -31,8 +31,10 @@ import org.opensearch.common.unit.TimeValue;
 import org.opensearch.common.xcontent.XContentFactory;
 import org.opensearch.common.xcontent.json.JsonXContent;
 import org.opensearch.core.action.ActionListener;
+import org.opensearch.core.common.bytes.BytesReference;
 import org.opensearch.core.rest.RestStatus;
 import org.opensearch.core.xcontent.*;
+import org.opensearch.index.query.QueryBuilder;
 import org.opensearch.index.query.QueryBuilders;
 import org.opensearch.index.query.TermQueryBuilder;
 import org.opensearch.search.SearchHit;
@@ -117,9 +119,12 @@ public class SearchThread implements Runnable {
     @SuppressWarnings("unchecked")
     public void handlePage(SearchResponse searchResponse) throws IllegalStateException {
         SearchHits searchHits = searchResponse.getHits();
-        ArrayList<Object> orders = new ArrayList<>();
-        for (SearchHit hit : searchHits) {
-            try {
+        String payload = null;
+        try (XContentBuilder builder = XContentFactory.jsonBuilder()) {
+            // Start an XContentBuilder array named "orders"
+            builder.startObject();
+            builder.startArray(Order.ORDERS);
+            for (SearchHit hit : searchHits) {
                 XContentParser parser =
                         JsonXContent.jsonXContent.createParser(
                                 NamedXContentRegistry.EMPTY,
@@ -127,20 +132,14 @@ public class SearchThread implements Runnable {
                                 hit.getSourceRef().streamInput());
                 Order order = Order.parse(parser);
                 order.setDocumentId(hit.getId());
-            } catch (IOException e) {
-                throw new RuntimeException(e);
-            }
 
-            //Map<String, Object> orderMap =
-            //        getNestedObject(hit.getSourceAsMap(), Command.COMMAND, Map.class);
-            //if (orderMap != null) {
-            //    orderMap.put("document_id", hit.getId());
-            //    orders.add(orderMap);
-            //}
-        }
-        String payload = null;
-        try (XContentBuilder builder = XContentFactory.jsonBuilder()) {
-            payload = builder.map(Collections.singletonMap("orders", orders)).toString();
+                // Add the current order to the XContentBuilder array
+                order.toXContent(builder,ToXContent.EMPTY_PARAMS);
+            }
+            // Close the object and prepare it for delivery
+            builder.endArray();
+            builder.endObject();
+            payload = builder.toString();
         } catch (IOException e) {
             log.error("Error parsing hit contents: {}", e.getMessage());
         }
