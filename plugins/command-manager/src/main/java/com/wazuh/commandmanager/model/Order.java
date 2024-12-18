@@ -39,11 +39,11 @@ public class Order implements ToXContent {
 
     /**
      * Default constructor
-     *
-     * @param source origin of the request.
-     * @param target {@link Target}
-     * @param user the user that originated the request
-     * @param action {@link Action}
+     * @param source String field representing the origin of the command order
+     * @param target Object containing the destination's type and id. It is handled by its own model class
+     * @param user The requester of the command
+     * @param action An object containing the actual executable plus arguments and version. Handled by its own model class
+     * @param documentId The document ID from the index that holds commands. Used by the agent to report back the results of the action
      */
     public Order(
             @NonNull String source,
@@ -58,6 +58,12 @@ public class Order implements ToXContent {
         this.documentId = documentId;
     }
 
+    /**
+     * Parses a SearchHit into an order as expected by a Wazuh Agent
+     * @param parser XContentParser with the "_source" field's contents
+     * @param documentId The document ID from the index that holds commands. Used by the agent to report back the results of the action
+     * @return An Order object in accordance to the data model
+     */
     public static Order parse(XContentParser parser, String documentId)
     {
         try {
@@ -92,6 +98,13 @@ public class Order implements ToXContent {
         return null;
     }
 
+    /**
+     * Used to serialize the Order's contents.
+     * @param builder The builder object we will add our Json to
+     * @param params Not used. Required by the interface.
+     * @return XContentBuilder with a Json object including this Order's fields
+     * @throws IOException Rethrown from IOException's XContentBuilder methods
+     */
     @Override
     public XContentBuilder toXContent(XContentBuilder builder, Params params)
             throws IOException {
