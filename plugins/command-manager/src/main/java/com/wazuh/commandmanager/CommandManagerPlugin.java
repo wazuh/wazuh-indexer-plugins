@@ -173,7 +173,20 @@ public class CommandManagerPlugin extends Plugin
                 // Register API settings
                 PluginSettings.M_API_AUTH_USERNAME,
                 PluginSettings.M_API_AUTH_PASSWORD,
-                PluginSettings.M_API_URI);
+                PluginSettings.M_API_URI,
+                PluginSettings.M_API_RETRIES,
+                PluginSettings.M_API_TIMEOUT,
+                PluginSettings.C_M_TIMEOUT,
+                PluginSettings.C_M_JOB_SCHEDULE,
+                PluginSettings.C_M_JOB_PAGE_SIZE,
+                PluginSettings.C_M_JOB_KEEP_ALIVE,
+                PluginSettings.C_M_JOB_INDEX_NAME,
+                PluginSettings.C_M_JOB_INDEX_TEMPLATE,
+                PluginSettings.C_M_API_PREFIX,
+                PluginSettings.C_M_API_ENDPOINT,
+                PluginSettings.C_M_INDEX_NAME,
+                PluginSettings.C_M_INDEX_TEMPLATE
+                );
     }
 
     @Override

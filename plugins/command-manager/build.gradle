@@ -176,10 +176,23 @@ testClusters.integTest {
         jvmArgs '-agentlib:jdwp=transport=dt_socket,server=y,suspend=y,address=*:5005'
     }
 
-    setting 'm_api.auth.username', 'admin'
-    setting 'm_api.auth.password', 'test'
-    setting 'm_api.uri', 'https://127.0.0.1:55000' // base URI of the M_API
+    setting 'management_api.auth.username', 'admin'
+    setting 'management_api.auth.password', 'test'
+    setting 'management_api.host', 'https://127.0.0.1:55000' // base URI of the Management API
+    setting 'management_api.retries', '3'
+    setting 'management_api.timeout', '30'
+    setting 'command_manager.timeout', '30'
+    setting 'command_manager.job.schedule', '60'
+    setting 'command_manager.job.page_size', '100'
+    setting 'command_manager.job.pit_keep_alive', '10'
+    setting 'command_manager.job.index.name', 'job_index'
+    setting 'command_manager.job.index.template', 'job_template'
+    setting 'command_manager.api.prefix', '/api'
+    setting 'command_manager.api.endpoint', 'endpoint'
+    setting 'command_manager.index.name', 'index_name'
+    setting 'command_manager.index.template', 'index_template'
 }
+
 
 run {
     useCluster testClusters.integTest

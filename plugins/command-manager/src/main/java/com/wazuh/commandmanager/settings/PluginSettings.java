@@ -36,10 +36,10 @@ public class PluginSettings {
     // Management API settings
     public static final Setting<String> M_API_URI = Setting.simpleString(
             M_API_PREFIX + ".host", Setting.Property.NodeScope, Setting.Property.Filtered);
-    public static final Setting<String> M_API_RETRIES = Setting.simpleString(
-            M_API_PREFIX + ".retries", Setting.Property.NodeScope, Setting.Property.Filtered);
+    public static final Setting<Integer> M_API_RETRIES = Setting.intSetting(
+            M_API_PREFIX + ".retries", Integer.MIN_VALUE, Setting.Property.NodeScope, Setting.Property.Filtered);
     public static final Setting<Integer> M_API_TIMEOUT = Setting.intSetting(
-            M_API_PREFIX + ".timeout", Integer.MIN_VALUE, Integer.MAX_VALUE, Setting.Property.NodeScope, Setting.Property.Filtered);
+            M_API_PREFIX + ".timeout", Integer.MIN_VALUE, Setting.Property.NodeScope, Setting.Property.Filtered);
 
     // Management API Auth settings
     public static final Setting<String> M_API_AUTH_USERNAME = Setting.simpleString(
@@ -48,18 +48,16 @@ public class PluginSettings {
             M_API_PREFIX + ".auth.password", Setting.Property.NodeScope, Setting.Property.Filtered);
 
     // Command Manager settings
-    public static final Setting<String> C_M_LOGGING = Setting.simpleString(
-            C_M_PREFIX + ".logging", Setting.Property.NodeScope, Setting.Property.Filtered);
     public static final Setting<Integer> C_M_TIMEOUT = Setting.intSetting(
-            C_M_PREFIX + ".timeout", Integer.MIN_VALUE, Integer.MAX_VALUE, Setting.Property.NodeScope, Setting.Property.Filtered);
+            C_M_PREFIX + ".timeout", Integer.MIN_VALUE, Setting.Property.NodeScope, Setting.Property.Filtered);
 
     // Command Manager Job settings
     public static final Setting<String> C_M_JOB_SCHEDULE = Setting.simpleString(
             C_M_PREFIX + ".job.schedule", Setting.Property.NodeScope, Setting.Property.Filtered);
     public static final Setting<Integer> C_M_JOB_PAGE_SIZE = Setting.intSetting(
-            C_M_PREFIX + ".job.page_size", Integer.MIN_VALUE, Integer.MAX_VALUE, Setting.Property.NodeScope, Setting.Property.Filtered);
+            C_M_PREFIX + ".job.page_size", Integer.MIN_VALUE, Setting.Property.NodeScope, Setting.Property.Filtered);
     public static final Setting<Integer> C_M_JOB_KEEP_ALIVE = Setting.intSetting(
-            C_M_PREFIX + ".job.pit_keep_alive", Integer.MIN_VALUE, Integer.MAX_VALUE, Setting.Property.NodeScope, Setting.Property.Filtered);
+            C_M_PREFIX + ".job.pit_keep_alive", Integer.MIN_VALUE, Setting.Property.NodeScope, Setting.Property.Filtered);
     public static final Setting<String> C_M_JOB_INDEX_NAME = Setting.simpleString(
             C_M_PREFIX + ".job.index.name", Setting.Property.NodeScope, Setting.Property.Filtered);
     public static final Setting<String> C_M_JOB_INDEX_TEMPLATE = Setting.simpleString(
@@ -83,8 +81,8 @@ public class PluginSettings {
     private final String authPassword;
     private final String uri;
     public final int retries;
+    public final int apiTimeout;
     public final int timeout;
-    public final String logging;
     public final String jobSchedule;
     public final int jobPageSize;
     public final int jobKeepAlive;
@@ -104,9 +102,9 @@ public class PluginSettings {
         this.authUsername = M_API_AUTH_USERNAME.get(settings);
         this.authPassword = M_API_AUTH_PASSWORD.get(settings);
         this.uri = M_API_URI.get(settings);
-        this.retries = Integer.parseInt(M_API_RETRIES.get(settings));
+        this.retries = M_API_RETRIES.get(settings);
+        this.apiTimeout = M_API_TIMEOUT.get(settings);
         this.timeout = M_API_TIMEOUT.get(settings);
-        this.logging = C_M_LOGGING.get(settings);
         this.jobSchedule = C_M_JOB_SCHEDULE.get(settings);
         this.jobPageSize = C_M_JOB_PAGE_SIZE.get(settings);
         this.jobKeepAlive = C_M_JOB_KEEP_ALIVE.get(settings);
@@ -121,7 +119,6 @@ public class PluginSettings {
         log.info("[SETTINGS] URI: {}", this.uri);
         log.info("[SETTINGS] Retries: {}", this.retries);
         log.info("[SETTINGS] Timeout: {}", this.timeout);
-        log.info("[SETTINGS] Logging: {}", this.logging);
 
         log.info("[SETTINGS] jobSchedule: {}", jobSchedule);
         log.info("[SETTINGS] jobPageSize: {}", jobPageSize);
