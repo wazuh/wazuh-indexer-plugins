@@ -28,31 +28,72 @@ import java.net.URISyntaxException;
 
 import reactor.util.annotation.NonNull;
 
+
 public class PluginSettings {
+    private static final String M_API_PREFIX = "management_api";
+    private static final String C_M_PREFIX = "command_manager";
 
-    /** The access key (ie login username) for connecting to api. */
-    public static final Setting<SecureString> M_API_AUTH_USERNAME =
-            SecureSetting.secureString("m_api.auth.username", null);
+    // Management API settings
+    public static final Setting<String> M_API_URI = Setting.simpleString(
+            M_API_PREFIX + ".host", Setting.Property.NodeScope, Setting.Property.Filtered);
+    public static final Setting<Integer> M_API_RETRIES = Setting.intSetting(
+            M_API_PREFIX + ".retries", Integer.MIN_VALUE, Setting.Property.NodeScope, Setting.Property.Filtered);
+    public static final Setting<Integer> M_API_TIMEOUT = Setting.intSetting(
+            M_API_PREFIX + ".timeout", Integer.MIN_VALUE, Setting.Property.NodeScope, Setting.Property.Filtered);
 
-    /** The secret key (ie password) for connecting to api. */
-    public static final Setting<SecureString> M_API_AUTH_PASSWORD =
-            SecureSetting.secureString("m_api.auth.password", null);
+    // Management API Auth settings
+    public static final Setting<String> M_API_AUTH_USERNAME = Setting.simpleString(
+            M_API_PREFIX + ".auth.username", Setting.Property.NodeScope, Setting.Property.Filtered);
+    public static final Setting<String> M_API_AUTH_PASSWORD = Setting.simpleString(
+            M_API_PREFIX + ".auth.password", Setting.Property.NodeScope, Setting.Property.Filtered);
 
-    /** The uri for connecting to api. */
-    public static final Setting<SecureString> M_API_URI =
-            SecureSetting.secureString("m_api.uri", null);
+    // Command Manager settings
+    public static final Setting<Integer> C_M_TIMEOUT = Setting.intSetting(
+            C_M_PREFIX + ".timeout", Integer.MIN_VALUE, Setting.Property.NodeScope, Setting.Property.Filtered);
 
-    private static final Logger log = LogManager.getLogger(PluginSettings.class);
+    // Command Manager Job settings
+    public static final Setting<String> C_M_JOB_SCHEDULE = Setting.simpleString(
+            C_M_PREFIX + ".job.schedule", Setting.Property.NodeScope, Setting.Property.Filtered);
+    public static final Setting<Integer> C_M_JOB_PAGE_SIZE = Setting.intSetting(
+            C_M_PREFIX + ".job.page_size", Integer.MIN_VALUE, Setting.Property.NodeScope, Setting.Property.Filtered);
+    public static final Setting<Integer> C_M_JOB_KEEP_ALIVE = Setting.intSetting(
+            C_M_PREFIX + ".job.pit_keep_alive", Integer.MIN_VALUE, Setting.Property.NodeScope, Setting.Property.Filtered);
+    public static final Setting<String> C_M_JOB_INDEX_NAME = Setting.simpleString(
+            C_M_PREFIX + ".job.index.name", Setting.Property.NodeScope, Setting.Property.Filtered);
+    public static final Setting<String> C_M_JOB_INDEX_TEMPLATE = Setting.simpleString(
+            C_M_PREFIX + ".job.index.template", Setting.Property.NodeScope, Setting.Property.Filtered);
+
+    // Command Manager API settings
+    public static final Setting<String> C_M_API_PREFIX = Setting.simpleString(
+            C_M_PREFIX + ".api.prefix", Setting.Property.NodeScope, Setting.Property.Filtered);
+    public static final Setting<String> C_M_API_ENDPOINT = Setting.simpleString(
+            C_M_PREFIX + ".api.endpoint", Setting.Property.NodeScope, Setting.Property.Filtered);
+
+    // Command Manager Index settings
+    public static final Setting<String> C_M_INDEX_NAME = Setting.simpleString(
+            C_M_PREFIX + ".index.name", Setting.Property.NodeScope, Setting.Property.Filtered);
+    public static final Setting<String> C_M_INDEX_TEMPLATE = Setting.simpleString(
+            C_M_PREFIX + ".index.template", Setting.Property.NodeScope, Setting.Property.Filtered);
+
     private static PluginSettings instance;
 
-    /** The access key (ie login username) for connecting to api. */
-    private final SecureString authUsername;
+    private final String authUsername;
+    private final String authPassword;
+    private final String uri;
+    public final int retries;
+    public final int apiTimeout;
+    public final int timeout;
+    public final String jobSchedule;
+    public final int jobPageSize;
+    public final int jobKeepAlive;
+    public final String jobIndexName;
+    public final String jobIndexTemplate;
+    public final String apiPrefix;
+    public final String apiEndpoint;
+    public final String indexName;
+    public final String indexTemplate;
 
-    /** The password for connecting to api. */
-    private final SecureString authPassword;
-
-    /** The uri for connecting to api. */
-    private final SecureString uri;
+    private static final Logger log = LogManager.getLogger(PluginSettings.class);
 
     /** Private default constructor */
     private PluginSettings(@NonNull final Settings settings) {
@@ -61,6 +102,33 @@ public class PluginSettings {
         this.authUsername = M_API_AUTH_USERNAME.get(settings);
         this.authPassword = M_API_AUTH_PASSWORD.get(settings);
         this.uri = M_API_URI.get(settings);
+        this.retries = M_API_RETRIES.get(settings);
+        this.apiTimeout = M_API_TIMEOUT.get(settings);
+        this.timeout = M_API_TIMEOUT.get(settings);
+        this.jobSchedule = C_M_JOB_SCHEDULE.get(settings);
+        this.jobPageSize = C_M_JOB_PAGE_SIZE.get(settings);
+        this.jobKeepAlive = C_M_JOB_KEEP_ALIVE.get(settings);
+        this.jobIndexName = C_M_JOB_INDEX_NAME.get(settings);
+        this.jobIndexTemplate = C_M_JOB_INDEX_TEMPLATE.get(settings);
+        this.apiPrefix = C_M_API_PREFIX.get(settings);
+        this.apiEndpoint = C_M_API_ENDPOINT.get(settings);
+        this.indexName = C_M_INDEX_NAME.get(settings);
+        this.indexTemplate = C_M_INDEX_TEMPLATE.get(settings);
+
+        log.info("[SETTINGS] Username: {}", this.authUsername);
+        log.info("[SETTINGS] URI: {}", this.uri);
+        log.info("[SETTINGS] Retries: {}", this.retries);
+        log.info("[SETTINGS] Timeout: {}", this.timeout);
+
+        log.info("[SETTINGS] jobSchedule: {}", jobSchedule);
+        log.info("[SETTINGS] jobPageSize: {}", jobPageSize);
+        log.info("[SETTINGS] jobKeepAlive: {}", jobKeepAlive);
+        log.info("[SETTINGS] jobIndexName: {}", jobIndexName);
+        log.info("[SETTINGS] jobIndexTemplate: {}", jobIndexTemplate);
+        log.info("[SETTINGS] apiPrefix: {}", apiPrefix);
+        log.info("[SETTINGS] apiEndpoint: {}", apiEndpoint);
+        log.info("[SETTINGS] indexName: {}", indexName);
+        log.info("[SETTINGS] indexTemplate: {}", indexTemplate);
     }
 
     /**
@@ -88,15 +156,15 @@ public class PluginSettings {
     }
 
     public String getAuthPassword() {
-        return this.authPassword.toString();
+        return this.authPassword;
     }
 
     public String getAuthUsername() {
-        return this.authUsername.toString();
+        return this.authUsername;
     }
 
     public String getUri() {
-        return this.uri.toString();
+        return this.uri;
     }
 
     public String getUri(String path) throws URISyntaxException {

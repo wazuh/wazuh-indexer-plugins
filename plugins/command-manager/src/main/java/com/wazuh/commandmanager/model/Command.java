@@ -123,19 +123,19 @@ public class Command implements ToXContentObject {
 
         ArrayList<String> nullArguments = new ArrayList<>();
         if (source == null) {
-            nullArguments.add("source");
+            nullArguments.add(SOURCE);
         }
         if (target == null) {
-            nullArguments.add("target");
+            nullArguments.add(Target.TARGET);
         }
         if (timeout == null) {
-            nullArguments.add("timeout");
+            nullArguments.add(TIMEOUT);
         }
         if (user == null) {
-            nullArguments.add("user");
+            nullArguments.add(USER);
         }
         if (action == null) {
-            nullArguments.add("action");
+            nullArguments.add(Action.ACTION);
         }
 
         if (!nullArguments.isEmpty()) {

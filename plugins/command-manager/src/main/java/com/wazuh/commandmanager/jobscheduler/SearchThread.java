@@ -62,6 +62,7 @@ import com.wazuh.commandmanager.utils.httpclient.AuthHttpRestClient;
  * submitting them to the destination client.
  */
 public class SearchThread implements Runnable {
+    public static final String DOCUMENT_ID_FIELD = "document_id";
     public static final String COMMAND_STATUS_FIELD = Command.COMMAND + "." + Command.STATUS;
     public static final String COMMAND_ORDER_ID_FIELD = Command.COMMAND + "." + Command.ORDER_ID;
     public static final String COMMAND_TIMEOUT_FIELD = Command.COMMAND + "." + Command.TIMEOUT;
@@ -120,7 +121,7 @@ public class SearchThread implements Runnable {
             Map<String, Object> orderMap =
                     getNestedObject(hit.getSourceAsMap(), Command.COMMAND, Map.class);
             if (orderMap != null) {
-                orderMap.put("document_id", hit.getId());
+                orderMap.put(DOCUMENT_ID_FIELD, hit.getId());
                 orders.add(orderMap);
             }
         }

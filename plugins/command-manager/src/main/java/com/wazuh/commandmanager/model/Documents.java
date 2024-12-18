@@ -23,6 +23,8 @@ import java.io.IOException;
 import java.util.ArrayList;
 
 public class Documents implements ToXContentObject {
+    public static final String DOCUMENT_ARRAY = "_documents";
+    public static final String ID = "_id";
     private ArrayList<Document> documents;
 
     public Documents() {
@@ -75,10 +77,10 @@ public class Documents implements ToXContentObject {
      */
     @Override
     public XContentBuilder toXContent(XContentBuilder builder, Params params) throws IOException {
-        builder.startArray("_documents");
+        builder.startArray(DOCUMENT_ARRAY);
         for (Document document : this.documents) {
             builder.startObject();
-            builder.field("_id", document.getId());
+            builder.field(ID, document.getId());
             builder.endObject();
         }
         return builder.endArray();
