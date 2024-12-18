@@ -29,6 +29,8 @@ import org.opensearch.client.Client;
 import org.opensearch.common.action.ActionFuture;
 import org.opensearch.common.unit.TimeValue;
 import org.opensearch.common.xcontent.XContentFactory;
+import org.opensearch.common.xcontent.XContentHelper;
+import org.opensearch.common.xcontent.XContentType;
 import org.opensearch.common.xcontent.json.JsonXContent;
 import org.opensearch.core.action.ActionListener;
 import org.opensearch.core.common.bytes.BytesReference;
@@ -126,10 +128,12 @@ public class SearchThread implements Runnable {
             builder.startArray(Order.ORDERS);
             for (SearchHit hit : searchHits) {
                 XContentParser parser =
-                        JsonXContent.jsonXContent.createParser(
+                        XContentHelper.createParser(
                                 NamedXContentRegistry.EMPTY,
                                 DeprecationHandler.IGNORE_DEPRECATIONS,
-                                hit.getSourceRef().streamInput());
+                                hit.getSourceRef(),
+                                XContentType.JSON
+                        );
                 Order order = Order.parse(parser);
                 order.setDocumentId(hit.getId());
 
@@ -261,6 +265,7 @@ public class SearchThread implements Runnable {
             log.error("IllegalStateException retrieving page: {}", e.getMessage());
         } catch (Exception e) {
             log.error("Generic exception retrieving page: {}", e.getMessage());
+            e.printStackTrace();
         }
     }
 

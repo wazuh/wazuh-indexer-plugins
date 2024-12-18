@@ -64,9 +64,9 @@ public class Command implements ToXContentObject {
         this.orderId = UUIDs.base64UUID();
         this.source = source;
         this.target = target;
-        this.timeout = timeout;
         this.user = user;
         this.action = action;
+        this.timeout = timeout;
         this.status = Status.PENDING;
     }
 
@@ -96,6 +96,9 @@ public class Command implements ToXContentObject {
         Action action = null;
 
         while (parser.nextToken() != XContentParser.Token.END_OBJECT) {
+            if (!parser.currentToken().equals(XContentParser.Token.FIELD_NAME)) {
+                continue;
+            }
             String fieldName = parser.currentName();
 
             parser.nextToken();
@@ -168,6 +171,22 @@ public class Command implements ToXContentObject {
         builder.field(REQUEST_ID, this.requestId);
 
         return builder.endObject();
+    }
+
+    public Action getAction() {
+        return action;
+    }
+
+    public String getSource() {
+        return source;
+    }
+
+    public Target getTarget() {
+        return target;
+    }
+
+    public String getUser() {
+        return user;
     }
 
     @Override

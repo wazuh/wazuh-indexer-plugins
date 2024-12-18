@@ -16,10 +16,10 @@
  */
 package com.wazuh.commandmanager.model;
 
-import org.opensearch.core.xcontent.ToXContent;
-import org.opensearch.core.xcontent.ToXContentObject;
-import org.opensearch.core.xcontent.XContentBuilder;
-import org.opensearch.core.xcontent.XContentParser;
+import com.wazuh.commandmanager.index.CommandIndex;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+import org.opensearch.core.xcontent.*;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -36,6 +36,8 @@ public class Order implements ToXContent {
     private final String user;
     private final Action action;
     private String document_id;
+
+    private static final Logger log = LogManager.getLogger(Order.class);
 
     /**
      * Default constructor
@@ -60,71 +62,37 @@ public class Order implements ToXContent {
         this.document_id = documentId;
     }
 
-    /**
-     * Parses the request's payload into the Command model.
-     *
-     * @param parser XContentParser from the Rest Request
-     * @return instance of Command
-     * @throws IOException error parsing request content
-     * @throws IllegalArgumentException missing arguments
-     */
-    public static Order parse(XContentParser parser) throws IOException, IllegalArgumentException {
-        String source = null;
-        Target target = null;
-        String user = null;
-        Action action = null;
-
-        while (parser.nextToken() != XContentParser.Token.END_OBJECT) {
-            String fieldName = parser.currentName();
-
-            parser.nextToken();
-            switch (fieldName) {
-                    // If we find an Order nested below
-                    // a Command object, parse the Order recursively
-                    // and return its output
-                case Command.COMMAND:
-                    return Order.parse(parser);
-                case SOURCE:
-                    source = parser.text();
-                    break;
-                case Target.TARGET:
-                    target = Target.parse(parser);
-                    break;
-                case USER:
-                    user = parser.text();
-                    break;
-                case Action.ACTION:
-                    action = Action.parse(parser);
-                    break;
-                default:
+    public static Order parse(XContentParser parser)
+    {
+        try {
+            Command command = null;
+            while (parser.nextToken() != null) {
+                if (!parser.currentToken().equals(XContentParser.Token.FIELD_NAME)) {
+                   continue;
+                }
+                String fieldName = parser.currentName();
+                if (fieldName.equals(Command.COMMAND)) {
+                    command = Command.parse(parser);
+                } else {
                     parser.skipChildren();
-                    break;
+                }
             }
+            log.debug("Creating new Order Object");
+            assert command != null;
+            return new Order(
+                command.getSource(),
+                command.getTarget(),
+                command.getUser(),
+                command.getAction()
+            );
+        } catch (Exception e) {
+            e.printStackTrace();
         }
-
-        ArrayList<String> nullArguments = new ArrayList<>();
-        if (source == null) {
-            nullArguments.add("source");
-        }
-        if (target == null) {
-            nullArguments.add("target");
-        }
-        if (user == null) {
-            nullArguments.add("user");
-        }
-        if (action == null) {
-            nullArguments.add("action");
-        }
-
-        if (!nullArguments.isEmpty()) {
-            throw new IllegalArgumentException("Missing arguments: " + nullArguments);
-        } else {
-            return new Order(source, target, user, action);
-        }
+        return null;
     }
 
     @Override
-    public XContentBuilder toXContent(XContentBuilder builder, ToXContent.Params params)
+    public XContentBuilder toXContent(XContentBuilder builder, Params params)
             throws IOException {
         builder.startObject();
         builder.field(SOURCE, this.source);
