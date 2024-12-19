@@ -79,8 +79,8 @@ public class CommandManagerPlugin extends Plugin
         implements ActionPlugin, ReloadablePlugin, JobSchedulerExtension {
     public static final String PLUGINS_URI = "/_plugins";
 
-    public static final String COMMAND_MANAGER_BASE_URI = PLUGINS_URI + "/_command_manager";
-    public static final String COMMANDS_URI = COMMAND_MANAGER_BASE_URI + "/commands";
+//    public static final String COMMAND_MANAGER_BASE_URI = PLUGINS_URI + "/_command_manager";
+//    public static final String COMMANDS_URI = COMMAND_MANAGER_BASE_URI + "/commands";
     public static final String COMMAND_MANAGER_INDEX_NAME = ".commands";
     public static final String COMMAND_MANAGER_INDEX_TEMPLATE_NAME = "index-template-commands";
     public static final String COMMAND_DOCUMENT_PARENT_OBJECT_NAME = "command";

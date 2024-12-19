@@ -79,20 +79,20 @@ public class PluginSettings {
     private final String authUsername;
     private final String authPassword;
     private final String uri;
-    public final int retries;
-    public final int apiTimeout;
-    public final int timeout;
-    public final String jobSchedule;
-    public final int jobPageSize;
-    public final int jobKeepAlive;
-    public final String jobIndexName;
-    public final String jobIndexTemplate;
-    public final String apiPrefix;
-    public final String apiEndpoint;
-    public final String apiBaseUri;
-    public final String apiCommandsUri;
-    public final String indexName;
-    public final String indexTemplate;
+    private final int retries;
+    private final int apiTimeout;
+    private final int timeout;
+    private final String jobSchedule;
+    private final int jobPageSize;
+    private final int jobKeepAlive;
+    private final String jobIndexName;
+    private final String jobIndexTemplate;
+    private final String apiPrefix;
+    private final String apiEndpoint;
+    private final String apiBaseUri;
+    private final String apiCommandsUri;
+    private final String indexName;
+    private final String indexTemplate;
 
     private static final Logger log = LogManager.getLogger(PluginSettings.class);
 

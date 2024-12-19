@@ -29,13 +29,11 @@ import java.security.PrivilegedAction;
 
 import com.wazuh.commandmanager.settings.PluginSettings;
 
-import static com.wazuh.commandmanager.CommandManagerPlugin.COMMAND_MANAGER_BASE_URI;
-
 /** Demo class to test the {@link HttpRestClient} class. */
 public class HttpRestClientDemo {
 
     public static final String SECURITY_USER_AUTHENTICATE =
-            COMMAND_MANAGER_BASE_URI + "/security/user/authenticate";
+            PluginSettings.getInstance().apiBaseUri + "/security/user/authenticate";
     public static final String ORDERS = "/orders";
     private static final Logger log = LogManager.getLogger(HttpRestClientDemo.class);
 

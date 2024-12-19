@@ -16,6 +16,7 @@
  */
 package com.wazuh.commandmanager.rest;
 
+import com.wazuh.commandmanager.settings.PluginSettings;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.opensearch.client.node.NodeClient;
@@ -45,8 +46,7 @@ import static org.opensearch.rest.RestRequest.Method.POST;
 import static com.wazuh.commandmanager.utils.httpclient.HttpRestClientDemo.SECURITY_USER_AUTHENTICATE;
 
 /**
- * Handles HTTP requests to the POST {@value
- * com.wazuh.commandmanager.CommandManagerPlugin#COMMANDS_URI} endpoint.
+ * Handles HTTP requests to the POST commands endpoint.
  */
 public class RestPostCommandAction extends BaseRestHandler {
 
@@ -72,7 +72,7 @@ public class RestPostCommandAction extends BaseRestHandler {
     public List<Route> routes() {
         return List.of(
                 new Route(
-                        POST, String.format(Locale.ROOT, "%s", CommandManagerPlugin.COMMANDS_URI)),
+                        POST, String.format(Locale.ROOT, "%s", PluginSettings.getInstance().getApiCommandsUri())),
                 new Route(POST, String.format(Locale.ROOT, "%s", SECURITY_USER_AUTHENTICATE)));
     }
 
