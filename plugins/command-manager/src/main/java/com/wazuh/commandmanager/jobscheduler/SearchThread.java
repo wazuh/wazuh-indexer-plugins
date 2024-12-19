@@ -28,10 +28,9 @@ import org.opensearch.action.search.SearchResponse;
 import org.opensearch.client.Client;
 import org.opensearch.common.action.ActionFuture;
 import org.opensearch.common.unit.TimeValue;
-import org.opensearch.common.xcontent.XContentFactory;
 import org.opensearch.core.action.ActionListener;
 import org.opensearch.core.rest.RestStatus;
-import org.opensearch.core.xcontent.XContentBuilder;
+import org.opensearch.core.xcontent.*;
 import org.opensearch.index.query.QueryBuilders;
 import org.opensearch.index.query.TermQueryBuilder;
 import org.opensearch.search.SearchHit;
@@ -40,7 +39,6 @@ import org.opensearch.search.builder.PointInTimeBuilder;
 import org.opensearch.search.builder.SearchSourceBuilder;
 import org.opensearch.search.sort.SortOrder;
 
-import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.security.AccessController;
@@ -51,9 +49,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 
 import com.wazuh.commandmanager.CommandManagerPlugin;
-import com.wazuh.commandmanager.model.Command;
-import com.wazuh.commandmanager.model.Document;
-import com.wazuh.commandmanager.model.Status;
+import com.wazuh.commandmanager.model.*;
 import com.wazuh.commandmanager.settings.PluginSettings;
 import com.wazuh.commandmanager.utils.httpclient.AuthHttpRestClient;
 
@@ -118,35 +114,20 @@ public class SearchThread implements Runnable {
     @SuppressWarnings("unchecked")
     public void handlePage(SearchResponse searchResponse) throws IllegalStateException {
         SearchHits searchHits = searchResponse.getHits();
-        ArrayList<Object> orders = new ArrayList<>();
-        for (SearchHit hit : searchHits) {
-            final Map<String, Object> orderMap =
-                    getNestedObject(hit.getSourceAsMap(), Command.COMMAND, Map.class);
-            if (orderMap != null) {
-                orderMap.put("document_id", hit.getId());
-                orders.add(orderMap);
-            }
+        String payload = Orders.getOrders(searchHits);
+        final SimpleHttpResponse response = deliverOrders(payload);
+        if (response == null) {
+            log.error("No reply from server.");
+            return;
         }
-        try (XContentBuilder builder = XContentFactory.jsonBuilder()) {
-            final String payload =
-                    builder.map(Collections.singletonMap("orders", orders)).toString();
-
-            final SimpleHttpResponse response = deliverOrders(payload);
-            if (response == null) {
-                log.error("No reply from server.");
-                return;
-            }
-            log.info("Server replied with {}. Updating orders' status.", response.getCode());
-            Status status = Status.FAILURE;
-            if (List.of(RestStatus.CREATED, RestStatus.ACCEPTED, RestStatus.OK)
-                    .contains(RestStatus.fromCode(response.getCode()))) {
-                status = Status.SENT;
-            }
-            for (SearchHit hit : searchHits) {
-                this.setSentStatus(hit, status);
-            }
-        } catch (IOException e) {
-            log.error("Error parsing hit contents: {}", e.getMessage());
+        log.info("Server replied with {}. Updating orders' status.", response.getCode());
+        Status status = Status.FAILURE;
+        if (List.of(RestStatus.CREATED, RestStatus.ACCEPTED, RestStatus.OK)
+                .contains(RestStatus.fromCode(response.getCode()))) {
+            status = Status.SENT;
+        }
+        for (SearchHit hit : searchHits) {
+            this.setSentStatus(hit, status);
         }
     }
 
