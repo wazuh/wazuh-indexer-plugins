@@ -163,9 +163,6 @@ public class SearchThread implements Runnable {
             for (SearchHit hit : searchHits) {
                 this.setSentStatus(hit, status);
             }
-        } catch (IOException e) {
-            log.error("Error parsing hit contents: {}", e.getMessage());
-        }
     }
 
     /**
