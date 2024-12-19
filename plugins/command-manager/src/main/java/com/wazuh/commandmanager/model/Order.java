@@ -21,10 +21,10 @@ import org.apache.logging.log4j.Logger;
 import org.opensearch.common.xcontent.XContentHelper;
 import org.opensearch.common.xcontent.XContentType;
 import org.opensearch.core.xcontent.*;
+import org.opensearch.search.SearchHit;
 
 import java.io.IOException;
 
-import org.opensearch.search.SearchHit;
 import reactor.util.annotation.NonNull;
 
 public class Order implements ToXContent {
@@ -42,11 +42,15 @@ public class Order implements ToXContent {
 
     /**
      * Default constructor
+     *
      * @param source String field representing the origin of the command order
-     * @param target Object containing the destination's type and id. It is handled by its own model class
+     * @param target Object containing the destination's type and id. It is handled by its own model
+     *     class
      * @param user The requester of the command
-     * @param action An object containing the actual executable plus arguments and version. Handled by its own model class
-     * @param documentId The document ID from the index that holds commands. Used by the agent to report back the results of the action
+     * @param action An object containing the actual executable plus arguments and version. Handled
+     *     by its own model class
+     * @param documentId The document ID from the index that holds commands. Used by the agent to
+     *     report back the results of the action
      */
     public Order(
             @NonNull String source,
@@ -61,29 +65,27 @@ public class Order implements ToXContent {
         this.documentId = documentId;
     }
 
-
     /**
      * Parses a SearchHit into an order as expected by a Wazuh Agent
+     *
      * @param hit The SearchHit result of a search
      * @return An Order Object in accordance with the data model
      */
-    public static Order parseSearchHit(SearchHit hit)
-    {
+    public static Order parseSearchHit(SearchHit hit) {
         try {
             XContentParser parser =
-                XContentHelper.createParser(
-                    NamedXContentRegistry.EMPTY,
-                    DeprecationHandler.IGNORE_DEPRECATIONS,
-                    hit.getSourceRef(),
-                    XContentType.JSON
-                );
+                    XContentHelper.createParser(
+                            NamedXContentRegistry.EMPTY,
+                            DeprecationHandler.IGNORE_DEPRECATIONS,
+                            hit.getSourceRef(),
+                            XContentType.JSON);
             Command command = null;
             // Iterate over the JsonXContentParser's JsonToken until we hit null,
             // which corresponds to end of data
             while (parser.nextToken() != null) {
                 // Look for FIELD_NAME JsonToken s
                 if (!parser.currentToken().equals(XContentParser.Token.FIELD_NAME)) {
-                   continue;
+                    continue;
                 }
                 String fieldName = parser.currentName();
                 if (fieldName.equals(Command.COMMAND)) {
@@ -96,12 +98,11 @@ public class Order implements ToXContent {
             // Create a new Order object with the Command's fields
             assert command != null;
             return new Order(
-                command.getSource(),
-                command.getTarget(),
-                command.getUser(),
-                command.getAction(),
-                hit.getId()
-            );
+                    command.getSource(),
+                    command.getTarget(),
+                    command.getUser(),
+                    command.getAction(),
+                    hit.getId());
         } catch (IOException e) {
             log.error("Order could not be parsed: {}", e.getMessage());
         }
@@ -110,14 +111,14 @@ public class Order implements ToXContent {
 
     /**
      * Used to serialize the Order's contents.
+     *
      * @param builder The builder object we will add our Json to
      * @param params Not used. Required by the interface.
      * @return XContentBuilder with a Json object including this Order's fields
      * @throws IOException Rethrown from IOException's XContentBuilder methods
      */
     @Override
-    public XContentBuilder toXContent(XContentBuilder builder, Params params)
-            throws IOException {
+    public XContentBuilder toXContent(XContentBuilder builder, Params params) throws IOException {
         builder.startObject();
         builder.field(SOURCE, this.source);
         builder.field(USER, this.user);

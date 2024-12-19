@@ -134,13 +134,12 @@ public class SearchThread implements Runnable {
                                 NamedXContentRegistry.EMPTY,
                                 DeprecationHandler.IGNORE_DEPRECATIONS,
                                 hit.getSourceRef(),
-                                XContentType.JSON
-                        );
+                                XContentType.JSON);
                 // Parse the hit's order
                 Order order = Order.parseSearchHit(hit);
                 // Add the current order to the XContentBuilder array
                 assert order != null;
-                order.toXContent(builder,ToXContent.EMPTY_PARAMS);
+                order.toXContent(builder, ToXContent.EMPTY_PARAMS);
             }
             // Close the object and prepare it for delivery
             builder.endArray();
@@ -149,20 +148,20 @@ public class SearchThread implements Runnable {
         } catch (IOException e) {
             log.error("Error building payload from hit: {}", e.getMessage());
         }
-            final SimpleHttpResponse response = deliverOrders(payload);
-            if (response == null) {
-                log.error("No reply from server.");
-                return;
-            }
-            log.info("Server replied with {}. Updating orders' status.", response.getCode());
-            Status status = Status.FAILURE;
-            if (List.of(RestStatus.CREATED, RestStatus.ACCEPTED, RestStatus.OK)
-                    .contains(RestStatus.fromCode(response.getCode()))) {
-                status = Status.SENT;
-            }
-            for (SearchHit hit : searchHits) {
-                this.setSentStatus(hit, status);
-            }
+        final SimpleHttpResponse response = deliverOrders(payload);
+        if (response == null) {
+            log.error("No reply from server.");
+            return;
+        }
+        log.info("Server replied with {}. Updating orders' status.", response.getCode());
+        Status status = Status.FAILURE;
+        if (List.of(RestStatus.CREATED, RestStatus.ACCEPTED, RestStatus.OK)
+                .contains(RestStatus.fromCode(response.getCode()))) {
+            status = Status.SENT;
+        }
+        for (SearchHit hit : searchHits) {
+            this.setSentStatus(hit, status);
+        }
     }
 
     /**
