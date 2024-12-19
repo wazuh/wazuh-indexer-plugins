@@ -27,10 +27,18 @@ import org.opensearch.search.SearchHits;
 import java.io.IOException;
 import java.util.Objects;
 
+/** Helper class for managing command orders */
 public class Orders {
 
     private static final Logger log = LogManager.getLogger(Orders.class);
 
+    /**
+     * Helper static method that takes the search results in SearchHits form and parses them into
+     * Order objects. It then puts together a json string meant for sending over HTTP
+     *
+     * @param searchHits the commands search result
+     * @return A json string payload with an array of orders to be processed
+     */
     public static String getOrders(SearchHits searchHits) {
         try (XContentBuilder builder = XContentFactory.jsonBuilder()) {
             // Start an XContentBuilder array named "orders"
