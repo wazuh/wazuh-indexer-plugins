@@ -97,31 +97,30 @@ public class Command implements ToXContentObject {
         Action action = null;
 
         while (parser.nextToken() != XContentParser.Token.END_OBJECT) {
-            if (!parser.currentToken().equals(XContentParser.Token.FIELD_NAME)) {
-                continue;
-            }
-            String fieldName = parser.currentName();
+            if (parser.currentToken().equals(XContentParser.Token.FIELD_NAME)) {
+                String fieldName = parser.currentName();
 
-            parser.nextToken();
-            switch (fieldName) {
-                case SOURCE:
-                    source = parser.text();
-                    break;
-                case Target.TARGET:
-                    target = Target.parse(parser);
-                    break;
-                case TIMEOUT:
-                    timeout = parser.intValue();
-                    break;
-                case USER:
-                    user = parser.text();
-                    break;
-                case Action.ACTION:
-                    action = Action.parse(parser);
-                    break;
-                default:
-                    parser.skipChildren();
-                    break;
+                parser.nextToken();
+                switch (fieldName) {
+                    case SOURCE:
+                        source = parser.text();
+                        break;
+                    case Target.TARGET:
+                        target = Target.parse(parser);
+                        break;
+                    case TIMEOUT:
+                        timeout = parser.intValue();
+                        break;
+                    case USER:
+                        user = parser.text();
+                        break;
+                    case Action.ACTION:
+                        action = Action.parse(parser);
+                        break;
+                    default:
+                        parser.skipChildren();
+                        break;
+                }
             }
         }
 
@@ -183,19 +182,19 @@ public class Command implements ToXContentObject {
     }
 
     public Action getAction() {
-        return action;
+        return this.action;
     }
 
     public String getSource() {
-        return source;
+        return this.source;
     }
 
     public Target getTarget() {
-        return target;
+        return this.target;
     }
 
     public String getUser() {
-        return user;
+        return this.user;
     }
 
     @Override

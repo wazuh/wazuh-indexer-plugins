@@ -28,9 +28,6 @@ import org.opensearch.action.search.SearchResponse;
 import org.opensearch.client.Client;
 import org.opensearch.common.action.ActionFuture;
 import org.opensearch.common.unit.TimeValue;
-import org.opensearch.common.xcontent.XContentFactory;
-import org.opensearch.common.xcontent.XContentHelper;
-import org.opensearch.common.xcontent.XContentType;
 import org.opensearch.core.action.ActionListener;
 import org.opensearch.core.rest.RestStatus;
 import org.opensearch.core.xcontent.*;
@@ -42,7 +39,6 @@ import org.opensearch.search.builder.PointInTimeBuilder;
 import org.opensearch.search.builder.SearchSourceBuilder;
 import org.opensearch.search.sort.SortOrder;
 
-import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.security.AccessController;
@@ -53,10 +49,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 
 import com.wazuh.commandmanager.CommandManagerPlugin;
-import com.wazuh.commandmanager.model.Command;
-import com.wazuh.commandmanager.model.Document;
-import com.wazuh.commandmanager.model.Order;
-import com.wazuh.commandmanager.model.Status;
+import com.wazuh.commandmanager.model.*;
 import com.wazuh.commandmanager.settings.PluginSettings;
 import com.wazuh.commandmanager.utils.httpclient.AuthHttpRestClient;
 
@@ -121,33 +114,7 @@ public class SearchThread implements Runnable {
     @SuppressWarnings("unchecked")
     public void handlePage(SearchResponse searchResponse) throws IllegalStateException {
         SearchHits searchHits = searchResponse.getHits();
-        String payload = null;
-        try (XContentBuilder builder = XContentFactory.jsonBuilder()) {
-            // Start an XContentBuilder array named "orders"
-            builder.startObject();
-            builder.startArray(Order.ORDERS);
-            // Iterate over search results
-            for (SearchHit hit : searchHits) {
-                // Create a parser for each SearchHit
-                XContentParser parser =
-                        XContentHelper.createParser(
-                                NamedXContentRegistry.EMPTY,
-                                DeprecationHandler.IGNORE_DEPRECATIONS,
-                                hit.getSourceRef(),
-                                XContentType.JSON);
-                // Parse the hit's order
-                Order order = Order.parseSearchHit(hit);
-                // Add the current order to the XContentBuilder array
-                assert order != null;
-                order.toXContent(builder, ToXContent.EMPTY_PARAMS);
-            }
-            // Close the object and prepare it for delivery
-            builder.endArray();
-            builder.endObject();
-            payload = builder.toString();
-        } catch (IOException e) {
-            log.error("Error building payload from hit: {}", e.getMessage());
-        }
+        String payload = Orders.getOrders(searchHits);
         final SimpleHttpResponse response = deliverOrders(payload);
         if (response == null) {
             log.error("No reply from server.");

@@ -24,6 +24,7 @@ import org.opensearch.core.xcontent.*;
 import org.opensearch.search.SearchHit;
 
 import java.io.IOException;
+import java.util.Objects;
 
 import reactor.util.annotation.NonNull;
 
@@ -84,27 +85,29 @@ public class Order implements ToXContent {
             // which corresponds to end of data
             while (parser.nextToken() != null) {
                 // Look for FIELD_NAME JsonToken s
-                if (!parser.currentToken().equals(XContentParser.Token.FIELD_NAME)) {
-                    continue;
-                }
-                String fieldName = parser.currentName();
-                if (fieldName.equals(Command.COMMAND)) {
-                    // Parse Command
-                    command = Command.parse(parser);
-                } else {
-                    parser.skipChildren();
+                if (parser.currentToken().equals(XContentParser.Token.FIELD_NAME)) {
+                    String fieldName = parser.currentName();
+                    if (fieldName.equals(Command.COMMAND)) {
+                        // Parse Command
+                        command = Command.parse(parser);
+                    } else {
+                        parser.skipChildren();
+                    }
                 }
             }
             // Create a new Order object with the Command's fields
-            assert command != null;
             return new Order(
-                    command.getSource(),
-                    command.getTarget(),
-                    command.getUser(),
-                    command.getAction(),
-                    hit.getId());
+                    Objects.requireNonNull(command).getSource(),
+                    Objects.requireNonNull(command).getTarget(),
+                    Objects.requireNonNull(command).getUser(),
+                    Objects.requireNonNull(command).getAction(),
+                    Objects.requireNonNull(hit).getId());
         } catch (IOException e) {
             log.error("Order could not be parsed: {}", e.getMessage());
+        } catch (NullPointerException e) {
+            log.error(
+                    "Could not create Order object. One or more of the constructor's arguments was null: {}",
+                    e.getMessage());
         }
         return null;
     }
