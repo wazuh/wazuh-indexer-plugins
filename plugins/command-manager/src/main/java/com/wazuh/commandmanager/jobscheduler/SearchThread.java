@@ -277,7 +277,6 @@ public class SearchThread implements Runnable {
             log.error("IllegalStateException retrieving page: {}", e.getMessage());
         } catch (Exception e) {
             log.error("Generic exception retrieving page: {}", e.getMessage());
-            e.printStackTrace();
         }
     }
 
