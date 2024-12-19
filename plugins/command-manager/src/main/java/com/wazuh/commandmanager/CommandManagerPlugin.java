@@ -77,7 +77,9 @@ import com.wazuh.commandmanager.utils.httpclient.HttpRestClient;
  */
 public class CommandManagerPlugin extends Plugin
         implements ActionPlugin, ReloadablePlugin, JobSchedulerExtension {
-    public static final String COMMAND_MANAGER_BASE_URI = "/_plugins/_command_manager";
+    public static final String PLUGINS_URI = "/_plugins";
+
+    public static final String COMMAND_MANAGER_BASE_URI = PLUGINS_URI + "/_command_manager";
     public static final String COMMANDS_URI = COMMAND_MANAGER_BASE_URI + "/commands";
     public static final String COMMAND_MANAGER_INDEX_NAME = ".commands";
     public static final String COMMAND_MANAGER_INDEX_TEMPLATE_NAME = "index-template-commands";
