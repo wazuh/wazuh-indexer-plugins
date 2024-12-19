@@ -30,50 +30,49 @@ import reactor.util.annotation.NonNull;
 
 
 public class PluginSettings {
-    private static final String M_API_PREFIX = "management_api";
-    private static final String C_M_PREFIX = "command_manager";
+    public static final String BASE_PLUGINS_URI = "/_plugins";
 
     // Management API settings
     public static final Setting<String> M_API_URI = Setting.simpleString(
-            M_API_PREFIX + ".host", Setting.Property.NodeScope, Setting.Property.Filtered);
+            "management_api.host", Setting.Property.NodeScope, Setting.Property.Filtered);
     public static final Setting<Integer> M_API_RETRIES = Setting.intSetting(
-            M_API_PREFIX + ".retries", Integer.MIN_VALUE, Setting.Property.NodeScope, Setting.Property.Filtered);
+            "management_api.retries", Integer.MIN_VALUE, Setting.Property.NodeScope, Setting.Property.Filtered);
     public static final Setting<Integer> M_API_TIMEOUT = Setting.intSetting(
-            M_API_PREFIX + ".timeout", Integer.MIN_VALUE, Setting.Property.NodeScope, Setting.Property.Filtered);
+            "management_api.timeout", Integer.MIN_VALUE, Setting.Property.NodeScope, Setting.Property.Filtered);
 
     // Management API Auth settings
     public static final Setting<String> M_API_AUTH_USERNAME = Setting.simpleString(
-            M_API_PREFIX + ".auth.username", Setting.Property.NodeScope, Setting.Property.Filtered);
+            "management_api.auth.username", Setting.Property.NodeScope, Setting.Property.Filtered);
     public static final Setting<String> M_API_AUTH_PASSWORD = Setting.simpleString(
-            M_API_PREFIX + ".auth.password", Setting.Property.NodeScope, Setting.Property.Filtered);
+            "management_api.auth.password", Setting.Property.NodeScope, Setting.Property.Filtered);
 
     // Command Manager settings
     public static final Setting<Integer> C_M_TIMEOUT = Setting.intSetting(
-            C_M_PREFIX + ".timeout", Integer.MIN_VALUE, Setting.Property.NodeScope, Setting.Property.Filtered);
+            "command_manager.timeout", Integer.MIN_VALUE, Setting.Property.NodeScope, Setting.Property.Filtered);
 
     // Command Manager Job settings
     public static final Setting<String> C_M_JOB_SCHEDULE = Setting.simpleString(
-            C_M_PREFIX + ".job.schedule", Setting.Property.NodeScope, Setting.Property.Filtered);
+            "command_manager.job.schedule", Setting.Property.NodeScope, Setting.Property.Filtered);
     public static final Setting<Integer> C_M_JOB_PAGE_SIZE = Setting.intSetting(
-            C_M_PREFIX + ".job.page_size", Integer.MIN_VALUE, Setting.Property.NodeScope, Setting.Property.Filtered);
+            "command_manager.job.page_size", Integer.MIN_VALUE, Setting.Property.NodeScope, Setting.Property.Filtered);
     public static final Setting<Integer> C_M_JOB_KEEP_ALIVE = Setting.intSetting(
-            C_M_PREFIX + ".job.pit_keep_alive", Integer.MIN_VALUE, Setting.Property.NodeScope, Setting.Property.Filtered);
+            "command_manager.job.pit_keep_alive", Integer.MIN_VALUE, Setting.Property.NodeScope, Setting.Property.Filtered);
     public static final Setting<String> C_M_JOB_INDEX_NAME = Setting.simpleString(
-            C_M_PREFIX + ".job.index.name", Setting.Property.NodeScope, Setting.Property.Filtered);
+            "command_manager.job.index.name", Setting.Property.NodeScope, Setting.Property.Filtered);
     public static final Setting<String> C_M_JOB_INDEX_TEMPLATE = Setting.simpleString(
-            C_M_PREFIX + ".job.index.template", Setting.Property.NodeScope, Setting.Property.Filtered);
+            "command_manager.job.index.template", Setting.Property.NodeScope, Setting.Property.Filtered);
 
     // Command Manager API settings
     public static final Setting<String> C_M_API_PREFIX = Setting.simpleString(
-            C_M_PREFIX + ".api.prefix", Setting.Property.NodeScope, Setting.Property.Filtered);
+            "command_manager.api.prefix", Setting.Property.NodeScope, Setting.Property.Filtered);
     public static final Setting<String> C_M_API_ENDPOINT = Setting.simpleString(
-            C_M_PREFIX + ".api.endpoint", Setting.Property.NodeScope, Setting.Property.Filtered);
+            "command_manager.api.endpoint", Setting.Property.NodeScope, Setting.Property.Filtered);
 
     // Command Manager Index settings
     public static final Setting<String> C_M_INDEX_NAME = Setting.simpleString(
-            C_M_PREFIX + ".index.name", Setting.Property.NodeScope, Setting.Property.Filtered);
+            "command_manager.index.name", Setting.Property.NodeScope, Setting.Property.Filtered);
     public static final Setting<String> C_M_INDEX_TEMPLATE = Setting.simpleString(
-            C_M_PREFIX + ".index.template", Setting.Property.NodeScope, Setting.Property.Filtered);
+            "command_manager.index.template", Setting.Property.NodeScope, Setting.Property.Filtered);
 
     private static PluginSettings instance;
 
@@ -90,6 +89,8 @@ public class PluginSettings {
     public final String jobIndexTemplate;
     public final String apiPrefix;
     public final String apiEndpoint;
+    public final String apiBaseUri;
+    public final String apiCommandsUri;
     public final String indexName;
     public final String indexTemplate;
 
@@ -112,14 +113,16 @@ public class PluginSettings {
         this.jobIndexTemplate = C_M_JOB_INDEX_TEMPLATE.get(settings);
         this.apiPrefix = C_M_API_PREFIX.get(settings);
         this.apiEndpoint = C_M_API_ENDPOINT.get(settings);
+        this.apiBaseUri = BASE_PLUGINS_URI + apiPrefix;
+        this.apiCommandsUri = apiBaseUri + apiEndpoint;
         this.indexName = C_M_INDEX_NAME.get(settings);
         this.indexTemplate = C_M_INDEX_TEMPLATE.get(settings);
 
         log.info("[SETTINGS] Username: {}", this.authUsername);
         log.info("[SETTINGS] URI: {}", this.uri);
         log.info("[SETTINGS] Retries: {}", this.retries);
+        log.info("[SETTINGS] API Timeout: {}", this.apiTimeout);
         log.info("[SETTINGS] Timeout: {}", this.timeout);
-
         log.info("[SETTINGS] jobSchedule: {}", jobSchedule);
         log.info("[SETTINGS] jobPageSize: {}", jobPageSize);
         log.info("[SETTINGS] jobKeepAlive: {}", jobKeepAlive);
@@ -169,6 +172,62 @@ public class PluginSettings {
 
     public String getUri(String path) throws URISyntaxException {
         return new URIBuilder(getUri()).setPath(path).build().toString();
+    }
+
+    public int getRetries() {
+        return retries;
+    }
+
+    public int getApiTimeout() {
+        return apiTimeout;
+    }
+
+    public int getTimeout() {
+        return timeout;
+    }
+
+    public String getJobSchedule() {
+        return jobSchedule;
+    }
+
+    public int getJobPageSize() {
+        return jobPageSize;
+    }
+
+    public int getJobKeepAlive() {
+        return jobKeepAlive;
+    }
+
+    public String getJobIndexName() {
+        return jobIndexName;
+    }
+
+    public String getJobIndexTemplate() {
+        return jobIndexTemplate;
+    }
+
+    public String getApiPrefix() {
+        return apiPrefix;
+    }
+
+    public String getApiEndpoint() {
+        return apiEndpoint;
+    }
+
+    public String getApiBaseUri() {
+        return apiBaseUri;
+    }
+
+    public String getApiCommandsUri() {
+        return apiCommandsUri;
+    }
+
+    public String getIndexName() {
+        return indexName;
+    }
+
+    public String getIndexTemplate() {
+        return indexTemplate;
     }
 
     @Override
