@@ -65,9 +65,9 @@ public class Command implements ToXContentObject {
         this.orderId = UUIDs.base64UUID();
         this.source = source;
         this.target = target;
-        this.timeout = timeout;
         this.user = user;
         this.action = action;
+        this.timeout = timeout;
         this.status = Status.PENDING;
     }
 
@@ -97,28 +97,30 @@ public class Command implements ToXContentObject {
         Action action = null;
 
         while (parser.nextToken() != XContentParser.Token.END_OBJECT) {
-            String fieldName = parser.currentName();
+            if (parser.currentToken().equals(XContentParser.Token.FIELD_NAME)) {
+                String fieldName = parser.currentName();
 
-            parser.nextToken();
-            switch (fieldName) {
-                case SOURCE:
-                    source = parser.text();
-                    break;
-                case Target.TARGET:
-                    target = Target.parse(parser);
-                    break;
-                case TIMEOUT:
-                    timeout = parser.intValue();
-                    break;
-                case USER:
-                    user = parser.text();
-                    break;
-                case Action.ACTION:
-                    action = Action.parse(parser);
-                    break;
-                default:
-                    parser.skipChildren();
-                    break;
+                parser.nextToken();
+                switch (fieldName) {
+                    case SOURCE:
+                        source = parser.text();
+                        break;
+                    case Target.TARGET:
+                        target = Target.parse(parser);
+                        break;
+                    case TIMEOUT:
+                        timeout = parser.intValue();
+                        break;
+                    case USER:
+                        user = parser.text();
+                        break;
+                    case Action.ACTION:
+                        action = Action.parse(parser);
+                        break;
+                    default:
+                        parser.skipChildren();
+                        break;
+                }
             }
         }
 
@@ -177,6 +179,42 @@ public class Command implements ToXContentObject {
         builder.field(REQUEST_ID, this.requestId);
 
         return builder.endObject();
+    }
+
+    /**
+     * Returns the nested Action fields.
+     *
+     * @return Action fields.
+     */
+    public Action getAction() {
+        return this.action;
+    }
+
+    /**
+     * Returns the nested Source fields.
+     *
+     * @return source fields.
+     */
+    public String getSource() {
+        return this.source;
+    }
+
+    /**
+     * Returns the nested Target fields.
+     *
+     * @return Target fields.
+     */
+    public Target getTarget() {
+        return this.target;
+    }
+
+    /**
+     * Returns the user that requested this command.
+     *
+     * @return the user that requested this command.
+     */
+    public String getUser() {
+        return this.user;
     }
 
     @Override
