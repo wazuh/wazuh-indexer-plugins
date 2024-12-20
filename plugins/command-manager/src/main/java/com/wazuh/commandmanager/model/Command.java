@@ -181,18 +181,38 @@ public class Command implements ToXContentObject {
         return builder.endObject();
     }
 
+    /**
+     * Returns the nested Action fields.
+     *
+     * @return Action fields.
+     */
     public Action getAction() {
         return this.action;
     }
 
+    /**
+     * Returns the nested Source fields.
+     *
+     * @return source fields.
+     */
     public String getSource() {
         return this.source;
     }
 
+    /**
+     * Returns the nested Target fields.
+     *
+     * @return Target fields.
+     */
     public Target getTarget() {
         return this.target;
     }
 
+    /**
+     * Returns the user that requested this command.
+     *
+     * @return the user that requested this command.
+     */
     public String getUser() {
         return this.user;
     }

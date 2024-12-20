@@ -29,7 +29,6 @@ import java.util.Objects;
 import reactor.util.annotation.NonNull;
 
 public class Order implements ToXContent {
-    public static final String ORDERS = "orders";
     public static final String SOURCE = "source";
     public static final String USER = "user";
     public static final String DOCUMENT_ID = "document_id";
@@ -72,7 +71,7 @@ public class Order implements ToXContent {
      * @param hit The SearchHit result of a search
      * @return An Order Object in accordance with the data model
      */
-    public static Order parseSearchHit(SearchHit hit) {
+    public static Order fromSearchHit(SearchHit hit) {
         try {
             XContentParser parser =
                     XContentHelper.createParser(

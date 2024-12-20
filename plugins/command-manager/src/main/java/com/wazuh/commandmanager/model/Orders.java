@@ -16,21 +16,24 @@
  */
 package com.wazuh.commandmanager.model;
 
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
-import org.opensearch.common.xcontent.XContentFactory;
 import org.opensearch.core.xcontent.ToXContent;
 import org.opensearch.core.xcontent.XContentBuilder;
 import org.opensearch.search.SearchHit;
 import org.opensearch.search.SearchHits;
 
 import java.io.IOException;
-import java.util.Objects;
+import java.util.ArrayList;
 
-/** Helper class for managing command orders */
-public class Orders {
+/** Orders model class. */
+public class Orders implements ToXContent {
+    public static final String ORDERS = "orders";
 
-    private static final Logger log = LogManager.getLogger(Orders.class);
+    private final ArrayList<Order> orders;
+
+    /** Default constructor. */
+    public Orders() {
+        this.orders = new ArrayList<>();
+    }
 
     /**
      * Helper static method that takes the search results in SearchHits form and parses them into
@@ -39,28 +42,37 @@ public class Orders {
      * @param searchHits the commands search result
      * @return A json string payload with an array of orders to be processed
      */
-    public static String getOrders(SearchHits searchHits) {
-        try (XContentBuilder builder = XContentFactory.jsonBuilder()) {
-            // Start an XContentBuilder array named "orders"
-            builder.startObject();
-            builder.startArray(Order.ORDERS);
-            // Iterate over search results
-            for (SearchHit hit : searchHits) {
-                // Parse the hit's order
-                Order order = Order.parseSearchHit(hit);
-                // Add the current order to the XContentBuilder array
-                Objects.requireNonNull(order).toXContent(builder, ToXContent.EMPTY_PARAMS);
-            }
-            // Close the object and prepare it for delivery
-            builder.endArray();
-            builder.endObject();
-            return builder.toString();
-        } catch (IOException e) {
-            log.error("Error building payload from hit: {}", e.getMessage());
-        } catch (NullPointerException e) {
-            log.error(
-                    "Exception found when building order payload. Null Order: {}", e.getMessage());
+    public static Orders fromSearchHits(SearchHits searchHits) {
+        Orders orders = new Orders();
+
+        // Iterate over search results
+        for (SearchHit hit : searchHits) {
+            // Parse the hit's order
+            Order order = Order.fromSearchHit(hit);
+            orders.add(order);
         }
-        return null;
+
+        return orders;
+    }
+
+    /**
+     * Adds an order to the orders array.
+     *
+     * @param order order to add.
+     */
+    private void add(Order order) {
+        this.orders.add(order);
+    }
+
+    @Override
+    public XContentBuilder toXContent(XContentBuilder builder, Params params) throws IOException {
+        // Start an XContentBuilder array named "orders"
+        builder.startObject();
+        builder.startArray(ORDERS);
+        for (Order order : this.orders) {
+            order.toXContent(builder, params);
+        }
+        builder.endArray();
+        return builder.endObject();
     }
 }

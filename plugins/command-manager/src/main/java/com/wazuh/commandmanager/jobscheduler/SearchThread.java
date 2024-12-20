@@ -28,9 +28,10 @@ import org.opensearch.action.search.SearchResponse;
 import org.opensearch.client.Client;
 import org.opensearch.common.action.ActionFuture;
 import org.opensearch.common.unit.TimeValue;
+import org.opensearch.common.xcontent.XContentFactory;
 import org.opensearch.core.action.ActionListener;
 import org.opensearch.core.rest.RestStatus;
-import org.opensearch.core.xcontent.*;
+import org.opensearch.core.xcontent.ToXContent;
 import org.opensearch.index.query.QueryBuilders;
 import org.opensearch.index.query.TermQueryBuilder;
 import org.opensearch.search.SearchHit;
@@ -39,6 +40,7 @@ import org.opensearch.search.builder.PointInTimeBuilder;
 import org.opensearch.search.builder.SearchSourceBuilder;
 import org.opensearch.search.sort.SortOrder;
 
+import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.security.AccessController;
@@ -111,11 +113,19 @@ public class SearchThread implements Runnable {
      * @param searchResponse The search results page
      * @throws IllegalStateException Rethrown from setSentStatus()
      */
-    @SuppressWarnings("unchecked")
     public void handlePage(SearchResponse searchResponse) throws IllegalStateException {
         SearchHits searchHits = searchResponse.getHits();
-        String payload = Orders.getOrders(searchHits);
-        final SimpleHttpResponse response = deliverOrders(payload);
+        String payload;
+        try {
+            payload =
+                    Orders.fromSearchHits(searchHits)
+                            .toXContent(XContentFactory.jsonBuilder(), ToXContent.EMPTY_PARAMS)
+                            .toString();
+        } catch (IOException e) {
+            log.error("Error parsing orders from search hits, due to {}", e.getMessage());
+            return;
+        }
+        final SimpleHttpResponse response = this.deliverOrders(payload);
         if (response == null) {
             log.error("No reply from server.");
             return;

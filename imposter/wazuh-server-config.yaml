@@ -50,3 +50,6 @@ resources:
   # Orders
   - method: POST
     path: /orders
+    response:
+      scriptFile:
+        orders/response.js
