@@ -28,6 +28,7 @@ import java.util.Objects;
 
 import reactor.util.annotation.NonNull;
 
+/** Order model class. */
 public class Order implements ToXContent {
     public static final String SOURCE = "source";
     public static final String USER = "user";
