@@ -31,7 +31,7 @@ import org.opensearch.common.unit.TimeValue;
 import org.opensearch.common.xcontent.XContentFactory;
 import org.opensearch.core.action.ActionListener;
 import org.opensearch.core.rest.RestStatus;
-import org.opensearch.core.xcontent.XContentBuilder;
+import org.opensearch.core.xcontent.ToXContent;
 import org.opensearch.index.query.QueryBuilders;
 import org.opensearch.index.query.TermQueryBuilder;
 import org.opensearch.search.SearchHit;
@@ -51,9 +51,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 
 import com.wazuh.commandmanager.CommandManagerPlugin;
-import com.wazuh.commandmanager.model.Command;
-import com.wazuh.commandmanager.model.Document;
-import com.wazuh.commandmanager.model.Status;
+import com.wazuh.commandmanager.model.*;
 import com.wazuh.commandmanager.settings.PluginSettings;
 import com.wazuh.commandmanager.utils.httpclient.AuthHttpRestClient;
 
@@ -115,38 +113,31 @@ public class SearchThread implements Runnable {
      * @param searchResponse The search results page
      * @throws IllegalStateException Rethrown from setSentStatus()
      */
-    @SuppressWarnings("unchecked")
     public void handlePage(SearchResponse searchResponse) throws IllegalStateException {
         SearchHits searchHits = searchResponse.getHits();
-        ArrayList<Object> orders = new ArrayList<>();
-        for (SearchHit hit : searchHits) {
-            final Map<String, Object> orderMap =
-                    getNestedObject(hit.getSourceAsMap(), Command.COMMAND, Map.class);
-            if (orderMap != null) {
-                orderMap.put("document_id", hit.getId());
-                orders.add(orderMap);
-            }
-        }
-        try (XContentBuilder builder = XContentFactory.jsonBuilder()) {
-            final String payload =
-                    builder.map(Collections.singletonMap("orders", orders)).toString();
-
-            final SimpleHttpResponse response = deliverOrders(payload);
-            if (response == null) {
-                log.error("No reply from server.");
-                return;
-            }
-            log.info("Server replied with {}. Updating orders' status.", response.getCode());
-            Status status = Status.FAILURE;
-            if (List.of(RestStatus.CREATED, RestStatus.ACCEPTED, RestStatus.OK)
-                    .contains(RestStatus.fromCode(response.getCode()))) {
-                status = Status.SENT;
-            }
-            for (SearchHit hit : searchHits) {
-                this.setSentStatus(hit, status);
-            }
+        String payload;
+        try {
+            payload =
+                    Orders.fromSearchHits(searchHits)
+                            .toXContent(XContentFactory.jsonBuilder(), ToXContent.EMPTY_PARAMS)
+                            .toString();
         } catch (IOException e) {
-            log.error("Error parsing hit contents: {}", e.getMessage());
+            log.error("Error parsing orders from search hits, due to {}", e.getMessage());
+            return;
+        }
+        final SimpleHttpResponse response = this.deliverOrders(payload);
+        if (response == null) {
+            log.error("No reply from server.");
+            return;
+        }
+        log.info("Server replied with {}. Updating orders' status.", response.getCode());
+        Status status = Status.FAILURE;
+        if (List.of(RestStatus.CREATED, RestStatus.ACCEPTED, RestStatus.OK)
+                .contains(RestStatus.fromCode(response.getCode()))) {
+            status = Status.SENT;
+        }
+        for (SearchHit hit : searchHits) {
+            this.setSentStatus(hit, status);
         }
     }
 
