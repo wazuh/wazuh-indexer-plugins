@@ -161,11 +161,6 @@
                     "type": "keyword"
                   },
                   "full": {
-                    "fields": {
-                      "text": {
-                        "type": "match_only_text"
-                      }
-                    },
                     "ignore_above": 1024,
                     "type": "keyword"
                   },
@@ -174,11 +169,6 @@
                     "type": "keyword"
                   },
                   "name": {
-                    "fields": {
-                      "text": {
-                        "type": "match_only_text"
-                      }
-                    },
                     "ignore_above": 1024,
                     "type": "keyword"
                   },
@@ -318,11 +308,6 @@
       "process": {
         "properties": {
           "name": {
-            "fields": {
-              "text": {
-                "type": "match_only_text"
-              }
-            },
             "ignore_above": 1024,
             "type": "keyword"
           },

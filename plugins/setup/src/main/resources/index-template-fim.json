@@ -152,11 +152,6 @@
                     "type": "keyword"
                   },
                   "full": {
-                    "fields": {
-                      "text": {
-                        "type": "match_only_text"
-                      }
-                    },
                     "ignore_above": 1024,
                     "type": "keyword"
                   },
@@ -165,11 +160,6 @@
                     "type": "keyword"
                   },
                   "name": {
-                    "fields": {
-                      "text": {
-                        "type": "match_only_text"
-                      }
-                    },
                     "ignore_above": 1024,
                     "type": "keyword"
                   },
@@ -294,7 +284,7 @@
           "path": {
             "fields": {
               "text": {
-                "type": "match_only_text"
+                "type": "keyword"
               }
             },
             "ignore_above": 1024,
@@ -306,7 +296,7 @@
           "target_path": {
             "fields": {
               "text": {
-                "type": "match_only_text"
+                "type": "keyword"
               }
             },
             "ignore_above": 1024,

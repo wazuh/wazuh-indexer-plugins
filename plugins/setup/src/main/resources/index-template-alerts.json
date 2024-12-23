@@ -155,11 +155,6 @@
                     "type": "keyword"
                   },
                   "full": {
-                    "fields": {
-                      "text": {
-                        "type": "match_only_text"
-                      }
-                    },
                     "ignore_above": 1024,
                     "type": "keyword"
                   },
@@ -168,11 +163,6 @@
                     "type": "keyword"
                   },
                   "name": {
-                    "fields": {
-                      "text": {
-                        "type": "match_only_text"
-                      }
-                    },
                     "ignore_above": 1024,
                     "type": "keyword"
                   },
@@ -261,7 +251,7 @@
                   "name": {
                     "fields": {
                       "text": {
-                        "type": "match_only_text"
+                        "type": "keyword"
                       }
                     },
                     "ignore_above": 1024,
@@ -373,7 +363,7 @@
               "full_name": {
                 "fields": {
                   "text": {
-                    "type": "match_only_text"
+                    "type": "keyword"
                   }
                 },
                 "ignore_above": 1024,
@@ -406,7 +396,7 @@
               "name": {
                 "fields": {
                   "text": {
-                    "type": "match_only_text"
+                    "type": "keyword"
                   }
                 },
                 "ignore_above": 1024,
@@ -749,7 +739,7 @@
                   "name": {
                     "fields": {
                       "text": {
-                        "type": "match_only_text"
+                        "type": "keyword"
                       }
                     },
                     "ignore_above": 1024,
@@ -861,7 +851,7 @@
               "full_name": {
                 "fields": {
                   "text": {
-                    "type": "match_only_text"
+                    "type": "keyword"
                   }
                 },
                 "ignore_above": 1024,
@@ -894,7 +884,7 @@
               "name": {
                 "fields": {
                   "text": {
-                    "type": "match_only_text"
+                    "type": "keyword"
                   }
                 },
                 "ignore_above": 1024,
@@ -1283,7 +1273,7 @@
             "type": "keyword"
           },
           "message_id": {
-            "type": "wildcard"
+            "type": "keyword"
           },
           "origination_timestamp": {
             "type": "date"
@@ -1307,7 +1297,7 @@
           "subject": {
             "fields": {
               "text": {
-                "type": "match_only_text"
+                "type": "keyword"
               }
             },
             "ignore_above": 1024,
@@ -1338,15 +1328,15 @@
             "type": "keyword"
           },
           "message": {
-            "type": "match_only_text"
+            "type": "keyword"
           },
           "stack_trace": {
             "fields": {
               "text": {
-                "type": "match_only_text"
+                "type": "keyword"
               }
             },
-            "type": "wildcard"
+            "type": "keyword"
           },
           "type": {
             "ignore_above": 1024,
@@ -1830,7 +1820,7 @@
           "path": {
             "fields": {
               "text": {
-                "type": "match_only_text"
+                "type": "keyword"
               }
             },
             "ignore_above": 1024,
@@ -1928,7 +1918,7 @@
           "target_path": {
             "fields": {
               "text": {
-                "type": "match_only_text"
+                "type": "keyword"
               }
             },
             "ignore_above": 1024,
@@ -2280,10 +2270,10 @@
                   "content": {
                     "fields": {
                       "text": {
-                        "type": "match_only_text"
+                        "type": "keyword"
                       }
                     },
-                    "type": "wildcard"
+                    "type": "keyword"
                   }
                 }
               },
@@ -2318,10 +2308,10 @@
                   "content": {
                     "fields": {
                       "text": {
-                        "type": "match_only_text"
+                        "type": "keyword"
                       }
                     },
-                    "type": "wildcard"
+                    "type": "keyword"
                   }
                 }
               },
@@ -2439,7 +2429,7 @@
         }
       },
       "message": {
-        "type": "match_only_text"
+        "type": "keyword"
       },
       "network": {
         "properties": {
@@ -2662,7 +2652,7 @@
               "full": {
                 "fields": {
                   "text": {
-                    "type": "match_only_text"
+                    "type": "keyword"
                   }
                 },
                 "ignore_above": 1024,
@@ -2675,7 +2665,7 @@
               "name": {
                 "fields": {
                   "text": {
-                    "type": "match_only_text"
+                    "type": "keyword"
                   }
                 },
                 "ignore_above": 1024,
@@ -2801,7 +2791,7 @@
           "name": {
             "fields": {
               "text": {
-                "type": "match_only_text"
+                "type": "keyword"
               }
             },
             "ignore_above": 1024,
@@ -2909,12 +2899,7 @@
             }
           },
           "command_line": {
-            "fields": {
-              "text": {
-                "type": "match_only_text"
-              }
-            },
-            "type": "wildcard"
+            "type": "keyword"
           },
           "elf": {
             "properties": {
@@ -3095,7 +3080,7 @@
                   "name": {
                     "fields": {
                       "text": {
-                        "type": "match_only_text"
+                        "type": "keyword"
                       }
                     },
                     "ignore_above": 1024,
@@ -3106,10 +3091,10 @@
               "command_line": {
                 "fields": {
                   "text": {
-                    "type": "match_only_text"
+                    "type": "keyword"
                   }
                 },
-                "type": "wildcard"
+                "type": "keyword"
               },
               "entity_id": {
                 "ignore_above": 1024,
@@ -3133,7 +3118,7 @@
               "executable": {
                 "fields": {
                   "text": {
-                    "type": "match_only_text"
+                    "type": "keyword"
                   }
                 },
                 "ignore_above": 1024,
@@ -3157,7 +3142,7 @@
               "name": {
                 "fields": {
                   "text": {
-                    "type": "match_only_text"
+                    "type": "keyword"
                   }
                 },
                 "ignore_above": 1024,
@@ -3221,7 +3206,7 @@
                   "name": {
                     "fields": {
                       "text": {
-                        "type": "match_only_text"
+                        "type": "keyword"
                       }
                     },
                     "ignore_above": 1024,
@@ -3253,7 +3238,7 @@
                   "name": {
                     "fields": {
                       "text": {
-                        "type": "match_only_text"
+                        "type": "keyword"
                       }
                     },
                     "ignore_above": 1024,
@@ -3300,7 +3285,7 @@
                   "name": {
                     "fields": {
                       "text": {
-                        "type": "match_only_text"
+                        "type": "keyword"
                       }
                     },
                     "ignore_above": 1024,
@@ -3314,7 +3299,7 @@
               "working_directory": {
                 "fields": {
                   "text": {
-                    "type": "match_only_text"
+                    "type": "keyword"
                   }
                 },
                 "ignore_above": 1024,
@@ -3329,7 +3314,7 @@
           "executable": {
             "fields": {
               "text": {
-                "type": "match_only_text"
+                "type": "keyword"
               }
             },
             "ignore_above": 1024,
@@ -3350,10 +3335,10 @@
               "command_line": {
                 "fields": {
                   "text": {
-                    "type": "match_only_text"
+                    "type": "keyword"
                   }
                 },
-                "type": "wildcard"
+                "type": "keyword"
               },
               "entity_id": {
                 "ignore_above": 1024,
@@ -3362,7 +3347,7 @@
               "executable": {
                 "fields": {
                   "text": {
-                    "type": "match_only_text"
+                    "type": "keyword"
                   }
                 },
                 "ignore_above": 1024,
@@ -3386,7 +3371,7 @@
               "name": {
                 "fields": {
                   "text": {
-                    "type": "match_only_text"
+                    "type": "keyword"
                   }
                 },
                 "ignore_above": 1024,
@@ -3416,7 +3401,7 @@
                   "name": {
                     "fields": {
                       "text": {
-                        "type": "match_only_text"
+                        "type": "keyword"
                       }
                     },
                     "ignore_above": 1024,
@@ -3448,7 +3433,7 @@
                   "name": {
                     "fields": {
                       "text": {
-                        "type": "match_only_text"
+                        "type": "keyword"
                       }
                     },
                     "ignore_above": 1024,
@@ -3495,7 +3480,7 @@
                   "name": {
                     "fields": {
                       "text": {
-                        "type": "match_only_text"
+                        "type": "keyword"
                       }
                     },
                     "ignore_above": 1024,
@@ -3509,7 +3494,7 @@
               "working_directory": {
                 "fields": {
                   "text": {
-                    "type": "match_only_text"
+                    "type": "keyword"
                   }
                 },
                 "ignore_above": 1024,
@@ -3569,7 +3554,7 @@
                 "type": "boolean"
               },
               "text": {
-                "type": "wildcard"
+                "type": "keyword"
               },
               "total_bytes_captured": {
                 "type": "long"
@@ -3643,11 +3628,6 @@
             }
           },
           "name": {
-            "fields": {
-              "text": {
-                "type": "match_only_text"
-              }
-            },
             "ignore_above": 1024,
             "type": "keyword"
           },
@@ -3699,10 +3679,10 @@
               "command_line": {
                 "fields": {
                   "text": {
-                    "type": "match_only_text"
+                    "type": "keyword"
                   }
                 },
-                "type": "wildcard"
+                "type": "keyword"
               },
               "elf": {
                 "properties": {
@@ -3860,7 +3840,7 @@
               "executable": {
                 "fields": {
                   "text": {
-                    "type": "match_only_text"
+                    "type": "keyword"
                   }
                 },
                 "ignore_above": 1024,
@@ -3994,7 +3974,7 @@
               "name": {
                 "fields": {
                   "text": {
-                    "type": "match_only_text"
+                    "type": "keyword"
                   }
                 },
                 "ignore_above": 1024,
@@ -4113,7 +4093,7 @@
                   "name": {
                     "fields": {
                       "text": {
-                        "type": "match_only_text"
+                        "type": "keyword"
                       }
                     },
                     "ignore_above": 1024,
@@ -4142,7 +4122,7 @@
                   "name": {
                     "fields": {
                       "text": {
-                        "type": "match_only_text"
+                        "type": "keyword"
                       }
                     },
                     "ignore_above": 1024,
@@ -4191,7 +4171,7 @@
               "title": {
                 "fields": {
                   "text": {
-                    "type": "match_only_text"
+                    "type": "keyword"
                   }
                 },
                 "ignore_above": 1024,
@@ -4224,7 +4204,7 @@
                   "name": {
                     "fields": {
                       "text": {
-                        "type": "match_only_text"
+                        "type": "keyword"
                       }
                     },
                     "ignore_above": 1024,
@@ -4238,7 +4218,7 @@
               "working_directory": {
                 "fields": {
                   "text": {
-                    "type": "match_only_text"
+                    "type": "keyword"
                   }
                 },
                 "ignore_above": 1024,
@@ -4350,7 +4330,7 @@
               "executable": {
                 "fields": {
                   "text": {
-                    "type": "match_only_text"
+                    "type": "keyword"
                   }
                 },
                 "ignore_above": 1024,
@@ -4379,7 +4359,7 @@
               "name": {
                 "fields": {
                   "text": {
-                    "type": "match_only_text"
+                    "type": "keyword"
                   }
                 },
                 "ignore_above": 1024,
@@ -4408,7 +4388,7 @@
               "name": {
                 "fields": {
                   "text": {
-                    "type": "match_only_text"
+                    "type": "keyword"
                   }
                 },
                 "ignore_above": 1024,
@@ -4428,10 +4408,10 @@
               "command_line": {
                 "fields": {
                   "text": {
-                    "type": "match_only_text"
+                    "type": "keyword"
                   }
                 },
-                "type": "wildcard"
+                "type": "keyword"
               },
               "entity_id": {
                 "ignore_above": 1024,
@@ -4440,7 +4420,7 @@
               "executable": {
                 "fields": {
                   "text": {
-                    "type": "match_only_text"
+                    "type": "keyword"
                   }
                 },
                 "ignore_above": 1024,
@@ -4464,7 +4444,7 @@
               "name": {
                 "fields": {
                   "text": {
-                    "type": "match_only_text"
+                    "type": "keyword"
                   }
                 },
                 "ignore_above": 1024,
@@ -4528,7 +4508,7 @@
                   "name": {
                     "fields": {
                       "text": {
-                        "type": "match_only_text"
+                        "type": "keyword"
                       }
                     },
                     "ignore_above": 1024,
@@ -4560,7 +4540,7 @@
                   "name": {
                     "fields": {
                       "text": {
-                        "type": "match_only_text"
+                        "type": "keyword"
                       }
                     },
                     "ignore_above": 1024,
@@ -4607,7 +4587,7 @@
                   "name": {
                     "fields": {
                       "text": {
-                        "type": "match_only_text"
+                        "type": "keyword"
                       }
                     },
                     "ignore_above": 1024,
@@ -4621,7 +4601,7 @@
               "working_directory": {
                 "fields": {
                   "text": {
-                    "type": "match_only_text"
+                    "type": "keyword"
                   }
                 },
                 "ignore_above": 1024,
@@ -4670,7 +4650,7 @@
           "title": {
             "fields": {
               "text": {
-                "type": "match_only_text"
+                "type": "keyword"
               }
             },
             "ignore_above": 1024,
@@ -4709,7 +4689,7 @@
               "name": {
                 "fields": {
                   "text": {
-                    "type": "match_only_text"
+                    "type": "keyword"
                   }
                 },
                 "ignore_above": 1024,
@@ -4723,7 +4703,7 @@
           "working_directory": {
             "fields": {
               "text": {
-                "type": "match_only_text"
+                "type": "keyword"
               }
             },
             "ignore_above": 1024,
@@ -4740,7 +4720,7 @@
                 "type": "keyword"
               },
               "strings": {
-                "type": "wildcard"
+                "type": "keyword"
               },
               "type": {
                 "ignore_above": 1024,
@@ -4845,7 +4825,7 @@
                   "name": {
                     "fields": {
                       "text": {
-                        "type": "match_only_text"
+                        "type": "keyword"
                       }
                     },
                     "ignore_above": 1024,
@@ -4957,7 +4937,7 @@
               "full_name": {
                 "fields": {
                   "text": {
-                    "type": "match_only_text"
+                    "type": "keyword"
                   }
                 },
                 "ignore_above": 1024,
@@ -4990,7 +4970,7 @@
               "name": {
                 "fields": {
                   "text": {
-                    "type": "match_only_text"
+                    "type": "keyword"
                   }
                 },
                 "ignore_above": 1024,
@@ -5176,7 +5156,7 @@
                   "name": {
                     "fields": {
                       "text": {
-                        "type": "match_only_text"
+                        "type": "keyword"
                       }
                     },
                     "ignore_above": 1024,
@@ -5288,7 +5268,7 @@
               "full_name": {
                 "fields": {
                   "text": {
-                    "type": "match_only_text"
+                    "type": "keyword"
                   }
                 },
                 "ignore_above": 1024,
@@ -5321,7 +5301,7 @@
               "name": {
                 "fields": {
                   "text": {
-                    "type": "match_only_text"
+                    "type": "keyword"
                   }
                 },
                 "ignore_above": 1024,
@@ -5359,7 +5339,7 @@
                           "name": {
                             "fields": {
                               "text": {
-                                "type": "match_only_text"
+                                "type": "keyword"
                               }
                             },
                             "ignore_above": 1024,
@@ -5668,7 +5648,7 @@
                       "path": {
                         "fields": {
                           "text": {
-                            "type": "match_only_text"
+                            "type": "keyword"
                           }
                         },
                         "ignore_above": 1024,
@@ -5766,7 +5746,7 @@
                       "target_path": {
                         "fields": {
                           "text": {
-                            "type": "match_only_text"
+                            "type": "keyword"
                           }
                         },
                         "ignore_above": 1024,
@@ -5983,7 +5963,7 @@
                             "type": "keyword"
                           },
                           "strings": {
-                            "type": "wildcard"
+                            "type": "keyword"
                           },
                           "type": {
                             "ignore_above": 1024,
@@ -6036,25 +6016,25 @@
                       "full": {
                         "fields": {
                           "text": {
-                            "type": "match_only_text"
+                            "type": "keyword"
                           }
                         },
-                        "type": "wildcard"
+                        "type": "keyword"
                       },
                       "original": {
                         "fields": {
                           "text": {
-                            "type": "match_only_text"
+                            "type": "keyword"
                           }
                         },
-                        "type": "wildcard"
+                        "type": "keyword"
                       },
                       "password": {
                         "ignore_above": 1024,
                         "type": "keyword"
                       },
                       "path": {
-                        "type": "wildcard"
+                        "type": "keyword"
                       },
                       "port": {
                         "type": "long"
@@ -6280,7 +6260,7 @@
                       "name": {
                         "fields": {
                           "text": {
-                            "type": "match_only_text"
+                            "type": "keyword"
                           }
                         },
                         "ignore_above": 1024,
@@ -6589,7 +6569,7 @@
                   "path": {
                     "fields": {
                       "text": {
-                        "type": "match_only_text"
+                        "type": "keyword"
                       }
                     },
                     "ignore_above": 1024,
@@ -6687,7 +6667,7 @@
                   "target_path": {
                     "fields": {
                       "text": {
-                        "type": "match_only_text"
+                        "type": "keyword"
                       }
                     },
                     "ignore_above": 1024,
@@ -6904,7 +6884,7 @@
                         "type": "keyword"
                       },
                       "strings": {
-                        "type": "wildcard"
+                        "type": "keyword"
                       },
                       "type": {
                         "ignore_above": 1024,
@@ -6957,25 +6937,25 @@
                   "full": {
                     "fields": {
                       "text": {
-                        "type": "match_only_text"
+                        "type": "keyword"
                       }
                     },
-                    "type": "wildcard"
+                    "type": "keyword"
                   },
                   "original": {
                     "fields": {
                       "text": {
-                        "type": "match_only_text"
+                        "type": "keyword"
                       }
                     },
-                    "type": "wildcard"
+                    "type": "keyword"
                   },
                   "password": {
                     "ignore_above": 1024,
                     "type": "keyword"
                   },
                   "path": {
-                    "type": "wildcard"
+                    "type": "keyword"
                   },
                   "port": {
                     "type": "long"
@@ -7167,7 +7147,7 @@
               "name": {
                 "fields": {
                   "text": {
-                    "type": "match_only_text"
+                    "type": "keyword"
                   }
                 },
                 "ignore_above": 1024,
@@ -7186,7 +7166,7 @@
                   "name": {
                     "fields": {
                       "text": {
-                        "type": "match_only_text"
+                        "type": "keyword"
                       }
                     },
                     "ignore_above": 1024,
@@ -7577,25 +7557,25 @@
           "full": {
             "fields": {
               "text": {
-                "type": "match_only_text"
+                "type": "keyword"
               }
             },
-            "type": "wildcard"
+            "type": "keyword"
           },
           "original": {
             "fields": {
               "text": {
-                "type": "match_only_text"
+                "type": "keyword"
               }
             },
-            "type": "wildcard"
+            "type": "keyword"
           },
           "password": {
             "ignore_above": 1024,
             "type": "keyword"
           },
           "path": {
-            "type": "wildcard"
+            "type": "keyword"
           },
           "port": {
             "type": "long"
@@ -7641,7 +7621,7 @@
               "full_name": {
                 "fields": {
                   "text": {
-                    "type": "match_only_text"
+                    "type": "keyword"
                   }
                 },
                 "ignore_above": 1024,
@@ -7674,7 +7654,7 @@
               "name": {
                 "fields": {
                   "text": {
-                    "type": "match_only_text"
+                    "type": "keyword"
                   }
                 },
                 "ignore_above": 1024,
@@ -7703,7 +7683,7 @@
               "full_name": {
                 "fields": {
                   "text": {
-                    "type": "match_only_text"
+                    "type": "keyword"
                   }
                 },
                 "ignore_above": 1024,
@@ -7736,7 +7716,7 @@
               "name": {
                 "fields": {
                   "text": {
-                    "type": "match_only_text"
+                    "type": "keyword"
                   }
                 },
                 "ignore_above": 1024,
@@ -7755,7 +7735,7 @@
           "full_name": {
             "fields": {
               "text": {
-                "type": "match_only_text"
+                "type": "keyword"
               }
             },
             "ignore_above": 1024,
@@ -7788,7 +7768,7 @@
           "name": {
             "fields": {
               "text": {
-                "type": "match_only_text"
+                "type": "keyword"
               }
             },
             "ignore_above": 1024,
@@ -7835,7 +7815,7 @@
               "full_name": {
                 "fields": {
                   "text": {
-                    "type": "match_only_text"
+                    "type": "keyword"
                   }
                 },
                 "ignore_above": 1024,
@@ -7868,7 +7848,7 @@
               "name": {
                 "fields": {
                   "text": {
-                    "type": "match_only_text"
+                    "type": "keyword"
                   }
                 },
                 "ignore_above": 1024,
@@ -7899,7 +7879,7 @@
           "original": {
             "fields": {
               "text": {
-                "type": "match_only_text"
+                "type": "keyword"
               }
             },
             "ignore_above": 1024,
@@ -7914,7 +7894,7 @@
               "full": {
                 "fields": {
                   "text": {
-                    "type": "match_only_text"
+                    "type": "keyword"
                   }
                 },
                 "ignore_above": 1024,
@@ -7927,7 +7907,7 @@
               "name": {
                 "fields": {
                   "text": {
-                    "type": "match_only_text"
+                    "type": "keyword"
                   }
                 },
                 "ignore_above": 1024,
