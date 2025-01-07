@@ -62,6 +62,25 @@ public class Orders implements ToXContent {
     }
 
     /**
+     * Clears the current list of orders and sets the current list of orders to the input list.
+     *
+     * @param orders the list of orders to be set.
+     */
+    public void setOrders(ArrayList<Order> orders) {
+        this.orders.clear();
+        this.orders.addAll(orders);
+    }
+
+    /**
+     * Retrieves the list of orders.
+     *
+     * @return the current list of Order objects.
+     */
+    public ArrayList<Order> getOrders() {
+        return this.orders;
+    }
+
+    /**
      * Adds an order to the orders array.
      *
      * @param order order to add.

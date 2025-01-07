@@ -64,7 +64,6 @@ import com.wazuh.commandmanager.jobscheduler.CommandManagerJobRunner;
 import com.wazuh.commandmanager.jobscheduler.JobDocument;
 import com.wazuh.commandmanager.rest.RestPostCommandAction;
 import com.wazuh.commandmanager.settings.PluginSettings;
-import com.wazuh.commandmanager.utils.httpclient.HttpRestClient;
 
 /**
  * The Command Manager plugin exposes an HTTP API with a single endpoint to receive raw commands

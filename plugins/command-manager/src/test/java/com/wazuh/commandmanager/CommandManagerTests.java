@@ -25,8 +25,6 @@ import java.net.URISyntaxException;
 import java.security.AccessController;
 import java.security.PrivilegedAction;
 
-import com.wazuh.commandmanager.utils.httpclient.HttpRestClient;
-
 public class CommandManagerTests extends OpenSearchTestCase {
     // Add unit tests for your plugin
 

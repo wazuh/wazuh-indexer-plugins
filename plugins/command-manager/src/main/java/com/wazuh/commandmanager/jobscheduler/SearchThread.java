@@ -53,7 +53,6 @@ import java.util.concurrent.ExecutionException;
 import com.wazuh.commandmanager.CommandManagerPlugin;
 import com.wazuh.commandmanager.model.*;
 import com.wazuh.commandmanager.settings.PluginSettings;
-import com.wazuh.commandmanager.utils.httpclient.AuthHttpRestClient;
 
 /**
  * The class in charge of searching and managing commands in {@link Status#PENDING} status and of
@@ -115,22 +114,11 @@ public class SearchThread implements Runnable {
      */
     public void handlePage(SearchResponse searchResponse) throws IllegalStateException {
         SearchHits searchHits = searchResponse.getHits();
-        String payload;
-        try {
-            payload =
-                    Orders.fromSearchHits(searchHits)
-                            .toXContent(XContentFactory.jsonBuilder(), ToXContent.EMPTY_PARAMS)
-                            .toString();
-        } catch (IOException e) {
-            log.error("Error parsing orders from search hits, due to {}", e.getMessage());
-            return;
-        }
-        final SimpleHttpResponse response = this.deliverOrders(payload);
-        if (response == null) {
-            log.error("No reply from server.");
-            return;
-        }
-        log.info("Server replied with {}. Updating orders' status.", response.getCode());
+
+        Orders orders = new Orders();
+        orders = Orders.fromSearchHits(searchHits);
+
+
         Status status = Status.FAILURE;
         if (List.of(RestStatus.CREATED, RestStatus.ACCEPTED, RestStatus.OK)
                 .contains(RestStatus.fromCode(response.getCode()))) {
@@ -141,33 +129,6 @@ public class SearchThread implements Runnable {
         }
     }
 
-    /**
-     * Send the command order over HTTP
-     *
-     * @param orders The list of order to send.
-     */
-    private SimpleHttpResponse deliverOrders(String orders) {
-        SimpleHttpResponse response = null;
-        try {
-            final PluginSettings settings = PluginSettings.getInstance();
-            final URI host =
-                    new URIBuilder(settings.getUri() + SearchThread.ORDERS_ENDPOINT).build();
-
-            response =
-                    AccessController.doPrivileged(
-                            (PrivilegedAction<SimpleHttpResponse>)
-                                    () -> {
-                                        final AuthHttpRestClient httpClient =
-                                                new AuthHttpRestClient();
-                                        return httpClient.post(host, orders, null);
-                                    });
-        } catch (URISyntaxException e) {
-            log.error("Invalid URI: {}", e.getMessage());
-        } catch (Exception e) {
-            log.error("Error sending data: {}", e.getMessage());
-        }
-        return response;
-    }
 
     /**
      * Retrieves the hit's contents and updates the {@link Status} field to {@link Status#SENT}.
