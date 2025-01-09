@@ -16,13 +16,16 @@
  */
 package com.wazuh.commandmanager.model;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.opensearch.common.UUIDs;
 import org.opensearch.common.time.DateFormatter;
 import org.opensearch.common.time.DateUtils;
 import org.opensearch.common.time.FormatNames;
-import org.opensearch.core.xcontent.ToXContentObject;
-import org.opensearch.core.xcontent.XContentBuilder;
-import org.opensearch.core.xcontent.XContentParser;
+import org.opensearch.common.xcontent.XContentHelper;
+import org.opensearch.common.xcontent.XContentType;
+import org.opensearch.core.xcontent.*;
+import org.opensearch.search.SearchHit;
 
 import java.io.IOException;
 import java.time.ZonedDateTime;
@@ -40,6 +43,8 @@ public class Document implements ToXContentObject {
     private final ZonedDateTime timestamp;
     private final ZonedDateTime deliveryTimestamp;
 
+    private static final Logger log = LogManager.getLogger(Document.class);
+
     /**
      * Default constructor.
      *
@@ -52,6 +57,20 @@ public class Document implements ToXContentObject {
         this.id = UUIDs.base64UUID();
         this.timestamp = DateUtils.nowWithMillisResolution();
         this.deliveryTimestamp = timestamp.plusSeconds(command.getTimeout());
+    }
+
+    /**
+     * Custom constructor for existent documents.
+     *
+     * @param agent "agent" nested fields.
+     * @param command "command" nested fields.
+     */
+    public Document(String id, Agent agent, Command command, ZonedDateTime timestamp, ZonedDateTime deliveryTimestamp) {
+        this.id = id;
+        this.agent = agent;
+        this.command = command;
+        this.timestamp = timestamp;
+        this.deliveryTimestamp = deliveryTimestamp;
     }
 
     /**
@@ -78,6 +97,63 @@ public class Document implements ToXContentObject {
         return new Document(agent, command);
     }
 
+    public static Document fromSearchHit(SearchHit hit) {
+        try {
+            XContentParser parser =
+                    XContentHelper.createParser(
+                            NamedXContentRegistry.EMPTY,
+                            DeprecationHandler.IGNORE_DEPRECATIONS,
+                            hit.getSourceRef(),
+                            XContentType.JSON);
+
+            Command command = null;
+            Agent agent = null;
+            ZonedDateTime deliveryTimestamp = null;
+            ZonedDateTime timestamp = null;
+
+            // Iterate over the JsonXContentParser's JsonToken until we hit null,
+            // which corresponds to end of data
+            while (parser.nextToken() != null) {
+                // Look for FIELD_NAME JsonToken s
+                if (parser.currentToken().equals(XContentParser.Token.FIELD_NAME)) {
+                    String fieldName = parser.currentName();
+                    switch (fieldName) {
+                        case Document.DELIVERY_TIMESTAMP:
+                            deliveryTimestamp = ZonedDateTime.from(DATE_FORMATTER.parse(parser.text()));
+                            break;
+
+                        case Document.TIMESTAMP:
+                            timestamp = ZonedDateTime.from(DATE_FORMATTER.parse(parser.text()));
+                            break;
+
+                        case Agent.AGENT:
+                            // Parse Agent
+                            agent = Agent.parse(parser);
+                            break;
+
+                        case Command.COMMAND:
+                            // Parse Command
+                            command = Command.parse(parser);
+                            break;
+
+                        default:
+                            parser.skipChildren();
+                    }
+                }
+            }
+            // Create a new Document object with the Command's fields
+            return new Document(hit.getId(), agent, command, timestamp, deliveryTimestamp);
+
+        } catch (IOException e) {
+            log.error("Document could not be parsed: {}", e.getMessage());
+        } catch (NullPointerException e) {
+            log.error(
+                    "Could not create Document object. One or more of the constructor's arguments was null: {}",
+                    e.getMessage());
+        }
+        return null;
+    }
+
     /**
      * Returns the document's "_id".
      *
@@ -85,6 +161,24 @@ public class Document implements ToXContentObject {
      */
     public String getId() {
         return this.id;
+    }
+
+    /**
+     * Returns the Command object associated with this Document.
+     *
+     * @return Command object
+     */
+    public Command getCommand() {
+        return this.command;
+    }
+
+    /**
+     * Returns the timestamp at which the Command was delivered to the Agent.
+     *
+     * @return ZonedDateTime object representing the delivery timestamp
+     */
+    public ZonedDateTime getDeliveryTimestamp() {
+        return this.deliveryTimestamp;
     }
 
     @Override

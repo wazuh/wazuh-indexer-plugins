@@ -42,6 +42,7 @@ public class Orders implements ToXContent {
      * @param searchHits the commands search result
      * @return A json string payload with an array of orders to be processed
      */
+
     /**
      * Static builder method that initializes an instance of Orders from a SearchHits instance.
      *

@@ -252,15 +252,4 @@ public class CommandManagerPlugin extends Plugin
         XContentParserUtils.throwUnknownToken(parser.currentToken(), parser.getTokenLocation());
         return null;
     }
-
-    /**
-     * Close the resources opened by this plugin.
-     *
-     * @throws IOException if the plugin failed to close its resources
-     */
-    @Override
-    public void close() throws IOException {
-        super.close();
-        HttpRestClient.getInstance().stopHttpAsyncClient();
-    }
 }
