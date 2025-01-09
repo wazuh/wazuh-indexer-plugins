@@ -16,6 +16,8 @@
  */
 package com.wazuh.commandmanager.model;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.opensearch.core.xcontent.ToXContentObject;
 import org.opensearch.core.xcontent.XContentBuilder;
 import org.opensearch.core.xcontent.XContentParser;
@@ -27,6 +29,7 @@ public class Args implements ToXContentObject {
 
     public static final String ARGS = "args";
     private final Object args;
+    private static final Logger log = LogManager.getLogger(Args.class);
 
     /**
      * Constructor method
@@ -47,17 +50,42 @@ public class Args implements ToXContentObject {
      */
     public static Args parse(XContentParser parser) throws IOException {
         Object args = null;
+        log.info("Current Token: {}", parser.currentToken());
 
-        while (parser.nextToken() != XContentParser.Token.END_OBJECT) {
-            XContentParser.Token currentToken = parser.currentToken();
-            parser.nextToken();
-            if (currentToken == XContentParser.Token.START_ARRAY) {
-                args = parser.list();
-            } else {
-                args = parser.objectText();
-            }
+        XContentParser.Token currentToken = parser.currentToken();
+
+        if (currentToken.isValue()) {
+            log.info("Parsing value: {}", currentToken);
+            args = parser.objectText();
+            return new Args(args);
         }
-        return new Args(args);
+
+        if (currentToken == XContentParser.Token.START_ARRAY) {
+            log.info("Parsing list");
+            args = parser.list();
+            return new Args(args);
+        }
+
+        StringBuilder keyValuePairs = new StringBuilder();
+        if (currentToken == XContentParser.Token.START_OBJECT) {
+            log.info("Parsing object");
+            while (parser.nextToken() != XContentParser.Token.END_OBJECT) {
+                String fieldName = parser.currentName();
+                parser.nextToken();
+                String value = parser.text();
+                keyValuePairs
+                    .append('"')
+                    .append(fieldName)
+                    .append('"')
+                    .append(':')
+                    .append('"')
+                    .append(value)
+                    .append('"')
+                    .append(',');
+            }
+            keyValuePairs.deleteCharAt(keyValuePairs.length()-1);
+        }
+        return new Args((Object) keyValuePairs.toString());
     }
 
     /**
