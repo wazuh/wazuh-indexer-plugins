@@ -40,8 +40,8 @@ public class Args implements ToXContentObject {
     }
 
     /**
-     * Parses an args XContentParser into an Args object. A Map<String,Object> is created with the
-     * fields and values from the command.action.args object
+     * Parses an args XContentParser into an Args object. A {@code Map<String,Object>} is created
+     * with the fields and values from the command.action.args object
      *
      * @param parser An XContentParser containing an args to be deserialized
      * @return An Args object
