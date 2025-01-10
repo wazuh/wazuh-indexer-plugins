@@ -217,6 +217,16 @@ public class Command implements ToXContentObject {
         return this.user;
     }
 
+    /**
+     * Retrieves the status of this command.
+     *
+     * @return the status of the command.
+     * @see Status
+     */
+    public Status getStatus() {
+        return this.status;
+    }
+
     @Override
     public String toString() {
         return "Command{"
