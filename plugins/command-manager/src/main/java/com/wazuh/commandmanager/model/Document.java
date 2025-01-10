@@ -60,25 +60,6 @@ public class Document implements ToXContentObject {
     }
 
     /**
-     * Custom constructor for existent documents.
-     *
-     * @param agent "agent" nested fields.
-     * @param command "command" nested fields.
-     */
-    public Document(
-            String id,
-            Agent agent,
-            Command command,
-            ZonedDateTime timestamp,
-            ZonedDateTime deliveryTimestamp) {
-        this.id = id;
-        this.agent = agent;
-        this.command = command;
-        this.timestamp = timestamp;
-        this.deliveryTimestamp = deliveryTimestamp;
-    }
-
-    /**
      * Parses data from an XContentParser into this model.
      *
      * @param parser xcontent parser.
@@ -107,7 +88,6 @@ public class Document implements ToXContentObject {
      *
      * @param hit search hit parser.
      * @return delivery timestamp from Document in search hit.
-     * @throws IOException parsing error occurred.
      */
     public static ZonedDateTime deliveryTimestampFromSearchHit(SearchHit hit) {
         ZonedDateTime deliveryTimestamp = null;
