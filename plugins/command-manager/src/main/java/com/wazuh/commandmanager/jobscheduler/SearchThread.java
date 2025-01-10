@@ -106,10 +106,10 @@ public class SearchThread implements Runnable {
     public void handlePage(SearchResponse searchResponse) throws IllegalStateException {
         SearchHits searchHits = searchResponse.getHits();
 
-        ZonedDateTime current_time = DateUtils.nowWithMillisResolution();
+        final ZonedDateTime current_time = DateUtils.nowWithMillisResolution();
 
         for (SearchHit hit : searchHits) {
-            ZonedDateTime deliveryTimestampFromSearchHit =
+            final ZonedDateTime deliveryTimestampFromSearchHit =
                     Document.deliveryTimestampFromSearchHit(hit);
             if (deliveryTimestampFromSearchHit != null
                     && deliveryTimestampFromSearchHit.isBefore(current_time)) {
@@ -182,6 +182,7 @@ public class SearchThread implements Runnable {
 
     @Override
     public void run() {
+        log.debug("Running scheduled job");
         long consumableHits = 0L;
         boolean firstPage = true;
         final PointInTimeBuilder pointInTimeBuilder = buildPit();

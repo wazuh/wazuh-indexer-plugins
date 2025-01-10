@@ -63,7 +63,7 @@ public class Orders implements ToXContent {
     }
 
     /**
-     * Clears the current list of orders and sets the current list of orders to the input list.
+     * Overwrites the array of orders
      *
      * @param orders the list of orders to be set.
      */
