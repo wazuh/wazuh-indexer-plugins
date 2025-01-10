@@ -53,7 +53,6 @@ public class SearchThread implements Runnable {
     public static final String COMMAND_STATUS_FIELD = Command.COMMAND + "." + Command.STATUS;
     public static final String DELIVERY_TIMESTAMP_FIELD = Document.DELIVERY_TIMESTAMP;
     private static final Logger log = LogManager.getLogger(SearchThread.class);
-    public static final String ORDERS_ENDPOINT = "/orders";
     private final SearchSourceBuilder searchSourceBuilder = new SearchSourceBuilder();
     private final Client client;
     private SearchResponse currentPage = null;

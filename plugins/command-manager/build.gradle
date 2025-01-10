@@ -75,20 +75,7 @@ opensearchplugin {
 }
 
 def versions = [
-    // Apache HTTP client. Used to perform HTTP request to external services (such as the Wazuh Server APIs).
-    httpclient5: "5.4",
-    httpcore5: "5.3.1",
-    slf4j: "2.0.16",
-    log4j: "2.23.1",
-    // TLS support. Used by Apache Http Client ??
-    conscrypt: "2.5.2",
-    // Test libraries
-    junit: "4.13.2",
-    // Jackson is used to manage JSON objects (serialization / deserialization)
-    jackson: "2.17.2",
-    jackson_databind: "2.17.2",
-    // Used to mock the Wazuh Server API
-    imposter: "4.1.2"
+    log4j: "2.23.1"
 ]
 
 configurations {
@@ -96,28 +83,13 @@ configurations {
 }
 
 dependencies {
-    implementation "org.apache.httpcomponents.client5:httpclient5:${versions.httpclient5}"
-    implementation "org.apache.httpcomponents.core5:httpcore5-h2:${versions.httpcore5}"
-    implementation "org.apache.httpcomponents.core5:httpcore5:${versions.httpcore5}"
     implementation "org.apache.logging.log4j:log4j-slf4j-impl:${versions.log4j}"
-    implementation "org.slf4j:slf4j-api:${versions.slf4j}"
-    implementation "org.conscrypt:conscrypt-openjdk-uber:${versions.conscrypt}"
-    implementation "com.fasterxml.jackson.core:jackson-core:${versions.jackson}"
-    implementation "com.fasterxml.jackson.core:jackson-databind:${versions.jackson_databind}"
-    implementation "com.fasterxml.jackson.core:jackson-annotations:${versions.jackson}"
 
     // Job Scheduler stuff
     zipArchive group: 'org.opensearch.plugin', name: 'opensearch-job-scheduler', version: "${opensearch_build}"
     // implementation "org.opensearch:opensearch:${opensearch_version}"
     compileOnly "org.opensearch:opensearch-job-scheduler-spi:${job_scheduler_version}"
 
-    testImplementation "junit:junit:${versions.junit}"
-
-    // imposter
-    testImplementation "io.gatehill.imposter:distro-embedded:${versions.imposter}"
-    testImplementation "io.gatehill.imposter:imposter-server:${versions.imposter}"
-    testImplementation "io.gatehill.imposter:config-dynamic:${versions.imposter}"
-    testImplementation "io.gatehill.imposter:mock-openapi:${versions.imposter}"
 }
 
 // No need to validate license headers since spotless checks and applies it
