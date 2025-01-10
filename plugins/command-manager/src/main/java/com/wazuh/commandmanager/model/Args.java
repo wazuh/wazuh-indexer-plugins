@@ -16,80 +16,49 @@
  */
 package com.wazuh.commandmanager.model;
 
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
 import org.opensearch.core.xcontent.ToXContentObject;
 import org.opensearch.core.xcontent.XContentBuilder;
 import org.opensearch.core.xcontent.XContentParser;
 
 import java.io.IOException;
+import java.util.HashMap;
+import java.util.Map;
 
 /** Handles the command.action.args object */
 public class Args implements ToXContentObject {
 
     public static final String ARGS = "args";
-    private final Object args;
-    private static final Logger log = LogManager.getLogger(Args.class);
+    private final Map<String, Object> args;
 
     /**
      * Constructor method
      *
      * @param args Initializes the args object
      */
-    public Args(Object args) {
+    public Args(Map<String, Object> args) {
         this.args = args;
     }
 
     /**
-     * Parses an args XContentParser. This is mostly meant to handle List<> objects as a separate
-     * case
+     * Parses an args XContentParser into an Args object. A Map<String,Object> is created with the
+     * fields and values from the command.action.args object
      *
      * @param parser An XContentParser containing an args to be deserialized
      * @return An Args object
      * @throws IOException Rethrows the exception from list() and objectText() methods
      */
     public static Args parse(XContentParser parser) throws IOException {
-        Object args = null;
-        log.info("Current Token: {}", parser.currentToken());
-
-        XContentParser.Token currentToken = parser.currentToken();
-
-        if (currentToken.isValue()) {
-            log.info("Parsing value: {}", currentToken);
-            args = parser.objectText();
-            return new Args(args);
+        Map<String, Object> args = new HashMap<>();
+        while (parser.nextToken() != XContentParser.Token.END_OBJECT) {
+            String fieldName = parser.currentName();
+            parser.nextToken();
+            args.put(fieldName, parser.objectText());
         }
-
-        if (currentToken == XContentParser.Token.START_ARRAY) {
-            log.info("Parsing list");
-            args = parser.list();
-            return new Args(args);
-        }
-
-        StringBuilder keyValuePairs = new StringBuilder();
-        if (currentToken == XContentParser.Token.START_OBJECT) {
-            log.info("Parsing object");
-            while (parser.nextToken() != XContentParser.Token.END_OBJECT) {
-                String fieldName = parser.currentName();
-                parser.nextToken();
-                String value = parser.text();
-                keyValuePairs
-                    .append('"')
-                    .append(fieldName)
-                    .append('"')
-                    .append(':')
-                    .append('"')
-                    .append(value)
-                    .append('"')
-                    .append(',');
-            }
-            keyValuePairs.deleteCharAt(keyValuePairs.length()-1);
-        }
-        return new Args((Object) keyValuePairs.toString());
+        return new Args(args);
     }
 
     /**
-     * Builds an args XContentBuilder
+     * Builds an Args XContentBuilder. Iterates over the args map adding key-value pairs
      *
      * @param builder This is received from the parent object
      * @param params Not used
@@ -99,7 +68,9 @@ public class Args implements ToXContentObject {
     @Override
     public XContentBuilder toXContent(XContentBuilder builder, Params params) throws IOException {
         builder.startObject(Args.ARGS);
-        builder.value(this.args);
+        for (String key : this.args.keySet()) {
+            builder.field(key, this.args.get(key));
+        }
         return builder.endObject();
     }
 
