@@ -66,10 +66,11 @@ components:
           type: string
           example: "restart"
         args:
-          type: array
-          items:
-            type: string
-            example: "/path/to/executable/arg6"
+          type: object
+          properties:
+            arg1:
+              type: string
+              example: "/path/to/executable/arg6"
         version:
           type: string
           example: "v4"

@@ -21,16 +21,14 @@ import org.opensearch.core.xcontent.XContentBuilder;
 import org.opensearch.core.xcontent.XContentParser;
 
 import java.io.IOException;
-import java.util.List;
 
 /** Command's action fields. */
 public class Action implements ToXContentObject {
     public static final String ACTION = "action";
     public static final String NAME = "name";
-    public static final String ARGS = "args";
     public static final String VERSION = "version";
     private final String name;
-    private final List<String> args;
+    private final Args args;
     private final String version;
 
     /**
@@ -40,7 +38,7 @@ public class Action implements ToXContentObject {
      * @param args actual command.
      * @param version version of the action.
      */
-    public Action(String name, List<String> args, String version) {
+    public Action(String name, Args args, String version) {
         this.name = name;
         this.args = args;
         this.version = version;
@@ -55,7 +53,7 @@ public class Action implements ToXContentObject {
      */
     public static Action parse(XContentParser parser) throws IOException {
         String name = "";
-        List<Object> args = List.of();
+        Args args = null;
         String version = "";
 
         while (parser.nextToken() != XContentParser.Token.END_OBJECT) {
@@ -65,8 +63,8 @@ public class Action implements ToXContentObject {
                 case NAME:
                     name = parser.text();
                     break;
-                case ARGS:
-                    args = parser.list();
+                case Args.ARGS:
+                    args = Args.parse(parser);
                     break;
                 case VERSION:
                     version = parser.text();
@@ -77,16 +75,14 @@ public class Action implements ToXContentObject {
             }
         }
 
-        // Cast args field Object list to String list
-        List<String> convertedArgsFields = (List<String>) (List<?>) (args);
-        return new Action(name, convertedArgsFields, version);
+        return new Action(name, args, version);
     }
 
     @Override
     public XContentBuilder toXContent(XContentBuilder builder, Params params) throws IOException {
         builder.startObject(ACTION);
         builder.field(NAME, this.name);
-        builder.field(ARGS, this.args);
+        this.args.toXContent(builder, ToXContentObject.EMPTY_PARAMS);
         builder.field(VERSION, this.version);
         return builder.endObject();
     }
