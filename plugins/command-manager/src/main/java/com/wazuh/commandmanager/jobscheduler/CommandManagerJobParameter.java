@@ -1,10 +1,18 @@
 /*
- * Copyright OpenSearch Contributors
- * SPDX-License-Identifier: Apache-2.0
+ * Copyright (C) 2024, Wazuh Inc.
  *
- * The OpenSearch Contributors require contributions made to
- * this file be licensed under the Apache-2.0 license or a
- * compatible open source license.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as
+ * published by the Free Software Foundation, either version 3 of the
+ * License, or (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 package com.wazuh.commandmanager.jobscheduler;
 
@@ -31,8 +39,15 @@ public class CommandManagerJobParameter implements ScheduledJobParameter {
     private boolean isEnabled;
     private Schedule schedule;
 
+    /** Default constructor. */
     public CommandManagerJobParameter() {}
 
+    /**
+     * Default constructor with parameters.
+     *
+     * @param jobName the name for the job.
+     * @param schedule the schedule for the job.
+     */
     public CommandManagerJobParameter(String jobName, Schedule schedule) {
         this.jobName = jobName;
         this.schedule = schedule;
@@ -68,22 +83,47 @@ public class CommandManagerJobParameter implements ScheduledJobParameter {
         return this.isEnabled;
     }
 
+    /**
+     * Sets the job name.
+     *
+     * @param jobName the job name.
+     */
     public void setJobName(String jobName) {
         this.jobName = jobName;
     }
 
+    /**
+     * Sets the last updated time of the job.
+     *
+     * @param lastUpdateTime the last update time of the job.
+     */
     public void setLastUpdateTime(Instant lastUpdateTime) {
         this.lastUpdateTime = lastUpdateTime;
     }
 
+    /**
+     * Sets the time the job was enabled.
+     *
+     * @param enabledTime the time the job was enabled.
+     */
     public void setEnabledTime(Instant enabledTime) {
         this.enabledTime = enabledTime;
     }
 
+    /**
+     * Enables or disables the job.
+     *
+     * @param enabled boolean value.
+     */
     public void setEnabled(boolean enabled) {
         isEnabled = enabled;
     }
 
+    /**
+     * Sets the schedule of the job.
+     *
+     * @param schedule schedule of the job.
+     */
     public void setSchedule(Schedule schedule) {
         this.schedule = schedule;
     }

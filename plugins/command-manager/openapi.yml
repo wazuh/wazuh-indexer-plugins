@@ -5,15 +5,6 @@ info:
 servers:
   - url: http://127.0.0.1:9200/_plugins/_command_manager
 paths:
-  /security/user/authenticate:
-    post:
-      tags:
-        - "authentication"
-      summary: Mock of the Wazuh Server M_API authentication endpoint.
-      description: Returns a JWT.
-      responses:
-        "200":
-          description: OK
   /commands:
     post:
       tags:
@@ -75,10 +66,11 @@ components:
           type: string
           example: "restart"
         args:
-          type: array
-          items:
-            type: string
-            example: "/path/to/executable/arg6"
+          type: object
+          properties:
+            arg1:
+              type: string
+              example: "/path/to/executable/arg6"
         version:
           type: string
           example: "v4"

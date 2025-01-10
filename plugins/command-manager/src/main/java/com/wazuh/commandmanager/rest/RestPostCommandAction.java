@@ -1,10 +1,18 @@
 /*
- * Copyright OpenSearch Contributors
- * SPDX-License-Identifier: Apache-2.0
+ * Copyright (C) 2024, Wazuh Inc.
  *
- * The OpenSearch Contributors require contributions made to
- * this file be licensed under the Apache-2.0 license or a
- * compatible open source license.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as
+ * published by the Free Software Foundation, either version 3 of the
+ * License, or (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 package com.wazuh.commandmanager.rest;
 
@@ -34,7 +42,6 @@ import com.wazuh.commandmanager.model.Documents;
 
 import static org.opensearch.core.xcontent.XContentParserUtils.ensureExpectedToken;
 import static org.opensearch.rest.RestRequest.Method.POST;
-import static com.wazuh.commandmanager.utils.httpclient.HttpRestClientDemo.SECURITY_USER_AUTHENTICATE;
 
 /**
  * Handles HTTP requests to the POST {@value
@@ -64,8 +71,7 @@ public class RestPostCommandAction extends BaseRestHandler {
     public List<Route> routes() {
         return List.of(
                 new Route(
-                        POST, String.format(Locale.ROOT, "%s", CommandManagerPlugin.COMMANDS_URI)),
-                new Route(POST, String.format(Locale.ROOT, "%s", SECURITY_USER_AUTHENTICATE)));
+                        POST, String.format(Locale.ROOT, "%s", CommandManagerPlugin.COMMANDS_URI)));
     }
 
     @Override
@@ -152,9 +158,7 @@ public class RestPostCommandAction extends BaseRestHandler {
                             restStatus -> {
                                 try (XContentBuilder builder = channel.newBuilder()) {
                                     builder.startObject();
-                                    builder.field(
-                                            "_index",
-                                            CommandManagerPlugin.COMMAND_MANAGER_INDEX_NAME);
+                                    builder.field("_index", CommandManagerPlugin.INDEX_NAME);
                                     documents.toXContent(builder, ToXContent.EMPTY_PARAMS);
                                     builder.field("result", restStatus.name());
                                     builder.endObject();

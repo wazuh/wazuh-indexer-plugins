@@ -1,5 +1,3 @@
-
-import org.opensearch.gradle.test.RestIntegTestTask
 import java.util.concurrent.Callable
 
 buildscript {
@@ -45,8 +43,8 @@ publishing {
                 description = pluginDescription
                 licenses {
                     license {
-                        name = "The Apache License, Version 2.0"
-                        url = "http://www.apache.org/licenses/LICENSE-2.0.txt"
+                        name = "GNU Affero General Public License (AGPL) version 3.0"
+                        url = "http://www.gnu.org/licenses/agpl-3.0.txt"
                     }
                 }
                 developers {
@@ -122,6 +120,9 @@ dependencies {
     testImplementation "io.gatehill.imposter:mock-openapi:${versions.imposter}"
 }
 
+// No need to validate license headers since spotless checks and applies it
+licenseHeaders.enabled = false
+
 // This requires an additional Jar not published as part of build-tools
 loggerUsageCheck.enabled = false
 
@@ -174,11 +175,6 @@ testClusters.integTest {
     if (System.getProperty("test.debug") != null) {
         jvmArgs '-agentlib:jdwp=transport=dt_socket,server=y,suspend=y,address=*:5005'
     }
-
-    // add customized keystore
-    keystore 'm_api.auth.username', 'admin'
-    keystore 'm_api.auth.password', 'test'
-    keystore 'm_api.uri', 'https://127.0.0.1:55000' // base URI of the M_API
 }
 
 run {

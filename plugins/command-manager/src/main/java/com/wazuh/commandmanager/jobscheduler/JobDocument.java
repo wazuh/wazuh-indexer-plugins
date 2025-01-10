@@ -1,14 +1,21 @@
 /*
- * Copyright OpenSearch Contributors
- * SPDX-License-Identifier: Apache-2.0
+ * Copyright (C) 2024, Wazuh Inc.
  *
- * The OpenSearch Contributors require contributions made to
- * this file be licensed under the Apache-2.0 license or a
- * compatible open source license.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as
+ * published by the Free Software Foundation, either version 3 of the
+ * License, or (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 package com.wazuh.commandmanager.jobscheduler;
 
-import com.wazuh.commandmanager.utils.IndexTemplateUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.opensearch.action.index.IndexRequest;
@@ -27,6 +34,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
 
 import com.wazuh.commandmanager.CommandManagerPlugin;
+import com.wazuh.commandmanager.utils.IndexTemplateUtils;
 
 /** Indexes the command job to the Jobs index. */
 public class JobDocument {
@@ -35,6 +43,11 @@ public class JobDocument {
 
     private JobDocument() {}
 
+    /**
+     * Singleton instance access.
+     *
+     * @return singleton instance
+     */
     public static JobDocument getInstance() {
         log.info("Getting JobDocument Instance");
         return INSTANCE;
@@ -43,15 +56,21 @@ public class JobDocument {
     /**
      * Writes a CommandManagerJobParameter type document to the jobs index
      *
-     * @param client: The cluster's client
-     * @param threadPool: The cluster's threadPool
-     * @param id: The job ID to be used
-     * @param jobName: The name of the job
-     * @param interval: The interval the action is expected to run at
+     * @param clusterService the cluster's service
+     * @param client the cluster's client
+     * @param threadPool the cluster's threadPool
+     * @param id the job ID to be used
+     * @param jobName rhe name of the job
+     * @param interval the interval the action is expected to run at
      * @return a CompletableFuture that will hold the IndexResponse.
      */
     public CompletableFuture<IndexResponse> create(
-        ClusterService clusterService, Client client, ThreadPool threadPool, String id, String jobName, Integer interval) {
+            ClusterService clusterService,
+            Client client,
+            ThreadPool threadPool,
+            String id,
+            String jobName,
+            Integer interval) {
         CompletableFuture<IndexResponse> completableFuture = new CompletableFuture<>();
         ExecutorService executorService = threadPool.executor(ThreadPool.Names.WRITE);
         CommandManagerJobParameter jobParameter =
@@ -67,13 +86,15 @@ public class JobDocument {
             executorService.submit(
                     () -> {
                         try (ThreadContext.StoredContext ignored =
-                                 threadPool.getThreadContext().stashContext()) {
-                            if (!IndexTemplateUtils.indexTemplateExists(clusterService,CommandManagerPlugin.JOB_INDEX_TEMPLATE_NAME)) {
-                                IndexTemplateUtils.putIndexTemplate(client, CommandManagerPlugin.JOB_INDEX_TEMPLATE_NAME);
+                                threadPool.getThreadContext().stashContext()) {
+                            if (IndexTemplateUtils.isMissingIndexTemplate(
+                                    clusterService, CommandManagerPlugin.JOB_INDEX_TEMPLATE_NAME)) {
+                                IndexTemplateUtils.putIndexTemplate(
+                                        client, CommandManagerPlugin.JOB_INDEX_TEMPLATE_NAME);
                             } else {
                                 log.info(
-                                    "Index template {} already exists. Skipping creation.",
-                                    CommandManagerPlugin.JOB_INDEX_NAME);
+                                        "Index template {} already exists. Skipping creation.",
+                                        CommandManagerPlugin.JOB_INDEX_NAME);
                             }
                             IndexResponse indexResponse = client.index(indexRequest).actionGet();
                             completableFuture.complete(indexResponse);

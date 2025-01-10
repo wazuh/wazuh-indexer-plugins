@@ -1,10 +1,18 @@
 /*
- * Copyright OpenSearch Contributors
- * SPDX-License-Identifier: Apache-2.0
+ * Copyright (C) 2024, Wazuh Inc.
  *
- * The OpenSearch Contributors require contributions made to
- * this file be licensed under the Apache-2.0 license or a
- * compatible open source license.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as
+ * published by the Free Software Foundation, either version 3 of the
+ * License, or (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 package com.wazuh.commandmanager;
 
@@ -16,7 +24,6 @@ import org.opensearch.cluster.metadata.IndexNameExpressionResolver;
 import org.opensearch.cluster.node.DiscoveryNodes;
 import org.opensearch.cluster.service.ClusterService;
 import org.opensearch.common.UUIDs;
-import org.opensearch.common.settings.*;
 import org.opensearch.common.settings.ClusterSettings;
 import org.opensearch.common.settings.IndexScopedSettings;
 import org.opensearch.common.settings.Settings;
@@ -34,7 +41,6 @@ import org.opensearch.jobscheduler.spi.ScheduledJobRunner;
 import org.opensearch.jobscheduler.spi.schedule.ScheduleParser;
 import org.opensearch.plugins.ActionPlugin;
 import org.opensearch.plugins.Plugin;
-import org.opensearch.plugins.ReloadablePlugin;
 import org.opensearch.repositories.RepositoriesService;
 import org.opensearch.rest.*;
 import org.opensearch.script.ScriptService;
@@ -43,7 +49,6 @@ import org.opensearch.watcher.ResourceWatcherService;
 
 import java.io.IOException;
 import java.time.Instant;
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
@@ -55,8 +60,6 @@ import com.wazuh.commandmanager.jobscheduler.CommandManagerJobParameter;
 import com.wazuh.commandmanager.jobscheduler.CommandManagerJobRunner;
 import com.wazuh.commandmanager.jobscheduler.JobDocument;
 import com.wazuh.commandmanager.rest.RestPostCommandAction;
-import com.wazuh.commandmanager.settings.PluginSettings;
-import com.wazuh.commandmanager.utils.httpclient.HttpRestClient;
 
 /**
  * The Command Manager plugin exposes an HTTP API with a single endpoint to receive raw commands
@@ -67,12 +70,11 @@ import com.wazuh.commandmanager.utils.httpclient.HttpRestClient;
  *
  * <p>The Command Manager plugin is also a JobScheduler extension plugin.
  */
-public class CommandManagerPlugin extends Plugin
-        implements ActionPlugin, ReloadablePlugin, JobSchedulerExtension {
+public class CommandManagerPlugin extends Plugin implements ActionPlugin, JobSchedulerExtension {
     public static final String COMMAND_MANAGER_BASE_URI = "/_plugins/_command_manager";
     public static final String COMMANDS_URI = COMMAND_MANAGER_BASE_URI + "/commands";
-    public static final String COMMAND_MANAGER_INDEX_NAME = ".commands";
-    public static final String COMMAND_MANAGER_INDEX_TEMPLATE_NAME = "index-template-commands";
+    public static final String INDEX_NAME = ".commands";
+    public static final String INDEX_TEMPLATE_NAME = "index-template-commands";
     public static final String COMMAND_DOCUMENT_PARENT_OBJECT_NAME = "command";
     public static final String JOB_INDEX_NAME = ".scheduled-commands";
     public static final String JOB_INDEX_TEMPLATE_NAME = "index-template-scheduled-commands";
@@ -100,17 +102,18 @@ public class CommandManagerPlugin extends Plugin
             NamedWriteableRegistry namedWriteableRegistry,
             IndexNameExpressionResolver indexNameExpressionResolver,
             Supplier<RepositoriesService> repositoriesServiceSupplier) {
+        // Command index repository initialization.
         this.commandIndex = new CommandIndex(client, clusterService, threadPool);
-        PluginSettings.getInstance(environment.settings());
 
-        // JobSchedulerExtension stuff
+        // Scheduled job initialization
+        // NOTE it's very likely that client and thread pool may not be required as the command
+        // index
+        // repository already use them. All queries to the index should be under this class.
         CommandManagerJobRunner.getInstance()
-                .setThreadPool(threadPool)
                 .setClient(client)
-                .setClusterService(clusterService)
-                .setEnvironment(environment);
-
-        scheduleCommandJob(client, clusterService, threadPool);
+                .setThreadPool(threadPool)
+                .setIndexRepository(this.commandIndex);
+        this.scheduleCommandJob(client, clusterService, threadPool);
 
         return Collections.emptyList();
     }
@@ -157,24 +160,6 @@ public class CommandManagerPlugin extends Plugin
             IndexNameExpressionResolver indexNameExpressionResolver,
             Supplier<DiscoveryNodes> nodesInCluster) {
         return Collections.singletonList(new RestPostCommandAction(this.commandIndex));
-    }
-
-    @Override
-    public List<Setting<?>> getSettings() {
-        return Arrays.asList(
-                // Register API settings
-                PluginSettings.M_API_AUTH_USERNAME,
-                PluginSettings.M_API_AUTH_PASSWORD,
-                PluginSettings.M_API_URI);
-    }
-
-    @Override
-    public void reload(Settings settings) {
-        // secure settings should be readable
-        // final PluginSettings commandManagerSettings =
-        // PluginSettings.getClientSettings(secureSettingsPassword);
-        // I don't know what I have to do when we want to reload the settings already
-        // xxxService.refreshAndClearCache(commandManagerSettings);
     }
 
     @Override
@@ -244,16 +229,5 @@ public class CommandManagerPlugin extends Plugin
         }
         XContentParserUtils.throwUnknownToken(parser.currentToken(), parser.getTokenLocation());
         return null;
-    }
-
-    /**
-     * Close the resources opened by this plugin.
-     *
-     * @throws IOException if the plugin failed to close its resources
-     */
-    @Override
-    public void close() throws IOException {
-        super.close();
-        HttpRestClient.getInstance().stopHttpAsyncClient();
     }
 }

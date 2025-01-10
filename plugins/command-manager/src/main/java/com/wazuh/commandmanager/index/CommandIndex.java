@@ -1,21 +1,26 @@
 /*
- * Copyright OpenSearch Contributors
- * SPDX-License-Identifier: Apache-2.0
+ * Copyright (C) 2024, Wazuh Inc.
  *
- * The OpenSearch Contributors require contributions made to
- * this file be licensed under the Apache-2.0 license or a
- * compatible open source license.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as
+ * published by the Free Software Foundation, either version 3 of the
+ * License, or (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 package com.wazuh.commandmanager.index;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.opensearch.action.admin.indices.template.put.PutIndexTemplateRequest;
 import org.opensearch.action.bulk.BulkRequest;
 import org.opensearch.action.index.IndexRequest;
-import org.opensearch.action.support.master.AcknowledgedResponse;
 import org.opensearch.client.Client;
-import org.opensearch.cluster.metadata.IndexTemplateMetadata;
 import org.opensearch.cluster.service.ClusterService;
 import org.opensearch.common.util.concurrent.ThreadContext;
 import org.opensearch.common.xcontent.XContentFactory;
@@ -26,8 +31,6 @@ import org.opensearch.threadpool.ThreadPool;
 
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
 
@@ -58,59 +61,26 @@ public class CommandIndex implements IndexingOperationListener {
     }
 
     /**
-     * @param document instance of the document model to persist in the index.
-     * @return A CompletableFuture with the RestStatus response from the operation
+     * Checks if the command index exists.
+     *
+     * @return whether the internal {@value
+     *     com.wazuh.commandmanager.CommandManagerPlugin#INDEX_NAME} exists.
      */
-    @Deprecated
-    public CompletableFuture<RestStatus> asyncCreate(Document document) {
-        CompletableFuture<RestStatus> future = new CompletableFuture<>();
-        ExecutorService executor = this.threadPool.executor(ThreadPool.Names.WRITE);
-
-        log.info("Indexing command with id [{}]", document.getId());
-        try {
-            IndexRequest request = createIndexRequest(document);
-            executor.submit(
-                    () -> {
-                        try (ThreadContext.StoredContext ignored =
-                                this.threadPool.getThreadContext().stashContext()) {
-                            // Create index template if it does not exist.
-                            if (!IndexTemplateUtils.indexTemplateExists(
-                                    this.clusterService,
-                                    CommandManagerPlugin.COMMAND_MANAGER_INDEX_TEMPLATE_NAME)) {
-                                IndexTemplateUtils.putIndexTemplate(
-                                    this.client,
-                                    CommandManagerPlugin.COMMAND_MANAGER_INDEX_TEMPLATE_NAME);
-                            } else {
-                                log.info(
-                                        "Index template {} already exists. Skipping creation.",
-                                        CommandManagerPlugin.COMMAND_MANAGER_INDEX_TEMPLATE_NAME);
-                            }
-
-                            RestStatus restStatus = client.index(request).actionGet().status();
-                            future.complete(restStatus);
-                        } catch (Exception e) {
-                            log.error(
-                                    "Error indexing command with id [{}] due to {}",
-                                    document.getId(),
-                                    e.getMessage());
-                            future.completeExceptionally(e);
-                        }
-                    });
-        } catch (IOException e) {
-            log.error("Error indexing command with id [{}] due to {}", document.getId(), e);
-        }
-        return future;
+    public boolean indexExists() {
+        return this.clusterService.state().routingTable().hasIndex(CommandManagerPlugin.INDEX_NAME);
     }
 
     /**
+     * Indexes an array of documents asynchronously.
+     *
      * @param documents list of instances of the document model to persist in the index.
      * @return A CompletableFuture with the RestStatus response from the operation
      */
     public CompletableFuture<RestStatus> asyncBulkCreate(ArrayList<Document> documents) {
-        CompletableFuture<RestStatus> future = new CompletableFuture<>();
-        ExecutorService executor = this.threadPool.executor(ThreadPool.Names.WRITE);
+        final CompletableFuture<RestStatus> future = new CompletableFuture<>();
+        final ExecutorService executor = this.threadPool.executor(ThreadPool.Names.WRITE);
 
-        BulkRequest bulkRequest = new BulkRequest();
+        final BulkRequest bulkRequest = new BulkRequest();
         for (Document document : documents) {
             log.info("Adding command with id [{}] to the bulk request", document.getId());
             try {
@@ -119,7 +89,7 @@ public class CommandIndex implements IndexingOperationListener {
                 log.error(
                         "Error creating IndexRequest with document id [{}] due to {}",
                         document.getId(),
-                        e);
+                        e.getMessage());
             }
         }
 
@@ -128,19 +98,17 @@ public class CommandIndex implements IndexingOperationListener {
                     try (ThreadContext.StoredContext ignored =
                             this.threadPool.getThreadContext().stashContext()) {
                         // Create index template if it does not exist.
-                        if (!IndexTemplateUtils.indexTemplateExists(
-                                this.clusterService,
-                                CommandManagerPlugin.COMMAND_MANAGER_INDEX_TEMPLATE_NAME)) {
+                        if (IndexTemplateUtils.isMissingIndexTemplate(
+                                this.clusterService, CommandManagerPlugin.INDEX_TEMPLATE_NAME)) {
                             IndexTemplateUtils.putIndexTemplate(
-                                    this.client,
-                                    CommandManagerPlugin.COMMAND_MANAGER_INDEX_TEMPLATE_NAME);
+                                    this.client, CommandManagerPlugin.INDEX_TEMPLATE_NAME);
                         } else {
                             log.info(
                                     "Index template {} already exists. Skipping creation.",
-                                    CommandManagerPlugin.COMMAND_MANAGER_INDEX_TEMPLATE_NAME);
+                                    CommandManagerPlugin.INDEX_TEMPLATE_NAME);
                         }
 
-                        RestStatus restStatus = client.bulk(bulkRequest).actionGet().status();
+                        final RestStatus restStatus = client.bulk(bulkRequest).actionGet().status();
                         future.complete(restStatus);
                     } catch (Exception e) {
                         log.error("Error indexing commands with bulk due to {}", e.getMessage());
@@ -151,48 +119,6 @@ public class CommandIndex implements IndexingOperationListener {
     }
 
     /**
-     * Checks for the existence of the given index template in the cluster.
-     *
-     * @param template_name index template name within the resources folder
-     * @return whether the index template exists.
-     */
-    public boolean indexTemplateExists(String template_name) {
-        Map<String, IndexTemplateMetadata> templates =
-                this.clusterService.state().metadata().templates();
-        log.debug("Existing index templates: {} ", templates);
-
-        return templates.containsKey(template_name);
-    }
-
-    /**
-     * Inserts an index template
-     *
-     * @param templateName : The name if the index template to load
-     */
-    public void putIndexTemplate(String templateName) {
-        try {
-            // @throws IOException
-            Map<String, Object> template = IndexTemplateUtils.fromFile(templateName + ".json");
-
-            PutIndexTemplateRequest putIndexTemplateRequest =
-                    new PutIndexTemplateRequest()
-                            .mapping(IndexTemplateUtils.get(template, "mappings"))
-                            .settings(IndexTemplateUtils.get(template, "settings"))
-                            .name(templateName)
-                            .patterns((List<String>) template.get("index_patterns"));
-
-            AcknowledgedResponse acknowledgedResponse =
-                    this.client.admin().indices().putTemplate(putIndexTemplateRequest).actionGet();
-            if (acknowledgedResponse.isAcknowledged()) {
-                log.info("Index template [{}] created successfully", templateName);
-            }
-
-        } catch (IOException e) {
-            log.error("Error reading index template [{}] from filesystem", templateName);
-        }
-    }
-
-    /**
      * Create an IndexRequest object from a Document object.
      *
      * @param document the document to create the IndexRequest for COMMAND_MANAGER_INDEX
@@ -200,14 +126,10 @@ public class CommandIndex implements IndexingOperationListener {
      * @throws IOException thrown by XContentFactory.jsonBuilder()
      */
     private IndexRequest createIndexRequest(Document document) throws IOException {
-        IndexRequest request =
-                new IndexRequest()
-                        .index(CommandManagerPlugin.COMMAND_MANAGER_INDEX_NAME)
-                        .source(
-                                document.toXContent(
-                                        XContentFactory.jsonBuilder(), ToXContent.EMPTY_PARAMS))
-                        .id(document.getId())
-                        .create(true);
-        return request;
+        return new IndexRequest()
+                .index(CommandManagerPlugin.INDEX_NAME)
+                .source(document.toXContent(XContentFactory.jsonBuilder(), ToXContent.EMPTY_PARAMS))
+                .id(document.getId())
+                .create(true);
     }
 }
