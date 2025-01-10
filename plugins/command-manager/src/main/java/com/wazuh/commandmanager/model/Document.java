@@ -30,7 +30,6 @@ import org.opensearch.search.SearchHit;
 import java.io.IOException;
 import java.time.ZonedDateTime;
 import java.util.List;
-import java.util.Map;
 
 /** Command's target fields. */
 public class Document implements ToXContentObject {

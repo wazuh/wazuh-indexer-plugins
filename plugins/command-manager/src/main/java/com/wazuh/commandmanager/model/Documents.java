@@ -18,8 +18,6 @@ package com.wazuh.commandmanager.model;
 
 import org.opensearch.core.xcontent.ToXContentObject;
 import org.opensearch.core.xcontent.XContentBuilder;
-import org.opensearch.search.SearchHit;
-import org.opensearch.search.SearchHits;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -70,16 +68,5 @@ public class Documents implements ToXContentObject {
             builder.endObject();
         }
         return builder.endArray();
-    }
-
-    public static Documents fromSearchHits(SearchHits searchHits) {
-        Documents documents = new Documents();
-        // Iterate over search results
-        for (SearchHit hit : searchHits) {
-            // Parse the hit's document
-            Document document = Document.fromSearchHit(hit);
-            documents.addDocument(document);
-        }
-        return documents;
     }
 }

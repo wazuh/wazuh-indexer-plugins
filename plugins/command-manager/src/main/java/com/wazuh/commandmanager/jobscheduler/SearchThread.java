@@ -109,8 +109,10 @@ public class SearchThread implements Runnable {
         ZonedDateTime current_time = DateUtils.nowWithMillisResolution();
 
         for (SearchHit hit : searchHits) {
-            ZonedDateTime deliveryTimestampFromSearchHit = Document.deliveryTimestampFromSearchHit(hit);
-            if (deliveryTimestampFromSearchHit != null && deliveryTimestampFromSearchHit.isBefore(current_time)) {
+            ZonedDateTime deliveryTimestampFromSearchHit =
+                    Document.deliveryTimestampFromSearchHit(hit);
+            if (deliveryTimestampFromSearchHit != null
+                    && deliveryTimestampFromSearchHit.isBefore(current_time)) {
                 this.setFailureStatus(hit);
             }
         }
