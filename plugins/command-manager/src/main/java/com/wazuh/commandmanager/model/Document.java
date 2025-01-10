@@ -16,13 +16,16 @@
  */
 package com.wazuh.commandmanager.model;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.opensearch.common.UUIDs;
 import org.opensearch.common.time.DateFormatter;
 import org.opensearch.common.time.DateUtils;
 import org.opensearch.common.time.FormatNames;
-import org.opensearch.core.xcontent.ToXContentObject;
-import org.opensearch.core.xcontent.XContentBuilder;
-import org.opensearch.core.xcontent.XContentParser;
+import org.opensearch.common.xcontent.XContentHelper;
+import org.opensearch.common.xcontent.XContentType;
+import org.opensearch.core.xcontent.*;
+import org.opensearch.search.SearchHit;
 
 import java.io.IOException;
 import java.time.ZonedDateTime;
@@ -39,6 +42,8 @@ public class Document implements ToXContentObject {
     private final String id;
     private final ZonedDateTime timestamp;
     private final ZonedDateTime deliveryTimestamp;
+
+    private static final Logger log = LogManager.getLogger(Document.class);
 
     /**
      * Default constructor.
@@ -79,12 +84,68 @@ public class Document implements ToXContentObject {
     }
 
     /**
+     * Returns the delivery timestamp from a search hit.
+     *
+     * @param hit search hit parser.
+     * @return delivery timestamp from Document in search hit.
+     */
+    public static ZonedDateTime deliveryTimestampFromSearchHit(SearchHit hit) {
+        ZonedDateTime deliveryTimestamp = null;
+
+        try {
+            XContentParser parser =
+                    XContentHelper.createParser(
+                            NamedXContentRegistry.EMPTY,
+                            DeprecationHandler.IGNORE_DEPRECATIONS,
+                            hit.getSourceRef(),
+                            XContentType.JSON);
+
+            parser.nextToken();
+            while (parser.nextToken() != null) {
+                if (parser.currentToken().equals(XContentParser.Token.FIELD_NAME)) {
+                    String fieldName = parser.currentName();
+                    if (fieldName.equals(Document.DELIVERY_TIMESTAMP)) {
+                        parser.nextToken();
+                        deliveryTimestamp = ZonedDateTime.from(DATE_FORMATTER.parse(parser.text()));
+                    } else {
+                        parser.skipChildren();
+                    }
+                }
+            }
+
+            parser.close();
+
+        } catch (IOException e) {
+            log.error("Delivery timestamp could not be parsed: {}", e.getMessage());
+        }
+        return deliveryTimestamp;
+    }
+
+    /**
      * Returns the document's "_id".
      *
      * @return Document's ID
      */
     public String getId() {
         return this.id;
+    }
+
+    /**
+     * Returns the Command object associated with this Document.
+     *
+     * @return Command object
+     */
+    public Command getCommand() {
+        return this.command;
+    }
+
+    /**
+     * Returns the timestamp at which the Command was delivered to the Agent.
+     *
+     * @return ZonedDateTime object representing the delivery timestamp
+     */
+    public ZonedDateTime getDeliveryTimestamp() {
+        return this.deliveryTimestamp;
     }
 
     @Override

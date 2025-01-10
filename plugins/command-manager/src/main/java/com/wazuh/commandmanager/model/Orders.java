@@ -42,6 +42,7 @@ public class Orders implements ToXContent {
      * @param searchHits the commands search result
      * @return A json string payload with an array of orders to be processed
      */
+
     /**
      * Static builder method that initializes an instance of Orders from a SearchHits instance.
      *
@@ -59,6 +60,25 @@ public class Orders implements ToXContent {
         }
 
         return orders;
+    }
+
+    /**
+     * Overwrites the array of orders
+     *
+     * @param orders the list of orders to be set.
+     */
+    public void setOrders(ArrayList<Order> orders) {
+        this.orders.clear();
+        this.orders.addAll(orders);
+    }
+
+    /**
+     * Retrieves the list of orders.
+     *
+     * @return the current list of Order objects.
+     */
+    public ArrayList<Order> getOrders() {
+        return this.orders;
     }
 
     /**
