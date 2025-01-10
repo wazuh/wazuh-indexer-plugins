@@ -97,8 +97,8 @@ public class SearchThread implements Runnable {
     }
 
     /**
-     * Iterates over search results, updating their status field to {@link Status#FAILURE} if their
-     * delivery timestamps are older than the current time, and submitting them to the destination
+     * Iterates over search results, updating their status field to {@link Status#FAILURE}
+     * if their delivery timestamps are earlier than the current time
      *
      * @param searchResponse The search results page
      * @throws IllegalStateException Rethrown from setSentStatus()
