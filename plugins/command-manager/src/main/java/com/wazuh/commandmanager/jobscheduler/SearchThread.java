@@ -97,26 +97,20 @@ public class SearchThread implements Runnable {
     }
 
     /**
-     * Iterates over search results, updating their status field to {@link Status#FAILURE}
-     * if their delivery timestamps are older than the current time,
-     * and submitting them to the destination
+     * Iterates over search results, updating their status field to {@link Status#FAILURE} if their
+     * delivery timestamps are older than the current time, and submitting them to the destination
      *
      * @param searchResponse The search results page
      * @throws IllegalStateException Rethrown from setSentStatus()
      */
     public void handlePage(SearchResponse searchResponse) throws IllegalStateException {
-        log.debug("IN HANDLE PAGEEEE.");
-
         SearchHits searchHits = searchResponse.getHits();
 
         ZonedDateTime current_time = DateUtils.nowWithMillisResolution();
-        log.debug("IN HANDLE PAGEEEE. Total hits: {}", searchHits.getTotalHits().value);
 
         for (SearchHit hit : searchHits) {
-            log.debug("IN HANDLE PAGEEEE. Hit id: {}", hit.getId());
-
-            Document document = Document.fromSearchHit(hit);
-            if (document != null && document.getDeliveryTimestamp().isBefore(current_time)){
+            ZonedDateTime deliveryTimestampFromSearchHit = Document.deliveryTimestampFromSearchHit(hit);
+            if (deliveryTimestampFromSearchHit != null && deliveryTimestampFromSearchHit.isBefore(current_time)) {
                 this.setFailureStatus(hit);
             }
         }
@@ -136,7 +130,7 @@ public class SearchThread implements Runnable {
                         CommandManagerPlugin.COMMAND_DOCUMENT_PARENT_OBJECT_NAME,
                         Map.class);
 
-        if(commandMap != null){
+        if (commandMap != null) {
             commandMap.put(Command.STATUS, Status.FAILURE);
             hit.getSourceAsMap()
                     .put(CommandManagerPlugin.COMMAND_DOCUMENT_PARENT_OBJECT_NAME, commandMap);
@@ -166,7 +160,6 @@ public class SearchThread implements Runnable {
                 QueryBuilders.termQuery(SearchThread.COMMAND_STATUS_FIELD, Status.PENDING);
         final TimeValue timeout =
                 TimeValue.timeValueSeconds(CommandManagerPlugin.DEFAULT_TIMEOUT_SECONDS);
-        log.debug("IN PIT query.");
 
         this.searchSourceBuilder
                 .query(termQueryBuilder)
@@ -182,27 +175,22 @@ public class SearchThread implements Runnable {
         }
         searchRequest.source(this.searchSourceBuilder);
 
-        log.debug("FINISHING IN PIT query.");
-
         return this.client.search(searchRequest).actionGet(timeout);
     }
 
     @Override
     public void run() {
-        log.debug("Running scheduled job");
         long consumableHits = 0L;
         boolean firstPage = true;
         final PointInTimeBuilder pointInTimeBuilder = buildPit();
         try {
             do {
-                log.debug("In the do-while loop.");
-
                 this.currentPage =
                         pitQuery(
                                 pointInTimeBuilder,
                                 getSearchAfter(this.currentPage).orElse(new Object[0]));
                 if (firstPage) {
-                    log.debug("Query returned {} hits.", totalHits());
+                    log.info("Query returned {} hits.", totalHits());
                     consumableHits = totalHits();
                     firstPage = false;
                 }

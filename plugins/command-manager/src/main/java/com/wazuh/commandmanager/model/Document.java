@@ -30,6 +30,7 @@ import org.opensearch.search.SearchHit;
 import java.io.IOException;
 import java.time.ZonedDateTime;
 import java.util.List;
+import java.util.Map;
 
 /** Command's target fields. */
 public class Document implements ToXContentObject {
@@ -65,7 +66,12 @@ public class Document implements ToXContentObject {
      * @param agent "agent" nested fields.
      * @param command "command" nested fields.
      */
-    public Document(String id, Agent agent, Command command, ZonedDateTime timestamp, ZonedDateTime deliveryTimestamp) {
+    public Document(
+            String id,
+            Agent agent,
+            Command command,
+            ZonedDateTime timestamp,
+            ZonedDateTime deliveryTimestamp) {
         this.id = id;
         this.agent = agent;
         this.command = command;
@@ -97,7 +103,16 @@ public class Document implements ToXContentObject {
         return new Document(agent, command);
     }
 
-    public static Document fromSearchHit(SearchHit hit) {
+    /**
+     * Returns the delivery timestamp from a search hit.
+     *
+     * @param hit search hit parser.
+     * @return delivery timestamp from Document in search hit.
+     * @throws IOException parsing error occurred.
+     */
+    public static ZonedDateTime deliveryTimestampFromSearchHit(SearchHit hit) {
+        ZonedDateTime deliveryTimestamp = null;
+
         try {
             XContentParser parser =
                     XContentHelper.createParser(
@@ -106,52 +121,25 @@ public class Document implements ToXContentObject {
                             hit.getSourceRef(),
                             XContentType.JSON);
 
-            Command command = null;
-            Agent agent = null;
-            ZonedDateTime deliveryTimestamp = null;
-            ZonedDateTime timestamp = null;
-
-            // Iterate over the JsonXContentParser's JsonToken until we hit null,
-            // which corresponds to end of data
+            parser.nextToken();
             while (parser.nextToken() != null) {
-                // Look for FIELD_NAME JsonToken s
                 if (parser.currentToken().equals(XContentParser.Token.FIELD_NAME)) {
                     String fieldName = parser.currentName();
-                    switch (fieldName) {
-                        case Document.DELIVERY_TIMESTAMP:
-                            deliveryTimestamp = ZonedDateTime.from(DATE_FORMATTER.parse(parser.text()));
-                            break;
-
-                        case Document.TIMESTAMP:
-                            timestamp = ZonedDateTime.from(DATE_FORMATTER.parse(parser.text()));
-                            break;
-
-                        case Agent.AGENT:
-                            // Parse Agent
-                            agent = Agent.parse(parser);
-                            break;
-
-                        case Command.COMMAND:
-                            // Parse Command
-                            command = Command.parse(parser);
-                            break;
-
-                        default:
-                            parser.skipChildren();
+                    if (fieldName.equals(Document.DELIVERY_TIMESTAMP)) {
+                        parser.nextToken();
+                        deliveryTimestamp = ZonedDateTime.from(DATE_FORMATTER.parse(parser.text()));
+                    } else {
+                        parser.skipChildren();
                     }
                 }
             }
-            // Create a new Document object with the Command's fields
-            return new Document(hit.getId(), agent, command, timestamp, deliveryTimestamp);
+
+            parser.close();
 
         } catch (IOException e) {
-            log.error("Document could not be parsed: {}", e.getMessage());
-        } catch (NullPointerException e) {
-            log.error(
-                    "Could not create Document object. One or more of the constructor's arguments was null: {}",
-                    e.getMessage());
+            log.error("Delivery timestamp could not be parsed: {}", e.getMessage());
         }
-        return null;
+        return deliveryTimestamp;
     }
 
     /**

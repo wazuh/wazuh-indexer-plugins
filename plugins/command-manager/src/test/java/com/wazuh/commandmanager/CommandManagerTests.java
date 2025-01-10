@@ -16,14 +16,7 @@
  */
 package com.wazuh.commandmanager;
 
-import org.apache.hc.client5.http.async.methods.SimpleHttpResponse;
 import org.opensearch.test.OpenSearchTestCase;
-import org.junit.Assert;
-
-import java.net.URI;
-import java.net.URISyntaxException;
-import java.security.AccessController;
-import java.security.PrivilegedAction;
 
 public class CommandManagerTests extends OpenSearchTestCase {
 
