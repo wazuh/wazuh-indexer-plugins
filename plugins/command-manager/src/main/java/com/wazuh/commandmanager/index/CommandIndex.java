@@ -16,7 +16,6 @@
  */
 package com.wazuh.commandmanager.index;
 
-import com.wazuh.commandmanager.settings.PluginSettings;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.opensearch.action.bulk.BulkRequest;
@@ -35,8 +34,8 @@ import java.util.ArrayList;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
 
-import com.wazuh.commandmanager.CommandManagerPlugin;
 import com.wazuh.commandmanager.model.Document;
+import com.wazuh.commandmanager.settings.PluginSettings;
 import com.wazuh.commandmanager.utils.IndexTemplateUtils;
 
 /** Class to manage the Command Manager index and index template. */
@@ -67,7 +66,10 @@ public class CommandIndex implements IndexingOperationListener {
      * @return whether the internal Command Manager's index exists.
      */
     public boolean indexExists() {
-        return this.clusterService.state().routingTable().hasIndex(PluginSettings.getInstance().getIndexName());
+        return this.clusterService
+                .state()
+                .routingTable()
+                .hasIndex(PluginSettings.getInstance().getIndexName());
     }
 
     /**
@@ -99,7 +101,8 @@ public class CommandIndex implements IndexingOperationListener {
                             this.threadPool.getThreadContext().stashContext()) {
                         String indexTemplateName = PluginSettings.getInstance().getIndexTemplate();
                         // Create index template if it does not exist.
-                        if (IndexTemplateUtils.isMissingIndexTemplate(this.clusterService, indexTemplateName)) {
+                        if (IndexTemplateUtils.isMissingIndexTemplate(
+                                this.clusterService, indexTemplateName)) {
                             IndexTemplateUtils.putIndexTemplate(this.client, indexTemplateName);
                         } else {
                             log.info(

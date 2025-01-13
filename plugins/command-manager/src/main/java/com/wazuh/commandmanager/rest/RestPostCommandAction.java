@@ -16,7 +16,6 @@
  */
 package com.wazuh.commandmanager.rest;
 
-import com.wazuh.commandmanager.settings.PluginSettings;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.opensearch.client.node.NodeClient;
@@ -34,19 +33,17 @@ import java.util.List;
 import java.util.Locale;
 import java.util.concurrent.CompletableFuture;
 
-import com.wazuh.commandmanager.CommandManagerPlugin;
 import com.wazuh.commandmanager.index.CommandIndex;
 import com.wazuh.commandmanager.model.Agent;
 import com.wazuh.commandmanager.model.Command;
 import com.wazuh.commandmanager.model.Document;
 import com.wazuh.commandmanager.model.Documents;
+import com.wazuh.commandmanager.settings.PluginSettings;
 
 import static org.opensearch.core.xcontent.XContentParserUtils.ensureExpectedToken;
 import static org.opensearch.rest.RestRequest.Method.POST;
 
-/**
- * Handles HTTP requests to the POST the Commands API endpoint.
- */
+/** Handles HTTP requests to the POST the Commands API endpoint. */
 public class RestPostCommandAction extends BaseRestHandler {
 
     public static final String POST_COMMAND_ACTION_REQUEST_DETAILS =
@@ -70,11 +67,12 @@ public class RestPostCommandAction extends BaseRestHandler {
     @Override
     public List<Route> routes() {
         return List.of(
-                new Route(POST, String.format(
-                        Locale.ROOT,
-                        "%s", PluginSettings.getInstance().getApiCommandsUri()
-                ))
-        );
+                new Route(
+                        POST,
+                        String.format(
+                                Locale.ROOT,
+                                "%s",
+                                PluginSettings.getInstance().getApiCommandsUri())));
     }
 
     @Override
@@ -161,7 +159,8 @@ public class RestPostCommandAction extends BaseRestHandler {
                             restStatus -> {
                                 try (XContentBuilder builder = channel.newBuilder()) {
                                     builder.startObject();
-                                    builder.field("_index", PluginSettings.getInstance().getIndexName());
+                                    builder.field(
+                                            "_index", PluginSettings.getInstance().getIndexName());
                                     documents.toXContent(builder, ToXContent.EMPTY_PARAMS);
                                     builder.field("result", restStatus.name());
                                     builder.endObject();

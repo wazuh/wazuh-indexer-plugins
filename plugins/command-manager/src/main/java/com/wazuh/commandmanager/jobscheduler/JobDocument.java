@@ -16,7 +16,6 @@
  */
 package com.wazuh.commandmanager.jobscheduler;
 
-import com.wazuh.commandmanager.settings.PluginSettings;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.opensearch.action.index.IndexRequest;
@@ -34,7 +33,7 @@ import java.time.temporal.ChronoUnit;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
 
-import com.wazuh.commandmanager.CommandManagerPlugin;
+import com.wazuh.commandmanager.settings.PluginSettings;
 import com.wazuh.commandmanager.utils.IndexTemplateUtils;
 
 /** Indexes the command job to the Jobs index. */
@@ -89,7 +88,8 @@ public class JobDocument {
                         try (ThreadContext.StoredContext ignored =
                                 threadPool.getThreadContext().stashContext()) {
                             if (IndexTemplateUtils.isMissingIndexTemplate(
-                                    clusterService, PluginSettings.getInstance().getJobIndexTemplate())) {
+                                    clusterService,
+                                    PluginSettings.getInstance().getJobIndexTemplate())) {
                                 IndexTemplateUtils.putIndexTemplate(
                                         client, PluginSettings.getInstance().getJobIndexTemplate());
                             } else {

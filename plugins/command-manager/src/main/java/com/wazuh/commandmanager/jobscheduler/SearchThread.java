@@ -16,7 +16,6 @@
  */
 package com.wazuh.commandmanager.jobscheduler;
 
-import com.wazuh.commandmanager.settings.PluginSettings;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.opensearch.action.index.IndexRequest;
@@ -37,7 +36,6 @@ import org.opensearch.search.builder.PointInTimeBuilder;
 import org.opensearch.search.builder.SearchSourceBuilder;
 import org.opensearch.search.sort.SortOrder;
 
-import java.sql.Time;
 import java.time.ZonedDateTime;
 import java.util.*;
 import java.util.concurrent.CancellationException;
@@ -46,6 +44,7 @@ import java.util.concurrent.ExecutionException;
 
 import com.wazuh.commandmanager.CommandManagerPlugin;
 import com.wazuh.commandmanager.model.*;
+import com.wazuh.commandmanager.settings.PluginSettings;
 
 /**
  * The class in charge of searching and managing commands in {@link Status#PENDING} status and of
@@ -99,8 +98,8 @@ public class SearchThread implements Runnable {
     }
 
     /**
-     * Iterates over search results, updating their status field to {@link Status#FAILURE}
-     * if their delivery timestamps are earlier than the current time
+     * Iterates over search results, updating their status field to {@link Status#FAILURE} if their
+     * delivery timestamps are earlier than the current time
      *
      * @param searchResponse The search results page
      * @throws IllegalStateException Rethrown from setSentStatus()
@@ -159,7 +158,8 @@ public class SearchThread implements Runnable {
      */
     public SearchResponse pitQuery(PointInTimeBuilder pointInTimeBuilder, Object[] searchAfter)
             throws IllegalStateException {
-        final SearchRequest searchRequest = new SearchRequest(PluginSettings.getInstance().getIndexName());
+        final SearchRequest searchRequest =
+                new SearchRequest(PluginSettings.getInstance().getIndexName());
         final TermQueryBuilder termQueryBuilder =
                 QueryBuilders.termQuery(SearchThread.COMMAND_STATUS_FIELD, Status.PENDING);
         final TimeValue timeout =

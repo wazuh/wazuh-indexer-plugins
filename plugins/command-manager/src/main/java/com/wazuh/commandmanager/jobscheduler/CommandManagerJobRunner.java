@@ -16,7 +16,6 @@
  */
 package com.wazuh.commandmanager.jobscheduler;
 
-import com.wazuh.commandmanager.settings.PluginSettings;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.opensearch.client.Client;
@@ -26,6 +25,7 @@ import org.opensearch.jobscheduler.spi.ScheduledJobRunner;
 import org.opensearch.threadpool.ThreadPool;
 
 import com.wazuh.commandmanager.index.CommandIndex;
+import com.wazuh.commandmanager.settings.PluginSettings;
 
 /**
  * Implements the ScheduledJobRunner interface, which exposes the runJob() method, which executes

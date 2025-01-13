@@ -1,31 +1,108 @@
+/*
+ * Copyright (C) 2024, Wazuh Inc.
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as
+ * published by the Free Software Foundation, either version 3 of the
+ * License, or (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
 package com.wazuh.commandmanager.settings;
 
-import org.opensearch.common.settings.Setting;
-import org.opensearch.common.settings.Settings;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.opensearch.common.settings.Setting;
+import org.opensearch.common.settings.Settings;
+
 import reactor.util.annotation.NonNull;
 
 public class PluginSettings {
     private static final Logger log = LogManager.getLogger(PluginSettings.class);
-    public static final String BASE_PLUGINS_URI = "/_plugins";
-    // Command Manager settings
-    public static final Setting<Integer> TIMEOUT = Setting.intSetting("command_manager.timeout", Integer.MIN_VALUE, Setting.Property.NodeScope, Setting.Property.Filtered);
-    // Command Manager Job settings
-    public static final Setting<String> JOB_SCHEDULE = Setting.simpleString("command_manager.job.schedule", Setting.Property.NodeScope, Setting.Property.Filtered);
-    public static final Setting<Integer> JOB_PAGE_SIZE = Setting.intSetting("command_manager.job.page_size", Integer.MIN_VALUE, Setting.Property.NodeScope, Setting.Property.Filtered);
-    public static final Setting<Integer> JOB_KEEP_ALIVE = Setting.intSetting("command_manager.job.pit_keep_alive", Integer.MIN_VALUE, Setting.Property.NodeScope, Setting.Property.Filtered);
-    public static final Setting<String> JOB_INDEX_NAME = Setting.simpleString("command_manager.job.index.name", Setting.Property.NodeScope, Setting.Property.Filtered);
-    public static final Setting<String> JOB_INDEX_TEMPLATE = Setting.simpleString("command_manager.job.index.template", Setting.Property.NodeScope, Setting.Property.Filtered);
-    // Command Manager API settings
-    public static final Setting<String> API_PREFIX = Setting.simpleString("command_manager.api.prefix", Setting.Property.NodeScope, Setting.Property.Filtered);
-    public static final Setting<String> API_ENDPOINT = Setting.simpleString("command_manager.api.endpoint", Setting.Property.NodeScope, Setting.Property.Filtered);
-    // Command Manager Index settings
-    public static final Setting<String> INDEX_NAME = Setting.simpleString("command_manager.index.name", Setting.Property.NodeScope, Setting.Property.Filtered);
-    public static final Setting<String> INDEX_TEMPLATE = Setting.simpleString("command_manager.index.template", Setting.Property.NodeScope, Setting.Property.Filtered);
+    private static final String BASE_PLUGINS_URI = "/_plugins";
+
+    // Settings default values
+    private static final Integer DEFAULT_TIMEOUT = 20;
+    private static final Integer DEFAULT_SCHEDULE = 1;
+    private static final Integer DEFAULT_PAGE_SIZE = 100;
+    private static final Integer DEFAULT_KEEP_ALIVE = 30;
+    private static final String DEFAULT_JOB_INDEX = ".scheduled-commands";
+    private static final String DEFAULT_JOB_INDEX_TEMPLATE = "index-template-scheduled-commands";
+    private static final String DEFAULT_PREFIX = "/_command_manager";
+    private static final String DEFAULT_ENDPOINT = "/commands";
+    private static final String DEFAULT_INDEX_NAME = ".commands";
+    private static final String DEFAULT_INDEX_TEMPLATE = "index-template-commands";
+
+    // Command Manager Settings.
+    public static final Setting<Integer> TIMEOUT =
+            Setting.intSetting(
+                    "command_manager.timeout",
+                    DEFAULT_TIMEOUT,
+                    Setting.Property.NodeScope,
+                    Setting.Property.Filtered);
+    public static final Setting<Integer> JOB_SCHEDULE =
+            Setting.intSetting(
+                    "command_manager.job.schedule",
+                    DEFAULT_SCHEDULE,
+                    Setting.Property.NodeScope,
+                    Setting.Property.Filtered);
+    public static final Setting<Integer> JOB_PAGE_SIZE =
+            Setting.intSetting(
+                    "command_manager.job.page_size",
+                    DEFAULT_PAGE_SIZE,
+                    Setting.Property.NodeScope,
+                    Setting.Property.Filtered);
+    public static final Setting<Integer> JOB_KEEP_ALIVE =
+            Setting.intSetting(
+                    "command_manager.job.pit_keep_alive",
+                    DEFAULT_KEEP_ALIVE,
+                    Setting.Property.NodeScope,
+                    Setting.Property.Filtered);
+    public static final Setting<String> JOB_INDEX_NAME =
+            Setting.simpleString(
+                    "command_manager.job.index.name",
+                    DEFAULT_JOB_INDEX,
+                    Setting.Property.NodeScope,
+                    Setting.Property.Filtered);
+    public static final Setting<String> JOB_INDEX_TEMPLATE =
+            Setting.simpleString(
+                    "command_manager.job.index.template",
+                    DEFAULT_JOB_INDEX_TEMPLATE,
+                    Setting.Property.NodeScope,
+                    Setting.Property.Filtered);
+    public static final Setting<String> API_PREFIX =
+            Setting.simpleString(
+                    "command_manager.api.prefix",
+                    DEFAULT_PREFIX,
+                    Setting.Property.NodeScope,
+                    Setting.Property.Filtered);
+    public static final Setting<String> API_ENDPOINT =
+            Setting.simpleString(
+                    "command_manager.api.endpoint",
+                    DEFAULT_ENDPOINT,
+                    Setting.Property.NodeScope,
+                    Setting.Property.Filtered);
+    public static final Setting<String> INDEX_NAME =
+            Setting.simpleString(
+                    "command_manager.index.name",
+                    DEFAULT_INDEX_NAME,
+                    Setting.Property.NodeScope,
+                    Setting.Property.Filtered);
+    public static final Setting<String> INDEX_TEMPLATE =
+            Setting.simpleString(
+                    "command_manager.index.template",
+                    DEFAULT_INDEX_TEMPLATE,
+                    Setting.Property.NodeScope,
+                    Setting.Property.Filtered);
 
     private final Integer timeout;
-    private final String jobSchedule;
+    private final Integer jobSchedule;
     private final Integer jobPageSize;
     private final Integer jobKeepAlive;
     private final String jobIndexName;
@@ -101,7 +178,7 @@ public class PluginSettings {
         return timeout;
     }
 
-    public String getJobSchedule() {
+    public Integer getJobSchedule() {
         return jobSchedule;
     }
 
@@ -147,17 +224,34 @@ public class PluginSettings {
 
     @Override
     public String toString() {
-        return "PluginSettings{" +
-                "timeout=" + timeout +
-                ", jobSchedule='" + jobSchedule + '\'' +
-                ", jobPageSize=" + jobPageSize +
-                ", jobKeepAlive=" + jobKeepAlive +
-                ", jobIndexName='" + jobIndexName + '\'' +
-                ", jobIndexTemplate='" + jobIndexTemplate + '\'' +
-                ", apiBaseUri='" + apiBaseUri + '\'' +
-                ", apiCommandsUri='" + apiCommandsUri + '\'' +
-                ", indexName='" + indexName + '\'' +
-                ", indexTemplate='" + indexTemplate + '\'' +
-                '}';
+        return "PluginSettings{"
+                + "timeout="
+                + timeout
+                + ", jobSchedule='"
+                + jobSchedule
+                + '\''
+                + ", jobPageSize="
+                + jobPageSize
+                + ", jobKeepAlive="
+                + jobKeepAlive
+                + ", jobIndexName='"
+                + jobIndexName
+                + '\''
+                + ", jobIndexTemplate='"
+                + jobIndexTemplate
+                + '\''
+                + ", apiBaseUri='"
+                + apiBaseUri
+                + '\''
+                + ", apiCommandsUri='"
+                + apiCommandsUri
+                + '\''
+                + ", indexName='"
+                + indexName
+                + '\''
+                + ", indexTemplate='"
+                + indexTemplate
+                + '\''
+                + '}';
     }
 }

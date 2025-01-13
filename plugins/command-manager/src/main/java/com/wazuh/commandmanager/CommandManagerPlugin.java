@@ -16,7 +16,6 @@
  */
 package com.wazuh.commandmanager;
 
-import com.wazuh.commandmanager.settings.PluginSettings;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.opensearch.action.index.IndexResponse;
@@ -26,7 +25,6 @@ import org.opensearch.cluster.node.DiscoveryNodes;
 import org.opensearch.cluster.service.ClusterService;
 import org.opensearch.common.UUIDs;
 import org.opensearch.common.settings.*;
-import org.opensearch.common.unit.TimeValue;
 import org.opensearch.core.common.io.stream.NamedWriteableRegistry;
 import org.opensearch.core.xcontent.NamedXContentRegistry;
 import org.opensearch.core.xcontent.XContentParser;
@@ -60,6 +58,7 @@ import com.wazuh.commandmanager.jobscheduler.CommandManagerJobParameter;
 import com.wazuh.commandmanager.jobscheduler.CommandManagerJobRunner;
 import com.wazuh.commandmanager.jobscheduler.JobDocument;
 import com.wazuh.commandmanager.rest.RestPostCommandAction;
+import com.wazuh.commandmanager.settings.PluginSettings;
 
 /**
  * The Command Manager plugin exposes an HTTP API with a single endpoint to receive raw commands
@@ -70,25 +69,17 @@ import com.wazuh.commandmanager.rest.RestPostCommandAction;
  *
  * <p>The Command Manager plugin is also a JobScheduler extension plugin.
  */
-public class CommandManagerPlugin extends Plugin implements ActionPlugin, JobSchedulerExtension, ReloadablePlugin {
-    public static final String COMMAND_MANAGER_BASE_URI = "/_plugins/_command_manager";
-    public static final String COMMANDS_URI = COMMAND_MANAGER_BASE_URI + "/commands";
-    public static final String INDEX_NAME = ".commands";
-    public static final String INDEX_TEMPLATE_NAME = "index-template-commands";
+public class CommandManagerPlugin extends Plugin
+        implements ActionPlugin, JobSchedulerExtension, ReloadablePlugin {
     public static final String COMMAND_DOCUMENT_PARENT_OBJECT_NAME = "command";
-    public static final String JOB_INDEX_NAME = ".scheduled-commands";
-    public static final String JOB_INDEX_TEMPLATE_NAME = "index-template-scheduled-commands";
-    public static final Integer JOB_PERIOD_MINUTES = 1;
-    public static final Integer PAGE_SIZE = 100;
-    public static final Long DEFAULT_TIMEOUT_SECONDS = 20L;
-    public static final TimeValue PIT_KEEP_ALIVE_SECONDS = TimeValue.timeValueSeconds(30L);
+    public static final String JOB_TYPE = "command_manager_scheduler_extension";
+    public static final String JOB_INDEX = ".scheduled-commands";
 
     private static final Logger log = LogManager.getLogger(CommandManagerPlugin.class);
-    public static final String JOB_TYPE = "command_manager_scheduler_extension";
 
     private CommandIndex commandIndex;
     private JobDocument jobDocument;
-    private String indexName;
+    private PluginSettings settings;
 
     @Override
     public Collection<Object> createComponents(
@@ -105,7 +96,7 @@ public class CommandManagerPlugin extends Plugin implements ActionPlugin, JobSch
             Supplier<RepositoriesService> repositoriesServiceSupplier) {
         // Command index repository initialization.
         this.commandIndex = new CommandIndex(client, clusterService, threadPool);
-        PluginSettings.getInstance(environment.settings());
+        this.settings = PluginSettings.getInstance(environment.settings());
 
         // Scheduled job initialization
         // NOTE it's very likely that client and thread pool may not be required as the command
@@ -142,7 +133,7 @@ public class CommandManagerPlugin extends Plugin implements ActionPlugin, JobSch
                                         threadPool,
                                         UUIDs.base64UUID(),
                                         getJobType(),
-                                        JOB_PERIOD_MINUTES);
+                                        settings.getJobSchedule());
                         indexResponseCompletableFuture.thenAccept(
                                 indexResponse -> {
                                     log.info(
@@ -169,19 +160,19 @@ public class CommandManagerPlugin extends Plugin implements ActionPlugin, JobSch
     public List<Setting<?>> getSettings() {
         log.info("[SETTINGS] Retrieving settings.");
         return Arrays.asList(
-            // Register API settings
-            PluginSettings.TIMEOUT,
-            PluginSettings.JOB_PAGE_SIZE,
-            PluginSettings.JOB_SCHEDULE,
-            PluginSettings.JOB_KEEP_ALIVE,
-            PluginSettings.JOB_INDEX_NAME,
-            PluginSettings.JOB_INDEX_TEMPLATE,
-            PluginSettings.API_PREFIX,
-            PluginSettings.API_ENDPOINT,
-            PluginSettings.INDEX_NAME,
-            PluginSettings.INDEX_TEMPLATE
-        );
+                // Register API settings
+                PluginSettings.TIMEOUT,
+                PluginSettings.JOB_PAGE_SIZE,
+                PluginSettings.JOB_SCHEDULE,
+                PluginSettings.JOB_KEEP_ALIVE,
+                PluginSettings.JOB_INDEX_NAME,
+                PluginSettings.JOB_INDEX_TEMPLATE,
+                PluginSettings.API_PREFIX,
+                PluginSettings.API_ENDPOINT,
+                PluginSettings.INDEX_NAME,
+                PluginSettings.INDEX_TEMPLATE);
     }
+
     @Override
     public String getJobType() {
         return CommandManagerPlugin.JOB_TYPE;
@@ -189,7 +180,7 @@ public class CommandManagerPlugin extends Plugin implements ActionPlugin, JobSch
 
     @Override
     public String getJobIndex() {
-        return CommandManagerPlugin.JOB_INDEX_NAME;
+        return CommandManagerPlugin.JOB_INDEX;
     }
 
     @Override
