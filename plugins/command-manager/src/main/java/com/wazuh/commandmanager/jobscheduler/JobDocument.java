@@ -16,6 +16,7 @@
  */
 package com.wazuh.commandmanager.jobscheduler;
 
+import com.wazuh.commandmanager.settings.PluginSettings;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.opensearch.action.index.IndexRequest;
@@ -79,7 +80,7 @@ public class JobDocument {
         try {
             IndexRequest indexRequest =
                     new IndexRequest()
-                            .index(CommandManagerPlugin.JOB_INDEX_NAME)
+                            .index(PluginSettings.getInstance().getJobIndexName())
                             .id(id)
                             .source(jobParameter.toXContent(JsonXContent.contentBuilder(), null))
                             .create(true);
@@ -88,13 +89,13 @@ public class JobDocument {
                         try (ThreadContext.StoredContext ignored =
                                 threadPool.getThreadContext().stashContext()) {
                             if (IndexTemplateUtils.isMissingIndexTemplate(
-                                    clusterService, CommandManagerPlugin.JOB_INDEX_TEMPLATE_NAME)) {
+                                    clusterService, PluginSettings.getInstance().getJobIndexTemplate())) {
                                 IndexTemplateUtils.putIndexTemplate(
-                                        client, CommandManagerPlugin.JOB_INDEX_TEMPLATE_NAME);
+                                        client, PluginSettings.getInstance().getJobIndexTemplate());
                             } else {
                                 log.info(
                                         "Index template {} already exists. Skipping creation.",
-                                        CommandManagerPlugin.JOB_INDEX_NAME);
+                                        PluginSettings.getInstance().getJobIndexName());
                             }
                             IndexResponse indexResponse = client.index(indexRequest).actionGet();
                             completableFuture.complete(indexResponse);

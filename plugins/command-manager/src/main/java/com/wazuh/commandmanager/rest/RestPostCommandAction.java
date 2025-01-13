@@ -16,6 +16,7 @@
  */
 package com.wazuh.commandmanager.rest;
 
+import com.wazuh.commandmanager.settings.PluginSettings;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.opensearch.client.node.NodeClient;
@@ -44,8 +45,7 @@ import static org.opensearch.core.xcontent.XContentParserUtils.ensureExpectedTok
 import static org.opensearch.rest.RestRequest.Method.POST;
 
 /**
- * Handles HTTP requests to the POST {@value
- * com.wazuh.commandmanager.CommandManagerPlugin#COMMANDS_URI} endpoint.
+ * Handles HTTP requests to the POST the Commands API endpoint.
  */
 public class RestPostCommandAction extends BaseRestHandler {
 
@@ -70,8 +70,11 @@ public class RestPostCommandAction extends BaseRestHandler {
     @Override
     public List<Route> routes() {
         return List.of(
-                new Route(
-                        POST, String.format(Locale.ROOT, "%s", CommandManagerPlugin.COMMANDS_URI)));
+                new Route(POST, String.format(
+                        Locale.ROOT,
+                        "%s", PluginSettings.getInstance().getApiCommandsUri()
+                ))
+        );
     }
 
     @Override
@@ -158,7 +161,7 @@ public class RestPostCommandAction extends BaseRestHandler {
                             restStatus -> {
                                 try (XContentBuilder builder = channel.newBuilder()) {
                                     builder.startObject();
-                                    builder.field("_index", CommandManagerPlugin.INDEX_NAME);
+                                    builder.field("_index", PluginSettings.getInstance().getIndexName());
                                     documents.toXContent(builder, ToXContent.EMPTY_PARAMS);
                                     builder.field("result", restStatus.name());
                                     builder.endObject();

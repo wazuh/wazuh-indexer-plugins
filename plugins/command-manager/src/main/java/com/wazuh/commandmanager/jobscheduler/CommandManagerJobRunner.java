@@ -16,6 +16,7 @@
  */
 package com.wazuh.commandmanager.jobscheduler;
 
+import com.wazuh.commandmanager.settings.PluginSettings;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.opensearch.client.Client;
@@ -67,7 +68,7 @@ public class CommandManagerJobRunner implements ScheduledJobRunner {
         if (!this.indexManager.indexExists()) {
             log.info(
                     "{} index not yet created, not running command manager jobs",
-                    CommandManagerPlugin.INDEX_NAME);
+                    PluginSettings.getInstance().getIndexName());
             return;
         }
         final SearchThread searchThread = new SearchThread(this.client);

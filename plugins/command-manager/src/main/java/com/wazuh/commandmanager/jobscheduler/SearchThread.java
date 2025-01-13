@@ -16,6 +16,7 @@
  */
 package com.wazuh.commandmanager.jobscheduler;
 
+import com.wazuh.commandmanager.settings.PluginSettings;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.opensearch.action.index.IndexRequest;
@@ -36,6 +37,7 @@ import org.opensearch.search.builder.PointInTimeBuilder;
 import org.opensearch.search.builder.SearchSourceBuilder;
 import org.opensearch.search.sort.SortOrder;
 
+import java.sql.Time;
 import java.time.ZonedDateTime;
 import java.util.*;
 import java.util.concurrent.CancellationException;
@@ -138,12 +140,12 @@ public class SearchThread implements Runnable {
                     .put(CommandManagerPlugin.COMMAND_DOCUMENT_PARENT_OBJECT_NAME, commandMap);
             final IndexRequest indexRequest =
                     new IndexRequest()
-                            .index(CommandManagerPlugin.INDEX_NAME)
+                            .index(PluginSettings.getInstance().getIndexName())
                             .source(hit.getSourceAsMap())
                             .id(hit.getId());
             this.client
                     .index(indexRequest)
-                    .actionGet(CommandManagerPlugin.DEFAULT_TIMEOUT_SECONDS * 1000);
+                    .actionGet(PluginSettings.getInstance().getTimeout() * 1000);
         }
     }
 
@@ -157,15 +159,15 @@ public class SearchThread implements Runnable {
      */
     public SearchResponse pitQuery(PointInTimeBuilder pointInTimeBuilder, Object[] searchAfter)
             throws IllegalStateException {
-        final SearchRequest searchRequest = new SearchRequest(CommandManagerPlugin.INDEX_NAME);
+        final SearchRequest searchRequest = new SearchRequest(PluginSettings.getInstance().getIndexName());
         final TermQueryBuilder termQueryBuilder =
                 QueryBuilders.termQuery(SearchThread.COMMAND_STATUS_FIELD, Status.PENDING);
         final TimeValue timeout =
-                TimeValue.timeValueSeconds(CommandManagerPlugin.DEFAULT_TIMEOUT_SECONDS);
+                TimeValue.timeValueSeconds(PluginSettings.getInstance().getTimeout());
 
         this.searchSourceBuilder
                 .query(termQueryBuilder)
-                .size(CommandManagerPlugin.PAGE_SIZE)
+                .size(PluginSettings.getInstance().getJobPageSize())
                 .trackTotalHits(true)
                 .timeout(timeout)
                 .pointInTimeBuilder(pointInTimeBuilder);
@@ -276,9 +278,9 @@ public class SearchThread implements Runnable {
                 };
         this.client.createPit(
                 new CreatePitRequest(
-                        CommandManagerPlugin.PIT_KEEP_ALIVE_SECONDS,
+                        new TimeValue(PluginSettings.getInstance().getJobKeepAlive()),
                         false,
-                        CommandManagerPlugin.INDEX_NAME),
+                        PluginSettings.getInstance().getIndexName()),
                 actionListener);
         try {
             return new PointInTimeBuilder(future.get().getId());

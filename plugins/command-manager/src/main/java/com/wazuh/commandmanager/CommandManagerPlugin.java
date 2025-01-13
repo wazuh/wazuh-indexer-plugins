@@ -171,7 +171,7 @@ public class CommandManagerPlugin extends Plugin implements ActionPlugin, JobSch
 
     @Override
     public String getJobIndex() {
-        return CommandManagerPlugin.JOB_INDEX_NAME;
+        return PluginSettings.getInstance().getJobIndexName();
     }
 
     @Override
