@@ -25,7 +25,6 @@ import org.opensearch.jobscheduler.spi.ScheduledJobParameter;
 import org.opensearch.jobscheduler.spi.ScheduledJobRunner;
 import org.opensearch.threadpool.ThreadPool;
 
-import com.wazuh.commandmanager.CommandManagerPlugin;
 import com.wazuh.commandmanager.index.CommandIndex;
 
 /**

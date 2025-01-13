@@ -25,10 +25,7 @@ import org.opensearch.cluster.metadata.IndexNameExpressionResolver;
 import org.opensearch.cluster.node.DiscoveryNodes;
 import org.opensearch.cluster.service.ClusterService;
 import org.opensearch.common.UUIDs;
-import org.opensearch.common.settings.ClusterSettings;
-import org.opensearch.common.settings.IndexScopedSettings;
-import org.opensearch.common.settings.Settings;
-import org.opensearch.common.settings.SettingsFilter;
+import org.opensearch.common.settings.*;
 import org.opensearch.common.unit.TimeValue;
 import org.opensearch.core.common.io.stream.NamedWriteableRegistry;
 import org.opensearch.core.xcontent.NamedXContentRegistry;
@@ -50,6 +47,7 @@ import org.opensearch.watcher.ResourceWatcherService;
 
 import java.io.IOException;
 import java.time.Instant;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
@@ -89,6 +87,7 @@ public class CommandManagerPlugin extends Plugin implements ActionPlugin, JobSch
 
     private CommandIndex commandIndex;
     private JobDocument jobDocument;
+    private String indexName;
 
     @Override
     public Collection<Object> createComponents(
@@ -111,6 +110,7 @@ public class CommandManagerPlugin extends Plugin implements ActionPlugin, JobSch
         // NOTE it's very likely that client and thread pool may not be required as the command
         // index
         // repository already use them. All queries to the index should be under this class.
+        this.indexName = PluginSettings.getInstance().getJobIndexName();
         CommandManagerJobRunner.getInstance()
                 .setClient(client)
                 .setThreadPool(threadPool)
@@ -163,7 +163,22 @@ public class CommandManagerPlugin extends Plugin implements ActionPlugin, JobSch
             Supplier<DiscoveryNodes> nodesInCluster) {
         return Collections.singletonList(new RestPostCommandAction(this.commandIndex));
     }
-
+    @Override
+    public List<Setting<?>> getSettings() {
+        return Arrays.asList(
+            // Register API settings
+            PluginSettings.TIMEOUT,
+            PluginSettings.JOB_PAGE_SIZE,
+            PluginSettings.JOB_SCHEDULE,
+            PluginSettings.JOB_KEEP_ALIVE,
+            PluginSettings.JOB_INDEX_NAME,
+            PluginSettings.JOB_INDEX_TEMPLATE,
+            PluginSettings.API_PREFIX,
+            PluginSettings.API_ENDPOINT,
+            PluginSettings.INDEX_NAME,
+            PluginSettings.INDEX_TEMPLATE
+        );
+    }
     @Override
     public String getJobType() {
         return CommandManagerPlugin.JOB_TYPE;
@@ -171,7 +186,7 @@ public class CommandManagerPlugin extends Plugin implements ActionPlugin, JobSch
 
     @Override
     public String getJobIndex() {
-        return PluginSettings.getInstance().getJobIndexName();
+        return this.indexName;
     }
 
     @Override

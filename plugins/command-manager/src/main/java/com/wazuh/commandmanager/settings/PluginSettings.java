@@ -2,6 +2,8 @@ package com.wazuh.commandmanager.settings;
 
 import org.opensearch.common.settings.Setting;
 import org.opensearch.common.settings.Settings;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import reactor.util.annotation.NonNull;
 
 public class PluginSettings {
@@ -20,6 +22,7 @@ public class PluginSettings {
     // Command Manager Index settings
     public static final Setting<String> INDEX_NAME = Setting.simpleString("command_manager.index.name", Setting.Property.NodeScope, Setting.Property.Filtered);
     public static final Setting<String> INDEX_TEMPLATE = Setting.simpleString("command_manager.index.template", Setting.Property.NodeScope, Setting.Property.Filtered);
+    private static final Logger log = LoggerFactory.getLogger(PluginSettings.class);
 
     private final Integer timeout;
     private final String jobSchedule;
@@ -34,7 +37,7 @@ public class PluginSettings {
     private final String apiCommandsUri;
     private final String apiBaseUri;
 
-    private static volatile PluginSettings instance;
+    private static PluginSettings instance;
 
     /** Private default constructor */
     private PluginSettings(@NonNull final Settings settings) {
@@ -51,6 +54,19 @@ public class PluginSettings {
 
         this.apiBaseUri = BASE_PLUGINS_URI + apiPrefix;
         this.apiCommandsUri = apiBaseUri + apiEndpoint;
+
+        log.info("[SETTINGS] Timeout: {}", this.timeout);
+        log.info("[SETTINGS] Job Schedule: {}", this.jobSchedule);
+        log.info("[SETTINGS] Job Page Size: {}", this.jobPageSize);
+        log.info("[SETTINGS] Job Keep Alive: {}", this.jobKeepAlive);
+        log.info("[SETTINGS] Job Index Name: {}", this.jobIndexName);
+        log.info("[SETTINGS] Job Index Template: {}", this.jobIndexTemplate);
+        log.info("[SETTINGS] API Prefix: {}", this.apiPrefix);
+        log.info("[SETTINGS] API Endpoint: {}", this.apiEndpoint);
+        log.info("[SETTINGS] API Base URI: {}", this.apiBaseUri);
+        log.info("[SETTINGS] API Commands URI: {}", this.apiCommandsUri);
+        log.info("[SETTINGS] Index Name: {}", this.indexName);
+        log.info("[SETTINGS] Index Template: {}", this.indexTemplate);
     }
 
     /**
