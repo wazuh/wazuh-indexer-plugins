@@ -4,7 +4,6 @@ import org.opensearch.common.settings.Setting;
 import org.opensearch.common.settings.Settings;
 import reactor.util.annotation.NonNull;
 
-
 public class PluginSettings {
     public static final String BASE_PLUGINS_URI = "/_plugins";
     // Command Manager settings
@@ -35,6 +34,8 @@ public class PluginSettings {
     private final String apiCommandsUri;
     private final String apiBaseUri;
 
+    private static volatile PluginSettings instance;
+
     /** Private default constructor */
     private PluginSettings(@NonNull final Settings settings) {
         this.timeout = TIMEOUT.get(settings);
@@ -50,19 +51,6 @@ public class PluginSettings {
 
         this.apiBaseUri = BASE_PLUGINS_URI + apiPrefix;
         this.apiCommandsUri = apiBaseUri + apiEndpoint;
-
-        log.info("[SETTINGS] Timeout: {}", this.timeout);
-        log.info("[SETTINGS] Job Schedule: {}", this.jobSchedule);
-        log.info("[SETTINGS] Job Page Size: {}", this.jobPageSize);
-        log.info("[SETTINGS] Job Keep Alive: {}", this.jobKeepAlive);
-        log.info("[SETTINGS] Job Index Name: {}", this.jobIndexName);
-        log.info("[SETTINGS] Job Index Template: {}", this.jobIndexTemplate);
-        log.info("[SETTINGS] API Prefix: {}", this.apiPrefix);
-        log.info("[SETTINGS] API Endpoint: {}", this.apiEndpoint);
-        log.info("[SETTINGS] API Base URI: {}", this.apiBaseUri);
-        log.info("[SETTINGS] API Commands URI: {}", this.apiCommandsUri);
-        log.info("[SETTINGS] Index Name: {}", this.indexName);
-        log.info("[SETTINGS] Index Template: {}", this.indexTemplate);
     }
 
     /**
@@ -71,8 +59,12 @@ public class PluginSettings {
      * @return {@link PluginSettings#instance}
      */
     public static PluginSettings getInstance(@NonNull final Settings settings) {
-        if (PluginSettings.instance == null) {
-            instance = new PluginSettings(settings);
+        if (instance == null) {
+            synchronized (PluginSettings.class) {
+                if (instance == null) {
+                    instance = new PluginSettings(settings);
+                }
+            }
         }
         return instance;
     }
@@ -83,7 +75,7 @@ public class PluginSettings {
      * @return {@link PluginSettings#instance}
      */
     public static PluginSettings getInstance() {
-        if (PluginSettings.instance == null) {
+        if (instance == null) {
             throw new IllegalStateException("Plugin settings have not been initialized.");
         }
         return instance;
@@ -152,6 +144,4 @@ public class PluginSettings {
                 ", indexTemplate='" + indexTemplate + '\'' +
                 '}';
     }
-
-    private static PluginSettings instance;
 }
