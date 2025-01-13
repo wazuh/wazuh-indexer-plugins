@@ -16,6 +16,7 @@
  */
 package com.wazuh.commandmanager;
 
+import com.wazuh.commandmanager.settings.PluginSettings;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.opensearch.action.index.IndexResponse;
@@ -104,6 +105,7 @@ public class CommandManagerPlugin extends Plugin implements ActionPlugin, JobSch
             Supplier<RepositoriesService> repositoriesServiceSupplier) {
         // Command index repository initialization.
         this.commandIndex = new CommandIndex(client, clusterService, threadPool);
+        PluginSettings.getInstance(environment.settings());
 
         // Scheduled job initialization
         // NOTE it's very likely that client and thread pool may not be required as the command

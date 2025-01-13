@@ -2,6 +2,7 @@ package com.wazuh.commandmanager.settings;
 
 import org.opensearch.common.settings.Setting;
 import org.opensearch.common.settings.Settings;
+import reactor.util.annotation.NonNull;
 
 
 public class PluginSettings {
@@ -31,6 +32,8 @@ public class PluginSettings {
     private final String apiEndpoint;
     private final String indexName;
     private final String indexTemplate;
+    private final String apiCommandsUri;
+    private final String apiBaseUri;
 
     /** Private default constructor */
     private PluginSettings(@NonNull final Settings settings) {
@@ -47,6 +50,19 @@ public class PluginSettings {
 
         this.apiBaseUri = BASE_PLUGINS_URI + apiPrefix;
         this.apiCommandsUri = apiBaseUri + apiEndpoint;
+
+        log.info("[SETTINGS] Timeout: {}", this.timeout);
+        log.info("[SETTINGS] Job Schedule: {}", this.jobSchedule);
+        log.info("[SETTINGS] Job Page Size: {}", this.jobPageSize);
+        log.info("[SETTINGS] Job Keep Alive: {}", this.jobKeepAlive);
+        log.info("[SETTINGS] Job Index Name: {}", this.jobIndexName);
+        log.info("[SETTINGS] Job Index Template: {}", this.jobIndexTemplate);
+        log.info("[SETTINGS] API Prefix: {}", this.apiPrefix);
+        log.info("[SETTINGS] API Endpoint: {}", this.apiEndpoint);
+        log.info("[SETTINGS] API Base URI: {}", this.apiBaseUri);
+        log.info("[SETTINGS] API Commands URI: {}", this.apiCommandsUri);
+        log.info("[SETTINGS] Index Name: {}", this.indexName);
+        log.info("[SETTINGS] Index Template: {}", this.indexTemplate);
     }
 
     /**
@@ -95,6 +111,14 @@ public class PluginSettings {
 
     public String getJobIndexTemplate() {
         return jobIndexTemplate;
+    }
+
+    public String getApiPrefix() {
+        return apiPrefix;
+    }
+
+    public String getApiEndpoint() {
+        return apiEndpoint;
     }
 
     public String getApiBaseUri() {
