@@ -32,6 +32,11 @@ public class PluginSettings {
     private static final Integer DEFAULT_SCHEDULE = 1;
     private static final Integer DEFAULT_PAGE_SIZE = 100;
     private static final Integer DEFAULT_KEEP_ALIVE = 30;
+    /* DEFAULT_JOB_INDEX is retained and consumed as constant and not a Setting
+     * because the job's index name value is used in the getJobIndex() getter function of
+     * the CommandManagerPlugin class, it being required for the JobSchedulerExtension
+     * interface, which is loaded before the settings.
+     */
     private static final String DEFAULT_JOB_INDEX = ".scheduled-commands";
     private static final String DEFAULT_JOB_INDEX_TEMPLATE = "index-template-scheduled-commands";
     private static final String DEFAULT_PREFIX = "/_command_manager";
@@ -62,12 +67,6 @@ public class PluginSettings {
             Setting.intSetting(
                     "command_manager.job.pit_keep_alive",
                     DEFAULT_KEEP_ALIVE,
-                    Setting.Property.NodeScope,
-                    Setting.Property.Filtered);
-    public static final Setting<String> JOB_INDEX_NAME =
-            Setting.simpleString(
-                    "command_manager.job.index.name",
-                    DEFAULT_JOB_INDEX,
                     Setting.Property.NodeScope,
                     Setting.Property.Filtered);
     public static final Setting<String> JOB_INDEX_TEMPLATE =
@@ -105,7 +104,6 @@ public class PluginSettings {
     private final Integer jobSchedule;
     private final Integer jobPageSize;
     private final Integer jobKeepAlive;
-    private final String jobIndexName;
     private final String jobIndexTemplate;
     private final String apiPrefix;
     private final String apiEndpoint;
@@ -122,7 +120,6 @@ public class PluginSettings {
         this.jobSchedule = JOB_SCHEDULE.get(settings);
         this.jobPageSize = JOB_PAGE_SIZE.get(settings);
         this.jobKeepAlive = JOB_KEEP_ALIVE.get(settings);
-        this.jobIndexName = JOB_INDEX_NAME.get(settings);
         this.jobIndexTemplate = JOB_INDEX_TEMPLATE.get(settings);
         this.apiPrefix = API_PREFIX.get(settings);
         this.apiEndpoint = API_ENDPOINT.get(settings);
@@ -136,7 +133,6 @@ public class PluginSettings {
         log.info("[SETTINGS] Job Schedule: {}", this.jobSchedule);
         log.info("[SETTINGS] Job Page Size: {}", this.jobPageSize);
         log.info("[SETTINGS] Job Keep Alive: {}", this.jobKeepAlive);
-        log.info("[SETTINGS] Job Index Name: {}", this.jobIndexName);
         log.info("[SETTINGS] Job Index Template: {}", this.jobIndexTemplate);
         log.info("[SETTINGS] API Prefix: {}", this.apiPrefix);
         log.info("[SETTINGS] API Endpoint: {}", this.apiEndpoint);
@@ -190,8 +186,8 @@ public class PluginSettings {
         return jobKeepAlive;
     }
 
-    public String getJobIndexName() {
-        return jobIndexName;
+    public static String getJobIndexName() {
+        return DEFAULT_JOB_INDEX;
     }
 
     public String getJobIndexTemplate() {
@@ -234,8 +230,6 @@ public class PluginSettings {
                 + jobPageSize
                 + ", jobKeepAlive="
                 + jobKeepAlive
-                + ", jobIndexName='"
-                + jobIndexName
                 + '\''
                 + ", jobIndexTemplate='"
                 + jobIndexTemplate
