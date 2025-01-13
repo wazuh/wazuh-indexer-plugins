@@ -37,7 +37,7 @@ public class PluginSettings {
     private final String apiCommandsUri;
     private final String apiBaseUri;
 
-    private static PluginSettings instance;
+    private static volatile PluginSettings instance;
 
     /** Private default constructor */
     private PluginSettings(@NonNull final Settings settings) {

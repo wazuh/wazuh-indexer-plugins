@@ -110,7 +110,7 @@ public class CommandManagerPlugin extends Plugin implements ActionPlugin, JobSch
         // NOTE it's very likely that client and thread pool may not be required as the command
         // index
         // repository already use them. All queries to the index should be under this class.
-        this.indexName = PluginSettings.getInstance().getJobIndexName();
+        log.info("[SETTINGS] Plugin Settings loaded.");
         CommandManagerJobRunner.getInstance()
                 .setClient(client)
                 .setThreadPool(threadPool)
@@ -163,8 +163,10 @@ public class CommandManagerPlugin extends Plugin implements ActionPlugin, JobSch
             Supplier<DiscoveryNodes> nodesInCluster) {
         return Collections.singletonList(new RestPostCommandAction(this.commandIndex));
     }
+
     @Override
     public List<Setting<?>> getSettings() {
+        log.info("[SETTINGS] Retrieving settings.");
         return Arrays.asList(
             // Register API settings
             PluginSettings.TIMEOUT,
@@ -186,7 +188,7 @@ public class CommandManagerPlugin extends Plugin implements ActionPlugin, JobSch
 
     @Override
     public String getJobIndex() {
-        return this.indexName;
+        return CommandManagerPlugin.JOB_INDEX_NAME;
     }
 
     @Override
