@@ -2,11 +2,12 @@ package com.wazuh.commandmanager.settings;
 
 import org.opensearch.common.settings.Setting;
 import org.opensearch.common.settings.Settings;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import reactor.util.annotation.NonNull;
 
 public class PluginSettings {
+    private static final Logger log = LogManager.getLogger(PluginSettings.class);
     public static final String BASE_PLUGINS_URI = "/_plugins";
     // Command Manager settings
     public static final Setting<Integer> TIMEOUT = Setting.intSetting("command_manager.timeout", Integer.MIN_VALUE, Setting.Property.NodeScope, Setting.Property.Filtered);
@@ -22,7 +23,6 @@ public class PluginSettings {
     // Command Manager Index settings
     public static final Setting<String> INDEX_NAME = Setting.simpleString("command_manager.index.name", Setting.Property.NodeScope, Setting.Property.Filtered);
     public static final Setting<String> INDEX_TEMPLATE = Setting.simpleString("command_manager.index.template", Setting.Property.NodeScope, Setting.Property.Filtered);
-    private static final Logger log = LoggerFactory.getLogger(PluginSettings.class);
 
     private final Integer timeout;
     private final String jobSchedule;

@@ -39,6 +39,7 @@ import org.opensearch.jobscheduler.spi.ScheduledJobRunner;
 import org.opensearch.jobscheduler.spi.schedule.ScheduleParser;
 import org.opensearch.plugins.ActionPlugin;
 import org.opensearch.plugins.Plugin;
+import org.opensearch.plugins.ReloadablePlugin;
 import org.opensearch.repositories.RepositoriesService;
 import org.opensearch.rest.*;
 import org.opensearch.script.ScriptService;
@@ -69,7 +70,7 @@ import com.wazuh.commandmanager.rest.RestPostCommandAction;
  *
  * <p>The Command Manager plugin is also a JobScheduler extension plugin.
  */
-public class CommandManagerPlugin extends Plugin implements ActionPlugin, JobSchedulerExtension {
+public class CommandManagerPlugin extends Plugin implements ActionPlugin, JobSchedulerExtension, ReloadablePlugin {
     public static final String COMMAND_MANAGER_BASE_URI = "/_plugins/_command_manager";
     public static final String COMMANDS_URI = COMMAND_MANAGER_BASE_URI + "/commands";
     public static final String INDEX_NAME = ".commands";
@@ -248,5 +249,10 @@ public class CommandManagerPlugin extends Plugin implements ActionPlugin, JobSch
         }
         XContentParserUtils.throwUnknownToken(parser.currentToken(), parser.getTokenLocation());
         return null;
+    }
+
+    @Override
+    public void reload(Settings settings) {
+        // TODO
     }
 }
