@@ -159,54 +159,93 @@ public class PluginSettings {
         return instance;
     }
 
+    /**
+     * @return the timeout value
+     */
     public Integer getTimeout() {
         return timeout;
     }
 
+    /**
+     * @return the job schedule value
+     */
     public Integer getJobSchedule() {
         return jobSchedule;
     }
 
+    /**
+     * @return the job page size value
+     */
     public Integer getJobPageSize() {
         return jobPageSize;
     }
 
+    /**
+     * @return the job keep-alive value
+     */
     public Integer getJobKeepAlive() {
         return jobKeepAlive;
     }
 
+    /**
+     * @return the job index name
+     */
     public static String getJobIndexName() {
         return JOB_INDEX;
     }
 
+    /**
+     * @return the job type
+     */
     public static String getJobType() {
         return JOB_TYPE;
     }
 
+    /**
+     * @return the job index template
+     */
     public String getJobIndexTemplate() {
         return jobIndexTemplate;
     }
 
+    /**
+     * @return the API prefix
+     */
     public String getApiPrefix() {
         return apiPrefix;
     }
 
+    /**
+     * @return the API endpoint
+     */
     public String getApiEndpoint() {
         return apiEndpoint;
     }
 
+    /**
+     * @return the base URI for the API
+     */
     public String getApiBaseUri() {
         return apiBaseUri;
     }
 
+    /**
+     * @return the URI for the API commands
+     */
     public String getApiCommandsUri() {
         return apiCommandsUri;
     }
 
+    /**
+     * @return the index name
+     */
     public String getIndexName() {
         return indexName;
     }
 
+    /**
+     * @return the index template
+     */
     public String getIndexTemplate() {
         return indexTemplate;
     }
