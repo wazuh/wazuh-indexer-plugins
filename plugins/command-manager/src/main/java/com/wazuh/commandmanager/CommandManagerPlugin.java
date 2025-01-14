@@ -72,14 +72,11 @@ import com.wazuh.commandmanager.settings.PluginSettings;
 public class CommandManagerPlugin extends Plugin
         implements ActionPlugin, JobSchedulerExtension, ReloadablePlugin {
     public static final String COMMAND_DOCUMENT_PARENT_OBJECT_NAME = "command";
-    public static final String JOB_TYPE = "command_manager_scheduler_extension";
-    public static final String JOB_INDEX = ".scheduled-commands";
 
     private static final Logger log = LogManager.getLogger(CommandManagerPlugin.class);
 
     private CommandIndex commandIndex;
     private JobDocument jobDocument;
-    private PluginSettings settings;
 
     @Override
     public Collection<Object> createComponents(
@@ -96,7 +93,7 @@ public class CommandManagerPlugin extends Plugin
             Supplier<RepositoriesService> repositoriesServiceSupplier) {
         // Command index repository initialization.
         this.commandIndex = new CommandIndex(client, clusterService, threadPool);
-        this.settings = PluginSettings.getInstance(environment.settings());
+        PluginSettings.getInstance(environment.settings());
 
         // Scheduled job initialization
         // NOTE it's very likely that client and thread pool may not be required as the command
@@ -133,7 +130,7 @@ public class CommandManagerPlugin extends Plugin
                                         threadPool,
                                         UUIDs.base64UUID(),
                                         getJobType(),
-                                        settings.getJobSchedule());
+                                        PluginSettings.getInstance().getJobSchedule());
                         indexResponseCompletableFuture.thenAccept(
                                 indexResponse -> {
                                     log.info(
@@ -174,12 +171,12 @@ public class CommandManagerPlugin extends Plugin
 
     @Override
     public String getJobType() {
-        return CommandManagerPlugin.JOB_TYPE;
+        return PluginSettings.getJobType();
     }
 
     @Override
     public String getJobIndex() {
-        return CommandManagerPlugin.JOB_INDEX;
+        return PluginSettings.getJobIndexName();
     }
 
     @Override

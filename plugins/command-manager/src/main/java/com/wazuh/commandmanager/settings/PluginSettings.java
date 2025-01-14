@@ -32,17 +32,18 @@ public class PluginSettings {
     private static final Integer DEFAULT_SCHEDULE = 1;
     private static final Integer DEFAULT_PAGE_SIZE = 100;
     private static final Integer DEFAULT_KEEP_ALIVE = 30;
-    /* DEFAULT_JOB_INDEX is retained and consumed as constant and not a Setting
-     * because the job's index name value is used in the getJobIndex() getter function of
-     * the CommandManagerPlugin class, it being required for the JobSchedulerExtension
-     * interface, which is loaded before the settings.
-     */
-    private static final String DEFAULT_JOB_INDEX = ".scheduled-commands";
     private static final String DEFAULT_JOB_INDEX_TEMPLATE = "index-template-scheduled-commands";
     private static final String DEFAULT_PREFIX = "/_command_manager";
     private static final String DEFAULT_ENDPOINT = "/commands";
     private static final String DEFAULT_INDEX_NAME = ".commands";
     private static final String DEFAULT_INDEX_TEMPLATE = "index-template-commands";
+    /* JOB_INDEX and JOB_TYPE are retained and consumed as constants and not Settings
+     * because these job's values are used in the corresponding getter functions of
+     * the CommandManagerPlugin class, it being required for the JobSchedulerExtension
+     * interface, which is loaded before the settings.
+     */
+    private static final String JOB_TYPE = "command_manager_scheduler_extension";
+    private static final String JOB_INDEX = ".scheduled-commands";
 
     // Command Manager Settings.
     public static final Setting<Integer> TIMEOUT =
@@ -128,18 +129,6 @@ public class PluginSettings {
 
         this.apiBaseUri = BASE_PLUGINS_URI + apiPrefix;
         this.apiCommandsUri = apiBaseUri + apiEndpoint;
-
-        log.info("[SETTINGS] Timeout: {}", this.timeout);
-        log.info("[SETTINGS] Job Schedule: {}", this.jobSchedule);
-        log.info("[SETTINGS] Job Page Size: {}", this.jobPageSize);
-        log.info("[SETTINGS] Job Keep Alive: {}", this.jobKeepAlive);
-        log.info("[SETTINGS] Job Index Template: {}", this.jobIndexTemplate);
-        log.info("[SETTINGS] API Prefix: {}", this.apiPrefix);
-        log.info("[SETTINGS] API Endpoint: {}", this.apiEndpoint);
-        log.info("[SETTINGS] API Base URI: {}", this.apiBaseUri);
-        log.info("[SETTINGS] API Commands URI: {}", this.apiCommandsUri);
-        log.info("[SETTINGS] Index Name: {}", this.indexName);
-        log.info("[SETTINGS] Index Template: {}", this.indexTemplate);
     }
 
     /**
@@ -187,7 +176,11 @@ public class PluginSettings {
     }
 
     public static String getJobIndexName() {
-        return DEFAULT_JOB_INDEX;
+        return JOB_INDEX;
+    }
+
+    public static String getJobType() {
+        return JOB_TYPE;
     }
 
     public String getJobIndexTemplate() {
