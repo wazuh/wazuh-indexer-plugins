@@ -99,7 +99,6 @@ public class CommandManagerPlugin extends Plugin
         // NOTE it's very likely that client and thread pool may not be required as the command
         // index
         // repository already use them. All queries to the index should be under this class.
-        log.info("[SETTINGS] Plugin Settings loaded.");
         CommandManagerJobRunner.getInstance()
                 .setClient(client)
                 .setThreadPool(threadPool)
@@ -155,7 +154,6 @@ public class CommandManagerPlugin extends Plugin
 
     @Override
     public List<Setting<?>> getSettings() {
-        log.info("[SETTINGS] Retrieving settings.");
         return Arrays.asList(
                 // Register API settings
                 PluginSettings.TIMEOUT,
