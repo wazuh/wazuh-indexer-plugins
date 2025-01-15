@@ -75,7 +75,7 @@ opensearchplugin {
 }
 
 def versions = [
-    log4j: "2.23.1"
+    log4j: "2.24.3"
 ]
 
 configurations {
