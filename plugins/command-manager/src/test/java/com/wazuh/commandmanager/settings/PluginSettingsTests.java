@@ -45,13 +45,6 @@ public class PluginSettingsTests extends OpenSearchIntegTestCase {
                         .put("command_manager.job.schedule", 1)
                         .put("command_manager.job.page_size", 100)
                         .put("command_manager.job.pit_keep_alive", 30)
-                        .put(
-                                "command_manager.job.index.template",
-                                "index-template-scheduled-commands")
-                        .put("command_manager.api.prefix", "/_command_manager")
-                        .put("command_manager.api.endpoint", "/commands")
-                        .put("command_manager.index.name", "command_manager")
-                        .put("command_manager.index.template", "command_manager_template")
                         .build();
 
         mockEnvironment = mock(Environment.class);
@@ -70,8 +63,8 @@ public class PluginSettingsTests extends OpenSearchIntegTestCase {
         assertEquals("index-template-scheduled-commands", pluginSettings.getJobIndexTemplate());
         assertEquals("/_command_manager", pluginSettings.getApiPrefix());
         assertEquals("/commands", pluginSettings.getApiEndpoint());
-        assertEquals("command_manager", pluginSettings.getIndexName());
-        assertEquals("command_manager_template", pluginSettings.getIndexTemplate());
+        assertEquals(".commands", pluginSettings.getIndexName());
+        assertEquals("index-template-commands", pluginSettings.getIndexTemplate());
     }
 
     public void testSingletonBehavior() throws Exception {
