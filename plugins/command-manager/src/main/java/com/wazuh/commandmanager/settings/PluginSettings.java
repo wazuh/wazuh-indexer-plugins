@@ -25,25 +25,25 @@ import reactor.util.annotation.NonNull;
 
 public class PluginSettings {
     private static final Logger log = LogManager.getLogger(PluginSettings.class);
-    private static final String BASE_PLUGINS_URI = "/_plugins";
 
     // Settings default values
     private static final Integer DEFAULT_TIMEOUT = 20;
     private static final Integer DEFAULT_SCHEDULE = 1;
     private static final Integer DEFAULT_PAGE_SIZE = 100;
     private static final Integer DEFAULT_KEEP_ALIVE = 30;
-    private static final String DEFAULT_JOB_INDEX_TEMPLATE = "index-template-scheduled-commands";
-    private static final String DEFAULT_PREFIX = "/_command_manager";
-    private static final String DEFAULT_ENDPOINT = "/commands";
-    private static final String DEFAULT_INDEX_NAME = ".commands";
-    private static final String DEFAULT_INDEX_TEMPLATE = "index-template-commands";
     /* JOB_INDEX and JOB_TYPE are retained and consumed as constants and not Settings
      * because these job's values are used in the corresponding getter functions of
      * the CommandManagerPlugin class, it being required for the JobSchedulerExtension
      * interface, which is loaded before the settings.
      */
     private static final String JOB_TYPE = "command_manager_scheduler_extension";
+    private static final String JOB_INDEX_TEMPLATE = "index-template-scheduled-commands";
     private static final String JOB_INDEX = ".scheduled-commands";
+    private static final String COMMAND_INDEX_TEMPLATE = "index-template-commands";
+    private static final String COMMAND_INDEX = ".commands";
+    private static final String BASE_PLUGINS_URI = "/_plugins";
+    private static final String API_PREFIX = "/_command_manager";
+    private static final String API_ENDPOINT = "/commands";
 
     // Command Manager Settings.
     public static final Setting<Integer> TIMEOUT =
@@ -70,46 +70,11 @@ public class PluginSettings {
                     DEFAULT_KEEP_ALIVE,
                     Setting.Property.NodeScope,
                     Setting.Property.Filtered);
-    public static final Setting<String> JOB_INDEX_TEMPLATE =
-            Setting.simpleString(
-                    "command_manager.job.index.template",
-                    DEFAULT_JOB_INDEX_TEMPLATE,
-                    Setting.Property.NodeScope,
-                    Setting.Property.Filtered);
-    public static final Setting<String> API_PREFIX =
-            Setting.simpleString(
-                    "command_manager.api.prefix",
-                    DEFAULT_PREFIX,
-                    Setting.Property.NodeScope,
-                    Setting.Property.Filtered);
-    public static final Setting<String> API_ENDPOINT =
-            Setting.simpleString(
-                    "command_manager.api.endpoint",
-                    DEFAULT_ENDPOINT,
-                    Setting.Property.NodeScope,
-                    Setting.Property.Filtered);
-    public static final Setting<String> INDEX_NAME =
-            Setting.simpleString(
-                    "command_manager.index.name",
-                    DEFAULT_INDEX_NAME,
-                    Setting.Property.NodeScope,
-                    Setting.Property.Filtered);
-    public static final Setting<String> INDEX_TEMPLATE =
-            Setting.simpleString(
-                    "command_manager.index.template",
-                    DEFAULT_INDEX_TEMPLATE,
-                    Setting.Property.NodeScope,
-                    Setting.Property.Filtered);
 
     private final Integer timeout;
     private final Integer jobSchedule;
     private final Integer jobPageSize;
     private final Integer jobKeepAlive;
-    private final String jobIndexTemplate;
-    private final String apiPrefix;
-    private final String apiEndpoint;
-    private final String indexName;
-    private final String indexTemplate;
     private final String apiCommandsUri;
     private final String apiBaseUri;
 
@@ -121,14 +86,8 @@ public class PluginSettings {
         this.jobSchedule = JOB_SCHEDULE.get(settings);
         this.jobPageSize = JOB_PAGE_SIZE.get(settings);
         this.jobKeepAlive = JOB_KEEP_ALIVE.get(settings);
-        this.jobIndexTemplate = JOB_INDEX_TEMPLATE.get(settings);
-        this.apiPrefix = API_PREFIX.get(settings);
-        this.apiEndpoint = API_ENDPOINT.get(settings);
-        this.indexName = INDEX_NAME.get(settings);
-        this.indexTemplate = INDEX_TEMPLATE.get(settings);
-
-        this.apiBaseUri = BASE_PLUGINS_URI + apiPrefix;
-        this.apiCommandsUri = apiBaseUri + apiEndpoint;
+        this.apiBaseUri = BASE_PLUGINS_URI + API_PREFIX;
+        this.apiCommandsUri = apiBaseUri + API_ENDPOINT;
     }
 
     /**
@@ -205,21 +164,21 @@ public class PluginSettings {
      * @return the job index template
      */
     public String getJobIndexTemplate() {
-        return jobIndexTemplate;
+        return JOB_INDEX_TEMPLATE;
     }
 
     /**
      * @return the API prefix
      */
     public String getApiPrefix() {
-        return apiPrefix;
+        return API_PREFIX;
     }
 
     /**
      * @return the API endpoint
      */
     public String getApiEndpoint() {
-        return apiEndpoint;
+        return API_ENDPOINT;
     }
 
     /**
@@ -240,14 +199,14 @@ public class PluginSettings {
      * @return the index name
      */
     public String getIndexName() {
-        return indexName;
+        return COMMAND_INDEX;
     }
 
     /**
      * @return the index template
      */
     public String getIndexTemplate() {
-        return indexTemplate;
+        return COMMAND_INDEX_TEMPLATE;
     }
 
     @Override
@@ -264,7 +223,7 @@ public class PluginSettings {
                 + jobKeepAlive
                 + '\''
                 + ", jobIndexTemplate='"
-                + jobIndexTemplate
+                + JOB_INDEX_TEMPLATE
                 + '\''
                 + ", apiBaseUri='"
                 + apiBaseUri
@@ -273,11 +232,16 @@ public class PluginSettings {
                 + apiCommandsUri
                 + '\''
                 + ", indexName='"
-                + indexName
+                + COMMAND_INDEX
                 + '\''
                 + ", indexTemplate='"
-                + indexTemplate
+                + COMMAND_INDEX_TEMPLATE
                 + '\''
+                + ", jobIndex='"
+                + JOB_INDEX
+                + '\''
+                + ", jobType='"
+                + JOB_TYPE
                 + '}';
     }
 }

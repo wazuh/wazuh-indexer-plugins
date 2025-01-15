@@ -159,12 +159,7 @@ public class CommandManagerPlugin extends Plugin
                 PluginSettings.TIMEOUT,
                 PluginSettings.JOB_PAGE_SIZE,
                 PluginSettings.JOB_SCHEDULE,
-                PluginSettings.JOB_KEEP_ALIVE,
-                PluginSettings.JOB_INDEX_TEMPLATE,
-                PluginSettings.API_PREFIX,
-                PluginSettings.API_ENDPOINT,
-                PluginSettings.INDEX_NAME,
-                PluginSettings.INDEX_TEMPLATE);
+                PluginSettings.JOB_KEEP_ALIVE);
     }
 
     @Override
