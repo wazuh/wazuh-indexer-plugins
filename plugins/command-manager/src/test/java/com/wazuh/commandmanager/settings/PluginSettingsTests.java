@@ -41,7 +41,7 @@ public class PluginSettingsTests extends OpenSearchIntegTestCase {
     public void setUp() throws Exception {
         settings =
                 Settings.builder()
-                        .put("command_manager.timeout", 20)
+                        .put("command_manager.client.timeout", 20)
                         .put("command_manager.job.schedule", 1)
                         .put("command_manager.job.page_size", 100)
                         .put("command_manager.job.pit_keep_alive", 30)

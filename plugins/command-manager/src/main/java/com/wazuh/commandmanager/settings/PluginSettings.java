@@ -46,9 +46,9 @@ public class PluginSettings {
     private static final String API_ENDPOINT = "/commands";
 
     // Command Manager Settings.
-    public static final Setting<Integer> TIMEOUT =
+    public static final Setting<Integer> CLIENT_TIMEOUT =
             Setting.intSetting(
-                    "command_manager.timeout",
+                    "command_manager.client.timeout",
                     DEFAULT_TIMEOUT,
                     Setting.Property.NodeScope,
                     Setting.Property.Filtered);
@@ -82,7 +82,7 @@ public class PluginSettings {
 
     /** Private default constructor */
     private PluginSettings(@NonNull final Settings settings) {
-        this.timeout = TIMEOUT.get(settings);
+        this.timeout = CLIENT_TIMEOUT.get(settings);
         this.jobSchedule = JOB_SCHEDULE.get(settings);
         this.jobPageSize = JOB_PAGE_SIZE.get(settings);
         this.jobKeepAlive = JOB_KEEP_ALIVE.get(settings);

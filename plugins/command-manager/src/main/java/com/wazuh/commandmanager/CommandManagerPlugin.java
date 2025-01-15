@@ -156,7 +156,7 @@ public class CommandManagerPlugin extends Plugin
     public List<Setting<?>> getSettings() {
         return Arrays.asList(
                 // Register API settings
-                PluginSettings.TIMEOUT,
+                PluginSettings.CLIENT_TIMEOUT,
                 PluginSettings.JOB_PAGE_SIZE,
                 PluginSettings.JOB_SCHEDULE,
                 PluginSettings.JOB_KEEP_ALIVE);
