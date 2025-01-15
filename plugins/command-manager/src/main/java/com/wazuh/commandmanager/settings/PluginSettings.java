@@ -31,11 +31,10 @@ public class PluginSettings {
     private static final Integer DEFAULT_SCHEDULE = 1;
     private static final Integer DEFAULT_PAGE_SIZE = 100;
     private static final Integer DEFAULT_KEEP_ALIVE = 30;
-    /* JOB_INDEX and JOB_TYPE are retained and consumed as constants and not Settings
-     * because these job's values are used in the corresponding getter functions of
-     * the CommandManagerPlugin class, it being required for the JobSchedulerExtension
-     * interface, which is loaded before the settings.
-     */
+    /* Some configurations were kept as constants rather than settings preventing
+    runtime changes, which could lead to inconsistencies within plugin components
+    and external interactions.
+    */
     private static final String JOB_TYPE = "command_manager_scheduler_extension";
     private static final String JOB_INDEX_TEMPLATE = "index-template-scheduled-commands";
     private static final String JOB_INDEX = ".scheduled-commands";
