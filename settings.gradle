@@ -12,3 +12,6 @@ project(":setup").projectDir = "plugins/setup/" as File
 
 include(":command-manager")
 project(":command-manager").projectDir = "plugins/command-manager/" as File
+
+include(":content-manager")
+project(":content-manager").projectDir = "plugins/content-manager/" as File
