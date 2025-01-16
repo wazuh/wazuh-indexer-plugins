@@ -67,7 +67,7 @@ public class CommandManagerJobRunner implements ScheduledJobRunner {
         if (!this.indexManager.indexExists()) {
             log.info(
                     "{} index not yet created, not running command manager jobs",
-                    PluginSettings.getInstance().getIndexName());
+                    PluginSettings.getIndexName());
             return;
         }
         final SearchThread searchThread = new SearchThread(this.client);

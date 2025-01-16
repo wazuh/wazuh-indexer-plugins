@@ -79,7 +79,7 @@ public class JobDocument {
         try {
             IndexRequest indexRequest =
                     new IndexRequest()
-                            .index(PluginSettings.getInstance().getJobIndexName())
+                            .index(PluginSettings.getJobIndexName())
                             .id(id)
                             .source(jobParameter.toXContent(JsonXContent.contentBuilder(), null))
                             .create(true);
@@ -88,14 +88,13 @@ public class JobDocument {
                         try (ThreadContext.StoredContext ignored =
                                 threadPool.getThreadContext().stashContext()) {
                             if (IndexTemplateUtils.isMissingIndexTemplate(
-                                    clusterService,
-                                    PluginSettings.getInstance().getJobIndexTemplate())) {
+                                    clusterService, PluginSettings.getJobIndexTemplate())) {
                                 IndexTemplateUtils.putIndexTemplate(
-                                        client, PluginSettings.getInstance().getJobIndexTemplate());
+                                        client, PluginSettings.getJobIndexTemplate());
                             } else {
                                 log.info(
                                         "Index template {} already exists. Skipping creation.",
-                                        PluginSettings.getInstance().getJobIndexName());
+                                        PluginSettings.getJobIndexName());
                             }
                             IndexResponse indexResponse = client.index(indexRequest).actionGet();
                             completableFuture.complete(indexResponse);

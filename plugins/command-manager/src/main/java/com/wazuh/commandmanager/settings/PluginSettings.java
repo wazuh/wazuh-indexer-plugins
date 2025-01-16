@@ -40,9 +40,8 @@ public class PluginSettings {
     private static final String JOB_INDEX = ".scheduled-commands";
     private static final String COMMAND_INDEX_TEMPLATE = "index-template-commands";
     private static final String COMMAND_INDEX = ".commands";
-    private static final String BASE_PLUGINS_URI = "/_plugins";
-    private static final String API_PREFIX = "/_command_manager";
-    private static final String API_ENDPOINT = "/commands";
+    private static final String API_BASE_URI = "/_plugins/_command_manager";
+    private static final String API_COMMANDS_ENDPOINT = API_BASE_URI + "/commands";
 
     // Command Manager Settings.
     public static final Setting<Integer> CLIENT_TIMEOUT =
@@ -74,8 +73,6 @@ public class PluginSettings {
     private final Integer jobSchedule;
     private final Integer jobPageSize;
     private final Integer jobKeepAlive;
-    private final String apiCommandsUri;
-    private final String apiBaseUri;
 
     private static volatile PluginSettings instance;
 
@@ -85,8 +82,6 @@ public class PluginSettings {
         this.jobSchedule = JOB_SCHEDULE.get(settings);
         this.jobPageSize = JOB_PAGE_SIZE.get(settings);
         this.jobKeepAlive = JOB_KEEP_ALIVE.get(settings);
-        this.apiBaseUri = BASE_PLUGINS_URI + API_PREFIX;
-        this.apiCommandsUri = apiBaseUri + API_ENDPOINT;
     }
 
     /**
@@ -121,28 +116,28 @@ public class PluginSettings {
      * @return the timeout value
      */
     public Integer getTimeout() {
-        return timeout;
+        return this.timeout;
     }
 
     /**
      * @return the job schedule value
      */
     public Integer getJobSchedule() {
-        return jobSchedule;
+        return this.jobSchedule;
     }
 
     /**
      * @return the job page size value
      */
     public Integer getJobPageSize() {
-        return jobPageSize;
+        return this.jobPageSize;
     }
 
     /**
      * @return the job keep-alive value
      */
     public Integer getJobKeepAlive() {
-        return jobKeepAlive;
+        return this.jobKeepAlive;
     }
 
     /**
@@ -162,49 +157,35 @@ public class PluginSettings {
     /**
      * @return the job index template
      */
-    public String getJobIndexTemplate() {
+    public static String getJobIndexTemplate() {
         return JOB_INDEX_TEMPLATE;
     }
 
     /**
      * @return the API prefix
      */
-    public String getApiPrefix() {
-        return API_PREFIX;
+    public static String getApiPrefix() {
+        return API_BASE_URI;
     }
 
     /**
-     * @return the API endpoint
+     * @return the URI for the commands API endpoint
      */
-    public String getApiEndpoint() {
-        return API_ENDPOINT;
-    }
-
-    /**
-     * @return the base URI for the API
-     */
-    public String getApiBaseUri() {
-        return apiBaseUri;
-    }
-
-    /**
-     * @return the URI for the API commands
-     */
-    public String getApiCommandsUri() {
-        return apiCommandsUri;
+    public static String getApiCommandsEndpoint() {
+        return API_COMMANDS_ENDPOINT;
     }
 
     /**
      * @return the index name
      */
-    public String getIndexName() {
+    public static String getIndexName() {
         return COMMAND_INDEX;
     }
 
     /**
      * @return the index template
      */
-    public String getIndexTemplate() {
+    public static String getIndexTemplate() {
         return COMMAND_INDEX_TEMPLATE;
     }
 
@@ -225,10 +206,10 @@ public class PluginSettings {
                 + JOB_INDEX_TEMPLATE
                 + '\''
                 + ", apiBaseUri='"
-                + apiBaseUri
+                + API_BASE_URI
                 + '\''
                 + ", apiCommandsUri='"
-                + apiCommandsUri
+                + API_COMMANDS_ENDPOINT
                 + '\''
                 + ", indexName='"
                 + COMMAND_INDEX

@@ -66,10 +66,7 @@ public class CommandIndex implements IndexingOperationListener {
      * @return whether the internal Command Manager's index exists.
      */
     public boolean indexExists() {
-        return this.clusterService
-                .state()
-                .routingTable()
-                .hasIndex(PluginSettings.getInstance().getIndexName());
+        return this.clusterService.state().routingTable().hasIndex(PluginSettings.getIndexName());
     }
 
     /**
@@ -99,7 +96,7 @@ public class CommandIndex implements IndexingOperationListener {
                 () -> {
                     try (ThreadContext.StoredContext ignored =
                             this.threadPool.getThreadContext().stashContext()) {
-                        String indexTemplateName = PluginSettings.getInstance().getIndexTemplate();
+                        final String indexTemplateName = PluginSettings.getIndexTemplate();
                         // Create index template if it does not exist.
                         if (IndexTemplateUtils.isMissingIndexTemplate(
                                 this.clusterService, indexTemplateName)) {
@@ -129,7 +126,7 @@ public class CommandIndex implements IndexingOperationListener {
      */
     private IndexRequest createIndexRequest(Document document) throws IOException {
         return new IndexRequest()
-                .index(PluginSettings.getInstance().getIndexName())
+                .index(PluginSettings.getIndexName())
                 .source(document.toXContent(XContentFactory.jsonBuilder(), ToXContent.EMPTY_PARAMS))
                 .id(document.getId())
                 .create(true);

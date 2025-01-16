@@ -138,7 +138,7 @@ public class SearchThread implements Runnable {
                     .put(CommandManagerPlugin.COMMAND_DOCUMENT_PARENT_OBJECT_NAME, commandMap);
             final IndexRequest indexRequest =
                     new IndexRequest()
-                            .index(PluginSettings.getInstance().getIndexName())
+                            .index(PluginSettings.getIndexName())
                             .source(hit.getSourceAsMap())
                             .id(hit.getId());
             this.client
@@ -157,8 +157,7 @@ public class SearchThread implements Runnable {
      */
     public SearchResponse pitQuery(PointInTimeBuilder pointInTimeBuilder, Object[] searchAfter)
             throws IllegalStateException {
-        final SearchRequest searchRequest =
-                new SearchRequest(PluginSettings.getInstance().getIndexName());
+        final SearchRequest searchRequest = new SearchRequest(PluginSettings.getIndexName());
         final TermQueryBuilder termQueryBuilder =
                 QueryBuilders.termQuery(SearchThread.COMMAND_STATUS_FIELD, Status.PENDING);
         final TimeValue timeout =
@@ -279,7 +278,7 @@ public class SearchThread implements Runnable {
                 new CreatePitRequest(
                         new TimeValue(PluginSettings.getInstance().getJobKeepAlive()),
                         false,
-                        PluginSettings.getInstance().getIndexName()),
+                        PluginSettings.getIndexName()),
                 actionListener);
         try {
             return new PointInTimeBuilder(future.get().getId());

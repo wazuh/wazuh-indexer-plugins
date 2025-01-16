@@ -60,11 +60,12 @@ public class PluginSettingsTests extends OpenSearchIntegTestCase {
         assertEquals(Optional.of(1), Optional.of(pluginSettings.getJobSchedule()));
         assertEquals(Optional.of(100), Optional.of(pluginSettings.getJobPageSize()));
         assertEquals(Optional.of(30), Optional.of(pluginSettings.getJobKeepAlive()));
-        assertEquals("index-template-scheduled-commands", pluginSettings.getJobIndexTemplate());
-        assertEquals("/_command_manager", pluginSettings.getApiPrefix());
-        assertEquals("/commands", pluginSettings.getApiEndpoint());
-        assertEquals(".commands", pluginSettings.getIndexName());
-        assertEquals("index-template-commands", pluginSettings.getIndexTemplate());
+        assertEquals("index-template-scheduled-commands", PluginSettings.getJobIndexTemplate());
+        assertEquals("/_plugins/_command_manager", PluginSettings.getApiPrefix());
+        assertEquals(
+                "/_plugins/_command_manager/commands", PluginSettings.getApiCommandsEndpoint());
+        assertEquals(".commands", PluginSettings.getIndexName());
+        assertEquals("index-template-commands", PluginSettings.getIndexTemplate());
     }
 
     public void testSingletonBehavior() throws Exception {
@@ -72,7 +73,7 @@ public class PluginSettingsTests extends OpenSearchIntegTestCase {
         assertEquals(pluginSettings, pluginSettings2);
     }
 
-    public void testSIngletonMultithreadedBehavior() throws Exception {
+    public void testSingletonMultithreadedBehavior() throws Exception {
         PluginSettings[] pluginSettingsArray = new PluginSettings[10];
         for (int i = 0; i < 10; i++) {
             pluginSettingsArray[i] = PluginSettings.getInstance(mockEnvironment.settings());

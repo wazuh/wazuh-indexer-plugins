@@ -69,10 +69,7 @@ public class RestPostCommandAction extends BaseRestHandler {
         return List.of(
                 new Route(
                         POST,
-                        String.format(
-                                Locale.ROOT,
-                                "%s",
-                                PluginSettings.getInstance().getApiCommandsUri())));
+                        String.format(Locale.ROOT, "%s", PluginSettings.getApiCommandsEndpoint())));
     }
 
     @Override
@@ -159,8 +156,7 @@ public class RestPostCommandAction extends BaseRestHandler {
                             restStatus -> {
                                 try (XContentBuilder builder = channel.newBuilder()) {
                                     builder.startObject();
-                                    builder.field(
-                                            "_index", PluginSettings.getInstance().getIndexName());
+                                    builder.field("_index", PluginSettings.getIndexName());
                                     documents.toXContent(builder, ToXContent.EMPTY_PARAMS);
                                     builder.field("result", restStatus.name());
                                     builder.endObject();
