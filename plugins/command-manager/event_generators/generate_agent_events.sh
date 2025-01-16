@@ -10,23 +10,42 @@ PORT="9200"
 # Default number of events to generate
 number=0
 
+# Function to check if URL is up
+function wait_for_cluster() {
+    local max_retries=12
+    local sleep_interval=5  # seconds
+    local url="http://$IP:$PORT/_cluster/health"
+
+    for i in $(seq 1 $max_retries); do
+        response=$(curl -s -o /dev/null -w "%{http_code}" -u $USERNAME:$PASSWORD $url)
+        if [[ $response -eq 200 ]]; then
+            echo "Cluster is up and running."
+            return 0
+        else
+            echo "Cluster not available yet. Waiting..."
+            sleep $sleep_interval
+        fi
+    done
+
+    echo "Failed to connect to the cluster after $max_retries retries."
+    return 1
+}
 
 # Function to generate random date
 function generate_random_date() {
     local start_date
     local end_date
     local random_date
-    
+
     start_date=$(date -u +%s)
     end_date=$((start_date - 864000))
     random_date=$((start_date - RANDOM % (start_date - end_date)))
-    
+
     date -u -r "$random_date" '+%Y-%m-%dT%H:%M:%S.%3NZ'
 }
 
-
 # Function to generate random groups
-function enerate_random_groups() {
+function generate_random_groups() {
     local groups=()
     for i in $(seq 1 $((RANDOM % 5 + 1))); do
         groups+=("group00$((RANDOM % 6))")
@@ -54,7 +73,6 @@ EOF
     )
     echo "$agent"
 }
-
 
 # Function to generate random host
 function generate_random_host() {
@@ -100,7 +118,6 @@ EOF
     echo "$host"
 }
 
-
 # Function to inject events
 function inject_events() {
     local data=$1
@@ -110,7 +127,6 @@ function inject_events() {
         echo "Error: $response"
     fi
 }
-
 
 function parse_args() {
     while getopts ":n:h" opt; do
@@ -135,7 +151,6 @@ function parse_args() {
     done
 }
 
-
 # Main function
 main() {
     parse_args "$@"
@@ -148,6 +163,12 @@ main() {
         fi
     fi
 
+    echo "Waiting for the cluster to be up and running..."
+    if ! wait_for_cluster; then
+        echo "Cluster did not start in time. Exiting."
+        exit 1
+    fi
+
     echo "Generating $number events..."
 
     for i in $(seq 1 "$number"); do
@@ -158,5 +179,5 @@ main() {
     echo "Data generation completed."
 }
 
-
-main "$@"
+# Run the main function in the background and redirect output to log file
+(main "$@") > generate_log.txt 2>&1 &
