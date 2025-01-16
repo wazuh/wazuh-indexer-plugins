@@ -7,27 +7,38 @@ PASSWORD="admin"
 IP="127.0.0.1"
 PORT="9200"
 
+# Default number of events to generate
+number=0
+
+
 # Function to generate random date
-generate_random_date() {
-  local start_date=$(date -u +%s)
-  local end_date=$((start_date - 864000))
-  local random_date=$((start_date - RANDOM % (start_date - end_date)))
-  date -u -r "$random_date" '+%Y-%m-%dT%H:%M:%S.%3NZ'
+function generate_random_date() {
+    local start_date
+    local end_date
+    local random_date
+    
+    start_date=$(date -u +%s)
+    end_date=$((start_date - 864000))
+    random_date=$((start_date - RANDOM % (start_date - end_date)))
+    
+    date -u -r "$random_date" '+%Y-%m-%dT%H:%M:%S.%3NZ'
 }
 
+
 # Function to generate random groups
-generate_random_groups() {
-  local groups=()
-  for i in $(seq 1 $((RANDOM % 5 + 1))); do
-    groups+=("group00$((RANDOM % 6))")
-  done
-  printf '%s\n' "$(printf '%s,' "${groups[@]}")"
+function enerate_random_groups() {
+    local groups=()
+    for i in $(seq 1 $((RANDOM % 5 + 1))); do
+        groups+=("group00$((RANDOM % 6))")
+    done
+    printf '%s\n' "$(printf '%s,' "${groups[@]}")"
 }
 
 # Function to generate random agent
-generate_random_agent() {
-  local agent
-  agent=$(cat <<EOF
+function generate_random_agent() {
+    local agent
+    agent=$(
+        cat <<EOF
 {
   "id": "agent$((RANDOM % 100))",
   "name": "Agent$((RANDOM % 100))",
@@ -40,18 +51,20 @@ generate_random_agent() {
   "host": $(generate_random_host)
 }
 EOF
-)
-  echo "$agent"
+    )
+    echo "$agent"
 }
 
+
 # Function to generate random host
-generate_random_host() {
-  local family
-  family=$(shuf -e debian ubuntu macos ios android RHEL -n 1)
-  local version
-  version="$((RANDOM % 100)).$((RANDOM % 100))"
-  local host
-  host=$(cat <<EOF
+function generate_random_host() {
+    local family
+    family=$(shuf -e debian ubuntu macos ios android RHEL -n 1)
+    local version
+    version="$((RANDOM % 100)).$((RANDOM % 100))"
+    local host
+    host=$(
+        cat <<EOF
 {
   "architecture": "$(shuf -e x86_64 arm64 -n 1)",
   "boot": {"id": "boot$((RANDOM % 10000))"},
@@ -83,37 +96,67 @@ generate_random_host() {
   "uptime": $((RANDOM % 1000001))
 }
 EOF
-)
-  echo "$host"
+    )
+    echo "$host"
 }
 
+
 # Function to inject events
-inject_events() {
-  local data=$1
-  url="http://$IP:$PORT/$INDEX_NAME/_doc"
-  response=$(curl -s -o /dev/null -w "%{http_code}" -u $USERNAME:$PASSWORD -H 'Content-Type: application/json' -d "$data" -X POST $url)
-  if [[ $response -ne 201 ]]; then
-    echo "Error: $response"
-  fi
+function inject_events() {
+    local data=$1
+    url="http://$IP:$PORT/$INDEX_NAME/_doc"
+    response=$(curl -s -o /dev/null -w "%{http_code}" -u $USERNAME:$PASSWORD -H 'Content-Type: application/json' -d "$data" -X POST $url)
+    if [[ $response -ne 201 ]]; then
+        echo "Error: $response"
+    fi
 }
+
+
+function parse_args() {
+    while getopts ":n:h" opt; do
+        case ${opt} in
+        h)
+            echo "Usage: $0 [-n <number>]"
+            echo "Options:"
+            echo "  -n <number>  Number of events to generate. If not provided, the script will prompt for the number of events to generate."
+            echo "  -h           Display this help message"
+            echo "Example: $0 -n 100"
+            echo
+            exit 0
+            ;;
+        n)
+            number=$OPTARG
+            ;;
+        \?)
+            echo "Invalid option: $OPTARG" 1>&2
+            exit 1
+            ;;
+        esac
+    done
+}
+
 
 # Main function
 main() {
-  echo -n "How many events do you want to generate? "
-  read number
-  if ! [[ "$number" =~ ^[0-9]+$ ]]; then
-    echo "Invalid input. Please enter a valid number."
-    return
-  fi
+    parse_args "$@"
+    if [[ $number -lt 1 ]]; then
+        echo -n "How many events do you want to generate? "
+        read -r number
+        if ! [[ "$number" =~ ^[0-9]+$ ]]; then
+            echo "Invalid input. Please enter a valid number."
+            return
+        fi
+    fi
 
-  echo "Generating $number events..."
+    echo "Generating $number events..."
 
-  for i in $(seq 1 $number); do
-    event_data=$(generate_random_agent)
-    inject_events "$event_data"
-  done
+    for i in $(seq 1 "$number"); do
+        event_data=$(generate_random_agent)
+        inject_events "$event_data"
+    done
 
-  echo "Data generation completed."
+    echo "Data generation completed."
 }
 
-main
+
+main "$@"
