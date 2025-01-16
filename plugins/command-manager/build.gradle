@@ -151,6 +151,9 @@ testClusters.integTest {
 
 run {
     useCluster testClusters.integTest
+    exec{
+        commandLine 'nohup', 'bash', './event_generators/generate_agent_events.sh', '-n', '10', '&'
+    } 
 }
 
 // updateVersion: Task to auto update version to the next development iteration
