@@ -7,13 +7,15 @@ PASSWORD="admin"
 IP="127.0.0.1"
 PORT="9200"
 
-# Default number of events to generate
+# Default number of documents to index
 number=0
+log_dir="tmp/logs"
+log_file="$log_dir/populate-agents-index.log"
 
 # Function to check if URL is up
 function wait_for_cluster() {
     local max_retries=12
-    local sleep_interval=5  # seconds
+    local sleep_interval=5 # seconds
     local url="http://$IP:$PORT/_cluster/health"
 
     for i in $(seq 1 $max_retries); do
@@ -118,8 +120,8 @@ EOF
     echo "$host"
 }
 
-# Function to inject events
-function inject_events() {
+# Function to inject documents to agents index
+function index_documents() {
     local data=$1
     url="http://$IP:$PORT/$INDEX_NAME/_doc"
     response=$(curl -s -o /dev/null -w "%{http_code}" -u $USERNAME:$PASSWORD -H 'Content-Type: application/json' -d "$data" -X POST $url)
@@ -129,12 +131,12 @@ function inject_events() {
 }
 
 function parse_args() {
-    while getopts ":n:h" opt; do
+    while getopts ":n:o:h" opt; do
         case ${opt} in
         h)
             echo "Usage: $0 [-n <number>]"
             echo "Options:"
-            echo "  -n <number>  Number of events to generate. If not provided, the script will prompt for the number of events to generate."
+            echo "  -n <number>  Number of documents to generate. If not provided, the script will prompt for the number of docs to generate."
             echo "  -h           Display this help message"
             echo "Example: $0 -n 100"
             echo
@@ -142,6 +144,10 @@ function parse_args() {
             ;;
         n)
             number=$OPTARG
+            ;;
+        o)
+            log_dir=$OPTARG
+            log_file="$log_dir/populate-agents-index.log"
             ;;
         \?)
             echo "Invalid option: $OPTARG" 1>&2
@@ -152,10 +158,9 @@ function parse_args() {
 }
 
 # Main function
-main() {
-    parse_args "$@"
+function populate_index() {
     if [[ $number -lt 1 ]]; then
-        echo -n "How many events do you want to generate? "
+        echo -n "How many docs do you want to generate? "
         read -r number
         if ! [[ "$number" =~ ^[0-9]+$ ]]; then
             echo "Invalid input. Please enter a valid number."
@@ -169,15 +174,21 @@ main() {
         exit 1
     fi
 
-    echo "Generating $number events..."
+    echo "Generating and indexing $number docs..."
 
     for i in $(seq 1 "$number"); do
-        event_data=$(generate_random_agent)
-        inject_events "$event_data"
+        doc=$(generate_random_agent)
+        index_documents "$doc"
     done
 
     echo "Data generation completed."
 }
 
-# Run the main function in the background and redirect output to log file
-(main "$@") > generate_log.txt 2>&1 &
+parse_args "$@"
+
+if [[ ! -d "$log_dir" ]]; then
+    mkdir -p "$log_dir"
+fi
+
+# Run the populate_index function in the background and redirect output to log file
+(populate_index) >"$log_file" 2>&1 &

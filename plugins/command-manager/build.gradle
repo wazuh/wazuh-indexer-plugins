@@ -151,8 +151,9 @@ testClusters.integTest {
 
 run {
     useCluster testClusters.integTest
-    exec{
-        commandLine 'nohup', 'bash', './event_generators/generate_agent_events.sh', '-n', '10', '&'
+    exec {
+        // Generate data for the .agents index, it is useful for the agent_groups commands development and testing. 
+        commandLine 'bash', './scripts/populate-agents-index.sh', '-n', '10', '-o', 'build/tmp/logs/'
     } 
 }
 
