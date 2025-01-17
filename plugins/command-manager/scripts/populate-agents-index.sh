@@ -18,7 +18,7 @@ function wait_for_cluster() {
     local sleep_interval=5 # seconds
     local url="http://$IP:$PORT/_cluster/health"
 
-    for i in $(seq 1 $max_retries); do
+    for ((i = 1; i <= max_retries; i++)); do
         response=$(curl -s -o /dev/null -w "%{http_code}" -u $USERNAME:$PASSWORD $url)
         if [[ $response -eq 200 ]]; then
             echo "Cluster is up and running."
@@ -49,10 +49,13 @@ function generate_random_date() {
 # Function to generate random groups
 function generate_random_groups() {
     local groups=()
-    for i in $(seq 1 $((RANDOM % 5 + 1))); do
+    for ((i = 1; i <= $((RANDOM % 5 + 1)); i++)); do
         groups+=("\"group00$((RANDOM % 6))\"")
     done
-    printf '[%s]' "$(IFS=,; echo "${groups[*]}")"
+    printf '[%s]' "$(
+        IFS=,
+        echo "${groups[*]}"
+    )"
 }
 
 # Function to generate random agent
@@ -178,7 +181,7 @@ function populate_index() {
 
     echo "Generating and indexing $number docs..."
 
-    for i in $(seq 1 "$number"); do
+    for ((i = 1; i <= number; i++)); do
         doc=$(generate_random_agent)
         echo "$doc"
         index_documents "$doc"
