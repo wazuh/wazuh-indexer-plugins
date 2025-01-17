@@ -42,6 +42,24 @@ public class Target implements ToXContentObject {
     }
 
     /**
+     * Retrieves the id of this target.
+     *
+     * @return the target's id.
+     */
+    public String getId() {
+        return this.id;
+    }
+
+    /**
+     * Retrieves the type of this target.
+     *
+     * @return the target's type.
+     */
+    public String getType() {
+        return this.type;
+    }
+
+    /**
      * Parses data from an XContentParser into this model.
      *
      * @param parser xcontent parser.
