@@ -139,10 +139,11 @@ function parse_args() {
     while getopts ":n:o:h" opt; do
         case ${opt} in
         h)
-            echo "Usage: $0 [-n <number>]"
+            echo "Usage: $0 [options]"
             echo "Options:"
-            echo "  -n <number>  Number of documents to generate. If not provided, the script will prompt for the number of docs to generate."
-            echo "  -h           Display this help message"
+            echo "  -n <number>       Number of documents to generate. If not provided, the script will prompt for the number of docs to generate."
+            echo "  -o <log_output>   (Optional) Directory to store the output log. Default: 'tmp/logs/'"
+            echo "  -h                (Optional) Display this help message"
             echo "Example: $0 -n 100"
             echo
             exit 0
