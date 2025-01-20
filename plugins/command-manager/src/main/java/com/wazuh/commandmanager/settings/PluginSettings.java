@@ -51,7 +51,7 @@ public class PluginSettings {
                     DEFAULT_PAGE_SIZE,
                     5,
                     100000,
-                    Setting.Property.Consistent,
+                    Setting.Property.NodeScope,
                     Setting.Property.Filtered);
     // Client class methods' timeout in seconds
     // Currently used for client.index() and client.search() methods.
@@ -61,7 +61,7 @@ public class PluginSettings {
                     DEFAULT_CLIENT_TIMEOUT,
                     5,
                     120,
-                    Setting.Property.Consistent,
+                    Setting.Property.NodeScope,
                     Setting.Property.Filtered);
     // Job execution interval in minutes.
     // Must be greater than CLIENT_TIMEOUT
@@ -71,7 +71,7 @@ public class PluginSettings {
                     DEFAULT_JOB_SCHEDULE,
                     1,
                     10,
-                    Setting.Property.Consistent,
+                    Setting.Property.NodeScope,
                     Setting.Property.Filtered);
     // Time to live of the Point In Time index snapshot in seconds.
     // Must be equal or greater than JOB_SCHEDULE
@@ -81,7 +81,7 @@ public class PluginSettings {
                     DEFAULT_PIT_KEEP_ALIVE,
                     60,
                     600,
-                    Setting.Property.Consistent,
+                    Setting.Property.NodeScope,
                     Setting.Property.Filtered);
 
     private Integer timeout;
@@ -100,17 +100,15 @@ public class PluginSettings {
         validateSettings();
     }
 
-    /**
-     * Fits setting values to the internal logic
-     */
+    /** Fits setting values to the internal logic */
     private void validateSettings() {
         // If timeout is not less than job period in seconds
-        if ( !(this.timeout < this.jobSchedule * 60) ) {
+        if (!(this.timeout < this.jobSchedule * 60)) {
             // Set timeout to half job period (in seconds)
             this.timeout = this.jobSchedule * 30;
         }
         // If the pit keep alive is less than the job's period in seconds
-        if ( this.pitKeepAlive < this.jobSchedule * 60 ) {
+        if (this.pitKeepAlive < this.jobSchedule * 60) {
             // Make the keep alive equal to jobSchedule
             // This is to make the Pit available throughout the duration of the job
             this.pitKeepAlive = this.jobSchedule * 60;
