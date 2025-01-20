@@ -42,6 +42,7 @@ import java.util.*;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
 
 import com.wazuh.commandmanager.CommandManagerPlugin;
 import com.wazuh.commandmanager.model.*;
@@ -101,9 +102,11 @@ public class SearchThread implements Runnable {
      * delivery timestamps are earlier than the current time
      *
      * @param searchResponse The search results page
-     * @throws IllegalStateException Rethrown from setSentStatus()
+     * @throws IllegalStateException from setFailureStatus()
+     * @throws OpenSearchTimeoutException from setFailureStatus()
      */
-    public void handlePage(SearchResponse searchResponse) throws IllegalStateException {
+    public void handlePage(SearchResponse searchResponse)
+            throws IllegalStateException, OpenSearchTimeoutException {
         SearchHits searchHits = searchResponse.getHits();
 
         final ZonedDateTime current_time = DateUtils.nowWithMillisResolution();
@@ -123,9 +126,11 @@ public class SearchThread implements Runnable {
      *
      * @param hit The page's result we are to update.
      * @throws IllegalStateException Raised by {@link ActionFuture#actionGet(long)}.
+     * @throws OpenSearchTimeoutException Raised by {@link ActionFuture#actionGet(long)}.
      */
     @SuppressWarnings("unchecked")
-    private void setFailureStatus(SearchHit hit) throws IllegalStateException {
+    private void setFailureStatus(SearchHit hit)
+            throws IllegalStateException, OpenSearchTimeoutException {
         final Map<String, Object> commandMap =
                 getNestedObject(
                         hit.getSourceAsMap(),
@@ -143,7 +148,7 @@ public class SearchThread implements Runnable {
                             .id(hit.getId());
             this.client
                     .index(indexRequest)
-                    .actionGet(CommandManagerPlugin.DEFAULT_TIMEOUT_SECONDS * 1000);
+                    .actionGet(CommandManagerPlugin.DEFAULT_TIMEOUT_SECONDS, TimeUnit.SECONDS);
         }
     }
 
