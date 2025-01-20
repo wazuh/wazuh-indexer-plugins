@@ -22,6 +22,9 @@ import org.opensearch.core.xcontent.XContentParser;
 
 import java.io.IOException;
 
+import reactor.util.annotation.NonNull;
+import reactor.util.annotation.Nullable;
+
 /** Command's action fields. */
 public class Action implements ToXContentObject {
     public static final String ACTION = "action";
@@ -38,7 +41,7 @@ public class Action implements ToXContentObject {
      * @param args actual command.
      * @param version version of the action.
      */
-    public Action(String name, Args args, String version) {
+    public Action(@NonNull String name, @Nullable Args args, String version) {
         this.name = name;
         this.args = args;
         this.version = version;
@@ -53,7 +56,7 @@ public class Action implements ToXContentObject {
      */
     public static Action parse(XContentParser parser) throws IOException {
         String name = "";
-        Args args = null;
+        Args args = new Args();
         String version = "";
 
         while (parser.nextToken() != XContentParser.Token.END_OBJECT) {
@@ -82,7 +85,9 @@ public class Action implements ToXContentObject {
     public XContentBuilder toXContent(XContentBuilder builder, Params params) throws IOException {
         builder.startObject(ACTION);
         builder.field(NAME, this.name);
-        this.args.toXContent(builder, ToXContentObject.EMPTY_PARAMS);
+        if (this.args != null) {
+            this.args.toXContent(builder, ToXContentObject.EMPTY_PARAMS);
+        }
         builder.field(VERSION, this.version);
         return builder.endObject();
     }
@@ -91,12 +96,12 @@ public class Action implements ToXContentObject {
     public String toString() {
         return "Action{"
                 + "name='"
-                + name
+                + this.name
                 + '\''
                 + ", args="
-                + args
+                + this.args
                 + ", version='"
-                + version
+                + this.version
                 + '\''
                 + '}';
     }
