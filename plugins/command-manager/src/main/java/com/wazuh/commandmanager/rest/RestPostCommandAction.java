@@ -34,10 +34,7 @@ import org.opensearch.rest.BytesRestResponse;
 import org.opensearch.rest.RestRequest;
 
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Locale;
-import java.util.Objects;
+import java.util.*;
 import java.util.concurrent.CompletableFuture;
 
 import com.wazuh.commandmanager.CommandManagerPlugin;
@@ -99,6 +96,7 @@ public class RestPostCommandAction extends BaseRestHandler {
      * @return a response to the request as BytesRestResponse.
      * @throws IOException thrown by the XContentParser methods.
      */
+    @SuppressWarnings("unchecked")
     private RestChannelConsumer handlePost(RestRequest request, final NodeClient client) throws IOException {
         log.info(
                 "Received {} {} request id [{}] from host [{}]",
@@ -162,9 +160,17 @@ public class RestPostCommandAction extends BaseRestHandler {
                         // Process the search response
                         SearchHits hits = searchResponse.getHits();
                         for (SearchHit hit : hits) {
-                            log.info("Agent found: {}", hit.getSourceAsString());
+                            final Map<String, Object> agentMap = getNestedObject(
+                                                                    hit.getSourceAsMap(),
+                                                                    "agent",
+                                                                    Map.class);
+                            if (agentMap != null) {
+                                // log.info("[GROUP] Agent map {}", agentMap.get("groups"));
+                                Agent agent = new Agent((List<String>) agentMap.get("groups"));
+                                log.info("[GROUP] Agent instance {}", agent);
+                            }
                         }
-                        log.info("[GROUP] Search response: {}", searchResponse.toString());
+//                        log.info("[GROUP] Search response: {}", searchResponse.toString());
                         log.info("[GROUP] Search finished");
                     }
 
@@ -260,5 +266,24 @@ public class RestPostCommandAction extends BaseRestHandler {
                                 return null;
                             });
         };
+    }
+    public static <T> T getNestedObject(Map<String, Object> map, String key, Class<T> type) {
+        final Object value = map.get(key);
+        if (value == null) {
+            return null;
+        }
+        if (type.isInstance(value)) {
+            // Make a defensive copy for supported types like Map or List
+            if (value instanceof Map) {
+                return type.cast(new HashMap<>((Map<?, ?>) value));
+            } else if (value instanceof List) {
+                return type.cast(new ArrayList<>((List<?>) value));
+            }
+            // Return the value directly if it is immutable (e.g., String, Integer)
+            return type.cast(value);
+        } else {
+            throw new ClassCastException(
+                    "Expected " + type.getName() + " but found " + value.getClass().getName());
+        }
     }
 }
