@@ -30,13 +30,18 @@ public class Args implements ToXContentObject {
     public static final String ARGS = "args";
     private final Map<String, Object> args;
 
+    /** Parameterless constructor. */
+    public Args() {
+        this.args = new HashMap<>();
+    }
+
     /**
-     * Constructor method
+     * Constructor with parameters.
      *
      * @param args Initializes the args object
      */
     public Args(Map<String, Object> args) {
-        this.args = args;
+        this.args = new HashMap<>(args);
     }
 
     /**
