@@ -44,7 +44,6 @@ import com.wazuh.commandmanager.CommandManagerPlugin;
 import com.wazuh.commandmanager.index.CommandIndex;
 import org.opensearch.search.SearchHit;
 import org.opensearch.search.SearchHits;
-import org.opensearch.search.builder.PointInTimeBuilder;
 import org.opensearch.search.builder.SearchSourceBuilder;
 
 import static org.opensearch.core.xcontent.XContentParserUtils.ensureExpectedToken;
@@ -141,7 +140,6 @@ public class RestPostCommandAction extends BaseRestHandler {
         // agents.
         /// Given a group of agents A with N agents, a total of N orders are generated. One for each
         // agent.
-        SearchThreadAgent search = new SearchThreadAgent(client);
         Documents documents = new Documents();
 
         for (Command command : commands) {
