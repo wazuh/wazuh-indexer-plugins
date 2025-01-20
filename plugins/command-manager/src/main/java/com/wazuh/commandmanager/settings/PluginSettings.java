@@ -27,10 +27,10 @@ public class PluginSettings {
     private static final Logger log = LogManager.getLogger(PluginSettings.class);
 
     // Settings default values
-    private static final Integer DEFAULT_TIMEOUT = 20;
-    private static final Integer DEFAULT_SCHEDULE = 1;
     private static final Integer DEFAULT_PAGE_SIZE = 100;
-    private static final Integer DEFAULT_KEEP_ALIVE = 30;
+    private static final Integer DEFAULT_CLIENT_TIMEOUT = 30;
+    private static final Integer DEFAULT_JOB_SCHEDULE = 1;
+    private static final Integer DEFAULT_PIT_KEEP_ALIVE = 60;
     /* Some configurations were kept as constants rather than settings preventing
     runtime changes, which could lead to inconsistencies within plugin components
     and external interactions.
@@ -44,35 +44,50 @@ public class PluginSettings {
     private static final String API_COMMANDS_ENDPOINT = API_BASE_URI + "/commands";
 
     // Command Manager Settings.
-    public static final Setting<Integer> CLIENT_TIMEOUT =
-            Setting.intSetting(
-                    "command_manager.client.timeout",
-                    DEFAULT_TIMEOUT,
-                    Setting.Property.NodeScope,
-                    Setting.Property.Filtered);
-    public static final Setting<Integer> JOB_SCHEDULE =
-            Setting.intSetting(
-                    "command_manager.job.schedule",
-                    DEFAULT_SCHEDULE,
-                    Setting.Property.NodeScope,
-                    Setting.Property.Filtered);
+    // Number of commands to be returned per search results page
     public static final Setting<Integer> JOB_PAGE_SIZE =
             Setting.intSetting(
                     "command_manager.job.page_size",
                     DEFAULT_PAGE_SIZE,
-                    Setting.Property.NodeScope,
+                    5,
+                    100000,
+                    Setting.Property.Consistent,
                     Setting.Property.Filtered);
-    public static final Setting<Integer> JOB_KEEP_ALIVE =
+    // Client class methods' timeout in seconds
+    // Currently used for client.index() and client.search() methods.
+    public static final Setting<Integer> CLIENT_TIMEOUT =
+            Setting.intSetting(
+                    "command_manager.client.timeout",
+                    DEFAULT_CLIENT_TIMEOUT,
+                    5,
+                    120,
+                    Setting.Property.Consistent,
+                    Setting.Property.Filtered);
+    // Job execution interval in minutes.
+    // Must be greater than CLIENT_TIMEOUT
+    public static final Setting<Integer> JOB_SCHEDULE =
+            Setting.intSetting(
+                    "command_manager.job.schedule",
+                    DEFAULT_JOB_SCHEDULE,
+                    1,
+                    10,
+                    Setting.Property.Consistent,
+                    Setting.Property.Filtered);
+    // Time to live of the Point In Time index snapshot in seconds.
+    // Must be equal or greater than JOB_SCHEDULE
+    public static final Setting<Integer> PIT_KEEP_ALIVE =
             Setting.intSetting(
                     "command_manager.job.pit_keep_alive",
-                    DEFAULT_KEEP_ALIVE,
-                    Setting.Property.NodeScope,
+                    DEFAULT_PIT_KEEP_ALIVE,
+                    60,
+                    600,
+                    Setting.Property.Consistent,
                     Setting.Property.Filtered);
 
-    private final Integer timeout;
+    private Integer timeout;
     private final Integer jobSchedule;
     private final Integer jobPageSize;
-    private final Integer jobKeepAlive;
+    private Integer pitKeepAlive;
 
     private static volatile PluginSettings instance;
 
@@ -81,7 +96,25 @@ public class PluginSettings {
         this.timeout = CLIENT_TIMEOUT.get(settings);
         this.jobSchedule = JOB_SCHEDULE.get(settings);
         this.jobPageSize = JOB_PAGE_SIZE.get(settings);
-        this.jobKeepAlive = JOB_KEEP_ALIVE.get(settings);
+        this.pitKeepAlive = PIT_KEEP_ALIVE.get(settings);
+        validateSettings();
+    }
+
+    /**
+     * Fits setting values to the internal logic
+     */
+    private void validateSettings() {
+        // If timeout is not less than job period in seconds
+        if ( !(this.timeout < this.jobSchedule * 60) ) {
+            // Set timeout to half job period (in seconds)
+            this.timeout = this.jobSchedule * 30;
+        }
+        // If the pit keep alive is less than the job's period in seconds
+        if ( this.pitKeepAlive < this.jobSchedule * 60 ) {
+            // Make the keep alive equal to jobSchedule
+            // This is to make the Pit available throughout the duration of the job
+            this.pitKeepAlive = this.jobSchedule * 60;
+        }
     }
 
     /**
@@ -136,8 +169,8 @@ public class PluginSettings {
     /**
      * @return the job keep-alive value
      */
-    public Integer getJobKeepAlive() {
-        return this.jobKeepAlive;
+    public Integer getPitKeepAlive() {
+        return this.pitKeepAlive;
     }
 
     /**
@@ -200,7 +233,7 @@ public class PluginSettings {
                 + ", jobPageSize="
                 + jobPageSize
                 + ", jobKeepAlive="
-                + jobKeepAlive
+                + pitKeepAlive
                 + '\''
                 + ", jobIndexTemplate='"
                 + JOB_INDEX_TEMPLATE

@@ -276,7 +276,7 @@ public class SearchThread implements Runnable {
                 };
         this.client.createPit(
                 new CreatePitRequest(
-                        new TimeValue(PluginSettings.getInstance().getJobKeepAlive()),
+                        new TimeValue(PluginSettings.getInstance().getPitKeepAlive()),
                         false,
                         PluginSettings.getIndexName()),
                 actionListener);

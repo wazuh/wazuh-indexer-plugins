@@ -59,7 +59,7 @@ public class PluginSettingsTests extends OpenSearchIntegTestCase {
         assertEquals(Optional.of(20), Optional.of(pluginSettings.getTimeout()));
         assertEquals(Optional.of(1), Optional.of(pluginSettings.getJobSchedule()));
         assertEquals(Optional.of(100), Optional.of(pluginSettings.getJobPageSize()));
-        assertEquals(Optional.of(30), Optional.of(pluginSettings.getJobKeepAlive()));
+        assertEquals(Optional.of(30), Optional.of(pluginSettings.getPitKeepAlive()));
         assertEquals("index-template-scheduled-commands", PluginSettings.getJobIndexTemplate());
         assertEquals("/_plugins/_command_manager", PluginSettings.getApiPrefix());
         assertEquals(
