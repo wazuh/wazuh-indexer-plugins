@@ -82,7 +82,7 @@ public class PluginSettings {
         this.jobSchedule = JOB_SCHEDULE.get(settings);
         this.jobPageSize = JOB_PAGE_SIZE.get(settings);
         this.jobKeepAlive = JOB_KEEP_ALIVE.get(settings);
-        log.error("Settings loaded: {}", this.toString());
+        log.debug("Settings loaded: {}", this.toString());
     }
 
     /**
