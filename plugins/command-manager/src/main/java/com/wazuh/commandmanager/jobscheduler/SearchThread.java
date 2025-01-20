@@ -18,6 +18,7 @@ package com.wazuh.commandmanager.jobscheduler;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.opensearch.OpenSearchTimeoutException;
 import org.opensearch.action.index.IndexRequest;
 import org.opensearch.action.search.CreatePitRequest;
 import org.opensearch.action.search.CreatePitResponse;
@@ -155,7 +156,7 @@ public class SearchThread implements Runnable {
      * @throws IllegalStateException Raised by {@link ActionFuture#actionGet(long)}.
      */
     public SearchResponse pitQuery(PointInTimeBuilder pointInTimeBuilder, Object[] searchAfter)
-            throws IllegalStateException {
+            throws IllegalStateException, OpenSearchTimeoutException {
         final SearchRequest searchRequest = new SearchRequest(CommandManagerPlugin.INDEX_NAME);
         final TermQueryBuilder termQueryBuilder =
                 QueryBuilders.termQuery(SearchThread.COMMAND_STATUS_FIELD, Status.PENDING);
@@ -205,6 +206,8 @@ public class SearchThread implements Runnable {
             log.error("ArrayIndexOutOfBoundsException retrieving page: {}", e.getMessage());
         } catch (IllegalStateException e) {
             log.error("IllegalStateException retrieving page: {}", e.getMessage());
+        } catch (OpenSearchTimeoutException e) {
+            log.error("Query timed out: {}", e.getMessage());
         } catch (Exception e) {
             log.error("Generic exception retrieving page: {}", e.getMessage());
         }
