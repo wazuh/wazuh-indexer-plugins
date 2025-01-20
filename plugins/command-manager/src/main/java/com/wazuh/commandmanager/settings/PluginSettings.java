@@ -82,6 +82,7 @@ public class PluginSettings {
         this.jobSchedule = JOB_SCHEDULE.get(settings);
         this.jobPageSize = JOB_PAGE_SIZE.get(settings);
         this.jobKeepAlive = JOB_KEEP_ALIVE.get(settings);
+        log.error("Settings loaded: {}", this.toString());
     }
 
     /**
@@ -191,37 +192,15 @@ public class PluginSettings {
 
     @Override
     public String toString() {
-        return "PluginSettings{"
+        return "{"
                 + "timeout="
                 + timeout
-                + ", jobSchedule='"
+                + ", jobSchedule="
                 + jobSchedule
-                + '\''
                 + ", jobPageSize="
                 + jobPageSize
                 + ", jobKeepAlive="
                 + jobKeepAlive
-                + '\''
-                + ", jobIndexTemplate='"
-                + JOB_INDEX_TEMPLATE
-                + '\''
-                + ", apiBaseUri='"
-                + API_BASE_URI
-                + '\''
-                + ", apiCommandsUri='"
-                + API_COMMANDS_ENDPOINT
-                + '\''
-                + ", indexName='"
-                + COMMAND_INDEX
-                + '\''
-                + ", indexTemplate='"
-                + COMMAND_INDEX_TEMPLATE
-                + '\''
-                + ", jobIndex='"
-                + JOB_INDEX
-                + '\''
-                + ", jobType='"
-                + JOB_TYPE
                 + '}';
     }
 }
