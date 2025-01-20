@@ -16,13 +16,19 @@
  */
 package com.wazuh.commandmanager.rest;
 
+import com.wazuh.commandmanager.model.*;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.opensearch.action.search.SearchRequest;
+import org.opensearch.action.search.SearchResponse;
 import org.opensearch.client.node.NodeClient;
+import org.opensearch.core.action.ActionListener;
 import org.opensearch.core.rest.RestStatus;
 import org.opensearch.core.xcontent.ToXContent;
 import org.opensearch.core.xcontent.XContentBuilder;
 import org.opensearch.core.xcontent.XContentParser;
+import org.opensearch.index.query.BoolQueryBuilder;
+import org.opensearch.index.query.QueryBuilders;
 import org.opensearch.rest.BaseRestHandler;
 import org.opensearch.rest.BytesRestResponse;
 import org.opensearch.rest.RestRequest;
@@ -36,10 +42,10 @@ import java.util.concurrent.CompletableFuture;
 
 import com.wazuh.commandmanager.CommandManagerPlugin;
 import com.wazuh.commandmanager.index.CommandIndex;
-import com.wazuh.commandmanager.model.Agent;
-import com.wazuh.commandmanager.model.Command;
-import com.wazuh.commandmanager.model.Document;
-import com.wazuh.commandmanager.model.Documents;
+import org.opensearch.search.SearchHit;
+import org.opensearch.search.SearchHits;
+import org.opensearch.search.builder.PointInTimeBuilder;
+import org.opensearch.search.builder.SearchSourceBuilder;
 
 import static org.opensearch.core.xcontent.XContentParserUtils.ensureExpectedToken;
 import static org.opensearch.rest.RestRequest.Method.POST;
@@ -80,7 +86,7 @@ public class RestPostCommandAction extends BaseRestHandler {
             throws IOException {
         switch (request.method()) {
             case POST:
-                return handlePost(request);
+                return handlePost(request, client);
             default:
                 throw new IllegalArgumentException(
                         "Unsupported HTTP method " + request.method().name());
@@ -94,7 +100,7 @@ public class RestPostCommandAction extends BaseRestHandler {
      * @return a response to the request as BytesRestResponse.
      * @throws IOException thrown by the XContentParser methods.
      */
-    private RestChannelConsumer handlePost(RestRequest request) throws IOException {
+    private RestChannelConsumer handlePost(RestRequest request, final NodeClient client) throws IOException {
         log.info(
                 "Received {} {} request id [{}] from host [{}]",
                 request.method().name(),
@@ -135,12 +141,83 @@ public class RestPostCommandAction extends BaseRestHandler {
         // agents.
         /// Given a group of agents A with N agents, a total of N orders are generated. One for each
         // agent.
+        SearchThreadAgent search = new SearchThreadAgent(client);
         Documents documents = new Documents();
-        for (Command command : commands) {
-            if (Objects.equals(command.getTarget().getType(), "group")){
-                new Agent(List.of("groups000")); // TODO read agent from .agents index
 
+        for (Command command : commands) {
+            log.info("Command {}", command);
+            if (Objects.equals(command.getTarget().getType(), "group")){
+                log.info("[GROUP] Target id {}", command.getTarget().getId());
+
+                // Build the search query
+                SearchRequest searchRequest = new SearchRequest(".agents");
+                SearchSourceBuilder searchSourceBuilder = new SearchSourceBuilder();
+                BoolQueryBuilder boolQuery = QueryBuilders.boolQuery()
+                        .must(QueryBuilders.termQuery("agent.groups", command.getTarget().getId()));
+                searchSourceBuilder.query(boolQuery);
+                searchRequest.source(searchSourceBuilder);
+
+                // Create the listener for the async search request
+                client.search(searchRequest,  new ActionListener<SearchResponse>() {
+                    @Override
+                    public void onResponse(SearchResponse searchResponse) {
+                        // Process the search response
+                        SearchHits hits = searchResponse.getHits();
+                        for (SearchHit hit : hits) {
+                            log.info("Agent found: {}", hit.getSourceAsString());
+                        }
+                        log.info("[GROUP] Search response: {}", searchResponse.toString());
+                        log.info("[GROUP] Search finished");
+                    }
+
+                    @Override
+                    public void onFailure(Exception e) {
+                        log.error("[GROUP] Search failed", e);
+                    }
+                });
             }
+
+
+
+//        for (Command command : commands) {
+//            log.info("Command {}", command);
+//            if (Objects.equals(command.getTarget().getType(), "group")){
+//                log.info("[GROUP] Target id {}", command.getTarget().getId());
+//
+//                // Build the search query
+//                SearchRequest searchRequest = new SearchRequest(".agents");
+//                SearchSourceBuilder searchSourceBuilder = new SearchSourceBuilder();
+//                BoolQueryBuilder boolQuery = QueryBuilders.boolQuery()
+//                        .must(QueryBuilders.termQuery("agent.groups", command.getTarget().getId()));
+//                searchSourceBuilder.query(boolQuery);
+//                searchRequest.source(searchSourceBuilder);
+//
+//                // Execute the search request
+//                SearchResponse searchResponse = client.search(searchRequest, RequestOptions.DEFAULT);
+//
+//                // Process the search response
+//                SearchHits hits = searchResponse.getHits();
+//                for (SearchHit hit : hits) {
+//                    log.info("Agent found: {}", hit.getSourceAsString());
+//                }
+//
+//                log.info("[GROUP] Search response: {}", searchResponse.toString());
+//                log.info("[GROUP] Search finished");
+//            }
+
+
+//        for (Command command : commands) {
+//            log.info("Command {}", command);
+//            if (Objects.equals(command.getTarget().getType(), "group")){
+//                log.info("[GROUP] Target id {}", command.getTarget().getId());
+////                GetRequest getAgents = new GetRequest(".agents", command.getTarget().getId());
+////                log.info("Agent body {}", getAgents.toString());
+//                // TODO Search for agent where command.getTarget().getId()) is in the groups field inside the .agents index
+//                log.info("[GROUP] Search response: {}", r);
+//                log.info("[GROUP] Search finished");
+//                new Agent(List.of("groups000")); // TODO read agent from .agents index
+//
+//            }
             Document document =
                     new Document(
                             new Agent(List.of("groups000")), // TODO read agent from .agents index
