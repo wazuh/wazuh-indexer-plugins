@@ -138,18 +138,18 @@ public class RestPostCommandAction extends BaseRestHandler {
         // agents.
         /// Given a group of agents A with N agents, a total of N orders are generated. One for each
         // agent.
+        List<Agent> agentList =new ArrayList<>();
         Documents documents = new Documents();
-
         for (Command command : commands) {
             log.info("Command {}", command);
+            log.info("[GROUP] Target id {}", command.getTarget().getId());
             if (Objects.equals(command.getTarget().getType(), "group")){
-                log.info("[GROUP] Target id {}", command.getTarget().getId());
 
                 // Build the search query
                 SearchRequest searchRequest = new SearchRequest(".agents");
                 SearchSourceBuilder searchSourceBuilder = new SearchSourceBuilder();
                 BoolQueryBuilder boolQuery = QueryBuilders.boolQuery()
-                        .must(QueryBuilders.termQuery("agent.groups", command.getTarget().getId()));
+                        .must(QueryBuilders.termQuery("agent.id", command.getTarget().getId()));
                 searchSourceBuilder.query(boolQuery);
                 searchRequest.source(searchSourceBuilder);
 
@@ -168,6 +168,44 @@ public class RestPostCommandAction extends BaseRestHandler {
                                 // log.info("[GROUP] Agent map {}", agentMap.get("groups"));
                                 Agent agent = new Agent((List<String>) agentMap.get("groups"));
                                 log.info("[GROUP] Agent instance {}", agent);
+                                agentList.add(agent);
+                            }
+                        }
+//                        log.info("[GROUP] Search response: {}", searchResponse.toString());
+                        log.info("[GROUP] Search finished");
+                    }
+
+                    @Override
+                    public void onFailure(Exception e) {
+                        log.error("[GROUP] Search failed", e);
+                    }
+                });
+            } else if (Objects.equals(command.getTarget().getType(), "agent")) {
+
+                // Build the search query
+                SearchRequest searchRequest = new SearchRequest(".agents");
+                SearchSourceBuilder searchSourceBuilder = new SearchSourceBuilder();
+                BoolQueryBuilder boolQuery = QueryBuilders.boolQuery()
+                        .must(QueryBuilders.termQuery("agent.groups", command.getTarget().getId()));
+                searchSourceBuilder.query(boolQuery);
+                searchRequest.source(searchSourceBuilder);
+
+                // Create the listener for the async search request
+                client.search(searchRequest,  new ActionListener<SearchResponse>() {
+                    @Override
+                    public void onResponse(SearchResponse searchResponse) {
+                        // Process the search response
+                        SearchHits hits = searchResponse.getHits();
+                        for (SearchHit hit : hits) {
+                            final Map<String, Object> agentMap = getNestedObject(
+                                    hit.getSourceAsMap(),
+                                    "agent",
+                                    Map.class);
+                            if (agentMap != null) {
+                                // log.info("[GROUP] Agent map {}", agentMap.get("groups"));
+                                Agent agent = new Agent((List<String>) agentMap.get("groups"));
+                                agentList.add(agent);
+                                log.info("[GROUP] Agent instance {}", agent);
                             }
                         }
 //                        log.info("[GROUP] Search response: {}", searchResponse.toString());
@@ -180,53 +218,10 @@ public class RestPostCommandAction extends BaseRestHandler {
                     }
                 });
             }
-
-
-
-//        for (Command command : commands) {
-//            log.info("Command {}", command);
-//            if (Objects.equals(command.getTarget().getType(), "group")){
-//                log.info("[GROUP] Target id {}", command.getTarget().getId());
-//
-//                // Build the search query
-//                SearchRequest searchRequest = new SearchRequest(".agents");
-//                SearchSourceBuilder searchSourceBuilder = new SearchSourceBuilder();
-//                BoolQueryBuilder boolQuery = QueryBuilders.boolQuery()
-//                        .must(QueryBuilders.termQuery("agent.groups", command.getTarget().getId()));
-//                searchSourceBuilder.query(boolQuery);
-//                searchRequest.source(searchSourceBuilder);
-//
-//                // Execute the search request
-//                SearchResponse searchResponse = client.search(searchRequest, RequestOptions.DEFAULT);
-//
-//                // Process the search response
-//                SearchHits hits = searchResponse.getHits();
-//                for (SearchHit hit : hits) {
-//                    log.info("Agent found: {}", hit.getSourceAsString());
-//                }
-//
-//                log.info("[GROUP] Search response: {}", searchResponse.toString());
-//                log.info("[GROUP] Search finished");
-//            }
-
-
-//        for (Command command : commands) {
-//            log.info("Command {}", command);
-//            if (Objects.equals(command.getTarget().getType(), "group")){
-//                log.info("[GROUP] Target id {}", command.getTarget().getId());
-////                GetRequest getAgents = new GetRequest(".agents", command.getTarget().getId());
-////                log.info("Agent body {}", getAgents.toString());
-//                // TODO Search for agent where command.getTarget().getId()) is in the groups field inside the .agents index
-//                log.info("[GROUP] Search response: {}", r);
-//                log.info("[GROUP] Search finished");
-//                new Agent(List.of("groups000")); // TODO read agent from .agents index
-//
-//            }
-            Document document =
-                    new Document(
-                            new Agent(List.of("groups000")), // TODO read agent from .agents index
-                            command);
-            documents.addDocument(document);
+            for (Agent agent : agentList) {
+                Document document = new Document(agent, command);
+                documents.addDocument(document);
+            }
         }
 
         /// Orders indexing
