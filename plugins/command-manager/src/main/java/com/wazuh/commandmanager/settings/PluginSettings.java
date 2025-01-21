@@ -95,6 +95,7 @@ public class PluginSettings {
         if (!(this.timeout < this.jobSchedule * 60)) {
             // Set timeout to half job period (in seconds)
             this.timeout = this.jobSchedule * 30;
+            log.info("Setting command_manager.client.timeout to half command_manager.job.schedule (in seconds): {}", this.timeout);
         }
     }
 
