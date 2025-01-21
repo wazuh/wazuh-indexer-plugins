@@ -223,8 +223,11 @@ public class RestPostCommandAction extends BaseRestHandler {
                         latch.countDown();
                     }
                 });
-            } else {
+            } else if (Objects.equals(command.getTarget().getType(), "server")) {
+                agentList.add(new Agent(List.of("Server")));
                 latch.countDown();
+            } else {
+                log.error("Invalid target type");
                 continue;
             }
             try {
