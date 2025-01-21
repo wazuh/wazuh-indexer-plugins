@@ -36,6 +36,7 @@ import org.opensearch.rest.RestRequest;
 import java.io.IOException;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CountDownLatch;
 
 import com.wazuh.commandmanager.CommandManagerPlugin;
 import com.wazuh.commandmanager.index.CommandIndex;
@@ -140,6 +141,7 @@ public class RestPostCommandAction extends BaseRestHandler {
         // agent.
         List<Agent> agentList =new ArrayList<>();
         Documents documents = new Documents();
+        CountDownLatch latch = new CountDownLatch(commands.size());
         for (Command command : commands) {
             log.info("Command {}", command);
             log.info("[GROUP] Target id {}", command.getTarget().getId());
@@ -149,7 +151,7 @@ public class RestPostCommandAction extends BaseRestHandler {
                 SearchRequest searchRequest = new SearchRequest(".agents");
                 SearchSourceBuilder searchSourceBuilder = new SearchSourceBuilder();
                 BoolQueryBuilder boolQuery = QueryBuilders.boolQuery()
-                        .must(QueryBuilders.termQuery("agent.id", command.getTarget().getId()));
+                        .must(QueryBuilders.termQuery("agent.groups", command.getTarget().getId()));
                 searchSourceBuilder.query(boolQuery);
                 searchRequest.source(searchSourceBuilder);
 
@@ -173,20 +175,22 @@ public class RestPostCommandAction extends BaseRestHandler {
                         }
 //                        log.info("[GROUP] Search response: {}", searchResponse.toString());
                         log.info("[GROUP] Search finished");
+                        latch.countDown();
                     }
 
                     @Override
                     public void onFailure(Exception e) {
                         log.error("[GROUP] Search failed", e);
+                        latch.countDown();
                     }
                 });
             } else if (Objects.equals(command.getTarget().getType(), "agent")) {
-
+                log.info("[GROUP] Target type agent");
                 // Build the search query
                 SearchRequest searchRequest = new SearchRequest(".agents");
                 SearchSourceBuilder searchSourceBuilder = new SearchSourceBuilder();
                 BoolQueryBuilder boolQuery = QueryBuilders.boolQuery()
-                        .must(QueryBuilders.termQuery("agent.groups", command.getTarget().getId()));
+                        .must(QueryBuilders.termQuery("agent.id", command.getTarget().getId()));
                 searchSourceBuilder.query(boolQuery);
                 searchRequest.source(searchSourceBuilder);
 
@@ -210,16 +214,28 @@ public class RestPostCommandAction extends BaseRestHandler {
                         }
 //                        log.info("[GROUP] Search response: {}", searchResponse.toString());
                         log.info("[GROUP] Search finished");
+                        latch.countDown();
                     }
 
                     @Override
                     public void onFailure(Exception e) {
                         log.error("[GROUP] Search failed", e);
+                        latch.countDown();
                     }
                 });
+            } else {
+                latch.countDown();
+                continue;
             }
+            try {
+                latch.await();
+            } catch (InterruptedException e) {
+                log.error("Interrupted while waiting Async operations to complete.", e);
+            }
+            log.info("[GROUP] Agents to be added: {}", agentList);
             for (Agent agent : agentList) {
                 Document document = new Document(agent, command);
+                log.info("[GROUP] Generating document: {}", document);
                 documents.addDocument(document);
             }
         }
