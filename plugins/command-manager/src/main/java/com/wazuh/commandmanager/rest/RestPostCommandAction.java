@@ -17,6 +17,7 @@
 package com.wazuh.commandmanager.rest;
 
 import com.wazuh.commandmanager.model.*;
+import com.wazuh.commandmanager.utils.Search;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.opensearch.action.search.SearchRequest;
@@ -106,25 +107,17 @@ public class RestPostCommandAction extends BaseRestHandler {
                 request.getRequestId(),
                 request.header("Host"));
 
-        /// Request validation
-        /// ==================
-        /// Fail fast.
+        // Request validation
         if (!request.hasContent()) {
-            // Bad request if body doesn't exist
             return channel -> {
-                channel.sendResponse(
-                        new BytesRestResponse(RestStatus.BAD_REQUEST, "Body content is required"));
+                channel.sendResponse(new BytesRestResponse(RestStatus.BAD_REQUEST, "Body content is required"));
             };
         }
 
-        /// Request parsing
-        /// ===============
-        /// Retrieves and generates an array list of commands.
+        // Request parsing
         XContentParser parser = request.contentParser();
         List<Command> commands = new ArrayList<>();
         ensureExpectedToken(XContentParser.Token.START_OBJECT, parser.nextToken(), parser);
-        // The array of commands is inside the "commands" JSON object.
-        // This line moves the parser pointer to this object.
         parser.nextToken();
         if (parser.nextToken() == XContentParser.Token.START_ARRAY) {
             commands = Command.parseToArray(parser);
@@ -132,109 +125,53 @@ public class RestPostCommandAction extends BaseRestHandler {
             log.error("Token does not match {}", parser.currentToken());
         }
 
-        /// Commands expansion
-        /// ==================
-        /// Transforms the array of commands to orders.
-        /// While commands can be targeted to groups of agents, orders are targeted to individual
-        // agents.
-        /// Given a group of agents A with N agents, a total of N orders are generated. One for each
-        // agent.
-        List<Agent> agentList =new ArrayList<>();
+        // Commands expansion
+        List<Agent> agentList = new ArrayList<>();
         Documents documents = new Documents();
         CountDownLatch latch = new CountDownLatch(commands.size());
+
         for (Command command : commands) {
             log.info("Command {}", command);
             log.info("[GROUP] Target id {}", command.getTarget().getId());
-            if (Objects.equals(command.getTarget().getType(), "group")){
 
-                // Build the search query
-                SearchRequest searchRequest = new SearchRequest(".agents");
-                SearchSourceBuilder searchSourceBuilder = new SearchSourceBuilder();
-                BoolQueryBuilder boolQuery = QueryBuilders.boolQuery()
+            BoolQueryBuilder boolQuery = null;
+
+            if (Objects.equals(command.getTarget().getType(), "group")) {
+                boolQuery = QueryBuilders.boolQuery()
                         .must(QueryBuilders.termQuery("agent.groups", command.getTarget().getId()));
-                searchSourceBuilder.query(boolQuery);
-                searchRequest.source(searchSourceBuilder);
-
-                // Create the listener for the async search request
-                client.search(searchRequest,  new ActionListener<SearchResponse>() {
-                    @Override
-                    public void onResponse(SearchResponse searchResponse) {
-                        // Process the search response
-                        SearchHits hits = searchResponse.getHits();
-                        for (SearchHit hit : hits) {
-                            final Map<String, Object> agentMap = getNestedObject(
-                                                                    hit.getSourceAsMap(),
-                                                                    "agent",
-                                                                    Map.class);
-                            if (agentMap != null) {
-                                // log.info("[GROUP] Agent map {}", agentMap.get("groups"));
-                                Agent agent = new Agent((List<String>) agentMap.get("groups"));
-                                log.info("[GROUP] Agent instance {}", agent);
-                                agentList.add(agent);
-                            }
-                        }
-//                        log.info("[GROUP] Search response: {}", searchResponse.toString());
-                        log.info("[GROUP] Search finished");
-                        latch.countDown();
-                    }
-
-                    @Override
-                    public void onFailure(Exception e) {
-                        log.error("[GROUP] Search failed", e);
-                        latch.countDown();
-                    }
-                });
             } else if (Objects.equals(command.getTarget().getType(), "agent")) {
-                log.info("[GROUP] Target type agent");
-                // Build the search query
-                SearchRequest searchRequest = new SearchRequest(".agents");
-                SearchSourceBuilder searchSourceBuilder = new SearchSourceBuilder();
-                BoolQueryBuilder boolQuery = QueryBuilders.boolQuery()
+                boolQuery = QueryBuilders.boolQuery()
                         .must(QueryBuilders.termQuery("agent.id", command.getTarget().getId()));
-                searchSourceBuilder.query(boolQuery);
-                searchRequest.source(searchSourceBuilder);
-
-                // Create the listener for the async search request
-                client.search(searchRequest,  new ActionListener<SearchResponse>() {
-                    @Override
-                    public void onResponse(SearchResponse searchResponse) {
-                        // Process the search response
-                        SearchHits hits = searchResponse.getHits();
-                        for (SearchHit hit : hits) {
-                            final Map<String, Object> agentMap = getNestedObject(
-                                    hit.getSourceAsMap(),
-                                    "agent",
-                                    Map.class);
-                            if (agentMap != null) {
-                                // log.info("[GROUP] Agent map {}", agentMap.get("groups"));
-                                Agent agent = new Agent((List<String>) agentMap.get("groups"));
-                                agentList.add(agent);
-                                log.info("[GROUP] Agent instance {}", agent);
-                            }
-                        }
-//                        log.info("[GROUP] Search response: {}", searchResponse.toString());
-                        log.info("[GROUP] Search finished");
-                        latch.countDown();
-                    }
-
-                    @Override
-                    public void onFailure(Exception e) {
-                        log.error("[GROUP] Search failed", e);
-                        latch.countDown();
-                    }
-                });
             } else if (Objects.equals(command.getTarget().getType(), "server")) {
                 agentList.add(new Agent(List.of("Server")));
                 latch.countDown();
+                continue;
             } else {
                 log.error("Invalid target type");
+                latch.countDown();
                 continue;
             }
-            try {
-                latch.await();
-            } catch (InterruptedException e) {
-                log.error("Interrupted while waiting Async operations to complete.", e);
+
+            // Build and execute the search query
+            SearchHits hits = Search.termSearch(client, ".agents", boolQuery);
+            if (hits != null) {
+                for (SearchHit hit : hits) {
+                    final Map<String, Object> agentMap = getNestedObject(hit.getSourceAsMap(), "agent", Map.class);
+                    if (agentMap != null) {
+                        Agent agent = new Agent((List<String>) agentMap.get("groups"));
+                        log.info("[GROUP] Agent instance {}", agent);
+                        agentList.add(agent);
+                    }
+                }
             }
+            latch.countDown();
+
+            try {
+                latch.await(); // Wait for all async operations to complete
+            } catch (InterruptedException e) {
+                log.error("Interrupted while waiting for async operations to complete", e);
+            }
+
             log.info("[GROUP] Agents to be added: {}", agentList);
             for (Agent agent : agentList) {
                 Document document = new Document(agent, command);
@@ -243,44 +180,36 @@ public class RestPostCommandAction extends BaseRestHandler {
             }
         }
 
-        /// Orders indexing
-        /// ==================
-        /// The orders are inserted into the index.
-        CompletableFuture<RestStatus> bulkRequestFuture =
-                this.commandIndex.asyncBulkCreate(documents.getDocuments());
+        // Orders indexing
+        CompletableFuture<RestStatus> bulkRequestFuture = this.commandIndex.asyncBulkCreate(documents.getDocuments());
 
-        /// Send response
-        /// ==================
-        /// Reply to the request.
+        // Send response
         return channel -> {
             bulkRequestFuture
-                    .thenAccept(
-                            restStatus -> {
-                                try (XContentBuilder builder = channel.newBuilder()) {
-                                    builder.startObject();
-                                    builder.field("_index", CommandManagerPlugin.INDEX_NAME);
-                                    documents.toXContent(builder, ToXContent.EMPTY_PARAMS);
-                                    builder.field("result", restStatus.name());
-                                    builder.endObject();
-                                    channel.sendResponse(
-                                            new BytesRestResponse(restStatus, builder));
-                                } catch (IOException e) {
-                                    log.error(
-                                            "Error preparing response to [{}] request with id [{}] due to {}",
-                                            request.method().name(),
-                                            request.getRequestId(),
-                                            e.getMessage());
-                                }
-                            })
-                    .exceptionally(
-                            e -> {
-                                channel.sendResponse(
-                                        new BytesRestResponse(
-                                                RestStatus.INTERNAL_SERVER_ERROR, e.getMessage()));
-                                return null;
-                            });
+                    .thenAccept(restStatus -> {
+                        try (XContentBuilder builder = channel.newBuilder()) {
+                            builder.startObject();
+                            builder.field("_index", CommandManagerPlugin.INDEX_NAME);
+                            documents.toXContent(builder, ToXContent.EMPTY_PARAMS);
+                            builder.field("result", restStatus.name());
+                            builder.endObject();
+                            channel.sendResponse(new BytesRestResponse(restStatus, builder));
+                        } catch (IOException e) {
+                            log.error(
+                                    "Error preparing response to [{}] request with id [{}] due to {}",
+                                    request.method().name(),
+                                    request.getRequestId(),
+                                    e.getMessage());
+                        }
+                    })
+                    .exceptionally(e -> {
+                        channel.sendResponse(new BytesRestResponse(RestStatus.INTERNAL_SERVER_ERROR, e.getMessage()));
+                        return null;
+                    });
         };
     }
+
+
     public static <T> T getNestedObject(Map<String, Object> map, String key, Class<T> type) {
         final Object value = map.get(key);
         if (value == null) {
