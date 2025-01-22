@@ -157,6 +157,13 @@ public class RestPostCommandAction extends BaseRestHandler {
         };
     }
 
+    /**
+     * Parses the content of a RestRequest and retrieves a list of Command objects.
+     *
+     * @param request the RestRequest containing the command data.
+     * @return a list of Command objects parsed from the request content.
+     * @throws IOException if an error occurs while parsing the request content.
+     */
     private static List<Command> getCommandList(RestRequest request) throws IOException {
         // Request parsing
         XContentParser parser = request.contentParser();
@@ -173,11 +180,11 @@ public class RestPostCommandAction extends BaseRestHandler {
     }
 
     /**
-     * Converts commands into documents.
+     * Converts a list of Command objects into Orders by executing search queries.
      *
-     * @param client NodeClient instance
-     * @param commands list of Command objects
-     * @return Documents object containing generated documents
+     * @param client the NodeClient used to execute search queries.
+     * @param commands the list of Command objects to be converted.
+     * @return an Orders object containing the generated orders.
      */
     @SuppressWarnings("unchecked")
     private static Orders commandsToOrders(NodeClient client, List<Command> commands) {

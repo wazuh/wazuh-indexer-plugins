@@ -33,9 +33,19 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CountDownLatch;
 
+/** Utility class for performing search operations. */
 public class Search {
     private static final Logger log = LogManager.getLogger(Search.class);
 
+    /**
+     * Executes a synchronous search query on the specified index using a term query.
+     *
+     * @param client the NodeClient used to execute the search query.
+     * @param index the name of the index to search.
+     * @param field the field to query.
+     * @param value the value to search for in the specified field.
+     * @return SearchHits object containing the search results.
+     */
     public static SearchHits syncSearch(
             NodeClient client, String index, String field, String value) {
         BoolQueryBuilder boolQuery =
@@ -43,11 +53,27 @@ public class Search {
         return executeSyncSearch(client, index, boolQuery);
     }
 
+    /**
+     * Executes a synchronous search query on the specified index using a boolean query.
+     *
+     * @param client the NodeClient used to execute the search query.
+     * @param index the name of the index to search.
+     * @param boolQuery the boolean query to execute.
+     * @return SearchHits object containing the search results.
+     */
     public static SearchHits syncSearch(
             NodeClient client, String index, BoolQueryBuilder boolQuery) {
         return executeSyncSearch(client, index, boolQuery);
     }
 
+    /**
+     * Executes a synchronous search query on the specified index.
+     *
+     * @param client the NodeClient used to execute the search query.
+     * @param index the name of the index to search.
+     * @param boolQuery the boolean query to execute.
+     * @return SearchHits object containing the search results.
+     */
     private static SearchHits executeSyncSearch(
             NodeClient client, String index, BoolQueryBuilder boolQuery) {
         SearchRequest searchRequest = new SearchRequest(index);
@@ -83,6 +109,16 @@ public class Search {
         return searchHits[0];
     }
 
+    /**
+     * Retrieves a nested object from a map.
+     *
+     * @param map the map containing the nested object.
+     * @param key the key of the nested object.
+     * @param type the expected type of the nested object.
+     * @param <T> the type parameter.
+     * @return the nested object if found, null otherwise.
+     * @throws ClassCastException if the nested object is not of the expected type.
+     */
     public static <T> T getNestedObject(Map<String, Object> map, String key, Class<T> type) {
         final Object value = map.get(key);
         if (value == null) {
