@@ -20,10 +20,7 @@ import com.wazuh.commandmanager.model.*;
 import com.wazuh.commandmanager.utils.Search;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.opensearch.action.search.SearchRequest;
-import org.opensearch.action.search.SearchResponse;
 import org.opensearch.client.node.NodeClient;
-import org.opensearch.core.action.ActionListener;
 import org.opensearch.core.rest.RestStatus;
 import org.opensearch.core.xcontent.ToXContent;
 import org.opensearch.core.xcontent.XContentBuilder;
@@ -37,13 +34,11 @@ import org.opensearch.rest.RestRequest;
 import java.io.IOException;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.CountDownLatch;
 
 import com.wazuh.commandmanager.CommandManagerPlugin;
 import com.wazuh.commandmanager.index.CommandIndex;
 import org.opensearch.search.SearchHit;
 import org.opensearch.search.SearchHits;
-import org.opensearch.search.builder.SearchSourceBuilder;
 
 import static org.opensearch.core.xcontent.XContentParserUtils.ensureExpectedToken;
 import static org.opensearch.rest.RestRequest.Method.POST;
@@ -95,10 +90,10 @@ public class RestPostCommandAction extends BaseRestHandler {
      * Handles a POST HTTP request.
      *
      * @param request POST HTTP request
+     * @param client NodeClient instance
      * @return a response to the request as BytesRestResponse.
      * @throws IOException thrown by the XContentParser methods.
      */
-    @SuppressWarnings("unchecked")
     private RestChannelConsumer handlePost(RestRequest request, final NodeClient client) throws IOException {
         log.info(
                 "Received {} {} request id [{}] from host [{}]",
@@ -124,60 +119,19 @@ public class RestPostCommandAction extends BaseRestHandler {
         } else {
             log.error("Token does not match {}", parser.currentToken());
         }
+        // Validate commands are not empty
+        if (commands.isEmpty()) {
+            return channel -> {
+                channel.sendResponse(new BytesRestResponse(RestStatus.BAD_REQUEST, "No commands found in the request body"));
+            };
+        }
 
-        // Commands expansion
-        List<Agent> agentList = new ArrayList<>();
-        Documents documents = new Documents();
-        CountDownLatch latch = new CountDownLatch(commands.size());
-
-        for (Command command : commands) {
-            log.info("Command {}", command);
-            log.info("[GROUP] Target id {}", command.getTarget().getId());
-
-            BoolQueryBuilder boolQuery = null;
-
-            if (Objects.equals(command.getTarget().getType(), "group")) {
-                boolQuery = QueryBuilders.boolQuery()
-                        .must(QueryBuilders.termQuery("agent.groups", command.getTarget().getId()));
-            } else if (Objects.equals(command.getTarget().getType(), "agent")) {
-                boolQuery = QueryBuilders.boolQuery()
-                        .must(QueryBuilders.termQuery("agent.id", command.getTarget().getId()));
-            } else if (Objects.equals(command.getTarget().getType(), "server")) {
-                agentList.add(new Agent(List.of("Server")));
-                latch.countDown();
-                continue;
-            } else {
-                log.error("Invalid target type");
-                latch.countDown();
-                continue;
-            }
-
-            // Build and execute the search query
-            SearchHits hits = Search.termSearch(client, ".agents", boolQuery);
-            if (hits != null) {
-                for (SearchHit hit : hits) {
-                    final Map<String, Object> agentMap = getNestedObject(hit.getSourceAsMap(), "agent", Map.class);
-                    if (agentMap != null) {
-                        Agent agent = new Agent((List<String>) agentMap.get("groups"));
-                        log.info("[GROUP] Agent instance {}", agent);
-                        agentList.add(agent);
-                    }
-                }
-            }
-            latch.countDown();
-
-            try {
-                latch.await(); // Wait for all async operations to complete
-            } catch (InterruptedException e) {
-                log.error("Interrupted while waiting for async operations to complete", e);
-            }
-
-            log.info("[GROUP] Agents to be added: {}", agentList);
-            for (Agent agent : agentList) {
-                Document document = new Document(agent, command);
-                log.info("[GROUP] Generating document: {}", document);
-                documents.addDocument(document);
-            }
+        Documents documents = commandsToDocuments(client, commands);
+        // Validate documents are not empty
+        if (documents.getDocuments().isEmpty()) {
+            return channel -> {
+                channel.sendResponse(new BytesRestResponse(RestStatus.BAD_REQUEST, "No documents to index"));
+            };
         }
 
         // Orders indexing
@@ -209,6 +163,58 @@ public class RestPostCommandAction extends BaseRestHandler {
         };
     }
 
+    /**
+     * Converts commands into documents.
+     *
+     * @param client NodeClient instance
+     * @param commands list of Command objects
+     * @return Documents object containing generated documents
+     */
+    @SuppressWarnings("unchecked")
+    private static Documents commandsToDocuments(NodeClient client, List<Command> commands) {
+        List<Agent> agentList = new ArrayList<>();
+        Documents documents = new Documents();
+
+        for (Command command : commands) {
+            String field;
+            BoolQueryBuilder boolQuery;
+            String targetType = command.getTarget().getType();
+            String targetId = command.getTarget().getId();
+
+            if (Objects.equals(targetType, "group")) {
+                field = "agent.groups";
+            } else if (Objects.equals(targetType, "agent")) {
+                field = "agent.id";
+            } else if (Objects.equals(targetType, "server")) {
+                agentList.add(new Agent(List.of("Server")));
+                continue;
+            } else {
+                log.error("Invalid target type: {}", targetType);
+                continue;
+            }
+
+            // Build the query to search for the agents.
+            boolQuery = QueryBuilders.boolQuery().must(QueryBuilders.termQuery(field, targetId));
+
+            // Build and execute the search query
+            SearchHits hits = Search.syncTermSearch(client, ".agents", boolQuery);
+            if (hits != null) {
+                for (SearchHit hit : hits) {
+                    final Map<String, Object> agentMap = getNestedObject(hit.getSourceAsMap(), "agent", Map.class);
+                    if (agentMap != null) {
+                        Agent agent = new Agent((List<String>) agentMap.get("groups"));
+                        agentList.add(agent);
+                    }
+                }
+            }
+
+            for (Agent agent : agentList) {
+                Document document = new Document(agent, command);
+                documents.addDocument(document);
+            }
+        }
+        return documents;
+    }
 
     public static <T> T getNestedObject(Map<String, Object> map, String key, Class<T> type) {
         final Object value = map.get(key);
