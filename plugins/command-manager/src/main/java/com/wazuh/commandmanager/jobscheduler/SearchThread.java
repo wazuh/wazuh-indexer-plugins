@@ -18,7 +18,7 @@ package com.wazuh.commandmanager.jobscheduler;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.opensearchOpenxception;
+import org.opensearch.OpenSearchTimeoutException;
 import org.opensearch.action.index.IndexRequest;
 import org.opensearch.action.search.CreatePitRequest;
 import org.opensearch.action.search.CreatePitResponse;
