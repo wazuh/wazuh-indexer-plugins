@@ -57,7 +57,7 @@ public class Search {
             AbstractClient client, String index, String field, String value) {
         BoolQueryBuilder boolQuery =
                 QueryBuilders.boolQuery().must(QueryBuilders.termQuery(field, value));
-        return executeSearch(client, index, boolQuery, true);
+        return executeSearch(client, index, boolQuery);
     }
 
     /**
@@ -70,7 +70,7 @@ public class Search {
      */
     public static SearchHits syncSearch(
             AbstractClient client, String index, BoolQueryBuilder boolQuery) {
-        return executeSearch(client, index, boolQuery, true);
+        return executeSearch(client, index, boolQuery);
     }
 
     /**
@@ -82,7 +82,7 @@ public class Search {
      * @return SearchHits object containing the search results.
      */
     private static SearchHits executeSearch(
-            AbstractClient client, String index, BoolQueryBuilder boolQuery, Boolean sync) {
+            AbstractClient client, String index, BoolQueryBuilder boolQuery) {
         SearchRequest searchRequest = new SearchRequest(index);
         SearchSourceBuilder searchSourceBuilder = new SearchSourceBuilder();
         searchSourceBuilder.query(boolQuery);
@@ -93,7 +93,7 @@ public class Search {
 
         client.search(
                 searchRequest,
-                new ActionListener<SearchResponse>() {
+                new ActionListener<>() {
                     @Override
                     public void onResponse(SearchResponse searchResponse) {
                         searchHits[0] = searchResponse.getHits();
@@ -106,14 +106,11 @@ public class Search {
                         latch.countDown();
                     }
                 });
-        if (sync) {
-            try {
-                latch.await(); // Wait for the search to complete
-            } catch (InterruptedException e) {
-                log.error("Interrupted while waiting for search to complete", e);
-            }
+        try {
+            latch.await(); // Wait for the search to complete
+        } catch (InterruptedException e) {
+            log.error("Interrupted while waiting for search to complete", e);
         }
-
         return searchHits[0];
     }
 
@@ -165,6 +162,12 @@ public class Search {
         return client.search(searchRequest).actionGet(timeout);
     }
 
+    /**
+     * Retrieves the searchAfter values from a SearchResponse.
+     *
+     * @param searchResponse the SearchResponse containing the hits.
+     * @return an Optional containing the searchAfter values, or an empty Optional if not found.
+     */
     public static Optional<Object[]> getSearchAfter(SearchResponse searchResponse) {
         if (searchResponse == null) {
             return Optional.empty();
@@ -182,6 +185,14 @@ public class Search {
         }
     }
 
+    /**
+     * Builds a PointInTimeBuilder for use in PIT queries.
+     *
+     * @param client the Client used to create the PIT.
+     * @param pitKeepAlive the keep-alive duration for the PIT.
+     * @param index the name of the index for which the PIT is created.
+     * @return a PointInTimeBuilder initialized with the PIT ID, or null if an error occurs.
+     */
     public static PointInTimeBuilder buildPit(Client client, TimeValue pitKeepAlive, String index) {
         final CompletableFuture<CreatePitResponse> future = new CompletableFuture<>();
         final ActionListener<CreatePitResponse> actionListener =

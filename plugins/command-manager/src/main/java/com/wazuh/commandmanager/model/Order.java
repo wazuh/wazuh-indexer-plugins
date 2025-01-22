@@ -30,7 +30,7 @@ import org.opensearch.search.SearchHit;
 import java.io.IOException;
 import java.time.ZonedDateTime;
 
-/** Command's target fields. */
+// TODO explain the model.
 public class Order implements ToXContentObject {
     private static final String DATE_FORMAT = FormatNames.DATE_TIME_NO_MILLIS.getSnakeCaseName();
     private static final DateFormatter DATE_FORMATTER = DateFormatter.forPattern(DATE_FORMAT);
