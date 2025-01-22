@@ -27,10 +27,9 @@ public class PluginSettings {
     private static final Logger log = LogManager.getLogger(PluginSettings.class);
 
     // Settings default values
-    private static final Integer DEFAULT_TIMEOUT = 20;
-    private static final Integer DEFAULT_SCHEDULE = 1;
     private static final Integer DEFAULT_PAGE_SIZE = 100;
-    private static final Integer DEFAULT_KEEP_ALIVE = 30;
+    private static final Integer DEFAULT_CLIENT_TIMEOUT = 30;
+    private static final Integer DEFAULT_JOB_SCHEDULE = 1;
     /* Some configurations were kept as constants rather than settings preventing
     runtime changes, which could lead to inconsistencies within plugin components
     and external interactions.
@@ -44,35 +43,40 @@ public class PluginSettings {
     private static final String API_COMMANDS_ENDPOINT = API_BASE_URI + "/commands";
 
     // Command Manager Settings.
-    public static final Setting<Integer> CLIENT_TIMEOUT =
-            Setting.intSetting(
-                    "command_manager.client.timeout",
-                    DEFAULT_TIMEOUT,
-                    Setting.Property.NodeScope,
-                    Setting.Property.Filtered);
-    public static final Setting<Integer> JOB_SCHEDULE =
-            Setting.intSetting(
-                    "command_manager.job.schedule",
-                    DEFAULT_SCHEDULE,
-                    Setting.Property.NodeScope,
-                    Setting.Property.Filtered);
+    // Number of commands to be returned per search results page
     public static final Setting<Integer> JOB_PAGE_SIZE =
             Setting.intSetting(
                     "command_manager.job.page_size",
                     DEFAULT_PAGE_SIZE,
+                    5,
+                    100000,
                     Setting.Property.NodeScope,
                     Setting.Property.Filtered);
-    public static final Setting<Integer> JOB_KEEP_ALIVE =
+    // Client class methods' timeout in seconds
+    // Currently used for client.index() and client.search() methods.
+    public static final Setting<Integer> CLIENT_TIMEOUT =
             Setting.intSetting(
-                    "command_manager.job.pit_keep_alive",
-                    DEFAULT_KEEP_ALIVE,
+                    "command_manager.client.timeout",
+                    DEFAULT_CLIENT_TIMEOUT,
+                    5,
+                    120,
+                    Setting.Property.NodeScope,
+                    Setting.Property.Filtered);
+    // Job execution interval in minutes.
+    // Must be greater than CLIENT_TIMEOUT
+    public static final Setting<Integer> JOB_SCHEDULE =
+            Setting.intSetting(
+                    "command_manager.job.schedule",
+                    DEFAULT_JOB_SCHEDULE,
+                    1,
+                    10,
                     Setting.Property.NodeScope,
                     Setting.Property.Filtered);
 
-    private final Integer timeout;
+    private Integer timeout;
     private final Integer jobSchedule;
     private final Integer jobPageSize;
-    private final Integer jobKeepAlive;
+    private final Integer pitKeepAlive;
 
     private static volatile PluginSettings instance;
 
@@ -81,8 +85,23 @@ public class PluginSettings {
         this.timeout = CLIENT_TIMEOUT.get(settings);
         this.jobSchedule = JOB_SCHEDULE.get(settings);
         this.jobPageSize = JOB_PAGE_SIZE.get(settings);
-        this.jobKeepAlive = JOB_KEEP_ALIVE.get(settings);
+        this.pitKeepAlive = this.jobSchedule * 60;
+        this.validateSettings();
         log.debug("Settings loaded: {}", this.toString());
+    }
+
+    /** Fits setting values to the internal logic */
+    private void validateSettings() {
+        // Ensure the timeout is lower than the job schedule. The query must return before the next
+        // job run.
+        // Condition:
+        //   timeout < jobSchedule (jobSchedule * 60 = keepAlive)
+        if (!(this.timeout < this.pitKeepAlive)) {
+            this.timeout = DEFAULT_CLIENT_TIMEOUT;
+            log.warn(
+                    "Setting [command_manager.client.timeout] must be lower than [command_manager.job.schedule] * 60. Falling back to the default value [{}]",
+                    DEFAULT_CLIENT_TIMEOUT);
+        }
     }
 
     /**
@@ -137,8 +156,8 @@ public class PluginSettings {
     /**
      * @return the job keep-alive value
      */
-    public Integer getJobKeepAlive() {
-        return this.jobKeepAlive;
+    public Integer getPitKeepAlive() {
+        return this.pitKeepAlive;
     }
 
     /**
@@ -199,8 +218,8 @@ public class PluginSettings {
                 + jobSchedule
                 + ", jobPageSize="
                 + jobPageSize
-                + ", jobKeepAlive="
-                + jobKeepAlive
+                + ", pitKeepAlive="
+                + pitKeepAlive
                 + '}';
     }
 }

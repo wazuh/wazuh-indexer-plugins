@@ -158,8 +158,7 @@ public class CommandManagerPlugin extends Plugin
                 // Register API settings
                 PluginSettings.CLIENT_TIMEOUT,
                 PluginSettings.JOB_PAGE_SIZE,
-                PluginSettings.JOB_SCHEDULE,
-                PluginSettings.JOB_KEEP_ALIVE);
+                PluginSettings.JOB_SCHEDULE);
     }
 
     @Override
