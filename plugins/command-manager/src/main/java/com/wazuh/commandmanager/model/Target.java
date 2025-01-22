@@ -30,7 +30,8 @@ public class Target implements ToXContentObject {
 
     // Define the enum for type
     public enum Type {
-        AGENT("agent"), GROUP("group");
+        AGENT("agent"),
+        GROUP("group");
 
         private final String value;
 

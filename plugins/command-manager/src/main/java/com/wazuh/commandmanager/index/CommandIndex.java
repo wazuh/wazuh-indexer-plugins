@@ -16,7 +16,6 @@
  */
 package com.wazuh.commandmanager.index;
 
-import com.wazuh.commandmanager.model.Order;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.opensearch.action.bulk.BulkRequest;
@@ -36,6 +35,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
 
 import com.wazuh.commandmanager.CommandManagerPlugin;
+import com.wazuh.commandmanager.model.Order;
 import com.wazuh.commandmanager.utils.IndexTemplateUtils;
 
 /** Class to manage the Command Manager index and index template. */

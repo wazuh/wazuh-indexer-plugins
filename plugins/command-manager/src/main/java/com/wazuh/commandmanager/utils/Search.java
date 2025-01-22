@@ -1,3 +1,19 @@
+/*
+ * Copyright (C) 2024, Wazuh Inc.
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as
+ * published by the Free Software Foundation, either version 3 of the
+ * License, or (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
 package com.wazuh.commandmanager.utils;
 
 import org.apache.logging.log4j.LogManager;
@@ -20,17 +36,20 @@ import java.util.concurrent.CountDownLatch;
 public class Search {
     private static final Logger log = LogManager.getLogger(Search.class);
 
-    public static SearchHits syncTermSearch(NodeClient client, String index, String field, String value) {
-        BoolQueryBuilder boolQuery = QueryBuilders.boolQuery()
-                .must(QueryBuilders.termQuery(field, value));
+    public static SearchHits syncSearch(
+            NodeClient client, String index, String field, String value) {
+        BoolQueryBuilder boolQuery =
+                QueryBuilders.boolQuery().must(QueryBuilders.termQuery(field, value));
         return executeSyncSearch(client, index, boolQuery);
     }
 
-    public static SearchHits syncTermSearch(NodeClient client, String index, BoolQueryBuilder boolQuery) {
+    public static SearchHits syncSearch(
+            NodeClient client, String index, BoolQueryBuilder boolQuery) {
         return executeSyncSearch(client, index, boolQuery);
     }
 
-    private static SearchHits executeSyncSearch(NodeClient client, String index, BoolQueryBuilder boolQuery) {
+    private static SearchHits executeSyncSearch(
+            NodeClient client, String index, BoolQueryBuilder boolQuery) {
         SearchRequest searchRequest = new SearchRequest(index);
         SearchSourceBuilder searchSourceBuilder = new SearchSourceBuilder();
         searchSourceBuilder.query(boolQuery);
@@ -39,19 +58,21 @@ public class Search {
         final CountDownLatch latch = new CountDownLatch(1);
         final SearchHits[] searchHits = new SearchHits[1];
 
-        client.search(searchRequest, new ActionListener<SearchResponse>() {
-            @Override
-            public void onResponse(SearchResponse searchResponse) {
-                searchHits[0] = searchResponse.getHits();
-                latch.countDown();
-            }
+        client.search(
+                searchRequest,
+                new ActionListener<SearchResponse>() {
+                    @Override
+                    public void onResponse(SearchResponse searchResponse) {
+                        searchHits[0] = searchResponse.getHits();
+                        latch.countDown();
+                    }
 
-            @Override
-            public void onFailure(Exception e) {
-                log.error("", e);
-                latch.countDown();
-            }
-        });
+                    @Override
+                    public void onFailure(Exception e) {
+                        log.error("", e);
+                        latch.countDown();
+                    }
+                });
 
         try {
             latch.await(); // Wait for the search to complete
