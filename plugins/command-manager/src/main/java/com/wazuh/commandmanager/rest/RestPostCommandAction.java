@@ -209,7 +209,9 @@ public class RestPostCommandAction extends BaseRestHandler {
                     final Map<String, Object> agentMap =
                             Search.getNestedObject(hit.getSourceAsMap(), "agent", Map.class);
                     if (agentMap != null) {
-                        Agent agent = new Agent((List<String>) agentMap.get("groups"));
+                        String agentId = (String) agentMap.get(Agent.ID);
+                        List<String> agentGroups = (List<String>) agentMap.get(Agent.GROUPS);
+                        Agent agent = new Agent(agentId, agentGroups);
                         agentList.add(agent);
                     }
                 }
