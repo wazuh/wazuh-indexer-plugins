@@ -22,7 +22,12 @@ import org.opensearch.core.xcontent.XContentBuilder;
 import java.io.IOException;
 import java.util.ArrayList;
 
-/** Orders model class. */
+import com.wazuh.commandmanager.CommandManagerPlugin;
+
+/**
+ * Model that represents the list of Orders to store in the index {@link
+ * CommandManagerPlugin#INDEX_NAME}
+ */
 public class Orders implements ToXContentObject {
     public static final String ORDERS = "_orders";
     public static final String ID = "_id";

@@ -30,7 +30,13 @@ import org.opensearch.search.SearchHit;
 import java.io.IOException;
 import java.time.ZonedDateTime;
 
-// TODO explain the model.
+import com.wazuh.commandmanager.CommandManagerPlugin;
+
+/**
+ * This class represents the value to be stored in the index {@link
+ * CommandManagerPlugin#INDEX_NAME}, it is the result of the processed command received through the
+ * API.
+ */
 public class Order implements ToXContentObject {
     private static final String DATE_FORMAT = FormatNames.DATE_TIME_NO_MILLIS.getSnakeCaseName();
     private static final DateFormatter DATE_FORMATTER = DateFormatter.forPattern(DATE_FORMAT);
