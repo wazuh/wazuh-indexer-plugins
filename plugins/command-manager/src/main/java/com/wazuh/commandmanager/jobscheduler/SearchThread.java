@@ -18,6 +18,7 @@ package com.wazuh.commandmanager.jobscheduler;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.opensearchOpenxception;
 import org.opensearch.action.index.IndexRequest;
 import org.opensearch.action.search.CreatePitRequest;
 import org.opensearch.action.search.CreatePitResponse;
@@ -41,6 +42,7 @@ import java.util.*;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
 
 import com.wazuh.commandmanager.CommandManagerPlugin;
 import com.wazuh.commandmanager.model.*;
@@ -101,9 +103,11 @@ public class SearchThread implements Runnable {
      * delivery timestamps are earlier than the current time
      *
      * @param searchResponse The search results page
-     * @throws IllegalStateException Rethrown from setSentStatus()
+     * @throws IllegalStateException from setFailureStatus()
+     * @throws OpenSearchTimeoutException from setFailureStatus()
      */
-    public void handlePage(SearchResponse searchResponse) throws IllegalStateException {
+    public void handlePage(SearchResponse searchResponse)
+            throws IllegalStateException, OpenSearchTimeoutException {
         SearchHits searchHits = searchResponse.getHits();
 
         final ZonedDateTime current_time = DateUtils.nowWithMillisResolution();
@@ -123,9 +127,11 @@ public class SearchThread implements Runnable {
      *
      * @param hit The page's result we are to update.
      * @throws IllegalStateException Raised by {@link ActionFuture#actionGet(long)}.
+     * @throws OpenSearchTimeoutException Raised by {@link ActionFuture#actionGet(long)}.
      */
     @SuppressWarnings("unchecked")
-    private void setFailureStatus(SearchHit hit) throws IllegalStateException {
+    private void setFailureStatus(SearchHit hit)
+            throws IllegalStateException, OpenSearchTimeoutException {
         final Map<String, Object> commandMap =
                 getNestedObject(
                         hit.getSourceAsMap(),
@@ -143,7 +149,7 @@ public class SearchThread implements Runnable {
                             .id(hit.getId());
             this.client
                     .index(indexRequest)
-                    .actionGet(PluginSettings.getInstance().getTimeout() * 1000);
+                    .actionGet(CommandManagerPlugin.DEFAULT_TIMEOUT_SECONDS, TimeUnit.SECONDS);
         }
     }
 
@@ -156,8 +162,8 @@ public class SearchThread implements Runnable {
      * @throws IllegalStateException Raised by {@link ActionFuture#actionGet(long)}.
      */
     public SearchResponse pitQuery(PointInTimeBuilder pointInTimeBuilder, Object[] searchAfter)
-            throws IllegalStateException {
-        final SearchRequest searchRequest = new SearchRequest(PluginSettings.getIndexName());
+            throws IllegalStateException, OpenSearchTimeoutException {
+        final SearchRequest searchRequest = new SearchRequest(CommandManagerPlugin.INDEX_NAME);
         final TermQueryBuilder termQueryBuilder =
                 QueryBuilders.termQuery(SearchThread.COMMAND_STATUS_FIELD, Status.PENDING);
         final TimeValue timeout =
@@ -206,6 +212,8 @@ public class SearchThread implements Runnable {
             log.error("ArrayIndexOutOfBoundsException retrieving page: {}", e.getMessage());
         } catch (IllegalStateException e) {
             log.error("IllegalStateException retrieving page: {}", e.getMessage());
+        } catch (OpenSearchTimeoutException e) {
+            log.error("Query timed out: {}", e.getMessage());
         } catch (Exception e) {
             log.error("Generic exception retrieving page: {}", e.getMessage());
         }
