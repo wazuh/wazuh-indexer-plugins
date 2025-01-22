@@ -92,11 +92,15 @@ public class PluginSettings {
 
     /** Fits setting values to the internal logic */
     private void validateSettings() {
-        // If timeout is not less than job period in seconds
-        if (!(this.timeout < this.jobSchedule * 60)) {
-            // Set timeout to half job period (in seconds)
-            this.timeout = this.jobSchedule * 30;
-            log.info("Setting command_manager.client.timeout to half command_manager.job.schedule (in seconds): {}", this.timeout);
+        // Ensure the timeout is lower than the job schedule. The query must return before the next
+        // job run.
+        // Condition:
+        //   timeout < jobSchedule (jobSchedule * 60 = keepAlive)
+        if (!(this.timeout < this.pitKeepAlive)) {
+            this.timeout = DEFAULT_CLIENT_TIMEOUT;
+            log.warn(
+                    "Setting [command_manager.client.timeout] must be lower than [command_manager.job.schedule] * 60. Falling back to the default value [{}]",
+                    DEFAULT_CLIENT_TIMEOUT);
         }
     }
 
