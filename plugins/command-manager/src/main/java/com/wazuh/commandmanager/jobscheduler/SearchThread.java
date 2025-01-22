@@ -53,7 +53,7 @@ import com.wazuh.commandmanager.model.*;
  */
 public class SearchThread implements Runnable {
     public static final String COMMAND_STATUS_FIELD = Command.COMMAND + "." + Command.STATUS;
-    public static final String DELIVERY_TIMESTAMP_FIELD = Document.DELIVERY_TIMESTAMP;
+    public static final String DELIVERY_TIMESTAMP_FIELD = Order.DELIVERY_TIMESTAMP;
     private static final Logger log = LogManager.getLogger(SearchThread.class);
     private final SearchSourceBuilder searchSourceBuilder = new SearchSourceBuilder();
     private final Client client;
@@ -113,7 +113,7 @@ public class SearchThread implements Runnable {
 
         for (SearchHit hit : searchHits) {
             final ZonedDateTime deliveryTimestampFromSearchHit =
-                    Document.deliveryTimestampFromSearchHit(hit);
+                    Order.deliveryTimestampFromSearchHit(hit);
             if (deliveryTimestampFromSearchHit != null
                     && deliveryTimestampFromSearchHit.isBefore(current_time)) {
                 this.setFailureStatus(hit);

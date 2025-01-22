@@ -16,18 +16,16 @@
  */
 package com.wazuh.commandmanager.model;
 
-import org.opensearch.core.xcontent.ToXContent;
+import org.opensearch.core.xcontent.ToXContentObject;
 import org.opensearch.core.xcontent.XContentBuilder;
-import org.opensearch.search.SearchHit;
-import org.opensearch.search.SearchHits;
 
 import java.io.IOException;
 import java.util.ArrayList;
 
 /** Orders model class. */
-public class Orders implements ToXContent {
-    public static final String ORDERS = "orders";
-
+public class Orders implements ToXContentObject {
+    public static final String ORDERS = "_orders";
+    public static final String ID = "_id";
     private final ArrayList<Order> orders;
 
     /** Default constructor. */
@@ -36,69 +34,39 @@ public class Orders implements ToXContent {
     }
 
     /**
-     * Helper static method that takes the search results in SearchHits form and parses them into
-     * Order objects. It then puts together a json string meant for sending over HTTP
+     * Get the list of Order objects.
      *
-     * @param searchHits the commands search result
-     * @return A json string payload with an array of orders to be processed
+     * @return the list of documents.
      */
-
-    /**
-     * Static builder method that initializes an instance of Orders from a SearchHits instance.
-     *
-     * @param searchHits search hits as returned from the search index query to the commands index.
-     * @return instance of Orders.
-     */
-    public static Orders fromSearchHits(SearchHits searchHits) {
-        Orders orders = new Orders();
-
-        // Iterate over search results
-        for (SearchHit hit : searchHits) {
-            // Parse the hit's order
-            Order order = Order.fromSearchHit(hit);
-            orders.add(order);
-        }
-
+    public ArrayList<Order> getOrders() {
         return orders;
     }
 
     /**
-     * Overwrites the array of orders
+     * Adds a document to the list of documents.
      *
-     * @param orders the list of orders to be set.
+     * @param order The document to add to the list.
      */
-    public void setOrders(ArrayList<Order> orders) {
-        this.orders.clear();
-        this.orders.addAll(orders);
-    }
-
-    /**
-     * Retrieves the list of orders.
-     *
-     * @return the current list of Order objects.
-     */
-    public ArrayList<Order> getOrders() {
-        return this.orders;
-    }
-
-    /**
-     * Adds an order to the orders array.
-     *
-     * @param order order to add.
-     */
-    private void add(Order order) {
+    public void addOrder(Order order) {
         this.orders.add(order);
     }
 
+    /**
+     * Fit this object into a XContentBuilder parser, preparing it for the reply of POST /commands.
+     *
+     * @param builder XContentBuilder builder
+     * @param params ToXContent.EMPTY_PARAMS
+     * @return XContentBuilder builder with the representation of this object.
+     * @throws IOException parsing error.
+     */
     @Override
     public XContentBuilder toXContent(XContentBuilder builder, Params params) throws IOException {
-        // Start an XContentBuilder array named "orders"
-        builder.startObject();
         builder.startArray(ORDERS);
         for (Order order : this.orders) {
-            order.toXContent(builder, params);
+            builder.startObject();
+            builder.field(ID, order.getId());
+            builder.endObject();
         }
-        builder.endArray();
-        return builder.endObject();
+        return builder.endArray();
     }
 }

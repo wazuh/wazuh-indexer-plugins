@@ -45,7 +45,7 @@ import static org.opensearch.rest.RestRequest.Method.POST;
 
 /**
  * Handles HTTP requests to the POST {@value
- * com.wazuh.commandmanager.CommandManagerPlugin#COMMANDS_URI} endpoint.
+ * CommandManagerPlugin#COMMANDS_URI} endpoint.
  */
 public class RestPostCommandAction extends BaseRestHandler {
 
@@ -101,41 +101,29 @@ public class RestPostCommandAction extends BaseRestHandler {
                 request.uri(),
                 request.getRequestId(),
                 request.header("Host"));
-
         // Request validation
         if (!request.hasContent()) {
             return channel -> {
                 channel.sendResponse(new BytesRestResponse(RestStatus.BAD_REQUEST, "Body content is required"));
             };
         }
-
-        // Request parsing
-        XContentParser parser = request.contentParser();
-        List<Command> commands = new ArrayList<>();
-        ensureExpectedToken(XContentParser.Token.START_OBJECT, parser.nextToken(), parser);
-        parser.nextToken();
-        if (parser.nextToken() == XContentParser.Token.START_ARRAY) {
-            commands = Command.parseToArray(parser);
-        } else {
-            log.error("Token does not match {}", parser.currentToken());
-        }
+        List<Command> commands = getCommandList(request);
         // Validate commands are not empty
         if (commands.isEmpty()) {
             return channel -> {
                 channel.sendResponse(new BytesRestResponse(RestStatus.BAD_REQUEST, "No commands found in the request body"));
             };
         }
-
-        Documents documents = commandsToDocuments(client, commands);
+        Orders orders = commandsToOrders(client, commands);
         // Validate documents are not empty
-        if (documents.getDocuments().isEmpty()) {
+        if (orders.getOrders().isEmpty()) {
             return channel -> {
-                channel.sendResponse(new BytesRestResponse(RestStatus.BAD_REQUEST, "No documents to index"));
+                channel.sendResponse(new BytesRestResponse(RestStatus.BAD_REQUEST, "No orders to index"));
             };
         }
 
         // Orders indexing
-        CompletableFuture<RestStatus> bulkRequestFuture = this.commandIndex.asyncBulkCreate(documents.getDocuments());
+        CompletableFuture<RestStatus> bulkRequestFuture = this.commandIndex.asyncBulkCreate(orders.getOrders());
 
         // Send response
         return channel -> {
@@ -144,7 +132,7 @@ public class RestPostCommandAction extends BaseRestHandler {
                         try (XContentBuilder builder = channel.newBuilder()) {
                             builder.startObject();
                             builder.field("_index", CommandManagerPlugin.INDEX_NAME);
-                            documents.toXContent(builder, ToXContent.EMPTY_PARAMS);
+                            orders.toXContent(builder, ToXContent.EMPTY_PARAMS);
                             builder.field("result", restStatus.name());
                             builder.endObject();
                             channel.sendResponse(new BytesRestResponse(restStatus, builder));
@@ -163,6 +151,21 @@ public class RestPostCommandAction extends BaseRestHandler {
         };
     }
 
+    private static List<Command> getCommandList(RestRequest request) throws IOException {
+        // Request parsing
+        XContentParser parser = request.contentParser();
+        List<Command> commands = new ArrayList<>();
+        ensureExpectedToken(XContentParser.Token.START_OBJECT, parser.nextToken(), parser);
+        parser.nextToken();
+        if (parser.nextToken() == XContentParser.Token.START_ARRAY) {
+            commands = Command.parseToArray(parser);
+        } else {
+            log.error("Token does not match {}", parser.currentToken());
+        }
+
+        return commands;
+    }
+
     /**
      * Converts commands into documents.
      *
@@ -171,36 +174,30 @@ public class RestPostCommandAction extends BaseRestHandler {
      * @return Documents object containing generated documents
      */
     @SuppressWarnings("unchecked")
-    private static Documents commandsToDocuments(NodeClient client, List<Command> commands) {
+    private static Orders commandsToOrders(NodeClient client, List<Command> commands) {
         List<Agent> agentList = new ArrayList<>();
-        Documents documents = new Documents();
+        Orders orders = new Orders();
 
         for (Command command : commands) {
-            String field;
-            BoolQueryBuilder boolQuery;
-            String targetType = command.getTarget().getType();
+            String field = "";
+            Target.Type targetType = command.getTarget().getType();
             String targetId = command.getTarget().getId();
 
-            if (Objects.equals(targetType, "group")) {
+            if (Objects.equals(targetType, Target.Type.GROUP)) {
                 field = "agent.groups";
-            } else if (Objects.equals(targetType, "agent")) {
+            } else if (Objects.equals(targetType, Target.Type.AGENT)) {
                 field = "agent.id";
-            } else if (Objects.equals(targetType, "server")) {
-                agentList.add(new Agent(List.of("Server")));
-                continue;
-            } else {
-                log.error("Invalid target type: {}", targetType);
-                continue;
             }
 
             // Build the query to search for the agents.
-            boolQuery = QueryBuilders.boolQuery().must(QueryBuilders.termQuery(field, targetId));
+            BoolQueryBuilder boolQuery = QueryBuilders.boolQuery().must(QueryBuilders.termQuery(field, targetId));
 
             // Build and execute the search query
             SearchHits hits = Search.syncTermSearch(client, ".agents", boolQuery);
             if (hits != null) {
                 for (SearchHit hit : hits) {
-                    final Map<String, Object> agentMap = getNestedObject(hit.getSourceAsMap(), "agent", Map.class);
+                    final Map<String, Object> agentMap = Search.getNestedObject(
+                            hit.getSourceAsMap(), "agent", Map.class);
                     if (agentMap != null) {
                         Agent agent = new Agent((List<String>) agentMap.get("groups"));
                         agentList.add(agent);
@@ -209,30 +206,10 @@ public class RestPostCommandAction extends BaseRestHandler {
             }
 
             for (Agent agent : agentList) {
-                Document document = new Document(agent, command);
-                documents.addDocument(document);
+                Order order = new Order(agent, command);
+                orders.addOrder(order);
             }
         }
-        return documents;
-    }
-
-    public static <T> T getNestedObject(Map<String, Object> map, String key, Class<T> type) {
-        final Object value = map.get(key);
-        if (value == null) {
-            return null;
-        }
-        if (type.isInstance(value)) {
-            // Make a defensive copy for supported types like Map or List
-            if (value instanceof Map) {
-                return type.cast(new HashMap<>((Map<?, ?>) value));
-            } else if (value instanceof List) {
-                return type.cast(new ArrayList<>((List<?>) value));
-            }
-            // Return the value directly if it is immutable (e.g., String, Integer)
-            return type.cast(value);
-        } else {
-            throw new ClassCastException(
-                    "Expected " + type.getName() + " but found " + value.getClass().getName());
-        }
+        return orders;
     }
 }

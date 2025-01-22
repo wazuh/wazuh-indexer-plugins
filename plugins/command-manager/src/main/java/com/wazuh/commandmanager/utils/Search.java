@@ -11,6 +11,10 @@ import org.opensearch.index.query.QueryBuilders;
 import org.opensearch.search.SearchHits;
 import org.opensearch.search.builder.SearchSourceBuilder;
 
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.concurrent.CountDownLatch;
 
 public class Search {
@@ -56,5 +60,25 @@ public class Search {
         }
 
         return searchHits[0];
+    }
+
+    public static <T> T getNestedObject(Map<String, Object> map, String key, Class<T> type) {
+        final Object value = map.get(key);
+        if (value == null) {
+            return null;
+        }
+        if (type.isInstance(value)) {
+            // Make a defensive copy for supported types like Map or List
+            if (value instanceof Map) {
+                return type.cast(new HashMap<>((Map<?, ?>) value));
+            } else if (value instanceof List) {
+                return type.cast(new ArrayList<>((List<?>) value));
+            }
+            // Return the value directly if it is immutable (e.g., String, Integer)
+            return type.cast(value);
+        } else {
+            throw new ClassCastException(
+                    "Expected " + type.getName() + " but found " + value.getClass().getName());
+        }
     }
 }

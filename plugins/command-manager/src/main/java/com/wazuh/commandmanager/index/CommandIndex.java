@@ -16,6 +16,7 @@
  */
 package com.wazuh.commandmanager.index;
 
+import com.wazuh.commandmanager.model.Order;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.opensearch.action.bulk.BulkRequest;
@@ -35,7 +36,6 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
 
 import com.wazuh.commandmanager.CommandManagerPlugin;
-import com.wazuh.commandmanager.model.Document;
 import com.wazuh.commandmanager.utils.IndexTemplateUtils;
 
 /** Class to manage the Command Manager index and index template. */
@@ -73,22 +73,22 @@ public class CommandIndex implements IndexingOperationListener {
     /**
      * Indexes an array of documents asynchronously.
      *
-     * @param documents list of instances of the document model to persist in the index.
+     * @param orders list of instances of the document model to persist in the index.
      * @return A CompletableFuture with the RestStatus response from the operation
      */
-    public CompletableFuture<RestStatus> asyncBulkCreate(ArrayList<Document> documents) {
+    public CompletableFuture<RestStatus> asyncBulkCreate(ArrayList<Order> orders) {
         final CompletableFuture<RestStatus> future = new CompletableFuture<>();
         final ExecutorService executor = this.threadPool.executor(ThreadPool.Names.WRITE);
 
         final BulkRequest bulkRequest = new BulkRequest();
-        for (Document document : documents) {
-            log.info("Adding command with id [{}] to the bulk request", document.getId());
+        for (Order order : orders) {
+            log.info("Adding command with id [{}] to the bulk request", order.getId());
             try {
-                bulkRequest.add(createIndexRequest(document));
+                bulkRequest.add(createIndexRequest(order));
             } catch (IOException e) {
                 log.error(
                         "Error creating IndexRequest with document id [{}] due to {}",
-                        document.getId(),
+                        order.getId(),
                         e.getMessage());
             }
         }
@@ -121,15 +121,15 @@ public class CommandIndex implements IndexingOperationListener {
     /**
      * Create an IndexRequest object from a Document object.
      *
-     * @param document the document to create the IndexRequest for COMMAND_MANAGER_INDEX
+     * @param order the document to create the IndexRequest for COMMAND_MANAGER_INDEX
      * @return an IndexRequest object
      * @throws IOException thrown by XContentFactory.jsonBuilder()
      */
-    private IndexRequest createIndexRequest(Document document) throws IOException {
+    private IndexRequest createIndexRequest(Order order) throws IOException {
         return new IndexRequest()
                 .index(CommandManagerPlugin.INDEX_NAME)
-                .source(document.toXContent(XContentFactory.jsonBuilder(), ToXContent.EMPTY_PARAMS))
-                .id(document.getId())
+                .source(order.toXContent(XContentFactory.jsonBuilder(), ToXContent.EMPTY_PARAMS))
+                .id(order.getId())
                 .create(true);
     }
 }

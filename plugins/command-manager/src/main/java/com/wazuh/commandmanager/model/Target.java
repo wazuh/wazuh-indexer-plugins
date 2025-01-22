@@ -27,7 +27,32 @@ public class Target implements ToXContentObject {
     public static final String TARGET = "target";
     public static final String TYPE = "type";
     public static final String ID = "id";
-    private final String type;
+
+    // Define the enum for type
+    public enum Type {
+        AGENT("agent"), GROUP("group");
+
+        private final String value;
+
+        Type(String value) {
+            this.value = value;
+        }
+
+        public String getValue() {
+            return value;
+        }
+
+        public static Type fromString(String value) {
+            for (Type type : Type.values()) {
+                if (type.value.equalsIgnoreCase(value)) {
+                    return type;
+                }
+            }
+            throw new IllegalArgumentException("Invalid type: " + value);
+        }
+    }
+
+    private final Type type;
     private final String id;
 
     /**
@@ -36,7 +61,7 @@ public class Target implements ToXContentObject {
      * @param type The destination type. One of [`group`, `agent`, `server`]
      * @param id Unique identifier of the destination to send the command to.
      */
-    public Target(String type, String id) {
+    public Target(Type type, String id) {
         this.type = type;
         this.id = id;
     }
@@ -55,7 +80,7 @@ public class Target implements ToXContentObject {
      *
      * @return the target's type.
      */
-    public String getType() {
+    public Type getType() {
         return this.type;
     }
 
@@ -67,7 +92,7 @@ public class Target implements ToXContentObject {
      * @throws IOException parsing error occurred.
      */
     public static Target parse(XContentParser parser) throws IOException {
-        String type = "";
+        Type type = null;
         String id = "";
 
         while (parser.nextToken() != XContentParser.Token.END_OBJECT) {
@@ -75,7 +100,7 @@ public class Target implements ToXContentObject {
             parser.nextToken();
             switch (fieldName) {
                 case TYPE:
-                    type = parser.text();
+                    type = Type.fromString(parser.text());
                     break;
                 case ID:
                     id = parser.text();
@@ -92,13 +117,13 @@ public class Target implements ToXContentObject {
     @Override
     public XContentBuilder toXContent(XContentBuilder builder, Params params) throws IOException {
         builder.startObject(TARGET);
-        builder.field(TYPE, this.type);
+        builder.field(TYPE, this.type.getValue());
         builder.field(ID, this.id);
         return builder.endObject();
     }
 
     @Override
     public String toString() {
-        return "Target{" + "type='" + type + '\'' + ", id='" + id + '\'' + '}';
+        return "Target{" + "type='" + type.getValue() + '\'' + ", id='" + id + '\'' + '}';
     }
 }
