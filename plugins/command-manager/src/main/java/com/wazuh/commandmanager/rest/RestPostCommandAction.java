@@ -215,6 +215,7 @@ public class RestPostCommandAction extends BaseRestHandler {
                         agentList.add(agent);
                     }
                 }
+                log.info("Search retrieved {} agents.", agentList.size());
             }
 
             for (Agent agent : agentList) {
