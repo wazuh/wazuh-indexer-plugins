@@ -149,7 +149,7 @@ public class SearchThread implements Runnable {
                             .id(hit.getId());
             this.client
                     .index(indexRequest)
-                    .actionGet(CommandManagerPlugin.DEFAULT_TIMEOUT_SECONDS, TimeUnit.SECONDS);
+                    .actionGet(PluginSettings.getInstance().getTimeout(), TimeUnit.SECONDS);
         }
     }
 
@@ -163,7 +163,7 @@ public class SearchThread implements Runnable {
      */
     public SearchResponse pitQuery(PointInTimeBuilder pointInTimeBuilder, Object[] searchAfter)
             throws IllegalStateException, OpenSearchTimeoutException {
-        final SearchRequest searchRequest = new SearchRequest(CommandManagerPlugin.INDEX_NAME);
+        final SearchRequest searchRequest = new SearchRequest(PluginSettings.getIndexName());
         final TermQueryBuilder termQueryBuilder =
                 QueryBuilders.termQuery(SearchThread.COMMAND_STATUS_FIELD, Status.PENDING);
         final TimeValue timeout =
