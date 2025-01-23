@@ -221,7 +221,7 @@
             "ignore_above": 1024,
             "type": "keyword"
           },
-          "name": {
+          "type": {
             "ignore_above": 1024,
             "type": "keyword"
           },
