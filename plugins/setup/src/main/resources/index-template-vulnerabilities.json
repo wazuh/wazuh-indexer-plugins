@@ -526,10 +526,6 @@
           },
           "scanner": {
             "properties": {
-              "condition": {
-                "ignore_above": 1024,
-                "type": "keyword"
-              },
               "source": {
                 "ignore_above": 1024,
                 "type": "keyword"
