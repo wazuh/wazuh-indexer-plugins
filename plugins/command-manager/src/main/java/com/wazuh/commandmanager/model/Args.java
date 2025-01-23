@@ -16,8 +16,6 @@
  */
 package com.wazuh.commandmanager.model;
 
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
 import org.opensearch.core.xcontent.ToXContentObject;
 import org.opensearch.core.xcontent.XContentBuilder;
 import org.opensearch.core.xcontent.XContentParser;
@@ -30,7 +28,6 @@ import java.util.Map;
 
 /** Handles the command.action.args object */
 public class Args implements ToXContentObject {
-    private static final Logger log = LogManager.getLogger(Args.class);
 
     public static final String ARGS = "args";
     private final Map<String, Object> args;
