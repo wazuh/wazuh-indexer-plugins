@@ -32,15 +32,15 @@
               },
             ]
 
-  - match: { _index: .commands }
+  - match: { _index: wazuh-commands }
   - match: { result: "OK" }
 
   - do:
       indices.refresh:
-        index: [.commands]
+        index: [wazuh-commands]
 
   - do:
       count:
-        index: .commands
+        index: wazuh-commands
 
   - match: { count: 2 }

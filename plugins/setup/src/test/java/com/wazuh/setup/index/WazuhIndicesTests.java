@@ -140,7 +140,7 @@ public class WazuhIndicesTests extends OpenSearchTestCase {
     @AwaitsFix(bugUrl = "")
     public void testPutIndex_IndexDoesNotExist() {
         // Arrange
-        String indexName = ".agents";
+        String indexName = "wazuh-agents";
         CreateIndexResponse createIndexResponse = new CreateIndexResponse(true, true, indexName);
 
         when(routingTable.hasIndex(indexName)).thenReturn(false);
@@ -159,7 +159,7 @@ public class WazuhIndicesTests extends OpenSearchTestCase {
 
     public void testPutIndex_IndexExists() {
         // Arrange
-        String indexName = ".agents";
+        String indexName = "wazuh-agents";
         when(routingTable.hasIndex(indexName)).thenReturn(true);
 
         // Act
@@ -171,7 +171,7 @@ public class WazuhIndicesTests extends OpenSearchTestCase {
 
     public void testIndexExists() {
         // Arrange
-        String indexName = ".agents";
+        String indexName = "wazuh-agents";
         when(routingTable.hasIndex(indexName)).thenReturn(true);
 
         // Act
@@ -185,7 +185,7 @@ public class WazuhIndicesTests extends OpenSearchTestCase {
     public void testInitialize() throws IOException {
         // Arrange
         String templateName = "index-template-agent";
-        String indexName = ".agents";
+        String indexName = "wazuh-agents";
 
         Map<String, Object> template = new HashMap<>();
         template.put("mappings", new HashMap<>());

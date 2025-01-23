@@ -138,7 +138,8 @@ public class RestPostCommandAction extends BaseRestHandler {
         for (Command command : commands) {
             Document document =
                     new Document(
-                            new Agent(List.of("groups000")), // TODO read agent from .agents index
+                            new Agent(List.of("groups000")), // TODO read agent from wazuh-agents
+                            // index
                             command);
             documents.addDocument(document);
         }
