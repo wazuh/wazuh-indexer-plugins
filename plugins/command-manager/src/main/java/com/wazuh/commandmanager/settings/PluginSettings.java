@@ -78,7 +78,7 @@ public class PluginSettings {
     private final Integer jobPageSize;
     private final Integer pitKeepAlive;
 
-    private static volatile PluginSettings instance;
+    private static PluginSettings instance;
 
     /** Private default constructor */
     private PluginSettings(@NonNull final Settings settings) {
