@@ -110,15 +110,18 @@ public class RestPostCommandAction extends BaseRestHandler {
             return channel -> {
                 channel.sendResponse(
                         new BytesRestResponse(
-                                RestStatus.BAD_REQUEST, "No commands found in the request body"));
+                                RestStatus.BAD_REQUEST,
+                                "No valid commands detected in the request body."));
             };
         }
         Orders orders = commandsToOrders(client, commands);
-        // Validate documents are not empty
+        // Validate that the orders are not empty
         if (orders.getOrders().isEmpty()) {
             return channel -> {
                 channel.sendResponse(
-                        new BytesRestResponse(RestStatus.BAD_REQUEST, "No orders to index"));
+                        new BytesRestResponse(
+                                RestStatus.BAD_REQUEST,
+                                "Cannot generate orders. Invalid agent IDs or groups."));
             };
         }
 
@@ -188,10 +191,10 @@ public class RestPostCommandAction extends BaseRestHandler {
      */
     @SuppressWarnings("unchecked")
     private static Orders commandsToOrders(NodeClient client, List<Command> commands) {
-        List<Agent> agentList = new ArrayList<>();
         Orders orders = new Orders();
 
         for (Command command : commands) {
+            List<Agent> agentList = new ArrayList<>();
             String field = "";
             Target.Type targetType = command.getTarget().getType();
             String targetId = command.getTarget().getId();
@@ -203,6 +206,7 @@ public class RestPostCommandAction extends BaseRestHandler {
             }
 
             // Build and execute the search query
+            log.info("Searching for agents using field {} with value {}", field, targetId);
             SearchHits hits = Search.syncSearch(client, ".agents", field, targetId);
             if (hits != null) {
                 for (SearchHit hit : hits) {
