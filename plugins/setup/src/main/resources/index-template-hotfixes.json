@@ -225,7 +225,7 @@
             "ignore_above": 1024,
             "type": "keyword"
           },
-          "type": {
+          "version": {
             "ignore_above": 1024,
             "type": "keyword"
           }
