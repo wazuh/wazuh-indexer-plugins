@@ -27,7 +27,7 @@ import org.opensearch.index.reindex.UpdateByQueryRequestBuilder;
 import org.opensearch.script.Script;
 import org.opensearch.script.ScriptType;
 
-import java.util.*;
+import java.util.Collections;
 
 import com.wazuh.commandmanager.CommandManagerPlugin;
 import com.wazuh.commandmanager.model.Command;
@@ -60,7 +60,12 @@ public class SearchThreadRefactor implements Runnable {
                     new UpdateByQueryRequestBuilder(this.client, UpdateByQueryAction.INSTANCE);
             updateByQuery
                     .source(CommandManagerPlugin.INDEX_NAME)
-                    .filter(QueryBuilders.termQuery(COMMAND_STATUS_FIELD, Status.PENDING))
+                    .filter(
+                            QueryBuilders.boolQuery()
+                                    .must(QueryBuilders.rangeQuery("delivery_timestamp").lt("now"))
+                                    .filter(
+                                            QueryBuilders.termQuery(
+                                                    COMMAND_STATUS_FIELD, Status.PENDING)))
                     .maxDocs(1000)
                     .script(
                             new Script(
