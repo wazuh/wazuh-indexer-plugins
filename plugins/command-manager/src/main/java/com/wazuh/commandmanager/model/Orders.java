@@ -24,10 +24,7 @@ import java.util.ArrayList;
 
 import com.wazuh.commandmanager.CommandManagerPlugin;
 
-/**
- * Model that represents the list of Orders to store in the index {@link
- * CommandManagerPlugin#INDEX_NAME}
- */
+/** Model that stores a list of Orders to be indexed at {@link CommandManagerPlugin#INDEX_NAME} */
 public class Orders implements ToXContentObject {
     public static final String ORDERS = "_orders";
     public static final String ID = "_id";

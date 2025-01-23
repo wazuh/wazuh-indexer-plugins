@@ -40,7 +40,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutionException;
 
-/** Utility class for performing search operations. */
+/** Utility class for performing generic search operations on the OpenSearch cluster. */
 public class Search {
     private static final Logger log = LogManager.getLogger(Search.class);
 
