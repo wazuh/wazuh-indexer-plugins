@@ -216,7 +216,7 @@ public class PluginSettings {
                 + timeout
                 + ", jobSchedule="
                 + jobSchedule
-                + ", jobPageSize="
+                + ", maxDocs="
                 + maxDocs
                 + ", pitKeepAlive="
                 + pitKeepAlive
