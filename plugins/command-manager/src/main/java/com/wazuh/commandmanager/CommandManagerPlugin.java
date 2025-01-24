@@ -157,7 +157,7 @@ public class CommandManagerPlugin extends Plugin
         return Arrays.asList(
                 // Register API settings
                 PluginSettings.CLIENT_TIMEOUT,
-                PluginSettings.JOB_PAGE_SIZE,
+                PluginSettings.MAX_DOCS,
                 PluginSettings.JOB_SCHEDULE);
     }
 

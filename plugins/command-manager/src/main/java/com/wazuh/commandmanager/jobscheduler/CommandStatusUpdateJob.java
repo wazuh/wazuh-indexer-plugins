@@ -29,25 +29,29 @@ import org.opensearch.script.ScriptType;
 
 import java.util.Collections;
 
-import com.wazuh.commandmanager.CommandManagerPlugin;
 import com.wazuh.commandmanager.model.Command;
 import com.wazuh.commandmanager.model.Status;
+import com.wazuh.commandmanager.settings.PluginSettings;
 
-/**
- * The class in charge of searching and managing commands in {@link Status#PENDING} status and of
- * submitting them to the destination client.
- */
-public class SearchThreadRefactor implements Runnable {
+/** The class in charge of searching and managing commands in {@link Status#PENDING}. */
+public class CommandStatusUpdateJob implements Runnable {
     public static final String COMMAND_STATUS_FIELD = Command.COMMAND + "." + Command.STATUS;
-    private static final Logger log = LogManager.getLogger(SearchThreadRefactor.class);
+    public static final String DELIVERY_TIMESTAMP_FIELD = "delivery_timestamp";
+    private static final Logger log = LogManager.getLogger(CommandStatusUpdateJob.class);
     private final Client client;
+
+    /** Painless code for the updateByQuery query. */
+    public static final String UPDATE_QUERY =
+            String.format(
+                    "if (ctx._source.command.status == '%s') {ctx._source.command.status = '%s';}",
+                    Status.PENDING, Status.FAILURE);
 
     /**
      * Default constructor.
      *
      * @param client OpenSearch's client.
      */
-    public SearchThreadRefactor(Client client) {
+    public CommandStatusUpdateJob(Client client) {
         this.client = client;
     }
 
@@ -56,22 +60,27 @@ public class SearchThreadRefactor implements Runnable {
         log.debug("Running scheduled job");
         try {
             // updateByQuery
+            // ------------
+            // Fetch every command in PENDING status and whose delivery time has expired. Set their
+            // status to FAILURE.
             UpdateByQueryRequestBuilder updateByQuery =
                     new UpdateByQueryRequestBuilder(this.client, UpdateByQueryAction.INSTANCE);
             updateByQuery
-                    .source(CommandManagerPlugin.INDEX_NAME)
+                    .source(PluginSettings.getIndexName())
                     .filter(
                             QueryBuilders.boolQuery()
-                                    .must(QueryBuilders.rangeQuery("delivery_timestamp").lt("now"))
+                                    .must(
+                                            QueryBuilders.rangeQuery(DELIVERY_TIMESTAMP_FIELD)
+                                                    .lt("now"))
                                     .filter(
                                             QueryBuilders.termQuery(
                                                     COMMAND_STATUS_FIELD, Status.PENDING)))
-                    .maxDocs(1000)
+                    .maxDocs(PluginSettings.getInstance().getMaxDocs())
                     .script(
                             new Script(
                                     ScriptType.INLINE,
                                     "painless",
-                                    "if (ctx._source.command.status == 'pending') {ctx._source.command.status = 'failure';}",
+                                    UPDATE_QUERY,
                                     Collections.emptyMap()));
             BulkByScrollResponse response = updateByQuery.get();
             log.info(response.getUpdated());

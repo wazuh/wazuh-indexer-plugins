@@ -43,7 +43,7 @@ public class PluginSettingsTests extends OpenSearchIntegTestCase {
                 Settings.builder()
                         .put("command_manager.client.timeout", 20)
                         .put("command_manager.job.schedule", 1)
-                        .put("command_manager.job.page_size", 100)
+                        .put("command_manager.job.max_docs", 100)
                         .build();
 
         mockEnvironment = mock(Environment.class);
@@ -57,7 +57,7 @@ public class PluginSettingsTests extends OpenSearchIntegTestCase {
 
         assertEquals(Optional.of(20), Optional.of(pluginSettings.getTimeout()));
         assertEquals(Optional.of(1), Optional.of(pluginSettings.getJobSchedule()));
-        assertEquals(Optional.of(100), Optional.of(pluginSettings.getJobPageSize()));
+        assertEquals(Optional.of(100), Optional.of(pluginSettings.getMaxDocs()));
         assertEquals("index-template-scheduled-commands", PluginSettings.getJobIndexTemplate());
         assertEquals("/_plugins/_command_manager", PluginSettings.getApiPrefix());
         assertEquals(
