@@ -38,7 +38,7 @@ public class PluginSettings {
     private static final String JOB_INDEX_TEMPLATE = "index-template-scheduled-commands";
     private static final String JOB_INDEX = ".scheduled-commands";
     private static final String COMMAND_INDEX_TEMPLATE = "index-template-commands";
-    private static final String COMMAND_INDEX = ".commands";
+    private static final String COMMAND_INDEX = "wazuh-commands";
     private static final String API_BASE_URI = "/_plugins/_command_manager";
     private static final String API_COMMANDS_ENDPOINT = API_BASE_URI + "/commands";
 
