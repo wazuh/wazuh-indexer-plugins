@@ -97,11 +97,23 @@ public class Args implements ToXContentObject {
                     list = null;
                     isList = false;
                     break;
+                case START_OBJECT:
+                    args.put(fieldName, Args.parse(parser).getArgs());
+                    break;
                 default:
                     break;
             }
         }
         return new Args(args);
+    }
+
+    /**
+     * Required for the parsing of nested objects.
+     *
+     * @return internal args map.
+     */
+    public Map<String, Object> getArgs() {
+        return this.args;
     }
 
     /**
