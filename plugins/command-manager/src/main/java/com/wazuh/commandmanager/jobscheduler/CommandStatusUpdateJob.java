@@ -28,6 +28,7 @@ import org.opensearch.script.Script;
 import org.opensearch.script.ScriptType;
 
 import java.util.Collections;
+import java.util.Locale;
 
 import com.wazuh.commandmanager.model.Command;
 import com.wazuh.commandmanager.model.Status;
@@ -46,8 +47,10 @@ public class CommandStatusUpdateJob implements Runnable {
     /** Painless code for the updateByQuery query. */
     private static final String UPDATE_QUERY =
             String.format(
+                    Locale.ROOT,
                     "if (ctx._source.command.status == '%s') {ctx._source.command.status = '%s';}",
-                    Status.PENDING, Status.FAILURE);
+                    Status.PENDING,
+                    Status.FAILURE);
 
     /**
      * Default constructor.
