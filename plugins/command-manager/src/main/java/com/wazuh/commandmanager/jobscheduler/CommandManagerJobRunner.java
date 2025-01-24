@@ -70,8 +70,8 @@ public class CommandManagerJobRunner implements ScheduledJobRunner {
                     PluginSettings.getIndexName());
             return;
         }
-        final CommandStatusUpdateJob searchThread = new CommandStatusUpdateJob(this.client);
-        this.threadPool.generic().submit(searchThread);
+        final CommandStatusUpdateJob job = new CommandStatusUpdateJob(this.client);
+        this.threadPool.generic().submit(job);
     }
 
     /**

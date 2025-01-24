@@ -33,15 +33,18 @@ import com.wazuh.commandmanager.model.Command;
 import com.wazuh.commandmanager.model.Status;
 import com.wazuh.commandmanager.settings.PluginSettings;
 
-/** The class in charge of searching and managing commands in {@link Status#PENDING}. */
+/**
+ * The class in charge of searching and updating expired commands in {@link Status#PENDING} status.
+ */
 public class CommandStatusUpdateJob implements Runnable {
-    public static final String COMMAND_STATUS_FIELD = Command.COMMAND + "." + Command.STATUS;
-    public static final String DELIVERY_TIMESTAMP_FIELD = "delivery_timestamp";
     private static final Logger log = LogManager.getLogger(CommandStatusUpdateJob.class);
     private final Client client;
 
+    private static final String COMMAND_STATUS_FIELD = Command.COMMAND + "." + Command.STATUS;
+    private static final String DELIVERY_TIMESTAMP_FIELD = "delivery_timestamp";
+
     /** Painless code for the updateByQuery query. */
-    public static final String UPDATE_QUERY =
+    private static final String UPDATE_QUERY =
             String.format(
                     "if (ctx._source.command.status == '%s') {ctx._source.command.status = '%s';}",
                     Status.PENDING, Status.FAILURE);
@@ -55,14 +58,14 @@ public class CommandStatusUpdateJob implements Runnable {
         this.client = client;
     }
 
+    /**
+     * Fetch every command in PENDING status and whose delivery time has expired. Set their status
+     * to FAILURE.
+     */
     @Override
     public void run() {
-        log.debug("Running scheduled job");
+        log.debug("Running query to update expired commands");
         try {
-            // updateByQuery
-            // ------------
-            // Fetch every command in PENDING status and whose delivery time has expired. Set their
-            // status to FAILURE.
             UpdateByQueryRequestBuilder updateByQuery =
                     new UpdateByQueryRequestBuilder(this.client, UpdateByQueryAction.INSTANCE);
             updateByQuery
@@ -83,11 +86,11 @@ public class CommandStatusUpdateJob implements Runnable {
                                     UPDATE_QUERY,
                                     Collections.emptyMap()));
             BulkByScrollResponse response = updateByQuery.get();
-            log.info(response.getUpdated());
+            log.debug("Query returned {} documents", response.getUpdated());
         } catch (OpenSearchTimeoutException e) {
             log.error("Query timed out: {}", e.getMessage());
         } catch (Exception e) {
-            log.error("Generic exception retrieving page: {}", e.getMessage());
+            log.error("Generic exception running the query: {}", e.getMessage());
         }
     }
 }
