@@ -27,7 +27,7 @@ public class PluginSettings {
     private static final Logger log = LogManager.getLogger(PluginSettings.class);
 
     // Settings default values
-    private static final Integer DEFAULT_PAGE_SIZE = 100;
+    private static final Integer DEFAULT_MAX_DOCS = 1000;
     private static final Integer DEFAULT_CLIENT_TIMEOUT = 30;
     private static final Integer DEFAULT_JOB_SCHEDULE = 1;
     /* Some configurations were kept as constants rather than settings preventing
@@ -43,11 +43,11 @@ public class PluginSettings {
     private static final String API_COMMANDS_ENDPOINT = API_BASE_URI + "/commands";
 
     // Command Manager Settings.
-    // Number of commands to be returned per search results page
-    public static final Setting<Integer> JOB_PAGE_SIZE =
+    // Maximum number of documents to be returned by query.
+    public static final Setting<Integer> MAX_DOCS =
             Setting.intSetting(
-                    "command_manager.job.page_size",
-                    DEFAULT_PAGE_SIZE,
+                    "command_manager.job.max_docs",
+                    DEFAULT_MAX_DOCS,
                     5,
                     100000,
                     Setting.Property.NodeScope,
@@ -75,7 +75,7 @@ public class PluginSettings {
 
     private Integer timeout;
     private final Integer jobSchedule;
-    private final Integer jobPageSize;
+    private final Integer maxDocs;
     private final Integer pitKeepAlive;
 
     private static PluginSettings instance;
@@ -84,7 +84,7 @@ public class PluginSettings {
     private PluginSettings(@NonNull final Settings settings) {
         this.timeout = CLIENT_TIMEOUT.get(settings);
         this.jobSchedule = JOB_SCHEDULE.get(settings);
-        this.jobPageSize = JOB_PAGE_SIZE.get(settings);
+        this.maxDocs = MAX_DOCS.get(settings);
         this.pitKeepAlive = this.jobSchedule * 60;
         this.validateSettings();
         log.debug("Settings loaded: {}", this.toString());
@@ -147,10 +147,10 @@ public class PluginSettings {
     }
 
     /**
-     * @return the job page size value
+     * @return the job max docs value
      */
-    public Integer getJobPageSize() {
-        return this.jobPageSize;
+    public Integer getMaxDocs() {
+        return this.maxDocs;
     }
 
     /**
@@ -216,8 +216,8 @@ public class PluginSettings {
                 + timeout
                 + ", jobSchedule="
                 + jobSchedule
-                + ", jobPageSize="
-                + jobPageSize
+                + ", maxDocs="
+                + maxDocs
                 + ", pitKeepAlive="
                 + pitKeepAlive
                 + '}';
