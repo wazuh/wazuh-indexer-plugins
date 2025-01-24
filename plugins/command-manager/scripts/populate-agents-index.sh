@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Constants and Configuration
-INDEX_NAME=".agents"
+INDEX_NAME="wazuh-agents"
 USERNAME="admin"
 PASSWORD="admin"
 IP="127.0.0.1"

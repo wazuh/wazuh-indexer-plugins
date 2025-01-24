@@ -67,7 +67,7 @@ public class Document implements ToXContentObject {
      * @throws IOException parsing error occurred.
      */
     public static Document parse(XContentParser parser) throws IOException {
-        Agent agent = new Agent(List.of("groups000")); // TODO read agent from .agents index
+        Agent agent = new Agent(List.of("groups000")); // TODO read agent from wazuh-agents index
         Command command = null;
 
         while (parser.nextToken() != XContentParser.Token.END_OBJECT) {
