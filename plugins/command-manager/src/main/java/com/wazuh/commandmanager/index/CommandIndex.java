@@ -34,8 +34,8 @@ import java.util.ArrayList;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
 
-import com.wazuh.commandmanager.CommandManagerPlugin;
 import com.wazuh.commandmanager.model.Document;
+import com.wazuh.commandmanager.settings.PluginSettings;
 import com.wazuh.commandmanager.utils.IndexTemplateUtils;
 
 /** Class to manage the Command Manager index and index template. */
@@ -63,11 +63,10 @@ public class CommandIndex implements IndexingOperationListener {
     /**
      * Checks if the command index exists.
      *
-     * @return whether the internal {@value
-     *     com.wazuh.commandmanager.CommandManagerPlugin#INDEX_NAME} exists.
+     * @return whether the internal Command Manager's index exists.
      */
     public boolean indexExists() {
-        return this.clusterService.state().routingTable().hasIndex(CommandManagerPlugin.INDEX_NAME);
+        return this.clusterService.state().routingTable().hasIndex(PluginSettings.getIndexName());
     }
 
     /**
@@ -97,15 +96,15 @@ public class CommandIndex implements IndexingOperationListener {
                 () -> {
                     try (ThreadContext.StoredContext ignored =
                             this.threadPool.getThreadContext().stashContext()) {
+                        final String indexTemplateName = PluginSettings.getIndexTemplate();
                         // Create index template if it does not exist.
                         if (IndexTemplateUtils.isMissingIndexTemplate(
-                                this.clusterService, CommandManagerPlugin.INDEX_TEMPLATE_NAME)) {
-                            IndexTemplateUtils.putIndexTemplate(
-                                    this.client, CommandManagerPlugin.INDEX_TEMPLATE_NAME);
+                                this.clusterService, indexTemplateName)) {
+                            IndexTemplateUtils.putIndexTemplate(this.client, indexTemplateName);
                         } else {
                             log.info(
                                     "Index template {} already exists. Skipping creation.",
-                                    CommandManagerPlugin.INDEX_TEMPLATE_NAME);
+                                    indexTemplateName);
                         }
 
                         final RestStatus restStatus = client.bulk(bulkRequest).actionGet().status();
@@ -127,7 +126,7 @@ public class CommandIndex implements IndexingOperationListener {
      */
     private IndexRequest createIndexRequest(Document document) throws IOException {
         return new IndexRequest()
-                .index(CommandManagerPlugin.INDEX_NAME)
+                .index(PluginSettings.getIndexName())
                 .source(document.toXContent(XContentFactory.jsonBuilder(), ToXContent.EMPTY_PARAMS))
                 .id(document.getId())
                 .create(true);
