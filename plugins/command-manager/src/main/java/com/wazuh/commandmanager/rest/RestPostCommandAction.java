@@ -33,20 +33,17 @@ import java.util.List;
 import java.util.Locale;
 import java.util.concurrent.CompletableFuture;
 
-import com.wazuh.commandmanager.CommandManagerPlugin;
 import com.wazuh.commandmanager.index.CommandIndex;
 import com.wazuh.commandmanager.model.Agent;
 import com.wazuh.commandmanager.model.Command;
 import com.wazuh.commandmanager.model.Document;
 import com.wazuh.commandmanager.model.Documents;
+import com.wazuh.commandmanager.settings.PluginSettings;
 
 import static org.opensearch.core.xcontent.XContentParserUtils.ensureExpectedToken;
 import static org.opensearch.rest.RestRequest.Method.POST;
 
-/**
- * Handles HTTP requests to the POST {@value
- * com.wazuh.commandmanager.CommandManagerPlugin#COMMANDS_URI} endpoint.
- */
+/** Handles HTTP requests to the POST the Commands API endpoint. */
 public class RestPostCommandAction extends BaseRestHandler {
 
     public static final String POST_COMMAND_ACTION_REQUEST_DETAILS =
@@ -71,7 +68,8 @@ public class RestPostCommandAction extends BaseRestHandler {
     public List<Route> routes() {
         return List.of(
                 new Route(
-                        POST, String.format(Locale.ROOT, "%s", CommandManagerPlugin.COMMANDS_URI)));
+                        POST,
+                        String.format(Locale.ROOT, "%s", PluginSettings.getApiCommandsEndpoint())));
     }
 
     @Override
@@ -138,7 +136,8 @@ public class RestPostCommandAction extends BaseRestHandler {
         for (Command command : commands) {
             Document document =
                     new Document(
-                            new Agent(List.of("groups000")), // TODO read agent from .agents index
+                            new Agent(List.of("groups000")), // TODO read agent from wazuh-agents
+                            // index
                             command);
             documents.addDocument(document);
         }
@@ -158,7 +157,7 @@ public class RestPostCommandAction extends BaseRestHandler {
                             restStatus -> {
                                 try (XContentBuilder builder = channel.newBuilder()) {
                                     builder.startObject();
-                                    builder.field("_index", CommandManagerPlugin.INDEX_NAME);
+                                    builder.field("_index", PluginSettings.getIndexName());
                                     documents.toXContent(builder, ToXContent.EMPTY_PARAMS);
                                     builder.field("result", restStatus.name());
                                     builder.endObject();
