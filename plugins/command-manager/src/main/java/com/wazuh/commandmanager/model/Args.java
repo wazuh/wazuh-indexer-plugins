@@ -16,6 +16,8 @@
  */
 package com.wazuh.commandmanager.model;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.opensearch.core.xcontent.ToXContentObject;
 import org.opensearch.core.xcontent.XContentBuilder;
 import org.opensearch.core.xcontent.XContentParser;
@@ -28,6 +30,7 @@ import java.util.Map;
 
 /** Handles the command.action.args object */
 public class Args implements ToXContentObject {
+    private static final Logger log = LogManager.getLogger(Args.class);
 
     public static final String ARGS = "args";
     private final Map<String, Object> args;
@@ -47,14 +50,14 @@ public class Args implements ToXContentObject {
     }
 
     /**
-     * Parses an args XContentParser into an Args object. A {@code Map<String,Object>} is created
+     * Parses any args XContentParser into an Args object. A {@code Map<String,Object>} is created
      * with the fields and values from the command.action.args object
      *
      * @param parser An XContentParser containing an args to be deserialized
      * @return An Args object
      * @throws IOException Rethrows the exception from list() and objectText() methods
      */
-    public static Args parse(XContentParser parser) throws IOException {
+    public static Args generalParse(XContentParser parser) throws IOException {
         Map<String, Object> args = new HashMap<>();
 
         String fieldName = "";
@@ -98,13 +101,46 @@ public class Args implements ToXContentObject {
                     isList = false;
                     break;
                 case START_OBJECT:
-                    args.put(fieldName, Args.parse(parser).getArgs());
+                    args.put(fieldName, Args.generalParse(parser).getArgs());
                     break;
                 default:
                     break;
             }
         }
         return new Args(args);
+    }
+
+    /**
+     * Parses list of agents in args XContentParser into an Args object. A {@code
+     * Map<String,Object>} is created with the fields and values from the command.action.args object
+     *
+     * @param parser An XContentParser containing an args to be deserialized
+     * @return An Args object
+     * @throws IOException Rethrows the exception from list() and objectText() methods
+     */
+    public static Args setGroupParse(XContentParser parser)
+            throws IOException, IllegalArgumentException {
+        Map<String, Object> args = new HashMap<>();
+        parser.nextToken();
+        String fieldName = parser.currentName();
+
+        parser.nextToken();
+        if ("groups".equals(fieldName)
+                && parser.currentToken() == XContentParser.Token.START_ARRAY) {
+            List<Object> list = new ArrayList<>();
+            while (parser.nextToken() != XContentParser.Token.END_ARRAY) {
+                if (parser.currentToken() == XContentParser.Token.VALUE_STRING) {
+                    list.add(parser.objectText());
+                }
+            }
+            args.put(fieldName, list);
+            // to end the object parser
+            parser.nextToken();
+            return new Args(args);
+        } else {
+            throw new IllegalArgumentException(
+                    "Incorrect request. An array of agents is expected in args.");
+        }
     }
 
     /**

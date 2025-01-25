@@ -54,7 +54,7 @@ public class Action implements ToXContentObject {
      * @return initialized instance of Action.
      * @throws IOException parsing error occurred.
      */
-    public static Action parse(XContentParser parser) throws IOException {
+    public static Action parse(XContentParser parser) throws IOException, IllegalArgumentException {
         String name = "";
         Args args = new Args();
         String version = "";
@@ -67,7 +67,7 @@ public class Action implements ToXContentObject {
                     name = parser.text();
                     break;
                 case Args.ARGS:
-                    args = Args.parse(parser);
+                    args = parseArgs(name, parser);
                     break;
                 case VERSION:
                     version = parser.text();
@@ -104,5 +104,18 @@ public class Action implements ToXContentObject {
                 + this.version
                 + '\''
                 + '}';
+    }
+
+    private static Args parseArgs(String actionName, XContentParser parser)
+            throws IOException, NullPointerException {
+        ActionName actionNameEnum = ActionName.SET_GROUP;
+        if (actionName.contains(actionNameEnum.getName())) {
+            return Args.setGroupParse(parser);
+        }
+        actionNameEnum = ActionName.FETCH_GROUP;
+        if (actionName.contains(actionNameEnum.getName())) {
+            return new Args();
+        }
+        return Args.generalParse(parser);
     }
 }
