@@ -107,6 +107,7 @@ public class Args implements ToXContentObject {
                     break;
             }
         }
+        log.info("General parse args. FINISH token {}", parser.currentToken());
         return new Args(args);
     }
 
@@ -134,13 +135,14 @@ public class Args implements ToXContentObject {
                 }
             }
             args.put(fieldName, list);
+
             // to end the object parser
             parser.nextToken();
-            return new Args(args);
-        } else {
-            throw new IllegalArgumentException(
-                    "Incorrect request. An array of agents is expected in args.");
+            if (parser.currentToken() == XContentParser.Token.END_OBJECT) {
+                return new Args(args);
+            }
         }
+            throw new IllegalArgumentException("Incorrect request. An array of agents is expected in args.");
     }
 
     /**
