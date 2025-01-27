@@ -21,7 +21,9 @@ import org.opensearch.core.xcontent.XContentBuilder;
 import org.opensearch.core.xcontent.XContentParser;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 /** Handles the command.action.args object */
@@ -54,12 +56,64 @@ public class Args implements ToXContentObject {
      */
     public static Args parse(XContentParser parser) throws IOException {
         Map<String, Object> args = new HashMap<>();
+
+        String fieldName = "";
+        List<Object> list = null;
+        boolean isList = false;
+
         while (parser.nextToken() != XContentParser.Token.END_OBJECT) {
-            String fieldName = parser.currentName();
-            parser.nextToken();
-            args.put(fieldName, parser.objectText());
+            XContentParser.Token actualToken = parser.currentToken();
+            switch (actualToken) {
+                case FIELD_NAME:
+                    fieldName = parser.currentName();
+                    break;
+                case START_ARRAY:
+                    list = new ArrayList<>();
+                    isList = true;
+                    break;
+                case VALUE_STRING:
+                    if (isList) {
+                        list.add(parser.objectText());
+                    } else {
+                        args.put(fieldName, parser.objectText());
+                    }
+                    break;
+                case VALUE_NUMBER:
+                    if (isList) {
+                        list.add(parser.numberValue());
+                    } else {
+                        args.put(fieldName, parser.numberValue());
+                    }
+                    break;
+                case VALUE_NULL:
+                    if (isList) {
+                        list.add("");
+                    } else {
+                        args.put(fieldName, "");
+                    }
+                    break;
+                case END_ARRAY:
+                    args.put(fieldName, list);
+                    list = null;
+                    isList = false;
+                    break;
+                case START_OBJECT:
+                    args.put(fieldName, Args.parse(parser).getArgs());
+                    break;
+                default:
+                    break;
+            }
         }
         return new Args(args);
+    }
+
+    /**
+     * Required for the parsing of nested objects.
+     *
+     * @return internal args map.
+     */
+    public Map<String, Object> getArgs() {
+        return this.args;
     }
 
     /**

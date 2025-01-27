@@ -28,21 +28,39 @@ public class Target implements ToXContentObject {
     public static final String TYPE = "type";
     public static final String ID = "id";
 
-    // Define the enum for type
+    /** Define the possible values for the Type object. */
     public enum Type {
         AGENT("agent"),
         GROUP("group");
 
+        /** The string value of the type. */
         private final String value;
 
+        /**
+         * Constructs a new Type with the specified string value.
+         *
+         * @param value the string value of the type
+         */
         Type(String value) {
             this.value = value;
         }
 
+        /**
+         * Gets the string value of the type.
+         *
+         * @return the string value of the type
+         */
         public String getValue() {
             return value;
         }
 
+        /**
+         * Converts a string to the corresponding Type enum.
+         *
+         * @param value the string value to convert
+         * @return the corresponding Type enum
+         * @throws IllegalArgumentException if the string does not match any Type
+         */
         public static Type fromString(String value) {
             for (Type type : Type.values()) {
                 if (type.value.equalsIgnoreCase(value)) {

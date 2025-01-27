@@ -115,7 +115,7 @@ public class Search {
     }
 
     /**
-     * Executes a PIT style query on the specified index using a term query.
+     * Executes a PIT (Point-In-Time) style query on the specified index using a term query.
      *
      * @param client the Client used to execute the search query.
      * @param index the name of the index to search.
@@ -125,6 +125,8 @@ public class Search {
      * @param searchAfter an array of objects containing the last page's values of the sort fields.
      * @param timeout the timeout value for the search query.
      * @param pageSize the size of each page of results.
+     * @param sortField the field to sort by.
+     * @param sortOrder the order to sort by (e.g., ascending or descending).
      * @return the SearchResponse object containing the search results.
      */
     public static SearchResponse executePitQuery(

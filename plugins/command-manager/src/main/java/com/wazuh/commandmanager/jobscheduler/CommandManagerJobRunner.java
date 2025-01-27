@@ -24,8 +24,8 @@ import org.opensearch.jobscheduler.spi.ScheduledJobParameter;
 import org.opensearch.jobscheduler.spi.ScheduledJobRunner;
 import org.opensearch.threadpool.ThreadPool;
 
-import com.wazuh.commandmanager.CommandManagerPlugin;
 import com.wazuh.commandmanager.index.CommandIndex;
+import com.wazuh.commandmanager.settings.PluginSettings;
 
 /**
  * Implements the ScheduledJobRunner interface, which exposes the runJob() method, which executes
@@ -67,11 +67,11 @@ public class CommandManagerJobRunner implements ScheduledJobRunner {
         if (!this.indexManager.indexExists()) {
             log.info(
                     "{} index not yet created, not running command manager jobs",
-                    CommandManagerPlugin.INDEX_NAME);
+                    PluginSettings.getIndexName());
             return;
         }
-        final SearchThread searchThread = new SearchThread(this.client);
-        this.threadPool.generic().submit(searchThread);
+        final CommandStatusUpdateJob job = new CommandStatusUpdateJob(this.client);
+        this.threadPool.generic().submit(job);
     }
 
     /**

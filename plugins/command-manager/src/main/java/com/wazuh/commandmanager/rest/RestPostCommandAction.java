@@ -33,15 +33,15 @@ import java.io.IOException;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
 
-import com.wazuh.commandmanager.CommandManagerPlugin;
 import com.wazuh.commandmanager.index.CommandIndex;
 import com.wazuh.commandmanager.model.*;
+import com.wazuh.commandmanager.settings.PluginSettings;
 import com.wazuh.commandmanager.utils.Search;
 
 import static org.opensearch.core.xcontent.XContentParserUtils.ensureExpectedToken;
 import static org.opensearch.rest.RestRequest.Method.POST;
 
-/** Handles HTTP requests to the POST {@value CommandManagerPlugin#COMMANDS_URI} endpoint. */
+/** Handles HTTP requests to the POST the Commands API endpoint. */
 public class RestPostCommandAction extends BaseRestHandler {
 
     public static final String POST_COMMAND_ACTION_REQUEST_DETAILS =
@@ -66,7 +66,8 @@ public class RestPostCommandAction extends BaseRestHandler {
     public List<Route> routes() {
         return List.of(
                 new Route(
-                        POST, String.format(Locale.ROOT, "%s", CommandManagerPlugin.COMMANDS_URI)));
+                        POST,
+                        String.format(Locale.ROOT, "%s", PluginSettings.getApiCommandsEndpoint())));
     }
 
     @Override
@@ -136,7 +137,7 @@ public class RestPostCommandAction extends BaseRestHandler {
                             restStatus -> {
                                 try (XContentBuilder builder = channel.newBuilder()) {
                                     builder.startObject();
-                                    builder.field("_index", CommandManagerPlugin.INDEX_NAME);
+                                    builder.field("_index", PluginSettings.getIndexName());
                                     orders.toXContent(builder, ToXContent.EMPTY_PARAMS);
                                     builder.field("result", restStatus.name());
                                     builder.endObject();
