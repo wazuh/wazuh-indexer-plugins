@@ -208,7 +208,8 @@ public class RestPostCommandAction extends BaseRestHandler {
 
             // Build and execute the search query
             log.info("Searching for agents using field {} with value {}", field, targetId);
-            SearchHits hits = Search.syncSearch(client, ".agents", field, targetId);
+            SearchHits hits =
+                    Search.syncSearch(client, PluginSettings.getAgentsIndex(), field, targetId);
             if (hits != null) {
                 for (SearchHit hit : hits) {
                     final Map<String, Object> agentMap =
