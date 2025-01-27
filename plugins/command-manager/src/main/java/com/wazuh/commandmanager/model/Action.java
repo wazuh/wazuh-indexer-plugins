@@ -16,6 +16,8 @@
  */
 package com.wazuh.commandmanager.model;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.opensearch.core.xcontent.ToXContentObject;
 import org.opensearch.core.xcontent.XContentBuilder;
 import org.opensearch.core.xcontent.XContentParser;
@@ -30,6 +32,7 @@ public class Action implements ToXContentObject {
     public static final String ACTION = "action";
     public static final String NAME = "name";
     public static final String VERSION = "version";
+    private static final Logger log = LogManager.getLogger(Action.class);
     private final String name;
     private final Args args;
     private final String version;
@@ -54,7 +57,7 @@ public class Action implements ToXContentObject {
      * @return initialized instance of Action.
      * @throws IOException parsing error occurred.
      */
-    public static Action parse(XContentParser parser) throws IOException {
+    public static Action parse(XContentParser parser) throws IOException, IllegalArgumentException {
         String name = "";
         Args args = new Args();
         String version = "";
@@ -67,7 +70,7 @@ public class Action implements ToXContentObject {
                     name = parser.text();
                     break;
                 case Args.ARGS:
-                    args = Args.parse(parser);
+                    args = parseArgs(name, parser);
                     break;
                 case VERSION:
                     version = parser.text();
@@ -104,5 +107,22 @@ public class Action implements ToXContentObject {
                 + this.version
                 + '\''
                 + '}';
+    }
+
+    private static Args parseArgs(String actionName, XContentParser parser)
+            throws IOException, NullPointerException {
+        ActionName actionNameEnum = ActionName.SET_GROUP;
+        if (actionName.contains(actionNameEnum.getName())) {
+            return Args.setGroupParse(parser);
+        }
+        actionNameEnum = ActionName.FETCH_GROUP;
+        if (actionName.contains(actionNameEnum.getName())) {
+            while (parser.currentToken() != XContentParser.Token.END_OBJECT) {
+                //Just move the parser to the end of the object
+                parser.nextToken();
+            }
+            return new Args();
+        }
+        return Args.generalParse(parser);
     }
 }
