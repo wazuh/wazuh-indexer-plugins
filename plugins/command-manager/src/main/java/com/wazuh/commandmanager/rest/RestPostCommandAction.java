@@ -26,19 +26,17 @@ import org.opensearch.core.xcontent.XContentParser;
 import org.opensearch.rest.BaseRestHandler;
 import org.opensearch.rest.BytesRestResponse;
 import org.opensearch.rest.RestRequest;
+import org.opensearch.search.SearchHit;
+import org.opensearch.search.SearchHits;
 
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Locale;
+import java.util.*;
 import java.util.concurrent.CompletableFuture;
 
 import com.wazuh.commandmanager.index.CommandIndex;
-import com.wazuh.commandmanager.model.Agent;
-import com.wazuh.commandmanager.model.Command;
-import com.wazuh.commandmanager.model.Document;
-import com.wazuh.commandmanager.model.Documents;
+import com.wazuh.commandmanager.model.*;
 import com.wazuh.commandmanager.settings.PluginSettings;
+import com.wazuh.commandmanager.utils.Search;
 
 import static org.opensearch.core.xcontent.XContentParserUtils.ensureExpectedToken;
 import static org.opensearch.rest.RestRequest.Method.POST;
@@ -77,7 +75,7 @@ public class RestPostCommandAction extends BaseRestHandler {
             throws IOException {
         switch (request.method()) {
             case POST:
-                return handlePost(request);
+                return handlePost(request, client);
             default:
                 throw new IllegalArgumentException(
                         "Unsupported HTTP method " + request.method().name());
@@ -88,69 +86,51 @@ public class RestPostCommandAction extends BaseRestHandler {
      * Handles a POST HTTP request.
      *
      * @param request POST HTTP request
+     * @param client NodeClient instance
      * @return a response to the request as BytesRestResponse.
      * @throws IOException thrown by the XContentParser methods.
      */
-    private RestChannelConsumer handlePost(RestRequest request) throws IOException {
+    private RestChannelConsumer handlePost(RestRequest request, final NodeClient client)
+            throws IOException {
         log.info(
                 "Received {} {} request id [{}] from host [{}]",
                 request.method().name(),
                 request.uri(),
                 request.getRequestId(),
                 request.header("Host"));
-
-        /// Request validation
-        /// ==================
-        /// Fail fast.
+        // Request validation
         if (!request.hasContent()) {
-            // Bad request if body doesn't exist
             return channel -> {
                 channel.sendResponse(
                         new BytesRestResponse(RestStatus.BAD_REQUEST, "Body content is required"));
             };
         }
-
-        /// Request parsing
-        /// ===============
-        /// Retrieves and generates an array list of commands.
-        XContentParser parser = request.contentParser();
-        List<Command> commands = new ArrayList<>();
-        ensureExpectedToken(XContentParser.Token.START_OBJECT, parser.nextToken(), parser);
-        // The array of commands is inside the "commands" JSON object.
-        // This line moves the parser pointer to this object.
-        parser.nextToken();
-        if (parser.nextToken() == XContentParser.Token.START_ARRAY) {
-            commands = Command.parseToArray(parser);
-        } else {
-            log.error("Token does not match {}", parser.currentToken());
+        List<Command> commands = getCommandList(request);
+        // Validate commands are not empty
+        if (commands.isEmpty()) {
+            return channel -> {
+                channel.sendResponse(
+                        new BytesRestResponse(
+                                RestStatus.BAD_REQUEST,
+                                "No valid commands detected in the request body."));
+            };
+        }
+        Orders orders = commandsToOrders(client, commands);
+        // Validate that the orders are not empty
+        if (orders.getOrders().isEmpty()) {
+            return channel -> {
+                channel.sendResponse(
+                        new BytesRestResponse(
+                                RestStatus.BAD_REQUEST,
+                                "Cannot generate orders. Invalid agent IDs or groups."));
+            };
         }
 
-        /// Commands expansion
-        /// ==================
-        /// Transforms the array of commands to orders.
-        /// While commands can be targeted to groups of agents, orders are targeted to individual
-        // agents.
-        /// Given a group of agents A with N agents, a total of N orders are generated. One for each
-        // agent.
-        Documents documents = new Documents();
-        for (Command command : commands) {
-            Document document =
-                    new Document(
-                            new Agent(List.of("groups000")), // TODO read agent from wazuh-agents
-                            // index
-                            command);
-            documents.addDocument(document);
-        }
-
-        /// Orders indexing
-        /// ==================
-        /// The orders are inserted into the index.
+        // Orders indexing
         CompletableFuture<RestStatus> bulkRequestFuture =
-                this.commandIndex.asyncBulkCreate(documents.getDocuments());
+                this.commandIndex.asyncBulkCreate(orders.getOrders());
 
-        /// Send response
-        /// ==================
-        /// Reply to the request.
+        // Send response
         return channel -> {
             bulkRequestFuture
                     .thenAccept(
@@ -158,7 +138,7 @@ public class RestPostCommandAction extends BaseRestHandler {
                                 try (XContentBuilder builder = channel.newBuilder()) {
                                     builder.startObject();
                                     builder.field("_index", PluginSettings.getIndexName());
-                                    documents.toXContent(builder, ToXContent.EMPTY_PARAMS);
+                                    orders.toXContent(builder, ToXContent.EMPTY_PARAMS);
                                     builder.field("result", restStatus.name());
                                     builder.endObject();
                                     channel.sendResponse(
@@ -179,5 +159,76 @@ public class RestPostCommandAction extends BaseRestHandler {
                                 return null;
                             });
         };
+    }
+
+    /**
+     * Parses the content of a RestRequest and retrieves a list of Command objects.
+     *
+     * @param request the RestRequest containing the command data.
+     * @return a list of Command objects parsed from the request content.
+     * @throws IOException if an error occurs while parsing the request content.
+     */
+    private static List<Command> getCommandList(RestRequest request) throws IOException {
+        // Request parsing
+        XContentParser parser = request.contentParser();
+        List<Command> commands = new ArrayList<>();
+        ensureExpectedToken(XContentParser.Token.START_OBJECT, parser.nextToken(), parser);
+        parser.nextToken();
+        if (parser.nextToken() == XContentParser.Token.START_ARRAY) {
+            commands = Command.parseToArray(parser);
+        } else {
+            log.error("Token does not match {}", parser.currentToken());
+        }
+
+        return commands;
+    }
+
+    /**
+     * Converts a list of Command objects into Orders by executing search queries.
+     *
+     * @param client the NodeClient used to execute search queries.
+     * @param commands the list of Command objects to be converted.
+     * @return an Orders object containing the generated orders.
+     */
+    @SuppressWarnings("unchecked")
+    private static Orders commandsToOrders(NodeClient client, List<Command> commands) {
+        Orders orders = new Orders();
+
+        for (Command command : commands) {
+            List<Agent> agentList = new ArrayList<>();
+            String field = "";
+            Target.Type targetType = command.getTarget().getType();
+            String targetId = command.getTarget().getId();
+
+            if (Objects.equals(targetType, Target.Type.GROUP)) {
+                field = "agent.groups";
+            } else if (Objects.equals(targetType, Target.Type.AGENT)) {
+                field = "agent.id";
+            }
+
+            // Build and execute the search query
+            log.info("Searching for agents using field {} with value {}", field, targetId);
+            SearchHits hits =
+                    Search.syncSearch(client, PluginSettings.getAgentsIndex(), field, targetId);
+            if (hits != null) {
+                for (SearchHit hit : hits) {
+                    final Map<String, Object> agentMap =
+                            Search.getNestedObject(hit.getSourceAsMap(), "agent", Map.class);
+                    if (agentMap != null) {
+                        String agentId = (String) agentMap.get(Agent.ID);
+                        List<String> agentGroups = (List<String>) agentMap.get(Agent.GROUPS);
+                        Agent agent = new Agent(agentId, agentGroups);
+                        agentList.add(agent);
+                    }
+                }
+                log.info("Search retrieved {} agents.", agentList.size());
+            }
+
+            for (Agent agent : agentList) {
+                Order order = new Order(agent, command);
+                orders.addOrder(order);
+            }
+        }
+        return orders;
     }
 }

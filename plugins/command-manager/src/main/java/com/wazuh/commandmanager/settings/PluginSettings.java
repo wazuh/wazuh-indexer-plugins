@@ -39,6 +39,7 @@ public class PluginSettings {
     private static final String JOB_INDEX = ".scheduled-commands";
     private static final String COMMAND_INDEX_TEMPLATE = "index-template-commands";
     private static final String COMMAND_INDEX = "wazuh-commands";
+    private static final String AGENTS_INDEX = "wazuh-agents";
     private static final String API_BASE_URI = "/_plugins/_command_manager";
     private static final String API_COMMANDS_ENDPOINT = API_BASE_URI + "/commands";
 
@@ -200,6 +201,13 @@ public class PluginSettings {
      */
     public static String getIndexName() {
         return COMMAND_INDEX;
+    }
+
+    /**
+     * @return the name of the agents index
+     */
+    public static String getAgentsIndex() {
+        return AGENTS_INDEX;
     }
 
     /**

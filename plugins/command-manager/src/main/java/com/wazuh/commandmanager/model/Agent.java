@@ -27,6 +27,8 @@ import java.util.List;
 public class Agent implements ToXContentObject {
     public static final String AGENT = "agent";
     public static final String GROUPS = "groups";
+    public static final String ID = "id";
+    private final String id;
     private final List<String> groups;
 
     /**
@@ -34,7 +36,8 @@ public class Agent implements ToXContentObject {
      *
      * @param groups Agent's groups
      */
-    public Agent(List<String> groups) {
+    public Agent(String id, List<String> groups) {
+        this.id = id;
         this.groups = groups;
     }
 
@@ -47,12 +50,15 @@ public class Agent implements ToXContentObject {
      */
     public static Agent parse(XContentParser parser) throws IOException {
         List<Object> groups = List.of();
+        String id = null;
 
         while (parser.nextToken() != XContentParser.Token.END_OBJECT) {
             String fieldName = parser.currentName();
             parser.nextToken();
             if (fieldName.equals(GROUPS)) {
                 groups = parser.list();
+            } else if (fieldName.equals(ID)) {
+                id = parser.text();
             } else {
                 parser.skipChildren();
             }
@@ -60,7 +66,7 @@ public class Agent implements ToXContentObject {
 
         // Cast args field Object list to String list
         List<String> convertedGroupFields = (List<String>) (List<?>) (groups);
-        return new Agent(convertedGroupFields);
+        return new Agent(id, convertedGroupFields);
     }
 
     @Override
@@ -72,6 +78,6 @@ public class Agent implements ToXContentObject {
 
     @Override
     public String toString() {
-        return "Agent{" + "groups=" + groups + '}';
+        return "Agent{" + "id=" + id + '\'' + ", groups=" + groups + '}';
     }
 }
