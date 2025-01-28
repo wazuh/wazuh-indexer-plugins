@@ -42,6 +42,11 @@ plugin: rest
 
 resources:
 
+  - path: /system/status
+    method: GET
+    security:
+      default: Permit
+
   - path: "/api/v1/catalog/contexts/:context/consumers/:consumer"
     contentType: application/json
     method: GET
@@ -76,5 +81,5 @@ security:
     - effect: Permit
       requestHeaders:
         authorization: 
-        value: Bearer .*
-        operator: Matches
+          value: Bearer .*
+          operator: Matches
