@@ -16,13 +16,18 @@
  */
 package com.wazuh.contentmanager.rest;
 
+import org.apache.hc.core5.http.message.BasicHeader;
 import org.opensearch.client.node.NodeClient;
 import org.opensearch.rest.BaseRestHandler;
 import org.opensearch.rest.RestRequest;
 
 import java.io.IOException;
+import java.net.URI;
 import java.util.List;
 import java.util.Locale;
+
+import com.wazuh.contentmanager.PluginSettings;
+import com.wazuh.contentmanager.http.GetClient;
 
 import static org.opensearch.rest.RestRequest.Method.GET;
 
@@ -47,6 +52,12 @@ public class GetHandler extends BaseRestHandler {
             throws IOException {
         switch (request.method()) {
             case GET:
+                GetClient.getInstance()
+                        .get(
+                                URI.create(PluginSettings.getInstance().getUri()),
+                                null,
+                                new BasicHeader("authorization", "Bearer: API-TOKEN"));
+
                 return null;
             default:
                 throw new IllegalArgumentException(
