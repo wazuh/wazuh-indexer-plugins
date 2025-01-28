@@ -16,6 +16,8 @@
  */
 package com.wazuh.commandmanager.model;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.opensearch.core.xcontent.ToXContentObject;
 import org.opensearch.core.xcontent.XContentBuilder;
 import org.opensearch.core.xcontent.XContentParser;
@@ -33,6 +35,8 @@ public class Action implements ToXContentObject {
     private final String name;
     private final Args args;
     private final String version;
+
+    private static final Logger log = LogManager.getLogger(Action.class);
 
     /**
      * Default constructor.
@@ -67,7 +71,20 @@ public class Action implements ToXContentObject {
                     name = parser.text();
                     break;
                 case Args.ARGS:
-                    args = Args.parse(parser);
+                    switch (name) {
+                        case "set-group":
+                            log.info("Parsing arguments for [set-group] command");
+                            args = SetGroupCommand.parse(parser);
+                            break;
+                        case "fetch-config":
+                            log.info("Parsing arguments for [fetch-config] command");
+                            args = FetchConfigCommand.parse(parser);
+                            break;
+                        default:
+                            log.info("Parsing arguments for [generic] command");
+                            args = Args.parse(parser);
+                            break;
+                    }
                     break;
                 case VERSION:
                     version = parser.text();
