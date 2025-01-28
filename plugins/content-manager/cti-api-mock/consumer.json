@@ -1,0 +1,14 @@
+{
+  "data": {
+    "id": 42,
+    "context": "foo",
+    "name": "bar",
+    "last_offset": 44,
+    "paths_filter": ["/foo", "/bar"],
+    "last_snapshot_link": "https://s3.eu-west-1.amazonaws.com/wazuh-cti/consumer-foo-bar-20230627.zip",
+    "last_snapshot_offset": 42,
+    "last_snapshot_at": "2023-06-27T00:00:00Z",
+    "changes_url": "https://asdfasdf.cloudfront.com/api/v1/catalog/contexts/foo/consumers/bar/changes",
+    "inserted_at": "2023-05-28T00:00:00Z"
+  }
+}
