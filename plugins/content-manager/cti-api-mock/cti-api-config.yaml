@@ -45,9 +45,12 @@ resources:
   - path: "/api/v1/catalog/contexts/:context/consumers/:consumer"
     contentType: application/json
     method: GET
+    security:
+      default: Permit
     response:
       file: consumer.json
       statusCode: 200
+      scriptFile: consoleLog.js
 
   - path: "/api/v1/catalog/contexts/:context/changes"
     contentType: application/json
@@ -65,4 +68,13 @@ resources:
     response:
       file: changes.json
       statusCode: 200
+      scriptFile: consoleLog.js
 
+security:
+  default: Deny
+  conditions:
+    - effect: Permit
+      requestHeaders:
+        authorization: 
+        value: Bearer .*
+        operator: Matches
