@@ -16,9 +16,12 @@
  */
 package com.wazuh.contentmanager.rest;
 
+import org.apache.hc.client5.http.async.methods.SimpleHttpResponse;
 import org.apache.hc.core5.http.message.BasicHeader;
 import org.opensearch.client.node.NodeClient;
+import org.opensearch.core.rest.RestStatus;
 import org.opensearch.rest.BaseRestHandler;
+import org.opensearch.rest.BytesRestResponse;
 import org.opensearch.rest.RestRequest;
 
 import java.io.IOException;
@@ -50,15 +53,19 @@ public class GetHandler extends BaseRestHandler {
     @Override
     protected RestChannelConsumer prepareRequest(RestRequest request, NodeClient client)
             throws IOException {
+        SimpleHttpResponse response;
         switch (request.method()) {
             case GET:
-                GetClient.getInstance()
+                response = GetClient.getInstance()
                         .get(
                                 URI.create(PluginSettings.getInstance().getUri()),
                                 null,
                                 new BasicHeader("authorization", "Bearer: API-TOKEN"));
-
-                return null;
+                return restChannel -> {
+                    restChannel.sendResponse(
+                        new BytesRestResponse(RestStatus.OK, response.getBodyText())
+                    );
+                };
             default:
                 throw new IllegalArgumentException(
                         ("Unsupported HTTP method " + request.method().name()));
