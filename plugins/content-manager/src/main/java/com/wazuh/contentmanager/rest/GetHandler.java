@@ -18,6 +18,8 @@ package com.wazuh.contentmanager.rest;
 
 import org.apache.hc.client5.http.async.methods.SimpleHttpResponse;
 import org.apache.hc.core5.http.message.BasicHeader;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.opensearch.client.node.NodeClient;
 import org.opensearch.core.rest.RestStatus;
 import org.opensearch.rest.BaseRestHandler;
@@ -35,6 +37,9 @@ import com.wazuh.contentmanager.http.GetClient;
 import static org.opensearch.rest.RestRequest.Method.GET;
 
 public class GetHandler extends BaseRestHandler {
+
+    private static final Logger log = LogManager.getLogger(GetHandler.class);
+
 
     public static final String GET_CONTENT_MANAGER_INIT_DETAILS =
             "get_content_manager_init_details";
@@ -61,6 +66,7 @@ public class GetHandler extends BaseRestHandler {
                                 URI.create(PluginSettings.getInstance().getUri()),
                                 null,
                                 new BasicHeader("authorization", "Bearer: API-TOKEN"));
+                log.debug(response.getBodyText());
                 return restChannel -> {
                     restChannel.sendResponse(
                         new BytesRestResponse(RestStatus.OK, response.getBodyText())
