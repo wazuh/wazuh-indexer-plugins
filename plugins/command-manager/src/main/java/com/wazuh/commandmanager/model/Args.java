@@ -16,6 +16,8 @@
  */
 package com.wazuh.commandmanager.model;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.opensearch.core.xcontent.ToXContentObject;
 import org.opensearch.core.xcontent.XContentBuilder;
 import org.opensearch.core.xcontent.XContentParser;
@@ -31,6 +33,7 @@ public class Args implements ToXContentObject {
 
     public static final String ARGS = "args";
     private final Map<String, Object> args;
+    private static final Logger log = LogManager.getLogger(Args.class);
 
     /** Parameterless constructor. */
     public Args() {
@@ -126,6 +129,7 @@ public class Args implements ToXContentObject {
      */
     @Override
     public XContentBuilder toXContent(XContentBuilder builder, Params params) throws IOException {
+        log.info("ARGS INSIDE {}", Args.ARGS);
         builder.startObject(Args.ARGS);
         for (String key : this.args.keySet()) {
             builder.field(key, this.args.get(key));

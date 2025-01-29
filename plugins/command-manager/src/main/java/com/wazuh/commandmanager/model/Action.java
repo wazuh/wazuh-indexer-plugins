@@ -23,6 +23,7 @@ import org.opensearch.core.xcontent.XContentBuilder;
 import org.opensearch.core.xcontent.XContentParser;
 
 import java.io.IOException;
+import java.util.Locale;
 
 import reactor.util.annotation.NonNull;
 import reactor.util.annotation.Nullable;
@@ -71,21 +72,28 @@ public class Action implements ToXContentObject {
                     name = parser.text();
                     break;
                 case Args.ARGS:
-                    try{
+                    try {
                         log.info("NAME: {}", name);
-                        // Convert the action name to uppercase and replace hyphens with underscores to match the enum constants.
-                        ActionName actionName = ActionName.valueOf(name.toUpperCase().replace("-", "_"));
+                        // Convert the action name to uppercase and replace hyphens with underscores
+                        // to match the enum constants.
+                        ActionName actionName =
+                                ActionName.valueOf(name.toUpperCase(Locale.ROOT).replace("-", "_"));
                         switch (actionName) {
                             case SET_GROUP:
                                 log.info("Parsing arguments for [set-group] command");
-                                args = SetGroupCommand.parse(parser);
+                                try {
+                                    args = SetGroupCommand.parse(parser);
+                                } catch (IllegalArgumentException e) {
+                                    log.error("Error parsing action {}", e.getMessage());
+                                    throw new IOException(e);
+                                }
                                 break;
                             case FETCH_CONFIG:
                                 log.info("Parsing arguments for [fetch-config] command");
                                 args = FetchConfigCommand.parse(parser);
                                 break;
                         }
-                    }catch (IllegalArgumentException e) {
+                    } catch (IllegalArgumentException e) {
                         log.info("Parsing arguments for [generic] command");
                         args = Args.parse(parser);
                     }
