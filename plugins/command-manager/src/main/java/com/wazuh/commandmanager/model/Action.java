@@ -71,19 +71,23 @@ public class Action implements ToXContentObject {
                     name = parser.text();
                     break;
                 case Args.ARGS:
-                    switch (name) {
-                        case "set-group":
-                            log.info("Parsing arguments for [set-group] command");
-                            args = SetGroupCommand.parse(parser);
-                            break;
-                        case "fetch-config":
-                            log.info("Parsing arguments for [fetch-config] command");
-                            args = FetchConfigCommand.parse(parser);
-                            break;
-                        default:
-                            log.info("Parsing arguments for [generic] command");
-                            args = Args.parse(parser);
-                            break;
+                    try{
+                        log.info("NAME: {}", name);
+                        // Convert the action name to uppercase and replace hyphens with underscores to match the enum constants.
+                        ActionName actionName = ActionName.valueOf(name.toUpperCase().replace("-", "_"));
+                        switch (actionName) {
+                            case SET_GROUP:
+                                log.info("Parsing arguments for [set-group] command");
+                                args = SetGroupCommand.parse(parser);
+                                break;
+                            case FETCH_CONFIG:
+                                log.info("Parsing arguments for [fetch-config] command");
+                                args = FetchConfigCommand.parse(parser);
+                                break;
+                        }
+                    }catch (IllegalArgumentException e) {
+                        log.info("Parsing arguments for [generic] command");
+                        args = Args.parse(parser);
                     }
                     break;
                 case VERSION:
