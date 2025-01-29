@@ -76,4 +76,126 @@ public class SetGroupCommandTests extends OpenSearchIntegTestCase {
             fail("Expected groups to be a List, but it was: " + groupsObj.getClass().getName());
         }
     }
+
+    public void testParseInvalidGroups() throws IOException {
+        // Create an XContentParser with an invalid JSON, that is not an array
+        XContentBuilder builder = XContentFactory.jsonBuilder();
+        builder.startObject();
+        builder.field("groups", "these isn't an array");
+        builder.endObject();
+        BytesReference bytes = BytesReference.bytes(builder);
+        MediaType mediaType = MediaTypeRegistry.JSON;
+        XContentParser parser =
+                mediaType
+                        .xContent()
+                        .createParser(
+                                NamedXContentRegistry.EMPTY,
+                                DeprecationHandler.THROW_UNSUPPORTED_OPERATION,
+                                bytes.streamInput());
+
+        // Call the parse method
+        try {
+            // Initialize the parser
+            parser.nextToken();
+            // Test parse method
+            SetGroupCommand.parse(parser);
+            fail("This must fail because the JSON is not an array.");
+        } catch (IOException | IllegalArgumentException e) {
+            // Verify that the exception is correct.
+            assertEquals(
+                    "Expected [command.action.args.groups] to be an array, got [VALUE_STRING]",
+                    e.getMessage());
+        }
+    }
+
+    public void testParseMissingGroups() throws IOException {
+        // Create an XContentParser with an invalid JSON, that does not contain the "groups" key
+        XContentBuilder builder = XContentFactory.jsonBuilder();
+        builder.startObject();
+        builder.field("testField", "any-string");
+        builder.endObject();
+        BytesReference bytes = BytesReference.bytes(builder);
+        MediaType mediaType = MediaTypeRegistry.JSON;
+        XContentParser parser =
+                mediaType
+                        .xContent()
+                        .createParser(
+                                NamedXContentRegistry.EMPTY,
+                                DeprecationHandler.THROW_UNSUPPORTED_OPERATION,
+                                bytes.streamInput());
+
+        // Call the parse method
+        try {
+            // Initialize the parser
+            parser.nextToken();
+            // Test parse method
+            SetGroupCommand.parse(parser);
+            fail("This must fail because the JSON does not contain the 'groups' key.");
+        } catch (IllegalArgumentException e) {
+            // Verify that the exception is correct.
+            assertEquals(
+                    "Expected [command.action.args] to contain the [groups] key, got [testField]",
+                    e.getMessage());
+        }
+    }
+
+    public void testParseEmptyGroups() throws IOException {
+        // Create an XContentParser with a valid JSON that contains an empty array for "groups"
+        XContentBuilder builder = XContentFactory.jsonBuilder();
+        builder.startObject();
+        builder.field("groups", List.of());
+        builder.endObject();
+        BytesReference bytes = BytesReference.bytes(builder);
+        MediaType mediaType = MediaTypeRegistry.JSON;
+        XContentParser parser =
+                mediaType
+                        .xContent()
+                        .createParser(
+                                NamedXContentRegistry.EMPTY,
+                                DeprecationHandler.THROW_UNSUPPORTED_OPERATION,
+                                bytes.streamInput());
+
+        // Initialize the parser
+        parser.nextToken();
+        // Test the parse method
+        Args args = SetGroupCommand.parse(parser);
+
+        // Verify the result.
+        assertNotNull(args);
+        assertEquals(1, args.getArgs().size());
+        assertTrue(args.getArgs().containsKey("groups"));
+        List<String> groups = (List<String>) args.getArgs().get("groups");
+        assertEquals(0, groups.size());
+    }
+
+    public void testParseNullGroups() throws IOException {
+        // Create an XContentParser with a valid JSON that contains a null value for "groups"
+        XContentBuilder builder = XContentFactory.jsonBuilder();
+        builder.startObject();
+        builder.field("groups", (String) null);
+        builder.endObject();
+        BytesReference bytes = BytesReference.bytes(builder);
+        MediaType mediaType = MediaTypeRegistry.JSON;
+        XContentParser parser =
+                mediaType
+                        .xContent()
+                        .createParser(
+                                NamedXContentRegistry.EMPTY,
+                                DeprecationHandler.THROW_UNSUPPORTED_OPERATION,
+                                bytes.streamInput());
+
+        // Call the parse method
+        try {
+            // Initialize the parser
+            parser.nextToken();
+            // Test parse method
+            SetGroupCommand.parse(parser);
+            fail("This must fail because the JSON contains a null value.");
+        } catch (IllegalArgumentException e) {
+            // Verify that the exception is correct.
+            assertEquals(
+                    "Expected [command.action.args.groups] to be an array, got [VALUE_NULL]",
+                    e.getMessage());
+        }
+    }
 }
