@@ -58,8 +58,12 @@ public class PluginSettings {
      * @return {@link PluginSettings#INSTANCE}
      */
     public static PluginSettings getInstance(@NonNull final Settings settings) {
-        if (PluginSettings.INSTANCE == null) {
-            INSTANCE = new PluginSettings(settings);
+        if (INSTANCE == null) {
+            synchronized (PluginSettings.class) {
+                if (INSTANCE == null) {
+                    INSTANCE = new PluginSettings(settings);
+                }
+            }
         }
         return INSTANCE;
     }

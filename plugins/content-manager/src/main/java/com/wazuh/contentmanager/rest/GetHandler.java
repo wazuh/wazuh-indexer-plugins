@@ -40,14 +40,14 @@ public class GetHandler extends BaseRestHandler {
 
     private static final Logger log = LogManager.getLogger(GetHandler.class);
 
-
     public static final String GET_CONTENT_MANAGER_INIT_DETAILS =
             "get_content_manager_init_details";
 
     @Override
     public List<Route> routes() {
         return List.of(
-                new Route(GET, String.format(Locale.ROOT, "%s", "/_plugins/_content_manager/init")));
+                new Route(
+                        GET, String.format(Locale.ROOT, "%s", "/_plugins/_content_manager/init")));
     }
 
     @Override
@@ -61,16 +61,16 @@ public class GetHandler extends BaseRestHandler {
         SimpleHttpResponse response;
         switch (request.method()) {
             case GET:
-                response = GetClient.getInstance()
-                        .get(
-                                URI.create(PluginSettings.getInstance().getUri()),
-                                null,
-                                new BasicHeader("authorization", "Bearer: API-TOKEN"));
+                response =
+                        GetClient.getInstance()
+                                .get(
+                                        URI.create(PluginSettings.getInstance().getUri()),
+                                        null,
+                                        new BasicHeader("authorization", "Bearer: API-TOKEN"));
                 log.debug(response.getBodyText());
                 return restChannel -> {
                     restChannel.sendResponse(
-                        new BytesRestResponse(RestStatus.OK, response.getBodyText())
-                    );
+                            new BytesRestResponse(RestStatus.OK, response.getBodyText()));
                 };
             default:
                 throw new IllegalArgumentException(

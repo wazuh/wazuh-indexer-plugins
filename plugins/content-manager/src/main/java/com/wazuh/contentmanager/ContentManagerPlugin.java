@@ -16,16 +16,12 @@
  */
 package com.wazuh.contentmanager;
 
-import com.wazuh.contentmanager.rest.GetHandler;
 import org.opensearch.client.Client;
 import org.opensearch.cluster.metadata.IndexNameExpressionResolver;
 import org.opensearch.cluster.node.DiscoveryNode;
 import org.opensearch.cluster.node.DiscoveryNodes;
 import org.opensearch.cluster.service.ClusterService;
-import org.opensearch.common.settings.ClusterSettings;
-import org.opensearch.common.settings.IndexScopedSettings;
-import org.opensearch.common.settings.Settings;
-import org.opensearch.common.settings.SettingsFilter;
+import org.opensearch.common.settings.*;
 import org.opensearch.core.common.io.stream.NamedWriteableRegistry;
 import org.opensearch.core.xcontent.NamedXContentRegistry;
 import org.opensearch.env.Environment;
@@ -45,6 +41,8 @@ import java.util.Collections;
 import java.util.List;
 import java.util.function.Supplier;
 
+import com.wazuh.contentmanager.rest.GetHandler;
+
 public class ContentManagerPlugin extends Plugin implements ActionPlugin, ClusterPlugin {
 
     /** ClassConstructor * */
@@ -63,18 +61,8 @@ public class ContentManagerPlugin extends Plugin implements ActionPlugin, Cluste
             NamedWriteableRegistry namedWriteableRegistry,
             IndexNameExpressionResolver indexNameExpressionResolver,
             Supplier<RepositoriesService> repositoriesServiceSupplier) {
-        return super.createComponents(
-                client,
-                clusterService,
-                threadPool,
-                resourceWatcherService,
-                scriptService,
-                xContentRegistry,
-                environment,
-                nodeEnvironment,
-                namedWriteableRegistry,
-                indexNameExpressionResolver,
-                repositoriesServiceSupplier);
+        PluginSettings.getInstance(environment.settings());
+        return Collections.emptyList();
     }
 
     @Override
@@ -92,5 +80,10 @@ public class ContentManagerPlugin extends Plugin implements ActionPlugin, Cluste
     @Override
     public void onNodeStarted(DiscoveryNode localNode) {
         // ClusterPlugin.super.onNodeStarted(localNode);
+    }
+
+    @Override
+    public List<Setting<?>> getSettings() {
+        return List.of(PluginSettings.CTI_API_URI);
     }
 }
