@@ -14,20 +14,18 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-package com.wazuh.contentmanager.model;
+package com.wazuh.contentmanager.action.cti;
 
-import org.opensearch.core.xcontent.ToXContentObject;
-import org.opensearch.core.xcontent.XContentBuilder;
+public enum Endpoints {
+    CONTEXT_CONSUMER("/api/v1/catalog/contexts/%s/consumers/%s");
 
-import java.io.IOException;
+    private final String endpoint;
 
-public class Context implements ToXContentObject {
+    Endpoints(String endpoint) {
+        this.endpoint = endpoint;
+    }
 
-    private static final String CONSUMERS = "consumers";
-
-    private @Override public XContentBuilder toXContent(XContentBuilder builder, Params params)
-            throws IOException {
-        builder.startObject(CONSUMERS);
-        builder.startObject();
+    public String format(Object... args) {
+        return String.format(endpoint, args);
     }
 }

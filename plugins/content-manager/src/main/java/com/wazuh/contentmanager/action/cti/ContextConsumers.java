@@ -16,22 +16,29 @@
  */
 package com.wazuh.contentmanager.action.cti;
 
-import org.apache.hc.client5.http.async.methods.SimpleHttpResponse;
-import org.opensearch.rest.RestRequest;
+public enum ContextConsumers {
+    CVE_EXPLORER("vdp_all_vendors", "cve-explorer"),
+    VD("vd_1.0.0", "vd_4.8.0");
 
-import java.net.URI;
+    private final String contextConsumerEndpoint;
+    private final String context;
+    private final String consumer;
 
-import com.wazuh.contentmanager.util.http.HttpClient;
+    ContextConsumers(String context, String consumer) {
+        this.contextConsumerEndpoint = Endpoints.CONTEXT_CONSUMER.format(context, consumer);
+        this.context = context;
+        this.consumer = consumer;
+    }
 
-public class GetConsumers {
-    public static SimpleHttpResponse handleGet(RestRequest request) {
-        if (request.hasContent()) {
-            request.content();
-        }
-        return HttpClient.getInstance()
-                .get(
-                        URI.create(ContextConsumers.CVE_EXPLORER.getContextConsumerEndpoint()),
-                        null,
-                        (org.apache.hc.core5.http.Header) null);
+    public String getConsumer() {
+        return consumer;
+    }
+
+    public String getContext() {
+        return context;
+    }
+
+    public String getContextConsumerEndpoint() {
+        return this.contextConsumerEndpoint;
     }
 }

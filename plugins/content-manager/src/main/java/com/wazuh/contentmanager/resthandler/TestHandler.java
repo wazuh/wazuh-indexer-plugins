@@ -16,7 +16,6 @@
  */
 package com.wazuh.contentmanager.resthandler;
 
-import com.wazuh.contentmanager.action.cti.GetConsumers;
 import org.apache.hc.client5.http.async.methods.SimpleHttpResponse;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -29,6 +28,8 @@ import org.opensearch.rest.RestRequest;
 import java.io.IOException;
 import java.util.List;
 import java.util.Locale;
+
+import com.wazuh.contentmanager.action.cti.GetConsumers;
 
 import static org.opensearch.rest.RestRequest.Method.GET;
 
@@ -68,5 +69,4 @@ public class TestHandler extends BaseRestHandler {
                         ("Unsupported HTTP method " + request.method().name()));
         }
     }
-
 }
