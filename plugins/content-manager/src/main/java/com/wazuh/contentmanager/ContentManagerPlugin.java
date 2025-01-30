@@ -16,6 +16,7 @@
  */
 package com.wazuh.contentmanager;
 
+import com.wazuh.contentmanager.rest.GetHandler;
 import org.opensearch.client.Client;
 import org.opensearch.cluster.metadata.IndexNameExpressionResolver;
 import org.opensearch.cluster.node.DiscoveryNode;
@@ -40,6 +41,7 @@ import org.opensearch.threadpool.ThreadPool;
 import org.opensearch.watcher.ResourceWatcherService;
 
 import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
 import java.util.function.Supplier;
 
@@ -84,14 +86,7 @@ public class ContentManagerPlugin extends Plugin implements ActionPlugin, Cluste
             SettingsFilter settingsFilter,
             IndexNameExpressionResolver indexNameExpressionResolver,
             Supplier<DiscoveryNodes> nodesInCluster) {
-        return ActionPlugin.super.getRestHandlers(
-                settings,
-                restController,
-                clusterSettings,
-                indexScopedSettings,
-                settingsFilter,
-                indexNameExpressionResolver,
-                nodesInCluster);
+        return Collections.singletonList(new GetHandler());
     }
 
     @Override

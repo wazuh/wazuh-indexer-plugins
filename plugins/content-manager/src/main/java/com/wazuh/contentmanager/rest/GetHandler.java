@@ -47,7 +47,7 @@ public class GetHandler extends BaseRestHandler {
     @Override
     public List<Route> routes() {
         return List.of(
-                new Route(GET, String.format(Locale.ROOT, "%s", "_plugins/_content_manager/init")));
+                new Route(GET, String.format(Locale.ROOT, "%s", "/_plugins/_content_manager/init")));
     }
 
     @Override
