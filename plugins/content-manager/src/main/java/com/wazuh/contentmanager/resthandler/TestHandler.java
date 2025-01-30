@@ -14,10 +14,10 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-package com.wazuh.contentmanager.rest;
+package com.wazuh.contentmanager.resthandler;
 
+import com.wazuh.contentmanager.action.cti.GetConsumers;
 import org.apache.hc.client5.http.async.methods.SimpleHttpResponse;
-import org.apache.hc.core5.http.message.BasicHeader;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.opensearch.client.node.NodeClient;
@@ -27,18 +27,14 @@ import org.opensearch.rest.BytesRestResponse;
 import org.opensearch.rest.RestRequest;
 
 import java.io.IOException;
-import java.net.URI;
 import java.util.List;
 import java.util.Locale;
 
-import com.wazuh.contentmanager.PluginSettings;
-import com.wazuh.contentmanager.http.GetClient;
-
 import static org.opensearch.rest.RestRequest.Method.GET;
 
-public class GetHandler extends BaseRestHandler {
+public class TestHandler extends BaseRestHandler {
 
-    private static final Logger log = LogManager.getLogger(GetHandler.class);
+    private static final Logger log = LogManager.getLogger(TestHandler.class);
 
     public static final String GET_CONTENT_MANAGER_INIT_DETAILS =
             "get_content_manager_init_details";
@@ -61,12 +57,7 @@ public class GetHandler extends BaseRestHandler {
         SimpleHttpResponse response;
         switch (request.method()) {
             case GET:
-                response =
-                        GetClient.getInstance()
-                                .get(
-                                        URI.create(PluginSettings.getInstance().getUri()),
-                                        null,
-                                        new BasicHeader("authorization", "Bearer: API-TOKEN"));
+                response = GetConsumers.handleGet(request);
                 log.debug(response.getBodyText());
                 return restChannel -> {
                     restChannel.sendResponse(
@@ -77,4 +68,5 @@ public class GetHandler extends BaseRestHandler {
                         ("Unsupported HTTP method " + request.method().name()));
         }
     }
+
 }

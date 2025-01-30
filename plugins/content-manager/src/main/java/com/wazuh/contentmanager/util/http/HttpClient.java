@@ -14,7 +14,7 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-package com.wazuh.contentmanager.http;
+package com.wazuh.contentmanager.util.http;
 
 import org.apache.hc.client5.http.async.methods.*;
 import org.apache.hc.client5.http.impl.async.CloseableHttpAsyncClient;
@@ -43,34 +43,33 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
-import com.wazuh.contentmanager.rest.HttpResponseCallback;
 import reactor.util.annotation.NonNull;
 
-public class GetClient {
+public class HttpClient {
 
-    private static final Logger log = LogManager.getLogger(GetClient.class);
+    private static final Logger log = LogManager.getLogger(HttpClient.class);
 
     /** Http requests default timeout * */
     public static final int TIMEOUT = 10;
 
-    static GetClient INSTANCE;
+    static HttpClient INSTANCE;
 
     private CloseableHttpAsyncClient httpClient;
 
-    private GetClient() {
+    private HttpClient() {
         startHttpAsyncClient();
     }
 
     /**
      * Singleton instance accessor
      *
-     * @return {@link GetClient#INSTANCE}
+     * @return {@link HttpClient#INSTANCE}
      */
-    public static GetClient getInstance() {
-        if (GetClient.INSTANCE == null) {
-            INSTANCE = new GetClient();
+    public static HttpClient getInstance() {
+        if (HttpClient.INSTANCE == null) {
+            INSTANCE = new HttpClient();
         }
-        return GetClient.INSTANCE;
+        return HttpClient.INSTANCE;
     }
 
     /** Starts http async client. */

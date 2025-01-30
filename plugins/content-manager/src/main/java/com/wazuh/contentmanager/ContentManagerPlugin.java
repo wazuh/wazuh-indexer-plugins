@@ -41,7 +41,9 @@ import java.util.Collections;
 import java.util.List;
 import java.util.function.Supplier;
 
-import com.wazuh.contentmanager.rest.GetHandler;
+import com.wazuh.contentmanager.resthandler.CtiConsumerHandler;
+import com.wazuh.contentmanager.resthandler.TestHandler;
+import com.wazuh.contentmanager.settings.PluginSettings;
 
 public class ContentManagerPlugin extends Plugin implements ActionPlugin, ClusterPlugin {
 
@@ -74,7 +76,7 @@ public class ContentManagerPlugin extends Plugin implements ActionPlugin, Cluste
             SettingsFilter settingsFilter,
             IndexNameExpressionResolver indexNameExpressionResolver,
             Supplier<DiscoveryNodes> nodesInCluster) {
-        return Collections.singletonList(new GetHandler());
+        return List.of(new TestHandler(), new CtiConsumerHandler());
     }
 
     @Override
