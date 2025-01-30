@@ -23,7 +23,6 @@ import org.opensearch.core.xcontent.XContentBuilder;
 import org.opensearch.core.xcontent.XContentParser;
 
 import java.io.IOException;
-import java.util.Locale;
 
 import reactor.util.annotation.NonNull;
 import reactor.util.annotation.Nullable;
@@ -59,7 +58,7 @@ public class Action implements ToXContentObject {
      * @return initialized instance of Action.
      * @throws IOException parsing error occurred.
      */
-    public static Action parse(XContentParser parser) throws IOException {
+    public static Action parse(XContentParser parser) throws IOException, IllegalArgumentException {
         String name = "";
         Args args = new Args();
         String version = "";
@@ -72,30 +71,19 @@ public class Action implements ToXContentObject {
                     name = parser.text();
                     break;
                 case Args.ARGS:
-                    try {
-                        log.info("NAME: {}", name);
-                        // Convert the action name to uppercase and replace hyphens with underscores
-                        // to match the enum constants.
-                        ActionName actionName =
-                                ActionName.valueOf(name.toUpperCase(Locale.ROOT).replace("-", "_"));
-                        switch (actionName) {
-                            case SET_GROUP:
-                                log.info("Parsing arguments for [set-group] command");
-                                try {
-                                    args = SetGroupCommand.parse(parser);
-                                } catch (IllegalArgumentException e) {
-                                    log.error("Error parsing action {}", e.getMessage());
-                                    throw new IOException(e);
-                                }
-                                break;
-                            case FETCH_CONFIG:
-                                log.info("Parsing arguments for [fetch-config] command");
-                                args = FetchConfigCommand.parse(parser);
-                                break;
-                        }
-                    } catch (IllegalArgumentException e) {
-                        log.info("Parsing arguments for [generic] command");
-                        args = Args.parse(parser);
+                    switch (name) {
+                        case "set-group":
+                            log.info("Parsing arguments for [set-group] command");
+                            args = SetGroupCommand.parse(parser);
+                            break;
+                        case "fetch-config":
+                            log.info("Parsing arguments for [fetch-config] command");
+                            args = FetchConfigCommand.parse(parser);
+                            break;
+                        default:
+                            log.info("Parsing arguments for [generic] command");
+                            args = Args.parse(parser);
+                            break;
                     }
                     break;
                 case VERSION:

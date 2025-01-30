@@ -16,8 +16,6 @@
  */
 package com.wazuh.commandmanager.model;
 
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
 import org.opensearch.common.xcontent.XContentFactory;
 import org.opensearch.core.common.bytes.BytesReference;
 import org.opensearch.core.xcontent.*;
@@ -27,17 +25,10 @@ import java.io.IOException;
 import java.util.Arrays;
 import java.util.List;
 
-import org.mockito.InjectMocks;
-
 import static com.wazuh.commandmanager.model.SetGroupCommand.parse;
 
 @OpenSearchIntegTestCase.ClusterScope(scope = OpenSearchIntegTestCase.Scope.SUITE)
 public class SetGroupCommandTests extends OpenSearchIntegTestCase {
-    private static final Logger log = LogManager.getLogger(SetGroupCommandTests.class);
-
-    @InjectMocks private SetGroupCommand setGroupCommand;
-
-    // @Mock private MediaType mediaType = mock(MediaType.class);
 
     public void testParseValidGroups() throws IOException {
         // Create an XContentParser with a valid JSON
@@ -47,7 +38,6 @@ public class SetGroupCommandTests extends OpenSearchIntegTestCase {
         builder.endObject();
         BytesReference bytes = BytesReference.bytes(builder);
         MediaType mediaType = MediaTypeRegistry.JSON;
-        log.info("THIS mediaType: {}", mediaType.mediaType());
         XContentParser parser =
                 mediaType
                         .xContent()
@@ -69,7 +59,6 @@ public class SetGroupCommandTests extends OpenSearchIntegTestCase {
         if (groupsObj instanceof List) {
             List<String> groups = (List<String>) groupsObj;
             assertEquals(2, groups.size());
-            log.info("groups: {}", groups.toString());
             assertEquals("group1", groups.get(0));
             assertEquals("group2", groups.get(1));
         } else {
