@@ -20,6 +20,8 @@ import org.apache.hc.client5.http.async.methods.SimpleHttpResponse;
 import org.opensearch.rest.RestRequest;
 
 import java.net.URI;
+import java.security.AccessController;
+import java.security.PrivilegedAction;
 
 import com.wazuh.contentmanager.util.http.HttpClient;
 
@@ -28,10 +30,16 @@ public class GetConsumers {
         if (request.hasContent()) {
             request.content();
         }
-        return HttpClient.getInstance()
-                .get(
-                        URI.create(ContextConsumers.CVE_EXPLORER.getContextConsumerEndpoint()),
-                        null,
-                        (org.apache.hc.core5.http.Header) null);
+        return AccessController.doPrivileged(
+                (PrivilegedAction<SimpleHttpResponse>)
+                        () -> {
+                            return HttpClient.getInstance()
+                                    .get(
+                                            URI.create(
+                                                    ContextConsumers.CVE_EXPLORER
+                                                            .getContextConsumerEndpoint()),
+                                            null,
+                                            (org.apache.hc.core5.http.Header) null);
+                        });
     }
 }

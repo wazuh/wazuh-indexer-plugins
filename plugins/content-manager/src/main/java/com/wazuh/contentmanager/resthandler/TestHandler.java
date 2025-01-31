@@ -59,10 +59,12 @@ public class TestHandler extends BaseRestHandler {
         switch (request.method()) {
             case GET:
                 response = GetConsumers.handleGet(request);
-                log.debug(response.getBodyText());
+                log.debug(response.toString());
                 return restChannel -> {
                     restChannel.sendResponse(
-                            new BytesRestResponse(RestStatus.OK, response.getBodyText()));
+                            new BytesRestResponse(
+                                    RestStatus.fromCode(response.getCode()),
+                                    response.getBodyText()));
                 };
             default:
                 throw new IllegalArgumentException(

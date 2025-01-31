@@ -151,12 +151,12 @@ public class HttpClient {
                             new HttpResponseCallback(
                                     httpGetRequest, "Failed to execute outgoing GET request"))
                     .get(TIMEOUT, TimeUnit.SECONDS);
-        } catch (InterruptedException e) {
-            log.error("Operation interrupted {}", e.getMessage());
-        } catch (ExecutionException e) {
-            log.error("Execution failed {}", e.getMessage());
-        } catch (TimeoutException e) {
-            log.error("Operation timed out {}", e.getMessage());
+        } catch (InterruptedException | ExecutionException | TimeoutException e) {
+            log.error(
+                    "Exception found while performing Http GET request interrupted {}",
+                    e.getMessage());
+        } catch (Exception e) {
+            log.error("Grabbing generic exception {}", e.getMessage());
         }
         return null;
     }

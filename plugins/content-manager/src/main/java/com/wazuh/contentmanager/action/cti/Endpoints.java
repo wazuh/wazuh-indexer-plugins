@@ -17,7 +17,7 @@
 package com.wazuh.contentmanager.action.cti;
 
 public enum Endpoints {
-    CONTEXT_CONSUMER("/api/v1/catalog/contexts/%s/consumers/%s");
+    CONTEXT_CONSUMER("https://cti-dev.wazuh.com/api/v1/catalog/contexts/%s/consumers/%s");
 
     private final String endpoint;
 
