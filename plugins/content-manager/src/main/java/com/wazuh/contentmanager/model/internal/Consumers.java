@@ -14,25 +14,20 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-package com.wazuh.contentmanager.action.cti;
+package com.wazuh.contentmanager.model.internal;
 
-import org.apache.hc.client5.http.async.methods.SimpleHttpResponse;
+import org.opensearch.core.xcontent.ToXContentObject;
+import org.opensearch.core.xcontent.XContentBuilder;
 
-import java.net.URI;
-import java.security.PrivilegedAction;
+import java.io.IOException;
 
-import com.wazuh.contentmanager.util.http.HttpClient;
+public class Consumers implements ToXContentObject {
 
-public class GetConsumersAction implements PrivilegedAction<SimpleHttpResponse> {
+    @Override
+    public XContentBuilder toXContent(XContentBuilder builder, Params params) throws IOException {
 
-    /** Empty constructor */
-    public GetConsumersAction() {}
-
-    public SimpleHttpResponse run() {
-        return HttpClient.getInstance()
-                .get(
-                        URI.create(ContextConsumersEnum.CVE_EXPLORER.getContextConsumerEndpoint()),
-                        null,
-                        (org.apache.hc.core5.http.Header) null);
+        builder.startObject("consumers");
+        // @TODO: Logic for including single consumers into an object goes here
+        return builder.endObject();
     }
 }

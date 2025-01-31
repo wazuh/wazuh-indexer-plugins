@@ -16,7 +16,7 @@
  */
 package com.wazuh.contentmanager.action.cti;
 
-public enum ContextConsumers {
+public enum ContextConsumersEnum {
     CVE_EXPLORER("vdp_all_vendors", "cve-explorer"),
     VD("vd_1.0.0", "vd_4.8.0");
 
@@ -24,8 +24,8 @@ public enum ContextConsumers {
     private final String context;
     private final String consumer;
 
-    ContextConsumers(String context, String consumer) {
-        this.contextConsumerEndpoint = Endpoints.CONTEXT_CONSUMER.format(context, consumer);
+    ContextConsumersEnum(String context, String consumer) {
+        this.contextConsumerEndpoint = EndpointsEnum.CONTEXT_CONSUMER.format(context, consumer);
         this.context = context;
         this.consumer = consumer;
     }

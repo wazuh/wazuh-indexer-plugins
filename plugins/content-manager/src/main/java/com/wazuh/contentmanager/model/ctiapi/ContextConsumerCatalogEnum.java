@@ -14,18 +14,19 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-package com.wazuh.contentmanager.action.cti;
+package com.wazuh.contentmanager.model.ctiapi;
 
-public enum Endpoints {
-    CONTEXT_CONSUMER("https://cti-dev.wazuh.com/api/v1/catalog/contexts/%s/consumers/%s");
+public enum ContextConsumerCatalogEnum {
+    ID("id"),
+    CONTEXT("context"),
+    NAME("name"),
+    LAST_OFFSET("last_offset"),
+    PATHS_FILTER("pathds_filter"),
+    LAST_SNAPSHOT_LINK("last_snapshot_link"),
+    LAST_SNAPSHOT_OFFSET("last_snapshot_offset"),
+    LAST_SNAPSHOT_AT("last_snapshot_at"),
+    CHANGES_URL("changes_url"),
+    INSERTED_AT("inserted_at");
 
-    private final String endpoint;
-
-    Endpoints(String endpoint) {
-        this.endpoint = endpoint;
-    }
-
-    public String format(Object... args) {
-        return String.format(endpoint, args);
-    }
+    ContextConsumerCatalogEnum(String string) {}
 }
