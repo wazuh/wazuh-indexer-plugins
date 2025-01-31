@@ -25,14 +25,15 @@ import com.wazuh.contentmanager.util.http.HttpClient;
 
 public class GetConsumersAction implements PrivilegedAction<SimpleHttpResponse> {
 
+    private final String endpoint;
+
     /** Empty constructor */
-    public GetConsumersAction() {}
+    public GetConsumersAction(String endpoint) {
+        this.endpoint = endpoint;
+    }
 
     public SimpleHttpResponse run() {
         return HttpClient.getInstance()
-                .get(
-                        URI.create(ContextConsumersEnum.CVE_EXPLORER.getContextConsumerEndpoint()),
-                        null,
-                        (org.apache.hc.core5.http.Header) null);
+                .get(URI.create(this.endpoint), null, (org.apache.hc.core5.http.Header) null);
     }
 }

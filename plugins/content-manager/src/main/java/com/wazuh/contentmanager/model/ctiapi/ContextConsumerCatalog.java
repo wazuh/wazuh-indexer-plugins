@@ -166,7 +166,7 @@ public class ContextConsumerCatalog implements ToXContentObject {
 
     @Override
     public XContentBuilder toXContent(XContentBuilder builder, Params params) throws IOException {
-        builder.startObject(DATA);
+        builder.startObject();
         builder.field(ID, this.id);
         builder.field(NAME, this.name);
         builder.field(CONTEXT, this.context);
@@ -180,6 +180,43 @@ public class ContextConsumerCatalog implements ToXContentObject {
         builder.field(LAST_SNAPSHOT_LINK, this.lastSnapshotLink);
         builder.field(LAST_SNAPSHOT_OFFSET, this.lastSnapshotOffset);
         return builder.endObject();
+    }
+
+    @Override
+    public String toString() {
+        return "ContextConsumerCatalog{"
+                + "changesUrl='"
+                + changesUrl
+                + '\''
+                + ", id="
+                + id
+                + ", context='"
+                + context
+                + '\''
+                + ", name='"
+                + name
+                + '\''
+                + ", lastOffset="
+                + lastOffset
+                + ", pathsFilter="
+                + pathsFilter
+                + ", lastSnapshotLink='"
+                + lastSnapshotLink
+                + '\''
+                + ", lastSnapshotOffset="
+                + lastSnapshotOffset
+                + ", lastSnapshotAt='"
+                + lastSnapshotAt
+                + '\''
+                + ", insertedAt='"
+                + insertedAt
+                + '\''
+                + ", operations="
+                + operations
+                + ", updatedAt='"
+                + updatedAt
+                + '\''
+                + '}';
     }
 
     public String getName() {
