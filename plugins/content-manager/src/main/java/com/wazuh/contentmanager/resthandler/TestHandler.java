@@ -20,7 +20,9 @@ import org.apache.hc.client5.http.async.methods.SimpleHttpResponse;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.opensearch.client.node.NodeClient;
+import org.opensearch.common.xcontent.XContentType;
 import org.opensearch.core.rest.RestStatus;
+import org.opensearch.core.xcontent.*;
 import org.opensearch.rest.BaseRestHandler;
 import org.opensearch.rest.BytesRestResponse;
 import org.opensearch.rest.RestRequest;
@@ -30,6 +32,7 @@ import java.util.List;
 import java.util.Locale;
 
 import com.wazuh.contentmanager.action.cti.GetConsumersAction;
+import com.wazuh.contentmanager.model.ctiapi.ContextConsumerCatalog;
 import com.wazuh.contentmanager.privileged.PrivilegedActionRunner;
 
 import static org.opensearch.rest.RestRequest.Method.GET;
@@ -59,13 +62,24 @@ public class TestHandler extends BaseRestHandler {
         SimpleHttpResponse response;
         switch (request.method()) {
             case GET:
-                // response = GetConsumersAction.handleGet(request);
-                response = PrivilegedActionRunner.runPrivileged(new GetConsumersAction());
+                response = PrivilegedActionRunner.run(new GetConsumersAction());
+                XContent xContent = XContentType.JSON.xContent();
+                XContentParser parser =
+                        xContent.createParser(
+                                NamedXContentRegistry.EMPTY,
+                                DeprecationHandler.IGNORE_DEPRECATIONS,
+                                response.getBodyBytes());
+                ContextConsumerCatalog catalog = ContextConsumerCatalog.parse(parser);
                 return restChannel -> {
                     restChannel.sendResponse(
                             new BytesRestResponse(
                                     RestStatus.fromCode(response.getCode()),
-                                    response.getBodyText()));
+                                    String.format(
+                                            "Context: %s\nConsumer: %s\nLast Snapshot Link: %s\nLast Offset: %d\n",
+                                            catalog.getContext(),
+                                            catalog.getName(),
+                                            catalog.getLastSnapshotLink(),
+                                            catalog.getLastOffset())));
                 };
             default:
                 throw new IllegalArgumentException(

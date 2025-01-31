@@ -16,6 +16,8 @@
  */
 package com.wazuh.contentmanager.model.ctiapi;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.opensearch.core.xcontent.ToXContentObject;
 import org.opensearch.core.xcontent.XContentBuilder;
 import org.opensearch.core.xcontent.XContentParser;
@@ -24,6 +26,8 @@ import java.io.IOException;
 import java.util.List;
 
 public class ContextConsumerCatalog implements ToXContentObject {
+
+    private static final Logger log = LogManager.getLogger(ContextConsumerCatalog.class);
 
     public static final String ID = "id";
     public static final String CONTEXT = "context";
@@ -78,7 +82,7 @@ public class ContextConsumerCatalog implements ToXContentObject {
         this.lastSnapshotOffset = lastSnapshotOffset;
     }
 
-    public ContextConsumerCatalog parse(XContentParser parser)
+    public static ContextConsumerCatalog parse(XContentParser parser)
             throws IOException, IllegalArgumentException {
         long id = 0L;
         String context = null;
@@ -97,6 +101,8 @@ public class ContextConsumerCatalog implements ToXContentObject {
                 String fieldName = parser.currentName();
                 parser.nextToken();
                 switch (fieldName) {
+                    case DATA:
+                        break;
                     case ID:
                         id = parser.longValue();
                         break;
@@ -107,7 +113,9 @@ public class ContextConsumerCatalog implements ToXContentObject {
                         context = parser.text();
                         break;
                     case OPERATIONS:
-                        operations = parser.list();
+                        if (parser.currentToken() != XContentParser.Token.VALUE_NULL) {
+                            operations = parser.list();
+                        }
                         break;
                     case INSERTED_AT:
                         insertedAt = parser.text();
@@ -116,7 +124,9 @@ public class ContextConsumerCatalog implements ToXContentObject {
                         updatedAt = parser.text();
                         break;
                     case PATHS_FILTER:
-                        pathsFilter = parser.list();
+                        if (parser.currentToken() != XContentParser.Token.VALUE_NULL) {
+                            pathsFilter = parser.list();
+                        }
                         break;
                     case LAST_OFFSET:
                         lastOffset = parser.longValue();
@@ -170,5 +180,21 @@ public class ContextConsumerCatalog implements ToXContentObject {
         builder.field(LAST_SNAPSHOT_LINK, this.lastSnapshotLink);
         builder.field(LAST_SNAPSHOT_OFFSET, this.lastSnapshotOffset);
         return builder.endObject();
+    }
+
+    public String getName() {
+        return name;
+    }
+
+    public String getContext() {
+        return context;
+    }
+
+    public String getLastSnapshotLink() {
+        return lastSnapshotLink;
+    }
+
+    public Long getLastOffset() {
+        return lastOffset;
     }
 }

@@ -20,7 +20,7 @@ import java.security.AccessController;
 import java.security.PrivilegedAction;
 
 public class PrivilegedActionRunner {
-    public static <T> T runPrivileged(PrivilegedAction<T> action) {
+    public static <T> T run(PrivilegedAction<T> action) {
         return AccessController.doPrivileged(action);
     }
 }
