@@ -29,7 +29,8 @@ import java.io.IOException;
 import java.util.List;
 import java.util.Locale;
 
-import com.wazuh.contentmanager.action.cti.GetConsumers;
+import com.wazuh.contentmanager.action.cti.GetConsumersAction;
+import com.wazuh.contentmanager.privileged.PrivilegedActionRunner;
 
 import static org.opensearch.rest.RestRequest.Method.GET;
 
@@ -58,7 +59,8 @@ public class TestHandler extends BaseRestHandler {
         SimpleHttpResponse response;
         switch (request.method()) {
             case GET:
-                response = GetConsumers.handleGet(request);
+                // response = GetConsumersAction.handleGet(request);
+                response = PrivilegedActionRunner.runPrivileged(new GetConsumersAction());
                 log.debug(response.toString());
                 return restChannel -> {
                     restChannel.sendResponse(
