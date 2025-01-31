@@ -69,6 +69,10 @@ public class TestHandler extends BaseRestHandler {
         switch (request.method()) {
             case GET:
                 for (ContextConsumersEnum context : ContextConsumersEnum.values()) {
+                    log.debug(
+                            "Getting data for Context: {}, Consumer: {}",
+                            context.getContext(),
+                            context.getConsumer());
                     responses.add(
                             PrivilegedActionRunner.run(
                                     new GetConsumersAction(context.getContextConsumerEndpoint())));
