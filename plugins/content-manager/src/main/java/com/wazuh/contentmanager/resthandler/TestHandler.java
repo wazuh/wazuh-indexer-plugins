@@ -61,7 +61,6 @@ public class TestHandler extends BaseRestHandler {
             case GET:
                 // response = GetConsumersAction.handleGet(request);
                 response = PrivilegedActionRunner.runPrivileged(new GetConsumersAction());
-                log.debug(response.toString());
                 return restChannel -> {
                     restChannel.sendResponse(
                             new BytesRestResponse(

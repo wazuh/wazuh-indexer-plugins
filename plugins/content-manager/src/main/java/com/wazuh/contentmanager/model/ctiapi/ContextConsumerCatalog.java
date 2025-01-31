@@ -63,8 +63,7 @@ public class ContextConsumerCatalog implements ToXContentObject {
             String changesUrl,
             String lastSnapshotAt,
             String lastSnapshotLink,
-            Long lastSnapshotOffset
-            ) {
+            Long lastSnapshotOffset) {
         this.id = id;
         this.name = name;
         this.context = context;
@@ -79,7 +78,8 @@ public class ContextConsumerCatalog implements ToXContentObject {
         this.lastSnapshotOffset = lastSnapshotOffset;
     }
 
-    public ContextConsumerCatalog parse(XContentParser parser) throws IOException, IllegalArgumentException {
+    public ContextConsumerCatalog parse(XContentParser parser)
+            throws IOException, IllegalArgumentException {
         long id = 0L;
         String context = null;
         String name = null;
@@ -139,7 +139,19 @@ public class ContextConsumerCatalog implements ToXContentObject {
                 }
             }
         }
-        return new ContextConsumerCatalog(id, name, context, operations, insertedAt, updatedAt, pathsFilter, lastOffset, changesUrl, lastSnapshotAt, lastSnapshotLink, lastSnapshotOffset);
+        return new ContextConsumerCatalog(
+                id,
+                name,
+                context,
+                operations,
+                insertedAt,
+                updatedAt,
+                pathsFilter,
+                lastOffset,
+                changesUrl,
+                lastSnapshotAt,
+                lastSnapshotLink,
+                lastSnapshotOffset);
     }
 
     @Override
