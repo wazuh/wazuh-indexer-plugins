@@ -476,7 +476,7 @@
             "type": "keyword"
           },
           "size": {
-            "type": "long"
+            "type": "unsigned_long"
           },
           "type": {
             "ignore_above": 1024,
