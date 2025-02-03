@@ -16,8 +16,6 @@
  */
 package com.wazuh.commandmanager.model;
 
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
 import org.opensearch.common.UUIDs;
 import org.opensearch.core.xcontent.ToXContent;
 import org.opensearch.core.xcontent.ToXContentObject;
@@ -47,8 +45,6 @@ public class Command implements ToXContentObject {
     private final String user;
     private final Status status;
     private final Action action;
-
-    private static final Logger log = LogManager.getLogger(Command.class);
 
     /**
      * Default constructor
@@ -160,15 +156,12 @@ public class Command implements ToXContentObject {
      * @throws IOException error parsing request content
      * @throws IllegalArgumentException missing arguments
      */
-    public static List<Command> parseToArray(XContentParser parser) throws IOException {
+    public static List<Command> parseToArray(XContentParser parser)
+            throws IOException, IllegalArgumentException {
         List<Command> commands = new ArrayList<>();
         while (parser.nextToken() != XContentParser.Token.END_ARRAY) {
-            try {
-                Command command = Command.parse(parser);
-                commands.add(command);
-            } catch (IOException | IllegalArgumentException e) {
-                log.error("Error parsing command {}", e.getMessage());
-            }
+            Command command = Command.parse(parser);
+            commands.add(command);
         }
         return commands;
     }

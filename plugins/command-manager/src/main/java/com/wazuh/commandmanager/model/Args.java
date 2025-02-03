@@ -16,8 +16,6 @@
  */
 package com.wazuh.commandmanager.model;
 
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
 import org.opensearch.core.xcontent.ToXContentObject;
 import org.opensearch.core.xcontent.XContentBuilder;
 import org.opensearch.core.xcontent.XContentParser;
@@ -33,7 +31,6 @@ public class Args implements ToXContentObject {
 
     public static final String ARGS = "args";
     private final Map<String, Object> args;
-    private static final Logger log = LogManager.getLogger(Args.class);
 
     /** Parameterless constructor. */
     public Args() {
@@ -50,12 +47,11 @@ public class Args implements ToXContentObject {
     }
 
     /**
-     * Parses an args XContentParser into an Args object. A {@code Map<String,Object>} is created
-     * with the fields and values from the command.action.args object
+     * Generic command.action.args parser.
      *
      * @param parser An XContentParser containing an args to be deserialized
      * @return An Args object
-     * @throws IOException Rethrows the exception from list() and objectText() methods
+     * @throws IOException Rethrows the exception from list() and objectText() method
      */
     public static Args parse(XContentParser parser) throws IOException {
         Map<String, Object> args = new HashMap<>();
@@ -129,7 +125,6 @@ public class Args implements ToXContentObject {
      */
     @Override
     public XContentBuilder toXContent(XContentBuilder builder, Params params) throws IOException {
-        log.info("ARGS INSIDE {}", Args.ARGS);
         builder.startObject(Args.ARGS);
         for (String key : this.args.keySet()) {
             builder.field(key, this.args.get(key));

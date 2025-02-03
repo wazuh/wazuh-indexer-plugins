@@ -18,9 +18,7 @@ package com.wazuh.commandmanager.model;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.opensearch.core.xcontent.ToXContentObject;
-import org.opensearch.core.xcontent.XContentBuilder;
-import org.opensearch.core.xcontent.XContentParser;
+import org.opensearch.core.xcontent.*;
 
 import java.io.IOException;
 
@@ -59,9 +57,12 @@ public class Action implements ToXContentObject {
      * @throws IOException parsing error occurred.
      */
     public static Action parse(XContentParser parser) throws IOException, IllegalArgumentException {
-        String name = "";
+        String name = null;
         Args args = new Args();
-        String version = "";
+        String version = null;
+
+        // Make a deep clone of the parser, iterate it to read the value of action.name.
+        // Then, parse the rest fo arguments.
 
         while (parser.nextToken() != XContentParser.Token.END_OBJECT) {
             String fieldName = parser.currentName();
@@ -81,6 +82,7 @@ public class Action implements ToXContentObject {
                             args = FetchConfigCommand.parse(parser);
                             break;
                         default:
+                            log.info("name: {}", name);
                             log.info("Parsing arguments for [generic] command");
                             args = Args.parse(parser);
                             break;
@@ -93,6 +95,10 @@ public class Action implements ToXContentObject {
                     parser.skipChildren();
                     break;
             }
+        }
+
+        if (name == null) {
+            throw new IllegalArgumentException("Missing mandatory field [command.action.name]");
         }
 
         return new Action(name, args, version);

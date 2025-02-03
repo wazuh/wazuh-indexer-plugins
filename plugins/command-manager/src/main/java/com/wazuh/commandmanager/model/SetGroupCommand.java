@@ -16,8 +16,6 @@
  */
 package com.wazuh.commandmanager.model;
 
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
 import org.opensearch.core.xcontent.XContentParser;
 
 import java.io.IOException;
@@ -27,18 +25,15 @@ import java.util.List;
 import java.util.Map;
 
 public class SetGroupCommand extends Args {
-    private static final Logger log = LogManager.getLogger(SetGroupCommand.class);
 
     public static final String GROUPS_KEY = "groups";
 
     /**
-     * Parses an args XContentParser into an Args object. A {@code Map<String,Object>} is created
-     * with the fields and values from the command.action.args object The XContentParser is expected
-     * to contain a "groups" JSON object that contains an array of strings.
+     * Dedicated command.action.args parser for "set-group" action type.
      *
      * @param parser An XContentParser containing an args to be deserialized
      * @return An Args object
-     * @throws IOException Rethrows the exception from list() and objectText() methods
+     * @throws IOException Rethrows the exception from list() and objectText() method
      */
     public static Args parse(XContentParser parser) throws IOException {
         Map<String, Object> args = new HashMap<>();
@@ -46,14 +41,12 @@ public class SetGroupCommand extends Args {
 
         // Parser currently on "args" key. Next expected token is START_OBJECT.
         XContentParser.Token currentToken = parser.currentToken();
-
         if (currentToken != XContentParser.Token.START_OBJECT) {
             throw new IllegalArgumentException(
                     "Expected [command.action.args] to be an object, got ["
                             + parser.currentName()
                             + "]");
         }
-
         // Next expected token is "groups" key, followed by an array of strings only.
         currentToken = parser.nextToken();
         if (currentToken != XContentParser.Token.FIELD_NAME) {
@@ -68,7 +61,6 @@ public class SetGroupCommand extends Args {
                             + parser.currentName()
                             + "]");
         }
-
         // Next expected token is START_ARRAY.
         currentToken = parser.nextToken();
         if (currentToken != XContentParser.Token.START_ARRAY) {

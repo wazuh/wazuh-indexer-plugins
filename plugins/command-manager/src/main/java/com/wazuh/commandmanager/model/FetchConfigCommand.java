@@ -24,12 +24,11 @@ import java.util.HashMap;
 public class FetchConfigCommand extends Args {
 
     /**
-     * Parses an args XContentParser into an Args object. A {@code Map<String,Object>} is created
-     * with the fields and values from the command.action.args object
+     * Dedicated command.action.args parser for "fetch-config" action type.
      *
      * @param parser An XContentParser containing an args to be deserialized
      * @return An Args object
-     * @throws IOException Rethrows the exception from list() and objectText() methods
+     * @throws IOException Rethrows the exception from list() and objectText() method
      */
     public static Args parse(XContentParser parser) throws IOException {
         parser.skipChildren();
