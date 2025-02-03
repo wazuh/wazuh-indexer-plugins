@@ -121,6 +121,7 @@ public class RestPostCommandAction extends BaseRestHandler {
         parser.nextToken();
         if (parser.nextToken() == XContentParser.Token.START_ARRAY) {
             commands = Command.parseToArray(parser);
+            log.warn(request.content().utf8ToString());
         } else {
             log.error("Token does not match {}", parser.currentToken());
         }
