@@ -16,11 +16,21 @@
  */
 package com.wazuh.contentmanager.privileged;
 
-import java.security.AccessController;
-import java.security.PrivilegedAction;
+import org.apache.hc.client5.http.async.methods.SimpleHttpResponse;
+import org.apache.hc.core5.http.Header;
 
-public class PrivilegedActionRunner {
-    public static <T> T run(PrivilegedAction<T> action) {
-        return AccessController.doPrivileged(action);
+import java.net.URI;
+import java.security.AccessController;
+
+import com.wazuh.contentmanager.util.http.HttpClient;
+
+public class PrivilegedHttpAction {
+
+    public PrivilegedHttpAction() {}
+
+    public static SimpleHttpResponse get(String uri, String payload, Header... headers) {
+        return AccessController.doPrivileged(
+                (java.security.PrivilegedAction<SimpleHttpResponse>)
+                        () -> HttpClient.getInstance().get(URI.create(uri), payload, headers));
     }
 }

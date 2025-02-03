@@ -16,27 +16,18 @@
  */
 package com.wazuh.contentmanager.resthandler;
 
-import org.apache.hc.client5.http.async.methods.SimpleHttpResponse;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.opensearch.client.node.NodeClient;
-import org.opensearch.common.xcontent.XContentFactory;
-import org.opensearch.common.xcontent.XContentType;
-import org.opensearch.core.rest.RestStatus;
 import org.opensearch.core.xcontent.*;
 import org.opensearch.rest.BaseRestHandler;
-import org.opensearch.rest.BytesRestResponse;
 import org.opensearch.rest.RestRequest;
 
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 
-import com.wazuh.contentmanager.action.cti.ContextConsumersEnum;
 import com.wazuh.contentmanager.action.cti.GetConsumersAction;
-import com.wazuh.contentmanager.model.ctiapi.ContextConsumerCatalog;
-import com.wazuh.contentmanager.privileged.PrivilegedActionRunner;
 
 import static org.opensearch.rest.RestRequest.Method.GET;
 
@@ -62,34 +53,10 @@ public class TestHandler extends BaseRestHandler {
     @Override
     protected RestChannelConsumer prepareRequest(RestRequest request, NodeClient client)
             throws IOException {
-        List<SimpleHttpResponse> responses = new ArrayList<>();
-        XContent xContent = XContentType.JSON.xContent();
-        XContentBuilder builder = XContentFactory.jsonBuilder();
-        builder.startArray();
         switch (request.method()) {
             case GET:
-                for (ContextConsumersEnum context : ContextConsumersEnum.values()) {
-                    log.debug(
-                            "Getting data for Context: {}, Consumer: {}",
-                            context.getContext(),
-                            context.getConsumer());
-                    responses.add(
-                            PrivilegedActionRunner.run(
-                                    new GetConsumersAction(context.getContextConsumerEndpoint())));
-                    ContextConsumerCatalog.parse(
-                                    xContent.createParser(
-                                            NamedXContentRegistry.EMPTY,
-                                            DeprecationHandler.IGNORE_DEPRECATIONS,
-                                            responses.get(responses.size() - 1).getBodyBytes()))
-                            .toXContent(builder, ToXContent.EMPTY_PARAMS);
-                }
-                builder.endArray();
                 return restChannel -> {
-                    restChannel.sendResponse(
-                            new BytesRestResponse(
-                                    RestStatus.fromCode(
-                                            responses.get(responses.size() - 1).getCode()),
-                                    builder.toString()));
+                    restChannel.sendResponse(GetConsumersAction.performAction());
                 };
             default:
                 throw new IllegalArgumentException(

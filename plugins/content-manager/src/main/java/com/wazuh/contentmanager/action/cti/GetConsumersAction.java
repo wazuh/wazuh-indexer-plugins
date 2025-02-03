@@ -17,23 +17,44 @@
 package com.wazuh.contentmanager.action.cti;
 
 import org.apache.hc.client5.http.async.methods.SimpleHttpResponse;
+import org.apache.hc.core5.http.Header;
+import org.opensearch.common.xcontent.XContentFactory;
+import org.opensearch.common.xcontent.XContentType;
+import org.opensearch.core.rest.RestStatus;
+import org.opensearch.core.xcontent.*;
+import org.opensearch.rest.BytesRestResponse;
 
-import java.net.URI;
-import java.security.PrivilegedAction;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
 
-import com.wazuh.contentmanager.util.http.HttpClient;
+import com.wazuh.contentmanager.model.ctiapi.ContextConsumerCatalog;
+import com.wazuh.contentmanager.privileged.PrivilegedHttpAction;
 
-public class GetConsumersAction implements PrivilegedAction<SimpleHttpResponse> {
-
-    private final String endpoint;
+public class GetConsumersAction {
 
     /** Empty constructor */
-    public GetConsumersAction(String endpoint) {
-        this.endpoint = endpoint;
-    }
+    public GetConsumersAction() {}
 
-    public SimpleHttpResponse run() {
-        return HttpClient.getInstance()
-                .get(URI.create(this.endpoint), null, (org.apache.hc.core5.http.Header) null);
+    public static BytesRestResponse performAction() throws IOException {
+        List<SimpleHttpResponse> responses = new ArrayList<>();
+        XContent xContent = XContentType.JSON.xContent();
+        XContentBuilder builder = XContentFactory.jsonBuilder();
+        builder.startArray();
+        for (ContextConsumersEnum context : ContextConsumersEnum.values()) {
+            responses.add(
+                    PrivilegedHttpAction.get(
+                            context.getContextConsumerEndpoint(), null, (Header) null));
+            ContextConsumerCatalog.parse(
+                            xContent.createParser(
+                                    NamedXContentRegistry.EMPTY,
+                                    DeprecationHandler.IGNORE_DEPRECATIONS,
+                                    responses.get(responses.size() - 1).getBodyBytes()))
+                    .toXContent(builder, ToXContent.EMPTY_PARAMS);
+        }
+        builder.endArray();
+        return new BytesRestResponse(
+                RestStatus.fromCode(responses.get(responses.size() - 1).getCode()),
+                builder.toString());
     }
 }
