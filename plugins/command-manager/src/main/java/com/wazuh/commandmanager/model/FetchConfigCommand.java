@@ -14,8 +14,24 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-package com.wazuh.commandmanager;
+package com.wazuh.commandmanager.model;
 
-import org.opensearch.test.OpenSearchTestCase;
+import org.opensearch.core.xcontent.XContentParser;
 
-public class CommandManagerTests extends OpenSearchTestCase {}
+import java.io.IOException;
+import java.util.HashMap;
+
+public class FetchConfigCommand extends Args {
+
+    /**
+     * Dedicated command.action.args parser for "fetch-config" action type.
+     *
+     * @param parser An XContentParser containing an args to be deserialized
+     * @return An Args object
+     * @throws IOException Rethrows the exception from list() and objectText() method
+     */
+    public static Args parse(XContentParser parser) throws IOException {
+        parser.skipChildren();
+        return new Args(new HashMap<>());
+    }
+}
