@@ -57,7 +57,6 @@ public class Offset implements ToXContentObject {
     }
 
     private static void processArray(XContentParser parser) throws IOException {
-        log.info("Entering an array...");
         while (parser.nextToken() != XContentParser.Token.END_ARRAY) {
             if (parser.currentToken() == XContentParser.Token.START_OBJECT) {
                 processObject(parser); // Handle nested objects in arrays
@@ -67,7 +66,6 @@ public class Offset implements ToXContentObject {
                 log.info("Array value: " + parser.text());
             }
         }
-        log.info("Exiting an array...");
     }
 
     private static void processObject(XContentParser parser) throws IOException {
@@ -87,7 +85,6 @@ public class Offset implements ToXContentObject {
                 }
             }
         }
-        log.info("Exiting an object...");
     }
 
     public static Offset parse(XContentParser parser) throws IOException, IllegalArgumentException {

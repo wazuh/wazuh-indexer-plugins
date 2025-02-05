@@ -50,17 +50,16 @@ public class Changes implements ToXContentObject {
             throws IOException, IllegalArgumentException, ParsingException {
         List<Offset> changes = new ArrayList<>();
         if (parser.nextToken() == XContentParser.Token.START_OBJECT) {
-            log.info("Starting object");
             String fieldName;
-            parser.nextToken();
-            while ( parser.currentToken() != XContentParser.Token.END_OBJECT || parser.currentToken() != null) {
-                XContentParserUtils.ensureExpectedToken(XContentParser.Token.FIELD_NAME, parser.currentToken(), parser);
-                fieldName = parser.currentName();
-                log.info("iterating {}", fieldName);
-                if (Objects.equals(fieldName, DATA)
-                    && parser.nextToken() == XContentParser.Token.START_ARRAY) {
-                    changes.add(processOffsets(parser));
-                    log.info("adding changes");
+            while (parser.nextToken() != XContentParser.Token.END_OBJECT) {
+                if (parser.currentToken() == XContentParser.Token.FIELD_NAME) {
+                    fieldName = parser.currentName();
+                    if (Objects.equals(fieldName, DATA)
+                            && parser.nextToken() == XContentParser.Token.START_ARRAY) {
+                        while (parser.nextToken() != XContentParser.Token.END_ARRAY) {
+                            changes.add(processOffsets(parser));
+                        }
+                    }
                 }
             }
         }
@@ -72,17 +71,14 @@ public class Changes implements ToXContentObject {
         builder.startObject();
         builder.startArray(DATA);
         data.forEach(
-            (offset) ->
-            {
-                try {
-                    offset.toXContent(builder, ToXContentObject.EMPTY_PARAMS);
-                } catch (IOException e) {
-                    throw new RuntimeException(e);
-                }
-            }
-        );
+                (offset) -> {
+                    try {
+                        offset.toXContent(builder, ToXContentObject.EMPTY_PARAMS);
+                    } catch (IOException e) {
+                        throw new RuntimeException(e);
+                    }
+                });
         builder.endArray();
         return builder.endObject();
     }
-
 }
