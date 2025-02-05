@@ -14,11 +14,26 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-package com.wazuh.contentmanager;
+package com.wazuh.contentmanager.model;
 
-import org.opensearch.plugins.Plugin;
+import org.opensearch.core.xcontent.ToXContentObject;
+import org.opensearch.core.xcontent.XContentBuilder;
 
-public class ContentManagerPlugin extends Plugin {
-    // Implement the relevant Plugin Interfaces here
-    public static final String CONTEXT_NAME = "vd_1.0.0";
+import java.io.IOException;
+
+public class Document implements ToXContentObject {
+    private static final String CONSUMER_NAME = "vd_4.8.0";
+
+    private Consumer consumer;
+
+    public Document(Consumer consumer) {
+        this.consumer = consumer;
+    }
+
+    @Override
+    public XContentBuilder toXContent(XContentBuilder builder, Params params) throws IOException {
+        builder.startObject();
+        builder.field(CONSUMER_NAME, consumer);
+        return builder.endObject();
+    }
 }
