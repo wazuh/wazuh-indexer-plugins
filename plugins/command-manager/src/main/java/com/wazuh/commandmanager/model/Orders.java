@@ -125,7 +125,14 @@ public class Orders implements ToXContentObject {
             }
 
             for (Agent agent : agentList) {
-                Order order = new Order(agent, command);
+                Command new_command =
+                        new Command(
+                                command.getSource(),
+                                new Target(Target.Type.AGENT, agent.getId()),
+                                command.getTimeout(),
+                                command.getUser(),
+                                command.getAction());
+                Order order = new Order(agent, new_command);
                 orders.addOrder(order);
             }
         }

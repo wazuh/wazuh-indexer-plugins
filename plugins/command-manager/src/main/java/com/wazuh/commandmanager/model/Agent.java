@@ -76,6 +76,24 @@ public class Agent implements ToXContentObject {
         return builder.endObject();
     }
 
+    /**
+     * Retrieves the agent's id.
+     *
+     * @return id of the agent.
+     */
+    public String getId() {
+        return id;
+    }
+
+    /**
+     * Retrieves the groups assigned to the agent.
+     *
+     * @return groups assigned to agent.
+     */
+    public List<String> getGroups() {
+        return groups;
+    }
+
     @Override
     public String toString() {
         return "Agent{" + "id=" + id + '\'' + ", groups=" + groups + '}';

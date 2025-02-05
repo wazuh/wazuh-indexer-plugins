@@ -110,6 +110,14 @@ public class RestPostCommandAction extends BaseRestHandler {
                         new BytesRestResponse(RestStatus.BAD_REQUEST, "No commands provided."));
             };
         }
+
+        /// Commands expansion
+        /// ==================
+        /// Transforms the array of commands to orders.
+        /// While commands can be targeted to groups of agents, orders are targeted to individual
+        // agents.
+        /// Given a group of agents A with N agents, a total of N orders are generated. One for each
+        // agent.
         Orders orders = commandsToOrders(client, commands);
         // Validate that the orders are not empty
         if (orders.getOrders().isEmpty()) {
