@@ -16,17 +16,30 @@
  */
 package com.wazuh.commandmanager.model;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+import org.opensearch.client.node.NodeClient;
 import org.opensearch.core.xcontent.ToXContentObject;
 import org.opensearch.core.xcontent.XContentBuilder;
+import org.opensearch.search.SearchHit;
+import org.opensearch.search.SearchHits;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+
+import com.wazuh.commandmanager.settings.PluginSettings;
+import com.wazuh.commandmanager.utils.Search;
 
 /** Model that stores a list of Orders to be indexed at the commands index */
 public class Orders implements ToXContentObject {
     public static final String ORDERS = "_orders";
     public static final String ID = "_id";
     private final ArrayList<Order> orders;
+
+    private static final Logger log = LogManager.getLogger(Orders.class);
 
     /** Default constructor. */
     public Orders() {
@@ -68,5 +81,54 @@ public class Orders implements ToXContentObject {
             builder.endObject();
         }
         return builder.endArray();
+    }
+
+    /**
+     * Converts a list of Command objects into Orders by executing search queries.
+     *
+     * @param client the NodeClient used to execute search queries.
+     * @param commands the list of Command objects to be converted.
+     * @return an Orders object containing the generated orders.
+     */
+    @SuppressWarnings("unchecked")
+    public static Orders commandsToOrders(NodeClient client, List<Command> commands) {
+        Orders orders = new Orders();
+
+        for (Command command : commands) {
+            List<Agent> agentList = new ArrayList<>();
+            String field = "";
+            Target.Type targetType = command.getTarget().getType();
+            String targetId = command.getTarget().getId();
+
+            if (Objects.equals(targetType, Target.Type.GROUP)) {
+                field = "agent.groups";
+            } else if (Objects.equals(targetType, Target.Type.AGENT)) {
+                field = "agent.id";
+            }
+
+            // Build and execute the search query
+            log.info("Searching for agents using field {} with value {}", field, targetId);
+            SearchHits hits =
+                    Search.syncSearch(client, PluginSettings.getAgentsIndex(), field, targetId);
+            if (hits != null) {
+                for (SearchHit hit : hits) {
+                    final Map<String, Object> agentMap =
+                            Search.getNestedObject(hit.getSourceAsMap(), "agent", Map.class);
+                    if (agentMap != null) {
+                        String agentId = (String) agentMap.get(Agent.ID);
+                        List<String> agentGroups = (List<String>) agentMap.get(Agent.GROUPS);
+                        Agent agent = new Agent(agentId, agentGroups);
+                        agentList.add(agent);
+                    }
+                }
+                log.info("Search retrieved {} agents.", agentList.size());
+            }
+
+            for (Agent agent : agentList) {
+                Order order = new Order(agent, command);
+                orders.addOrder(order);
+            }
+        }
+        return orders;
     }
 }

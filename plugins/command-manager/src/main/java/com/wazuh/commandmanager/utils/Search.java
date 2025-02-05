@@ -18,27 +18,17 @@ package com.wazuh.commandmanager.utils;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.opensearch.action.search.CreatePitRequest;
-import org.opensearch.action.search.CreatePitResponse;
 import org.opensearch.action.search.SearchRequest;
 import org.opensearch.action.search.SearchResponse;
-import org.opensearch.client.Client;
 import org.opensearch.client.support.AbstractClient;
-import org.opensearch.common.unit.TimeValue;
 import org.opensearch.core.action.ActionListener;
 import org.opensearch.index.query.BoolQueryBuilder;
 import org.opensearch.index.query.QueryBuilders;
-import org.opensearch.search.SearchHit;
 import org.opensearch.search.SearchHits;
-import org.opensearch.search.builder.PointInTimeBuilder;
 import org.opensearch.search.builder.SearchSourceBuilder;
-import org.opensearch.search.sort.SortOrder;
 
 import java.util.*;
-import java.util.concurrent.CancellationException;
-import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.ExecutionException;
 
 /** Utility class for performing generic search operations on the OpenSearch cluster. */
 public class Search {
@@ -57,19 +47,6 @@ public class Search {
             AbstractClient client, String index, String field, String value) {
         BoolQueryBuilder boolQuery =
                 QueryBuilders.boolQuery().must(QueryBuilders.termQuery(field, value));
-        return executeSearch(client, index, boolQuery);
-    }
-
-    /**
-     * Executes a synchronous search query on the specified index using a boolean query.
-     *
-     * @param client the AbstractClient used to execute the search query.
-     * @param index the name of the index to search.
-     * @param boolQuery the boolean query to execute.
-     * @return SearchHits object containing the search results.
-     */
-    public static SearchHits syncSearch(
-            AbstractClient client, String index, BoolQueryBuilder boolQuery) {
         return executeSearch(client, index, boolQuery);
     }
 
@@ -112,115 +89,6 @@ public class Search {
             log.error("Interrupted while waiting for search to complete", e);
         }
         return searchHits[0];
-    }
-
-    /**
-     * Executes a PIT (Point-In-Time) style query on the specified index using a term query.
-     *
-     * @param client the Client used to execute the search query.
-     * @param index the name of the index to search.
-     * @param field the field to query.
-     * @param value the value to search for in the specified field.
-     * @param pitBuilder the PointInTimeBuilder used for the query.
-     * @param searchAfter an array of objects containing the last page's values of the sort fields.
-     * @param timeout the timeout value for the search query.
-     * @param pageSize the size of each page of results.
-     * @param sortField the field to sort by.
-     * @param sortOrder the order to sort by (e.g., ascending or descending).
-     * @return the SearchResponse object containing the search results.
-     */
-    public static SearchResponse executePitQuery(
-            Client client,
-            String index,
-            String field,
-            String value,
-            PointInTimeBuilder pitBuilder,
-            Object[] searchAfter,
-            TimeValue timeout,
-            int pageSize,
-            String sortField,
-            SortOrder sortOrder) {
-
-        SearchRequest searchRequest = new SearchRequest(index);
-        BoolQueryBuilder boolQuery =
-                QueryBuilders.boolQuery().must(QueryBuilders.termQuery(field, value));
-
-        SearchSourceBuilder searchSourceBuilder =
-                new SearchSourceBuilder()
-                        .query(boolQuery)
-                        .size(pageSize)
-                        .trackTotalHits(true)
-                        .timeout(timeout)
-                        .pointInTimeBuilder(pitBuilder);
-
-        if (searchSourceBuilder.sorts() == null) {
-            searchSourceBuilder.sort(sortField, sortOrder);
-        }
-        if (searchAfter.length > 0) {
-            searchSourceBuilder.searchAfter(searchAfter);
-        }
-        searchRequest.source(searchSourceBuilder);
-
-        return client.search(searchRequest).actionGet(timeout);
-    }
-
-    /**
-     * Retrieves the searchAfter values from a SearchResponse.
-     *
-     * @param searchResponse the SearchResponse containing the hits.
-     * @return an Optional containing the searchAfter values, or an empty Optional if not found.
-     */
-    public static Optional<Object[]> getSearchAfter(SearchResponse searchResponse) {
-        if (searchResponse == null) {
-            return Optional.empty();
-        }
-        try {
-            final List<SearchHit> hits = List.of(searchResponse.getHits().getHits());
-            if (hits.isEmpty()) {
-                log.warn("Empty hits page, not getting searchAfter values.");
-                return Optional.empty();
-            }
-            return Optional.ofNullable(hits.get(hits.size() - 1).getSortValues());
-        } catch (NullPointerException | NoSuchElementException e) {
-            log.error("Could not get the page's searchAfter values: {}", e.getMessage());
-            return Optional.empty();
-        }
-    }
-
-    /**
-     * Builds a PointInTimeBuilder for use in PIT queries.
-     *
-     * @param client the Client used to create the PIT.
-     * @param pitKeepAlive the keep-alive duration for the PIT.
-     * @param index the name of the index for which the PIT is created.
-     * @return a PointInTimeBuilder initialized with the PIT ID, or null if an error occurs.
-     */
-    public static PointInTimeBuilder buildPit(Client client, TimeValue pitKeepAlive, String index) {
-        final CompletableFuture<CreatePitResponse> future = new CompletableFuture<>();
-        final ActionListener<CreatePitResponse> actionListener =
-                new ActionListener<>() {
-                    @Override
-                    public void onResponse(CreatePitResponse createPitResponse) {
-                        future.complete(createPitResponse);
-                    }
-
-                    @Override
-                    public void onFailure(Exception e) {
-                        log.error(e.getMessage());
-                        future.completeExceptionally(e);
-                    }
-                };
-        client.createPit(new CreatePitRequest(pitKeepAlive, false, index), actionListener);
-        try {
-            return new PointInTimeBuilder(future.get().getId());
-        } catch (CancellationException e) {
-            log.error("Building PIT was cancelled: {}", e.getMessage());
-        } catch (ExecutionException e) {
-            log.error("Error building PIT: {}", e.getMessage());
-        } catch (InterruptedException e) {
-            log.error("Building PIT was interrupted: {}", e.getMessage());
-        }
-        return null;
     }
 
     /**

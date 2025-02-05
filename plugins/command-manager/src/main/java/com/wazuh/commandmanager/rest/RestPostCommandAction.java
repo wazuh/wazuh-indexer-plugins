@@ -22,12 +22,9 @@ import org.opensearch.client.node.NodeClient;
 import org.opensearch.core.rest.RestStatus;
 import org.opensearch.core.xcontent.ToXContent;
 import org.opensearch.core.xcontent.XContentBuilder;
-import org.opensearch.core.xcontent.XContentParser;
 import org.opensearch.rest.BaseRestHandler;
 import org.opensearch.rest.BytesRestResponse;
 import org.opensearch.rest.RestRequest;
-import org.opensearch.search.SearchHit;
-import org.opensearch.search.SearchHits;
 
 import java.io.IOException;
 import java.util.*;
@@ -36,10 +33,10 @@ import java.util.concurrent.CompletableFuture;
 import com.wazuh.commandmanager.index.CommandIndex;
 import com.wazuh.commandmanager.model.*;
 import com.wazuh.commandmanager.settings.PluginSettings;
-import com.wazuh.commandmanager.utils.Search;
 
-import static org.opensearch.core.xcontent.XContentParserUtils.ensureExpectedToken;
 import static org.opensearch.rest.RestRequest.Method.POST;
+import static com.wazuh.commandmanager.model.Command.parseCommandList;
+import static com.wazuh.commandmanager.model.Orders.commandsToOrders;
 
 /** Handles HTTP requests to the POST the Commands API endpoint. */
 public class RestPostCommandAction extends BaseRestHandler {
@@ -105,14 +102,12 @@ public class RestPostCommandAction extends BaseRestHandler {
                         new BytesRestResponse(RestStatus.BAD_REQUEST, "Body content is required"));
             };
         }
-        List<Command> commands = getCommandList(request);
+        List<Command> commands = parseCommandList(request);
         // Validate commands are not empty
         if (commands.isEmpty()) {
             return channel -> {
                 channel.sendResponse(
-                        new BytesRestResponse(
-                                RestStatus.BAD_REQUEST,
-                                "No valid commands detected in the request body."));
+                        new BytesRestResponse(RestStatus.BAD_REQUEST, "No commands provided."));
             };
         }
         Orders orders = commandsToOrders(client, commands);
@@ -159,76 +154,5 @@ public class RestPostCommandAction extends BaseRestHandler {
                                 return null;
                             });
         };
-    }
-
-    /**
-     * Parses the content of a RestRequest and retrieves a list of Command objects.
-     *
-     * @param request the RestRequest containing the command data.
-     * @return a list of Command objects parsed from the request content.
-     * @throws IOException if an error occurs while parsing the request content.
-     */
-    private static List<Command> getCommandList(RestRequest request) throws IOException {
-        // Request parsing
-        XContentParser parser = request.contentParser();
-        List<Command> commands = new ArrayList<>();
-        ensureExpectedToken(XContentParser.Token.START_OBJECT, parser.nextToken(), parser);
-        parser.nextToken();
-        if (parser.nextToken() == XContentParser.Token.START_ARRAY) {
-            commands = Command.parseToArray(parser);
-        } else {
-            log.error("Token does not match {}", parser.currentToken());
-        }
-
-        return commands;
-    }
-
-    /**
-     * Converts a list of Command objects into Orders by executing search queries.
-     *
-     * @param client the NodeClient used to execute search queries.
-     * @param commands the list of Command objects to be converted.
-     * @return an Orders object containing the generated orders.
-     */
-    @SuppressWarnings("unchecked")
-    private static Orders commandsToOrders(NodeClient client, List<Command> commands) {
-        Orders orders = new Orders();
-
-        for (Command command : commands) {
-            List<Agent> agentList = new ArrayList<>();
-            String field = "";
-            Target.Type targetType = command.getTarget().getType();
-            String targetId = command.getTarget().getId();
-
-            if (Objects.equals(targetType, Target.Type.GROUP)) {
-                field = "agent.groups";
-            } else if (Objects.equals(targetType, Target.Type.AGENT)) {
-                field = "agent.id";
-            }
-
-            // Build and execute the search query
-            log.info("Searching for agents using field {} with value {}", field, targetId);
-            SearchHits hits =
-                    Search.syncSearch(client, PluginSettings.getAgentsIndex(), field, targetId);
-            if (hits != null) {
-                for (SearchHit hit : hits) {
-                    final Map<String, Object> agentMap =
-                            Search.getNestedObject(hit.getSourceAsMap(), "agent", Map.class);
-                    if (agentMap != null) {
-                        String agentId = (String) agentMap.get(Agent.ID);
-                        List<String> agentGroups = (List<String>) agentMap.get(Agent.GROUPS);
-                        Agent agent = new Agent(agentId, agentGroups);
-                        agentList.add(agent);
-                    }
-                }
-                log.info("Search retrieved {} agents.", agentList.size());
-            }
-
-            for (Agent agent : agentList) {
-                Order order = new Order(agent, command);
-                orders.addOrder(order);
-            }
-        }
-        return orders;
     }
 }
