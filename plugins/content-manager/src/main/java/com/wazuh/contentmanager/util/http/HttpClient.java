@@ -39,6 +39,7 @@ import java.net.URI;
 import java.security.KeyManagementException;
 import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
+import java.util.Map;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
@@ -120,29 +121,35 @@ public class HttpClient {
     /**
      * Sends a GET request.
      *
-     * @param receiverURI Well-formed URI
-     * @param payload data to send
+     * @param uri Well-formed URI
+     * @param requestBody data to send
      * @param headers auth value (Basic "user:password", "Bearer token")
      * @return SimpleHttpResponse response
      */
     public SimpleHttpResponse get(
-            @NonNull URI receiverURI, @Nullable String payload, @Nullable Header... headers) {
+            @NonNull URI uri,
+            @Nullable String requestBody,
+            @Nullable Map<String, String> queryParameters,
+            @Nullable Header... headers) {
         try {
-            final HttpHost httpHost = HttpHost.create(receiverURI);
+            final HttpHost httpHost = HttpHost.create(uri);
 
-            log.info("Sending payload to [{}]", receiverURI);
+            log.info("Sending requestBody to [{}]", uri);
             log.debug("Headers {}", (Object) headers);
 
             final SimpleRequestBuilder builder = SimpleRequestBuilder.get();
-            if (payload != null) {
-                builder.setBody(payload, ContentType.APPLICATION_JSON);
+            if (requestBody != null) {
+                builder.setBody(requestBody, ContentType.APPLICATION_JSON);
+            }
+            if (queryParameters != null) {
+                queryParameters.forEach(builder::addParameter);
             }
             if (headers != null) {
                 builder.setHeaders(headers);
             }
 
             final SimpleHttpRequest httpGetRequest =
-                    builder.setHttpHost(httpHost).setPath(receiverURI.getPath()).build();
+                    builder.setHttpHost(httpHost).setPath(uri.getPath()).build();
 
             return this.httpClient
                     .execute(

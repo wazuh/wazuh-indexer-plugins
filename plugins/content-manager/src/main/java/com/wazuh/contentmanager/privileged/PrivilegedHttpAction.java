@@ -21,6 +21,7 @@ import org.apache.hc.core5.http.Header;
 
 import java.net.URI;
 import java.security.AccessController;
+import java.util.Map;
 
 import com.wazuh.contentmanager.util.http.HttpClient;
 
@@ -28,9 +29,12 @@ public class PrivilegedHttpAction {
 
     public PrivilegedHttpAction() {}
 
-    public static SimpleHttpResponse get(String uri, String payload, Header... headers) {
+    public static SimpleHttpResponse get(
+            String uri, String payload, Map<String, String> queryParameters, Header... headers) {
         return AccessController.doPrivileged(
                 (java.security.PrivilegedAction<SimpleHttpResponse>)
-                        () -> HttpClient.getInstance().get(URI.create(uri), payload, headers));
+                        () ->
+                                HttpClient.getInstance()
+                                        .get(URI.create(uri), payload, queryParameters, headers));
     }
 }

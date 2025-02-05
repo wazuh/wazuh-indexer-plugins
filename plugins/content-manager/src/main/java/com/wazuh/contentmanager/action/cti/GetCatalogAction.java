@@ -25,36 +25,28 @@ import org.opensearch.core.xcontent.*;
 import org.opensearch.rest.BytesRestResponse;
 
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
 
+import com.wazuh.contentmanager.ContentManagerPlugin;
 import com.wazuh.contentmanager.model.ctiapi.ContextConsumerCatalog;
 import com.wazuh.contentmanager.privileged.PrivilegedHttpAction;
 
-public class GetConsumersAction {
+public class GetCatalogAction {
 
     /** Empty constructor */
-    public GetConsumersAction() {}
+    public GetCatalogAction() {}
 
-    public static BytesRestResponse performAction() throws IOException {
-        List<SimpleHttpResponse> responses = new ArrayList<>();
+    public static BytesRestResponse run() throws IOException {
         XContent xContent = XContentType.JSON.xContent();
         XContentBuilder builder = XContentFactory.jsonBuilder();
-        builder.startArray();
-        for (ContextConsumersEnum context : ContextConsumersEnum.values()) {
-            responses.add(
-                    PrivilegedHttpAction.get(
-                            context.getContextConsumerEndpoint(), null, (Header) null));
-            ContextConsumerCatalog.parse(
-                            xContent.createParser(
-                                    NamedXContentRegistry.EMPTY,
-                                    DeprecationHandler.IGNORE_DEPRECATIONS,
-                                    responses.get(responses.size() - 1).getBodyBytes()))
-                    .toXContent(builder, ToXContent.EMPTY_PARAMS);
-        }
-        builder.endArray();
-        return new BytesRestResponse(
-                RestStatus.fromCode(responses.get(responses.size() - 1).getCode()),
-                builder.toString());
+        SimpleHttpResponse response =
+                PrivilegedHttpAction.get(
+                        ContentManagerPlugin.CTI_VD_CONSUMER_URL, null, null, (Header) null);
+        ContextConsumerCatalog.parse(
+                        xContent.createParser(
+                                NamedXContentRegistry.EMPTY,
+                                DeprecationHandler.IGNORE_DEPRECATIONS,
+                                response.getBodyBytes()))
+                .toXContent(builder, ToXContent.EMPTY_PARAMS);
+        return new BytesRestResponse(RestStatus.fromCode(response.getCode()), builder.toString());
     }
 }

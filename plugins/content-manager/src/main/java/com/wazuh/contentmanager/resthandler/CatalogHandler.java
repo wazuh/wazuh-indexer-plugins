@@ -16,27 +16,50 @@
  */
 package com.wazuh.contentmanager.resthandler;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.opensearch.client.node.NodeClient;
 import org.opensearch.rest.BaseRestHandler;
 import org.opensearch.rest.RestRequest;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.Locale;
 
-public class CtiConsumerHandler extends BaseRestHandler {
+import com.wazuh.contentmanager.action.cti.GetCatalogAction;
+
+import static org.opensearch.rest.RestRequest.Method.GET;
+
+public class CatalogHandler extends BaseRestHandler {
+
+    private static final Logger log = LogManager.getLogger(CatalogHandler.class);
+
+    public static final String GET_CATALOG_DETAILS = "get_catalog_details";
+
     @Override
     public List<Route> routes() {
-        return super.routes();
+        return List.of(
+                new Route(
+                        GET,
+                        String.format(Locale.ROOT, "%s", "/_plugins/_content_manager/vd-catalog")));
     }
 
     @Override
     public String getName() {
-        return "";
+        return GET_CATALOG_DETAILS;
     }
 
     @Override
     protected RestChannelConsumer prepareRequest(RestRequest request, NodeClient client)
             throws IOException {
-        return null;
+        switch (request.method()) {
+            case GET:
+                return restChannel -> {
+                    restChannel.sendResponse(GetCatalogAction.run());
+                };
+            default:
+                throw new IllegalArgumentException(
+                        ("Unsupported HTTP method " + request.method().name()));
+        }
     }
 }

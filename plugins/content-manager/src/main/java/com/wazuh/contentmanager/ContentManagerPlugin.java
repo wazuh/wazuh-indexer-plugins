@@ -41,11 +41,17 @@ import java.util.Collections;
 import java.util.List;
 import java.util.function.Supplier;
 
-import com.wazuh.contentmanager.resthandler.CtiConsumerHandler;
-import com.wazuh.contentmanager.resthandler.TestHandler;
+import com.wazuh.contentmanager.resthandler.CatalogHandler;
+import com.wazuh.contentmanager.resthandler.ChangesHandler;
 import com.wazuh.contentmanager.settings.PluginSettings;
 
 public class ContentManagerPlugin extends Plugin implements ActionPlugin, ClusterPlugin {
+
+    public static String CTI_BASE_URL = "https://cti.wazuh.com/api/v1";
+    public static String CTI_VD_CONSUMER_URL =
+            CTI_BASE_URL + "/catalog/contexts/vd_1.0.0/consumers/vd_4.8.0";
+    public static String CTI_CHANGES_URL =
+            CTI_BASE_URL + "/catalog/contexts/vd_1.0.0/consumers/vd_4.8.0/changes";
 
     /** ClassConstructor * */
     public ContentManagerPlugin() {}
@@ -76,7 +82,7 @@ public class ContentManagerPlugin extends Plugin implements ActionPlugin, Cluste
             SettingsFilter settingsFilter,
             IndexNameExpressionResolver indexNameExpressionResolver,
             Supplier<DiscoveryNodes> nodesInCluster) {
-        return List.of(new TestHandler(), new CtiConsumerHandler());
+        return List.of(new CatalogHandler(), new ChangesHandler());
     }
 
     @Override

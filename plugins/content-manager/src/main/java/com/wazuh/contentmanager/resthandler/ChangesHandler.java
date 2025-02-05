@@ -19,7 +19,6 @@ package com.wazuh.contentmanager.resthandler;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.opensearch.client.node.NodeClient;
-import org.opensearch.core.xcontent.*;
 import org.opensearch.rest.BaseRestHandler;
 import org.opensearch.rest.RestRequest;
 
@@ -27,27 +26,31 @@ import java.io.IOException;
 import java.util.List;
 import java.util.Locale;
 
-import com.wazuh.contentmanager.action.cti.GetConsumersAction;
+import com.wazuh.contentmanager.action.cti.GetChangesAction;
 
 import static org.opensearch.rest.RestRequest.Method.GET;
 
-public class TestHandler extends BaseRestHandler {
+public class ChangesHandler extends BaseRestHandler {
 
-    private static final Logger log = LogManager.getLogger(TestHandler.class);
+    private static String FROM_OFFSET_FIELD = "from_offset";
+    private static String TO_OFFSET_FIELD = "to_offset";
+    private static String WITH_EMPTIES_FIELD = "with_empties";
 
-    public static final String GET_CONTENT_MANAGER_INIT_DETAILS =
-            "get_content_manager_init_details";
+    private static final Logger log = LogManager.getLogger(ChangesHandler.class);
+
+    public static final String GET_CHANGES_DETAILS = "get_changes_details";
 
     @Override
     public List<Route> routes() {
         return List.of(
                 new Route(
-                        GET, String.format(Locale.ROOT, "%s", "/_plugins/_content_manager/init")));
+                        GET,
+                        String.format(Locale.ROOT, "%s", "/_plugins/_content_manager/vd-changes")));
     }
 
     @Override
     public String getName() {
-        return GET_CONTENT_MANAGER_INIT_DETAILS;
+        return GET_CHANGES_DETAILS;
     }
 
     @Override
@@ -55,8 +58,13 @@ public class TestHandler extends BaseRestHandler {
             throws IOException {
         switch (request.method()) {
             case GET:
+                GetChangesAction changesAction =
+                        new GetChangesAction(
+                                request.param(FROM_OFFSET_FIELD),
+                                request.param(TO_OFFSET_FIELD),
+                                request.param(WITH_EMPTIES_FIELD));
                 return restChannel -> {
-                    restChannel.sendResponse(GetConsumersAction.performAction());
+                    restChannel.sendResponse(changesAction.run());
                 };
             default:
                 throw new IllegalArgumentException(
