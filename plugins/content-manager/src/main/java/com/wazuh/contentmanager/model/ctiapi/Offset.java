@@ -21,6 +21,7 @@ import org.apache.logging.log4j.Logger;
 import org.opensearch.core.xcontent.ToXContentObject;
 import org.opensearch.core.xcontent.XContentBuilder;
 import org.opensearch.core.xcontent.XContentParser;
+import org.opensearch.core.xcontent.XContentParserUtils;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -38,12 +39,12 @@ public class Offset implements ToXContentObject {
     private static final String VERSION = "version";
     private static final String PAYLOAD = "payload";
 
-    private static String context;
-    private static Long offset;
-    private static String resource;
-    private static String type;
-    private static Long version;
-    private static Map<String, Object> payload;
+    private final String context;
+    private final Long offset;
+    private final String resource;
+    private final String type;
+    private final Long version;
+    private final Map<String, Object> payload;
 
     public Offset(
             String context,
@@ -60,15 +61,15 @@ public class Offset implements ToXContentObject {
         this.payload = payload;
     }
 
-    private static List<Object> processArray(XContentParser parser) throws IOException {
+    private static List<Object> parseArray(XContentParser parser) throws IOException {
         List<Object> array = new ArrayList<>();
         while (parser.nextToken() != XContentParser.Token.END_ARRAY) {
             switch (parser.currentToken()) {
                 case START_OBJECT:
-                    array.add(processObject(parser));
+                    array.add(parseObject(parser));
                     break;
                 case START_ARRAY:
-                    array.add(processArray(parser));
+                    array.add(parseArray(parser));
                     break;
                 case VALUE_STRING:
                     array.add(parser.text());
@@ -90,18 +91,17 @@ public class Offset implements ToXContentObject {
         return array;
     }
 
-    private static Map<String, Object> processObject(XContentParser parser) throws IOException {
+    private static Map<String, Object> parseObject(XContentParser parser) throws IOException {
         Map<String, Object> result = new HashMap<>();
         while (parser.nextToken() != XContentParser.Token.END_OBJECT) {
             if (parser.currentToken() == XContentParser.Token.FIELD_NAME) {
                 String fieldName = parser.currentName();
-                parser.nextToken();
-                switch (parser.currentToken()) {
+                switch (parser.nextToken()) {
                     case START_OBJECT:
-                        result.put(fieldName, processObject(parser));
+                        result.put(fieldName, parseObject(parser));
                         break;
                     case START_ARRAY:
-                        result.put(fieldName, processArray(parser));
+                        result.put(fieldName, parseArray(parser));
                         break;
                     case VALUE_STRING:
                         result.put(fieldName, parser.text());
@@ -131,7 +131,7 @@ public class Offset implements ToXContentObject {
         Long version = null;
         Map<String, Object> payload = new HashMap<>();
         while (parser.nextToken() != XContentParser.Token.END_OBJECT) {
-            if (parser.currentToken().equals(XContentParser.Token.FIELD_NAME)) {
+            if (parser.currentToken() == XContentParser.Token.FIELD_NAME) {
                 String fieldName = parser.currentName();
                 parser.nextToken();
                 switch (fieldName) {
@@ -151,10 +151,9 @@ public class Offset implements ToXContentObject {
                         version = parser.longValue();
                         break;
                     case PAYLOAD:
-                        if (parser.currentToken() == XContentParser.Token.START_OBJECT) {
-                            parser.nextToken();
-                            payload = processObject(parser);
-                        }
+                        XContentParserUtils.ensureExpectedToken(
+                                XContentParser.Token.START_OBJECT, parser.currentToken(), parser);
+                        payload = parseObject(parser);
                         break;
                     default:
                         parser.skipChildren();
@@ -175,5 +174,17 @@ public class Offset implements ToXContentObject {
         builder.field(VERSION, this.version);
         builder.field(PAYLOAD, this.payload);
         return builder.endObject();
+    }
+
+    @Override
+    public String toString() {
+        return "Offset{" +
+            "context='" + context + '\'' +
+            ", offset=" + offset +
+            ", resource='" + resource + '\'' +
+            ", type='" + type + '\'' +
+            ", version=" + version +
+            ", payload=" + payload +
+            '}';
     }
 }

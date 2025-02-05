@@ -25,6 +25,9 @@ import org.opensearch.core.xcontent.XContentParser;
 import java.io.IOException;
 import java.util.List;
 
+/**
+ * ToXContentObject model to parse and build CTI API Catalog query replies
+ */
 public class ContextConsumerCatalog implements ToXContentObject {
 
     private static final Logger log = LogManager.getLogger(ContextConsumerCatalog.class);
@@ -55,6 +58,21 @@ public class ContextConsumerCatalog implements ToXContentObject {
     private final List<Object> operations;
     private final String updatedAt;
 
+    /**
+     * Constructor method
+     * @param id Identifier number
+     * @param name Name of the consumer
+     * @param context Name of the context
+     * @param operations TBD
+     * @param insertedAt Consumer creation date
+     * @param updatedAt Consumer update date
+     * @param pathsFilter TBD
+     * @param lastOffset The last offset number
+     * @param changesUrl The URL of the latest changes
+     * @param lastSnapshotAt Date of the last snapshot
+     * @param lastSnapshotLink URL link to the latest snapshot
+     * @param lastSnapshotOffset Offset of the latest snapshot
+     */
     public ContextConsumerCatalog(
             Long id,
             String name,
@@ -82,6 +100,13 @@ public class ContextConsumerCatalog implements ToXContentObject {
         this.lastSnapshotOffset = lastSnapshotOffset;
     }
 
+    /**
+     * Parses a Catalog CTI API reply from an XContentParser
+     * @param parser the incoming parser
+     * @return a fully parsed ContextConsumerCatalog object
+     * @throws IOException rethrown from parse()
+     * @throws IllegalArgumentException rethrown from parse()
+     */
     public static ContextConsumerCatalog parse(XContentParser parser)
             throws IOException, IllegalArgumentException {
         long id = 0L;
@@ -164,6 +189,13 @@ public class ContextConsumerCatalog implements ToXContentObject {
                 lastSnapshotOffset);
     }
 
+    /**
+     * Creates an XContentBuilder for the parsed object
+     * @param builder Incoming builder to add the fields to
+     * @param params Not used
+     * @return a valid XContentBuilder object ready to be turned into JSON
+     * @throws IOException rethrown from XContentBuilder methods
+     */
     @Override
     public XContentBuilder toXContent(XContentBuilder builder, Params params) throws IOException {
         builder.startObject();

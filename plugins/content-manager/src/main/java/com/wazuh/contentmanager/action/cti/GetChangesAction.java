@@ -29,9 +29,12 @@ import java.util.HashMap;
 import java.util.Map;
 
 import com.wazuh.contentmanager.ContentManagerPlugin;
-import com.wazuh.contentmanager.model.ctiapi.Changes;
+import com.wazuh.contentmanager.model.ctiapi.Offsets;
 import com.wazuh.contentmanager.privileged.PrivilegedHttpAction;
 
+/**
+ * Action class handling Offsets logic. This is used to get the json patches to the current vulnerability data
+ */
 public class GetChangesAction {
 
     private static String FROM_OFFSET_FIELD = "from_offset";
@@ -41,14 +44,20 @@ public class GetChangesAction {
     private String toOffset = null;
     private String withEmpties = null;
 
-    /** Empty constructor */
+    /** Constructor method */
     public GetChangesAction(String fromOffset, String toOffset, String withEmpties) {
         this.fromOffset = fromOffset;
         this.toOffset = toOffset;
         this.withEmpties = withEmpties;
     }
 
-    public BytesRestResponse run() throws IOException {
+    /**
+     * Submits a changes query to the CTI API
+     * @return The parsed response from the CTI API
+     * @throws IOException rethrown from parse()
+     * @throws IllegalArgumentException rethrown from parse()
+     */
+    public BytesRestResponse run() throws IOException, IllegalArgumentException {
         XContent xContent = XContentType.JSON.xContent();
         XContentBuilder builder = XContentFactory.jsonBuilder();
         SimpleHttpResponse response =
@@ -57,7 +66,7 @@ public class GetChangesAction {
                         null,
                         buildQueryParametersMap(),
                         (Header) null);
-        Changes.parse(
+        Offsets.parse(
                         xContent.createParser(
                                 NamedXContentRegistry.EMPTY,
                                 DeprecationHandler.IGNORE_DEPRECATIONS,
@@ -66,6 +75,10 @@ public class GetChangesAction {
         return new BytesRestResponse(RestStatus.fromCode(response.getCode()), builder.toString());
     }
 
+    /**
+     * Builds a Map with the query parameters for the CTI API call
+     * @return The map with the parameters
+     */
     private Map<String, String> buildQueryParametersMap() {
         Map<String, String> params = new HashMap<>();
         params.put(FROM_OFFSET_FIELD, fromOffset);

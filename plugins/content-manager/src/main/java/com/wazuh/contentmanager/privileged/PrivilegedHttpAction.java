@@ -25,16 +25,30 @@ import java.util.Map;
 
 import com.wazuh.contentmanager.util.http.HttpClient;
 
+/**
+ * Quick class to handle outgoing HTTP requests
+ */
 public class PrivilegedHttpAction {
 
+    /**
+     * Empty constructor
+     */
     public PrivilegedHttpAction() {}
 
+    /**
+     * Calls HttpClient with a GET request
+     * @param uri Destination URI
+     * @param body The body of the request
+     * @param queryParameters A map of the requests query parameters
+     * @param headers The request's headers
+     * @return
+     */
     public static SimpleHttpResponse get(
-            String uri, String payload, Map<String, String> queryParameters, Header... headers) {
+            String uri, String body, Map<String, String> queryParameters, Header... headers) {
         return AccessController.doPrivileged(
                 (java.security.PrivilegedAction<SimpleHttpResponse>)
                         () ->
                                 HttpClient.getInstance()
-                                        .get(URI.create(uri), payload, queryParameters, headers));
+                                        .get(URI.create(uri), body, queryParameters, headers));
     }
 }

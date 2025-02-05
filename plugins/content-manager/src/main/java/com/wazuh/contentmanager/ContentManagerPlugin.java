@@ -92,6 +92,6 @@ public class ContentManagerPlugin extends Plugin implements ActionPlugin, Cluste
 
     @Override
     public List<Setting<?>> getSettings() {
-        return List.of(PluginSettings.CTI_API_URI);
+        return Collections.emptyList();
     }
 }

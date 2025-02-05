@@ -30,12 +30,18 @@ import com.wazuh.contentmanager.action.cti.GetCatalogAction;
 
 import static org.opensearch.rest.RestRequest.Method.GET;
 
+/**
+ * Handler class for the catalog endpoint
+ */
 public class CatalogHandler extends BaseRestHandler {
 
     private static final Logger log = LogManager.getLogger(CatalogHandler.class);
 
     public static final String GET_CATALOG_DETAILS = "get_catalog_details";
 
+    /**
+     * Exposes a route
+     */
     @Override
     public List<Route> routes() {
         return List.of(
@@ -49,6 +55,9 @@ public class CatalogHandler extends BaseRestHandler {
         return GET_CATALOG_DETAILS;
     }
 
+    /**
+     * Handles the actual request to the plugin's catalog endpoint
+     */
     @Override
     protected RestChannelConsumer prepareRequest(RestRequest request, NodeClient client)
             throws IOException {

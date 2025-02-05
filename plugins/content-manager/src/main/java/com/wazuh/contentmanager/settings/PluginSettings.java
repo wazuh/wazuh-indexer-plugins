@@ -30,15 +30,8 @@ public class PluginSettings {
 
     private static final Logger log = LogManager.getLogger(PluginSettings.class);
 
-    /** The uri for connecting to api. */
-    public static final Setting<SecureString> CTI_API_URI =
-            SecureSetting.secureString("cti_api.uri", null);
-
     /** Singleton instance. */
     private static PluginSettings INSTANCE;
-
-    /** The uri for connecting to api. */
-    private final SecureString uri;
 
     /**
      * Private default constructor
@@ -47,8 +40,6 @@ public class PluginSettings {
      */
     private PluginSettings(@NonNull final Settings settings) {
         log.info("Plugin created with the keystore information.");
-
-        this.uri = CTI_API_URI.get(settings);
     }
 
     /**
@@ -78,9 +69,5 @@ public class PluginSettings {
             throw new IllegalStateException("Plugin settings have not been initialized.");
         }
         return INSTANCE;
-    }
-
-    public String getUri() {
-        return this.uri.toString();
     }
 }
