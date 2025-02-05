@@ -23,6 +23,10 @@ import org.opensearch.core.xcontent.XContentBuilder;
 import org.opensearch.core.xcontent.XContentParser;
 
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 public class Offset implements ToXContentObject {
 
@@ -39,7 +43,7 @@ public class Offset implements ToXContentObject {
     private static String resource;
     private static String type;
     private static Long version;
-    private static Object payload;
+    private static Map<String, Object> payload;
 
     public Offset(
             String context,
@@ -47,7 +51,7 @@ public class Offset implements ToXContentObject {
             String resource,
             String type,
             Long version,
-            Object payload) {
+            Map<String, Object> payload) {
         this.context = context;
         this.offset = offset;
         this.resource = resource;
@@ -56,35 +60,67 @@ public class Offset implements ToXContentObject {
         this.payload = payload;
     }
 
-    private static void processArray(XContentParser parser) throws IOException {
+    private static List<Object> processArray(XContentParser parser) throws IOException {
+        List<Object> array = new ArrayList<>();
         while (parser.nextToken() != XContentParser.Token.END_ARRAY) {
-            if (parser.currentToken() == XContentParser.Token.START_OBJECT) {
-                processObject(parser); // Handle nested objects in arrays
-            } else if (parser.currentToken() == XContentParser.Token.START_ARRAY) {
-                processArray(parser); // Handle nested arrays
-            } else {
-                log.info("Array value: " + parser.text());
+            switch (parser.currentToken()) {
+                case START_OBJECT:
+                    array.add(processObject(parser));
+                    break;
+                case START_ARRAY:
+                    array.add(processArray(parser));
+                    break;
+                case VALUE_STRING:
+                    array.add(parser.text());
+                    break;
+                case VALUE_NUMBER:
+                    array.add(parser.numberValue());
+                    break;
+                case VALUE_BOOLEAN:
+                    array.add(parser.booleanValue());
+                    break;
+                case VALUE_NULL:
+                    array.add(null);
+                    break;
+                default:
+                    parser.skipChildren();
             }
         }
+
+        return array;
     }
 
-    private static void processObject(XContentParser parser) throws IOException {
-        log.info("Entering an object...");
+    private static Map<String, Object> processObject(XContentParser parser) throws IOException {
+        Map<String, Object> result = new HashMap<>();
         while (parser.nextToken() != XContentParser.Token.END_OBJECT) {
             if (parser.currentToken() == XContentParser.Token.FIELD_NAME) {
                 String fieldName = parser.currentName();
-                parser.nextToken(); // Move to value
-                log.info("Field: " + fieldName);
-
-                if (parser.currentToken() == XContentParser.Token.START_OBJECT) {
-                    processObject(parser); // Recursively handle nested objects
-                } else if (parser.currentToken() == XContentParser.Token.START_ARRAY) {
-                    processArray(parser); // Recursively handle nested arrays
-                } else {
-                    log.info("Value: " + parser.text());
+                parser.nextToken();
+                switch (parser.currentToken()) {
+                    case START_OBJECT:
+                        result.put(fieldName, processObject(parser));
+                        break;
+                    case START_ARRAY:
+                        result.put(fieldName, processArray(parser));
+                        break;
+                    case VALUE_STRING:
+                        result.put(fieldName, parser.text());
+                        break;
+                    case VALUE_NUMBER:
+                        result.put(fieldName, parser.numberValue());
+                        break;
+                    case VALUE_BOOLEAN:
+                        result.put(fieldName, parser.booleanValue());
+                        break;
+                    case VALUE_NULL:
+                        result.put(fieldName, null);
+                        break;
+                    default:
+                        parser.skipChildren();
                 }
             }
         }
+        return result;
     }
 
     public static Offset parse(XContentParser parser) throws IOException, IllegalArgumentException {
@@ -93,7 +129,7 @@ public class Offset implements ToXContentObject {
         String resource = null;
         String type = null;
         Long version = null;
-        Object payload = null;
+        Map<String, Object> payload = new HashMap<>();
         while (parser.nextToken() != XContentParser.Token.END_OBJECT) {
             if (parser.currentToken().equals(XContentParser.Token.FIELD_NAME)) {
                 String fieldName = parser.currentName();
@@ -117,7 +153,7 @@ public class Offset implements ToXContentObject {
                     case PAYLOAD:
                         if (parser.currentToken() == XContentParser.Token.START_OBJECT) {
                             parser.nextToken();
-                            processObject(parser);
+                            payload = processObject(parser);
                         }
                         break;
                     default:
