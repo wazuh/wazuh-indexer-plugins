@@ -45,7 +45,7 @@ import com.wazuh.contentmanager.resthandler.CatalogHandler;
 import com.wazuh.contentmanager.resthandler.ChangesHandler;
 import com.wazuh.contentmanager.settings.PluginSettings;
 
-public class ContentManagerPlugin extends Plugin implements ActionPlugin, ClusterPlugin {
+public class ContentManagerPlugin extends Plugin implements ActionPlugin {
 
     public static String CTI_BASE_URL = "https://cti.wazuh.com/api/v1";
     public static String CTI_VD_CONSUMER_URL =
