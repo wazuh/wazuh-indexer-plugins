@@ -22,6 +22,7 @@ allprojects {
             licenseHeaderFile("${rootProject.file("formatter/license-header.txt")}")
             googleJavaFormat()
             removeUnusedImports()
+            indentWithSpaces(4)
             importOrder(
                     'de.thetaphi',
                     'com.carrotsearch',
