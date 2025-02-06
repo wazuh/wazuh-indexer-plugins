@@ -45,11 +45,8 @@ import com.wazuh.contentmanager.settings.PluginSettings;
 
 public class ContentManagerPlugin extends Plugin implements ActionPlugin {
 
-    public static String CTI_BASE_URL = "https://cti.wazuh.com/api/v1";
-    public static String CTI_VD_CONSUMER_URL =
-            CTI_BASE_URL + "/catalog/contexts/vd_1.0.0/consumers/vd_4.8.0";
-    public static String CTI_CHANGES_URL =
-            CTI_BASE_URL + "/catalog/contexts/vd_1.0.0/consumers/vd_4.8.0/changes";
+    public static String CTI_VD_CONSUMER_URL;
+    public static String CTI_CHANGES_URL;
 
     /** ClassConstructor * */
     public ContentManagerPlugin() {}
@@ -68,6 +65,10 @@ public class ContentManagerPlugin extends Plugin implements ActionPlugin {
             IndexNameExpressionResolver indexNameExpressionResolver,
             Supplier<RepositoriesService> repositoriesServiceSupplier) {
         PluginSettings.getInstance(environment.settings());
+        CTI_VD_CONSUMER_URL =
+            PluginSettings.getInstance().getCtiBaseUrl() + "/catalog/contexts/vd_1.0.0/consumers/vd_4.8.0";
+        CTI_CHANGES_URL =
+            PluginSettings.getInstance().getCtiBaseUrl() + "/catalog/contexts/vd_1.0.0/consumers/vd_4.8.0/changes";
         return Collections.emptyList();
     }
 
@@ -85,6 +86,9 @@ public class ContentManagerPlugin extends Plugin implements ActionPlugin {
 
     @Override
     public List<Setting<?>> getSettings() {
-        return Collections.emptyList();
+        return Collections.singletonList(
+            PluginSettings.CTI_BASE_URL
+        );
     }
+
 }
