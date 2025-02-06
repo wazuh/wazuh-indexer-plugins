@@ -70,165 +70,165 @@ import com.wazuh.commandmanager.settings.PluginSettings;
  * <p>The Command Manager plugin is also a JobScheduler extension plugin.
  */
 public class CommandManagerPlugin extends Plugin
-		implements ActionPlugin, JobSchedulerExtension, ReloadablePlugin {
-	public static final String COMMAND_DOCUMENT_PARENT_OBJECT_NAME = "command";
+        implements ActionPlugin, JobSchedulerExtension, ReloadablePlugin {
+    public static final String COMMAND_DOCUMENT_PARENT_OBJECT_NAME = "command";
 
-	private static final Logger log = LogManager.getLogger(CommandManagerPlugin.class);
+    private static final Logger log = LogManager.getLogger(CommandManagerPlugin.class);
 
-	private CommandIndex commandIndex;
-	private JobDocument jobDocument;
+    private CommandIndex commandIndex;
+    private JobDocument jobDocument;
 
-	@Override
-	public Collection<Object> createComponents(
-			Client client,
-			ClusterService clusterService,
-			ThreadPool threadPool,
-			ResourceWatcherService resourceWatcherService,
-			ScriptService scriptService,
-			NamedXContentRegistry xContentRegistry,
-			Environment environment,
-			NodeEnvironment nodeEnvironment,
-			NamedWriteableRegistry namedWriteableRegistry,
-			IndexNameExpressionResolver indexNameExpressionResolver,
-			Supplier<RepositoriesService> repositoriesServiceSupplier) {
-		// Command index repository initialization.
-		this.commandIndex = new CommandIndex(client, clusterService, threadPool);
-		PluginSettings.getInstance(environment.settings());
+    @Override
+    public Collection<Object> createComponents(
+            Client client,
+            ClusterService clusterService,
+            ThreadPool threadPool,
+            ResourceWatcherService resourceWatcherService,
+            ScriptService scriptService,
+            NamedXContentRegistry xContentRegistry,
+            Environment environment,
+            NodeEnvironment nodeEnvironment,
+            NamedWriteableRegistry namedWriteableRegistry,
+            IndexNameExpressionResolver indexNameExpressionResolver,
+            Supplier<RepositoriesService> repositoriesServiceSupplier) {
+        // Command index repository initialization.
+        this.commandIndex = new CommandIndex(client, clusterService, threadPool);
+        PluginSettings.getInstance(environment.settings());
 
-		// Scheduled job initialization
-		// NOTE it's very likely that client and thread pool may not be required as the command
-		// index
-		// repository already use them. All queries to the index should be under this class.
-		CommandManagerJobRunner.getInstance()
-				.setClient(client)
-				.setThreadPool(threadPool)
-				.setIndexRepository(this.commandIndex);
-		this.scheduleCommandJob(client, clusterService, threadPool);
+        // Scheduled job initialization
+        // NOTE it's very likely that client and thread pool may not be required as the command
+        // index
+        // repository already use them. All queries to the index should be under this class.
+        CommandManagerJobRunner.getInstance()
+                .setClient(client)
+                .setThreadPool(threadPool)
+                .setIndexRepository(this.commandIndex);
+        this.scheduleCommandJob(client, clusterService, threadPool);
 
-		return Collections.emptyList();
-	}
+        return Collections.emptyList();
+    }
 
-	/**
-	 * Indexes a document into the jobs index, so that JobScheduler plugin can run it
-	 *
-	 * @param client: The cluster client, used for indexing
-	 * @param clusterService: Provides the addListener method. We use it to determine if this is a new
-	 *     cluster.
-	 * @param threadPool: Used by jobDocument to create the document in a thread.
-	 */
-	private void scheduleCommandJob(
-			Client client, ClusterService clusterService, ThreadPool threadPool) {
-		clusterService.addListener(
-				event -> {
-					if (event.localNodeClusterManager() && event.isNewCluster()) {
-						jobDocument = JobDocument.getInstance();
-						CompletableFuture<IndexResponse> indexResponseCompletableFuture =
-								jobDocument.create(
-										clusterService,
-										client,
-										threadPool,
-										UUIDs.base64UUID(),
-										getJobType(),
-										PluginSettings.getInstance().getJobSchedule());
-						indexResponseCompletableFuture.thenAccept(
-								indexResponse -> {
-									log.info(
-											"Scheduled task successfully, response: {}",
-											indexResponse.getResult().toString());
-								});
-					}
-				});
-	}
+    /**
+     * Indexes a document into the jobs index, so that JobScheduler plugin can run it
+     *
+     * @param client: The cluster client, used for indexing
+     * @param clusterService: Provides the addListener method. We use it to determine if this is a new
+     *     cluster.
+     * @param threadPool: Used by jobDocument to create the document in a thread.
+     */
+    private void scheduleCommandJob(
+            Client client, ClusterService clusterService, ThreadPool threadPool) {
+        clusterService.addListener(
+                event -> {
+                    if (event.localNodeClusterManager() && event.isNewCluster()) {
+                        jobDocument = JobDocument.getInstance();
+                        CompletableFuture<IndexResponse> indexResponseCompletableFuture =
+                                jobDocument.create(
+                                        clusterService,
+                                        client,
+                                        threadPool,
+                                        UUIDs.base64UUID(),
+                                        getJobType(),
+                                        PluginSettings.getInstance().getJobSchedule());
+                        indexResponseCompletableFuture.thenAccept(
+                                indexResponse -> {
+                                    log.info(
+                                            "Scheduled task successfully, response: {}",
+                                            indexResponse.getResult().toString());
+                                });
+                    }
+                });
+    }
 
-	@Override
-	public List<RestHandler> getRestHandlers(
-			Settings settings,
-			RestController restController,
-			ClusterSettings clusterSettings,
-			IndexScopedSettings indexScopedSettings,
-			SettingsFilter settingsFilter,
-			IndexNameExpressionResolver indexNameExpressionResolver,
-			Supplier<DiscoveryNodes> nodesInCluster) {
-		return Collections.singletonList(new RestPostCommandAction(this.commandIndex));
-	}
+    @Override
+    public List<RestHandler> getRestHandlers(
+            Settings settings,
+            RestController restController,
+            ClusterSettings clusterSettings,
+            IndexScopedSettings indexScopedSettings,
+            SettingsFilter settingsFilter,
+            IndexNameExpressionResolver indexNameExpressionResolver,
+            Supplier<DiscoveryNodes> nodesInCluster) {
+        return Collections.singletonList(new RestPostCommandAction(this.commandIndex));
+    }
 
-	@Override
-	public List<Setting<?>> getSettings() {
-		return Arrays.asList(
-				// Register API settings
-				PluginSettings.CLIENT_TIMEOUT, PluginSettings.MAX_DOCS, PluginSettings.JOB_SCHEDULE);
-	}
+    @Override
+    public List<Setting<?>> getSettings() {
+        return Arrays.asList(
+                // Register API settings
+                PluginSettings.CLIENT_TIMEOUT, PluginSettings.MAX_DOCS, PluginSettings.JOB_SCHEDULE);
+    }
 
-	@Override
-	public String getJobType() {
-		return PluginSettings.getJobType();
-	}
+    @Override
+    public String getJobType() {
+        return PluginSettings.getJobType();
+    }
 
-	@Override
-	public String getJobIndex() {
-		return PluginSettings.getJobIndexName();
-	}
+    @Override
+    public String getJobIndex() {
+        return PluginSettings.getJobIndexName();
+    }
 
-	@Override
-	public ScheduledJobRunner getJobRunner() {
-		log.info("getJobRunner() executed");
-		return CommandManagerJobRunner.getInstance();
-	}
+    @Override
+    public ScheduledJobRunner getJobRunner() {
+        log.info("getJobRunner() executed");
+        return CommandManagerJobRunner.getInstance();
+    }
 
-	@Override
-	public ScheduledJobParser getJobParser() {
-		log.info("getJobParser() executed");
-		return (parser, id, jobDocVersion) -> {
-			CommandManagerJobParameter jobParameter = new CommandManagerJobParameter();
-			XContentParserUtils.ensureExpectedToken(
-					XContentParser.Token.START_OBJECT, parser.nextToken(), parser);
+    @Override
+    public ScheduledJobParser getJobParser() {
+        log.info("getJobParser() executed");
+        return (parser, id, jobDocVersion) -> {
+            CommandManagerJobParameter jobParameter = new CommandManagerJobParameter();
+            XContentParserUtils.ensureExpectedToken(
+                    XContentParser.Token.START_OBJECT, parser.nextToken(), parser);
 
-			while (!parser.nextToken().equals(XContentParser.Token.END_OBJECT)) {
-				String fieldName = parser.currentName();
-				parser.nextToken();
-				switch (fieldName) {
-					case CommandManagerJobParameter.NAME_FIELD:
-						jobParameter.setJobName(parser.text());
-						break;
-					case CommandManagerJobParameter.ENABLED_FIELD:
-						jobParameter.setEnabled(parser.booleanValue());
-						break;
-					case CommandManagerJobParameter.ENABLED_TIME_FIELD:
-						jobParameter.setEnabledTime(parseInstantValue(parser));
-						break;
-					case CommandManagerJobParameter.LAST_UPDATE_TIME_FIELD:
-						jobParameter.setLastUpdateTime(parseInstantValue(parser));
-						break;
-					case CommandManagerJobParameter.SCHEDULE_FIELD:
-						jobParameter.setSchedule(ScheduleParser.parse(parser));
-						break;
-					default:
-						XContentParserUtils.throwUnknownToken(parser.currentToken(), parser.getTokenLocation());
-				}
-			}
-			return jobParameter;
-		};
-	}
+            while (!parser.nextToken().equals(XContentParser.Token.END_OBJECT)) {
+                String fieldName = parser.currentName();
+                parser.nextToken();
+                switch (fieldName) {
+                    case CommandManagerJobParameter.NAME_FIELD:
+                        jobParameter.setJobName(parser.text());
+                        break;
+                    case CommandManagerJobParameter.ENABLED_FIELD:
+                        jobParameter.setEnabled(parser.booleanValue());
+                        break;
+                    case CommandManagerJobParameter.ENABLED_TIME_FIELD:
+                        jobParameter.setEnabledTime(parseInstantValue(parser));
+                        break;
+                    case CommandManagerJobParameter.LAST_UPDATE_TIME_FIELD:
+                        jobParameter.setLastUpdateTime(parseInstantValue(parser));
+                        break;
+                    case CommandManagerJobParameter.SCHEDULE_FIELD:
+                        jobParameter.setSchedule(ScheduleParser.parse(parser));
+                        break;
+                    default:
+                        XContentParserUtils.throwUnknownToken(parser.currentToken(), parser.getTokenLocation());
+                }
+            }
+            return jobParameter;
+        };
+    }
 
-	/**
-	 * Returns the proper Instant object with milliseconds from the Unix epoch when the current token
-	 * actually holds a value.
-	 *
-	 * @param parser: The parser as provided by JobScheduler
-	 */
-	private Instant parseInstantValue(XContentParser parser) throws IOException {
-		if (XContentParser.Token.VALUE_NULL.equals(parser.currentToken())) {
-			return null;
-		}
-		if (parser.currentToken().isValue()) {
-			return Instant.ofEpochMilli(parser.longValue());
-		}
-		XContentParserUtils.throwUnknownToken(parser.currentToken(), parser.getTokenLocation());
-		return null;
-	}
+    /**
+     * Returns the proper Instant object with milliseconds from the Unix epoch when the current token
+     * actually holds a value.
+     *
+     * @param parser: The parser as provided by JobScheduler
+     */
+    private Instant parseInstantValue(XContentParser parser) throws IOException {
+        if (XContentParser.Token.VALUE_NULL.equals(parser.currentToken())) {
+            return null;
+        }
+        if (parser.currentToken().isValue()) {
+            return Instant.ofEpochMilli(parser.longValue());
+        }
+        XContentParserUtils.throwUnknownToken(parser.currentToken(), parser.getTokenLocation());
+        return null;
+    }
 
-	@Override
-	public void reload(Settings settings) {
-		// TODO
-	}
+    @Override
+    public void reload(Settings settings) {
+        // TODO
+    }
 }

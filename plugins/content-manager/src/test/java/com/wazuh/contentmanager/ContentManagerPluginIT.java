@@ -36,16 +36,16 @@ import static org.hamcrest.Matchers.containsString;
 @OpenSearchIntegTestCase.ClusterScope(scope = OpenSearchIntegTestCase.Scope.SUITE)
 public class ContentManagerPluginIT extends OpenSearchIntegTestCase {
 
-	@Override
-	protected Collection<Class<? extends Plugin>> nodePlugins() {
-		return Collections.singletonList(ContentManagerPlugin.class);
-	}
+    @Override
+    protected Collection<Class<? extends Plugin>> nodePlugins() {
+        return Collections.singletonList(ContentManagerPlugin.class);
+    }
 
-	public void testPluginInstalled() throws IOException, ParseException {
-		Response response = getRestClient().performRequest(new Request("GET", "/_cat/plugins"));
-		String body = EntityUtils.toString(response.getEntity(), StandardCharsets.UTF_8);
+    public void testPluginInstalled() throws IOException, ParseException {
+        Response response = getRestClient().performRequest(new Request("GET", "/_cat/plugins"));
+        String body = EntityUtils.toString(response.getEntity(), StandardCharsets.UTF_8);
 
-		logger.info("response body: {}", body);
-		assertThat(body, containsString("wazuh-indexer-content-manager"));
-	}
+        logger.info("response body: {}", body);
+        assertThat(body, containsString("wazuh-indexer-content-manager"));
+    }
 }
