@@ -35,8 +35,6 @@ import com.wazuh.commandmanager.model.*;
 import com.wazuh.commandmanager.settings.PluginSettings;
 
 import static org.opensearch.rest.RestRequest.Method.POST;
-import static com.wazuh.commandmanager.model.Command.parse;
-import static com.wazuh.commandmanager.model.Orders.fromCommands;
 
 /** Handles HTTP requests to the POST the Commands API endpoint. */
 public class RestPostCommandAction extends BaseRestHandler {
@@ -102,7 +100,7 @@ public class RestPostCommandAction extends BaseRestHandler {
                         new BytesRestResponse(RestStatus.BAD_REQUEST, "Body content is required"));
             };
         }
-        List<Command> commands = parse(request);
+        List<Command> commands = Command.parse(request);
         // Validate commands are not empty
         if (commands.isEmpty()) {
             return channel -> {
@@ -118,7 +116,7 @@ public class RestPostCommandAction extends BaseRestHandler {
         // agents.
         /// Given a group of agents A with N agents, a total of N orders are generated. One for each
         // agent.
-        Orders orders = fromCommands(client, commands);
+        Orders orders = Orders.fromCommands(client, commands);
         // Validate that the orders are not empty
         if (orders.get().isEmpty()) {
             return channel -> {
