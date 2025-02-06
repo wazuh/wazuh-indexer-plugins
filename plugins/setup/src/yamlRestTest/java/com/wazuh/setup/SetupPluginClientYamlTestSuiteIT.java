@@ -24,12 +24,12 @@ import org.opensearch.test.rest.yaml.OpenSearchClientYamlSuiteTestCase;
 
 public class SetupPluginClientYamlTestSuiteIT extends OpenSearchClientYamlSuiteTestCase {
 
-    public SetupPluginClientYamlTestSuiteIT(@Name("yaml") ClientYamlTestCandidate testCandidate) {
-        super(testCandidate);
-    }
+  public SetupPluginClientYamlTestSuiteIT(@Name("yaml") ClientYamlTestCandidate testCandidate) {
+    super(testCandidate);
+  }
 
-    @ParametersFactory
-    public static Iterable<Object[]> parameters() throws Exception {
-        return OpenSearchClientYamlSuiteTestCase.createParameters();
-    }
+  @ParametersFactory
+  public static Iterable<Object[]> parameters() throws Exception {
+    return OpenSearchClientYamlSuiteTestCase.createParameters();
+  }
 }

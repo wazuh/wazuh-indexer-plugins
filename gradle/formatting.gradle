@@ -20,7 +20,7 @@ allprojects {
     spotless {
         java {
             licenseHeaderFile("${rootProject.file("formatter/license-header.txt")}")
-            googleJavaFormat().aosp()
+            googleJavaFormat()
             removeUnusedImports()
             importOrder(
                     'de.thetaphi',

@@ -37,100 +37,96 @@ import reactor.util.annotation.NonNull;
 
 /** Util functions to parse and manage index templates files. */
 public class IndexTemplateUtils {
-    private static final Logger log = LogManager.getLogger(IndexTemplateUtils.class);
+  private static final Logger log = LogManager.getLogger(IndexTemplateUtils.class);
 
-    /** Default constructor */
-    public IndexTemplateUtils() {}
+  /** Default constructor */
+  public IndexTemplateUtils() {}
 
-    /**
-     * Read index template file from the resources folder and returns its JSON content as a map.
-     *
-     * @param filename name of the index template to read from the resources folder
-     * @return the JSON index template as a map
-     * @throws IOException file not found or could not be read
-     */
-    public static Map<String, Object> fromFile(@NonNull String filename) throws IOException {
-        InputStream is = IndexTemplateUtils.class.getClassLoader().getResourceAsStream(filename);
-        return IndexTemplateUtils.toMap(is);
+  /**
+   * Read index template file from the resources folder and returns its JSON content as a map.
+   *
+   * @param filename name of the index template to read from the resources folder
+   * @return the JSON index template as a map
+   * @throws IOException file not found or could not be read
+   */
+  public static Map<String, Object> fromFile(@NonNull String filename) throws IOException {
+    InputStream is = IndexTemplateUtils.class.getClassLoader().getResourceAsStream(filename);
+    return IndexTemplateUtils.toMap(is);
+  }
+
+  /**
+   * Convert from a JSON InputStream into a String, Object map.
+   *
+   * <p>Used to convert the JSON index templates to the required format.
+   *
+   * @param is: the JSON formatted InputStream
+   * @return a map with the json string contents.
+   * @throws IOException thrown by {@link JsonXContent#createParser(NamedXContentRegistry,
+   *     DeprecationHandler, InputStream)}
+   */
+  public static Map<String, Object> toMap(InputStream is) throws IOException {
+    XContentParser parser =
+        JsonXContent.jsonXContent.createParser(
+            NamedXContentRegistry.EMPTY, DeprecationHandler.THROW_UNSUPPORTED_OPERATION, is);
+    parser.nextToken();
+    return parser.map();
+  }
+
+  /**
+   * Cast map's element to a String, Object map.
+   *
+   * <p>Used to retrieve the settings and mappings from the index templates, which are a JSON object
+   * themselves.
+   *
+   * @param map the index template as a map.
+   * @param key the element's key to retrieve and cast.
+   * @return a String, Object map
+   */
+  public static Map<String, Object> get(Map<String, Object> map, String key) {
+    return (Map<String, Object>) map.get(key);
+  }
+
+  /**
+   * Checks for the existence of the given index template in the cluster.
+   *
+   * @param clusterService The cluster service used to check the node's existence
+   * @param templateName index template name within the resources folder
+   * @return whether the index template exists.
+   */
+  public static boolean isMissingIndexTemplate(ClusterService clusterService, String templateName) {
+    Map<String, IndexTemplateMetadata> templates = clusterService.state().metadata().templates();
+    log.debug("Existing index templates: {} ", templates.keySet());
+
+    return !templates.containsKey(templateName);
+  }
+
+  /**
+   * Creates an index template into the cluster.
+   *
+   * @param client OpenSearch's client.
+   * @param templateName index template name. The index template is read from the plugin's resources
+   *     directory as "templateName.json", and created as "templateName".
+   */
+  public static void putIndexTemplate(Client client, String templateName) {
+    try {
+      // @throws IOException
+      Map<String, Object> template = IndexTemplateUtils.fromFile(templateName + ".json");
+
+      PutIndexTemplateRequest putIndexTemplateRequest =
+          new PutIndexTemplateRequest()
+              .mapping(IndexTemplateUtils.get(template, "mappings"))
+              .settings(IndexTemplateUtils.get(template, "settings"))
+              .name(templateName)
+              .patterns((List<String>) template.get("index_patterns"));
+
+      AcknowledgedResponse acknowledgedResponse =
+          client.admin().indices().putTemplate(putIndexTemplateRequest).actionGet();
+      if (acknowledgedResponse.isAcknowledged()) {
+        log.info("Index template [{}] created successfully", templateName);
+      }
+
+    } catch (IOException e) {
+      log.error("Error reading index template [{}] from filesystem", templateName);
     }
-
-    /**
-     * Convert from a JSON InputStream into a String, Object map.
-     *
-     * <p>Used to convert the JSON index templates to the required format.
-     *
-     * @param is: the JSON formatted InputStream
-     * @return a map with the json string contents.
-     * @throws IOException thrown by {@link JsonXContent#createParser(NamedXContentRegistry,
-     *     DeprecationHandler, InputStream)}
-     */
-    public static Map<String, Object> toMap(InputStream is) throws IOException {
-        XContentParser parser =
-                JsonXContent.jsonXContent.createParser(
-                        NamedXContentRegistry.EMPTY,
-                        DeprecationHandler.THROW_UNSUPPORTED_OPERATION,
-                        is);
-        parser.nextToken();
-        return parser.map();
-    }
-
-    /**
-     * Cast map's element to a String, Object map.
-     *
-     * <p>Used to retrieve the settings and mappings from the index templates, which are a JSON
-     * object themselves.
-     *
-     * @param map the index template as a map.
-     * @param key the element's key to retrieve and cast.
-     * @return a String, Object map
-     */
-    public static Map<String, Object> get(Map<String, Object> map, String key) {
-        return (Map<String, Object>) map.get(key);
-    }
-
-    /**
-     * Checks for the existence of the given index template in the cluster.
-     *
-     * @param clusterService The cluster service used to check the node's existence
-     * @param templateName index template name within the resources folder
-     * @return whether the index template exists.
-     */
-    public static boolean isMissingIndexTemplate(
-            ClusterService clusterService, String templateName) {
-        Map<String, IndexTemplateMetadata> templates =
-                clusterService.state().metadata().templates();
-        log.debug("Existing index templates: {} ", templates.keySet());
-
-        return !templates.containsKey(templateName);
-    }
-
-    /**
-     * Creates an index template into the cluster.
-     *
-     * @param client OpenSearch's client.
-     * @param templateName index template name. The index template is read from the plugin's
-     *     resources directory as "templateName.json", and created as "templateName".
-     */
-    public static void putIndexTemplate(Client client, String templateName) {
-        try {
-            // @throws IOException
-            Map<String, Object> template = IndexTemplateUtils.fromFile(templateName + ".json");
-
-            PutIndexTemplateRequest putIndexTemplateRequest =
-                    new PutIndexTemplateRequest()
-                            .mapping(IndexTemplateUtils.get(template, "mappings"))
-                            .settings(IndexTemplateUtils.get(template, "settings"))
-                            .name(templateName)
-                            .patterns((List<String>) template.get("index_patterns"));
-
-            AcknowledgedResponse acknowledgedResponse =
-                    client.admin().indices().putTemplate(putIndexTemplateRequest).actionGet();
-            if (acknowledgedResponse.isAcknowledged()) {
-                log.info("Index template [{}] created successfully", templateName);
-            }
-
-        } catch (IOException e) {
-            log.error("Error reading index template [{}] from filesystem", templateName);
-        }
-    }
+  }
 }

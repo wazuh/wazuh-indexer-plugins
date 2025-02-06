@@ -23,15 +23,15 @@ import java.util.HashMap;
 
 public class FetchConfigCommand extends Args {
 
-    /**
-     * Dedicated command.action.args parser for "fetch-config" action type.
-     *
-     * @param parser An XContentParser containing an args to be deserialized
-     * @return An Args object
-     * @throws IOException Rethrows the exception from list() and objectText() method
-     */
-    public static Args parse(XContentParser parser) throws IOException {
-        parser.skipChildren();
-        return new Args(new HashMap<>());
-    }
+  /**
+   * Dedicated command.action.args parser for "fetch-config" action type.
+   *
+   * @param parser An XContentParser containing an args to be deserialized
+   * @return An Args object
+   * @throws IOException Rethrows the exception from list() and objectText() method
+   */
+  public static Args parse(XContentParser parser) throws IOException {
+    parser.skipChildren();
+    return new Args(new HashMap<>());
+  }
 }

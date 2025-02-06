@@ -19,5 +19,5 @@ package com.wazuh.contentmanager;
 import org.opensearch.test.OpenSearchTestCase;
 
 public class ContentManagerTests extends OpenSearchTestCase {
-    // Add unit tests for your plugin
+  // Add unit tests for your plugin
 }
