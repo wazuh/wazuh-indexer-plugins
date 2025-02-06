@@ -38,18 +38,18 @@ import static org.hamcrest.Matchers.containsString;
 @OpenSearchIntegTestCase.ClusterScope(scope = OpenSearchIntegTestCase.Scope.SUITE)
 public class CommandManagerPluginIT extends OpenSearchIntegTestCase {
 
-  private static final Logger log = LogManager.getLogger(CommandManagerPluginIT.class);
+private static final Logger log = LogManager.getLogger(CommandManagerPluginIT.class);
 
-  @Override
-  protected Collection<Class<? extends Plugin>> nodePlugins() {
-    return Collections.singletonList(CommandManagerPlugin.class);
-  }
+@Override
+protected Collection<Class<? extends Plugin>> nodePlugins() {
+	return Collections.singletonList(CommandManagerPlugin.class);
+}
 
-  public void testPluginInstalled() throws IOException, ParseException {
-    Response response = getRestClient().performRequest(new Request("GET", "/_cat/plugins"));
-    String body = EntityUtils.toString(response.getEntity(), StandardCharsets.UTF_8);
+public void testPluginInstalled() throws IOException, ParseException {
+	Response response = getRestClient().performRequest(new Request("GET", "/_cat/plugins"));
+	String body = EntityUtils.toString(response.getEntity(), StandardCharsets.UTF_8);
 
-    log.info("response body: {}", body);
-    assertThat(body, containsString("command-manager"));
-  }
+	log.info("response body: {}", body);
+	assertThat(body, containsString("command-manager"));
+}
 }

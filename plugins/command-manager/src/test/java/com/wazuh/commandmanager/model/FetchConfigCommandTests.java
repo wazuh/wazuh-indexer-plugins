@@ -26,25 +26,25 @@ import java.util.Arrays;
 @OpenSearchIntegTestCase.ClusterScope(scope = OpenSearchIntegTestCase.Scope.SUITE)
 public class FetchConfigCommandTests extends OpenSearchIntegTestCase {
 
-  public void testParse() throws Exception {
-    XContentBuilder builder = XContentFactory.jsonBuilder();
-    builder.startObject();
-    builder.field("groups", Arrays.asList("group1", "group2"));
-    builder.endObject();
-    BytesReference bytes = BytesReference.bytes(builder);
-    MediaType mediaType = MediaTypeRegistry.JSON;
-    XContentParser parser =
-        mediaType
-            .xContent()
-            .createParser(
-                NamedXContentRegistry.EMPTY,
-                DeprecationHandler.THROW_UNSUPPORTED_OPERATION,
-                bytes.streamInput());
+public void testParse() throws Exception {
+	XContentBuilder builder = XContentFactory.jsonBuilder();
+	builder.startObject();
+	builder.field("groups", Arrays.asList("group1", "group2"));
+	builder.endObject();
+	BytesReference bytes = BytesReference.bytes(builder);
+	MediaType mediaType = MediaTypeRegistry.JSON;
+	XContentParser parser =
+		mediaType
+			.xContent()
+			.createParser(
+				NamedXContentRegistry.EMPTY,
+				DeprecationHandler.THROW_UNSUPPORTED_OPERATION,
+				bytes.streamInput());
 
-    // Initialize the parser
-    parser.nextToken();
-    Args args = FetchConfigCommand.parse(parser);
+	// Initialize the parser
+	parser.nextToken();
+	Args args = FetchConfigCommand.parse(parser);
 
-    assertEquals(0, args.getArgs().size());
-  }
+	assertEquals(0, args.getArgs().size());
+}
 }

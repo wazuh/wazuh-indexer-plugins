@@ -30,225 +30,225 @@ import reactor.util.annotation.NonNull;
 
 /** Command's fields. */
 public class Command implements ToXContentObject {
-  public static final String COMMAND = "command";
-  public static final String ORDER_ID = "order_id";
-  public static final String REQUEST_ID = "request_id";
-  public static final String SOURCE = "source";
-  public static final String TIMEOUT = "timeout";
-  public static final String USER = "user";
-  public static final String STATUS = "status";
-  private final String orderId;
-  private final String requestId;
-  private final String source;
-  private final Target target;
-  private final Integer timeout;
-  private final String user;
-  private final Status status;
-  private final Action action;
+public static final String COMMAND = "command";
+public static final String ORDER_ID = "order_id";
+public static final String REQUEST_ID = "request_id";
+public static final String SOURCE = "source";
+public static final String TIMEOUT = "timeout";
+public static final String USER = "user";
+public static final String STATUS = "status";
+private final String orderId;
+private final String requestId;
+private final String source;
+private final Target target;
+private final Integer timeout;
+private final String user;
+private final Status status;
+private final Action action;
 
-  /**
-   * Default constructor
-   *
-   * @param source origin of the request.
-   * @param target {@link Target}
-   * @param timeout time window in which the command has to be sent to its target.
-   * @param user the user that originated the request
-   * @param action {@link Action}
-   */
-  public Command(
-      @NonNull String source,
-      @NonNull Target target,
-      @NonNull Integer timeout,
-      @NonNull String user,
-      @NonNull Action action) {
-    this.requestId = UUIDs.base64UUID();
-    this.orderId = UUIDs.base64UUID();
-    this.source = source;
-    this.target = target;
-    this.user = user;
-    this.action = action;
-    this.timeout = timeout;
-    this.status = Status.PENDING;
-  }
+/**
+* Default constructor
+*
+* @param source origin of the request.
+* @param target {@link Target}
+* @param timeout time window in which the command has to be sent to its target.
+* @param user the user that originated the request
+* @param action {@link Action}
+*/
+public Command(
+	@NonNull String source,
+	@NonNull Target target,
+	@NonNull Integer timeout,
+	@NonNull String user,
+	@NonNull Action action) {
+	this.requestId = UUIDs.base64UUID();
+	this.orderId = UUIDs.base64UUID();
+	this.source = source;
+	this.target = target;
+	this.user = user;
+	this.action = action;
+	this.timeout = timeout;
+	this.status = Status.PENDING;
+}
 
-  /**
-   * Retrieves the timeout value for this command.
-   *
-   * @return the timeout value in milliseconds.
-   */
-  public Integer getTimeout() {
-    return this.timeout;
-  }
+/**
+* Retrieves the timeout value for this command.
+*
+* @return the timeout value in milliseconds.
+*/
+public Integer getTimeout() {
+	return this.timeout;
+}
 
-  /**
-   * Parses the request's payload into the Command model.
-   *
-   * @param parser XContentParser from the Rest Request
-   * @return instance of Command
-   * @throws IOException error parsing request content
-   * @throws IllegalArgumentException missing arguments
-   */
-  public static Command parse(XContentParser parser) throws IOException, IllegalArgumentException {
-    String source = null;
-    Target target = null;
-    Integer timeout = null;
-    String user = null;
-    Action action = null;
+/**
+* Parses the request's payload into the Command model.
+*
+* @param parser XContentParser from the Rest Request
+* @return instance of Command
+* @throws IOException error parsing request content
+* @throws IllegalArgumentException missing arguments
+*/
+public static Command parse(XContentParser parser) throws IOException, IllegalArgumentException {
+	String source = null;
+	Target target = null;
+	Integer timeout = null;
+	String user = null;
+	Action action = null;
 
-    while (parser.nextToken() != XContentParser.Token.END_OBJECT) {
-      if (parser.currentToken().equals(XContentParser.Token.FIELD_NAME)) {
-        String fieldName = parser.currentName();
+	while (parser.nextToken() != XContentParser.Token.END_OBJECT) {
+	if (parser.currentToken().equals(XContentParser.Token.FIELD_NAME)) {
+		String fieldName = parser.currentName();
 
-        parser.nextToken();
-        switch (fieldName) {
-          case SOURCE:
-            source = parser.text();
-            break;
-          case Target.TARGET:
-            target = Target.parse(parser);
-            break;
-          case TIMEOUT:
-            timeout = parser.intValue();
-            break;
-          case USER:
-            user = parser.text();
-            break;
-          case Action.ACTION:
-            action = Action.parse(parser);
-            break;
-          default:
-            parser.skipChildren();
-            break;
-        }
-      }
-    }
+		parser.nextToken();
+		switch (fieldName) {
+		case SOURCE:
+			source = parser.text();
+			break;
+		case Target.TARGET:
+			target = Target.parse(parser);
+			break;
+		case TIMEOUT:
+			timeout = parser.intValue();
+			break;
+		case USER:
+			user = parser.text();
+			break;
+		case Action.ACTION:
+			action = Action.parse(parser);
+			break;
+		default:
+			parser.skipChildren();
+			break;
+		}
+	}
+	}
 
-    ArrayList<String> nullArguments = new ArrayList<>();
-    if (source == null) {
-      nullArguments.add("source");
-    }
-    if (target == null) {
-      nullArguments.add("target");
-    }
-    if (timeout == null) {
-      nullArguments.add("timeout");
-    }
-    if (user == null) {
-      nullArguments.add("user");
-    }
-    if (action == null) {
-      nullArguments.add("action");
-    }
+	ArrayList<String> nullArguments = new ArrayList<>();
+	if (source == null) {
+	nullArguments.add("source");
+	}
+	if (target == null) {
+	nullArguments.add("target");
+	}
+	if (timeout == null) {
+	nullArguments.add("timeout");
+	}
+	if (user == null) {
+	nullArguments.add("user");
+	}
+	if (action == null) {
+	nullArguments.add("action");
+	}
 
-    if (!nullArguments.isEmpty()) {
-      throw new IllegalArgumentException("Missing arguments: " + nullArguments);
-    } else {
-      return new Command(source, target, timeout, user, action);
-    }
-  }
+	if (!nullArguments.isEmpty()) {
+	throw new IllegalArgumentException("Missing arguments: " + nullArguments);
+	} else {
+	return new Command(source, target, timeout, user, action);
+	}
+}
 
-  /**
-   * Parses the request's payload into the Command[] model.
-   *
-   * @param parser XContentParser from the Rest Request
-   * @return instance of Command
-   * @throws IOException error parsing request content
-   * @throws IllegalArgumentException missing arguments
-   */
-  public static List<Command> parseToArray(XContentParser parser)
-      throws IOException, IllegalArgumentException {
-    List<Command> commands = new ArrayList<>();
-    while (parser.nextToken() != XContentParser.Token.END_ARRAY) {
-      Command command = Command.parse(parser);
-      commands.add(command);
-    }
-    return commands;
-  }
+/**
+* Parses the request's payload into the Command[] model.
+*
+* @param parser XContentParser from the Rest Request
+* @return instance of Command
+* @throws IOException error parsing request content
+* @throws IllegalArgumentException missing arguments
+*/
+public static List<Command> parseToArray(XContentParser parser)
+	throws IOException, IllegalArgumentException {
+	List<Command> commands = new ArrayList<>();
+	while (parser.nextToken() != XContentParser.Token.END_ARRAY) {
+	Command command = Command.parse(parser);
+	commands.add(command);
+	}
+	return commands;
+}
 
-  @Override
-  public XContentBuilder toXContent(XContentBuilder builder, Params params) throws IOException {
-    builder.startObject(COMMAND);
-    builder.field(SOURCE, this.source);
-    builder.field(USER, this.user);
-    this.target.toXContent(builder, ToXContent.EMPTY_PARAMS);
-    this.action.toXContent(builder, ToXContent.EMPTY_PARAMS);
-    builder.field(TIMEOUT, timeout);
-    builder.field(STATUS, this.status);
-    builder.field(ORDER_ID, this.orderId);
-    builder.field(REQUEST_ID, this.requestId);
+@Override
+public XContentBuilder toXContent(XContentBuilder builder, Params params) throws IOException {
+	builder.startObject(COMMAND);
+	builder.field(SOURCE, this.source);
+	builder.field(USER, this.user);
+	this.target.toXContent(builder, ToXContent.EMPTY_PARAMS);
+	this.action.toXContent(builder, ToXContent.EMPTY_PARAMS);
+	builder.field(TIMEOUT, timeout);
+	builder.field(STATUS, this.status);
+	builder.field(ORDER_ID, this.orderId);
+	builder.field(REQUEST_ID, this.requestId);
 
-    return builder.endObject();
-  }
+	return builder.endObject();
+}
 
-  /**
-   * Returns the nested Action fields.
-   *
-   * @return Action fields.
-   */
-  public Action getAction() {
-    return this.action;
-  }
+/**
+* Returns the nested Action fields.
+*
+* @return Action fields.
+*/
+public Action getAction() {
+	return this.action;
+}
 
-  /**
-   * Returns the nested Source fields.
-   *
-   * @return source fields.
-   */
-  public String getSource() {
-    return this.source;
-  }
+/**
+* Returns the nested Source fields.
+*
+* @return source fields.
+*/
+public String getSource() {
+	return this.source;
+}
 
-  /**
-   * Returns the nested Target fields.
-   *
-   * @return Target fields.
-   */
-  public Target getTarget() {
-    return this.target;
-  }
+/**
+* Returns the nested Target fields.
+*
+* @return Target fields.
+*/
+public Target getTarget() {
+	return this.target;
+}
 
-  /**
-   * Returns the user that requested this command.
-   *
-   * @return the user that requested this command.
-   */
-  public String getUser() {
-    return this.user;
-  }
+/**
+* Returns the user that requested this command.
+*
+* @return the user that requested this command.
+*/
+public String getUser() {
+	return this.user;
+}
 
-  /**
-   * Retrieves the status of this command.
-   *
-   * @return the status of the command.
-   * @see Status
-   */
-  public Status getStatus() {
-    return this.status;
-  }
+/**
+* Retrieves the status of this command.
+*
+* @return the status of the command.
+* @see Status
+*/
+public Status getStatus() {
+	return this.status;
+}
 
-  @Override
-  public String toString() {
-    return "Command{"
-        + "orderId='"
-        + orderId
-        + '\''
-        + ", requestId='"
-        + requestId
-        + '\''
-        + ", source='"
-        + source
-        + '\''
-        + ", target="
-        + target
-        + ", timeout="
-        + timeout
-        + ", user='"
-        + user
-        + '\''
-        + ", status="
-        + status
-        + ", action="
-        + action
-        + '}';
-  }
+@Override
+public String toString() {
+	return "Command{"
+		+ "orderId='"
+		+ orderId
+		+ '\''
+		+ ", requestId='"
+		+ requestId
+		+ '\''
+		+ ", source='"
+		+ source
+		+ '\''
+		+ ", target="
+		+ target
+		+ ", timeout="
+		+ timeout
+		+ ", user='"
+		+ user
+		+ '\''
+		+ ", status="
+		+ status
+		+ ", action="
+		+ action
+		+ '}';
+}
 }

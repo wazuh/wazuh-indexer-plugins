@@ -49,37 +49,37 @@ import static org.hamcrest.Matchers.containsString;
 @OpenSearchIntegTestCase.ClusterScope(scope = OpenSearchIntegTestCase.Scope.SUITE)
 public class SetupPluginIT extends OpenSearchIntegTestCase {
 
-  @Override
-  protected Collection<Class<? extends Plugin>> nodePlugins() {
-    return Collections.singletonList(SetupPlugin.class);
-  }
+@Override
+protected Collection<Class<? extends Plugin>> nodePlugins() {
+	return Collections.singletonList(SetupPlugin.class);
+}
 
-  public void testPluginInstalled() throws IOException, ParseException {
-    Response response = getRestClient().performRequest(new Request("GET", "/_cat/plugins"));
-    String body = EntityUtils.toString(response.getEntity(), StandardCharsets.UTF_8);
+public void testPluginInstalled() throws IOException, ParseException {
+	Response response = getRestClient().performRequest(new Request("GET", "/_cat/plugins"));
+	String body = EntityUtils.toString(response.getEntity(), StandardCharsets.UTF_8);
 
-    logger.info("response body: {}", body);
-    assertThat(body, containsString("wazuh-indexer-setup"));
-  }
+	logger.info("response body: {}", body);
+	assertThat(body, containsString("wazuh-indexer-setup"));
+}
 
-  public void testPluginsAreInstalled() {
-    ClusterHealthRequest request = new ClusterHealthRequest();
-    ClusterHealthResponse response =
-        OpenSearchIntegTestCase.client().admin().cluster().health(request).actionGet();
-    Assert.assertEquals(ClusterHealthStatus.GREEN, response.getStatus());
+public void testPluginsAreInstalled() {
+	ClusterHealthRequest request = new ClusterHealthRequest();
+	ClusterHealthResponse response =
+		OpenSearchIntegTestCase.client().admin().cluster().health(request).actionGet();
+	Assert.assertEquals(ClusterHealthStatus.GREEN, response.getStatus());
 
-    NodesInfoRequest nodesInfoRequest = new NodesInfoRequest();
-    nodesInfoRequest.addMetric(NodesInfoRequest.Metric.PLUGINS.metricName());
-    NodesInfoResponse nodesInfoResponse =
-        OpenSearchIntegTestCase.client().admin().cluster().nodesInfo(nodesInfoRequest).actionGet();
-    List<PluginInfo> pluginInfos =
-        nodesInfoResponse.getNodes().stream()
-            .flatMap(
-                (Function<NodeInfo, Stream<PluginInfo>>)
-                    nodeInfo -> nodeInfo.getInfo(PluginsAndModules.class).getPluginInfos().stream())
-            .collect(Collectors.toList());
-    Assert.assertTrue(
-        pluginInfos.stream()
-            .anyMatch(pluginInfo -> pluginInfo.getName().equals("wazuh-indexer-setup")));
-  }
+	NodesInfoRequest nodesInfoRequest = new NodesInfoRequest();
+	nodesInfoRequest.addMetric(NodesInfoRequest.Metric.PLUGINS.metricName());
+	NodesInfoResponse nodesInfoResponse =
+		OpenSearchIntegTestCase.client().admin().cluster().nodesInfo(nodesInfoRequest).actionGet();
+	List<PluginInfo> pluginInfos =
+		nodesInfoResponse.getNodes().stream()
+			.flatMap(
+				(Function<NodeInfo, Stream<PluginInfo>>)
+					nodeInfo -> nodeInfo.getInfo(PluginsAndModules.class).getPluginInfos().stream())
+			.collect(Collectors.toList());
+	Assert.assertTrue(
+		pluginInfos.stream()
+			.anyMatch(pluginInfo -> pluginInfo.getName().equals("wazuh-indexer-setup")));
+}
 }

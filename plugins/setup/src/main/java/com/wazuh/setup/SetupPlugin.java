@@ -43,30 +43,30 @@ import com.wazuh.setup.index.WazuhIndices;
  */
 public class SetupPlugin extends Plugin implements ClusterPlugin {
 
-  private WazuhIndices indices;
+private WazuhIndices indices;
 
-  /** Default constructor */
-  public SetupPlugin() {}
+/** Default constructor */
+public SetupPlugin() {}
 
-  @Override
-  public Collection<Object> createComponents(
-      Client client,
-      ClusterService clusterService,
-      ThreadPool threadPool,
-      ResourceWatcherService resourceWatcherService,
-      ScriptService scriptService,
-      NamedXContentRegistry xContentRegistry,
-      Environment environment,
-      NodeEnvironment nodeEnvironment,
-      NamedWriteableRegistry namedWriteableRegistry,
-      IndexNameExpressionResolver indexNameExpressionResolver,
-      Supplier<RepositoriesService> repositoriesServiceSupplier) {
-    this.indices = new WazuhIndices(client, clusterService);
-    return List.of(this.indices);
-  }
+@Override
+public Collection<Object> createComponents(
+	Client client,
+	ClusterService clusterService,
+	ThreadPool threadPool,
+	ResourceWatcherService resourceWatcherService,
+	ScriptService scriptService,
+	NamedXContentRegistry xContentRegistry,
+	Environment environment,
+	NodeEnvironment nodeEnvironment,
+	NamedWriteableRegistry namedWriteableRegistry,
+	IndexNameExpressionResolver indexNameExpressionResolver,
+	Supplier<RepositoriesService> repositoriesServiceSupplier) {
+	this.indices = new WazuhIndices(client, clusterService);
+	return List.of(this.indices);
+}
 
-  @Override
-  public void onNodeStarted(DiscoveryNode localNode) {
-    this.indices.initialize();
-  }
+@Override
+public void onNodeStarted(DiscoveryNode localNode) {
+	this.indices.initialize();
+}
 }

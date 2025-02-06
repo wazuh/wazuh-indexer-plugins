@@ -24,49 +24,49 @@ import java.util.ArrayList;
 
 /** Documents model class. */
 public class Documents implements ToXContentObject {
-  public static final String DOCUMENTS = "_documents";
-  public static final String ID = "_id";
-  private final ArrayList<Document> documents;
+public static final String DOCUMENTS = "_documents";
+public static final String ID = "_id";
+private final ArrayList<Document> documents;
 
-  /** Default constructor. */
-  public Documents() {
-    this.documents = new ArrayList<>();
-  }
+/** Default constructor. */
+public Documents() {
+	this.documents = new ArrayList<>();
+}
 
-  /**
-   * Get the list of Document objects.
-   *
-   * @return the list of documents.
-   */
-  public ArrayList<Document> getDocuments() {
-    return documents;
-  }
+/**
+* Get the list of Document objects.
+*
+* @return the list of documents.
+*/
+public ArrayList<Document> getDocuments() {
+	return documents;
+}
 
-  /**
-   * Adds a document to the list of documents.
-   *
-   * @param document The document to add to the list.
-   */
-  public void addDocument(Document document) {
-    this.documents.add(document);
-  }
+/**
+* Adds a document to the list of documents.
+*
+* @param document The document to add to the list.
+*/
+public void addDocument(Document document) {
+	this.documents.add(document);
+}
 
-  /**
-   * Fit this object into a XContentBuilder parser, preparing it for the reply of POST /commands.
-   *
-   * @param builder XContentBuilder builder
-   * @param params ToXContent.EMPTY_PARAMS
-   * @return XContentBuilder builder with the representation of this object.
-   * @throws IOException parsing error.
-   */
-  @Override
-  public XContentBuilder toXContent(XContentBuilder builder, Params params) throws IOException {
-    builder.startArray(DOCUMENTS);
-    for (Document document : this.documents) {
-      builder.startObject();
-      builder.field(ID, document.getId());
-      builder.endObject();
-    }
-    return builder.endArray();
-  }
+/**
+* Fit this object into a XContentBuilder parser, preparing it for the reply of POST /commands.
+*
+* @param builder XContentBuilder builder
+* @param params ToXContent.EMPTY_PARAMS
+* @return XContentBuilder builder with the representation of this object.
+* @throws IOException parsing error.
+*/
+@Override
+public XContentBuilder toXContent(XContentBuilder builder, Params params) throws IOException {
+	builder.startArray(DOCUMENTS);
+	for (Document document : this.documents) {
+	builder.startObject();
+	builder.field(ID, document.getId());
+	builder.endObject();
+	}
+	return builder.endArray();
+}
 }

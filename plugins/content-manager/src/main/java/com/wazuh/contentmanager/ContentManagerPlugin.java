@@ -19,5 +19,5 @@ package com.wazuh.contentmanager;
 import org.opensearch.plugins.Plugin;
 
 public class ContentManagerPlugin extends Plugin {
-  // Implement the relevant Plugin Interfaces here
+// Implement the relevant Plugin Interfaces here
 }
