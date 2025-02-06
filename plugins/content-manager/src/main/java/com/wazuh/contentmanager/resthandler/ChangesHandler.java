@@ -32,6 +32,8 @@ import static org.opensearch.rest.RestRequest.Method.GET;
 
 /**
  * Handler class for the Changes endpoint exposed by the plugin
+ * This is meant for testing purposes until we have a functional JobScheduler job
+ * to trigger the CTI API-related logic
  */
 public class ChangesHandler extends BaseRestHandler {
 
