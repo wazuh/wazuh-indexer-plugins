@@ -163,7 +163,7 @@ public class HttpClient {
                     "Exception found while performing Http GET request interrupted {}",
                     e.getMessage());
         } catch (Exception e) {
-            log.error("Grabbing generic exception {}", e.getMessage());
+            log.error("Caught generic exception {}", e.getMessage());
         }
         return null;
     }
