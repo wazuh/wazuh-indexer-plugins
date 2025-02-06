@@ -47,12 +47,11 @@ public class Args implements ToXContentObject {
     }
 
     /**
-     * Parses an args XContentParser into an Args object. A {@code Map<String,Object>} is created
-     * with the fields and values from the command.action.args object
+     * Generic command.action.args parser.
      *
      * @param parser An XContentParser containing an args to be deserialized
      * @return An Args object
-     * @throws IOException Rethrows the exception from list() and objectText() methods
+     * @throws IOException Rethrows the exception from list() and objectText() method
      */
     public static Args parse(XContentParser parser) throws IOException {
         Map<String, Object> args = new HashMap<>();

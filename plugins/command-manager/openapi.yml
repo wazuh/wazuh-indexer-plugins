@@ -17,6 +17,52 @@ paths:
           "application/json":
             schema:
               $ref: "#/components/schemas/Commands"
+            examples:
+              restart:
+                summary: Restart command
+                value:
+                  commands:
+                    - action:
+                        args: {}
+                        name: restart
+                        version: "5.0.0"
+                      source: "Users/Services"
+                      user: "Management API"
+                      timeout: 100
+                      target:
+                        id: "d5b250c4-dfa1-4d94-827f-9f99210dbe6c"
+                        type: "agent"
+              fetch-config:
+                summary: Fetch configuration command
+                value:
+                  commands:
+                    - action:
+                        args: {}
+                        name: fetch-config
+                        version: "5.0.0"
+                      source: "Users/Services"
+                      user: "Management API"
+                      timeout: 100
+                      target:
+                        id: "d5b250c4-dfa1-4d94-827f-9f99210dbe6c"
+                        type: "agent"
+              set-group:
+                summary: Set group command
+                value:
+                  commands:
+                    - action:
+                        args:
+                          groups:
+                            - "group_1"
+                            - "group_2"
+                        name: set-group
+                        version: "5.0.0"
+                      source: "Users/Services"
+                      user: "Management API"
+                      timeout: 100
+                      target:
+                        id: "d5b250c4-dfa1-4d94-827f-9f99210dbe6c"
+                        type: "agent"
       responses:
         "200":
           description: OK
@@ -39,23 +85,23 @@ components:
       properties:
         source:
           type: string
-          example: "Engine"
+          example: "Users/Services"
         user:
           type: string
-          example: "user53"
+          example: "Management API"
         target:
           $ref: '#/components/schemas/Target'
         action:
           $ref: '#/components/schemas/Action'
         timeout:
           type: integer
-          example: 30
+          example: 100
     Target:
       type: object
       properties:
         id:
           type: string
-          example: "target4"
+          example: "d5b250c4-dfa1-4d94-827f-9f99210dbe6c"
         type:
           type: string
           example: "agent"
@@ -64,13 +110,18 @@ components:
       properties:
         name:
           type: string
-          example: "restart"
+          enum: [restart, fetch-config, set-group]
+          example: "set-group"
         args:
           type: object
           properties:
-            arg1:
-              type: string
-              example: "/path/to/executable/arg6"
+            groups:
+              type: array
+              items:
+                type: string
+              example: 
+                - "group_1"
+                - "group_2"
         version:
           type: string
-          example: "v4"
+          example: "5.0.0"
