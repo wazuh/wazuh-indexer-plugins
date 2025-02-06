@@ -31,8 +31,8 @@ import com.wazuh.contentmanager.model.ctiapi.ContextConsumerCatalog;
 import com.wazuh.contentmanager.privileged.PrivilegedHttpAction;
 
 /**
- * Action class handling Catalog logic. This is mainly useful to get the last offset value,
- * as well as the link of the latest snapshot
+ * Action class handling Catalog logic. This is mainly useful to get the last offset value, as well
+ * as the link of the latest snapshot
  */
 public class GetCatalogAction {
 
@@ -41,6 +41,7 @@ public class GetCatalogAction {
 
     /**
      * Submits a catalog query to the CTI API
+     *
      * @return The parsed response from the CTI API
      * @throws IOException rethrown from parse()
      * @throws IllegalArgumentException rethrown from parse()

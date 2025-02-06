@@ -31,9 +31,8 @@ import com.wazuh.contentmanager.action.cti.GetChangesAction;
 import static org.opensearch.rest.RestRequest.Method.GET;
 
 /**
- * Handler class for the Changes endpoint exposed by the plugin
- * This is meant for testing purposes until we have a functional JobScheduler job
- * to trigger the CTI API-related logic
+ * Handler class for the Changes endpoint exposed by the plugin This is meant for testing purposes
+ * until we have a functional JobScheduler job to trigger the CTI API-related logic
  */
 public class ChangesHandler extends BaseRestHandler {
 
@@ -45,9 +44,7 @@ public class ChangesHandler extends BaseRestHandler {
 
     public static final String GET_CHANGES_DETAILS = "get_changes_details";
 
-    /**
-     * Exposes the endpoint
-     */
+    /** Exposes the endpoint */
     @Override
     public List<Route> routes() {
         return List.of(
@@ -61,9 +58,7 @@ public class ChangesHandler extends BaseRestHandler {
         return GET_CHANGES_DETAILS;
     }
 
-    /**
-     * Handles the REST request and calls the appropriate action
-     */
+    /** Handles the REST request and calls the appropriate action */
     @Override
     protected RestChannelConsumer prepareRequest(RestRequest request, NodeClient client)
             throws IOException {

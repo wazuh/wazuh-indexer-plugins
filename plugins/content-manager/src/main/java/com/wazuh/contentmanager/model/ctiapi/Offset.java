@@ -178,13 +178,22 @@ public class Offset implements ToXContentObject {
 
     @Override
     public String toString() {
-        return "Offset{" +
-            "context='" + context + '\'' +
-            ", offset=" + offset +
-            ", resource='" + resource + '\'' +
-            ", type='" + type + '\'' +
-            ", version=" + version +
-            ", payload=" + payload +
-            '}';
+        return "Offset{"
+                + "context='"
+                + context
+                + '\''
+                + ", offset="
+                + offset
+                + ", resource='"
+                + resource
+                + '\''
+                + ", type='"
+                + type
+                + '\''
+                + ", version="
+                + version
+                + ", payload="
+                + payload
+                + '}';
     }
 }

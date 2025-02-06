@@ -18,10 +18,7 @@ package com.wazuh.contentmanager.settings;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.opensearch.common.settings.SecureSetting;
-import org.opensearch.common.settings.Setting;
 import org.opensearch.common.settings.Settings;
-import org.opensearch.core.common.settings.SecureString;
 
 import reactor.util.annotation.NonNull;
 

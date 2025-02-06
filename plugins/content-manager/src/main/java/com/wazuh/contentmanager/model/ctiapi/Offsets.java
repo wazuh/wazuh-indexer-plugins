@@ -25,9 +25,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
-/**
- * ToXContentObject model to parse and build CTI API changes query replies.
- */
+/** ToXContentObject model to parse and build CTI API changes query replies. */
 public class Offsets implements ToXContentObject {
 
     private static final Logger log = LogManager.getLogger(Offsets.class);
@@ -37,6 +35,7 @@ public class Offsets implements ToXContentObject {
 
     /**
      * Constructor method
+     *
      * @param offsetList a List of the Offset objects, containing a json patch each.
      */
     public Offsets(List<Offset> offsetList) {
@@ -45,6 +44,7 @@ public class Offsets implements ToXContentObject {
 
     /**
      * Parses the data[] object from the CTI API changes response body
+     *
      * @param parser The received parser object
      * @return an Offsets object with all inner array values parsed.
      * @throws IOException rethrown from the inner parse() methods
@@ -61,7 +61,7 @@ public class Offsets implements ToXContentObject {
         XContentParserUtils.ensureFieldName(parser, parser.nextToken(), DATA);
         // Check we are at the start of the array
         XContentParserUtils.ensureExpectedToken(
-            XContentParser.Token.START_ARRAY, parser.nextToken(), parser);
+                XContentParser.Token.START_ARRAY, parser.nextToken(), parser);
         // Iterate over the array and add each Offset object to changes array
         while (parser.nextToken() != XContentParser.Token.END_ARRAY) {
             changes.add(Offset.parse(parser));
@@ -71,6 +71,7 @@ public class Offsets implements ToXContentObject {
 
     /**
      * Outputs an XContentBuilder object ready to be printed or manipulated
+     *
      * @param builder the received builder object
      * @param params We don't really use this one
      * @return an XContentBuilder object ready to be printed
@@ -95,8 +96,6 @@ public class Offsets implements ToXContentObject {
 
     @Override
     public String toString() {
-        return "Offsets{" +
-            "offsets=" + offsetList +
-            '}';
+        return "Offsets{" + "offsets=" + offsetList + '}';
     }
 }

@@ -25,9 +25,7 @@ import org.opensearch.core.xcontent.XContentParser;
 import java.io.IOException;
 import java.util.List;
 
-/**
- * ToXContentObject model to parse and build CTI API Catalog query replies
- */
+/** ToXContentObject model to parse and build CTI API Catalog query replies */
 public class ContextConsumerCatalog implements ToXContentObject {
 
     private static final Logger log = LogManager.getLogger(ContextConsumerCatalog.class);
@@ -60,6 +58,7 @@ public class ContextConsumerCatalog implements ToXContentObject {
 
     /**
      * Constructor method
+     *
      * @param id Identifier number
      * @param name Name of the consumer
      * @param context Name of the context
@@ -102,6 +101,7 @@ public class ContextConsumerCatalog implements ToXContentObject {
 
     /**
      * Parses a Catalog CTI API reply from an XContentParser
+     *
      * @param parser the incoming parser
      * @return a fully parsed ContextConsumerCatalog object
      * @throws IOException rethrown from parse()
@@ -191,6 +191,7 @@ public class ContextConsumerCatalog implements ToXContentObject {
 
     /**
      * Creates an XContentBuilder for the parsed object
+     *
      * @param builder Incoming builder to add the fields to
      * @param params Not used
      * @return a valid XContentBuilder object ready to be turned into JSON

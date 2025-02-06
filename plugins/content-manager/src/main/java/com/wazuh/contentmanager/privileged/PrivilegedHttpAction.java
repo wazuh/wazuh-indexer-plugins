@@ -25,18 +25,15 @@ import java.util.Map;
 
 import com.wazuh.contentmanager.util.http.HttpClient;
 
-/**
- * Quick class to handle outgoing HTTP requests
- */
+/** Quick class to handle outgoing HTTP requests */
 public class PrivilegedHttpAction {
 
-    /**
-     * Empty constructor
-     */
+    /** Empty constructor */
     public PrivilegedHttpAction() {}
 
     /**
      * Calls HttpClient with a GET request
+     *
      * @param uri Destination URI
      * @param body The body of the request
      * @param queryParameters A map of the requests query parameters

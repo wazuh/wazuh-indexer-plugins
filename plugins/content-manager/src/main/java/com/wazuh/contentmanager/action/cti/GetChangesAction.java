@@ -33,7 +33,8 @@ import com.wazuh.contentmanager.model.ctiapi.Offsets;
 import com.wazuh.contentmanager.privileged.PrivilegedHttpAction;
 
 /**
- * Action class handling Offsets logic. This is used to get the json patches to the current vulnerability data
+ * Action class handling Offsets logic. This is used to get the json patches to the current
+ * vulnerability data
  */
 public class GetChangesAction {
 
@@ -53,6 +54,7 @@ public class GetChangesAction {
 
     /**
      * Submits a changes query to the CTI API
+     *
      * @return The parsed response from the CTI API
      * @throws IOException rethrown from parse()
      * @throws IllegalArgumentException rethrown from parse()
@@ -77,6 +79,7 @@ public class GetChangesAction {
 
     /**
      * Builds a Map with the query parameters for the CTI API call
+     *
      * @return The map with the parameters
      */
     private Map<String, String> buildQueryParametersMap() {
