@@ -16,52 +16,56 @@
  */
 package com.wazuh.contentmanager.index;
 
+import com.google.gson.JsonObject;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.opensearch.action.DocWriteRequest;
 import org.opensearch.action.admin.indices.create.CreateIndexRequest;
 import org.opensearch.action.admin.indices.create.CreateIndexResponse;
 import org.opensearch.action.index.IndexRequest;
+import org.opensearch.action.search.SearchRequest;
+import org.opensearch.action.search.SearchResponse;
 import org.opensearch.client.Client;
 import org.opensearch.cluster.service.ClusterService;
 import org.opensearch.common.xcontent.XContentFactory;
 import org.opensearch.core.xcontent.ToXContent;
+import org.opensearch.core.xcontent.XContentBuilder;
+import org.opensearch.index.query.QueryBuilders;
+import org.opensearch.index.query.TermQueryBuilder;
 import org.opensearch.index.shard.IndexingOperationListener;
-import org.opensearch.threadpool.ThreadPool;
 
 import java.io.IOException;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.Objects;
 
 import com.wazuh.contentmanager.ContentManagerPlugin;
-import com.wazuh.contentmanager.model.Document;
+import org.opensearch.search.SearchHit;
+import org.opensearch.search.builder.SearchSourceBuilder;
 
 /** Class to manage the Content Manager index. */
 public class ContentIndex implements IndexingOperationListener {
     private static final Logger log = LogManager.getLogger(ContentIndex.class);
 
-    private static final String INDEX_NAME = "wazuh-content";
+    private static final String INDEX_NAME = "wazuh-content-snapshot";
     private final Client client;
     private final ClusterService clusterService;
-    private final ThreadPool threadPool;
+    private final SearchSourceBuilder searchSourceBuilder = new SearchSourceBuilder();
+
 
     /**
      * Default constructor
      *
      * @param client OpenSearch client.
      * @param clusterService OpenSearch cluster service.
-     * @param threadPool An OpenSearch ThreadPool.
      */
-    public ContentIndex(Client client, ClusterService clusterService, ThreadPool threadPool) {
+    public ContentIndex(Client client, ClusterService clusterService) {
         this.client = client;
         this.clusterService = clusterService;
-        this.threadPool = threadPool;
     }
 
     /** Creates a content index */
     public void createIndex() {
         if (!indexExists()) {
-            Map<String, Object> source = createMapping();
-            CreateIndexRequest request = new CreateIndexRequest(INDEX_NAME).mapping(source);
+            CreateIndexRequest request = new CreateIndexRequest(INDEX_NAME);
             CreateIndexResponse createIndexResponse =
                     this.client.admin().indices().create(request).actionGet();
             log.info(
@@ -80,6 +84,15 @@ public class ContentIndex implements IndexingOperationListener {
         return this.clusterService.state().routingTable().hasIndex(INDEX_NAME);
     }
 
+    public void indexDocument(XContentBuilder document) {
+        try {
+            IndexRequest indexRequest = createIndexRequest(document);
+            this.client.index(indexRequest);
+        } catch (IOException e) {
+            log.error("Error creating IndexRequest due to {}", e.getMessage());
+        }
+    }
+
     /**
      * Create an IndexRequest object from a Document object.
      *
@@ -87,41 +100,38 @@ public class ContentIndex implements IndexingOperationListener {
      * @return an IndexRequest object
      * @throws IOException thrown by XContentFactory.jsonBuilder()
      */
-    private IndexRequest createIndexRequest(Document document) throws IOException {
+    private IndexRequest createIndexRequest(XContentBuilder document) throws IOException {
         return new IndexRequest()
                 .index(INDEX_NAME)
-                .source(document.toXContent(XContentFactory.jsonBuilder(), ToXContent.EMPTY_PARAMS))
+                .source(document)
                 .id(ContentManagerPlugin.CONTEXT_NAME)
                 .create(true);
     }
 
-    /**
-     * Create the mapping for the content index
-     *
-     * @return Map<String, Object> with the mapping
-     */
-    private static Map<String, Object> createMapping() {
-        Map<String, Object> properties = new HashMap<>();
+    public void patchDocument(JsonObject document) {
+        try {
+            String id = String.valueOf(document.get("_id"));
+            final TermQueryBuilder termQueryBuilder = QueryBuilders.termQuery("_id", ContentManagerPlugin.CONTEXT_NAME);
+            this.searchSourceBuilder.query(termQueryBuilder);
+            SearchRequest searchRequest = createSearchRequest(this.searchSourceBuilder.trackTotalHits(true));
+            SearchResponse searchResponse = this.client.search(searchRequest).actionGet();
+            log.info("Found {} documents", Objects.requireNonNull(searchResponse.getHits().getTotalHits()).value);
 
-        properties.put("offset", createProperty("integer"));
-        properties.put("last_offset", createProperty("integer"));
-        properties.put("snapshot", createProperty("text"));
-        properties.put("hash", createProperty("text"));
+            SearchHit hit = searchResponse.getHits().getAt(0);
+            //add some think to the hit
 
-        Map<String, Object> mapping = new HashMap<>();
-        mapping.put("properties", properties);
-
-        return mapping;
+            IndexRequest indexRequest = createIndexRequest(hit.toXContent(XContentFactory.jsonBuilder(), ToXContent.EMPTY_PARAMS)).opType(DocWriteRequest.OpType.UPDATE);
+            this.client.index(indexRequest);
+        } catch (IOException e) {
+            log.error("Error creating IndexRequest due to {}", e.getMessage());
+        }
     }
 
-    /**
-     * Create a property for the content index
-     *
-     * @return Map<String, Object> with the property
-     */
-    private static Map<String, Object> createProperty(String type) {
-        Map<String, Object> property = new HashMap<>();
-        property.put("type", type);
-        return property;
+    private SearchRequest createSearchRequest(SearchSourceBuilder searchSourceBuilder) {
+        SearchRequest searchRequest = new SearchRequest(INDEX_NAME);
+        searchRequest.source(searchSourceBuilder);
+
+        return searchRequest;
     }
+
 }
