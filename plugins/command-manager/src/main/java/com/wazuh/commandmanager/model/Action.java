@@ -27,97 +27,97 @@ import reactor.util.annotation.Nullable;
 
 /** Command's action fields. */
 public class Action implements ToXContentObject {
-public static final String ACTION = "action";
-public static final String NAME = "name";
-public static final String VERSION = "version";
-private final String name;
-private final Args args;
-private final String version;
+	public static final String ACTION = "action";
+	public static final String NAME = "name";
+	public static final String VERSION = "version";
+	private final String name;
+	private final Args args;
+	private final String version;
 
-private static final Logger log = LogManager.getLogger(Action.class);
+	private static final Logger log = LogManager.getLogger(Action.class);
 
-/**
-* Default constructor.
-*
-* @param name action to be executed on the target,
-* @param args actual command.
-* @param version version of the action.
-*/
-public Action(@NonNull String name, @Nullable Args args, String version) {
-	this.name = name;
-	this.args = args;
-	this.version = version;
-}
+	/**
+	 * Default constructor.
+	 *
+	 * @param name action to be executed on the target,
+	 * @param args actual command.
+	 * @param version version of the action.
+	 */
+	public Action(@NonNull String name, @Nullable Args args, String version) {
+		this.name = name;
+		this.args = args;
+		this.version = version;
+	}
 
-/**
-* Parses data from an XContentParser into this model.
-*
-* @param parser xcontent parser.
-* @return initialized instance of Action.
-* @throws IOException parsing error occurred.
-*/
-public static Action parse(XContentParser parser) throws IOException, IllegalArgumentException {
-	String name = "";
-	Args args = new Args();
-	String version = null;
+	/**
+	 * Parses data from an XContentParser into this model.
+	 *
+	 * @param parser xcontent parser.
+	 * @return initialized instance of Action.
+	 * @throws IOException parsing error occurred.
+	 */
+	public static Action parse(XContentParser parser) throws IOException, IllegalArgumentException {
+		String name = "";
+		Args args = new Args();
+		String version = null;
 
-	while (parser.nextToken() != XContentParser.Token.END_OBJECT) {
-	String fieldName = parser.currentName();
-	parser.nextToken();
-	switch (fieldName) {
-		case NAME:
-		name = parser.text();
-		break;
-		case Args.ARGS:
-		switch (name) {
-			case "set-group":
-			log.info("Parsing arguments for [set-group] command");
-			args = SetGroupCommand.parse(parser);
-			break;
-			case "fetch-config":
-			log.info("Parsing arguments for [fetch-config] command");
-			args = FetchConfigCommand.parse(parser);
-			break;
-			default:
-			log.info("Parsing arguments for [generic] command");
-			args = Args.parse(parser);
-			break;
+		while (parser.nextToken() != XContentParser.Token.END_OBJECT) {
+			String fieldName = parser.currentName();
+			parser.nextToken();
+			switch (fieldName) {
+				case NAME:
+					name = parser.text();
+					break;
+				case Args.ARGS:
+					switch (name) {
+						case "set-group":
+							log.info("Parsing arguments for [set-group] command");
+							args = SetGroupCommand.parse(parser);
+							break;
+						case "fetch-config":
+							log.info("Parsing arguments for [fetch-config] command");
+							args = FetchConfigCommand.parse(parser);
+							break;
+						default:
+							log.info("Parsing arguments for [generic] command");
+							args = Args.parse(parser);
+							break;
+					}
+					break;
+				case VERSION:
+					version = parser.text();
+					break;
+				default:
+					parser.skipChildren();
+					break;
+			}
 		}
-		break;
-		case VERSION:
-		version = parser.text();
-		break;
-		default:
-		parser.skipChildren();
-		break;
-	}
+
+		return new Action(name, args, version);
 	}
 
-	return new Action(name, args, version);
-}
-
-@Override
-public XContentBuilder toXContent(XContentBuilder builder, Params params) throws IOException {
-	builder.startObject(ACTION);
-	builder.field(NAME, this.name);
-	if (this.args != null) {
-	this.args.toXContent(builder, ToXContentObject.EMPTY_PARAMS);
+	@Override
+	public XContentBuilder toXContent(XContentBuilder builder, Params params) throws IOException {
+		builder.startObject(ACTION);
+		builder.field(NAME, this.name);
+		if (this.args != null) {
+			this.args.toXContent(builder, ToXContentObject.EMPTY_PARAMS);
+		}
+		builder.field(VERSION, this.version);
+		return builder.endObject();
 	}
-	builder.field(VERSION, this.version);
-	return builder.endObject();
-}
 
-@Override
-public String toString() {
-	return "Action{"
-		+ "name='"
-		+ this.name
-		+ '\''
-		+ ", args="
-		+ this.args
-		+ ", version='"
-		+ this.version
-		+ '\''
-		+ '}';
-}
+	@Override
+	public String toString() {
+		return "Action{"
+				+ "name='"
+				+ this.name
+				+ '\''
+				+ ", args="
+				+ this.args
+				+ ", version='"
+				+ this.version
+				+ '\''
+				+ '}';
+	}
 }

@@ -30,54 +30,54 @@ import static org.mockito.Mockito.*;
 
 @OpenSearchIntegTestCase.ClusterScope(scope = OpenSearchIntegTestCase.Scope.SUITE)
 public class PluginSettingsTests extends OpenSearchIntegTestCase {
-@Mock private Environment mockEnvironment;
+	@Mock private Environment mockEnvironment;
 
-@InjectMocks private PluginSettings pluginSettings;
+	@InjectMocks private PluginSettings pluginSettings;
 
-Settings settings;
+	Settings settings;
 
-@Before
-@Override
-public void setUp() throws Exception {
-	settings =
-		Settings.builder()
-			.put("command_manager.client.timeout", 20)
-			.put("command_manager.job.schedule", 1)
-			.put("command_manager.job.max_docs", 100)
-			.build();
+	@Before
+	@Override
+	public void setUp() throws Exception {
+		settings =
+				Settings.builder()
+						.put("command_manager.client.timeout", 20)
+						.put("command_manager.job.schedule", 1)
+						.put("command_manager.job.max_docs", 100)
+						.build();
 
-	mockEnvironment = mock(Environment.class);
-	when(mockEnvironment.settings()).thenReturn(settings);
-	pluginSettings = PluginSettings.getInstance(mockEnvironment.settings());
-	super.setUp();
-}
-
-public void testInitializeWithValidValues() throws Exception {
-	pluginSettings = PluginSettings.getInstance(mockEnvironment.settings());
-
-	assertEquals(Optional.of(20), Optional.of(pluginSettings.getTimeout()));
-	assertEquals(Optional.of(1), Optional.of(pluginSettings.getJobSchedule()));
-	assertEquals(Optional.of(100), Optional.of(pluginSettings.getMaxDocs()));
-	assertEquals("index-template-scheduled-commands", PluginSettings.getJobIndexTemplate());
-	assertEquals("/_plugins/_command_manager", PluginSettings.getApiPrefix());
-	assertEquals("/_plugins/_command_manager/commands", PluginSettings.getApiCommandsEndpoint());
-	assertEquals("wazuh-commands", PluginSettings.getIndexName());
-	assertEquals("index-template-commands", PluginSettings.getIndexTemplate());
-}
-
-public void testSingletonBehavior() throws Exception {
-	PluginSettings pluginSettings2 = PluginSettings.getInstance(mockEnvironment.settings());
-	assertEquals(pluginSettings, pluginSettings2);
-}
-
-public void testSingletonMultithreadedBehavior() throws Exception {
-	PluginSettings[] pluginSettingsArray = new PluginSettings[10];
-	for (int i = 0; i < 10; i++) {
-	pluginSettingsArray[i] = PluginSettings.getInstance(mockEnvironment.settings());
+		mockEnvironment = mock(Environment.class);
+		when(mockEnvironment.settings()).thenReturn(settings);
+		pluginSettings = PluginSettings.getInstance(mockEnvironment.settings());
+		super.setUp();
 	}
 
-	for (int i = 0; i < 10; i++) {
-	assertEquals(pluginSettings, pluginSettingsArray[i]);
+	public void testInitializeWithValidValues() throws Exception {
+		pluginSettings = PluginSettings.getInstance(mockEnvironment.settings());
+
+		assertEquals(Optional.of(20), Optional.of(pluginSettings.getTimeout()));
+		assertEquals(Optional.of(1), Optional.of(pluginSettings.getJobSchedule()));
+		assertEquals(Optional.of(100), Optional.of(pluginSettings.getMaxDocs()));
+		assertEquals("index-template-scheduled-commands", PluginSettings.getJobIndexTemplate());
+		assertEquals("/_plugins/_command_manager", PluginSettings.getApiPrefix());
+		assertEquals("/_plugins/_command_manager/commands", PluginSettings.getApiCommandsEndpoint());
+		assertEquals("wazuh-commands", PluginSettings.getIndexName());
+		assertEquals("index-template-commands", PluginSettings.getIndexTemplate());
 	}
-}
+
+	public void testSingletonBehavior() throws Exception {
+		PluginSettings pluginSettings2 = PluginSettings.getInstance(mockEnvironment.settings());
+		assertEquals(pluginSettings, pluginSettings2);
+	}
+
+	public void testSingletonMultithreadedBehavior() throws Exception {
+		PluginSettings[] pluginSettingsArray = new PluginSettings[10];
+		for (int i = 0; i < 10; i++) {
+			pluginSettingsArray[i] = PluginSettings.getInstance(mockEnvironment.settings());
+		}
+
+		for (int i = 0; i < 10; i++) {
+			assertEquals(pluginSettings, pluginSettingsArray[i]);
+		}
+	}
 }

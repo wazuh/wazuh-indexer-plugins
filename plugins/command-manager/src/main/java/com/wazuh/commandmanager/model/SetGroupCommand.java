@@ -26,61 +26,61 @@ import java.util.Map;
 
 public class SetGroupCommand extends Args {
 
-public static final String GROUPS_KEY = "groups";
+	public static final String GROUPS_KEY = "groups";
 
-/**
-* Dedicated command.action.args parser for "set-group" action type.
-*
-* @param parser An XContentParser containing an args to be deserialized
-* @return An Args object
-* @throws IOException Rethrows the exception from list() and objectText() method
-*/
-public static Args parse(XContentParser parser) throws IOException {
-	Map<String, Object> args = new HashMap<>();
-	List<String> groupList = new ArrayList<>();
+	/**
+	 * Dedicated command.action.args parser for "set-group" action type.
+	 *
+	 * @param parser An XContentParser containing an args to be deserialized
+	 * @return An Args object
+	 * @throws IOException Rethrows the exception from list() and objectText() method
+	 */
+	public static Args parse(XContentParser parser) throws IOException {
+		Map<String, Object> args = new HashMap<>();
+		List<String> groupList = new ArrayList<>();
 
-	// Parser currently on "args" key. Next expected token is START_OBJECT.
-	XContentParser.Token currentToken = parser.currentToken();
-	if (currentToken != XContentParser.Token.START_OBJECT) {
-	throw new IllegalArgumentException(
-		"Expected [command.action.args] to be an object, got [" + parser.currentName() + "]");
-	}
-	// Next expected token is "groups" key, followed by an array of strings only.
-	currentToken = parser.nextToken();
-	if (currentToken != XContentParser.Token.FIELD_NAME) {
-	throw new IllegalArgumentException(
-		"Expected [command.action.args] to be an object, got [" + currentToken.name() + "]");
-	}
-	if (!GROUPS_KEY.equals(parser.currentName())) {
-	throw new IllegalArgumentException(
-		"Expected [command.action.args] to contain the [groups] key, got ["
-			+ parser.currentName()
-			+ "]");
-	}
-	// Next expected token is START_ARRAY.
-	currentToken = parser.nextToken();
-	if (currentToken != XContentParser.Token.START_ARRAY) {
-	throw new IllegalArgumentException(
-		"Expected [command.action.args.groups] to be an array, got ["
-			+ currentToken.name()
-			+ "]");
-	}
-	// Iterate until token is END_ARRAY.
-	while (parser.nextToken() != XContentParser.Token.END_ARRAY) {
-	currentToken = parser.currentToken();
+		// Parser currently on "args" key. Next expected token is START_OBJECT.
+		XContentParser.Token currentToken = parser.currentToken();
+		if (currentToken != XContentParser.Token.START_OBJECT) {
+			throw new IllegalArgumentException(
+					"Expected [command.action.args] to be an object, got [" + parser.currentName() + "]");
+		}
+		// Next expected token is "groups" key, followed by an array of strings only.
+		currentToken = parser.nextToken();
+		if (currentToken != XContentParser.Token.FIELD_NAME) {
+			throw new IllegalArgumentException(
+					"Expected [command.action.args] to be an object, got [" + currentToken.name() + "]");
+		}
+		if (!GROUPS_KEY.equals(parser.currentName())) {
+			throw new IllegalArgumentException(
+					"Expected [command.action.args] to contain the [groups] key, got ["
+							+ parser.currentName()
+							+ "]");
+		}
+		// Next expected token is START_ARRAY.
+		currentToken = parser.nextToken();
+		if (currentToken != XContentParser.Token.START_ARRAY) {
+			throw new IllegalArgumentException(
+					"Expected [command.action.args.groups] to be an array, got ["
+							+ currentToken.name()
+							+ "]");
+		}
+		// Iterate until token is END_ARRAY.
+		while (parser.nextToken() != XContentParser.Token.END_ARRAY) {
+			currentToken = parser.currentToken();
 
-	if (currentToken != XContentParser.Token.VALUE_STRING) {
-		throw new IllegalArgumentException(
-			"Expected [command.action.args.groups] to be an array of strings only, got ["
-				+ currentToken.name()
-				+ "]");
-	}
-	groupList.add(parser.text());
-	}
-	// Consume the END_OBJECT token
-	parser.nextToken();
+			if (currentToken != XContentParser.Token.VALUE_STRING) {
+				throw new IllegalArgumentException(
+						"Expected [command.action.args.groups] to be an array of strings only, got ["
+								+ currentToken.name()
+								+ "]");
+			}
+			groupList.add(parser.text());
+		}
+		// Consume the END_OBJECT token
+		parser.nextToken();
 
-	args.put(GROUPS_KEY, groupList);
-	return new Args(args);
-}
+		args.put(GROUPS_KEY, groupList);
+		return new Args(args);
+	}
 }

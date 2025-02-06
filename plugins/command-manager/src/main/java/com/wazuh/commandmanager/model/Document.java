@@ -33,142 +33,142 @@ import java.util.List;
 
 /** Command's target fields. */
 public class Document implements ToXContentObject {
-private static final String DATE_FORMAT = FormatNames.DATE_TIME_NO_MILLIS.getSnakeCaseName();
-private static final DateFormatter DATE_FORMATTER = DateFormatter.forPattern(DATE_FORMAT);
-public static final String TIMESTAMP = "@timestamp";
-public static final String DELIVERY_TIMESTAMP = "delivery_timestamp";
-private final Agent agent;
-private final Command command;
-private final String id;
-private final ZonedDateTime timestamp;
-private final ZonedDateTime deliveryTimestamp;
+	private static final String DATE_FORMAT = FormatNames.DATE_TIME_NO_MILLIS.getSnakeCaseName();
+	private static final DateFormatter DATE_FORMATTER = DateFormatter.forPattern(DATE_FORMAT);
+	public static final String TIMESTAMP = "@timestamp";
+	public static final String DELIVERY_TIMESTAMP = "delivery_timestamp";
+	private final Agent agent;
+	private final Command command;
+	private final String id;
+	private final ZonedDateTime timestamp;
+	private final ZonedDateTime deliveryTimestamp;
 
-private static final Logger log = LogManager.getLogger(Document.class);
+	private static final Logger log = LogManager.getLogger(Document.class);
 
-/**
-* Default constructor.
-*
-* @param agent "agent" nested fields.
-* @param command "command" nested fields.
-*/
-public Document(Agent agent, Command command) {
-	this.agent = agent;
-	this.command = command;
-	this.id = UUIDs.base64UUID();
-	this.timestamp = DateUtils.nowWithMillisResolution();
-	this.deliveryTimestamp = timestamp.plusSeconds(command.getTimeout());
-}
-
-/**
-* Parses data from an XContentParser into this model.
-*
-* @param parser xcontent parser.
-* @return initialized instance of Document.
-* @throws IOException parsing error occurred.
-*/
-public static Document parse(XContentParser parser) throws IOException {
-	Agent agent = new Agent(List.of("groups000")); // TODO read agent from wazuh-agents index
-	Command command = null;
-
-	while (parser.nextToken() != XContentParser.Token.END_OBJECT) {
-	String fieldName = parser.currentName();
-	parser.nextToken();
-	if (fieldName.equals(Command.COMMAND)) {
-		command = Command.parse(parser);
-	} else {
-		parser.skipChildren(); // TODO raise error as command values are required
-	}
+	/**
+	 * Default constructor.
+	 *
+	 * @param agent "agent" nested fields.
+	 * @param command "command" nested fields.
+	 */
+	public Document(Agent agent, Command command) {
+		this.agent = agent;
+		this.command = command;
+		this.id = UUIDs.base64UUID();
+		this.timestamp = DateUtils.nowWithMillisResolution();
+		this.deliveryTimestamp = timestamp.plusSeconds(command.getTimeout());
 	}
 
-	return new Document(agent, command);
-}
+	/**
+	 * Parses data from an XContentParser into this model.
+	 *
+	 * @param parser xcontent parser.
+	 * @return initialized instance of Document.
+	 * @throws IOException parsing error occurred.
+	 */
+	public static Document parse(XContentParser parser) throws IOException {
+		Agent agent = new Agent(List.of("groups000")); // TODO read agent from wazuh-agents index
+		Command command = null;
 
-/**
-* Returns the delivery timestamp from a search hit.
-*
-* @param hit search hit parser.
-* @return delivery timestamp from Document in search hit.
-*/
-public static ZonedDateTime deliveryTimestampFromSearchHit(SearchHit hit) {
-	ZonedDateTime deliveryTimestamp = null;
-
-	try {
-	XContentParser parser =
-		XContentHelper.createParser(
-			NamedXContentRegistry.EMPTY,
-			DeprecationHandler.IGNORE_DEPRECATIONS,
-			hit.getSourceRef(),
-			XContentType.JSON);
-
-	parser.nextToken();
-	while (parser.nextToken() != null) {
-		if (parser.currentToken().equals(XContentParser.Token.FIELD_NAME)) {
-		String fieldName = parser.currentName();
-		if (fieldName.equals(Document.DELIVERY_TIMESTAMP)) {
+		while (parser.nextToken() != XContentParser.Token.END_OBJECT) {
+			String fieldName = parser.currentName();
 			parser.nextToken();
-			deliveryTimestamp = ZonedDateTime.from(DATE_FORMATTER.parse(parser.text()));
-		} else {
-			parser.skipChildren();
+			if (fieldName.equals(Command.COMMAND)) {
+				command = Command.parse(parser);
+			} else {
+				parser.skipChildren(); // TODO raise error as command values are required
+			}
 		}
-		}
+
+		return new Document(agent, command);
 	}
 
-	parser.close();
+	/**
+	 * Returns the delivery timestamp from a search hit.
+	 *
+	 * @param hit search hit parser.
+	 * @return delivery timestamp from Document in search hit.
+	 */
+	public static ZonedDateTime deliveryTimestampFromSearchHit(SearchHit hit) {
+		ZonedDateTime deliveryTimestamp = null;
 
-	} catch (IOException e) {
-	log.error("Delivery timestamp could not be parsed: {}", e.getMessage());
+		try {
+			XContentParser parser =
+					XContentHelper.createParser(
+							NamedXContentRegistry.EMPTY,
+							DeprecationHandler.IGNORE_DEPRECATIONS,
+							hit.getSourceRef(),
+							XContentType.JSON);
+
+			parser.nextToken();
+			while (parser.nextToken() != null) {
+				if (parser.currentToken().equals(XContentParser.Token.FIELD_NAME)) {
+					String fieldName = parser.currentName();
+					if (fieldName.equals(Document.DELIVERY_TIMESTAMP)) {
+						parser.nextToken();
+						deliveryTimestamp = ZonedDateTime.from(DATE_FORMATTER.parse(parser.text()));
+					} else {
+						parser.skipChildren();
+					}
+				}
+			}
+
+			parser.close();
+
+		} catch (IOException e) {
+			log.error("Delivery timestamp could not be parsed: {}", e.getMessage());
+		}
+		return deliveryTimestamp;
 	}
-	return deliveryTimestamp;
-}
 
-/**
-* Returns the document's "_id".
-*
-* @return Document's ID
-*/
-public String getId() {
-	return this.id;
-}
+	/**
+	 * Returns the document's "_id".
+	 *
+	 * @return Document's ID
+	 */
+	public String getId() {
+		return this.id;
+	}
 
-/**
-* Returns the Command object associated with this Document.
-*
-* @return Command object
-*/
-public Command getCommand() {
-	return this.command;
-}
+	/**
+	 * Returns the Command object associated with this Document.
+	 *
+	 * @return Command object
+	 */
+	public Command getCommand() {
+		return this.command;
+	}
 
-/**
-* Returns the timestamp at which the Command was delivered to the Agent.
-*
-* @return ZonedDateTime object representing the delivery timestamp
-*/
-public ZonedDateTime getDeliveryTimestamp() {
-	return this.deliveryTimestamp;
-}
+	/**
+	 * Returns the timestamp at which the Command was delivered to the Agent.
+	 *
+	 * @return ZonedDateTime object representing the delivery timestamp
+	 */
+	public ZonedDateTime getDeliveryTimestamp() {
+		return this.deliveryTimestamp;
+	}
 
-@Override
-public XContentBuilder toXContent(XContentBuilder builder, Params params) throws IOException {
-	builder.startObject();
-	this.agent.toXContent(builder, ToXContentObject.EMPTY_PARAMS);
-	this.command.toXContent(builder, ToXContentObject.EMPTY_PARAMS);
-	builder.field(TIMESTAMP, DATE_FORMATTER.format(this.timestamp));
-	builder.field(DELIVERY_TIMESTAMP, DATE_FORMATTER.format(this.deliveryTimestamp));
-	return builder.endObject();
-}
+	@Override
+	public XContentBuilder toXContent(XContentBuilder builder, Params params) throws IOException {
+		builder.startObject();
+		this.agent.toXContent(builder, ToXContentObject.EMPTY_PARAMS);
+		this.command.toXContent(builder, ToXContentObject.EMPTY_PARAMS);
+		builder.field(TIMESTAMP, DATE_FORMATTER.format(this.timestamp));
+		builder.field(DELIVERY_TIMESTAMP, DATE_FORMATTER.format(this.deliveryTimestamp));
+		return builder.endObject();
+	}
 
-@Override
-public String toString() {
-	return "Document{"
-		+ "@timestamp="
-		+ timestamp
-		+ ", delivery_timestamp="
-		+ deliveryTimestamp
-		+ ", agent="
-		+ agent
-		+ ", command="
-		+ command
-		+ '}';
-}
+	@Override
+	public String toString() {
+		return "Document{"
+				+ "@timestamp="
+				+ timestamp
+				+ ", delivery_timestamp="
+				+ deliveryTimestamp
+				+ ", agent="
+				+ agent
+				+ ", command="
+				+ command
+				+ '}';
+	}
 }

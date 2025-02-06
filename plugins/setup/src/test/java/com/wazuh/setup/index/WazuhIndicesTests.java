@@ -42,168 +42,168 @@ import static org.mockito.Mockito.*;
 
 public class WazuhIndicesTests extends OpenSearchTestCase {
 
-@Mock private Client client;
+	@Mock private Client client;
 
-@Mock private ClusterService clusterService;
+	@Mock private ClusterService clusterService;
 
-@Mock private AdminClient adminClient;
+	@Mock private AdminClient adminClient;
 
-@Mock private IndicesAdminClient indicesAdminClient;
+	@Mock private IndicesAdminClient indicesAdminClient;
 
-@Mock private ClusterState clusterState;
+	@Mock private ClusterState clusterState;
 
-@Mock private RoutingTable routingTable;
+	@Mock private RoutingTable routingTable;
 
-@InjectMocks private WazuhIndices wazuhIndices;
+	@InjectMocks private WazuhIndices wazuhIndices;
 
-@Captor private ArgumentCaptor<PutIndexTemplateRequest> putIndexTemplateRequestCaptor;
+	@Captor private ArgumentCaptor<PutIndexTemplateRequest> putIndexTemplateRequestCaptor;
 
-@Captor private ArgumentCaptor<CreateIndexRequest> createIndexRequestCaptor;
+	@Captor private ArgumentCaptor<CreateIndexRequest> createIndexRequestCaptor;
 
-@Before
-public void setup() {
-	this.client = mock(Client.class);
-	this.adminClient = mock(AdminClient.class);
-	this.indicesAdminClient = mock(IndicesAdminClient.class);
-	this.clusterService = mock(ClusterService.class);
-	this.clusterState = mock(ClusterState.class);
-	this.routingTable = mock(RoutingTable.class);
+	@Before
+	public void setup() {
+		this.client = mock(Client.class);
+		this.adminClient = mock(AdminClient.class);
+		this.indicesAdminClient = mock(IndicesAdminClient.class);
+		this.clusterService = mock(ClusterService.class);
+		this.clusterState = mock(ClusterState.class);
+		this.routingTable = mock(RoutingTable.class);
 
-	when(client.admin()).thenReturn(adminClient);
-	when(adminClient.indices()).thenReturn(indicesAdminClient);
-	when(clusterService.state()).thenReturn(clusterState);
-	when(clusterState.getRoutingTable()).thenReturn(routingTable);
+		when(client.admin()).thenReturn(adminClient);
+		when(adminClient.indices()).thenReturn(indicesAdminClient);
+		when(clusterService.state()).thenReturn(clusterState);
+		when(clusterState.getRoutingTable()).thenReturn(routingTable);
 
-	this.wazuhIndices = new WazuhIndices(this.client, this.clusterService);
-}
-
-// FIXME The used MockMaker SubclassByteBuddyMockMaker does not support the creation of static
-// mocks
-// adding mockito-inline seems to have no effect
-@AwaitsFix(bugUrl = "")
-public void testPutTemplate_Successful() {
-	// Arrange
-	String templateName = "index-template-agent";
-	Map<String, Object> template = new HashMap<>();
-	template.put("mappings", new HashMap<>());
-	template.put("settings", new HashMap<>());
-	template.put("index_patterns", new HashMap<>());
-
-	// Mock the static method call
-	try (MockedStatic<IndexTemplateUtils> mockedStatic =
-		Mockito.mockStatic(IndexTemplateUtils.class)) {
-	mockedStatic
-		.when(() -> IndexTemplateUtils.fromFile(eq(templateName + ".json")))
-		.thenReturn(template);
-
-	when(indicesAdminClient.putTemplate(any(PutIndexTemplateRequest.class)).actionGet())
-		.thenReturn(mock(AcknowledgedResponse.class));
-
-	// Act
-	wazuhIndices.putTemplate(templateName);
-
-	// Assert
-	verify(indicesAdminClient).putTemplate(putIndexTemplateRequestCaptor.capture());
-	PutIndexTemplateRequest capturedRequest = putIndexTemplateRequestCaptor.getValue();
-
-	assertEquals(templateName, capturedRequest.name());
-	assertNotNull(capturedRequest.mappings());
-	assertNotNull(capturedRequest.settings());
+		this.wazuhIndices = new WazuhIndices(this.client, this.clusterService);
 	}
-}
 
-// FIXME The used MockMaker SubclassByteBuddyMockMaker does not support the creation of static
-// mocks
-// adding mockito-inline seems to have no effect
-@AwaitsFix(bugUrl = "")
-public void testPutTemplate_IOException() {
-	// Arrange
-	String templateName = "index-template-agent";
+	// FIXME The used MockMaker SubclassByteBuddyMockMaker does not support the creation of static
+	// mocks
+	// adding mockito-inline seems to have no effect
+	@AwaitsFix(bugUrl = "")
+	public void testPutTemplate_Successful() {
+		// Arrange
+		String templateName = "index-template-agent";
+		Map<String, Object> template = new HashMap<>();
+		template.put("mappings", new HashMap<>());
+		template.put("settings", new HashMap<>());
+		template.put("index_patterns", new HashMap<>());
 
-	// Mock the static method to throw IOException
-	try (MockedStatic<IndexTemplateUtils> mockedStatic =
-		Mockito.mockStatic(IndexTemplateUtils.class)) {
-	mockedStatic
-		.when(() -> IndexTemplateUtils.fromFile(eq(templateName + ".json")))
-		.thenThrow(IOException.class);
+		// Mock the static method call
+		try (MockedStatic<IndexTemplateUtils> mockedStatic =
+				Mockito.mockStatic(IndexTemplateUtils.class)) {
+			mockedStatic
+					.when(() -> IndexTemplateUtils.fromFile(eq(templateName + ".json")))
+					.thenReturn(template);
 
-	// Act
-	wazuhIndices.putTemplate(templateName);
+			when(indicesAdminClient.putTemplate(any(PutIndexTemplateRequest.class)).actionGet())
+					.thenReturn(mock(AcknowledgedResponse.class));
 
-	// Assert
-	verify(indicesAdminClient, never()).putTemplate(any(PutIndexTemplateRequest.class));
+			// Act
+			wazuhIndices.putTemplate(templateName);
+
+			// Assert
+			verify(indicesAdminClient).putTemplate(putIndexTemplateRequestCaptor.capture());
+			PutIndexTemplateRequest capturedRequest = putIndexTemplateRequestCaptor.getValue();
+
+			assertEquals(templateName, capturedRequest.name());
+			assertNotNull(capturedRequest.mappings());
+			assertNotNull(capturedRequest.settings());
+		}
 	}
-}
 
-// FIXME the return value of
-// "org.opensearch.client.IndicesAdminClient.create(org.opensearch.action.admin.indices.create.CreateIndexRequest)" is null
-@AwaitsFix(bugUrl = "")
-public void testPutIndex_IndexDoesNotExist() {
-	// Arrange
-	String indexName = "wazuh-agents";
-	CreateIndexResponse createIndexResponse = new CreateIndexResponse(true, true, indexName);
+	// FIXME The used MockMaker SubclassByteBuddyMockMaker does not support the creation of static
+	// mocks
+	// adding mockito-inline seems to have no effect
+	@AwaitsFix(bugUrl = "")
+	public void testPutTemplate_IOException() {
+		// Arrange
+		String templateName = "index-template-agent";
 
-	when(routingTable.hasIndex(indexName)).thenReturn(false);
-	when(indicesAdminClient.create(any(CreateIndexRequest.class)).actionGet())
-		.thenReturn(createIndexResponse);
+		// Mock the static method to throw IOException
+		try (MockedStatic<IndexTemplateUtils> mockedStatic =
+				Mockito.mockStatic(IndexTemplateUtils.class)) {
+			mockedStatic
+					.when(() -> IndexTemplateUtils.fromFile(eq(templateName + ".json")))
+					.thenThrow(IOException.class);
 
-	// Act
-	wazuhIndices.putIndex(indexName);
+			// Act
+			wazuhIndices.putTemplate(templateName);
 
-	// Assert
-	verify(indicesAdminClient).create(createIndexRequestCaptor.capture());
-	CreateIndexRequest capturedRequest = createIndexRequestCaptor.getValue();
+			// Assert
+			verify(indicesAdminClient, never()).putTemplate(any(PutIndexTemplateRequest.class));
+		}
+	}
 
-	assertEquals(indexName, capturedRequest.index());
-}
+	// FIXME the return value of
+	// "org.opensearch.client.IndicesAdminClient.create(org.opensearch.action.admin.indices.create.CreateIndexRequest)" is null
+	@AwaitsFix(bugUrl = "")
+	public void testPutIndex_IndexDoesNotExist() {
+		// Arrange
+		String indexName = "wazuh-agents";
+		CreateIndexResponse createIndexResponse = new CreateIndexResponse(true, true, indexName);
 
-public void testPutIndex_IndexExists() {
-	// Arrange
-	String indexName = "wazuh-agents";
-	when(routingTable.hasIndex(indexName)).thenReturn(true);
+		when(routingTable.hasIndex(indexName)).thenReturn(false);
+		when(indicesAdminClient.create(any(CreateIndexRequest.class)).actionGet())
+				.thenReturn(createIndexResponse);
 
-	// Act
-	wazuhIndices.putIndex(indexName);
+		// Act
+		wazuhIndices.putIndex(indexName);
 
-	// Assert
-	verify(indicesAdminClient, never()).create(any(CreateIndexRequest.class));
-}
+		// Assert
+		verify(indicesAdminClient).create(createIndexRequestCaptor.capture());
+		CreateIndexRequest capturedRequest = createIndexRequestCaptor.getValue();
 
-public void testIndexExists() {
-	// Arrange
-	String indexName = "wazuh-agents";
-	when(routingTable.hasIndex(indexName)).thenReturn(true);
+		assertEquals(indexName, capturedRequest.index());
+	}
 
-	// Act
-	boolean exists = wazuhIndices.indexExists(indexName);
+	public void testPutIndex_IndexExists() {
+		// Arrange
+		String indexName = "wazuh-agents";
+		when(routingTable.hasIndex(indexName)).thenReturn(true);
 
-	// Assert
-	assertTrue(exists);
-}
+		// Act
+		wazuhIndices.putIndex(indexName);
 
-@AwaitsFix(bugUrl = "")
-public void testInitialize() throws IOException {
-	// Arrange
-	String templateName = "index-template-agent";
-	String indexName = "wazuh-agents";
+		// Assert
+		verify(indicesAdminClient, never()).create(any(CreateIndexRequest.class));
+	}
 
-	Map<String, Object> template = new HashMap<>();
-	template.put("mappings", new HashMap<>());
-	template.put("settings", new HashMap<>());
-	template.put("index_patterns", new HashMap<>());
+	public void testIndexExists() {
+		// Arrange
+		String indexName = "wazuh-agents";
+		when(routingTable.hasIndex(indexName)).thenReturn(true);
 
-	when(IndexTemplateUtils.fromFile(eq(templateName + ".json"))).thenReturn(template);
-	when(routingTable.hasIndex(indexName)).thenReturn(false);
-	when(indicesAdminClient.putTemplate(any(PutIndexTemplateRequest.class)).actionGet())
-		.thenReturn(mock(AcknowledgedResponse.class));
-	when(indicesAdminClient.create(any(CreateIndexRequest.class)).actionGet())
-		.thenReturn(mock(CreateIndexResponse.class));
+		// Act
+		boolean exists = wazuhIndices.indexExists(indexName);
 
-	// Act
-	wazuhIndices.initialize();
+		// Assert
+		assertTrue(exists);
+	}
 
-	// Assert
-	verify(indicesAdminClient).putTemplate(any(PutIndexTemplateRequest.class));
-	verify(indicesAdminClient).create(any(CreateIndexRequest.class));
-}
+	@AwaitsFix(bugUrl = "")
+	public void testInitialize() throws IOException {
+		// Arrange
+		String templateName = "index-template-agent";
+		String indexName = "wazuh-agents";
+
+		Map<String, Object> template = new HashMap<>();
+		template.put("mappings", new HashMap<>());
+		template.put("settings", new HashMap<>());
+		template.put("index_patterns", new HashMap<>());
+
+		when(IndexTemplateUtils.fromFile(eq(templateName + ".json"))).thenReturn(template);
+		when(routingTable.hasIndex(indexName)).thenReturn(false);
+		when(indicesAdminClient.putTemplate(any(PutIndexTemplateRequest.class)).actionGet())
+				.thenReturn(mock(AcknowledgedResponse.class));
+		when(indicesAdminClient.create(any(CreateIndexRequest.class)).actionGet())
+				.thenReturn(mock(CreateIndexResponse.class));
+
+		// Act
+		wazuhIndices.initialize();
+
+		// Assert
+		verify(indicesAdminClient).putTemplate(any(PutIndexTemplateRequest.class));
+		verify(indicesAdminClient).create(any(CreateIndexRequest.class));
+	}
 }

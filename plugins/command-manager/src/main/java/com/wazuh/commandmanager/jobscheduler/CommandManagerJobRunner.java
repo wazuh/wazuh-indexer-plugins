@@ -33,77 +33,77 @@ import com.wazuh.commandmanager.settings.PluginSettings;
  */
 public class CommandManagerJobRunner implements ScheduledJobRunner {
 
-private static final Logger log = LogManager.getLogger(CommandManagerJobRunner.class);
+	private static final Logger log = LogManager.getLogger(CommandManagerJobRunner.class);
 
-/** Singleton instance. */
-private static CommandManagerJobRunner INSTANCE;
+	/** Singleton instance. */
+	private static CommandManagerJobRunner INSTANCE;
 
-/** OpenSearch's client. */
-private Client client;
+	/** OpenSearch's client. */
+	private Client client;
 
-/** OpenSearch's thread pool. */
-private ThreadPool threadPool;
+	/** OpenSearch's thread pool. */
+	private ThreadPool threadPool;
 
-/** Commands index repository. */
-private CommandIndex indexManager;
+	/** Commands index repository. */
+	private CommandIndex indexManager;
 
-/** Private constructor. */
-private CommandManagerJobRunner() {}
+	/** Private constructor. */
+	private CommandManagerJobRunner() {}
 
-/**
-* Singleton instance access method.
-*
-* @return the singleton instance.
-*/
-public static CommandManagerJobRunner getInstance() {
-	if (CommandManagerJobRunner.INSTANCE == null) {
-	INSTANCE = new CommandManagerJobRunner();
+	/**
+	 * Singleton instance access method.
+	 *
+	 * @return the singleton instance.
+	 */
+	public static CommandManagerJobRunner getInstance() {
+		if (CommandManagerJobRunner.INSTANCE == null) {
+			INSTANCE = new CommandManagerJobRunner();
+		}
+		return INSTANCE;
 	}
-	return INSTANCE;
-}
 
-@Override
-public void runJob(ScheduledJobParameter jobParameter, JobExecutionContext context) {
-	if (!this.indexManager.indexExists()) {
-	log.info(
-		"{} index not yet created, not running command manager jobs",
-		PluginSettings.getIndexName());
-	return;
+	@Override
+	public void runJob(ScheduledJobParameter jobParameter, JobExecutionContext context) {
+		if (!this.indexManager.indexExists()) {
+			log.info(
+					"{} index not yet created, not running command manager jobs",
+					PluginSettings.getIndexName());
+			return;
+		}
+		final CommandStatusUpdateJob job = new CommandStatusUpdateJob(this.client);
+		this.threadPool.generic().submit(job);
 	}
-	final CommandStatusUpdateJob job = new CommandStatusUpdateJob(this.client);
-	this.threadPool.generic().submit(job);
-}
 
-/**
-* Sets the commands index repository.
-*
-* @param indexManager the commands index repository.
-* @return invoking instance to allow concatenation of setWhatever() calls.
-*/
-public CommandManagerJobRunner setIndexRepository(CommandIndex indexManager) {
-	this.indexManager = indexManager;
-	return getInstance();
-}
+	/**
+	 * Sets the commands index repository.
+	 *
+	 * @param indexManager the commands index repository.
+	 * @return invoking instance to allow concatenation of setWhatever() calls.
+	 */
+	public CommandManagerJobRunner setIndexRepository(CommandIndex indexManager) {
+		this.indexManager = indexManager;
+		return getInstance();
+	}
 
-/**
-* Sets the client.
-*
-* @param client OpenSearch's client.
-* @return invoking instance to allow concatenation of setWhatever() calls.
-*/
-public CommandManagerJobRunner setClient(Client client) {
-	this.client = client;
-	return getInstance();
-}
+	/**
+	 * Sets the client.
+	 *
+	 * @param client OpenSearch's client.
+	 * @return invoking instance to allow concatenation of setWhatever() calls.
+	 */
+	public CommandManagerJobRunner setClient(Client client) {
+		this.client = client;
+		return getInstance();
+	}
 
-/**
-* Sets the thread pool.
-*
-* @param threadPool OpenSearch's thread pool.
-* @return invoking instance to allow concatenation of setWhatever() calls.
-*/
-public CommandManagerJobRunner setThreadPool(ThreadPool threadPool) {
-	this.threadPool = threadPool;
-	return getInstance();
-}
+	/**
+	 * Sets the thread pool.
+	 *
+	 * @param threadPool OpenSearch's thread pool.
+	 * @return invoking instance to allow concatenation of setWhatever() calls.
+	 */
+	public CommandManagerJobRunner setThreadPool(ThreadPool threadPool) {
+		this.threadPool = threadPool;
+		return getInstance();
+	}
 }

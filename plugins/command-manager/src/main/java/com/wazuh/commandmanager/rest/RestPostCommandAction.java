@@ -46,133 +46,133 @@ import static org.opensearch.rest.RestRequest.Method.POST;
 /** Handles HTTP requests to the POST the Commands API endpoint. */
 public class RestPostCommandAction extends BaseRestHandler {
 
-public static final String POST_COMMAND_ACTION_REQUEST_DETAILS =
-	"post_command_action_request_details";
-private static final Logger log = LogManager.getLogger(RestPostCommandAction.class);
-private final CommandIndex commandIndex;
+	public static final String POST_COMMAND_ACTION_REQUEST_DETAILS =
+			"post_command_action_request_details";
+	private static final Logger log = LogManager.getLogger(RestPostCommandAction.class);
+	private final CommandIndex commandIndex;
 
-/**
-* Default constructor
-*
-* @param commandIndex persistence layer
-*/
-public RestPostCommandAction(CommandIndex commandIndex) {
-	this.commandIndex = commandIndex;
-}
-
-public String getName() {
-	return POST_COMMAND_ACTION_REQUEST_DETAILS;
-}
-
-@Override
-public List<Route> routes() {
-	return List.of(
-		new Route(POST, String.format(Locale.ROOT, "%s", PluginSettings.getApiCommandsEndpoint())));
-}
-
-@Override
-protected RestChannelConsumer prepareRequest(final RestRequest request, final NodeClient client)
-	throws IOException {
-	switch (request.method()) {
-	case POST:
-		return handlePost(request);
-	default:
-		throw new IllegalArgumentException("Unsupported HTTP method " + request.method().name());
-	}
-}
-
-/**
-* Handles a POST HTTP request.
-*
-* @param request POST HTTP request
-* @return a response to the request as BytesRestResponse.
-* @throws IOException thrown by the XContentParser methods.
-*/
-private RestChannelConsumer handlePost(RestRequest request) throws IOException {
-	log.info(
-		"Received {} {} request id [{}] from host [{}]",
-		request.method().name(),
-		request.uri(),
-		request.getRequestId(),
-		request.header("Host"));
-
-	/// Request validation
-	/// ==================
-	/// Fail fast.
-	if (!request.hasContent()) {
-	// Bad request if body doesn't exist
-	return channel -> {
-		channel.sendResponse(
-			new BytesRestResponse(RestStatus.BAD_REQUEST, "Body content is required"));
-	};
+	/**
+	 * Default constructor
+	 *
+	 * @param commandIndex persistence layer
+	 */
+	public RestPostCommandAction(CommandIndex commandIndex) {
+		this.commandIndex = commandIndex;
 	}
 
-	/// Request parsing
-	/// ===============
-	/// Retrieves and generates an array list of commands.
-	XContentParser parser = request.contentParser();
-	List<Command> commands = new ArrayList<>();
-	ensureExpectedToken(XContentParser.Token.START_OBJECT, parser.nextToken(), parser);
-	// The array of commands is inside the "commands" JSON object.
-	// This line moves the parser pointer to this object.
-	parser.nextToken();
-	if (parser.nextToken() == XContentParser.Token.START_ARRAY) {
-	commands = Command.parseToArray(parser);
-	} else {
-	log.error("Token does not match {}", parser.currentToken());
+	public String getName() {
+		return POST_COMMAND_ACTION_REQUEST_DETAILS;
 	}
 
-	/// Commands expansion
-	/// ==================
-	/// Transforms the array of commands to orders.
-	/// While commands can be targeted to groups of agents, orders are targeted to individual
-	// agents.
-	/// Given a group of agents A with N agents, a total of N orders are generated. One for each
-	// agent.
-	Documents documents = new Documents();
-	for (Command command : commands) {
-	Document document =
-		new Document(
-			new Agent(List.of("groups000")), // TODO read agent from wazuh-agents
-			// index
-			command);
-	documents.addDocument(document);
+	@Override
+	public List<Route> routes() {
+		return List.of(
+				new Route(POST, String.format(Locale.ROOT, "%s", PluginSettings.getApiCommandsEndpoint())));
 	}
 
-	/// Orders indexing
-	/// ==================
-	/// The orders are inserted into the index.
-	CompletableFuture<RestStatus> bulkRequestFuture =
-		this.commandIndex.asyncBulkCreate(documents.getDocuments());
+	@Override
+	protected RestChannelConsumer prepareRequest(final RestRequest request, final NodeClient client)
+			throws IOException {
+		switch (request.method()) {
+			case POST:
+				return handlePost(request);
+			default:
+				throw new IllegalArgumentException("Unsupported HTTP method " + request.method().name());
+		}
+	}
 
-	/// Send response
-	/// ==================
-	/// Reply to the request.
-	return channel -> {
-	bulkRequestFuture
-		.thenAccept(
-			restStatus -> {
-				try (XContentBuilder builder = channel.newBuilder()) {
-				builder.startObject();
-				builder.field("_index", PluginSettings.getIndexName());
-				documents.toXContent(builder, ToXContent.EMPTY_PARAMS);
-				builder.field("result", restStatus.name());
-				builder.endObject();
-				channel.sendResponse(new BytesRestResponse(restStatus, builder));
-				} catch (IOException e) {
-				log.error(
-					"Error preparing response to [{}] request with id [{}] due to {}",
-					request.method().name(),
-					request.getRequestId(),
-					e.getMessage());
-				}
-			})
-		.exceptionally(
-			e -> {
+	/**
+	 * Handles a POST HTTP request.
+	 *
+	 * @param request POST HTTP request
+	 * @return a response to the request as BytesRestResponse.
+	 * @throws IOException thrown by the XContentParser methods.
+	 */
+	private RestChannelConsumer handlePost(RestRequest request) throws IOException {
+		log.info(
+				"Received {} {} request id [{}] from host [{}]",
+				request.method().name(),
+				request.uri(),
+				request.getRequestId(),
+				request.header("Host"));
+
+		/// Request validation
+		/// ==================
+		/// Fail fast.
+		if (!request.hasContent()) {
+			// Bad request if body doesn't exist
+			return channel -> {
 				channel.sendResponse(
-					new BytesRestResponse(RestStatus.INTERNAL_SERVER_ERROR, e.getMessage()));
-				return null;
-			});
-	};
-}
+						new BytesRestResponse(RestStatus.BAD_REQUEST, "Body content is required"));
+			};
+		}
+
+		/// Request parsing
+		/// ===============
+		/// Retrieves and generates an array list of commands.
+		XContentParser parser = request.contentParser();
+		List<Command> commands = new ArrayList<>();
+		ensureExpectedToken(XContentParser.Token.START_OBJECT, parser.nextToken(), parser);
+		// The array of commands is inside the "commands" JSON object.
+		// This line moves the parser pointer to this object.
+		parser.nextToken();
+		if (parser.nextToken() == XContentParser.Token.START_ARRAY) {
+			commands = Command.parseToArray(parser);
+		} else {
+			log.error("Token does not match {}", parser.currentToken());
+		}
+
+		/// Commands expansion
+		/// ==================
+		/// Transforms the array of commands to orders.
+		/// While commands can be targeted to groups of agents, orders are targeted to individual
+		// agents.
+		/// Given a group of agents A with N agents, a total of N orders are generated. One for each
+		// agent.
+		Documents documents = new Documents();
+		for (Command command : commands) {
+			Document document =
+					new Document(
+							new Agent(List.of("groups000")), // TODO read agent from wazuh-agents
+							// index
+							command);
+			documents.addDocument(document);
+		}
+
+		/// Orders indexing
+		/// ==================
+		/// The orders are inserted into the index.
+		CompletableFuture<RestStatus> bulkRequestFuture =
+				this.commandIndex.asyncBulkCreate(documents.getDocuments());
+
+		/// Send response
+		/// ==================
+		/// Reply to the request.
+		return channel -> {
+			bulkRequestFuture
+					.thenAccept(
+							restStatus -> {
+								try (XContentBuilder builder = channel.newBuilder()) {
+									builder.startObject();
+									builder.field("_index", PluginSettings.getIndexName());
+									documents.toXContent(builder, ToXContent.EMPTY_PARAMS);
+									builder.field("result", restStatus.name());
+									builder.endObject();
+									channel.sendResponse(new BytesRestResponse(restStatus, builder));
+								} catch (IOException e) {
+									log.error(
+											"Error preparing response to [{}] request with id [{}] due to {}",
+											request.method().name(),
+											request.getRequestId(),
+											e.getMessage());
+								}
+							})
+					.exceptionally(
+							e -> {
+								channel.sendResponse(
+										new BytesRestResponse(RestStatus.INTERNAL_SERVER_ERROR, e.getMessage()));
+								return null;
+							});
+		};
+	}
 }

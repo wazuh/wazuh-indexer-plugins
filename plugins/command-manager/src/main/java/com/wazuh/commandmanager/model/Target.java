@@ -24,63 +24,63 @@ import java.io.IOException;
 
 /** Command's target fields. */
 public class Target implements ToXContentObject {
-public static final String TARGET = "target";
-public static final String TYPE = "type";
-public static final String ID = "id";
-private final String type;
-private final String id;
+	public static final String TARGET = "target";
+	public static final String TYPE = "type";
+	public static final String ID = "id";
+	private final String type;
+	private final String id;
 
-/**
-* Default constructor.
-*
-* @param type The destination type. One of [`group`, `agent`, `server`]
-* @param id Unique identifier of the destination to send the command to.
-*/
-public Target(String type, String id) {
-	this.type = type;
-	this.id = id;
-}
-
-/**
-* Parses data from an XContentParser into this model.
-*
-* @param parser xcontent parser.
-* @return initialized instance of Target.
-* @throws IOException parsing error occurred.
-*/
-public static Target parse(XContentParser parser) throws IOException {
-	String type = "";
-	String id = "";
-
-	while (parser.nextToken() != XContentParser.Token.END_OBJECT) {
-	String fieldName = parser.currentName();
-	parser.nextToken();
-	switch (fieldName) {
-		case TYPE:
-		type = parser.text();
-		break;
-		case ID:
-		id = parser.text();
-		break;
-		default:
-		parser.skipChildren();
-		break;
-	}
+	/**
+	 * Default constructor.
+	 *
+	 * @param type The destination type. One of [`group`, `agent`, `server`]
+	 * @param id Unique identifier of the destination to send the command to.
+	 */
+	public Target(String type, String id) {
+		this.type = type;
+		this.id = id;
 	}
 
-	return new Target(type, id);
-}
+	/**
+	 * Parses data from an XContentParser into this model.
+	 *
+	 * @param parser xcontent parser.
+	 * @return initialized instance of Target.
+	 * @throws IOException parsing error occurred.
+	 */
+	public static Target parse(XContentParser parser) throws IOException {
+		String type = "";
+		String id = "";
 
-@Override
-public XContentBuilder toXContent(XContentBuilder builder, Params params) throws IOException {
-	builder.startObject(TARGET);
-	builder.field(TYPE, this.type);
-	builder.field(ID, this.id);
-	return builder.endObject();
-}
+		while (parser.nextToken() != XContentParser.Token.END_OBJECT) {
+			String fieldName = parser.currentName();
+			parser.nextToken();
+			switch (fieldName) {
+				case TYPE:
+					type = parser.text();
+					break;
+				case ID:
+					id = parser.text();
+					break;
+				default:
+					parser.skipChildren();
+					break;
+			}
+		}
 
-@Override
-public String toString() {
-	return "Target{" + "type='" + type + '\'' + ", id='" + id + '\'' + '}';
-}
+		return new Target(type, id);
+	}
+
+	@Override
+	public XContentBuilder toXContent(XContentBuilder builder, Params params) throws IOException {
+		builder.startObject(TARGET);
+		builder.field(TYPE, this.type);
+		builder.field(ID, this.id);
+		return builder.endObject();
+	}
+
+	@Override
+	public String toString() {
+		return "Target{" + "type='" + type + '\'' + ", id='" + id + '\'' + '}';
+	}
 }
