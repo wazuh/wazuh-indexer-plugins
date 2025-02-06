@@ -55,12 +55,16 @@ public class Agent implements ToXContentObject {
         while (parser.nextToken() != XContentParser.Token.END_OBJECT) {
             String fieldName = parser.currentName();
             parser.nextToken();
-            if (fieldName.equals(GROUPS)) {
-                groups = parser.list();
-            } else if (fieldName.equals(ID)) {
-                id = parser.text();
-            } else {
-                parser.skipChildren();
+            switch (fieldName) {
+                case GROUPS:
+                    groups = parser.list();
+                    break;
+                case ID:
+                    id = parser.text();
+                    break;
+                default:
+                    parser.skipChildren();
+                    break;
             }
         }
 
@@ -82,20 +86,11 @@ public class Agent implements ToXContentObject {
      * @return id of the agent.
      */
     public String getId() {
-        return id;
-    }
-
-    /**
-     * Retrieves the groups assigned to the agent.
-     *
-     * @return groups assigned to agent.
-     */
-    public List<String> getGroups() {
-        return groups;
+        return this.id;
     }
 
     @Override
     public String toString() {
-        return "Agent{" + "id=" + id + '\'' + ", groups=" + groups + '}';
+        return "Agent{" + "id='" + id + '\'' + ", groups=" + groups + '}';
     }
 }

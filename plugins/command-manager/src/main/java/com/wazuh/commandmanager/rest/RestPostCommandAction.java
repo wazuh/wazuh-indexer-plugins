@@ -35,8 +35,8 @@ import com.wazuh.commandmanager.model.*;
 import com.wazuh.commandmanager.settings.PluginSettings;
 
 import static org.opensearch.rest.RestRequest.Method.POST;
-import static com.wazuh.commandmanager.model.Command.parseCommandList;
-import static com.wazuh.commandmanager.model.Orders.commandsToOrders;
+import static com.wazuh.commandmanager.model.Command.parse;
+import static com.wazuh.commandmanager.model.Orders.fromCommands;
 
 /** Handles HTTP requests to the POST the Commands API endpoint. */
 public class RestPostCommandAction extends BaseRestHandler {
@@ -102,7 +102,7 @@ public class RestPostCommandAction extends BaseRestHandler {
                         new BytesRestResponse(RestStatus.BAD_REQUEST, "Body content is required"));
             };
         }
-        List<Command> commands = parseCommandList(request);
+        List<Command> commands = parse(request);
         // Validate commands are not empty
         if (commands.isEmpty()) {
             return channel -> {
@@ -118,9 +118,9 @@ public class RestPostCommandAction extends BaseRestHandler {
         // agents.
         /// Given a group of agents A with N agents, a total of N orders are generated. One for each
         // agent.
-        Orders orders = commandsToOrders(client, commands);
+        Orders orders = fromCommands(client, commands);
         // Validate that the orders are not empty
-        if (orders.getOrders().isEmpty()) {
+        if (orders.get().isEmpty()) {
             return channel -> {
                 channel.sendResponse(
                         new BytesRestResponse(
@@ -131,7 +131,7 @@ public class RestPostCommandAction extends BaseRestHandler {
 
         // Orders indexing
         CompletableFuture<RestStatus> bulkRequestFuture =
-                this.commandIndex.asyncBulkCreate(orders.getOrders());
+                this.commandIndex.asyncBulkCreate(orders.get());
 
         // Send response
         return channel -> {

@@ -35,7 +35,7 @@ import com.wazuh.commandmanager.utils.Search;
 
 /** Model that stores a list of Orders to be indexed at the commands index */
 public class Orders implements ToXContentObject {
-    public static final String ORDERS = "_orders";
+    public static final String ORDERS = "orders";
     public static final String ID = "_id";
     private final ArrayList<Order> orders;
 
@@ -51,8 +51,8 @@ public class Orders implements ToXContentObject {
      *
      * @return the list of documents.
      */
-    public ArrayList<Order> getOrders() {
-        return orders;
+    public ArrayList<Order> get() {
+        return this.orders;
     }
 
     /**
@@ -60,7 +60,7 @@ public class Orders implements ToXContentObject {
      *
      * @param order The document to add to the list.
      */
-    public void addOrder(Order order) {
+    public void add(Order order) {
         this.orders.add(order);
     }
 
@@ -91,25 +91,26 @@ public class Orders implements ToXContentObject {
      * @return an Orders object containing the generated orders.
      */
     @SuppressWarnings("unchecked")
-    public static Orders commandsToOrders(NodeClient client, List<Command> commands) {
+    public static Orders fromCommands(NodeClient client, List<Command> commands) {
         Orders orders = new Orders();
 
         for (Command command : commands) {
             List<Agent> agentList = new ArrayList<>();
-            String field = "";
+            String queryField = "";
             Target.Type targetType = command.getTarget().getType();
             String targetId = command.getTarget().getId();
 
             if (Objects.equals(targetType, Target.Type.GROUP)) {
-                field = "agent.groups";
+                queryField = "agent.groups";
             } else if (Objects.equals(targetType, Target.Type.AGENT)) {
-                field = "agent.id";
+                queryField = "agent.id";
             }
 
             // Build and execute the search query
-            log.info("Searching for agents using field {} with value {}", field, targetId);
+            log.info("Searching for agents using field {} with value {}", queryField, targetId);
             SearchHits hits =
-                    Search.syncSearch(client, PluginSettings.getAgentsIndex(), field, targetId);
+                    Search.syncSearch(
+                            client, PluginSettings.getAgentsIndex(), queryField, targetId);
             if (hits != null) {
                 for (SearchHit hit : hits) {
                     final Map<String, Object> agentMap =
@@ -125,15 +126,15 @@ public class Orders implements ToXContentObject {
             }
 
             for (Agent agent : agentList) {
-                Command new_command =
+                Command newCommand =
                         new Command(
                                 command.getSource(),
                                 new Target(Target.Type.AGENT, agent.getId()),
                                 command.getTimeout(),
                                 command.getUser(),
                                 command.getAction());
-                Order order = new Order(agent, new_command);
-                orders.addOrder(order);
+                Order order = new Order(agent, newCommand);
+                orders.add(order);
             }
         }
         return orders;

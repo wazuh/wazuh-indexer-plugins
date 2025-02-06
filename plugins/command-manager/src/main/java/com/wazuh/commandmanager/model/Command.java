@@ -195,7 +195,7 @@ public class Command implements ToXContentObject {
      * @return a list of Command objects parsed from the request content.
      * @throws IOException if an error occurs while parsing the request content.
      */
-    public static List<Command> parseCommandList(RestRequest request) throws IOException {
+    public static List<Command> parse(RestRequest request) throws IOException {
         // Request parsing
         XContentParser parser = request.contentParser();
         List<Command> commands = new ArrayList<>();
@@ -244,16 +244,6 @@ public class Command implements ToXContentObject {
      */
     public String getUser() {
         return this.user;
-    }
-
-    /**
-     * Retrieves the status of this command.
-     *
-     * @return the status of the command.
-     * @see Status
-     */
-    public Status getStatus() {
-        return this.status;
     }
 
     @Override
