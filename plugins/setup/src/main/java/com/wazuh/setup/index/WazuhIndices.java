@@ -80,6 +80,7 @@ public class WazuhIndices {
         this.indexTemplates.put("index-template-system", List.of("wazuh-states-inventory-system"));
         this.indexTemplates.put(
                 "index-template-vulnerabilities", List.of("wazuh-states-vulnerabilities"));
+        this.indexTemplates.put("opendistro-ism-config", ".opendistro-ism-config");
         this.indexTemplates.put("test-template", "test-index-0000");
     }
 
@@ -137,6 +138,23 @@ public class WazuhIndices {
     }
 
     /**
+     * Creates an index
+     *
+     * @param indexName: Name of the index to be created
+     */
+    public void ismIndex(String indexName) {
+        if (!indexExists(indexName)) {
+            CreateIndexRequest request = new CreateIndexRequest(indexName);
+            CreateIndexResponse createIndexResponse =
+                this.client.admin().indices().create(request).actionGet();
+            log.info(
+                "Index created successfully: {} {}",
+                createIndexResponse.index(),
+                createIndexResponse.isAcknowledged());
+        }
+    }
+
+    /**
      * Returns whether the index exists
      *
      * @param indexName the name of the index to check
@@ -153,8 +171,12 @@ public class WazuhIndices {
         // 3. Create index
         this.indexTemplates.forEach(
                 (template, indices) -> {
-                    this.putTemplate(template);
-                    indices.forEach(this::putIndex);
+                    if ("test-index-0000".equals(indices)) {
+                       this.ismIndex(indices);
+                    } else {
+                       this.putTemplate(template);
+                       indices.forEach(this::putIndex);
+                    }
                 });
     }
 }

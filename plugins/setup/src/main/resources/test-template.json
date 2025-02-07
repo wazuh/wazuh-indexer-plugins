@@ -8,11 +8,15 @@
     "properties": {
       "@timestamp": {
         "type": "date"
+      },
+      "field": {
+        "type": "keyword"
       }
     }},
   "order": 1,
   "settings": {
     "index": {
+      "refresh_interval": "5s",
       "number_of_replicas": "0",
       "number_of_shards": "1",
       "plugins.index_state_management.rollover_alias": "test-alias"
