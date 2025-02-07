@@ -18,6 +18,7 @@ package com.wazuh.contentmanager.model;
 
 import org.opensearch.core.xcontent.ToXContentObject;
 import org.opensearch.core.xcontent.XContentBuilder;
+import org.opensearch.core.xcontent.XContentParser;
 
 import java.io.IOException;
 
@@ -37,6 +38,39 @@ public class Consumer implements ToXContentObject {
         this.lastOffset = lastOffset;
         this.snapshot = snapshot;
         this.hash = hash;
+    }
+
+    public static Consumer parse(XContentParser parser) throws IOException {
+        Integer offset = null;
+        Integer lastOffset = null;
+        String snapshot = null;
+        String hash = null;
+
+        while (parser.nextToken() != XContentParser.Token.END_OBJECT) {
+            if (parser.currentToken().equals(XContentParser.Token.FIELD_NAME)) {
+                String fieldName = parser.currentName();
+
+                parser.nextToken();
+                switch (fieldName) {
+                    case OFFSET:
+                        offset = parser.intValue();
+                        break;
+                    case LAST_OFFSET:
+                        lastOffset = parser.intValue();
+                        break;
+                    case SNAPSHOT:
+                        snapshot = parser.text();
+                        break;
+                    case HASH:
+                        hash = parser.text();
+                        break;
+                    default:
+                        parser.skipChildren();
+                        break;
+                }
+            }
+        }
+        return new Consumer(offset, lastOffset, snapshot, hash);
     }
 
     @Override

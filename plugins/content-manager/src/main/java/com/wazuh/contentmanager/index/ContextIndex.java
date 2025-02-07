@@ -16,9 +16,6 @@
  */
 package com.wazuh.contentmanager.index;
 
-import com.wazuh.contentmanager.ContentManagerPlugin;
-import com.wazuh.contentmanager.model.Consumer;
-import com.wazuh.contentmanager.model.Document;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.opensearch.action.admin.indices.create.CreateIndexRequest;
@@ -31,6 +28,7 @@ import org.opensearch.action.update.UpdateResponse;
 import org.opensearch.client.Client;
 import org.opensearch.cluster.service.ClusterService;
 import org.opensearch.common.xcontent.XContentFactory;
+import org.opensearch.core.rest.RestStatus;
 import org.opensearch.core.xcontent.ToXContent;
 import org.opensearch.index.query.QueryBuilders;
 import org.opensearch.index.query.TermQueryBuilder;
@@ -40,22 +38,34 @@ import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
+import java.util.concurrent.CompletableFuture;
 
+import com.wazuh.contentmanager.ContentManagerPlugin;
+import com.wazuh.contentmanager.model.Consumer;
+import com.wazuh.contentmanager.model.Document;
+
+/** Class to manage the Context index. */
 public class ContextIndex {
     private static final Logger log = LogManager.getLogger(ContextIndex.class);
 
-    private static final String INDEX_NAME = "wazuh-content";
+    public static final String INDEX_NAME = "wazuh-content";
 
     private final Client client;
     private final ClusterService clusterService;
     private final SearchSourceBuilder searchSourceBuilder = new SearchSourceBuilder();
 
+    /**
+     * Constructs a ContextIndex instance.
+     *
+     * @param client OpenSearch client instance to interact with the cluster.
+     * @param clusterService OpenSearch cluster service instance to check index states.
+     */
     public ContextIndex(Client client, ClusterService clusterService) {
         this.client = client;
         this.clusterService = clusterService;
     }
 
-    /** Creates a context index */
+    /** Creates the context index if it does not exist. */
     public void createIndex() {
         if (!indexExists()) {
             Map<String, Object> source = createMapping();
@@ -68,19 +78,34 @@ public class ContextIndex {
                     createIndexResponse.isAcknowledged());
         }
 
-        //Initialize the metadata of context
+        // Initialize the metadata of context
         Consumer consumer = new Consumer(0, null, "", "");
         Document document = new Document(consumer);
         indexDocument(document);
+
+        //To test get all the context index
+        SearchResponse searchResponse = getAll();
+        log.info("Response of get all: {}", Objects.requireNonNull(searchResponse.getHits().getTotalHits()).value);
+
+        //To test get the context index
+        searchResponse = null;
+        searchResponse = get(ContentManagerPlugin.CONTEXT_NAME);
+        log.info("Response of get: {}", Objects.requireNonNull(searchResponse.getHits().getTotalHits()).value);
     }
 
-    private void indexDocument(Document document) {
+    public CompletableFuture<RestStatus> indexDocument(Document document) {
+        CompletableFuture<RestStatus> future = new CompletableFuture<>();
+
         try {
             IndexRequest indexRequest = createIndexRequest(document);
-            this.client.index(indexRequest);
-        } catch (IOException e) {
+            RestStatus restStatus = this.client.index(indexRequest).actionGet().status();
+            future.complete(restStatus);
+            return future;
+        } catch (Exception e) {
             log.error("Error creating IndexRequest due to {}", e.getMessage());
+            future.completeExceptionally(e);
         }
+        return future;
     }
 
     /**
@@ -99,24 +124,35 @@ public class ContextIndex {
     }
 
     public SearchResponse get(String contextName) {
-        final TermQueryBuilder termQueryBuilder = QueryBuilders.termQuery("_id", ContentManagerPlugin.CONTEXT_NAME);
+        final TermQueryBuilder termQueryBuilder =
+                QueryBuilders.termQuery("_id", ContentManagerPlugin.CONTEXT_NAME);
         this.searchSourceBuilder.query(termQueryBuilder);
-        SearchRequest searchRequest = createSearchRequest(this.searchSourceBuilder.trackTotalHits(true));
+        SearchRequest searchRequest =
+                createSearchRequest(this.searchSourceBuilder.trackTotalHits(true));
         SearchResponse searchResponse = this.client.search(searchRequest).actionGet();
-        log.info("Found {} documents", Objects.requireNonNull(searchResponse.getHits().getTotalHits()).value);
+        log.info(
+                "Found {} documents",
+                Objects.requireNonNull(searchResponse.getHits().getTotalHits()).value);
         return searchResponse;
     }
 
     public SearchResponse getAll() {
-        SearchRequest searchRequest = createSearchRequest(this.searchSourceBuilder.trackTotalHits(true));
+        final SearchRequest searchRequest = new SearchRequest(INDEX_NAME);
+
+        this.searchSourceBuilder.trackTotalHits(true);
+
+        searchRequest.source(this.searchSourceBuilder);
         SearchResponse searchResponse = this.client.search(searchRequest).actionGet();
-        log.info("Found {} documents", Objects.requireNonNull(searchResponse.getHits().getTotalHits()).value);
+        log.info("Result SEARCH: {}", searchResponse.toString());
+        log.info(
+                "Found {} documents",
+                Objects.requireNonNull(searchResponse.getHits().getTotalHits()).value);
         return searchResponse;
     }
 
     private SearchRequest createSearchRequest(SearchSourceBuilder searchSourceBuilder) {
-       SearchRequest searchRequest = new SearchRequest(INDEX_NAME);
-       searchRequest.source(searchSourceBuilder);
+        SearchRequest searchRequest = new SearchRequest(INDEX_NAME);
+        searchRequest.source(searchSourceBuilder);
 
         return searchRequest;
     }
@@ -130,7 +166,8 @@ public class ContextIndex {
         updateRequest.index(INDEX_NAME);
         updateRequest.id(ContentManagerPlugin.CONTEXT_NAME);
         try {
-            updateRequest.doc(document.toXContent(XContentFactory.jsonBuilder(), ToXContent.EMPTY_PARAMS));
+            updateRequest.doc(
+                    document.toXContent(XContentFactory.jsonBuilder(), ToXContent.EMPTY_PARAMS));
         } catch (IOException e) {
             log.error("Error creating IndexRequest due to {}", e.getMessage());
         }

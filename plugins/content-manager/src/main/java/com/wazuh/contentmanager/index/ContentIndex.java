@@ -19,37 +19,27 @@ package com.wazuh.contentmanager.index;
 import com.google.gson.JsonObject;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.opensearch.action.DocWriteRequest;
 import org.opensearch.action.admin.indices.create.CreateIndexRequest;
 import org.opensearch.action.admin.indices.create.CreateIndexResponse;
 import org.opensearch.action.index.IndexRequest;
-import org.opensearch.action.search.SearchRequest;
-import org.opensearch.action.search.SearchResponse;
 import org.opensearch.client.Client;
 import org.opensearch.cluster.service.ClusterService;
-import org.opensearch.common.xcontent.XContentFactory;
-import org.opensearch.core.xcontent.ToXContent;
 import org.opensearch.core.xcontent.XContentBuilder;
-import org.opensearch.index.query.QueryBuilders;
-import org.opensearch.index.query.TermQueryBuilder;
 import org.opensearch.index.shard.IndexingOperationListener;
+import org.opensearch.search.builder.SearchSourceBuilder;
 
 import java.io.IOException;
-import java.util.Objects;
 
 import com.wazuh.contentmanager.ContentManagerPlugin;
-import org.opensearch.search.SearchHit;
-import org.opensearch.search.builder.SearchSourceBuilder;
 
 /** Class to manage the Content Manager index. */
 public class ContentIndex implements IndexingOperationListener {
     private static final Logger log = LogManager.getLogger(ContentIndex.class);
 
-    private static final String INDEX_NAME = "wazuh-content-snapshot";
+    private static final String INDEX_NAME = "wazuh-content-manager";
     private final Client client;
     private final ClusterService clusterService;
     private final SearchSourceBuilder searchSourceBuilder = new SearchSourceBuilder();
-
 
     /**
      * Default constructor
@@ -62,7 +52,7 @@ public class ContentIndex implements IndexingOperationListener {
         this.clusterService = clusterService;
     }
 
-    /** Creates a content index */
+    /** Creates a wazuh-content-manager index */
     public void createIndex() {
         if (!indexExists()) {
             CreateIndexRequest request = new CreateIndexRequest(INDEX_NAME);
@@ -76,7 +66,7 @@ public class ContentIndex implements IndexingOperationListener {
     }
 
     /**
-     * Checks if the content index exists.
+     * Checks if the wazuh-content-manager index exists.
      *
      * @return whether the internal Command Manager's index exists.
      */
@@ -84,6 +74,11 @@ public class ContentIndex implements IndexingOperationListener {
         return this.clusterService.state().routingTable().hasIndex(INDEX_NAME);
     }
 
+    /**
+     * Index a Document object.
+     *
+     * @param document the XContentBuilder document to index in wazuh-content-manager
+     */
     public void indexDocument(XContentBuilder document) {
         try {
             IndexRequest indexRequest = createIndexRequest(document);
@@ -96,7 +91,7 @@ public class ContentIndex implements IndexingOperationListener {
     /**
      * Create an IndexRequest object from a Document object.
      *
-     * @param document the document to create the IndexRequest for COMMAND_MANAGER_INDEX
+     * @param document the document to create the IndexRequest for wazuh-content-manager
      * @return an IndexRequest object
      * @throws IOException thrown by XContentFactory.jsonBuilder()
      */
@@ -108,30 +103,12 @@ public class ContentIndex implements IndexingOperationListener {
                 .create(true);
     }
 
+    /**
+     * Patch a document
+     *
+     * @param document the document to patch the existing document
+     */
     public void patchDocument(JsonObject document) {
-        try {
-            String id = String.valueOf(document.get("_id"));
-            final TermQueryBuilder termQueryBuilder = QueryBuilders.termQuery("_id", ContentManagerPlugin.CONTEXT_NAME);
-            this.searchSourceBuilder.query(termQueryBuilder);
-            SearchRequest searchRequest = createSearchRequest(this.searchSourceBuilder.trackTotalHits(true));
-            SearchResponse searchResponse = this.client.search(searchRequest).actionGet();
-            log.info("Found {} documents", Objects.requireNonNull(searchResponse.getHits().getTotalHits()).value);
-
-            SearchHit hit = searchResponse.getHits().getAt(0);
-            //add some think to the hit
-
-            IndexRequest indexRequest = createIndexRequest(hit.toXContent(XContentFactory.jsonBuilder(), ToXContent.EMPTY_PARAMS)).opType(DocWriteRequest.OpType.UPDATE);
-            this.client.index(indexRequest);
-        } catch (IOException e) {
-            log.error("Error creating IndexRequest due to {}", e.getMessage());
-        }
+        //To do whe we have more definitions
     }
-
-    private SearchRequest createSearchRequest(SearchSourceBuilder searchSourceBuilder) {
-        SearchRequest searchRequest = new SearchRequest(INDEX_NAME);
-        searchRequest.source(searchSourceBuilder);
-
-        return searchRequest;
-    }
-
 }

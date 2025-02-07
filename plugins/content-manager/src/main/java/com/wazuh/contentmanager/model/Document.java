@@ -18,6 +18,7 @@ package com.wazuh.contentmanager.model;
 
 import org.opensearch.core.xcontent.ToXContentObject;
 import org.opensearch.core.xcontent.XContentBuilder;
+import org.opensearch.core.xcontent.XContentParser;
 
 import java.io.IOException;
 
@@ -28,6 +29,11 @@ public class Document implements ToXContentObject {
 
     public Document(Consumer consumer) {
         this.consumer = consumer;
+    }
+
+    public static Document parse(XContentParser parser) throws IOException {
+        Consumer consumer = Consumer.parse(parser);
+        return new Document(consumer);
     }
 
     @Override
