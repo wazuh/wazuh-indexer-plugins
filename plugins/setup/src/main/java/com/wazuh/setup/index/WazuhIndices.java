@@ -172,7 +172,8 @@ public class WazuhIndices {
         this.indexTemplates.forEach(
                 (template, indices) -> {
                     if ("test-index-0000".equals(indices)) {
-                       this.ismIndex(indices);
+                       //this.ismIndex(indices);
+                        log.info("skipping creation of test-index-0000");
                     } else {
                        this.putTemplate(template);
                        indices.forEach(this::putIndex);
