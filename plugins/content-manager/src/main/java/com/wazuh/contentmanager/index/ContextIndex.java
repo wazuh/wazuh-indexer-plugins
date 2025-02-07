@@ -27,6 +27,7 @@ import org.opensearch.action.update.UpdateRequest;
 import org.opensearch.action.update.UpdateResponse;
 import org.opensearch.client.Client;
 import org.opensearch.cluster.service.ClusterService;
+import org.opensearch.common.util.concurrent.ThreadContext;
 import org.opensearch.common.xcontent.XContentFactory;
 import org.opensearch.core.rest.RestStatus;
 import org.opensearch.core.xcontent.ToXContent;
@@ -39,10 +40,13 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Future;
 
 import com.wazuh.contentmanager.ContentManagerPlugin;
 import com.wazuh.contentmanager.model.Consumer;
 import com.wazuh.contentmanager.model.Document;
+import org.opensearch.threadpool.ThreadPool;
 
 /** Class to manage the Context index. */
 public class ContextIndex {
@@ -52,6 +56,8 @@ public class ContextIndex {
 
     private final Client client;
     private final ClusterService clusterService;
+    private final ThreadPool threadPool;
+
     private final SearchSourceBuilder searchSourceBuilder = new SearchSourceBuilder();
 
     /**
@@ -59,10 +65,12 @@ public class ContextIndex {
      *
      * @param client OpenSearch client instance to interact with the cluster.
      * @param clusterService OpenSearch cluster service instance to check index states.
+     * @param threadPool An OpenSearch ThreadPool.
      */
-    public ContextIndex(Client client, ClusterService clusterService) {
+    public ContextIndex(Client client, ClusterService clusterService, ThreadPool threadPool) {
         this.client = client;
         this.clusterService = clusterService;
+        this.threadPool = threadPool;
     }
 
     /** Creates the context index if it does not exist. */
@@ -83,28 +91,26 @@ public class ContextIndex {
         Document document = new Document(consumer);
         indexDocument(document);
 
-        //To test get all the context index
-        SearchResponse searchResponse = getAll();
-        log.info("Response of get all: {}", Objects.requireNonNull(searchResponse.getHits().getTotalHits()).value);
-
-        //To test get the context index
-        searchResponse = null;
-        searchResponse = get(ContentManagerPlugin.CONTEXT_NAME);
-        log.info("Response of get: {}", Objects.requireNonNull(searchResponse.getHits().getTotalHits()).value);
     }
 
     public CompletableFuture<RestStatus> indexDocument(Document document) {
-        CompletableFuture<RestStatus> future = new CompletableFuture<>();
+        final CompletableFuture<RestStatus> future = new CompletableFuture<>();
+        final ExecutorService executor = this.threadPool.executor(ThreadPool.Names.WRITE);
 
-        try {
-            IndexRequest indexRequest = createIndexRequest(document);
-            RestStatus restStatus = this.client.index(indexRequest).actionGet().status();
-            future.complete(restStatus);
-            return future;
-        } catch (Exception e) {
-            log.error("Error creating IndexRequest due to {}", e.getMessage());
-            future.completeExceptionally(e);
-        }
+        executor.submit(() -> {
+            try (ThreadContext.StoredContext ignored =
+                         this.threadPool.getThreadContext().stashContext()) {
+                IndexRequest indexRequest = createIndexRequest(document);
+                final RestStatus restStatus = this.client.index(indexRequest).
+                        actionGet().
+                        status();
+                future.complete(restStatus);
+            } catch (Exception e) {
+                log.error("Error creating IndexRequest due to {}", e.getMessage());
+                future.completeExceptionally(e);
+            }
+        });
+
         return future;
     }
 
@@ -123,17 +129,37 @@ public class ContextIndex {
                 .create(true);
     }
 
-    public SearchResponse get(String contextName) {
+    public CompletableFuture<RestStatus> get(String contextName) {
+        final CompletableFuture<RestStatus> future = new CompletableFuture<>();
+        final ExecutorService executor = this.threadPool.executor(ThreadPool.Names.WRITE);
         final TermQueryBuilder termQueryBuilder =
                 QueryBuilders.termQuery("_id", ContentManagerPlugin.CONTEXT_NAME);
         this.searchSourceBuilder.query(termQueryBuilder);
-        SearchRequest searchRequest =
-                createSearchRequest(this.searchSourceBuilder.trackTotalHits(true));
-        SearchResponse searchResponse = this.client.search(searchRequest).actionGet();
-        log.info(
-                "Found {} documents",
-                Objects.requireNonNull(searchResponse.getHits().getTotalHits()).value);
-        return searchResponse;
+
+        executor.submit(() -> {
+            try (ThreadContext.StoredContext ignored =
+                         this.threadPool.getThreadContext().stashContext()) {
+                SearchRequest searchRequest =
+                        createSearchRequest(this.searchSourceBuilder.trackTotalHits(true));
+
+                final SearchResponse searchResponse = this.client.search(searchRequest).actionGet();
+
+                log.info("Result SEARCH: {}", searchResponse.toString());
+
+                final RestStatus restStatus = searchResponse.status();
+
+                future.complete(restStatus);
+
+                log.info(
+                        "Found {} documents",
+                        Objects.requireNonNull(searchResponse.getHits().getTotalHits()).value);
+            } catch (Exception e) {
+                log.error("Error creating SearchRequest due to {}", e.getMessage());
+                future.completeExceptionally(e);
+            }
+        });
+
+        return future;
     }
 
     public SearchResponse getAll() {

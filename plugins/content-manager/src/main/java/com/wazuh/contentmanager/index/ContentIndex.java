@@ -109,6 +109,6 @@ public class ContentIndex implements IndexingOperationListener {
      * @param document the document to patch the existing document
      */
     public void patchDocument(JsonObject document) {
-        //To do whe we have more definitions
+        // To do whe we have more definitions
     }
 }

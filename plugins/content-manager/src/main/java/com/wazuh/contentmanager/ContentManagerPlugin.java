@@ -16,7 +16,6 @@
  */
 package com.wazuh.contentmanager;
 
-import com.wazuh.contentmanager.rest.RestPostContentAction;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.opensearch.client.Client;
@@ -50,6 +49,7 @@ import java.util.function.Supplier;
 
 import com.wazuh.contentmanager.index.ContentIndex;
 import com.wazuh.contentmanager.index.ContextIndex;
+import com.wazuh.contentmanager.rest.RestPostContentAction;
 
 public class ContentManagerPlugin extends Plugin implements ClusterPlugin, ActionPlugin {
     private static final Logger log = LogManager.getLogger(ContentManagerPlugin.class);
@@ -76,7 +76,7 @@ public class ContentManagerPlugin extends Plugin implements ClusterPlugin, Actio
             IndexNameExpressionResolver indexNameExpressionResolver,
             Supplier<RepositoriesService> repositoriesServiceSupplier) {
         this.contentIndex = new ContentIndex(client, clusterService);
-        this.contextIndex = new ContextIndex(client, clusterService);
+        this.contextIndex = new ContextIndex(client, clusterService, threadPool);
 
         return List.of(contentIndex, contextIndex);
     }
@@ -88,9 +88,8 @@ public class ContentManagerPlugin extends Plugin implements ClusterPlugin, Actio
             IndexScopedSettings indexScopedSettings,
             SettingsFilter settingsFilter,
             IndexNameExpressionResolver indexNameExpressionResolver,
-            Supplier<DiscoveryNodes> nodesInCluster
-    ) {
-        //Just for testing purposes
+            Supplier<DiscoveryNodes> nodesInCluster) {
+        // Just for testing purposes
         return Collections.singletonList(new RestPostContentAction(this.contextIndex));
     }
 
