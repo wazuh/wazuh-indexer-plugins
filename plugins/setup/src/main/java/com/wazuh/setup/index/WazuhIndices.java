@@ -155,7 +155,7 @@ public class WazuhIndices {
                 (k, v) -> {
                     this.putTemplate(k);
                     if ("test-index-0000".equals(v)) {
-                       this.ismIndex(v);
+                        log.info("skipping creation of test-index-0000");
                     } else {
                         this.putIndex(v);
                     }
