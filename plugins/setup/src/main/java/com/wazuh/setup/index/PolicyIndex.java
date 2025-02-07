@@ -42,7 +42,8 @@ public class PolicyIndex implements IndexingOperationListener {
 
     private final String ISM_INDEX = ".opendistro_ism_config";
 
-    public final String POLICY = "{\"policy\":{\"policy_id\":\"wazuh_rollover_policy\",\"description\":\"Wazuh rollover and alias policy\",\"error_notification\":null,\"default_state\":\"active\",\"states\":[{\"name\":\"active\",\"actions\":[{\"retry\":{\"count\":3,\"backoff\":\"exponential\",\"delay\":\"1m\"},\"rollover\":{\"min_doc_count\":5,\"copy_alias\":false}}],\"transitions\":[]}],\"ism_template\":[{\"index_patterns\":[\"test-index-*\"],\"priority\":50}],\"user\":{\"name\":\"admin\",\"backend_roles\":[\"admin\"],\"roles\":[\"own_index\",\"all_access\"],\"custom_attribute_names\":[],\"user_requested_tenant\":null}}}";
+    public final String POLICY =
+            "{\"policy\":{\"policy_id\":\"wazuh_rollover_policy\",\"description\":\"Wazuh rollover and alias policy\",\"error_notification\":null,\"default_state\":\"active\",\"states\":[{\"name\":\"active\",\"actions\":[{\"retry\":{\"count\":3,\"backoff\":\"exponential\",\"delay\":\"1m\"},\"rollover\":{\"min_doc_count\":5,\"copy_alias\":false}}],\"transitions\":[]}],\"ism_template\":[{\"index_patterns\":[\"test-index-*\"],\"priority\":50}],\"user\":{\"name\":\"admin\",\"backend_roles\":[\"admin\"],\"roles\":[\"own_index\",\"all_access\"],\"custom_attribute_names\":[],\"user_requested_tenant\":null}}}";
 
     /**
      * Default constructor
