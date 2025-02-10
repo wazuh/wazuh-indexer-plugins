@@ -4,11 +4,9 @@
 ECS_VERSION=${ECS_VERSION:-v8.11.0}
 MAPPINGS_SUBPATH="mappings/${ECS_VERSION}/generated/elasticsearch/legacy/template.json"
 TEMPLATES_PATH="plugins/setup/src/main/resources/"
-# PLUGINS_REPO="wazuh/wazuh-indexer-plugins"
 CURRENT_PATH=$(pwd)
 OUTPUT_PATH=${OUTPUT_PATH:-"$CURRENT_PATH"/../output}
 BASE_BRANCH=${BASE_BRANCH:-main}
-# PLUGINS_LOCAL_PATH=${PLUGINS_LOCAL_PATH:-"$CURRENT_PATH"/../wazuh-indexer-plugins}
 
 # Committer's identity
 COMMITER_EMAIL=${COMMITER_EMAIL:-$(git config user.email)}
@@ -106,26 +104,6 @@ run_ecs_generator() {
     fi
 }
 
-# Clone the target repository and set up GitHub authentication.
-clone_target_repo() {
-    # Clone the remote repository and change working directory to the
-    # folder it was cloned to.
-    # echo
-    # echo "---> Cloning ${PLUGINS_REPO} repository..."
-    # if [ ! -d "$PLUGINS_LOCAL_PATH" ]; then
-    #     git clone \
-    #         https://"$GITHUB_TOKEN"@github.com/$PLUGINS_REPO.git \
-    #         "$PLUGINS_LOCAL_PATH"
-    # fi
-    # cd "$PLUGINS_LOCAL_PATH" || exit
-
-    # Only for the GH Workflow
-    if check_running_on_gha; then
-        echo "Configuring Git for ${COMMITTER_USERNAME}"
-        configure_git
-    fi
-}
-
 # Configure Git with the committer's identity and commit signing.
 configure_git() {
     # Setup the committers identity.
@@ -148,18 +126,14 @@ configure_git() {
 
 # Commit and push changes to the target repository.
 commit_and_push_changes() {
+    # Only for the GH Workflow
+    if check_running_on_gha; then
+        echo "Configuring Git for ${COMMITTER_USERNAME}"
+        configure_git
+    fi
+
     echo
     echo "---> Committing and pushing changes to ${PLUGINS_REPO} repository..."
-    # git ls-remote --exit-code --heads origin "$BRANCH_NAME" >/dev/null 2>&1
-    # EXIT_CODE=$?
-
-    # if [[ $EXIT_CODE == '0' ]]; then
-    #     git checkout "$BRANCH_NAME"
-    #     git pull origin "$BRANCH_NAME"
-    # else
-    #     git checkout -b "$BRANCH_NAME"
-    #     git push --set-upstream origin "$BRANCH_NAME"
-    # fi
 
     echo "Copying ECS templates to the plugins repository..."
     for ecs_module in "${relevant_modules[@]}"; do
@@ -171,7 +145,6 @@ commit_and_push_changes() {
         mkdir -p "$OUTPUT_PATH"
         cp "$CURRENT_PATH/ecs/$ecs_module/$MAPPINGS_SUBPATH" "$OUTPUT_PATH/$target_file"
         # Copy the template to the plugins repository
-        # mkdir -p $TEMPLATES_PATH
         echo "  - Copy template for module '$ecs_module' to '$target_file'"
         cp "$CURRENT_PATH/ecs/$ecs_module/$MAPPINGS_SUBPATH" "$TEMPLATES_PATH/$target_file"
     done
@@ -222,17 +195,6 @@ EOF
         pr_url=$(echo "$output" | grep -oP 'https://github.com/\S+')
         export PR_URL="$pr_url"
         echo "New pull request created: $PR_URL"
-    # else
-    #     echo "PR already exists: $existing_pr. Updating the PR..."
-    #     gh pr edit "$existing_pr" --body "$body"
-    #     pr_url=$(gh pr view "$existing_pr" --json url -q '.url')
-    #     export PR_URL="$pr_url"
-    #     echo "Pull request updated: $PR_URL"
-    fi
-
-    # If the script is executed in a GHA, add a notice command.
-    if check_running_on_gha; then
-        echo "::notice::Pull Request URL:${PR_URL}"
     fi
 }
 

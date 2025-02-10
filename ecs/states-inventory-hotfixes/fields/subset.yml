@@ -14,4 +14,8 @@ fields:
       version: {}
       host:
         fields: "*"
-
+  package:
+    fields:
+      hotfix:
+        fields:
+          name: {}
