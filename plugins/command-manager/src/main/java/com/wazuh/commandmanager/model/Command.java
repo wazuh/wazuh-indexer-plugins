@@ -16,17 +16,22 @@
  */
 package com.wazuh.commandmanager.model;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.opensearch.common.UUIDs;
 import org.opensearch.core.xcontent.ToXContent;
 import org.opensearch.core.xcontent.ToXContentObject;
 import org.opensearch.core.xcontent.XContentBuilder;
 import org.opensearch.core.xcontent.XContentParser;
+import org.opensearch.rest.RestRequest;
 
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
 import reactor.util.annotation.NonNull;
+
+import static org.opensearch.core.xcontent.XContentParserUtils.ensureExpectedToken;
 
 /** Command's fields. */
 public class Command implements ToXContentObject {
@@ -45,6 +50,8 @@ public class Command implements ToXContentObject {
     private final String user;
     private final Status status;
     private final Action action;
+
+    private static final Logger log = LogManager.getLogger(Command.class);
 
     /**
      * Default constructor
@@ -182,6 +189,28 @@ public class Command implements ToXContentObject {
     }
 
     /**
+     * Parses the content of a RestRequest and retrieves a list of Command objects.
+     *
+     * @param request the RestRequest containing the command data.
+     * @return a list of Command objects parsed from the request content.
+     * @throws IOException if an error occurs while parsing the request content.
+     */
+    public static List<Command> parse(RestRequest request) throws IOException {
+        // Request parsing
+        XContentParser parser = request.contentParser();
+        List<Command> commands = new ArrayList<>();
+        ensureExpectedToken(XContentParser.Token.START_OBJECT, parser.nextToken(), parser);
+        parser.nextToken();
+        if (parser.nextToken() == XContentParser.Token.START_ARRAY) {
+            commands = Command.parseToArray(parser);
+        } else {
+            log.error("Token does not match {}", parser.currentToken());
+        }
+
+        return commands;
+    }
+
+    /**
      * Returns the nested Action fields.
      *
      * @return Action fields.
@@ -215,16 +244,6 @@ public class Command implements ToXContentObject {
      */
     public String getUser() {
         return this.user;
-    }
-
-    /**
-     * Retrieves the status of this command.
-     *
-     * @return the status of the command.
-     * @see Status
-     */
-    public Status getStatus() {
-        return this.status;
     }
 
     @Override
