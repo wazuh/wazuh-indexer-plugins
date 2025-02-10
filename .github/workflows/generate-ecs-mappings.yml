@@ -1,0 +1,50 @@
+name: ECS Generator
+
+on:
+  push:
+    paths:
+      - "ecs/**/*.json"
+      - "ecs/**/*.yml"
+
+jobs:
+  run-ecs-generator:
+    if: github.repository == 'wazuh/wazuh-indexer-plugins'
+    runs-on: ubuntu-24.04
+    env:
+      output_folder: /tmp/ecs-templates
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+
+      - name: Extract branch name
+        shell: bash
+        run: echo "branch=${GITHUB_HEAD_REF:-${GITHUB_REF#refs/heads/}}" >> $GITHUB_OUTPUT
+        id: branch-name
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Set up Docker Compose
+        run: sudo apt-get install docker-compose
+
+      - name: Generate PR to wazuh-indexer-plugins
+        id: generate-pr
+        env:
+          GITHUB_TOKEN: ${{ secrets.INDEXER_BOT_TOKEN }}
+          COMMITER_EMAIL: ${{ secrets.INDEXER_BOT_EMAIL }}
+          COMMITTER_USERNAME: "Wazuh Indexer Bot"
+          SSH_PRIVATE_KEY: ${{ secrets.INDEXER_BOT_PRIVATE_SSH_KEY }}
+          SSH_PUBLIC_KEY: ${{ secrets.INDEXER_BOT_PUBLIC_SSH_KEY }}
+        run: |
+          bash ecs/scripts/generate-pr-to-plugins.sh \
+            -b ${{ steps.branch-name.outputs.branch }} \
+            -o ${{env.output_folder }}
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ecs-templates
+          path: ${{env.output_folder }}
