@@ -18,61 +18,84 @@ package com.wazuh.commandmanager.model;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.opensearch.common.UUIDs;
+import org.opensearch.common.time.DateFormatter;
+import org.opensearch.common.time.DateUtils;
+import org.opensearch.common.time.FormatNames;
 import org.opensearch.common.xcontent.XContentHelper;
 import org.opensearch.common.xcontent.XContentType;
 import org.opensearch.core.xcontent.*;
 import org.opensearch.search.SearchHit;
 
 import java.io.IOException;
-import java.util.Objects;
+import java.time.ZonedDateTime;
 
-import reactor.util.annotation.NonNull;
-
-/** Order model class. */
-public class Order implements ToXContent {
-    public static final String SOURCE = "source";
-    public static final String USER = "user";
-    public static final String DOCUMENT_ID = "document_id";
-    private final String source;
-    private final Target target;
-    private final String user;
-    private final Action action;
-    private final String documentId;
+/**
+ * This class represents the value to be stored in the commands index, it is the result of the
+ * processed command received through the API.
+ */
+public class Order implements ToXContentObject {
+    private static final String DATE_FORMAT = FormatNames.DATE_TIME_NO_MILLIS.getSnakeCaseName();
+    private static final DateFormatter DATE_FORMATTER = DateFormatter.forPattern(DATE_FORMAT);
+    public static final String TIMESTAMP = "@timestamp";
+    public static final String DELIVERY_TIMESTAMP = "delivery_timestamp";
+    private final Agent agent;
+    private final Command command;
+    private final String id;
+    private final ZonedDateTime timestamp;
+    private final ZonedDateTime deliveryTimestamp;
 
     private static final Logger log = LogManager.getLogger(Order.class);
 
     /**
-     * Default constructor
+     * Default constructor.
      *
-     * @param source String field representing the origin of the command order
-     * @param target Object containing the destination's type and id. It is handled by its own model
-     *     class
-     * @param user The requester of the command
-     * @param action An object containing the actual executable plus arguments and version. Handled by
-     *     its own model class
-     * @param documentId The document ID from the index that holds commands. Used by the agent to
-     *     report back the results of the action
+     * @param agent "agent" nested fields.
+     * @param command "command" nested fields.
      */
-    public Order(
-            @NonNull String source,
-            @NonNull Target target,
-            @NonNull String user,
-            @NonNull Action action,
-            @NonNull String documentId) {
-        this.source = source;
-        this.target = target;
-        this.user = user;
-        this.action = action;
-        this.documentId = documentId;
+    public Order(Agent agent, Command command) {
+        this.agent = agent;
+        this.command = command;
+        this.id = UUIDs.base64UUID();
+        this.timestamp = DateUtils.nowWithMillisResolution();
+        this.deliveryTimestamp = timestamp.plusSeconds(command.getTimeout());
     }
 
     /**
-     * Parses a SearchHit into an order as expected by a Wazuh Agent
+     * Parses data from an XContentParser into this model.
      *
-     * @param hit The SearchHit result of a search
-     * @return An Order Object in accordance with the data model
+     * @param parser xcontent parser.
+     * @return initialized instance of Document.
+     * @throws IOException parsing error occurred.
      */
-    public static Order fromSearchHit(SearchHit hit) {
+    public static Order parse(XContentParser parser) throws IOException {
+        Agent agent = null;
+        Command command = null;
+
+        while (parser.nextToken() != XContentParser.Token.END_OBJECT) {
+            String fieldName = parser.currentName();
+            parser.nextToken();
+            if (fieldName.equals(Command.COMMAND)) {
+                command = Command.parse(parser);
+            } else if (fieldName.equals(Agent.AGENT)) {
+                agent = Agent.parse(parser);
+            } else {
+                parser.skipChildren(); // TODO raise error as command values are required
+            }
+        }
+
+        return new Order(agent, command);
+    }
+
+    /**
+     * Returns the delivery timestamp from a search hit.
+     *
+     * @param hit search hit parser.
+     * @return delivery timestamp from Document in search hit.
+     */
+    public static ZonedDateTime deliveryTimestampFromSearchHit(SearchHit hit) {
+        ZonedDateTime deliveryTimestamp = null;
+
         try {
             XContentParser parser =
                     XContentHelper.createParser(
@@ -80,74 +103,76 @@ public class Order implements ToXContent {
                             DeprecationHandler.IGNORE_DEPRECATIONS,
                             hit.getSourceRef(),
                             XContentType.JSON);
-            Command command = null;
-            // Iterate over the JsonXContentParser's JsonToken until we hit null,
-            // which corresponds to end of data
+
+            parser.nextToken();
             while (parser.nextToken() != null) {
-                // Look for FIELD_NAME JsonToken s
                 if (parser.currentToken().equals(XContentParser.Token.FIELD_NAME)) {
                     String fieldName = parser.currentName();
-                    if (fieldName.equals(Command.COMMAND)) {
-                        // Parse Command
-                        command = Command.parse(parser);
+                    if (fieldName.equals(Order.DELIVERY_TIMESTAMP)) {
+                        parser.nextToken();
+                        deliveryTimestamp = ZonedDateTime.from(DATE_FORMATTER.parse(parser.text()));
                     } else {
                         parser.skipChildren();
                     }
                 }
             }
-            // Create a new Order object with the Command's fields
-            return new Order(
-                    Objects.requireNonNull(command).getSource(),
-                    Objects.requireNonNull(command).getTarget(),
-                    Objects.requireNonNull(command).getUser(),
-                    Objects.requireNonNull(command).getAction(),
-                    Objects.requireNonNull(hit).getId());
+
+            parser.close();
+
         } catch (IOException e) {
-            log.error("Order could not be parsed: {}", e.getMessage());
-        } catch (NullPointerException e) {
-            log.error(
-                    "Could not create Order object. One or more of the constructor's arguments was null: {}",
-                    e.getMessage());
+            log.error("Delivery timestamp could not be parsed: {}", e.getMessage());
         }
-        return null;
+        return deliveryTimestamp;
     }
 
     /**
-     * Used to serialize the Order's contents.
+     * Returns the document's "_id".
      *
-     * @param builder The builder object we will add our Json to
-     * @param params Not used. Required by the interface.
-     * @return XContentBuilder with a Json object including this Order's fields
-     * @throws IOException Rethrown from IOException's XContentBuilder methods
+     * @return Document's ID
      */
+    public String getId() {
+        return this.id;
+    }
+
+    /**
+     * Returns the Command object associated with this Document.
+     *
+     * @return Command object
+     */
+    public Command getCommand() {
+        return this.command;
+    }
+
+    /**
+     * Returns the timestamp at which the Command was delivered to the Agent.
+     *
+     * @return ZonedDateTime object representing the delivery timestamp
+     */
+    public ZonedDateTime getDeliveryTimestamp() {
+        return this.deliveryTimestamp;
+    }
+
     @Override
     public XContentBuilder toXContent(XContentBuilder builder, Params params) throws IOException {
         builder.startObject();
-        builder.field(SOURCE, this.source);
-        builder.field(USER, this.user);
-        this.target.toXContent(builder, ToXContent.EMPTY_PARAMS);
-        this.action.toXContent(builder, ToXContent.EMPTY_PARAMS);
-        builder.field(DOCUMENT_ID, this.documentId);
-
+        this.agent.toXContent(builder, ToXContentObject.EMPTY_PARAMS);
+        this.command.toXContent(builder, ToXContentObject.EMPTY_PARAMS);
+        builder.field(TIMESTAMP, DATE_FORMATTER.format(this.timestamp));
+        builder.field(DELIVERY_TIMESTAMP, DATE_FORMATTER.format(this.deliveryTimestamp));
         return builder.endObject();
     }
 
     @Override
     public String toString() {
-        return "Order{"
-                + "action="
-                + action
-                + ", source='"
-                + source
-                + '\''
-                + ", target="
-                + target
-                + ", user='"
-                + user
-                + '\''
-                + ", document_id='"
-                + documentId
-                + '\''
+        return "Document{"
+                + "@timestamp="
+                + timestamp
+                + ", delivery_timestamp="
+                + deliveryTimestamp
+                + ", agent="
+                + agent
+                + ", command="
+                + command
                 + '}';
     }
 }
