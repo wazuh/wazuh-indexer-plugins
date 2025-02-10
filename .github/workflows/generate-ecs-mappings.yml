@@ -10,6 +10,8 @@ jobs:
   run-ecs-generator:
     if: github.repository == 'wazuh/wazuh-indexer-plugins'
     runs-on: ubuntu-24.04
+    env:
+      output_folder: /tmp/ecs-templates
 
     steps:
       - name: Checkout repository
@@ -39,10 +41,10 @@ jobs:
         run: |
           bash ecs/scripts/generate-pr-to-plugins.sh \
             -b ${{ steps.branch-name.outputs.branch }} \
-            -o ecs-templates
+            -o ${{env.output_folder }}
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
           name: ecs-templates
-          path: "ecs-templates"
+          path: ${{env.output_folder }}
