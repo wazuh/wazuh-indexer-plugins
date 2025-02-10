@@ -1,14 +1,11 @@
 {
   "index_patterns": [
-    "wazuh-states-inventory-hotfixes*"
+    "wazuh-states-fim*"
   ],
   "mappings": {
     "date_detection": false,
     "dynamic": "strict",
     "properties": {
-      "@timestamp": {
-        "type": "date"
-      },
       "agent": {
         "properties": {
           "groups": {
@@ -234,6 +231,98 @@
             "type": "keyword"
           }
         }
+      },
+      "file": {
+        "properties": {
+          "attributes": {
+            "ignore_above": 1024,
+            "type": "keyword"
+          },
+          "gid": {
+            "ignore_above": 1024,
+            "type": "keyword"
+          },
+          "group": {
+            "ignore_above": 1024,
+            "type": "keyword"
+          },
+          "hash": {
+            "properties": {
+              "md5": {
+                "ignore_above": 1024,
+                "type": "keyword"
+              },
+              "sha1": {
+                "ignore_above": 1024,
+                "type": "keyword"
+              },
+              "sha256": {
+                "ignore_above": 1024,
+                "type": "keyword"
+              }
+            }
+          },
+          "inode": {
+            "ignore_above": 1024,
+            "type": "keyword"
+          },
+          "mode": {
+            "ignore_above": 1024,
+            "type": "keyword"
+          },
+          "mtime": {
+            "type": "date"
+          },
+          "name": {
+            "ignore_above": 1024,
+            "type": "keyword"
+          },
+          "owner": {
+            "ignore_above": 1024,
+            "type": "keyword"
+          },
+          "path": {
+            "fields": {
+              "text": {
+                "type": "keyword"
+              }
+            },
+            "ignore_above": 1024,
+            "type": "keyword"
+          },
+          "size": {
+            "type": "long"
+          },
+          "target_path": {
+            "fields": {
+              "text": {
+                "type": "keyword"
+              }
+            },
+            "ignore_above": 1024,
+            "type": "keyword"
+          },
+          "type": {
+            "ignore_above": 1024,
+            "type": "keyword"
+          },
+          "uid": {
+            "ignore_above": 1024,
+            "type": "keyword"
+          }
+        }
+      },
+      "registry": {
+        "properties": {
+          "key": {
+            "ignore_above": 1024,
+            "type": "keyword"
+          },
+          "value": {
+            "ignore_above": 1024,
+            "type": "keyword"
+          }
+        }
       }
     }
   },
@@ -243,7 +332,14 @@
       "number_of_replicas": "0",
       "number_of_shards": "1",
       "query.default_field": [
-        "package.hotfix.name"
+        "agent.id",
+        "agent.groups",
+        "file.name",
+        "file.path",
+        "file.target_path",
+        "file.group",
+        "file.uid",
+        "file.gid"
       ],
       "refresh_interval": "5s"
     }
