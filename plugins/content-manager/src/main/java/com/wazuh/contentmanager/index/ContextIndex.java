@@ -34,6 +34,7 @@ import org.opensearch.core.xcontent.ToXContent;
 import org.opensearch.index.query.QueryBuilders;
 import org.opensearch.index.query.TermQueryBuilder;
 import org.opensearch.search.builder.SearchSourceBuilder;
+import org.opensearch.threadpool.ThreadPool;
 
 import java.io.IOException;
 import java.util.HashMap;
@@ -41,12 +42,10 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Future;
 
 import com.wazuh.contentmanager.ContentManagerPlugin;
 import com.wazuh.contentmanager.model.Consumer;
 import com.wazuh.contentmanager.model.Document;
-import org.opensearch.threadpool.ThreadPool;
 
 /** Class to manage the Context index. */
 public class ContextIndex {
@@ -90,26 +89,25 @@ public class ContextIndex {
         Consumer consumer = new Consumer(0, null, "", "");
         Document document = new Document(consumer);
         indexDocument(document);
-
     }
 
     public CompletableFuture<RestStatus> indexDocument(Document document) {
         final CompletableFuture<RestStatus> future = new CompletableFuture<>();
         final ExecutorService executor = this.threadPool.executor(ThreadPool.Names.WRITE);
 
-        executor.submit(() -> {
-            try (ThreadContext.StoredContext ignored =
-                         this.threadPool.getThreadContext().stashContext()) {
-                IndexRequest indexRequest = createIndexRequest(document);
-                final RestStatus restStatus = this.client.index(indexRequest).
-                        actionGet().
-                        status();
-                future.complete(restStatus);
-            } catch (Exception e) {
-                log.error("Error creating IndexRequest due to {}", e.getMessage());
-                future.completeExceptionally(e);
-            }
-        });
+        executor.submit(
+                () -> {
+                    try (ThreadContext.StoredContext ignored =
+                            this.threadPool.getThreadContext().stashContext()) {
+                        IndexRequest indexRequest = createIndexRequest(document);
+                        final RestStatus restStatus =
+                                this.client.index(indexRequest).actionGet().status();
+                        future.complete(restStatus);
+                    } catch (Exception e) {
+                        log.error("Error creating IndexRequest due to {}", e.getMessage());
+                        future.completeExceptionally(e);
+                    }
+                });
 
         return future;
     }
@@ -136,28 +134,31 @@ public class ContextIndex {
                 QueryBuilders.termQuery("_id", ContentManagerPlugin.CONTEXT_NAME);
         this.searchSourceBuilder.query(termQueryBuilder);
 
-        executor.submit(() -> {
-            try (ThreadContext.StoredContext ignored =
-                         this.threadPool.getThreadContext().stashContext()) {
-                SearchRequest searchRequest =
-                        createSearchRequest(this.searchSourceBuilder.trackTotalHits(true));
+        executor.submit(
+                () -> {
+                    try (ThreadContext.StoredContext ignored =
+                            this.threadPool.getThreadContext().stashContext()) {
+                        SearchRequest searchRequest =
+                                createSearchRequest(this.searchSourceBuilder.trackTotalHits(true));
 
-                final SearchResponse searchResponse = this.client.search(searchRequest).actionGet();
+                        final SearchResponse searchResponse =
+                                this.client.search(searchRequest).actionGet();
 
-                log.info("Result SEARCH: {}", searchResponse.toString());
+                        log.info("Result SEARCH: {}", searchResponse.toString());
 
-                final RestStatus restStatus = searchResponse.status();
+                        final RestStatus restStatus = searchResponse.status();
 
-                future.complete(restStatus);
+                        future.complete(restStatus);
 
-                log.info(
-                        "Found {} documents",
-                        Objects.requireNonNull(searchResponse.getHits().getTotalHits()).value);
-            } catch (Exception e) {
-                log.error("Error creating SearchRequest due to {}", e.getMessage());
-                future.completeExceptionally(e);
-            }
-        });
+                        log.info(
+                                "Found {} documents",
+                                Objects.requireNonNull(searchResponse.getHits().getTotalHits())
+                                        .value);
+                    } catch (Exception e) {
+                        log.error("Error creating SearchRequest due to {}", e.getMessage());
+                        future.completeExceptionally(e);
+                    }
+                });
 
         return future;
     }

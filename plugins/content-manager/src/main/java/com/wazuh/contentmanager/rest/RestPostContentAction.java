@@ -19,9 +19,7 @@ package com.wazuh.contentmanager.rest;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.opensearch.client.node.NodeClient;
-import org.opensearch.common.xcontent.XContentFactory;
 import org.opensearch.core.rest.RestStatus;
-import org.opensearch.core.xcontent.ToXContent;
 import org.opensearch.core.xcontent.XContentBuilder;
 import org.opensearch.core.xcontent.XContentParser;
 import org.opensearch.rest.BaseRestHandler;
@@ -72,7 +70,7 @@ public class RestPostContentAction extends BaseRestHandler {
             case POST:
                 return handlePost(restRequest);
             case GET:
-                 return handleGet(restRequest);
+                return handleGet(restRequest);
             default:
                 throw new IllegalArgumentException(
                         "Unsupported HTTP method " + restRequest.method().name());
@@ -151,9 +149,9 @@ public class RestPostContentAction extends BaseRestHandler {
         Document document = Document.parse(parser);
 
         // Send response
-        if(document == null) {
+        if (document == null) {
 
-        }else {
+        } else {
             return channel -> {
                 this.contextIndex
                         .get(ContentManagerPlugin.CONTEXT_NAME)
@@ -179,12 +177,12 @@ public class RestPostContentAction extends BaseRestHandler {
                                 e -> {
                                     channel.sendResponse(
                                             new BytesRestResponse(
-                                                    RestStatus.INTERNAL_SERVER_ERROR, e.getMessage()));
+                                                    RestStatus.INTERNAL_SERVER_ERROR,
+                                                    e.getMessage()));
                                     return null;
                                 });
             };
         }
         return null;
     }
-
 }
