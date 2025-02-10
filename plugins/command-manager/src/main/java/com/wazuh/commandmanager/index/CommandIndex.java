@@ -98,13 +98,10 @@ public class CommandIndex implements IndexingOperationListener {
                             this.threadPool.getThreadContext().stashContext()) {
                         final String indexTemplateName = PluginSettings.getIndexTemplate();
                         // Create index template if it does not exist.
-                        if (IndexTemplateUtils.isMissingIndexTemplate(
-                                this.clusterService, indexTemplateName)) {
+                        if (IndexTemplateUtils.isMissingIndexTemplate(this.clusterService, indexTemplateName)) {
                             IndexTemplateUtils.putIndexTemplate(this.client, indexTemplateName);
                         } else {
-                            log.info(
-                                    "Index template {} already exists. Skipping creation.",
-                                    indexTemplateName);
+                            log.info("Index template {} already exists. Skipping creation.", indexTemplateName);
                         }
 
                         final RestStatus restStatus = client.bulk(bulkRequest).actionGet().status();

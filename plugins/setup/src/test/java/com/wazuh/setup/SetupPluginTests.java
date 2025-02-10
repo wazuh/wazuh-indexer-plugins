@@ -80,8 +80,7 @@ public class SetupPluginTests extends OpenSearchTestCase {
 
         doAnswer(
                         invocation -> {
-                            ActionListener<AcknowledgedResponse> listener =
-                                    invocation.getArgument(1);
+                            ActionListener<AcknowledgedResponse> listener = invocation.getArgument(1);
                             listener.onResponse(new AcknowledgedResponse(true));
                             return null;
                         })
@@ -96,8 +95,7 @@ public class SetupPluginTests extends OpenSearchTestCase {
 
         doAnswer(
                         invocation -> {
-                            ActionListener<AcknowledgedResponse> listener =
-                                    invocation.getArgument(1);
+                            ActionListener<AcknowledgedResponse> listener = invocation.getArgument(1);
                             listener.onFailure(new Exception("Mock exception on putTemplate"));
                             return null;
                         })
@@ -121,8 +119,7 @@ public class SetupPluginTests extends OpenSearchTestCase {
 
         doAnswer(
                         invocation -> {
-                            ActionListener<CreateIndexResponse> listener =
-                                    invocation.getArgument(1);
+                            ActionListener<CreateIndexResponse> listener = invocation.getArgument(1);
                             listener.onResponse(new CreateIndexResponse(true, true, INDEX_NAME));
                             return null;
                         })
@@ -151,8 +148,7 @@ public class SetupPluginTests extends OpenSearchTestCase {
 
         doAnswer(
                         invocation -> {
-                            ActionListener<CreateIndexResponse> listener =
-                                    invocation.getArgument(1);
+                            ActionListener<CreateIndexResponse> listener = invocation.getArgument(1);
                             listener.onFailure(new Exception("Mock Exception"));
                             return null;
                         })

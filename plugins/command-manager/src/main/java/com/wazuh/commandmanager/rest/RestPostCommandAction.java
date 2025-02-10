@@ -60,9 +60,7 @@ public class RestPostCommandAction extends BaseRestHandler {
     @Override
     public List<Route> routes() {
         return List.of(
-                new Route(
-                        POST,
-                        String.format(Locale.ROOT, "%s", PluginSettings.getApiCommandsEndpoint())));
+                new Route(POST, String.format(Locale.ROOT, "%s", PluginSettings.getApiCommandsEndpoint())));
     }
 
     @Override
@@ -72,8 +70,7 @@ public class RestPostCommandAction extends BaseRestHandler {
             case POST:
                 return handlePost(request, client);
             default:
-                throw new IllegalArgumentException(
-                        "Unsupported HTTP method " + request.method().name());
+                throw new IllegalArgumentException("Unsupported HTTP method " + request.method().name());
         }
     }
 
@@ -142,8 +139,7 @@ public class RestPostCommandAction extends BaseRestHandler {
                                     orders.toXContent(builder, ToXContent.EMPTY_PARAMS);
                                     builder.field("result", restStatus.name());
                                     builder.endObject();
-                                    channel.sendResponse(
-                                            new BytesRestResponse(restStatus, builder));
+                                    channel.sendResponse(new BytesRestResponse(restStatus, builder));
                                 } catch (IOException e) {
                                     log.error(
                                             "Error preparing response to [{}] request with id [{}] due to {}",
@@ -155,8 +151,7 @@ public class RestPostCommandAction extends BaseRestHandler {
                     .exceptionally(
                             e -> {
                                 channel.sendResponse(
-                                        new BytesRestResponse(
-                                                RestStatus.INTERNAL_SERVER_ERROR, e.getMessage()));
+                                        new BytesRestResponse(RestStatus.INTERNAL_SERVER_ERROR, e.getMessage()));
                                 return null;
                             });
         };

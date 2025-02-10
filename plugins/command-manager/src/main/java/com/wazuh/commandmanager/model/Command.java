@@ -95,8 +95,7 @@ public class Command implements ToXContentObject {
      * @throws IOException error parsing request content
      * @throws IllegalArgumentException missing arguments
      */
-    public static Command parse(XContentParser parser)
-            throws IOException, IllegalArgumentException {
+    public static Command parse(XContentParser parser) throws IOException, IllegalArgumentException {
         String source = null;
         Target target = null;
         Integer timeout = null;
