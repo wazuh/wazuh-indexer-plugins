@@ -59,7 +59,11 @@ public class RestPostContentAction extends BaseRestHandler {
     public List<Route> routes() {
         return List.of(
                 new Route(POST, String.format(Locale.ROOT, "%s", ContentManagerPlugin.CONTEXT_URI)),
-                new Route(GET, String.format(Locale.ROOT, "%s", ContentManagerPlugin.CONTEXT_URI)));
+                new Route(GET, String.format(Locale.ROOT, "%s", ContentManagerPlugin.CONTEXT_URI)),
+                new Route(
+                        GET,
+                        String.format(Locale.ROOT, "%s", ContentManagerPlugin.CONTEXT_URI)
+                                + "/{id}"));
     }
 
     @Override
@@ -100,7 +104,8 @@ public class RestPostContentAction extends BaseRestHandler {
         // Send response
         return channel -> {
             this.contextIndex
-                    .indexDocument(document)
+                    // another id to test
+                    .indexDocument(document, "vd_2.0.0")
                     .thenAccept(
                             (RestStatus restStatus) -> {
                                 try (XContentBuilder builder = channel.newBuilder()) {
@@ -131,11 +136,10 @@ public class RestPostContentAction extends BaseRestHandler {
     /**
      * Handles a POST HTTP request.
      *
-     * @param request POST HTTP request
      * @return a response to the request as BytesRestResponse.
      * @throws IOException thrown by the XContentParser methods.
      */
-    private RestChannelConsumer handleGet(RestRequest request) throws IOException {
+    private RestChannelConsumer handleGet(final RestRequest request) throws IOException {
         log.info(
                 "Received {} {} request id [{}] from host [{}]",
                 request.method().name(),
@@ -143,18 +147,42 @@ public class RestPostContentAction extends BaseRestHandler {
                 request.getRequestId(),
                 request.header("Host"));
         // Get request details
-        XContentParser parser = request.contentParser();
-        ensureExpectedToken(XContentParser.Token.START_OBJECT, parser.nextToken(), parser);
-
-        Document document = Document.parse(parser);
+        String id = request.param("id");
 
         // Send response
-        if (document == null) {
-
-        } else {
+        if (id == null) {
             return channel -> {
                 this.contextIndex
-                        .get(ContentManagerPlugin.CONTEXT_NAME)
+                        .getAll()
+                        .thenAccept(
+                                restStatus -> {
+                                    try (XContentBuilder builder = channel.newBuilder()) {
+                                        builder.startObject();
+                                        builder.field("_index", ContextIndex.INDEX_NAME);
+                                        builder.field("result", restStatus.name());
+                                        builder.endObject();
+                                        channel.sendResponse(
+                                                new BytesRestResponse(restStatus, builder));
+                                    } catch (IOException e) {
+                                        log.error(
+                                                "Error preparing response due to {}",
+                                                e.getMessage());
+                                    }
+                                })
+                        .exceptionally(
+                                e -> {
+                                    channel.sendResponse(
+                                            new BytesRestResponse(
+                                                    RestStatus.INTERNAL_SERVER_ERROR,
+                                                    e.getMessage()));
+                                    return null;
+                                });
+            };
+        } else {
+            String finalId = id;
+            return channel -> {
+                this.contextIndex
+                        .get(finalId)
                         .thenAccept(
                                 restStatus -> {
                                     try (XContentBuilder builder = channel.newBuilder()) {
@@ -167,9 +195,7 @@ public class RestPostContentAction extends BaseRestHandler {
                                                 new BytesRestResponse(restStatus, builder));
                                     } catch (IOException e) {
                                         log.error(
-                                                "Error preparing response to [{}] request with id [{}] due to {}",
-                                                request.method().name(),
-                                                request.getRequestId(),
+                                                "Error preparing response due to {}",
                                                 e.getMessage());
                                     }
                                 })
@@ -183,6 +209,5 @@ public class RestPostContentAction extends BaseRestHandler {
                                 });
             };
         }
-        return null;
     }
 }

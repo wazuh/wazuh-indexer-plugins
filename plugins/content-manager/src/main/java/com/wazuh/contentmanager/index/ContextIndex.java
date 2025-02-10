@@ -88,10 +88,10 @@ public class ContextIndex {
         // Initialize the metadata of context
         Consumer consumer = new Consumer(0, null, "", "");
         Document document = new Document(consumer);
-        indexDocument(document);
+        indexDocument(document, ContentManagerPlugin.CONTEXT_NAME);
     }
 
-    public CompletableFuture<RestStatus> indexDocument(Document document) {
+    public CompletableFuture<RestStatus> indexDocument(Document document, String id) {
         final CompletableFuture<RestStatus> future = new CompletableFuture<>();
         final ExecutorService executor = this.threadPool.executor(ThreadPool.Names.WRITE);
 
@@ -99,7 +99,7 @@ public class ContextIndex {
                 () -> {
                     try (ThreadContext.StoredContext ignored =
                             this.threadPool.getThreadContext().stashContext()) {
-                        IndexRequest indexRequest = createIndexRequest(document);
+                        IndexRequest indexRequest = createIndexRequest(document, id);
                         final RestStatus restStatus =
                                 this.client.index(indexRequest).actionGet().status();
                         future.complete(restStatus);
@@ -119,19 +119,18 @@ public class ContextIndex {
      * @return an IndexRequest object
      * @throws IOException thrown by XContentFactory.jsonBuilder()
      */
-    private IndexRequest createIndexRequest(Document document) throws IOException {
+    private IndexRequest createIndexRequest(Document document, String id) throws IOException {
         return new IndexRequest()
                 .index(INDEX_NAME)
                 .source(document.toXContent(XContentFactory.jsonBuilder(), ToXContent.EMPTY_PARAMS))
-                .id(ContentManagerPlugin.CONTEXT_NAME)
+                .id(id)
                 .create(true);
     }
 
     public CompletableFuture<RestStatus> get(String contextName) {
         final CompletableFuture<RestStatus> future = new CompletableFuture<>();
         final ExecutorService executor = this.threadPool.executor(ThreadPool.Names.WRITE);
-        final TermQueryBuilder termQueryBuilder =
-                QueryBuilders.termQuery("_id", ContentManagerPlugin.CONTEXT_NAME);
+        final TermQueryBuilder termQueryBuilder = QueryBuilders.termQuery("_id", contextName);
         this.searchSourceBuilder.query(termQueryBuilder);
 
         executor.submit(
@@ -163,18 +162,38 @@ public class ContextIndex {
         return future;
     }
 
-    public SearchResponse getAll() {
-        final SearchRequest searchRequest = new SearchRequest(INDEX_NAME);
+    public CompletableFuture<RestStatus> getAll() {
+        final CompletableFuture<RestStatus> future = new CompletableFuture<>();
+        final ExecutorService executor = this.threadPool.executor(ThreadPool.Names.WRITE);
 
-        this.searchSourceBuilder.trackTotalHits(true);
+        executor.submit(
+                () -> {
+                    try (ThreadContext.StoredContext ignored =
+                            this.threadPool.getThreadContext().stashContext()) {
+                        searchSourceBuilder.query(null);
+                        SearchRequest searchRequest =
+                                createSearchRequest(this.searchSourceBuilder.trackTotalHits(true));
 
-        searchRequest.source(this.searchSourceBuilder);
-        SearchResponse searchResponse = this.client.search(searchRequest).actionGet();
-        log.info("Result SEARCH: {}", searchResponse.toString());
-        log.info(
-                "Found {} documents",
-                Objects.requireNonNull(searchResponse.getHits().getTotalHits()).value);
-        return searchResponse;
+                        final SearchResponse searchResponse =
+                                this.client.search(searchRequest).actionGet();
+
+                        log.info("Result SEARCH ALL: {}", searchResponse.toString());
+
+                        final RestStatus restStatus = searchResponse.status();
+
+                        future.complete(restStatus);
+
+                        log.info(
+                                "Found {} documents",
+                                Objects.requireNonNull(searchResponse.getHits().getTotalHits())
+                                        .value);
+                    } catch (Exception e) {
+                        log.error("Error creating SearchRequest due to {}", e.getMessage());
+                        future.completeExceptionally(e);
+                    }
+                });
+
+        return future;
     }
 
     private SearchRequest createSearchRequest(SearchSourceBuilder searchSourceBuilder) {
@@ -201,6 +220,11 @@ public class ContextIndex {
         return updateRequest;
     }
 
+    /**
+     * Checks if the wazuh-content index exists.
+     *
+     * @return whether the internal Command Manager's index exists.
+     */
     public boolean indexExists() {
         return this.clusterService.state().routingTable().hasIndex(INDEX_NAME);
     }
