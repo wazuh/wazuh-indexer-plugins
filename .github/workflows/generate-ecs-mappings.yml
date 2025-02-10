@@ -39,7 +39,7 @@ jobs:
           SSH_PRIVATE_KEY: ${{ secrets.INDEXER_BOT_PRIVATE_SSH_KEY }}
           SSH_PUBLIC_KEY: ${{ secrets.INDEXER_BOT_PUBLIC_SSH_KEY }}
         run: |
-          bash ecs/scripts/generate-pr-to-plugins.sh \
+          bash ecs/scripts/generate-and-push-templates.sh \
             -b ${{ steps.branch-name.outputs.branch }} \
             -o ${{env.output_folder }}
 
