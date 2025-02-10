@@ -5,6 +5,8 @@
 [![Chat](https://img.shields.io/badge/chat-on%20forums-blue)](https://groups.google.com/forum/#!forum/wazuh)
 [![Slack](https://img.shields.io/badge/slack-join-blue.svg)](https://wazuh.com/community/join-us-on-slack)
 [![Documentation](https://img.shields.io/badge/documentation-reference-blue)](https://documentation.wazuh.com)
+[![ECS Generator](https://github.com/wazuh/wazuh-indexer-plugins/actions/workflows/generate-ecs-mappings.yml/badge.svg)](https://github.com/wazuh/wazuh-indexer-plugins/actions/workflows/generate-ecs-mappings.yml)
+
 
 - [Welcome!](#welcome)
 - [Project Resources](#project-resources)
