@@ -191,7 +191,7 @@ EOF
     gh auth login --with-token < token.txt
 
     if [ -z "$existing_pr" ]; then
-        output=$(gh pr create --title "$title" --body "$body" --base master --head "$BRANCH_NAME")
+        output=$(gh pr create --title "$title" --body "$body" --base main --head "$BRANCH_NAME")
         pr_url=$(echo "$output" | grep -oP 'https://github.com/\S+')
         export PR_URL="$pr_url"
         echo "New pull request created: $PR_URL"
