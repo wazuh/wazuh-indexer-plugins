@@ -153,60 +153,60 @@ public class RestPostContentAction extends BaseRestHandler {
         if (id == null) {
             return channel -> {
                 this.contextIndex
-                        .getAll()
-                        .thenAccept(
-                                restStatus -> {
-                                    try (XContentBuilder builder = channel.newBuilder()) {
-                                        builder.startObject();
-                                        builder.field("_index", ContextIndex.INDEX_NAME);
-                                        builder.field("result", restStatus.name());
-                                        builder.endObject();
-                                        channel.sendResponse(
-                                                new BytesRestResponse(restStatus, builder));
-                                    } catch (IOException e) {
-                                        log.error(
-                                                "Error preparing response due to {}",
-                                                e.getMessage());
-                                    }
-                                })
-                        .exceptionally(
-                                e -> {
-                                    channel.sendResponse(
-                                            new BytesRestResponse(
-                                                    RestStatus.INTERNAL_SERVER_ERROR,
-                                                    e.getMessage()));
-                                    return null;
-                                });
+                    .getAll()
+                    .thenAccept(
+                        restStatus -> {
+                            try (XContentBuilder builder = channel.newBuilder()) {
+                                builder.startObject();
+                                builder.field("_index", ContextIndex.INDEX_NAME);
+                                builder.field("result", restStatus.name());
+                                builder.endObject();
+                                channel.sendResponse(
+                                        new BytesRestResponse(restStatus, builder));
+                            } catch (IOException e) {
+                                log.error(
+                                        "Error preparing response due to {}",
+                                        e.getMessage());
+                            }
+                        })
+                    .exceptionally(
+                        e -> {
+                            channel.sendResponse(
+                                    new BytesRestResponse(
+                                            RestStatus.INTERNAL_SERVER_ERROR,
+                                            e.getMessage()));
+                            return null;
+                        });
             };
         } else {
             String finalId = id;
             return channel -> {
                 this.contextIndex
-                        .get(finalId)
-                        .thenAccept(
-                                restStatus -> {
-                                    try (XContentBuilder builder = channel.newBuilder()) {
-                                        builder.startObject();
-                                        builder.field("_index", ContextIndex.INDEX_NAME);
+                    .get(finalId)
+                    .thenAccept(
+                        restStatus -> {
+                            try (XContentBuilder builder = channel.newBuilder()) {
+                                builder.startObject();
+                                builder.field("_index", ContextIndex.INDEX_NAME);
 
-                                        builder.field("result", restStatus.name());
-                                        builder.endObject();
-                                        channel.sendResponse(
-                                                new BytesRestResponse(restStatus, builder));
-                                    } catch (IOException e) {
-                                        log.error(
-                                                "Error preparing response due to {}",
-                                                e.getMessage());
-                                    }
-                                })
+                                builder.field("result", restStatus.name());
+                                builder.endObject();
+                                channel.sendResponse(
+                                        new BytesRestResponse(restStatus, builder));
+                            } catch (IOException e) {
+                                log.error(
+                                        "Error preparing response due to {}",
+                                        e.getMessage());
+                            }
+                        })
                         .exceptionally(
-                                e -> {
-                                    channel.sendResponse(
-                                            new BytesRestResponse(
-                                                    RestStatus.INTERNAL_SERVER_ERROR,
-                                                    e.getMessage()));
-                                    return null;
-                                });
+                        e -> {
+                            channel.sendResponse(
+                                    new BytesRestResponse(
+                                            RestStatus.INTERNAL_SERVER_ERROR,
+                                            e.getMessage()));
+                            return null;
+                        });
             };
         }
     }

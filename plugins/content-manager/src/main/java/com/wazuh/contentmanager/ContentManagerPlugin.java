@@ -98,6 +98,7 @@ public class ContentManagerPlugin extends Plugin implements ClusterPlugin, Actio
     @Override
     public void onNodeStarted(DiscoveryNode localNode) {
         this.contextIndex.createIndex();
+        this.contentIndex.createIndex();
     }
 
     /**

@@ -44,6 +44,7 @@ public class ContentIndex implements IndexingOperationListener {
     private final Client client;
     private final ClusterService clusterService;
     private final ThreadPool threadPool;
+
     private final SearchSourceBuilder searchSourceBuilder = new SearchSourceBuilder();
 
     /**
@@ -78,7 +79,9 @@ public class ContentIndex implements IndexingOperationListener {
      * @return whether the internal Command Manager's index exists.
      */
     public boolean indexExists() {
-        return this.clusterService.state().routingTable().hasIndex(INDEX_NAME);
+        boolean isExists = this.clusterService.state().metadata().hasIndex(INDEX_NAME);
+        log.info("Index exists: {}", isExists);
+        return isExists;
     }
 
     /**
@@ -90,11 +93,14 @@ public class ContentIndex implements IndexingOperationListener {
         final CompletableFuture<RestStatus> future = new CompletableFuture<>();
         final ExecutorService executor = this.threadPool.executor(ThreadPool.Names.WRITE);
 
+        log.info("Indexing document {}", document.getid());
         executor.submit(
                 () -> {
                     try (ThreadContext.StoredContext ignored =
                             this.threadPool.getThreadContext().stashContext()) {
+                        log.info("Previously create IndexRequest");
                         IndexRequest indexRequest = createIndexRequest(document);
+                        log.info("Previously indexing document {}", document.getid());
                         final RestStatus restStatus =
                                 this.client.index(indexRequest).actionGet().status();
                         future.complete(restStatus);
@@ -103,6 +109,7 @@ public class ContentIndex implements IndexingOperationListener {
                         future.completeExceptionally(e);
                     }
                 });
+        executor.shutdown();
         return future;
     }
 
@@ -114,11 +121,14 @@ public class ContentIndex implements IndexingOperationListener {
      * @throws IOException thrown by XContentFactory.jsonBuilder()
      */
     private IndexRequest createIndexRequest(GenericDocument document) throws IOException {
-        return new IndexRequest()
+        log.info("Index request id {} source {}", document.getid(), document.getSource());
+        IndexRequest request = new IndexRequest()
                 .index(INDEX_NAME)
                 .source(document.getSource())
                 .id(document.getid())
                 .create(true);
+        log.info("Index request created {}", request);
+        return request;
     }
 
     /**

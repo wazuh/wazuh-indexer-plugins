@@ -69,7 +69,7 @@ public class RestPostContentManager extends BaseRestHandler {
     @Override
     protected RestChannelConsumer prepareRequest(RestRequest restRequest, NodeClient nodeClient)
             throws IOException {
-        log.info("prepareRequest() executed");
+        log.info("prepareRequest in RestPostContentManager executed");
         switch (restRequest.method()) {
             case POST:
                 return handlePost(restRequest);
@@ -87,6 +87,8 @@ public class RestPostContentManager extends BaseRestHandler {
      * @throws IOException thrown by the XContentParser methods.
      */
     private RestChannelConsumer handlePost(RestRequest request) throws IOException {
+        log.info("handlePost in RestPostContentManager executed");
+
         if (!this.contentIndex.indexExists()) {
             this.contentIndex.createIndex();
         }
@@ -103,6 +105,7 @@ public class RestPostContentManager extends BaseRestHandler {
 
         GenericDocument genericDocument = GenericDocument.parse(parser);
 
+        log.info("Post creation of generic document");
         // Send response
         return channel -> {
             this.contentIndex

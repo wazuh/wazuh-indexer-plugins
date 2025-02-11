@@ -16,6 +16,9 @@
  */
 package com.wazuh.contentmanager.model;
 
+import com.wazuh.contentmanager.rest.RestPostContentManager;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.opensearch.core.xcontent.ToXContentObject;
 import org.opensearch.core.xcontent.XContentBuilder;
 import org.opensearch.core.xcontent.XContentParser;
@@ -27,6 +30,8 @@ import java.util.List;
 import java.util.Map;
 
 public class GenericDocument implements ToXContentObject {
+    private static final Logger log = LogManager.getLogger(GenericDocument.class);
+
     public static final String SOURCE = "_source";
 
     private String id;
@@ -112,6 +117,7 @@ public class GenericDocument implements ToXContentObject {
                     break;
             }
         }
+        log.info("Final of parse genericDocument id: {}, source: {}", id, source);
         return new GenericDocument(id, source);
     }
 
