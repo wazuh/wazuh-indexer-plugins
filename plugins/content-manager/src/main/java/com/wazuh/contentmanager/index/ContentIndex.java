@@ -25,17 +25,12 @@ import org.opensearch.action.index.IndexRequest;
 import org.opensearch.client.Client;
 import org.opensearch.cluster.service.ClusterService;
 import org.opensearch.common.util.concurrent.ThreadContext;
-import org.opensearch.common.xcontent.XContentFactory;
 import org.opensearch.core.rest.RestStatus;
-import org.opensearch.core.xcontent.ToXContent;
-import org.opensearch.core.xcontent.XContentBuilder;
 import org.opensearch.index.shard.IndexingOperationListener;
 import org.opensearch.search.builder.SearchSourceBuilder;
 import org.opensearch.threadpool.ThreadPool;
 
 import java.io.IOException;
-import java.util.HashMap;
-import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
 
@@ -91,32 +86,15 @@ public class ContentIndex implements IndexingOperationListener {
      *
      * @param document the XContentBuilder document to index in wazuh-content-manager
      */
-    public CompletableFuture<RestStatus> indexDocument(JsonObject document) {
+    public CompletableFuture<RestStatus> indexDocument(GenericDocument document) {
         final CompletableFuture<RestStatus> future = new CompletableFuture<>();
         final ExecutorService executor = this.threadPool.executor(ThreadPool.Names.WRITE);
 
-        Map<String, Object> map = new HashMap<>();
-        for (String key : document.keySet()) {
-            map.put(key, document.get(key).getAsString());
-        }
-
-        final String id = document.get("id").getAsString();
-        GenericDocument genericDocument = new GenericDocument(id, map);
-        XContentBuilder documentBuilder = null;
-        try {
-            documentBuilder =
-                    genericDocument.toXContent(
-                            XContentFactory.jsonBuilder(), ToXContent.EMPTY_PARAMS);
-        } catch (IOException e) {
-            log.error("Error creating IndexRequest due to {}", e.getMessage());
-        }
-
-        final XContentBuilder finaldocumentBuilder = documentBuilder;
         executor.submit(
                 () -> {
                     try (ThreadContext.StoredContext ignored =
                             this.threadPool.getThreadContext().stashContext()) {
-                        IndexRequest indexRequest = createIndexRequest(id, finaldocumentBuilder);
+                        IndexRequest indexRequest = createIndexRequest(document);
                         final RestStatus restStatus =
                                 this.client.index(indexRequest).actionGet().status();
                         future.complete(restStatus);
@@ -135,9 +113,12 @@ public class ContentIndex implements IndexingOperationListener {
      * @return an IndexRequest object
      * @throws IOException thrown by XContentFactory.jsonBuilder()
      */
-    private IndexRequest createIndexRequest(String id, XContentBuilder document)
-            throws IOException {
-        return new IndexRequest().index(INDEX_NAME).source(document).id(id).create(true);
+    private IndexRequest createIndexRequest(GenericDocument document) throws IOException {
+        return new IndexRequest()
+                .index(INDEX_NAME)
+                .source(document.getSource())
+                .id(document.getid())
+                .create(true);
     }
 
     /**

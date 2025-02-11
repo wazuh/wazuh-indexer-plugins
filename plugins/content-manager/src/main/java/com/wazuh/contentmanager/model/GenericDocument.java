@@ -18,8 +18,12 @@ package com.wazuh.contentmanager.model;
 
 import org.opensearch.core.xcontent.ToXContentObject;
 import org.opensearch.core.xcontent.XContentBuilder;
+import org.opensearch.core.xcontent.XContentParser;
 
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 public class GenericDocument implements ToXContentObject {
@@ -31,6 +35,84 @@ public class GenericDocument implements ToXContentObject {
     public GenericDocument(String id, Map<String, Object> source) {
         this.id = id;
         this.source = source;
+    }
+
+    /**
+     * Required for the parsing of nested objects.
+     *
+     * @return internal args map.
+     */
+    public Map<String, Object> getSource() {
+        return this.source;
+    }
+
+    public String getid() {
+        return this.id;
+    }
+
+    /**
+     * Generic command.action.args parser.
+     *
+     * @param parser An XContentParser containing an args to be deserialized
+     * @return An Args object
+     * @throws IOException Rethrows the exception from list() and objectText() method
+     */
+    public static GenericDocument parse(XContentParser parser) throws IOException {
+        Map<String, Object> source = new HashMap<>();
+        String id = null;
+
+        String fieldName = "";
+        List<Object> list = null;
+        boolean isList = false;
+
+        while (parser.nextToken() != XContentParser.Token.END_OBJECT) {
+            XContentParser.Token actualToken = parser.currentToken();
+            switch (actualToken) {
+                case FIELD_NAME:
+                    fieldName = parser.currentName();
+                    break;
+                case START_ARRAY:
+                    list = new ArrayList<>();
+                    isList = true;
+                    break;
+                case VALUE_STRING:
+                    if (isList) {
+                        list.add(parser.objectText());
+                    } else {
+                        if (fieldName.equals("id")) {
+                            id = parser.objectText().toString();
+                        } else {
+                            source.put(fieldName, parser.objectText());
+                        }
+                    }
+                    break;
+                case VALUE_NUMBER:
+                    if (isList) {
+                        list.add(parser.numberValue());
+                    } else {
+                        source.put(fieldName, parser.numberValue());
+                    }
+                    break;
+                case VALUE_NULL:
+                    if (isList) {
+                        list.add("");
+                    } else {
+                        source.put(fieldName, "");
+                    }
+                    break;
+                case END_ARRAY:
+                    source.put(fieldName, list);
+                    list = null;
+                    isList = false;
+                    break;
+                case START_OBJECT:
+                    source.put(fieldName, GenericDocument.parse(parser));
+                    break;
+                default:
+                    break;
+            }
+        }
+        return new GenericDocument(id, source);
     }
 
     /**

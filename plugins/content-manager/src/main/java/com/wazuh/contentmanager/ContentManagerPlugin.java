@@ -43,13 +43,13 @@ import org.opensearch.watcher.ResourceWatcherService;
 
 import java.io.IOException;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.List;
 import java.util.function.Supplier;
 
 import com.wazuh.contentmanager.index.ContentIndex;
 import com.wazuh.contentmanager.index.ContextIndex;
 import com.wazuh.contentmanager.rest.RestPostContentAction;
+import com.wazuh.contentmanager.rest.RestPostContentManager;
 
 public class ContentManagerPlugin extends Plugin implements ClusterPlugin, ActionPlugin {
     private static final Logger log = LogManager.getLogger(ContentManagerPlugin.class);
@@ -75,7 +75,7 @@ public class ContentManagerPlugin extends Plugin implements ClusterPlugin, Actio
             NamedWriteableRegistry namedWriteableRegistry,
             IndexNameExpressionResolver indexNameExpressionResolver,
             Supplier<RepositoriesService> repositoriesServiceSupplier) {
-        this.contentIndex = new ContentIndex(client, clusterService);
+        this.contentIndex = new ContentIndex(client, clusterService, threadPool);
         this.contextIndex = new ContextIndex(client, clusterService, threadPool);
 
         return List.of(contentIndex, contextIndex);
@@ -90,7 +90,9 @@ public class ContentManagerPlugin extends Plugin implements ClusterPlugin, Actio
             IndexNameExpressionResolver indexNameExpressionResolver,
             Supplier<DiscoveryNodes> nodesInCluster) {
         // Just for testing purposes
-        return Collections.singletonList(new RestPostContentAction(this.contextIndex));
+        return List.of(
+                new RestPostContentAction(this.contextIndex),
+                new RestPostContentManager(this.contentIndex));
     }
 
     @Override
