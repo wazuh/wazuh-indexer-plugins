@@ -57,8 +57,6 @@ public class ContentManagerPlugin extends Plugin implements ClusterPlugin, Actio
     public static final String CONTENT_MANAGER_BASE_URI = "/_plugins/_content_manager";
     public static final String CONTEXT_URI = CONTENT_MANAGER_BASE_URI + "/wazuh-content";
 
-    public static final String CONTEXT_NAME = "vd_1.0.0";
-
     private ContextIndex contextIndex;
     private ContentIndex contentIndex;
 

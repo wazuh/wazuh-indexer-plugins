@@ -16,7 +16,6 @@
  */
 package com.wazuh.contentmanager.model;
 
-import com.wazuh.contentmanager.rest.RestPostContentManager;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.opensearch.core.xcontent.ToXContentObject;
@@ -131,11 +130,13 @@ public class GenericDocument implements ToXContentObject {
      */
     @Override
     public XContentBuilder toXContent(XContentBuilder builder, Params params) throws IOException {
+        builder.startObject();
         builder.field("id", this.id);
         builder.startObject(GenericDocument.SOURCE);
         for (String key : this.source.keySet()) {
             builder.field(key, this.source.get(key));
         }
+        builder.endObject();
         return builder.endObject();
     }
 }

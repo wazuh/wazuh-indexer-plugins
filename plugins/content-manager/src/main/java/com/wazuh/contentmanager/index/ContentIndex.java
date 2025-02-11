@@ -25,7 +25,9 @@ import org.opensearch.action.index.IndexRequest;
 import org.opensearch.client.Client;
 import org.opensearch.cluster.service.ClusterService;
 import org.opensearch.common.util.concurrent.ThreadContext;
+import org.opensearch.common.xcontent.XContentFactory;
 import org.opensearch.core.rest.RestStatus;
+import org.opensearch.core.xcontent.ToXContent;
 import org.opensearch.index.shard.IndexingOperationListener;
 import org.opensearch.search.builder.SearchSourceBuilder;
 import org.opensearch.threadpool.ThreadPool;
@@ -93,23 +95,21 @@ public class ContentIndex implements IndexingOperationListener {
         final CompletableFuture<RestStatus> future = new CompletableFuture<>();
         final ExecutorService executor = this.threadPool.executor(ThreadPool.Names.WRITE);
 
-        log.info("Indexing document {}", document.getid());
         executor.submit(
                 () -> {
                     try (ThreadContext.StoredContext ignored =
                             this.threadPool.getThreadContext().stashContext()) {
-                        log.info("Previously create IndexRequest");
                         IndexRequest indexRequest = createIndexRequest(document);
                         log.info("Previously indexing document {}", document.getid());
                         final RestStatus restStatus =
                                 this.client.index(indexRequest).actionGet().status();
+                        log.info("POST indexing document {}", document.getid());
                         future.complete(restStatus);
                     } catch (IOException e) {
                         log.error("Error creating IndexRequest due to {}", e.getMessage());
                         future.completeExceptionally(e);
                     }
                 });
-        executor.shutdown();
         return future;
     }
 
@@ -121,14 +121,11 @@ public class ContentIndex implements IndexingOperationListener {
      * @throws IOException thrown by XContentFactory.jsonBuilder()
      */
     private IndexRequest createIndexRequest(GenericDocument document) throws IOException {
-        log.info("Index request id {} source {}", document.getid(), document.getSource());
-        IndexRequest request = new IndexRequest()
+        return new IndexRequest()
                 .index(INDEX_NAME)
-                .source(document.getSource())
+                .source(document.toXContent(XContentFactory.jsonBuilder(), ToXContent.EMPTY_PARAMS))
                 .id(document.getid())
                 .create(true);
-        log.info("Index request created {}", request);
-        return request;
     }
 
     /**

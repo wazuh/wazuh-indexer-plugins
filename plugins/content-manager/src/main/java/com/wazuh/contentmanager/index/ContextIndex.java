@@ -43,7 +43,6 @@ import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
 
-import com.wazuh.contentmanager.ContentManagerPlugin;
 import com.wazuh.contentmanager.model.Consumer;
 import com.wazuh.contentmanager.model.Document;
 
@@ -52,6 +51,7 @@ public class ContextIndex {
     private static final Logger log = LogManager.getLogger(ContextIndex.class);
 
     public static final String INDEX_NAME = "wazuh-content";
+    public static final String CONTEXT_NAME = "vd_1.0.0";
 
     private final Client client;
     private final ClusterService clusterService;
@@ -88,9 +88,16 @@ public class ContextIndex {
         // Initialize the metadata of context
         Consumer consumer = new Consumer(0, null, "", "");
         Document document = new Document(consumer);
-        indexDocument(document, ContentManagerPlugin.CONTEXT_NAME);
+        indexDocument(document, CONTEXT_NAME);
     }
 
+    /**
+     * Index a Document object.
+     *
+     * @param document to index
+     * @param id of document
+     * @return CompletableFuture<RestStatus>
+     */
     public CompletableFuture<RestStatus> indexDocument(Document document, String id) {
         final CompletableFuture<RestStatus> future = new CompletableFuture<>();
         final ExecutorService executor = this.threadPool.executor(ThreadPool.Names.WRITE);
@@ -127,6 +134,12 @@ public class ContextIndex {
                 .create(true);
     }
 
+    /**
+     * Get a document from the index.
+     *
+     * @param contextName the id of the document
+     * @return RestStatus of get
+     */
     public CompletableFuture<RestStatus> get(String contextName) {
         final CompletableFuture<RestStatus> future = new CompletableFuture<>();
         final ExecutorService executor = this.threadPool.executor(ThreadPool.Names.WRITE);
@@ -162,6 +175,11 @@ public class ContextIndex {
         return future;
     }
 
+    /**
+     * Get all documents
+     *
+     * @return el RestStatus of get all documents
+     */
     public CompletableFuture<RestStatus> getAll() {
         final CompletableFuture<RestStatus> future = new CompletableFuture<>();
         final ExecutorService executor = this.threadPool.executor(ThreadPool.Names.WRITE);
@@ -196,6 +214,12 @@ public class ContextIndex {
         return future;
     }
 
+    /**
+     * Create a SearchRequest object from a SearchSourceBuilder object.
+     *
+     * @param searchSourceBuilder builder to create the SearchRequest
+     * @return SearchRequest
+     */
     private SearchRequest createSearchRequest(SearchSourceBuilder searchSourceBuilder) {
         SearchRequest searchRequest = new SearchRequest(INDEX_NAME);
         searchRequest.source(searchSourceBuilder);
@@ -203,14 +227,28 @@ public class ContextIndex {
         return searchRequest;
     }
 
-    public UpdateResponse update(Document document) {
-        return this.client.update(createUpdateRequest(document)).actionGet();
+    /**
+     * Update an existing document
+     *
+     * @param id of document
+     * @param document to update the source of the previous document
+     * @return UpdateResponse
+     */
+    public UpdateResponse update(String id, Document document) {
+        return this.client.update(createUpdateRequest(id, document)).actionGet();
     }
 
-    private UpdateRequest createUpdateRequest(Document document) {
+    /**
+     * Create an UpdateRequest object from a Document object.
+     *
+     * @param id of document
+     * @param document to update
+     * @return UpdateRequest
+     */
+    private UpdateRequest createUpdateRequest(String id, Document document) {
         UpdateRequest updateRequest = new UpdateRequest();
         updateRequest.index(INDEX_NAME);
-        updateRequest.id(ContentManagerPlugin.CONTEXT_NAME);
+        updateRequest.id(id);
         try {
             updateRequest.doc(
                     document.toXContent(XContentFactory.jsonBuilder(), ToXContent.EMPTY_PARAMS));
