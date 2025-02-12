@@ -1,1 +1,1 @@
-# Hwo to build from sources
+# How to build from sources
