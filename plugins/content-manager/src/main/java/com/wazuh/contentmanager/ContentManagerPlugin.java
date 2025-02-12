@@ -64,11 +64,13 @@ public class ContentManagerPlugin extends Plugin implements ActionPlugin {
             NamedWriteableRegistry namedWriteableRegistry,
             IndexNameExpressionResolver indexNameExpressionResolver,
             Supplier<RepositoriesService> repositoriesServiceSupplier) {
-        PluginSettings.getInstance(environment.settings());
+        PluginSettings.getInstance(environment.settings(), clusterService);
         CTI_VD_CONSUMER_URL =
-            PluginSettings.getInstance().getCtiBaseUrl() + "/catalog/contexts/vd_1.0.0/consumers/vd_4.8.0";
+                PluginSettings.getInstance().getCtiBaseUrl()
+                        + "/catalog/contexts/vd_1.0.0/consumers/vd_4.8.0";
         CTI_CHANGES_URL =
-            PluginSettings.getInstance().getCtiBaseUrl() + "/catalog/contexts/vd_1.0.0/consumers/vd_4.8.0/changes";
+                PluginSettings.getInstance().getCtiBaseUrl()
+                        + "/catalog/contexts/vd_1.0.0/consumers/vd_4.8.0/changes";
         return Collections.emptyList();
     }
 
@@ -86,9 +88,6 @@ public class ContentManagerPlugin extends Plugin implements ActionPlugin {
 
     @Override
     public List<Setting<?>> getSettings() {
-        return Collections.singletonList(
-            PluginSettings.CTI_BASE_URL
-        );
+        return Collections.singletonList(PluginSettings.CTI_BASE_URL);
     }
-
 }

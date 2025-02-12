@@ -16,4 +16,36 @@
  */
 package com.wazuh.contentmanager.client.commandmanager;
 
-public class CommandManagerClient {}
+import com.wazuh.contentmanager.settings.PluginSettings;
+import org.apache.hc.client5.http.async.methods.SimpleHttpResponse;
+import org.apache.hc.core5.http.Header;
+
+import com.wazuh.contentmanager.client.HttpClient;
+
+import java.net.URI;
+
+public class CommandManagerClient extends HttpClient {
+    private static volatile CommandManagerClient instance;
+    public static final String BASE_COMMAND_MANAGER_ENDPOINT = "/_plugins/_command_manager";
+    public static final String CREATE_COMMAND_ENDPOINT = BASE_COMMAND_MANAGER_ENDPOINT + "/commands";
+
+    private CommandManagerClient() {
+        super();
+    }
+
+    public static CommandManagerClient getInstance() {
+        if (instance == null) {
+            synchronized (CommandManagerClient.class) {
+                if (instance == null) {
+                    instance = new CommandManagerClient();
+                }
+            }
+        }
+        return instance;
+    }
+
+    public SimpleHttpResponse sendCommand(String requestBody, Header... headers) {
+        String uri = PluginSettings.getInstance().getCommandManagerBaseUrl() + CREATE_COMMAND_ENDPOINT;
+        return sendRequest("POST", URI.create(uri), requestBody, null, headers);
+    }
+}
