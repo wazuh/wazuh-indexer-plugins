@@ -27,6 +27,8 @@ import java.util.List;
 public class Agent implements ToXContentObject {
     public static final String AGENT = "agent";
     public static final String GROUPS = "groups";
+    public static final String ID = "id";
+    private final String id;
     private final List<String> groups;
 
     /**
@@ -34,7 +36,8 @@ public class Agent implements ToXContentObject {
      *
      * @param groups Agent's groups
      */
-    public Agent(List<String> groups) {
+    public Agent(String id, List<String> groups) {
+        this.id = id;
         this.groups = groups;
     }
 
@@ -47,20 +50,27 @@ public class Agent implements ToXContentObject {
      */
     public static Agent parse(XContentParser parser) throws IOException {
         List<Object> groups = List.of();
+        String id = null;
 
         while (parser.nextToken() != XContentParser.Token.END_OBJECT) {
             String fieldName = parser.currentName();
             parser.nextToken();
-            if (fieldName.equals(GROUPS)) {
-                groups = parser.list();
-            } else {
-                parser.skipChildren();
+            switch (fieldName) {
+                case GROUPS:
+                    groups = parser.list();
+                    break;
+                case ID:
+                    id = parser.text();
+                    break;
+                default:
+                    parser.skipChildren();
+                    break;
             }
         }
 
         // Cast args field Object list to String list
         List<String> convertedGroupFields = (List<String>) (List<?>) (groups);
-        return new Agent(convertedGroupFields);
+        return new Agent(id, convertedGroupFields);
     }
 
     @Override
@@ -70,8 +80,17 @@ public class Agent implements ToXContentObject {
         return builder.endObject();
     }
 
+    /**
+     * Retrieves the agent's id.
+     *
+     * @return id of the agent.
+     */
+    public String getId() {
+        return this.id;
+    }
+
     @Override
     public String toString() {
-        return "Agent{" + "groups=" + groups + '}';
+        return "Agent{" + "id='" + id + '\'' + ", groups=" + groups + '}';
     }
 }

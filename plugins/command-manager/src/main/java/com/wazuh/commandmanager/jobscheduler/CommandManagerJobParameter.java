@@ -136,9 +136,7 @@ public class CommandManagerJobParameter implements ScheduledJobParameter {
         builder.field(SCHEDULE_FIELD, this.schedule);
         if (this.enabledTime != null) {
             builder.timeField(
-                    ENABLED_TIME_FIELD,
-                    ENABLED_TIME_FIELD_READABLE,
-                    this.enabledTime.toEpochMilli());
+                    ENABLED_TIME_FIELD, ENABLED_TIME_FIELD_READABLE, this.enabledTime.toEpochMilli());
         }
         if (this.lastUpdateTime != null) {
             builder.timeField(

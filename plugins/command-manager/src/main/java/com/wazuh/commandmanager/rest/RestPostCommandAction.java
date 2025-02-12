@@ -22,25 +22,18 @@ import org.opensearch.client.node.NodeClient;
 import org.opensearch.core.rest.RestStatus;
 import org.opensearch.core.xcontent.ToXContent;
 import org.opensearch.core.xcontent.XContentBuilder;
-import org.opensearch.core.xcontent.XContentParser;
 import org.opensearch.rest.BaseRestHandler;
 import org.opensearch.rest.BytesRestResponse;
 import org.opensearch.rest.RestRequest;
 
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Locale;
+import java.util.*;
 import java.util.concurrent.CompletableFuture;
 
 import com.wazuh.commandmanager.index.CommandIndex;
-import com.wazuh.commandmanager.model.Agent;
-import com.wazuh.commandmanager.model.Command;
-import com.wazuh.commandmanager.model.Document;
-import com.wazuh.commandmanager.model.Documents;
+import com.wazuh.commandmanager.model.*;
 import com.wazuh.commandmanager.settings.PluginSettings;
 
-import static org.opensearch.core.xcontent.XContentParserUtils.ensureExpectedToken;
 import static org.opensearch.rest.RestRequest.Method.POST;
 
 /** Handles HTTP requests to the POST the Commands API endpoint. */
@@ -67,9 +60,7 @@ public class RestPostCommandAction extends BaseRestHandler {
     @Override
     public List<Route> routes() {
         return List.of(
-                new Route(
-                        POST,
-                        String.format(Locale.ROOT, "%s", PluginSettings.getApiCommandsEndpoint())));
+                new Route(POST, String.format(Locale.ROOT, "%s", PluginSettings.getApiCommandsEndpoint())));
     }
 
     @Override
@@ -77,10 +68,9 @@ public class RestPostCommandAction extends BaseRestHandler {
             throws IOException {
         switch (request.method()) {
             case POST:
-                return handlePost(request);
+                return handlePost(request, client);
             default:
-                throw new IllegalArgumentException(
-                        "Unsupported HTTP method " + request.method().name());
+                throw new IllegalArgumentException("Unsupported HTTP method " + request.method().name());
         }
     }
 
@@ -88,41 +78,32 @@ public class RestPostCommandAction extends BaseRestHandler {
      * Handles a POST HTTP request.
      *
      * @param request POST HTTP request
+     * @param client NodeClient instance
      * @return a response to the request as BytesRestResponse.
      * @throws IOException thrown by the XContentParser methods.
      */
-    private RestChannelConsumer handlePost(RestRequest request) throws IOException {
+    private RestChannelConsumer handlePost(RestRequest request, final NodeClient client)
+            throws IOException {
         log.info(
                 "Received {} {} request id [{}] from host [{}]",
                 request.method().name(),
                 request.uri(),
                 request.getRequestId(),
                 request.header("Host"));
-
-        /// Request validation
-        /// ==================
-        /// Fail fast.
+        // Request validation
         if (!request.hasContent()) {
-            // Bad request if body doesn't exist
             return channel -> {
                 channel.sendResponse(
                         new BytesRestResponse(RestStatus.BAD_REQUEST, "Body content is required"));
             };
         }
-
-        /// Request parsing
-        /// ===============
-        /// Retrieves and generates an array list of commands.
-        XContentParser parser = request.contentParser();
-        List<Command> commands = new ArrayList<>();
-        ensureExpectedToken(XContentParser.Token.START_OBJECT, parser.nextToken(), parser);
-        // The array of commands is inside the "commands" JSON object.
-        // This line moves the parser pointer to this object.
-        parser.nextToken();
-        if (parser.nextToken() == XContentParser.Token.START_ARRAY) {
-            commands = Command.parseToArray(parser);
-        } else {
-            log.error("Token does not match {}", parser.currentToken());
+        List<Command> commands = Command.parse(request);
+        // Validate commands are not empty
+        if (commands.isEmpty()) {
+            return channel -> {
+                channel.sendResponse(
+                        new BytesRestResponse(RestStatus.BAD_REQUEST, "No commands provided."));
+            };
         }
 
         /// Commands expansion
@@ -132,25 +113,22 @@ public class RestPostCommandAction extends BaseRestHandler {
         // agents.
         /// Given a group of agents A with N agents, a total of N orders are generated. One for each
         // agent.
-        Documents documents = new Documents();
-        for (Command command : commands) {
-            Document document =
-                    new Document(
-                            new Agent(List.of("groups000")), // TODO read agent from wazuh-agents
-                            // index
-                            command);
-            documents.addDocument(document);
+        Orders orders = Orders.fromCommands(client, commands);
+        // Validate that the orders are not empty
+        if (orders.get().isEmpty()) {
+            return channel -> {
+                channel.sendResponse(
+                        new BytesRestResponse(
+                                RestStatus.BAD_REQUEST,
+                                "Cannot generate orders. Invalid agent IDs or groups."));
+            };
         }
 
-        /// Orders indexing
-        /// ==================
-        /// The orders are inserted into the index.
+        // Orders indexing
         CompletableFuture<RestStatus> bulkRequestFuture =
-                this.commandIndex.asyncBulkCreate(documents.getDocuments());
+                this.commandIndex.asyncBulkCreate(orders.get());
 
-        /// Send response
-        /// ==================
-        /// Reply to the request.
+        // Send response
         return channel -> {
             bulkRequestFuture
                     .thenAccept(
@@ -158,11 +136,10 @@ public class RestPostCommandAction extends BaseRestHandler {
                                 try (XContentBuilder builder = channel.newBuilder()) {
                                     builder.startObject();
                                     builder.field("_index", PluginSettings.getIndexName());
-                                    documents.toXContent(builder, ToXContent.EMPTY_PARAMS);
+                                    orders.toXContent(builder, ToXContent.EMPTY_PARAMS);
                                     builder.field("result", restStatus.name());
                                     builder.endObject();
-                                    channel.sendResponse(
-                                            new BytesRestResponse(restStatus, builder));
+                                    channel.sendResponse(new BytesRestResponse(restStatus, builder));
                                 } catch (IOException e) {
                                     log.error(
                                             "Error preparing response to [{}] request with id [{}] due to {}",
@@ -174,8 +151,7 @@ public class RestPostCommandAction extends BaseRestHandler {
                     .exceptionally(
                             e -> {
                                 channel.sendResponse(
-                                        new BytesRestResponse(
-                                                RestStatus.INTERNAL_SERVER_ERROR, e.getMessage()));
+                                        new BytesRestResponse(RestStatus.INTERNAL_SERVER_ERROR, e.getMessage()));
                                 return null;
                             });
         };

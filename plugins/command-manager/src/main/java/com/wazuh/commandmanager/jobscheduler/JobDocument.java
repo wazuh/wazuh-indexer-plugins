@@ -89,8 +89,7 @@ public class JobDocument {
                                 threadPool.getThreadContext().stashContext()) {
                             if (IndexTemplateUtils.isMissingIndexTemplate(
                                     clusterService, PluginSettings.getJobIndexTemplate())) {
-                                IndexTemplateUtils.putIndexTemplate(
-                                        client, PluginSettings.getJobIndexTemplate());
+                                IndexTemplateUtils.putIndexTemplate(client, PluginSettings.getJobIndexTemplate());
                             } else {
                                 log.info(
                                         "Index template {} already exists. Skipping creation.",

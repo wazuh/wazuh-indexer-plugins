@@ -60,8 +60,7 @@ public class PluginSettingsTests extends OpenSearchIntegTestCase {
         assertEquals(Optional.of(100), Optional.of(pluginSettings.getMaxDocs()));
         assertEquals("index-template-scheduled-commands", PluginSettings.getJobIndexTemplate());
         assertEquals("/_plugins/_command_manager", PluginSettings.getApiPrefix());
-        assertEquals(
-                "/_plugins/_command_manager/commands", PluginSettings.getApiCommandsEndpoint());
+        assertEquals("/_plugins/_command_manager/commands", PluginSettings.getApiCommandsEndpoint());
         assertEquals("wazuh-commands", PluginSettings.getIndexName());
         assertEquals("index-template-commands", PluginSettings.getIndexTemplate());
     }
