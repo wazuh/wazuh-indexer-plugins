@@ -16,13 +16,13 @@
  */
 package com.wazuh.contentmanager.settings;
 
-import com.wazuh.contentmanager.util.ClusterInfoHelper;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.opensearch.cluster.service.ClusterService;
 import org.opensearch.common.settings.Setting;
 import org.opensearch.common.settings.Settings;
 
+import com.wazuh.contentmanager.util.ClusterInfoHelper;
 import reactor.util.annotation.NonNull;
 
 /** Singleton class to manage the plugin's settings. */
@@ -32,7 +32,6 @@ public class PluginSettings {
 
     /** Singleton instance. */
     private static PluginSettings INSTANCE;
-
 
     /** Read the base URL from configuration file */
     public static final Setting<String> CTI_BASE_URL =
@@ -63,7 +62,8 @@ public class PluginSettings {
      * @param settings as obtained in createComponents.
      * @return {@link PluginSettings#INSTANCE}
      */
-    public static PluginSettings getInstance(@NonNull final Settings settings, ClusterService clusterService) {
+    public static PluginSettings getInstance(
+            @NonNull final Settings settings, ClusterService clusterService) {
         if (INSTANCE == null) {
             synchronized (PluginSettings.class) {
                 if (INSTANCE == null) {

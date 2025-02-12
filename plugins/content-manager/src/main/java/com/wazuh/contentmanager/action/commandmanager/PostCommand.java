@@ -16,4 +16,26 @@
  */
 package com.wazuh.contentmanager.action.commandmanager;
 
-public class PostCommand {}
+import org.apache.hc.client5.http.async.methods.SimpleHttpResponse;
+import org.apache.hc.core5.http.Header;
+import org.opensearch.common.xcontent.XContentFactory;
+import org.opensearch.common.xcontent.XContentType;
+import org.opensearch.core.rest.RestStatus;
+import org.opensearch.core.xcontent.XContent;
+import org.opensearch.core.xcontent.XContentBuilder;
+import org.opensearch.rest.BytesRestResponse;
+
+import java.io.IOException;
+
+import com.wazuh.contentmanager.client.commandmanager.CommandManagerClient;
+
+public class PostCommand {
+
+    public static BytesRestResponse createCommand() throws IOException, IllegalArgumentException {
+        XContent xContent = XContentType.JSON.xContent();
+        XContentBuilder builder = XContentFactory.jsonBuilder();
+        SimpleHttpResponse response =
+                CommandManagerClient.getInstance().sendCommand("", null, (Header) null);
+        return new BytesRestResponse(RestStatus.fromCode(200), "");
+    }
+}

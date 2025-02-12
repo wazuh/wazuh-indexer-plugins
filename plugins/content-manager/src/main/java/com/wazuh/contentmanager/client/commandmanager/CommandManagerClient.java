@@ -16,13 +16,14 @@
  */
 package com.wazuh.contentmanager.client.commandmanager;
 
-import com.wazuh.contentmanager.settings.PluginSettings;
 import org.apache.hc.client5.http.async.methods.SimpleHttpResponse;
 import org.apache.hc.core5.http.Header;
 
-import com.wazuh.contentmanager.client.HttpClient;
-
 import java.net.URI;
+import java.util.Map;
+
+import com.wazuh.contentmanager.client.HttpClient;
+import com.wazuh.contentmanager.settings.PluginSettings;
 
 public class CommandManagerClient extends HttpClient {
     private static volatile CommandManagerClient instance;
@@ -44,7 +45,8 @@ public class CommandManagerClient extends HttpClient {
         return instance;
     }
 
-    public SimpleHttpResponse sendCommand(String requestBody, Header... headers) {
+    public SimpleHttpResponse sendCommand(
+            String requestBody, Map<String, String> queryParameters, Header... headers) {
         String uri = PluginSettings.getInstance().getCommandManagerBaseUrl() + CREATE_COMMAND_ENDPOINT;
         return sendRequest("POST", URI.create(uri), requestBody, null, headers);
     }
