@@ -19,6 +19,6 @@ To work with this documentation, you need **mdBook** installed. For installation
 
 - To serve the documentation locally for preview, run:
   ```bash
-  ./server.sh
+  ./serve.sh
   ```
   The documentation will be available at [http://127.0.0.1:3000](http://127.0.0.1:3000).
