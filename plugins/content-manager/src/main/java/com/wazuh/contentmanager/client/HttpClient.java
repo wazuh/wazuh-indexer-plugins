@@ -52,7 +52,10 @@ public abstract class HttpClient {
     private static CloseableHttpAsyncClient httpClient;
     private static final Object LOCK = new Object();
 
-    protected HttpClient() {
+    protected final URI apiUri;
+
+    protected HttpClient(@NonNull URI apiUri) {
+        this.apiUri = apiUri;
         startHttpAsyncClient();
     }
 
@@ -98,7 +101,6 @@ public abstract class HttpClient {
      * Sends an HTTP request with the specified method.
      *
      * @param method HTTP method (GET, POST, etc.)
-     * @param uri Well-formed URI
      * @param requestBody Data to send (optional)
      * @param queryParameters Query parameters (optional)
      * @param headers Headers (optional)
@@ -106,7 +108,6 @@ public abstract class HttpClient {
      */
     protected SimpleHttpResponse sendRequest(
             @NonNull String method,
-            @NonNull URI uri,
             String requestBody,
             Map<String, String> queryParameters,
             Header... headers) {
@@ -116,8 +117,8 @@ public abstract class HttpClient {
         }
 
         try {
-            HttpHost httpHost = HttpHost.create(uri);
-            log.info("Sending {} request to [{}]", method, uri);
+            HttpHost httpHost = HttpHost.create(this.apiUri);
+            log.info("Sending {} request to [{}]", method, this.apiUri);
 
             SimpleRequestBuilder builder = SimpleRequestBuilder.create(method);
             if (requestBody != null) {
@@ -130,7 +131,8 @@ public abstract class HttpClient {
                 builder.setHeaders(headers);
             }
 
-            SimpleHttpRequest request = builder.setHttpHost(httpHost).setPath(uri.getPath()).build();
+            SimpleHttpRequest request =
+                    builder.setHttpHost(httpHost).setPath(this.apiUri.getPath()).build();
 
             return httpClient
                     .execute(
@@ -152,20 +154,15 @@ public abstract class HttpClient {
      * Performs an http request with elevated privileges.
      *
      * @param method HTTP method (GET, POST, etc.)
-     * @param uri Destination URI
      * @param body The request body
      * @param queryParameters The request's query parameters
      * @param headers The request's headers
      * @return SimpleHttpResponse
      */
     public SimpleHttpResponse sendPrivilegedRequest(
-            String method,
-            String uri,
-            String body,
-            Map<String, String> queryParameters,
-            Header... headers) {
+            String method, String body, Map<String, String> queryParameters, Header... headers) {
         return AccessController.doPrivileged(
                 (PrivilegedAction<SimpleHttpResponse>)
-                        () -> this.sendRequest(method, URI.create(uri), body, queryParameters, headers));
+                        () -> this.sendRequest(method, body, queryParameters, headers));
     }
 }

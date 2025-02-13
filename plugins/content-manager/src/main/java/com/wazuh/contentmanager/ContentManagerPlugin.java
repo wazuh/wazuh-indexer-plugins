@@ -41,7 +41,6 @@ import java.util.function.Supplier;
 
 import com.wazuh.contentmanager.resthandler.CatalogHandler;
 import com.wazuh.contentmanager.resthandler.ChangesHandler;
-import com.wazuh.contentmanager.resthandler.CommandHandler;
 import com.wazuh.contentmanager.settings.PluginSettings;
 
 public class ContentManagerPlugin extends Plugin implements ActionPlugin {
