@@ -129,7 +129,7 @@ public class GenericDocument implements ToXContentObject {
      */
     @Override
     public XContentBuilder toXContent(XContentBuilder builder, Params params) throws IOException {
-       builder.startObject();
+        builder.startObject();
         for (String key : this.source.keySet()) {
             builder.field(key, this.source.get(key));
         }

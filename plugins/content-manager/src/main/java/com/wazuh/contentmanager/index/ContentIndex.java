@@ -28,8 +28,6 @@ import org.opensearch.common.util.concurrent.ThreadContext;
 import org.opensearch.common.xcontent.XContentFactory;
 import org.opensearch.core.rest.RestStatus;
 import org.opensearch.core.xcontent.ToXContent;
-import org.opensearch.core.xcontent.XContentBuilder;
-import org.opensearch.index.shard.IndexingOperationListener;
 import org.opensearch.search.builder.SearchSourceBuilder;
 import org.opensearch.threadpool.ThreadPool;
 
@@ -40,7 +38,7 @@ import java.util.concurrent.ExecutorService;
 import com.wazuh.contentmanager.model.GenericDocument;
 
 /** Class to manage the Content Manager index. */
-public class ContentIndex implements IndexingOperationListener {
+public class ContentIndex {
     private static final Logger log = LogManager.getLogger(ContentIndex.class);
 
     private static final String INDEX_NAME = "wazuh-content-manager";

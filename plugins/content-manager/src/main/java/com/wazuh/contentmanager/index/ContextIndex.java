@@ -100,7 +100,6 @@ public class ContextIndex {
         return this.clusterService.state().routingTable().hasIndex(INDEX_NAME);
     }
 
-
     /**
      * Index a Document object.
      *
