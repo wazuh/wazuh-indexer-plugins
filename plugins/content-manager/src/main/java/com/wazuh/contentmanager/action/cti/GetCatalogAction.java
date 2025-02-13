@@ -16,6 +16,7 @@
  */
 package com.wazuh.contentmanager.action.cti;
 
+import com.wazuh.contentmanager.utils.httpclient.CTIClient;
 import org.apache.hc.client5.http.async.methods.SimpleHttpResponse;
 import org.apache.hc.core5.http.Header;
 import org.opensearch.common.xcontent.XContentFactory;
@@ -25,10 +26,10 @@ import org.opensearch.core.xcontent.*;
 import org.opensearch.rest.BytesRestResponse;
 
 import java.io.IOException;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
 
-import com.wazuh.contentmanager.ContentManagerPlugin;
 import com.wazuh.contentmanager.model.ctiapi.ContextConsumerCatalog;
-import com.wazuh.contentmanager.privileged.PrivilegedHttpAction;
 
 /**
  * Action class handling Catalog logic. This is mainly useful to get the last offset value, as well
@@ -46,17 +47,19 @@ public class GetCatalogAction {
      * @throws IOException rethrown from parse()
      * @throws IllegalArgumentException rethrown from parse()
      */
-    public static BytesRestResponse run() throws IOException, IllegalArgumentException {
+    public static BytesRestResponse run() throws IOException, IllegalArgumentException, ExecutionException, InterruptedException {
         XContent xContent = XContentType.JSON.xContent();
         XContentBuilder builder = XContentFactory.jsonBuilder();
-        SimpleHttpResponse response =
-                PrivilegedHttpAction.get(ContentManagerPlugin.CTI_VD_CONSUMER_URL, null, (Header) null);
+        CompletableFuture<SimpleHttpResponse> response =
+                CTIClient.getInstance().privilegedRequestAsync("GET", null, null, null, null);
+
         ContextConsumerCatalog.parse(
                         xContent.createParser(
                                 NamedXContentRegistry.EMPTY,
                                 DeprecationHandler.IGNORE_DEPRECATIONS,
-                                response.getBodyBytes()))
+                                response.get().getBodyBytes()))
                 .toXContent(builder, ToXContent.EMPTY_PARAMS);
-        return new BytesRestResponse(RestStatus.fromCode(response.getCode()), builder.toString());
+        return new BytesRestResponse(RestStatus.fromCode(response.get().getCode()), builder.toString());
     }
+
 }

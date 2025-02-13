@@ -16,6 +16,8 @@
  */
 package com.wazuh.contentmanager.action.cti;
 
+import com.wazuh.contentmanager.utils.httpclient.CTIClient;
+import com.wazuh.contentmanager.utils.httpclient.HttpClient;
 import org.apache.hc.client5.http.async.methods.SimpleHttpResponse;
 import org.apache.hc.core5.http.Header;
 import org.opensearch.common.xcontent.XContentFactory;
@@ -27,10 +29,11 @@ import org.opensearch.rest.BytesRestResponse;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
 
 import com.wazuh.contentmanager.ContentManagerPlugin;
 import com.wazuh.contentmanager.model.ctiapi.Offsets;
-import com.wazuh.contentmanager.privileged.PrivilegedHttpAction;
 
 /**
  * Action class handling Offsets logic. This is used to get the json patches to the current
@@ -62,16 +65,23 @@ public class GetChangesAction {
     public BytesRestResponse run() throws IOException, IllegalArgumentException {
         XContent xContent = XContentType.JSON.xContent();
         XContentBuilder builder = XContentFactory.jsonBuilder();
-        SimpleHttpResponse response =
-                PrivilegedHttpAction.get(
-                        ContentManagerPlugin.CTI_CHANGES_URL, buildQueryParametersMap(), (Header) null);
-        Offsets.parse(
-                        xContent.createParser(
-                                NamedXContentRegistry.EMPTY,
-                                DeprecationHandler.IGNORE_DEPRECATIONS,
-                                response.getBodyBytes()))
-                .toXContent(builder, ToXContent.EMPTY_PARAMS);
-        return new BytesRestResponse(RestStatus.fromCode(response.getCode()), builder.toString());
+        CompletableFuture<SimpleHttpResponse> response =
+                CTIClient.getInstance().getChanges(null,buildQueryParametersMap(), (Header) null);
+
+        try {
+            Offsets.parse(
+                            xContent.createParser(
+                                    NamedXContentRegistry.EMPTY,
+                                    DeprecationHandler.IGNORE_DEPRECATIONS,
+                                    response.get().getBodyBytes()))
+                    .toXContent(builder, ToXContent.EMPTY_PARAMS);
+
+            return new BytesRestResponse(RestStatus.fromCode(response.get().getCode()), builder.toString());
+        } catch (InterruptedException e) {
+            throw new RuntimeException(e);
+        } catch (ExecutionException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     /**

@@ -16,6 +16,8 @@
  */
 package com.wazuh.contentmanager;
 
+import com.wazuh.contentmanager.utils.httpclient.CTIClient;
+import com.wazuh.contentmanager.utils.httpclient.CommandManagerClient;
 import org.apache.hc.core5.net.URIBuilder;
 import org.opensearch.client.Client;
 import org.opensearch.cluster.metadata.IndexNameExpressionResolver;
@@ -52,6 +54,8 @@ public class ContentManagerPlugin extends Plugin implements ActionPlugin {
     public static String CTI_CHANGES_URL;
     public static final String CTI_VD_CONSUMER_ENDPOINT = "/catalog/contexts/vd_1.0.0/consumers/vd_4.8.0";
     public static final String CTI_VD_CHANGES_ENDPOINT = "/catalog/contexts/vd_1.0.0/consumers/vd_4.8.0/changes";
+    public static CTIClient ctiClient;
+    public static CommandManagerClient commandManagerClient;
 
 
     /** ClassConstructor * */
@@ -73,6 +77,8 @@ public class ContentManagerPlugin extends Plugin implements ActionPlugin {
         PluginSettings settings = PluginSettings.getInstance(environment.settings());
         CTI_VD_CONSUMER_URL = URI.create(settings.getCtiBaseUrl() + CTI_VD_CONSUMER_ENDPOINT).toASCIIString();
         CTI_CHANGES_URL = URI.create(settings.getCtiBaseUrl() + CTI_VD_CHANGES_ENDPOINT).toASCIIString();
+        ctiClient = CTIClient.getInstance();
+        commandManagerClient = CommandManagerClient.getInstance();
         return Collections.emptyList();
     }
 
