@@ -92,6 +92,16 @@ public class ContextIndex {
     }
 
     /**
+     * Checks if the wazuh-content index exists.
+     *
+     * @return whether the internal Command Manager's index exists.
+     */
+    public boolean indexExists() {
+        return this.clusterService.state().routingTable().hasIndex(INDEX_NAME);
+    }
+
+
+    /**
      * Index a Document object.
      *
      * @param document to index
@@ -107,8 +117,10 @@ public class ContextIndex {
                     try (ThreadContext.StoredContext ignored =
                             this.threadPool.getThreadContext().stashContext()) {
                         IndexRequest indexRequest = createIndexRequest(document, id);
+                        log.info("Previously indexing document {}", id);
                         final RestStatus restStatus =
                                 this.client.index(indexRequest).actionGet().status();
+                        log.info("POST indexing document {}", id);
                         future.complete(restStatus);
                     } catch (Exception e) {
                         log.error("Error creating IndexRequest due to {}", e.getMessage());
@@ -171,7 +183,6 @@ public class ContextIndex {
                         future.completeExceptionally(e);
                     }
                 });
-
         return future;
     }
 
@@ -256,15 +267,6 @@ public class ContextIndex {
             log.error("Error creating IndexRequest due to {}", e.getMessage());
         }
         return updateRequest;
-    }
-
-    /**
-     * Checks if the wazuh-content index exists.
-     *
-     * @return whether the internal Command Manager's index exists.
-     */
-    public boolean indexExists() {
-        return this.clusterService.state().routingTable().hasIndex(INDEX_NAME);
     }
 
     /**

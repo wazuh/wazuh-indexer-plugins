@@ -50,7 +50,7 @@ public class GenericDocument implements ToXContentObject {
         return this.source;
     }
 
-    public String getid() {
+    public String getId() {
         return this.id;
     }
 
@@ -116,7 +116,6 @@ public class GenericDocument implements ToXContentObject {
                     break;
             }
         }
-        log.info("Final of parse genericDocument id: {}, source: {}", id, source);
         return new GenericDocument(id, source);
     }
 
@@ -130,13 +129,10 @@ public class GenericDocument implements ToXContentObject {
      */
     @Override
     public XContentBuilder toXContent(XContentBuilder builder, Params params) throws IOException {
-        builder.startObject();
-        builder.field("id", this.id);
-        builder.startObject(GenericDocument.SOURCE);
+       builder.startObject();
         for (String key : this.source.keySet()) {
             builder.field(key, this.source.get(key));
         }
-        builder.endObject();
         return builder.endObject();
     }
 }

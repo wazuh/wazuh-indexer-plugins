@@ -130,6 +130,7 @@ public class RestPostContentAction extends BaseRestHandler {
                                                 RestStatus.INTERNAL_SERVER_ERROR, e.getMessage()));
                                 return null;
                             });
+            log.info("Final of post in RestPostContentAction executed");
         };
     }
 

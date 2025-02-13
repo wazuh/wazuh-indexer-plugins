@@ -28,6 +28,7 @@ import org.opensearch.common.util.concurrent.ThreadContext;
 import org.opensearch.common.xcontent.XContentFactory;
 import org.opensearch.core.rest.RestStatus;
 import org.opensearch.core.xcontent.ToXContent;
+import org.opensearch.core.xcontent.XContentBuilder;
 import org.opensearch.index.shard.IndexingOperationListener;
 import org.opensearch.search.builder.SearchSourceBuilder;
 import org.opensearch.threadpool.ThreadPool;
@@ -43,6 +44,7 @@ public class ContentIndex implements IndexingOperationListener {
     private static final Logger log = LogManager.getLogger(ContentIndex.class);
 
     private static final String INDEX_NAME = "wazuh-content-manager";
+
     private final Client client;
     private final ClusterService clusterService;
     private final ThreadPool threadPool;
@@ -81,9 +83,7 @@ public class ContentIndex implements IndexingOperationListener {
      * @return whether the internal Command Manager's index exists.
      */
     public boolean indexExists() {
-        boolean isExists = this.clusterService.state().metadata().hasIndex(INDEX_NAME);
-        log.info("Index exists: {}", isExists);
-        return isExists;
+        return this.clusterService.state().routingTable().hasIndex(INDEX_NAME);
     }
 
     /**
@@ -100,10 +100,10 @@ public class ContentIndex implements IndexingOperationListener {
                     try (ThreadContext.StoredContext ignored =
                             this.threadPool.getThreadContext().stashContext()) {
                         IndexRequest indexRequest = createIndexRequest(document);
-                        log.info("Previously indexing document {}", document.getid());
+                        log.info("Previously indexing document {}", document.getId());
                         final RestStatus restStatus =
                                 this.client.index(indexRequest).actionGet().status();
-                        log.info("POST indexing document {}", document.getid());
+                        log.info("POST indexing document {}", document.getId());
                         future.complete(restStatus);
                     } catch (IOException e) {
                         log.error("Error creating IndexRequest due to {}", e.getMessage());
@@ -124,7 +124,7 @@ public class ContentIndex implements IndexingOperationListener {
         return new IndexRequest()
                 .index(INDEX_NAME)
                 .source(document.toXContent(XContentFactory.jsonBuilder(), ToXContent.EMPTY_PARAMS))
-                .id(document.getid())
+                .id(document.getId())
                 .create(true);
     }
 

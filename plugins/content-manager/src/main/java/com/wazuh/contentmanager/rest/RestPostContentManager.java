@@ -38,6 +38,7 @@ import com.wazuh.contentmanager.model.GenericDocument;
 import static org.opensearch.core.xcontent.XContentParserUtils.ensureExpectedToken;
 import static org.opensearch.rest.RestRequest.Method.*;
 
+// JUST FOR TESTING PURPOSE
 public class RestPostContentManager extends BaseRestHandler {
     private static final Logger log = LogManager.getLogger(RestPostContentManager.class);
 
@@ -59,11 +60,11 @@ public class RestPostContentManager extends BaseRestHandler {
                 new Route(
                         PATCH,
                         String.format(
-                                Locale.ROOT, "%s", ContentManagerPlugin.CONTENT_MANAGER_BASE_URI)),
+                                Locale.ROOT, "%s", ContentManagerPlugin.CONTENT_MANAGER_URI)),
                 new Route(
                         POST,
                         String.format(
-                                Locale.ROOT, "%s", ContentManagerPlugin.CONTENT_MANAGER_BASE_URI)));
+                                Locale.ROOT, "%s", ContentManagerPlugin.CONTENT_MANAGER_URI)));
     }
 
     @Override
@@ -87,8 +88,6 @@ public class RestPostContentManager extends BaseRestHandler {
      * @throws IOException thrown by the XContentParser methods.
      */
     private RestChannelConsumer handlePost(RestRequest request) throws IOException {
-        log.info("handlePost in RestPostContentManager executed");
-
         if (!this.contentIndex.indexExists()) {
             this.contentIndex.createIndex();
         }
@@ -105,7 +104,6 @@ public class RestPostContentManager extends BaseRestHandler {
 
         GenericDocument genericDocument = GenericDocument.parse(parser);
 
-        log.info("Post creation of generic document");
         // Send response
         return channel -> {
             this.contentIndex
@@ -135,6 +133,7 @@ public class RestPostContentManager extends BaseRestHandler {
                                                 RestStatus.INTERNAL_SERVER_ERROR, e.getMessage()));
                                 return null;
                             });
+            log.info("Final of RestPostContentManager");
         };
     }
 }
