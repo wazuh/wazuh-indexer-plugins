@@ -23,7 +23,7 @@ import java.net.URI;
 import java.security.AccessController;
 import java.util.Map;
 
-import com.wazuh.contentmanager.util.http.HttpClient;
+import com.wazuh.contentmanager.utils.httpclient.HttpRestClient;
 
 /** Quick class to handle outgoing HTTP requests */
 public class PrivilegedHttpAction {
@@ -35,17 +35,14 @@ public class PrivilegedHttpAction {
      * Calls HttpClient with a GET request
      *
      * @param uri Destination URI
-     * @param body The body of the request
      * @param queryParameters A map of the requests query parameters
      * @param headers The request's headers
      * @return
      */
     public static SimpleHttpResponse get(
-            String uri, String body, Map<String, String> queryParameters, Header... headers) {
+            String uri, Map<String, String> queryParameters, Header... headers) {
         return AccessController.doPrivileged(
                 (java.security.PrivilegedAction<SimpleHttpResponse>)
-                        () ->
-                                HttpClient.getInstance()
-                                        .get(URI.create(uri), body, queryParameters, headers));
+                        () -> HttpRestClient.getInstance().get(URI.create(uri), queryParameters, headers));
     }
 }

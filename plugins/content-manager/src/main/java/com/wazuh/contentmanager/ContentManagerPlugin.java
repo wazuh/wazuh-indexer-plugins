@@ -16,6 +16,7 @@
  */
 package com.wazuh.contentmanager;
 
+import org.apache.hc.core5.net.URIBuilder;
 import org.opensearch.client.Client;
 import org.opensearch.cluster.metadata.IndexNameExpressionResolver;
 import org.opensearch.cluster.node.DiscoveryNodes;
@@ -34,19 +35,24 @@ import org.opensearch.script.ScriptService;
 import org.opensearch.threadpool.ThreadPool;
 import org.opensearch.watcher.ResourceWatcherService;
 
+import java.io.IOException;
+import java.net.URI;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.function.Supplier;
 
-import com.wazuh.contentmanager.resthandler.CatalogHandler;
-import com.wazuh.contentmanager.resthandler.ChangesHandler;
+import com.wazuh.contentmanager.rest.CatalogHandler;
+import com.wazuh.contentmanager.rest.ChangesHandler;
 import com.wazuh.contentmanager.settings.PluginSettings;
 
 public class ContentManagerPlugin extends Plugin implements ActionPlugin {
 
     public static String CTI_VD_CONSUMER_URL;
     public static String CTI_CHANGES_URL;
+    public static final String CTI_VD_CONSUMER_ENDPOINT = "/catalog/contexts/vd_1.0.0/consumers/vd_4.8.0";
+    public static final String CTI_VD_CHANGES_ENDPOINT = "/catalog/contexts/vd_1.0.0/consumers/vd_4.8.0/changes";
+
 
     /** ClassConstructor * */
     public ContentManagerPlugin() {}
@@ -64,11 +70,9 @@ public class ContentManagerPlugin extends Plugin implements ActionPlugin {
             NamedWriteableRegistry namedWriteableRegistry,
             IndexNameExpressionResolver indexNameExpressionResolver,
             Supplier<RepositoriesService> repositoriesServiceSupplier) {
-        PluginSettings.getInstance(environment.settings());
-        CTI_VD_CONSUMER_URL =
-            PluginSettings.getInstance().getCtiBaseUrl() + "/catalog/contexts/vd_1.0.0/consumers/vd_4.8.0";
-        CTI_CHANGES_URL =
-            PluginSettings.getInstance().getCtiBaseUrl() + "/catalog/contexts/vd_1.0.0/consumers/vd_4.8.0/changes";
+        PluginSettings settings = PluginSettings.getInstance(environment.settings());
+        CTI_VD_CONSUMER_URL = URI.create(settings.getCtiBaseUrl() + CTI_VD_CONSUMER_ENDPOINT).toASCIIString();
+        CTI_CHANGES_URL = URI.create(settings.getCtiBaseUrl() + CTI_VD_CHANGES_ENDPOINT).toASCIIString();
         return Collections.emptyList();
     }
 
@@ -86,9 +90,12 @@ public class ContentManagerPlugin extends Plugin implements ActionPlugin {
 
     @Override
     public List<Setting<?>> getSettings() {
-        return Collections.singletonList(
-            PluginSettings.CTI_BASE_URL
-        );
+        return Collections.singletonList(PluginSettings.CTI_BASE_URL);
     }
 
+    @Override
+    public void close() throws IOException {
+        super.close();
+        // TODO close HttpClient
+    }
 }

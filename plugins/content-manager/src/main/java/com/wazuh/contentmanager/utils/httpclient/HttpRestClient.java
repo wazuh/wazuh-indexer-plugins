@@ -14,7 +14,7 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-package com.wazuh.contentmanager.util.http;
+package com.wazuh.contentmanager.utils.httpclient;
 
 import org.apache.hc.client5.http.async.methods.*;
 import org.apache.hc.client5.http.impl.async.CloseableHttpAsyncClient;
@@ -41,37 +41,38 @@ import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
 import java.util.Map;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
 import reactor.util.annotation.NonNull;
 
-public class HttpClient {
+public abstract class HttpRestClient {
 
-    private static final Logger log = LogManager.getLogger(HttpClient.class);
+    private static final Logger log = LogManager.getLogger(HttpRestClient.class);
 
-    /** Http requests default timeout * */
-    public static final int TIMEOUT = 10;
+    /** Seconds on which the request times outs. */
+    public static final int TIMEOUT = 5;
 
-    static HttpClient INSTANCE;
-
+    //static HttpRestClient instance;
     private CloseableHttpAsyncClient httpClient;
 
-    private HttpClient() {
+    /** Private default constructor */
+    HttpRestClient() {
         startHttpAsyncClient();
     }
 
     /**
      * Singleton instance accessor
      *
-     * @return {@link HttpClient#INSTANCE}
+     * @return {@link HttpRestClient#instance}
      */
-    public static HttpClient getInstance() {
-        if (HttpClient.INSTANCE == null) {
-            INSTANCE = new HttpClient();
-        }
-        return HttpClient.INSTANCE;
-    }
+    public abstract HttpRestClient getInstance();// {
+//        if (HttpRestClient.instance == null) {
+//            instance = new HttpRestClient();
+//        }
+//        return HttpRestClient.instance;
+ //   }
 
     /** Starts http async client. */
     private void startHttpAsyncClient() {
@@ -82,17 +83,13 @@ public class HttpClient {
 
                 // Create a custom TrustManager that trusts self-signed certificates
                 final SSLContext sslContext =
-                        SSLContextBuilder.create()
-                                .loadTrustMaterial(null, (chains, authType) -> true)
-                                .build();
+                        SSLContextBuilder.create().loadTrustMaterial(null, (chains, authType) -> true).build();
 
                 final TlsStrategy tlsStrategy =
                         ClientTlsStrategyBuilder.create().setSslContext(sslContext).build();
 
                 final PoolingAsyncClientConnectionManager connectionManager =
-                        PoolingAsyncClientConnectionManagerBuilder.create()
-                                .setTlsStrategy(tlsStrategy)
-                                .build();
+                        PoolingAsyncClientConnectionManagerBuilder.create().setTlsStrategy(tlsStrategy).build();
 
                 final IOReactorConfig ioReactorConfig =
                         IOReactorConfig.custom().setSoTimeout(TIMEOUT, TimeUnit.SECONDS).build();
@@ -122,25 +119,20 @@ public class HttpClient {
      * Sends a GET request.
      *
      * @param uri Well-formed URI
-     * @param requestBody data to send
      * @param headers auth value (Basic "user:password", "Bearer token")
      * @return SimpleHttpResponse response
      */
     public SimpleHttpResponse get(
             @NonNull URI uri,
-            @Nullable String requestBody,
             @Nullable Map<String, String> queryParameters,
             @Nullable Header... headers) {
         try {
             final HttpHost httpHost = HttpHost.create(uri);
 
-            log.info("Sending requestBody to [{}]", uri);
+            log.info("Sending GET request to [{}]", uri);
             log.debug("Headers {}", (Object) headers);
 
             final SimpleRequestBuilder builder = SimpleRequestBuilder.get();
-            if (requestBody != null) {
-                builder.setBody(requestBody, ContentType.APPLICATION_JSON);
-            }
             if (queryParameters != null) {
                 queryParameters.forEach(builder::addParameter);
             }
@@ -151,20 +143,79 @@ public class HttpClient {
             final SimpleHttpRequest httpGetRequest =
                     builder.setHttpHost(httpHost).setPath(uri.getPath()).build();
 
-            return this.httpClient
-                    .execute(
+            final Future<SimpleHttpResponse> future =
+                    this.httpClient.execute(
                             SimpleRequestProducer.create(httpGetRequest),
                             SimpleResponseConsumer.create(),
                             new HttpResponseCallback(
-                                    httpGetRequest, "Failed to execute outgoing GET request"))
-                    .get(TIMEOUT, TimeUnit.SECONDS);
-        } catch (InterruptedException | ExecutionException | TimeoutException e) {
-            log.error(
-                    "Exception found while performing Http GET request interrupted {}",
-                    e.getMessage());
+                                    httpGetRequest,
+                                    "Failed to execute outgoing GET request with query params ["
+                                            + queryParameters
+                                            + "]"));
+
+            return future.get(TIMEOUT, TimeUnit.SECONDS);
+        } catch (InterruptedException e) {
+            log.error("Operation interrupted {}", e.getMessage());
+        } catch (ExecutionException e) {
+            log.error("Execution failed {}", e.getMessage());
+        } catch (TimeoutException e) {
+            log.error("Operation timed out {}", e.getMessage());
         } catch (Exception e) {
-            log.error("Caught generic exception {}", e.getMessage());
+            log.error("Error sending payload with params [{}] due to {}", queryParameters, e.toString());
         }
+        return null;
+    }
+
+    /**
+     * Sends a POST request.
+     *
+     * @param receiverURI Well-formed URI
+     * @param payload data to send
+     * @param payloadId payload ID
+     * @param headers auth value (Basic "user:password", "Bearer token")
+     * @return SimpleHttpResponse response
+     */
+    public SimpleHttpResponse post(
+            @NonNull URI receiverURI,
+            @Nullable String payload,
+            @Nullable String payloadId,
+            @Nullable Header... headers) {
+        try {
+            final HttpHost httpHost = HttpHost.create(receiverURI);
+
+            log.info("Sending payload with id [{}] to [{}]", payloadId, receiverURI);
+            log.debug("Headers {}", (Object) headers);
+
+            final SimpleRequestBuilder builder = SimpleRequestBuilder.post();
+            if (payload != null) {
+                builder.setBody(payload, ContentType.APPLICATION_JSON);
+            }
+            if (headers != null) {
+                builder.setHeaders(headers);
+            }
+
+            final SimpleHttpRequest httpPostRequest =
+                    builder.setHttpHost(httpHost).setPath(receiverURI.getPath()).build();
+
+            final Future<SimpleHttpResponse> future =
+                    this.httpClient.execute(
+                            SimpleRequestProducer.create(httpPostRequest),
+                            SimpleResponseConsumer.create(),
+                            new HttpResponseCallback(
+                                    httpPostRequest,
+                                    "Failed to execute outgoing POST request with payload id [" + payloadId + "]"));
+
+            return future.get(TIMEOUT, TimeUnit.SECONDS);
+        } catch (InterruptedException e) {
+            log.error("Operation interrupted {}", e.getMessage());
+        } catch (ExecutionException e) {
+            log.error("Execution failed {}", e.getMessage());
+        } catch (TimeoutException e) {
+            log.error("Operation timed out {}", e.getMessage());
+        } catch (Exception e) {
+            log.error("Error sending payload with id [{}] due to {}", payloadId, e.toString());
+        }
+
         return null;
     }
 }

@@ -50,8 +50,7 @@ public class GetCatalogAction {
         XContent xContent = XContentType.JSON.xContent();
         XContentBuilder builder = XContentFactory.jsonBuilder();
         SimpleHttpResponse response =
-                PrivilegedHttpAction.get(
-                        ContentManagerPlugin.CTI_VD_CONSUMER_URL, null, null, (Header) null);
+                PrivilegedHttpAction.get(ContentManagerPlugin.CTI_VD_CONSUMER_URL, null, (Header) null);
         ContextConsumerCatalog.parse(
                         xContent.createParser(
                                 NamedXContentRegistry.EMPTY,

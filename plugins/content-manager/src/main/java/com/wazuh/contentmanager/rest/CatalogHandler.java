@@ -14,7 +14,7 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-package com.wazuh.contentmanager.resthandler;
+package com.wazuh.contentmanager.rest;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -26,55 +26,43 @@ import java.io.IOException;
 import java.util.List;
 import java.util.Locale;
 
-import com.wazuh.contentmanager.action.cti.GetChangesAction;
+import com.wazuh.contentmanager.action.cti.GetCatalogAction;
 
 import static org.opensearch.rest.RestRequest.Method.GET;
 
 /**
- * Handler class for the Changes endpoint exposed by the plugin This is meant for testing purposes
- * until we have a functional JobScheduler job to trigger the CTI API-related logic
+ * Handler class for the catalog endpoint. This is meant for testing purposes until we have a
+ * functional JobScheduler job to trigger the CTI API-related logic
  */
-public class ChangesHandler extends BaseRestHandler {
+public class CatalogHandler extends BaseRestHandler {
 
-    private static String FROM_OFFSET_FIELD = "from_offset";
-    private static String TO_OFFSET_FIELD = "to_offset";
-    private static String WITH_EMPTIES_FIELD = "with_empties";
+    private static final Logger log = LogManager.getLogger(CatalogHandler.class);
 
-    private static final Logger log = LogManager.getLogger(ChangesHandler.class);
+    public static final String GET_CATALOG_DETAILS = "get_catalog_details";
 
-    public static final String GET_CHANGES_DETAILS = "get_changes_details";
-
-    /** Exposes the endpoint */
+    /** Exposes a route */
     @Override
     public List<Route> routes() {
         return List.of(
-                new Route(
-                        GET,
-                        String.format(Locale.ROOT, "%s", "/_plugins/_content_manager/vd-changes")));
+                new Route(GET, String.format(Locale.ROOT, "%s", "/_plugins/_content_manager/vd-catalog")));
     }
 
     @Override
     public String getName() {
-        return GET_CHANGES_DETAILS;
+        return GET_CATALOG_DETAILS;
     }
 
-    /** Handles the REST request and calls the appropriate action */
+    /** Handles the actual request to the plugin's catalog endpoint */
     @Override
     protected RestChannelConsumer prepareRequest(RestRequest request, NodeClient client)
             throws IOException {
         switch (request.method()) {
             case GET:
-                GetChangesAction changesAction =
-                        new GetChangesAction(
-                                request.param(FROM_OFFSET_FIELD),
-                                request.param(TO_OFFSET_FIELD),
-                                request.param(WITH_EMPTIES_FIELD));
                 return restChannel -> {
-                    restChannel.sendResponse(changesAction.run());
+                    restChannel.sendResponse(GetCatalogAction.run());
                 };
             default:
-                throw new IllegalArgumentException(
-                        ("Unsupported HTTP method " + request.method().name()));
+                throw new IllegalArgumentException(("Unsupported HTTP method " + request.method().name()));
         }
     }
 }

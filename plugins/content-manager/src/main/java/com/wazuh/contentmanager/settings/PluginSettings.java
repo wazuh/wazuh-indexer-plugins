@@ -29,18 +29,16 @@ public class PluginSettings {
     private static final Logger log = LogManager.getLogger(PluginSettings.class);
 
     /** Singleton instance. */
-    private static PluginSettings INSTANCE;
+    private static PluginSettings instance;
 
-    /**
-     * Read the base URL from configuration file
-     */
+    /** Read the base URL from configuration file */
     public static final Setting<String> CTI_BASE_URL =
-        Setting.simpleString(
-            "content-manager.api.base_url",
-            "https://cti.wazuh.com/api/v1",
-            Setting.Property.NodeScope,
-            Setting.Property.Filtered
-        );
+            Setting.simpleString(
+                    "content-manager.api.base_url",
+                    "https://cti.wazuh.com/api/v1",
+                    Setting.Property.NodeScope,
+                    Setting.Property.Filtered);
+
     private final String ctiBaseUrl;
 
     /**
@@ -53,38 +51,34 @@ public class PluginSettings {
         log.debug("Settings.loaded: {}", this.toString());
     }
 
-
     /**
      * Singleton instance accessor. Initializes the settings
      *
      * @param settings as obtained in createComponents.
-     * @return {@link PluginSettings#INSTANCE}
+     * @return {@link PluginSettings#instance}
      */
     public static PluginSettings getInstance(@NonNull final Settings settings) {
-        if (INSTANCE == null) {
-            synchronized (PluginSettings.class) {
-                if (INSTANCE == null) {
-                    INSTANCE = new PluginSettings(settings);
-                }
-            }
+        if (PluginSettings.instance == null) {
+            instance = new PluginSettings(settings);
         }
-        return INSTANCE;
+        return PluginSettings.instance;
     }
 
     /**
      * Singleton instance accessor
      *
-     * @return {@link PluginSettings#INSTANCE}
+     * @return {@link PluginSettings#instance}
      */
     public static PluginSettings getInstance() {
-        if (PluginSettings.INSTANCE == null) {
+        if (PluginSettings.instance == null) {
             throw new IllegalStateException("Plugin settings have not been initialized.");
         }
-        return INSTANCE;
+        return instance;
     }
 
     /**
      * Getter method for the CTI API URL
+     *
      * @return a string with the base URL
      */
     public String getCtiBaseUrl() {
