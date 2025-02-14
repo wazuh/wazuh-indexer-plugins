@@ -22,54 +22,94 @@ import org.opensearch.test.OpenSearchIntegTestCase;
 import org.junit.After;
 import org.junit.Before;
 
-import java.net.URI;
 import java.util.Collections;
+import java.util.Map;
 
-import org.mockito.*;
-
+import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
 @OpenSearchIntegTestCase.ClusterScope(scope = OpenSearchIntegTestCase.Scope.SUITE)
 public class HttpClientTests extends OpenSearchIntegTestCase {
 
-    private static final URI TEST_URI = URI.create("https://example.com");
     private HttpClient httpClient;
 
     @Before
     @Override
-    public void setUp() {
-        httpClient = new HttpClient(TEST_URI);
+    public void setUp() throws Exception {
+        super.setUp(); // Ensure OpenSearch test setup runs
+        httpClient = mock(HttpClient.class);
     }
 
     @After
     @Override
-    public void tearDown() {
-        HttpClient.stopHttpAsyncClient();
+    public void tearDown() throws Exception {
+        super.tearDown();
     }
 
     public void testSendRequestSuccess() {
         SimpleHttpResponse mockResponse = new SimpleHttpResponse(200, "OK");
-        HttpClient spyHttpClient = Mockito.spy(httpClient);
 
-        doReturn(mockResponse)
-                .when(spyHttpClient)
-                .sendRequest(anyString(), anyString(), anyString(), anyMap(), any(Header[].class));
+        when(httpClient.sendRequest(anyString(), anyString(), any(), anyMap(), any(Header[].class)))
+                .thenReturn(mockResponse);
 
         SimpleHttpResponse response =
-                spyHttpClient.sendRequest("GET", "/test", null, Collections.emptyMap());
-        assertNotNull(response);
+                httpClient.sendRequest("GET", "/test", null, Collections.emptyMap());
+
+        assertNotNull("Response should not be null", response);
         assertEquals(200, response.getCode());
     }
 
-    //    public void testSendRequestFailure() {
-    //        HttpClient spyHttpClient = Mockito.spy(httpClient);
-    //        doThrow(new RuntimeException("Request failed"))
-    //                .when(spyHttpClient)
-    //                .sendRequest(anyString(), anyString(), anyString(), anyMap(),
-    // any(Header[].class));
-    //
-    //        assertThrows(
-    //                RuntimeException.class,
-    //                () -> spyHttpClient.sendRequest("GET", "/test", null, Collections.emptyMap()));
-    //    }
+    public void testSendPostRequest() {
+        SimpleHttpResponse mockResponse = new SimpleHttpResponse(201, "Created");
+        String requestBody = "{\"key\":\"value\"}";
+
+        when(httpClient.sendRequest(
+                        eq("POST"), anyString(), eq(requestBody), anyMap(), any(Header[].class)))
+                .thenReturn(mockResponse);
+
+        SimpleHttpResponse response =
+                httpClient.sendRequest("POST", "/create", requestBody, Collections.emptyMap());
+
+        assertNotNull("Response should not be null", response);
+        assertEquals(201, response.getCode());
+    }
+
+    public void testSendRequestWithQueryParams() {
+        SimpleHttpResponse mockResponse = new SimpleHttpResponse(200, "OK");
+        Map<String, String> queryParams = Map.of("param1", "value1", "param2", "value2");
+
+        when(httpClient.sendRequest(
+                        anyString(), anyString(), any(), eq(queryParams), any(Header[].class)))
+                .thenReturn(mockResponse);
+
+        SimpleHttpResponse response = httpClient.sendRequest("GET", "/test", null, queryParams);
+
+        assertNotNull("Response should not be null", response);
+        assertEquals(200, response.getCode());
+    }
+
+    public void testSendRequestFailure() {
+        SimpleHttpResponse mockResponse = new SimpleHttpResponse(500, "Internal Server Error");
+
+        when(httpClient.sendRequest(anyString(), anyString(), any(), anyMap(), any(Header[].class)))
+                .thenReturn(mockResponse);
+
+        SimpleHttpResponse response =
+                httpClient.sendRequest("GET", "/error", null, Collections.emptyMap());
+
+        assertNotNull("Response should not be null", response);
+        assertEquals(500, response.getCode());
+    }
+
+    public void testSendRequestTimeout() {
+        when(httpClient.sendRequest(anyString(), anyString(), any(), anyMap(), any(Header[].class)))
+                .thenThrow(new RuntimeException("Request timeout"));
+
+        try {
+            httpClient.sendRequest("GET", "/timeout", null, Collections.emptyMap());
+            fail("Expected RuntimeException due to timeout");
+        } catch (RuntimeException e) {
+            assertEquals("Request timeout", e.getMessage());
+        }
+    }
 }

@@ -43,7 +43,7 @@ public class ClusterInfoHelper {
      * Retrieves the base URL of the OpenSearch cluster with the appropriate protocol (HTTP/HTTPS).
      *
      * @param clusterService The ClusterService instance providing cluster state and nodes.
-     * @return The cluster base URL in the format "http(s)://<IP>:<PORT>".
+     * @return The cluster base URL in the format "http(s)://[IP]:[PORT]".
      */
     public static String getClusterBaseUrl(ClusterService clusterService) {
         DiscoveryNode node = clusterService.state().nodes().getClusterManagerNode();

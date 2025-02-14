@@ -24,7 +24,6 @@ import org.apache.hc.client5.http.ssl.ClientTlsStrategyBuilder;
 import org.apache.hc.core5.http.ContentType;
 import org.apache.hc.core5.http.Header;
 import org.apache.hc.core5.http.HttpHost;
-import org.apache.hc.core5.io.CloseMode;
 import org.apache.hc.core5.ssl.SSLContextBuilder;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -92,17 +91,6 @@ public class HttpClient {
                     log.error("Error initializing HTTP client: {}", e.getMessage());
                     throw new RuntimeException("Failed to initialize HttpClient", e);
                 }
-            }
-        }
-    }
-
-    /** Stops the HTTP asynchronous client and releases resources. Ensures thread-safe shutdown. */
-    public static void stopHttpAsyncClient() {
-        synchronized (LOCK) {
-            if (httpClient != null) {
-                log.info("Shutting down HTTP client.");
-                httpClient.close(CloseMode.GRACEFUL);
-                httpClient = null;
             }
         }
     }

@@ -29,7 +29,11 @@ import com.wazuh.contentmanager.settings.PluginSettings;
  */
 public class CommandManagerClient extends HttpClient {
     private static volatile CommandManagerClient instance;
+
+    /** Base Content Manager Plugin API endpoint. */
     public static final String BASE_COMMAND_MANAGER_URI = "/_plugins/_command_manager";
+
+    /** Endpoint to post new commands. */
     public static final String POST_COMMAND_ENDPOINT = "/commands";
 
     /** Private constructor to initialize the CommandManagerClient with the base API URI. */

@@ -63,6 +63,7 @@ public class PluginSettings {
      * Singleton instance accessor. Initializes the settings
      *
      * @param settings as obtained in createComponents.
+     * @param clusterService service to get cluster stats.
      * @return {@link PluginSettings#INSTANCE}
      */
     public static PluginSettings getInstance(
