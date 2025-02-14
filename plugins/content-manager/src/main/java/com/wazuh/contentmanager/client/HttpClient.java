@@ -32,11 +32,9 @@ import org.apache.logging.log4j.Logger;
 import javax.net.ssl.SSLContext;
 
 import java.net.URI;
-import java.security.AccessController;
 import java.security.KeyManagementException;
 import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
-import java.security.PrivilegedAction;
 import java.util.Map;
 import java.util.concurrent.*;
 

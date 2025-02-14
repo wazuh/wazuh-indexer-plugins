@@ -20,7 +20,6 @@ import org.apache.hc.client5.http.async.methods.SimpleHttpResponse;
 import org.apache.hc.core5.http.Header;
 
 import java.net.URI;
-import java.util.Map;
 
 import com.wazuh.contentmanager.client.HttpClient;
 import com.wazuh.contentmanager.settings.PluginSettings;
