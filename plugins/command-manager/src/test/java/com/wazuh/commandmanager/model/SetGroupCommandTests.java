@@ -183,8 +183,7 @@ public class SetGroupCommandTests extends OpenSearchIntegTestCase {
         } catch (IllegalArgumentException e) {
             // Verify that the exception is correct.
             assertEquals(
-                    "Expected [command.action.args.groups] to be an array, got [VALUE_NULL]",
-                    e.getMessage());
+                    "Expected [command.action.args.groups] to be an array, got [VALUE_NULL]", e.getMessage());
         }
     }
 }

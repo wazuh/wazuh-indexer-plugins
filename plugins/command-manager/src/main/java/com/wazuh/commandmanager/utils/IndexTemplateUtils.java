@@ -67,9 +67,7 @@ public class IndexTemplateUtils {
     public static Map<String, Object> toMap(InputStream is) throws IOException {
         XContentParser parser =
                 JsonXContent.jsonXContent.createParser(
-                        NamedXContentRegistry.EMPTY,
-                        DeprecationHandler.THROW_UNSUPPORTED_OPERATION,
-                        is);
+                        NamedXContentRegistry.EMPTY, DeprecationHandler.THROW_UNSUPPORTED_OPERATION, is);
         parser.nextToken();
         return parser.map();
     }
@@ -77,8 +75,8 @@ public class IndexTemplateUtils {
     /**
      * Cast map's element to a String, Object map.
      *
-     * <p>Used to retrieve the settings and mappings from the index templates, which are a JSON
-     * object themselves.
+     * <p>Used to retrieve the settings and mappings from the index templates, which are a JSON object
+     * themselves.
      *
      * @param map the index template as a map.
      * @param key the element's key to retrieve and cast.
@@ -95,10 +93,8 @@ public class IndexTemplateUtils {
      * @param templateName index template name within the resources folder
      * @return whether the index template exists.
      */
-    public static boolean isMissingIndexTemplate(
-            ClusterService clusterService, String templateName) {
-        Map<String, IndexTemplateMetadata> templates =
-                clusterService.state().metadata().templates();
+    public static boolean isMissingIndexTemplate(ClusterService clusterService, String templateName) {
+        Map<String, IndexTemplateMetadata> templates = clusterService.state().metadata().templates();
         log.debug("Existing index templates: {} ", templates.keySet());
 
         return !templates.containsKey(templateName);
@@ -108,8 +104,8 @@ public class IndexTemplateUtils {
      * Creates an index template into the cluster.
      *
      * @param client OpenSearch's client.
-     * @param templateName index template name. The index template is read from the plugin's
-     *     resources directory as "templateName.json", and created as "templateName".
+     * @param templateName index template name. The index template is read from the plugin's resources
+     *     directory as "templateName.json", and created as "templateName".
      */
     public static void putIndexTemplate(Client client, String templateName) {
         try {

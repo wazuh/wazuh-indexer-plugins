@@ -16,19 +16,30 @@
  */
 package com.wazuh.commandmanager.model;
 
-import org.opensearch.core.xcontent.ToXContent;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+import org.opensearch.client.node.NodeClient;
+import org.opensearch.core.xcontent.ToXContentObject;
 import org.opensearch.core.xcontent.XContentBuilder;
 import org.opensearch.search.SearchHit;
 import org.opensearch.search.SearchHits;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
 
-/** Orders model class. */
-public class Orders implements ToXContent {
+import com.wazuh.commandmanager.settings.PluginSettings;
+import com.wazuh.commandmanager.utils.Search;
+
+/** Model that stores a list of Orders to be indexed at the commands index */
+public class Orders implements ToXContentObject {
     public static final String ORDERS = "orders";
-
+    public static final String ID = "_id";
     private final ArrayList<Order> orders;
+
+    private static final Logger log = LogManager.getLogger(Orders.class);
 
     /** Default constructor. */
     public Orders() {
@@ -36,69 +47,95 @@ public class Orders implements ToXContent {
     }
 
     /**
-     * Helper static method that takes the search results in SearchHits form and parses them into
-     * Order objects. It then puts together a json string meant for sending over HTTP
+     * Get the list of Order objects.
      *
-     * @param searchHits the commands search result
-     * @return A json string payload with an array of orders to be processed
+     * @return the list of documents.
      */
-
-    /**
-     * Static builder method that initializes an instance of Orders from a SearchHits instance.
-     *
-     * @param searchHits search hits as returned from the search index query to the commands index.
-     * @return instance of Orders.
-     */
-    public static Orders fromSearchHits(SearchHits searchHits) {
-        Orders orders = new Orders();
-
-        // Iterate over search results
-        for (SearchHit hit : searchHits) {
-            // Parse the hit's order
-            Order order = Order.fromSearchHit(hit);
-            orders.add(order);
-        }
-
-        return orders;
-    }
-
-    /**
-     * Overwrites the array of orders
-     *
-     * @param orders the list of orders to be set.
-     */
-    public void setOrders(ArrayList<Order> orders) {
-        this.orders.clear();
-        this.orders.addAll(orders);
-    }
-
-    /**
-     * Retrieves the list of orders.
-     *
-     * @return the current list of Order objects.
-     */
-    public ArrayList<Order> getOrders() {
+    public ArrayList<Order> get() {
         return this.orders;
     }
 
     /**
-     * Adds an order to the orders array.
+     * Adds a document to the list of documents.
      *
-     * @param order order to add.
+     * @param order The document to add to the list.
      */
-    private void add(Order order) {
+    public void add(Order order) {
         this.orders.add(order);
     }
 
+    /**
+     * Fit this object into a XContentBuilder parser, preparing it for the reply of POST /commands.
+     *
+     * @param builder XContentBuilder builder
+     * @param params ToXContent.EMPTY_PARAMS
+     * @return XContentBuilder builder with the representation of this object.
+     * @throws IOException parsing error.
+     */
     @Override
     public XContentBuilder toXContent(XContentBuilder builder, Params params) throws IOException {
-        // Start an XContentBuilder array named "orders"
-        builder.startObject();
         builder.startArray(ORDERS);
         for (Order order : this.orders) {
-            order.toXContent(builder, params);
+            builder.startObject();
+            builder.field(ID, order.getId());
+            builder.endObject();
         }
-        builder.endArray();
-        return builder.endObject();
+        return builder.endArray();
+    }
+
+    /**
+     * Converts a list of Command objects into Orders by executing search queries.
+     *
+     * @param client the NodeClient used to execute search queries.
+     * @param commands the list of Command objects to be converted.
+     * @return an Orders object containing the generated orders.
+     */
+    @SuppressWarnings("unchecked")
+    public static Orders fromCommands(NodeClient client, List<Command> commands) {
+        Orders orders = new Orders();
+
+        for (Command command : commands) {
+            List<Agent> agentList = new ArrayList<>();
+            String queryField = "";
+            Target.Type targetType = command.getTarget().getType();
+            String targetId = command.getTarget().getId();
+
+            if (Objects.equals(targetType, Target.Type.GROUP)) {
+                queryField = "agent.groups";
+            } else if (Objects.equals(targetType, Target.Type.AGENT)) {
+                queryField = "agent.id";
+            }
+
+            // Build and execute the search query
+            log.info("Searching for agents using field {} with value {}", queryField, targetId);
+            SearchHits hits =
+                    Search.syncSearch(client, PluginSettings.getAgentsIndex(), queryField, targetId);
+            if (hits != null) {
+                for (SearchHit hit : hits) {
+                    final Map<String, Object> agentMap =
+                            Search.getNestedObject(hit.getSourceAsMap(), "agent", Map.class);
+                    if (agentMap != null) {
+                        String agentId = (String) agentMap.get(Agent.ID);
+                        List<String> agentGroups = (List<String>) agentMap.get(Agent.GROUPS);
+                        Agent agent = new Agent(agentId, agentGroups);
+                        agentList.add(agent);
+                    }
+                }
+                log.info("Search retrieved {} agents.", agentList.size());
+            }
+
+            for (Agent agent : agentList) {
+                Command newCommand =
+                        new Command(
+                                command.getSource(),
+                                new Target(Target.Type.AGENT, agent.getId()),
+                                command.getTimeout(),
+                                command.getUser(),
+                                command.getAction());
+                Order order = new Order(agent, newCommand);
+                orders.add(order);
+            }
+        }
+        return orders;
     }
 }

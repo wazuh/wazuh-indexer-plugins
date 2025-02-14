@@ -58,9 +58,7 @@ public class IndexTemplateUtils {
     public static Map<String, Object> toMap(InputStream is) throws IOException {
         XContentParser parser =
                 JsonXContent.jsonXContent.createParser(
-                        NamedXContentRegistry.EMPTY,
-                        DeprecationHandler.THROW_UNSUPPORTED_OPERATION,
-                        is);
+                        NamedXContentRegistry.EMPTY, DeprecationHandler.THROW_UNSUPPORTED_OPERATION, is);
         parser.nextToken();
         return parser.map();
     }
@@ -68,8 +66,8 @@ public class IndexTemplateUtils {
     /**
      * Cast map's element to a String, Object map.
      *
-     * <p>Used to retrieve the settings and mappings from the index templates, which are a JSON
-     * object themselves.
+     * <p>Used to retrieve the settings and mappings from the index templates, which are a JSON object
+     * themselves.
      *
      * @param map the index template as a map.
      * @param key the element's key to retrieve and cast.

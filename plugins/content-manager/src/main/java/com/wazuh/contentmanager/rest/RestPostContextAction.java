@@ -60,18 +60,12 @@ public class RestPostContextAction extends BaseRestHandler {
     public List<Route> routes() {
         return List.of(
                 new Route(
-                        POST,
-                        String.format(Locale.ROOT, "%s", ContentManagerPlugin.CONTEXT_URI)
-                                + "/{id}"),
+                        POST, String.format(Locale.ROOT, "%s", ContentManagerPlugin.CONTEXT_URI) + "/{id}"),
                 new Route(GET, String.format(Locale.ROOT, "%s", ContentManagerPlugin.CONTEXT_URI)),
                 new Route(
-                        GET,
-                        String.format(Locale.ROOT, "%s", ContentManagerPlugin.CONTEXT_URI)
-                                + "/{id}"),
+                        GET, String.format(Locale.ROOT, "%s", ContentManagerPlugin.CONTEXT_URI) + "/{id}"),
                 new Route(
-                        PUT,
-                        String.format(Locale.ROOT, "%s", ContentManagerPlugin.CONTEXT_URI)
-                                + "/{id}"));
+                        PUT, String.format(Locale.ROOT, "%s", ContentManagerPlugin.CONTEXT_URI) + "/{id}"));
     }
 
     @Override
@@ -112,8 +106,7 @@ public class RestPostContextAction extends BaseRestHandler {
         Document document = Document.parse(parser);
         log.info(
                 "Document before update: {}",
-                document.toXContent(XContentFactory.jsonBuilder(), ToXContent.EMPTY_PARAMS)
-                        .toString());
+                document.toXContent(XContentFactory.jsonBuilder(), ToXContent.EMPTY_PARAMS).toString());
         String finalId = request.param("id");
 
         // Send response
@@ -128,8 +121,7 @@ public class RestPostContextAction extends BaseRestHandler {
                                     builder.field("_index", ContextIndex.INDEX_NAME);
                                     builder.field("result", restStatus.name());
                                     builder.endObject();
-                                    channel.sendResponse(
-                                            new BytesRestResponse(restStatus, builder));
+                                    channel.sendResponse(new BytesRestResponse(restStatus, builder));
                                 } catch (IOException e) {
                                     log.error(
                                             "Error preparing response to [{}] request with id [{}] due to {}",
@@ -141,8 +133,7 @@ public class RestPostContextAction extends BaseRestHandler {
                     .exceptionally(
                             e -> {
                                 channel.sendResponse(
-                                        new BytesRestResponse(
-                                                RestStatus.INTERNAL_SERVER_ERROR, e.getMessage()));
+                                        new BytesRestResponse(RestStatus.INTERNAL_SERVER_ERROR, e.getMessage()));
                                 return null;
                             });
             log.info("Final of post in RestPostContextAction executed");
@@ -177,20 +168,15 @@ public class RestPostContextAction extends BaseRestHandler {
                                         builder.field("_index", ContextIndex.INDEX_NAME);
                                         builder.field("result", restStatus.name());
                                         builder.endObject();
-                                        channel.sendResponse(
-                                                new BytesRestResponse(restStatus, builder));
+                                        channel.sendResponse(new BytesRestResponse(restStatus, builder));
                                     } catch (IOException e) {
-                                        log.error(
-                                                "Error preparing response due to {}",
-                                                e.getMessage());
+                                        log.error("Error preparing response due to {}", e.getMessage());
                                     }
                                 })
                         .exceptionally(
                                 e -> {
                                     channel.sendResponse(
-                                            new BytesRestResponse(
-                                                    RestStatus.INTERNAL_SERVER_ERROR,
-                                                    e.getMessage()));
+                                            new BytesRestResponse(RestStatus.INTERNAL_SERVER_ERROR, e.getMessage()));
                                     return null;
                                 });
             };
@@ -207,20 +193,15 @@ public class RestPostContextAction extends BaseRestHandler {
 
                                         builder.field("result", restStatus.name());
                                         builder.endObject();
-                                        channel.sendResponse(
-                                                new BytesRestResponse(restStatus, builder));
+                                        channel.sendResponse(new BytesRestResponse(restStatus, builder));
                                     } catch (IOException e) {
-                                        log.error(
-                                                "Error preparing response due to {}",
-                                                e.getMessage());
+                                        log.error("Error preparing response due to {}", e.getMessage());
                                     }
                                 })
                         .exceptionally(
                                 e -> {
                                     channel.sendResponse(
-                                            new BytesRestResponse(
-                                                    RestStatus.INTERNAL_SERVER_ERROR,
-                                                    e.getMessage()));
+                                            new BytesRestResponse(RestStatus.INTERNAL_SERVER_ERROR, e.getMessage()));
                                     return null;
                                 });
             };
@@ -248,8 +229,7 @@ public class RestPostContextAction extends BaseRestHandler {
         Document document = Document.parse(parser);
         log.info(
                 "Document before update: {}",
-                document.toXContent(XContentFactory.jsonBuilder(), ToXContent.EMPTY_PARAMS)
-                        .toString());
+                document.toXContent(XContentFactory.jsonBuilder(), ToXContent.EMPTY_PARAMS).toString());
         String finalId = request.param("id");
         // Send response
         return channel -> {
@@ -263,8 +243,7 @@ public class RestPostContextAction extends BaseRestHandler {
 
                                     builder.field("result", restStatus.name());
                                     builder.endObject();
-                                    channel.sendResponse(
-                                            new BytesRestResponse(restStatus, builder));
+                                    channel.sendResponse(new BytesRestResponse(restStatus, builder));
                                 } catch (IOException e) {
                                     log.error("Error preparing response due to {}", e.getMessage());
                                 }
@@ -272,8 +251,7 @@ public class RestPostContextAction extends BaseRestHandler {
                     .exceptionally(
                             e -> {
                                 channel.sendResponse(
-                                        new BytesRestResponse(
-                                                RestStatus.INTERNAL_SERVER_ERROR, e.getMessage()));
+                                        new BytesRestResponse(RestStatus.INTERNAL_SERVER_ERROR, e.getMessage()));
                                 return null;
                             });
         };

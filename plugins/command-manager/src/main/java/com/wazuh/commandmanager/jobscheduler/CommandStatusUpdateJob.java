@@ -62,8 +62,8 @@ public class CommandStatusUpdateJob implements Runnable {
     }
 
     /**
-     * Fetch every command in PENDING status and whose delivery time has expired. Set their status
-     * to FAILURE.
+     * Fetch every command in PENDING status and whose delivery time has expired. Set their status to
+     * FAILURE.
      */
     @Override
     public void run() {
@@ -75,19 +75,10 @@ public class CommandStatusUpdateJob implements Runnable {
                     .source(PluginSettings.getIndexName())
                     .filter(
                             QueryBuilders.boolQuery()
-                                    .must(
-                                            QueryBuilders.rangeQuery(DELIVERY_TIMESTAMP_FIELD)
-                                                    .lt("now"))
-                                    .filter(
-                                            QueryBuilders.termQuery(
-                                                    COMMAND_STATUS_FIELD, Status.PENDING)))
+                                    .must(QueryBuilders.rangeQuery(DELIVERY_TIMESTAMP_FIELD).lt("now"))
+                                    .filter(QueryBuilders.termQuery(COMMAND_STATUS_FIELD, Status.PENDING)))
                     .maxDocs(PluginSettings.getInstance().getMaxDocs())
-                    .script(
-                            new Script(
-                                    ScriptType.INLINE,
-                                    "painless",
-                                    UPDATE_QUERY,
-                                    Collections.emptyMap()));
+                    .script(new Script(ScriptType.INLINE, "painless", UPDATE_QUERY, Collections.emptyMap()));
             BulkByScrollResponse response = updateByQuery.get();
             log.debug("Query returned {} documents", response.getUpdated());
         } catch (OpenSearchTimeoutException e) {

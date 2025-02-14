@@ -110,8 +110,7 @@ public class ContentIndex {
                             this.threadPool.getThreadContext().stashContext()) {
                         IndexRequest indexRequest = createIndexRequest(document);
                         log.info("Previously indexing document {}", document.getId());
-                        final RestStatus restStatus =
-                                this.client.index(indexRequest).actionGet().status();
+                        final RestStatus restStatus = this.client.index(indexRequest).actionGet().status();
                         log.info("POST indexing document {}", document.getId());
                         future.complete(restStatus);
                     } catch (IOException e) {

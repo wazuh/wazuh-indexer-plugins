@@ -115,8 +115,7 @@ public class ContextIndex {
                             this.threadPool.getThreadContext().stashContext()) {
                         IndexRequest indexRequest = createIndexRequest(document, id);
                         log.info("Previously indexing document {}", id);
-                        final RestStatus restStatus =
-                                this.client.index(indexRequest).actionGet().status();
+                        final RestStatus restStatus = this.client.index(indexRequest).actionGet().status();
                         log.info("POST indexing document {}", id);
                         future.complete(restStatus);
                     } catch (Exception e) {
@@ -162,8 +161,7 @@ public class ContextIndex {
                         SearchRequest searchRequest =
                                 createSearchRequest(this.searchSourceBuilder.trackTotalHits(true));
 
-                        final SearchResponse searchResponse =
-                                this.client.search(searchRequest).actionGet();
+                        final SearchResponse searchResponse = this.client.search(searchRequest).actionGet();
 
                         log.info("Result SEARCH: {}", searchResponse.toString());
 
@@ -173,8 +171,7 @@ public class ContextIndex {
 
                         log.info(
                                 "Found {} documents",
-                                Objects.requireNonNull(searchResponse.getHits().getTotalHits())
-                                        .value);
+                                Objects.requireNonNull(searchResponse.getHits().getTotalHits()).value);
                     } catch (Exception e) {
                         log.error("Error creating SearchRequest due to {}", e.getMessage());
                         future.completeExceptionally(e);
@@ -200,8 +197,7 @@ public class ContextIndex {
                         SearchRequest searchRequest =
                                 createSearchRequest(this.searchSourceBuilder.trackTotalHits(true));
 
-                        final SearchResponse searchResponse =
-                                this.client.search(searchRequest).actionGet();
+                        final SearchResponse searchResponse = this.client.search(searchRequest).actionGet();
 
                         log.info("Result SEARCH ALL: {}", searchResponse.toString());
 
@@ -211,8 +207,7 @@ public class ContextIndex {
 
                         log.info(
                                 "Found {} documents",
-                                Objects.requireNonNull(searchResponse.getHits().getTotalHits())
-                                        .value);
+                                Objects.requireNonNull(searchResponse.getHits().getTotalHits()).value);
                     } catch (Exception e) {
                         log.error("Error creating SearchRequest due to {}", e.getMessage());
                         future.completeExceptionally(e);
@@ -253,8 +248,7 @@ public class ContextIndex {
                         searchSourceBuilder.query(null);
                         UpdateRequest updateRequest = createUpdateRequest(id, document);
 
-                        final UpdateResponse updateResponse =
-                                this.client.update(updateRequest).actionGet();
+                        final UpdateResponse updateResponse = this.client.update(updateRequest).actionGet();
 
                         if (updateResponse.getGetResult() != null) {
                             log.info("Result UPDATE: {}", updateResponse.getGetResult().toString());
@@ -286,9 +280,7 @@ public class ContextIndex {
         UpdateRequest updateRequest = new UpdateRequest(INDEX_NAME, id);
         try {
             updateRequest
-                    .doc(
-                            document.toXContent(
-                                    XContentFactory.jsonBuilder(), ToXContent.EMPTY_PARAMS))
+                    .doc(document.toXContent(XContentFactory.jsonBuilder(), ToXContent.EMPTY_PARAMS))
                     .fetchSource(true);
         } catch (IOException e) {
             log.error("Error creating IndexRequest due to {}", e.getMessage());
