@@ -48,9 +48,7 @@ public class ChangesHandler extends BaseRestHandler {
     @Override
     public List<Route> routes() {
         return List.of(
-                new Route(
-                        GET,
-                        String.format(Locale.ROOT, "%s", "/_plugins/_content_manager/vd-changes")));
+                new Route(GET, String.format(Locale.ROOT, "%s", "/_plugins/_content_manager/vd-changes")));
     }
 
     @Override
@@ -73,8 +71,7 @@ public class ChangesHandler extends BaseRestHandler {
                     restChannel.sendResponse(changesAction.run());
                 };
             default:
-                throw new IllegalArgumentException(
-                        ("Unsupported HTTP method " + request.method().name()));
+                throw new IllegalArgumentException(("Unsupported HTTP method " + request.method().name()));
         }
     }
 }

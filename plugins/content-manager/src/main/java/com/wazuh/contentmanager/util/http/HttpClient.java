@@ -82,17 +82,13 @@ public class HttpClient {
 
                 // Create a custom TrustManager that trusts self-signed certificates
                 final SSLContext sslContext =
-                        SSLContextBuilder.create()
-                                .loadTrustMaterial(null, (chains, authType) -> true)
-                                .build();
+                        SSLContextBuilder.create().loadTrustMaterial(null, (chains, authType) -> true).build();
 
                 final TlsStrategy tlsStrategy =
                         ClientTlsStrategyBuilder.create().setSslContext(sslContext).build();
 
                 final PoolingAsyncClientConnectionManager connectionManager =
-                        PoolingAsyncClientConnectionManagerBuilder.create()
-                                .setTlsStrategy(tlsStrategy)
-                                .build();
+                        PoolingAsyncClientConnectionManagerBuilder.create().setTlsStrategy(tlsStrategy).build();
 
                 final IOReactorConfig ioReactorConfig =
                         IOReactorConfig.custom().setSoTimeout(TIMEOUT, TimeUnit.SECONDS).build();
@@ -155,13 +151,10 @@ public class HttpClient {
                     .execute(
                             SimpleRequestProducer.create(httpGetRequest),
                             SimpleResponseConsumer.create(),
-                            new HttpResponseCallback(
-                                    httpGetRequest, "Failed to execute outgoing GET request"))
+                            new HttpResponseCallback(httpGetRequest, "Failed to execute outgoing GET request"))
                     .get(TIMEOUT, TimeUnit.SECONDS);
         } catch (InterruptedException | ExecutionException | TimeoutException e) {
-            log.error(
-                    "Exception found while performing Http GET request interrupted {}",
-                    e.getMessage());
+            log.error("Exception found while performing Http GET request interrupted {}", e.getMessage());
         } catch (Exception e) {
             log.error("Caught generic exception {}", e.getMessage());
         }

@@ -44,8 +44,6 @@ public class PrivilegedHttpAction {
             String uri, String body, Map<String, String> queryParameters, Header... headers) {
         return AccessController.doPrivileged(
                 (java.security.PrivilegedAction<SimpleHttpResponse>)
-                        () ->
-                                HttpClient.getInstance()
-                                        .get(URI.create(uri), body, queryParameters, headers));
+                        () -> HttpClient.getInstance().get(URI.create(uri), body, queryParameters, headers));
     }
 }

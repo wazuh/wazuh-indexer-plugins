@@ -64,10 +64,7 @@ public class GetChangesAction {
         XContentBuilder builder = XContentFactory.jsonBuilder();
         SimpleHttpResponse response =
                 PrivilegedHttpAction.get(
-                        ContentManagerPlugin.CTI_CHANGES_URL,
-                        null,
-                        buildQueryParametersMap(),
-                        (Header) null);
+                        ContentManagerPlugin.CTI_CHANGES_URL, null, buildQueryParametersMap(), (Header) null);
         Offsets.parse(
                         xContent.createParser(
                                 NamedXContentRegistry.EMPTY,

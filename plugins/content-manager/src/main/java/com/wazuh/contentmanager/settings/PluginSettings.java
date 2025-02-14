@@ -31,16 +31,14 @@ public class PluginSettings {
     /** Singleton instance. */
     private static PluginSettings INSTANCE;
 
-    /**
-     * Read the base URL from configuration file
-     */
+    /** Read the base URL from configuration file */
     public static final Setting<String> CTI_BASE_URL =
-        Setting.simpleString(
-            "content-manager.api.base_url",
-            "https://cti.wazuh.com/api/v1",
-            Setting.Property.NodeScope,
-            Setting.Property.Filtered
-        );
+            Setting.simpleString(
+                    "content-manager.api.base_url",
+                    "https://cti.wazuh.com/api/v1",
+                    Setting.Property.NodeScope,
+                    Setting.Property.Filtered);
+
     private final String ctiBaseUrl;
 
     /**
@@ -52,7 +50,6 @@ public class PluginSettings {
         this.ctiBaseUrl = CTI_BASE_URL.get(settings);
         log.debug("Settings.loaded: {}", this.toString());
     }
-
 
     /**
      * Singleton instance accessor. Initializes the settings
@@ -85,6 +82,7 @@ public class PluginSettings {
 
     /**
      * Getter method for the CTI API URL
+     *
      * @return a string with the base URL
      */
     public String getCtiBaseUrl() {

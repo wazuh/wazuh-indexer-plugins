@@ -119,8 +119,7 @@ public class RestPostCommandAction extends BaseRestHandler {
             return channel -> {
                 channel.sendResponse(
                         new BytesRestResponse(
-                                RestStatus.BAD_REQUEST,
-                                "Cannot generate orders. Invalid agent IDs or groups."));
+                                RestStatus.BAD_REQUEST, "Cannot generate orders. Invalid agent IDs or groups."));
             };
         }
 
