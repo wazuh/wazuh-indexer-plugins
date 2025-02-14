@@ -109,8 +109,7 @@ public class Orders implements ToXContentObject {
             // Build and execute the search query
             log.info("Searching for agents using field {} with value {}", queryField, targetId);
             SearchHits hits =
-                    Search.syncSearch(
-                            client, PluginSettings.getAgentsIndex(), queryField, targetId);
+                    Search.syncSearch(client, PluginSettings.getAgentsIndex(), queryField, targetId);
             if (hits != null) {
                 for (SearchHit hit : hits) {
                     final Map<String, Object> agentMap =
