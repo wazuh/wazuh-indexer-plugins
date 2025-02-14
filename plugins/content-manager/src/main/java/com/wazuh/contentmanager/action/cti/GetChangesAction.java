@@ -75,9 +75,9 @@ public class GetChangesAction {
                                 DeprecationHandler.IGNORE_DEPRECATIONS,
                                 response.getBodyBytes()))
                 .toXContent(builder, ToXContent.EMPTY_PARAMS);
+        // Post new command informing the new changes. (Call may be need to be moved elsewhere)
         SimpleHttpResponse commandResponse =
-                CommandManagerClient.getInstance()
-                        .postCommand(Command.generateCtiCommand("Offset_version"));
+                CommandManagerClient.getInstance().postCommand(Command.generateCtiCommand());
         log.info("Command Manager response: {}", commandResponse);
         return new BytesRestResponse(RestStatus.fromCode(response.getCode()), builder.toString());
     }

@@ -25,27 +25,27 @@ public class Command {
     /**
      * Constructs the JSON request body for the command.
      *
-     * @param version The version to set in the "action" section.
      * @return JSON string representing the request body.
      * @throws IOException If there's an issue building the JSON.
      */
-    public static String generateCtiCommand(String version) throws IOException {
+    public static String generateCtiCommand() throws IOException {
         return XContentFactory.jsonBuilder()
                 .startObject()
                 .startArray("commands")
                 .startObject()
                 .startObject("action")
                 .startObject("args")
-                .field("source-index", "wazuh-cti-source-index")
+                .field("index", "content-index")
                 .endObject()
-                .field("name", "pull-new-content")
-                .field("version", version) // Dynamic version
+                .field("name", "update")
+                .field("version", "5.0.0") // Dynamic version
                 .endObject()
-                .field("source", "CTI")
-                .field("user", "wazuh-index-content-manager")
+                .field("source", "Content Manager")
+                .field("user", "Content Manager")
                 .field("timeout", 100)
                 .startObject("target")
-                .field("type", "engine")
+                .field("id", "TO-BE-DEFINED")
+                .field("type", "server")
                 .endObject()
                 .endObject()
                 .endArray()
