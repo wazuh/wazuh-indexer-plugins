@@ -20,8 +20,15 @@ import org.apache.hc.client5.http.async.methods.SimpleHttpResponse;
 
 import java.security.AccessController;
 
+/** Privileged utility class for executing privileged HTTP requests. */
 public class Privileged {
 
+    /**
+     * Executes an HTTP request with elevated privileges.
+     *
+     * @param request A privileged action that performs the HTTP request.
+     * @return The SimpleHttpResponse resulting from the request execution.
+     */
     public static SimpleHttpResponse doPrivilegedRequest(
             java.security.PrivilegedAction<SimpleHttpResponse> request) {
         return AccessController.doPrivileged(request);

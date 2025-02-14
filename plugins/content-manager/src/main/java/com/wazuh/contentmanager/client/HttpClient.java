@@ -41,23 +41,35 @@ import java.util.concurrent.*;
 import com.wazuh.contentmanager.util.http.HttpResponseCallback;
 import reactor.util.annotation.NonNull;
 
+/**
+ * HttpClient is a base class to handle HTTP requests to external APIs. It supports secure
+ * communication using SSL/TLS and manages an async HTTP client.
+ */
 public class HttpClient {
 
     private static final Logger log = LogManager.getLogger(HttpClient.class);
 
     private static final int TIMEOUT = 10;
     private static final TimeUnit TIME_UNIT = TimeUnit.SECONDS;
-    private static CloseableHttpAsyncClient httpClient;
     private static final Object LOCK = new Object();
+    private static CloseableHttpAsyncClient httpClient;
 
     protected final URI apiUri;
 
+    /**
+     * Constructs an HttpClient instance with the specified API URI.
+     *
+     * @param apiUri The base URI for API requests.
+     */
     protected HttpClient(@NonNull URI apiUri) {
         this.apiUri = apiUri;
         startHttpAsyncClient();
     }
 
-    /** Initializes and starts the HTTP async client */
+    /**
+     * Initializes and starts the HTTP asynchronous client if not already started. Ensures thread-safe
+     * initialization.
+     */
     private static void startHttpAsyncClient() {
         synchronized (LOCK) {
             if (httpClient == null) {
@@ -84,7 +96,7 @@ public class HttpClient {
         }
     }
 
-    /** Stops the HTTP async client */
+    /** Stops the HTTP asynchronous client and releases resources. Ensures thread-safe shutdown. */
     public static void stopHttpAsyncClient() {
         synchronized (LOCK) {
             if (httpClient != null) {
@@ -96,13 +108,14 @@ public class HttpClient {
     }
 
     /**
-     * Sends an HTTP request with the specified method.
+     * Sends an HTTP request with the specified parameters.
      *
-     * @param method HTTP method (GET, POST, etc.)
-     * @param requestBody Data to send (optional)
-     * @param queryParameters Query parameters (optional)
-     * @param headers Headers (optional)
-     * @return SimpleHttpResponse response
+     * @param method The HTTP method (e.g., GET, POST, PUT, DELETE).
+     * @param endpoint The endpoint to append to the base API URI.
+     * @param requestBody The request body (optional, applicable for POST/PUT).
+     * @param queryParameters The query parameters (optional).
+     * @param headers The headers to include in the request (optional).
+     * @return A SimpleHttpResponse containing the response details.
      */
     protected SimpleHttpResponse sendRequest(
             @NonNull String method,

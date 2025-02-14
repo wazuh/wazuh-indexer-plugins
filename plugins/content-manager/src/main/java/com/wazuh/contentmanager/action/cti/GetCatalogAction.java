@@ -25,7 +25,7 @@ import org.opensearch.rest.BytesRestResponse;
 
 import java.io.IOException;
 
-import com.wazuh.contentmanager.client.cti.CTIClient;
+import com.wazuh.contentmanager.client.CTIClient;
 import com.wazuh.contentmanager.model.ctiapi.ContextConsumerCatalog;
 import com.wazuh.contentmanager.util.Privileged;
 

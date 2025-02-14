@@ -20,7 +20,7 @@ import org.opensearch.common.xcontent.XContentFactory;
 
 import java.io.IOException;
 
-/** Command's fields. */
+/** This class represents the model of the posted command to the Command Manager API. */
 public class Command {
     /**
      * Constructs the JSON request body for the command.

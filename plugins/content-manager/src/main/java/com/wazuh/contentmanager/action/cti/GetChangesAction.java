@@ -29,8 +29,8 @@ import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 
-import com.wazuh.contentmanager.client.commandmanager.CommandManagerClient;
-import com.wazuh.contentmanager.client.cti.CTIClient;
+import com.wazuh.contentmanager.client.CTIClient;
+import com.wazuh.contentmanager.client.CommandManagerClient;
 import com.wazuh.contentmanager.model.commandmanager.Command;
 import com.wazuh.contentmanager.model.ctiapi.Offsets;
 import com.wazuh.contentmanager.util.Privileged;

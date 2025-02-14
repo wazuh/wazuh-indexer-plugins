@@ -20,10 +20,15 @@ import org.opensearch.cluster.node.DiscoveryNode;
 import org.opensearch.cluster.service.ClusterService;
 import org.opensearch.common.settings.Settings;
 
+/**
+ * ClusterInfoHelper provides utility methods for retrieving cluster-related information, such as
+ * security settings and the cluster base URL.
+ */
 public class ClusterInfoHelper {
     /**
-     * Checks if the cluster is using HTTPS.
+     * Checks if the OpenSearch cluster is using HTTPS for communication.
      *
+     * @param clusterService The ClusterService instance providing cluster settings.
      * @return true if HTTPS is enabled, false otherwise.
      */
     public static boolean isHttpsEnabled(ClusterService clusterService) {
@@ -35,9 +40,10 @@ public class ClusterInfoHelper {
     }
 
     /**
-     * Retrieves the cluster base URL with the correct protocol.
+     * Retrieves the base URL of the OpenSearch cluster with the appropriate protocol (HTTP/HTTPS).
      *
-     * @return Cluster base URL with HTTP or HTTPS.
+     * @param clusterService The ClusterService instance providing cluster state and nodes.
+     * @return The cluster base URL in the format "http(s)://<IP>:<PORT>".
      */
     public static String getClusterBaseUrl(ClusterService clusterService) {
         DiscoveryNode node = clusterService.state().nodes().getClusterManagerNode();

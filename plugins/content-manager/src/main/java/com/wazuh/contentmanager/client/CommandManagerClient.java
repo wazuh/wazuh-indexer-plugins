@@ -14,25 +14,35 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-package com.wazuh.contentmanager.client.commandmanager;
+package com.wazuh.contentmanager.client;
 
 import org.apache.hc.client5.http.async.methods.SimpleHttpResponse;
 import org.apache.hc.core5.http.Header;
 
 import java.net.URI;
 
-import com.wazuh.contentmanager.client.HttpClient;
 import com.wazuh.contentmanager.settings.PluginSettings;
 
+/**
+ * CommandManagerClient is a singleton class responsible for managing HTTP communication with the
+ * Command Manager API.
+ */
 public class CommandManagerClient extends HttpClient {
     private static volatile CommandManagerClient instance;
     public static final String BASE_COMMAND_MANAGER_URI = "/_plugins/_command_manager";
     public static final String POST_COMMAND_ENDPOINT = "/commands";
 
+    /** Private constructor to initialize the CommandManagerClient with the base API URI. */
     private CommandManagerClient() {
         super(URI.create(PluginSettings.getInstance().getClusterBaseUrl() + BASE_COMMAND_MANAGER_URI));
     }
 
+    /**
+     * Returns the singleton instance of CommandManagerClient. Uses double-checked locking to ensure
+     * thread safety.
+     *
+     * @return The singleton instance of CommandManagerClient.
+     */
     public static CommandManagerClient getInstance() {
         if (instance == null) {
             synchronized (CommandManagerClient.class) {
@@ -44,6 +54,12 @@ public class CommandManagerClient extends HttpClient {
         return instance;
     }
 
+    /**
+     * Sends a POST request to execute a command via the Command Manager API.
+     *
+     * @param requestBody The JSON request body containing the command details.
+     * @return A SimpleHttpResponse object containing the API response.
+     */
     public SimpleHttpResponse postCommand(String requestBody) {
         return sendRequest("POST", POST_COMMAND_ENDPOINT, requestBody, null, (Header) null);
     }
