@@ -20,6 +20,7 @@ import org.apache.hc.client5.http.async.methods.SimpleHttpResponse;
 import org.apache.hc.core5.http.Header;
 
 import java.net.URI;
+import java.util.Map;
 
 import com.wazuh.contentmanager.client.HttpClient;
 import com.wazuh.contentmanager.settings.PluginSettings;
@@ -46,9 +47,9 @@ public class CTIClient extends HttpClient {
         return instance;
     }
 
-    public SimpleHttpResponse getChanges() {
+    public SimpleHttpResponse getChanges(Map<String, String> queryParameters) {
         String endpoint = "/changes";
-        return sendRequest("GET", endpoint, null, null, (Header) null);
+        return sendRequest("GET", endpoint, null, queryParameters, (Header) null);
     }
 
     public SimpleHttpResponse getCatalog() {

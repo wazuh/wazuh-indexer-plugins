@@ -67,7 +67,7 @@ public class GetChangesAction {
         XContent xContent = XContentType.JSON.xContent();
         XContentBuilder builder = XContentFactory.jsonBuilder();
         SimpleHttpResponse response =
-                Privileged.doPrivilegedRequest(() -> CTIClient.getInstance().getChanges());
+                Privileged.doPrivilegedRequest(() -> CTIClient.getInstance().getChanges(buildQueryParametersMap()));
         Offsets.parse(
                         xContent.createParser(
                                 NamedXContentRegistry.EMPTY,
