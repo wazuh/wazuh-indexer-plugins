@@ -59,7 +59,10 @@ public class RestPostContextAction extends BaseRestHandler {
     @Override
     public List<Route> routes() {
         return List.of(
-                new Route(POST, String.format(Locale.ROOT, "%s", ContentManagerPlugin.CONTEXT_URI)),
+                new Route(
+                        POST,
+                        String.format(Locale.ROOT, "%s", ContentManagerPlugin.CONTEXT_URI)
+                                + "/{id}"),
                 new Route(GET, String.format(Locale.ROOT, "%s", ContentManagerPlugin.CONTEXT_URI)),
                 new Route(
                         GET,
@@ -107,12 +110,17 @@ public class RestPostContextAction extends BaseRestHandler {
         ensureExpectedToken(XContentParser.Token.START_OBJECT, parser.nextToken(), parser);
 
         Document document = Document.parse(parser);
+        log.info(
+                "Document before update: {}",
+                document.toXContent(XContentFactory.jsonBuilder(), ToXContent.EMPTY_PARAMS)
+                        .toString());
+        String finalId = request.param("id");
 
         // Send response
         return channel -> {
             this.contextIndex
                     // another id to test
-                    .indexDocument(document, "vd_2.0.0")
+                    .indexDocument(document, finalId)
                     .thenAccept(
                             (RestStatus restStatus) -> {
                                 try (XContentBuilder builder = channel.newBuilder()) {
@@ -242,8 +250,8 @@ public class RestPostContextAction extends BaseRestHandler {
                 "Document before update: {}",
                 document.toXContent(XContentFactory.jsonBuilder(), ToXContent.EMPTY_PARAMS)
                         .toString());
-        // Send response
         String finalId = request.param("id");
+        // Send response
         return channel -> {
             this.contextIndex
                     .update(finalId, document)
