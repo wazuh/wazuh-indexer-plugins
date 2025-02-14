@@ -50,7 +50,7 @@ import com.wazuh.contentmanager.model.Document;
 public class ContextIndex {
     private static final Logger log = LogManager.getLogger(ContextIndex.class);
 
-    public static final String INDEX_NAME = "wazuh-content";
+    public static final String INDEX_NAME = "wazuh-context";
     public static final String CONTEXT_NAME = "vd_1.0.0";
 
     private final Client client;

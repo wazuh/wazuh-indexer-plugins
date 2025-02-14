@@ -39,14 +39,14 @@ import static org.opensearch.rest.RestRequest.Method.GET;
 import static org.opensearch.rest.RestRequest.Method.POST;
 
 // JUST FOR TESTING PURPOSE
-public class RestPostContentAction extends BaseRestHandler {
-    private static final Logger log = LogManager.getLogger(RestPostContentAction.class);
+public class RestPostContextAction extends BaseRestHandler {
+    private static final Logger log = LogManager.getLogger(RestPostContextAction.class);
 
     public static final String POST_CONTENT_ACTION_REQUEST_DETAILS =
             "post_content_action_request_details";
     private final ContextIndex contextIndex;
 
-    public RestPostContentAction(ContextIndex contextIndex) {
+    public RestPostContextAction(ContextIndex contextIndex) {
         this.contextIndex = contextIndex;
     }
 
@@ -130,7 +130,7 @@ public class RestPostContentAction extends BaseRestHandler {
                                                 RestStatus.INTERNAL_SERVER_ERROR, e.getMessage()));
                                 return null;
                             });
-            log.info("Final of post in RestPostContentAction executed");
+            log.info("Final of post in RestPostContextAction executed");
         };
     }
 

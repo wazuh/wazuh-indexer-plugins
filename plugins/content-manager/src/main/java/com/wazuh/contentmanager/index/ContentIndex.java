@@ -32,6 +32,8 @@ import org.opensearch.search.builder.SearchSourceBuilder;
 import org.opensearch.threadpool.ThreadPool;
 
 import java.io.IOException;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
 
@@ -41,7 +43,7 @@ import com.wazuh.contentmanager.model.GenericDocument;
 public class ContentIndex {
     private static final Logger log = LogManager.getLogger(ContentIndex.class);
 
-    private static final String INDEX_NAME = "wazuh-content-manager";
+    private static final String INDEX_NAME = "wazuh-content";
 
     private final Client client;
     private final ClusterService clusterService;
@@ -73,6 +75,15 @@ public class ContentIndex {
                     createIndexResponse.index(),
                     createIndexResponse.isAcknowledged());
         }
+
+        // Initialize to test
+        Map<String, Object> source = new HashMap<>();
+        String content = "test";
+        source.put("content", content);
+        Integer content2 = 7;
+        source.put("content2", content2);
+        GenericDocument genericDocument = new GenericDocument("id_test-154", source);
+        indexDocument(genericDocument);
     }
 
     /**

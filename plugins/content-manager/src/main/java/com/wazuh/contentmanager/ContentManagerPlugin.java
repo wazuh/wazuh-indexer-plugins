@@ -48,15 +48,15 @@ import java.util.function.Supplier;
 
 import com.wazuh.contentmanager.index.ContentIndex;
 import com.wazuh.contentmanager.index.ContextIndex;
-import com.wazuh.contentmanager.rest.RestPostContentAction;
 import com.wazuh.contentmanager.rest.RestPostContentManager;
+import com.wazuh.contentmanager.rest.RestPostContextAction;
 
 public class ContentManagerPlugin extends Plugin implements ClusterPlugin, ActionPlugin {
     private static final Logger log = LogManager.getLogger(ContentManagerPlugin.class);
 
     public static final String CONTENT_MANAGER_BASE_URI = "/_plugins/_content_manager";
-    public static final String CONTEXT_URI = CONTENT_MANAGER_BASE_URI + "/wazuh-content";
-    public static final String CONTENT_MANAGER_URI = CONTENT_MANAGER_BASE_URI + "/wazuh-content-manager";
+    public static final String CONTEXT_URI = CONTENT_MANAGER_BASE_URI + "/wazuh-context";
+    public static final String CONTENT_URI = CONTENT_MANAGER_BASE_URI + "/wazuh-content";
 
     private ContextIndex contextIndex;
     private ContentIndex contentIndex;
@@ -90,7 +90,7 @@ public class ContentManagerPlugin extends Plugin implements ClusterPlugin, Actio
             Supplier<DiscoveryNodes> nodesInCluster) {
         // Just for testing purposes
         return List.of(
-                new RestPostContentAction(this.contextIndex),
+                new RestPostContextAction(this.contextIndex),
                 new RestPostContentManager(this.contentIndex));
     }
 

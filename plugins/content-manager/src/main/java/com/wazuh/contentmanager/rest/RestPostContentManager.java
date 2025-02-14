@@ -58,12 +58,9 @@ public class RestPostContentManager extends BaseRestHandler {
     public List<Route> routes() {
         return List.of(
                 new Route(
-                        PATCH,
-                        String.format(Locale.ROOT, "%s", ContentManagerPlugin.CONTENT_MANAGER_URI)),
+                        PATCH, String.format(Locale.ROOT, "%s", ContentManagerPlugin.CONTENT_URI)),
                 new Route(
-                        POST,
-                        String.format(
-                                Locale.ROOT, "%s", ContentManagerPlugin.CONTENT_MANAGER_URI)));
+                        POST, String.format(Locale.ROOT, "%s", ContentManagerPlugin.CONTENT_URI)));
     }
 
     @Override
