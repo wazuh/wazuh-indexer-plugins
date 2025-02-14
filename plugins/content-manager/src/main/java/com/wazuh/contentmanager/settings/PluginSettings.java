@@ -45,7 +45,7 @@ public class PluginSettings {
                     Setting.Property.Filtered);
 
     private final String ctiBaseUrl;
-    private final String clusterBaseUrl;
+    private final ClusterService clusterService;
 
     /**
      * Private default constructor
@@ -54,7 +54,7 @@ public class PluginSettings {
      */
     private PluginSettings(@NonNull final Settings settings, ClusterService clusterService) {
         this.ctiBaseUrl = CTI_BASE_URL.get(settings);
-        this.clusterBaseUrl = ClusterInfoHelper.getClusterBaseUrl(clusterService);
+        this.clusterService = clusterService;
 
         log.debug("Settings.loaded: {}", this.toString());
     }
@@ -104,7 +104,7 @@ public class PluginSettings {
      * @return a string with the Content Manager full URL
      */
     public String getClusterBaseUrl() {
-        return this.clusterBaseUrl;
+        return ClusterInfoHelper.getClusterBaseUrl(clusterService);
     }
 
     /**

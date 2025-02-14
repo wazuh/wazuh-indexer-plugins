@@ -44,9 +44,7 @@ public class CatalogHandler extends BaseRestHandler {
     @Override
     public List<Route> routes() {
         return List.of(
-                new Route(
-                        GET,
-                        String.format(Locale.ROOT, "%s", "/_plugins/_content_manager/vd-catalog")));
+                new Route(GET, String.format(Locale.ROOT, "%s", "/_plugins/_content_manager/vd-catalog")));
     }
 
     @Override
@@ -64,8 +62,7 @@ public class CatalogHandler extends BaseRestHandler {
                     restChannel.sendResponse(GetCatalogAction.run());
                 };
             default:
-                throw new IllegalArgumentException(
-                        ("Unsupported HTTP method " + request.method().name()));
+                throw new IllegalArgumentException(("Unsupported HTTP method " + request.method().name()));
         }
     }
 }
