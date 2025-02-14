@@ -41,7 +41,7 @@ import java.util.concurrent.*;
 import com.wazuh.contentmanager.util.http.HttpResponseCallback;
 import reactor.util.annotation.NonNull;
 
-public abstract class HttpClient {
+public class HttpClient {
 
     private static final Logger log = LogManager.getLogger(HttpClient.class);
 
