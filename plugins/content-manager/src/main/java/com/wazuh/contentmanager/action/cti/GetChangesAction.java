@@ -41,9 +41,9 @@ public class GetChangesAction {
     private static String FROM_OFFSET_FIELD = "from_offset";
     private static String TO_OFFSET_FIELD = "to_offset";
     private static String WITH_EMPTIES_FIELD = "with_empties";
-    private String fromOffset = null;
-    private String toOffset = null;
-    private String withEmpties = null;
+    private String fromOffset;
+    private String toOffset;
+    private String withEmpties;
 
     /** Constructor method */
     public GetChangesAction(String fromOffset, String toOffset, String withEmpties) {
