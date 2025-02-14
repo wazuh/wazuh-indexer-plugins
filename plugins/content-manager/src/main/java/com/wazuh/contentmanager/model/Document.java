@@ -32,7 +32,12 @@ public class Document implements ToXContentObject {
     }
 
     public static Document parse(XContentParser parser) throws IOException {
-        Consumer consumer = Consumer.parse(parser);
+        Consumer consumer = null;
+        while (parser.nextToken() != XContentParser.Token.END_OBJECT) {
+            if (parser.currentName().equals(CONSUMER_NAME)) {
+                consumer = Consumer.parse(parser);
+            }
+        }
         return new Document(consumer);
     }
 

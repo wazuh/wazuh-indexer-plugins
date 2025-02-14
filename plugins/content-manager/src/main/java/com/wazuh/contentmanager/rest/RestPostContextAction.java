@@ -19,7 +19,9 @@ package com.wazuh.contentmanager.rest;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.opensearch.client.node.NodeClient;
+import org.opensearch.common.xcontent.XContentFactory;
 import org.opensearch.core.rest.RestStatus;
+import org.opensearch.core.xcontent.ToXContent;
 import org.opensearch.core.xcontent.XContentBuilder;
 import org.opensearch.core.xcontent.XContentParser;
 import org.opensearch.rest.BaseRestHandler;
@@ -35,8 +37,7 @@ import com.wazuh.contentmanager.index.ContextIndex;
 import com.wazuh.contentmanager.model.Document;
 
 import static org.opensearch.core.xcontent.XContentParserUtils.ensureExpectedToken;
-import static org.opensearch.rest.RestRequest.Method.GET;
-import static org.opensearch.rest.RestRequest.Method.POST;
+import static org.opensearch.rest.RestRequest.Method.*;
 
 // JUST FOR TESTING PURPOSE
 public class RestPostContextAction extends BaseRestHandler {
@@ -63,6 +64,10 @@ public class RestPostContextAction extends BaseRestHandler {
                 new Route(
                         GET,
                         String.format(Locale.ROOT, "%s", ContentManagerPlugin.CONTEXT_URI)
+                                + "/{id}"),
+                new Route(
+                        PUT,
+                        String.format(Locale.ROOT, "%s", ContentManagerPlugin.CONTEXT_URI)
                                 + "/{id}"));
     }
 
@@ -75,6 +80,8 @@ public class RestPostContextAction extends BaseRestHandler {
                 return handlePost(restRequest);
             case GET:
                 return handleGet(restRequest);
+            case PUT:
+                return handlePut(restRequest);
             default:
                 throw new IllegalArgumentException(
                         "Unsupported HTTP method " + restRequest.method().name());
@@ -135,7 +142,7 @@ public class RestPostContextAction extends BaseRestHandler {
     }
 
     /**
-     * Handles a POST HTTP request.
+     * Handles a GET HTTP request.
      *
      * @return a response to the request as BytesRestResponse.
      * @throws IOException thrown by the XContentParser methods.
@@ -210,5 +217,57 @@ public class RestPostContextAction extends BaseRestHandler {
                                 });
             };
         }
+    }
+
+    /**
+     * Handles a POST HTTP request.
+     *
+     * @return a response to the request as BytesRestResponse.
+     * @throws IOException thrown by the XContentParser methods.
+     */
+    private RestChannelConsumer handlePut(final RestRequest request) throws IOException {
+        log.info(
+                "Received {} {} request id [{}] from host [{}]",
+                request.method().name(),
+                request.uri(),
+                request.getRequestId(),
+                request.header("Host"));
+
+        // Get request details
+        XContentParser parser = request.contentParser();
+        ensureExpectedToken(XContentParser.Token.START_OBJECT, parser.nextToken(), parser);
+
+        Document document = Document.parse(parser);
+        log.info(
+                "Document before update: {}",
+                document.toXContent(XContentFactory.jsonBuilder(), ToXContent.EMPTY_PARAMS)
+                        .toString());
+        // Send response
+        String finalId = request.param("id");
+        return channel -> {
+            this.contextIndex
+                    .update(finalId, document)
+                    .thenAccept(
+                            restStatus -> {
+                                try (XContentBuilder builder = channel.newBuilder()) {
+                                    builder.startObject();
+                                    builder.field("_index", ContextIndex.INDEX_NAME);
+
+                                    builder.field("result", restStatus.name());
+                                    builder.endObject();
+                                    channel.sendResponse(
+                                            new BytesRestResponse(restStatus, builder));
+                                } catch (IOException e) {
+                                    log.error("Error preparing response due to {}", e.getMessage());
+                                }
+                            })
+                    .exceptionally(
+                            e -> {
+                                channel.sendResponse(
+                                        new BytesRestResponse(
+                                                RestStatus.INTERNAL_SERVER_ERROR, e.getMessage()));
+                                return null;
+                            });
+        };
     }
 }

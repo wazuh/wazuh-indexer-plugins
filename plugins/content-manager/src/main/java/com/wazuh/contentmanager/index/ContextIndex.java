@@ -37,9 +37,7 @@ import org.opensearch.search.builder.SearchSourceBuilder;
 import org.opensearch.threadpool.ThreadPool;
 
 import java.io.IOException;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Objects;
+import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
 
@@ -244,8 +242,37 @@ public class ContextIndex {
      * @param document to update the source of the previous document
      * @return UpdateResponse
      */
-    public UpdateResponse update(String id, Document document) {
-        return this.client.update(createUpdateRequest(id, document)).actionGet();
+    public CompletableFuture<RestStatus> update(String id, Document document) {
+        final CompletableFuture<RestStatus> future = new CompletableFuture<>();
+        final ExecutorService executor = this.threadPool.executor(ThreadPool.Names.WRITE);
+
+        executor.submit(
+                () -> {
+                    try (ThreadContext.StoredContext ignored =
+                            this.threadPool.getThreadContext().stashContext()) {
+                        searchSourceBuilder.query(null);
+                        UpdateRequest updateRequest = createUpdateRequest(id, document);
+
+                        final UpdateResponse updateResponse =
+                                this.client.update(updateRequest).actionGet();
+
+                        if (updateResponse.getGetResult() != null) {
+                            log.info("Result UPDATE: {}", updateResponse.getGetResult().toString());
+                        } else {
+                            log.info("Result STATUS: {}", updateResponse.status());
+                        }
+
+                        final RestStatus restStatus = updateResponse.status();
+
+                        future.complete(restStatus);
+
+                    } catch (Exception e) {
+                        log.error("Error creating UpdateRequest due to {}", e.getMessage());
+                        future.completeExceptionally(e);
+                    }
+                });
+
+        return future;
     }
 
     /**
@@ -256,12 +283,13 @@ public class ContextIndex {
      * @return UpdateRequest
      */
     private UpdateRequest createUpdateRequest(String id, Document document) {
-        UpdateRequest updateRequest = new UpdateRequest();
-        updateRequest.index(INDEX_NAME);
-        updateRequest.id(id);
+        UpdateRequest updateRequest = new UpdateRequest(INDEX_NAME, id);
         try {
-            updateRequest.doc(
-                    document.toXContent(XContentFactory.jsonBuilder(), ToXContent.EMPTY_PARAMS));
+            updateRequest
+                    .doc(
+                            document.toXContent(
+                                    XContentFactory.jsonBuilder(), ToXContent.EMPTY_PARAMS))
+                    .fetchSource(true);
         } catch (IOException e) {
             log.error("Error creating IndexRequest due to {}", e.getMessage());
         }
