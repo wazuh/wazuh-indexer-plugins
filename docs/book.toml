@@ -1,0 +1,7 @@
+[book]
+title = "Wazuh Indexer Documentation"
+authors = ["Wazuh Indexer Team"]
+description = "The technical documentation for the Wazuh Indexer, composed by the development documentation and the reference manual."
+language = "en"
+multilingual = false
+src = "."
