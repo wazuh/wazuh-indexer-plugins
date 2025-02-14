@@ -108,17 +108,23 @@ public abstract class HttpClient {
      */
     protected SimpleHttpResponse sendRequest(
             @NonNull String method,
+            String endpoint,
             String requestBody,
             Map<String, String> queryParameters,
             Header... headers) {
-
+        URI _apiUri;
         if (httpClient == null) {
             startHttpAsyncClient();
         }
+        if (endpoint != null) {
+            _apiUri = URI.create(this.apiUri.toString() + endpoint);
+        } else {
+            _apiUri = this.apiUri;
+        }
 
         try {
-            HttpHost httpHost = HttpHost.create(this.apiUri);
-            log.info("Sending {} request to [{}]", method, this.apiUri);
+            HttpHost httpHost = HttpHost.create(_apiUri);
+            log.info("Sending {} request to [{}]", method, _apiUri);
 
             SimpleRequestBuilder builder = SimpleRequestBuilder.create(method);
             if (requestBody != null) {
@@ -131,8 +137,7 @@ public abstract class HttpClient {
                 builder.setHeaders(headers);
             }
 
-            SimpleHttpRequest request =
-                    builder.setHttpHost(httpHost).setPath(this.apiUri.getPath()).build();
+            SimpleHttpRequest request = builder.setHttpHost(httpHost).setPath(_apiUri.getPath()).build();
 
             return httpClient
                     .execute(
@@ -148,21 +153,5 @@ public abstract class HttpClient {
             log.error("Unexpected error in HTTP {} request: {}", method, e.getMessage());
         }
         return null;
-    }
-
-    /**
-     * Performs an http request with elevated privileges.
-     *
-     * @param method HTTP method (GET, POST, etc.)
-     * @param body The request body
-     * @param queryParameters The request's query parameters
-     * @param headers The request's headers
-     * @return SimpleHttpResponse
-     */
-    public SimpleHttpResponse sendPrivilegedRequest(
-            String method, String body, Map<String, String> queryParameters, Header... headers) {
-        return AccessController.doPrivileged(
-                (PrivilegedAction<SimpleHttpResponse>)
-                        () -> this.sendRequest(method, body, queryParameters, headers));
     }
 }

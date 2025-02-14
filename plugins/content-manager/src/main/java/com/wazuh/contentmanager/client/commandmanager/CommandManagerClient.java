@@ -28,10 +28,10 @@ import com.wazuh.contentmanager.settings.PluginSettings;
 public class CommandManagerClient extends HttpClient {
     private static volatile CommandManagerClient instance;
     public static final String BASE_COMMAND_MANAGER_URI = "/_plugins/_command_manager";
-    public static final String CREATE_COMMAND_URI = BASE_COMMAND_MANAGER_URI + "/commands";
+    public static final String POST_COMMAND_ENDPOINT = "/commands";
 
     private CommandManagerClient() {
-        super(URI.create(PluginSettings.getInstance().getClusterBaseUrl() + CREATE_COMMAND_URI));
+        super(URI.create(PluginSettings.getInstance().getClusterBaseUrl() + BASE_COMMAND_MANAGER_URI));
     }
 
     public static CommandManagerClient getInstance() {
@@ -45,8 +45,7 @@ public class CommandManagerClient extends HttpClient {
         return instance;
     }
 
-    public SimpleHttpResponse sendCommand(
-            String requestBody, Map<String, String> queryParameters, Header... headers) {
-        return sendRequest("POST", requestBody, queryParameters, headers);
+    public SimpleHttpResponse postCommand(String requestBody) {
+        return sendRequest("POST", POST_COMMAND_ENDPOINT, requestBody, null, (Header) null);
     }
 }

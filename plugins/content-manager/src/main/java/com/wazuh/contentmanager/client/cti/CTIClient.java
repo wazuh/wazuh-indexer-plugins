@@ -16,4 +16,43 @@
  */
 package com.wazuh.contentmanager.client.cti;
 
-public class CTIClient {}
+import org.apache.hc.client5.http.async.methods.SimpleHttpResponse;
+import org.apache.hc.core5.http.Header;
+
+import java.net.URI;
+import java.util.Map;
+
+import com.wazuh.contentmanager.client.HttpClient;
+import com.wazuh.contentmanager.settings.PluginSettings;
+
+public class CTIClient extends HttpClient {
+    private static CTIClient instance;
+
+    private static final String apiUrl =
+            PluginSettings.getInstance().getCtiBaseUrl()
+                    + "/catalog/contexts/vd_1.0.0/consumers/vd_4.8.0";
+
+    protected CTIClient() {
+        super(URI.create(apiUrl));
+    }
+
+    public static CTIClient getInstance() {
+        if (instance == null) {
+            synchronized (CTIClient.class) {
+                if (instance == null) {
+                    instance = new CTIClient();
+                }
+            }
+        }
+        return instance;
+    }
+
+    public SimpleHttpResponse getChanges() {
+        String endpoint = "/changes";
+        return sendRequest("GET", endpoint, null, null, (Header) null);
+    }
+
+    public SimpleHttpResponse getCatalog() {
+        return sendRequest("GET", null, null, null, (Header) null);
+    }
+}
