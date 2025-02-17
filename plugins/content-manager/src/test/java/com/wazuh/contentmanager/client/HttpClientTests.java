@@ -18,6 +18,8 @@ package com.wazuh.contentmanager.client;
 
 import org.apache.hc.client5.http.async.methods.SimpleHttpResponse;
 import org.apache.hc.core5.http.Header;
+import org.apache.hc.core5.http.HttpStatus;
+import org.apache.hc.core5.http.Method;
 import org.opensearch.test.OpenSearchIntegTestCase;
 import org.junit.After;
 import org.junit.Before;
@@ -47,66 +49,70 @@ public class HttpClientTests extends OpenSearchIntegTestCase {
     }
 
     public void testSendRequestSuccess() {
-        SimpleHttpResponse mockResponse = new SimpleHttpResponse(200, "OK");
+        SimpleHttpResponse mockResponse = new SimpleHttpResponse(HttpStatus.SC_SUCCESS, "OK");
 
-        when(httpClient.sendRequest(anyString(), anyString(), any(), anyMap(), any(Header[].class)))
+        when(httpClient.sendRequest(
+                        any(Method.class), anyString(), any(), anyMap(), any(Header[].class)))
                 .thenReturn(mockResponse);
 
         SimpleHttpResponse response =
-                httpClient.sendRequest("GET", "/test", null, Collections.emptyMap());
+                httpClient.sendRequest(Method.GET, "/test", null, Collections.emptyMap());
 
         assertNotNull("Response should not be null", response);
-        assertEquals(200, response.getCode());
+        assertEquals(HttpStatus.SC_SUCCESS, response.getCode());
     }
 
     public void testSendPostRequest() {
-        SimpleHttpResponse mockResponse = new SimpleHttpResponse(201, "Created");
+        SimpleHttpResponse mockResponse = new SimpleHttpResponse(HttpStatus.SC_CREATED, "Created");
         String requestBody = "{\"key\":\"value\"}";
 
         when(httpClient.sendRequest(
-                        eq("POST"), anyString(), eq(requestBody), anyMap(), any(Header[].class)))
+                        eq(Method.POST), anyString(), eq(requestBody), anyMap(), any(Header[].class)))
                 .thenReturn(mockResponse);
 
         SimpleHttpResponse response =
-                httpClient.sendRequest("POST", "/create", requestBody, Collections.emptyMap());
+                httpClient.sendRequest(Method.POST, "/create", requestBody, Collections.emptyMap());
 
         assertNotNull("Response should not be null", response);
-        assertEquals(201, response.getCode());
+        assertEquals(HttpStatus.SC_CREATED, response.getCode());
     }
 
     public void testSendRequestWithQueryParams() {
-        SimpleHttpResponse mockResponse = new SimpleHttpResponse(200, "OK");
+        SimpleHttpResponse mockResponse = new SimpleHttpResponse(HttpStatus.SC_SUCCESS, "OK");
         Map<String, String> queryParams = Map.of("param1", "value1", "param2", "value2");
 
         when(httpClient.sendRequest(
-                        anyString(), anyString(), any(), eq(queryParams), any(Header[].class)))
+                        any(Method.class), anyString(), any(), eq(queryParams), any(Header[].class)))
                 .thenReturn(mockResponse);
 
-        SimpleHttpResponse response = httpClient.sendRequest("GET", "/test", null, queryParams);
+        SimpleHttpResponse response = httpClient.sendRequest(Method.GET, "/test", null, queryParams);
 
         assertNotNull("Response should not be null", response);
-        assertEquals(200, response.getCode());
+        assertEquals(HttpStatus.SC_SUCCESS, response.getCode());
     }
 
     public void testSendRequestFailure() {
-        SimpleHttpResponse mockResponse = new SimpleHttpResponse(500, "Internal Server Error");
+        SimpleHttpResponse mockResponse =
+                new SimpleHttpResponse(HttpStatus.SC_SERVER_ERROR, "Internal Server Error");
 
-        when(httpClient.sendRequest(anyString(), anyString(), any(), anyMap(), any(Header[].class)))
+        when(httpClient.sendRequest(
+                        any(Method.class), anyString(), any(), anyMap(), any(Header[].class)))
                 .thenReturn(mockResponse);
 
         SimpleHttpResponse response =
-                httpClient.sendRequest("GET", "/error", null, Collections.emptyMap());
+                httpClient.sendRequest(Method.GET, "/error", null, Collections.emptyMap());
 
         assertNotNull("Response should not be null", response);
-        assertEquals(500, response.getCode());
+        assertEquals(HttpStatus.SC_SERVER_ERROR, response.getCode());
     }
 
     public void testSendRequestTimeout() {
-        when(httpClient.sendRequest(anyString(), anyString(), any(), anyMap(), any(Header[].class)))
+        when(httpClient.sendRequest(
+                        any(Method.class), anyString(), any(), anyMap(), any(Header[].class)))
                 .thenThrow(new RuntimeException("Request timeout"));
 
         try {
-            httpClient.sendRequest("GET", "/timeout", null, Collections.emptyMap());
+            httpClient.sendRequest(Method.GET, "/timeout", null, Collections.emptyMap());
             fail("Expected RuntimeException due to timeout");
         } catch (RuntimeException e) {
             assertEquals("Request timeout", e.getMessage());

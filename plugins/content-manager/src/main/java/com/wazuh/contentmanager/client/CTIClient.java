@@ -18,6 +18,7 @@ package com.wazuh.contentmanager.client;
 
 import org.apache.hc.client5.http.async.methods.SimpleHttpResponse;
 import org.apache.hc.core5.http.Header;
+import org.apache.hc.core5.http.Method;
 
 import java.net.URI;
 import java.util.Map;
@@ -67,7 +68,7 @@ public class CTIClient extends HttpClient {
      * @return A SimpleHttpResponse containing the response from the API.
      */
     public SimpleHttpResponse getChanges(Map<String, String> queryParameters) {
-        return sendRequest("GET", CONTENT_CHANGES_ENDPOINT, null, queryParameters, (Header) null);
+        return sendRequest(Method.GET, CONTENT_CHANGES_ENDPOINT, null, queryParameters, (Header) null);
     }
 
     /**
@@ -76,6 +77,6 @@ public class CTIClient extends HttpClient {
      * @return A SimpleHttpResponse containing the response from the API.
      */
     public SimpleHttpResponse getCatalog() {
-        return sendRequest("GET", null, null, null, (Header) null);
+        return sendRequest(Method.GET, null, null, null, (Header) null);
     }
 }

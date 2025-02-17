@@ -17,7 +17,10 @@
 package com.wazuh.contentmanager.client;
 
 import org.apache.hc.client5.http.async.methods.SimpleHttpResponse;
+import org.apache.hc.core5.http.ContentType;
 import org.apache.hc.core5.http.Header;
+import org.apache.hc.core5.http.HttpHeaders;
+import org.apache.hc.core5.http.Method;
 import org.apache.hc.core5.http.message.BasicHeader;
 
 import java.net.URI;
@@ -66,7 +69,7 @@ public class CommandManagerClient extends HttpClient {
      * @return A SimpleHttpResponse object containing the API response.
      */
     public SimpleHttpResponse postCommand(String requestBody) {
-        Header header = new BasicHeader("Content-Type", "application/json");
-        return sendRequest("POST", POST_COMMAND_ENDPOINT, requestBody, null, header);
+        Header header = new BasicHeader(HttpHeaders.CONTENT_TYPE, ContentType.APPLICATION_JSON);
+        return sendRequest(Method.POST, POST_COMMAND_ENDPOINT, requestBody, null, header);
     }
 }

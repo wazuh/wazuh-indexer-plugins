@@ -24,6 +24,7 @@ import org.apache.hc.client5.http.ssl.ClientTlsStrategyBuilder;
 import org.apache.hc.core5.http.ContentType;
 import org.apache.hc.core5.http.Header;
 import org.apache.hc.core5.http.HttpHost;
+import org.apache.hc.core5.http.Method;
 import org.apache.hc.core5.ssl.SSLContextBuilder;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -106,7 +107,7 @@ public class HttpClient {
      * @return A SimpleHttpResponse containing the response details.
      */
     protected SimpleHttpResponse sendRequest(
-            @NonNull String method,
+            @NonNull Method method,
             String endpoint,
             String requestBody,
             Map<String, String> queryParameters,
