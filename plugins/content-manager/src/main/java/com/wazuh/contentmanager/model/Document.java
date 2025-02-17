@@ -22,7 +22,7 @@ import org.opensearch.core.xcontent.XContentParser;
 
 import java.io.IOException;
 
-import static com.wazuh.contentmanager.ContentManagerPlugin.CONSUMER_NAME;
+import com.wazuh.contentmanager.ContentManagerPlugin;
 
 public class Document implements ToXContentObject {
 
@@ -35,7 +35,7 @@ public class Document implements ToXContentObject {
     public static Document parse(XContentParser parser) throws IOException {
         Consumer consumer = null;
         while (parser.nextToken() != XContentParser.Token.END_OBJECT) {
-            if (parser.currentName().equals(CONSUMER_NAME)) {
+            if (parser.currentName().equals(ContentManagerPlugin.CONSUMER_NAME)) {
                 consumer = Consumer.parse(parser);
             }
         }
@@ -45,7 +45,7 @@ public class Document implements ToXContentObject {
     @Override
     public XContentBuilder toXContent(XContentBuilder builder, Params params) throws IOException {
         builder.startObject();
-        builder.field(CONSUMER_NAME, consumer);
+        builder.field(ContentManagerPlugin.CONSUMER_NAME, consumer);
         return builder.endObject();
     }
 }

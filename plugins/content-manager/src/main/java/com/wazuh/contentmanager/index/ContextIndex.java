@@ -41,10 +41,9 @@ import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
 
+import com.wazuh.contentmanager.ContentManagerPlugin;
 import com.wazuh.contentmanager.model.Consumer;
 import com.wazuh.contentmanager.model.Document;
-
-import static com.wazuh.contentmanager.ContentManagerPlugin.CONTEXT_NAME;
 
 /** Class to manage the Context index. */
 public class ContextIndex {
@@ -87,7 +86,7 @@ public class ContextIndex {
         // Initialize the metadata of context
         Consumer consumer = new Consumer(0, null, "", "");
         Document document = new Document(consumer);
-        indexDocument(document, CONTEXT_NAME);
+        indexDocument(document, ContentManagerPlugin.CONTEXT_NAME);
     }
 
     /**
