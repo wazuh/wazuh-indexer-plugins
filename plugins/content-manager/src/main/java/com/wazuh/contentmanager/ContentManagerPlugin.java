@@ -45,9 +45,6 @@ import com.wazuh.contentmanager.settings.PluginSettings;
 
 public class ContentManagerPlugin extends Plugin implements ActionPlugin {
 
-    public static String CTI_VD_CONSUMER_URL;
-    public static String CTI_CHANGES_URL;
-
     /** ClassConstructor * */
     public ContentManagerPlugin() {}
 
@@ -64,13 +61,7 @@ public class ContentManagerPlugin extends Plugin implements ActionPlugin {
             NamedWriteableRegistry namedWriteableRegistry,
             IndexNameExpressionResolver indexNameExpressionResolver,
             Supplier<RepositoriesService> repositoriesServiceSupplier) {
-        PluginSettings.getInstance(environment.settings());
-        CTI_VD_CONSUMER_URL =
-                PluginSettings.getInstance().getCtiBaseUrl()
-                        + "/catalog/contexts/vd_1.0.0/consumers/vd_4.8.0";
-        CTI_CHANGES_URL =
-                PluginSettings.getInstance().getCtiBaseUrl()
-                        + "/catalog/contexts/vd_1.0.0/consumers/vd_4.8.0/changes";
+        PluginSettings.getInstance(environment.settings(), clusterService);
         return Collections.emptyList();
     }
 

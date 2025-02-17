@@ -17,7 +17,6 @@
 package com.wazuh.contentmanager.action.cti;
 
 import org.apache.hc.client5.http.async.methods.SimpleHttpResponse;
-import org.apache.hc.core5.http.Header;
 import org.opensearch.common.xcontent.XContentFactory;
 import org.opensearch.common.xcontent.XContentType;
 import org.opensearch.core.rest.RestStatus;
@@ -26,9 +25,9 @@ import org.opensearch.rest.BytesRestResponse;
 
 import java.io.IOException;
 
-import com.wazuh.contentmanager.ContentManagerPlugin;
+import com.wazuh.contentmanager.client.CTIClient;
 import com.wazuh.contentmanager.model.ctiapi.ContextConsumerCatalog;
-import com.wazuh.contentmanager.privileged.PrivilegedHttpAction;
+import com.wazuh.contentmanager.util.Privileged;
 
 /**
  * Action class handling Catalog logic. This is mainly useful to get the last offset value, as well
@@ -50,8 +49,7 @@ public class GetCatalogAction {
         XContent xContent = XContentType.JSON.xContent();
         XContentBuilder builder = XContentFactory.jsonBuilder();
         SimpleHttpResponse response =
-                PrivilegedHttpAction.get(
-                        ContentManagerPlugin.CTI_VD_CONSUMER_URL, null, null, (Header) null);
+                Privileged.doPrivilegedRequest(() -> CTIClient.getInstance().getCatalog());
         ContextConsumerCatalog.parse(
                         xContent.createParser(
                                 NamedXContentRegistry.EMPTY,
