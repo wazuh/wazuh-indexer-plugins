@@ -18,9 +18,11 @@ package com.wazuh.contentmanager.settings;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.opensearch.cluster.service.ClusterService;
 import org.opensearch.common.settings.Setting;
 import org.opensearch.common.settings.Settings;
 
+import com.wazuh.contentmanager.util.ClusterInfoHelper;
 import reactor.util.annotation.NonNull;
 
 /** Singleton class to manage the plugin's settings. */
@@ -31,6 +33,9 @@ public class PluginSettings {
     /** Singleton instance. */
     private static PluginSettings INSTANCE;
 
+    /** Content Manager Plugin API path. */
+    private static final String API_BASE_URI = "/_plugins/_content_manager";
+
     /** Read the base URL from configuration file */
     public static final Setting<String> CTI_BASE_URL =
             Setting.simpleString(
@@ -40,14 +45,17 @@ public class PluginSettings {
                     Setting.Property.Filtered);
 
     private final String ctiBaseUrl;
+    private final ClusterService clusterService;
 
     /**
      * Private default constructor
      *
      * @param settings as obtained in createComponents.
      */
-    private PluginSettings(@NonNull final Settings settings) {
+    private PluginSettings(@NonNull final Settings settings, ClusterService clusterService) {
         this.ctiBaseUrl = CTI_BASE_URL.get(settings);
+        this.clusterService = clusterService;
+
         log.debug("Settings.loaded: {}", this.toString());
     }
 
@@ -55,13 +63,15 @@ public class PluginSettings {
      * Singleton instance accessor. Initializes the settings
      *
      * @param settings as obtained in createComponents.
+     * @param clusterService service to get cluster stats.
      * @return {@link PluginSettings#INSTANCE}
      */
-    public static PluginSettings getInstance(@NonNull final Settings settings) {
+    public static PluginSettings getInstance(
+            @NonNull final Settings settings, ClusterService clusterService) {
         if (INSTANCE == null) {
             synchronized (PluginSettings.class) {
                 if (INSTANCE == null) {
-                    INSTANCE = new PluginSettings(settings);
+                    INSTANCE = new PluginSettings(settings, clusterService);
                 }
             }
         }
@@ -87,5 +97,23 @@ public class PluginSettings {
      */
     public String getCtiBaseUrl() {
         return ctiBaseUrl;
+    }
+
+    /**
+     * Getter method for the Command Manager API URL
+     *
+     * @return a string with the Content Manager full URL
+     */
+    public String getClusterBaseUrl() {
+        return ClusterInfoHelper.getClusterBaseUrl(clusterService);
+    }
+
+    /**
+     * Getter method for the Content Manager Plugin API URI
+     *
+     * @return a string with the base URI of this plugin.
+     */
+    public String getApiBaseUri() {
+        return API_BASE_URI;
     }
 }

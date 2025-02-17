@@ -17,7 +17,8 @@
 package com.wazuh.contentmanager.action.cti;
 
 import org.apache.hc.client5.http.async.methods.SimpleHttpResponse;
-import org.apache.hc.core5.http.Header;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.opensearch.common.xcontent.XContentFactory;
 import org.opensearch.common.xcontent.XContentType;
 import org.opensearch.core.rest.RestStatus;
@@ -28,15 +29,18 @@ import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 
-import com.wazuh.contentmanager.ContentManagerPlugin;
+import com.wazuh.contentmanager.client.CTIClient;
+import com.wazuh.contentmanager.client.CommandManagerClient;
+import com.wazuh.contentmanager.model.commandmanager.Command;
 import com.wazuh.contentmanager.model.ctiapi.Offsets;
-import com.wazuh.contentmanager.privileged.PrivilegedHttpAction;
+import com.wazuh.contentmanager.util.Privileged;
 
 /**
  * Action class handling Offsets logic. This is used to get the json patches to the current
  * vulnerability data
  */
 public class GetChangesAction {
+    private static final Logger log = LogManager.getLogger(GetChangesAction.class);
 
     private static String FROM_OFFSET_FIELD = "from_offset";
     private static String TO_OFFSET_FIELD = "to_offset";
@@ -63,14 +67,18 @@ public class GetChangesAction {
         XContent xContent = XContentType.JSON.xContent();
         XContentBuilder builder = XContentFactory.jsonBuilder();
         SimpleHttpResponse response =
-                PrivilegedHttpAction.get(
-                        ContentManagerPlugin.CTI_CHANGES_URL, null, buildQueryParametersMap(), (Header) null);
+                Privileged.doPrivilegedRequest(
+                        () -> CTIClient.getInstance().getChanges(buildQueryParametersMap()));
         Offsets.parse(
                         xContent.createParser(
                                 NamedXContentRegistry.EMPTY,
                                 DeprecationHandler.IGNORE_DEPRECATIONS,
                                 response.getBodyBytes()))
                 .toXContent(builder, ToXContent.EMPTY_PARAMS);
+        // Post new command informing the new changes. (Call may be need to be moved elsewhere)
+        SimpleHttpResponse commandResponse =
+                CommandManagerClient.getInstance().postCommand(Command.generateCtiCommand());
+        log.info("Command Manager response: {}", commandResponse);
         return new BytesRestResponse(RestStatus.fromCode(response.getCode()), builder.toString());
     }
 
