@@ -26,7 +26,7 @@ import com.wazuh.contentmanager.ContentManagerPlugin;
 
 public class Document implements ToXContentObject {
 
-    private Consumer consumer;
+    private final Consumer consumer;
 
     public Document(Consumer consumer) {
         this.consumer = consumer;

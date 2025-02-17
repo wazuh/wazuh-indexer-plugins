@@ -16,8 +16,6 @@
  */
 package com.wazuh.contentmanager.model;
 
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
 import org.opensearch.core.xcontent.ToXContentObject;
 import org.opensearch.core.xcontent.XContentBuilder;
 import org.opensearch.core.xcontent.XContentParser;
@@ -29,25 +27,13 @@ import java.util.List;
 import java.util.Map;
 
 public class GenericDocument implements ToXContentObject {
-    private static final Logger log = LogManager.getLogger(GenericDocument.class);
 
-    public static final String SOURCE = "_source";
-
-    private String id;
-    private Map<String, Object> source;
+    private final String id;
+    private final Map<String, Object> source;
 
     public GenericDocument(String id, Map<String, Object> source) {
         this.id = id;
         this.source = source;
-    }
-
-    /**
-     * Required for the parsing of nested objects.
-     *
-     * @return internal args map.
-     */
-    public Map<String, Object> getSource() {
-        return this.source;
     }
 
     public String getId() {

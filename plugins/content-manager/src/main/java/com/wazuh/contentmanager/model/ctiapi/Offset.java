@@ -16,8 +16,6 @@
  */
 package com.wazuh.contentmanager.model.ctiapi;
 
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
 import org.opensearch.core.xcontent.ToXContentObject;
 import org.opensearch.core.xcontent.XContentBuilder;
 import org.opensearch.core.xcontent.XContentParser;
@@ -31,7 +29,6 @@ import java.util.Map;
 
 public class Offset implements ToXContentObject {
 
-    private static final Logger log = LogManager.getLogger(Offset.class);
     private static final String CONTEXT = "context";
     private static final String OFFSET = "offset";
     private static final String RESOURCE = "resource";

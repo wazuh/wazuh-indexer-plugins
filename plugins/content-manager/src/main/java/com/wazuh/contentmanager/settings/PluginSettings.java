@@ -34,7 +34,10 @@ public class PluginSettings {
     private static PluginSettings INSTANCE;
 
     /** Content Manager Plugin API path. */
-    private static final String API_BASE_URI = "/_plugins/_content_manager";
+    public static final String API_BASE_URI = "/_plugins/_content_manager";
+
+    public static final String CONTEXT_URI = API_BASE_URI + "/wazuh-context";
+    public static final String CONTENT_URI = API_BASE_URI + "/wazuh-content";
 
     /** Read the base URL from configuration file */
     public static final Setting<String> CTI_BASE_URL =
@@ -106,14 +109,5 @@ public class PluginSettings {
      */
     public String getClusterBaseUrl() {
         return ClusterInfoHelper.getClusterBaseUrl(clusterService);
-    }
-
-    /**
-     * Getter method for the Content Manager Plugin API URI
-     *
-     * @return a string with the base URI of this plugin.
-     */
-    public String getApiBaseUri() {
-        return API_BASE_URI;
     }
 }

@@ -103,7 +103,7 @@ public class ContextIndex {
      *
      * @param document to index
      * @param id of document
-     * @return CompletableFuture<RestStatus>
+     * @return CompletableFuture
      */
     public CompletableFuture<RestStatus> indexDocument(Document document, String id) {
         final CompletableFuture<RestStatus> future = new CompletableFuture<>();

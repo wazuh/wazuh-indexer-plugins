@@ -32,9 +32,9 @@ import java.io.IOException;
 import java.util.List;
 import java.util.Locale;
 
-import com.wazuh.contentmanager.ContentManagerPlugin;
 import com.wazuh.contentmanager.index.ContextIndex;
 import com.wazuh.contentmanager.model.Document;
+import com.wazuh.contentmanager.settings.PluginSettings;
 
 import static org.opensearch.core.xcontent.XContentParserUtils.ensureExpectedToken;
 import static org.opensearch.rest.RestRequest.Method.*;
@@ -59,13 +59,10 @@ public class RestPostContextAction extends BaseRestHandler {
     @Override
     public List<Route> routes() {
         return List.of(
-                new Route(
-                        POST, String.format(Locale.ROOT, "%s", ContentManagerPlugin.CONTEXT_URI) + "/{id}"),
-                new Route(GET, String.format(Locale.ROOT, "%s", ContentManagerPlugin.CONTEXT_URI)),
-                new Route(
-                        GET, String.format(Locale.ROOT, "%s", ContentManagerPlugin.CONTEXT_URI) + "/{id}"),
-                new Route(
-                        PUT, String.format(Locale.ROOT, "%s", ContentManagerPlugin.CONTEXT_URI) + "/{id}"));
+                new Route(POST, String.format(Locale.ROOT, "%s", PluginSettings.CONTEXT_URI) + "/{id}"),
+                new Route(GET, String.format(Locale.ROOT, "%s", PluginSettings.CONTEXT_URI)),
+                new Route(GET, String.format(Locale.ROOT, "%s", PluginSettings.CONTEXT_URI) + "/{id}"),
+                new Route(PUT, String.format(Locale.ROOT, "%s", PluginSettings.CONTEXT_URI) + "/{id}"));
     }
 
     @Override

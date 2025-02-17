@@ -28,7 +28,6 @@ import org.opensearch.common.util.concurrent.ThreadContext;
 import org.opensearch.common.xcontent.XContentFactory;
 import org.opensearch.core.rest.RestStatus;
 import org.opensearch.core.xcontent.ToXContent;
-import org.opensearch.search.builder.SearchSourceBuilder;
 import org.opensearch.threadpool.ThreadPool;
 
 import java.io.IOException;
@@ -48,8 +47,6 @@ public class ContentIndex {
     private final Client client;
     private final ClusterService clusterService;
     private final ThreadPool threadPool;
-
-    private final SearchSourceBuilder searchSourceBuilder = new SearchSourceBuilder();
 
     /**
      * Default constructor

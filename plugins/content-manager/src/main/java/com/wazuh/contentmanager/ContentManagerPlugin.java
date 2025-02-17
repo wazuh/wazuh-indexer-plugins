@@ -16,8 +16,6 @@
  */
 package com.wazuh.contentmanager;
 
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
 import org.opensearch.client.Client;
 import org.opensearch.cluster.metadata.IndexNameExpressionResolver;
 import org.opensearch.cluster.node.DiscoveryNode;
@@ -46,23 +44,16 @@ import java.util.function.Supplier;
 
 import com.wazuh.contentmanager.index.ContentIndex;
 import com.wazuh.contentmanager.index.ContextIndex;
+import com.wazuh.contentmanager.rest.CatalogHandler;
+import com.wazuh.contentmanager.rest.ChangesHandler;
 import com.wazuh.contentmanager.rest.RestPostContentManager;
 import com.wazuh.contentmanager.rest.RestPostContextAction;
-import com.wazuh.contentmanager.resthandler.CatalogHandler;
-import com.wazuh.contentmanager.resthandler.ChangesHandler;
 import com.wazuh.contentmanager.settings.PluginSettings;
 
 public class ContentManagerPlugin extends Plugin implements ClusterPlugin, ActionPlugin {
-    private static final Logger log = LogManager.getLogger(ContentManagerPlugin.class);
-
-    public static final String CONTENT_MANAGER_BASE_URI = "/_plugins/_content_manager";
-    public static final String CONTEXT_URI = CONTENT_MANAGER_BASE_URI + "/wazuh-context";
-    public static final String CONTENT_URI = CONTENT_MANAGER_BASE_URI + "/wazuh-content";
 
     public static final String CONTEXT_NAME = "vd_1.0.0";
     public static final String CONSUMER_NAME = "vd_4.8.0";
-    public static String CTI_VD_CONSUMER_URL;
-    public static String CTI_CHANGES_URL;
 
     private ContextIndex contextIndex;
     private ContentIndex contentIndex;
@@ -87,14 +78,7 @@ public class ContentManagerPlugin extends Plugin implements ClusterPlugin, Actio
         this.contextIndex = new ContextIndex(client, clusterService, threadPool);
 
         PluginSettings.getInstance(environment.settings(), clusterService);
-        CTI_VD_CONSUMER_URL =
-                PluginSettings.getInstance().getCtiBaseUrl()
-                        + String.format("/catalog/contexts/%s/consumers/%s", CONTEXT_NAME, CONSUMER_NAME);
-        CTI_CHANGES_URL =
-                PluginSettings.getInstance().getCtiBaseUrl()
-                        + String.format(
-                                "/catalog/contexts/%s/consumers/%s/changes", CONTEXT_NAME, CONSUMER_NAME);
-        return List.of(contentIndex, contextIndex);
+        return List.of(this.contentIndex, this.contextIndex);
     }
 
     @Override

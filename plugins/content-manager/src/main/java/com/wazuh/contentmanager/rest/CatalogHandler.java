@@ -14,15 +14,12 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-package com.wazuh.contentmanager.resthandler;
+package com.wazuh.contentmanager.rest;
 
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
 import org.opensearch.client.node.NodeClient;
 import org.opensearch.rest.BaseRestHandler;
 import org.opensearch.rest.RestRequest;
 
-import java.io.IOException;
 import java.util.List;
 import java.util.Locale;
 
@@ -35,8 +32,6 @@ import static org.opensearch.rest.RestRequest.Method.GET;
  * functional JobScheduler job to trigger the CTI API-related logic
  */
 public class CatalogHandler extends BaseRestHandler {
-
-    private static final Logger log = LogManager.getLogger(CatalogHandler.class);
 
     public static final String GET_CATALOG_DETAILS = "get_catalog_details";
 
@@ -54,8 +49,7 @@ public class CatalogHandler extends BaseRestHandler {
 
     /** Handles the actual request to the plugin's catalog endpoint */
     @Override
-    protected RestChannelConsumer prepareRequest(RestRequest request, NodeClient client)
-            throws IOException {
+    protected RestChannelConsumer prepareRequest(RestRequest request, NodeClient client) {
         switch (request.method()) {
             case GET:
                 return restChannel -> {
