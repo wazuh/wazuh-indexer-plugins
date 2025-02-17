@@ -50,7 +50,6 @@ public class HttpClient {
     private static final Logger log = LogManager.getLogger(HttpClient.class);
 
     private static final int TIMEOUT = 10;
-    private static final TimeUnit TIME_UNIT = TimeUnit.SECONDS;
     private static final Object LOCK = new Object();
     private static CloseableHttpAsyncClient httpClient;
 
@@ -145,7 +144,7 @@ public class HttpClient {
                             SimpleResponseConsumer.create(),
                             new HttpResponseCallback(
                                     request, "Failed to execute outgoing " + method + " request"))
-                    .get(TIMEOUT, TIME_UNIT);
+                    .get(TIMEOUT, TimeUnit.SECONDS);
         } catch (InterruptedException | ExecutionException | TimeoutException e) {
             log.error("HTTP {} request failed: {}", method, e.getMessage());
             Thread.currentThread().interrupt();
