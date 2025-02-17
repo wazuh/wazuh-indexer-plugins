@@ -104,6 +104,10 @@ test {
     include '**/*Tests.class'
 }
 
+dependencies {
+    implementation 'com.google.code.gson:gson:2.8.6'
+}
+
 task integTest(type: RestIntegTestTask) {
     description = "Run tests against a cluster"
     testClassesDirs = sourceSets.test.output.classesDirs

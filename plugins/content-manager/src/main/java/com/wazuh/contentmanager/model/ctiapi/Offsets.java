@@ -16,8 +16,6 @@
  */
 package com.wazuh.contentmanager.model.ctiapi;
 
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
 import org.opensearch.core.common.ParsingException;
 import org.opensearch.core.xcontent.*;
 
@@ -28,7 +26,6 @@ import java.util.List;
 /** ToXContentObject model to parse and build CTI API changes query replies. */
 public class Offsets implements ToXContentObject {
 
-    private static final Logger log = LogManager.getLogger(Offsets.class);
     private static final String DATA = "data";
 
     private final List<Offset> offsetList;

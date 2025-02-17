@@ -14,10 +14,8 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-package com.wazuh.contentmanager.resthandler;
+package com.wazuh.contentmanager.rest;
 
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
 import org.opensearch.client.node.NodeClient;
 import org.opensearch.rest.BaseRestHandler;
 import org.opensearch.rest.RestRequest;
@@ -39,8 +37,6 @@ public class ChangesHandler extends BaseRestHandler {
     private static String FROM_OFFSET_FIELD = "from_offset";
     private static String TO_OFFSET_FIELD = "to_offset";
     private static String WITH_EMPTIES_FIELD = "with_empties";
-
-    private static final Logger log = LogManager.getLogger(ChangesHandler.class);
 
     public static final String GET_CHANGES_DETAILS = "get_changes_details";
 

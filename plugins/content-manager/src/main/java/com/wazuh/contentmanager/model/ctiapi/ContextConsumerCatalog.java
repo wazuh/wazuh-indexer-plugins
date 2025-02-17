@@ -16,8 +16,6 @@
  */
 package com.wazuh.contentmanager.model.ctiapi;
 
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
 import org.opensearch.core.xcontent.ToXContentObject;
 import org.opensearch.core.xcontent.XContentBuilder;
 import org.opensearch.core.xcontent.XContentParser;
@@ -27,8 +25,6 @@ import java.util.List;
 
 /** ToXContentObject model to parse and build CTI API Catalog query replies */
 public class ContextConsumerCatalog implements ToXContentObject {
-
-    private static final Logger log = LogManager.getLogger(ContextConsumerCatalog.class);
 
     public static final String ID = "id";
     public static final String CONTEXT = "context";
