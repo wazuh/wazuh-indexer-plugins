@@ -86,7 +86,7 @@ public class ContentManagerPlugin extends Plugin implements ClusterPlugin, Actio
         this.contentIndex = new ContentIndex(client, clusterService, threadPool);
         this.contextIndex = new ContextIndex(client, clusterService, threadPool);
 
-        PluginSettings.getInstance(environment.settings());
+        PluginSettings.getInstance(environment.settings(), clusterService);
         CTI_VD_CONSUMER_URL =
                 PluginSettings.getInstance().getCtiBaseUrl()
                         + String.format("/catalog/contexts/%s/consumers/%s", CONTEXT_NAME, CONSUMER_NAME);
