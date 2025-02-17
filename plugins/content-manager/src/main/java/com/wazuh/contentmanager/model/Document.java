@@ -22,8 +22,9 @@ import org.opensearch.core.xcontent.XContentParser;
 
 import java.io.IOException;
 
+import static com.wazuh.contentmanager.ContentManagerPlugin.CONSUMER_NAME;
+
 public class Document implements ToXContentObject {
-    private static final String CONSUMER_NAME = "vd_4.8.0";
 
     private Consumer consumer;
 

@@ -44,12 +44,13 @@ import java.util.concurrent.ExecutorService;
 import com.wazuh.contentmanager.model.Consumer;
 import com.wazuh.contentmanager.model.Document;
 
+import static com.wazuh.contentmanager.ContentManagerPlugin.CONTEXT_NAME;
+
 /** Class to manage the Context index. */
 public class ContextIndex {
     private static final Logger log = LogManager.getLogger(ContextIndex.class);
 
     public static final String INDEX_NAME = "wazuh-context";
-    public static final String CONTEXT_NAME = "vd_1.0.0";
 
     private final Client client;
     private final ClusterService clusterService;

@@ -59,6 +59,11 @@ public class ContentManagerPlugin extends Plugin implements ClusterPlugin, Actio
     public static final String CONTEXT_URI = CONTENT_MANAGER_BASE_URI + "/wazuh-context";
     public static final String CONTENT_URI = CONTENT_MANAGER_BASE_URI + "/wazuh-content";
 
+    public static final String CONTEXT_NAME = "vd_1.0.0";
+    public static final String CONSUMER_NAME = "vd_4.8.0";
+    public static String CTI_VD_CONSUMER_URL;
+    public static String CTI_CHANGES_URL;
+
     private ContextIndex contextIndex;
     private ContentIndex contentIndex;
 
@@ -81,7 +86,14 @@ public class ContentManagerPlugin extends Plugin implements ClusterPlugin, Actio
         this.contentIndex = new ContentIndex(client, clusterService, threadPool);
         this.contextIndex = new ContextIndex(client, clusterService, threadPool);
 
-        PluginSettings.getInstance(environment.settings(), clusterService);
+        PluginSettings.getInstance(environment.settings());
+        CTI_VD_CONSUMER_URL =
+                PluginSettings.getInstance().getCtiBaseUrl()
+                        + String.format("/catalog/contexts/%s/consumers/%s", CONTEXT_NAME, CONSUMER_NAME);
+        CTI_CHANGES_URL =
+                PluginSettings.getInstance().getCtiBaseUrl()
+                        + String.format(
+                                "/catalog/contexts/%s/consumers/%s/changes", CONTEXT_NAME, CONSUMER_NAME);
         return List.of(contentIndex, contextIndex);
     }
 
