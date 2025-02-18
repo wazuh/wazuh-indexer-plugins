@@ -40,5 +40,4 @@ The amount of data depends on the generated alerts per second (APS). This table 
 | Workstations        | 0.1  | 1.5                                   |
 | Network devices     | 0.5  | 7.4                                   |
 
-
 For example, for an environment with 80 workstations, 10 servers, and 10 network devices, the storage needed on the Wazuh indexer server for 90 days of alerts is 230 GB.

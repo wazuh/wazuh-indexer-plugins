@@ -13,5 +13,6 @@ We aim to support as many operating systems as [OpenSearch](https://opensearch.o
 | Amazon Linux  | 2, 2023     | x86_64, aarch64 |
 | CentOS        |  8          | x86_64, aarch64 |
 
-## OpenSeach 
+## OpenSeach
+
 Currently, Wazuh indexer is using version `2.19.0` of OpenSearch.

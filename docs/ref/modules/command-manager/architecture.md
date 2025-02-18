@@ -10,7 +10,7 @@ Issue: [https://github.com/wazuh/wazuh-indexer-plugins/issues/69](https://github
 
 Input JSON:
 
-```
+```json
 {
   "commands": [
     {
@@ -32,30 +32,36 @@ Input JSON:
 ```
 
 ## Commands expansion
+
 Status: Completed
 Documentation  TBD
 Issue: [https://github.com/wazuh/wazuh-indexer-plugins/issues/88](https://github.com/wazuh/wazuh-indexer-plugins/issues/88)
 
 ## Orders storage
+
 Status: Completed
 Documentation TBD.
 Issue: [https://github.com/wazuh/wazuh-indexer-plugins/issues/42](https://github.com/wazuh/wazuh-indexer-plugins/issues/42)
 
 ## The Job Scheduler task
+
 Status: Completed
 Documentation TBD.
 Issue: [https://github.com/wazuh/wazuh-indexer-plugins/issues/87](https://github.com/wazuh/wazuh-indexer-plugins/issues/87)
 
 ## Configuration and key store management
+
 Status: Completed
 Documentation TBD.
 Issue: [https://github.com/wazuh/wazuh-indexer-plugins/issues/95](https://github.com/wazuh/wazuh-indexer-plugins/issues/95 )
 
 ## Orders sending
+
 Status: Completed
 Issue: [https://github.com/wazuh/wazuh-indexer-plugins/issues/89](https://github.com/wazuh/wazuh-indexer-plugins/issues/89)
 Output JSON:
-```
+
+```json
 {
     "orders": [
         {
