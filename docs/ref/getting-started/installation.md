@@ -64,8 +64,8 @@ nodes:
 To learn more about how to create and configure the certificates, see the [Certificates deployment](https://documentation.wazuh.com/current/user-manual/wazuh-indexer-cluster/certificate-deployment.html) section.
 
 3. Run `./wazuh-certs-tool.sh` to create the certificates. For a multi-node cluster, these certificates need to be later deployed to all Wazuh instances in your cluster.
-```
-bash ./wazuh-certs-tool.sh -A
+``` 
+./wazuh-certs-tool.sh -A
 ```
 
 4. Compress all the necessary files.
