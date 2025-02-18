@@ -1,4 +1,33 @@
 # Build image
+This guide includes instructions to generate distribution packages locally using Docker.
+
+Wazuh Indexer supports any of these combinations:
+
+- distributions: `['tar', 'deb', 'rpm']`
+- architectures: `['x64', 'arm64']`
+
+Windows is currently not supported.
+
+> For more information navigate to the [compatibility section](/ref/compatibility.html).
+
+The process to build packages requires Docker and Docker Compose.
+
+- [Install Docker](https://docs.docker.com/engine/install/)
+- [Install Docker Compose](https://docs.docker.com/compose/install/linux/)
+
+Before you get started, make sure to clean your environment by running `./gradlew clean`.
+
+## Pre-requisites
+
+1. Install [Docker](https://docs.docker.com/engine/install/) as per its instructions.
+
+2. Your workstation must meet the minimum hardware requirements:
+
+   - 8 GB of RAM (minimum)
+   - 4 cores
+
+   The more resources the better ☺
+
 ## Building wazuh-indexer Docker images
 
 The [docker](./docker) folder contains the code to build Docker images. Below there is an example of the command needed to build the image. Set the build arguments and the image tag accordingly.

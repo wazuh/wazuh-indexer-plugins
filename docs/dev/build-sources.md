@@ -1,15 +1,3 @@
 # How to build from sources
 
-To build all distributions of OpenSearch, run:
-
-```
-./gradlew assemble
-```
-
-To build a distribution to run on your local platform, run:
-
-```
-./gradlew localDistro
-```
-
-All distributions built will be under `distributions/archives`.
+To build all distributions of Wazuh, you can run the command `./gradlew build`. This command utilizes gradlew, which already includes the necessary commands for building the project. Upon execution, all built distributions will be located in the `build/distributions` directory.

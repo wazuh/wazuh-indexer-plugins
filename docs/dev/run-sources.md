@@ -1,12 +1,12 @@
 # How to run from sources
 
-Run OpenSearch using `gradlew run`.
+Run Wazuh using `gradlew run`.
 
 ```
 ./gradlew run
 ```
 
-[Plugins](plugins/) may be installed by passing a `-PinstalledPlugins` property:
+[Plugins](../ref/modules/index.html) may be installed by passing a `-PinstalledPlugins` property:
 
 ```bash
 ./gradlew run -PinstalledPlugins="['plugin1', 'plugin2']"
