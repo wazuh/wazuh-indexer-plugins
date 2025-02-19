@@ -1,6 +1,5 @@
 # Configuration files
 
-############ Proposed documentation ###############
 
 ### Command Manager Plugin Configuration
 
@@ -32,56 +31,26 @@ command_manager:
 1. **Timeout**
    - **Key**: `command_manager.timeout`
    - **Type**: Integer
-   - **Default**: `20`
-   - **Description**: Specifies the API consulting timeout value in seconds.
+   - **Default**: `30`
+   - **Minimum**: `5`
+   - **Maximun**: `120`
+   - **Description**: Specifies the API consulting timeout value in minutes.
 
 2. **Job Schedule**
    - **Key**: `command_manager.job.schedule`
    - **Type**: Integer
    - **Default**: `1`
+   - **Minimum**: `1` 
+   - **Maximun**: `10`
    - **Description**: Defines the schedule interval in minutes for job execution.
 
-3. **Job Page Size**
-   - **Key**: `command_manager.job.page_size`
+3. **Job Max Docs**
+   - **Key**: `command_manager.job.max_docs`
    - **Type**: Integer
-   - **Default**: `100`
-   - **Description**: Sets the number of records to process per page during job execution.
-
-4. **Job PIT Keep Alive**
-   - **Key**: `command_manager.job.pit_keep_alive`
-   - **Type**: Integer
-   - **Default**: `30`
-   - **Description**: Determines the keep-alive time in seconds for the Point-In-Time (PIT) context.
-
-5. **Job Index Template**
-   - **Key**: `command_manager.job.index.template`
-   - **Type**: String
-   - **Default**: `index-template-scheduled-commands`
-   - **Description**: Specifies the template name for the job scheduled commands index.
-
-6. **API Prefix**
-   - **Key**: `command_manager.api.prefix`
-   - **Type**: String
-   - **Default**: `/_command_manager`
-   - **Description**: Sets the prefix for the command manager API endpoints.
-
-7. **API Endpoint**
-   - **Key**: `command_manager.api.endpoint`
-   - **Type**: String
-   - **Default**: `/commands`
-   - **Description**: Defines the endpoint for command manager APIs.
-
-8. **Index Name**
-   - **Key**: `command_manager.index.name`
-   - **Type**: String
-   - **Default**: `.commands`
-   - **Description**: Specifies the name of the index used for storing commands.
-
-9. **Index Template**
-   - **Key**: `command_manager.index.template`
-   - **Type**: String
-   - **Default**: `index-template-commands`
-   - **Description**: Defines the template name for the commands index.
+   - **Default**: `1000`
+   - **Minimum**: `5`
+   - **Maximun**: `100000`
+   - **Description**: Client class methods timeout in seconds.
 
 #### Notes
 - All configuration fields have default values and are not mandatory.
