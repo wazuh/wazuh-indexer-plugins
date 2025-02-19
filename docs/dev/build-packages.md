@@ -1,4 +1,4 @@
-# Packages generation
+# How to generate a package
 
 This guide includes instructions to generate distribution packages locally using Docker.
 
@@ -11,31 +11,27 @@ Windows is currently not supported.
 
 > For more information navigate to the [compatibility section](/ref/compatibility.html).
 
+Before you get started, make sure to clean your environment by running `./gradlew clean` on the **root level** of the `wazuh-indexer` repository.
+
+## Pre-requisites
+
 The process to build packages requires Docker and Docker Compose.
 
 - [Install Docker](https://docs.docker.com/engine/install/)
 - [Install Docker Compose](https://docs.docker.com/compose/install/linux/)
 
-Before you get started, make sure to clean your environment by running `./gradlew clean`.
-
-## Pre-requisites
-
-1. Install [Docker](https://docs.docker.com/engine/install/) as per its instructions.
-
-2. Your workstation must meet the minimum hardware requirements:
+Your workstation must meet the minimum hardware requirements (the more resources the better ☺):
 
    - 8 GB of RAM (minimum)
    - 4 cores
 
-   The more resources the better ☺
+The tools and source code to generate a package of Wazuh Indexer are hosted in the [wazuh-indexer](https://github.com/wazuh/wazuh-indexer) repository, so clone it if you haven't done already.
 
-3. Clone the [wazuh-indexer](https://github.com/wazuh/wazuh-indexer).
+## Building `wazuh-indexer` packages
 
-## Building wazuh-indexer packages
+The Docker environment under `wazuh-indexer/build-scripts/builder` automates the build and assemble process for the Wazuh Indexer and its plugins, making it easy to create packages on any system.
 
-The `builder` image automates the build and assemble process for the Wazuh Indexer and its plugins, making it easy to create packages on any system.
-
-Use the script under `wazuh-indexer/build-scripts/builder/builder.sh` to build a package.
+Use the `builder.sh` script to build a package.
 
 ```bash
 ./builder.sh -h
@@ -52,7 +48,7 @@ Arguments:
 -h      Print help
 ```
 
-The example below it will generate a wazuh-indexer package for Debian based systems, for the x64 architecture, using 1 as revision number and using the production naming convention.
+The example below it will generate a wazuh-indexer package for _Debian_ based systems, for the _x64_ architecture, using _1_ as revision number and using the production naming convention.
 
 ```bash
 # Wihtin wazuh-indexer/build-scripts/builder

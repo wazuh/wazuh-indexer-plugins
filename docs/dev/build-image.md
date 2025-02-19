@@ -1,4 +1,5 @@
-# Build image
+# How to generate a container image
+
 This guide includes instructions to generate distribution packages locally using Docker.
 
 Wazuh Indexer supports any of these combinations:
@@ -10,32 +11,35 @@ Windows is currently not supported.
 
 > For more information navigate to the [compatibility section](/ref/compatibility.html).
 
+Before you get started, make sure to clean your environment by running `./gradlew clean` on the **root level** of the `wazuh-indexer` repository.
+
+## Pre-requisites
+
 The process to build packages requires Docker and Docker Compose.
 
 - [Install Docker](https://docs.docker.com/engine/install/)
 - [Install Docker Compose](https://docs.docker.com/compose/install/linux/)
 
-Before you get started, make sure to clean your environment by running `./gradlew clean`.
-
-## Pre-requisites
-
-1. Install [Docker](https://docs.docker.com/engine/install/) as per its instructions.
-
-2. Your workstation must meet the minimum hardware requirements:
+Your workstation must meet the minimum hardware requirements (the more resources the better ☺):
 
    - 8 GB of RAM (minimum)
    - 4 cores
 
-   The more resources the better ☺
+The tools and source code to generate a package of Wazuh Indexer are hosted in the [wazuh-indexer](https://github.com/wazuh/wazuh-indexer) repository, so clone it if you haven't done already.
 
-## Building wazuh-indexer Docker images
+## Building `wazuh-indexer` Docker images
 
-The [docker](./docker) folder contains the code to build Docker images. Below there is an example of the command needed to build the image. Set the build arguments and the image tag accordingly.
+The `wazuh-indexer/build-scripts/docker` folder contains the code to build Docker images. Below there is an example of the command needed to build the image. Set the build arguments and the image tag accordingly.
 
 The Docker image is built from a wazuh-indexer tarball (tar.gz), which must be present in the same folder as the Dockerfile in `wazuh-indexer/build-scripts/docker`.
 
 ```bash
-docker build --build-arg="VERSION=5.0.0" --build-arg="INDEXER_TAR_NAME=wazuh-indexer_5.0.0-0_linux-x64.tar.gz" --tag=wazuh-indexer:5.0.0-0 --progress=plain --no-cache .
+docker build \
+   --build-arg="VERSION=5.0.0" \
+   --build-arg="INDEXER_TAR_NAME=wazuh-indexer_5.0.0-0_linux-x64.tar.gz" \
+   --tag=wazuh-indexer:5.0.0-0 \
+   --progress=plain \
+   --no-cache .
 ```
 
 Then, start a container with:

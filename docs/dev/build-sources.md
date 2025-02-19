@@ -1,3 +1,5 @@
 # How to build from sources
 
-To build all distributions of Wazuh, you can run the command `./gradlew build`. This command utilizes gradlew, which already includes the necessary commands for building the project. Upon execution, all built distributions will be located in the `build/distributions` directory.
+Every Wazuh Indexer repository includes one or more Gradle projects with predefined tasks to run and build the source code.
+
+In this case, to build (compile and zip) a distribution of Wazuh Indexer, run the `./gradlew build` command at the root level of the repository. When completed, the distribution artifacts will be located in the `build/distributions` directory.

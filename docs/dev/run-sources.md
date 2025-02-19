@@ -1,18 +1,16 @@
 # How to run from sources
 
-Run Wazuh using `gradlew run`.
+Every Wazuh Indexer repository includes one or more Gradle projects with predefined tasks to run and build the source code.
 
-```
-./gradlew run
-```
+In this case, to run a Gradle project from source code, run the `./gradlew run` command.
 
-[Plugins](../ref/modules/index.html) may be installed by passing a `-PinstalledPlugins` property:
+For Wazuh Indexer, additonal plugins may be installed by passing the `-PinstalledPlugins` flag:
 
 ```bash
 ./gradlew run -PinstalledPlugins="['plugin1', 'plugin2']"
 ```
 
-That will build OpenSearch and start it, writing its log above Gradle's status message. We log a lot of stuff on startup, specifically these lines tell you that OpenSearch is ready.
+The `./gradlew run` command will build and start the project, writing its log above Gradle's status message. A lot of stuff is logged on startup, specifically these lines tell you that OpenSearch is ready.
 
 ```
 [2020-05-29T14:50:35,167][INFO ][o.e.h.AbstractHttpServerTransport] [runTask-0] publish_address {127.0.0.1:9200}, bound_addresses {[::1]:9200}, {127.0.0.1:9200}
