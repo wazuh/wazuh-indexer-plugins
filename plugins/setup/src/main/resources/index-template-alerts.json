@@ -7965,6 +7965,10 @@
           },
           "scanner": {
             "properties": {
+              "reference": {
+                "ignore_above": 1024,
+                "type": "keyword"
+              },
               "vendor": {
                 "ignore_above": 1024,
                 "type": "keyword"
