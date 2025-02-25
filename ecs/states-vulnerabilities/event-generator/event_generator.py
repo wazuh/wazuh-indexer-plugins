@@ -155,7 +155,8 @@ def generate_random_vulnerability():
         'scanner': {
             'source': random.choice(['Nessus', 'OpenVAS']),
             'vendor': random.choice(['Tenable', 'Greenbone']),
-            'condition': random.choice(['is', 'is not'])
+            'condition': random.choice(['is', 'is not']),
+            'reference': f'https://cti.wazuh.com/vulnerabilities/cves/CVE-{id}'
         },
         'score': {
             'base': random.uniform(0, 10),
