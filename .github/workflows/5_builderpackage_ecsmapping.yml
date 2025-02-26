@@ -2,9 +2,11 @@ name: ECS Generator
 
 on:
   push:
-    paths:
-      - "ecs/**/*.json"
-      - "ecs/**/*.yml"
+    branches:
+      - '*'
+  pull_request:
+    branches:
+      - '*'
 
 jobs:
   run-ecs-generator:

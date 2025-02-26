@@ -5,6 +5,12 @@ name: Build packages
 # - Run manually
 # - Invoked from another workflow
 on:
+    push:
+        branches:
+        - '*'
+    pull_request:
+        branches:
+        - '*'
     workflow_dispatch:
         inputs:
             revision:
@@ -62,7 +68,7 @@ jobs:
 
             - name: Get version
               id: version
-              run: echo "version=$(jq -r .version<VERSION.json)" >> "$GITHUB_OUTPUT"
+              run: echo "version=$(<VERSION)" >> "$GITHUB_OUTPUT"
 
             - name: Build with Gradle
               working-directory: ./plugins/${{ inputs.plugin }}
