@@ -6,11 +6,7 @@ name: Build packages
 # - Invoked from another workflow
 on:
     push:
-        branches:
-        - '*'
-    pull_request:
-        branches:
-        - '*'
+    
     workflow_dispatch:
         inputs:
             revision:
