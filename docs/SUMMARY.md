@@ -14,19 +14,19 @@
 
 # Reference Manual
 
-- [Introduction](ref/README.md)
+- [Introduction]()
   - [Description](ref/description.md)
   - [Architecture](ref/architecture.md)
   - [Compatibility](ref/compatibility.md)
-- [Getting Started](ref/getting-started/README.md)
+- [Getting Started]()
   - [Requirements](ref/getting-started/requirements.md)
   - [Packages](ref/getting-started/packages.md)
   - [Installation](ref/getting-started/installation.md)
-- [Configuration](ref/configuration.md)
+- [Configuration]()
   - [Environment variables](ref/getting-started/variables.md)
   - [Command line options](ref/getting-started/cli-options.md)
   - [Configuration files](ref/getting-started/config-files.md)
-- [Modules](ref/modules/README.md)
+- [Modules]()
   - [Setup](ref/modules/setup/README.md)
     - [Architecture](ref/modules/setup/architecture.md)
     - [API Reference](ref/modules/setup/api-reference.md)
