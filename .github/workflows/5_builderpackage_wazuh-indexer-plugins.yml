@@ -1,4 +1,4 @@
-run-name: Build ${{ inputs.plugin }} plugin | ${{ inputs.id }}
+run-name: Build ${{ inputs.plugin || 'setup' }} plugin | ${{ inputs.id  }}
 name: Build packages
 
 # This workflow runs when any of the following occur:
@@ -67,12 +67,12 @@ jobs:
               run: echo "version=$(jq -r .version<VERSION.json)" >> "$GITHUB_OUTPUT"
 
             - name: Build with Gradle
-              working-directory: ./plugins/${{ github.event_name == 'push' && 'setup' || inputs.plugin }}
-              run: ./gradlew build -Dversion=${{ steps.version.outputs.version }} -Drevision=${{ github.event_name == 'push' && '0' || inputs.revision }}
+              working-directory: ./plugins/${{ inputs.plugin || 'setup' }}
+              run: ./gradlew build -Dversion=${{ steps.version.outputs.version }} -Drevision=${{ inputs.revision || '0' }}
 
             - name: Upload artifact
               uses: actions/upload-artifact@v4
               with:
-                  name: ${{ github.event_name == 'push' && 'setup' || inputs.plugin }}-${{ steps.version.outputs.version }}.${{ github.event_name == 'push' && '0' || inputs.revision }}.zip
-                  path: plugins/${{ github.event_name == 'push' && 'setup' || inputs.plugin }}/build/distributions/wazuh-indexer-${{ github.event_name == 'push' && 'setup' || inputs.plugin }}-${{ steps.version.outputs.version }}.${{ github.event_name == 'push' && '0' || inputs.revision }}.zip
+                  name: ${{ inputs.plugin || 'setup' }}-${{ steps.version.outputs.version }}.${{ inputs.revision || '0' }}.zip
+                  path: plugins/${{ inputs.plugin || 'setup' }}/build/distributions/wazuh-indexer-${{ inputs.plugin || 'setup' }}-${{ steps.version.outputs.version }}.${{ inputs.revision || '0' }}.zip
                   if-no-files-found: error
