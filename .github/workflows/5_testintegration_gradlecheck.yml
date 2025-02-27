@@ -1,10 +1,11 @@
 name: Test
 
 on:
-    pull_request:
-        paths:
-            - "plugins/**/*.java"     # Match changes in Java files.
-            - "plugins/**/*.gradle"   # Match changes in Gradle configuration.
+  pull_request:
+      paths:
+          - "plugins/**/*.java"     # Match changes in Java files.
+          - "plugins/**/*.gradle"   # Match changes in Gradle configuration.
+
 
 jobs:
     ci:
