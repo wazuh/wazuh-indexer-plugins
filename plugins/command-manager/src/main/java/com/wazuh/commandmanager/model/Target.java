@@ -112,7 +112,7 @@ public class Target implements ToXContentObject {
      */
     public static Target parse(XContentParser parser) throws IOException {
         Type type = null;
-        String id = "";
+        String id = null;
 
         while (parser.nextToken() != XContentParser.Token.END_OBJECT) {
             String fieldName = parser.currentName();

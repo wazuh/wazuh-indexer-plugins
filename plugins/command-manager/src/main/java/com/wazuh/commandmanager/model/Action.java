@@ -57,7 +57,7 @@ public class Action implements ToXContentObject {
      * @throws IOException parsing error occurred.
      */
     public static Action parse(XContentParser parser) throws IOException, IllegalArgumentException {
-        String name = "";
+        String name = null;
         Args args = new Args();
         String version = null;
 

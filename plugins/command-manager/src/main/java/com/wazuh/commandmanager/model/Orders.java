@@ -96,7 +96,7 @@ public class Orders implements ToXContentObject {
 
         for (Command command : commands) {
             List<Agent> agentList = new ArrayList<>();
-            String queryField = "";
+            String queryField = null;
             Target.Type targetType = command.getTarget().getType();
             String targetId = command.getTarget().getId();
 

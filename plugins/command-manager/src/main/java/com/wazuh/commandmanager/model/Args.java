@@ -56,7 +56,7 @@ public class Args implements ToXContentObject {
     public static Args parse(XContentParser parser) throws IOException {
         Map<String, Object> args = new HashMap<>();
 
-        String fieldName = "";
+        String fieldName = null;
         List<Object> list = null;
         boolean isList = false;
 
@@ -86,9 +86,9 @@ public class Args implements ToXContentObject {
                     break;
                 case VALUE_NULL:
                     if (isList) {
-                        list.add("");
+                        list.add(null);
                     } else {
-                        args.put(fieldName, "");
+                        args.put(fieldName, null);
                     }
                     break;
                 case END_ARRAY:
