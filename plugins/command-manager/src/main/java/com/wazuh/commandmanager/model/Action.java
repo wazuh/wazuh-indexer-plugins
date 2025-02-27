@@ -69,20 +69,7 @@ public class Action implements ToXContentObject {
                     name = parser.text();
                     break;
                 case Args.ARGS:
-                    switch (name) {
-                        case "set-group":
-                            log.info("Parsing arguments for [set-group] command");
-                            args = SetGroupCommand.parse(parser);
-                            break;
-                        case "fetch-config":
-                            log.info("Parsing arguments for [fetch-config] command");
-                            args = FetchConfigCommand.parse(parser);
-                            break;
-                        default:
-                            log.info("Parsing arguments for [generic] command");
-                            args = Args.parse(parser);
-                            break;
-                    }
+                    args = Args.parse(parser);
                     break;
                 case VERSION:
                     version = parser.text();
@@ -91,6 +78,20 @@ public class Action implements ToXContentObject {
                     parser.skipChildren();
                     break;
             }
+        }
+        // Validate args according to action
+        switch (name) {
+            case "set-group":
+                log.info("Validating arguments for [set-group] command");
+                args = SetGroupCommand.validate(args);
+                break;
+            case "fetch-config":
+                log.info("Validating arguments for [fetch-config] command");
+                args = FetchConfigCommand.validate(args);
+                break;
+            default:
+                log.info("Valid arguments for [generic] command");
+                break;
         }
 
         return new Action(name, args, version);
