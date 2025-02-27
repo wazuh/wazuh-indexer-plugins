@@ -1,4 +1,7 @@
+import org.gradle.api.file.RegularFile
 import org.opensearch.gradle.test.RestIntegTestTask
+
+import java.util.concurrent.Callable
 
 buildscript {
     ext {
@@ -70,6 +73,21 @@ opensearchplugin {
     noticeFile rootProject.file('NOTICE.txt')
 }
 
+configurations {
+    zipArchive
+}
+
+dependencies {
+    implementation "org.apache.logging.log4j:log4j-slf4j-impl:${versions.log4j}"
+
+    // Job Scheduler stuff
+    zipArchive group: 'org.opensearch.plugin', name: 'opensearch-job-scheduler', version: "2.18.0.0"
+    zipArchive group: 'org.opensearch.plugin', name: 'opensearch-index-management', version: "2.18.0.0"
+    // implementation "org.opensearch:opensearch:${opensearch_version}"
+    compileOnly "org.opensearch:opensearch-job-scheduler-spi:2.18.0.0"
+
+}
+
 // No need to validate license headers since spotless checks and applies it
 licenseHeaders.enabled = false
 
@@ -90,6 +108,38 @@ test {
     include '**/*Tests.class'
 }
 
+def getJobSchedulerPlugin() {
+    provider(new Callable<RegularFile>() {
+        @Override
+        RegularFile call() throws Exception {
+            return new RegularFile() {
+                @Override
+                File getAsFile() {
+                    return configurations.zipArchive.asFileTree.matching {
+                        include '**/opensearch-job-scheduler*'
+                    }.singleFile
+                }
+            }
+        }
+    })
+}
+
+def getIndexManagementPlugin() {
+    provider(new Callable<RegularFile>() {
+        @Override
+        RegularFile call() throws Exception {
+            return new RegularFile() {
+                @Override
+                File getAsFile() {
+                    return configurations.zipArchive.asFileTree.matching {
+                        include '**/opensearch-index-management*'
+                    }.singleFile
+                }
+            }
+        }
+    })
+}
+
 task integTest(type: RestIntegTestTask) {
     description = "Run tests against a cluster"
     testClassesDirs = sourceSets.test.output.classesDirs
@@ -105,11 +155,18 @@ integTest {
 }
 
 testClusters.integTest {
-    testDistribution = "INTEG_TEST"
-
+    plugin(getJobSchedulerPlugin())
+    plugin(getIndexManagementPlugin())
+    testDistribution = "ARCHIVE"
     // This installs our plugin into the testClusters
     plugin(project.tasks.bundlePlugin.archiveFile)
+
+    // The --debug-jvm command-line option makes the cluster debuggable; this makes the tests debuggable
+    if (System.getProperty("test.debug") != null) {
+        jvmArgs '-agentlib:jdwp=transport=dt_socket,server=y,suspend=y,address=*:5005'
+    }
 }
+
 
 run {
     useCluster testClusters.integTest
