@@ -36,7 +36,7 @@ public class Offsets implements ToXContentObject {
      * @param offsetList a List of the Offset objects, containing a json patch each.
      */
     public Offsets(List<Offset> offsetList) {
-        this.offsetList = offsetList;
+        this.offsetList = (offsetList == null || offsetList.isEmpty()) ? null : offsetList;
     }
 
     /**

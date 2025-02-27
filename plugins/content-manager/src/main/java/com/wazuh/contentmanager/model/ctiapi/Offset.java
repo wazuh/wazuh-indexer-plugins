@@ -126,7 +126,7 @@ public class Offset implements ToXContentObject {
         String resource = null;
         String type = null;
         Long version = null;
-        Map<String, Object> payload = new HashMap<>();
+        Map<String, Object> payload = null;
         while (parser.nextToken() != XContentParser.Token.END_OBJECT) {
             if (parser.currentToken() == XContentParser.Token.FIELD_NAME) {
                 String fieldName = parser.currentName();

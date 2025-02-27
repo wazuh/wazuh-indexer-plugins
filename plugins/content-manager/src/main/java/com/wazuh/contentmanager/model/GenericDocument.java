@@ -51,7 +51,7 @@ public class GenericDocument implements ToXContentObject {
         Map<String, Object> source = new HashMap<>();
         String id = null;
 
-        String fieldName = "";
+        String fieldName = null;
         List<Object> list = null;
         boolean isList = false;
 
@@ -85,9 +85,9 @@ public class GenericDocument implements ToXContentObject {
                     break;
                 case VALUE_NULL:
                     if (isList) {
-                        list.add("");
+                        list.add(null);
                     } else {
-                        source.put(fieldName, "");
+                        source.put(fieldName, null);
                     }
                     break;
                 case END_ARRAY:
