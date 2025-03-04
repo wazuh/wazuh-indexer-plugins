@@ -5,7 +5,6 @@ on:
     paths:
       - "ecs/**/*.json"
       - "ecs/**/*.yml"
-
 jobs:
   run-ecs-generator:
     if: github.repository == 'wazuh/wazuh-indexer-plugins'
