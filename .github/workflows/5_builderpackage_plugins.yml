@@ -1,4 +1,4 @@
-run-name: Build ${{ inputs.plugin || 'setup' }} plugin | ${{ inputs.id  }}
+run-name: Build ${{ inputs.plugin }} plugin | ${{ inputs.id  }}
 name: Build packages
 
 # This workflow runs when any of the following occur:
