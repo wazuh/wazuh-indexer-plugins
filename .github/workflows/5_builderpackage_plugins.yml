@@ -51,7 +51,7 @@ on:
 
 jobs:
     build:
-        runs-on: ubuntu-22.04
+        runs-on: ubuntu-24.04
         steps:
             - uses: actions/checkout@v4
             - uses: actions/setup-java@v4
@@ -67,12 +67,12 @@ jobs:
               run: echo "version=$(jq -r .version<VERSION.json)" >> "$GITHUB_OUTPUT"
 
             - name: Build with Gradle
-              working-directory: ./plugins/${{ inputs.plugin || 'setup' }}
-              run: ./gradlew build -Dversion=${{ steps.version.outputs.version }} -Drevision=${{ inputs.revision || '0' }}
+              working-directory: ./plugins/${{ inputs.plugin }}
+              run: ./gradlew build -Dversion=${{ steps.version.outputs.version }} -Drevision=${{ inputs.revision }}
 
             - name: Upload artifact
               uses: actions/upload-artifact@v4
               with:
-                  name: ${{ inputs.plugin || 'setup' }}-${{ steps.version.outputs.version }}.${{ inputs.revision || '0' }}.zip
-                  path: plugins/${{ inputs.plugin || 'setup' }}/build/distributions/wazuh-indexer-${{ inputs.plugin || 'setup' }}-${{ steps.version.outputs.version }}.${{ inputs.revision || '0' }}.zip
+                  name: ${{ inputs.plugin }}-${{ steps.version.outputs.version }}.${{ inputs.revision }}.zip
+                  path: plugins/${{ inputs.plugin }}/build/distributions/wazuh-indexer-${{ inputs.plugin }}-${{ steps.version.outputs.version }}.${{ inputs.revision }}.zip
                   if-no-files-found: error
