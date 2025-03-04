@@ -2,6 +2,9 @@ name: ECS Generator
 
 on:
   push:
+    paths:
+      - "ecs/**/*.json"
+      - "ecs/**/*.yml"
   
 jobs:
   run-ecs-generator:
