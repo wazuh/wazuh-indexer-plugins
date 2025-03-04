@@ -1,4 +1,4 @@
-name: ECS Generator
+name: Index templates generator
 
 on:
   push:
