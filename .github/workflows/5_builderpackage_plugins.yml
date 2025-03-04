@@ -5,34 +5,34 @@ name: Build packages
 # - Run manually
 # - Invoked from another workflow
 on:
-    workflow_dispatch:
-        inputs:
-            revision:
-                description: "Revision"
-                type: string
-                default: "0"
-            plugin:
-                description: "Name of the plugin to build"
-                type: string
-                default: "setup"
-            id:
-                description: "ID used to identify the workflow uniquely."
-                type: string
-                required: false
-    workflow_call:
-        inputs:
-            revision:
-                description: "Revision"
-                type: string
-                default: "0"
-            plugin:
-                description: "Name of the plugin to build"
-                type: string
-                default: "setup"
-            id:
-                description: "ID used to identify the workflow uniquely."
-                type: string
-                required: false
+  workflow_dispatch:
+    inputs:
+      revision:
+        description: "Revision"
+        type: string
+        default: "0"
+      plugin:
+        description: "Name of the plugin to build"
+        type: string
+        default: "setup"
+      id:
+        description: "ID used to identify the workflow uniquely."
+        type: string
+        required: false
+  workflow_call:
+    inputs:
+      revision:
+        description: "Revision"
+        type: string
+        default: "0"
+      plugin:
+        description: "Name of the plugin to build"
+        type: string
+        default: "setup"
+      id:
+        description: "ID used to identify the workflow uniquely."
+        type: string
+        required: false
 
 # ==========================
 # Bibliography
@@ -48,29 +48,29 @@ on:
 #   | https://docs.github.com/en/actions/learn-github-actions/expressions#example
 
 jobs:
-    build:
-        runs-on: ubuntu-24.04
-        steps:
-            - uses: actions/checkout@v4
-            - uses: actions/setup-java@v4
-              with:
-                  distribution: temurin
-                  java-version: 21
+  build:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
 
-            - name: Setup Gradle # Used for caching
-              uses: gradle/actions/setup-gradle@v4
+      - name: Setup Gradle # Used for caching
+        uses: gradle/actions/setup-gradle@v4
 
-            - name: Get version
-              id: version
-              run: echo "version=$(jq -r .version<VERSION.json)" >> "$GITHUB_OUTPUT"
+      - name: Get version
+        id: version
+        run: echo "version=$(jq -r .version<VERSION.json)" >> "$GITHUB_OUTPUT"
 
-            - name: Build with Gradle
-              working-directory: ./plugins/${{ inputs.plugin }}
-              run: ./gradlew build -Dversion=${{ steps.version.outputs.version }} -Drevision=${{ inputs.revision }}
+      - name: Build with Gradle
+        working-directory: ./plugins/${{ inputs.plugin }}
+        run: ./gradlew build -Dversion=${{ steps.version.outputs.version }} -Drevision=${{ inputs.revision }}
 
-            - name: Upload artifact
-              uses: actions/upload-artifact@v4
-              with:
-                  name: ${{ inputs.plugin }}-${{ steps.version.outputs.version }}.${{ inputs.revision }}.zip
-                  path: plugins/${{ inputs.plugin }}/build/distributions/wazuh-indexer-${{ inputs.plugin }}-${{ steps.version.outputs.version }}.${{ inputs.revision }}.zip
-                  if-no-files-found: error
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ inputs.plugin }}-${{ steps.version.outputs.version }}.${{ inputs.revision }}.zip
+          path: plugins/${{ inputs.plugin }}/build/distributions/wazuh-indexer-${{ inputs.plugin }}-${{ steps.version.outputs.version }}.${{ inputs.revision }}.zip
+          if-no-files-found: error

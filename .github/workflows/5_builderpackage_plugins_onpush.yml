@@ -3,9 +3,9 @@ name: Build packages (on push)
 # This workflow runs when any of the following occur:
 # - On push
 on:
-    push:
+  push:
 
 jobs:
-    call-build-workflow:
-        uses: ./.github/workflows/5_builderpackage_plugins.yml
-        secrets: inherit
+  call-build-workflow:
+    uses: ./.github/workflows/5_builderpackage_plugins.yml
+    secrets: inherit
