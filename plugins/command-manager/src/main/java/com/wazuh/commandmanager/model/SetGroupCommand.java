@@ -16,8 +16,6 @@
  */
 package com.wazuh.commandmanager.model;
 
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
 import org.opensearch.core.xcontent.XContentParser;
 
 import java.io.IOException;
@@ -27,34 +25,8 @@ import java.util.List;
 import java.util.Map;
 
 public class SetGroupCommand extends Args {
-    private static final Logger log = LogManager.getLogger(SetGroupCommand.class);
 
     public static final String GROUPS_KEY = "groups";
-
-    public static Args validate(Args args) throws IllegalArgumentException {
-        Map<String, Object> argsMap = args.getArgs();
-        ArrayList<String> groups = null;
-        for (String field : argsMap.keySet()) {
-            if (field.equals(GROUPS_KEY)) {
-                try {
-                    groups = (ArrayList<String>) argsMap.get(GROUPS_KEY);
-                } catch (Exception e) {
-                    throw new IllegalArgumentException(
-                            "Expected [command.action.args.groups] to be an array of strings only. "
-                                    + e.getMessage());
-                }
-            } else {
-                throw new IllegalArgumentException(
-                        "Expected [command.action.args] to contain only the [groups] key, got [" + field + "]");
-            }
-        }
-
-        if (groups == null) {
-            throw new IllegalArgumentException(
-                    "Expected [command.action.args.groups] exists in [command.action.args].");
-        }
-        return args;
-    }
 
     /**
      * Dedicated command.action.args parser for "set-group" action type.

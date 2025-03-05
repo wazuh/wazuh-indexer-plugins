@@ -23,10 +23,6 @@ import java.util.HashMap;
 
 public class FetchConfigCommand extends Args {
 
-    public static Args validate(Args args) throws IllegalArgumentException {
-        return new Args(new HashMap<>());
-    }
-
     /**
      * Dedicated command.action.args parser for "fetch-config" action type.
      *
