@@ -57,7 +57,7 @@ public class Action implements ToXContentObject {
      * @throws IOException parsing error occurred.
      */
     public static Action parse(XContentParser parser) throws IOException, IllegalArgumentException {
-        String name = "";
+        String name = null;
         Args args = new Args();
         String version = null;
 
@@ -69,7 +69,24 @@ public class Action implements ToXContentObject {
                     name = parser.text();
                     break;
                 case Args.ARGS:
-                    args = Args.parse(parser);
+                    if (name == null) {
+                        throw new IllegalArgumentException(
+                                "Expected [command.action.name] to be provided before [command.action.args]");
+                    }
+                    switch (name) {
+                        case "set-group":
+                            log.info("Parsing arguments for [set-group] command");
+                            args = SetGroupCommand.parse(parser);
+                            break;
+                        case "fetch-config":
+                            log.info("Parsing arguments for [fetch-config] command");
+                            args = FetchConfigCommand.parse(parser);
+                            break;
+                        default:
+                            log.info("Parsing arguments for [generic] command");
+                            args = Args.parse(parser);
+                            break;
+                    }
                     break;
                 case VERSION:
                     version = parser.text();
@@ -79,21 +96,8 @@ public class Action implements ToXContentObject {
                     break;
             }
         }
-        // Validate args according to action
-        switch (name) {
-            case "set-group":
-                log.info("Validating arguments for [set-group] command");
-                args = SetGroupCommand.validate(args);
-                break;
-            case "fetch-config":
-                log.info("Validating arguments for [fetch-config] command");
-                args = FetchConfigCommand.validate(args);
-                break;
-            default:
-                log.info("Valid arguments for [generic] command");
-                break;
-        }
 
+        assert name != null;
         return new Action(name, args, version);
     }
 
