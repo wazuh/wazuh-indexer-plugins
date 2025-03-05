@@ -1,15 +1,28 @@
-# Command Manager
-The [Command Manager plugin](https://github.com/wazuh/wazuh-indexer/issues/349) appears for the first time in Wazuh 5.0.0.
+# Content Manager
 
-The plugin is one of the pillars of the agent commands mechanism. Wazuh Agents can receive orders anytime to change their behavior, for example, restarting, changing its group or run a program on the monitored system. The Command Manager plugin receives these commands, prepares them and sends them to the Wazuh Server for their delivery to the destination Agent. The processed commands are stored in an index for their consulting and management of their lifecycle, and eventually removed from the index when completed or past due. The document ID is sent from end to end, so the result of the order can be set by the Wazuh Server.
+The Content Manager is a plugin for Wazuh 5.0 responsible for the management of the Wazuh Catalog within the Indexer. The **catalog** is structured into **contexts**. Each context contains a collection of **resources**. Each **change** made to these resources generates a new **offset**. A **consumer** is a customized view of a context, and it's used to consume the catalog within the CTI API.
 
-**Key Concepts:**
-- **Command:** the raw command as received by the POST /commands endpoint.
-- **Order:** processed command, as stored in the index. A subset of this information is sent to the Wazuh Server.
+The Content Manager manages multiple Contexts, having a single Consumer each. These are preconfigured in the plugin by default, so these are not configurable.
 
-**Key Features:**
-- The plugin exposes a Rest API with a single endpoint that listens for POST requests.
-- The plugin extends the Job Scheduler plugin via its SPI. The job periodically looks for orders in “pending” state and sends them to the Management API of the Wazuh Server.
-- The plugin introduces an HTTP Rest client using the Apache HTTP Client library to send the orders to the Wazuh Server.
-- The plugin reads the Wazuh Server information from the key store. This information is considered sensitive as it contains the public IP address of the server and the access credentials.
-- The plugin uploads the “commands” index template to the cluster when the first command is received.
+The Content Manager periodically looks for new content on the CTI API by comparing the offsets. On its first run, the content is initialized using a snapshot. From there on, the content is patched to match the latest offset. Simple information about the context, the consumer, the offset and the snapshot URL are saved in an internal index.
+
+The Content Manager also offers the possibility of offline content updates, from a snapshot file. The content is stored in indices.
+
+On new content, the Content Manager generates a new command for the Command Manager.
+
+1. [**ONLINE**] For each context, the scheduled job checks if there is new content available on the CTI API.
+    1. If the offset is `0`, the context will be initialized from a snapshot
+        1. The Content Manager gets the URL for the latest snapshot from `GET /api/v1/catalog/contexts/:context/consumers/:consumer`
+        2. The Content Manager downloads the snapshot.
+        3. The Content Manager unzips the snapshot.
+        4. The Content Manager reads and indexes the content of the snapshot into an index using JSON Streaming.
+        5. Generate a command for the Command Manager.
+    2. If the offset is the same as the offset fetched from the CTI API for that context and consumer. The content is up to date and nothing needs to be done.
+    3. If the offset is lower than the offset fetched from the CTI API for that context and consumer, so the content needs to be updated.
+        1. Subtract the difference in offsets: `difference = latest_offsest - local_offset` 
+        2. While `difference > 0`
+            - Fetch changes in batches of 1000 elements as maximum
+            - Apply JSON-patch to the content.
+        3. Generate a command for the Command Manager.
+2. [**OFFLINE**] The Content Manager exposes an API endpoint that accepts the URI to the snapshot file (e.g. `file:///tmp/snapshot.zip`). 
+   1. From `1.i.b` to `1.i.e`
