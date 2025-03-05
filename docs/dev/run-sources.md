@@ -43,3 +43,4 @@ Use `-Dtests.opensearch.` to pass additional settings to the running instance. F
 
 ```bash
 ./gradlew run -Dtests.opensearch.http.host=0.0.0.0
+```

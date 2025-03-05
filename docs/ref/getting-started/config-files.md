@@ -1,6 +1,5 @@
 # Configuration files
 
-
 ### Command Manager Plugin Configuration
 
 The Command Manager plugin allows you to configure various settings through the `opensearch.yml` file. Below is an overview of the available configuration options and their default values.
