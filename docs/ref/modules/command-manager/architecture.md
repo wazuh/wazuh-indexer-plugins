@@ -1,101 +1,134 @@
 # Architecture
 
-1. Sync content from CTI to Indexer
+## Command manager context diagram
 
-    - Ruleset.
+```mermaid
+graph TD
+    subgraph Command_Manager["Command Manager"]
+        API["Commands API"]
+        Controller["Commands Controller"]
+        Processor["Commands Expansion"]
+        Storage["Commands Index Storage"]
+        CommandsIndex[(commands index)]
+        AgentsIndex[(agents index)]
+        Scheduler["Job Scheduler Task"]
+    end
 
-        In the case of the ruleset, the new content is fetched periodically by the Content Manager from the CTI API (**1**). Following a successful update of the content (**2**), the Content Manager generates a command (**3**) (**4**) to notify about new content being available. Ultimately, the Server's periodic search for new commands reads the notification about the new content (**5**) and notifies the Engine (**6**), that updates its ruleset content (**7**).
+    Actor("Actor") -- POST /commands --> API
 
-        ```mermaid
-            flowchart TD
+    API --> Controller
+    Controller --> Processor
+    Processor --> Storage
+    Storage -- write --> CommandsIndex
+    Processor -- read --> AgentsIndex
+    Scheduler -- read-write--> CommandsIndex
 
-            subgraph Indexer["Indexer cluster"]
+    subgraph Server["Server"]
+        direction TB
+        ManagementAPI["Management API"]
+    end
 
-                subgraph Data_streams["Data stream"]
-                    commands_stream["Commands stream"]
-                end
+    ManagementAPI -- read --> CommandsIndex
+```
 
-                subgraph Data_states["Content"]
-                    states["Ruleset data"]
-                end
-                subgraph Plugins["Modules"]
-                    content_manager["Content manager"]
-                    command_manager["Command manager"]
-                end
-            end
+## Commands API
 
-            subgraph Wazuh1["Server 1"]
-                engine["Engine"]
-                server["Server"]
-            end
+Status: Completed
 
-            subgraph cti["CTI"]
-            end
+Documentation TBD.
 
-            content_manager -- 1- check_updates --> cti
-            content_manager -- 2- /update_content --> states
-            content_manager -- 3- /process_updates --> command_manager
-            command_manager -- 4- stores --> commands_stream
-            server -- 5- pulls --> commands_stream
-            server -- 6- /update_content --> engine
-            engine -- 7- requests_policy --> content_manager
+Issue: [https://github.com/wazuh/wazuh-indexer-plugins/issues/69](https://github.com/wazuh/wazuh-indexer-plugins/issues/69) 
 
-            style Data_streams fill:#abc2eb
-            style Data_states fill:#abc2eb
-            style Plugins fill:#abc2eb
-        ```
+Input JSON:
 
-2. Save user-made content to Indexer
+```json
+{
+  "commands": [
+    {
+      "action": {
+        "args": {},
+        "name": "restart",
+        "version": "5.0.0"
+      },
+      "source": "Users/Services",
+      "user": "Management API",
+      "timeout": 100,
+      "target": {
+        "id": "d5b250c4-dfa1-4d94-827f-9f99210dbe6c",
+        "type": "agent"
+      }
+    }
+  ]
+}
+```
 
-    Wazuh Indexer will store user-made content, such as custom rules, in indices for its distribution to the Servers (Engine).
+```mermaid
+classDiagram
+    HTTPclient <|-- CTIclient
+    HTTPclient <|-- CommandManagerClient
 
-    Users may create new content by interacting with the Management API (**1a**) or UI (**1b**). In any case, the new content arrives to the Content Manager API (**2a**) (**2b**). The Content Manager validates the data (**3**), and stores it on the appropriate index (**4**) in case of being valid. Ultimately, the Content Manager generates a command (**5**)  (**6**) To notify about new content being available.
+    class HTTPclient{
+        <<abstract>>
+        +request(method, payload, callback)
+    }
+    class CTIclient{
+        -int apiUrl
+        +getConsumerInfo()
+        +getContextChanges()
+    }
+    class CommandManagerClient{
+        -int apiUrl
+        +postCommand()
+    }
+```
 
-    ```mermaid
-        flowchart TD
-        subgraph Dashboard["Dashboard"]
-        end
+## Commands expansion
 
-        subgraph Indexer["Indexer cluster"]
-            subgraph Data_states["Content"]
-                states["Ruleset data"]
-            end
+Status: Completed
+Documentation  TBD
+Issue: [https://github.com/wazuh/wazuh-indexer-plugins/issues/88](https://github.com/wazuh/wazuh-indexer-plugins/issues/88)
 
-            subgraph Plugins["Modules"]
-                subgraph content_manager["Content manager"]
-                    subgraph indexer_engine["Engine"]
-                    end
+## Orders storage
 
-                    subgraph content_manager_api["Content manager API"]
-                    end
-                end
-                command_manager["Command manager"]
-            end
+Status: Completed
+Documentation TBD.
+Issue: [https://github.com/wazuh/wazuh-indexer-plugins/issues/42](https://github.com/wazuh/wazuh-indexer-plugins/issues/42)
 
-            subgraph Data_streams["Data stream"]
-                commands_stream["Commands stream"]
-            end
-        end
+## The Job Scheduler task
 
-        subgraph Wazuh1["Server 1"]
-            engine["Engine"]
-            management_api["Management API"]
-            server["Server"]
-        end
+Status: Completed
+Documentation TBD.
+Issue: [https://github.com/wazuh/wazuh-indexer-plugins/issues/87](https://github.com/wazuh/wazuh-indexer-plugins/issues/87)
 
-        subgraph users["Users"]
-        end
+## Configuration and key store management
 
-        users -- 1b- /test_policy --> Dashboard
-        users -- 1a- /test_policy --> management_api
-        management_api -- 2a- /update_test_policy --> content_manager
-        Dashboard -- 2b- /update_test_policy --> content_manager
-        content_manager_api -- 3- /validate_test_policy --> indexer_engine
-        content_manager -- 4- /update_test_policy --> states
-        content_manager -- 5- /process_updates --> command_manager
-        command_manager -- 6- /stores --> commands_stream
+Status: Completed
+Documentation TBD.
+Issue: [https://github.com/wazuh/wazuh-indexer-plugins/issues/95](https://github.com/wazuh/wazuh-indexer-plugins/issues/95 )
 
-        style Data_states fill:#abc2eb
-        style Data_streams fill:#abc2eb
-        style Plugins fill:#abc2eb
-    ```
+## Orders sending
+
+Status: Completed
+Issue: [https://github.com/wazuh/wazuh-indexer-plugins/issues/89](https://github.com/wazuh/wazuh-indexer-plugins/issues/89)
+Output JSON:
+
+```json
+{
+    "orders": [
+        {
+            "action": {
+                "args": {},
+                "name": "restart",
+                "version": "5.0.0"
+            },
+            "source": "Users/Services",
+            "document_id": "A8-62pMBBmC6Jrvqj9kW",
+            "user": "Management API",
+            "target": {
+                "id": "d5b250c4-dfa1-4d94-827f-9f99210dbe6c",
+                "type": "agent"
+            }
+        }
+    ]
+}
+```
