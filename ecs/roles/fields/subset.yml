@@ -10,6 +10,14 @@ fields:
       name: {}
       created_at: {}
       rule:
-        fields: "*"
+        fields:
+          id: {}
+          name: {}
+          created_at: {}
+          rule_data: {}
       policy:
-        fields: "*"
+        fields:
+          id: {}
+          name: {}
+          created_at: {}
+          policy_object: {}

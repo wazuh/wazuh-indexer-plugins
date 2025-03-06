@@ -5,4 +5,10 @@ fields:
     fields:
       tags: []
   user:
-    fields: "*"
+    fields:
+      id: {}
+      username: {}
+      password: {}
+      allow_run_as: {}
+      created_at: {}
+      roles: {}

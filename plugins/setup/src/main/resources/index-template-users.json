@@ -1,0 +1,408 @@
+{
+  "index_patterns": [
+    "wazuh-users*"
+  ],
+  "mappings": {
+    "date_detection": false,
+    "dynamic": "strict",
+    "properties": {
+      "user": {
+        "properties": {
+          "allow_run_as": {
+            "type": "boolean"
+          },
+          "changes": {
+            "properties": {
+              "allow_run_as": {
+                "type": "boolean"
+              },
+              "created_at": {
+                "type": "date"
+              },
+              "domain": {
+                "ignore_above": 1024,
+                "type": "keyword"
+              },
+              "email": {
+                "ignore_above": 1024,
+                "type": "keyword"
+              },
+              "full_name": {
+                "fields": {
+                  "text": {
+                    "type": "keyword"
+                  }
+                },
+                "ignore_above": 1024,
+                "type": "keyword"
+              },
+              "group": {
+                "properties": {
+                  "domain": {
+                    "ignore_above": 1024,
+                    "type": "keyword"
+                  },
+                  "id": {
+                    "ignore_above": 1024,
+                    "type": "keyword"
+                  },
+                  "name": {
+                    "ignore_above": 1024,
+                    "type": "keyword"
+                  }
+                }
+              },
+              "hash": {
+                "ignore_above": 1024,
+                "type": "keyword"
+              },
+              "id": {
+                "ignore_above": 1024,
+                "type": "keyword"
+              },
+              "name": {
+                "fields": {
+                  "text": {
+                    "type": "keyword"
+                  }
+                },
+                "ignore_above": 1024,
+                "type": "keyword"
+              },
+              "password": {
+                "ignore_above": 1024,
+                "type": "keyword"
+              },
+              "risk": {
+                "properties": {
+                  "calculated_level": {
+                    "ignore_above": 1024,
+                    "type": "keyword"
+                  },
+                  "calculated_score": {
+                    "type": "float"
+                  },
+                  "calculated_score_norm": {
+                    "type": "float"
+                  },
+                  "static_level": {
+                    "ignore_above": 1024,
+                    "type": "keyword"
+                  },
+                  "static_score": {
+                    "type": "float"
+                  },
+                  "static_score_norm": {
+                    "type": "float"
+                  }
+                }
+              },
+              "roles": {
+                "ignore_above": 1024,
+                "type": "keyword"
+              },
+              "username": {
+                "ignore_above": 1024,
+                "type": "keyword"
+              }
+            }
+          },
+          "created_at": {
+            "type": "date"
+          },
+          "domain": {
+            "ignore_above": 1024,
+            "type": "keyword"
+          },
+          "effective": {
+            "properties": {
+              "allow_run_as": {
+                "type": "boolean"
+              },
+              "created_at": {
+                "type": "date"
+              },
+              "domain": {
+                "ignore_above": 1024,
+                "type": "keyword"
+              },
+              "email": {
+                "ignore_above": 1024,
+                "type": "keyword"
+              },
+              "full_name": {
+                "fields": {
+                  "text": {
+                    "type": "keyword"
+                  }
+                },
+                "ignore_above": 1024,
+                "type": "keyword"
+              },
+              "group": {
+                "properties": {
+                  "domain": {
+                    "ignore_above": 1024,
+                    "type": "keyword"
+                  },
+                  "id": {
+                    "ignore_above": 1024,
+                    "type": "keyword"
+                  },
+                  "name": {
+                    "ignore_above": 1024,
+                    "type": "keyword"
+                  }
+                }
+              },
+              "hash": {
+                "ignore_above": 1024,
+                "type": "keyword"
+              },
+              "id": {
+                "ignore_above": 1024,
+                "type": "keyword"
+              },
+              "name": {
+                "fields": {
+                  "text": {
+                    "type": "keyword"
+                  }
+                },
+                "ignore_above": 1024,
+                "type": "keyword"
+              },
+              "password": {
+                "ignore_above": 1024,
+                "type": "keyword"
+              },
+              "risk": {
+                "properties": {
+                  "calculated_level": {
+                    "ignore_above": 1024,
+                    "type": "keyword"
+                  },
+                  "calculated_score": {
+                    "type": "float"
+                  },
+                  "calculated_score_norm": {
+                    "type": "float"
+                  },
+                  "static_level": {
+                    "ignore_above": 1024,
+                    "type": "keyword"
+                  },
+                  "static_score": {
+                    "type": "float"
+                  },
+                  "static_score_norm": {
+                    "type": "float"
+                  }
+                }
+              },
+              "roles": {
+                "ignore_above": 1024,
+                "type": "keyword"
+              },
+              "username": {
+                "ignore_above": 1024,
+                "type": "keyword"
+              }
+            }
+          },
+          "email": {
+            "ignore_above": 1024,
+            "type": "keyword"
+          },
+          "full_name": {
+            "fields": {
+              "text": {
+                "type": "keyword"
+              }
+            },
+            "ignore_above": 1024,
+            "type": "keyword"
+          },
+          "group": {
+            "properties": {
+              "domain": {
+                "ignore_above": 1024,
+                "type": "keyword"
+              },
+              "id": {
+                "ignore_above": 1024,
+                "type": "keyword"
+              },
+              "name": {
+                "ignore_above": 1024,
+                "type": "keyword"
+              }
+            }
+          },
+          "hash": {
+            "ignore_above": 1024,
+            "type": "keyword"
+          },
+          "id": {
+            "ignore_above": 1024,
+            "type": "keyword"
+          },
+          "name": {
+            "fields": {
+              "text": {
+                "type": "keyword"
+              }
+            },
+            "ignore_above": 1024,
+            "type": "keyword"
+          },
+          "password": {
+            "ignore_above": 1024,
+            "type": "keyword"
+          },
+          "risk": {
+            "properties": {
+              "calculated_level": {
+                "ignore_above": 1024,
+                "type": "keyword"
+              },
+              "calculated_score": {
+                "type": "float"
+              },
+              "calculated_score_norm": {
+                "type": "float"
+              },
+              "static_level": {
+                "ignore_above": 1024,
+                "type": "keyword"
+              },
+              "static_score": {
+                "type": "float"
+              },
+              "static_score_norm": {
+                "type": "float"
+              }
+            }
+          },
+          "roles": {
+            "ignore_above": 1024,
+            "type": "keyword"
+          },
+          "target": {
+            "properties": {
+              "allow_run_as": {
+                "type": "boolean"
+              },
+              "created_at": {
+                "type": "date"
+              },
+              "domain": {
+                "ignore_above": 1024,
+                "type": "keyword"
+              },
+              "email": {
+                "ignore_above": 1024,
+                "type": "keyword"
+              },
+              "full_name": {
+                "fields": {
+                  "text": {
+                    "type": "keyword"
+                  }
+                },
+                "ignore_above": 1024,
+                "type": "keyword"
+              },
+              "group": {
+                "properties": {
+                  "domain": {
+                    "ignore_above": 1024,
+                    "type": "keyword"
+                  },
+                  "id": {
+                    "ignore_above": 1024,
+                    "type": "keyword"
+                  },
+                  "name": {
+                    "ignore_above": 1024,
+                    "type": "keyword"
+                  }
+                }
+              },
+              "hash": {
+                "ignore_above": 1024,
+                "type": "keyword"
+              },
+              "id": {
+                "ignore_above": 1024,
+                "type": "keyword"
+              },
+              "name": {
+                "fields": {
+                  "text": {
+                    "type": "keyword"
+                  }
+                },
+                "ignore_above": 1024,
+                "type": "keyword"
+              },
+              "password": {
+                "ignore_above": 1024,
+                "type": "keyword"
+              },
+              "risk": {
+                "properties": {
+                  "calculated_level": {
+                    "ignore_above": 1024,
+                    "type": "keyword"
+                  },
+                  "calculated_score": {
+                    "type": "float"
+                  },
+                  "calculated_score_norm": {
+                    "type": "float"
+                  },
+                  "static_level": {
+                    "ignore_above": 1024,
+                    "type": "keyword"
+                  },
+                  "static_score": {
+                    "type": "float"
+                  },
+                  "static_score_norm": {
+                    "type": "float"
+                  }
+                }
+              },
+              "roles": {
+                "ignore_above": 1024,
+                "type": "keyword"
+              },
+              "username": {
+                "ignore_above": 1024,
+                "type": "keyword"
+              }
+            }
+          },
+          "username": {
+            "ignore_above": 1024,
+            "type": "keyword"
+          }
+        }
+      }
+    }
+  },
+  "order": 1,
+  "settings": {
+    "index": {
+      "number_of_replicas": "0",
+      "number_of_shards": "1",
+      "query.default_field": [
+        "user.username",
+        "user.allow_run_as",
+        "user.roles"
+      ],
+      "refresh_interval": "5s"
+    }
+  }
+}
