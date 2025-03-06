@@ -37,7 +37,7 @@ Status: Completed
 
 Documentation TBD.
 
-Issue: [https://github.com/wazuh/wazuh-indexer-plugins/issues/69](https://github.com/wazuh/wazuh-indexer-plugins/issues/69) 
+Issue: [https://github.com/wazuh/wazuh-indexer-plugins/issues/69](https://github.com/wazuh/wazuh-indexer-plugins/issues/69)
 
 Input JSON:
 
@@ -46,8 +46,8 @@ Input JSON:
   "commands": [
     {
       "action": {
-        "args": {},
         "name": "restart",
+        "args": {},
         "version": "5.0.0"
       },
       "source": "Users/Services",
@@ -61,6 +61,7 @@ Input JSON:
   ]
 }
 ```
+**Important:** The `action.name` attribute must always appear before `action.args` in the JSON. This is necessary because the validation of `action.args` depends on the value of `action.name`.
 
 ```mermaid
 classDiagram
@@ -117,9 +118,9 @@ Output JSON:
     "orders": [
         {
             "action": {
-                "args": {},
-                "name": "restart",
-                "version": "5.0.0"
+              "name": "restart",
+              "args": {},
+              "version": "5.0.0"
             },
             "source": "Users/Services",
             "document_id": "A8-62pMBBmC6Jrvqj9kW",
