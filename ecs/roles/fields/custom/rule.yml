@@ -24,7 +24,7 @@
       level: custom
       description: >
         The rule's creation date.
-    - name: rule
+    - name: rule_data
       type: keyword
       level: custom
       description: >

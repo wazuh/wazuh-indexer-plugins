@@ -24,7 +24,7 @@
       level: custom
       description: >
         Date and time when the policy was created.
-    - name: policy
+    - name: policy_object
       type: keyword
       level: custom
       description: >

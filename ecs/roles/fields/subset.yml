@@ -9,5 +9,7 @@ fields:
       id: {}
       name: {}
       created_at: {}
-      rule: "*"
-      policy: "*"
+      rule:
+        fields: "*"
+      policy:
+        fields: "*"
