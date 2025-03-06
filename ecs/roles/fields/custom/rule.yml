@@ -2,8 +2,10 @@
 - name: rule
   title: Wazuh Rules
   short: Wazuh Inc. custom fields.
-  type: group
-  group: 2
+  reusable:
+    top_level: true
+    expected:
+      - { at: role, as: rule }
   fields:
     - name: id
       type: integer

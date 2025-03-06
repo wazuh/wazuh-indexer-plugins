@@ -5,4 +5,9 @@ fields:
     fields:
       tags: []
   role:
-    fields: "*"
+    fields: 
+      id: {}
+      name: {}
+      created_at: {}
+      rule: "*"
+      policy: "*"
