@@ -15,45 +15,20 @@
             "ignore_above": 1024,
             "type": "keyword"
           },
+          "level": {
+            "type": "integer"
+          },
           "name": {
             "ignore_above": 1024,
             "type": "keyword"
           },
-          "policy": {
-            "properties": {
-              "created_at": {
-                "type": "date"
-              },
-              "id": {
-                "type": "integer"
-              },
-              "name": {
-                "ignore_above": 1024,
-                "type": "keyword"
-              },
-              "policy_object": {
-                "ignore_above": 1024,
-                "type": "keyword"
-              }
-            }
+          "policies": {
+            "ignore_above": 1024,
+            "type": "keyword"
           },
-          "rule": {
-            "properties": {
-              "created_at": {
-                "type": "date"
-              },
-              "id": {
-                "type": "integer"
-              },
-              "name": {
-                "ignore_above": 1024,
-                "type": "keyword"
-              },
-              "rule_data": {
-                "ignore_above": 1024,
-                "type": "keyword"
-              }
-            }
+          "rules": {
+            "ignore_above": 1024,
+            "type": "keyword"
           }
         }
       }
