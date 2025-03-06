@@ -5,7 +5,7 @@
   description: >
     Wazuh policy fields.
   reusable:
-    top_level: false
+    top_level: true
     expected:
       - { at: role, as: policy }
   fields:
