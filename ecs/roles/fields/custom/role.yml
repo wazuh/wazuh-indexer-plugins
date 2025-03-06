@@ -2,6 +2,8 @@
 - name: role
   title: Wazuh Roles
   short: Wazuh Inc. custom fields.
+  description: >
+    Wazuh roles fields.
   type: group
   group: 2
   fields:

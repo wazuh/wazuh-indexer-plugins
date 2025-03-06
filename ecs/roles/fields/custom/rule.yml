@@ -2,6 +2,8 @@
 - name: rule
   title: Wazuh Rules
   short: Wazuh Inc. custom fields.
+  description: >
+    Wazuh rules fields.
   reusable:
     top_level: false
     expected:

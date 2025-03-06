@@ -2,6 +2,8 @@
 - name: user
   title: Wazuh Users
   short: Wazuh Inc. custom fields.
+  description: >
+    Wazuh users fields.
   type: group
   group: 2
   fields:

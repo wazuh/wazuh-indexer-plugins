@@ -2,10 +2,12 @@
 - name: policy
   title: Wazuh policy fields
   short: Wazuh Inc. custom fields.
+  description: >
+    Wazuh policy fields.
   reusable:
     top_level: false
     expected:
-      - { at: role, as: rule }
+      - { at: role, as: policy }
   fields:
     - name: id
       type: integer
