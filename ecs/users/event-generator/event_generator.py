@@ -7,8 +7,8 @@ import requests
 import urllib3
 import uuid
 
-LOG_FILE = 'generate_user_data.log'
-GENERATED_DATA_FILE = 'generatedUserData.json'
+LOG_FILE = 'generate_data.log'
+GENERATED_DATA_FILE = 'generatedData.json'
 DATE_FORMAT = "%Y-%m-%dT%H:%M:%S.%fZ"
 INDEX_NAME = "wazuh-users"
 USERNAME = "admin"

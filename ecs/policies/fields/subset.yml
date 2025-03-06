@@ -1,14 +1,15 @@
 ---
-name: wazuh-roles
+name: wazuh-policies
 fields:
   base:
     fields:
       tags: []
-  role:
-    fields: 
+  policy:
+    fields:
       id: {}
       name: {}
-      rules: {}
-      policies: {}
+      actions: {}
+      resources: {}
+      effect: {}
       level: {}
       created_at: {}

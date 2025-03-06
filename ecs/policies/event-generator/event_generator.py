@@ -10,7 +10,7 @@ import uuid
 LOG_FILE = 'generate_data.log'
 GENERATED_DATA_FILE = 'generatedData.json'
 DATE_FORMAT = "%Y-%m-%dT%H:%M:%S.%fZ"
-INDEX_NAME = "wazuh-roles"
+INDEX_NAME = "wazuh-policies"
 USERNAME = "admin"
 PASSWORD = "admin"
 IP = "127.0.0.1"
@@ -24,19 +24,20 @@ def generate_random_date():
     return datetime.datetime.now(datetime.timezone.utc).strftime('%Y-%m-%dT%H:%M:%SZ')
 
 
-def generate_random_role():
+def generate_random_policy():
     return {
         "id": str(uuid.uuid4()),
-        "name": f"role_{random.randint(1, 1000)}",
+        "name": f"policy_{random.randint(1, 1000)}",
+        "actions": random.choice(["read", "write", "execute", "delete"]),
+        "resources": f"resource_{random.randint(1, 1000)}",
+        "effect": random.choice(["allow", "deny"]),
         "level": random.randint(1, 10),
-        "policies": [f"policy_{random.randint(1, 10)}" for _ in range(random.randint(1, 3))],
-        "rules": [f"rule_{random.randint(1, 10)}" for _ in range(random.randint(1, 3))],
         "created_at": generate_random_date()
     }
 
 
 def generate_random_data(number):
-    return [{"role": generate_random_role()} for _ in range(number)]
+    return [{"policy": generate_random_policy()} for _ in range(number)]
 
 
 def inject_events(protocol, ip, port, index, username, password, data):
@@ -64,7 +65,7 @@ def send_post_request(username, password, url, event_data):
 
 def main():
     parser = argparse.ArgumentParser(
-        description="Generate and inject events into Wazuh Roles index.")
+        description="Generate and inject events into Wazuh Policies index.")
     parser.add_argument("--protocol", choices=['http', 'https'],
                         default='https', help="Specify the protocol to use: http or https.")
     args = parser.parse_args()
