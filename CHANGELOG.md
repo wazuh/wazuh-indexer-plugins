@@ -17,7 +17,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 ### Removed
 
 ### Fixed
- - Re-engineered to validate action arguments based on the action name, regardless of the command JSON order (#260).
+ -  Add a validation to the order of the action arguments to force action.name to come before action.arg so that they can always be validated.  (#260).
 
 ### Security
 
