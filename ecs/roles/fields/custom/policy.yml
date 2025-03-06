@@ -3,7 +3,7 @@
   title: Wazuh policy fields
   short: Wazuh Inc. custom fields.
   reusable:
-    top_level: true
+    top_level: false
     expected:
       - { at: role, as: rule }
   fields:
