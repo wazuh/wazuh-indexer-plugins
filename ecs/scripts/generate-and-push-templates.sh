@@ -120,6 +120,7 @@ configure_git() {
     chmod 644 ~/.ssh/id_ed25519_bot.pub
 
     # Setup commit signing
+    eval "$(ssh-agent -s)"
     ssh-add ~/.ssh/id_ed25519_bot
     git config --global gpg.format ssh
     git config --global commit.gpgsign true
@@ -252,7 +253,6 @@ main() {
     validate_dependencies
     detect_modified_modules
     run_ecs_generator # Exit if no changes on relevant modules.
-    clone_target_repo
     commit_and_push_changes # Exit if no changes detected.
     create_or_update_pr
 }
