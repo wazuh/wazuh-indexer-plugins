@@ -149,6 +149,7 @@ commit_and_push_changes() {
         cp "$CURRENT_PATH/ecs/$ecs_module/$MAPPINGS_SUBPATH" "$OUTPUT_PATH/$target_file"
         # Copy the template to the plugins repository
         echo "  - Copy template for module '$ecs_module' to '$target_file'"
+        mkdir -p "$TEMPLATES_PATH" # Required when a new ECS module is added
         cp "$CURRENT_PATH/ecs/$ecs_module/$MAPPINGS_SUBPATH" "$TEMPLATES_PATH/$target_file"
     done
 
