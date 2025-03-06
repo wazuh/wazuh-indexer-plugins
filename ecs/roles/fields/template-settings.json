@@ -10,7 +10,8 @@
         "number_of_replicas": "0",
         "refresh_interval": "5s",
         "query.default_field": [
-          "role.name"
+          "role.name",
+          "role.level"
         ]
       }
     }
