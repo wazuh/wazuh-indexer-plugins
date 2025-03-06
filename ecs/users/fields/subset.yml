@@ -1,0 +1,8 @@
+---
+name: wazuh-users
+fields:
+  base:
+    fields:
+      tags: []
+  user:
+    fields: "*"

@@ -1,0 +1,37 @@
+---
+- name: user
+  title: Wazuh Users
+  short: Wazuh Inc. custom fields.
+  type: group
+  group: 2
+  fields:
+    - name: id
+      type: keyword
+      level: custom
+      description: >
+        Unique identifier of the user.
+    - name: username
+      type: keyword
+      level: custom
+      description: >
+        The user's username.
+    - name: password
+      type: keyword
+      level: custom
+      description: >
+        The user's password.
+    - name: allow_run_as
+      type: boolean
+      level: custom
+      description: >
+        The user's allowed run-as user.
+    - name: created_at
+      type: date
+      level: custom
+      description: >
+        The user's creation date.
+    - name: roles
+      type: keyword
+      level: custom
+      description: >
+        The user's roles.
