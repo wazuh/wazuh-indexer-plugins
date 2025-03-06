@@ -1,0 +1,27 @@
+---
+- name: policy
+  title: Wazuh policy fields
+  short: Wazuh Inc. custom fields.
+  type: group
+  group: 2
+  fields:
+    - name: id
+      type: integer
+      level: custom
+      description: >
+        Unique identifier of the policy.
+    - name: name
+      type: keyword
+      level: custom
+      description: >
+        Name of the policy.
+    - name: created_at
+      type: date
+      level: custom
+      description: >
+        Date and time when the policy was created.
+    - name: policy
+      type: keyword
+      level: custom
+      description: >
+        Policy object.

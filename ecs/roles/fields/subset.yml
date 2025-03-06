@@ -1,0 +1,8 @@
+---
+name: wazuh-roles
+fields:
+  base:
+    fields:
+      tags: []
+  role:
+    fields: "*"

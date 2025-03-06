@@ -1,0 +1,27 @@
+---
+- name: rule
+  title: Wazuh Rules
+  short: Wazuh Inc. custom fields.
+  type: group
+  group: 2
+  fields:
+    - name: id
+      type: integer
+      level: custom
+      description: >
+        Unique identifier of the rule.
+    - name: name
+      type: keyword
+      level: custom
+      description: >
+        The rule's name.
+    - name: created_at
+      type: date
+      level: custom
+      description: >
+        The rule's creation date.
+    - name: rule
+      type: keyword
+      level: custom
+      description: >
+        The rule's object.
