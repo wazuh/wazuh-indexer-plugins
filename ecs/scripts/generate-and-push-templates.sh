@@ -67,6 +67,7 @@ detect_modified_modules() {
         [agent]="index-template-agent.json"
         [alerts]="index-template-alerts.json"
         [command]="index-template-commands.json"
+        [roles]="index-template-roles.json"
         [states-fim]="index-template-fim.json"
         [states-inventory-hardware]="index-template-hardware.json"
         [states-inventory-hotfixes]="index-template-hotfixes.json"
@@ -77,6 +78,7 @@ detect_modified_modules() {
         [states-inventory-scheduled-commands]="index-template-scheduled-commands.json"
         [states-inventory-system]="index-template-system.json"
         [states-vulnerabilities]="index-template-vulnerabilities.json"
+        [users]="index-template-users.json"
     )
 
     relevant_modules=()
