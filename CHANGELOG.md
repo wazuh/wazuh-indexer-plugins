@@ -12,10 +12,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 Dependencies for Wazuh, Elastic, OpenSearch and Splunk have been changed.
 
 ### Changed
-Bumped Wazuh version to 4.11.0.
-Bumped Elastic version to 8.17.3.
-Bumped OpenSearch version to 2.19.1.
-Bumped Splunk version to 9.4.1.
+- Bumped Wazuh version to 4.11.0.
+- Bumped Elastic version to 8.17.3.
+- Bumped OpenSearch version to 2.19.1.
+- Bumped Splunk version to 9.4.1.
 
 ### Deprecated
 
