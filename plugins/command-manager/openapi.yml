@@ -23,8 +23,8 @@ paths:
                 value:
                   commands:
                     - action:
-                        args: {}
                         name: restart
+                        args: {}
                         version: "5.0.0"
                       source: "Users/Services"
                       user: "Management API"
@@ -37,8 +37,8 @@ paths:
                 value:
                   commands:
                     - action:
-                        args: {}
                         name: fetch-config
+                        args: {}
                         version: "5.0.0"
                       source: "Users/Services"
                       user: "Management API"
@@ -51,11 +51,11 @@ paths:
                 value:
                   commands:
                     - action:
+                        name: set-group
                         args:
                           groups:
                             - "group_1"
                             - "group_2"
-                        name: set-group
                         version: "5.0.0"
                       source: "Users/Services"
                       user: "Management API"
