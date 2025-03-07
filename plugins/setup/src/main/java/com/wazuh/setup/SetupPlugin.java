@@ -35,6 +35,7 @@ import java.util.Collection;
 import java.util.List;
 import java.util.function.Supplier;
 
+import com.wazuh.setup.index.PolicyIndex;
 import com.wazuh.setup.index.WazuhIndices;
 
 /**
@@ -44,6 +45,7 @@ import com.wazuh.setup.index.WazuhIndices;
 public class SetupPlugin extends Plugin implements ClusterPlugin {
 
     private WazuhIndices indices;
+    private PolicyIndex policyIndex;
 
     /** Default constructor */
     public SetupPlugin() {}
@@ -62,11 +64,13 @@ public class SetupPlugin extends Plugin implements ClusterPlugin {
             IndexNameExpressionResolver indexNameExpressionResolver,
             Supplier<RepositoriesService> repositoriesServiceSupplier) {
         this.indices = new WazuhIndices(client, clusterService);
+        this.policyIndex = new PolicyIndex(client, clusterService, threadPool);
         return List.of(this.indices);
     }
 
     @Override
     public void onNodeStarted(DiscoveryNode localNode) {
         this.indices.initialize();
+        this.policyIndex.indexPolicy();
     }
 }
