@@ -1,0 +1,50 @@
+{
+  "index_patterns": [
+    "wazuh-users*"
+  ],
+  "mappings": {
+    "date_detection": false,
+    "dynamic": "strict",
+    "properties": {
+      "user": {
+        "properties": {
+          "allow_run_as": {
+            "type": "boolean"
+          },
+          "created_at": {
+            "type": "date"
+          },
+          "id": {
+            "ignore_above": 1024,
+            "type": "keyword"
+          },
+          "password": {
+            "ignore_above": 1024,
+            "type": "keyword"
+          },
+          "roles": {
+            "ignore_above": 1024,
+            "type": "keyword"
+          },
+          "username": {
+            "ignore_above": 1024,
+            "type": "keyword"
+          }
+        }
+      }
+    }
+  },
+  "order": 1,
+  "settings": {
+    "index": {
+      "number_of_replicas": "0",
+      "number_of_shards": "1",
+      "query.default_field": [
+        "user.username",
+        "user.allow_run_as",
+        "user.roles"
+      ],
+      "refresh_interval": "5s"
+    }
+  }
+}

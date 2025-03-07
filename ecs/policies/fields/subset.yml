@@ -1,0 +1,15 @@
+---
+name: wazuh-policies
+fields:
+  base:
+    fields:
+      tags: []
+  policy:
+    fields:
+      id: {}
+      name: {}
+      actions: {}
+      resources: {}
+      effect: {}
+      level: {}
+      created_at: {}
