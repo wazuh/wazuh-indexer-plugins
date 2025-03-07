@@ -7,6 +7,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 ## [Unreleased 5.0.x]
 
 ### Added
+- Roles, Policies, Rules, and Users ECS mappings and index templates with its corresponding event generators.
 
 ### Dependencies
 
@@ -17,6 +18,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 ### Removed
 
 ### Fixed
+- Error on `generate-and-push-templates.sh` script when index template file does not exist on setup plugin resources.
 
 ### Security
 
