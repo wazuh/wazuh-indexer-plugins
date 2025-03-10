@@ -35,7 +35,7 @@ public class CTIClient extends HttpClient {
     private static final String apiUrl =
             PluginSettings.getInstance().getCtiBaseUrl()
                     + "/catalog/contexts/vd_1.0.0/consumers/vd_4.8.0";
-    private static final String CONTENT_CHANGES_ENDPOINT = "/changes";
+    private static final String CONTEXT_CHANGES_ENDPOINT = "/changes";
 
     /**
      * Private constructor to enforce singleton pattern. Initializes the HTTP client with the CTI API
@@ -67,8 +67,8 @@ public class CTIClient extends HttpClient {
      * @param queryParameters A map containing query parameters to filter the request.
      * @return A SimpleHttpResponse containing the response from the API.
      */
-    public SimpleHttpResponse getChanges(Map<String, String> queryParameters) {
-        return sendRequest(Method.GET, CONTENT_CHANGES_ENDPOINT, null, queryParameters, (Header) null);
+    public SimpleHttpResponse getContextChanges(Map<String, String> queryParameters) {
+        return sendRequest(Method.GET, CONTEXT_CHANGES_ENDPOINT, null, queryParameters, (Header) null);
     }
 
     /**
