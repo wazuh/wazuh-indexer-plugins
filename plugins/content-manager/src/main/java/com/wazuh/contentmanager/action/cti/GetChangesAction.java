@@ -34,6 +34,7 @@ import com.wazuh.contentmanager.client.CommandManagerClient;
 import com.wazuh.contentmanager.model.commandmanager.Command;
 import com.wazuh.contentmanager.model.ctiapi.Offsets;
 import com.wazuh.contentmanager.util.Privileged;
+import com.wazuh.contentmanager.util.http.QueryParameters;
 
 /**
  * Action class handling Offsets logic. This is used to get the json patches to the current
@@ -42,12 +43,9 @@ import com.wazuh.contentmanager.util.Privileged;
 public class GetChangesAction {
     private static final Logger log = LogManager.getLogger(GetChangesAction.class);
 
-    private static String FROM_OFFSET_FIELD = "from_offset";
-    private static String TO_OFFSET_FIELD = "to_offset";
-    private static String WITH_EMPTIES_FIELD = "with_empties";
-    private String fromOffset;
-    private String toOffset;
-    private String withEmpties;
+    private final String fromOffset;
+    private final String toOffset;
+    private final String withEmpties;
 
     /** Constructor method */
     public GetChangesAction(String fromOffset, String toOffset, String withEmpties) {
@@ -89,9 +87,9 @@ public class GetChangesAction {
      */
     private Map<String, String> buildQueryParametersMap() {
         Map<String, String> params = new HashMap<>();
-        params.put(FROM_OFFSET_FIELD, fromOffset);
-        params.put(TO_OFFSET_FIELD, toOffset);
-        params.put(WITH_EMPTIES_FIELD, withEmpties);
+        params.put(QueryParameters.FROM_OFFSET, fromOffset);
+        params.put(QueryParameters.TO_OFFSET, toOffset);
+        params.put(QueryParameters.WITH_EMPTIES, withEmpties);
         return params;
     }
 }

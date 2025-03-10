@@ -25,6 +25,7 @@ import java.util.List;
 import java.util.Locale;
 
 import com.wazuh.contentmanager.action.cti.GetChangesAction;
+import com.wazuh.contentmanager.util.http.QueryParameters;
 
 import static org.opensearch.rest.RestRequest.Method.GET;
 
@@ -33,10 +34,6 @@ import static org.opensearch.rest.RestRequest.Method.GET;
  * until we have a functional JobScheduler job to trigger the CTI API-related logic
  */
 public class ChangesHandler extends BaseRestHandler {
-
-    private static String FROM_OFFSET_FIELD = "from_offset";
-    private static String TO_OFFSET_FIELD = "to_offset";
-    private static String WITH_EMPTIES_FIELD = "with_empties";
 
     public static final String GET_CHANGES_DETAILS = "get_changes_details";
 
@@ -60,9 +57,9 @@ public class ChangesHandler extends BaseRestHandler {
             case GET:
                 GetChangesAction changesAction =
                         new GetChangesAction(
-                                request.param(FROM_OFFSET_FIELD),
-                                request.param(TO_OFFSET_FIELD),
-                                request.param(WITH_EMPTIES_FIELD));
+                                request.param(QueryParameters.FROM_OFFSET),
+                                request.param(QueryParameters.TO_OFFSET),
+                                request.param(QueryParameters.WITH_EMPTIES));
                 return restChannel -> {
                     restChannel.sendResponse(changesAction.run());
                 };
