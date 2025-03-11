@@ -23,11 +23,14 @@ import org.opensearch.common.xcontent.XContentType;
 import org.opensearch.core.xcontent.*;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import com.wazuh.contentmanager.client.CTIClient;
 import com.wazuh.contentmanager.model.ctiapi.ContextConsumerCatalog;
+import com.wazuh.contentmanager.model.ctiapi.Offset;
 import com.wazuh.contentmanager.model.ctiapi.Offsets;
 import com.wazuh.contentmanager.util.Privileged;
 import com.wazuh.contentmanager.util.http.QueryParameters;
@@ -44,6 +47,7 @@ public class ContentUpdater {
         try {
             Long currentOffset = this.getStoredOffset();
             Long lastOffset = this.getLatestOffset();
+            List<Offset> allOffsets = new ArrayList<>();
 
             if (lastOffset <= currentOffset) {
                 log.info("No new updates available. Current offset ({}) is up to date.", currentOffset);
@@ -54,18 +58,36 @@ public class ContentUpdater {
 
             while (currentOffset < lastOffset) {
                 Long nextOffset = Math.min(currentOffset + CHUNK_MAX_SIZE, lastOffset);
+                Offsets offsets;
 
                 try {
-                    Offsets offsets = this.getContextChanges(currentOffset, nextOffset);
+                    offsets = this.getContextChanges(currentOffset, nextOffset);
                     log.info("Fetched offsets from {} to {}", currentOffset, nextOffset);
                 } catch (IOException e) {
                     log.error("Error fetching changes for offsets {} to {}", currentOffset, nextOffset, e);
                     break; // Stop loop to prevent infinite retries in case of persistent API issues
                 }
 
+                // Merge new offsets into the accumulated list
+                allOffsets.addAll(offsets.getOffsetList());
+
                 // Update the offset for the next iteration
-                currentOffset = nextOffset;
+                Long maxFetchedOffset =
+                        offsets.getOffsetList().stream()
+                                .map(Offset::getOffset)
+                                .max(Long::compareTo)
+                                .orElse(currentOffset);
+
+                // Ensure progress is made to prevent infinite loops
+                if (maxFetchedOffset > currentOffset) {
+                    currentOffset = maxFetchedOffset;
+                } else {
+                    log.warn(
+                            "Fetched offsets did not provide a new highest value. Stopping to prevent infinite loop.");
+                    break;
+                }
             }
+            this.patchContextWithNewOffset(new Offsets(allOffsets));
         } catch (IOException e) {
             log.error("Unexpected error while fetching content updates", e);
         }
@@ -131,6 +153,10 @@ public class ContentUpdater {
      */
     private Long getStoredOffset() {
         return 1234L; // Placeholder for actual implementation
+    }
+
+    private void patchContextWithNewOffset(Offsets offsets) {
+        return;
     }
 
     /**

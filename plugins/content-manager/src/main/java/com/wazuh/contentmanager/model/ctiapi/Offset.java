@@ -58,6 +58,30 @@ public class Offset implements ToXContentObject {
         this.payload = payload;
     }
 
+    public String getContext() {
+        return context;
+    }
+
+    public Long getOffset() {
+        return offset;
+    }
+
+    public String getResource() {
+        return resource;
+    }
+
+    public String getType() {
+        return type;
+    }
+
+    public Long getVersion() {
+        return version;
+    }
+
+    public Map<String, Object> getPayload() {
+        return payload;
+    }
+
     private static List<Object> parseArray(XContentParser parser) throws IOException {
         List<Object> array = new ArrayList<>();
         while (parser.nextToken() != XContentParser.Token.END_ARRAY) {
