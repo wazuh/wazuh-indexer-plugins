@@ -34,31 +34,52 @@ import com.wazuh.contentmanager.util.http.QueryParameters;
 
 public class ContentUpdater {
     private static final Integer CHUNK_MAX_SIZE = 1000;
-
     private static final Logger log = LogManager.getLogger(ContentUpdater.class);
 
-    public void fetchAndApplyUpdates() throws IOException {
-        Long currentOffset = this.getCurrentContext();
-        Long lastOffset = this.getCurrentOffset();
+    /**
+     * Fetches and applies content updates in chunks from the current stored offset to the latest
+     * available offset. It iterates over the updates and applies them in batch processing.
+     */
+    public void fetchAndApplyUpdates() {
+        try {
+            Long currentOffset = this.getStoredOffset();
+            Long lastOffset = this.getLatestOffset();
 
-        if (lastOffset <= currentOffset) {
-            log.info("On current last offset. No updates available.");
-            return;
-        }
-        while (currentOffset < lastOffset) {
-            Long nextOffset = Math.min(currentOffset + CHUNK_MAX_SIZE, lastOffset);
+            if (lastOffset <= currentOffset) {
+                log.info("No new updates available. Current offset ({}) is up to date.", currentOffset);
+                return;
+            }
 
-            Long finalCurrentOffset = currentOffset;
-            Offsets offsets = this.getContextChanges(finalCurrentOffset, nextOffset);
+            log.info("Fetching content updates from offset {} to {}", currentOffset, lastOffset);
 
-            // Update the offset for the next iteration
-            currentOffset = nextOffset;
+            while (currentOffset < lastOffset) {
+                Long nextOffset = Math.min(currentOffset + CHUNK_MAX_SIZE, lastOffset);
+
+                try {
+                    Offsets offsets = this.getContextChanges(currentOffset, nextOffset);
+                    log.info("Fetched offsets from {} to {}", currentOffset, nextOffset);
+                } catch (IOException e) {
+                    log.error("Error fetching changes for offsets {} to {}", currentOffset, nextOffset, e);
+                    break; // Stop loop to prevent infinite retries in case of persistent API issues
+                }
+
+                // Update the offset for the next iteration
+                currentOffset = nextOffset;
+            }
+        } catch (IOException e) {
+            log.error("Unexpected error while fetching content updates", e);
         }
     }
 
-    // We need to convert the SimpleHttpResponse to a usable value
+    /**
+     * Fetches the context changes between a given offset range from the CTI API.
+     *
+     * @param fromOffset Starting offset (inclusive).
+     * @param toOffset Ending offset (exclusive).
+     * @return Offsets object containing the changes.
+     * @throws IOException If the API response is null or fails to parse.
+     */
     private Offsets getContextChanges(Long fromOffset, Long toOffset) throws IOException {
-        XContent xContent = XContentType.JSON.xContent();
         SimpleHttpResponse response =
                 Privileged.doPrivilegedRequest(
                         () ->
@@ -66,6 +87,12 @@ public class ContentUpdater {
                                         .getContextChanges(
                                                 contextQueryParameters(fromOffset.toString(), toOffset.toString())));
 
+        if (response == null || response.getBodyBytes() == null) {
+            throw new IOException(
+                    "Received null or empty response from API for offsets " + fromOffset + " to " + toOffset);
+        }
+
+        XContent xContent = XContentType.JSON.xContent();
         return Offsets.parse(
                 xContent.createParser(
                         NamedXContentRegistry.EMPTY,
@@ -73,29 +100,51 @@ public class ContentUpdater {
                         response.getBodyBytes()));
     }
 
-    // This is a dummy function to mock the actual function from IndexClient until its implementation
-    private Long getCurrentContext() {
-        return 1234L;
-    }
-
-    private Map<String, String> contextQueryParameters(String fromOffset, String toOffset) {
-        Map<String, String> params = new HashMap<>();
-        params.put(QueryParameters.FROM_OFFSET, fromOffset);
-        params.put(QueryParameters.TO_OFFSET, toOffset);
-        params.put(QueryParameters.WITH_EMPTIES, "");
-        return params;
-    }
-
-    private Long getCurrentOffset() throws IOException {
-        XContent xContent = XContentType.JSON.xContent();
+    /**
+     * Retrieves the latest offset from the CTI API.
+     *
+     * @return The latest available offset.
+     * @throws IOException If the API response is null or fails to parse.
+     */
+    private Long getLatestOffset() throws IOException {
         SimpleHttpResponse response =
                 Privileged.doPrivilegedRequest(() -> CTIClient.getInstance().getCatalog());
 
+        if (response == null || response.getBodyBytes() == null) {
+            throw new IOException("Failed to fetch latest offset: API response is null");
+        }
+
+        XContent xContent = XContentType.JSON.xContent();
         return ContextConsumerCatalog.parse(
                         xContent.createParser(
                                 NamedXContentRegistry.EMPTY,
                                 DeprecationHandler.IGNORE_DEPRECATIONS,
                                 response.getBodyBytes()))
                 .getLastOffset();
+    }
+
+    /**
+     * Retrieves the currently stored offset. This is a placeholder method and should be implemented
+     * to fetch the actual stored value.
+     *
+     * @return The current stored offset.
+     */
+    private Long getStoredOffset() {
+        return 1234L; // Placeholder for actual implementation
+    }
+
+    /**
+     * Builds query parameters for the API request to fetch context changes.
+     *
+     * @param fromOffset Starting offset (inclusive).
+     * @param toOffset Ending offset (exclusive).
+     * @return A map of query parameters.
+     */
+    private Map<String, String> contextQueryParameters(String fromOffset, String toOffset) {
+        Map<String, String> params = new HashMap<>();
+        params.put(QueryParameters.FROM_OFFSET, fromOffset);
+        params.put(QueryParameters.TO_OFFSET, toOffset);
+        params.put(QueryParameters.WITH_EMPTIES, "");
+        return params;
     }
 }
