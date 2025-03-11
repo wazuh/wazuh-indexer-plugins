@@ -75,7 +75,9 @@ public class SetGroupCommand extends Args {
                                 + currentToken.name()
                                 + "]");
             }
-            groupList.add(parser.text());
+            if (!parser.text().isEmpty()) {
+                groupList.add(parser.text());
+            }
         }
         // Consume the END_OBJECT token
         parser.nextToken();
