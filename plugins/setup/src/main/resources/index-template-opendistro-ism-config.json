@@ -2,13 +2,17 @@
   "index_patterns": [
     ".opendistro-ism-config"
   ],
+  "order": 1,
   "mappings": {
+    "_meta" : {
+      "schema_version": 21
+    },
     "dynamic": "strict",
     "properties": {
       "policy": {
         "properties": {
           "policy_id": {
-            "type": "text",
+            "type" : "text",
             "fields": {
               "keyword": {
                 "type": "keyword",
@@ -562,7 +566,7 @@
                   },
                   "custom": {
                     "enabled": false,
-                    "type": "object"
+                    "type":  "object"
                   }
                 }
               },
@@ -606,26 +610,26 @@
                 }
               },
               "backend_roles": {
-                "type": "text",
-                "fields": {
-                  "keyword": {
-                    "type": "keyword"
+                "type" : "text",
+                "fields" : {
+                  "keyword" : {
+                    "type" : "keyword"
                   }
                 }
               },
               "roles": {
-                "type": "text",
-                "fields": {
-                  "keyword": {
-                    "type": "keyword"
+                "type" : "text",
+                "fields" : {
+                  "keyword" : {
+                    "type" : "keyword"
                   }
                 }
               },
               "custom_attribute_names": {
-                "type": "text",
-                "fields": {
-                  "keyword": {
-                    "type": "keyword"
+                "type" : "text",
+                "fields" : {
+                  "keyword" : {
+                    "type" : "keyword"
                   }
                 }
               }
@@ -651,11 +655,11 @@
             "type": "date",
             "format": "strict_date_time||epoch_millis"
           },
-          "index": {
-            "type": "keyword"
+          "index" : {
+            "type" : "keyword"
           },
-          "index_uuid": {
-            "type": "keyword"
+          "index_uuid" : {
+            "type" : "keyword"
           },
           "last_updated_time": {
             "type": "date",
@@ -668,7 +672,7 @@
             "type": "long"
           },
           "policy_id": {
-            "type": "keyword"
+            "type" : "keyword"
           },
           "policy": {
             "type": "object",
@@ -697,26 +701,26 @@
                     }
                   },
                   "backend_roles": {
-                    "type": "text",
-                    "fields": {
-                      "keyword": {
-                        "type": "keyword"
+                    "type" : "text",
+                    "fields" : {
+                      "keyword" : {
+                        "type" : "keyword"
                       }
                     }
                   },
                   "roles": {
-                    "type": "text",
-                    "fields": {
-                      "keyword": {
-                        "type": "keyword"
+                    "type" : "text",
+                    "fields" : {
+                      "keyword" : {
+                        "type" : "keyword"
                       }
                     }
                   },
                   "custom_attribute_names": {
-                    "type": "text",
-                    "fields": {
-                      "keyword": {
-                        "type": "keyword"
+                    "type" : "text",
+                    "fields" : {
+                      "keyword" : {
+                        "type" : "keyword"
                       }
                     }
                   }
@@ -1105,26 +1109,26 @@
                 }
               },
               "backend_roles": {
-                "type": "text",
-                "fields": {
-                  "keyword": {
-                    "type": "keyword"
+                "type" : "text",
+                "fields" : {
+                  "keyword" : {
+                    "type" : "keyword"
                   }
                 }
               },
               "roles": {
-                "type": "text",
-                "fields": {
-                  "keyword": {
-                    "type": "keyword"
+                "type" : "text",
+                "fields" : {
+                  "keyword" : {
+                    "type" : "keyword"
                   }
                 }
               },
               "custom_attribute_names": {
-                "type": "text",
-                "fields": {
-                  "keyword": {
-                    "type": "keyword"
+                "type" : "text",
+                "fields" : {
+                  "keyword" : {
+                    "type" : "keyword"
                   }
                 }
               }
@@ -1339,26 +1343,26 @@
                 }
               },
               "backend_roles": {
-                "type": "text",
-                "fields": {
-                  "keyword": {
-                    "type": "keyword"
+                "type" : "text",
+                "fields" : {
+                  "keyword" : {
+                    "type" : "keyword"
                   }
                 }
               },
               "roles": {
-                "type": "text",
-                "fields": {
-                  "keyword": {
-                    "type": "keyword"
+                "type" : "text",
+                "fields" : {
+                  "keyword" : {
+                    "type" : "keyword"
                   }
                 }
               },
               "custom_attribute_names": {
-                "type": "text",
-                "fields": {
-                  "keyword": {
-                    "type": "keyword"
+                "type" : "text",
+                "fields" : {
+                  "keyword" : {
+                    "type" : "keyword"
                   }
                 }
               }
@@ -1555,26 +1559,26 @@
                 }
               },
               "backend_roles": {
-                "type": "text",
-                "fields": {
-                  "keyword": {
-                    "type": "keyword"
+                "type" : "text",
+                "fields" : {
+                  "keyword" : {
+                    "type" : "keyword"
                   }
                 }
               },
               "roles": {
-                "type": "text",
-                "fields": {
-                  "keyword": {
-                    "type": "keyword"
+                "type" : "text",
+                "fields" : {
+                  "keyword" : {
+                    "type" : "keyword"
                   }
                 }
               },
               "custom_attribute_names": {
-                "type": "text",
-                "fields": {
-                  "keyword": {
-                    "type": "keyword"
+                "type" : "text",
+                "fields" : {
+                  "keyword" : {
+                    "type" : "keyword"
                   }
                 }
               }
@@ -1700,9 +1704,9 @@
       }
     }
   },
-  "order": 1,
   "settings": {
     "index": {
+      "hidden": "true",
       "number_of_replicas": "0",
       "number_of_shards": "1",
       "refresh_interval": "5s"

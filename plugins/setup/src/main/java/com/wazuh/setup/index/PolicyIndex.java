@@ -22,14 +22,10 @@ import org.opensearch.action.index.IndexRequest;
 import org.opensearch.action.index.IndexResponse;
 import org.opensearch.client.Client;
 import org.opensearch.cluster.service.ClusterService;
-import org.opensearch.common.util.concurrent.ThreadContext;
 import org.opensearch.core.xcontent.MediaTypeRegistry;
 import org.opensearch.index.shard.IndexingOperationListener;
-import org.opensearch.threadpool.ThreadPool;
 
 import java.io.IOException;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ExecutorService;
 
 /** Class to manage the Command Manager index and index template. */
 public class PolicyIndex implements IndexingOperationListener {
@@ -38,29 +34,29 @@ public class PolicyIndex implements IndexingOperationListener {
 
     private final Client client;
     private final ClusterService clusterService;
-    private final ThreadPool threadPool;
-    private final String POLICY_ID = "wazuh_rollover_policy";
 
     private final String ISM_INDEX = ".opendistro-ism-config";
 
-    //public final String POLICY =
-    //        "{\"policy\":{\"policy_id\":\"wazuh_rollover_policy\",\"description\":\"Wazuh rollover and alias policy\",\"error_notification\":null,\"default_state\":\"active\",\"states\":[{\"name\":\"active\",\"actions\":[{\"retry\":{\"count\":3,\"backoff\":\"exponential\",\"delay\":\"1m\"},\"rollover\":{\"min_doc_count\":5,\"copy_alias\":false}}],\"transitions\":[]}],\"ism_template\":[{\"index_patterns\":[\"test-index-*\"],\"priority\":50}],\"user\":{\"name\":\"admin\",\"backend_roles\":[\"admin\"],\"roles\":[\"own_index\",\"all_access\"],\"custom_attribute_names\":[],\"user_requested_tenant\":null}}}";
-
-    //public final String POLICY= "{\"policy\":{\"policy_id\":\"wazuh_rollover_policy\",\"description\":\"Wazuh rollover and alias policy\",\"default_state\":\"active\",\"states\":[{\"name\":\"active\",\"actions\":[{\"retry\":{\"count\":3,\"backoff\":\"exponential\",\"delay\":\"1m\"},\"rollover\":{\"min_doc_count\":5,\"copy_alias\":false}}],\"transitions\":[]}],\"ism_template\":[{\"index_patterns\":[\"test-index-*\"],\"priority\":50,\"last_updated_time\":1738255639727}],\"user\":{\"name\":\"admin\",\"backend_roles\":[\"admin\"],\"roles\":[\"own_index\",\"all_access\"],\"custom_attribute_names\":[],\"user_requested_tenant\":null}}}";
-    //public final String POLICY="{\"policy\":{\"description\":\"Example rollover policy.\",\"default_state\":\"rollover\",\"states\":[{\"name\":\"rollover\",\"actions\":[{\"rollover\":{\"min_doc_count\":1}}],\"transitions\":[]}],\"ism_template\":{\"index_patterns\":[\"test-index-*\"],\"priority\":100}}}";
-    public final String POLICY = String.format("{\"policy\":{\"policy_id\":\"%s\",\"description\":\"Example rollover policy.\",\"last_updated_time\":1738947466825,\"schema_version\":21,\"error_notification\":null,\"default_state\":\"rollover\",\"states\":[{\"name\":\"rollover\",\"actions\":[{\"retry\":{\"count\":3,\"backoff\":\"exponential\",\"delay\":\"1m\"},\"rollover\":{\"min_doc_count\":1,\"copy_alias\":false}}],\"transitions\":[]}],\"ism_template\":[{\"index_patterns\":[\"test-index-*\"],\"priority\":100,\"last_updated_time\":1738947466825}],\"user\":{\"name\":\"admin\",\"backend_roles\":[\"admin\"],\"roles\":[\"own_index\",\"all_access\"],\"custom_attribute_names\":[],\"user_requested_tenant\":null}}}",POLICY_ID);
+    private final String POLICY_ID = "wazuh_rollover_policy";
+    public final String POLICY =
+            String.format(
+                    // TO TEST
+                    "{\"policy\":{\"policy_id\":\"wazuh_rollover_policy\",\"description\":\"Wazuh rollover and alias policy\",\"last_updated_time\":1738255639727,\"schema_version\":21,\"error_notification\":null,\"default_state\":\"active\",\"states\":[{\"name\":\"active\",\"actions\":[{\"retry\":{\"count\":3,\"backoff\":\"exponential\",\"delay\":\"1m\"},\"rollover\":{\"min_doc_count\":2,\"min_index_age\":\"1m\",\"min_primary_shard_size\":\"25gb\",\"copy_alias\":false}}],\"transitions\":[]}],\"ism_template\":[{\"index_patterns\":[\"wazuh-commands*\",\"wazuh-alerts*\"],\"priority\":50,\"last_updated_time\":1738255639727}],\"user\":{\"name\":\"admin\",\"backend_roles\":[\"admin\"],\"roles\":[\"own_index\",\"all_access\"],\"custom_attribute_names\":[],\"user_requested_tenant\":null}}}",
+                    // OF DEVOPS
+                    //    "{\"policy\":{\"policy_id\":\"wazuh_rollover_policy\",\"description\":\"Wazuh
+                    // rollover and alias
+                    // policy\",\"last_updated_time\":1738255639727,\"schema_version\":21,\"error_notification\":null,\"default_state\":\"active\",\"states\":[{\"name\":\"active\",\"actions\":[{\"retry\":{\"count\":3,\"backoff\":\"exponential\",\"delay\":\"1m\"},\"rollover\":{\"min_doc_count\":200000000,\"min_index_age\":\"7d\",\"min_primary_shard_size\":\"25gb\",\"copy_alias\":false}}],\"transitions\":[]}],\"ism_template\":[{\"index_patterns\":[\"wazuh-commands*\",\"wazuh-alerts*\"],\"priority\":50,\"last_updated_time\":1738255639727}],\"user\":{\"name\":\"admin\",\"backend_roles\":[\"admin\"],\"roles\":[\"own_index\",\"all_access\"],\"custom_attribute_names\":[],\"user_requested_tenant\":null}}}",
+                    POLICY_ID);
 
     /**
      * Default constructor
      *
      * @param client OpenSearch client.
      * @param clusterService OpenSearch cluster service.
-     * @param threadPool An OpenSearch ThreadPool.
      */
-    public PolicyIndex(Client client, ClusterService clusterService, ThreadPool threadPool) {
+    public PolicyIndex(Client client, ClusterService clusterService) {
         this.client = client;
         this.clusterService = clusterService;
-        this.threadPool = threadPool;
     }
 
     /**
@@ -72,29 +68,17 @@ public class PolicyIndex implements IndexingOperationListener {
         return this.clusterService.state().routingTable().hasIndex(ISM_INDEX);
     }
 
-    /**
-     * Indexes an array of documents asynchronously.
-     *
-     * @return A CompletableFuture with the RestStatus response from the operation
-     */
-    public CompletableFuture<IndexResponse> indexPolicy() {
-        final CompletableFuture<IndexResponse> future = new CompletableFuture<>();
-        final ExecutorService executor = this.threadPool.executor(ThreadPool.Names.WRITE);
-
-        executor.submit(
-                () -> {
-                    try (ThreadContext.StoredContext ignored =
-                            this.threadPool.getThreadContext().stashContext()) {
-                        final IndexResponse indexResponse =
-                                client.index(createIndexRequest("wazuh_rollover_policy", POLICY))
-                                        .actionGet();
-                        future.complete(indexResponse);
-                    } catch (Exception e) {
-                        log.error("Error indexing commands with bulk due to {}", e.getMessage());
-                        future.completeExceptionally(e);
-                    }
-                });
-        return future;
+    /** Indexes an array of documents asynchronously. */
+    public void indexPolicy() {
+        try {
+            log.info("Previous insert policy ");
+            final IndexResponse indexResponse =
+                    this.client.index(createIndexRequest("wazuh_rollover_policy", POLICY)).actionGet();
+            // future.complete(indexResponse);
+            log.info("Successfully indexing policy: {}", indexResponse.status().getStatus());
+        } catch (Exception e) {
+            log.error("Error indexing policy {}", e.getMessage());
+        }
     }
 
     /**

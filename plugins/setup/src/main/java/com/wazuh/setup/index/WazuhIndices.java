@@ -41,6 +41,10 @@ public class WazuhIndices {
     /** | Key | value | | ------------------- | ---------- | | Index template name | index name | */
     public final Map<String, String> indexTemplates = new HashMap<>();
 
+    public final String ismIndex = ".opendistro-ism-config";
+    public final String ismTemplateName =
+            "index-template-opendistro-ism-config"; // Index template name
+
     private final Client client;
     private final ClusterService clusterService;
 
@@ -68,8 +72,6 @@ public class WazuhIndices {
         this.indexTemplates.put("index-template-processes", "wazuh-states-inventory-processes");
         this.indexTemplates.put("index-template-system", "wazuh-states-inventory-system");
         this.indexTemplates.put("index-template-vulnerabilities", "wazuh-states-vulnerabilities");
-        this.indexTemplates.put("opendistro-ism-config", ".opendistro-ism-config");
-        this.indexTemplates.put("test-template", "test-index-0000");
     }
 
     /**
@@ -119,21 +121,10 @@ public class WazuhIndices {
         }
     }
 
-    /**
-     * Creates an index
-     *
-     * @param indexName: Name of the index to be created
-     */
-    public void ismIndex(String indexName) {
-        if (!indexExists(indexName)) {
-            CreateIndexRequest request = new CreateIndexRequest(indexName);
-            CreateIndexResponse createIndexResponse =
-                this.client.admin().indices().create(request).actionGet();
-            log.info(
-                "Index created successfully: {} {}",
-                createIndexResponse.index(),
-                createIndexResponse.isAcknowledged());
-        }
+    /** Creates ISM index template and ISM index. */
+    public void initializeISMIndex() {
+        this.putTemplate(this.ismTemplateName);
+        this.putIndex(this.ismIndex);
     }
 
     /**
@@ -154,11 +145,7 @@ public class WazuhIndices {
         this.indexTemplates.forEach(
                 (k, v) -> {
                     this.putTemplate(k);
-                    if ("test-index-0000".equals(v)) {
-                        log.info("skipping creation of test-index-0000");
-                    } else {
-                        this.putIndex(v);
-                    }
+                    this.putIndex(v);
                 });
     }
 }
