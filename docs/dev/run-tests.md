@@ -16,6 +16,6 @@ To run integration tests, use the `./gradlew integTest` and the `./gradlew yamlr
 
 ### Package testing
 
-For package testing, we conduct smoke tests on the packages using the [GitHub Actions Workflows](https://github.com/wazuh/wazuh-indexer/blob/4.9.0/.github/workflows/build.yml). These tests consist on installing the packages on a supported operating system. DEB packages are installed in the “Ubuntu 24.04” runner executing the workflow, while RPM packages are installed in a Red Hat 9 Docker container, as there is no RPM compatible runner available in GitHub Actions.
+For package testing, we conduct smoke tests on the packages using the [GitHub Actions Workflows](https://github.com/wazuh/wazuh-indexer/blob/main/.github/workflows/5_builderpackage_indexer.yml). These tests consist on installing the packages on a supported operating system. DEB packages are installed in the “Ubuntu 24.04” runner executing the workflow, while RPM packages are installed in a Red Hat 9 Docker container, as there is no RPM compatible runner available in GitHub Actions.
 
 As a last note, there is also a **Vagrantfile** and **testing scripts** in the [repository](https://github.com/wazuh/wazuh-indexer-plugins/tree/master/test-tools) to perform some tests on a real wazuh-indexer service running on a virtual machine. Refer to its README.md for more information about how to run these tests.
