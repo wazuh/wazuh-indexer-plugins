@@ -57,7 +57,7 @@ public class Action implements ToXContentObject {
      * @throws IOException parsing error occurred.
      */
     public static Action parse(XContentParser parser) throws IOException, IllegalArgumentException {
-        String name = "";
+        String name = null;
         Args args = new Args();
         String version = null;
 
@@ -69,6 +69,10 @@ public class Action implements ToXContentObject {
                     name = parser.text();
                     break;
                 case Args.ARGS:
+                    if (name == null) {
+                        throw new IllegalArgumentException(
+                                "Expected [command.action.name] to be provided before [command.action.args]");
+                    }
                     switch (name) {
                         case "set-group":
                             log.info("Parsing arguments for [set-group] command");
@@ -93,6 +97,7 @@ public class Action implements ToXContentObject {
             }
         }
 
+        assert name != null;
         return new Action(name, args, version);
     }
 
