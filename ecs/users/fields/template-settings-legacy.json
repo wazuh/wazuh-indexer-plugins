@@ -7,9 +7,10 @@
       "number_of_replicas": "0",
       "refresh_interval": "5s",
       "query.default_field": [
-        "user.username",
-        "user.allow_run_as",
-        "user.roles"
+        "user.name",
+        "user.roles.name",
+        "user.roles.policies.name",
+        "user.roles.rules.name"
       ]
     }
   }
