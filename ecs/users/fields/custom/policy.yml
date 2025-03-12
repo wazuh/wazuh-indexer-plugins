@@ -1,0 +1,38 @@
+---
+- name: policy
+  title: Policy
+  description: Policy assigned to the role.
+  reusable:
+    top_level: true
+    expected:
+      - { at: role, as: policies }
+  level: nested
+  fields:
+    - name: name
+      type: keyword
+      level: custom
+      description: Policy name.
+    - name: actions
+      type: keyword
+      level: custom
+      multi_fields:
+        - name: raw
+          level: custom
+          type: keyword
+      description: Actions allowed by the policy.
+    - name: resources
+      type: keyword
+      level: custom
+      description: Resources affected by the policy.
+    - name: effect
+      type: keyword
+      level: custom
+      description: The effect of the policy (allow/deny).
+    - name: level
+      type: integer
+      level: custom
+      description: Policy level.
+    - name: created_at
+      type: date
+      level: custom
+      description: Timestamp when the policy was created.

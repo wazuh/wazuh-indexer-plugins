@@ -7,8 +7,24 @@ fields:
   user:
     fields:
       id: {}
-      username: {}
+      name: {}
       password: {}
       allow_run_as: {}
       created_at: {}
-      roles: {}
+      roles:
+        fields:
+          name: {}
+          created_at: {}
+          level: {}
+          rules:
+            fields:
+              name: {}
+              created_at: {}
+          policies:
+            fields:
+              name: {}
+              actions: {}
+              resources: {}
+              effect: {}
+              level: {}
+              created_at: {}

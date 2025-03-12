@@ -1,0 +1,18 @@
+---
+- name: rule
+  title: Rule
+  description: Rules assigned to the role.
+  reusable:
+    top_level: true
+    expected:
+      - { at: role, as: rules }
+  level: nested
+  fields:
+    - name: name
+      type: keyword
+      level: custom
+      description: Rule name.
+    - name: created_at
+      type: date
+      level: custom
+      description: Timestamp when the rule was created.

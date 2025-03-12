@@ -1,75 +1,28 @@
-- name: users
-  title: Wazuh Users
-  short: Internal system users for Wazuh.
+- name: user
+  title: Wazuh User
+  short: Internal system user for Wazuh.
   description: >
     Internal users managed by Wazuh. These are not customizable by users.
   type: group
-  level: extended
+  group: 2
   fields:
     - name: id
       type: keyword
+      level: custom
       description: Unique identifier of the internal user.
     - name: name
       type: keyword
+      level: custom
       description: The internal user’s name.
     - name: password
       type: keyword
+      level: custom
       description: The hashed password of the internal user.
     - name: allow_run_as
       type: boolean
+      level: custom
       description: Whether the internal user can run as admin.
     - name: created_at
       type: date
+      level: custom
       description: Timestamp when the internal user was created.
-    - name: roles
-      type: nested
-      description: List of roles assigned to the internal user.
-      fields:
-        - name: name
-          type: keyword
-          description: The role name.
-        - name: created_at
-          type: date
-          description: The timestamp when the role was created.
-        - name: level
-          type: integer
-          description: The permission level of the role.
-        - name: policies
-          type: nested
-          description: Policies assigned to the role.
-          fields:
-            - name: name
-              type: keyword
-              description: Policy name.
-            - name: actions
-              type: keyword
-              multi_fields:
-                - name: raw
-                  type: keyword
-              description: Actions allowed by the policy.
-            - name: resources
-              type: keyword
-              description: Resources affected by the policy.
-            - name: effect
-              type: keyword
-              description: The effect of the policy (allow/deny).
-            - name: level
-              type: integer
-              description: Policy level.
-            - name: created_at
-              type: date
-              description: Timestamp when the policy was created.
-        - name: rules
-          type: nested
-          description: Rules assigned to the role.
-          fields:
-            - name: name
-              type: keyword
-              description: Rule name.
-            - name: body
-              type: object
-              enabled: true
-              description: Rule body.
-            - name: created_at
-              type: date
-              description: Timestamp when the rule was created.
