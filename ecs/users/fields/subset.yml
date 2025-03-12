@@ -19,6 +19,7 @@ fields:
           rules:
             fields:
               name: {}
+              body: {}
               created_at: {}
           policies:
             fields:

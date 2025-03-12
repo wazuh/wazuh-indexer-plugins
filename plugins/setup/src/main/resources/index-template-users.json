@@ -1,89 +1,93 @@
 {
-  "index_patterns": [
-    ".internal-users*",
-    "wazuh-custom-users*"
-  ],
-  "mappings": {
-    "date_detection": false,
-    "dynamic": "strict",
-    "properties": {
-      "user": {
-        "properties": {
-          "allow_run_as": {
-            "type": "boolean"
-          },
-          "created_at": {
-            "type": "date"
-          },
-          "id": {
-            "ignore_above": 1024,
-            "type": "keyword"
-          },
-          "name": {
-            "fields": {
-              "text": {
-                "type": "keyword"
-              }
+    "index_patterns": [
+      ".internal-users*",
+      "wazuh-custom-users*"
+    ],
+    "mappings": {
+      "date_detection": false,
+      "dynamic": "strict",
+      "properties": {
+        "user": {
+          "properties": {
+            "allow_run_as": {
+              "type": "boolean"
             },
-            "ignore_above": 1024,
-            "type": "keyword"
-          },
-          "password": {
-            "ignore_above": 1024,
-            "type": "keyword"
-          },
-          "roles": {
-            "properties": {
-              "created_at": {
-                "type": "date"
-              },
-              "level": {
-                "type": "integer"
-              },
-              "name": {
-                "ignore_above": 1024,
-                "type": "keyword"
-              },
-              "policies": {
-                "properties": {
-                  "actions": {
-                    "fields": {
-                      "raw": {
-                        "ignore_above": 1024,
-                        "type": "keyword"
-                      }
-                    },
-                    "ignore_above": 1024,
-                    "type": "keyword"
-                  },
-                  "created_at": {
-                    "type": "date"
-                  },
-                  "effect": {
-                    "ignore_above": 1024,
-                    "type": "keyword"
-                  },
-                  "level": {
-                    "type": "integer"
-                  },
-                  "name": {
-                    "ignore_above": 1024,
-                    "type": "keyword"
-                  },
-                  "resources": {
-                    "ignore_above": 1024,
-                    "type": "keyword"
-                  }
+            "created_at": {
+              "type": "date"
+            },
+            "id": {
+              "ignore_above": 1024,
+              "type": "keyword"
+            },
+            "name": {
+              "fields": {
+                "text": {
+                  "type": "keyword"
                 }
               },
-              "rules": {
-                "properties": {
-                  "created_at": {
-                    "type": "date"
-                  },
-                  "name": {
-                    "ignore_above": 1024,
-                    "type": "keyword"
+              "ignore_above": 1024,
+              "type": "keyword"
+            },
+            "password": {
+              "ignore_above": 1024,
+              "type": "keyword"
+            },
+            "roles": {
+              "properties": {
+                "created_at": {
+                  "type": "date"
+                },
+                "level": {
+                  "type": "integer"
+                },
+                "name": {
+                  "ignore_above": 1024,
+                  "type": "keyword"
+                },
+                "policies": {
+                  "properties": {
+                    "actions": {
+                      "fields": {
+                        "raw": {
+                          "ignore_above": 1024,
+                          "type": "keyword"
+                        }
+                      },
+                      "ignore_above": 1024,
+                      "type": "keyword"
+                    },
+                    "created_at": {
+                      "type": "date"
+                    },
+                    "effect": {
+                      "ignore_above": 1024,
+                      "type": "keyword"
+                    },
+                    "level": {
+                      "type": "integer"
+                    },
+                    "name": {
+                      "ignore_above": 1024,
+                      "type": "keyword"
+                    },
+                    "resources": {
+                      "ignore_above": 1024,
+                      "type": "keyword"
+                    }
+                  }
+                },
+                "rules": {
+                  "properties": {
+                    "body": {
+                      "type": "object"
+                    },
+                    "created_at": {
+                      "type": "date"
+                    },
+                    "name": {
+                      "ignore_above": 1024,
+                      "type": "keyword"
+                    }
                   }
                 }
               }
@@ -91,20 +95,20 @@
           }
         }
       }
-    }
-  },
-  "order": 1,
-  "settings": {
-    "index": {
-      "number_of_replicas": "0",
-      "number_of_shards": "1",
-      "query.default_field": [
-        "user.name",
-        "user.roles.name",
-        "user.roles.policies.name",
-        "user.roles.rules.name"
-      ],
-      "refresh_interval": "5s"
+    },
+    "order": 1,
+    "settings": {
+      "index": {
+        "number_of_replicas": "0",
+        "number_of_shards": "1",
+        "query.default_field": [
+          "user.name",
+          "user.roles.name",
+          "user.roles.policies.name",
+          "user.roles.rules.name"
+        ],
+        "refresh_interval": "5s"
+      }
     }
   }
-}
+  

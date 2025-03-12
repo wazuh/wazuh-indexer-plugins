@@ -12,6 +12,11 @@
       type: keyword
       level: custom
       description: Rule name.
+    - name: body
+      type: object
+      level: custom
+      enabled: true
+      description: Rule body.
     - name: created_at
       type: date
       level: custom
