@@ -25,7 +25,7 @@ import java.util.List;
 import java.util.Locale;
 
 import com.wazuh.contentmanager.action.cti.GetChangesAction;
-import com.wazuh.contentmanager.util.http.QueryParameters;
+import com.wazuh.contentmanager.client.CTIClient;
 
 import static org.opensearch.rest.RestRequest.Method.GET;
 
@@ -57,9 +57,9 @@ public class ChangesHandler extends BaseRestHandler {
             case GET:
                 GetChangesAction changesAction =
                         new GetChangesAction(
-                                request.param(QueryParameters.FROM_OFFSET),
-                                request.param(QueryParameters.TO_OFFSET),
-                                request.param(QueryParameters.WITH_EMPTIES));
+                                request.param(CTIClient.QueryParameters.FROM_OFFSET.getValue()),
+                                request.param(CTIClient.QueryParameters.TO_OFFSET.getValue()),
+                                request.param(CTIClient.QueryParameters.WITH_EMPTIES.getValue()));
                 return restChannel -> {
                     restChannel.sendResponse(changesAction.run());
                 };

@@ -24,16 +24,15 @@ import org.opensearch.core.xcontent.*;
 
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
 import com.wazuh.contentmanager.client.CTIClient;
+import com.wazuh.contentmanager.client.CommandManagerClient;
+import com.wazuh.contentmanager.model.commandmanager.Command;
 import com.wazuh.contentmanager.model.ctiapi.ContextConsumerCatalog;
 import com.wazuh.contentmanager.model.ctiapi.Offset;
 import com.wazuh.contentmanager.model.ctiapi.Offsets;
 import com.wazuh.contentmanager.util.Privileged;
-import com.wazuh.contentmanager.util.http.QueryParameters;
 
 public class ContentUpdater {
     private static final Integer CHUNK_MAX_SIZE = 1000;
@@ -44,10 +43,11 @@ public class ContentUpdater {
      * available offset. It iterates over the updates and applies them in batch processing.
      */
     public void fetchAndApplyUpdates() {
+        // Offset model will be renamed to ContextChange
         try {
-            Long currentOffset = this.getStoredOffset();
+            Long currentOffset = this.getCurrentOffset();
             Long lastOffset = this.getLatestOffset();
-            List<Offset> allOffsets = new ArrayList<>();
+            List<Offset> changesToApply = new ArrayList<>();
 
             if (lastOffset <= currentOffset) {
                 log.info("No new updates available. Current offset ({}) is up to date.", currentOffset);
@@ -58,10 +58,10 @@ public class ContentUpdater {
 
             while (currentOffset < lastOffset) {
                 Long nextOffset = Math.min(currentOffset + CHUNK_MAX_SIZE, lastOffset);
-                Offsets offsets;
+                Offsets changes;
 
                 try {
-                    offsets = this.getContextChanges(currentOffset, nextOffset);
+                    changes = this.getContextChanges(currentOffset.toString(), nextOffset.toString());
                     log.info("Fetched offsets from {} to {}", currentOffset, nextOffset);
                 } catch (IOException e) {
                     log.error("Error fetching changes for offsets {} to {}", currentOffset, nextOffset, e);
@@ -69,11 +69,11 @@ public class ContentUpdater {
                 }
 
                 // Merge new offsets into the accumulated list
-                allOffsets.addAll(offsets.getOffsetList());
+                changesToApply.addAll(changes.getOffsetList());
 
                 // Update the offset for the next iteration
                 Long maxFetchedOffset =
-                        offsets.getOffsetList().stream()
+                        changes.getOffsetList().stream()
                                 .map(Offset::getOffset)
                                 .max(Long::compareTo)
                                 .orElse(currentOffset);
@@ -82,12 +82,14 @@ public class ContentUpdater {
                 if (maxFetchedOffset > currentOffset) {
                     currentOffset = maxFetchedOffset;
                 } else {
-                    log.warn(
-                            "Fetched offsets did not provide a new highest value. Stopping to prevent infinite loop.");
+                    log.warn("Fetched offsets did not provide a new highest value.");
                     break;
                 }
             }
-            this.patchContextWithNewOffset(new Offsets(allOffsets));
+            // Creates an Offsets (ContextChanges) instance that is passed to the patcher.
+            this.applyChangesToContext(new Offsets(changesToApply));
+            // Post new command informing the new changes.
+            CommandManagerClient.getInstance().postCommand(Command.generateCtiCommand());
         } catch (IOException e) {
             log.error("Unexpected error while fetching content updates", e);
         }
@@ -101,17 +103,13 @@ public class ContentUpdater {
      * @return Offsets object containing the changes.
      * @throws IOException If the API response is null or fails to parse.
      */
-    private Offsets getContextChanges(Long fromOffset, Long toOffset) throws IOException {
+    private Offsets getContextChanges(String fromOffset, String toOffset) throws IOException {
         SimpleHttpResponse response =
                 Privileged.doPrivilegedRequest(
-                        () ->
-                                CTIClient.getInstance()
-                                        .getContextChanges(
-                                                contextQueryParameters(fromOffset.toString(), toOffset.toString())));
+                        () -> CTIClient.getInstance().getContextChanges(fromOffset, toOffset, null));
 
         if (response == null || response.getBodyBytes() == null) {
-            throw new IOException(
-                    "Received null or empty response from API for offsets " + fromOffset + " to " + toOffset);
+            throw new IOException("Empty response for offsets " + fromOffset + " to " + toOffset);
         }
 
         XContent xContent = XContentType.JSON.xContent();
@@ -146,31 +144,21 @@ public class ContentUpdater {
     }
 
     /**
-     * Retrieves the currently stored offset. This is a placeholder method and should be implemented
-     * to fetch the actual stored value.
+     * Retrieves the current stored offset from the wazuh-context index.
      *
-     * @return The current stored offset.
+     * @return The current offset.
      */
-    private Long getStoredOffset() {
-        return 1234L; // Placeholder for actual implementation
+    private Long getCurrentOffset() {
+        // Placeholder for actual implementation.
+        // It should fetch the current offset from the index.
+        // ContextIndex.get().getOffset();
+        return 1234L;
     }
 
-    private void patchContextWithNewOffset(Offsets offsets) {
+    /** Apply the fetched changes to the indexed context. */
+    private void applyChangesToContext(Offsets changes) {
+        // Placeholder for actual implementation.
+        // ContentIndex.patch(changes);
         return;
-    }
-
-    /**
-     * Builds query parameters for the API request to fetch context changes.
-     *
-     * @param fromOffset Starting offset (inclusive).
-     * @param toOffset Ending offset (exclusive).
-     * @return A map of query parameters.
-     */
-    private Map<String, String> contextQueryParameters(String fromOffset, String toOffset) {
-        Map<String, String> params = new HashMap<>();
-        params.put(QueryParameters.FROM_OFFSET, fromOffset);
-        params.put(QueryParameters.TO_OFFSET, toOffset);
-        params.put(QueryParameters.WITH_EMPTIES, "");
-        return params;
     }
 }

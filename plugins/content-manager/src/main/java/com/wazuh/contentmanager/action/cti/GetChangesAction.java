@@ -26,15 +26,12 @@ import org.opensearch.core.xcontent.*;
 import org.opensearch.rest.BytesRestResponse;
 
 import java.io.IOException;
-import java.util.HashMap;
-import java.util.Map;
 
 import com.wazuh.contentmanager.client.CTIClient;
 import com.wazuh.contentmanager.client.CommandManagerClient;
 import com.wazuh.contentmanager.model.commandmanager.Command;
 import com.wazuh.contentmanager.model.ctiapi.Offsets;
 import com.wazuh.contentmanager.util.Privileged;
-import com.wazuh.contentmanager.util.http.QueryParameters;
 
 /**
  * Action class handling Offsets logic. This is used to get the json patches to the current
@@ -66,7 +63,7 @@ public class GetChangesAction {
         XContentBuilder builder = XContentFactory.jsonBuilder();
         SimpleHttpResponse response =
                 Privileged.doPrivilegedRequest(
-                        () -> CTIClient.getInstance().getContextChanges(buildQueryParametersMap()));
+                        () -> CTIClient.getInstance().getContextChanges(fromOffset, toOffset, withEmpties));
         Offsets.parse(
                         xContent.createParser(
                                 NamedXContentRegistry.EMPTY,
@@ -78,18 +75,5 @@ public class GetChangesAction {
                 CommandManagerClient.getInstance().postCommand(Command.generateCtiCommand());
         log.info("Command Manager response: {}", commandResponse);
         return new BytesRestResponse(RestStatus.fromCode(response.getCode()), builder.toString());
-    }
-
-    /**
-     * Builds a Map with the query parameters for the CTI API call
-     *
-     * @return The map with the parameters
-     */
-    private Map<String, String> buildQueryParametersMap() {
-        Map<String, String> params = new HashMap<>();
-        params.put(QueryParameters.FROM_OFFSET, fromOffset);
-        params.put(QueryParameters.TO_OFFSET, toOffset);
-        params.put(QueryParameters.WITH_EMPTIES, withEmpties);
-        return params;
     }
 }
