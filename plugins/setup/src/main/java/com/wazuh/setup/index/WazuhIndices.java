@@ -30,6 +30,7 @@ import java.io.IOException;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 
 import com.wazuh.setup.utils.IndexTemplateUtils;
 
@@ -69,8 +70,7 @@ public class WazuhIndices {
         this.indexTemplates.put("index-template-processes", "wazuh-states-inventory-processes");
         this.indexTemplates.put("index-template-system", "wazuh-states-inventory-system");
         this.indexTemplates.put("index-template-vulnerabilities", "wazuh-states-vulnerabilities");
-        this.indexTemplates.put("index-template-users-internal", "wazuh-internal-users");
-        this.indexTemplates.put("index-template-users-custom", "wazuh-custom-users");
+        this.indexTemplates.put("index-template-users", "wazuh-*-users");
     }
 
     /**
@@ -118,7 +118,7 @@ public class WazuhIndices {
                     createIndexResponse.isAcknowledged());
 
             // Dynamically set hidden=true only for 'wazuh-internal-users*'
-            if (indexName.startsWith("wazuh-internal-users")) {
+            if (indexName.startsWith(".internal-users")) {
                 setHiddenIndex(indexName);
             }
         }
@@ -165,7 +165,12 @@ public class WazuhIndices {
         this.indexTemplates.forEach(
                 (k, v) -> {
                     this.putTemplate(k);
-                    this.putIndex(v);
+                    if (Objects.equals(v, "wazuh-*-users")) {
+                        this.putIndex(".internal-users");
+                        this.putIndex("wazuh-custom-users");
+                    } else {
+                        this.putIndex(v);
+                    }
                 });
     }
 }

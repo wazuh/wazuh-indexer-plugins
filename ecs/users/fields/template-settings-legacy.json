@@ -1,5 +1,5 @@
 {
-  "index_patterns": ["wazuh-internal-users*", "wazuh-custom-users*"],
+  "index_patterns": [".internal-users*", "wazuh-custom-users*"],
   "order": 1,
   "settings": {
     "index": {
