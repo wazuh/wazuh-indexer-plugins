@@ -24,7 +24,7 @@ import java.io.IOException;
 import java.util.List;
 
 /** ToXContentObject model to parse and build CTI API Catalog query replies */
-public class ContextConsumerCatalog implements ToXContentObject {
+public class ConsumerInfo implements ToXContentObject {
 
     public static final String ID = "id";
     public static final String CONTEXT = "context";
@@ -68,7 +68,7 @@ public class ContextConsumerCatalog implements ToXContentObject {
      * @param lastSnapshotLink URL link to the latest snapshot
      * @param lastSnapshotOffset Offset of the latest snapshot
      */
-    public ContextConsumerCatalog(
+    public ConsumerInfo(
             Long id,
             String name,
             String context,
@@ -99,11 +99,11 @@ public class ContextConsumerCatalog implements ToXContentObject {
      * Parses a Catalog CTI API reply from an XContentParser
      *
      * @param parser the incoming parser
-     * @return a fully parsed ContextConsumerCatalog object
+     * @return a fully parsed ConsumerInfo object
      * @throws IOException rethrown from parse()
      * @throws IllegalArgumentException rethrown from parse()
      */
-    public static ContextConsumerCatalog parse(XContentParser parser)
+    public static ConsumerInfo parse(XContentParser parser)
             throws IOException, IllegalArgumentException {
         long id = 0L;
         String context = null;
@@ -170,7 +170,7 @@ public class ContextConsumerCatalog implements ToXContentObject {
                 }
             }
         }
-        return new ContextConsumerCatalog(
+        return new ConsumerInfo(
                 id,
                 name,
                 context,
@@ -213,7 +213,7 @@ public class ContextConsumerCatalog implements ToXContentObject {
 
     @Override
     public String toString() {
-        return "ContextConsumerCatalog{"
+        return "ConsumerInfo{"
                 + "changesUrl='"
                 + changesUrl
                 + '\''
