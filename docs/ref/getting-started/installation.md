@@ -2,15 +2,13 @@
 
 ## Installing the Wazuh indexer step by step
 
-Install and configure the Wazuh indexer as a single-node or multi-node cluster following step-by-step instructions. Wazuh indexer is a highly scalable full-text search engine and offers advanced security, alerting, index management, deep performance analysis, and several other features.
-
-The installation process is divided into three stages.
+Install and configure the Wazuh indexer as a single-node or multi-node cluster following step-by-step instructions. The installation process is divided into three stages.
 
 1. Certificates creation
 
-1. Nodes installation
+2. Nodes installation
 
-1. Cluster initialization
+3. Cluster initialization
 
 > **Note** You need root user privileges to run all the commands described below.
 
@@ -21,8 +19,8 @@ The installation process is divided into three stages.
 1. Download the `wazuh-certs-tool.sh` script and the `config.yml` configuration file. This creates the certificates that encrypt communications between the Wazuh central components.
 
     ```bash
-    curl -sO https://packages.wazuh.com/4.10/wazuh-certs-tool.sh
-    curl -sO https://packages.wazuh.com/4.10/config.yml
+    curl -sO https://packages-dev.wazuh.com/5.0/wazuh-certs-tool.sh
+    curl -sO https://packages-dev.wazuh.com/5.0/config.yml
     ```
 
 1. Edit `./config.yml` and replace the node names and IP values with the corresponding names and IP addresses. You need to do this for all Wazuh server, Wazuh indexer, and Wazuh dashboard nodes. Add as many node fields as needed.
@@ -143,9 +141,9 @@ Install the following packages if missing:
 
 #### Yum
 
-  ```bash
-  yum -y install wazuh-indexer
-  ```
+```bash
+yum -y install wazuh-indexer
+```
 
 ---
 
@@ -244,6 +242,7 @@ Choose one option according to the operating system used.
   ```
 
 ---
+
 Repeat this stage of the installation process for every Wazuh indexer node in your cluster. Then proceed with initializing your single-node or multi-node cluster in the next stage.
 
 ## 3. Cluster initialization

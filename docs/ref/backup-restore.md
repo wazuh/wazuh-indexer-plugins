@@ -1,10 +1,8 @@
 # Backup and restore
 
-In this section you can find instructions on how to create and restore a backup of your Wazuh installation.
+In this section you can find instructions on how to create and restore a backup of your Wazuh Indexer key files, preserving file permissions, ownership, and path. Later, you can move this folder contents back to the corresponding location to restore your certificates and configurations. Backing up these files is useful in cases such as moving your Wazuh installation to another system.
 
-To do this backup, you copy key files to a folder preserving file permissions, ownership, and path. Later, you can move this folder contents back to the corresponding location to restore your Wazuh data, certificates, and configurations. Backing up Wazuh files is useful in cases such as moving your Wazuh installation to another system.
-
-> **Note**: This backup only restores the configuration files, not the data.
+> **Note**: This backup only restores the configuration files, not the data. To backup data stored in the indexer, use [snapshots](https://opensearch.org/docs/latest/tuning-your-cluster/availability-and-recovery/snapshots/snapshot-restore/).
 
 ## Creating a backup
 
@@ -46,9 +44,15 @@ rsync -aREz \
 /usr/lib/sysctl.d/wazuh-indexer.conf $bkp_folder
 ```
 
+Compress the files and transfer them to the new server:
+
+    ```bash
+    tar -cvzf wazuh_central_components.tar.gz ~/wazuh_files_backup/
+    ```
+
 ## Restoring Wazuh indexer from backup
 
-This guide explains how to restore a backup of your Wazuh files, such as logs, and configurations. Restoring Wazuh files can be useful when migrating your Wazuh installation to a different system. To carry out this restoration, you first need to back up the necessary files. The [Creating a backup](#creating-a-backup) documentation provides a guide that you can follow in creating a backup of the Wazuh indexer.
+This guide explains how to restore a backup of your configuration files.
 
 >**Note**: This guide is designed specifically for restoration from a backup of the same version.
 
@@ -56,25 +60,16 @@ This guide explains how to restore a backup of your Wazuh files, such as logs, a
 
 >**Note**: For a multi-node setup, there should be a backup file for each node within the cluster. You need root user privileges to execute the commands below.
 
-You need to have a new installation of Wazuh indexer. Follow the [Wazuh indexer - Installation guide](https://documentation.wazuh.com/current/installation-guide/wazuh-indexer/index.html) to perform a fresh Wazuh indexer installation.
-
-
 #### Preparing the data restoration
 
-1. Compress the files generated after performing Wazuh files backup and transfer them to the new server:
-
-    ```bash
-    tar -cvzf wazuh_central_components.tar.gz ~/wazuh_files_backup/
-    ```
-
-2. Move the compressed file to the root `/` directory of your node:
+1. In the new node, move the compressed backup file to the root `/` directory:
 
     ```bash
     mv wazuh_central_components.tar.gz /
     cd /
     ```
 
-3. Decompress the backup files and change the current working directory to the directory based on the date and time of the backup files:
+2. Decompress the backup files and change the current working directory to the directory based on the date and time of the backup files:
 
     ```bash
     tar -xzvf wazuh_central_components.tar.gz

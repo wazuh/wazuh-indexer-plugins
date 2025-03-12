@@ -6,6 +6,8 @@ The Wazuh indexer stores data as JSON documents. Each **document** correlates a 
 
 An **index** is a collection of documents that are related to each other. The documents stored in the Wazuh indexer are distributed across different containers known as **shards**. By distributing the documents across multiple shards, and distributing those shards across multiple nodes, the Wazuh indexer can ensure redundancy. This protects your system against hardware failures and increases query capacity as nodes are added to a cluster.
 
+![indexer shards](https://documentation.wazuh.com/current/_images/wazuh-indexer1.png)
+
 The Wazuh indexer stores the data collected by the Wazuh agents in separate indices. Each index contains documents with specific inventory information. In this section, you can find a description of the information in each index.
 
 | Index                            | Description                                                                                                                                                                                                                                          |
@@ -23,5 +25,3 @@ The Wazuh indexer stores the data collected by the Wazuh agents in separate indi
 | wazuh-states-inventory-system    | Operating system information, hostname and architecture.                                                                                                                                                                                             |
 | wazuh-states-vulnerabilities     | Active vulnerabilities on the endpoint and its details.                                                                                                                                                                                              |
 | wazuh‑archives                   | Stores all events (archive data) received by the [Wazuh server](https://documentation.wazuh.com/current/getting-started/components/wazuh-server.html), whether or not they trip a rule.                                                              |
-
-![indexer shards](https://documentation.wazuh.com/current/_images/wazuh-indexer1.png)

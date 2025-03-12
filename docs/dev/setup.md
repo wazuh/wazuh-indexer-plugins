@@ -4,11 +4,11 @@
 
 Install and configure Git (ssh keys, commits and tags signing, user and email).
 
-1. [Set your username. ](https://docs.github.com/en/get-started/getting-started-with-git/setting-your-username-in-git)
-1. [Set your email address.  ](https://docs.github.com/en/account-and-profile/setting-up-and-managing-your-personal-account-on-github/managing-email-preferences/setting-your-commit-email-address)
-1. Generate an [SSH key. ](https://git-scm.com/book/en/v2/Git-on-the-Server-Generating-Your-SSH-Public-Key)
-1. Add the public key to your [GitHub account ](https://docs.github.com/en/authentication/connecting-to-github-with-ssh/adding-a-new-ssh-key-to-your-github-account)for authentication and signing.
-1. [Configure Git to sign commits with your SSH key ](https://docs.gitlab.com/ee/user/project/repository/signed_commits/ssh.html#configure-git-to-sign-commits-with-your-ssh-key)
+1. [Set your username](https://docs.github.com/en/get-started/getting-started-with-git/setting-your-username-in-git).
+1. [Set your email address](https://docs.github.com/en/account-and-profile/setting-up-and-managing-your-personal-account-on-github/managing-email-preferences/setting-your-commit-email-address).
+1. Generate an [SSH key](https://git-scm.com/book/en/v2/Git-on-the-Server-Generating-Your-SSH-Public-Key).
+1. Add the public key to your [GitHub account](https://docs.github.com/en/authentication/connecting-to-github-with-ssh/adding-a-new-ssh-key-to-your-github-account) for authentication and signing.
+1. [Configure Git to sign commits with your SSH key](https://docs.gitlab.com/ee/user/project/repository/signed_commits/ssh.html#configure-git-to-sign-commits-with-your-ssh-key).
 
 ## 2. Repositories
 

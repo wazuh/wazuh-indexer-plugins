@@ -55,17 +55,16 @@ style Data_states fill:#abc2eb
 style indexer_modules fill:#abc2eb
 ```
 
-The [Command Manager plugin](https://github.com/wazuh/wazuh-indexer/issues/349) appears for the first time in Wazuh 5.0.0.
+This plugin is one of the pillars of the new communication mechanism used across the different components of Wazuh: the commands. The commands are used to deliver specific actions to other components. For example, a command can order a group of agents to restart, update its configuration, change group or run an active response action. The Command Manager plugin receives these commands through its HTTP REST API, validates and stores them in an index. The Wazuh Server periodically queries the index looking for new commands and sends them to the final destination, which can be an agent or a server (engine).
 
-The plugin is one of the pillars of the agent commands mechanism. Wazuh Agents can receive orders anytime to change their behavior, for example, restarting, changing its group or run a program on the monitored system. The Command Manager plugin receives these commands, prepares them and sends them to the Wazuh Server for their delivery to the destination Agent. The processed commands are stored in an index for their consulting and management of their lifecycle, and eventually removed from the index when completed or past due. The document ID is sent from end to end, so the result of the order can be set by the Wazuh Server.
+The Command Manager generates a unique ID for each of the order received. This ID is required for updating the result of the order, so it's sent together with the order details to the target. Orders are expected to be executed before a given amount of time. The Command Manager periodically searches for past due commands and updates its status to the "failed" states.
 
 **Key Concepts:**
-- **Command:** the raw command as received by the POST /commands endpoint.
+- **Command:** the raw command as received by the `POST /_plugins/_command_manager/commands` endpoint.
 - **Order:** processed command, as stored in the index. A subset of this information is sent to the Wazuh Server.
 
 **Key Features:**
 - The plugin exposes a Rest API with a single endpoint that listens for POST requests.
-- The plugin extends the Job Scheduler plugin via its SPI. The job periodically looks for orders in “pending” state and sends them to the Management API of the Wazuh Server.
-- The plugin introduces an HTTP Rest client using the Apache HTTP Client library to send the orders to the Wazuh Server.
-- The plugin reads the Wazuh Server information from the key store. This information is considered sensitive as it contains the public IP address of the server and the access credentials.
-- The plugin uploads the “commands” index template to the cluster when the first command is received.
+- The plugin extends the Job Scheduler plugin via its SPI. The job periodically looks for past due orders in “pending” state and changes their state to "failed".
+
+The [Command Manager plugin](https://github.com/wazuh/wazuh-indexer/issues/349) appears for the first time in Wazuh 5.0.0.
