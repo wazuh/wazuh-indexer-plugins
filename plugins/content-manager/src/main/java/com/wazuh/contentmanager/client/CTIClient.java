@@ -16,11 +16,15 @@
  */
 package com.wazuh.contentmanager.client;
 
+import com.wazuh.contentmanager.util.Privileged;
 import org.apache.hc.client5.http.async.methods.SimpleHttpResponse;
 import org.apache.hc.core5.http.Header;
+import org.apache.hc.core5.http.HttpResponse;
 import org.apache.hc.core5.http.Method;
 
+import java.io.*;
 import java.net.URI;
+import java.net.URISyntaxException;
 import java.util.Map;
 
 import com.wazuh.contentmanager.settings.PluginSettings;
@@ -36,7 +40,6 @@ public class CTIClient extends HttpClient {
             PluginSettings.getInstance().getCtiBaseUrl()
                     + "/catalog/contexts/vd_1.0.0/consumers/vd_4.8.0";
     private static final String CONTENT_CHANGES_ENDPOINT = "/changes";
-
     /**
      * Private constructor to enforce singleton pattern. Initializes the HTTP client with the CTI API
      * base URL.
@@ -79,4 +82,37 @@ public class CTIClient extends HttpClient {
     public SimpleHttpResponse getCatalog() {
         return sendRequest(Method.GET, null, null, null, (Header) null);
     }
+
+    /**
+     * Downloads the CTI snapshot into the /tmp file.
+     *
+     * @param snapshotURI It will have the URI used for the download, at the moment that URI is hardcoded.
+     */
+    public SimpleHttpResponse downloadSnapshot(String snapshotURI) {
+        try {
+            URI uri = new URI("https://cti.wazuh.com/store/contexts/vd_1.0.0/consumers/vd_4.8.0/1432540_1741603172.zip");
+
+            //This needs to be changed once the Base Uri is changed in PluginSettings
+            HttpClient con = new HttpClient(uri);
+            SimpleHttpResponse res = con.sendRequest(Method.GET, null, null, null, (Header) null);
+
+            if (res != null && res.getBodyBytes() != null) {
+                try (InputStream in = new ByteArrayInputStream(res.getBodyBytes());
+                     FileOutputStream fos = new FileOutputStream("/tmp/1432540_1741603172.zip")) {
+                    byte[] buffer = new byte[1024];
+                    int bytesRead;
+                    while ((bytesRead = in.read(buffer)) != -1) {
+                        fos.write(buffer, 0, bytesRead);
+                    }
+                } catch (IOException e) {
+                    throw new RuntimeException(e);
+                }
+            }
+            return res;
+
+        } catch (URISyntaxException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
 }
