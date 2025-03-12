@@ -7,7 +7,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 ## [Unreleased 5.0.x]
 
 ### Added
-- Roles, Policies, Rules, and Users ECS mappings and index templates with its corresponding event generators.
+- Internal and custom Users ECS mappings and index templates with its corresponding event generator.
 
 ### Dependencies
 
