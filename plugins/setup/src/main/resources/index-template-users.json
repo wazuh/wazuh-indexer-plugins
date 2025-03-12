@@ -99,9 +99,10 @@
       "number_of_replicas": "0",
       "number_of_shards": "1",
       "query.default_field": [
-        "user.username",
-        "user.allow_run_as",
-        "user.roles"
+        "user.name",
+        "user.roles.name",
+        "user.roles.policies.name",
+        "user.roles.rules.name"
       ],
       "refresh_interval": "5s"
     }
