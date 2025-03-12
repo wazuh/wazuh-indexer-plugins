@@ -26,7 +26,7 @@ import org.opensearch.rest.BytesRestResponse;
 import java.io.IOException;
 
 import com.wazuh.contentmanager.client.CTIClient;
-import com.wazuh.contentmanager.model.ctiapi.ContextConsumerCatalog;
+import com.wazuh.contentmanager.model.ctiapi.ConsumerInfo;
 import com.wazuh.contentmanager.util.Privileged;
 
 /**
@@ -45,17 +45,14 @@ public class GetCatalogAction {
      * @throws IOException rethrown from parse()
      * @throws IllegalArgumentException rethrown from parse()
      */
-    public static BytesRestResponse run() throws IOException, IllegalArgumentException {
+    public static ConsumerInfo run() throws IOException, IllegalArgumentException {
         XContent xContent = XContentType.JSON.xContent();
-        XContentBuilder builder = XContentFactory.jsonBuilder();
         SimpleHttpResponse response =
                 Privileged.doPrivilegedRequest(() -> CTIClient.getInstance().getCatalog());
-        ContextConsumerCatalog.parse(
+        return ConsumerInfo.parse(
                         xContent.createParser(
                                 NamedXContentRegistry.EMPTY,
                                 DeprecationHandler.IGNORE_DEPRECATIONS,
-                                response.getBodyBytes()))
-                .toXContent(builder, ToXContent.EMPTY_PARAMS);
-        return new BytesRestResponse(RestStatus.fromCode(response.getCode()), builder.toString());
+                                response.getBodyBytes()));
     }
 }

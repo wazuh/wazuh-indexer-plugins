@@ -16,6 +16,7 @@
  */
 package com.wazuh.contentmanager;
 
+import com.wazuh.contentmanager.action.cti.GetCatalogAction;
 import org.opensearch.client.Client;
 import org.opensearch.cluster.metadata.IndexNameExpressionResolver;
 import org.opensearch.cluster.node.DiscoveryNode;
@@ -100,8 +101,7 @@ public class ContentManagerPlugin extends Plugin implements ClusterPlugin, Actio
 
     @Override
     public void onNodeStarted(DiscoveryNode localNode) {
-        this.contextIndex.createIndex();
-        this.contentIndex.createIndex();
+        GetCatalogAction.run();
     }
 
     /**

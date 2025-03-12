@@ -16,6 +16,7 @@
  */
 package com.wazuh.contentmanager.action.cti;
 
+import com.wazuh.contentmanager.model.ctiapi.ContextChanges;
 import org.apache.hc.client5.http.async.methods.SimpleHttpResponse;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -32,11 +33,10 @@ import java.util.Map;
 import com.wazuh.contentmanager.client.CTIClient;
 import com.wazuh.contentmanager.client.CommandManagerClient;
 import com.wazuh.contentmanager.model.commandmanager.Command;
-import com.wazuh.contentmanager.model.ctiapi.Offsets;
 import com.wazuh.contentmanager.util.Privileged;
 
 /**
- * Action class handling Offsets logic. This is used to get the json patches to the current
+ * Action class handling ContextChanges logic. This is used to get the json patches to the current
  * vulnerability data
  */
 public class GetChangesAction {
@@ -69,7 +69,7 @@ public class GetChangesAction {
         SimpleHttpResponse response =
                 Privileged.doPrivilegedRequest(
                         () -> CTIClient.getInstance().getChanges(buildQueryParametersMap()));
-        Offsets.parse(
+        ContextChanges.parse(
                         xContent.createParser(
                                 NamedXContentRegistry.EMPTY,
                                 DeprecationHandler.IGNORE_DEPRECATIONS,
