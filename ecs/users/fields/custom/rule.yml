@@ -1,7 +1,7 @@
 ---
 - name: rule
-  title: Rule
-  description: Rules assigned to the role.
+  title: Wazuh's User Rule
+  description: Rule assigned to a role.
   reusable:
     top_level: true
     expected:

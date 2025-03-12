@@ -1,7 +1,7 @@
 ---
 - name: role
-  title: Role
-  description: List of roles assigned to the user.
+  title: Wazuh's User Role
+  description: List of roles assigned to a user.
   reusable:
     top_level: true
     expected:

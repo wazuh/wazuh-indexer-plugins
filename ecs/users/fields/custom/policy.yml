@@ -1,7 +1,7 @@
 ---
 - name: policy
-  title: Policy
-  description: Policy assigned to the role.
+  title: Wazuh's User Policy
+  description: Policy assigned to a role.
   reusable:
     top_level: true
     expected:
