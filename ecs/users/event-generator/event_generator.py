@@ -10,7 +10,7 @@ import uuid
 LOG_FILE = 'generate_data.log'
 GENERATED_DATA_FILE = 'generatedData.json'
 DATE_FORMAT = "%Y-%m-%dT%H:%M:%S.%fZ"
-INDEX_NAME = "wazuh-users"
+INDEX_NAME = "wazuh-custom-users"
 USERNAME = "admin"
 PASSWORD = "admin"
 IP = "127.0.0.1"
@@ -24,14 +24,43 @@ def generate_random_date():
     return datetime.datetime.now(datetime.timezone.utc).strftime('%Y-%m-%dT%H:%M:%SZ')
 
 
+def generate_random_policy():
+    return {
+        "name": f"policy-{random.randint(1, 5)}",
+        "actions": [random.choice(["agent:create", "agent:remove"])],
+        "resources": ["*:*:*"],
+        "effect": random.choice(["allow", "deny"]),
+        "level": random.randint(0, 5),
+        "created_at": generate_random_date()
+    }
+
+
+def generate_random_rule():
+    return {
+        "name": f"rule-{random.randint(1, 3)}",
+        "body": {},
+        "created_at": generate_random_date()
+    }
+
+
+def generate_random_role():
+    return {
+        "name": f"role-{random.randint(1, 5)}",
+        "created_at": generate_random_date(),
+        "level": random.randint(0, 5),
+        "policies": [generate_random_policy() for _ in range(random.randint(1, 2))],
+        "rules": [generate_random_rule() for _ in range(random.randint(1, 2))]
+    }
+
+
 def generate_random_user():
     return {
         "id": str(uuid.uuid4()),
-        "username": f"user_{random.randint(1, 1000)}",
+        "name": f"user_{random.randint(1, 1000)}",
         "password": f"password{random.randint(1000, 9999)}",
         "allow_run_as": random.choice([True, False]),
         "created_at": generate_random_date(),
-        "roles": [f"role_{random.randint(1, 10)}"]
+        "roles": [generate_random_role() for _ in range(random.randint(1, 2))]
     }
 
 
@@ -64,7 +93,7 @@ def send_post_request(username, password, url, event_data):
 
 def main():
     parser = argparse.ArgumentParser(
-        description="Generate and inject events into Wazuh Users index.")
+        description="Generate and inject events into Wazuh Custom Users index.")
     parser.add_argument("--protocol", choices=['http', 'https'],
                         default='https', help="Specify the protocol to use: http or https.")
     args = parser.parse_args()
