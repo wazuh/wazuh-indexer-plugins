@@ -1,6 +1,7 @@
 {
   "index_patterns": [
-    "wazuh-users*"
+    "wazuh-internal-users*",
+    "wazuh-custom-users*"
   ],
   "mappings": {
     "date_detection": false,
@@ -18,17 +19,75 @@
             "ignore_above": 1024,
             "type": "keyword"
           },
+          "name": {
+            "fields": {
+              "text": {
+                "type": "keyword"
+              }
+            },
+            "ignore_above": 1024,
+            "type": "keyword"
+          },
           "password": {
             "ignore_above": 1024,
             "type": "keyword"
           },
           "roles": {
-            "ignore_above": 1024,
-            "type": "keyword"
-          },
-          "username": {
-            "ignore_above": 1024,
-            "type": "keyword"
+            "properties": {
+              "created_at": {
+                "type": "date"
+              },
+              "level": {
+                "type": "integer"
+              },
+              "name": {
+                "ignore_above": 1024,
+                "type": "keyword"
+              },
+              "policies": {
+                "properties": {
+                  "actions": {
+                    "fields": {
+                      "raw": {
+                        "ignore_above": 1024,
+                        "type": "keyword"
+                      }
+                    },
+                    "ignore_above": 1024,
+                    "type": "keyword"
+                  },
+                  "created_at": {
+                    "type": "date"
+                  },
+                  "effect": {
+                    "ignore_above": 1024,
+                    "type": "keyword"
+                  },
+                  "level": {
+                    "type": "integer"
+                  },
+                  "name": {
+                    "ignore_above": 1024,
+                    "type": "keyword"
+                  },
+                  "resources": {
+                    "ignore_above": 1024,
+                    "type": "keyword"
+                  }
+                }
+              },
+              "rules": {
+                "properties": {
+                  "created_at": {
+                    "type": "date"
+                  },
+                  "name": {
+                    "ignore_above": 1024,
+                    "type": "keyword"
+                  }
+                }
+              }
+            }
           }
         }
       }
