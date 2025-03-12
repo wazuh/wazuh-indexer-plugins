@@ -20,6 +20,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.opensearch.action.admin.indices.create.CreateIndexRequest;
 import org.opensearch.action.admin.indices.create.CreateIndexResponse;
+import org.opensearch.action.admin.indices.settings.put.UpdateSettingsRequest;
 import org.opensearch.action.admin.indices.template.put.PutIndexTemplateRequest;
 import org.opensearch.action.support.master.AcknowledgedResponse;
 import org.opensearch.client.Client;
@@ -68,6 +69,8 @@ public class WazuhIndices {
         this.indexTemplates.put("index-template-processes", "wazuh-states-inventory-processes");
         this.indexTemplates.put("index-template-system", "wazuh-states-inventory-system");
         this.indexTemplates.put("index-template-vulnerabilities", "wazuh-states-vulnerabilities");
+        this.indexTemplates.put("index-template-users-internal", "wazuh-internal-users");
+        this.indexTemplates.put("index-template-users-custom", "wazuh-custom-users");
     }
 
     /**
@@ -77,7 +80,6 @@ public class WazuhIndices {
      */
     public void putTemplate(String templateName) {
         try {
-            // @throws IOException
             Map<String, Object> template = IndexTemplateUtils.fromFile(templateName + ".json");
 
             PutIndexTemplateRequest putIndexTemplateRequest =
@@ -114,6 +116,34 @@ public class WazuhIndices {
                     "Index created successfully: {} {}",
                     createIndexResponse.index(),
                     createIndexResponse.isAcknowledged());
+
+            // Dynamically set hidden=true only for 'wazuh-internal-users*'
+            if (indexName.startsWith("wazuh-internal-users")) {
+                setHiddenIndex(indexName);
+            }
+        }
+    }
+
+    /**
+     * Dynamically sets an index as hidden.
+     *
+     * @param indexName The index to modify
+     */
+    private void setHiddenIndex(String indexName) {
+        try {
+            UpdateSettingsRequest updateSettingsRequest = new UpdateSettingsRequest(indexName);
+            updateSettingsRequest.settings(Map.of("index.hidden", true));
+
+            AcknowledgedResponse updateSettingsResponse =
+                    this.client.admin().indices().updateSettings(updateSettingsRequest).actionGet();
+
+            if (updateSettingsResponse.isAcknowledged()) {
+                log.info("Index {} is now hidden.", indexName);
+            } else {
+                log.warn("Failed to set hidden=true for index {}", indexName);
+            }
+        } catch (Exception e) {
+            log.error("Error setting index {} as hidden: {}", indexName, e.getMessage());
         }
     }
 
@@ -121,7 +151,7 @@ public class WazuhIndices {
      * Returns whether the index exists
      *
      * @param indexName the name of the index to check
-     * @return true of the index exists on the cluster, false otherwise
+     * @return true if the index exists on the cluster, false otherwise
      */
     public boolean indexExists(String indexName) {
         return this.clusterService.state().getRoutingTable().hasIndex(indexName);
