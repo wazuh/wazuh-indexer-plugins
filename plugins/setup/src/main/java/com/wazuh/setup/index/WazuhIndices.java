@@ -18,6 +18,7 @@ package com.wazuh.setup.index;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.opensearch.action.admin.indices.alias.Alias;
 import org.opensearch.action.admin.indices.create.CreateIndexRequest;
 import org.opensearch.action.admin.indices.create.CreateIndexResponse;
 import org.opensearch.action.admin.indices.template.put.PutIndexTemplateRequest;
@@ -61,7 +62,7 @@ public class WazuhIndices {
         // Create Index Templates - Indices map
         this.indexTemplates.put("index-template-agent", "wazuh-agents");
         this.indexTemplates.put("index-template-alerts", "wazuh-alerts-5.x-0001");
-        this.indexTemplates.put("index-template-commands", "wazuh-commands");
+        this.indexTemplates.put("index-template-commands", "wazuh-commands-0001");
         this.indexTemplates.put("index-template-scheduled-commands", ".scheduled-commands");
         this.indexTemplates.put("index-template-fim", "wazuh-states-fim");
         this.indexTemplates.put("index-template-hardware", "wazuh-states-inventory-hardware");
@@ -111,7 +112,19 @@ public class WazuhIndices {
      */
     public void putIndex(String indexName) {
         if (!indexExists(indexName)) {
-            CreateIndexRequest request = new CreateIndexRequest(indexName);
+            CreateIndexRequest request = null;
+            switch (indexName) {
+                case "wazuh-commands-0001":
+                    request = new CreateIndexRequest(indexName).alias(new Alias("wazuh-commands"));
+                    break;
+                case "wazuh-alerts-5.x-0001":
+                    request = new CreateIndexRequest(indexName).alias(new Alias("wazuh-alerts"));
+                    break;
+                default:
+                    request = new CreateIndexRequest(indexName);
+                    break;
+            }
+
             CreateIndexResponse createIndexResponse =
                     this.client.admin().indices().create(request).actionGet();
             log.info(
@@ -121,10 +134,35 @@ public class WazuhIndices {
         }
     }
 
+    /** Creates an index */
+    public void putISMIndex() {
+        if (!indexExists(this.ismIndex)) {
+            try {
+                // @throws IOException
+                Map<String, Object> template = IndexTemplateUtils.fromFile(this.ismTemplateName + ".json");
+
+                CreateIndexRequest request =
+                        new CreateIndexRequest(this.ismIndex)
+                                .mapping(IndexTemplateUtils.get(template, "mappings"))
+                                .settings(IndexTemplateUtils.get(template, "settings"));
+
+                CreateIndexResponse createIndexResponse =
+                        this.client.admin().indices().create(request).actionGet();
+
+                log.info(
+                        "Index created successfully: {} {}",
+                        createIndexResponse.index(),
+                        createIndexResponse.isAcknowledged());
+
+            } catch (IOException e) {
+                log.error("Error creating ISM index {}", e.getMessage());
+            }
+        }
+    }
+
     /** Creates ISM index template and ISM index. */
     public void initializeISMIndex() {
-        this.putTemplate(this.ismTemplateName);
-        this.putIndex(this.ismIndex);
+        this.putISMIndex();
     }
 
     /**
