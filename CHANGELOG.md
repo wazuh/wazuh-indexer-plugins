@@ -7,8 +7,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 ## [Unreleased 5.0.x]
 
 ### Added
-- Add technical documentation [(#301)](https://github.com/wazuh/wazuh-indexer-plugins/pull/301)
-- New client to download the CTI snapshot zip [(#318)](https://github.com/wazuh/wazuh-indexer-plugins/pull/318)
+- Add client to download the CTI snapshot zip [(#318)](https://github.com/wazuh/wazuh-indexer-plugins/pull/318)
+- Add technical documentation [(#320)](https://github.com/wazuh/wazuh-indexer-plugins/pull/320)
 
 ### Dependencies
 
