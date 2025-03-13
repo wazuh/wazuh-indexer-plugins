@@ -19,7 +19,6 @@ public class Unzip {
     public void unzip(String zipFilePath, String destDirectory) throws FileNotFoundException {
         File zipFile = new File(zipFilePath);
         if (!zipFile.exists() || !zipFile.isFile()) {
-            log.error("Error, ZIP file does not exist or is invalid: {}", zipFilePath);
             throw new FileNotFoundException("Error, ZIP file does not exist or is invalid: " + zipFilePath);
         }
 
