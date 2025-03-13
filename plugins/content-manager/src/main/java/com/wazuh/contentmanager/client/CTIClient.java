@@ -16,8 +16,6 @@
  */
 package com.wazuh.contentmanager.client;
 
-import com.wazuh.contentmanager.util.Privileged;
-import com.wazuh.contentmanager.util.http.HttpResponseCallback;
 import org.apache.hc.client5.http.async.methods.*;
 import org.apache.hc.client5.http.impl.async.CloseableHttpAsyncClient;
 import org.apache.hc.client5.http.impl.async.HttpAsyncClients;
@@ -25,18 +23,14 @@ import org.apache.hc.client5.http.impl.nio.PoolingAsyncClientConnectionManagerBu
 import org.apache.hc.client5.http.ssl.ClientTlsStrategyBuilder;
 import org.apache.hc.core5.http.Header;
 import org.apache.hc.core5.http.HttpHost;
-import org.apache.hc.core5.http.HttpResponse;
 import org.apache.hc.core5.http.Method;
 
 import java.io.*;
 import java.net.URI;
-import java.net.URISyntaxException;
 import java.security.KeyManagementException;
 import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
 import java.util.Map;
-import java.util.concurrent.Future;
-import java.util.concurrent.TimeUnit;
 
 import com.wazuh.contentmanager.settings.PluginSettings;
 import org.apache.hc.core5.ssl.SSLContextBuilder;
@@ -109,10 +103,10 @@ public class CTIClient extends HttpClient {
     public void downloadSnapshot(String snapshotURI) {
         try {
             // This Uri will be changed to use the param snapshotURI once issue 310 is merged
-            URI uri = new URI("https://cti.wazuh.com/store/contexts/vd_1.0.0/consumers/vd_4.8.0/1432540_1741603172.zip");
+            URI uri = new URI(snapshotURI);
             String fileName =  uri.getPath().substring(uri.getPath().lastIndexOf('/') + 1);
 
-            // Initialize the client
+            // Initialize the client this can be changed once 310 is merged to use HTTPClient client instead of creating a new one
             CloseableHttpAsyncClient snapshotClient;
             Object LOCK = new Object();
 

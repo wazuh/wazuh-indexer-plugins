@@ -18,7 +18,6 @@ package com.wazuh.contentmanager;
 
 import com.wazuh.contentmanager.client.CTIClient;
 import com.wazuh.contentmanager.util.Privileged;
-import org.apache.hc.client5.http.async.methods.SimpleHttpResponse;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.opensearch.client.Client;
@@ -62,7 +61,6 @@ public class ContentManagerPlugin extends Plugin implements ClusterPlugin, Actio
 
     private ContextIndex contextIndex;
     private ContentIndex contentIndex;
-    private ThreadPool th;
 
     private static final Logger log = LogManager.getLogger(ContentManagerPlugin.class);
     /** ClassConstructor * */
@@ -83,7 +81,6 @@ public class ContentManagerPlugin extends Plugin implements ClusterPlugin, Actio
             Supplier<RepositoriesService> repositoriesServiceSupplier) {
         this.contentIndex = new ContentIndex(client, clusterService, threadPool);
         this.contextIndex = new ContextIndex(client, clusterService, threadPool);
-        this.th = threadPool;
 
         PluginSettings.getInstance(environment.settings(), clusterService);
         return List.of(this.contentIndex, this.contextIndex);
@@ -112,7 +109,7 @@ public class ContentManagerPlugin extends Plugin implements ClusterPlugin, Actio
         this.contentIndex.createIndex();
 
         Privileged.doPrivilegedRequest(() -> {
-            CTIClient.getInstance().downloadSnapshot(null);
+            CTIClient.getInstance().downloadSnapshot("https://cti.wazuh.com/store/contexts/vd_1.0.0/consumers/vd_4.8.0/1432540_1741603172.zip");
             return null;
         });
 
