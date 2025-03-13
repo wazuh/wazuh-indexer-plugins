@@ -74,7 +74,7 @@ The `set-group` command is used to change the groups of an agent.
 
 Accepted values for `target.type` are `agent` and `group`. The `target.id` represents the agent's ID or group's name, respectively.
 
-The command takes the `groups` argument, an array of strings depicting the **full list** of groups the agent belong too. Any other value than an array of string is rejected. Additional arguments are ignored.
+The command takes the `groups` argument, an array of strings depicting the **full list** of groups the agent belongs too. Any other value than an array of strings is rejected. Additional arguments are ignored.
 
 ```json
 {

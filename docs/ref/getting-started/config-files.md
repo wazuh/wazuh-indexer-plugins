@@ -9,7 +9,7 @@ The Command Manager plugin allows you to configure various settings through the 
    - **Type**: Integer
    - **Default**: `30`
    - **Minimum**: `5`
-   - **Maximun**: `120`
+   - **Maximum**: `120`
    - **Description**: Timeout in seconds for index and search operations.
 
 2. **Job Schedule**
@@ -17,7 +17,7 @@ The Command Manager plugin allows you to configure various settings through the 
    - **Type**: Integer
    - **Default**: `1`
    - **Minimum**: `1` 
-   - **Maximun**: `10`
+   - **Maximum**: `10`
    - **Description**: Job execution interval in minutes.
 
 3. **Job Max Docs**
@@ -25,7 +25,7 @@ The Command Manager plugin allows you to configure various settings through the 
    - **Type**: Integer
    - **Default**: `1000`
    - **Minimum**: `5`
-   - **Maximun**: `100000`
+   - **Maximum**: `100000`
    - **Description**: Maximum number of documents to be returned by a search query.
 
 ### Example

@@ -2,9 +2,9 @@
 
 The Content Manager is a plugin for Wazuh 5.0 responsible for the management of the Wazuh Catalog within the Indexer. The **catalog** is structured into **contexts**. Each context contains a collection of **resources**. Each **change** made to these resources generates a new **offset**. A **consumer** is a customized view of a context, and it's used to consume the catalog within the CTI API.
 
-The Content Manager manages multiple Contexts, having a single Consumer each. These are preconfigured in the plugin by default, so these are not configurable.
+The Content Manager manages multiple Contexts, having a single Consumer each. These are preconfigured in the plugin by default, and not configurable.
 
-The Content Manager periodically looks for new content on the CTI API by comparing the offsets. On its first run, the content is initialized using a snapshot. From there on, the content is patched to match the latest offset. Simple information about the context, the consumer, the offset and the snapshot URL are saved in an internal index.
+The Content Manager periodically looks for new content on the CTI API by comparing the offsets. On its first run, the content is initialized using a snapshot. From there on, the content is patched to match the latest offset available. Simple information about the context, the consumer, the current offset and the snapshot URL are saved in an index.
 
 The Content Manager also offers the possibility of offline content updates, from a snapshot file. The content is stored in indices.
 
@@ -25,4 +25,37 @@ On new content, the Content Manager generates a new command for the Command Mana
             - Apply JSON-patch to the content.
         3. Generate a command for the Command Manager.
 2. [**OFFLINE**] The Content Manager exposes an API endpoint that accepts the URI to the snapshot file (e.g. `file:///tmp/snapshot.zip`). 
-   1. From `1.i.b` to `1.i.e`
+   1. From `1.1.2` to `1.1.5`
+
+## Schema of the `wazuh-content` index
+
+[ONLINE]
+```json
+[
+  {
+    "_index": "wazuh-content",
+    "_id": "vd_1.0.0",
+    "_source": {
+      "vd_4.8.0": {
+        "offset": 75019,
+        "last_offset": 85729
+      }
+    }
+  },
+]
+```
+[OFFLINE] or [INITIALIZATION]
+```json
+[
+  {
+    "_index": "wazuh-content",
+    "_id": "vd_1.0.0",
+    "_source": {
+      "vd_4.8.0": {
+        "offset": 0,
+        "snapshot": "uri-to-snapshot"
+      }
+    }
+  }
+]
+```
