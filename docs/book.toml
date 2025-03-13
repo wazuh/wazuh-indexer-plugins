@@ -5,3 +5,13 @@ description = "The technical documentation for the Wazuh Indexer, composed by th
 language = "en"
 multilingual = false
 src = "."
+
+[preprocessor]
+
+[preprocessor.mermaid]
+command = "mdbook-mermaid"
+
+[output]
+
+[output.html]
+additional-js = ["mermaid.min.js", "mermaid-init.js"]
