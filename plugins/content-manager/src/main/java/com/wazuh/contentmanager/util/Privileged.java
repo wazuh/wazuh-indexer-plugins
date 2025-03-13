@@ -19,6 +19,7 @@ package com.wazuh.contentmanager.util;
 import org.apache.hc.client5.http.async.methods.SimpleHttpResponse;
 
 import java.security.AccessController;
+import java.security.PrivilegedAction;
 
 /** Privileged utility class for executing privileged HTTP requests. */
 public class Privileged {
@@ -30,7 +31,7 @@ public class Privileged {
      * @return The SimpleHttpResponse resulting from the request execution.
      */
     public static SimpleHttpResponse doPrivilegedRequest(
-            java.security.PrivilegedAction<SimpleHttpResponse> request) {
+            PrivilegedAction<SimpleHttpResponse> request) {
         return AccessController.doPrivileged(request);
     }
 }

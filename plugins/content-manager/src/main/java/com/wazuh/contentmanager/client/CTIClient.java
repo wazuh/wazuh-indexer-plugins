@@ -16,14 +16,28 @@
  */
 package com.wazuh.contentmanager.client;
 
-import org.apache.hc.client5.http.async.methods.SimpleHttpResponse;
+import org.apache.hc.client5.http.async.methods.*;
+import org.apache.hc.client5.http.impl.async.CloseableHttpAsyncClient;
+import org.apache.hc.client5.http.impl.async.HttpAsyncClients;
+import org.apache.hc.client5.http.impl.nio.PoolingAsyncClientConnectionManagerBuilder;
+import org.apache.hc.client5.http.ssl.ClientTlsStrategyBuilder;
 import org.apache.hc.core5.http.Header;
+import org.apache.hc.core5.http.HttpHost;
 import org.apache.hc.core5.http.Method;
 
+import java.io.*;
 import java.net.URI;
+import java.security.KeyManagementException;
+import java.security.KeyStoreException;
+import java.security.NoSuchAlgorithmException;
 import java.util.Map;
 
 import com.wazuh.contentmanager.settings.PluginSettings;
+import org.apache.hc.core5.ssl.SSLContextBuilder;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
+import javax.net.ssl.SSLContext;
 
 /**
  * CTIClient is a singleton class responsible for interacting with the CTI (Cyber Threat
@@ -37,6 +51,7 @@ public class CTIClient extends HttpClient {
                     + "/catalog/contexts/vd_1.0.0/consumers/vd_4.8.0";
     private static final String CONTENT_CHANGES_ENDPOINT = "/changes";
 
+    private static final Logger log = LogManager.getLogger(CTIClient.class);
     /**
      * Private constructor to enforce singleton pattern. Initializes the HTTP client with the CTI API
      * base URL.
@@ -79,4 +94,70 @@ public class CTIClient extends HttpClient {
     public SimpleHttpResponse getCatalog() {
         return sendRequest(Method.GET, null, null, null, (Header) null);
     }
+
+    /**
+     * Downloads the CTI snapshot into the /build/testclusters/integTest-0/distro/2.19.1-INTEG_TEST route.
+     *
+     * @param snapshotURI It will have the URI used for the download, at the moment that URI is hardcoded.
+     */
+    public void downloadSnapshot(String snapshotURI) {
+        try {
+            // This Uri will be changed to use the param snapshotURI once issue 310 is merged
+            URI uri = new URI(snapshotURI);
+            String fileName =  uri.getPath().substring(uri.getPath().lastIndexOf('/') + 1);
+
+            // Initialize the client this can be changed once 310 is merged to use HTTPClient client instead of creating a new one
+            CloseableHttpAsyncClient snapshotClient;
+            Object LOCK = new Object();
+
+            synchronized (LOCK) {
+                try {
+                    SSLContext sslContext = SSLContextBuilder.create()
+                        .loadTrustMaterial(null, (chains, authType) -> true)
+                        .build();
+
+                    snapshotClient = HttpAsyncClients.custom()
+                        .setConnectionManager(
+                            PoolingAsyncClientConnectionManagerBuilder.create()
+                                .setTlsStrategy(
+                                    ClientTlsStrategyBuilder.create().setSslContext(sslContext).build())
+                                .build())
+                        .build();
+                    snapshotClient.start();
+                } catch (NoSuchAlgorithmException | KeyStoreException | KeyManagementException e) {
+                    log.error("Error initializing HTTP snapshot download client: {}", e.getMessage());
+                    throw new RuntimeException("Failed to initialize snapshot download client", e);
+                }
+            }
+
+            // Create and send the request
+            log.info("Sending GET request to [{}]", uri);
+
+            SimpleRequestBuilder builder = SimpleRequestBuilder.create(Method.GET);
+            SimpleHttpRequest request = builder.setHttpHost(HttpHost.create("https://cti.wazuh.com"))
+                .setPath(uri.getPath())
+                .build();
+
+            SimpleHttpResponse response = snapshotClient.execute(request, null).get();
+
+            // Streamed download
+            try (InputStream in = new ByteArrayInputStream(response.getBodyBytes());
+                 FileOutputStream out = new FileOutputStream(fileName)) {
+
+                byte[] buffer = new byte[1024];
+                int bytesRead;
+
+                while ((bytesRead = in.read(buffer)) != -1) {
+                    out.write(buffer, 0, bytesRead);
+                }
+
+                log.info("Successfully downloaded to: {}", fileName);
+            } catch (IOException e) {
+                log.error("Error downloading the file: {}", e.getMessage());
+            }
+        } catch (Exception e) {
+            log.error("Error during request: {}", e.getMessage());
+        }
+    }
+
 }
