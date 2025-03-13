@@ -48,7 +48,7 @@ Then, start a container with:
 docker run -p 9200:9200 -it --rm wazuh-indexer:5.0.0-0
 ```
 
-The `build-and-push-docker-image.sh` script automates the process to build and push Wazuh Indexer Docker images to our repository in quay.io. The script takes serveral parameters. Use the `-h` option to display them.
+The `build-and-push-docker-image.sh` script automates the process to build and push Wazuh Indexer Docker images to our repository in quay.io. The script takes several parameters. Use the `-h` option to display them.
 
 To push images, credentials must be set at environment level:
 

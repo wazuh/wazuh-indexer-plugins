@@ -4,7 +4,7 @@ Every Wazuh Indexer repository includes one or more Gradle projects with predefi
 
 In this case, to run a Gradle project from source code, run the `./gradlew run` command.
 
-For Wazuh Indexer, additonal plugins may be installed by passing the `-PinstalledPlugins` flag:
+For Wazuh Indexer, additional plugins may be installed by passing the `-PinstalledPlugins` flag:
 
 ```bash
 ./gradlew run -PinstalledPlugins="['plugin1', 'plugin2']"
@@ -39,7 +39,7 @@ curl localhost:9200
 }
 ```
 
-Use `-Dtests.opensearch.` to pass additional settings to the running instance. For example, to enable OpenSearch to listen on an external IP address pass `-Dtests.opensearch.http.host`. Make sure your firewall or security policy allows external connections for this to work.
+Use `-Dtests.opensearch.` to pass additional settings to the running instance. For example, to enable OpenSearch to listen on an external IP address, pass `-Dtests.opensearch.http.host`. Make sure your firewall or security policy allows external connections for this to work.
 
 ```bash
 ./gradlew run -Dtests.opensearch.http.host=0.0.0.0

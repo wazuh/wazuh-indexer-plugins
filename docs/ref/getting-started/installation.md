@@ -2,7 +2,7 @@
 
 ## Installing the Wazuh indexer step by step
 
-Install and configure the Wazuh indexer as a single-node or multi-node cluster following step-by-step instructions. The installation process is divided into three stages.
+Install and configure the Wazuh indexer as a single-node or multi-node cluster, following step-by-step instructions. The installation process is divided into three stages.
 
 1. Certificates creation
 
@@ -193,7 +193,7 @@ Edit the `/etc/wazuh-indexer/opensearch.yml` configuration file and replace the 
 
 > **Note**: Make sure that a copy of the `nazuh-certificates.tar` file, created during the initial configuration step, is placed in your working directory.
 
-Run the following commands replacing `<INDEXER_NODE_NAME>` with the name of the Wazuh indexer node you are configuring as defined in `config.yml`. For example, `node-1`. This deploys the SSL certificates to encrypt communications between the Wazuh central components.
+Run the following commands, replacing `<INDEXER_NODE_NAME>` with the name of the Wazuh indexer node you are configuring as defined in `config.yml`. For example, `node-1`. This deploys the SSL certificates to encrypt communications between the Wazuh central components.
 
 ```bash
 NODE_NAME=<INDEXER_NODE_NAME>

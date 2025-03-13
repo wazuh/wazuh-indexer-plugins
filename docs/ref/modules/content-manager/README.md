@@ -17,7 +17,7 @@ On new content, the Content Manager generates a new command for the Command Mana
         3. The Content Manager unzips the snapshot.
         4. The Content Manager reads and indexes the content of the snapshot into an index using JSON Streaming.
         5. Generate a command for the Command Manager.
-    2. If the offset is the same as the offset fetched from the CTI API for that context and consumer. The content is up to date and nothing needs to be done.
+    2. If the offset is the same as the offset fetched from the CTI API for that context and consumer. The content is up-to-date and nothing needs to be done.
     3. If the offset is lower than the offset fetched from the CTI API for that context and consumer, so the content needs to be updated.
         1. Subtract the difference in offsets: `difference = latest_offsest - local_offset` 
         2. While `difference > 0`

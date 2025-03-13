@@ -30,7 +30,7 @@ The Command Manager plugin allows you to configure various settings through the 
 
 ### Example
 
-Below there is an example of custom values for these settings within the `opensearch.yml` file:
+Below, there is an example of custom values for these settings within the `opensearch.yml` file:
 
 ```yaml
 command_manager:
