@@ -20,11 +20,11 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.opensearch.action.admin.indices.create.CreateIndexRequest;
 import org.opensearch.action.admin.indices.create.CreateIndexResponse;
-import org.opensearch.action.admin.indices.settings.put.UpdateSettingsRequest;
 import org.opensearch.action.admin.indices.template.put.PutIndexTemplateRequest;
 import org.opensearch.action.support.master.AcknowledgedResponse;
 import org.opensearch.client.Client;
 import org.opensearch.cluster.service.ClusterService;
+import org.opensearch.common.settings.Settings;
 
 import java.io.IOException;
 import java.util.HashMap;
@@ -109,41 +109,21 @@ public class WazuhIndices {
      */
     public void putIndex(String indexName) {
         if (!indexExists(indexName)) {
-            CreateIndexRequest request = new CreateIndexRequest(indexName);
+            CreateIndexRequest request;
+            if (indexName.startsWith(".internal-users")) {
+                // Dynamically set hidden=true only for '.internal-users*'
+                request =
+                        new CreateIndexRequest(indexName)
+                                .settings(Settings.builder().put("index.hidden", true));
+            } else {
+                request = new CreateIndexRequest(indexName);
+            }
             CreateIndexResponse createIndexResponse =
                     this.client.admin().indices().create(request).actionGet();
             log.info(
                     "Index created successfully: {} {}",
                     createIndexResponse.index(),
                     createIndexResponse.isAcknowledged());
-
-            // Dynamically set hidden=true only for 'wazuh-internal-users*'
-            if (indexName.startsWith(".internal-users")) {
-                setHiddenIndex(indexName);
-            }
-        }
-    }
-
-    /**
-     * Dynamically sets an index as hidden.
-     *
-     * @param indexName The index to modify
-     */
-    private void setHiddenIndex(String indexName) {
-        try {
-            UpdateSettingsRequest updateSettingsRequest = new UpdateSettingsRequest(indexName);
-            updateSettingsRequest.settings(Map.of("index.hidden", true));
-
-            AcknowledgedResponse updateSettingsResponse =
-                    this.client.admin().indices().updateSettings(updateSettingsRequest).actionGet();
-
-            if (updateSettingsResponse.isAcknowledged()) {
-                log.info("Index {} is now hidden.", indexName);
-            } else {
-                log.warn("Failed to set hidden=true for index {}", indexName);
-            }
-        } catch (Exception e) {
-            log.error("Error setting index {} as hidden: {}", indexName, e.getMessage());
         }
     }
 
