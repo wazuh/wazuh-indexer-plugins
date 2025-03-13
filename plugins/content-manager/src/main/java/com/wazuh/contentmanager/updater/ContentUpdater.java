@@ -84,10 +84,10 @@ public class ContentUpdater {
                     break;
                 }
             }
-            // Creates an Offsets (ContextChanges) instance that is passed to the patcher.
+            // Passes an Offsets (ContextChanges) instance to the patcher, and posts the Command.
             this.patchAndPostCommand(new Offsets(changesToApply));
         } catch (IOException e) {
-            log.error("Unexpected error while fetching content updates", e);
+            log.error("Unexpected error while fetching/patching content updates", e);
         }
     }
 
@@ -151,7 +151,12 @@ public class ContentUpdater {
         return 1234L;
     }
 
-    /** Apply the fetched changes to the indexed context. */
+    /**
+     * Apply the fetched changes to the indexed context and generates the update command.
+     *
+     * @param changes The detected Context changes.
+     * @throws IOException If the API response is null or fails to parse.
+     */
     public void patchAndPostCommand(Offsets changes) throws IOException {
         // Placeholder for actual implementation.
         // ContentIndex.patch(changes);
