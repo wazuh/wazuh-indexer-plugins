@@ -7,6 +7,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 ## [Unreleased 5.0.x]
 
 ### Added
+- Internal and custom Users ECS mappings and index templates with its corresponding event generator. (#288).
 
 ### Dependencies
 
@@ -19,7 +20,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 ### Removed
 
 ### Fixed
- -  Add a validation to the order of the action arguments to force action.name to come before action.arg so that they can always be validated.  (#260).
+
+- Error on `generate-and-push-templates.sh` script when index template file does not exist on setup plugin resources. (#288).
+- Add a validation to the order of the action arguments to force action.name to come before action.arg so that they can always be validated.  (#260).
 
 ### Security
 

@@ -24,11 +24,13 @@ import org.opensearch.action.admin.indices.template.put.PutIndexTemplateRequest;
 import org.opensearch.action.support.master.AcknowledgedResponse;
 import org.opensearch.client.Client;
 import org.opensearch.cluster.service.ClusterService;
+import org.opensearch.common.settings.Settings;
 
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 
 import com.wazuh.setup.utils.IndexTemplateUtils;
 
@@ -68,6 +70,7 @@ public class WazuhIndices {
         this.indexTemplates.put("index-template-processes", "wazuh-states-inventory-processes");
         this.indexTemplates.put("index-template-system", "wazuh-states-inventory-system");
         this.indexTemplates.put("index-template-vulnerabilities", "wazuh-states-vulnerabilities");
+        this.indexTemplates.put("index-template-users", "wazuh-*-users");
     }
 
     /**
@@ -77,7 +80,6 @@ public class WazuhIndices {
      */
     public void putTemplate(String templateName) {
         try {
-            // @throws IOException
             Map<String, Object> template = IndexTemplateUtils.fromFile(templateName + ".json");
 
             PutIndexTemplateRequest putIndexTemplateRequest =
@@ -107,7 +109,15 @@ public class WazuhIndices {
      */
     public void putIndex(String indexName) {
         if (!indexExists(indexName)) {
-            CreateIndexRequest request = new CreateIndexRequest(indexName);
+            CreateIndexRequest request;
+            if (indexName.startsWith(".internal-users")) {
+                // Dynamically set hidden=true only for '.internal-users*'
+                request =
+                        new CreateIndexRequest(indexName)
+                                .settings(Settings.builder().put("index.hidden", true));
+            } else {
+                request = new CreateIndexRequest(indexName);
+            }
             CreateIndexResponse createIndexResponse =
                     this.client.admin().indices().create(request).actionGet();
             log.info(
@@ -121,7 +131,7 @@ public class WazuhIndices {
      * Returns whether the index exists
      *
      * @param indexName the name of the index to check
-     * @return true of the index exists on the cluster, false otherwise
+     * @return true if the index exists on the cluster, false otherwise
      */
     public boolean indexExists(String indexName) {
         return this.clusterService.state().getRoutingTable().hasIndex(indexName);
@@ -135,7 +145,12 @@ public class WazuhIndices {
         this.indexTemplates.forEach(
                 (k, v) -> {
                     this.putTemplate(k);
-                    this.putIndex(v);
+                    if (Objects.equals(v, "wazuh-*-users")) {
+                        this.putIndex(".internal-users");
+                        this.putIndex("wazuh-custom-users");
+                    } else {
+                        this.putIndex(v);
+                    }
                 });
     }
 }
