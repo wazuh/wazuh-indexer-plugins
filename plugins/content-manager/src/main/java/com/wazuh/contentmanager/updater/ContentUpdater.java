@@ -67,10 +67,8 @@ public class ContentUpdater {
                     log.error("Error fetching changes for offsets {} to {}", currentOffset, nextOffset, e);
                     break; // Stop loop to prevent infinite retries in case of persistent API issues
                 }
-
                 // Merge new offsets into the accumulated list
                 changesToApply.addAll(changes.getOffsetList());
-
                 // Update the offset for the next iteration
                 Long maxFetchedOffset =
                         changes.getOffsetList().stream()
@@ -87,9 +85,7 @@ public class ContentUpdater {
                 }
             }
             // Creates an Offsets (ContextChanges) instance that is passed to the patcher.
-            this.applyChangesToContext(new Offsets(changesToApply));
-            // Post new command informing the new changes.
-            CommandManagerClient.getInstance().postCommand(Command.generateCtiCommand());
+            this.patchAndPostCommand(new Offsets(changesToApply));
         } catch (IOException e) {
             log.error("Unexpected error while fetching content updates", e);
         }
@@ -103,7 +99,7 @@ public class ContentUpdater {
      * @return Offsets object containing the changes.
      * @throws IOException If the API response is null or fails to parse.
      */
-    private Offsets getContextChanges(String fromOffset, String toOffset) throws IOException {
+    public Offsets getContextChanges(String fromOffset, String toOffset) throws IOException {
         SimpleHttpResponse response =
                 Privileged.doPrivilegedRequest(
                         () -> CTIClient.getInstance().getContextChanges(fromOffset, toOffset, null));
@@ -126,7 +122,7 @@ public class ContentUpdater {
      * @return The latest available offset.
      * @throws IOException If the API response is null or fails to parse.
      */
-    private Long getLatestOffset() throws IOException {
+    public Long getLatestOffset() throws IOException {
         SimpleHttpResponse response =
                 Privileged.doPrivilegedRequest(() -> CTIClient.getInstance().getCatalog());
 
@@ -148,7 +144,7 @@ public class ContentUpdater {
      *
      * @return The current offset.
      */
-    private Long getCurrentOffset() {
+    public Long getCurrentOffset() {
         // Placeholder for actual implementation.
         // It should fetch the current offset from the index.
         // ContextIndex.get().getOffset();
@@ -156,9 +152,10 @@ public class ContentUpdater {
     }
 
     /** Apply the fetched changes to the indexed context. */
-    private void applyChangesToContext(Offsets changes) {
+    public void patchAndPostCommand(Offsets changes) throws IOException {
         // Placeholder for actual implementation.
         // ContentIndex.patch(changes);
-        return;
+        // Post new command informing the new changes.
+        CommandManagerClient.getInstance().postCommand(Command.generateCtiCommand());
     }
 }
