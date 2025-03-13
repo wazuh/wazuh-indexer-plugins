@@ -111,9 +111,11 @@ public class ContentManagerPlugin extends Plugin implements ClusterPlugin, Actio
         this.contextIndex.createIndex();
         this.contentIndex.createIndex();
 
-        this.th.generic().submit(
-            () -> Privileged.doPrivilegedRequest(() -> CTIClient.getInstance().downloadSnapshot(null))
-        );
+        Privileged.doPrivilegedRequest(() -> {
+            CTIClient.getInstance().downloadSnapshot(null);
+            return null;
+        });
+
 
     }
 
