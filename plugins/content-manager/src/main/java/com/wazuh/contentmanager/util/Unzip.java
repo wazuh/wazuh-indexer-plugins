@@ -26,7 +26,10 @@ public class Unzip {
             ZipEntry entry;
 
             while ((entry = zipIn.getNextEntry()) != null) {
-                File filePath = new File(destDirectory, entry.getName());
+                File filePath = new File(destDirectory, entry.getName()).toPath().normalize().toFile();
+                if (!filePath.toPath().startsWith(new File(destDirectory).toPath().normalize())) {
+                    throw new IOException("Bad zip entry: " + entry.getName());
+                }
 
                 try (BufferedOutputStream bos = new BufferedOutputStream(new FileOutputStream(filePath))) {
                     int len;
