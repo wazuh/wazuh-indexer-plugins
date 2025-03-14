@@ -23,14 +23,11 @@ import org.opensearch.common.xcontent.XContentType;
 import org.opensearch.core.xcontent.*;
 
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
 
 import com.wazuh.contentmanager.client.CTIClient;
 import com.wazuh.contentmanager.client.CommandManagerClient;
 import com.wazuh.contentmanager.model.commandmanager.Command;
 import com.wazuh.contentmanager.model.ctiapi.ContextConsumerCatalog;
-import com.wazuh.contentmanager.model.ctiapi.Offset;
 import com.wazuh.contentmanager.model.ctiapi.Offsets;
 import com.wazuh.contentmanager.util.Privileged;
 
@@ -44,51 +41,40 @@ public class ContentUpdater {
      */
     public void fetchAndApplyUpdates() {
         // Offset model will be renamed to ContextChange
-        try {
-            Long currentOffset = this.getCurrentOffset();
-            Long lastOffset = this.getLatestOffset();
-            List<Offset> changesToApply = new ArrayList<>();
+        Long currentOffset = this.getCurrentOffset();
+        Long lastOffset = this.getLatestOffset();
 
-            if (lastOffset <= currentOffset) {
-                log.info("No new updates available. Current offset ({}) is up to date.", currentOffset);
+        if (lastOffset <= currentOffset) {
+            log.info("No new updates available. Current offset ({}) is up to date.", currentOffset);
+            return;
+        }
+
+        log.info("New offsets available updating to offset: {}", lastOffset);
+        while (currentOffset < lastOffset) {
+            Long nextOffset = Math.min(currentOffset + CHUNK_MAX_SIZE, lastOffset);
+            Offsets changes = this.getContextChanges(currentOffset.toString(), nextOffset.toString());
+            log.info("Fetched offsets from {} to {}", currentOffset, nextOffset);
+            // If there was an error fetching the changes, stop the process.
+            if (changes == null) {
+                log.error("Error fetching changes for offsets {} to {}", currentOffset, nextOffset);
                 return;
             }
-
-            log.info("Fetching content updates from offset {} to {}", currentOffset, lastOffset);
-
-            while (currentOffset < lastOffset) {
-                Long nextOffset = Math.min(currentOffset + CHUNK_MAX_SIZE, lastOffset);
-                Offsets changes;
-
-                try {
-                    changes = this.getContextChanges(currentOffset.toString(), nextOffset.toString());
-                    log.info("Fetched offsets from {} to {}", currentOffset, nextOffset);
-                } catch (IOException e) {
-                    log.error("Error fetching changes for offsets {} to {}", currentOffset, nextOffset, e);
-                    break; // Stop loop to prevent infinite retries in case of persistent API issues
-                }
-                // Merge new offsets into the accumulated list
-                changesToApply.addAll(changes.getOffsetList());
-                // Update the offset for the next iteration
-                Long maxFetchedOffset =
-                        changes.getOffsetList().stream()
-                                .map(Offset::getOffset)
-                                .max(Long::compareTo)
-                                .orElse(currentOffset);
-
-                // Ensure progress is made to prevent infinite loops
-                if (maxFetchedOffset > currentOffset) {
-                    currentOffset = maxFetchedOffset;
-                } else {
-                    log.warn("Fetched offsets did not provide a new highest value.");
-                    break;
-                }
+            // Apply the fetched changes to the indexed context.
+            this.patchContextIndex(changes);
+            // Update the current offset.
+            if (nextOffset >= currentOffset) {
+                currentOffset = nextOffset;
+            } else {
+                log.info("No new updates available. Current offset ({}) is up to date.", currentOffset);
+                break;
             }
-            // Passes an Offsets (ContextChanges) instance to the patcher, and posts the Command.
-            this.patchAndPostCommand(new Offsets(changesToApply));
-        } catch (IOException e) {
-            log.error("Unexpected error while fetching/patching content updates", e);
         }
+        if (currentOffset != lastOffset) {
+            log.error("Error updating to the latest offset ({}) from {}", lastOffset, currentOffset);
+            return;
+        }
+        // Post new command informing the new changes.
+        this.postUpdateCommand(currentOffset);
     }
 
     /**
@@ -97,46 +83,54 @@ public class ContentUpdater {
      * @param fromOffset Starting offset (inclusive).
      * @param toOffset Ending offset (exclusive).
      * @return Offsets object containing the changes.
-     * @throws IOException If the API response is null or fails to parse.
      */
-    public Offsets getContextChanges(String fromOffset, String toOffset) throws IOException {
-        SimpleHttpResponse response =
-                Privileged.doPrivilegedRequest(
-                        () -> CTIClient.getInstance().getContextChanges(fromOffset, toOffset, null));
+    public Offsets getContextChanges(String fromOffset, String toOffset) {
+        try {
+            SimpleHttpResponse response =
+                    Privileged.doPrivilegedRequest(
+                            () -> CTIClient.getInstance().getContextChanges(fromOffset, toOffset, null));
 
-        if (response == null || response.getBodyBytes() == null) {
-            throw new IOException("Empty response for offsets " + fromOffset + " to " + toOffset);
+            if (response == null || response.getBodyBytes() == null) {
+                throw new IOException("Empty response for offsets " + fromOffset + " to " + toOffset);
+            }
+
+            XContent xContent = XContentType.JSON.xContent();
+            return Offsets.parse(
+                    xContent.createParser(
+                            NamedXContentRegistry.EMPTY,
+                            DeprecationHandler.IGNORE_DEPRECATIONS,
+                            response.getBodyBytes()));
+        } catch (IOException e) {
+            log.error("Error fetching changes for offsets {} to {}", fromOffset, toOffset, e);
+            return null;
         }
-
-        XContent xContent = XContentType.JSON.xContent();
-        return Offsets.parse(
-                xContent.createParser(
-                        NamedXContentRegistry.EMPTY,
-                        DeprecationHandler.IGNORE_DEPRECATIONS,
-                        response.getBodyBytes()));
     }
 
     /**
      * Retrieves the latest offset from the CTI API.
      *
-     * @return The latest available offset.
-     * @throws IOException If the API response is null or fails to parse.
+     * @return Latest available offset.
      */
-    public Long getLatestOffset() throws IOException {
-        SimpleHttpResponse response =
-                Privileged.doPrivilegedRequest(() -> CTIClient.getInstance().getCatalog());
+    public Long getLatestOffset() {
+        try {
+            SimpleHttpResponse response =
+                    Privileged.doPrivilegedRequest(() -> CTIClient.getInstance().getCatalog());
 
-        if (response == null || response.getBodyBytes() == null) {
-            throw new IOException("Failed to fetch latest offset: API response is null");
+            if (response == null || response.getBodyBytes() == null) {
+                throw new IOException("Failed to fetch latest offset: API response is null");
+            }
+
+            XContent xContent = XContentType.JSON.xContent();
+            return ContextConsumerCatalog.parse(
+                            xContent.createParser(
+                                    NamedXContentRegistry.EMPTY,
+                                    DeprecationHandler.IGNORE_DEPRECATIONS,
+                                    response.getBodyBytes()))
+                    .getLastOffset();
+        } catch (IOException e) {
+            log.error("Error fetching latest offset", e);
+            return null;
         }
-
-        XContent xContent = XContentType.JSON.xContent();
-        return ContextConsumerCatalog.parse(
-                        xContent.createParser(
-                                NamedXContentRegistry.EMPTY,
-                                DeprecationHandler.IGNORE_DEPRECATIONS,
-                                response.getBodyBytes()))
-                .getLastOffset();
     }
 
     /**
@@ -152,15 +146,26 @@ public class ContentUpdater {
     }
 
     /**
-     * Apply the fetched changes to the indexed context and generates the update command.
+     * Apply the fetched changes to the indexed context.
      *
-     * @param changes The detected Context changes.
-     * @throws IOException If the API response is null or fails to parse.
+     * @param changes Detected Context changes.
      */
-    public void patchAndPostCommand(Offsets changes) throws IOException {
+    public void patchContextIndex(Offsets changes) {
         // Placeholder for actual implementation.
         // ContentIndex.patch(changes);
-        // Post new command informing the new changes.
-        CommandManagerClient.getInstance().postCommand(Command.generateCtiCommand());
+    }
+
+    /**
+     * Posts a new command to the Command Manager informing the new changes.
+     *
+     * @param updatedOffset Last updated offset.
+     */
+    public void postUpdateCommand(Long updatedOffset) {
+        try {
+            // Post new command informing the new changes.
+            CommandManagerClient.getInstance().postCommand(Command.generateCtiCommand());
+        } catch (IOException e) {
+            log.error("Error posting update command", e);
+        }
     }
 }
