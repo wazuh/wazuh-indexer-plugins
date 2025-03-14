@@ -26,8 +26,6 @@ import org.opensearch.core.xcontent.*;
 import org.opensearch.rest.BytesRestResponse;
 
 import java.io.IOException;
-import java.util.HashMap;
-import java.util.Map;
 
 import com.wazuh.contentmanager.client.CTIClient;
 import com.wazuh.contentmanager.client.CommandManagerClient;
@@ -42,12 +40,9 @@ import com.wazuh.contentmanager.util.Privileged;
 public class GetChangesAction {
     private static final Logger log = LogManager.getLogger(GetChangesAction.class);
 
-    private static String FROM_OFFSET_FIELD = "from_offset";
-    private static String TO_OFFSET_FIELD = "to_offset";
-    private static String WITH_EMPTIES_FIELD = "with_empties";
-    private String fromOffset;
-    private String toOffset;
-    private String withEmpties;
+    private final String fromOffset;
+    private final String toOffset;
+    private final String withEmpties;
 
     /** Constructor method */
     public GetChangesAction(String fromOffset, String toOffset, String withEmpties) {
@@ -68,7 +63,7 @@ public class GetChangesAction {
         XContentBuilder builder = XContentFactory.jsonBuilder();
         SimpleHttpResponse response =
                 Privileged.doPrivilegedRequest(
-                        () -> CTIClient.getInstance().getChanges(buildQueryParametersMap()));
+                        () -> CTIClient.getInstance().getContextChanges(fromOffset, toOffset, withEmpties));
         Offsets.parse(
                         xContent.createParser(
                                 NamedXContentRegistry.EMPTY,
@@ -80,18 +75,5 @@ public class GetChangesAction {
                 CommandManagerClient.getInstance().postCommand(Command.generateCtiCommand());
         log.info("Command Manager response: {}", commandResponse);
         return new BytesRestResponse(RestStatus.fromCode(response.getCode()), builder.toString());
-    }
-
-    /**
-     * Builds a Map with the query parameters for the CTI API call
-     *
-     * @return The map with the parameters
-     */
-    private Map<String, String> buildQueryParametersMap() {
-        Map<String, String> params = new HashMap<>();
-        params.put(FROM_OFFSET_FIELD, fromOffset);
-        params.put(TO_OFFSET_FIELD, toOffset);
-        params.put(WITH_EMPTIES_FIELD, withEmpties);
-        return params;
     }
 }
