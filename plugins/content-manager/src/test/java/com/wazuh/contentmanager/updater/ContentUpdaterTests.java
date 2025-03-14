@@ -22,9 +22,14 @@ import org.opensearch.test.OpenSearchIntegTestCase;
 import org.junit.Before;
 
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
 
 import com.wazuh.contentmanager.client.CTIClient;
 import com.wazuh.contentmanager.client.CommandManagerClient;
+import com.wazuh.contentmanager.model.ctiapi.Offset;
+import com.wazuh.contentmanager.model.ctiapi.Offsets;
 import org.mockito.Mockito;
 
 import static org.mockito.Mockito.*;
@@ -45,9 +50,39 @@ public class ContentUpdaterTests extends OpenSearchIntegTestCase {
 
     public void testFetchAndApplyUpdatesNoNewUpdates() throws IOException {
         ContentUpdater contentUpdaterSpy = Mockito.spy(contentUpdater);
+        // Mock current and latest offset.
         doReturn(100L).when(contentUpdaterSpy).getCurrentOffset();
         doReturn(100L).when(contentUpdaterSpy).getLatestOffset();
+        // Act
         contentUpdaterSpy.fetchAndApplyUpdates();
-        verify(contentUpdaterSpy, never()).patchAndPostCommand(any());
+        // Assert
+        verify(contentUpdaterSpy, never()).patchContextIndex(any());
+    }
+
+    public void testFetchAndApplyUpdatesNewUpdates() throws IOException {
+        ContentUpdater contentUpdaterSpy = Mockito.spy(contentUpdater);
+        // Maximum chunk size is 1000.
+        Integer OffsetsAmount = 3999;
+        // Mock current and latest offset.
+        doReturn(0L).when(contentUpdaterSpy).getCurrentOffset();
+        doReturn((long) OffsetsAmount).when(contentUpdaterSpy).getLatestOffset();
+        // Mock getContextChanges method.
+        doReturn(generateOffsets(OffsetsAmount))
+                .when(contentUpdaterSpy)
+                .getContextChanges(any(), any());
+        // Mock postUpdateCommand method.
+        doNothing().when(contentUpdaterSpy).postUpdateCommand((long) OffsetsAmount);
+        // Act
+        contentUpdaterSpy.fetchAndApplyUpdates();
+        // Assert
+        verify(contentUpdaterSpy, times(4)).patchContextIndex(any());
+    }
+
+    public Offsets generateOffsets(Integer size) {
+        List<Offset> offsets = new ArrayList<>();
+        for (int i = 0; i < size; i++) {
+            offsets.add(new Offset("context", (long) i, "resource", "type", 0L, new HashMap<>()));
+        }
+        return new Offsets(offsets);
     }
 }
