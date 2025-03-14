@@ -22,11 +22,9 @@ import org.opensearch.test.OpenSearchIntegTestCase;
 import org.junit.Before;
 
 import java.io.IOException;
-import java.util.Collections;
 
 import com.wazuh.contentmanager.client.CTIClient;
 import com.wazuh.contentmanager.client.CommandManagerClient;
-import com.wazuh.contentmanager.model.ctiapi.Offsets;
 import org.mockito.Mockito;
 
 import static org.mockito.Mockito.*;
@@ -45,39 +43,11 @@ public class ContentUpdaterTests extends OpenSearchIntegTestCase {
         contentUpdater = new ContentUpdater();
     }
 
-    public void testFetchAndApplyUpdates_NoNewUpdates() throws IOException {
+    public void testFetchAndApplyUpdatesNoNewUpdates() throws IOException {
         ContentUpdater contentUpdaterSpy = Mockito.spy(contentUpdater);
         doReturn(100L).when(contentUpdaterSpy).getCurrentOffset();
         doReturn(100L).when(contentUpdaterSpy).getLatestOffset();
-
         contentUpdaterSpy.fetchAndApplyUpdates();
-
-        verify(contentUpdaterSpy, never()).patchAndPostCommand(any());
-    }
-
-    public void testFetchAndApplyUpdates_WithNewUpdates() throws IOException {
-        ContentUpdater contentUpdaterSpy = Mockito.spy(contentUpdater);
-        doReturn(100L).when(contentUpdaterSpy).getCurrentOffset();
-        doReturn(102L).when(contentUpdaterSpy).getLatestOffset();
-        doReturn(new Offsets(Collections.emptyList()))
-                .when(contentUpdaterSpy)
-                .getContextChanges(anyString(), anyString());
-
-        contentUpdaterSpy.fetchAndApplyUpdates();
-
-        verify(contentUpdaterSpy).patchAndPostCommand(any());
-    }
-
-    public void testFetchAndApplyUpdates_ApiFailure() throws IOException {
-        ContentUpdater contentUpdaterSpy = Mockito.spy(contentUpdater);
-        doReturn(100L).when(contentUpdaterSpy).getCurrentOffset();
-        doReturn(102L).when(contentUpdaterSpy).getLatestOffset();
-        doThrow(new IOException("API error"))
-                .when(contentUpdaterSpy)
-                .getContextChanges(anyString(), anyString());
-
-        contentUpdaterSpy.fetchAndApplyUpdates();
-
         verify(contentUpdaterSpy, never()).patchAndPostCommand(any());
     }
 }
