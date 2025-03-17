@@ -6,43 +6,56 @@ import org.apache.logging.log4j.Logger;
 import java.io.*;
 import java.util.zip.*;
 
+/*
+* Unzip utility class for extracting ZIP files.
+*/
 public class Unzip {
 
     private static final Logger log = LogManager.getLogger(Unzip.class);
     private static final byte[] BUFFER = new byte[1024];
 
     /*
-     * Unzips a ZIP file's content in a specified folder
-     * @param zipFilePath Origin ZIP file path following the format: "path/file.zip"
-     * @param destDirectory Unzipped files destiny path following the format: "path/"
+     * Unzips a ZIP file's content in a specified folder.
+     *
+     * @param zipFilePath Origin ZIP file path following the format: "path/file.zip".
+     * @param destinationDirectory Unzipped files destiny path following the format: "path/".
      */
-    public void unzip(String zipFilePath, String destDirectory) throws FileNotFoundException {
-        File zipFile = new File(zipFilePath);
-        if (!zipFile.exists() || !zipFile.isFile()) {
-            throw new FileNotFoundException("Error, ZIP file does not exist or is invalid: " + zipFilePath);
-        }
-
-        try (ZipInputStream zipIn = new ZipInputStream(new FileInputStream(zipFilePath))) {
+    public void unzip(String zipFilePath, String destinationDirectory) throws FileNotFoundException, NullPointerException, IOException {
+        try (ZipInputStream zipInputStream = new ZipInputStream(new FileInputStream(zipFilePath))) {
             ZipEntry entry;
 
-            while ((entry = zipIn.getNextEntry()) != null) {
-                File filePath = new File(destDirectory, entry.getName()).toPath().normalize().toFile();
-                if (!filePath.toPath().startsWith(new File(destDirectory).toPath().normalize())) {
+            while ((entry = zipInputStream.getNextEntry()) != null) {
+                File destinationPath = new File(destinationDirectory, entry.getName()).toPath().normalize().toFile();
+                if (!destinationPath.toPath().startsWith(new File(destinationDirectory).toPath().normalize())) { //avoid zip slip
                     throw new IOException("Bad zip entry: " + entry.getName());
                 }
 
-                try (BufferedOutputStream bos = new BufferedOutputStream(new FileOutputStream(filePath))) {
-                    int len;
-                    while ((len = zipIn.read(BUFFER)) > 0) {
-                        bos.write(BUFFER, 0, len);
-                    }
-                } catch (IOException e) {
-                    log.error("Error, {} could not be extracted", filePath);
-                }
-                zipIn.closeEntry();
+                extractFile (destinationPath, zipInputStream);
+                zipInputStream.closeEntry();
+            }
+        } catch (NullPointerException e) {
+            throw new NullPointerException("Pathname is null: {}", e.getMessage());
+        } catch (FileNotFoundException e) {
+            throw new FileNotFoundException("ZIP file does not exist or is invalid: {}. {}", zipFilePath, e.getMessage());
+        } catch (IOException e) {
+            log.error("Could not unzip the file due to: {}", e.getMessage());
+        }
+    }
+
+    /*
+     * Extracts a file from a ZIP input stream.
+     *
+     * @param zipInputStream ZIP input stream.
+     * @param destinationPath Path where the file will be extracted.
+     */
+    public void extractFile(ZipInputStream zipInputStream, File destinationPath) throws IOException {
+        try (BufferedOutputStream bufferedOutputStream = new BufferedOutputStream(new FileOutputStream(destinationPath))) {
+            int size;
+            while ((size = zipInputStream.read(BUFFER)) > 0) {
+                bufferedOutputStream.write(BUFFER, 0, size);
             }
         } catch (IOException e) {
-            log.error("Error unzipping the file due to {}", e.getMessage());
+            throw new IOException("{} could not be extracted. {}", destinationPath, e.getMessage());
         }
     }
 }
