@@ -36,14 +36,14 @@ import java.util.concurrent.CompletableFuture;
 import com.wazuh.contentmanager.model.ctiapi.ConsumerInfo;
 
 /** Class to manage the Context index. */
-public class CatalogIndex {
-    private static final Logger log = LogManager.getLogger(CatalogIndex.class);
+public class ContextIndex {
+    private static final Logger log = LogManager.getLogger(ContextIndex.class);
 
     public static final String CONSUMER_INFO_INDEX = "wazuh-context";
 
     private final Client client;
 
-    public CatalogIndex(Client client) {
+    public ContextIndex(Client client) {
         this.client = client;
     }
 
@@ -80,7 +80,10 @@ public class CatalogIndex {
 
                     @Override
                     public void onFailure(Exception e) {
-                        log.error("Failed to index CTI Catalog Context {}, Exception: {}", consumerInfo.getContext(), e);
+                        log.error(
+                                "Failed to index CTI Catalog Context {}, Exception: {}",
+                                consumerInfo.getContext(),
+                                e);
                     }
                 });
     }

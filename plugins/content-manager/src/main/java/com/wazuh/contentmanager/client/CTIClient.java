@@ -28,14 +28,11 @@ import org.opensearch.core.xcontent.XContent;
 
 import java.io.IOException;
 import java.net.URI;
-import java.security.AccessController;
-import java.security.PrivilegedAction;
 import java.util.HashMap;
 import java.util.Map;
 
 import com.wazuh.contentmanager.model.ctiapi.ConsumerInfo;
 import com.wazuh.contentmanager.settings.PluginSettings;
-import com.wazuh.contentmanager.util.Privileged;
 
 /**
  * CTIClient is a singleton class responsible for interacting with the Cyber Threat Intelligence

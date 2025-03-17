@@ -16,7 +16,6 @@
  */
 package com.wazuh.contentmanager;
 
-import com.wazuh.contentmanager.model.ctiapi.ConsumerInfo;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.opensearch.client.Client;
@@ -48,7 +47,8 @@ import java.util.List;
 import java.util.function.Supplier;
 
 import com.wazuh.contentmanager.client.CTIClient;
-import com.wazuh.contentmanager.index.CatalogIndex;
+import com.wazuh.contentmanager.index.ContextIndex;
+import com.wazuh.contentmanager.model.ctiapi.ConsumerInfo;
 import com.wazuh.contentmanager.settings.PluginSettings;
 
 public class ContentManagerPlugin extends Plugin implements ClusterPlugin, ActionPlugin {
@@ -58,7 +58,7 @@ public class ContentManagerPlugin extends Plugin implements ClusterPlugin, Actio
     public static final String CONTEXT_NAME = "vd_1.0.0";
     public static final String CONSUMER_NAME = "vd_4.8.0";
 
-    private CatalogIndex catalogIndex;
+    private ContextIndex contextIndex;
 
     /** ClassConstructor * */
     public ContentManagerPlugin() {}
@@ -77,7 +77,7 @@ public class ContentManagerPlugin extends Plugin implements ClusterPlugin, Actio
             IndexNameExpressionResolver indexNameExpressionResolver,
             Supplier<RepositoriesService> repositoriesServiceSupplier) {
         PluginSettings.getInstance(environment.settings(), clusterService);
-        this.catalogIndex = new CatalogIndex(client);
+        this.contextIndex = new ContextIndex(client);
         return Collections.emptyList();
     }
 
@@ -96,10 +96,10 @@ public class ContentManagerPlugin extends Plugin implements ClusterPlugin, Actio
 
     @Override
     public void onNodeStarted(DiscoveryNode localNode) {
-        ConsumerInfo consumerInfo = AccessController.doPrivileged(
-            (PrivilegedAction<ConsumerInfo>) () -> CTIClient.getInstance().getCatalog()
-        );
-        this.catalogIndex.index(consumerInfo);
+        ConsumerInfo consumerInfo =
+                AccessController.doPrivileged(
+                        (PrivilegedAction<ConsumerInfo>) () -> CTIClient.getInstance().getCatalog());
+        this.contextIndex.index(consumerInfo);
     }
 
     /**
