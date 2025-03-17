@@ -61,7 +61,6 @@ public class HttpClient {
      * @param apiUri The base URI for API requests.
      */
     protected HttpClient(@NonNull URI apiUri) {
-        log.info(apiUri.toString());
         this.apiUri = apiUri;
         startHttpAsyncClient();
     }
@@ -152,7 +151,6 @@ public class HttpClient {
         } catch (Exception e) {
             log.error("Unexpected error in HTTP {} request: {}", method, e.getMessage());
         }
-        log.info("Returning null value");
         return null;
     }
 }

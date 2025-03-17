@@ -55,9 +55,6 @@ public class ContentManagerPlugin extends Plugin implements ClusterPlugin, Actio
 
     private static final Logger log = LogManager.getLogger(ContentManagerPlugin.class);
 
-    public static final String CONTEXT_NAME = "vd_1.0.0";
-    public static final String CONSUMER_NAME = "vd_4.8.0";
-
     private ContextIndex contextIndex;
 
     /** ClassConstructor * */

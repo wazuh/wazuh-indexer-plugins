@@ -21,7 +21,6 @@ import org.opensearch.core.xcontent.XContentBuilder;
 import org.opensearch.core.xcontent.XContentParser;
 
 import java.io.IOException;
-import java.util.List;
 
 /** ToXContentObject model to parse and build CTI API Catalog query replies */
 public class ConsumerInfo implements ToXContentObject {
@@ -53,11 +52,7 @@ public class ConsumerInfo implements ToXContentObject {
      * @param lastOffset The last offset number
      * @param lastSnapshotLink URL link to the latest snapshot
      */
-    public ConsumerInfo(
-            String name,
-            String context,
-            Long lastOffset,
-            String lastSnapshotLink) {
+    public ConsumerInfo(String name, String context, Long lastOffset, String lastSnapshotLink) {
         this.name = name;
         this.context = context;
         this.lastOffset = lastOffset;
@@ -119,12 +114,7 @@ public class ConsumerInfo implements ToXContentObject {
                 }
             }
         }
-        return new ConsumerInfo(
-                name,
-                context,
-                lastOffset,
-                lastSnapshotLink
-                );
+        return new ConsumerInfo(name, context, lastOffset, lastSnapshotLink);
     }
 
     /**
@@ -148,12 +138,19 @@ public class ConsumerInfo implements ToXContentObject {
 
     @Override
     public String toString() {
-        return "ConsumerInfo{" +
-            "context='" + context + '\'' +
-            ", name='" + name + '\'' +
-            ", lastOffset=" + lastOffset +
-            ", lastSnapshotLink='" + lastSnapshotLink + '\'' +
-            '}';
+        return "ConsumerInfo{"
+                + "context='"
+                + context
+                + '\''
+                + ", name='"
+                + name
+                + '\''
+                + ", lastOffset="
+                + lastOffset
+                + ", lastSnapshotLink='"
+                + lastSnapshotLink
+                + '\''
+                + '}';
     }
 
     public String getContext() {
