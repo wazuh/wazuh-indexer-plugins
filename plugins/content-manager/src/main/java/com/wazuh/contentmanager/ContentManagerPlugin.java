@@ -16,6 +16,9 @@
  */
 package com.wazuh.contentmanager;
 
+import com.wazuh.contentmanager.model.ctiapi.ConsumerInfo;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.opensearch.client.Client;
 import org.opensearch.cluster.metadata.IndexNameExpressionResolver;
 import org.opensearch.cluster.node.DiscoveryNode;
@@ -37,6 +40,8 @@ import org.opensearch.threadpool.ThreadPool;
 import org.opensearch.watcher.ResourceWatcherService;
 
 import java.io.IOException;
+import java.security.AccessController;
+import java.security.PrivilegedAction;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
@@ -47,6 +52,8 @@ import com.wazuh.contentmanager.index.CatalogIndex;
 import com.wazuh.contentmanager.settings.PluginSettings;
 
 public class ContentManagerPlugin extends Plugin implements ClusterPlugin, ActionPlugin {
+
+    private static final Logger log = LogManager.getLogger(ContentManagerPlugin.class);
 
     public static final String CONTEXT_NAME = "vd_1.0.0";
     public static final String CONSUMER_NAME = "vd_4.8.0";
@@ -69,10 +76,9 @@ public class ContentManagerPlugin extends Plugin implements ClusterPlugin, Actio
             NamedWriteableRegistry namedWriteableRegistry,
             IndexNameExpressionResolver indexNameExpressionResolver,
             Supplier<RepositoriesService> repositoriesServiceSupplier) {
-        this.catalogIndex = new CatalogIndex(client);
-
         PluginSettings.getInstance(environment.settings(), clusterService);
-        return List.of(this.changesIndex, this.catalogIndex);
+        this.catalogIndex = new CatalogIndex(client);
+        return Collections.emptyList();
     }
 
     @Override
@@ -90,7 +96,10 @@ public class ContentManagerPlugin extends Plugin implements ClusterPlugin, Actio
 
     @Override
     public void onNodeStarted(DiscoveryNode localNode) {
-        CTIClient.getInstance().getCatalog();
+        ConsumerInfo consumerInfo = AccessController.doPrivileged(
+            (PrivilegedAction<ConsumerInfo>) () -> CTIClient.getInstance().getCatalog()
+        );
+        this.catalogIndex.index(consumerInfo);
     }
 
     /**

@@ -50,10 +50,9 @@ public class CatalogIndex {
     /**
      * Index CTI API consumer information
      *
-     * @param contextName Name of the context, to be used as document ID
      * @param consumerInfo Model containing information parsed from the CTI API
      */
-    public void index(String contextName, ConsumerInfo consumerInfo) {
+    public void index(ConsumerInfo consumerInfo) {
 
         IndexRequest indexRequest = null;
         try {
@@ -62,7 +61,7 @@ public class CatalogIndex {
                             .index(CONSUMER_INFO_INDEX)
                             .source(
                                     consumerInfo.toXContent(XContentFactory.jsonBuilder(), ToXContent.EMPTY_PARAMS))
-                            .id(contextName)
+                            .id(consumerInfo.getContext())
                             .create(true);
         } catch (IOException e) {
             log.error("Error creating Catalog IndexRequest: {}", e.getMessage());
@@ -81,7 +80,7 @@ public class CatalogIndex {
 
                     @Override
                     public void onFailure(Exception e) {
-                        log.error("Failed to index CTI Catalog Context {}, Exception: {}", contextName, e);
+                        log.error("Failed to index CTI Catalog Context {}, Exception: {}", consumerInfo.getContext(), e);
                     }
                 });
     }

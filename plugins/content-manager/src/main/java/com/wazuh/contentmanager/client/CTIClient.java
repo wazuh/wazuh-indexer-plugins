@@ -28,11 +28,14 @@ import org.opensearch.core.xcontent.XContent;
 
 import java.io.IOException;
 import java.net.URI;
+import java.security.AccessController;
+import java.security.PrivilegedAction;
 import java.util.HashMap;
 import java.util.Map;
 
 import com.wazuh.contentmanager.model.ctiapi.ConsumerInfo;
 import com.wazuh.contentmanager.settings.PluginSettings;
+import com.wazuh.contentmanager.util.Privileged;
 
 /**
  * CTIClient is a singleton class responsible for interacting with the Cyber Threat Intelligence
@@ -76,7 +79,7 @@ public class CTIClient extends HttpClient {
      * URL.
      */
     private CTIClient() {
-        super(URI.create(API_BASE_URL + API_PATH));
+        super(URI.create(API_BASE_URL));
     }
 
     /** Singleton holder pattern ensures lazy initialization in a thread-safe manner. */
@@ -113,12 +116,17 @@ public class CTIClient extends HttpClient {
      */
     public ConsumerInfo getCatalog() {
         XContent xContent = XContentType.JSON.xContent();
+        SimpleHttpResponse response = sendRequest(Method.GET, API_PATH, null, null, (Header) null);
+        if (response == null) {
+            log.error("Null response from CTI API");
+            return null;
+        }
         try {
             return ConsumerInfo.parse(
                     xContent.createParser(
                             NamedXContentRegistry.EMPTY,
                             DeprecationHandler.IGNORE_DEPRECATIONS,
-                            sendRequest(Method.GET, null, null, null, (Header) null).getBodyBytes()));
+                            response.getBodyBytes()));
         } catch (IOException | IllegalArgumentException e) {
             log.error("Error getting CTI catalog information: {}", e.getMessage());
         }
