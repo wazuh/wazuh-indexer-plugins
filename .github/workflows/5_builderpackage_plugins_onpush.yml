@@ -4,6 +4,8 @@ name: Build packages (on push)
 # - On push
 on:
   push:
+    paths:
+      - '**.java'
 
 jobs:
   call-build-workflow:
