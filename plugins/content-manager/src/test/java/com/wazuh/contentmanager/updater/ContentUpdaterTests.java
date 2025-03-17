@@ -55,7 +55,7 @@ public class ContentUpdaterTests extends OpenSearchIntegTestCase {
         doReturn(100L).when(contentUpdaterSpy).getCurrentOffset();
         doReturn(100L).when(contentUpdaterSpy).getLatestOffset();
         // Act
-        contentUpdaterSpy.fetchAndApplyUpdates();
+        contentUpdaterSpy.fetchAndApplyUpdates(null);
         // Assert patchContextIndex is not called.
         verify(contentUpdaterSpy, never()).patchContextIndex(any());
     }
@@ -72,7 +72,7 @@ public class ContentUpdaterTests extends OpenSearchIntegTestCase {
         // Mock postUpdateCommand method.
         doNothing().when(contentUpdaterSpy).postUpdateCommand((long) offsetsAmount);
         // Act
-        contentUpdaterSpy.fetchAndApplyUpdates();
+        contentUpdaterSpy.fetchAndApplyUpdates(null);
         // Assert patchContextIndex is called 4 times (one each 1000 starting from 0).
         verify(contentUpdaterSpy, times(4)).patchContextIndex(any());
     }
@@ -87,7 +87,10 @@ public class ContentUpdaterTests extends OpenSearchIntegTestCase {
         // Act
         Exception exception =
                 assertThrows(
-                        ContentUpdater.ContentUpdateException.class, contentUpdaterSpy::fetchAndApplyUpdates);
+                        RuntimeException.class,
+                        () -> {
+                            contentUpdaterSpy.fetchAndApplyUpdates(null);
+                        });
         // Assert
         assertEquals("Error fetching changes for offsets 0 to 1000", exception.getMessage());
         verify(contentUpdaterSpy, times(1)).getContextChanges(any(), any());

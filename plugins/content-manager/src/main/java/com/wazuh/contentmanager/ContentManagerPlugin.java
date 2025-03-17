@@ -44,10 +44,7 @@ import java.util.function.Supplier;
 
 import com.wazuh.contentmanager.index.ContentIndex;
 import com.wazuh.contentmanager.index.ContextIndex;
-import com.wazuh.contentmanager.rest.CatalogHandler;
-import com.wazuh.contentmanager.rest.ChangesHandler;
-import com.wazuh.contentmanager.rest.RestPostContentManager;
-import com.wazuh.contentmanager.rest.RestPostContextAction;
+import com.wazuh.contentmanager.rest.*;
 import com.wazuh.contentmanager.settings.PluginSettings;
 
 public class ContentManagerPlugin extends Plugin implements ClusterPlugin, ActionPlugin {
@@ -95,7 +92,8 @@ public class ContentManagerPlugin extends Plugin implements ClusterPlugin, Actio
                 new RestPostContextAction(this.contextIndex),
                 new RestPostContentManager(this.contentIndex),
                 new CatalogHandler(),
-                new ChangesHandler());
+                new ChangesHandler(),
+                new UpdaterHandler());
     }
 
     @Override
