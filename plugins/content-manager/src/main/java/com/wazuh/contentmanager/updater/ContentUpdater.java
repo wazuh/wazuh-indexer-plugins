@@ -35,11 +35,17 @@ public class ContentUpdater {
     private static final Integer CHUNK_MAX_SIZE = 1000;
     private static final Logger log = LogManager.getLogger(ContentUpdater.class);
 
+    public static class ContentUpdateException extends RuntimeException {
+        public ContentUpdateException(String message, Throwable cause) {
+            super(message, cause);
+        }
+    }
+
     /**
      * Fetches and applies content updates in chunks from the current stored offset to the latest
      * available offset. It iterates over the updates and applies them in batch processing.
      */
-    public void fetchAndApplyUpdates() {
+    public void fetchAndApplyUpdates() throws ContentUpdateException {
         // Offset model will be renamed to ContextChange
         Long currentOffset = this.getCurrentOffset();
         Long lastOffset = this.getLatestOffset();
@@ -56,8 +62,8 @@ public class ContentUpdater {
             log.info("Fetched offsets from {} to {}", currentOffset, nextOffset);
             // If there was an error fetching the changes, stop the process.
             if (changes == null) {
-                log.error("Error fetching changes for offsets {} to {}", currentOffset, nextOffset);
-                return;
+                throw new ContentUpdateException(
+                        "Error fetching changes for offsets " + currentOffset + " to " + nextOffset, null);
             }
             // Apply the fetched changes to the indexed context.
             this.patchContextIndex(changes);
@@ -68,10 +74,6 @@ public class ContentUpdater {
                 log.info("No new updates available. Current offset ({}) is up to date.", currentOffset);
                 break;
             }
-        }
-        if (currentOffset != lastOffset) {
-            log.error("Error updating to the latest offset ({}) from {}", lastOffset, currentOffset);
-            return;
         }
         // Post new command informing the new changes.
         this.postUpdateCommand(currentOffset);
@@ -117,7 +119,8 @@ public class ContentUpdater {
                     Privileged.doPrivilegedRequest(() -> CTIClient.getInstance().getCatalog());
 
             if (response == null || response.getBodyBytes() == null) {
-                throw new IOException("Failed to fetch latest offset: API response is null");
+                throw new ContentUpdateException(
+                        "Failed to fetch latest offset: API response is null", null);
             }
 
             XContent xContent = XContentType.JSON.xContent();
@@ -128,8 +131,7 @@ public class ContentUpdater {
                                     response.getBodyBytes()))
                     .getLastOffset();
         } catch (IOException e) {
-            log.error("Error fetching latest offset", e);
-            return null;
+            throw new ContentUpdateException("Error fetching latest offset", e);
         }
     }
 

@@ -41,15 +41,16 @@ public class ContentUpdaterTests extends OpenSearchIntegTestCase {
     private Client client;
     private ClusterService clusterService;
     private ContentUpdater contentUpdater;
+    private ContentUpdater contentUpdaterSpy;
 
     @Before
     public void setup() throws Exception {
         super.setUp();
-        contentUpdater = new ContentUpdater();
+        ContentUpdater contentUpdater = new ContentUpdater();
+        contentUpdaterSpy = Mockito.spy(contentUpdater);
     }
 
     public void testFetchAndApplyUpdatesNoNewUpdates() throws IOException {
-        ContentUpdater contentUpdaterSpy = Mockito.spy(contentUpdater);
         // Mock current and latest offset.
         doReturn(100L).when(contentUpdaterSpy).getCurrentOffset();
         doReturn(100L).when(contentUpdaterSpy).getLatestOffset();
@@ -60,17 +61,16 @@ public class ContentUpdaterTests extends OpenSearchIntegTestCase {
     }
 
     public void testFetchAndApplyUpdatesNewUpdates() throws IOException {
-        ContentUpdater contentUpdaterSpy = Mockito.spy(contentUpdater);
-        Integer OffsetsAmount = 3999;
+        Integer offsetsAmount = 3999;
         // Mock current and latest offset.
         doReturn(0L).when(contentUpdaterSpy).getCurrentOffset();
-        doReturn((long) OffsetsAmount).when(contentUpdaterSpy).getLatestOffset();
+        doReturn((long) offsetsAmount).when(contentUpdaterSpy).getLatestOffset();
         // Mock getContextChanges method.
-        doReturn(generateOffsets(OffsetsAmount))
+        doReturn(generateOffsets(offsetsAmount))
                 .when(contentUpdaterSpy)
                 .getContextChanges(any(), any());
         // Mock postUpdateCommand method.
-        doNothing().when(contentUpdaterSpy).postUpdateCommand((long) OffsetsAmount);
+        doNothing().when(contentUpdaterSpy).postUpdateCommand((long) offsetsAmount);
         // Act
         contentUpdaterSpy.fetchAndApplyUpdates();
         // Assert patchContextIndex is called 4 times (one each 1000 starting from 0).
@@ -78,35 +78,19 @@ public class ContentUpdaterTests extends OpenSearchIntegTestCase {
     }
 
     public void testFetchAndApplyUpdatesErrorFetchingChanges() throws IOException {
-        ContentUpdater contentUpdaterSpy = Mockito.spy(contentUpdater);
-        Integer OffsetsAmount = 3999;
+        Integer offsetsAmount = 3999;
         // Mock current and latest offset.
         doReturn(0L).when(contentUpdaterSpy).getCurrentOffset();
-        doReturn((long) OffsetsAmount).when(contentUpdaterSpy).getLatestOffset();
+        doReturn((long) offsetsAmount).when(contentUpdaterSpy).getLatestOffset();
         // Mock getContextChanges method.
         doReturn(null).when(contentUpdaterSpy).getContextChanges(any(), any());
         // Act
-        contentUpdaterSpy.fetchAndApplyUpdates();
-        // Assert patchContextIndex is not called.
-        verify(contentUpdaterSpy, never()).patchContextIndex(any());
-    }
-
-    public void testFetchAndApplyUpdatesErrorUpdatingToLatestOffset() throws IOException {
-        ContentUpdater contentUpdaterSpy = Mockito.spy(contentUpdater);
-        Integer OffsetsAmount = 3999;
-        // Mock current and latest offset.
-        doReturn(0L).when(contentUpdaterSpy).getCurrentOffset();
-        doReturn((long) OffsetsAmount).when(contentUpdaterSpy).getLatestOffset();
-        // Mock getContextChanges method.
-        doReturn(generateOffsets(OffsetsAmount))
-                .when(contentUpdaterSpy)
-                .getContextChanges(any(), any());
-        // Mock postUpdateCommand method.
-        doNothing().when(contentUpdaterSpy).postUpdateCommand((long) OffsetsAmount);
-        // Act
-        contentUpdaterSpy.fetchAndApplyUpdates();
-        // Assert postUpdateCommand is not called.
-        verify(contentUpdaterSpy, never()).postUpdateCommand(any());
+        Exception exception =
+                assertThrows(
+                        ContentUpdater.ContentUpdateException.class, contentUpdaterSpy::fetchAndApplyUpdates);
+        // Assert
+        assertEquals("Error fetching changes for offsets 0 to 1000", exception.getMessage());
+        verify(contentUpdaterSpy, times(1)).getContextChanges(any(), any());
     }
 
     public Offsets generateOffsets(Integer size) {
