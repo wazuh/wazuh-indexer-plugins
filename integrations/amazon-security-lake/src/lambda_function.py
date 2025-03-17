@@ -73,7 +73,13 @@ def get_events(bucket: str, key: str, client: boto3.client) -> list:
     logger.info(f"Reading {key}.")
     try:
         response = client.get_object(Bucket=bucket, Key=key)
-        data = gzip.decompress(response['Body'].read()).decode('utf-8')
+        encoded_data = response['Body'].read()
+        logger.debug(f"Decoding event data {encoded_data}")
+        # Check if data is gzip compressed
+        if is_gzip_compressed(encoded_data):
+            data = gzip.decompress(encoded_data).decode('utf-8')
+        else:
+            data = encoded_data.decode('utf-8')
         return data.splitlines()
     except ClientError as e:
         logger.error(f"Failed to read S3 object {key} from bucket {bucket}: {e}")
@@ -126,6 +132,11 @@ def check_environment_variables(variables):
         exit_on_error(error_message)
         return False
     return True
+
+
+def is_gzip_compressed(data: bytes) -> bool:
+    """Check if data is gzip-compressed by inspecting its magic number."""
+    return data[:2] == b'\x1f\x8b'  # Gzip magic number
 
 
 def get_full_key(src_location: str, account_id: str, region: str, key: str, format: str) -> str:
@@ -204,6 +215,7 @@ def lambda_handler(event, context):
     client = get_s3_client(credentials, is_dev)
 
     # Read events from source S3 bucket
+    logger.info(f"Src bucket: {src_bucket}")
     raw_events = get_events(src_bucket, key, client)
     if not raw_events:
         return
