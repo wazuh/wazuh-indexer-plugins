@@ -7,20 +7,22 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 ## [Unreleased 5.0.x]
 
 ### Added
+- Add technical documentation [(#301)](https://github.com/wazuh/wazuh-indexer-plugins/pull/320)
 
 ### Dependencies
 
 ### Changed
-- Content Manager indexes context information
-- Third-party integrations maintenance
-- Upgraded opensearch version to 2.19.1
+- Content Manager indexes context information [(#317)](https://github.com/wazuh/wazuh-indexer-plugins/pull/317)
+- Third-party integrations maintenance [(#299)](https://github.com/wazuh/wazuh-indexer-plugins/pull/299)
+- Upgrade to Opensearch 2.19.1 [(#304)](https://github.com/wazuh/wazuh-indexer-plugins/pull/304)
+
 
 ### Deprecated
 
 ### Removed
 
 ### Fixed
- -  Add a validation to the order of the action arguments to force action.name to come before action.arg so that they can always be validated.  (#260).
+- Add a validation to the order of the action arguments to force action.name to come before action.arg so that they can always be validated [(#260)](https://github.com/wazuh/wazuh-indexer-plugins/issues/260)
 
 ### Security
 
