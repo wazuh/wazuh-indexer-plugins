@@ -7,22 +7,22 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 ## [Unreleased 5.0.x]
 
 ### Added
-- Internal and custom Users ECS mappings and index templates with its corresponding event generator. (#288).
+- Add RBAC index templates with its corresponding event generator [(#303)](https://github.com/wazuh/wazuh-indexer-plugins/pull/303)
+- Add technical documentation [(#320)](https://github.com/wazuh/wazuh-indexer-plugins/pull/320)
 
 ### Dependencies
 
 ### Changed
-- Third-party integrations maintenance
-- Upgraded opensearch version to 2.19.1
+- Third-party integrations maintenance [(#299)](https://github.com/wazuh/wazuh-indexer-plugins/pull/299)
+- Upgrade to Opensearch 2.19.1 [(#304)](https://github.com/wazuh/wazuh-indexer-plugins/pull/304)
 
 ### Deprecated
 
 ### Removed
 
 ### Fixed
-
-- Error on `generate-and-push-templates.sh` script when index template file does not exist on setup plugin resources. (#288).
-- Add a validation to the order of the action arguments to force action.name to come before action.arg so that they can always be validated.  (#260).
+- Fix error on `generate-and-push-templates.sh` script when the index template file does not exist on setup plugin resources [(#303)](https://github.com/wazuh/wazuh-indexer-plugins/pull/303)
+- Fix validation of commands by forcing `action.name` to exist before `action.args` [(#260)](https://github.com/wazuh/wazuh-indexer-plugins/issues/260)
 
 ### Security
 
