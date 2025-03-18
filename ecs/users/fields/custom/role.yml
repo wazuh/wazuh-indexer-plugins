@@ -3,7 +3,6 @@
   title: Wazuh's User Role
   description: List of roles assigned to a user.
   reusable:
-    top_level: true
     expected:
       - { at: user, as: roles }
   level: nested
@@ -12,10 +11,6 @@
       type: keyword
       level: custom
       description: The role name.
-    - name: created_at
-      type: date
-      level: custom
-      description: The timestamp when the role was created.
     - name: level
       type: integer
       level: custom

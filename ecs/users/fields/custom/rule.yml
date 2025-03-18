@@ -3,7 +3,6 @@
   title: Wazuh's User Rule
   description: Rule assigned to a role.
   reusable:
-    top_level: true
     expected:
       - { at: role, as: rules }
   level: nested
@@ -17,7 +16,3 @@
       level: custom
       enabled: true
       description: Rule body.
-    - name: created_at
-      type: date
-      level: custom
-      description: Timestamp when the rule was created.

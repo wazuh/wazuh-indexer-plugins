@@ -3,7 +3,6 @@
   title: Wazuh's User Policy
   description: Policy assigned to a role.
   reusable:
-    top_level: true
     expected:
       - { at: role, as: policies }
   level: nested
@@ -15,10 +14,6 @@
     - name: actions
       type: keyword
       level: custom
-      multi_fields:
-        - name: raw
-          level: custom
-          type: keyword
       description: Actions allowed by the policy.
     - name: resources
       type: keyword
@@ -32,7 +27,3 @@
       type: integer
       level: custom
       description: Policy level.
-    - name: created_at
-      type: date
-      level: custom
-      description: Timestamp when the policy was created.
