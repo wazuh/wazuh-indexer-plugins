@@ -14,13 +14,11 @@ fields:
       roles:
         fields:
           name: {}
-          created_at: {}
           level: {}
           rules:
             fields:
               name: {}
               body: {}
-              created_at: {}
           policies:
             fields:
               name: {}
@@ -28,4 +26,3 @@ fields:
               resources: {}
               effect: {}
               level: {}
-              created_at: {}
