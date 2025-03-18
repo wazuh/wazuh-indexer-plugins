@@ -27,6 +27,9 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+/**
+ * Model class for individual changes within a consumer changes reply
+ */
 public class Offset implements ToXContentObject {
 
     private static final String CONTEXT = "context";
@@ -43,6 +46,15 @@ public class Offset implements ToXContentObject {
     private final Long version;
     private final Map<String, Object> payload;
 
+    /**
+     * Constructor for the class
+     * @param context Name of the context
+     * @param offset Offset number of the record
+     * @param resource Name of the resource
+     * @param type Type of operation to be performed
+     * @param version Version Number
+     * @param payload JSON Patch payload data
+     */
     public Offset(
             String context,
             Long offset,
@@ -120,7 +132,13 @@ public class Offset implements ToXContentObject {
         return result;
     }
 
-    public static Offset parse(XContentParser parser) throws IOException, IllegalArgumentException {
+    /**
+     * Parser method for an individual Offset
+     * @param parser Incoming XContentParser object to be deserialized
+     * @return An Offset object
+     * @throws IOException Rethrown from XContentParser methods used
+     */
+    public static Offset parse(XContentParser parser) throws IOException {
         String context = null;
         Long offset = null;
         String resource = null;

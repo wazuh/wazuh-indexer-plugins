@@ -47,8 +47,18 @@ public class CTIClient extends HttpClient {
 
     /** Enum representing the query parameters used in CTI API requests. */
     public enum QueryParameters {
+        /**
+         * The starting offset parameter
+         * TO_OFFSET - FROM_OFFSET must be >1001
+         */
         FROM_OFFSET("from_offset"),
+        /**
+         * The destination offset parameter
+         */
         TO_OFFSET("to_offset"),
+        /**
+         * Include empties
+         */
         WITH_EMPTIES("with_empties");
 
         private final String value;

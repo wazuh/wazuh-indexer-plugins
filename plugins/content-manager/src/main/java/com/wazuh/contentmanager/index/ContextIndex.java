@@ -39,10 +39,17 @@ import com.wazuh.contentmanager.model.ctiapi.ConsumerInfo;
 public class ContextIndex {
     private static final Logger log = LogManager.getLogger(ContextIndex.class);
 
-    public static final String CONSUMER_INFO_INDEX = "wazuh-context";
+    /**
+     * The name of the Contexts index
+     */
+    public static final String CONTEXTS_INDEX = "wazuh-context";
 
     private final Client client;
 
+    /**
+     * Constructor for the class.
+     * @param client Necessary for index and search operations
+     */
     public ContextIndex(Client client) {
         this.client = client;
     }
@@ -58,7 +65,7 @@ public class ContextIndex {
         try {
             indexRequest =
                     new IndexRequest()
-                            .index(CONSUMER_INFO_INDEX)
+                            .index(CONTEXTS_INDEX)
                             .source(
                                     consumerInfo.toXContent(XContentFactory.jsonBuilder(), ToXContent.EMPTY_PARAMS))
                             .id(consumerInfo.getContext())
@@ -101,7 +108,7 @@ public class ContextIndex {
         SearchSourceBuilder searchSourceBuilder = new SearchSourceBuilder();
         searchSourceBuilder.query(termQueryBuilder);
 
-        SearchRequest searchRequest = new SearchRequest(CONSUMER_INFO_INDEX);
+        SearchRequest searchRequest = new SearchRequest(CONTEXTS_INDEX);
         searchRequest.source(searchSourceBuilder);
 
         CompletableFuture<SearchResponse> future = new CompletableFuture<>();

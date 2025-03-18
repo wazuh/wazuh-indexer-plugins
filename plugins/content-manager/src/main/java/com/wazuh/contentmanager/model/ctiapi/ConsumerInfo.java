@@ -79,8 +79,14 @@ public class ConsumerInfo implements ToXContentObject {
                 parser.nextToken();
                 switch (fieldName) {
                     case DATA:
-                        break;
                     case ID:
+                    case OPERATIONS:
+                    case INSERTED_AT:
+                    case UPDATED_AT:
+                    case PATHS_FILTER:
+                    case CHANGES_URL:
+                    case LAST_SNAPSHOT_AT:
+                    case LAST_SNAPSHOT_OFFSET:
                         break;
                     case NAME:
                         name = parser.text();
@@ -88,25 +94,11 @@ public class ConsumerInfo implements ToXContentObject {
                     case CONTEXT:
                         context = parser.text();
                         break;
-                    case OPERATIONS:
-                        break;
-                    case INSERTED_AT:
-                        break;
-                    case UPDATED_AT:
-                        break;
-                    case PATHS_FILTER:
-                        break;
                     case LAST_OFFSET:
                         lastOffset = parser.longValue();
                         break;
-                    case CHANGES_URL:
-                        break;
-                    case LAST_SNAPSHOT_AT:
-                        break;
                     case LAST_SNAPSHOT_LINK:
                         lastSnapshotLink = parser.text();
-                        break;
-                    case LAST_SNAPSHOT_OFFSET:
                         break;
                     default:
                         parser.skipChildren();
@@ -153,10 +145,18 @@ public class ConsumerInfo implements ToXContentObject {
                 + '}';
     }
 
+    /**
+     * Getter for the context name
+     * @return Context name as a String
+     */
     public String getContext() {
         return context;
     }
 
+    /**
+     * Retrieves the URL of the last consumer snapshot
+     * @return A Snapshot URL
+     */
     public String getLastSnapshotLink() {
         return lastSnapshotLink;
     }
