@@ -1,6 +1,6 @@
 {
   "index_patterns": [
-    ".internal-users*",
+    "wazuh-internal-users*",
     "wazuh-custom-users*"
   ],
   "priority": 1,

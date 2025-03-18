@@ -24,13 +24,9 @@ import org.opensearch.action.admin.indices.template.put.PutIndexTemplateRequest;
 import org.opensearch.action.support.master.AcknowledgedResponse;
 import org.opensearch.client.Client;
 import org.opensearch.cluster.service.ClusterService;
-import org.opensearch.common.settings.Settings;
 
 import java.io.IOException;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
+import java.util.*;
 
 import com.wazuh.setup.utils.IndexTemplateUtils;
 
@@ -40,8 +36,11 @@ import com.wazuh.setup.utils.IndexTemplateUtils;
 public class WazuhIndices {
     private static final Logger log = LogManager.getLogger(WazuhIndices.class);
 
-    /** | Key | value | | ------------------- | ---------- | | Index template name | index name | */
-    public final Map<String, String> indexTemplates = new HashMap<>();
+    /**
+     * | Key | value | | ------------------- | ---------- | | Index template name | [index name, ] |
+     * Map where the key is the index template name, and the value is a list of index names
+     */
+    public final Map<String, List<String>> indexTemplates = new HashMap<>();
 
     private final Client client;
     private final ClusterService clusterService;
@@ -57,20 +56,23 @@ public class WazuhIndices {
         this.clusterService = clusterService;
 
         // Create Index Templates - Indices map
-        this.indexTemplates.put("index-template-agent", "wazuh-agents");
-        this.indexTemplates.put("index-template-alerts", "wazuh-alerts-5.x-0001");
-        this.indexTemplates.put("index-template-commands", "wazuh-commands");
-        this.indexTemplates.put("index-template-scheduled-commands", ".scheduled-commands");
-        this.indexTemplates.put("index-template-fim", "wazuh-states-fim");
-        this.indexTemplates.put("index-template-hardware", "wazuh-states-inventory-hardware");
-        this.indexTemplates.put("index-template-hotfixes", "wazuh-states-inventory-hotfixes");
-        this.indexTemplates.put("index-template-networks", "wazuh-states-inventory-networks");
-        this.indexTemplates.put("index-template-packages", "wazuh-states-inventory-packages");
-        this.indexTemplates.put("index-template-ports", "wazuh-states-inventory-ports");
-        this.indexTemplates.put("index-template-processes", "wazuh-states-inventory-processes");
-        this.indexTemplates.put("index-template-system", "wazuh-states-inventory-system");
-        this.indexTemplates.put("index-template-vulnerabilities", "wazuh-states-vulnerabilities");
-        this.indexTemplates.put("index-template-users", "wazuh-*-users");
+        this.indexTemplates.put("index-template-agent", List.of("wazuh-agents"));
+        this.indexTemplates.put("index-template-alerts", List.of("wazuh-alerts-5.x-0001"));
+        this.indexTemplates.put("index-template-commands", List.of("wazuh-commands"));
+        this.indexTemplates.put("index-template-scheduled-commands", List.of(".scheduled-commands"));
+        this.indexTemplates.put("index-template-fim", List.of("wazuh-states-fim"));
+        this.indexTemplates.put("index-template-hardware", List.of("wazuh-states-inventory-hardware"));
+        this.indexTemplates.put("index-template-hotfixes", List.of("wazuh-states-inventory-hotfixes"));
+        this.indexTemplates.put("index-template-networks", List.of("wazuh-states-inventory-networks"));
+        this.indexTemplates.put("index-template-packages", List.of("wazuh-states-inventory-packages"));
+        this.indexTemplates.put("index-template-ports", List.of("wazuh-states-inventory-ports"));
+        this.indexTemplates.put(
+                "index-template-processes", List.of("wazuh-states-inventory-processes"));
+        this.indexTemplates.put("index-template-system", List.of("wazuh-states-inventory-system"));
+        this.indexTemplates.put(
+                "index-template-vulnerabilities", List.of("wazuh-states-vulnerabilities"));
+        this.indexTemplates.put(
+                "index-template-users", List.of("wazuh-internal-users", "wazuh-custom-users"));
     }
 
     /**
@@ -109,15 +111,7 @@ public class WazuhIndices {
      */
     public void putIndex(String indexName) {
         if (!indexExists(indexName)) {
-            CreateIndexRequest request;
-            if (indexName.startsWith(".internal-users")) {
-                // Dynamically set hidden=true only for '.internal-users*'
-                request =
-                        new CreateIndexRequest(indexName)
-                                .settings(Settings.builder().put("index.hidden", true));
-            } else {
-                request = new CreateIndexRequest(indexName);
-            }
+            CreateIndexRequest request = new CreateIndexRequest(indexName);
             CreateIndexResponse createIndexResponse =
                     this.client.admin().indices().create(request).actionGet();
             log.info(
@@ -143,14 +137,9 @@ public class WazuhIndices {
         // 2. Upsert index template
         // 3. Create index
         this.indexTemplates.forEach(
-                (k, v) -> {
-                    this.putTemplate(k);
-                    if (Objects.equals(v, "wazuh-*-users")) {
-                        this.putIndex(".internal-users");
-                        this.putIndex("wazuh-custom-users");
-                    } else {
-                        this.putIndex(v);
-                    }
+                (template, indices) -> {
+                    this.putTemplate(template);
+                    indices.forEach(this::putIndex);
                 });
     }
 }
