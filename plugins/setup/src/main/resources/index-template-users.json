@@ -1,6 +1,6 @@
 {
   "index_patterns": [
-    ".internal-users*",
+    "wazuh-internal-users*",
     "wazuh-custom-users*"
   ],
   "mappings": {
@@ -34,9 +34,6 @@
           },
           "roles": {
             "properties": {
-              "created_at": {
-                "type": "date"
-              },
               "level": {
                 "type": "integer"
               },
@@ -47,17 +44,8 @@
               "policies": {
                 "properties": {
                   "actions": {
-                    "fields": {
-                      "raw": {
-                        "ignore_above": 1024,
-                        "type": "keyword"
-                      }
-                    },
                     "ignore_above": 1024,
                     "type": "keyword"
-                  },
-                  "created_at": {
-                    "type": "date"
                   },
                   "effect": {
                     "ignore_above": 1024,
@@ -80,9 +68,6 @@
                 "properties": {
                   "body": {
                     "type": "object"
-                  },
-                  "created_at": {
-                    "type": "date"
                   },
                   "name": {
                     "ignore_above": 1024,
