@@ -3,6 +3,7 @@
   title: Wazuh's User Role
   description: List of roles assigned to a user.
   reusable:
+    top_level: false
     expected:
       - { at: user, as: roles }
   level: nested

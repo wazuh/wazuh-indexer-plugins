@@ -3,6 +3,7 @@
   title: Wazuh's User Policy
   description: Policy assigned to a role.
   reusable:
+    top_level: false
     expected:
       - { at: role, as: policies }
   level: nested
