@@ -7,6 +7,8 @@ TEMPLATES_PATH="plugins/setup/src/main/resources/"
 CURRENT_PATH=$(pwd)
 OUTPUT_PATH=${OUTPUT_PATH:-"$CURRENT_PATH"/../output}
 BASE_BRANCH=${BASE_BRANCH:-main}
+DOCUMENTATION_PATH="ecs/docs"
+CSV_SUBPATH="mappings/${ECS_VERSION}/generated/csv/fields.csv"
 
 # Committer's identity
 COMMITER_EMAIL=${COMMITER_EMAIL:-$(git config user.email)}
@@ -135,7 +137,7 @@ commit_and_push_changes() {
     echo
     echo "---> Committing and pushing changes to ${PLUGINS_REPO} repository..."
 
-    echo "Copying ECS templates to the plugins repository..."
+    echo "Copying ECS templates and csv definitions to the plugins repository..."
     for ecs_module in "${relevant_modules[@]}"; do
         target_file=${module_to_file[$ecs_module]}
         if [[ -z "$target_file" ]]; then
@@ -147,6 +149,23 @@ commit_and_push_changes() {
         # Copy the template to the plugins repository
         echo "  - Copy template for module '$ecs_module' to '$target_file'"
         cp "$CURRENT_PATH/ecs/$ecs_module/$MAPPINGS_SUBPATH" "$TEMPLATES_PATH/$target_file"
+        # Copy the csv to the plugins repository
+         echo "  - Copy csv definitions for module '$ecs_module' to '$DOCUMENTATION_PATH'"
+        cp "$CURRENT_PATH/ecs/$ecs_module/$CSV_SUBPATH" "$DOCUMENTATION_PATH/$ecs_module.csv"
+    done
+
+    # Generate and copy missing csv definitions
+    for ecs_module in "${module_to_file[@]}"; do
+        CSV_FILE_PATH="$DOCUMENTATION_PATH/$ecs_module.csv"
+        if [[ -f "$CSV_FILE_PATH" ]]; then
+          # Generate missing csv definitions
+          bash ecs/generator/mapping-generator.sh run "$ecs_module"
+          echo "Processed ECS module: $ecs_module"
+          bash ecs/generator/mapping-generator.sh down
+          # Copy the csv to the plugins repository
+          echo "  - Copy the missing csv definitions for module '$ecs_module' to '$DOCUMENTATION_PATH'"
+          cp "$CURRENT_PATH/ecs/$ecs_module/$CSV_SUBPATH" "$DOCUMENTATION_PATH/$ecs_module.csv"
+        endif
     done
 
     git status --short
