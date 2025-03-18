@@ -39,15 +39,14 @@ import com.wazuh.contentmanager.model.ctiapi.ConsumerInfo;
 public class ContextIndex {
     private static final Logger log = LogManager.getLogger(ContextIndex.class);
 
-    /**
-     * The name of the Contexts index
-     */
+    /** The name of the Contexts index */
     public static final String CONTEXTS_INDEX = "wazuh-context";
 
     private final Client client;
 
     /**
      * Constructor for the class.
+     *
      * @param client Necessary for index and search operations
      */
     public ContextIndex(Client client) {

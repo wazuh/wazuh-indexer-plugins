@@ -147,6 +147,7 @@ public class ConsumerInfo implements ToXContentObject {
 
     /**
      * Getter for the context name
+     *
      * @return Context name as a String
      */
     public String getContext() {
@@ -155,6 +156,7 @@ public class ConsumerInfo implements ToXContentObject {
 
     /**
      * Retrieves the URL of the last consumer snapshot
+     *
      * @return A Snapshot URL
      */
     public String getLastSnapshotLink() {

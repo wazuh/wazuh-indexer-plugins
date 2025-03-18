@@ -16,7 +16,6 @@
  */
 package com.wazuh.contentmanager;
 
-import com.wazuh.contentmanager.util.Privileged;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.opensearch.client.Client;
@@ -40,8 +39,6 @@ import org.opensearch.threadpool.ThreadPool;
 import org.opensearch.watcher.ResourceWatcherService;
 
 import java.io.IOException;
-import java.security.AccessController;
-import java.security.PrivilegedAction;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
@@ -51,10 +48,9 @@ import com.wazuh.contentmanager.client.CTIClient;
 import com.wazuh.contentmanager.index.ContextIndex;
 import com.wazuh.contentmanager.model.ctiapi.ConsumerInfo;
 import com.wazuh.contentmanager.settings.PluginSettings;
+import com.wazuh.contentmanager.util.Privileged;
 
-/**
- * Main class of the Content Manager Plugin
- */
+/** Main class of the Content Manager Plugin */
 public class ContentManagerPlugin extends Plugin implements ClusterPlugin, ActionPlugin {
 
     private static final Logger log = LogManager.getLogger(ContentManagerPlugin.class);
@@ -97,11 +93,13 @@ public class ContentManagerPlugin extends Plugin implements ClusterPlugin, Actio
 
     /**
      * Call the CTI API on startup and get the latest consumer information into an index
+     *
      * @param localNode local Node info
      */
     @Override
     public void onNodeStarted(DiscoveryNode localNode) {
-        ConsumerInfo consumerInfo = Privileged.doPrivilegedRequest(() -> CTIClient.getInstance().getCatalog());
+        ConsumerInfo consumerInfo =
+                Privileged.doPrivilegedRequest(() -> CTIClient.getInstance().getCatalog());
         this.contextIndex.index(consumerInfo);
     }
 
