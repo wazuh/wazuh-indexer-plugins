@@ -30,23 +30,20 @@ def generate_random_policy():
         "actions": [random.choice(["agent:create", "agent:remove"])],
         "resources": ["*:*:*"],
         "effect": random.choice(["allow", "deny"]),
-        "level": random.randint(0, 5),
-        "created_at": generate_random_date()
+        "level": random.randint(0, 5)
     }
 
 
 def generate_random_rule():
     return {
         "name": f"rule-{random.randint(1, 3)}",
-        "body": {},
-        "created_at": generate_random_date()
+        "body": {}
     }
 
 
 def generate_random_role():
     return {
         "name": f"role-{random.randint(1, 5)}",
-        "created_at": generate_random_date(),
         "level": random.randint(0, 5),
         "policies": [generate_random_policy() for _ in range(random.randint(1, 2))],
         "rules": [generate_random_rule() for _ in range(random.randint(1, 2))]
