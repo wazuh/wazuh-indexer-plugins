@@ -26,11 +26,11 @@ public class Privileged {
     /**
      * Executes an HTTP request with elevated privileges.
      *
-     * @param request A privileged action that performs the HTTP request.
-     * @return The SimpleHttpResponse resulting from the request execution.
+     * @param <T> A privileged action that performs the HTTP request.
+     * @return The return value resulting from the request execution.
      */
-    public static SimpleHttpResponse doPrivilegedRequest(
-            java.security.PrivilegedAction<SimpleHttpResponse> request) {
+    public static <T> T doPrivilegedRequest(
+            java.security.PrivilegedAction<T> request) {
         return AccessController.doPrivileged(request);
     }
 }
