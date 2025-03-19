@@ -45,13 +45,25 @@ public class CTIClient extends HttpClient {
 
     private static final Logger log = LogManager.getLogger(CTIClient.class);
 
-    /** Enum representing the query parameters used in CTI API requests. */
+    private static final String API_BASE_URL = PluginSettings.getInstance().getCtiBaseUrl();
+    private static final String CONSUMER_INFO_ENDPOINT = "/catalog/contexts/vd_1.0.0/consumers/vd_4.8.0";
+    private static final String CONSUMER_CHANGES_ENDPOINT = "/changes";
+
+    /**
+     * Enum representing the query parameters used in CTI API requests.
+     */
     public enum QueryParameters {
-        /** The starting offset parameter TO_OFFSET - FROM_OFFSET must be >1001 */
+        /**
+         * The starting offset parameter TO_OFFSET - FROM_OFFSET must be >1001
+         */
         FROM_OFFSET("from_offset"),
-        /** The destination offset parameter */
+        /**
+         * The destination offset parameter
+         */
         TO_OFFSET("to_offset"),
-        /** Include empties */
+        /**
+         * Include empties
+         */
         WITH_EMPTIES("with_empties");
 
         private final String value;
@@ -70,9 +82,6 @@ public class CTIClient extends HttpClient {
         }
     }
 
-    private static final String API_BASE_URL = PluginSettings.getInstance().getCtiBaseUrl();
-    private static final String API_PATH = "/catalog/contexts/vd_1.0.0/consumers/vd_4.8.0";
-    private static final String CONTEXT_CHANGES_ENDPOINT = "/changes";
 
     /**
      * Private constructor to enforce singleton pattern. Initializes the client with the CTI API base
@@ -106,7 +115,7 @@ public class CTIClient extends HttpClient {
      */
     public SimpleHttpResponse getChanges(String fromOffset, String toOffset, String withEmpties) {
         Map<String, String> params = contextQueryParameters(fromOffset, toOffset, withEmpties);
-        return sendRequest(Method.GET, CONTEXT_CHANGES_ENDPOINT, null, params, (Header) null);
+        return sendRequest(Method.GET, CONSUMER_CHANGES_ENDPOINT, null, params, (Header) null);
     }
 
     /**
@@ -116,19 +125,19 @@ public class CTIClient extends HttpClient {
      */
     public ConsumerInfo getCatalog() {
         XContent xContent = XContentType.JSON.xContent();
-        SimpleHttpResponse response = sendRequest(Method.GET, API_PATH, null, null, (Header) null);
+        SimpleHttpResponse response = sendRequest(Method.GET, CONSUMER_INFO_ENDPOINT, null, null, (Header) null);
         if (response == null) {
-            log.error("Null response from CTI API");
+            log.error("No response from CTI API");
             return null;
         }
         try {
             return ConsumerInfo.parse(
                     xContent.createParser(
                             NamedXContentRegistry.EMPTY,
-                            DeprecationHandler.IGNORE_DEPRECATIONS,
+                            DeprecationHandler.THROW_UNSUPPORTED_OPERATION,
                             response.getBodyBytes()));
         } catch (IOException | IllegalArgumentException e) {
-            log.error("Error getting CTI catalog information: {}", e.getMessage());
+            log.error("Unable to fetch catalog information: {}", e.getMessage());
         }
         return null;
     }
