@@ -1,0 +1,28 @@
+- name: user
+  title: Wazuh User
+  short: Users for Wazuh.
+  description: >
+    Wazuh's users with their roles and policies.
+  type: group
+  group: 2
+  fields:
+    - name: id
+      type: keyword
+      level: custom
+      description: Unique identifier of the user.
+    - name: name
+      type: keyword
+      level: custom
+      description: The user’s name.
+    - name: password
+      type: keyword
+      level: custom
+      description: The hashed password of the user.
+    - name: allow_run_as
+      type: boolean
+      level: custom
+      description: Whether the user can run as admin.
+    - name: created_at
+      type: date
+      level: custom
+      description: Timestamp when the user was created.
