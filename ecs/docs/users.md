@@ -1,4 +1,9 @@
-## `wazuh-internal-users` & `wazuh-internal-users` ECS mapping
+## Wazuh RBAC
+
+The Wazuh Role-Based Access Control (RBAC) system and its resources are now managed within the indexer. This template is shared by both `wazuh-internal-users` and `wazuh-custom-users` indices, defining fields for user roles, rules, and policies.
+
+- wazuh-internal-users: Default users and roles built-in with Wazuh.
+- wazuh-custom-users: Users and roles created by the admin.
 
 ### Fields summary
 
