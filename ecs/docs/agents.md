@@ -7,7 +7,7 @@ The fields are based on https://github.com/wazuh/wazuh/issues/23396#issuecomment
 Based on ECS [Agent Fields](https://www.elastic.co/guide/en/ecs/current/ecs-agent.html).
 
 |     | Field                | Type    | Description                                                            | Example                            |
-| --- | -------------------- | ------- | ---------------------------------------------------------------------- | ---------------------------------- |
+| --- |----------------------| ------- | ---------------------------------------------------------------------- | ---------------------------------- |
 |     | `agent.id`           | keyword | Unique identifier of this agent.                                       | `8a4f500d`                         |
 |     | `agent.name`         | keyword | Custom name of the agent.                                              | `foo`                              |
 | \*  | `agent.groups`       | keyword | List of groups the agent belong to.                                    | `["group1", "group2"]`             |
@@ -16,8 +16,8 @@ Based on ECS [Agent Fields](https://www.elastic.co/guide/en/ecs/current/ecs-agen
 |     | `agent.version`      | keyword | Version of the agent.                                                  | `6.0.0-rc2`                        |
 | \*  | `agent.is_connected` | boolean | Agents' interpreted connection status depending on `agent.last_login`. |                                    |
 | \*  | `agent.last_login`   | date    | The last time the agent logged in.                                     | `11/11/2024 00:00:00`              |
-|     | `host.ip`            | ip      | Host IP addresses. Note: this field should contain an array of values. | `["192.168.56.11", "10.54.27.1"]`  |
-|     | `host.os.full`       | keyword | Operating system name, including the version or code name.             | `Mac OS Mojave`                    |
+|     | `agent.host.ip`      | ip      | Host IP addresses. Note: this field should contain an array of values. | `["192.168.56.11", "10.54.27.1"]`  |
+|     | `agent.host.os.full` | keyword | Operating system name, including the version or code name.             | `Mac OS Mojave`                    |
 
 \* Custom field.
 
@@ -39,17 +39,12 @@ fields:
       groups: {}
       key: {}
       last_login: {}
-      is_connected: {}
-  host:
-    fields:
-      ip: {}
-      os:
-        fields:
-          full: {}
+      status: {}
+      host:
+        fields: "*"
 ```
 
 ```yml
----
 ---
 - name: agent
   title: Wazuh Agents
@@ -61,22 +56,27 @@ fields:
       type: keyword
       level: custom
       description: >
-        The groups the agent belongs to.
+        List of groups the agent belong to.
     - name: key
       type: keyword
       level: custom
       description: >
-        The agent's registration key.
+        The registration key of the agent.
     - name: last_login
       type: date
       level: custom
       description: >
-        The agent's last login.
-    - name: is_connected
-      type: boolean
+        The last time the agent logged in.
+    - name: status
+      type: keyword
       level: custom
       description: >
         Agents' interpreted connection status depending on `agent.last_login`.
+      allowed_values:
+        - name: active
+          description: Active agent status
+        - name: disconnected
+          description: Disconnected agent status
 ```
 
 ### Index settings
@@ -98,8 +98,8 @@ fields:
           "agent.type",
           "agent.version",
           "agent.name",
-          "host.os.full",
-          "host.ip"
+          "agent.host.os.full",
+          "agent.host.ip"
         ]
       }
     }
