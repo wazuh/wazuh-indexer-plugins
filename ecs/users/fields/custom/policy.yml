@@ -11,7 +11,7 @@
     - name: name
       type: keyword
       level: custom
-      description: Policy name.
+      description: The Policy name.
     - name: actions
       type: keyword
       level: custom
@@ -27,4 +27,4 @@
     - name: level
       type: integer
       level: custom
-      description: Policy level.
+      description: The permission level of the policy.

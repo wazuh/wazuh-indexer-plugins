@@ -11,9 +11,9 @@
     - name: name
       type: keyword
       level: custom
-      description: Rule name.
+      description: The rule name.
     - name: body
       type: object
       level: custom
       enabled: true
-      description: Rule body.
+      description: The complete body of the rule in JSON.
