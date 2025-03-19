@@ -16,7 +16,6 @@
  */
 package com.wazuh.contentmanager.index;
 
-import com.wazuh.contentmanager.client.CTIClient;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.opensearch.action.index.IndexRequest;
@@ -29,11 +28,9 @@ import org.opensearch.core.action.ActionListener;
 import org.opensearch.core.xcontent.ToXContent;
 import org.opensearch.index.query.QueryBuilders;
 import org.opensearch.index.query.TermQueryBuilder;
-import org.opensearch.search.SearchHit;
 import org.opensearch.search.builder.SearchSourceBuilder;
 
 import java.io.IOException;
-import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
@@ -48,6 +45,8 @@ public class ContextIndex {
 
     /** The name of the Contexts index */
     public static final String CONTEXTS_INDEX = "wazuh-context";
+
+    /** Timeout of indexing operations */
     public static final Long TIMEOUT = 10L;
 
     private final Client client;
@@ -141,16 +140,27 @@ public class ContextIndex {
         return future;
     }
 
+    /**
+     * Wrapper for get() that returns a single consumer out of the contexts index
+     *
+     * @param context Context to get from index
+     * @param consumer Consumer name to retrieve from context document
+     * @return a ConsumerInfo object
+     */
     @SuppressWarnings("unchecked")
-    ConsumerInfo getConsumer(String context, String consumer) {
+    public ConsumerInfo getConsumer(String context, String consumer) {
         try {
             SearchResponse searchResponse = get(context).get(TIMEOUT, TimeUnit.SECONDS);
-            Map<String, Object> source = (Map<String, Object>) searchResponse.getHits().getHits()[0].getSourceAsMap().get(consumer);
+            Map<String, Object> source =
+                    (Map<String, Object>)
+                            searchResponse.getHits().getHits()[0].getSourceAsMap().get(consumer);
             Long last_offset = (Long) source.get(ConsumerInfo.LAST_OFFSET);
             String snapshot = (String) source.get(ConsumerInfo.LAST_SNAPSHOT_LINK);
             return new ConsumerInfo(consumer, context, last_offset, snapshot);
         } catch (InterruptedException | ExecutionException | TimeoutException e) {
-            log.error("Failed to retrieve context [{}], consumer [{}]: {}", context, consumer, e.getMessage());
+            log.error(
+                    "Failed to retrieve context [{}], consumer [{}]: {}", context, consumer, e.getMessage());
         }
+        return null;
     }
 }

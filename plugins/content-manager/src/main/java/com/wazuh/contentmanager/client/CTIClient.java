@@ -46,24 +46,17 @@ public class CTIClient extends HttpClient {
     private static final Logger log = LogManager.getLogger(CTIClient.class);
 
     private static final String API_BASE_URL = PluginSettings.getInstance().getCtiBaseUrl();
-    private static final String CONSUMER_INFO_ENDPOINT = "/catalog/contexts/vd_1.0.0/consumers/vd_4.8.0";
+    private static final String CONSUMER_INFO_ENDPOINT =
+            "/catalog/contexts/vd_1.0.0/consumers/vd_4.8.0";
     private static final String CONSUMER_CHANGES_ENDPOINT = "/changes";
 
-    /**
-     * Enum representing the query parameters used in CTI API requests.
-     */
+    /** Enum representing the query parameters used in CTI API requests. */
     public enum QueryParameters {
-        /**
-         * The starting offset parameter TO_OFFSET - FROM_OFFSET must be >1001
-         */
+        /** The starting offset parameter TO_OFFSET - FROM_OFFSET must be >1001 */
         FROM_OFFSET("from_offset"),
-        /**
-         * The destination offset parameter
-         */
+        /** The destination offset parameter */
         TO_OFFSET("to_offset"),
-        /**
-         * Include empties
-         */
+        /** Include empties */
         WITH_EMPTIES("with_empties");
 
         private final String value;
@@ -81,7 +74,6 @@ public class CTIClient extends HttpClient {
             return value;
         }
     }
-
 
     /**
      * Private constructor to enforce singleton pattern. Initializes the client with the CTI API base
@@ -125,7 +117,8 @@ public class CTIClient extends HttpClient {
      */
     public ConsumerInfo getCatalog() {
         XContent xContent = XContentType.JSON.xContent();
-        SimpleHttpResponse response = sendRequest(Method.GET, CONSUMER_INFO_ENDPOINT, null, null, (Header) null);
+        SimpleHttpResponse response =
+                sendRequest(Method.GET, CONSUMER_INFO_ENDPOINT, null, null, (Header) null);
         if (response == null) {
             log.error("No response from CTI API");
             return null;
