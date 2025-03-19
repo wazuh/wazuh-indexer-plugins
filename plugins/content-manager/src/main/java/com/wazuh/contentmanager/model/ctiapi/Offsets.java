@@ -39,6 +39,10 @@ public class Offsets implements ToXContentObject {
         this.offsetList = offsetList;
     }
 
+    public List<Offset> getOffsetList() {
+        return offsetList;
+    }
+
     /**
      * Parses the data[] object from the CTI API changes response body
      *
