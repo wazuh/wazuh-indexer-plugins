@@ -7,7 +7,7 @@ TEMPLATES_PATH="plugins/setup/src/main/resources/"
 CURRENT_PATH=$(pwd)
 OUTPUT_PATH=${OUTPUT_PATH:-"$CURRENT_PATH"/../output}
 BASE_BRANCH=${BASE_BRANCH:-main}
-DOCUMENTATION_PATH="/docs"
+DOCUMENTATION_PATH="docs"
 CSV_SUBPATH="mappings/${ECS_VERSION}/generated/csv/fields.csv"
 
 # Committer's identity
