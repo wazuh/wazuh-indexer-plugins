@@ -79,6 +79,7 @@ detect_modified_modules() {
         [states-inventory-scheduled-commands]="index-template-scheduled-commands.json"
         [states-inventory-system]="index-template-system.json"
         [states-vulnerabilities]="index-template-vulnerabilities.json"
+        [users]="index-template-users.json"
     )
 
     relevant_modules=()
@@ -120,6 +121,7 @@ configure_git() {
     chmod 644 ~/.ssh/id_ed25519_bot.pub
 
     # Setup commit signing
+    eval "$(ssh-agent -s)"
     ssh-add ~/.ssh/id_ed25519_bot
     git config --global gpg.format ssh
     git config --global commit.gpgsign true
@@ -148,6 +150,10 @@ commit_and_push_changes() {
         cp "$CURRENT_PATH/ecs/$ecs_module/$MAPPINGS_SUBPATH" "$OUTPUT_PATH/$target_file"
         # Copy the template to the plugins repository
         echo "  - Copy template for module '$ecs_module' to '$target_file'"
+        # If the target file does not exist, create it.
+        if [ ! -f "$TEMPLATES_PATH/$target_file" ]; then
+            touch "$TEMPLATES_PATH/$target_file"
+        fi
         cp "$CURRENT_PATH/ecs/$ecs_module/$MAPPINGS_SUBPATH" "$TEMPLATES_PATH/$target_file"
         # Copy the csv to the plugins repository
         echo "  - Copy the missing csv definitions for module '$ecs_module' to '$CURRENT_PATH/ecs/$ecs_module/$DOCUMENTATION_PATH'"
@@ -255,7 +261,6 @@ main() {
     validate_dependencies
     detect_modified_modules
     run_ecs_generator # Exit if no changes on relevant modules.
-    clone_target_repo
     commit_and_push_changes # Exit if no changes detected.
     create_or_update_pr
 }
