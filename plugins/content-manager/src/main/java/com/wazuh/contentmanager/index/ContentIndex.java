@@ -16,7 +16,11 @@
  */
 package com.wazuh.contentmanager.index;
 
+import com.google.gson.Gson;
+import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
+import com.google.gson.stream.JsonReader;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.opensearch.action.admin.indices.create.CreateIndexRequest;
@@ -30,8 +34,10 @@ import org.opensearch.core.rest.RestStatus;
 import org.opensearch.core.xcontent.ToXContent;
 import org.opensearch.threadpool.ThreadPool;
 
-import java.io.IOException;
+import java.io.*;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
@@ -43,6 +49,7 @@ public class ContentIndex {
     private static final Logger log = LogManager.getLogger(ContentIndex.class);
 
     private static final String INDEX_NAME = "wazuh-content";
+    private final int MAX_DOCUMENTS = 250;
 
     private final Client client;
     private final ClusterService clusterService;
@@ -141,4 +148,47 @@ public class ContentIndex {
     public void patchDocument(JsonObject document) {
         // To do whe we have more definitions
     }
+
+    /**
+     * Divides a json document in new json documents with up to MAX_DOCUMENTS lines
+     *
+     * @param route The route to the file that will be divided
+     */
+    public void divideJson(String route){
+        try (BufferedReader reader = new BufferedReader(new FileReader(route))) {
+            String line;
+            int lineCount = 0;
+            ArrayList<JsonElement> fileContent = new ArrayList<>();
+
+            while((line = reader.readLine()) != null){
+                JsonElement json = JsonParser.parseString(line);
+                fileContent.add(json);
+                lineCount++;
+
+                if (lineCount == MAX_DOCUMENTS){
+                    index(fileContent);
+                    lineCount = 0;
+                    fileContent.clear();
+                }
+            }
+            if(lineCount > 0){
+                index(fileContent);
+            }
+        }
+        catch (IOException e){
+            log.error("Error during the process of dividing the document due to {}", e.getMessage());
+        }
+    }
+
+    /**
+     * Mocked version of index method, just for test, needs to be deleted once final version is completed
+     */
+    private int counter = 0;
+    public void index(ArrayList<JsonElement> content){
+        log.info("Indexed {} elements, from {} to {}", content.size(), 1 + counter * MAX_DOCUMENTS, (((counter + 1) * MAX_DOCUMENTS) - (MAX_DOCUMENTS - content.size())));
+        counter++;
+
+    }
+
 }
+

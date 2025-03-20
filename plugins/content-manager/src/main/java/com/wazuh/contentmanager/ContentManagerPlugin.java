@@ -16,6 +16,9 @@
  */
 package com.wazuh.contentmanager;
 
+import com.wazuh.contentmanager.util.Privileged;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.opensearch.client.Client;
 import org.opensearch.cluster.metadata.IndexNameExpressionResolver;
 import org.opensearch.cluster.node.DiscoveryNode;
@@ -57,6 +60,8 @@ public class ContentManagerPlugin extends Plugin implements ClusterPlugin, Actio
 
     private ContextIndex contextIndex;
     private ContentIndex contentIndex;
+
+    private static final Logger log = LogManager.getLogger(ContentManagerPlugin.class);
 
     /** ClassConstructor * */
     public ContentManagerPlugin() {}
@@ -102,6 +107,17 @@ public class ContentManagerPlugin extends Plugin implements ClusterPlugin, Actio
     public void onNodeStarted(DiscoveryNode localNode) {
         this.contextIndex.createIndex();
         this.contentIndex.createIndex();
+        long startTime = System.currentTimeMillis();
+
+        Privileged.doPrivilegedRequest(() -> {
+            this.contentIndex.divideJson("/vd_1.0.0_vd_4.8.0_1432540_1741603172.json");
+            return null;
+        });
+        long endTime = System.currentTimeMillis();
+
+        long duration = endTime - startTime;
+
+        log.info("TIME: {}", duration);
     }
 
     /**

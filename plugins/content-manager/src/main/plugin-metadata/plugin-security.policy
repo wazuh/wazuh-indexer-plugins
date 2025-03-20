@@ -1,3 +1,6 @@
 grant {
     permission java.net.SocketPermission "*", "connect,resolve";
+    permission java.lang.RuntimePermission "accessDeclaredMembers";
+    permission java.io.FilePermission "/vd_1.0.0_vd_4.8.0_1432540_1741603172.json", "read";
+    permission java.io.FilePermission "*", "write";
 };
