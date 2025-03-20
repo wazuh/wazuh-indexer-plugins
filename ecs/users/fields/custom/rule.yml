@@ -1,0 +1,19 @@
+---
+- name: rule
+  title: Wazuh's User Rule
+  description: Rule assigned to a role.
+  reusable:
+    top_level: false
+    expected:
+      - { at: role, as: rules }
+  level: nested
+  fields:
+    - name: name
+      type: keyword
+      level: custom
+      description: The rule name.
+    - name: body
+      type: object
+      level: custom
+      enabled: true
+      description: The complete body of the rule in JSON.

@@ -21,15 +21,15 @@ import org.opensearch.core.xcontent.XContentBuilder;
 import org.opensearch.core.xcontent.XContentParser;
 
 import java.io.IOException;
-import java.util.List;
 
 /** ToXContentObject model to parse and build CTI API Catalog query replies */
-public class ContextConsumerCatalog implements ToXContentObject {
+public class ConsumerInfo implements ToXContentObject {
 
     public static final String ID = "id";
     public static final String CONTEXT = "context";
     public static final String NAME = "name";
     public static final String LAST_OFFSET = "last_offset";
+    public static final String OFFSET = "offset";
     public static final String PATHS_FILTER = "paths_filter";
     public static final String LAST_SNAPSHOT_LINK = "last_snapshot_link";
     public static final String LAST_SNAPSHOT_OFFSET = "last_snapshot_offset";
@@ -39,93 +39,54 @@ public class ContextConsumerCatalog implements ToXContentObject {
     public static final String DATA = "data";
     public static final String UPDATED_AT = "updated_at";
     public static final String OPERATIONS = "operations";
-    private final Long id;
     private final String context;
     private final String name;
     private final Long lastOffset;
-    private final List<Object> pathsFilter;
     private final String lastSnapshotLink;
-    private final Long lastSnapshotOffset;
-    private final String lastSnapshotAt;
-    private final String changesUrl;
-    private final String insertedAt;
-    private final List<Object> operations;
-    private final String updatedAt;
 
     /**
      * Constructor method
      *
-     * @param id Identifier number
      * @param name Name of the consumer
      * @param context Name of the context
-     * @param operations TBD
-     * @param insertedAt Consumer creation date
-     * @param updatedAt Consumer update date
-     * @param pathsFilter TBD
      * @param lastOffset The last offset number
-     * @param changesUrl The URL of the latest changes
-     * @param lastSnapshotAt Date of the last snapshot
      * @param lastSnapshotLink URL link to the latest snapshot
-     * @param lastSnapshotOffset Offset of the latest snapshot
      */
-    public ContextConsumerCatalog(
-            Long id,
-            String name,
-            String context,
-            List<Object> operations,
-            String insertedAt,
-            String updatedAt,
-            List<Object> pathsFilter,
-            Long lastOffset,
-            String changesUrl,
-            String lastSnapshotAt,
-            String lastSnapshotLink,
-            Long lastSnapshotOffset) {
-        this.id = id;
+    public ConsumerInfo(String name, String context, Long lastOffset, String lastSnapshotLink) {
         this.name = name;
         this.context = context;
-        this.operations = operations;
-        this.insertedAt = insertedAt;
-        this.updatedAt = updatedAt;
-        this.pathsFilter = pathsFilter;
         this.lastOffset = lastOffset;
-        this.changesUrl = changesUrl;
-        this.lastSnapshotAt = lastSnapshotAt;
         this.lastSnapshotLink = lastSnapshotLink;
-        this.lastSnapshotOffset = lastSnapshotOffset;
     }
 
     /**
      * Parses a Catalog CTI API reply from an XContentParser
      *
      * @param parser the incoming parser
-     * @return a fully parsed ContextConsumerCatalog object
+     * @return a fully parsed ConsumerInfo object
      * @throws IOException rethrown from parse()
      * @throws IllegalArgumentException rethrown from parse()
      */
-    public static ContextConsumerCatalog parse(XContentParser parser)
+    public static ConsumerInfo parse(XContentParser parser)
             throws IOException, IllegalArgumentException {
-        long id = 0L;
         String context = null;
         String name = null;
         long lastOffset = 0L;
-        List<Object> pathsFilter = null;
         String lastSnapshotLink = null;
-        long lastSnapshotOffset = 0L;
-        String lastSnapshotAt = null;
-        String changesUrl = null;
-        String insertedAt = null;
-        String updatedAt = null;
-        List<Object> operations = null;
         while (parser.nextToken() != XContentParser.Token.END_OBJECT) {
             if (parser.currentToken().equals(XContentParser.Token.FIELD_NAME)) {
                 String fieldName = parser.currentName();
                 parser.nextToken();
                 switch (fieldName) {
                     case DATA:
-                        break;
                     case ID:
-                        id = parser.longValue();
+                    case OPERATIONS:
+                    case INSERTED_AT:
+                    case UPDATED_AT:
+                    case PATHS_FILTER:
+                    case CHANGES_URL:
+                    case LAST_SNAPSHOT_AT:
+                    case LAST_SNAPSHOT_OFFSET:
                         break;
                     case NAME:
                         name = parser.text();
@@ -133,36 +94,11 @@ public class ContextConsumerCatalog implements ToXContentObject {
                     case CONTEXT:
                         context = parser.text();
                         break;
-                    case OPERATIONS:
-                        if (parser.currentToken() != XContentParser.Token.VALUE_NULL) {
-                            operations = parser.list();
-                        }
-                        break;
-                    case INSERTED_AT:
-                        insertedAt = parser.text();
-                        break;
-                    case UPDATED_AT:
-                        updatedAt = parser.text();
-                        break;
-                    case PATHS_FILTER:
-                        if (parser.currentToken() != XContentParser.Token.VALUE_NULL) {
-                            pathsFilter = parser.list();
-                        }
-                        break;
                     case LAST_OFFSET:
                         lastOffset = parser.longValue();
                         break;
-                    case CHANGES_URL:
-                        changesUrl = parser.text();
-                        break;
-                    case LAST_SNAPSHOT_AT:
-                        lastSnapshotAt = parser.text();
-                        break;
                     case LAST_SNAPSHOT_LINK:
                         lastSnapshotLink = parser.text();
-                        break;
-                    case LAST_SNAPSHOT_OFFSET:
-                        lastSnapshotOffset = parser.longValue();
                         break;
                     default:
                         parser.skipChildren();
@@ -170,19 +106,7 @@ public class ContextConsumerCatalog implements ToXContentObject {
                 }
             }
         }
-        return new ContextConsumerCatalog(
-                id,
-                name,
-                context,
-                operations,
-                insertedAt,
-                updatedAt,
-                pathsFilter,
-                lastOffset,
-                changesUrl,
-                lastSnapshotAt,
-                lastSnapshotLink,
-                lastSnapshotOffset);
+        return new ConsumerInfo(name, context, lastOffset, lastSnapshotLink);
     }
 
     /**
@@ -196,30 +120,18 @@ public class ContextConsumerCatalog implements ToXContentObject {
     @Override
     public XContentBuilder toXContent(XContentBuilder builder, Params params) throws IOException {
         builder.startObject();
-        builder.field(ID, this.id);
-        builder.field(NAME, this.name);
-        builder.field(CONTEXT, this.context);
-        builder.field(OPERATIONS, this.operations);
-        builder.field(INSERTED_AT, this.insertedAt);
-        builder.field(UPDATED_AT, this.updatedAt);
-        builder.field(PATHS_FILTER, this.pathsFilter);
+        builder.startObject(this.name);
         builder.field(LAST_OFFSET, this.lastOffset);
-        builder.field(CHANGES_URL, this.changesUrl);
-        builder.field(LAST_SNAPSHOT_AT, this.lastSnapshotAt);
         builder.field(LAST_SNAPSHOT_LINK, this.lastSnapshotLink);
-        builder.field(LAST_SNAPSHOT_OFFSET, this.lastSnapshotOffset);
+        builder.field(OFFSET, 0);
+        builder.endObject();
         return builder.endObject();
     }
 
     @Override
     public String toString() {
-        return "ContextConsumerCatalog{"
-                + "changesUrl='"
-                + changesUrl
-                + '\''
-                + ", id="
-                + id
-                + ", context='"
+        return "ConsumerInfo{"
+                + "context='"
                 + context
                 + '\''
                 + ", name='"
@@ -227,40 +139,27 @@ public class ContextConsumerCatalog implements ToXContentObject {
                 + '\''
                 + ", lastOffset="
                 + lastOffset
-                + ", pathsFilter="
-                + pathsFilter
                 + ", lastSnapshotLink='"
                 + lastSnapshotLink
-                + '\''
-                + ", lastSnapshotOffset="
-                + lastSnapshotOffset
-                + ", lastSnapshotAt='"
-                + lastSnapshotAt
-                + '\''
-                + ", insertedAt='"
-                + insertedAt
-                + '\''
-                + ", operations="
-                + operations
-                + ", updatedAt='"
-                + updatedAt
                 + '\''
                 + '}';
     }
 
-    public String getName() {
-        return name;
-    }
-
+    /**
+     * Getter for the context name
+     *
+     * @return Context name as a String
+     */
     public String getContext() {
         return context;
     }
 
+    /**
+     * Retrieves the URL of the last consumer snapshot
+     *
+     * @return A Snapshot URL
+     */
     public String getLastSnapshotLink() {
         return lastSnapshotLink;
-    }
-
-    public Long getLastOffset() {
-        return lastOffset;
     }
 }

@@ -36,9 +36,6 @@ public class PluginSettings {
     /** Content Manager Plugin API path. */
     public static final String API_BASE_URI = "/_plugins/_content_manager";
 
-    public static final String CONTEXT_URI = API_BASE_URI + "/wazuh-context";
-    public static final String CONTENT_URI = API_BASE_URI + "/wazuh-content";
-
     /** Read the base URL from configuration file */
     public static final Setting<String> CTI_BASE_URL =
             Setting.simpleString(

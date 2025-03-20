@@ -24,7 +24,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 /** ToXContentObject model to parse and build CTI API changes query replies. */
-public class Offsets implements ToXContentObject {
+public class ContextChanges implements ToXContentObject {
 
     private static final String DATA = "data";
 
@@ -35,7 +35,7 @@ public class Offsets implements ToXContentObject {
      *
      * @param offsetList a List of the Offset objects, containing a json patch each.
      */
-    public Offsets(List<Offset> offsetList) {
+    public ContextChanges(List<Offset> offsetList) {
         this.offsetList = offsetList;
     }
 
@@ -43,12 +43,12 @@ public class Offsets implements ToXContentObject {
      * Parses the data[] object from the CTI API changes response body
      *
      * @param parser The received parser object
-     * @return an Offsets object with all inner array values parsed.
+     * @return an ContextChanges object with all inner array values parsed.
      * @throws IOException rethrown from the inner parse() methods
      * @throws IllegalArgumentException rethrown from the inner parse() methods
      * @throws ParsingException rethrown from ensureExpectedToken()
      */
-    public static Offsets parse(XContentParser parser)
+    public static ContextChanges parse(XContentParser parser)
             throws IOException, IllegalArgumentException, ParsingException {
         List<Offset> changes = new ArrayList<>();
         // Make sure we are at the start
@@ -63,7 +63,7 @@ public class Offsets implements ToXContentObject {
         while (parser.nextToken() != XContentParser.Token.END_ARRAY) {
             changes.add(Offset.parse(parser));
         }
-        return new Offsets(changes);
+        return new ContextChanges(changes);
     }
 
     /**
@@ -93,6 +93,6 @@ public class Offsets implements ToXContentObject {
 
     @Override
     public String toString() {
-        return "Offsets{" + "offsets=" + offsetList + '}';
+        return "ContextChanges{" + "offsets=" + offsetList + '}';
     }
 }
