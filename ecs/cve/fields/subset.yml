@@ -49,13 +49,13 @@ fields:
                         cwe_id: {}
                         description: {}
                         lang: {}
-                  provider_metadata:
-                    fields:
-                      date_updated: {}
-                      org_id: {}
-                      short_name: {}
-                      x_sub_short_name: {}
-                  references: []
+                provider_metadata:
+                  fields:
+                    date_updated: {}
+                    org_id: {}
+                    short_name: {}
+                    x_sub_short_name: {}
+                references: []
       data_type: {}
       data_version: {}
       cve_metadata:
