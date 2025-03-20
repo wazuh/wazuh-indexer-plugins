@@ -18,303 +18,148 @@ package com.wazuh.contentmanager.index;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.opensearch.action.admin.indices.create.CreateIndexRequest;
-import org.opensearch.action.admin.indices.create.CreateIndexResponse;
 import org.opensearch.action.index.IndexRequest;
+import org.opensearch.action.index.IndexResponse;
 import org.opensearch.action.search.SearchRequest;
 import org.opensearch.action.search.SearchResponse;
-import org.opensearch.action.update.UpdateRequest;
-import org.opensearch.action.update.UpdateResponse;
 import org.opensearch.client.Client;
-import org.opensearch.cluster.service.ClusterService;
-import org.opensearch.common.util.concurrent.ThreadContext;
 import org.opensearch.common.xcontent.XContentFactory;
-import org.opensearch.core.rest.RestStatus;
+import org.opensearch.core.action.ActionListener;
 import org.opensearch.core.xcontent.ToXContent;
 import org.opensearch.index.query.QueryBuilders;
 import org.opensearch.index.query.TermQueryBuilder;
 import org.opensearch.search.builder.SearchSourceBuilder;
-import org.opensearch.threadpool.ThreadPool;
 
 import java.io.IOException;
-import java.util.*;
+import java.util.Map;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ExecutorService;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 
-import com.wazuh.contentmanager.ContentManagerPlugin;
-import com.wazuh.contentmanager.model.Consumer;
-import com.wazuh.contentmanager.model.Document;
+import com.wazuh.contentmanager.model.ctiapi.ConsumerInfo;
 
 /** Class to manage the Context index. */
 public class ContextIndex {
     private static final Logger log = LogManager.getLogger(ContextIndex.class);
 
-    public static final String INDEX_NAME = "wazuh-context";
+    /** The name of the Contexts index */
+    public static final String CONTEXTS_INDEX = "wazuh-context";
+
+    /** Timeout of indexing operations */
+    public static final Long TIMEOUT = 10L;
 
     private final Client client;
-    private final ClusterService clusterService;
-    private final ThreadPool threadPool;
-
-    private final SearchSourceBuilder searchSourceBuilder = new SearchSourceBuilder();
 
     /**
-     * Constructs a ContextIndex instance.
+     * Constructor for the class.
      *
-     * @param client OpenSearch client instance to interact with the cluster.
-     * @param clusterService OpenSearch cluster service instance to check index states.
-     * @param threadPool An OpenSearch ThreadPool.
+     * @param client Necessary for index and search operations
      */
-    public ContextIndex(Client client, ClusterService clusterService, ThreadPool threadPool) {
+    public ContextIndex(Client client) {
         this.client = client;
-        this.clusterService = clusterService;
-        this.threadPool = threadPool;
     }
 
-    /** Creates the context index if it does not exist. */
-    public void createIndex() {
-        if (!indexExists()) {
-            Map<String, Object> source = createMapping();
-            CreateIndexRequest request = new CreateIndexRequest(INDEX_NAME).mapping(source);
-            CreateIndexResponse createIndexResponse =
-                    this.client.admin().indices().create(request).actionGet();
-            log.info(
-                    "Index created successfully: {} {}",
-                    createIndexResponse.index(),
-                    createIndexResponse.isAcknowledged());
+    /**
+     * Index CTI API consumer information
+     *
+     * @param consumerInfo Model containing information parsed from the CTI API
+     */
+    public void index(ConsumerInfo consumerInfo) {
+
+        IndexRequest indexRequest = null;
+        try {
+            indexRequest =
+                    new IndexRequest()
+                            .index(CONTEXTS_INDEX)
+                            .source(
+                                    consumerInfo.toXContent(XContentFactory.jsonBuilder(), ToXContent.EMPTY_PARAMS))
+                            .id(consumerInfo.getContext())
+                            .create(true);
+        } catch (IOException e) {
+            log.error("Failed to create JSON content builder: {}", e.getMessage());
         }
 
-        // Initialize the metadata of context
-        Consumer consumer = new Consumer(0, null, "", "");
-        Document document = new Document(consumer);
-        indexDocument(document, ContentManagerPlugin.CONTEXT_NAME);
-    }
+        this.client.index(
+                indexRequest,
+                new ActionListener<>() {
+                    @Override
+                    public void onResponse(IndexResponse indexResponse) {
+                        log.info(
+                                "Successfully initialized consumer [{}]",
+                                consumerInfo.getContext());
+                    }
 
-    /**
-     * Checks if the wazuh-content index exists.
-     *
-     * @return whether the internal Command Manager's index exists.
-     */
-    public boolean indexExists() {
-        return this.clusterService.state().routingTable().hasIndex(INDEX_NAME);
-    }
-
-    /**
-     * Index a Document object.
-     *
-     * @param document to index
-     * @param id of document
-     * @return CompletableFuture
-     */
-    public CompletableFuture<RestStatus> indexDocument(Document document, String id) {
-        final CompletableFuture<RestStatus> future = new CompletableFuture<>();
-        final ExecutorService executor = this.threadPool.executor(ThreadPool.Names.WRITE);
-
-        executor.submit(
-                () -> {
-                    try (ThreadContext.StoredContext ignored =
-                            this.threadPool.getThreadContext().stashContext()) {
-                        IndexRequest indexRequest = createIndexRequest(document, id);
-                        log.info("Previously indexing document {}", id);
-                        final RestStatus restStatus = this.client.index(indexRequest).actionGet().status();
-                        log.info("POST indexing document {}", id);
-                        future.complete(restStatus);
-                    } catch (Exception e) {
-                        log.error("Error creating IndexRequest due to {}", e.getMessage());
-                        future.completeExceptionally(e);
+                    @Override
+                    public void onFailure(Exception e) {
+                        log.error(
+                                "Failed to index Consumer [{}] information due to: {}",
+                                consumerInfo.getContext(),
+                                e);
                     }
                 });
-
-        return future;
     }
 
     /**
-     * Create an IndexRequest object from a Document object.
+     * Get a context off its index
      *
-     * @param document the document to create the IndexRequest for COMMAND_MANAGER_INDEX
-     * @return an IndexRequest object
-     * @throws IOException thrown by XContentFactory.jsonBuilder()
+     * @param contextName ID of the context to be retrieved
+     * @return A completable future holding the response of the query
      */
-    private IndexRequest createIndexRequest(Document document, String id) throws IOException {
-        return new IndexRequest()
-                .index(INDEX_NAME)
-                .source(document.toXContent(XContentFactory.jsonBuilder(), ToXContent.EMPTY_PARAMS))
-                .id(id)
-                .create(true);
-    }
+    public CompletableFuture<SearchResponse> get(String contextName) {
 
-    /**
-     * Get a document from the index.
-     *
-     * @param contextName the id of the document
-     * @return RestStatus of get
-     */
-    public CompletableFuture<RestStatus> get(String contextName) {
-        final CompletableFuture<RestStatus> future = new CompletableFuture<>();
-        final ExecutorService executor = this.threadPool.executor(ThreadPool.Names.WRITE);
         final TermQueryBuilder termQueryBuilder = QueryBuilders.termQuery("_id", contextName);
-        this.searchSourceBuilder.query(termQueryBuilder);
 
-        executor.submit(
-                () -> {
-                    try (ThreadContext.StoredContext ignored =
-                            this.threadPool.getThreadContext().stashContext()) {
-                        SearchRequest searchRequest =
-                                createSearchRequest(this.searchSourceBuilder.trackTotalHits(true));
+        SearchSourceBuilder searchSourceBuilder = new SearchSourceBuilder();
+        searchSourceBuilder.query(termQueryBuilder);
 
-                        final SearchResponse searchResponse = this.client.search(searchRequest).actionGet();
-
-                        log.info("Result SEARCH: {}", searchResponse.toString());
-
-                        final RestStatus restStatus = searchResponse.status();
-
-                        future.complete(restStatus);
-
-                        log.info(
-                                "Found {} documents",
-                                Objects.requireNonNull(searchResponse.getHits().getTotalHits()).value);
-                    } catch (Exception e) {
-                        log.error("Error creating SearchRequest due to {}", e.getMessage());
-                        future.completeExceptionally(e);
-                    }
-                });
-        return future;
-    }
-
-    /**
-     * Get all documents
-     *
-     * @return el RestStatus of get all documents
-     */
-    public CompletableFuture<RestStatus> getAll() {
-        final CompletableFuture<RestStatus> future = new CompletableFuture<>();
-        final ExecutorService executor = this.threadPool.executor(ThreadPool.Names.WRITE);
-
-        executor.submit(
-                () -> {
-                    try (ThreadContext.StoredContext ignored =
-                            this.threadPool.getThreadContext().stashContext()) {
-                        searchSourceBuilder.query(null);
-                        SearchRequest searchRequest =
-                                createSearchRequest(this.searchSourceBuilder.trackTotalHits(true));
-
-                        final SearchResponse searchResponse = this.client.search(searchRequest).actionGet();
-
-                        log.info("Result SEARCH ALL: {}", searchResponse.toString());
-
-                        final RestStatus restStatus = searchResponse.status();
-
-                        future.complete(restStatus);
-
-                        log.info(
-                                "Found {} documents",
-                                Objects.requireNonNull(searchResponse.getHits().getTotalHits()).value);
-                    } catch (Exception e) {
-                        log.error("Error creating SearchRequest due to {}", e.getMessage());
-                        future.completeExceptionally(e);
-                    }
-                });
-
-        return future;
-    }
-
-    /**
-     * Create a SearchRequest object from a SearchSourceBuilder object.
-     *
-     * @param searchSourceBuilder builder to create the SearchRequest
-     * @return SearchRequest
-     */
-    private SearchRequest createSearchRequest(SearchSourceBuilder searchSourceBuilder) {
-        SearchRequest searchRequest = new SearchRequest(INDEX_NAME);
+        SearchRequest searchRequest = new SearchRequest(CONTEXTS_INDEX);
         searchRequest.source(searchSourceBuilder);
 
-        return searchRequest;
-    }
+        CompletableFuture<SearchResponse> future = new CompletableFuture<>();
 
-    /**
-     * Update an existing document
-     *
-     * @param id of document
-     * @param document to update the source of the previous document
-     * @return UpdateResponse
-     */
-    public CompletableFuture<RestStatus> update(String id, Document document) {
-        final CompletableFuture<RestStatus> future = new CompletableFuture<>();
-        final ExecutorService executor = this.threadPool.executor(ThreadPool.Names.WRITE);
+        this.client.search(
+                searchRequest,
+                new ActionListener<>() {
+                    @Override
+                    public void onResponse(SearchResponse searchResponse) {
+                        log.info(
+                                "Retrieved CTI Catalog Context {} from index with status {}",
+                                contextName,
+                                searchResponse.status());
+                        future.complete(searchResponse);
+                    }
 
-        executor.submit(
-                () -> {
-                    try (ThreadContext.StoredContext ignored =
-                            this.threadPool.getThreadContext().stashContext()) {
-                        searchSourceBuilder.query(null);
-                        UpdateRequest updateRequest = createUpdateRequest(id, document);
-
-                        final UpdateResponse updateResponse = this.client.update(updateRequest).actionGet();
-
-                        if (updateResponse.getGetResult() != null) {
-                            log.info("Result UPDATE: {}", updateResponse.getGetResult().toString());
-                        } else {
-                            log.info("Result STATUS: {}", updateResponse.status());
-                        }
-
-                        final RestStatus restStatus = updateResponse.status();
-
-                        future.complete(restStatus);
-
-                    } catch (Exception e) {
-                        log.error("Error creating UpdateRequest due to {}", e.getMessage());
+                    @Override
+                    public void onFailure(Exception e) {
+                        log.error("Failed to retrieve CTI Catalog Context {}, Exception: {}", contextName, e);
                         future.completeExceptionally(e);
                     }
                 });
-
         return future;
     }
 
     /**
-     * Create an UpdateRequest object from a Document object.
+     * Wrapper for get() that returns a single consumer out of the contexts index
      *
-     * @param id of document
-     * @param document to update
-     * @return UpdateRequest
+     * @param context Context to get from index
+     * @param consumer Consumer name to retrieve from context document
+     * @return a ConsumerInfo object
      */
-    private UpdateRequest createUpdateRequest(String id, Document document) {
-        UpdateRequest updateRequest = new UpdateRequest(INDEX_NAME, id);
+    @SuppressWarnings("unchecked")
+    public ConsumerInfo getConsumer(String context, String consumer) {
         try {
-            updateRequest
-                    .doc(document.toXContent(XContentFactory.jsonBuilder(), ToXContent.EMPTY_PARAMS))
-                    .fetchSource(true);
-        } catch (IOException e) {
-            log.error("Error creating IndexRequest due to {}", e.getMessage());
+            SearchResponse searchResponse = get(context).get(TIMEOUT, TimeUnit.SECONDS);
+            Map<String, Object> source =
+                    (Map<String, Object>)
+                            searchResponse.getHits().getHits()[0].getSourceAsMap().get(consumer);
+            Long last_offset = (Long) source.get(ConsumerInfo.LAST_OFFSET);
+            String snapshot = (String) source.get(ConsumerInfo.LAST_SNAPSHOT_LINK);
+            return new ConsumerInfo(consumer, context, last_offset, snapshot);
+        } catch (InterruptedException | ExecutionException | TimeoutException e) {
+            log.error(
+                    "Failed to retrieve context [{}], consumer [{}]: {}", context, consumer, e.getMessage());
         }
-        return updateRequest;
-    }
-
-    /**
-     * Create the mapping for the content index
-     *
-     * @return Map<String, Object> with the mapping
-     */
-    private static Map<String, Object> createMapping() {
-        Map<String, Object> properties = new HashMap<>();
-
-        properties.put("offset", createProperty("integer"));
-        properties.put("last_offset", createProperty("integer"));
-        properties.put("snapshot", createProperty("text"));
-        properties.put("hash", createProperty("text"));
-
-        Map<String, Object> mapping = new HashMap<>();
-        mapping.put("properties", properties);
-
-        return mapping;
-    }
-
-    /**
-     * Create a property for the content index
-     *
-     * @return Map<String, Object> with the property
-     */
-    private static Map<String, Object> createProperty(String type) {
-        Map<String, Object> property = new HashMap<>();
-        property.put("type", type);
-        return property;
+        return null;
     }
 }
