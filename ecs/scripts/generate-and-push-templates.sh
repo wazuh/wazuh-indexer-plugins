@@ -55,13 +55,14 @@ detect_modified_modules() {
     modified_files=$(git diff --name-only origin/"$BASE_BRANCH")
 
     for file in $modified_files; do
-        if [[ $file == ecs/* ]]; then
+        if [[ $file == ecs/* && $file != ecs/*/docs/* ]]; then
             ecs_module=$(echo "$file" | cut -d'/' -f2)
             if [[ ! " ${updated_modules[*]} " =~ ${ecs_module} ]]; then
                 updated_modules+=("$ecs_module")
             fi
         fi
     done
+
     echo "Updated ECS modules: ${updated_modules[*]}"
 
     # Mapping section
