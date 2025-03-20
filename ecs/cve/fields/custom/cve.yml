@@ -1,0 +1,30 @@
+- name: cve
+  title: Wazuh CVE
+  description: Wazuh CTI model for CVE
+  type: group
+  group: 2
+  fields: 
+    - name: name
+      type: keyword
+      level: custom
+      description: The name of the CVE.
+    - name: offset
+      type: keyword
+      level: custom
+      description: The offset of the CVE.
+    - name: version
+      type: keyword
+      level: custom
+      description: The version of the CVE.
+    - name: inserted_at
+      type: date
+      level: custom
+      description: The date the CVE was inserted.
+    - name: data_type
+      type: keyword
+      level: custom
+      description: The type of the CVE data
+    - name: data_version
+      type: keyword
+      level: custom
+      description: The version of the CVE data

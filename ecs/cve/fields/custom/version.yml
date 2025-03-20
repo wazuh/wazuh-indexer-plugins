@@ -1,0 +1,17 @@
+- name: version
+  title: Version
+  description: The affected versions of the product.
+  level: nested
+  reusable:
+    top_level: false
+    expected:
+      - { at: affected, as: versions }
+  fields:
+    - name: status
+      type: keyword
+      level: custom
+      description: The status of the affected version.
+    - name: version
+      type: keyword
+      level: custom
+      description: The affected version.

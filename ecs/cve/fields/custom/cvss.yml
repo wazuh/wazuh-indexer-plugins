@@ -1,0 +1,45 @@
+- name: cvss
+  title: CVSS V2
+  description: CVSS V2 metrics
+  reusable:
+    top_level: false
+    expected:
+      - { at: metrics, as: cvss_v2 }
+  level: nested
+  fields:
+    - name: access_vector
+      type: keyword
+      level: custom
+      description: The access vector.
+    - name: access_complexity
+      type: keyword
+      level: custom
+      description: The access complexity.
+    - name: authentication
+      type: keyword
+      level: custom
+      description: The authentication.
+    - name: availability_impact
+      type: keyword
+      level: custom
+      description: The availability impact.
+    - name: base_score
+      type: float
+      level: custom
+      description: The base score.
+    - name: confidentiality_impact
+      type: keyword
+      level: custom
+      description: The confidentiality impact.
+    - name: integrity_impact
+      type: keyword
+      level: custom
+      description: The integrity impact.
+    - name: vector_string
+      type: keyword
+      level: custom
+      description: The vector string.
+    - name: version
+      type: keyword
+      level: custom
+      description: The version of CVSS.

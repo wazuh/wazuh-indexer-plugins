@@ -1,0 +1,25 @@
+- name: provider_metadata
+  title: Provider Metadata
+  description: Metadata of a CVE provider.
+  reusable:
+    top_level: false
+    expected:
+      - { at: cve, as: provider_metadata }
+  level: nested
+  fields:
+    - name: date_updated
+      type: date
+      level: custom
+      description: The date the CVE was last updated.
+    - name: org_id
+      type: keyword
+      level: custom
+      description: The organization ID of the CVE provider.
+    - name: short_name
+      type: keyword
+      level: custom
+      description: The short name of the CVE provider.
+    - name: x_sub_short_name
+      type: keyword
+      level: custom
+      description: The sub short name of the CVE provider.

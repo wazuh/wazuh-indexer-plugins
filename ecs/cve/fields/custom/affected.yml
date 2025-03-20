@@ -1,0 +1,25 @@
+- name: affected
+  title: Affected
+  description: Affected products and versions.
+  reusable:
+    top_level: false
+    expected:
+      - { at: cve, as: affected }
+  level: nested
+  fields:
+    - name: cpes
+      type: keyword
+      level: custom
+      description: Common Platform Enumeration (CPE) entries for the affected product.
+    - name: default_status
+      type: keyword
+      level: custom
+      description: The default status of the affected product.
+    - name: product
+      type: keyword
+      level: custom
+      description: The affected product.
+    - name: vendor
+      type: keyword
+      level: custom
+      description: The affected vendor.

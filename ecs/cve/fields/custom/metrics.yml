@@ -1,0 +1,13 @@
+- name: metrics
+  title: Metrics
+  description: Metrics associated with a CVE.
+  reusable:
+    top_level: false
+    expected:
+      - { at: cve, as: metrics }
+  level: nested
+  fields:
+    - name: format
+      type: keyword
+      level: custom
+      description: The format of the metrics.
