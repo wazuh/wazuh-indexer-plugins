@@ -14,6 +14,7 @@ The Wazuh Common Schema is a derivation of the [Elastic Common Schema](https://w
 - [states-inventory-processes](inventory-processes.md)
 - [states-inventory-system](inventory-system.md)
 - [states-vulnerabilities](states-vulnerability.md)
+- [users](users.md)
 
 ---
 

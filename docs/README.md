@@ -7,7 +7,18 @@ This folder contains the technical documentation for the Wazuh Indexer. The docu
 
 ## Requirements
 
-To work with this documentation, you need **mdBook** installed. For installation instructions, refer to the [mdBook documentation](https://rust-lang.github.io/mdBook/).
+To work with this documentation, you need **mdBook** installed.
+
+- Get the latest `cargo` (hit enter when prompted for a default install)
+  ```bash
+  curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
+  ```
+
+- Install `mdbook` and `mdbook-mermaid`
+  ```bash
+  cargo install mdbook
+  cargo install mdbook-mermaid
+  ```
 
 ## Usage
 
