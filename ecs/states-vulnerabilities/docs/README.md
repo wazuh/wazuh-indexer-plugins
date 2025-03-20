@@ -9,4 +9,4 @@ The fields are based on the ECS:
 - [Host Fields](https://www.elastic.co/guide/en/ecs/current/ecs-host.html).
 - [Vulnerability Fields](https://www.elastic.co/guide/en/ecs/current/ecs-vulnerability.html).
 
-The detail of the fields can be found in csv file [Vulnerabilities Fields](https://github.com/wazuh/wazuh-indexer-plugins/blob/main/ecs/states-vulnerabilities/docs/fields.csv).
+The detail of the fields can be found in csv file [Vulnerabilities Fields](fields.csv).

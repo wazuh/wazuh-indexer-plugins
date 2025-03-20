@@ -8,4 +8,4 @@ Based on ECS:
 
 - [Package Fields](https://www.elastic.co/guide/en/ecs/current/ecs-package.html).
 
-The detail of the fields can be found in csv file [Inventory Hotfixes Fields](https://github.com/wazuh/wazuh-indexer-plugins/blob/main/ecs/states-inventory-hotfixes/docs/fields.csv).
+The detail of the fields can be found in csv file [Inventory Hotfixes Fields](fields.csv).

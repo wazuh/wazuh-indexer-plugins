@@ -10,5 +10,5 @@ For this stage, we are using all the fields of the ECS. No custom fields are use
 
 The generated template must match [this one](https://github.com/elastic/ecs/blob/v8.11.0/generated/elasticsearch/legacy/template.json).
 
-The detail of the fields can be found in csv file [Alerts Fields](https://github.com/wazuh/wazuh-indexer-plugins/blob/main/ecs/alerts/docs/fields.csv).
+The detail of the fields can be found in csv file [Alerts Fields](fields.csv).
 

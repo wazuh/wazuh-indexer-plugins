@@ -12,4 +12,4 @@
 
 This index stores information about the commands executed by the agents. The index appears in 5.0.0 for the first time.
 
-The detail of the fields can be found in csv file [Command Fields](https://github.com/wazuh/wazuh-indexer-plugins/blob/main/ecs/command/docs/fields.csv).
+The detail of the fields can be found in csv file [Command Fields](fields.csv).

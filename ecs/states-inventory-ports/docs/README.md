@@ -10,4 +10,4 @@ Based on ECS:
 - [Network Fields](https://www.elastic.co/guide/en/ecs/current/ecs-network.html).
 - [Host Fields](https://www.elastic.co/guide/en/ecs/current/ecs-host.html).
 
-The detail of the fields can be found in csv file [Inventory Ports Fields](https://github.com/wazuh/wazuh-indexer-plugins/blob/main/ecs/states-inventory-ports/docs/fields.csv).
+The detail of the fields can be found in csv file [Inventory Ports Fields](fields.csv).

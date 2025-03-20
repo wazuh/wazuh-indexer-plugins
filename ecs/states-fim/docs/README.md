@@ -9,4 +9,4 @@ Based on ECS:
 - [File Fields](https://www.elastic.co/guide/en/ecs/current/ecs-file.html).
 - [Registry Fields](https://www.elastic.co/guide/en/ecs/current/ecs-registry.html).
 
-The detail of the fields can be found in csv file [States FIM Fields](https://github.com/wazuh/wazuh-indexer-plugins/blob/main/ecs/states-fim/docs/fields.csv).
+The detail of the fields can be found in csv file [States FIM Fields](fields.csv).
