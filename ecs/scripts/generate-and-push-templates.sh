@@ -55,7 +55,7 @@ detect_modified_modules() {
     modified_files=$(git diff --name-only origin/"$BASE_BRANCH")
 
     for file in $modified_files; do
-        if [[ $file == ecs/* && $file != ecs/*/docs/* ]]; then
+        if [[ $file == ecs/* && ( $file == *.yml || $file == *.json ) ]]; then
             ecs_module=$(echo "$file" | cut -d'/' -f2)
             if [[ ! " ${updated_modules[*]} " =~ ${ecs_module} ]]; then
                 updated_modules+=("$ecs_module")
@@ -157,7 +157,7 @@ commit_and_push_changes() {
         fi
         cp "$CURRENT_PATH/ecs/$ecs_module/$MAPPINGS_SUBPATH" "$TEMPLATES_PATH/$target_file"
         # Copy the csv to the plugins repository
-        echo "  - Copy the missing csv definitions for module '$ecs_module' to '$CURRENT_PATH/ecs/$ecs_module/$DOCUMENTATION_PATH'"
+        echo "  - Copy the updated csv definitions for module '$ecs_module' to '$CURRENT_PATH/ecs/$ecs_module/$DOCUMENTATION_PATH'"
         cp "$CURRENT_PATH/ecs/$ecs_module/$CSV_SUBPATH" "$CURRENT_PATH/ecs/$ecs_module/$DOCUMENTATION_PATH/"
     done
 
