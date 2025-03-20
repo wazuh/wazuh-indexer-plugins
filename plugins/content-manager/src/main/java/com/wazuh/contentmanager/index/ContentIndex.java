@@ -16,11 +16,9 @@
  */
 package com.wazuh.contentmanager.index;
 
-import com.google.gson.Gson;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
-import com.google.gson.stream.JsonReader;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.opensearch.action.admin.indices.create.CreateIndexRequest;
@@ -37,7 +35,6 @@ import org.opensearch.threadpool.ThreadPool;
 import java.io.*;
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
