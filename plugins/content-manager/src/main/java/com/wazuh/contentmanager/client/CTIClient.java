@@ -123,6 +123,7 @@ public class CTIClient extends HttpClient {
             log.error("No response from CTI API");
             return null;
         }
+        log.debug("CTI API replied with status: [{}]", response.getCode());
         try {
             return ConsumerInfo.parse(
                     xContent.createParser(

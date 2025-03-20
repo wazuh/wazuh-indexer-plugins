@@ -137,6 +137,7 @@ public class HttpClient {
             }
 
             SimpleHttpRequest request = builder.setHttpHost(httpHost).setPath(_apiUri.getPath()).build();
+            log.debug("Request sent: [{}]", request);
             return httpClient
                     .execute(
                             SimpleRequestProducer.create(request),
