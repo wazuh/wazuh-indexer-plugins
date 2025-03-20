@@ -1,5 +1,6 @@
 import logging
 import os
+from pathlib import Path
 import urllib.parse
 import json
 import gzip
@@ -9,6 +10,8 @@ import pyarrow.parquet as pq
 from botocore.exceptions import ClientError
 import wazuh_ocsf_converter
 
+TMP_EVENTS = '/tmp/tmp.json'
+TMP_PARQUET = '/tmp/tmp.parquet'
 logger = logging.getLogger()
 logger.setLevel("INFO")
 
@@ -40,8 +43,7 @@ def assume_role(arn: str, external_id: str, session_name: str) -> dict:
             'SessionToken': credentials['SessionToken']
         }
     except ClientError as e:
-        logger.error(f"Failed to assume role {arn} with external ID {external_id}: {e}")
-        return None
+        exit_on_error(f"Failed to assume role {arn} with external ID {external_id}: {e}")
 
 
 def get_s3_client(credentials: dict = None, is_dev=False) -> boto3.client:
@@ -82,8 +84,7 @@ def get_events(bucket: str, key: str, client: boto3.client) -> list:
             data = encoded_data.decode('utf-8')
         return data.splitlines()
     except ClientError as e:
-        logger.error(f"Failed to read S3 object {key} from bucket {bucket}: {e}")
-        return []
+        exit_on_error(f"Failed to read S3 object {key} from bucket {bucket}: {e}")
 
 
 def write_parquet_file(ocsf_events: list, filename: str) -> None:
@@ -104,8 +105,7 @@ def upload_to_s3(bucket: str, key: str, filename: str, client: boto3.client) -> 
             client.put_object(Bucket=bucket, Key=key, Body=data)
         return True
     except ClientError as e:
-        logger.error(f"Failed to upload file {filename} to bucket {bucket}: {e}")
-        return False
+        exit_on_error(f"Failed to upload file {filename} to bucket {bucket}: {e}")
 
 
 def exit_on_error(error_message):
@@ -130,8 +130,6 @@ def check_environment_variables(variables):
     if missing_variables:
         error_message = f"The following environment variables are not set: {', '.join(missing_variables)}"
         exit_on_error(error_message)
-        return False
-    return True
 
 
 def is_gzip_compressed(data: bytes) -> bool:
@@ -177,8 +175,7 @@ def lambda_handler(event, context):
     required_variables = ['AWS_BUCKET', 'SOURCE_LOCATION', 'ACCOUNT_ID', 'REGION']
 
     # Check if all required environment variables are set
-    if not check_environment_variables(required_variables):
-        return
+    check_environment_variables(required_variables)
 
     # Retrieve environment variables
     dst_bucket = os.environ['AWS_BUCKET']
@@ -196,17 +193,19 @@ def lambda_handler(event, context):
     key = urllib.parse.unquote_plus(
         event['Records'][0]['s3']['object']['key'], encoding='utf-8')
     logger.info(f"Lambda function invoked due to {key}.")
-    logger.info(f"Source bucket name is {src_bucket}. Destination bucket is {dst_bucket}.")
+    logger.debug(f"Source bucket: {src_bucket}.")
+    logger.debug(f"Destination bucket: {dst_bucket}.")
 
     # Assume role if ARN and External ID are provided
     credentials = None
     if is_dev:
+        logger.info("Running in development mode.")
         credentials = get_dev_credentials()
     elif role_arn and external_id:
+        logger.info(f"Assuming role {role_arn} with external ID {external_id}.")
         credentials = assume_role(role_arn, external_id, 'lake-session')
         if not credentials:
-            logger.error("Failed to assume role, cannot proceed.")
-            return
+            exit_on_error("Failed to assume role, cannot proceed.")
     else:
         # Log a warning if cross-account credentials are not used
         logger.warning("Cross-account access is not used. Lambda running with default credentials.")
@@ -218,35 +217,37 @@ def lambda_handler(event, context):
     logger.info(f"Src bucket: {src_bucket}")
     raw_events = get_events(src_bucket, key, client)
     if not raw_events:
+        logger.info("No events found in the source bucket.")
         return
 
     # Transform events to OCSF format
     ocsf_events = wazuh_ocsf_converter.transform_events(raw_events, ocsf_class)
 
     # Upload event in OCSF format
-    ocsf_upload_success = False
+    ocsf_upload = False
     if ocsf_bucket:
-        tmp_filename = '/tmp/tmp.json'
-        with open(tmp_filename, "w") as fd:
+        with open(TMP_EVENTS, "w") as fd:
             fd.write(json.dumps(ocsf_events))
         ocsf_key = get_full_key(src_location, account_id, region, key, 'json')
-        ocsf_upload_success = upload_to_s3(ocsf_bucket, ocsf_key, tmp_filename, client)
+        ocsf_upload = upload_to_s3(ocsf_bucket, ocsf_key, TMP_EVENTS, client)
 
     # Write OCSF events to Parquet file
-    tmp_filename = '/tmp/tmp.parquet'
-    write_parquet_file(ocsf_events, tmp_filename)
+    write_parquet_file(ocsf_events, TMP_PARQUET)
 
     # Upload Parquet file to destination S3 bucket
     parquet_key = get_full_key(src_location, account_id, region, key, 'parquet')
-    upload_success = upload_to_s3(dst_bucket, parquet_key, tmp_filename, client)
+    upload_success = upload_to_s3(dst_bucket, parquet_key, TMP_PARQUET, client)
 
     # Clean up temporary file
-    os.remove(tmp_filename)
+    if Path(TMP_PARQUET).exists():
+        os.remove(TMP_PARQUET)
+    if Path(TMP_EVENTS).exists():
+        os.remove(TMP_EVENTS)
 
     # Prepare response
     response = {
         'size': len(raw_events),
         'upload_success': upload_success,
-        'ocsf_upload_success': ocsf_upload_success
+        'ocsf_upload': ocsf_upload
     }
     return json.dumps(response)
