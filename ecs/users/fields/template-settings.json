@@ -1,6 +1,7 @@
 {
   "index_patterns": [
-    "wazuh-agents*"
+    "wazuh-internal-users*",
+    "wazuh-custom-users*"
   ],
   "priority": 1,
   "template": {
@@ -10,13 +11,10 @@
         "number_of_replicas": "0",
         "refresh_interval": "5s",
         "query.default_field": [
-          "agent.id",
-          "agent.name",
-          "agent.type",
-          "agent.version",
-          "agent.name",
-          "agent.host.os.full",
-          "agent.host.ip"
+            "user.name",
+            "user.roles.name",
+            "user.roles.policies.name",
+            "user.roles.rules.name"
         ]
       }
     }
