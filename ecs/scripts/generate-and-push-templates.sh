@@ -7,6 +7,8 @@ TEMPLATES_PATH="plugins/setup/src/main/resources/"
 CURRENT_PATH=$(pwd)
 OUTPUT_PATH=${OUTPUT_PATH:-"$CURRENT_PATH"/../output}
 BASE_BRANCH=${BASE_BRANCH:-main}
+DOCUMENTATION_PATH="docs"
+CSV_SUBPATH="mappings/${ECS_VERSION}/generated/csv/fields.csv"
 
 # Committer's identity
 COMMITER_EMAIL=${COMMITER_EMAIL:-$(git config user.email)}
@@ -53,13 +55,14 @@ detect_modified_modules() {
     modified_files=$(git diff --name-only origin/"$BASE_BRANCH")
 
     for file in $modified_files; do
-        if [[ $file == ecs/* ]]; then
+        if [[ $file == ecs/* && ( $file == *.yml || $file == *.json ) ]]; then
             ecs_module=$(echo "$file" | cut -d'/' -f2)
             if [[ ! " ${updated_modules[*]} " =~ ${ecs_module} ]]; then
                 updated_modules+=("$ecs_module")
             fi
         fi
     done
+
     echo "Updated ECS modules: ${updated_modules[*]}"
 
     # Mapping section
@@ -138,7 +141,7 @@ commit_and_push_changes() {
     echo
     echo "---> Committing and pushing changes to ${PLUGINS_REPO} repository..."
 
-    echo "Copying ECS templates to the plugins repository..."
+    echo "Copying ECS templates and csv definitions to the plugins repository..."
     for ecs_module in "${relevant_modules[@]}"; do
         target_file=${module_to_file[$ecs_module]}
         if [[ -z "$target_file" ]]; then
@@ -154,6 +157,9 @@ commit_and_push_changes() {
             touch "$TEMPLATES_PATH/$target_file"
         fi
         cp "$CURRENT_PATH/ecs/$ecs_module/$MAPPINGS_SUBPATH" "$TEMPLATES_PATH/$target_file"
+        # Copy the csv to the plugins repository
+        echo "  - Copy the updated csv definitions for module '$ecs_module' to '$CURRENT_PATH/ecs/$ecs_module/$DOCUMENTATION_PATH'"
+        cp "$CURRENT_PATH/ecs/$ecs_module/$CSV_SUBPATH" "$CURRENT_PATH/ecs/$ecs_module/$DOCUMENTATION_PATH/"
     done
 
     git status --short
