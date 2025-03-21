@@ -1,0 +1,33 @@
+ECS_Version,Indexed,Field_Set,Field,Type,Level,Normalization,Example,Description
+8.11.0,true,base,tags,keyword,core,array,"[""production"", ""env2""]",List of keywords used to tag each event.
+8.11.0,true,cve,cve.affected.cpes,keyword,custom,,,Common Platform Enumeration (CPE) entries for the affected product.
+8.11.0,true,cve,cve.affected.default_status,keyword,custom,,,The default status of the affected product.
+8.11.0,true,cve,cve.affected.product,keyword,custom,,,The affected product.
+8.11.0,true,cve,cve.affected.vendor,keyword,custom,,,The affected vendor.
+8.11.0,true,cve,cve.cve_metadata.assigner_org_id,keyword,custom,,,The organization ID that assigned the CVE.
+8.11.0,true,cve,cve.cve_metadata.assigner_short_name,keyword,custom,,,The short name of the organization that assigned the CVE.
+8.11.0,true,cve,cve.cve_metadata.date_published,date,custom,,,The date the CVE was published.
+8.11.0,true,cve,cve.cve_metadata.date_updated,date,custom,,,The date the CVE was last updated.
+8.11.0,true,cve,cve.cve_metadata.state,keyword,custom,,,The state of the CVE.
+8.11.0,true,cve,cve.data_type,keyword,custom,,,The type of the CVE data
+8.11.0,true,cve,cve.data_version,keyword,custom,,,The version of the CVE data
+8.11.0,true,cve,cve.descriptions.lang,keyword,custom,,,The language of the description.
+8.11.0,true,cve,cve.descriptions.value,text,custom,,,The description of the CVE.
+8.11.0,true,cve,cve.inserted_at,date,custom,,,The date the CVE was inserted.
+8.11.0,true,cve,cve.metrics.cvss_v2.access_complexity,keyword,custom,,,The access complexity.
+8.11.0,true,cve,cve.metrics.cvss_v2.access_vector,keyword,custom,,,The access vector.
+8.11.0,true,cve,cve.metrics.cvss_v2.authentication,keyword,custom,,,The authentication.
+8.11.0,true,cve,cve.metrics.cvss_v2.availability_impact,keyword,custom,,,The availability impact.
+8.11.0,true,cve,cve.metrics.cvss_v2.base_score,float,custom,,,The base score.
+8.11.0,true,cve,cve.metrics.cvss_v2.confidentiality_impact,keyword,custom,,,The confidentiality impact.
+8.11.0,true,cve,cve.metrics.cvss_v2.integrity_impact,keyword,custom,,,The integrity impact.
+8.11.0,true,cve,cve.metrics.cvss_v2.vector_string,keyword,custom,,,The vector string.
+8.11.0,true,cve,cve.metrics.cvss_v2.version,keyword,custom,,,The version of CVSS.
+8.11.0,true,cve,cve.metrics.format,keyword,custom,,,The format of the metrics.
+8.11.0,true,cve,cve.name,keyword,custom,,,The name of the CVE.
+8.11.0,true,cve,cve.offset,keyword,custom,,,The offset of the CVE.
+8.11.0,true,cve,cve.provider_metadata.date_updated,date,custom,,,The date the CVE was last updated.
+8.11.0,true,cve,cve.provider_metadata.org_id,keyword,custom,,,The organization ID of the CVE provider.
+8.11.0,true,cve,cve.provider_metadata.short_name,keyword,custom,,,The short name of the CVE provider.
+8.11.0,true,cve,cve.provider_metadata.x_sub_short_name,keyword,custom,,,The sub short name of the CVE provider.
+8.11.0,true,cve,cve.version,keyword,custom,,,The version of the CVE.
