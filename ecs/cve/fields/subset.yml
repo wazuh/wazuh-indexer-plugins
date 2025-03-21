@@ -29,14 +29,3 @@ fields:
                     fields: "*"
                   problemTypes:
                     fields: "*"
-#                      descriptions:
-#                        fields: "*"
-#                      cpes: {}
-#                      defaultStatus: {}
-#                      product: {}
-#                      vendor: {}
-#                      versions:
-#                        fields:
-#                          status: {}
-#                          version: {}
-
