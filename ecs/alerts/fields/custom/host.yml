@@ -4,3 +4,79 @@
     top_level: true
     expected:
       - { at: agent, as: host }
+  fields:
+    - name: memory
+      description: >
+        Memory related data
+      type: object
+      level: custom
+    - name: memory.total
+      description: >
+        Total memory in MB
+      type: long
+      level: custom
+    - name: memory.free
+      description: >
+        Free memory in MB
+      type: long
+      level: custom
+    - name: memory.used
+      description: >
+        Used memory related data
+      type: object
+      level: custom
+    - name: memory.used.percentage
+      description: >
+        Used memory percentage
+      type: long
+      level: custom
+    - name: cpu
+      description: >
+        CPU related data
+      type: object
+      level: custom
+    - name: cpu.name
+      description: >
+        CPU Model name
+      type: keyword
+      level: custom
+    - name: cpu.cores
+      description: >
+        Number of CPU cores
+      type: long
+      level: custom
+    - name: cpu.speed
+      description: >
+        CPU clock speed
+      type: long
+      level: custom
+    - name: network.ingress.queue
+      type: long
+      level: custom
+      description: >
+        Receive queue length.
+    - name: network.egress.queue
+      type: long
+      level: custom
+      description: >
+        Transmit queue length.
+    - name: network.egress.drops
+      type: long
+      level: custom
+      description: >
+        Number of dropped transmitted packets.
+    - name: network.egress.errors
+      type: long
+      level: custom
+      description: >
+        Number of transmission errors.
+    - name: network.ingress.drops
+      type: long
+      level: custom
+      description: >
+        Number of dropped received packets.
+    - name: network.ingress.errors
+      type: long
+      level: custom
+      description: >
+        Number of reception errors.
