@@ -28,7 +28,7 @@ public class Command {
      * @return JSON string representing the request body.
      * @throws IOException If there's an issue building the JSON.
      */
-    public static String generateCtiCommand(String offset) throws IOException {
+    public static String create(String offset) throws IOException {
         return XContentFactory.jsonBuilder()
                 .startObject()
                 .startArray("commands")

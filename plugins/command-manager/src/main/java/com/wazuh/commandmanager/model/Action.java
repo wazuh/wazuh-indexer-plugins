@@ -82,6 +82,10 @@ public class Action implements ToXContentObject {
                             log.info("Parsing arguments for [fetch-config] command");
                             args = FetchConfigCommand.parse(parser);
                             break;
+                        case "update":
+                            log.info("Parsing arguments for [update-content] command");
+                            args = UpdateContentCommand.parse(parser);
+                            break;
                         default:
                             log.info("Parsing arguments for [generic] command");
                             args = Args.parse(parser);
