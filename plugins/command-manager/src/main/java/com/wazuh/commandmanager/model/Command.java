@@ -108,20 +108,32 @@ public class Command implements ToXContentObject {
 
                 parser.nextToken();
                 switch (fieldName) {
+                    case Action.ACTION:
+                        action = Action.parse(parser);
+                        break;
                     case SOURCE:
                         source = parser.text();
                         break;
                     case Target.TARGET:
-                        target = Target.parse(parser);
+                        if (action == null) {
+                            throw new IllegalArgumentException(
+                                    "Expected [command.action] to be provided before [command.target]");
+                        } else {
+                            switch (action.getName()) {
+                                case "update":
+                                    target = UpdateTarget.parse(parser);
+                                    break;
+                                default:
+                                    target = Target.parse(parser);
+                                    break;
+                            }
+                        }
                         break;
                     case TIMEOUT:
                         timeout = parser.intValue();
                         break;
                     case USER:
                         user = parser.text();
-                        break;
-                    case Action.ACTION:
-                        action = Action.parse(parser);
                         break;
                     default:
                         parser.skipChildren();
@@ -140,15 +152,12 @@ public class Command implements ToXContentObject {
         if (timeout == null) {
             nullArguments.add("timeout");
         }
-        if (user == null) {
-            nullArguments.add("user");
-        }
         if (action == null) {
             nullArguments.add("action");
         }
 
         if (!nullArguments.isEmpty()) {
-            throw new IllegalArgumentException("Missing arguments: " + nullArguments);
+            throw new IllegalArgumentException("Missing arguments in command parse: " + nullArguments);
         } else {
             return new Command(source, target, timeout, user, action);
         }
@@ -176,7 +185,9 @@ public class Command implements ToXContentObject {
     public XContentBuilder toXContent(XContentBuilder builder, Params params) throws IOException {
         builder.startObject(COMMAND);
         builder.field(SOURCE, this.source);
-        builder.field(USER, this.user);
+        if (this.user != null) {
+            builder.field(USER, this.user);
+        }
         this.target.toXContent(builder, ToXContent.EMPTY_PARAMS);
         this.action.toXContent(builder, ToXContent.EMPTY_PARAMS);
         builder.field(TIMEOUT, timeout);
@@ -205,7 +216,6 @@ public class Command implements ToXContentObject {
         } else {
             log.error("Token does not match {}", parser.currentToken());
         }
-
         return commands;
     }
 
@@ -262,7 +272,7 @@ public class Command implements ToXContentObject {
                 + ", timeout="
                 + timeout
                 + ", user='"
-                + user
+                + (user != null ? user : "")
                 + '\''
                 + ", status="
                 + status

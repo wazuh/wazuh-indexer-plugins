@@ -155,7 +155,9 @@ public class Order implements ToXContentObject {
     @Override
     public XContentBuilder toXContent(XContentBuilder builder, Params params) throws IOException {
         builder.startObject();
-        this.agent.toXContent(builder, ToXContentObject.EMPTY_PARAMS);
+        if (this.agent != null) {
+            this.agent.toXContent(builder, ToXContentObject.EMPTY_PARAMS);
+        }
         this.command.toXContent(builder, ToXContentObject.EMPTY_PARAMS);
         builder.field(TIMESTAMP, DATE_FORMATTER.format(this.timestamp));
         builder.field(DELIVERY_TIMESTAMP, DATE_FORMATTER.format(this.deliveryTimestamp));
@@ -170,7 +172,7 @@ public class Order implements ToXContentObject {
                 + ", delivery_timestamp="
                 + deliveryTimestamp
                 + ", agent="
-                + agent
+                + (agent != null ? agent.toString() : "")
                 + ", command="
                 + command
                 + '}';

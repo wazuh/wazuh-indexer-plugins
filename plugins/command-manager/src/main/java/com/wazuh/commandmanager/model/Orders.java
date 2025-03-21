@@ -99,40 +99,49 @@ public class Orders implements ToXContentObject {
             String queryField = "";
             Target.Type targetType = command.getTarget().getType();
             String targetId = command.getTarget().getId();
+            Boolean isAgentCommand = false;
 
             if (Objects.equals(targetType, Target.Type.GROUP)) {
                 queryField = "agent.groups";
+                isAgentCommand = true;
             } else if (Objects.equals(targetType, Target.Type.AGENT)) {
                 queryField = "agent.id";
+                isAgentCommand = true;
             }
 
             // Build and execute the search query
-            log.info("Searching for agents using field {} with value {}", queryField, targetId);
-            SearchHits hits =
-                    Search.syncSearch(client, PluginSettings.getAgentsIndex(), queryField, targetId);
-            if (hits != null) {
-                for (SearchHit hit : hits) {
-                    final Map<String, Object> agentMap =
-                            Search.getNestedObject(hit.getSourceAsMap(), "agent", Map.class);
-                    if (agentMap != null) {
-                        String agentId = (String) agentMap.get(Agent.ID);
-                        List<String> agentGroups = (List<String>) agentMap.get(Agent.GROUPS);
-                        Agent agent = new Agent(agentId, agentGroups);
-                        agentList.add(agent);
+            if (isAgentCommand) {
+                log.info("Searching for agents using field {} with value {}", queryField, targetId);
+                SearchHits hits =
+                        Search.syncSearch(client, PluginSettings.getAgentsIndex(), queryField, targetId);
+                if (hits != null) {
+                    for (SearchHit hit : hits) {
+                        final Map<String, Object> agentMap =
+                                Search.getNestedObject(hit.getSourceAsMap(), "agent", Map.class);
+                        if (agentMap != null) {
+                            String agentId = (String) agentMap.get(Agent.ID);
+                            List<String> agentGroups = (List<String>) agentMap.get(Agent.GROUPS);
+                            Agent agent = new Agent(agentId, agentGroups);
+                            agentList.add(agent);
+                        }
                     }
+                    log.info("Search retrieved {} agents.", agentList.size());
                 }
-                log.info("Search retrieved {} agents.", agentList.size());
-            }
 
-            for (Agent agent : agentList) {
-                Command newCommand =
-                        new Command(
-                                command.getSource(),
-                                new Target(Target.Type.AGENT, agent.getId()),
-                                command.getTimeout(),
-                                command.getUser(),
-                                command.getAction());
-                Order order = new Order(agent, newCommand);
+                for (Agent agent : agentList) {
+                    Command newCommand =
+                            new Command(
+                                    command.getSource(),
+                                    new Target(Target.Type.AGENT, agent.getId()),
+                                    command.getTimeout(),
+                                    command.getUser(),
+                                    command.getAction());
+                    Order order = new Order(agent, newCommand);
+                    orders.add(order);
+                }
+            } else {
+                log.info("Generating order without agent");
+                Order order = new Order(null, command);
                 orders.add(order);
             }
         }

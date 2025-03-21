@@ -31,7 +31,8 @@ public class Target implements ToXContentObject {
     /** Define the possible values for the Type object. */
     public enum Type {
         AGENT("agent"),
-        GROUP("group");
+        GROUP("group"),
+        SERVER("server");
 
         /** The string value of the type. */
         private final String value;

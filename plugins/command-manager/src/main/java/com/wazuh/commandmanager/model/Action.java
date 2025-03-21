@@ -49,6 +49,10 @@ public class Action implements ToXContentObject {
         this.version = version;
     }
 
+    public String getName() {
+        return this.name;
+    }
+
     /**
      * Parses data from an XContentParser into this model.
      *
@@ -81,6 +85,10 @@ public class Action implements ToXContentObject {
                         case "fetch-config":
                             log.info("Parsing arguments for [fetch-config] command");
                             args = FetchConfigCommand.parse(parser);
+                            break;
+                        case "update":
+                            log.info("Parsing arguments for [update-content] command");
+                            args = UpdateContentCommand.parse(parser);
                             break;
                         default:
                             log.info("Parsing arguments for [generic] command");
