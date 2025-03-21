@@ -123,7 +123,7 @@ def send_post_request(username, password, url, event_data):
 
 def main():
     parser = argparse.ArgumentParser(
-        description="Generate and inject CVE documents into OpenSearch.")
+        description="Generate and inject CVE documents into Wazuh Indexer.")
     parser.add_argument("--protocol", choices=['http', 'https'],
                         default='https', help="Specify the protocol to use: http or https.")
     args = parser.parse_args()
@@ -144,7 +144,7 @@ def main():
     logging.info('Data generation completed.')
 
     inject = input(
-        "Do you want to inject the generated data into OpenSearch? (y/n) ").strip().lower()
+        "Do you want to inject the generated data into Wazuh Indexer? (y/n) ").strip().lower()
     if inject == 'y':
         ip = input(f"Enter the IP of your Indexer (default: '{IP}'): ") or IP
         port = input(
