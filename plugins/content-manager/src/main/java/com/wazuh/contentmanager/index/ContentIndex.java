@@ -16,12 +16,16 @@
  */
 package com.wazuh.contentmanager.index;
 
-import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.opensearch.action.bulk.BulkRequest;
+import org.opensearch.action.bulk.BulkResponse;
+import org.opensearch.action.index.IndexRequest;
 import org.opensearch.client.Client;
+import org.opensearch.common.xcontent.XContentType;
+import org.opensearch.core.action.ActionListener;
 import org.opensearch.core.rest.RestStatus;
 
 import java.io.BufferedReader;
@@ -37,7 +41,7 @@ public class ContentIndex {
     private static final Logger log = LogManager.getLogger(ContentIndex.class);
 
     private static final String INDEX_NAME = "wazuh-content";
-    private final int MAX_DOCUMENTS = 250;
+    private final int MAX_DOCUMENTS = 50;
 
     private final Client client;
 
@@ -52,12 +56,37 @@ public class ContentIndex {
     }
 
     /**
-     * Index an array of JSON objects.
+     * Index an array of JSON objects using a BulkRequest
      *
      * @param documents the array of objects
      */
     public CompletableFuture<RestStatus> index(List<JsonObject> documents) {
-        throw new RuntimeException("Unimplemented method");
+        CompletableFuture<RestStatus> future = new CompletableFuture<>();
+
+        BulkRequest bulkRequest = new BulkRequest(INDEX_NAME);
+
+        for (JsonObject document : documents) {
+            bulkRequest.add(new IndexRequest()
+                .source(document.toString(), XContentType.JSON));
+        }
+
+        client.bulk(bulkRequest, new ActionListener<>() {
+            @Override
+            public void onResponse(BulkResponse bulkResponse) {
+                if (bulkResponse.hasFailures()) {
+                    future.complete(RestStatus.INTERNAL_SERVER_ERROR);
+                } else {
+                    future.complete(RestStatus.OK);
+                }
+            }
+
+            @Override
+            public void onFailure(Exception e) {
+                future.completeExceptionally(e);
+            }
+        });
+
+        return future;
     }
 
     /**

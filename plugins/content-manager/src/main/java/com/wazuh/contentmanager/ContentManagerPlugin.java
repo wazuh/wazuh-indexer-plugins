@@ -16,6 +16,7 @@
  */
 package com.wazuh.contentmanager;
 
+import com.wazuh.contentmanager.index.ContentIndex;
 import org.opensearch.client.Client;
 import org.opensearch.cluster.metadata.IndexNameExpressionResolver;
 import org.opensearch.cluster.node.DiscoveryNode;
@@ -52,6 +53,7 @@ import com.wazuh.contentmanager.util.Privileged;
 public class ContentManagerPlugin extends Plugin implements ClusterPlugin, ActionPlugin {
 
     private ContextIndex contextIndex;
+    private ContentIndex contentIndex;
 
 
     /** ClassConstructor * */
@@ -72,6 +74,7 @@ public class ContentManagerPlugin extends Plugin implements ClusterPlugin, Actio
             Supplier<RepositoriesService> repositoriesServiceSupplier) {
         PluginSettings.getInstance(environment.settings(), clusterService);
         this.contextIndex = new ContextIndex(client);
+        this.contentIndex = new ContentIndex(client);
         return Collections.emptyList();
     }
 
