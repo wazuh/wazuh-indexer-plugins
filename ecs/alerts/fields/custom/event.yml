@@ -1,0 +1,16 @@
+---
+- name: event
+  title: Event
+  description: >
+    Context information about the log or metric event itself
+  fields:
+    - name: changed_fields
+      type: keyword
+      level: custom
+      description: >
+        Fields that were updated since last scan
+    - name: collector
+      type: keyword
+      level: custom
+      description: >
+        The data source collector
