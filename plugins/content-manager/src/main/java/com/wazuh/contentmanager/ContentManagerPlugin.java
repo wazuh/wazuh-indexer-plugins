@@ -16,8 +16,7 @@
  */
 package com.wazuh.contentmanager;
 
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
+import com.wazuh.contentmanager.index.ContentIndex;
 import org.opensearch.client.Client;
 import org.opensearch.cluster.metadata.IndexNameExpressionResolver;
 import org.opensearch.cluster.node.DiscoveryNode;
@@ -53,9 +52,8 @@ import com.wazuh.contentmanager.util.Privileged;
 /** Main class of the Content Manager Plugin */
 public class ContentManagerPlugin extends Plugin implements ClusterPlugin, ActionPlugin {
 
-    private static final Logger log = LogManager.getLogger(ContentManagerPlugin.class);
-
     private ContextIndex contextIndex;
+
 
     /** ClassConstructor * */
     public ContentManagerPlugin() {}
