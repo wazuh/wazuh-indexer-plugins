@@ -73,6 +73,7 @@ public class WazuhIndices {
                 "index-template-vulnerabilities", List.of("wazuh-states-vulnerabilities"));
         this.indexTemplates.put(
                 "index-template-users", List.of("wazuh-internal-users", "wazuh-custom-users"));
+        this.indexTemplates.put("index-template-cve", List.of("wazuh-cve"));
     }
 
     /**

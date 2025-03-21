@@ -1,0 +1,17 @@
+- name: descriptions
+  title: Descriptions
+  description: Description of the CVE.
+  reusable:
+    top_level: false
+    expected:
+      - { at: payload.containers.cna, as: descriptions }
+  level: nested
+  fields:
+    - name: lang
+      type: keyword
+      level: custom
+      description: The language of the description.
+    - name: value
+      type: keyword
+      level: custom
+      description: The description of the CVE.

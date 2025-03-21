@@ -1,0 +1,33 @@
+- name: metadata
+  title: CVE Metadata
+  description: Metadata of a CVE document.
+  reusable:
+    top_level: false
+    expected:
+      - { at: cve, as: cveMetadata }
+  level: nested
+  fields:
+    - name: assignerOrgId
+      type: keyword
+      level: custom
+      description: The organization ID that assigned the CVE.
+    - name: assignerShortName
+      type: keyword
+      level: custom
+      description: The short name of the organization that assigned the CVE.
+    - name: cveId
+      type: keyword
+      level: custom
+      description: The id of the CVE.
+    - name: datePublished
+      type: date
+      level: custom
+      description: The date the CVE was published.
+    - name: dateUpdated
+      type: date
+      level: custom
+      description: The date the CVE was last updated.
+    - name: state
+      type: keyword
+      level: custom
+      description: The state of the CVE.
