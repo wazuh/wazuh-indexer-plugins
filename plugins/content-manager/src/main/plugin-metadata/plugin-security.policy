@@ -1,3 +1,4 @@
 grant {
     permission java.net.SocketPermission "*", "connect,resolve";
+    permission java.io.FilePermission "*", "write";
 };

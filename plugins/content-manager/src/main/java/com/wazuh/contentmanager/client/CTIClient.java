@@ -16,8 +16,9 @@
  */
 package com.wazuh.contentmanager.client;
 
-import org.apache.hc.client5.http.async.methods.SimpleHttpResponse;
+import org.apache.hc.client5.http.async.methods.*;
 import org.apache.hc.core5.http.Header;
+import org.apache.hc.core5.http.HttpHost;
 import org.apache.hc.core5.http.Method;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -26,13 +27,17 @@ import org.opensearch.core.xcontent.DeprecationHandler;
 import org.opensearch.core.xcontent.NamedXContentRegistry;
 import org.opensearch.core.xcontent.XContent;
 
+import java.io.ByteArrayInputStream;
+import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.net.URI;
 import java.util.HashMap;
 import java.util.Map;
 
 import com.wazuh.contentmanager.model.ctiapi.ConsumerInfo;
 import com.wazuh.contentmanager.settings.PluginSettings;
+
 
 /**
  * CTIClient is a singleton class responsible for interacting with the Cyber Threat Intelligence
@@ -155,4 +160,45 @@ public class CTIClient extends HttpClient {
         }
         return params;
     }
+
+    /**
+     * Downloads the CTI snapshot into the /build/testclusters/integTest-0/distro/2.19.1-INTEG_TEST route.
+     *
+     * @param snapshotURI It will have the URI used for the download, at the moment that URI is hardcoded.
+     */
+    public void downloadSnapshot(String snapshotURI) {
+        try {
+            URI uri = new URI(snapshotURI);
+            String fileName = uri.getPath().substring(uri.getPath().lastIndexOf('/') + 1);
+
+            log.info("Sending GET request to [{}]", uri);
+
+            SimpleRequestBuilder builder = SimpleRequestBuilder.create(Method.GET);
+            SimpleHttpRequest request = builder.setHttpHost(HttpHost.create("https://cti.wazuh.com"))
+                .setPath(uri.getPath())
+                .build();
+
+            SimpleHttpResponse response = HttpClient.httpClient.execute(request, null).get();
+
+
+            // Streamed download
+            try (InputStream in = new ByteArrayInputStream(response.getBodyBytes());
+                 FileOutputStream out = new FileOutputStream(fileName)) {
+
+                byte[] buffer = new byte[1024];
+                int bytesRead;
+
+                while ((bytesRead = in.read(buffer)) != -1) {
+                    out.write(buffer, 0, bytesRead);
+                }
+
+                log.info("Successfully downloaded to: {}", fileName);
+            } catch (IOException e) {
+                log.error("Error downloading the file: {}", e.getMessage());
+            }
+        } catch (Exception e) {
+            log.error("Error during request: {}", e.getMessage());
+        }
+    }
+
 }
