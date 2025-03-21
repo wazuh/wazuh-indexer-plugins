@@ -1,0 +1,28 @@
+---
+name: wazuh-users
+fields:
+  base:
+    fields:
+      tags: []
+  user:
+    fields:
+      id: {}
+      name: {}
+      password: {}
+      allow_run_as: {}
+      created_at: {}
+      roles:
+        fields:
+          name: {}
+          level: {}
+          rules:
+            fields:
+              name: {}
+              body: {}
+          policies:
+            fields:
+              name: {}
+              actions: {}
+              resources: {}
+              effect: {}
+              level: {}

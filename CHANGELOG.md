@@ -7,21 +7,28 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 ## [Unreleased 5.0.x]
 
 ### Added
-- Add client to download the CTI snapshot zip [(#318)](https://github.com/wazuh/wazuh-indexer-plugins/pull/318)
+- Add RBAC index templates with its corresponding event generator [(#303)](https://github.com/wazuh/wazuh-indexer-plugins/pull/303)
 - Add technical documentation [(#320)](https://github.com/wazuh/wazuh-indexer-plugins/pull/320)
+- Add client to download the CTI snapshot zip [(#318)](https://github.com/wazuh/wazuh-indexer-plugins/pull/318)
 
 ### Dependencies
 
 ### Changed
+- Refactor Content Manager's code and fix Catalog info indexing [(#317)](https://github.com/wazuh/wazuh-indexer-plugins/pull/317)
+- Improved mdbook installation instructions [#332](https://github.com/wazuh/wazuh-indexer-plugins/pull/332)
 - Third-party integrations maintenance [(#299)](https://github.com/wazuh/wazuh-indexer-plugins/pull/299)
 - Upgrade to Opensearch 2.19.1 [(#304)](https://github.com/wazuh/wazuh-indexer-plugins/pull/304)
+- Improve ECS documentation [(#328)](https://github.com/wazuh/wazuh-indexer-plugins/pull/328)
+
 
 ### Deprecated
 
 ### Removed
 
 ### Fixed
-- Add a validation to the order of the action arguments to force action.name to come before action.arg so that they can always be validated [(#260)](https://github.com/wazuh/wazuh-indexer-plugins/issues/260)
+- Fix error on `generate-and-push-templates.sh` script when the index template file does not exist on setup plugin resources [(#303)](https://github.com/wazuh/wazuh-indexer-plugins/pull/303)
+- Fix validation of commands by forcing `action.name` to exist before `action.args` [(#260)](https://github.com/wazuh/wazuh-indexer-plugins/issues/260)
+- Fix mentions of `host.ip` and `host.os.full` in agents index template [(#330)](https://github.com/wazuh/wazuh-indexer-plugins/pull/330)
 
 ### Security
 

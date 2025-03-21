@@ -24,14 +24,19 @@ import org.apache.hc.client5.http.ssl.ClientTlsStrategyBuilder;
 import org.apache.hc.core5.http.Header;
 import org.apache.hc.core5.http.HttpHost;
 import org.apache.hc.core5.http.Method;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+import org.opensearch.common.xcontent.XContentType;
+import org.opensearch.core.xcontent.DeprecationHandler;
+import org.opensearch.core.xcontent.NamedXContentRegistry;
+import org.opensearch.core.xcontent.XContent;
 
-import java.io.*;
+import java.io.IOException;
 import java.net.URI;
-import java.security.KeyManagementException;
-import java.security.KeyStoreException;
-import java.security.NoSuchAlgorithmException;
+import java.util.HashMap;
 import java.util.Map;
 
+import com.wazuh.contentmanager.model.ctiapi.ConsumerInfo;
 import com.wazuh.contentmanager.settings.PluginSettings;
 import org.apache.hc.core5.ssl.SSLContextBuilder;
 import org.apache.logging.log4j.LogManager;
@@ -40,59 +45,125 @@ import org.apache.logging.log4j.Logger;
 import javax.net.ssl.SSLContext;
 
 /**
- * CTIClient is a singleton class responsible for interacting with the CTI (Cyber Threat
- * Intelligence) API. It extends HttpClient to handle HTTP requests.
+ * CTIClient is a singleton class responsible for interacting with the Cyber Threat Intelligence
+ * (CTI) API. It extends {@link HttpClient} to manage HTTP requests.
+ *
+ * <p>This client provides methods to fetch CTI catalog data and retrieve content changes based on
+ * query parameters.
  */
 public class CTIClient extends HttpClient {
-    private static CTIClient instance;
-
-    private static final String apiUrl =
-            PluginSettings.getInstance().getCtiBaseUrl()
-                    + "/catalog/contexts/vd_1.0.0/consumers/vd_4.8.0";
-    private static final String CONTENT_CHANGES_ENDPOINT = "/changes";
 
     private static final Logger log = LogManager.getLogger(CTIClient.class);
-    /**
-     * Private constructor to enforce singleton pattern. Initializes the HTTP client with the CTI API
-     * base URL.
-     */
-    protected CTIClient() {
-        super(URI.create(apiUrl));
+
+    private static final String API_BASE_URL = PluginSettings.getInstance().getCtiBaseUrl();
+    private static final String CONSUMER_INFO_ENDPOINT =
+            "/catalog/contexts/vd_1.0.0/consumers/vd_4.8.0";
+    private static final String CONSUMER_CHANGES_ENDPOINT = "/changes";
+
+    /** Enum representing the query parameters used in CTI API requests. */
+    public enum QueryParameters {
+        /** The starting offset parameter TO_OFFSET - FROM_OFFSET must be >1001 */
+        FROM_OFFSET("from_offset"),
+        /** The destination offset parameter */
+        TO_OFFSET("to_offset"),
+        /** Include empties */
+        WITH_EMPTIES("with_empties");
+
+        private final String value;
+
+        QueryParameters(String value) {
+            this.value = value;
+        }
+
+        /**
+         * Returns the string representation of the query parameter.
+         *
+         * @return The query parameter key as a string.
+         */
+        public String getValue() {
+            return value;
+        }
     }
 
     /**
-     * Retrieves the singleton instance of CTIClient. Ensures thread-safe lazy initialization.
+     * Private constructor to enforce singleton pattern. Initializes the client with the CTI API base
+     * URL.
+     */
+    private CTIClient() {
+        super(URI.create(API_BASE_URL));
+    }
+
+    /** Singleton holder pattern ensures lazy initialization in a thread-safe manner. */
+    private static class CTIClientHolder {
+        private static final CTIClient INSTANCE = new CTIClient();
+    }
+
+    /**
+     * Retrieves the singleton instance of {@code CTIClient}.
      *
-     * @return The singleton instance of CTIClient.
+     * @return The singleton instance of {@code CTIClient}.
      */
     public static CTIClient getInstance() {
-        if (instance == null) {
-            synchronized (CTIClient.class) {
-                if (instance == null) {
-                    instance = new CTIClient();
-                }
-            }
-        }
-        return instance;
+        return CTIClientHolder.INSTANCE;
     }
 
     /**
-     * Fetches content changes from the CTI API.
+     * Fetches content changes from the CTI API using the provided query parameters.
      *
-     * @param queryParameters A map containing query parameters to filter the request.
-     * @return A SimpleHttpResponse containing the response from the API.
+     * @param fromOffset The starting offset (inclusive) for fetching changes.
+     * @param toOffset The ending offset (exclusive) for fetching changes.
+     * @param withEmpties A flag indicating whether to include empty values (Optional).
+     * @return A {@link SimpleHttpResponse} containing the API response.
      */
-    public SimpleHttpResponse getChanges(Map<String, String> queryParameters) {
-        return sendRequest(Method.GET, CONTENT_CHANGES_ENDPOINT, null, queryParameters, (Header) null);
+    public SimpleHttpResponse getChanges(String fromOffset, String toOffset, String withEmpties) {
+        Map<String, String> params = contextQueryParameters(fromOffset, toOffset, withEmpties);
+        return sendRequest(Method.GET, CONSUMER_CHANGES_ENDPOINT, null, params, (Header) null);
     }
 
     /**
      * Fetches the entire CTI catalog from the API.
      *
-     * @return A SimpleHttpResponse containing the response from the API.
+     * @return A {@link SimpleHttpResponse} containing the API response with the catalog data.
      */
-    public SimpleHttpResponse getCatalog() {
-        return sendRequest(Method.GET, null, null, null, (Header) null);
+    public ConsumerInfo getCatalog() {
+        XContent xContent = XContentType.JSON.xContent();
+        SimpleHttpResponse response =
+                sendRequest(Method.GET, CONSUMER_INFO_ENDPOINT, null, null, (Header) null);
+        if (response == null) {
+            log.error("No response from CTI API");
+            return null;
+        }
+        log.debug("CTI API replied with status: [{}]", response.getCode());
+        try {
+            return ConsumerInfo.parse(
+                    xContent.createParser(
+                            NamedXContentRegistry.EMPTY,
+                            DeprecationHandler.THROW_UNSUPPORTED_OPERATION,
+                            response.getBodyBytes()));
+        } catch (IOException | IllegalArgumentException e) {
+            log.error("Unable to fetch catalog information: {}", e.getMessage());
+        }
+        return null;
+    }
+
+    /**
+     * Builds a map of query parameters for the API request to fetch context changes.
+     *
+     * @param fromOffset The starting offset (inclusive).
+     * @param toOffset The ending offset (exclusive).
+     * @param withEmpties A flag indicating whether to include empty values. If null or empty, it will
+     *     be ignored.
+     * @return A map containing the query parameters.
+     */
+    public static Map<String, String> contextQueryParameters(
+            String fromOffset, String toOffset, String withEmpties) {
+        Map<String, String> params = new HashMap<>();
+        params.put(QueryParameters.FROM_OFFSET.getValue(), fromOffset);
+        params.put(QueryParameters.TO_OFFSET.getValue(), toOffset);
+        if (withEmpties != null && !withEmpties.isEmpty()) {
+            params.put(QueryParameters.WITH_EMPTIES.getValue(), withEmpties);
+        }
+        return params;
     }
 
     /**

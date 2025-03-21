@@ -46,21 +46,18 @@ import java.util.Collections;
 import java.util.List;
 import java.util.function.Supplier;
 
-import com.wazuh.contentmanager.index.ContentIndex;
+import com.wazuh.contentmanager.client.CTIClient;
 import com.wazuh.contentmanager.index.ContextIndex;
-import com.wazuh.contentmanager.rest.CatalogHandler;
-import com.wazuh.contentmanager.rest.ChangesHandler;
-import com.wazuh.contentmanager.rest.RestPostContentManager;
-import com.wazuh.contentmanager.rest.RestPostContextAction;
+import com.wazuh.contentmanager.model.ctiapi.ConsumerInfo;
 import com.wazuh.contentmanager.settings.PluginSettings;
+import com.wazuh.contentmanager.util.Privileged;
 
+/** Main class of the Content Manager Plugin */
 public class ContentManagerPlugin extends Plugin implements ClusterPlugin, ActionPlugin {
 
-    public static final String CONTEXT_NAME = "vd_1.0.0";
-    public static final String CONSUMER_NAME = "vd_4.8.0";
+    private static final Logger log = LogManager.getLogger(ContentManagerPlugin.class);
 
     private ContextIndex contextIndex;
-    private ContentIndex contentIndex;
 
     private static final Logger log = LogManager.getLogger(ContentManagerPlugin.class);
     /** ClassConstructor * */
@@ -79,11 +76,9 @@ public class ContentManagerPlugin extends Plugin implements ClusterPlugin, Actio
             NamedWriteableRegistry namedWriteableRegistry,
             IndexNameExpressionResolver indexNameExpressionResolver,
             Supplier<RepositoriesService> repositoriesServiceSupplier) {
-        this.contentIndex = new ContentIndex(client, clusterService, threadPool);
-        this.contextIndex = new ContextIndex(client, clusterService, threadPool);
-
         PluginSettings.getInstance(environment.settings(), clusterService);
-        return List.of(this.contentIndex, this.contextIndex);
+        this.contextIndex = new ContextIndex(client);
+        return Collections.emptyList();
     }
 
     @Override
@@ -96,13 +91,14 @@ public class ContentManagerPlugin extends Plugin implements ClusterPlugin, Actio
             IndexNameExpressionResolver indexNameExpressionResolver,
             Supplier<DiscoveryNodes> nodesInCluster) {
         // Just for testing purposes
-        return List.of(
-                new RestPostContextAction(this.contextIndex),
-                new RestPostContentManager(this.contentIndex),
-                new CatalogHandler(),
-                new ChangesHandler());
+        return Collections.emptyList();
     }
 
+    /**
+     * Call the CTI API on startup and get the latest consumer information into an index
+     *
+     * @param localNode local Node info
+     */
     @Override
     public void onNodeStarted(DiscoveryNode localNode) {
         this.contextIndex.createIndex();
