@@ -17,7 +17,6 @@
 package com.wazuh.contentmanager.util;
 
 import java.security.AccessController;
-import java.security.PrivilegedAction;
 
 /** Privileged utility class for executing privileged HTTP requests. */
 public class Privileged {
