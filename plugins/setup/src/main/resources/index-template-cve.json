@@ -8,32 +8,6 @@
     "properties": {
       "cve": {
         "properties": {
-          "cveMetadata": {
-            "properties": {
-              "assignerOrgId": {
-                "ignore_above": 1024,
-                "type": "keyword"
-              },
-              "assignerShortName": {
-                "ignore_above": 1024,
-                "type": "keyword"
-              },
-              "cveId": {
-                "ignore_above": 1024,
-                "type": "keyword"
-              },
-              "datePublished": {
-                "type": "date"
-              },
-              "dateUpdated": {
-                "type": "date"
-              },
-              "state": {
-                "ignore_above": 1024,
-                "type": "keyword"
-              }
-            }
-          },
           "inserted_at": {
             "type": "date"
           },
@@ -68,20 +42,131 @@
                           "vendor": {
                             "ignore_above": 1024,
                             "type": "keyword"
+                          },
+                          "versions": {
+                            "properties": {
+                              "status": {
+                                "ignore_above": 1024,
+                                "type": "keyword"
+                              },
+                              "version": {
+                                "ignore_above": 1024,
+                                "type": "keyword"
+                              }
+                            }
+                          }
+                        }
+                      },
+                      "descriptions": {
+                        "properties": {
+                          "lang": {
+                            "ignore_above": 1024,
+                            "type": "keyword"
+                          },
+                          "value": {
+                            "ignore_above": 1024,
+                            "type": "keyword"
+                          }
+                        }
+                      },
+                      "metrics": {
+                        "properties": {
+                          "cvssV2_0": {
+                            "properties": {
+                              "accessComplexity": {
+                                "ignore_above": 1024,
+                                "type": "keyword"
+                              },
+                              "accessVector": {
+                                "ignore_above": 1024,
+                                "type": "keyword"
+                              },
+                              "authentication": {
+                                "ignore_above": 1024,
+                                "type": "keyword"
+                              },
+                              "availabilityImpact": {
+                                "ignore_above": 1024,
+                                "type": "keyword"
+                              },
+                              "baseScore": {
+                                "ignore_above": 1024,
+                                "type": "keyword"
+                              },
+                              "confidentialityImpact": {
+                                "ignore_above": 1024,
+                                "type": "keyword"
+                              },
+                              "integrityImpact": {
+                                "ignore_above": 1024,
+                                "type": "keyword"
+                              },
+                              "vectorString": {
+                                "ignore_above": 1024,
+                                "type": "keyword"
+                              },
+                              "version": {
+                                "ignore_above": 1024,
+                                "type": "keyword"
+                              }
+                            }
+                          },
+                          "format": {
+                            "ignore_above": 1024,
+                            "type": "keyword"
+                          }
+                        }
+                      },
+                      "problemTypes": {
+                        "properties": {
+                          "descriptions": {
+                            "properties": {
+                              "cweId": {
+                                "ignore_above": 1024,
+                                "type": "keyword"
+                              },
+                              "description": {
+                                "ignore_above": 1024,
+                                "type": "keyword"
+                              },
+                              "lang": {
+                                "ignore_above": 1024,
+                                "type": "keyword"
+                              }
+                            }
+                          }
+                        }
+                      },
+                      "providerMetadata": {
+                        "properties": {
+                          "dateUpdated": {
+                            "type": "date"
+                          },
+                          "orgId": {
+                            "ignore_above": 1024,
+                            "type": "keyword"
+                          },
+                          "shortName": {
+                            "ignore_above": 1024,
+                            "type": "keyword"
+                          },
+                          "x_subShortName": {
+                            "ignore_above": 1024,
+                            "type": "keyword"
+                          }
+                        }
+                      },
+                      "references": {
+                        "properties": {
+                          "url": {
+                            "ignore_above": 1024,
+                            "type": "keyword"
                           }
                         }
                       }
                     }
                   }
                 }
-              },
-              "dataType": {
-                "ignore_above": 1024,
-                "type": "keyword"
-              },
-              "dataVersion": {
-                "ignore_above": 1024,
-                "type": "keyword"
               }
             }
           },
