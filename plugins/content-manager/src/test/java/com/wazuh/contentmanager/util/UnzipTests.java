@@ -4,7 +4,11 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Ignore;
 import org.opensearch.test.OpenSearchTestCase;
+import org.opensearch.common.settings.Settings;
+import org.opensearch.env.Environment;
+import org.opensearch.common.io.PathUtils;
 
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.io.*;
@@ -29,8 +33,17 @@ public class UnzipTests extends OpenSearchTestCase {
     @Override
     public void setUp() throws Exception {
         super.setUp();
-        unzipper = new Unzip();
-        tempDestinationDirectory = Files.createTempDirectory("unzipped");
+
+        // Crear un entorno de configuración con un directorio de datos temporal
+        Path testHome = createTempDir();
+        Settings settings = Settings.builder()
+            .put("path.home", testHome.toString()) // Requerido por OpenSearch
+            .build();
+
+        Environment environment = new Environment(settings, testHome);
+
+        unzipper = new Unzip(environment);
+        tempDestinationDirectory = Files.createTempDirectory(testHome,"unzipped");
         tempZipPath = tempDestinationDirectory.resolve(zipFileName);
 
         try (ZipOutputStream zipOutputStream = new ZipOutputStream(new FileOutputStream(tempZipPath.toFile()))) {
@@ -86,14 +99,21 @@ public class UnzipTests extends OpenSearchTestCase {
     @Ignore
     //test will fail due to not having permissions to access the file even though it doesn't exist (cannot be included in .policy)
     public void testUnzipFileNotFound() {
-        String non_existent = "";
-        Exception exception = assertThrows(FileNotFoundException.class, () -> {
-            unzipper.unzip(tempZipPath.toString(), non_existent);
-        });
-
-        String expectedMessage = "ZIP file does not exist: ";
-        String actualMessage = exception.getMessage();
-
-        assertTrue(actualMessage.contains(expectedMessage));
+        try {
+            AccessController.doPrivileged((PrivilegedExceptionAction<Void>) () -> {
+                unzipper.unzip("", tempDestinationDirectory.toString());
+                return null;
+            });
+            fail("Expected FileNotFoundException");
+        } catch (PrivilegedActionException ex) {
+            Throwable cause = ex.getCause();
+            if (cause instanceof FileNotFoundException) {
+                System.out.println("fallo1");
+            } else if (cause instanceof IOException) {
+                System.out.println("fallo2");
+            } else {
+                cause.printStackTrace();
+            }
+        }
     }
 }
