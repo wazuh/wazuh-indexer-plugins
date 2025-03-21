@@ -28,23 +28,24 @@ public class Command {
      * @return JSON string representing the request body.
      * @throws IOException If there's an issue building the JSON.
      */
-    public static String generateCtiCommand() throws IOException {
+    public static String generateCtiCommand(String offset) throws IOException {
         return XContentFactory.jsonBuilder()
                 .startObject()
                 .startArray("commands")
                 .startObject()
                 .startObject("action")
+                .field("name", "update")
                 .startObject("args")
                 .field("index", "content-index")
+                .field("offset", offset)
                 .endObject()
-                .field("name", "update")
                 .field("version", "5.0.0") // Dynamic version
                 .endObject()
                 .field("source", "Content Manager")
                 .field("user", "Content Manager")
                 .field("timeout", 100)
                 .startObject("target")
-                .field("id", "TO-BE-DEFINED")
+                .field("id", "vulnerability-detector")
                 .field("type", "server")
                 .endObject()
                 .endObject()
