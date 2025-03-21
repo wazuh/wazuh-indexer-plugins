@@ -53,7 +53,6 @@ import com.wazuh.contentmanager.util.Privileged;
 public class ContentManagerPlugin extends Plugin implements ClusterPlugin, ActionPlugin {
 
     private ContextIndex contextIndex;
-    private ContentIndex contentIndex;
 
 
     /** ClassConstructor * */
@@ -74,7 +73,6 @@ public class ContentManagerPlugin extends Plugin implements ClusterPlugin, Actio
             Supplier<RepositoriesService> repositoriesServiceSupplier) {
         PluginSettings.getInstance(environment.settings(), clusterService);
         this.contextIndex = new ContextIndex(client);
-        this.contentIndex = new ContentIndex(client);
         return Collections.emptyList();
     }
 

@@ -95,7 +95,7 @@ public class ContentIndex {
      * @param document the document to patch the existing document
      */
     public void patch(JsonObject document) {
-        throw new RuntimeException("Unimplemented method");
+        log.error("Unimplemented method");
     }
 
     /**
