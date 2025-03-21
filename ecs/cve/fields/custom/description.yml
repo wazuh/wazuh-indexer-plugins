@@ -1,10 +1,10 @@
-- name: descriptions
-  title: Descriptions
-  description: Descriptions of the CVE.
+- name: description
+  title: Description
+  description: Description of the CVE.
   reusable:
     top_level: false
     expected:
-      - { at: cve, as: descriptions }
+      - { at: cna, as: descriptions }
   level: nested
   fields:
     - name: lang
@@ -12,6 +12,6 @@
       level: custom
       description: The language of the description.
     - name: value
-      type: text
+      type: keyword
       level: custom
       description: The description of the CVE.

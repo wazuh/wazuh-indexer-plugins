@@ -4,14 +4,14 @@
   reusable:
     top_level: false
     expected:
-      - { at: cve, as: affected }
+      - { at: cna, as: affected }
   level: nested
   fields:
     - name: cpes
       type: keyword
       level: custom
       description: Common Platform Enumeration (CPE) entries for the affected product.
-    - name: default_status
+    - name: defaultStatus
       type: keyword
       level: custom
       description: The default status of the affected product.

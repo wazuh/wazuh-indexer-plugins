@@ -4,7 +4,7 @@
   reusable:
     top_level: false
     expected:
-      - { at: cve, as: metrics }
+      - { at: cna, as: metrics }
   level: nested
   fields:
     - name: format

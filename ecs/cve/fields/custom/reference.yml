@@ -1,0 +1,13 @@
+- name: reference
+  title: Reference
+  description: CNA references.
+  reusable:
+    top_level: false
+    expected:
+      - { at: cna, as: references }
+  level: nested
+  fields:
+    - name: url
+      type: keyword
+      level: custom
+      description: The URL of the reference

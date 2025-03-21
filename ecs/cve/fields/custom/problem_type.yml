@@ -1,18 +1,17 @@
 - name: problem_type
-  title: Problem Types
+  title: Problem Type
   description: Problem types associated with a CVE.
   reusable:
     top_level: false
     expected:
-      - { at: cve, as: problem_types.descriptions }
-
+      - { at: cna, as: problemTypes.descriptions }
     fields:
-      - name: cwe_id
+      - name: cweId
         type: keyword
         level: custom
         description: The CWE ID of the problem type.
       - name: description
-        type: text
+        type: keyword
         level: custom
         description: The description of the problem type.
       - name: lang

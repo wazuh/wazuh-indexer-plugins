@@ -1,0 +1,17 @@
+- name: payload
+  title: Payload
+  description: The CVE payload from Wazuh CTI.
+  reusable:
+    top_level: false
+    expected:
+      - { at: cve, as: payload }
+  level: nested
+  fields:
+    - name: dataType
+      type: keyword
+      level: custom
+      description: The type of the CVE data
+    - name: dataVersion
+      type: keyword
+      level: custom
+      description: The version of the CVE data

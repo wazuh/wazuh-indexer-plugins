@@ -4,14 +4,14 @@
   reusable:
     top_level: false
     expected:
-      - { at: metrics, as: cvss_v2 }
+      - { at: metrics, as: cvssV2_0 }
   level: nested
   fields:
-    - name: access_vector
+    - name: accessVector
       type: keyword
       level: custom
       description: The access vector.
-    - name: access_complexity
+    - name: accessComplexity
       type: keyword
       level: custom
       description: The access complexity.
@@ -19,23 +19,23 @@
       type: keyword
       level: custom
       description: The authentication.
-    - name: availability_impact
+    - name: availabilityImpact
       type: keyword
       level: custom
       description: The availability impact.
-    - name: base_score
-      type: float
+    - name: baseScore
+      type: keyword
       level: custom
       description: The base score.
-    - name: confidentiality_impact
+    - name: confidentialityImpact
       type: keyword
       level: custom
       description: The confidentiality impact.
-    - name: integrity_impact
+    - name: integrityImpact
       type: keyword
       level: custom
       description: The integrity impact.
-    - name: vector_string
+    - name: vectorString
       type: keyword
       level: custom
       description: The vector string.

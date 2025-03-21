@@ -1,0 +1,9 @@
+- name: cna
+  title: CNA
+  description: Containers CNA associated with a CVE.
+  reusable:
+    top_level: false
+    expected:
+      - { at: payload, as: containers.cna }
+  level: nested
+

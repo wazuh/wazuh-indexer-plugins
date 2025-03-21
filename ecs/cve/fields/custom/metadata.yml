@@ -4,22 +4,26 @@
   reusable:
     top_level: false
     expected:
-      - { at: cve, as: cve_metadata }
+      - { at: cve, as: cveMetadata }
   level: nested
   fields:
-    - name: assigner_org_id
+    - name: assignerOrgId
       type: keyword
       level: custom
       description: The organization ID that assigned the CVE.
-    - name: assigner_short_name
+    - name: assignerShortName
       type: keyword
       level: custom
       description: The short name of the organization that assigned the CVE.
-    - name: date_published
+    - name: cveId
+      type: keyword
+      level: custom
+      description: The id of the CVE.
+    - name: datePublished
       type: date
       level: custom
       description: The date the CVE was published.
-    - name: date_updated
+    - name: dateUpdated
       type: date
       level: custom
       description: The date the CVE was last updated.

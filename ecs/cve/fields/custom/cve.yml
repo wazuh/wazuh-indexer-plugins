@@ -3,7 +3,7 @@
   description: Wazuh CTI model for CVE
   type: group
   group: 2
-  fields: 
+  fields:
     - name: name
       type: keyword
       level: custom
@@ -20,11 +20,3 @@
       type: date
       level: custom
       description: The date the CVE was inserted.
-    - name: data_type
-      type: keyword
-      level: custom
-      description: The type of the CVE data
-    - name: data_version
-      type: keyword
-      level: custom
-      description: The version of the CVE data
