@@ -1,0 +1,169 @@
+{
+  "index_patterns": [
+    "wazuh-cve*"
+  ],
+  "mappings": {
+    "date_detection": false,
+    "dynamic": "strict",
+    "properties": {
+      "cve": {
+        "properties": {
+          "affected": {
+            "properties": {
+              "cpes": {
+                "ignore_above": 1024,
+                "type": "keyword"
+              },
+              "default_status": {
+                "ignore_above": 1024,
+                "type": "keyword"
+              },
+              "product": {
+                "ignore_above": 1024,
+                "type": "keyword"
+              },
+              "vendor": {
+                "ignore_above": 1024,
+                "type": "keyword"
+              }
+            }
+          },
+          "cve_metadata": {
+            "properties": {
+              "assigner_org_id": {
+                "ignore_above": 1024,
+                "type": "keyword"
+              },
+              "assigner_short_name": {
+                "ignore_above": 1024,
+                "type": "keyword"
+              },
+              "date_published": {
+                "type": "date"
+              },
+              "date_updated": {
+                "type": "date"
+              },
+              "state": {
+                "ignore_above": 1024,
+                "type": "keyword"
+              }
+            }
+          },
+          "data_type": {
+            "ignore_above": 1024,
+            "type": "keyword"
+          },
+          "data_version": {
+            "ignore_above": 1024,
+            "type": "keyword"
+          },
+          "descriptions": {
+            "properties": {
+              "lang": {
+                "ignore_above": 1024,
+                "type": "keyword"
+              },
+              "value": {
+                "norms": false,
+                "type": "text"
+              }
+            }
+          },
+          "inserted_at": {
+            "type": "date"
+          },
+          "metrics": {
+            "properties": {
+              "cvss_v2": {
+                "properties": {
+                  "access_complexity": {
+                    "ignore_above": 1024,
+                    "type": "keyword"
+                  },
+                  "access_vector": {
+                    "ignore_above": 1024,
+                    "type": "keyword"
+                  },
+                  "authentication": {
+                    "ignore_above": 1024,
+                    "type": "keyword"
+                  },
+                  "availability_impact": {
+                    "ignore_above": 1024,
+                    "type": "keyword"
+                  },
+                  "base_score": {
+                    "type": "float"
+                  },
+                  "confidentiality_impact": {
+                    "ignore_above": 1024,
+                    "type": "keyword"
+                  },
+                  "integrity_impact": {
+                    "ignore_above": 1024,
+                    "type": "keyword"
+                  },
+                  "vector_string": {
+                    "ignore_above": 1024,
+                    "type": "keyword"
+                  },
+                  "version": {
+                    "ignore_above": 1024,
+                    "type": "keyword"
+                  }
+                }
+              },
+              "format": {
+                "ignore_above": 1024,
+                "type": "keyword"
+              }
+            }
+          },
+          "name": {
+            "ignore_above": 1024,
+            "type": "keyword"
+          },
+          "offset": {
+            "ignore_above": 1024,
+            "type": "keyword"
+          },
+          "provider_metadata": {
+            "properties": {
+              "date_updated": {
+                "type": "date"
+              },
+              "org_id": {
+                "ignore_above": 1024,
+                "type": "keyword"
+              },
+              "short_name": {
+                "ignore_above": 1024,
+                "type": "keyword"
+              },
+              "x_sub_short_name": {
+                "ignore_above": 1024,
+                "type": "keyword"
+              }
+            }
+          },
+          "version": {
+            "ignore_above": 1024,
+            "type": "keyword"
+          }
+        }
+      }
+    }
+  },
+  "order": 1,
+  "settings": {
+    "index": {
+      "number_of_replicas": "0",
+      "number_of_shards": "1",
+      "query.default_field": [
+        "name"
+      ],
+      "refresh_interval": "5s"
+    }
+  }
+}
