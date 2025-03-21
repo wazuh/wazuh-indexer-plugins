@@ -4,6 +4,6 @@
   reusable:
     top_level: false
     expected:
-      - { at: payload, as: containers.cna }
+      - { at: containers, as: cna }
   level: nested
 

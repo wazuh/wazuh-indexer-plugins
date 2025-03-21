@@ -1,0 +1,9 @@
+- name: containers
+  title: Containers
+  description: Containers associated with a CVE.
+  reusable:
+    top_level: false
+    expected:
+      - { at: payload, as: containers }
+  level: nested
+

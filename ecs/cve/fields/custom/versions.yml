@@ -1,11 +1,11 @@
-- name: version
-  title: Version
+- name: versions
+  title: Versions
   description: The affected versions of the product.
   level: nested
   reusable:
     top_level: false
     expected:
-      - { at: affected, as: versions }
+      - { at: cve.payload.containers.cna.affected, as: versions }
   fields:
     - name: status
       type: keyword

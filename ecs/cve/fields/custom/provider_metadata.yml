@@ -4,7 +4,7 @@
   reusable:
     top_level: false
     expected:
-      - { at: cna, as: providerMetadata }
+      - { at: cve.payload.containers.cna, as: providerMetadata }
   level: nested
   fields:
     - name: dateUpdated
