@@ -17,10 +17,6 @@
 package com.wazuh.contentmanager.client;
 
 import org.apache.hc.client5.http.async.methods.*;
-import org.apache.hc.client5.http.impl.async.CloseableHttpAsyncClient;
-import org.apache.hc.client5.http.impl.async.HttpAsyncClients;
-import org.apache.hc.client5.http.impl.nio.PoolingAsyncClientConnectionManagerBuilder;
-import org.apache.hc.client5.http.ssl.ClientTlsStrategyBuilder;
 import org.apache.hc.core5.http.Header;
 import org.apache.hc.core5.http.HttpHost;
 import org.apache.hc.core5.http.Method;
@@ -31,18 +27,17 @@ import org.opensearch.core.xcontent.DeprecationHandler;
 import org.opensearch.core.xcontent.NamedXContentRegistry;
 import org.opensearch.core.xcontent.XContent;
 
+import java.io.ByteArrayInputStream;
+import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.net.URI;
 import java.util.HashMap;
 import java.util.Map;
 
 import com.wazuh.contentmanager.model.ctiapi.ConsumerInfo;
 import com.wazuh.contentmanager.settings.PluginSettings;
-import org.apache.hc.core5.ssl.SSLContextBuilder;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
 
-import javax.net.ssl.SSLContext;
 
 /**
  * CTIClient is a singleton class responsible for interacting with the Cyber Threat Intelligence
@@ -173,35 +168,9 @@ public class CTIClient extends HttpClient {
      */
     public void downloadSnapshot(String snapshotURI) {
         try {
-            // This Uri will be changed to use the param snapshotURI once issue 310 is merged
             URI uri = new URI(snapshotURI);
-            String fileName =  uri.getPath().substring(uri.getPath().lastIndexOf('/') + 1);
+            String fileName = uri.getPath().substring(uri.getPath().lastIndexOf('/') + 1);
 
-            // Initialize the client this can be changed once 310 is merged to use HTTPClient client instead of creating a new one
-            CloseableHttpAsyncClient snapshotClient;
-            Object LOCK = new Object();
-
-            synchronized (LOCK) {
-                try {
-                    SSLContext sslContext = SSLContextBuilder.create()
-                        .loadTrustMaterial(null, (chains, authType) -> true)
-                        .build();
-
-                    snapshotClient = HttpAsyncClients.custom()
-                        .setConnectionManager(
-                            PoolingAsyncClientConnectionManagerBuilder.create()
-                                .setTlsStrategy(
-                                    ClientTlsStrategyBuilder.create().setSslContext(sslContext).build())
-                                .build())
-                        .build();
-                    snapshotClient.start();
-                } catch (NoSuchAlgorithmException | KeyStoreException | KeyManagementException e) {
-                    log.error("Error initializing HTTP snapshot download client: {}", e.getMessage());
-                    throw new RuntimeException("Failed to initialize snapshot download client", e);
-                }
-            }
-
-            // Create and send the request
             log.info("Sending GET request to [{}]", uri);
 
             SimpleRequestBuilder builder = SimpleRequestBuilder.create(Method.GET);
@@ -209,7 +178,8 @@ public class CTIClient extends HttpClient {
                 .setPath(uri.getPath())
                 .build();
 
-            SimpleHttpResponse response = snapshotClient.execute(request, null).get();
+            SimpleHttpResponse response = HttpClient.httpClient.execute(request, null).get();
+
 
             // Streamed download
             try (InputStream in = new ByteArrayInputStream(response.getBodyBytes());

@@ -16,8 +16,6 @@
  */
 package com.wazuh.contentmanager;
 
-import com.wazuh.contentmanager.client.CTIClient;
-import com.wazuh.contentmanager.util.Privileged;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.opensearch.client.Client;
@@ -59,7 +57,6 @@ public class ContentManagerPlugin extends Plugin implements ClusterPlugin, Actio
 
     private ContextIndex contextIndex;
 
-    private static final Logger log = LogManager.getLogger(ContentManagerPlugin.class);
     /** ClassConstructor * */
     public ContentManagerPlugin() {}
 
@@ -101,15 +98,9 @@ public class ContentManagerPlugin extends Plugin implements ClusterPlugin, Actio
      */
     @Override
     public void onNodeStarted(DiscoveryNode localNode) {
-        this.contextIndex.createIndex();
-        this.contentIndex.createIndex();
-
-        Privileged.doPrivilegedRequest(() -> {
-            CTIClient.getInstance().downloadSnapshot("https://cti.wazuh.com/store/contexts/vd_1.0.0/consumers/vd_4.8.0/1432540_1741603172.zip");
-            return null;
-        });
-
-
+        ConsumerInfo consumerInfo =
+                Privileged.doPrivilegedRequest(() -> CTIClient.getInstance().getCatalog());
+        this.contextIndex.index(consumerInfo);
     }
 
     /**
