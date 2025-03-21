@@ -1,8 +1,23 @@
+/*
+ * Copyright (C) 2024, Wazuh Inc.
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as
+ * published by the Free Software Foundation, either version 3 of the
+ * License, or (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
 package com.wazuh.contentmanager.util;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.opensearch.common.io.PathUtils;
 import org.opensearch.env.Environment;
 
 import java.io.BufferedOutputStream;
@@ -61,10 +76,16 @@ public class Unzip {
      * @param zipInputStream ZIP input stream.
      * @param destinationFile Path (directory) where the file will be extracted.
      */
-    public static void extractFile(ZipInputStream zipInputStream, Path destinationFile) throws IOException {
+    public static void extractFile(ZipInputStream zipInputStream, Path destinationFile)
+            throws IOException {
         Files.createDirectories(destinationFile.getParent()); // Ensure parent directories exist
 
-        try (BufferedOutputStream bufferedOutputStream = new BufferedOutputStream(Files.newOutputStream(destinationFile, StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING))) {
+        try (BufferedOutputStream bufferedOutputStream =
+                new BufferedOutputStream(
+                        Files.newOutputStream(
+                                destinationFile,
+                                StandardOpenOption.CREATE,
+                                StandardOpenOption.TRUNCATE_EXISTING))) {
             int size;
             while ((size = zipInputStream.read(BUFFER)) > 0) {
                 bufferedOutputStream.write(BUFFER, 0, size);

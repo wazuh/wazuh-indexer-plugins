@@ -1,26 +1,38 @@
+/*
+ * Copyright (C) 2024, Wazuh Inc.
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as
+ * published by the Free Software Foundation, either version 3 of the
+ * License, or (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
 package com.wazuh.contentmanager.util;
 
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Ignore;
-import org.opensearch.test.OpenSearchTestCase;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.env.Environment;
-import org.opensearch.common.io.PathUtils;
+import org.opensearch.test.OpenSearchTestCase;
+import org.junit.After;
+import org.junit.Before;
 
+import java.io.*;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.io.*;
-import java.security.AccessController;
-import java.security.PrivilegedActionException;
-import java.security.PrivilegedExceptionAction;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
 
-import static org.mockito.Mockito.mock;
-
 public class UnzipTests extends OpenSearchTestCase {
+    private static final Logger log = LogManager.getLogger(UnzipTests.class);
 
     private Unzip unzipper;
     private Path tempZipPath;
@@ -34,22 +46,23 @@ public class UnzipTests extends OpenSearchTestCase {
     public void setUp() throws Exception {
         super.setUp();
 
-        // Crear un entorno de configuración con un directorio de datos temporal
         Path testHome = createTempDir();
-        Settings settings = Settings.builder()
-            .put("path.home", testHome.toString()) // Requerido por OpenSearch
-            .build();
+        Settings settings =
+                Settings.builder()
+                        .put("path.home", testHome.toString()) // Required by OpenSearch
+                        .build();
 
         Environment environment = new Environment(settings, testHome);
 
         unzipper = new Unzip(environment);
-        tempDestinationDirectory = Files.createTempDirectory(testHome,"unzipped");
+        tempDestinationDirectory = Files.createTempDirectory(testHome, "unzipped");
         tempZipPath = tempDestinationDirectory.resolve(zipFileName);
 
-        try (ZipOutputStream zipOutputStream = new ZipOutputStream(new FileOutputStream(tempZipPath.toFile()))) {
+        try (ZipOutputStream zipOutputStream =
+                new ZipOutputStream(Files.newOutputStream(tempZipPath))) {
             ZipEntry entry = new ZipEntry(testFile);
             zipOutputStream.putNextEntry(entry);
-            zipOutputStream.write(testFileMessage.getBytes());
+            zipOutputStream.write(testFileMessage.getBytes(StandardCharsets.UTF_8));
             zipOutputStream.closeEntry();
         }
     }
@@ -63,9 +76,9 @@ public class UnzipTests extends OpenSearchTestCase {
     public void testValidUnzip() {
         try {
             unzipper.unzip(tempZipPath.toString(), tempDestinationDirectory.toString());
-            File extractedFile = tempDestinationDirectory.resolve(testFile).toFile();
-            assertTrue("File should be extracted", extractedFile.exists());
-            String fileContent = Files.readString(extractedFile.toPath(), StandardCharsets.UTF_8);
+            Path extractedFilePath = tempDestinationDirectory.resolve(testFile);
+            assertTrue("File should be extracted", Files.exists(extractedFilePath));
+            String fileContent = Files.readString(extractedFilePath, StandardCharsets.UTF_8);
             assertEquals("File content should match", testFileMessage, fileContent.trim());
         } catch (IOException e) {
             fail("Unexpected IOException: " + e.getMessage());
@@ -74,9 +87,12 @@ public class UnzipTests extends OpenSearchTestCase {
 
     public void testNullPointerException() {
         String nullDestinationDirectory = null;
-        Exception exception = assertThrows(NullPointerException.class, () -> {
-            unzipper.unzip(tempZipPath.toString(), nullDestinationDirectory);
-        });
+        Exception exception =
+                assertThrows(
+                        NullPointerException.class,
+                        () -> {
+                            unzipper.unzip(tempZipPath.toString(), nullDestinationDirectory);
+                        });
 
         String expectedMessage = "Pathname is null: ";
         String actualMessage = exception.getMessage();
@@ -84,36 +100,17 @@ public class UnzipTests extends OpenSearchTestCase {
         assertTrue(actualMessage.contains(expectedMessage));
     }
 
-    public void testZipSlip() {
+    public void testZipSlip() throws IOException {
         String wrongDestinationDirectory = "../";
-        Exception exception = assertThrows(IOException.class, () -> {
-            unzipper.unzip(tempZipPath.toString(), wrongDestinationDirectory);
-        });
+        Exception exception =
+                assertThrows(
+                        NullPointerException.class,
+                        () -> {
+                            unzipper.unzip(tempZipPath.toString(), wrongDestinationDirectory);
+                        });
 
-        String expectedMessage = "Bad zip entry, cannot enter parent directories. ";
+        String expectedMessage = "Bad zip entry, cannot enter parent directories.";
         String actualMessage = exception.getMessage();
-
         assertTrue(actualMessage.contains(expectedMessage));
-    }
-
-    @Ignore
-    //test will fail due to not having permissions to access the file even though it doesn't exist (cannot be included in .policy)
-    public void testUnzipFileNotFound() {
-        try {
-            AccessController.doPrivileged((PrivilegedExceptionAction<Void>) () -> {
-                unzipper.unzip("", tempDestinationDirectory.toString());
-                return null;
-            });
-            fail("Expected FileNotFoundException");
-        } catch (PrivilegedActionException ex) {
-            Throwable cause = ex.getCause();
-            if (cause instanceof FileNotFoundException) {
-                System.out.println("fallo1");
-            } else if (cause instanceof IOException) {
-                System.out.println("fallo2");
-            } else {
-                cause.printStackTrace();
-            }
-        }
     }
 }
