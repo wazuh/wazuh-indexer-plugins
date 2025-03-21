@@ -102,10 +102,10 @@ def main():
     logging.info('Data generation completed.')
 
     inject = input(
-        "Do you want to inject the generated data into OpenSearch? (y/n) ").strip().lower()
+        "Do you want to inject the generated data into Wazuh Indexer? (y/n) ").strip().lower()
     if inject == 'y':
         ip = input(
-            f"Enter the IP of your OpenSearch node (default: '{IP}'): ") or IP
+            f"Enter the IP of your Wazuh indexer node (default: '{IP}'): ") or IP
         port = input(f"Enter the port (default: '{PORT}'): ") or PORT
         index = input(
             f"Enter the index name (default: '{INDEX_NAME}'): ") or INDEX_NAME
