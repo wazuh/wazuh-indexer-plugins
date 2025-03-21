@@ -8,40 +8,24 @@
     "properties": {
       "cve": {
         "properties": {
-          "affected": {
+          "cveMetadata": {
             "properties": {
-              "cpes": {
+              "assignerOrgId": {
                 "ignore_above": 1024,
                 "type": "keyword"
               },
-              "default_status": {
+              "assignerShortName": {
                 "ignore_above": 1024,
                 "type": "keyword"
               },
-              "product": {
+              "cveId": {
                 "ignore_above": 1024,
                 "type": "keyword"
               },
-              "vendor": {
-                "ignore_above": 1024,
-                "type": "keyword"
-              }
-            }
-          },
-          "cve_metadata": {
-            "properties": {
-              "assigner_org_id": {
-                "ignore_above": 1024,
-                "type": "keyword"
-              },
-              "assigner_short_name": {
-                "ignore_above": 1024,
-                "type": "keyword"
-              },
-              "date_published": {
+              "datePublished": {
                 "type": "date"
               },
-              "date_updated": {
+              "dateUpdated": {
                 "type": "date"
               },
               "state": {
@@ -50,75 +34,8 @@
               }
             }
           },
-          "data_type": {
-            "ignore_above": 1024,
-            "type": "keyword"
-          },
-          "data_version": {
-            "ignore_above": 1024,
-            "type": "keyword"
-          },
-          "descriptions": {
-            "properties": {
-              "lang": {
-                "ignore_above": 1024,
-                "type": "keyword"
-              },
-              "value": {
-                "norms": false,
-                "type": "text"
-              }
-            }
-          },
           "inserted_at": {
             "type": "date"
-          },
-          "metrics": {
-            "properties": {
-              "cvss_v2": {
-                "properties": {
-                  "access_complexity": {
-                    "ignore_above": 1024,
-                    "type": "keyword"
-                  },
-                  "access_vector": {
-                    "ignore_above": 1024,
-                    "type": "keyword"
-                  },
-                  "authentication": {
-                    "ignore_above": 1024,
-                    "type": "keyword"
-                  },
-                  "availability_impact": {
-                    "ignore_above": 1024,
-                    "type": "keyword"
-                  },
-                  "base_score": {
-                    "type": "float"
-                  },
-                  "confidentiality_impact": {
-                    "ignore_above": 1024,
-                    "type": "keyword"
-                  },
-                  "integrity_impact": {
-                    "ignore_above": 1024,
-                    "type": "keyword"
-                  },
-                  "vector_string": {
-                    "ignore_above": 1024,
-                    "type": "keyword"
-                  },
-                  "version": {
-                    "ignore_above": 1024,
-                    "type": "keyword"
-                  }
-                }
-              },
-              "format": {
-                "ignore_above": 1024,
-                "type": "keyword"
-              }
-            }
           },
           "name": {
             "ignore_above": 1024,
@@ -128,20 +45,41 @@
             "ignore_above": 1024,
             "type": "keyword"
           },
-          "provider_metadata": {
+          "payload": {
             "properties": {
-              "date_updated": {
-                "type": "date"
+              "containers": {
+                "properties": {
+                  "cna": {
+                    "properties": {
+                      "affected": {
+                        "properties": {
+                          "cpes": {
+                            "ignore_above": 1024,
+                            "type": "keyword"
+                          },
+                          "defaultStatus": {
+                            "ignore_above": 1024,
+                            "type": "keyword"
+                          },
+                          "product": {
+                            "ignore_above": 1024,
+                            "type": "keyword"
+                          },
+                          "vendor": {
+                            "ignore_above": 1024,
+                            "type": "keyword"
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
               },
-              "org_id": {
+              "dataType": {
                 "ignore_above": 1024,
                 "type": "keyword"
               },
-              "short_name": {
-                "ignore_above": 1024,
-                "type": "keyword"
-              },
-              "x_sub_short_name": {
+              "dataVersion": {
                 "ignore_above": 1024,
                 "type": "keyword"
               }
