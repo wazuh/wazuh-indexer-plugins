@@ -16,8 +16,6 @@
  */
 package com.wazuh.contentmanager;
 
-import com.wazuh.contentmanager.client.CommandManagerClient;
-import com.wazuh.contentmanager.model.commandmanager.Command;
 import org.apache.hc.client5.http.async.methods.SimpleHttpResponse;
 import org.apache.hc.core5.http.HttpStatus;
 import org.apache.logging.log4j.LogManager;
@@ -49,7 +47,9 @@ import java.util.List;
 import java.util.function.Supplier;
 
 import com.wazuh.contentmanager.client.CTIClient;
+import com.wazuh.contentmanager.client.CommandManagerClient;
 import com.wazuh.contentmanager.index.ContextIndex;
+import com.wazuh.contentmanager.model.commandmanager.Command;
 import com.wazuh.contentmanager.model.ctiapi.ConsumerInfo;
 import com.wazuh.contentmanager.settings.PluginSettings;
 import com.wazuh.contentmanager.util.Privileged;
@@ -107,11 +107,12 @@ public class ContentManagerPlugin extends Plugin implements ClusterPlugin, Actio
         this.contextIndex.index(consumerInfo);
         // generate cti command for testing purposes (now method create)
         String offset = "111";
-        try{
+        try {
             String command = Command.create(offset);
             SimpleHttpResponse response =
-                Privileged.doPrivilegedRequest(() -> CommandManagerClient.getInstance().postCommand(command));
-            switch (response.getCode()){
+                    Privileged.doPrivilegedRequest(
+                            () -> CommandManagerClient.getInstance().postCommand(command));
+            switch (response.getCode()) {
                 case HttpStatus.SC_OK:
                     log.info("Received OK response: {}", response.getBody().toString());
                     break;
@@ -125,7 +126,7 @@ public class ContentManagerPlugin extends Plugin implements ClusterPlugin, Actio
                     log.info("Unexpected response code: {}", response.getCode());
             }
 
-        } catch (IOException e){
+        } catch (IOException e) {
             log.error(e.getMessage());
         }
     }

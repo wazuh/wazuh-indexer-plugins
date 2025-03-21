@@ -49,6 +49,10 @@ public class Action implements ToXContentObject {
         this.version = version;
     }
 
+    public String getName() {
+        return this.name;
+    }
+
     /**
      * Parses data from an XContentParser into this model.
      *

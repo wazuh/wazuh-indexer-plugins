@@ -63,21 +63,21 @@ paths:
                       target:
                         id: "d5b250c4-dfa1-4d94-827f-9f99210dbe6c"
                         type: "agent"
-              # update:
-              #   summary: Update content #change rest
-              #   value:
-              #     commands:
-              #       - action:
-              #           name: update
-              #           args:
-              #             index: "content-index"
-              #             offset: "1111"
-              #           version: "5.0.0"
-              #         source: "Content Manager"
-              #         timeout: 100
-              #         target:
-              #           id: "vulnerability-detector"
-              #           type: "server"
+              update:
+                summary: Update content of vulnerability detector index#change rest
+                value:
+                  commands:
+                    - action:
+                        name: update
+                        args:
+                          index: "content-index"
+                          offset: "1111"
+                        version: "5.0.0"
+                      source: "Content Manager"
+                      timeout: 100
+                      target:
+                        id: "vulnerability-detector"
+                        type: "server"
       responses:
         "200":
           description: OK
