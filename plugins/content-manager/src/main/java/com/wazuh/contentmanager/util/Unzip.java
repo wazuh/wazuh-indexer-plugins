@@ -28,6 +28,8 @@ import java.nio.file.StandardOpenOption;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
 
+import reactor.util.annotation.NonNull;
+
 /*
  * Unzip utility class for extracting ZIP files.
  *
@@ -49,7 +51,7 @@ public class Unzip {
      * @param zipFilePath Origin ZIP file path following the format: "path/file.zip".
      * @param destinationDirectory Unzipped files destiny path following the format: "path/".
      */
-    public void unzip(String zipFilePath, String destinationDirectory)
+    public void unzip(@NonNull String zipFilePath, String destinationDirectory)
             throws IOException, NullPointerException {
         Path zipPath = environment.resolveRepoFile(zipFilePath);
         Path destinationPath = environment.resolveRepoFile(destinationDirectory);

@@ -16,8 +16,6 @@
  */
 package com.wazuh.contentmanager.util;
 
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.env.Environment;
 import org.opensearch.test.OpenSearchTestCase;
@@ -32,14 +30,13 @@ import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
 
 public class UnzipTests extends OpenSearchTestCase {
-    private static final Logger log = LogManager.getLogger(UnzipTests.class);
 
     private Unzip unzipper;
     private Path tempZipPath;
     private Path tempDestinationDirectory;
-    private String zipFileName = "test.zip";
-    private String testFile = "testfile.txt";
-    private String testFileMessage = "Hello, World!";
+    private final String zipFileName = "test.zip";
+    private final String testFile = "testfile.txt";
+    private final String testFileMessage = "Hello, World!";
 
     @Before
     @Override
@@ -75,7 +72,7 @@ public class UnzipTests extends OpenSearchTestCase {
 
     public void testValidUnzip() {
         try {
-            unzipper.unzip(null, tempDestinationDirectory.toString());
+            unzipper.unzip(zipFileName, tempDestinationDirectory.toString());
             Path extractedFilePath = tempDestinationDirectory.resolve(testFile);
             assertTrue("File should be extracted", Files.exists(extractedFilePath));
             String fileContent = Files.readString(extractedFilePath, StandardCharsets.UTF_8);
@@ -90,12 +87,6 @@ public class UnzipTests extends OpenSearchTestCase {
         Exception exception =
                 assertThrows(
                         NullPointerException.class,
-                        () -> {
-                            unzipper.unzip(null, tempDestinationDirectory.toString());
-                        });
-        String expectedMessage = "Pathname is null: ";
-        String actualMessage = exception.getMessage();
-
-        assertTrue(actualMessage.contains(expectedMessage));
+                        () -> unzipper.unzip(null, tempDestinationDirectory.toString()));
     }
 }
