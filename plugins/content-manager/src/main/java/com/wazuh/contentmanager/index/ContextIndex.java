@@ -85,9 +85,7 @@ public class ContextIndex {
                 new ActionListener<>() {
                     @Override
                     public void onResponse(IndexResponse indexResponse) {
-                        log.info(
-                                "Successfully initialized consumer [{}]",
-                                consumerInfo.getContext());
+                        log.info("Successfully initialized consumer [{}]", consumerInfo.getContext());
                     }
 
                     @Override
