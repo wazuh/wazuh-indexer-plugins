@@ -31,10 +31,10 @@ import org.opensearch.core.rest.RestStatus;
 import java.io.BufferedReader;
 import java.io.FileReader;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
-
 
 /** Class to manage the Content Manager index. */
 public class ContentIndex {
@@ -44,7 +44,6 @@ public class ContentIndex {
     private final int MAX_DOCUMENTS = 50;
 
     private final Client client;
-
 
     /**
      * Default constructor
@@ -66,25 +65,26 @@ public class ContentIndex {
         BulkRequest bulkRequest = new BulkRequest(INDEX_NAME);
 
         for (JsonObject document : documents) {
-            bulkRequest.add(new IndexRequest()
-                .source(document.toString(), XContentType.JSON));
+            bulkRequest.add(new IndexRequest().source(document.toString(), XContentType.JSON));
         }
 
-        client.bulk(bulkRequest, new ActionListener<>() {
-            @Override
-            public void onResponse(BulkResponse bulkResponse) {
-                if (bulkResponse.hasFailures()) {
-                    future.complete(RestStatus.INTERNAL_SERVER_ERROR);
-                } else {
-                    future.complete(RestStatus.OK);
-                }
-            }
+        client.bulk(
+                bulkRequest,
+                new ActionListener<>() {
+                    @Override
+                    public void onResponse(BulkResponse bulkResponse) {
+                        if (bulkResponse.hasFailures()) {
+                            future.complete(RestStatus.INTERNAL_SERVER_ERROR);
+                        } else {
+                            future.complete(RestStatus.OK);
+                        }
+                    }
 
-            @Override
-            public void onFailure(Exception e) {
-                future.completeExceptionally(e);
-            }
-        });
+                    @Override
+                    public void onFailure(Exception e) {
+                        future.completeExceptionally(e);
+                    }
+                });
 
         return future;
     }
@@ -103,30 +103,29 @@ public class ContentIndex {
      *
      * @param route The route to the file that will be divided
      */
-    public void divideJson(String route){
-        try (BufferedReader reader = new BufferedReader(new FileReader(route))) {
+    public void divideJson(String route) {
+        try (BufferedReader reader =
+                new BufferedReader(new FileReader(route, StandardCharsets.UTF_8))) {
             String line;
             int lineCount = 0;
             ArrayList<JsonObject> fileContent = new ArrayList<>();
 
-            while((line = reader.readLine()) != null){
+            while ((line = reader.readLine()) != null) {
                 JsonObject json = JsonParser.parseString(line).getAsJsonObject();
                 fileContent.add(json);
                 lineCount++;
 
-                if (lineCount == MAX_DOCUMENTS){
+                if (lineCount == MAX_DOCUMENTS) {
                     index(fileContent);
                     lineCount = 0;
                     fileContent.clear();
                 }
             }
-            if(lineCount > 0){
+            if (lineCount > 0) {
                 index(fileContent);
             }
-        }
-        catch (IOException e){
+        } catch (IOException e) {
             log.error("Error during the process of dividing the document due to {}", e.getMessage());
         }
     }
-
 }

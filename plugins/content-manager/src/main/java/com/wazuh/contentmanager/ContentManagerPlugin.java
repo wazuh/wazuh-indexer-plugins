@@ -50,7 +50,6 @@ public class ContentManagerPlugin extends Plugin implements ClusterPlugin, Actio
 
     private ContextIndex contextIndex;
 
-
     /** ClassConstructor * */
     public ContentManagerPlugin() {}
 
