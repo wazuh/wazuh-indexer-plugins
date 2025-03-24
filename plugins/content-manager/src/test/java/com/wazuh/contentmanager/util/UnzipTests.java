@@ -32,7 +32,6 @@ import java.util.zip.ZipOutputStream;
 public class UnzipTests extends OpenSearchTestCase {
 
     private Unzip unzipper;
-    private Path tempZipPath;
     private Path tempDestinationDirectory;
     private final String zipFileName = "test.zip";
     private final String testFile = "testfile.txt";
@@ -43,23 +42,23 @@ public class UnzipTests extends OpenSearchTestCase {
     public void setUp() throws Exception {
         super.setUp();
 
-        tempDestinationDirectory = createTempDir();
+        this.tempDestinationDirectory = createTempDir();
         Settings settings =
                 Settings.builder()
-                        .put("path.home", tempDestinationDirectory.toString()) // Required by OpenSearch
-                        .putList("path.repo", tempDestinationDirectory.toString())
+                        .put("path.home", this.tempDestinationDirectory.toString()) // Required by OpenSearch
+                        .putList("path.repo", this.tempDestinationDirectory.toString())
                         .build();
 
-        Environment environment = new Environment(settings, tempDestinationDirectory);
+        Environment environment = new Environment(settings, this.tempDestinationDirectory);
 
-        unzipper = new Unzip(environment);
-        tempZipPath = tempDestinationDirectory.resolve(zipFileName);
+        this.unzipper = new Unzip(environment);
+        Path tempZipPath = this.tempDestinationDirectory.resolve(this.zipFileName);
 
         try (ZipOutputStream zipOutputStream =
                 new ZipOutputStream(Files.newOutputStream(tempZipPath))) {
-            ZipEntry entry = new ZipEntry(testFile);
+            ZipEntry entry = new ZipEntry(this.testFile);
             zipOutputStream.putNextEntry(entry);
-            zipOutputStream.write(testFileMessage.getBytes(StandardCharsets.UTF_8));
+            zipOutputStream.write(this.testFileMessage.getBytes(StandardCharsets.UTF_8));
             zipOutputStream.closeEntry();
         }
     }
@@ -72,21 +71,29 @@ public class UnzipTests extends OpenSearchTestCase {
 
     public void testValidUnzip() {
         try {
-            unzipper.unzip(zipFileName, tempDestinationDirectory.toString());
-            Path extractedFilePath = tempDestinationDirectory.resolve(testFile);
+            this.unzipper.unzip(this.zipFileName, "");
+            Path extractedFilePath = this.tempDestinationDirectory.resolve(this.testFile);
             assertTrue("File should be extracted", Files.exists(extractedFilePath));
             String fileContent = Files.readString(extractedFilePath, StandardCharsets.UTF_8);
-            assertEquals("File content should match", testFileMessage, fileContent.trim());
+            assertEquals("File content should match", this.testFileMessage, fileContent.trim());
         } catch (IOException e) {
             fail("Unexpected IOException: " + e.getMessage());
         }
     }
 
     public void testNullPointerException() {
-        String nullDestinationDirectory = null;
-        Exception exception =
-                assertThrows(
-                        NullPointerException.class,
-                        () -> unzipper.unzip(null, tempDestinationDirectory.toString()));
+        assertThrows(
+                NullPointerException.class,
+                () -> {
+                    this.unzipper.unzip(null, this.tempDestinationDirectory.toString());
+                });
+    }
+
+    public void testFileNotFoundException() {
+        assertThrows(
+                FileNotFoundException.class,
+                () -> {
+                    this.unzipper.unzip("NonExistentFile.zip", this.tempDestinationDirectory.toString());
+                });
     }
 }
