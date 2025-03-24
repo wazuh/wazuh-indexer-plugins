@@ -57,6 +57,9 @@ public class Unzip {
             ZipEntry entry;
             while ((entry = zipInputStream.getNextEntry()) != null) {
                 Path destinationFile = destinationPath.resolve(entry.getName()).normalize();
+                if (!destinationFile.startsWith(destinationPath)) {
+                    throw new IOException("Bad zip entry: " + entry.getName());
+                }
                 extractFile(zipInputStream, destinationFile);
                 zipInputStream.closeEntry();
             }
