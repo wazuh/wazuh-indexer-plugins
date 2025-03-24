@@ -16,11 +16,9 @@
  */
 package com.wazuh.contentmanager;
 
-import com.wazuh.contentmanager.index.ContentIndex;
 import org.opensearch.client.Client;
 import org.opensearch.cluster.metadata.IndexNameExpressionResolver;
 import org.opensearch.cluster.node.DiscoveryNode;
-import org.opensearch.cluster.node.DiscoveryNodes;
 import org.opensearch.cluster.service.ClusterService;
 import org.opensearch.common.settings.*;
 import org.opensearch.core.common.io.stream.NamedWriteableRegistry;
@@ -31,8 +29,6 @@ import org.opensearch.plugins.ActionPlugin;
 import org.opensearch.plugins.ClusterPlugin;
 import org.opensearch.plugins.Plugin;
 import org.opensearch.repositories.RepositoriesService;
-import org.opensearch.rest.RestController;
-import org.opensearch.rest.RestHandler;
 import org.opensearch.script.ScriptService;
 import org.opensearch.threadpool.ThreadPool;
 import org.opensearch.watcher.ResourceWatcherService;
@@ -76,19 +72,6 @@ public class ContentManagerPlugin extends Plugin implements ClusterPlugin, Actio
         return Collections.emptyList();
     }
 
-    @Override
-    public List<RestHandler> getRestHandlers(
-            Settings settings,
-            RestController restController,
-            ClusterSettings clusterSettings,
-            IndexScopedSettings indexScopedSettings,
-            SettingsFilter settingsFilter,
-            IndexNameExpressionResolver indexNameExpressionResolver,
-            Supplier<DiscoveryNodes> nodesInCluster) {
-        // Just for testing purposes
-        return Collections.emptyList();
-    }
-
     /**
      * Call the CTI API on startup and get the latest consumer information into an index
      *
@@ -113,6 +96,6 @@ public class ContentManagerPlugin extends Plugin implements ClusterPlugin, Actio
 
     @Override
     public List<Setting<?>> getSettings() {
-        return Collections.singletonList(PluginSettings.CTI_BASE_URL);
+        return Collections.singletonList(PluginSettings.CTI_API_URL);
     }
 }

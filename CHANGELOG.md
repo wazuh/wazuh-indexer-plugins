@@ -9,7 +9,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 ### Added
 - Add RBAC index templates with its corresponding event generator [(#303)](https://github.com/wazuh/wazuh-indexer-plugins/pull/303)
 - Add technical documentation [(#320)](https://github.com/wazuh/wazuh-indexer-plugins/pull/320)
-- Implement JSON File Division [(#338)](https://github.com/wazuh/wazuh-indexer-plugins/pull/338)
+- Implement CTI snapshot download [(#318)](https://github.com/wazuh/wazuh-indexer-plugins/pull/318)
+- Implement CTI snapshot indexing [(#338)](https://github.com/wazuh/wazuh-indexer-plugins/pull/338)
 
 ### Dependencies
 
@@ -33,3 +34,4 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 ### Security
 
 [Unreleased 5.0.x]: https://github.com/wazuh/wazuh-indexer-plugins/compare/main...main
+
