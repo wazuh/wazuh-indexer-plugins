@@ -9,7 +9,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 ### Added
 - Add RBAC index templates with its corresponding event generator [(#303)](https://github.com/wazuh/wazuh-indexer-plugins/pull/303)
 - Add technical documentation [(#320)](https://github.com/wazuh/wazuh-indexer-plugins/pull/320)
-- Add client to download the CTI snapshot zip [(#318)](https://github.com/wazuh/wazuh-indexer-plugins/pull/318)
+- Implement CTI snapshot download [(#318)](https://github.com/wazuh/wazuh-indexer-plugins/pull/318)
 
 ### Dependencies
 
