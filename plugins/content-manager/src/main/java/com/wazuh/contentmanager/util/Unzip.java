@@ -17,7 +17,6 @@
 package com.wazuh.contentmanager.util;
 
 import org.opensearch.env.Environment;
-import reactor.util.annotation.NonNull;
 
 import java.io.BufferedOutputStream;
 import java.io.FileNotFoundException;
@@ -26,6 +25,8 @@ import java.nio.file.*;
 import java.nio.file.StandardOpenOption;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
+
+import reactor.util.annotation.NonNull;
 
 /*
  * Unzip utility class for extracting ZIP files.
