@@ -75,6 +75,16 @@ public class ContentManagerPlugin extends Plugin implements ClusterPlugin, Actio
             Supplier<RepositoriesService> repositoriesServiceSupplier) {
         PluginSettings.getInstance(environment.settings(), clusterService);
         this.contextIndex = new ContextIndex(client);
+
+        Privileged.doPrivilegedRequest(
+                () -> {
+                    CTIClient.getInstance()
+                            .download(
+                                    "https://cti.wazuh.com/store/contexts/vd_1.0.0/consumers/vd_4.8.0/1432540_1741603172.zip",
+                                    environment);
+                    return null;
+                });
+
         return Collections.emptyList();
     }
 
@@ -115,6 +125,6 @@ public class ContentManagerPlugin extends Plugin implements ClusterPlugin, Actio
 
     @Override
     public List<Setting<?>> getSettings() {
-        return Collections.singletonList(PluginSettings.CTI_BASE_URL);
+        return Collections.singletonList(PluginSettings.CTI_API_URL);
     }
 }

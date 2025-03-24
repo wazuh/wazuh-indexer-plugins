@@ -17,27 +17,27 @@
 package com.wazuh.contentmanager.client;
 
 import org.apache.hc.client5.http.async.methods.*;
-import org.apache.hc.core5.http.Header;
-import org.apache.hc.core5.http.HttpHost;
-import org.apache.hc.core5.http.Method;
+import org.apache.hc.core5.http.*;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.opensearch.common.xcontent.XContentType;
 import org.opensearch.core.xcontent.DeprecationHandler;
 import org.opensearch.core.xcontent.NamedXContentRegistry;
 import org.opensearch.core.xcontent.XContent;
+import org.opensearch.env.Environment;
 
-import java.io.ByteArrayInputStream;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.io.InputStream;
+import java.io.*;
 import java.net.URI;
+import java.net.URISyntaxException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.StandardOpenOption;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.ExecutionException;
 
 import com.wazuh.contentmanager.model.ctiapi.ConsumerInfo;
 import com.wazuh.contentmanager.settings.PluginSettings;
-
 
 /**
  * CTIClient is a singleton class responsible for interacting with the Cyber Threat Intelligence
@@ -161,44 +161,49 @@ public class CTIClient extends HttpClient {
         return params;
     }
 
-    /**
-     * Downloads the CTI snapshot into the /build/testclusters/integTest-0/distro/2.19.1-INTEG_TEST route.
+    /***
+     * Downloads the CTI snapshot.
      *
-     * @param snapshotURI It will have the URI used for the download, at the moment that URI is hardcoded.
+     * @param snapshotURI URI to the file to download.
+     * @param env environment. Required to resolve files' paths.
      */
-    public void downloadSnapshot(String snapshotURI) {
+    public void download(String snapshotURI, Environment env) {
         try {
+            // Setup
             URI uri = new URI(snapshotURI);
-            String fileName = uri.getPath().substring(uri.getPath().lastIndexOf('/') + 1);
+            String filename = uri.getPath().substring(uri.getPath().lastIndexOf('/') + 1);
+            Path path = env.resolveRepoFile(filename);
 
-            log.info("Sending GET request to [{}]", uri);
+            // Download
+            log.info("Starting snapshot download from [{}]", uri);
+            SimpleHttpRequest request = SimpleHttpRequest.create(Method.GET, uri);
+            SimpleHttpResponse response = httpClient.execute(request, null).get();
 
-            SimpleRequestBuilder builder = SimpleRequestBuilder.create(Method.GET);
-            SimpleHttpRequest request = builder.setHttpHost(HttpHost.create("https://cti.wazuh.com"))
-                .setPath(uri.getPath())
-                .build();
+            // Write to disk
+            InputStream input = new ByteArrayInputStream(response.getBodyBytes());
+            try (OutputStream out =
+                    new BufferedOutputStream(
+                            Files.newOutputStream(
+                                    path,
+                                    StandardOpenOption.CREATE,
+                                    StandardOpenOption.WRITE,
+                                    StandardOpenOption.TRUNCATE_EXISTING))) {
 
-            SimpleHttpResponse response = HttpClient.httpClient.execute(request, null).get();
-
-
-            // Streamed download
-            try (InputStream in = new ByteArrayInputStream(response.getBodyBytes());
-                 FileOutputStream out = new FileOutputStream(fileName)) {
-
-                byte[] buffer = new byte[1024];
                 int bytesRead;
-
-                while ((bytesRead = in.read(buffer)) != -1) {
+                byte[] buffer = new byte[1024];
+                while ((bytesRead = input.read(buffer)) != -1) {
                     out.write(buffer, 0, bytesRead);
                 }
-
-                log.info("Successfully downloaded to: {}", fileName);
             } catch (IOException e) {
-                log.error("Error downloading the file: {}", e.getMessage());
+                log.error("Failed to write snapshot {}", e.getMessage());
             }
-        } catch (Exception e) {
-            log.error("Error during request: {}", e.getMessage());
+            log.info("Snapshot downloaded to {}", path);
+        } catch (URISyntaxException e) {
+            log.error("Failed to download snapshot. Invalid URL provided: {}", e.getMessage());
+        } catch (ExecutionException e) {
+            log.error("Snapshot download failed: {}", e.getMessage());
+        } catch (InterruptedException e) {
+            log.error("Snapshot download was interrupted: {}", e.getMessage());
         }
     }
-
 }
