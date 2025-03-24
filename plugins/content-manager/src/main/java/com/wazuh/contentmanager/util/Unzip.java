@@ -16,8 +16,6 @@
  */
 package com.wazuh.contentmanager.util;
 
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
 import org.opensearch.env.Environment;
 
 import java.io.BufferedOutputStream;
@@ -33,11 +31,10 @@ import reactor.util.annotation.NonNull;
 /*
  * Unzip utility class for extracting ZIP files.
  *
- * Enviroment will contain the configuration of the enclosed directory where the unzip process will happen.
+ * Environment will contain the configuration of the enclosed directory where the unzip process will happen.
  */
 public class Unzip {
 
-    private static final Logger log = LogManager.getLogger(Unzip.class);
     private static final byte[] BUFFER = new byte[1024];
     private final Environment environment;
 
@@ -53,8 +50,14 @@ public class Unzip {
      */
     public void unzip(@NonNull String zipFilePath, String destinationDirectory)
             throws IOException, NullPointerException {
-        Path zipPath = environment.resolveRepoFile(zipFilePath);
-        Path destinationPath = environment.resolveRepoFile(destinationDirectory);
+        if (zipFilePath == null || destinationDirectory == null) {
+            throw new NullPointerException("Can't have null args");
+        }
+        Path zipPath = this.environment.resolveRepoFile(zipFilePath);
+        if (zipPath == null || !Files.exists(zipPath)) {
+            throw new FileNotFoundException("ZIP file does not exist: " + zipFilePath);
+        }
+        Path destinationPath = this.environment.resolveRepoFile(destinationDirectory);
         try (ZipInputStream zipInputStream = new ZipInputStream(Files.newInputStream(zipPath))) {
             ZipEntry entry;
             while ((entry = zipInputStream.getNextEntry()) != null) {
@@ -65,12 +68,6 @@ public class Unzip {
                 extractFile(zipInputStream, destinationFile);
                 zipInputStream.closeEntry();
             }
-        } catch (NullPointerException e) {
-            throw new NullPointerException("Pathname is null: " + e.getMessage());
-        } catch (FileNotFoundException e) {
-            throw new FileNotFoundException("ZIP file does not exist: " + e.getMessage());
-        } catch (IOException e) {
-            throw new IOException(e.getMessage());
         }
     }
 
