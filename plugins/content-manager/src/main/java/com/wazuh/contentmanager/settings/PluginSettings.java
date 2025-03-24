@@ -36,11 +36,17 @@ public class PluginSettings {
     /** Content Manager Plugin API path. */
     public static final String API_BASE_URI = "/_plugins/_content_manager";
 
-    /** Read the base URL from configuration file */
-    public static final Setting<String> CTI_BASE_URL =
+    /** Base Wazuh CTI URL */
+    public static final String CTI_URL = "https://cti.wazuh.com";
+
+    /** Content Manager CTI API setting field key */
+    private static final String CONTENT_MANAGER_API_CTI = "content-manager.api.cti";
+
+    /** Read the CTI API URL from configuration file */
+    public static final Setting<String> CTI_API_URL =
             Setting.simpleString(
-                    "content-manager.api.base_url",
-                    "https://cti.wazuh.com/api/v1",
+                    CONTENT_MANAGER_API_CTI,
+                    CTI_URL + "/api/v1",
                     Setting.Property.NodeScope,
                     Setting.Property.Filtered);
 
@@ -53,7 +59,7 @@ public class PluginSettings {
      * @param settings as obtained in createComponents.
      */
     private PluginSettings(@NonNull final Settings settings, ClusterService clusterService) {
-        this.ctiBaseUrl = CTI_BASE_URL.get(settings);
+        this.ctiBaseUrl = CTI_API_URL.get(settings);
         this.clusterService = clusterService;
 
         log.debug("Settings.loaded: {}", this.toString());
