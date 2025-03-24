@@ -51,7 +51,7 @@ public class HttpClient {
 
     private static final int TIMEOUT = 10;
     private static final Object LOCK = new Object();
-    private static CloseableHttpAsyncClient httpClient;
+    protected static CloseableHttpAsyncClient httpClient;
 
     protected final URI apiUri;
 
