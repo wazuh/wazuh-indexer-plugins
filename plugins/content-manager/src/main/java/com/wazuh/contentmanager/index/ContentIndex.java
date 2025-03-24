@@ -26,7 +26,6 @@ import org.opensearch.action.index.IndexRequest;
 import org.opensearch.client.Client;
 import org.opensearch.common.xcontent.XContentType;
 import org.opensearch.core.action.ActionListener;
-import org.opensearch.core.rest.RestStatus;
 
 import java.io.BufferedReader;
 import java.io.FileReader;
@@ -34,7 +33,6 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.CompletableFuture;
 
 /** Class to manage the Content Manager index. */
 public class ContentIndex {
@@ -59,9 +57,7 @@ public class ContentIndex {
      *
      * @param documents the array of objects
      */
-    public CompletableFuture<RestStatus> index(List<JsonObject> documents) {
-        CompletableFuture<RestStatus> future = new CompletableFuture<>();
-
+    private void index(List<JsonObject> documents) {
         BulkRequest bulkRequest = new BulkRequest(INDEX_NAME);
 
         for (JsonObject document : documents) {
@@ -74,19 +70,20 @@ public class ContentIndex {
                     @Override
                     public void onResponse(BulkResponse bulkResponse) {
                         if (bulkResponse.hasFailures()) {
-                            future.complete(RestStatus.INTERNAL_SERVER_ERROR);
+                            log.error(
+                                    "Snapshot indexing bulk request failed: {}", bulkResponse.buildFailureMessage());
                         } else {
-                            future.complete(RestStatus.OK);
+                            log.debug(
+                                    "Snapshot indexing bulk request was successful: took [{}]ms",
+                                    bulkResponse.getTook().millis());
                         }
                     }
 
                     @Override
                     public void onFailure(Exception e) {
-                        future.completeExceptionally(e);
+                        log.error("Snapshot indexing bulk request failed: {}", e.getMessage());
                     }
                 });
-
-        return future;
     }
 
     /**
@@ -99,33 +96,37 @@ public class ContentIndex {
     }
 
     /**
-     * Divides a json document in new json documents with up to MAX_DOCUMENTS lines
+     * Initializes the index from a local snapshot. The snapshot file (in NDJSON format) is split in
+     * chunks of {@link ContentIndex#MAX_DOCUMENTS} elements. These are bulk indexed using {@link
+     * ContentIndex#index(List)}.
      *
-     * @param route The route to the file that will be divided
+     * @param path path to the CTI snapshot JSON file to be indexed.
      */
-    public void divideJson(String route) {
-        try (BufferedReader reader =
-                new BufferedReader(new FileReader(route, StandardCharsets.UTF_8))) {
-            String line;
-            int lineCount = 0;
-            ArrayList<JsonObject> fileContent = new ArrayList<>();
+    public void fromSnapshot(String path) {
+        String line;
+        JsonObject json;
+        int lineCount = 0;
+        ArrayList<JsonObject> items = new ArrayList<>();
 
+        try (BufferedReader reader = new BufferedReader(new FileReader(path, StandardCharsets.UTF_8))) {
             while ((line = reader.readLine()) != null) {
-                JsonObject json = JsonParser.parseString(line).getAsJsonObject();
-                fileContent.add(json);
+                json = JsonParser.parseString(line).getAsJsonObject();
+                items.add(json);
                 lineCount++;
 
+                // Index items (MAX_DOCUMENTS reached)
                 if (lineCount == MAX_DOCUMENTS) {
-                    index(fileContent);
+                    this.index(items);
                     lineCount = 0;
-                    fileContent.clear();
+                    items.clear();
                 }
             }
+            // Index remaining items (> MAX_DOCUMENTS)
             if (lineCount > 0) {
-                index(fileContent);
+                this.index(items);
             }
         } catch (IOException e) {
-            log.error("Error during the process of dividing the document due to {}", e.getMessage());
+            log.error("Error processing snapshot file {}", e.getMessage());
         }
     }
 }
