@@ -16,20 +16,25 @@
  */
 package com.wazuh.contentmanager.client;
 
-import org.apache.hc.client5.http.async.methods.SimpleHttpResponse;
-import org.apache.hc.core5.http.Header;
-import org.apache.hc.core5.http.Method;
+import org.apache.hc.client5.http.async.methods.*;
+import org.apache.hc.core5.http.*;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.opensearch.common.xcontent.XContentType;
 import org.opensearch.core.xcontent.DeprecationHandler;
 import org.opensearch.core.xcontent.NamedXContentRegistry;
 import org.opensearch.core.xcontent.XContent;
+import org.opensearch.env.Environment;
 
-import java.io.IOException;
+import java.io.*;
 import java.net.URI;
+import java.net.URISyntaxException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.StandardOpenOption;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.ExecutionException;
 
 import com.wazuh.contentmanager.model.ctiapi.ConsumerInfo;
 import com.wazuh.contentmanager.settings.PluginSettings;
@@ -154,5 +159,51 @@ public class CTIClient extends HttpClient {
             params.put(QueryParameters.WITH_EMPTIES.getValue(), withEmpties);
         }
         return params;
+    }
+
+    /***
+     * Downloads the CTI snapshot.
+     *
+     * @param snapshotURI URI to the file to download.
+     * @param env environment. Required to resolve files' paths.
+     */
+    public void download(String snapshotURI, Environment env) {
+        try {
+            // Setup
+            URI uri = new URI(snapshotURI);
+            String filename = uri.getPath().substring(uri.getPath().lastIndexOf('/') + 1);
+            Path path = env.resolveRepoFile(filename);
+
+            // Download
+            log.info("Starting snapshot download from [{}]", uri);
+            SimpleHttpRequest request = SimpleHttpRequest.create(Method.GET, uri);
+            SimpleHttpResponse response = httpClient.execute(request, null).get();
+
+            // Write to disk
+            InputStream input = new ByteArrayInputStream(response.getBodyBytes());
+            try (OutputStream out =
+                    new BufferedOutputStream(
+                            Files.newOutputStream(
+                                    path,
+                                    StandardOpenOption.CREATE,
+                                    StandardOpenOption.WRITE,
+                                    StandardOpenOption.TRUNCATE_EXISTING))) {
+
+                int bytesRead;
+                byte[] buffer = new byte[1024];
+                while ((bytesRead = input.read(buffer)) != -1) {
+                    out.write(buffer, 0, bytesRead);
+                }
+            } catch (IOException e) {
+                log.error("Failed to write snapshot {}", e.getMessage());
+            }
+            log.info("Snapshot downloaded to {}", path);
+        } catch (URISyntaxException e) {
+            log.error("Failed to download snapshot. Invalid URL provided: {}", e.getMessage());
+        } catch (ExecutionException e) {
+            log.error("Snapshot download failed: {}", e.getMessage());
+        } catch (InterruptedException e) {
+            log.error("Snapshot download was interrupted: {}", e.getMessage());
+        }
     }
 }

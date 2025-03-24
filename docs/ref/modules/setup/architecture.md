@@ -16,7 +16,7 @@ The plugin is documented using JavaDoc. You can compile the documentation using 
 
 ## Indices
 
-Refer to the [docs](https://github.com/wazuh/wazuh-indexer-plugins/tree/main/ecs/docs) for complete definitions of the indices. The indices inherit the settings and mappings defined in the [index templates](https://github.com/wazuh/wazuh-indexer-plugins/tree/main/plugins/setup/src/main/resources).
+Refer to the [docs](https://github.com/wazuh/wazuh-indexer-plugins/tree/main/ecs) for complete definitions of the indices. The indices inherit the settings and mappings defined in the [index templates](https://github.com/wazuh/wazuh-indexer-plugins/tree/main/plugins/setup/src/main/resources).
 
 ## Sequence diagram
 
