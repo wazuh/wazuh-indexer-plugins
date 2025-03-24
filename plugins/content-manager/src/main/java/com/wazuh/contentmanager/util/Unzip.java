@@ -21,6 +21,7 @@ import org.apache.logging.log4j.Logger;
 import org.opensearch.env.Environment;
 
 import java.io.BufferedOutputStream;
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.nio.file.*;
 import java.nio.file.StandardOpenOption;
@@ -29,6 +30,8 @@ import java.util.zip.ZipInputStream;
 
 /*
  * Unzip utility class for extracting ZIP files.
+ *
+ * Enviroment will contain the configuration of the enclosed directory where the unzip process will happen.
  */
 public class Unzip {
 
@@ -46,27 +49,23 @@ public class Unzip {
      * @param zipFilePath Origin ZIP file path following the format: "path/file.zip".
      * @param destinationDirectory Unzipped files destiny path following the format: "path/".
      */
-    public void unzip(String zipFilePath, String destinationDirectory) throws IOException {
+    public void unzip(String zipFilePath, String destinationDirectory)
+            throws IOException, NullPointerException {
         Path zipPath = environment.resolveRepoFile(zipFilePath);
         Path destinationPath = environment.resolveRepoFile(destinationDirectory);
-
-        if (!Files.exists(zipPath)) {
-            throw new IOException("ZIP file does not exist: " + zipFilePath);
-        }
-
         try (ZipInputStream zipInputStream = new ZipInputStream(Files.newInputStream(zipPath))) {
             ZipEntry entry;
-
             while ((entry = zipInputStream.getNextEntry()) != null) {
                 Path destinationFile = destinationPath.resolve(entry.getName()).normalize();
-
-                if (!destinationFile.startsWith(destinationPath)) { // Prevents Zip Slip attack
-                    throw new IOException("Bad zip entry: " + entry.getName());
-                }
-
                 extractFile(zipInputStream, destinationFile);
                 zipInputStream.closeEntry();
             }
+        } catch (NullPointerException e) {
+            throw new NullPointerException("Pathname is null: " + e.getMessage());
+        } catch (FileNotFoundException e) {
+            throw new FileNotFoundException("ZIP file does not exist: " + e.getMessage());
+        } catch (IOException e) {
+            throw new IOException(e.getMessage());
         }
     }
 
@@ -90,6 +89,8 @@ public class Unzip {
             while ((size = zipInputStream.read(BUFFER)) > 0) {
                 bufferedOutputStream.write(BUFFER, 0, size);
             }
+        } catch (IOException e) {
+            throw new IOException(e.getMessage());
         }
     }
 }
