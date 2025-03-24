@@ -7,10 +7,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 ## [Unreleased 5.0.x]
 
 ### Added
-- Add new Unzip utility class with unzip tool [(#319)](https://github.com/wazuh/wazuh-indexer-plugins/pull/319)
 - Add RBAC index templates with its corresponding event generator [(#303)](https://github.com/wazuh/wazuh-indexer-plugins/pull/303)
 - Add technical documentation [(#320)](https://github.com/wazuh/wazuh-indexer-plugins/pull/320)
 - Implement CTI snapshot download [(#318)](https://github.com/wazuh/wazuh-indexer-plugins/pull/318)
+- Implement CTI snapshot unzip tool [(#319)](https://github.com/wazuh/wazuh-indexer-plugins/pull/319)
 
 ### Dependencies
 

@@ -31,27 +31,25 @@ import java.util.zip.ZipOutputStream;
 
 public class UnzipTests extends OpenSearchTestCase {
 
-    private Unzip unzipper;
     private Path tempDestinationDirectory;
     private final String zipFileName = "test.zip";
     private final String testFile = "testfile.txt";
     private final String testFileMessage = "Hello, World!";
+    private Environment environment;
 
     @Before
     @Override
     public void setUp() throws Exception {
         super.setUp();
 
+        // Environment set up
         this.tempDestinationDirectory = createTempDir();
         Settings settings =
                 Settings.builder()
                         .put("path.home", this.tempDestinationDirectory.toString()) // Required by OpenSearch
                         .putList("path.repo", this.tempDestinationDirectory.toString())
                         .build();
-
-        Environment environment = new Environment(settings, this.tempDestinationDirectory);
-
-        this.unzipper = new Unzip(environment);
+        this.environment = new Environment(settings, this.tempDestinationDirectory);
         Path tempZipPath = this.tempDestinationDirectory.resolve(this.zipFileName);
 
         try (ZipOutputStream zipOutputStream =
@@ -71,7 +69,7 @@ public class UnzipTests extends OpenSearchTestCase {
 
     public void testValidUnzip() {
         try {
-            this.unzipper.unzip(this.zipFileName, "");
+            Unzip.unzip(this.zipFileName, "", this.environment);
             Path extractedFilePath = this.tempDestinationDirectory.resolve(this.testFile);
             assertTrue("File should be extracted", Files.exists(extractedFilePath));
             String fileContent = Files.readString(extractedFilePath, StandardCharsets.UTF_8);
@@ -84,16 +82,14 @@ public class UnzipTests extends OpenSearchTestCase {
     public void testNullPointerException() {
         assertThrows(
                 NullPointerException.class,
-                () -> {
-                    this.unzipper.unzip(null, this.tempDestinationDirectory.toString());
-                });
+                () -> Unzip.unzip(null, this.tempDestinationDirectory.toString(), this.environment));
     }
 
     public void testFileNotFoundException() {
         assertThrows(
                 FileNotFoundException.class,
-                () -> {
-                    this.unzipper.unzip("NonExistentFile.zip", this.tempDestinationDirectory.toString());
-                });
+                () ->
+                        Unzip.unzip(
+                                "NonExistentFile.zip", this.tempDestinationDirectory.toString(), this.environment));
     }
 }

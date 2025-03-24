@@ -16,6 +16,8 @@
  */
 package com.wazuh.contentmanager.util;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.opensearch.env.Environment;
 
 import java.io.BufferedOutputStream;
@@ -28,58 +30,54 @@ import java.util.zip.ZipInputStream;
 
 import reactor.util.annotation.NonNull;
 
-/*
- * Unzip utility class for extracting ZIP files.
- *
- * Environment will contain the configuration of the enclosed directory where the unzip process will happen.
- */
+/** Unzip utility class for extracting ZIP files. */
 public class Unzip {
+    private static final Logger log = LogManager.getLogger(Unzip.class);
 
-    private static final byte[] BUFFER = new byte[1024];
-    private final Environment environment;
-
-    public Unzip(Environment environment) {
-        this.environment = environment;
-    }
-
-    /*
-     * Unzips a ZIP file's content in a specified folder.
+    /**
+     * Unzips a ZIP file's content to the specified folder.
      *
-     * @param zipFilePath Origin ZIP file path following the format: "path/file.zip".
-     * @param destinationDirectory Unzipped files destiny path following the format: "path/".
+     * @param file ZIP file to decompress.
+     * @param to extraction destination folder.
+     * @param env Required to resolve files' paths. Environment will contain the configuration of the
+     *     enclosed directory where the unzip process will happen.
+     * @throws IOException
      */
-    public void unzip(@NonNull String zipFilePath, @NonNull String destinationDirectory)
-            throws IOException, NullPointerException {
-        if (zipFilePath == null || destinationDirectory == null) {
-            throw new NullPointerException("Can't have null args");
+    public static void unzip(@NonNull String file, @NonNull String to, @NonNull Environment env)
+            throws IOException {
+        Path path = env.resolveRepoFile(file);
+        if (path == null || !Files.exists(path)) {
+            throw new FileNotFoundException("ZIP file does not exist: " + path);
         }
-        Path zipPath = this.environment.resolveRepoFile(zipFilePath);
-        if (zipPath == null || !Files.exists(zipPath)) {
-            throw new FileNotFoundException("ZIP file does not exist: " + zipFilePath);
-        }
-        Path destinationPath = this.environment.resolveRepoFile(destinationDirectory);
-        try (ZipInputStream zipInputStream = new ZipInputStream(Files.newInputStream(zipPath))) {
-            ZipEntry entry;
-            while ((entry = zipInputStream.getNextEntry()) != null) {
-                Path destinationFile = destinationPath.resolve(entry.getName()).normalize();
+
+        Path destinationPath = env.resolveRepoFile(to);
+        try (ZipInputStream zipInputStream = new ZipInputStream(Files.newInputStream(path))) {
+            ZipEntry zipEntry;
+            while ((zipEntry = zipInputStream.getNextEntry()) != null) {
+                Path destinationFile = destinationPath.resolve(zipEntry.getName()).normalize();
                 if (!destinationFile.startsWith(destinationPath)) {
-                    throw new IOException("Bad zip entry: " + entry.getName());
+                    throw new IOException("Bad zip entry: " + zipEntry.getName());
                 }
-                extractFile(zipInputStream, destinationFile);
+                extract(zipInputStream, destinationFile);
                 zipInputStream.closeEntry();
             }
         }
     }
 
-    /*
+    /**
      * Extracts a file from a ZIP input stream.
      *
      * @param zipInputStream ZIP input stream.
      * @param destinationFile Path (directory) where the file will be extracted.
      */
-    public static void extractFile(ZipInputStream zipInputStream, Path destinationFile)
-            throws IOException {
-        Files.createDirectories(destinationFile.getParent()); // Ensure parent directories exist
+    private static void extract(ZipInputStream zipInputStream, Path destinationFile) {
+        byte[] buffer = new byte[1024];
+        // Ensure parent directories exist
+        try {
+            Files.createDirectories(destinationFile.getParent());
+        } catch (IOException e) {
+            log.error("Destination directory does not exist: {}", e.getMessage());
+        }
 
         try (BufferedOutputStream bufferedOutputStream =
                 new BufferedOutputStream(
@@ -88,11 +86,11 @@ public class Unzip {
                                 StandardOpenOption.CREATE,
                                 StandardOpenOption.TRUNCATE_EXISTING))) {
             int size;
-            while ((size = zipInputStream.read(BUFFER)) > 0) {
-                bufferedOutputStream.write(BUFFER, 0, size);
+            while ((size = zipInputStream.read(buffer)) > 0) {
+                bufferedOutputStream.write(buffer, 0, size);
             }
         } catch (IOException e) {
-            throw new IOException(e.getMessage());
+            log.error("Zip extraction failed: {}", e.getMessage());
         }
     }
 }
