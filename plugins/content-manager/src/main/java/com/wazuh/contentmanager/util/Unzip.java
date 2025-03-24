@@ -17,6 +17,7 @@
 package com.wazuh.contentmanager.util;
 
 import org.opensearch.env.Environment;
+import reactor.util.annotation.NonNull;
 
 import java.io.BufferedOutputStream;
 import java.io.FileNotFoundException;
@@ -46,7 +47,7 @@ public class Unzip {
      * @param zipFilePath Origin ZIP file path following the format: "path/file.zip".
      * @param destinationDirectory Unzipped files destiny path following the format: "path/".
      */
-    public void unzip(String zipFilePath, String destinationDirectory)
+    public void unzip(@NonNull String zipFilePath, @NonNull String destinationDirectory)
             throws IOException, NullPointerException {
         if (zipFilePath == null || destinationDirectory == null) {
             throw new NullPointerException("Can't have null args");
