@@ -98,8 +98,12 @@ run_ecs_generator() {
     echo "---> Running ECS Generator script..."
     if [[ ${#relevant_modules[@]} -gt 0 ]]; then
         for ecs_module in "${relevant_modules[@]}"; do
-            bash ecs/generator/mapping-generator.sh run "$ecs_module"
-            echo "Processed ECS module: $ecs_module"
+            if [ "$(bash ecs/generator/mapping-generator.sh run "$ecs_module")" -ne 0 ]; then
+                echo "Error: Failed to run ECS generator for module: $ecs_module"
+                exit 1
+            else
+                echo "Processed ECS module: $ecs_module"
+            fi
             bash ecs/generator/mapping-generator.sh down
         done
     else
