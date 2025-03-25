@@ -23,7 +23,7 @@
             "properties": {
               "containers": {
                 "properties": {
-                  "cna": {
+                  "adp": {
                     "properties": {
                       "affected": {
                         "properties": {
@@ -42,14 +42,70 @@
                           "vendor": {
                             "ignore_above": 1024,
                             "type": "keyword"
+                          }
+                        }
+                      }
+                    }
+                  },
+                  "cna": {
+                    "properties": {
+                      "affected": {
+                        "properties": {
+                          "cpes": {
+                            "ignore_above": 1024,
+                            "type": "keyword"
+                          },
+                          "defaultStatus": {
+                            "ignore_above": 1024,
+                            "type": "keyword"
+                          },
+                          "product": {
+                            "ignore_above": 1024,
+                            "type": "keyword"
+                          },
+                          "programRoutines": {
+                            "properties": {
+                              "name": {
+                                "ignore_above": 1024,
+                                "type": "keyword"
+                              }
+                            }
+                          },
+                          "vendor": {
+                            "ignore_above": 1024,
+                            "type": "keyword"
                           },
                           "versions": {
                             "properties": {
+                              "changes": {
+                                "properties": {
+                                  "at": {
+                                    "ignore_above": 1024,
+                                    "type": "keyword"
+                                  },
+                                  "status": {
+                                    "ignore_above": 1024,
+                                    "type": "keyword"
+                                  }
+                                }
+                              },
+                              "lessThan": {
+                                "ignore_above": 1024,
+                                "type": "keyword"
+                              },
+                              "lessThanOrEqual": {
+                                "ignore_above": 1024,
+                                "type": "keyword"
+                              },
                               "status": {
                                 "ignore_above": 1024,
                                 "type": "keyword"
                               },
                               "version": {
+                                "ignore_above": 1024,
+                                "type": "keyword"
+                              },
+                              "versionType": {
                                 "ignore_above": 1024,
                                 "type": "keyword"
                               }
