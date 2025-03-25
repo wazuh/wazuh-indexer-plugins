@@ -8201,6 +8201,18 @@
             "type": "keyword"
           }
         }
+      },
+      "wazuh": {
+        "properties": {
+          "decoder": {
+            "ignore_above": 1024,
+            "type": "keyword"
+          },
+          "rules": {
+            "ignore_above": 1024,
+            "type": "keyword"
+          }
+        }
       }
     }
   },

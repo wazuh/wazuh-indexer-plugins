@@ -40,10 +40,10 @@ jobs:
         run: |
           bash ecs/scripts/generate-and-push-templates.sh \
             -b ${{ steps.branch-name.outputs.branch }} \
-            -o ${{env.output_folder }}
+            -o ${{ env.output_folder }}
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
           name: ecs-templates
-          path: ${{env.output_folder }}
+          path: ${{ env.output_folder }}

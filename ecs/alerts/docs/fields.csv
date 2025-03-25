@@ -295,7 +295,7 @@ ECS_Version,Indexed,Field_Set,Field,Type,Level,Normalization,Example,Description
 8.11.0,true,event,event.category,keyword,core,array,authentication,Event category. The second categorization field in the hierarchy.
 8.11.0,true,event,event.changed_fields,keyword,custom,,,Fields that were updated since last scan
 8.11.0,true,event,event.code,keyword,extended,,4648,Identification code for this event.
-8.11.0,true,event,event.collector,keyword,custom,,,The data source collector
+8.11.0,true,event,event.collector,keyword,custom,,file,Collector used to retrieve the event.
 8.11.0,true,event,event.created,date,core,,2016-05-23T08:05:34.857Z,Time when the event was first read by an agent or by your pipeline.
 8.11.0,true,event,event.dataset,keyword,core,,apache.access,Name of the dataset.
 8.11.0,true,event,event.duration,long,core,,,Duration of the event in nanoseconds.
@@ -1845,3 +1845,5 @@ ECS_Version,Indexed,Field_Set,Field,Type,Level,Normalization,Example,Description
 8.11.0,true,vulnerability,vulnerability.score.temporal,float,extended,,,Vulnerability Temporal score.
 8.11.0,true,vulnerability,vulnerability.score.version,keyword,extended,,2.0,CVSS version.
 8.11.0,true,vulnerability,vulnerability.severity,keyword,extended,,Critical,Severity of the vulnerability.
+8.11.0,true,wazuh,wazuh.decoder,keyword,custom,array,"[""foo"", ""bar""]",Wazuh decoder used.
+8.11.0,true,wazuh,wazuh.rules,keyword,custom,array,"[""foo"", ""bar""]",Wazuh rules triggered by the event.

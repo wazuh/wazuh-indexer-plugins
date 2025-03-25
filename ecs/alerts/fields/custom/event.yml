@@ -1,16 +1,21 @@
 ---
 - name: event
-  title: Event
-  description: >
-    Context information about the log or metric event itself
+  title: Context information about the log or metric event itself
+  short: Context information about the log or metric event itself
+  type: group
+  group: 2
   fields:
     - name: changed_fields
       type: keyword
       level: custom
       description: >
-        Fields that were updated since last scan
+        Fields that were updated since last scan.
+      normalize:
+        - array
+      example: "[\"foo\", \"bar\"]"
     - name: collector
       type: keyword
       level: custom
       description: >
-        The data source collector
+        Collector used to retrieve the event.
+      example: file
