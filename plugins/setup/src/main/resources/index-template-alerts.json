@@ -31,10 +31,21 @@
               },
               "cpu": {
                 "properties": {
+                  "cores": {
+                    "type": "long"
+                  },
+                  "name": {
+                    "ignore_above": 1024,
+                    "type": "keyword"
+                  },
+                  "speed": {
+                    "type": "long"
+                  },
                   "usage": {
                     "type": "float"
                   }
-                }
+                },
+                "type": "object"
               },
               "disk": {
                 "properties": {
@@ -120,6 +131,25 @@
                 "ignore_above": 1024,
                 "type": "keyword"
               },
+              "memory": {
+                "properties": {
+                  "free": {
+                    "type": "long"
+                  },
+                  "total": {
+                    "type": "long"
+                  },
+                  "used": {
+                    "properties": {
+                      "percentage": {
+                        "type": "long"
+                      }
+                    },
+                    "type": "object"
+                  }
+                },
+                "type": "object"
+              },
               "name": {
                 "ignore_above": 1024,
                 "type": "keyword"
@@ -131,7 +161,16 @@
                       "bytes": {
                         "type": "long"
                       },
+                      "drops": {
+                        "type": "long"
+                      },
+                      "errors": {
+                        "type": "long"
+                      },
                       "packets": {
+                        "type": "long"
+                      },
+                      "queue": {
                         "type": "long"
                       }
                     }
@@ -141,7 +180,16 @@
                       "bytes": {
                         "type": "long"
                       },
+                      "drops": {
+                        "type": "long"
+                      },
+                      "errors": {
+                        "type": "long"
+                      },
                       "packets": {
+                        "type": "long"
+                      },
+                      "queue": {
                         "type": "long"
                       }
                     }
@@ -1358,6 +1406,10 @@
             "ignore_above": 1024,
             "type": "keyword"
           },
+          "changed_fields": {
+            "ignore_above": 1024,
+            "type": "keyword"
+          },
           "code": {
             "ignore_above": 1024,
             "type": "keyword"
@@ -2076,10 +2128,21 @@
           },
           "cpu": {
             "properties": {
+              "cores": {
+                "type": "long"
+              },
+              "name": {
+                "ignore_above": 1024,
+                "type": "keyword"
+              },
+              "speed": {
+                "type": "long"
+              },
               "usage": {
                 "type": "float"
               }
-            }
+            },
+            "type": "object"
           },
           "disk": {
             "properties": {
@@ -2165,6 +2228,25 @@
             "ignore_above": 1024,
             "type": "keyword"
           },
+          "memory": {
+            "properties": {
+              "free": {
+                "type": "long"
+              },
+              "total": {
+                "type": "long"
+              },
+              "used": {
+                "properties": {
+                  "percentage": {
+                    "type": "long"
+                  }
+                },
+                "type": "object"
+              }
+            },
+            "type": "object"
+          },
           "name": {
             "ignore_above": 1024,
             "type": "keyword"
@@ -2176,7 +2258,16 @@
                   "bytes": {
                     "type": "long"
                   },
+                  "drops": {
+                    "type": "long"
+                  },
+                  "errors": {
+                    "type": "long"
+                  },
                   "packets": {
+                    "type": "long"
+                  },
+                  "queue": {
                     "type": "long"
                   }
                 }
@@ -2186,7 +2277,16 @@
                   "bytes": {
                     "type": "long"
                   },
+                  "drops": {
+                    "type": "long"
+                  },
+                  "errors": {
+                    "type": "long"
+                  },
                   "packets": {
+                    "type": "long"
+                  },
+                  "queue": {
                     "type": "long"
                   }
                 }
@@ -2337,6 +2437,33 @@
           }
         }
       },
+      "interface": {
+        "properties": {
+          "alias": {
+            "ignore_above": 1024,
+            "type": "keyword"
+          },
+          "id": {
+            "ignore_above": 1024,
+            "type": "keyword"
+          },
+          "mtu": {
+            "type": "long"
+          },
+          "name": {
+            "ignore_above": 1024,
+            "type": "keyword"
+          },
+          "state": {
+            "ignore_above": 1024,
+            "type": "keyword"
+          },
+          "type": {
+            "ignore_above": 1024,
+            "type": "keyword"
+          }
+        }
+      },
       "labels": {
         "type": "object"
       },
@@ -2441,10 +2568,17 @@
             "ignore_above": 1024,
             "type": "keyword"
           },
+          "broadcast": {
+            "type": "ip"
+          },
           "bytes": {
             "type": "long"
           },
           "community_id": {
+            "ignore_above": 1024,
+            "type": "keyword"
+          },
+          "dhcp": {
             "ignore_above": 1024,
             "type": "keyword"
           },
@@ -2453,6 +2587,9 @@
             "type": "keyword"
           },
           "forwarded_ip": {
+            "type": "ip"
+          },
+          "gateway": {
             "type": "ip"
           },
           "iana_number": {
@@ -2476,9 +2613,15 @@
             },
             "type": "object"
           },
+          "metric": {
+            "type": "long"
+          },
           "name": {
             "ignore_above": 1024,
             "type": "keyword"
+          },
+          "netmask": {
+            "type": "ip"
           },
           "packets": {
             "type": "long"
@@ -2523,7 +2666,53 @@
                     "ignore_above": 1024,
                     "type": "keyword"
                   },
+                  "mtu": {
+                    "type": "long"
+                  },
                   "name": {
+                    "ignore_above": 1024,
+                    "type": "keyword"
+                  },
+                  "observer": {
+                    "properties": {
+                      "ingress": {
+                        "properties": {
+                          "interface": {
+                            "properties": {
+                              "alias": {
+                                "ignore_above": 1024,
+                                "type": "keyword"
+                              },
+                              "id": {
+                                "ignore_above": 1024,
+                                "type": "keyword"
+                              },
+                              "mtu": {
+                                "type": "long"
+                              },
+                              "name": {
+                                "ignore_above": 1024,
+                                "type": "keyword"
+                              },
+                              "state": {
+                                "ignore_above": 1024,
+                                "type": "keyword"
+                              },
+                              "type": {
+                                "ignore_above": 1024,
+                                "type": "keyword"
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  },
+                  "state": {
+                    "ignore_above": 1024,
+                    "type": "keyword"
+                  },
+                  "type": {
                     "ignore_above": 1024,
                     "type": "keyword"
                   }
@@ -2611,7 +2800,18 @@
                     "ignore_above": 1024,
                     "type": "keyword"
                   },
+                  "mtu": {
+                    "type": "long"
+                  },
                   "name": {
+                    "ignore_above": 1024,
+                    "type": "keyword"
+                  },
+                  "state": {
+                    "ignore_above": 1024,
+                    "type": "keyword"
+                  },
+                  "type": {
                     "ignore_above": 1024,
                     "type": "keyword"
                   }

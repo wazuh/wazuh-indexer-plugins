@@ -5,6 +5,14 @@
   type: group
   group: 2
   fields:
+    - name: changed_fields
+      type: keyword
+      level: custom
+      description: >
+        Fields that were updated since last scan.
+      normalize:
+        - array
+      example: "[\"foo\", \"bar\"]"
     - name: collector
       type: keyword
       level: custom
