@@ -43,7 +43,6 @@ public class Command {
                 .field("version", "5.0.0") // Dynamic version
                 .endObject()
                 .field("source", "Content Manager")
-                .field("user", "Content Manager")
                 .field("timeout", 100)
                 .startObject("target")
                 .field("id", "vulnerability-detector")
