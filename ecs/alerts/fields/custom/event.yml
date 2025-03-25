@@ -10,3 +10,4 @@
       level: custom
       description: >
         Collector used to retrieve the event.
+      example: file

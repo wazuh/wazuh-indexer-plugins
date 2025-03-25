@@ -8,9 +8,15 @@
       type: keyword
       level: custom
       description: >
-        Wazuh decoder used
+        Wazuh decoder used.
+      normalize:
+        - array
+      example: ["foo", "bar"]
     - name: rules
       type: keyword
       level: custom
       description: >
         Wazuh rules triggered by the event.
+      normalize:
+        - array
+      example: ["foo", "bar"]
