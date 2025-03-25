@@ -601,3 +601,5 @@ fields:
         fields: "*"
     x509:
         fields: "*"
+    wazuh:
+        fields: "*"

@@ -1,0 +1,16 @@
+---
+- name: wazuh
+  title: Wazuh
+  description: >
+    Wazuh Inc. custom fields
+  fields:
+    - name: decoder
+      type: keyword
+      level: custom
+      description: >
+        Wazuh decoder used
+    - name: rules
+      type: keyword
+      level: custom
+      description: >
+        Wazuh rules an event traversed within the Wazuh Engine

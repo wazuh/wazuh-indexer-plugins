@@ -1,0 +1,12 @@
+---
+- name: event
+  title: Context information about the log or metric event itself
+  short: Context information about the log or metric event itself
+  type: group
+  group: 2
+  fields:
+    - name: collector
+      type: keyword
+      level: custom
+      description: >
+        Collector used to retrieve the event
