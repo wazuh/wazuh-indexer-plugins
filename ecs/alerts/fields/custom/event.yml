@@ -9,4 +9,4 @@
       type: keyword
       level: custom
       description: >
-        Collector used to retrieve the event
+        Collector used to retrieve the event.

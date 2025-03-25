@@ -13,4 +13,4 @@
       type: keyword
       level: custom
       description: >
-        Wazuh rules an event traversed within the Wazuh Engine
+        Wazuh rules triggered by the event.

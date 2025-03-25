@@ -1791,5 +1791,5 @@ ECS_Version,Indexed,Field_Set,Field,Type,Level,Normalization,Example,Description
 8.11.0,true,vulnerability,vulnerability.score.temporal,float,extended,,,Vulnerability Temporal score.
 8.11.0,true,vulnerability,vulnerability.score.version,keyword,extended,,2.0,CVSS version.
 8.11.0,true,vulnerability,vulnerability.severity,keyword,extended,,Critical,Severity of the vulnerability.
-8.11.0,true,wazuh,wazuh.decoder,keyword,custom,,,Wazuh decoder used
-8.11.0,true,wazuh,wazuh.rules,keyword,custom,,,Wazuh rules an event traversed within the Wazuh Engine
+8.11.0,true,wazuh,wazuh.decoder,keyword,custom,,,Wazuh decoders used.
+8.11.0,true,wazuh,wazuh.rules,keyword,custom,,,Wazuh rules triggered by the event.
