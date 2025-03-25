@@ -293,7 +293,7 @@ ECS_Version,Indexed,Field_Set,Field,Type,Level,Normalization,Example,Description
 8.11.0,true,event,event.action,keyword,core,,user-password-change,The action captured by the event.
 8.11.0,true,event,event.agent_id_status,keyword,extended,,verified,Validation status of the event's agent.id field.
 8.11.0,true,event,event.category,keyword,core,array,authentication,Event category. The second categorization field in the hierarchy.
-8.11.0,true,event,event.changed_fields,keyword,custom,,,Fields that were updated since last scan
+8.11.0,true,event,event.changed_fields,keyword,custom,array,"[""foo"", ""bar""]",Fields that were updated since last scan.
 8.11.0,true,event,event.code,keyword,extended,,4648,Identification code for this event.
 8.11.0,true,event,event.collector,keyword,custom,,file,Collector used to retrieve the event.
 8.11.0,true,event,event.created,date,core,,2016-05-23T08:05:34.857Z,Time when the event was first read by an agent or by your pipeline.
