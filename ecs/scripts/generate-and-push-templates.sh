@@ -143,9 +143,6 @@ commit_and_push_changes() {
         configure_git
     fi
 
-    echo
-    echo "---> Committing and pushing changes to ${PLUGINS_REPO} repository..."
-
     echo "Copying ECS templates and csv definitions to the plugins repository..."
     for ecs_module in "${relevant_modules[@]}"; do
         target_file=${module_to_file[$ecs_module]}
