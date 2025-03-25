@@ -11,7 +11,7 @@
         Wazuh decoder used.
       normalize:
         - array
-      example: "[\"foo\", \"bar\"]"
+      example: "[\"foo\", \"bar\""
     - name: rules
       type: keyword
       level: custom

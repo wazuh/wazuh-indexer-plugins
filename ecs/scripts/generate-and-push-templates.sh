@@ -14,6 +14,8 @@ CSV_SUBPATH="mappings/${ECS_VERSION}/generated/csv/fields.csv"
 COMMITER_EMAIL=${COMMITER_EMAIL:-$(git config user.email)}
 COMMITTER_USERNAME=${COMMITTER_USERNAME:-$(git config user.name)} # Human readable username
 
+set -euo pipefail
+
 # Global variables
 declare -a relevant_modules
 declare -A module_to_file
