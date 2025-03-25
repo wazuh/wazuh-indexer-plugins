@@ -29,3 +29,17 @@ fields:
                     fields: "*"
                   problemTypes:
                     fields: "*"
+              adp:
+                fields:
+                  affected:
+                    fields: "*"
+#                  descriptions:
+#                    fields: "*"
+#                  metrics:
+#                    fields: "*"
+#                  providerMetadata:
+#                    fields: "*"
+#                  references:
+#                    fields: "*"
+#                  problemTypes:
+#                    fields: "*"

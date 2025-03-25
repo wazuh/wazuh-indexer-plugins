@@ -1,0 +1,14 @@
+- name: programRoutines
+  title: Program Routines
+  description: The routines of the affected program.
+  level: nested
+  reusable:
+    top_level: false
+    expected:
+      - { at: cve.payload.containers.cna.affected, as: programRoutines }
+#      - { at: cve.payload.containers.adp.affected, as: versions }
+  fields:
+    - name: name
+      type: keyword
+      level: custom
+      description: The name of the routine.

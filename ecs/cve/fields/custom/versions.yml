@@ -6,6 +6,7 @@
     top_level: false
     expected:
       - { at: cve.payload.containers.cna.affected, as: versions }
+#      - { at: cve.payload.containers.adp.affected, as: versions }
   fields:
     - name: status
       type: keyword
@@ -15,3 +16,15 @@
       type: keyword
       level: custom
       description: The affected version.
+    - name: versionType
+      type: keyword
+      level: custom
+      description: The type of the affected version.
+    - name: lessThan
+      type: keyword
+      level: custom
+      description: The affected version is less than this version.
+    - name: lessThanOrEqual
+      type: keyword
+      level: custom
+      description: The affected version is less than or equal to this version.

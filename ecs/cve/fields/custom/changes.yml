@@ -1,0 +1,18 @@
+- name: changes
+  title: Changes
+  description: Changes associated with a CVE.
+  reusable:
+    top_level: false
+    expected:
+      - { at: versions, as: changes }
+#      - { at: payload.containers.adp, as: metrics }
+  level: nested
+  fields:
+    - name: at
+      type: keyword
+      level: custom
+      description: The location of the change
+    - name: status
+      type: keyword
+      level: custom
+      description: The status of the change [affected, unaffected, unknown]

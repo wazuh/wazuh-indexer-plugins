@@ -5,4 +5,5 @@
     top_level: false
     expected:
       - { at: cve.payload.containers.cna, as: problemTypes }
+#      - { at: cve.payload.containers.adp, as: problemTypes }
   level: nested

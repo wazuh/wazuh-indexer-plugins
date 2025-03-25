@@ -1,0 +1,8 @@
+- name: adp
+  title: Wazuh ADP
+  description: Wazuh CTI model for CVE
+  reusable:
+    top_level: false
+    expected:
+      - { at: containers, as: adp }
+  level: nested
