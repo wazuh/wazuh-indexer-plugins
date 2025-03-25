@@ -25,6 +25,7 @@ public class Command {
     /**
      * Constructs the JSON request body for the command.
      *
+     * @param offset Indicates the CTI version.
      * @return JSON string representing the request body.
      * @throws IOException If there's an issue building the JSON.
      */

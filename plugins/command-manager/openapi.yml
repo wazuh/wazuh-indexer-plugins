@@ -64,7 +64,7 @@ paths:
                         id: "d5b250c4-dfa1-4d94-827f-9f99210dbe6c"
                         type: "agent"
               update:
-                summary: Update content of vulnerability detector index#change rest
+                summary: Update content of vulnerability detector index
                 value:
                   commands:
                     - action:

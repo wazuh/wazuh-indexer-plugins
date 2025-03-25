@@ -54,6 +54,7 @@ import com.wazuh.contentmanager.util.Privileged;
 /** Main class of the Content Manager Plugin */
 public class ContentManagerPlugin extends Plugin implements ClusterPlugin, ActionPlugin {
 
+    private static final Logger log = LogManager.getLogger(ContentManagerPlugin.class);
     private ContextIndex contextIndex;
 
     /** ClassConstructor * */
