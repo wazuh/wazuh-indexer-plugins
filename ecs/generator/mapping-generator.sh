@@ -10,8 +10,6 @@ set -e
 # The container is built only if needed, the tool can be executed several times
 # for different modules in the same build since the script runs as entrypoint
 
-
-
 # ====
 # Checks that the script is run from the intended location
 # ====
@@ -52,27 +50,27 @@ function main() {
     compose_command="docker compose -f $compose_filename"
 
     case $1 in
-        run)
-            if [[ "$#" -lt 2 || "$#" -gt 3 ]]; then
-                usage
-            fi
-            module="$2"
-            repo_path="${3:-$(pwd)}"
-
-            # Start the container with the required env variables
-            ECS_MODULE="$module" REPO_PATH="$repo_path" $compose_command up
-            # The containers are stopped after each execution
-            $compose_command stop
-            ;;
-        down)
-            $compose_command down
-            ;;
-        stop)
-            $compose_command stop
-            ;;
-        *)
+    run)
+        if [[ "$#" -lt 2 || "$#" -gt 3 ]]; then
             usage
-            ;;
+        fi
+        module="$2"
+        repo_path="${3:-$(pwd)}"
+
+        # Start the container with the required env variables
+        ECS_MODULE="$module" REPO_PATH="$repo_path" $compose_command up --exit-code-from ecs-mapping-generator
+        # The containers are stopped after each execution
+        $compose_command stop
+        ;;
+    down)
+        $compose_command down
+        ;;
+    stop)
+        $compose_command stop
+        ;;
+    *)
+        usage
+        ;;
     esac
 }
 
