@@ -44,6 +44,11 @@ jobs:
             echo "command-manager" >> affected_projects.txt
           fi
 
+          # Check if any files are modified in wazuh-content-manager
+          if echo "$CHANGED_FILES" | grep -q "^plugins/content-manager/"; then
+            echo "content-manager" >> affected_projects.txt
+          fi
+
           # Output the list of affected projects
           if [ -f affected_projects.txt ]; then
             echo "projects=$(cat affected_projects.txt | paste -sd,)" >> $GITHUB_OUTPUT
