@@ -12,14 +12,38 @@
       type: keyword
       level: custom
       description: Common Platform Enumeration (CPE) entries for the affected product.
+    - name: collectionURL
+      type: keyword
+      level: custom
+      description: The URL of the affected collection.
     - name: defaultStatus
       type: keyword
       level: custom
       description: The default status of the affected product.
+    - name: modules
+      type: keyword
+      level: custom
+      description: List of the affected modules.
+    - name: packageName
+      type: keyword
+      level: custom
+      description: The name of the affected package.
     - name: product
       type: keyword
       level: custom
       description: The affected product.
+    - name: programFiles
+      type: keyword
+      level: custom
+      description: List of the files of the affected programs.
+    - name: platforms
+      type: keyword
+      level: custom
+      description: List of the affected platforms.
+    - name: repo
+      type: keyword
+      level: custom
+      description: Affected package repository.
     - name: vendor
       type: keyword
       level: custom
