@@ -1,4 +1,5 @@
 grant {
     permission java.net.SocketPermission "*", "connect,resolve";
-    permission java.io.FilePermission "*", "write";
+    permission java.lang.RuntimePermission "accessDeclaredMembers";
+    permission java.io.FilePermission "*", "read,write";
 };
