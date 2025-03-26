@@ -35,8 +35,8 @@ fields:
                     fields: "*"
 #                  descriptions:
 #                    fields: "*"
-#                  metrics:
-#                    fields: "*"
+                  metrics:
+                    fields: "*"
 #                  providerMetadata:
 #                    fields: "*"
 #                  references:

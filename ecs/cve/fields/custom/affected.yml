@@ -6,7 +6,7 @@
     expected:
       - { at: cna, as: affected }
       - { at: containers.adp, as: affected }
-  level: nested
+
   fields:
     - name: cpes
       type: keyword

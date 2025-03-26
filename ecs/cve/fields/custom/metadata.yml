@@ -5,7 +5,7 @@
     top_level: false
     expected:
       - { at: cve, as: cveMetadata }
-  level: nested
+
   fields:
     - name: assignerOrgId
       type: keyword

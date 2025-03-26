@@ -1,7 +1,7 @@
 - name: programRoutines
   title: Program Routines
   description: The routines of the affected program.
-  level: nested
+
   reusable:
     top_level: false
     expected:

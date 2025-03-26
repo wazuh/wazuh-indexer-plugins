@@ -5,7 +5,7 @@
     top_level: false
     expected:
       - { at: problemTypes, as: descriptions }
-  level: nested
+
   fields:
     - name: cweId
       type: keyword

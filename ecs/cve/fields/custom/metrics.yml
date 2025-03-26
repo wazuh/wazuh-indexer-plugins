@@ -5,8 +5,8 @@
     top_level: false
     expected:
       - { at: payload.containers.cna, as: metrics }
-#      - { at: payload.containers.adp, as: metrics }
-  level: nested
+      - { at: payload.containers.adp, as: metrics }
+
   fields:
     - name: format
       type: keyword

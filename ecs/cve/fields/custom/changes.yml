@@ -6,7 +6,7 @@
     expected:
       - { at: versions, as: changes }
 #      - { at: payload.containers.adp, as: metrics }
-  level: nested
+
   fields:
     - name: at
       type: keyword
