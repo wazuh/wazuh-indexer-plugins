@@ -16,8 +16,6 @@
  */
 package com.wazuh.contentmanager;
 
-import org.apache.hc.client5.http.async.methods.SimpleHttpResponse;
-import org.apache.hc.core5.http.HttpStatus;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.opensearch.client.Client;
@@ -92,23 +90,7 @@ public class ContentManagerPlugin extends Plugin implements ClusterPlugin, Actio
         String offset = "111";
         try {
             String command = Command.create(offset);
-            SimpleHttpResponse response =
-                    Privileged.doPrivilegedRequest(
-                            () -> CommandManagerClient.getInstance().postCommand(command));
-            switch (response.getCode()) {
-                case HttpStatus.SC_OK:
-                    log.info("Received OK response: {}", response.getBody().toString());
-                    break;
-                case HttpStatus.SC_CLIENT_ERROR:
-                    log.error("Client error: {}", response.getBody().toString());
-                    break;
-                case HttpStatus.SC_SERVER_ERROR:
-                    log.error("Internal server error");
-                    break;
-                default:
-                    log.info("Unexpected response code: {}", response.getCode());
-            }
-
+            Privileged.doPrivilegedRequest(() -> CommandManagerClient.getInstance().postCommand(command));
         } catch (IOException e) {
             log.error(e.getMessage());
         }
