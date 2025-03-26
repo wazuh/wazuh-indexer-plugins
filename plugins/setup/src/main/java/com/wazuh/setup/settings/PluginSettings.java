@@ -1,9 +1,26 @@
+/*
+ * Copyright (C) 2024, Wazuh Inc.
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as
+ * published by the Free Software Foundation, either version 3 of the
+ * License, or (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
 package com.wazuh.setup.settings;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.opensearch.common.settings.Setting;
 import org.opensearch.common.settings.Settings;
+
 import reactor.util.annotation.NonNull;
 
 public class PluginSettings {
@@ -25,33 +42,33 @@ public class PluginSettings {
     // Command Manager Settings.
     // Maximum number of documents to be returned by query.
     public static final Setting<Integer> MAX_DOCS =
-        Setting.intSetting(
-            "command_manager.job.max_docs",
-            DEFAULT_MAX_DOCS,
-            5,
-            100000,
-            Setting.Property.NodeScope,
-            Setting.Property.Filtered);
+            Setting.intSetting(
+                    "command_manager.job.max_docs",
+                    DEFAULT_MAX_DOCS,
+                    5,
+                    100000,
+                    Setting.Property.NodeScope,
+                    Setting.Property.Filtered);
     // Client class methods' timeout in seconds
     // Currently used for client.index() and client.search() methods.
     public static final Setting<Integer> CLIENT_TIMEOUT =
-        Setting.intSetting(
-            "command_manager.client.timeout",
-            DEFAULT_CLIENT_TIMEOUT,
-            5,
-            120,
-            Setting.Property.NodeScope,
-            Setting.Property.Filtered);
+            Setting.intSetting(
+                    "command_manager.client.timeout",
+                    DEFAULT_CLIENT_TIMEOUT,
+                    5,
+                    120,
+                    Setting.Property.NodeScope,
+                    Setting.Property.Filtered);
     // Job execution interval in minutes.
     // Must be greater than CLIENT_TIMEOUT
     public static final Setting<Integer> JOB_SCHEDULE =
-        Setting.intSetting(
-            "command_manager.job.schedule",
-            DEFAULT_JOB_SCHEDULE,
-            1,
-            10,
-            Setting.Property.NodeScope,
-            Setting.Property.Filtered);
+            Setting.intSetting(
+                    "command_manager.job.schedule",
+                    DEFAULT_JOB_SCHEDULE,
+                    1,
+                    10,
+                    Setting.Property.NodeScope,
+                    Setting.Property.Filtered);
 
     private Integer timeout;
     private final Integer jobSchedule;
@@ -79,8 +96,8 @@ public class PluginSettings {
         if (!(this.timeout < this.pitKeepAlive)) {
             this.timeout = DEFAULT_CLIENT_TIMEOUT;
             log.warn(
-                "Setting [command_manager.client.timeout] must be lower than [command_manager.job.schedule] * 60. Falling back to the default value [{}]",
-                DEFAULT_CLIENT_TIMEOUT);
+                    "Setting [command_manager.client.timeout] must be lower than [command_manager.job.schedule] * 60. Falling back to the default value [{}]",
+                    DEFAULT_CLIENT_TIMEOUT);
         }
     }
 
@@ -168,18 +185,17 @@ public class PluginSettings {
         return AGENTS_INDEX;
     }
 
-
     @Override
     public String toString() {
         return "{"
-            + "timeout="
-            + timeout
-            + ", jobSchedule="
-            + jobSchedule
-            + ", maxDocs="
-            + maxDocs
-            + ", pitKeepAlive="
-            + pitKeepAlive
-            + '}';
+                + "timeout="
+                + timeout
+                + ", jobSchedule="
+                + jobSchedule
+                + ", maxDocs="
+                + maxDocs
+                + ", pitKeepAlive="
+                + pitKeepAlive
+                + '}';
     }
 }

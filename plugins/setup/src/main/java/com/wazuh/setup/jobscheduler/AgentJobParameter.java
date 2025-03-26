@@ -1,3 +1,19 @@
+/*
+ * Copyright (C) 2024, Wazuh Inc.
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as
+ * published by the Free Software Foundation, either version 3 of the
+ * License, or (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
 package com.wazuh.setup.jobscheduler;
 
 import org.opensearch.core.xcontent.XContentBuilder;
@@ -8,7 +24,7 @@ import java.io.IOException;
 import java.time.Instant;
 
 /** A model for the parameters and schema to be indexed to the jobs index. */
-public class AgentJobParameter implements ScheduledJobParameter { ;
+public class AgentJobParameter implements ScheduledJobParameter {
 
     public static final String NAME_FIELD = "name";
     public static final String ENABLED_FIELD = "enabled";
@@ -23,7 +39,6 @@ public class AgentJobParameter implements ScheduledJobParameter { ;
     private Instant enabledTime;
     private boolean isEnabled;
     private Schedule schedule;
-
 
     /** Default constructor. */
     public AgentJobParameter() {}
@@ -122,13 +137,13 @@ public class AgentJobParameter implements ScheduledJobParameter { ;
         builder.field(SCHEDULE_FIELD, this.schedule);
         if (this.enabledTime != null) {
             builder.timeField(
-                ENABLED_TIME_FIELD, ENABLED_TIME_FIELD_READABLE, this.enabledTime.toEpochMilli());
+                    ENABLED_TIME_FIELD, ENABLED_TIME_FIELD_READABLE, this.enabledTime.toEpochMilli());
         }
         if (this.lastUpdateTime != null) {
             builder.timeField(
-                LAST_UPDATE_TIME_FIELD,
-                LAST_UPDATE_TIME_FIELD_READABLE,
-                this.lastUpdateTime.toEpochMilli());
+                    LAST_UPDATE_TIME_FIELD,
+                    LAST_UPDATE_TIME_FIELD_READABLE,
+                    this.lastUpdateTime.toEpochMilli());
         }
         builder.endObject();
 

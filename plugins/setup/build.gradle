@@ -76,6 +76,10 @@ opensearchplugin {
     noticeFile rootProject.file('NOTICE.txt')
 }
 
+def versions = [
+  log4j: "2.23.1"
+]
+
 configurations {
   zipArchive
 }

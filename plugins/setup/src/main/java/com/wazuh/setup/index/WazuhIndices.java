@@ -60,6 +60,8 @@ public class WazuhIndices {
         this.indexTemplates.put("index-template-alerts", List.of("wazuh-alerts-5.x-0001"));
         this.indexTemplates.put("index-template-commands", List.of("wazuh-commands"));
         this.indexTemplates.put("index-template-scheduled-commands", List.of(".scheduled-commands"));
+        this.indexTemplates.put(
+                "index-template-scheduled-agents-status", List.of(".scheduled-agents-status"));
         this.indexTemplates.put("index-template-fim", List.of("wazuh-states-fim"));
         this.indexTemplates.put("index-template-hardware", List.of("wazuh-states-inventory-hardware"));
         this.indexTemplates.put("index-template-hotfixes", List.of("wazuh-states-inventory-hotfixes"));

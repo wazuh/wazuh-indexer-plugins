@@ -113,14 +113,14 @@ public class IndexTemplateUtils {
             Map<String, Object> template = IndexTemplateUtils.fromFile(templateName + ".json");
 
             PutIndexTemplateRequest putIndexTemplateRequest =
-                new PutIndexTemplateRequest()
-                    .mapping(IndexTemplateUtils.get(template, "mappings"))
-                    .settings(IndexTemplateUtils.get(template, "settings"))
-                    .name(templateName)
-                    .patterns((List<String>) template.get("index_patterns"));
+                    new PutIndexTemplateRequest()
+                            .mapping(IndexTemplateUtils.get(template, "mappings"))
+                            .settings(IndexTemplateUtils.get(template, "settings"))
+                            .name(templateName)
+                            .patterns((List<String>) template.get("index_patterns"));
 
             AcknowledgedResponse acknowledgedResponse =
-                client.admin().indices().putTemplate(putIndexTemplateRequest).actionGet();
+                    client.admin().indices().putTemplate(putIndexTemplateRequest).actionGet();
             if (acknowledgedResponse.isAcknowledged()) {
                 log.info("Index template [{}] created successfully", templateName);
             }

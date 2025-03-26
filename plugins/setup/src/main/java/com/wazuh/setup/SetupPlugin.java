@@ -16,10 +16,6 @@
  */
 package com.wazuh.setup;
 
-import com.wazuh.setup.jobscheduler.AgentJobParameter;
-import com.wazuh.setup.jobscheduler.JobDocument;
-import com.wazuh.setup.jobscheduler.AgentJobRunner;
-import com.wazuh.setup.settings.PluginSettings;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.opensearch.action.index.IndexResponse;
@@ -42,6 +38,7 @@ import org.opensearch.jobscheduler.spi.ScheduledJobRunner;
 import org.opensearch.jobscheduler.spi.schedule.ScheduleParser;
 import org.opensearch.plugins.ClusterPlugin;
 import org.opensearch.plugins.Plugin;
+import org.opensearch.plugins.ReloadablePlugin;
 import org.opensearch.repositories.RepositoriesService;
 import org.opensearch.script.ScriptService;
 import org.opensearch.threadpool.ThreadPool;
@@ -56,18 +53,22 @@ import java.util.concurrent.CompletableFuture;
 import java.util.function.Supplier;
 
 import com.wazuh.setup.index.WazuhIndices;
+import com.wazuh.setup.jobscheduler.AgentJobParameter;
+import com.wazuh.setup.jobscheduler.AgentJobRunner;
+import com.wazuh.setup.jobscheduler.JobDocument;
+import com.wazuh.setup.settings.PluginSettings;
 
 /**
  * Main class of the Indexer Setup plugin. This plugin is responsible for the creation of the index
  * templates and indices required by Wazuh to work properly.
  */
-public class SetupPlugin extends Plugin implements ClusterPlugin, JobSchedulerExtension {
+public class SetupPlugin extends Plugin
+        implements ClusterPlugin, JobSchedulerExtension, ReloadablePlugin {
 
     private static final Logger log = LogManager.getLogger(SetupPlugin.class);
 
     private WazuhIndices indices;
     private JobDocument jobDocument;
-
 
     /** Default constructor */
     public SetupPlugin() {}
@@ -87,9 +88,11 @@ public class SetupPlugin extends Plugin implements ClusterPlugin, JobSchedulerEx
             Supplier<RepositoriesService> repositoriesServiceSupplier) {
         this.indices = new WazuhIndices(client, clusterService);
 
-        AgentJobRunner.getInstance()
-            .setClient(client)
-            .setThreadPool(threadPool);
+        PluginSettings.getInstance(environment.settings());
+
+        AgentJobRunner.getInstance().setClient(client).setThreadPool(threadPool);
+
+        this.scheduleAgentStatusJob(client, clusterService, threadPool);
 
         return List.of(this.indices);
     }
@@ -102,35 +105,39 @@ public class SetupPlugin extends Plugin implements ClusterPlugin, JobSchedulerEx
      *     cluster.
      * @param threadPool: Used by jobDocument to create the document in a thread.
      */
-    private void scheduleCommandJob(
-        Client client, ClusterService clusterService, ThreadPool threadPool) {
+    private void scheduleAgentStatusJob(
+            Client client, ClusterService clusterService, ThreadPool threadPool) {
+        log.info("Checking if this is a new cluster");
         clusterService.addListener(
-            event -> {
-                if (event.localNodeClusterManager() && event.isNewCluster()) {
-                    jobDocument = JobDocument.getInstance();
-                    CompletableFuture<IndexResponse> indexResponseCompletableFuture =
-                        jobDocument.create(
-                            clusterService,
-                            client,
-                            threadPool,
-                            UUIDs.base64UUID(),
-                            getJobType(),
-                            PluginSettings.getInstance().getJobSchedule());
-                    indexResponseCompletableFuture.thenAccept(
-                        indexResponse -> {
-                            log.info(
-                                "Scheduled task successfully, response: {}",
-                                indexResponse.getResult().toString());
-                        });
-                }
-            });
+                event -> {
+                    if (event.localNodeClusterManager() && event.isNewCluster()) {
+                        log.info("This is a new cluster {}", clusterService.toString());
+                        jobDocument = JobDocument.getInstance();
+                        CompletableFuture<IndexResponse> indexResponseCompletableFuture =
+                                jobDocument.create(
+                                        clusterService,
+                                        client,
+                                        threadPool,
+                                        UUIDs.base64UUID(),
+                                        getJobType(),
+                                        PluginSettings.getInstance().getJobSchedule());
+                        indexResponseCompletableFuture.thenAccept(
+                                indexResponse -> {
+                                    log.info(
+                                            "Scheduled task successfully, response: {}",
+                                            indexResponse.getResult().toString());
+                                });
+                    } else {
+                        log.info("Not a new cluster {}", clusterService.toString());
+                    }
+                });
     }
 
     @Override
     public List<Setting<?>> getSettings() {
         return Arrays.asList(
-            // Register API settings
-            PluginSettings.CLIENT_TIMEOUT, PluginSettings.MAX_DOCS, PluginSettings.JOB_SCHEDULE);
+                // Register API settings
+                PluginSettings.CLIENT_TIMEOUT, PluginSettings.MAX_DOCS, PluginSettings.JOB_SCHEDULE);
     }
 
     @Override
@@ -160,7 +167,7 @@ public class SetupPlugin extends Plugin implements ClusterPlugin, JobSchedulerEx
         return (parser, id, jobDocVersion) -> {
             AgentJobParameter jobParameter = new AgentJobParameter();
             XContentParserUtils.ensureExpectedToken(
-                XContentParser.Token.START_OBJECT, parser.nextToken(), parser);
+                    XContentParser.Token.START_OBJECT, parser.nextToken(), parser);
 
             while (!parser.nextToken().equals(XContentParser.Token.END_OBJECT)) {
                 String fieldName = parser.currentName();
@@ -204,5 +211,10 @@ public class SetupPlugin extends Plugin implements ClusterPlugin, JobSchedulerEx
         }
         XContentParserUtils.throwUnknownToken(parser.currentToken(), parser.getTokenLocation());
         return null;
+    }
+
+    @Override
+    public void reload(Settings settings) {
+        // TODO
     }
 }
