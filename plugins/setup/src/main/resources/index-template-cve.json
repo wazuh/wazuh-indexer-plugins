@@ -112,6 +112,54 @@
                             }
                           }
                         }
+                      },
+                      "metrics": {
+                        "properties": {
+                          "cvssV2_0": {
+                            "properties": {
+                              "accessComplexity": {
+                                "ignore_above": 1024,
+                                "type": "keyword"
+                              },
+                              "accessVector": {
+                                "ignore_above": 1024,
+                                "type": "keyword"
+                              },
+                              "authentication": {
+                                "ignore_above": 1024,
+                                "type": "keyword"
+                              },
+                              "availabilityImpact": {
+                                "ignore_above": 1024,
+                                "type": "keyword"
+                              },
+                              "baseScore": {
+                                "ignore_above": 1024,
+                                "type": "keyword"
+                              },
+                              "confidentialityImpact": {
+                                "ignore_above": 1024,
+                                "type": "keyword"
+                              },
+                              "integrityImpact": {
+                                "ignore_above": 1024,
+                                "type": "keyword"
+                              },
+                              "vectorString": {
+                                "ignore_above": 1024,
+                                "type": "keyword"
+                              },
+                              "version": {
+                                "ignore_above": 1024,
+                                "type": "keyword"
+                              }
+                            }
+                          },
+                          "format": {
+                            "ignore_above": 1024,
+                            "type": "keyword"
+                          }
+                        }
                       }
                     }
                   },
