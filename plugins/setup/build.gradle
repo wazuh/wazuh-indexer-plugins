@@ -1,10 +1,15 @@
 import org.opensearch.gradle.test.RestIntegTestTask
 
+import java.util.concurrent.Callable
+
 buildscript {
     ext {
         opensearch_version = System.getProperty("opensearch.version", "2.19.1-SNAPSHOT")
         wazuh_version = System.getProperty("version", "5.0.0")
         revision = System.getProperty("revision", "0")
+        opensearch_no_snapshot = opensearch_version.replace("-SNAPSHOT","")
+        opensearch_build = opensearch_no_snapshot + ".0"
+        job_scheduler_version = System.getProperty("job_scheduler.version", opensearch_build)
     }
 
     repositories {
@@ -66,8 +71,23 @@ opensearchplugin {
     name pluginName
     description pluginDescription
     classname "${projectPath}.${pathToPlugin}.${pluginClassName}"
+    extendedPlugins = ['opensearch-job-scheduler']
     licenseFile rootProject.file('LICENSE.txt')
     noticeFile rootProject.file('NOTICE.txt')
+}
+
+configurations {
+  zipArchive
+}
+
+dependencies {
+  implementation "org.apache.logging.log4j:log4j-slf4j-impl:${versions.log4j}"
+
+  // Job Scheduler stuff
+  zipArchive group: 'org.opensearch.plugin', name: 'opensearch-job-scheduler', version: "${opensearch_build}"
+  // implementation "org.opensearch:opensearch:${opensearch_version}"
+  compileOnly "org.opensearch:opensearch-job-scheduler-spi:${job_scheduler_version}"
+
 }
 
 // No need to validate license headers since spotless checks and applies it
@@ -104,9 +124,25 @@ integTest {
     }
 }
 
-testClusters.integTest {
-    testDistribution = "INTEG_TEST"
+def getJobSchedulerPlugin() {
+  provider(new Callable<RegularFile>() {
+    @Override
+    RegularFile call() throws Exception {
+      return new RegularFile() {
+        @Override
+        File getAsFile() {
+          return configurations.zipArchive.asFileTree.matching {
+            include '**/opensearch-job-scheduler*'
+          }.singleFile
+        }
+      }
+    }
+  })
+}
 
+testClusters.integTest {
+    plugin(getJobSchedulerPlugin())
+    testDistribution = "ARCHIVE"
     // This installs our plugin into the testClusters
     plugin(project.tasks.bundlePlugin.archiveFile)
 }
