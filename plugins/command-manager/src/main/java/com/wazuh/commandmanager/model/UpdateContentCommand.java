@@ -36,50 +36,53 @@ public class UpdateContentCommand extends Args {
      */
     public static Args parse(XContentParser parser) throws IOException {
         Map<String, Object> args = new HashMap<>();
+        boolean indexParsed = false;
+        boolean offsetParsed = false;
+        String fieldName = "";
 
-        XContentParser.Token currentToken = parser.currentToken();
-        if (currentToken != XContentParser.Token.START_OBJECT) {
-            throw new IllegalArgumentException(
-                    "Expected [command.action.args] to be an object, got [" + parser.currentName() + "]");
+        while (parser.nextToken() != XContentParser.Token.END_OBJECT) {
+            XContentParser.Token actualToken = parser.currentToken();
+            switch (actualToken) {
+                case FIELD_NAME:
+                    fieldName = parser.currentName();
+                    switch (fieldName) {
+                        case INDEX_KEY:
+                            indexParsed = true;
+                            break;
+                        case OFFSET_KEY:
+                            offsetParsed = true;
+                            break;
+                        default:
+                            throw new IllegalArgumentException(
+                                    "Expected [command.action.args] to contains only the ["
+                                            + INDEX_KEY
+                                            + "] and ["
+                                            + OFFSET_KEY
+                                            + "] keys, got ["
+                                            + parser.currentName()
+                                            + "]");
+                    }
+                    break;
+                case VALUE_STRING:
+                    args.put(fieldName, parser.objectText());
+                    break;
+                default:
+                    throw new IllegalArgumentException(
+                            "Expected [command.action.args] to be an field or a text value, got ["
+                                    + parser.currentName()
+                                    + "]");
+            }
         }
-        currentToken = parser.nextToken();
-        if (currentToken != XContentParser.Token.FIELD_NAME) {
-            throw new IllegalArgumentException(
-                    "Expected [command.action.args] to be an object, got [" + currentToken.name() + "]");
-        }
-        if (!INDEX_KEY.equals(parser.currentName())) {
+
+        if (indexParsed && offsetParsed) {
+            return new Args(args);
+        } else {
             throw new IllegalArgumentException(
                     "Expected [command.action.args] to contain the ["
                             + INDEX_KEY
-                            + "] key, got ["
-                            + parser.currentName()
-                            + "]");
-        }
-        currentToken = parser.nextToken();
-        if (currentToken != XContentParser.Token.VALUE_STRING) {
-            throw new IllegalArgumentException(
-                    "Expected [command.action.args] to be a text value, got [" + currentToken.name() + "]");
-        }
-        args.put(INDEX_KEY, parser.objectText());
-        currentToken = parser.nextToken();
-        if (currentToken != XContentParser.Token.FIELD_NAME) {
-            throw new IllegalArgumentException(
-                    "Expected [command.action.args] to be a field, got [" + currentToken.name() + "]");
-        }
-        if (!OFFSET_KEY.equals(parser.currentName())) {
-            throw new IllegalArgumentException(
-                    "Expected [command.action.args] to contain the ["
+                            + "] and ["
                             + OFFSET_KEY
-                            + "] key, got ["
-                            + parser.currentName()
-                            + "]");
+                            + "] keys");
         }
-        currentToken = parser.nextToken();
-        if (currentToken != XContentParser.Token.VALUE_STRING) {
-            throw new IllegalArgumentException(
-                    "Expected [command.action.args] to be a text value, got [" + currentToken.name() + "]");
-        }
-        args.put(OFFSET_KEY, parser.objectText());
-        return new Args(args);
     }
 }
