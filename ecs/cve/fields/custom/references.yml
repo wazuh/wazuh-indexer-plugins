@@ -1,14 +1,21 @@
-- name: reference
-  title: Reference
+- name: references
+  title: References
   description: CNA references.
   reusable:
     top_level: false
     expected:
       - { at: cve.payload.containers.cna, as: references }
       - { at: cve.payload.containers.adp, as: references }
-
   fields:
     - name: url
       type: keyword
       level: custom
       description: The URL of the reference
+    - name: name
+      type: keyword
+      level: custom
+      description: The name of the reference
+    - name: tags
+      type: keyword
+      level: custom
+      description: The tags of the reference

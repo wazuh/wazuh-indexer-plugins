@@ -7,15 +7,32 @@
       - { at: problemTypes, as: descriptions }
 
   fields:
-    - name: cweId
-      type: keyword
-      level: custom
-      description: The CWE ID of the problem type.
-    - name: description
-      type: keyword
-      level: custom
-      description: The description of the problem type.
     - name: lang
       type: keyword
       level: custom
       description: The language of the description.
+    - name: description
+      type: keyword
+      level: custom
+      description: The description of the problem type.
+    - name: cweId
+      type: keyword
+      level: custom
+      description: The CWE ID of the problem type.
+    - name: type
+      type: keyword
+      level: custom
+      description: The type of the problem type.
+    - name: references.url
+      type: keyword
+      level: custom
+      description: The URL of the reference
+    - name: references.name
+      type: keyword
+      level: custom
+      description: The name of the reference
+    - name: references.tags
+      type: keyword
+      level: custom
+      description: The tags of the reference
+

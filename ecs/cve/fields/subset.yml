@@ -19,6 +19,8 @@ fields:
                 fields:
                   affected:
                     fields: "*"
+                  impacts:
+                    fields: "*"
                   descriptions:
                     fields: "*"
                   metrics:
@@ -28,18 +30,24 @@ fields:
                   references:
                     fields: "*"
                   problemTypes:
-                    fields: "*"
+                    fields:
+                      descriptions:
+                        fields: "*"
               adp:
                 fields:
                   affected:
                     fields: "*"
-#                  descriptions:
-#                    fields: "*"
+                  descriptions:
+                    fields: "*"
                   metrics:
+                    fields: "*"
+                  problemTypes:
+                    fields:
+                      descriptions:
+                        fields: "*"
+                  impacts:
                     fields: "*"
 #                  providerMetadata:
 #                    fields: "*"
 #                  references:
-#                    fields: "*"
-#                  problemTypes:
 #                    fields: "*"

@@ -6,6 +6,7 @@
     expected:
       - { at: payload.containers.cna, as: descriptions }
       - { at: payload.containers.adp, as: descriptions }
+      - { at: impacts, as: descriptions }
 
   fields:
     - name: lang

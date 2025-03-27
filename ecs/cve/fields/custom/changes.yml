@@ -5,8 +5,6 @@
     top_level: false
     expected:
       - { at: versions, as: changes }
-#      - { at: payload.containers.adp, as: metrics }
-
   fields:
     - name: at
       type: keyword
