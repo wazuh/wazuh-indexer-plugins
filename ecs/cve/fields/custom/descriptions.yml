@@ -7,6 +7,10 @@
       - { at: payload.containers.cna, as: descriptions }
       - { at: payload.containers.adp, as: descriptions }
       - { at: impacts, as: descriptions }
+      - { at: payload.containers.cna, as: configurations }
+      - { at: payload.containers.cna, as: workarounds }
+      - { at: payload.containers.cna, as: solutions }
+      - { at: payload.containers.cna, as: exploits }
 
   fields:
     - name: lang

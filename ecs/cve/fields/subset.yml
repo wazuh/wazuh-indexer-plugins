@@ -33,6 +33,14 @@ fields:
                     fields:
                       descriptions:
                         fields: "*"
+                  configurations:
+                    fields: "*"
+                  workarounds:
+                    fields: "*"
+                  solutions:
+                    fields: "*"
+                  exploits:
+                    fields: "*"
               adp:
                 fields:
                   affected:

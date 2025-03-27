@@ -5,8 +5,15 @@
     top_level: false
     expected:
       - { at: metrics, as: cvssV2_0 }
-
   fields:
+    - name: version
+      type: keyword
+      level: custom
+      description: The version of CVSS.
+    - name: vectorString
+      type: keyword
+      level: custom
+      description: The vector string.
     - name: accessVector
       type: keyword
       level: custom
@@ -19,14 +26,6 @@
       type: keyword
       level: custom
       description: The authentication.
-    - name: availabilityImpact
-      type: keyword
-      level: custom
-      description: The availability impact.
-    - name: baseScore
-      type: keyword
-      level: custom
-      description: The base score.
     - name: confidentialityImpact
       type: keyword
       level: custom
@@ -35,11 +34,31 @@
       type: keyword
       level: custom
       description: The integrity impact.
-    - name: vectorString
+    - name: availabilityImpact
       type: keyword
       level: custom
-      description: The vector string.
-    - name: version
+      description: The availability impact.
+    - name: baseScore
       type: keyword
       level: custom
-      description: The version of CVSS.
+      description: The base score.
+    - name: exploitability
+      type: keyword
+      level: custom
+      description: The exploitability.
+    - name: remediationLevel
+      type: keyword
+      level: custom
+      description: The remediation level.
+    - name: reportConfidence
+      type: keyword
+      level: custom
+      description: The report confidence.
+    - name: temporalScore
+      type: keyword
+      level: custom
+      description: The temporal score.
+    - name: collateralDamagePotential
+      type: keyword
+      level: custom
+      description: The collateral damage potential.

@@ -8,6 +8,12 @@
       - { at: cve.payload.containers.adp.descriptions, as: supportingMedia }
       - { at: cve.payload.containers.cna.impacts.descriptions, as: supportingMedia }
       - { at: cve.payload.containers.adp.impacts.descriptions, as: supportingMedia }
+      - { at: cve.payload.containers.cna.configurations, as: supportingMedia }
+      - { at: cve.payload.containers.cna.workarounds, as: supportingMedia }
+      - { at: cve.payload.containers.cna.solutions, as: supportingMedia }
+      - { at: cve.payload.containers.cna.exploits, as: supportingMedia }
+      # - { at: cve.payload.containers.cna., as: supportingMedia }
+      # - { at: cve.payload.containers.cna., as: supportingMedia }
   fields:
     - name: type
       type: keyword
