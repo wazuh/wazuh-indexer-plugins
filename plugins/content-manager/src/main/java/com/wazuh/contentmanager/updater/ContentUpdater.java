@@ -156,6 +156,7 @@ public class ContentUpdater {
      * @param updatedOffset Last updated offset.
      */
     public void postUpdateCommand(Long updatedOffset) {
+        log.info("Initiating call to command manager");
         try {
             // Post new command informing the new changes.
             CommandManagerClient.getInstance().postCommand(Command.generateCtiCommand());

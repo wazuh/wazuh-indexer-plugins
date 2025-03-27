@@ -42,7 +42,7 @@ public class CommandManagerClient extends HttpClient {
 
     /** Private constructor to initialize the CommandManagerClient with the base API URI. */
     private CommandManagerClient() {
-        super(URI.create(PluginSettings.getInstance().getClusterBaseUrl() + BASE_COMMAND_MANAGER_URI));
+        super(URI.create("http://localhost:8080" + BASE_COMMAND_MANAGER_URI));
     }
 
     /**

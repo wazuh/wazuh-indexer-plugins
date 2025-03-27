@@ -16,6 +16,8 @@
  */
 package com.wazuh.contentmanager.rest;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.opensearch.client.node.NodeClient;
 import org.opensearch.core.rest.RestStatus;
 import org.opensearch.rest.BaseRestHandler;
@@ -36,6 +38,7 @@ import static com.wazuh.contentmanager.settings.PluginSettings.API_BASE_URI;
 public class UpdaterHandler extends BaseRestHandler {
     public static final String NAME = "content_updater";
 
+    private static final Logger log = LogManager.getLogger(UpdaterHandler.class);
     /** Exposes the endpoint */
     @Override
     public List<RestHandler.Route> routes() {
@@ -51,6 +54,8 @@ public class UpdaterHandler extends BaseRestHandler {
     @Override
     protected RestChannelConsumer prepareRequest(RestRequest request, NodeClient client)
             throws IOException {
+        log.info("Updater endpoint called: {}", request.method().name());
+        log.info("Params: {}", request.params().toString());
         if (Objects.requireNonNull(request.method()) == GET) {
             ContentUpdater updater = new ContentUpdater();
             // Run the update process asynchronously
