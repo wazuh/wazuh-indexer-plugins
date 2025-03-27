@@ -36,7 +36,7 @@ public class PluginSettings {
     */
     private static final String JOB_TYPE = "agent_scheduler_extension";
     private static final String JOB_INDEX_TEMPLATE = "index-template-scheduled-agents-status";
-    private static final String JOB_INDEX = ".scheduled-agent-status";
+    private static final String JOB_INDEX = ".scheduled-agents-status";
     private static final String AGENTS_INDEX = "wazuh-agents";
 
     // Command Manager Settings.
