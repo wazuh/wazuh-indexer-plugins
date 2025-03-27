@@ -217,9 +217,413 @@
                               }
                             }
                           },
+                          "cvssV3": {
+                            "properties": {
+                              "attackComplexity": {
+                                "ignore_above": 1024,
+                                "type": "keyword"
+                              },
+                              "attackVector": {
+                                "ignore_above": 1024,
+                                "type": "keyword"
+                              },
+                              "availabilityImpact": {
+                                "ignore_above": 1024,
+                                "type": "keyword"
+                              },
+                              "availabilityRequirement": {
+                                "ignore_above": 1024,
+                                "type": "keyword"
+                              },
+                              "baseScore": {
+                                "ignore_above": 1024,
+                                "type": "keyword"
+                              },
+                              "baseSeverity": {
+                                "ignore_above": 1024,
+                                "type": "keyword"
+                              },
+                              "confidentialityImpact": {
+                                "ignore_above": 1024,
+                                "type": "keyword"
+                              },
+                              "confidentialityRequirement": {
+                                "ignore_above": 1024,
+                                "type": "keyword"
+                              },
+                              "environmentalScore": {
+                                "ignore_above": 1024,
+                                "type": "keyword"
+                              },
+                              "environmentalSeverity": {
+                                "ignore_above": 1024,
+                                "type": "keyword"
+                              },
+                              "exploitCodeMaturity": {
+                                "ignore_above": 1024,
+                                "type": "keyword"
+                              },
+                              "integrityImpact": {
+                                "ignore_above": 1024,
+                                "type": "keyword"
+                              },
+                              "integrityRequirement": {
+                                "ignore_above": 1024,
+                                "type": "keyword"
+                              },
+                              "modifiedAttackComplexity": {
+                                "ignore_above": 1024,
+                                "type": "keyword"
+                              },
+                              "modifiedAttackVector": {
+                                "ignore_above": 1024,
+                                "type": "keyword"
+                              },
+                              "modifiedAvailabilityImpact": {
+                                "ignore_above": 1024,
+                                "type": "keyword"
+                              },
+                              "modifiedConfidentialityImpact": {
+                                "ignore_above": 1024,
+                                "type": "keyword"
+                              },
+                              "modifiedIntegrityImpact": {
+                                "ignore_above": 1024,
+                                "type": "keyword"
+                              },
+                              "modifiedPrivilegesRequired": {
+                                "ignore_above": 1024,
+                                "type": "keyword"
+                              },
+                              "modifiedScope": {
+                                "ignore_above": 1024,
+                                "type": "keyword"
+                              },
+                              "modifiedUserInteraction": {
+                                "ignore_above": 1024,
+                                "type": "keyword"
+                              },
+                              "privilegesRequired": {
+                                "ignore_above": 1024,
+                                "type": "keyword"
+                              },
+                              "remediationLevel": {
+                                "ignore_above": 1024,
+                                "type": "keyword"
+                              },
+                              "reportConfidence": {
+                                "ignore_above": 1024,
+                                "type": "keyword"
+                              },
+                              "scope": {
+                                "ignore_above": 1024,
+                                "type": "keyword"
+                              },
+                              "temporalScore": {
+                                "ignore_above": 1024,
+                                "type": "keyword"
+                              },
+                              "temporalSeverity": {
+                                "ignore_above": 1024,
+                                "type": "keyword"
+                              },
+                              "userInteraction": {
+                                "ignore_above": 1024,
+                                "type": "keyword"
+                              },
+                              "vectorString": {
+                                "ignore_above": 1024,
+                                "type": "keyword"
+                              },
+                              "version": {
+                                "ignore_above": 1024,
+                                "type": "keyword"
+                              }
+                            }
+                          },
+                          "cvssV3_1": {
+                            "properties": {
+                              "attackComplexity": {
+                                "ignore_above": 1024,
+                                "type": "keyword"
+                              },
+                              "attackVector": {
+                                "ignore_above": 1024,
+                                "type": "keyword"
+                              },
+                              "availabilityImpact": {
+                                "ignore_above": 1024,
+                                "type": "keyword"
+                              },
+                              "availabilityRequirement": {
+                                "ignore_above": 1024,
+                                "type": "keyword"
+                              },
+                              "baseScore": {
+                                "ignore_above": 1024,
+                                "type": "keyword"
+                              },
+                              "baseSeverity": {
+                                "ignore_above": 1024,
+                                "type": "keyword"
+                              },
+                              "confidentialityImpact": {
+                                "ignore_above": 1024,
+                                "type": "keyword"
+                              },
+                              "confidentialityRequirement": {
+                                "ignore_above": 1024,
+                                "type": "keyword"
+                              },
+                              "environmentalScore": {
+                                "ignore_above": 1024,
+                                "type": "keyword"
+                              },
+                              "environmentalSeverity": {
+                                "ignore_above": 1024,
+                                "type": "keyword"
+                              },
+                              "exploitCodeMaturity": {
+                                "ignore_above": 1024,
+                                "type": "keyword"
+                              },
+                              "integrityImpact": {
+                                "ignore_above": 1024,
+                                "type": "keyword"
+                              },
+                              "integrityRequirement": {
+                                "ignore_above": 1024,
+                                "type": "keyword"
+                              },
+                              "modifiedAttackComplexity": {
+                                "ignore_above": 1024,
+                                "type": "keyword"
+                              },
+                              "modifiedAttackVector": {
+                                "ignore_above": 1024,
+                                "type": "keyword"
+                              },
+                              "modifiedAvailabilityImpact": {
+                                "ignore_above": 1024,
+                                "type": "keyword"
+                              },
+                              "modifiedConfidentialityImpact": {
+                                "ignore_above": 1024,
+                                "type": "keyword"
+                              },
+                              "modifiedIntegrityImpact": {
+                                "ignore_above": 1024,
+                                "type": "keyword"
+                              },
+                              "modifiedPrivilegesRequired": {
+                                "ignore_above": 1024,
+                                "type": "keyword"
+                              },
+                              "modifiedScope": {
+                                "ignore_above": 1024,
+                                "type": "keyword"
+                              },
+                              "modifiedUserInteraction": {
+                                "ignore_above": 1024,
+                                "type": "keyword"
+                              },
+                              "privilegesRequired": {
+                                "ignore_above": 1024,
+                                "type": "keyword"
+                              },
+                              "remediationLevel": {
+                                "ignore_above": 1024,
+                                "type": "keyword"
+                              },
+                              "reportConfidence": {
+                                "ignore_above": 1024,
+                                "type": "keyword"
+                              },
+                              "scope": {
+                                "ignore_above": 1024,
+                                "type": "keyword"
+                              },
+                              "temporalScore": {
+                                "ignore_above": 1024,
+                                "type": "keyword"
+                              },
+                              "temporalSeverity": {
+                                "ignore_above": 1024,
+                                "type": "keyword"
+                              },
+                              "userInteraction": {
+                                "ignore_above": 1024,
+                                "type": "keyword"
+                              },
+                              "vectorString": {
+                                "ignore_above": 1024,
+                                "type": "keyword"
+                              },
+                              "version": {
+                                "ignore_above": 1024,
+                                "type": "keyword"
+                              }
+                            }
+                          },
+                          "cvssV4_0": {
+                            "properties": {
+                              "Automatable": {
+                                "ignore_above": 1024,
+                                "type": "keyword"
+                              },
+                              "Recovery": {
+                                "ignore_above": 1024,
+                                "type": "keyword"
+                              },
+                              "Safety": {
+                                "ignore_above": 1024,
+                                "type": "keyword"
+                              },
+                              "attackComplexity": {
+                                "ignore_above": 1024,
+                                "type": "keyword"
+                              },
+                              "attackRequirements": {
+                                "ignore_above": 1024,
+                                "type": "keyword"
+                              },
+                              "attackVector": {
+                                "ignore_above": 1024,
+                                "type": "keyword"
+                              },
+                              "availabilityRequirement": {
+                                "ignore_above": 1024,
+                                "type": "keyword"
+                              },
+                              "baseScore": {
+                                "ignore_above": 1024,
+                                "type": "keyword"
+                              },
+                              "baseSeverity": {
+                                "ignore_above": 1024,
+                                "type": "keyword"
+                              },
+                              "confidentialityRequirement": {
+                                "ignore_above": 1024,
+                                "type": "keyword"
+                              },
+                              "exploitMaturity": {
+                                "ignore_above": 1024,
+                                "type": "keyword"
+                              },
+                              "integrityRequirement": {
+                                "ignore_above": 1024,
+                                "type": "keyword"
+                              },
+                              "modifiedAttackComplexity": {
+                                "ignore_above": 1024,
+                                "type": "keyword"
+                              },
+                              "modifiedAttackRequirements": {
+                                "ignore_above": 1024,
+                                "type": "keyword"
+                              },
+                              "modifiedAttackVector": {
+                                "ignore_above": 1024,
+                                "type": "keyword"
+                              },
+                              "modifiedPrivilegesRequired": {
+                                "ignore_above": 1024,
+                                "type": "keyword"
+                              },
+                              "modifiedSubAvailabilityImpact": {
+                                "ignore_above": 1024,
+                                "type": "keyword"
+                              },
+                              "modifiedSubConfidentialityImpact": {
+                                "ignore_above": 1024,
+                                "type": "keyword"
+                              },
+                              "modifiedSubIntegrityImpact": {
+                                "ignore_above": 1024,
+                                "type": "keyword"
+                              },
+                              "modifiedUserInteraction": {
+                                "ignore_above": 1024,
+                                "type": "keyword"
+                              },
+                              "modifiedVulnAvailabilityImpact": {
+                                "ignore_above": 1024,
+                                "type": "keyword"
+                              },
+                              "modifiedVulnConfidentialityImpact": {
+                                "ignore_above": 1024,
+                                "type": "keyword"
+                              },
+                              "modifiedVulnIntegrityImpact": {
+                                "ignore_above": 1024,
+                                "type": "keyword"
+                              },
+                              "privilegesRequired": {
+                                "ignore_above": 1024,
+                                "type": "keyword"
+                              },
+                              "subAvailabilityImpact": {
+                                "ignore_above": 1024,
+                                "type": "keyword"
+                              },
+                              "subConfidentialityImpact": {
+                                "ignore_above": 1024,
+                                "type": "keyword"
+                              },
+                              "subIntegrityImpact": {
+                                "ignore_above": 1024,
+                                "type": "keyword"
+                              },
+                              "userInteraction": {
+                                "ignore_above": 1024,
+                                "type": "keyword"
+                              },
+                              "valueDensity": {
+                                "ignore_above": 1024,
+                                "type": "keyword"
+                              },
+                              "vectorString": {
+                                "ignore_above": 1024,
+                                "type": "keyword"
+                              },
+                              "version": {
+                                "ignore_above": 1024,
+                                "type": "keyword"
+                              },
+                              "vulnAvailabilityImpact": {
+                                "ignore_above": 1024,
+                                "type": "keyword"
+                              },
+                              "vulnConfidentialityImpact": {
+                                "ignore_above": 1024,
+                                "type": "keyword"
+                              },
+                              "vulnIntegrityImpact": {
+                                "ignore_above": 1024,
+                                "type": "keyword"
+                              },
+                              "vulnerabilityResponseEffort": {
+                                "ignore_above": 1024,
+                                "type": "keyword"
+                              }
+                            }
+                          },
                           "format": {
                             "ignore_above": 1024,
                             "type": "keyword"
+                          },
+                          "other": {
+                            "properties": {
+                              "content": {
+                                "ignore_above": 1024,
+                                "type": "keyword"
+                              },
+                              "type": {
+                                "ignore_above": 1024,
+                                "type": "keyword"
+                              }
+                            }
                           }
                         }
                       },
@@ -459,9 +863,413 @@
                               }
                             }
                           },
+                          "cvssV3": {
+                            "properties": {
+                              "attackComplexity": {
+                                "ignore_above": 1024,
+                                "type": "keyword"
+                              },
+                              "attackVector": {
+                                "ignore_above": 1024,
+                                "type": "keyword"
+                              },
+                              "availabilityImpact": {
+                                "ignore_above": 1024,
+                                "type": "keyword"
+                              },
+                              "availabilityRequirement": {
+                                "ignore_above": 1024,
+                                "type": "keyword"
+                              },
+                              "baseScore": {
+                                "ignore_above": 1024,
+                                "type": "keyword"
+                              },
+                              "baseSeverity": {
+                                "ignore_above": 1024,
+                                "type": "keyword"
+                              },
+                              "confidentialityImpact": {
+                                "ignore_above": 1024,
+                                "type": "keyword"
+                              },
+                              "confidentialityRequirement": {
+                                "ignore_above": 1024,
+                                "type": "keyword"
+                              },
+                              "environmentalScore": {
+                                "ignore_above": 1024,
+                                "type": "keyword"
+                              },
+                              "environmentalSeverity": {
+                                "ignore_above": 1024,
+                                "type": "keyword"
+                              },
+                              "exploitCodeMaturity": {
+                                "ignore_above": 1024,
+                                "type": "keyword"
+                              },
+                              "integrityImpact": {
+                                "ignore_above": 1024,
+                                "type": "keyword"
+                              },
+                              "integrityRequirement": {
+                                "ignore_above": 1024,
+                                "type": "keyword"
+                              },
+                              "modifiedAttackComplexity": {
+                                "ignore_above": 1024,
+                                "type": "keyword"
+                              },
+                              "modifiedAttackVector": {
+                                "ignore_above": 1024,
+                                "type": "keyword"
+                              },
+                              "modifiedAvailabilityImpact": {
+                                "ignore_above": 1024,
+                                "type": "keyword"
+                              },
+                              "modifiedConfidentialityImpact": {
+                                "ignore_above": 1024,
+                                "type": "keyword"
+                              },
+                              "modifiedIntegrityImpact": {
+                                "ignore_above": 1024,
+                                "type": "keyword"
+                              },
+                              "modifiedPrivilegesRequired": {
+                                "ignore_above": 1024,
+                                "type": "keyword"
+                              },
+                              "modifiedScope": {
+                                "ignore_above": 1024,
+                                "type": "keyword"
+                              },
+                              "modifiedUserInteraction": {
+                                "ignore_above": 1024,
+                                "type": "keyword"
+                              },
+                              "privilegesRequired": {
+                                "ignore_above": 1024,
+                                "type": "keyword"
+                              },
+                              "remediationLevel": {
+                                "ignore_above": 1024,
+                                "type": "keyword"
+                              },
+                              "reportConfidence": {
+                                "ignore_above": 1024,
+                                "type": "keyword"
+                              },
+                              "scope": {
+                                "ignore_above": 1024,
+                                "type": "keyword"
+                              },
+                              "temporalScore": {
+                                "ignore_above": 1024,
+                                "type": "keyword"
+                              },
+                              "temporalSeverity": {
+                                "ignore_above": 1024,
+                                "type": "keyword"
+                              },
+                              "userInteraction": {
+                                "ignore_above": 1024,
+                                "type": "keyword"
+                              },
+                              "vectorString": {
+                                "ignore_above": 1024,
+                                "type": "keyword"
+                              },
+                              "version": {
+                                "ignore_above": 1024,
+                                "type": "keyword"
+                              }
+                            }
+                          },
+                          "cvssV3_1": {
+                            "properties": {
+                              "attackComplexity": {
+                                "ignore_above": 1024,
+                                "type": "keyword"
+                              },
+                              "attackVector": {
+                                "ignore_above": 1024,
+                                "type": "keyword"
+                              },
+                              "availabilityImpact": {
+                                "ignore_above": 1024,
+                                "type": "keyword"
+                              },
+                              "availabilityRequirement": {
+                                "ignore_above": 1024,
+                                "type": "keyword"
+                              },
+                              "baseScore": {
+                                "ignore_above": 1024,
+                                "type": "keyword"
+                              },
+                              "baseSeverity": {
+                                "ignore_above": 1024,
+                                "type": "keyword"
+                              },
+                              "confidentialityImpact": {
+                                "ignore_above": 1024,
+                                "type": "keyword"
+                              },
+                              "confidentialityRequirement": {
+                                "ignore_above": 1024,
+                                "type": "keyword"
+                              },
+                              "environmentalScore": {
+                                "ignore_above": 1024,
+                                "type": "keyword"
+                              },
+                              "environmentalSeverity": {
+                                "ignore_above": 1024,
+                                "type": "keyword"
+                              },
+                              "exploitCodeMaturity": {
+                                "ignore_above": 1024,
+                                "type": "keyword"
+                              },
+                              "integrityImpact": {
+                                "ignore_above": 1024,
+                                "type": "keyword"
+                              },
+                              "integrityRequirement": {
+                                "ignore_above": 1024,
+                                "type": "keyword"
+                              },
+                              "modifiedAttackComplexity": {
+                                "ignore_above": 1024,
+                                "type": "keyword"
+                              },
+                              "modifiedAttackVector": {
+                                "ignore_above": 1024,
+                                "type": "keyword"
+                              },
+                              "modifiedAvailabilityImpact": {
+                                "ignore_above": 1024,
+                                "type": "keyword"
+                              },
+                              "modifiedConfidentialityImpact": {
+                                "ignore_above": 1024,
+                                "type": "keyword"
+                              },
+                              "modifiedIntegrityImpact": {
+                                "ignore_above": 1024,
+                                "type": "keyword"
+                              },
+                              "modifiedPrivilegesRequired": {
+                                "ignore_above": 1024,
+                                "type": "keyword"
+                              },
+                              "modifiedScope": {
+                                "ignore_above": 1024,
+                                "type": "keyword"
+                              },
+                              "modifiedUserInteraction": {
+                                "ignore_above": 1024,
+                                "type": "keyword"
+                              },
+                              "privilegesRequired": {
+                                "ignore_above": 1024,
+                                "type": "keyword"
+                              },
+                              "remediationLevel": {
+                                "ignore_above": 1024,
+                                "type": "keyword"
+                              },
+                              "reportConfidence": {
+                                "ignore_above": 1024,
+                                "type": "keyword"
+                              },
+                              "scope": {
+                                "ignore_above": 1024,
+                                "type": "keyword"
+                              },
+                              "temporalScore": {
+                                "ignore_above": 1024,
+                                "type": "keyword"
+                              },
+                              "temporalSeverity": {
+                                "ignore_above": 1024,
+                                "type": "keyword"
+                              },
+                              "userInteraction": {
+                                "ignore_above": 1024,
+                                "type": "keyword"
+                              },
+                              "vectorString": {
+                                "ignore_above": 1024,
+                                "type": "keyword"
+                              },
+                              "version": {
+                                "ignore_above": 1024,
+                                "type": "keyword"
+                              }
+                            }
+                          },
+                          "cvssV4_0": {
+                            "properties": {
+                              "Automatable": {
+                                "ignore_above": 1024,
+                                "type": "keyword"
+                              },
+                              "Recovery": {
+                                "ignore_above": 1024,
+                                "type": "keyword"
+                              },
+                              "Safety": {
+                                "ignore_above": 1024,
+                                "type": "keyword"
+                              },
+                              "attackComplexity": {
+                                "ignore_above": 1024,
+                                "type": "keyword"
+                              },
+                              "attackRequirements": {
+                                "ignore_above": 1024,
+                                "type": "keyword"
+                              },
+                              "attackVector": {
+                                "ignore_above": 1024,
+                                "type": "keyword"
+                              },
+                              "availabilityRequirement": {
+                                "ignore_above": 1024,
+                                "type": "keyword"
+                              },
+                              "baseScore": {
+                                "ignore_above": 1024,
+                                "type": "keyword"
+                              },
+                              "baseSeverity": {
+                                "ignore_above": 1024,
+                                "type": "keyword"
+                              },
+                              "confidentialityRequirement": {
+                                "ignore_above": 1024,
+                                "type": "keyword"
+                              },
+                              "exploitMaturity": {
+                                "ignore_above": 1024,
+                                "type": "keyword"
+                              },
+                              "integrityRequirement": {
+                                "ignore_above": 1024,
+                                "type": "keyword"
+                              },
+                              "modifiedAttackComplexity": {
+                                "ignore_above": 1024,
+                                "type": "keyword"
+                              },
+                              "modifiedAttackRequirements": {
+                                "ignore_above": 1024,
+                                "type": "keyword"
+                              },
+                              "modifiedAttackVector": {
+                                "ignore_above": 1024,
+                                "type": "keyword"
+                              },
+                              "modifiedPrivilegesRequired": {
+                                "ignore_above": 1024,
+                                "type": "keyword"
+                              },
+                              "modifiedSubAvailabilityImpact": {
+                                "ignore_above": 1024,
+                                "type": "keyword"
+                              },
+                              "modifiedSubConfidentialityImpact": {
+                                "ignore_above": 1024,
+                                "type": "keyword"
+                              },
+                              "modifiedSubIntegrityImpact": {
+                                "ignore_above": 1024,
+                                "type": "keyword"
+                              },
+                              "modifiedUserInteraction": {
+                                "ignore_above": 1024,
+                                "type": "keyword"
+                              },
+                              "modifiedVulnAvailabilityImpact": {
+                                "ignore_above": 1024,
+                                "type": "keyword"
+                              },
+                              "modifiedVulnConfidentialityImpact": {
+                                "ignore_above": 1024,
+                                "type": "keyword"
+                              },
+                              "modifiedVulnIntegrityImpact": {
+                                "ignore_above": 1024,
+                                "type": "keyword"
+                              },
+                              "privilegesRequired": {
+                                "ignore_above": 1024,
+                                "type": "keyword"
+                              },
+                              "subAvailabilityImpact": {
+                                "ignore_above": 1024,
+                                "type": "keyword"
+                              },
+                              "subConfidentialityImpact": {
+                                "ignore_above": 1024,
+                                "type": "keyword"
+                              },
+                              "subIntegrityImpact": {
+                                "ignore_above": 1024,
+                                "type": "keyword"
+                              },
+                              "userInteraction": {
+                                "ignore_above": 1024,
+                                "type": "keyword"
+                              },
+                              "valueDensity": {
+                                "ignore_above": 1024,
+                                "type": "keyword"
+                              },
+                              "vectorString": {
+                                "ignore_above": 1024,
+                                "type": "keyword"
+                              },
+                              "version": {
+                                "ignore_above": 1024,
+                                "type": "keyword"
+                              },
+                              "vulnAvailabilityImpact": {
+                                "ignore_above": 1024,
+                                "type": "keyword"
+                              },
+                              "vulnConfidentialityImpact": {
+                                "ignore_above": 1024,
+                                "type": "keyword"
+                              },
+                              "vulnIntegrityImpact": {
+                                "ignore_above": 1024,
+                                "type": "keyword"
+                              },
+                              "vulnerabilityResponseEffort": {
+                                "ignore_above": 1024,
+                                "type": "keyword"
+                              }
+                            }
+                          },
                           "format": {
                             "ignore_above": 1024,
                             "type": "keyword"
+                          },
+                          "other": {
+                            "properties": {
+                              "content": {
+                                "ignore_above": 1024,
+                                "type": "keyword"
+                              },
+                              "type": {
+                                "ignore_above": 1024,
+                                "type": "keyword"
+                              }
+                            }
                           }
                         }
                       },

@@ -41,7 +41,104 @@ ECS_Version,Indexed,Field_Set,Field,Type,Level,Normalization,Example,Description
 8.11.0,true,cve,cve.payload.containers.adp.metrics.cvssV2_0.integrityImpact,keyword,custom,,,The integrity impact.
 8.11.0,true,cve,cve.payload.containers.adp.metrics.cvssV2_0.vectorString,keyword,custom,,,The vector string.
 8.11.0,true,cve,cve.payload.containers.adp.metrics.cvssV2_0.version,keyword,custom,,,The version of CVSS.
+8.11.0,true,cve,cve.payload.containers.adp.metrics.cvssV3.attackComplexity,keyword,custom,,,The attack complexity.
+8.11.0,true,cve,cve.payload.containers.adp.metrics.cvssV3.attackVector,keyword,custom,,,The attack vector.
+8.11.0,true,cve,cve.payload.containers.adp.metrics.cvssV3.availabilityImpact,keyword,custom,,,The availability impact.
+8.11.0,true,cve,cve.payload.containers.adp.metrics.cvssV3.availabilityRequirement,keyword,custom,,,The availability requirement.
+8.11.0,true,cve,cve.payload.containers.adp.metrics.cvssV3.baseScore,keyword,custom,,,The base score.
+8.11.0,true,cve,cve.payload.containers.adp.metrics.cvssV3.baseSeverity,keyword,custom,,,The base severity.
+8.11.0,true,cve,cve.payload.containers.adp.metrics.cvssV3.confidentialityImpact,keyword,custom,,,The confidentiality impact.
+8.11.0,true,cve,cve.payload.containers.adp.metrics.cvssV3.confidentialityRequirement,keyword,custom,,,The confidentiality requirement.
+8.11.0,true,cve,cve.payload.containers.adp.metrics.cvssV3.environmentalScore,keyword,custom,,,The environmental score.
+8.11.0,true,cve,cve.payload.containers.adp.metrics.cvssV3.environmentalSeverity,keyword,custom,,,The environmental severity.
+8.11.0,true,cve,cve.payload.containers.adp.metrics.cvssV3.exploitCodeMaturity,keyword,custom,,,The exploit code maturity.
+8.11.0,true,cve,cve.payload.containers.adp.metrics.cvssV3.integrityImpact,keyword,custom,,,The integrity impact.
+8.11.0,true,cve,cve.payload.containers.adp.metrics.cvssV3.integrityRequirement,keyword,custom,,,The integrity requirement.
+8.11.0,true,cve,cve.payload.containers.adp.metrics.cvssV3.modifiedAttackComplexity,keyword,custom,,,The modified attack complexity.
+8.11.0,true,cve,cve.payload.containers.adp.metrics.cvssV3.modifiedAttackVector,keyword,custom,,,The modified attack vector.
+8.11.0,true,cve,cve.payload.containers.adp.metrics.cvssV3.modifiedAvailabilityImpact,keyword,custom,,,The modified availability impact.
+8.11.0,true,cve,cve.payload.containers.adp.metrics.cvssV3.modifiedConfidentialityImpact,keyword,custom,,,The modified confidentiality impact.
+8.11.0,true,cve,cve.payload.containers.adp.metrics.cvssV3.modifiedIntegrityImpact,keyword,custom,,,The modified integrity impact.
+8.11.0,true,cve,cve.payload.containers.adp.metrics.cvssV3.modifiedPrivilegesRequired,keyword,custom,,,The modified privileges required.
+8.11.0,true,cve,cve.payload.containers.adp.metrics.cvssV3.modifiedScope,keyword,custom,,,The modified scope.
+8.11.0,true,cve,cve.payload.containers.adp.metrics.cvssV3.modifiedUserInteraction,keyword,custom,,,The modified user interaction.
+8.11.0,true,cve,cve.payload.containers.adp.metrics.cvssV3.privilegesRequired,keyword,custom,,,The privileges required.
+8.11.0,true,cve,cve.payload.containers.adp.metrics.cvssV3.remediationLevel,keyword,custom,,,The remediation level.
+8.11.0,true,cve,cve.payload.containers.adp.metrics.cvssV3.reportConfidence,keyword,custom,,,The report confidence.
+8.11.0,true,cve,cve.payload.containers.adp.metrics.cvssV3.scope,keyword,custom,,,The scope.
+8.11.0,true,cve,cve.payload.containers.adp.metrics.cvssV3.temporalScore,keyword,custom,,,The temporal score.
+8.11.0,true,cve,cve.payload.containers.adp.metrics.cvssV3.temporalSeverity,keyword,custom,,,The temporal severity.
+8.11.0,true,cve,cve.payload.containers.adp.metrics.cvssV3.userInteraction,keyword,custom,,,The user interaction.
+8.11.0,true,cve,cve.payload.containers.adp.metrics.cvssV3.vectorString,keyword,custom,,,The vector string.
+8.11.0,true,cve,cve.payload.containers.adp.metrics.cvssV3.version,keyword,custom,,,The version of CVSS.
+8.11.0,true,cve,cve.payload.containers.adp.metrics.cvssV3_1.attackComplexity,keyword,custom,,,The attack complexity.
+8.11.0,true,cve,cve.payload.containers.adp.metrics.cvssV3_1.attackVector,keyword,custom,,,The attack vector.
+8.11.0,true,cve,cve.payload.containers.adp.metrics.cvssV3_1.availabilityImpact,keyword,custom,,,The availability impact.
+8.11.0,true,cve,cve.payload.containers.adp.metrics.cvssV3_1.availabilityRequirement,keyword,custom,,,The availability requirement.
+8.11.0,true,cve,cve.payload.containers.adp.metrics.cvssV3_1.baseScore,keyword,custom,,,The base score.
+8.11.0,true,cve,cve.payload.containers.adp.metrics.cvssV3_1.baseSeverity,keyword,custom,,,The base severity.
+8.11.0,true,cve,cve.payload.containers.adp.metrics.cvssV3_1.confidentialityImpact,keyword,custom,,,The confidentiality impact.
+8.11.0,true,cve,cve.payload.containers.adp.metrics.cvssV3_1.confidentialityRequirement,keyword,custom,,,The confidentiality requirement.
+8.11.0,true,cve,cve.payload.containers.adp.metrics.cvssV3_1.environmentalScore,keyword,custom,,,The environmental score.
+8.11.0,true,cve,cve.payload.containers.adp.metrics.cvssV3_1.environmentalSeverity,keyword,custom,,,The environmental severity.
+8.11.0,true,cve,cve.payload.containers.adp.metrics.cvssV3_1.exploitCodeMaturity,keyword,custom,,,The exploit code maturity.
+8.11.0,true,cve,cve.payload.containers.adp.metrics.cvssV3_1.integrityImpact,keyword,custom,,,The integrity impact.
+8.11.0,true,cve,cve.payload.containers.adp.metrics.cvssV3_1.integrityRequirement,keyword,custom,,,The integrity requirement.
+8.11.0,true,cve,cve.payload.containers.adp.metrics.cvssV3_1.modifiedAttackComplexity,keyword,custom,,,The modified attack complexity.
+8.11.0,true,cve,cve.payload.containers.adp.metrics.cvssV3_1.modifiedAttackVector,keyword,custom,,,The modified attack vector.
+8.11.0,true,cve,cve.payload.containers.adp.metrics.cvssV3_1.modifiedAvailabilityImpact,keyword,custom,,,The modified availability impact.
+8.11.0,true,cve,cve.payload.containers.adp.metrics.cvssV3_1.modifiedConfidentialityImpact,keyword,custom,,,The modified confidentiality impact.
+8.11.0,true,cve,cve.payload.containers.adp.metrics.cvssV3_1.modifiedIntegrityImpact,keyword,custom,,,The modified integrity impact.
+8.11.0,true,cve,cve.payload.containers.adp.metrics.cvssV3_1.modifiedPrivilegesRequired,keyword,custom,,,The modified privileges required.
+8.11.0,true,cve,cve.payload.containers.adp.metrics.cvssV3_1.modifiedScope,keyword,custom,,,The modified scope.
+8.11.0,true,cve,cve.payload.containers.adp.metrics.cvssV3_1.modifiedUserInteraction,keyword,custom,,,The modified user interaction.
+8.11.0,true,cve,cve.payload.containers.adp.metrics.cvssV3_1.privilegesRequired,keyword,custom,,,The privileges required.
+8.11.0,true,cve,cve.payload.containers.adp.metrics.cvssV3_1.remediationLevel,keyword,custom,,,The remediation level.
+8.11.0,true,cve,cve.payload.containers.adp.metrics.cvssV3_1.reportConfidence,keyword,custom,,,The report confidence.
+8.11.0,true,cve,cve.payload.containers.adp.metrics.cvssV3_1.scope,keyword,custom,,,The scope.
+8.11.0,true,cve,cve.payload.containers.adp.metrics.cvssV3_1.temporalScore,keyword,custom,,,The temporal score.
+8.11.0,true,cve,cve.payload.containers.adp.metrics.cvssV3_1.temporalSeverity,keyword,custom,,,The temporal severity.
+8.11.0,true,cve,cve.payload.containers.adp.metrics.cvssV3_1.userInteraction,keyword,custom,,,The user interaction.
+8.11.0,true,cve,cve.payload.containers.adp.metrics.cvssV3_1.vectorString,keyword,custom,,,The vector string.
+8.11.0,true,cve,cve.payload.containers.adp.metrics.cvssV3_1.version,keyword,custom,,,The version of CVSS.
+8.11.0,true,cve,cve.payload.containers.adp.metrics.cvssV4_0.Automatable,keyword,custom,,,The automatable.
+8.11.0,true,cve,cve.payload.containers.adp.metrics.cvssV4_0.Recovery,keyword,custom,,,The recovery.
+8.11.0,true,cve,cve.payload.containers.adp.metrics.cvssV4_0.Safety,keyword,custom,,,The safety.
+8.11.0,true,cve,cve.payload.containers.adp.metrics.cvssV4_0.attackComplexity,keyword,custom,,,The attack complexity.
+8.11.0,true,cve,cve.payload.containers.adp.metrics.cvssV4_0.attackRequirements,keyword,custom,,,The attack requirements.
+8.11.0,true,cve,cve.payload.containers.adp.metrics.cvssV4_0.attackVector,keyword,custom,,,The attack vector.
+8.11.0,true,cve,cve.payload.containers.adp.metrics.cvssV4_0.availabilityRequirement,keyword,custom,,,The availability requirement.
+8.11.0,true,cve,cve.payload.containers.adp.metrics.cvssV4_0.baseScore,keyword,custom,,,The base score.
+8.11.0,true,cve,cve.payload.containers.adp.metrics.cvssV4_0.baseSeverity,keyword,custom,,,The base severity.
+8.11.0,true,cve,cve.payload.containers.adp.metrics.cvssV4_0.confidentialityRequirement,keyword,custom,,,The confidentiality requirement.
+8.11.0,true,cve,cve.payload.containers.adp.metrics.cvssV4_0.exploitMaturity,keyword,custom,,,The exploit maturity.
+8.11.0,true,cve,cve.payload.containers.adp.metrics.cvssV4_0.integrityRequirement,keyword,custom,,,The integrity requirement.
+8.11.0,true,cve,cve.payload.containers.adp.metrics.cvssV4_0.modifiedAttackComplexity,keyword,custom,,,The modified attack complexity.
+8.11.0,true,cve,cve.payload.containers.adp.metrics.cvssV4_0.modifiedAttackRequirements,keyword,custom,,,The modified attack requirements.
+8.11.0,true,cve,cve.payload.containers.adp.metrics.cvssV4_0.modifiedAttackVector,keyword,custom,,,The modified attack vector.
+8.11.0,true,cve,cve.payload.containers.adp.metrics.cvssV4_0.modifiedPrivilegesRequired,keyword,custom,,,The modified privileges required.
+8.11.0,true,cve,cve.payload.containers.adp.metrics.cvssV4_0.modifiedSubAvailabilityImpact,keyword,custom,,,The modified security availability impact.
+8.11.0,true,cve,cve.payload.containers.adp.metrics.cvssV4_0.modifiedSubConfidentialityImpact,keyword,custom,,,The modified security confidentiality impact.
+8.11.0,true,cve,cve.payload.containers.adp.metrics.cvssV4_0.modifiedSubIntegrityImpact,keyword,custom,,,The modified security integrity impact.
+8.11.0,true,cve,cve.payload.containers.adp.metrics.cvssV4_0.modifiedUserInteraction,keyword,custom,,,The modified user interaction.
+8.11.0,true,cve,cve.payload.containers.adp.metrics.cvssV4_0.modifiedVulnAvailabilityImpact,keyword,custom,,,The modified vulnerability availability impact.
+8.11.0,true,cve,cve.payload.containers.adp.metrics.cvssV4_0.modifiedVulnConfidentialityImpact,keyword,custom,,,The modified vulnerability confidentiality impact.
+8.11.0,true,cve,cve.payload.containers.adp.metrics.cvssV4_0.modifiedVulnIntegrityImpact,keyword,custom,,,The modified vulnerability integrity impact.
+8.11.0,true,cve,cve.payload.containers.adp.metrics.cvssV4_0.privilegesRequired,keyword,custom,,,The privileges required.
+8.11.0,true,cve,cve.payload.containers.adp.metrics.cvssV4_0.subAvailabilityImpact,keyword,custom,,,The security availability impact.
+8.11.0,true,cve,cve.payload.containers.adp.metrics.cvssV4_0.subConfidentialityImpact,keyword,custom,,,The security confidentiality impact.
+8.11.0,true,cve,cve.payload.containers.adp.metrics.cvssV4_0.subIntegrityImpact,keyword,custom,,,The security integrity impact.
+8.11.0,true,cve,cve.payload.containers.adp.metrics.cvssV4_0.userInteraction,keyword,custom,,,The user interaction.
+8.11.0,true,cve,cve.payload.containers.adp.metrics.cvssV4_0.valueDensity,keyword,custom,,,The value density.
+8.11.0,true,cve,cve.payload.containers.adp.metrics.cvssV4_0.vectorString,keyword,custom,,,The vector string.
+8.11.0,true,cve,cve.payload.containers.adp.metrics.cvssV4_0.version,keyword,custom,,,The version of CVSS.
+8.11.0,true,cve,cve.payload.containers.adp.metrics.cvssV4_0.vulnAvailabilityImpact,keyword,custom,,,The vulnerability availability impact.
+8.11.0,true,cve,cve.payload.containers.adp.metrics.cvssV4_0.vulnConfidentialityImpact,keyword,custom,,,The vulnerability confidentiality impact.
+8.11.0,true,cve,cve.payload.containers.adp.metrics.cvssV4_0.vulnIntegrityImpact,keyword,custom,,,The vulnerability integrity impact.
+8.11.0,true,cve,cve.payload.containers.adp.metrics.cvssV4_0.vulnerabilityResponseEffort,keyword,custom,,,The vulnerability response effort.
 8.11.0,true,cve,cve.payload.containers.adp.metrics.format,keyword,custom,,,The format of the metrics.
+8.11.0,true,cve,cve.payload.containers.adp.metrics.other.content,keyword,custom,,,The content of the metric.
+8.11.0,true,cve,cve.payload.containers.adp.metrics.other.type,keyword,custom,,,The type of the metric.
 8.11.0,true,cve,cve.payload.containers.adp.problemTypes.descriptions.cweId,keyword,custom,,,The CWE ID of the problem type.
 8.11.0,true,cve,cve.payload.containers.adp.problemTypes.descriptions.description,keyword,custom,,,The description of the problem type.
 8.11.0,true,cve,cve.payload.containers.adp.problemTypes.descriptions.lang,keyword,custom,,,The language of the description.
@@ -87,7 +184,104 @@ ECS_Version,Indexed,Field_Set,Field,Type,Level,Normalization,Example,Description
 8.11.0,true,cve,cve.payload.containers.cna.metrics.cvssV2_0.integrityImpact,keyword,custom,,,The integrity impact.
 8.11.0,true,cve,cve.payload.containers.cna.metrics.cvssV2_0.vectorString,keyword,custom,,,The vector string.
 8.11.0,true,cve,cve.payload.containers.cna.metrics.cvssV2_0.version,keyword,custom,,,The version of CVSS.
+8.11.0,true,cve,cve.payload.containers.cna.metrics.cvssV3.attackComplexity,keyword,custom,,,The attack complexity.
+8.11.0,true,cve,cve.payload.containers.cna.metrics.cvssV3.attackVector,keyword,custom,,,The attack vector.
+8.11.0,true,cve,cve.payload.containers.cna.metrics.cvssV3.availabilityImpact,keyword,custom,,,The availability impact.
+8.11.0,true,cve,cve.payload.containers.cna.metrics.cvssV3.availabilityRequirement,keyword,custom,,,The availability requirement.
+8.11.0,true,cve,cve.payload.containers.cna.metrics.cvssV3.baseScore,keyword,custom,,,The base score.
+8.11.0,true,cve,cve.payload.containers.cna.metrics.cvssV3.baseSeverity,keyword,custom,,,The base severity.
+8.11.0,true,cve,cve.payload.containers.cna.metrics.cvssV3.confidentialityImpact,keyword,custom,,,The confidentiality impact.
+8.11.0,true,cve,cve.payload.containers.cna.metrics.cvssV3.confidentialityRequirement,keyword,custom,,,The confidentiality requirement.
+8.11.0,true,cve,cve.payload.containers.cna.metrics.cvssV3.environmentalScore,keyword,custom,,,The environmental score.
+8.11.0,true,cve,cve.payload.containers.cna.metrics.cvssV3.environmentalSeverity,keyword,custom,,,The environmental severity.
+8.11.0,true,cve,cve.payload.containers.cna.metrics.cvssV3.exploitCodeMaturity,keyword,custom,,,The exploit code maturity.
+8.11.0,true,cve,cve.payload.containers.cna.metrics.cvssV3.integrityImpact,keyword,custom,,,The integrity impact.
+8.11.0,true,cve,cve.payload.containers.cna.metrics.cvssV3.integrityRequirement,keyword,custom,,,The integrity requirement.
+8.11.0,true,cve,cve.payload.containers.cna.metrics.cvssV3.modifiedAttackComplexity,keyword,custom,,,The modified attack complexity.
+8.11.0,true,cve,cve.payload.containers.cna.metrics.cvssV3.modifiedAttackVector,keyword,custom,,,The modified attack vector.
+8.11.0,true,cve,cve.payload.containers.cna.metrics.cvssV3.modifiedAvailabilityImpact,keyword,custom,,,The modified availability impact.
+8.11.0,true,cve,cve.payload.containers.cna.metrics.cvssV3.modifiedConfidentialityImpact,keyword,custom,,,The modified confidentiality impact.
+8.11.0,true,cve,cve.payload.containers.cna.metrics.cvssV3.modifiedIntegrityImpact,keyword,custom,,,The modified integrity impact.
+8.11.0,true,cve,cve.payload.containers.cna.metrics.cvssV3.modifiedPrivilegesRequired,keyword,custom,,,The modified privileges required.
+8.11.0,true,cve,cve.payload.containers.cna.metrics.cvssV3.modifiedScope,keyword,custom,,,The modified scope.
+8.11.0,true,cve,cve.payload.containers.cna.metrics.cvssV3.modifiedUserInteraction,keyword,custom,,,The modified user interaction.
+8.11.0,true,cve,cve.payload.containers.cna.metrics.cvssV3.privilegesRequired,keyword,custom,,,The privileges required.
+8.11.0,true,cve,cve.payload.containers.cna.metrics.cvssV3.remediationLevel,keyword,custom,,,The remediation level.
+8.11.0,true,cve,cve.payload.containers.cna.metrics.cvssV3.reportConfidence,keyword,custom,,,The report confidence.
+8.11.0,true,cve,cve.payload.containers.cna.metrics.cvssV3.scope,keyword,custom,,,The scope.
+8.11.0,true,cve,cve.payload.containers.cna.metrics.cvssV3.temporalScore,keyword,custom,,,The temporal score.
+8.11.0,true,cve,cve.payload.containers.cna.metrics.cvssV3.temporalSeverity,keyword,custom,,,The temporal severity.
+8.11.0,true,cve,cve.payload.containers.cna.metrics.cvssV3.userInteraction,keyword,custom,,,The user interaction.
+8.11.0,true,cve,cve.payload.containers.cna.metrics.cvssV3.vectorString,keyword,custom,,,The vector string.
+8.11.0,true,cve,cve.payload.containers.cna.metrics.cvssV3.version,keyword,custom,,,The version of CVSS.
+8.11.0,true,cve,cve.payload.containers.cna.metrics.cvssV3_1.attackComplexity,keyword,custom,,,The attack complexity.
+8.11.0,true,cve,cve.payload.containers.cna.metrics.cvssV3_1.attackVector,keyword,custom,,,The attack vector.
+8.11.0,true,cve,cve.payload.containers.cna.metrics.cvssV3_1.availabilityImpact,keyword,custom,,,The availability impact.
+8.11.0,true,cve,cve.payload.containers.cna.metrics.cvssV3_1.availabilityRequirement,keyword,custom,,,The availability requirement.
+8.11.0,true,cve,cve.payload.containers.cna.metrics.cvssV3_1.baseScore,keyword,custom,,,The base score.
+8.11.0,true,cve,cve.payload.containers.cna.metrics.cvssV3_1.baseSeverity,keyword,custom,,,The base severity.
+8.11.0,true,cve,cve.payload.containers.cna.metrics.cvssV3_1.confidentialityImpact,keyword,custom,,,The confidentiality impact.
+8.11.0,true,cve,cve.payload.containers.cna.metrics.cvssV3_1.confidentialityRequirement,keyword,custom,,,The confidentiality requirement.
+8.11.0,true,cve,cve.payload.containers.cna.metrics.cvssV3_1.environmentalScore,keyword,custom,,,The environmental score.
+8.11.0,true,cve,cve.payload.containers.cna.metrics.cvssV3_1.environmentalSeverity,keyword,custom,,,The environmental severity.
+8.11.0,true,cve,cve.payload.containers.cna.metrics.cvssV3_1.exploitCodeMaturity,keyword,custom,,,The exploit code maturity.
+8.11.0,true,cve,cve.payload.containers.cna.metrics.cvssV3_1.integrityImpact,keyword,custom,,,The integrity impact.
+8.11.0,true,cve,cve.payload.containers.cna.metrics.cvssV3_1.integrityRequirement,keyword,custom,,,The integrity requirement.
+8.11.0,true,cve,cve.payload.containers.cna.metrics.cvssV3_1.modifiedAttackComplexity,keyword,custom,,,The modified attack complexity.
+8.11.0,true,cve,cve.payload.containers.cna.metrics.cvssV3_1.modifiedAttackVector,keyword,custom,,,The modified attack vector.
+8.11.0,true,cve,cve.payload.containers.cna.metrics.cvssV3_1.modifiedAvailabilityImpact,keyword,custom,,,The modified availability impact.
+8.11.0,true,cve,cve.payload.containers.cna.metrics.cvssV3_1.modifiedConfidentialityImpact,keyword,custom,,,The modified confidentiality impact.
+8.11.0,true,cve,cve.payload.containers.cna.metrics.cvssV3_1.modifiedIntegrityImpact,keyword,custom,,,The modified integrity impact.
+8.11.0,true,cve,cve.payload.containers.cna.metrics.cvssV3_1.modifiedPrivilegesRequired,keyword,custom,,,The modified privileges required.
+8.11.0,true,cve,cve.payload.containers.cna.metrics.cvssV3_1.modifiedScope,keyword,custom,,,The modified scope.
+8.11.0,true,cve,cve.payload.containers.cna.metrics.cvssV3_1.modifiedUserInteraction,keyword,custom,,,The modified user interaction.
+8.11.0,true,cve,cve.payload.containers.cna.metrics.cvssV3_1.privilegesRequired,keyword,custom,,,The privileges required.
+8.11.0,true,cve,cve.payload.containers.cna.metrics.cvssV3_1.remediationLevel,keyword,custom,,,The remediation level.
+8.11.0,true,cve,cve.payload.containers.cna.metrics.cvssV3_1.reportConfidence,keyword,custom,,,The report confidence.
+8.11.0,true,cve,cve.payload.containers.cna.metrics.cvssV3_1.scope,keyword,custom,,,The scope.
+8.11.0,true,cve,cve.payload.containers.cna.metrics.cvssV3_1.temporalScore,keyword,custom,,,The temporal score.
+8.11.0,true,cve,cve.payload.containers.cna.metrics.cvssV3_1.temporalSeverity,keyword,custom,,,The temporal severity.
+8.11.0,true,cve,cve.payload.containers.cna.metrics.cvssV3_1.userInteraction,keyword,custom,,,The user interaction.
+8.11.0,true,cve,cve.payload.containers.cna.metrics.cvssV3_1.vectorString,keyword,custom,,,The vector string.
+8.11.0,true,cve,cve.payload.containers.cna.metrics.cvssV3_1.version,keyword,custom,,,The version of CVSS.
+8.11.0,true,cve,cve.payload.containers.cna.metrics.cvssV4_0.Automatable,keyword,custom,,,The automatable.
+8.11.0,true,cve,cve.payload.containers.cna.metrics.cvssV4_0.Recovery,keyword,custom,,,The recovery.
+8.11.0,true,cve,cve.payload.containers.cna.metrics.cvssV4_0.Safety,keyword,custom,,,The safety.
+8.11.0,true,cve,cve.payload.containers.cna.metrics.cvssV4_0.attackComplexity,keyword,custom,,,The attack complexity.
+8.11.0,true,cve,cve.payload.containers.cna.metrics.cvssV4_0.attackRequirements,keyword,custom,,,The attack requirements.
+8.11.0,true,cve,cve.payload.containers.cna.metrics.cvssV4_0.attackVector,keyword,custom,,,The attack vector.
+8.11.0,true,cve,cve.payload.containers.cna.metrics.cvssV4_0.availabilityRequirement,keyword,custom,,,The availability requirement.
+8.11.0,true,cve,cve.payload.containers.cna.metrics.cvssV4_0.baseScore,keyword,custom,,,The base score.
+8.11.0,true,cve,cve.payload.containers.cna.metrics.cvssV4_0.baseSeverity,keyword,custom,,,The base severity.
+8.11.0,true,cve,cve.payload.containers.cna.metrics.cvssV4_0.confidentialityRequirement,keyword,custom,,,The confidentiality requirement.
+8.11.0,true,cve,cve.payload.containers.cna.metrics.cvssV4_0.exploitMaturity,keyword,custom,,,The exploit maturity.
+8.11.0,true,cve,cve.payload.containers.cna.metrics.cvssV4_0.integrityRequirement,keyword,custom,,,The integrity requirement.
+8.11.0,true,cve,cve.payload.containers.cna.metrics.cvssV4_0.modifiedAttackComplexity,keyword,custom,,,The modified attack complexity.
+8.11.0,true,cve,cve.payload.containers.cna.metrics.cvssV4_0.modifiedAttackRequirements,keyword,custom,,,The modified attack requirements.
+8.11.0,true,cve,cve.payload.containers.cna.metrics.cvssV4_0.modifiedAttackVector,keyword,custom,,,The modified attack vector.
+8.11.0,true,cve,cve.payload.containers.cna.metrics.cvssV4_0.modifiedPrivilegesRequired,keyword,custom,,,The modified privileges required.
+8.11.0,true,cve,cve.payload.containers.cna.metrics.cvssV4_0.modifiedSubAvailabilityImpact,keyword,custom,,,The modified security availability impact.
+8.11.0,true,cve,cve.payload.containers.cna.metrics.cvssV4_0.modifiedSubConfidentialityImpact,keyword,custom,,,The modified security confidentiality impact.
+8.11.0,true,cve,cve.payload.containers.cna.metrics.cvssV4_0.modifiedSubIntegrityImpact,keyword,custom,,,The modified security integrity impact.
+8.11.0,true,cve,cve.payload.containers.cna.metrics.cvssV4_0.modifiedUserInteraction,keyword,custom,,,The modified user interaction.
+8.11.0,true,cve,cve.payload.containers.cna.metrics.cvssV4_0.modifiedVulnAvailabilityImpact,keyword,custom,,,The modified vulnerability availability impact.
+8.11.0,true,cve,cve.payload.containers.cna.metrics.cvssV4_0.modifiedVulnConfidentialityImpact,keyword,custom,,,The modified vulnerability confidentiality impact.
+8.11.0,true,cve,cve.payload.containers.cna.metrics.cvssV4_0.modifiedVulnIntegrityImpact,keyword,custom,,,The modified vulnerability integrity impact.
+8.11.0,true,cve,cve.payload.containers.cna.metrics.cvssV4_0.privilegesRequired,keyword,custom,,,The privileges required.
+8.11.0,true,cve,cve.payload.containers.cna.metrics.cvssV4_0.subAvailabilityImpact,keyword,custom,,,The security availability impact.
+8.11.0,true,cve,cve.payload.containers.cna.metrics.cvssV4_0.subConfidentialityImpact,keyword,custom,,,The security confidentiality impact.
+8.11.0,true,cve,cve.payload.containers.cna.metrics.cvssV4_0.subIntegrityImpact,keyword,custom,,,The security integrity impact.
+8.11.0,true,cve,cve.payload.containers.cna.metrics.cvssV4_0.userInteraction,keyword,custom,,,The user interaction.
+8.11.0,true,cve,cve.payload.containers.cna.metrics.cvssV4_0.valueDensity,keyword,custom,,,The value density.
+8.11.0,true,cve,cve.payload.containers.cna.metrics.cvssV4_0.vectorString,keyword,custom,,,The vector string.
+8.11.0,true,cve,cve.payload.containers.cna.metrics.cvssV4_0.version,keyword,custom,,,The version of CVSS.
+8.11.0,true,cve,cve.payload.containers.cna.metrics.cvssV4_0.vulnAvailabilityImpact,keyword,custom,,,The vulnerability availability impact.
+8.11.0,true,cve,cve.payload.containers.cna.metrics.cvssV4_0.vulnConfidentialityImpact,keyword,custom,,,The vulnerability confidentiality impact.
+8.11.0,true,cve,cve.payload.containers.cna.metrics.cvssV4_0.vulnIntegrityImpact,keyword,custom,,,The vulnerability integrity impact.
+8.11.0,true,cve,cve.payload.containers.cna.metrics.cvssV4_0.vulnerabilityResponseEffort,keyword,custom,,,The vulnerability response effort.
 8.11.0,true,cve,cve.payload.containers.cna.metrics.format,keyword,custom,,,The format of the metrics.
+8.11.0,true,cve,cve.payload.containers.cna.metrics.other.content,keyword,custom,,,The content of the metric.
+8.11.0,true,cve,cve.payload.containers.cna.metrics.other.type,keyword,custom,,,The type of the metric.
 8.11.0,true,cve,cve.payload.containers.cna.problemTypes.descriptions.cweId,keyword,custom,,,The CWE ID of the problem type.
 8.11.0,true,cve,cve.payload.containers.cna.problemTypes.descriptions.description,keyword,custom,,,The description of the problem type.
 8.11.0,true,cve,cve.payload.containers.cna.problemTypes.descriptions.lang,keyword,custom,,,The language of the description.
