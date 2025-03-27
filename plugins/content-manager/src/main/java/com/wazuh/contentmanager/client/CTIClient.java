@@ -207,23 +207,24 @@ public class CTIClient extends HttpClient {
         }
     }
 
-    /**
-     * Builds a map of query parameters for the API request to fetch context changes.
-     *
-     * @param fromOffset The starting offset (inclusive).
-     * @param toOffset The ending offset (exclusive).
-     * @param withEmpties A flag indicating whether to include empty values. If null or empty, it will
-     *     be ignored.
-     * @return A map containing the query parameters.
-     */
-    public static Map<String, String> contextQueryParameters(
-            String fromOffset, String toOffset, String withEmpties) {
-        Map<String, String> params = new HashMap<>();
-        params.put(QueryParameters.FROM_OFFSET.getValue(), fromOffset);
-        params.put(QueryParameters.TO_OFFSET.getValue(), toOffset);
-        if (withEmpties != null && !withEmpties.isEmpty()) {
-            params.put(QueryParameters.WITH_EMPTIES.getValue(), withEmpties);
-        }
-        return params;
-    }
+    //    /**
+    //     * Builds a map of query parameters for the API request to fetch context changes.
+    //     *
+    //     * @param fromOffset The starting offset (inclusive).
+    //     * @param toOffset The ending offset (exclusive).
+    //     * @param withEmpties A flag indicating whether to include empty values. If null or empty,
+    // it will
+    //     *     be ignored.
+    //     * @return A map containing the query parameters.
+    //     */
+    //    public static Map<String, String> contextQueryParameters(
+    //            String fromOffset, String toOffset, String withEmpties) {
+    //        Map<String, String> params = new HashMap<>();
+    //        params.put(QueryParameters.FROM_OFFSET.getValue(), fromOffset);
+    //        params.put(QueryParameters.TO_OFFSET.getValue(), toOffset);
+    //        if (withEmpties != null && !withEmpties.isEmpty()) {
+    //            params.put(QueryParameters.WITH_EMPTIES.getValue(), withEmpties);
+    //        }
+    //        return params;
+    //    }
 }

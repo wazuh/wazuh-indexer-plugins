@@ -27,8 +27,8 @@ import java.io.IOException;
 import com.wazuh.contentmanager.client.CTIClient;
 import com.wazuh.contentmanager.client.CommandManagerClient;
 import com.wazuh.contentmanager.model.commandmanager.Command;
-import com.wazuh.contentmanager.model.ctiapi.ContextConsumerCatalog;
-import com.wazuh.contentmanager.model.ctiapi.Offsets;
+import com.wazuh.contentmanager.model.ctiapi.ConsumerInfo;
+import com.wazuh.contentmanager.model.ctiapi.ContextChanges;
 import com.wazuh.contentmanager.util.Privileged;
 
 public class ContentUpdater {
@@ -66,7 +66,8 @@ public class ContentUpdater {
         log.info("New offsets available updating to offset: {}", lastOffset);
         while (currentOffset < lastOffset) {
             Long nextOffset = Math.min(currentOffset + CHUNK_MAX_SIZE, lastOffset);
-            Offsets changes = this.getContextChanges(currentOffset.toString(), nextOffset.toString());
+            ContextChanges changes =
+                    this.getContextChanges(currentOffset.toString(), nextOffset.toString());
             log.info("Fetched offsets from {} to {}", currentOffset, nextOffset);
             // If there was an error fetching the changes, stop the process.
             if (changes == null) {
@@ -92,20 +93,20 @@ public class ContentUpdater {
      *
      * @param fromOffset Starting offset (inclusive).
      * @param toOffset Ending offset (exclusive).
-     * @return Offsets object containing the changes.
+     * @return ContextChanges object containing the changes.
      */
-    public Offsets getContextChanges(String fromOffset, String toOffset) {
+    public ContextChanges getContextChanges(String fromOffset, String toOffset) {
         try {
             SimpleHttpResponse response =
                     Privileged.doPrivilegedRequest(
-                            () -> CTIClient.getInstance().getContextChanges(fromOffset, toOffset, null));
+                            () -> CTIClient.getInstance().getChanges(fromOffset, toOffset, null));
 
             if (response == null || response.getBodyBytes() == null) {
                 throw new IOException("Empty response for offsets " + fromOffset + " to " + toOffset);
             }
 
             XContent xContent = XContentType.JSON.xContent();
-            return Offsets.parse(
+            return ContextChanges.parse(
                     xContent.createParser(
                             NamedXContentRegistry.EMPTY,
                             DeprecationHandler.IGNORE_DEPRECATIONS,
@@ -122,25 +123,9 @@ public class ContentUpdater {
      * @return Latest available offset.
      */
     public Long getLatestOffset() {
-        try {
-            SimpleHttpResponse response =
-                    Privileged.doPrivilegedRequest(() -> CTIClient.getInstance().getCatalog());
-
-            if (response == null || response.getBodyBytes() == null) {
-                throw new ContentUpdateException(
-                        "Failed to fetch latest offset: API response is null", null);
-            }
-
-            XContent xContent = XContentType.JSON.xContent();
-            return ContextConsumerCatalog.parse(
-                            xContent.createParser(
-                                    NamedXContentRegistry.EMPTY,
-                                    DeprecationHandler.IGNORE_DEPRECATIONS,
-                                    response.getBodyBytes()))
-                    .getLastOffset();
-        } catch (IOException e) {
-            throw new ContentUpdateException("Error fetching latest offset", e);
-        }
+        ConsumerInfo consumerInfo =
+                Privileged.doPrivilegedRequest(() -> CTIClient.getInstance().getCatalog());
+        return consumerInfo.getLastOffset();
     }
 
     /**
@@ -160,7 +145,7 @@ public class ContentUpdater {
      *
      * @param changes Detected Context changes.
      */
-    public void patchContextIndex(Offsets changes) {
+    public void patchContextIndex(ContextChanges changes) {
         // Placeholder for actual implementation.
         // ContentIndex.patch(changes);
     }
