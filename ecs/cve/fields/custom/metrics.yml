@@ -12,3 +12,11 @@
       type: keyword
       level: custom
       description: The format of the metrics.
+    - name: other.type
+      type: keyword
+      level: custom
+      description: The type of the metric.
+    - name: other.content
+      type: keyword
+      level: custom
+      description: The content of the metric.

@@ -1,0 +1,128 @@
+- name: cvssV3_1
+  title: CVSS V3.1
+  description: CVSS V3.1 metrics
+  reusable:
+    top_level: false
+    expected:
+      - { at: metrics, as: cvssV3_1 }
+  fields:
+    - name: version
+      type: keyword
+      level: custom
+      description: The version of CVSS.
+    - name: vectorString
+      type: keyword
+      level: custom
+      description: The vector string.
+    - name: attackVector
+      type: keyword
+      level: custom
+      description: The attack vector.
+    - name: attackComplexity
+      type: keyword
+      level: custom
+      description: The attack complexity.
+    - name: privilegesRequired
+      type: keyword
+      level: custom
+      description: The privileges required.
+    - name: userInteraction
+      type: keyword
+      level: custom
+      description: The user interaction.
+    - name: scope
+      type: keyword
+      level: custom
+      description: The scope.
+    - name: confidentialityImpact
+      type: keyword
+      level: custom
+      description: The confidentiality impact.
+    - name: integrityImpact
+      type: keyword
+      level: custom
+      description: The integrity impact.
+    - name: availabilityImpact
+      type: keyword
+      level: custom
+      description: The availability impact.
+    - name: baseScore
+      type: keyword
+      level: custom
+      description: The base score.
+    - name: baseSeverity
+      type: keyword
+      level: custom
+      description: The base severity.
+    - name: exploitCodeMaturity
+      type: keyword
+      level: custom
+      description: The exploit code maturity.
+    - name: remediationLevel
+      type: keyword
+      level: custom
+      description: The remediation level.
+    - name: reportConfidence
+      type: keyword
+      level: custom
+      description: The report confidence.
+    - name: temporalScore
+      type: keyword
+      level: custom
+      description: The temporal score.
+    - name: temporalSeverity
+      type: keyword
+      level: custom
+      description: The temporal severity.
+    - name: confidentialityRequirement
+      type: keyword
+      level: custom
+      description: The confidentiality requirement.
+    - name: integrityRequirement
+      type: keyword
+      level: custom
+      description: The integrity requirement.
+    - name: availabilityRequirement
+      type: keyword
+      level: custom
+      description: The availability requirement.
+    - name: modifiedAttackVector
+      type: keyword
+      level: custom
+      description: The modified attack vector.
+    - name: modifiedAttackComplexity
+      type: keyword
+      level: custom
+      description: The modified attack complexity.
+    - name: modifiedPrivilegesRequired
+      type: keyword
+      level: custom
+      description: The modified privileges required.
+    - name: modifiedUserInteraction
+      type: keyword
+      level: custom
+      description: The modified user interaction.
+    - name: modifiedScope
+      type: keyword
+      level: custom
+      description: The modified scope.
+    - name: modifiedConfidentialityImpact
+      type: keyword
+      level: custom
+      description: The modified confidentiality impact.
+    - name: modifiedIntegrityImpact
+      type: keyword
+      level: custom
+      description: The modified integrity impact.
+    - name: modifiedAvailabilityImpact
+      type: keyword
+      level: custom
+      description: The modified availability impact.
+    - name: environmentalScore
+      type: keyword
+      level: custom
+      description: The environmental score.
+    - name: environmentalSeverity
+      type: keyword
+      level: custom
+      description: The environmental severity.

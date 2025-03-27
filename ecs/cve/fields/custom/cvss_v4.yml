@@ -1,0 +1,149 @@
+- name: cvssV4_0
+  title: CVSS V4
+  description: CVSS V4 metrics
+  reusable:
+    top_level: false
+    expected:
+      - { at: metrics, as: cvssV4_0 }
+
+  fields:
+    - name: version
+      type: keyword
+      level: custom
+      description: The version of CVSS.
+    - name: vectorString
+      type: keyword
+      level: custom
+      description: The vector string.
+    - name: baseScore
+      type: keyword
+      level: custom
+      description: The base score.
+    - name: baseSeverity
+      type: keyword
+      level: custom
+      description: The base severity.
+    - name: attackVector
+      type: keyword
+      level: custom
+      description: The attack vector.
+    - name: attackComplexity
+      type: keyword
+      level: custom
+      description: The attack complexity.
+    - name: attackRequirements
+      type: keyword
+      level: custom
+      description: The attack requirements.
+    - name: privilegesRequired
+      type: keyword
+      level: custom
+      description: The privileges required.
+    - name: userInteraction
+      type: keyword
+      level: custom
+      description: The user interaction.
+    - name: vulnConfidentialityImpact
+      type: keyword
+      level: custom
+      description: The vulnerability confidentiality impact.
+    - name: vulnIntegrityImpact
+      type: keyword
+      level: custom
+      description: The vulnerability integrity impact.
+    - name: vulnAvailabilityImpact
+      type: keyword
+      level: custom
+      description: The vulnerability availability impact.
+    - name: subConfidentialityImpact
+      type: keyword
+      level: custom
+      description: The security confidentiality impact.
+    - name: subIntegrityImpact
+      type: keyword
+      level: custom
+      description: The security integrity impact.
+    - name: subAvailabilityImpact
+      type: keyword
+      level: custom
+      description: The security availability impact.
+    - name: exploitMaturity
+      type: keyword
+      level: custom
+      description: The exploit maturity.
+    - name: confidentialityRequirement
+      type: keyword
+      level: custom
+      description: The confidentiality requirement.
+    - name: integrityRequirement
+      type: keyword
+      level: custom
+      description: The integrity requirement.
+    - name: availabilityRequirement
+      type: keyword
+      level: custom
+      description: The availability requirement.
+    - name: modifiedAttackVector
+      type: keyword
+      level: custom
+      description: The modified attack vector.
+    - name: modifiedAttackComplexity
+      type: keyword
+      level: custom
+      description: The modified attack complexity.
+    - name: modifiedAttackRequirements
+      type: keyword
+      level: custom
+      description: The modified attack requirements.
+    - name: modifiedPrivilegesRequired
+      type: keyword
+      level: custom
+      description: The modified privileges required.
+    - name: modifiedUserInteraction
+      type: keyword
+      level: custom
+      description: The modified user interaction.
+    - name: modifiedVulnConfidentialityImpact
+      type: keyword
+      level: custom
+      description: The modified vulnerability confidentiality impact.
+    - name: modifiedVulnIntegrityImpact
+      type: keyword
+      level: custom
+      description: The modified vulnerability integrity impact.
+    - name: modifiedVulnAvailabilityImpact
+      type: keyword
+      level: custom
+      description: The modified vulnerability availability impact.
+    - name: modifiedSubConfidentialityImpact
+      type: keyword
+      level: custom
+      description: The modified security confidentiality impact.
+    - name: modifiedSubIntegrityImpact
+      type: keyword
+      level: custom
+      description: The modified security integrity impact.
+    - name: modifiedSubAvailabilityImpact
+      type: keyword
+      level: custom
+      description: The modified security availability impact.
+    - name: Safety
+      type: keyword
+      level: custom
+      description: The safety.
+    - name: Automatable
+      type: keyword
+      level: custom
+      description: The automatable.
+    - name: Recovery
+      type: keyword
+      level: custom
+      description: The recovery.
+    - name: valueDensity
+      type: keyword
+      level: custom
+      description: The value density.
+    - name: vulnerabilityResponseEffort
+      type: keyword
+      level: custom
+      description: The vulnerability response effort.
