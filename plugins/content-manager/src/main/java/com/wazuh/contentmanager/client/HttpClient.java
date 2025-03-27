@@ -51,7 +51,7 @@ public class HttpClient {
 
     private static final int TIMEOUT = 10;
     private static final Object LOCK = new Object();
-    private static CloseableHttpAsyncClient httpClient;
+    protected static CloseableHttpAsyncClient httpClient;
 
     protected final URI apiUri;
 
@@ -123,7 +123,7 @@ public class HttpClient {
 
         try {
             HttpHost httpHost = HttpHost.create(_apiUri);
-            log.info("Sending {} request to [{}]", method, _apiUri);
+            log.debug("Sending {} request to [{}]", method, _apiUri);
 
             SimpleRequestBuilder builder = SimpleRequestBuilder.create(method);
             if (requestBody != null) {
@@ -137,7 +137,7 @@ public class HttpClient {
             }
 
             SimpleHttpRequest request = builder.setHttpHost(httpHost).setPath(_apiUri.getPath()).build();
-
+            log.debug("Request sent: [{}]", request);
             return httpClient
                     .execute(
                             SimpleRequestProducer.create(request),
