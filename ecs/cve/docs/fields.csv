@@ -37,8 +37,13 @@ ECS_Version,Indexed,Field_Set,Field,Type,Level,Normalization,Example,Description
 8.11.0,true,cve,cve.payload.containers.adp.metrics.cvssV2_0.authentication,keyword,custom,,,The authentication.
 8.11.0,true,cve,cve.payload.containers.adp.metrics.cvssV2_0.availabilityImpact,keyword,custom,,,The availability impact.
 8.11.0,true,cve,cve.payload.containers.adp.metrics.cvssV2_0.baseScore,keyword,custom,,,The base score.
+8.11.0,true,cve,cve.payload.containers.adp.metrics.cvssV2_0.collateralDamagePotential,keyword,custom,,,The collateral damage potential.
 8.11.0,true,cve,cve.payload.containers.adp.metrics.cvssV2_0.confidentialityImpact,keyword,custom,,,The confidentiality impact.
+8.11.0,true,cve,cve.payload.containers.adp.metrics.cvssV2_0.exploitability,keyword,custom,,,The exploitability.
 8.11.0,true,cve,cve.payload.containers.adp.metrics.cvssV2_0.integrityImpact,keyword,custom,,,The integrity impact.
+8.11.0,true,cve,cve.payload.containers.adp.metrics.cvssV2_0.remediationLevel,keyword,custom,,,The remediation level.
+8.11.0,true,cve,cve.payload.containers.adp.metrics.cvssV2_0.reportConfidence,keyword,custom,,,The report confidence.
+8.11.0,true,cve,cve.payload.containers.adp.metrics.cvssV2_0.temporalScore,keyword,custom,,,The temporal score.
 8.11.0,true,cve,cve.payload.containers.adp.metrics.cvssV2_0.vectorString,keyword,custom,,,The vector string.
 8.11.0,true,cve,cve.payload.containers.adp.metrics.cvssV2_0.version,keyword,custom,,,The version of CVSS.
 8.11.0,true,cve,cve.payload.containers.adp.metrics.cvssV3.attackComplexity,keyword,custom,,,The attack complexity.
@@ -164,11 +169,21 @@ ECS_Version,Indexed,Field_Set,Field,Type,Level,Normalization,Example,Description
 8.11.0,true,cve,cve.payload.containers.cna.affected.versions.status,keyword,custom,,,The status of the affected version.
 8.11.0,true,cve,cve.payload.containers.cna.affected.versions.version,keyword,custom,,,The affected version.
 8.11.0,true,cve,cve.payload.containers.cna.affected.versions.versionType,keyword,custom,,,The type of the affected version.
+8.11.0,true,cve,cve.payload.containers.cna.configurations.lang,keyword,custom,,,The language of the description.
+8.11.0,true,cve,cve.payload.containers.cna.configurations.supportingMedia.base64,boolean,custom,,,The media value is base64 encoded.
+8.11.0,true,cve,cve.payload.containers.cna.configurations.supportingMedia.type,keyword,custom,,,The type of documentation [text/markdown].
+8.11.0,true,cve,cve.payload.containers.cna.configurations.supportingMedia.value,keyword,custom,,,The media value.
+8.11.0,true,cve,cve.payload.containers.cna.configurations.value,keyword,custom,,,The description of the CVE.
 8.11.0,true,cve,cve.payload.containers.cna.descriptions.lang,keyword,custom,,,The language of the description.
 8.11.0,true,cve,cve.payload.containers.cna.descriptions.supportingMedia.base64,boolean,custom,,,The media value is base64 encoded.
 8.11.0,true,cve,cve.payload.containers.cna.descriptions.supportingMedia.type,keyword,custom,,,The type of documentation [text/markdown].
 8.11.0,true,cve,cve.payload.containers.cna.descriptions.supportingMedia.value,keyword,custom,,,The media value.
 8.11.0,true,cve,cve.payload.containers.cna.descriptions.value,keyword,custom,,,The description of the CVE.
+8.11.0,true,cve,cve.payload.containers.cna.exploits.lang,keyword,custom,,,The language of the description.
+8.11.0,true,cve,cve.payload.containers.cna.exploits.supportingMedia.base64,boolean,custom,,,The media value is base64 encoded.
+8.11.0,true,cve,cve.payload.containers.cna.exploits.supportingMedia.type,keyword,custom,,,The type of documentation [text/markdown].
+8.11.0,true,cve,cve.payload.containers.cna.exploits.supportingMedia.value,keyword,custom,,,The media value.
+8.11.0,true,cve,cve.payload.containers.cna.exploits.value,keyword,custom,,,The description of the CVE.
 8.11.0,true,cve,cve.payload.containers.cna.impacts.capecId,keyword,custom,,,The impact ID
 8.11.0,true,cve,cve.payload.containers.cna.impacts.descriptions.lang,keyword,custom,,,The language of the description.
 8.11.0,true,cve,cve.payload.containers.cna.impacts.descriptions.supportingMedia.base64,boolean,custom,,,The media value is base64 encoded.
@@ -180,8 +195,13 @@ ECS_Version,Indexed,Field_Set,Field,Type,Level,Normalization,Example,Description
 8.11.0,true,cve,cve.payload.containers.cna.metrics.cvssV2_0.authentication,keyword,custom,,,The authentication.
 8.11.0,true,cve,cve.payload.containers.cna.metrics.cvssV2_0.availabilityImpact,keyword,custom,,,The availability impact.
 8.11.0,true,cve,cve.payload.containers.cna.metrics.cvssV2_0.baseScore,keyword,custom,,,The base score.
+8.11.0,true,cve,cve.payload.containers.cna.metrics.cvssV2_0.collateralDamagePotential,keyword,custom,,,The collateral damage potential.
 8.11.0,true,cve,cve.payload.containers.cna.metrics.cvssV2_0.confidentialityImpact,keyword,custom,,,The confidentiality impact.
+8.11.0,true,cve,cve.payload.containers.cna.metrics.cvssV2_0.exploitability,keyword,custom,,,The exploitability.
 8.11.0,true,cve,cve.payload.containers.cna.metrics.cvssV2_0.integrityImpact,keyword,custom,,,The integrity impact.
+8.11.0,true,cve,cve.payload.containers.cna.metrics.cvssV2_0.remediationLevel,keyword,custom,,,The remediation level.
+8.11.0,true,cve,cve.payload.containers.cna.metrics.cvssV2_0.reportConfidence,keyword,custom,,,The report confidence.
+8.11.0,true,cve,cve.payload.containers.cna.metrics.cvssV2_0.temporalScore,keyword,custom,,,The temporal score.
 8.11.0,true,cve,cve.payload.containers.cna.metrics.cvssV2_0.vectorString,keyword,custom,,,The vector string.
 8.11.0,true,cve,cve.payload.containers.cna.metrics.cvssV2_0.version,keyword,custom,,,The version of CVSS.
 8.11.0,true,cve,cve.payload.containers.cna.metrics.cvssV3.attackComplexity,keyword,custom,,,The attack complexity.
@@ -296,4 +316,14 @@ ECS_Version,Indexed,Field_Set,Field,Type,Level,Normalization,Example,Description
 8.11.0,true,cve,cve.payload.containers.cna.references.name,keyword,custom,,,The name of the reference
 8.11.0,true,cve,cve.payload.containers.cna.references.tags,keyword,custom,,,The tags of the reference
 8.11.0,true,cve,cve.payload.containers.cna.references.url,keyword,custom,,,The URL of the reference
+8.11.0,true,cve,cve.payload.containers.cna.solutions.lang,keyword,custom,,,The language of the description.
+8.11.0,true,cve,cve.payload.containers.cna.solutions.supportingMedia.base64,boolean,custom,,,The media value is base64 encoded.
+8.11.0,true,cve,cve.payload.containers.cna.solutions.supportingMedia.type,keyword,custom,,,The type of documentation [text/markdown].
+8.11.0,true,cve,cve.payload.containers.cna.solutions.supportingMedia.value,keyword,custom,,,The media value.
+8.11.0,true,cve,cve.payload.containers.cna.solutions.value,keyword,custom,,,The description of the CVE.
+8.11.0,true,cve,cve.payload.containers.cna.workarounds.lang,keyword,custom,,,The language of the description.
+8.11.0,true,cve,cve.payload.containers.cna.workarounds.supportingMedia.base64,boolean,custom,,,The media value is base64 encoded.
+8.11.0,true,cve,cve.payload.containers.cna.workarounds.supportingMedia.type,keyword,custom,,,The type of documentation [text/markdown].
+8.11.0,true,cve,cve.payload.containers.cna.workarounds.supportingMedia.value,keyword,custom,,,The media value.
+8.11.0,true,cve,cve.payload.containers.cna.workarounds.value,keyword,custom,,,The description of the CVE.
 8.11.0,true,cve,cve.version,keyword,custom,,,The version of the CVE.
