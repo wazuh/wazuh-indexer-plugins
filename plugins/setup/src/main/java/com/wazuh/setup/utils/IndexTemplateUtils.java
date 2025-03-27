@@ -96,7 +96,8 @@ public class IndexTemplateUtils {
     public static boolean isMissingIndexTemplate(ClusterService clusterService, String templateName) {
         Map<String, IndexTemplateMetadata> templates = clusterService.state().metadata().templates();
         log.debug("Existing index templates: {} ", templates.keySet());
-
+        log.info("Checking if index template [{}] exists", templateName); // BORRAR
+        log.info("EXISTS? " + templates.containsKey(templateName));
         return !templates.containsKey(templateName);
     }
 
@@ -111,7 +112,9 @@ public class IndexTemplateUtils {
         try {
             // @throws IOException
             Map<String, Object> template = IndexTemplateUtils.fromFile(templateName + ".json");
-
+            log.info("Mappings: " + template.get("mappings")); // BORRAR
+            log.info("Settings: " + template.get("settings")); // BORRAR
+            log.info("Index patterns: " + template.get("index_patterns")); // BORRAR
             PutIndexTemplateRequest putIndexTemplateRequest =
                     new PutIndexTemplateRequest()
                             .mapping(IndexTemplateUtils.get(template, "mappings"))
@@ -123,9 +126,11 @@ public class IndexTemplateUtils {
                     client.admin().indices().putTemplate(putIndexTemplateRequest).actionGet();
             if (acknowledgedResponse.isAcknowledged()) {
                 log.info("Index template [{}] created successfully", templateName);
+            } else {
+                log.info("Index template [{}] not created successfully", templateName); // BORRAR
             }
 
-        } catch (IOException e) {
+        } catch (Exception e) {
             log.error("Error reading index template [{}] from filesystem", templateName);
         }
     }

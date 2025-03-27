@@ -31,6 +31,7 @@ import java.io.IOException;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 
 import com.wazuh.setup.settings.PluginSettings;
@@ -71,6 +72,7 @@ public class JobDocument {
             String id,
             String jobName,
             Integer interval) {
+        log.info("Begin the JobDocument creation");
         CompletableFuture<IndexResponse> completableFuture = new CompletableFuture<>();
         ExecutorService executorService = threadPool.executor(ThreadPool.Names.WRITE);
         AgentJobParameter jobParameter =
@@ -83,10 +85,12 @@ public class JobDocument {
                             .id(id)
                             .source(jobParameter.toXContent(JsonXContent.contentBuilder(), null))
                             .create(true);
+            log.info("Index request " + indexRequest.toString());
             executorService.submit(
                     () -> {
                         try (ThreadContext.StoredContext ignored =
                                 threadPool.getThreadContext().stashContext()) {
+                            log.info("INIT of Indexing agent with ID {}", id);
                             if (IndexTemplateUtils.isMissingIndexTemplate(
                                     clusterService, PluginSettings.getJobIndexTemplate())) {
                                 IndexTemplateUtils.putIndexTemplate(client, PluginSettings.getJobIndexTemplate());
@@ -95,14 +99,21 @@ public class JobDocument {
                                         "Index template {} already exists. Skipping creation.",
                                         PluginSettings.getJobIndexName());
                             }
+                            log.info("Index request before index " + indexRequest.toString());
                             IndexResponse indexResponse = client.index(indexRequest).actionGet();
                             completableFuture.complete(indexResponse);
                         } catch (Exception e) {
+                            log.info("Complete excepcionally " + e.getMessage());
                             completableFuture.completeExceptionally(e);
                         }
                     });
         } catch (IOException e) {
             log.error("Failed to index agent with ID {}: {}", id, e);
+        }
+        try {
+            log.info("Return completableFuture " + completableFuture.get().status());
+        } catch (InterruptedException | ExecutionException e) {
+            log.error("ERROR " + e.getMessage());
         }
         return completableFuture;
     }

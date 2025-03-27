@@ -16,6 +16,8 @@
  */
 package com.wazuh.setup.jobscheduler;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.opensearch.core.xcontent.XContentBuilder;
 import org.opensearch.jobscheduler.spi.ScheduledJobParameter;
 import org.opensearch.jobscheduler.spi.schedule.Schedule;
@@ -25,6 +27,8 @@ import java.time.Instant;
 
 /** A model for the parameters and schema to be indexed to the jobs index. */
 public class AgentJobParameter implements ScheduledJobParameter {
+
+    private static final Logger log = LogManager.getLogger(AgentJobParameter.class);
 
     public static final String NAME_FIELD = "name";
     public static final String ENABLED_FIELD = "enabled";
@@ -146,6 +150,7 @@ public class AgentJobParameter implements ScheduledJobParameter {
                     this.lastUpdateTime.toEpochMilli());
         }
         builder.endObject();
+        log.info("AgentJobParameter builder " + builder.toString());
 
         return builder;
     }
