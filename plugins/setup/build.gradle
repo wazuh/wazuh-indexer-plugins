@@ -76,10 +76,6 @@ opensearchplugin {
     noticeFile rootProject.file('NOTICE.txt')
 }
 
-def versions = [
-  log4j: "2.23.1"
-]
-
 configurations {
   zipArchive
 }
@@ -153,6 +149,10 @@ testClusters.integTest {
 
 run {
     useCluster testClusters.integTest
+  exec {
+    // Generate data for the wazuh-agents index, it is useful for the agent_groups commands development and testing.
+    commandLine 'bash', './scripts/populate-agents-index.sh', '-n', '10', '-o', 'build/tmp/logs/'
+  }
 }
 
 // updateVersion: Task to auto update version to the next development iteration

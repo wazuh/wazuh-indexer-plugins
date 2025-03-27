@@ -107,4 +107,15 @@ public class AgentJobRunner implements ScheduledJobRunner {
         this.threadPool = threadPool;
         return getInstance();
     }
+
+    /**
+     * Sets the thread pool.
+     *
+     * @param clusterService OpenSearch's cluster service.
+     * @return invoking instance to allow concatenation of setWhatever() calls.
+     */
+    public AgentJobRunner setClusterService(ClusterService clusterService) {
+        this.clusterService = clusterService;
+        return getInstance();
+    }
 }

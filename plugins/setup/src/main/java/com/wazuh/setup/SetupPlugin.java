@@ -36,6 +36,7 @@ import org.opensearch.jobscheduler.spi.JobSchedulerExtension;
 import org.opensearch.jobscheduler.spi.ScheduledJobParser;
 import org.opensearch.jobscheduler.spi.ScheduledJobRunner;
 import org.opensearch.jobscheduler.spi.schedule.ScheduleParser;
+import org.opensearch.plugins.ActionPlugin;
 import org.opensearch.plugins.ClusterPlugin;
 import org.opensearch.plugins.Plugin;
 import org.opensearch.plugins.ReloadablePlugin;
@@ -63,7 +64,7 @@ import com.wazuh.setup.settings.PluginSettings;
  * templates and indices required by Wazuh to work properly.
  */
 public class SetupPlugin extends Plugin
-        implements ClusterPlugin, JobSchedulerExtension, ReloadablePlugin {
+        implements ClusterPlugin, ActionPlugin, JobSchedulerExtension, ReloadablePlugin {
 
     private static final Logger log = LogManager.getLogger(SetupPlugin.class);
 
@@ -90,7 +91,10 @@ public class SetupPlugin extends Plugin
 
         PluginSettings.getInstance(environment.settings());
 
-        AgentJobRunner.getInstance().setClient(client).setThreadPool(threadPool);
+        AgentJobRunner.getInstance()
+                .setClient(client)
+                .setThreadPool(threadPool)
+                .setClusterService(clusterService);
 
         this.scheduleAgentStatusJob(client, clusterService, threadPool);
 
@@ -147,11 +151,13 @@ public class SetupPlugin extends Plugin
 
     @Override
     public String getJobType() {
+        log.info("JobType " + PluginSettings.getJobType() + " executed ");
         return PluginSettings.getJobType();
     }
 
     @Override
     public String getJobIndex() {
+        log.info("JobIndex " + PluginSettings.getJobIndexName() + " executed ");
         return PluginSettings.getJobIndexName();
     }
 
