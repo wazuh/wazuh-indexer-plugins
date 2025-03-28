@@ -51,7 +51,7 @@ Some plugins may need other plugins to work properly, such as any plugin extendi
 
 Under these cases, the Gradle project of the plugin can be modified to include these other plugins as dependencies, so it forms up a development environment with all these plugins installed.
 
-All our Gradle projects are already configured to not require manual steps, but in the case of the Content Manager plugin. Unlike OpenSearch, we do not publish our Zip archives of our plugins to a Maven repository. As a result, any dependency between Wazuh Indexer plugins need some manual steps to build and publish the depedency plugins to the local Maven repository (`~/.m2` by default) before starting up the dependant plugin project.
+All our Gradle projects are already configured to not require manual steps, but in the case of the Content Manager plugin. Unlike OpenSearch, we do not publish our Zip archives of our plugins to a Maven repository. As a result, any dependency between Wazuh Indexer plugins need some manual steps to build and publish the dependency plugins to the local Maven repository (`~/.m2` by default) before starting up the dependant plugin project.
 
 These are the steps required to start the Content Manager plugin development environment together with the Command Manager plugin.
 
@@ -64,4 +64,4 @@ These are the steps required to start the Content Manager plugin development env
     ```groovy
     zipArchive group: 'com.wazuh', name:'wazuh-indexer-command-manager', version: "${wazuh_version}.${revision}"
     ```
-3. Start the Content Manager plugin as usual, by running `./gradlew run`.
+3. Start the Content Manager plugin by running `./gradlew run`.
