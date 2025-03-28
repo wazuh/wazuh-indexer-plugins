@@ -1,6 +1,6 @@
 - name: affected
   title: Affected
-  description: Affected products and versions.
+  description: Provides information about the set of products and services affected by this vulnerability.
   reusable:
     top_level: false
     expected:
@@ -11,40 +11,81 @@
     - name: cpes
       type: keyword
       level: custom
-      description: Common Platform Enumeration (CPE) entries for the affected product.
+      description: Affected products defined by CPE.
+      normalize:
+        - array
+      example: '[cpe:2.3:a:example:example:1.0:*:*:*:*:*:*:*]'
     - name: collectionURL
       type: keyword
       level: custom
-      description: The URL of the affected collection.
+      description: URL identifying a package collection (determines the meaning of packageName).
+      example: https://access.redhat.com/downloads/content/package-browser
     - name: defaultStatus
       type: keyword
       level: custom
-      description: The default status of the affected product.
+      description: The default status for versions that are not otherwise listed in the versions list.
+      example: affected
     - name: modules
       type: keyword
       level: custom
-      description: List of the affected modules.
+      description: A list of the affected components, features, modules, APIs, commands, utilities, programs, or functionalities.
+      normalize:
+        - array
+      example: '[module1, module2]'
     - name: packageName
       type: keyword
       level: custom
-      description: The name of the affected package.
+      description: Name or identifier of the affected software package as used in the package collection.
+      example: example-package
     - name: product
       type: keyword
       level: custom
-      description: The affected product.
+      description: Name of the affected product.
+      example: product1
     - name: programFiles
       type: keyword
       level: custom
-      description: List of the files of the affected programs.
+      description: A list of the affected source code files.
+      normalize:
+        - array
+    - name: programRoutines
+      type: keyword
+      level: custom
+      description: A list of the affected source code functions, methods, subroutines, or procedures.
+      normalize:
+        - array
+    - name: programRoutines.name
+      type: keyword
+      level: custom
+      description: Name of the affected source code file, function, method, subroutine, or procedure.
+      example: example_function
     - name: platforms
       type: keyword
       level: custom
-      description: List of the affected platforms.
+      description: List of specific platforms if the vulnerability is only relevant in the context of these platforms.
+      normalize:
+        - array
+      example: '[iOS, Android]'
     - name: repo
       type: keyword
       level: custom
-      description: Affected package repository.
+      description: The URL of the source code repository, for informational purposes and/or to resolve git hash version ranges.
+      example: https://gitlab.com/example/example
     - name: vendor
       type: keyword
       level: custom
-      description: The affected vendor.
+      description: Name of the organization, project, community, or user that created or maintains this product or hosted service.
+      example: Example Soft
+    - name: versions
+      type: keyword
+      level: custom
+      description: Set of product versions or version ranges related to the vulnerability.
+      normalize:
+        - array
+      example: '[1.0, 2.0]'
+    - name: problemTypes
+      type: keyword
+      level: custom
+      description: This is problem type information (e.g. CWE identifier).
+      normalize:
+        - array
