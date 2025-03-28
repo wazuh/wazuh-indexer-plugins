@@ -17,11 +17,10 @@
 package com.wazuh.contentmanager.client;
 
 import org.apache.hc.client5.http.async.methods.SimpleHttpResponse;
-import org.apache.hc.core5.http.ContentType;
-import org.apache.hc.core5.http.Header;
-import org.apache.hc.core5.http.HttpHeaders;
-import org.apache.hc.core5.http.Method;
+import org.apache.hc.core5.http.*;
 import org.apache.hc.core5.http.message.BasicHeader;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 import java.net.URI;
 
@@ -32,6 +31,8 @@ import com.wazuh.contentmanager.settings.PluginSettings;
  * Command Manager API.
  */
 public class CommandManagerClient extends HttpClient {
+    private static final Logger log = LogManager.getLogger(CommandManagerClient.class);
+
     private static volatile CommandManagerClient instance;
 
     /** Base Content Manager Plugin API endpoint. */
@@ -70,6 +71,35 @@ public class CommandManagerClient extends HttpClient {
      */
     public SimpleHttpResponse postCommand(String requestBody) {
         Header header = new BasicHeader(HttpHeaders.CONTENT_TYPE, ContentType.APPLICATION_JSON);
-        return sendRequest(Method.POST, POST_COMMAND_ENDPOINT, requestBody, null, header);
+        SimpleHttpResponse response =
+                this.sendRequest(Method.POST, POST_COMMAND_ENDPOINT, requestBody, null, header);
+        this.handlePostResponse(response);
+
+        return response;
+    }
+
+    /**
+     * Handles the response of the POST request to the Command Manager endpoint.
+     *
+     * @param response simplehttprespone
+     */
+    private void handlePostResponse(SimpleHttpResponse response) {
+        if (response == null) {
+            log.error("No reply from server");
+        } else {
+            switch (response.getCode()) {
+                case HttpStatus.SC_OK:
+                    log.info("Received OK response: {}", response.getBody().toString());
+                    break;
+                case HttpStatus.SC_CLIENT_ERROR:
+                    log.error("Client error: {}", response.getBody().toString());
+                    break;
+                case HttpStatus.SC_SERVER_ERROR:
+                    log.error("Internal server error");
+                    break;
+                default:
+                    log.info("Unexpected response code: {}", response.getCode());
+            }
+        }
     }
 }
