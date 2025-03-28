@@ -27,9 +27,14 @@ import reactor.util.annotation.Nullable;
 
 /** Command's action fields. */
 public class Action implements ToXContentObject {
-    public static final String ACTION = "action";
-    public static final String NAME = "name";
-    public static final String VERSION = "version";
+    static final String ACTION = "action";
+    static final String NAME = "name";
+    static final String VERSION = "version";
+    private static final String SET_GROUP = "set-group";
+    private static final String FETCH_CONFIG = "fetch-config";
+    static final String UPDATE = "update";
+    private static final String GENERIC = "generic";
+    private static final String PARSING_ARGUMENTS_FOR_COMMAND = "Parsing arguments for [{}] command";
     private final String name;
     private final Args args;
     private final String version;
@@ -49,6 +54,11 @@ public class Action implements ToXContentObject {
         this.version = version;
     }
 
+    /**
+     * Returns the action name.
+     *
+     * @return action name.
+     */
     public String getName() {
         return this.name;
     }
@@ -78,20 +88,20 @@ public class Action implements ToXContentObject {
                                 "Expected [command.action.name] to be provided before [command.action.args]");
                     }
                     switch (name) {
-                        case "set-group":
-                            log.info("Parsing arguments for [set-group] command");
+                        case SET_GROUP:
+                            log.info(PARSING_ARGUMENTS_FOR_COMMAND, SET_GROUP);
                             args = SetGroupCommand.parse(parser);
                             break;
-                        case "fetch-config":
-                            log.info("Parsing arguments for [fetch-config] command");
+                        case FETCH_CONFIG:
+                            log.info(PARSING_ARGUMENTS_FOR_COMMAND, FETCH_CONFIG);
                             args = FetchConfigCommand.parse(parser);
                             break;
-                        case "update":
-                            log.info("Parsing arguments for [update-content] command");
+                        case UPDATE:
+                            log.info(PARSING_ARGUMENTS_FOR_COMMAND, UPDATE);
                             args = UpdateContentCommand.parse(parser);
                             break;
                         default:
-                            log.info("Parsing arguments for [generic] command");
+                            log.info(PARSING_ARGUMENTS_FOR_COMMAND, GENERIC);
                             args = Args.parse(parser);
                             break;
                     }

@@ -16,6 +16,8 @@
  */
 package com.wazuh.commandmanager.model;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.opensearch.core.xcontent.XContentParser;
 
 import java.io.IOException;
@@ -23,9 +25,16 @@ import java.util.HashMap;
 import java.util.Map;
 
 public class UpdateContentCommand extends Args {
+    private static final Logger log = LogManager.getLogger(UpdateContentCommand.class);
 
-    public static final String INDEX_KEY = "index";
-    public static final String OFFSET_KEY = "offset";
+    private static final String INDEX_KEY = "index";
+    private static final String OFFSET_KEY = "offset";
+    private static final String INVALID_ARGS_MESSAGE =
+            "Expected [command.action.args] to contain the ["
+                    + INDEX_KEY
+                    + "] and ["
+                    + OFFSET_KEY
+                    + "] keys";
 
     /**
      * Dedicated command.action.args parser for "update" action type.
@@ -36,31 +45,15 @@ public class UpdateContentCommand extends Args {
      */
     public static Args parse(XContentParser parser) throws IOException {
         Map<String, Object> args = new HashMap<>();
-        boolean indexParsed = false;
-        boolean offsetParsed = false;
         String fieldName = "";
 
         while (parser.nextToken() != XContentParser.Token.END_OBJECT) {
-            XContentParser.Token actualToken = parser.currentToken();
-            switch (actualToken) {
+            XContentParser.Token currentToken = parser.currentToken();
+            switch (currentToken) {
                 case FIELD_NAME:
                     fieldName = parser.currentName();
-                    switch (fieldName) {
-                        case INDEX_KEY:
-                            indexParsed = true;
-                            break;
-                        case OFFSET_KEY:
-                            offsetParsed = true;
-                            break;
-                        default:
-                            throw new IllegalArgumentException(
-                                    "Expected [command.action.args] to contains only the ["
-                                            + INDEX_KEY
-                                            + "] and ["
-                                            + OFFSET_KEY
-                                            + "] keys, got ["
-                                            + parser.currentName()
-                                            + "]");
+                    if (!fieldName.equals(INDEX_KEY) && !fieldName.equals(OFFSET_KEY)) {
+                        log.warn(INVALID_ARGS_MESSAGE + ", got [{}]", parser.currentName());
                     }
                     break;
                 case VALUE_STRING:
@@ -74,15 +67,9 @@ public class UpdateContentCommand extends Args {
             }
         }
 
-        if (indexParsed && offsetParsed) {
+        if (args.containsKey(INDEX_KEY) && args.containsKey(OFFSET_KEY)) {
             return new Args(args);
-        } else {
-            throw new IllegalArgumentException(
-                    "Expected [command.action.args] to contain the ["
-                            + INDEX_KEY
-                            + "] and ["
-                            + OFFSET_KEY
-                            + "] keys");
         }
+        throw new IllegalArgumentException(INVALID_ARGS_MESSAGE);
     }
 }

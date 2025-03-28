@@ -42,9 +42,7 @@ import java.util.List;
 import java.util.function.Supplier;
 
 import com.wazuh.contentmanager.client.CTIClient;
-import com.wazuh.contentmanager.client.CommandManagerClient;
 import com.wazuh.contentmanager.index.ContextIndex;
-import com.wazuh.contentmanager.model.commandmanager.Command;
 import com.wazuh.contentmanager.model.ctiapi.ConsumerInfo;
 import com.wazuh.contentmanager.settings.PluginSettings;
 import com.wazuh.contentmanager.util.Privileged;
@@ -86,14 +84,6 @@ public class ContentManagerPlugin extends Plugin implements ClusterPlugin, Actio
         ConsumerInfo consumerInfo =
                 Privileged.doPrivilegedRequest(() -> CTIClient.getInstance().getCatalog());
         this.contextIndex.index(consumerInfo);
-        // generate cti command for testing purposes (now method create)
-        String offset = "111";
-        try {
-            String command = Command.create(offset);
-            Privileged.doPrivilegedRequest(() -> CommandManagerClient.getInstance().postCommand(command));
-        } catch (IOException e) {
-            log.error(e.getMessage());
-        }
     }
 
     /**

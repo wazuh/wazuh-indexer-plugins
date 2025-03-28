@@ -22,8 +22,8 @@ import java.io.IOException;
 
 public class UpdateTarget extends Target {
 
-    public static final String UPDATE_TYPE = "server";
-    public static final String UPDATE_ID = "vulnerability-detector";
+    private static final String UPDATE_TYPE = "server";
+    private static final String UPDATE_ID = "vulnerability-detector";
 
     /**
      * Default constructor.
@@ -35,67 +35,35 @@ public class UpdateTarget extends Target {
         super(type, id);
     }
 
-    public static Target parse(XContentParser parser) throws IOException {
-        String fieldName = "";
-        Type type = null;
-        String id = "";
+    /**
+     * Parses the fields under "target" for the "update" command. Uses the {@link
+     * Target#parse(XContentParser)} method and checks the values after that.
+     *
+     * @param parser xcontent parser.
+     * @return Target instance.
+     * @throws IOException unexpected exception parsing the content.
+     * @throws IllegalArgumentException missing or invalid arguments.
+     */
+    public static Target parse(XContentParser parser) throws IOException, IllegalArgumentException {
+        Target target = Target.parse(parser);
 
-        while (parser.nextToken() != XContentParser.Token.END_OBJECT) {
-            XContentParser.Token actualToken = parser.currentToken();
-            switch (actualToken) {
-                case FIELD_NAME:
-                    if (parser.currentName().equals(Target.TYPE) || parser.currentName().equals(Target.ID)) {
-                        fieldName = parser.currentName();
-                    } else {
-                        throw new IllegalArgumentException(
-                                "Expected [command.target] to contains only the ["
-                                        + Target.TYPE
-                                        + "] and ["
-                                        + Target.ID
-                                        + "] keys, got ["
-                                        + parser.currentName()
-                                        + "]");
-                    }
-                    break;
-                case VALUE_STRING:
-                    switch (fieldName) {
-                        case Target.TYPE:
-                            if (parser.text().equals(UPDATE_TYPE)) {
-                                type = Type.fromString(parser.text());
-                            } else {
-                                throw new IllegalArgumentException(
-                                        "Expected [command.target.type] to contain ["
-                                                + UPDATE_TYPE
-                                                + "] value, got ["
-                                                + parser.text()
-                                                + "]");
-                            }
-                            break;
-                        case Target.ID:
-                            if (parser.text().equals(UPDATE_ID)) {
-                                id = parser.text();
-                            } else {
-                                throw new IllegalArgumentException(
-                                        "Expected [command.target.id] to contain ["
-                                                + UPDATE_ID
-                                                + "] value, got ["
-                                                + parser.text()
-                                                + "]");
-                            }
-                            break;
-                    }
-                    break;
-                default:
-                    throw new IllegalArgumentException(
-                            "Expected [command.target] to contains only the ["
-                                    + Target.TYPE
-                                    + "] and ["
-                                    + Target.ID
-                                    + "] keys, got ["
-                                    + parser.currentName()
-                                    + "]");
-            }
+        if (target.getType() != Target.Type.SERVER) {
+            throw new IllegalArgumentException(
+                    "Expected [command.target.type] to contain ["
+                            + UPDATE_TYPE
+                            + "] value, got ["
+                            + target.getType()
+                            + "]");
         }
-        return new Target(type, id);
+        if (!target.getId().equalsIgnoreCase(UPDATE_ID)) {
+            throw new IllegalArgumentException(
+                    "Expected [command.target.id] to contain ["
+                            + UPDATE_ID
+                            + "] value, got ["
+                            + target.getId()
+                            + "]");
+        }
+
+        return target;
     }
 }

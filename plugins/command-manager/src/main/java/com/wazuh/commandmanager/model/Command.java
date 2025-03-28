@@ -42,6 +42,7 @@ public class Command implements ToXContentObject {
     public static final String TIMEOUT = "timeout";
     public static final String USER = "user";
     public static final String STATUS = "status";
+    private static final String UPDATE_COMMAND = "update";
     private final String orderId;
     private final String requestId;
     private final String source;
@@ -118,15 +119,14 @@ public class Command implements ToXContentObject {
                         if (action == null) {
                             throw new IllegalArgumentException(
                                     "Expected [command.action] to be provided before [command.target]");
-                        } else {
-                            switch (action.getName()) {
-                                case "update":
-                                    target = UpdateTarget.parse(parser);
-                                    break;
-                                default:
-                                    target = Target.parse(parser);
-                                    break;
-                            }
+                        }
+                        switch (action.getName()) {
+                            case Action.UPDATE:
+                                target = UpdateTarget.parse(parser);
+                                break;
+                            default:
+                                target = Target.parse(parser);
+                                break;
                         }
                         break;
                     case TIMEOUT:
