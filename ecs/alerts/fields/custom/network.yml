@@ -10,24 +10,29 @@
       type: ip
       level: custom
       description: >
-        Broadcast address
+        Broadcast address.
+      example: "192.168.0.255"
     - name: dhcp
       type: keyword
       level: custom
       description: >
-        DHCP status (enabled, disabled, unknown, BOOTP)
+        DHCP status (enabled, disabled, unknown, BOOTP).
+      example: "enabled"
     - name: gateway
       type: ip
       level: custom
       description: >
-        Gateway address
+        Gateway address.
+      example: "192.168.0.1"
     - name: metric
       type: long
       level: custom
       description: >
-        Metric of the network protocol
+        Metric of the network protocol.
+      example: 15
     - name: netmask
       type: ip
       level: custom
       description: >
         Network mask
+      example: "255.255.255.0"
