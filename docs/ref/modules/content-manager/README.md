@@ -19,13 +19,28 @@ On new content, the Content Manager generates a new command for the Command Mana
         5. Generate a command for the Command Manager.
     2. If the offset is the same as the offset fetched from the CTI API for that context and consumer. The content is up-to-date and nothing needs to be done.
     3. If the offset is lower than the offset fetched from the CTI API for that context and consumer, so the content needs to be updated.
-        1. Subtract the difference in offsets: `difference = latest_offsest - local_offset` 
+        1. Subtract the difference in offsets: `difference = latest_offsest - local_offset`
         2. While `difference > 0`
             - Fetch changes in batches of 1000 elements as maximum
             - Apply JSON-patch to the content.
         3. Generate a command for the Command Manager.
-2. [**OFFLINE**] The Content Manager exposes an API endpoint that accepts the URI to the snapshot file (e.g. `file:///tmp/snapshot.zip`). 
+2. [**OFFLINE**] The Content Manager exposes an API endpoint that accepts the URI to the snapshot file (e.g. `file:///tmp/snapshot.zip`).
    1. From `1.1.2` to `1.1.5`
+
+```mermaid
+---
+title: Content Manager - Content update
+---
+sequenceDiagram
+    ContentUpdater->>IndexClient: getContextInformation()
+    IndexClient-)ContentUpdater: contextInfo
+    loop while last_offset > offset
+        ContentUpdater->>CTIclient: getContextChanges()
+        CTIclient-)ContentUpdater: changes
+        ContentUpdater-->>IndexPatcher: changes
+    end
+    ContentUpdater-->>CommandManagerClient: postCommand()
+```
 
 ## Schema of the `wazuh-content` index
 
