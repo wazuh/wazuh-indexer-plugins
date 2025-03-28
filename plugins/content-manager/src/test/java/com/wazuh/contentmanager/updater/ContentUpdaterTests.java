@@ -29,7 +29,7 @@ import java.util.List;
 import com.wazuh.contentmanager.client.CTIClient;
 import com.wazuh.contentmanager.client.CommandManagerClient;
 import com.wazuh.contentmanager.model.ctiapi.Offset;
-import com.wazuh.contentmanager.model.ctiapi.Offsets;
+import com.wazuh.contentmanager.model.ctiapi.ContextChanges;
 import org.mockito.Mockito;
 
 import static org.mockito.Mockito.*;
@@ -66,11 +66,11 @@ public class ContentUpdaterTests extends OpenSearchIntegTestCase {
         doReturn(0L).when(contentUpdaterSpy).getCurrentOffset();
         doReturn((long) offsetsAmount).when(contentUpdaterSpy).getLatestOffset();
         // Mock getContextChanges method.
-        doReturn(generateOffsets(offsetsAmount))
+        doReturn(generateContextChanges(offsetsAmount))
                 .when(contentUpdaterSpy)
                 .getContextChanges(any(), any());
         // Mock postUpdateCommand method.
-        doNothing().when(contentUpdaterSpy).postUpdateCommand((long) offsetsAmount);
+        doNothing().when(contentUpdaterSpy).postUpdateCommand();
         // Act
         contentUpdaterSpy.fetchAndApplyUpdates(null);
         // Assert patchContextIndex is called 4 times (one each 1000 starting from 0).
@@ -96,11 +96,11 @@ public class ContentUpdaterTests extends OpenSearchIntegTestCase {
         verify(contentUpdaterSpy, times(1)).getContextChanges(any(), any());
     }
 
-    public Offsets generateOffsets(Integer size) {
+    public ContextChanges generateContextChanges(Integer size) {
         List<Offset> offsets = new ArrayList<>();
         for (int i = 0; i < size; i++) {
             offsets.add(new Offset("context", (long) i, "resource", "type", 0L, new HashMap<>()));
         }
-        return new Offsets(offsets);
+        return new ContextChanges(offsets);
     }
 }

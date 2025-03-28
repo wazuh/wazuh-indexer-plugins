@@ -88,7 +88,7 @@ public class ContentUpdater {
             }
         }
         // Post new command informing the new changes.
-        this.postUpdateCommand(currentOffset);
+        this.postUpdateCommand();
     }
 
     /**
