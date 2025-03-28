@@ -88,7 +88,7 @@ dependencies {
     zipArchive group: 'org.opensearch.plugin', name: 'opensearch-job-scheduler', version: "${opensearch_build}"
     // Uncomment this line to load the command-manager plugin from the local Maven repository.
     // Keep it commented to allow GitHub Workflows to run the tests.
-     zipArchive group: 'com.wazuh', name:'wazuh-indexer-command-manager', version: "${wazuh_version}.${revision}"
+    // zipArchive group: 'com.wazuh', name:'wazuh-indexer-command-manager', version: "${wazuh_version}.${revision}"
 }
 
 // No need to validate license headers since spotless checks and applies it
