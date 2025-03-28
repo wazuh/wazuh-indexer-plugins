@@ -6,3 +6,6 @@ The `wazuh-indexer-setup` plugin is a module composing the Wazuh Indexer respons
 - Create the index templates, to define the mappings and settings of the indices.
 - Create the initial indices. We distinguish between **stateful**, **stateless**, and **rbac** indices. Stateful indices are unique and its data is update over time (agents' inventory), stateless indices are rotated and static (alerts), and RBAC indices store access control and authorization information for managing users, roles, and permissions.
 - For stateless indices, it creates the indices aliases and lifecycle policies for rollover.
+
+**Key Features:**
+- The plugin extends the Job Scheduler plugin via its SPI. The job periodically searches for agents in an active state whose last login was 15 minutes ago or more and changes their status to disconnected".
