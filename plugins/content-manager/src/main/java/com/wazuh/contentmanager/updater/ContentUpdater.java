@@ -16,10 +16,8 @@
  */
 package com.wazuh.contentmanager.updater;
 
-import org.apache.hc.client5.http.async.methods.SimpleHttpResponse;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.opensearch.common.xcontent.XContentType;
 import org.opensearch.core.xcontent.*;
 
 import java.io.IOException;
@@ -96,25 +94,8 @@ public class ContentUpdater {
      * @return ContextChanges object containing the changes.
      */
     public ContextChanges getContextChanges(String fromOffset, String toOffset) {
-        try {
-            SimpleHttpResponse response =
-                    Privileged.doPrivilegedRequest(
-                            () -> CTIClient.getInstance().getChanges(fromOffset, toOffset, null));
-
-            if (response == null || response.getBodyBytes() == null) {
-                throw new IOException("Empty response for offsets " + fromOffset + " to " + toOffset);
-            }
-
-            XContent xContent = XContentType.JSON.xContent();
-            return ContextChanges.parse(
-                    xContent.createParser(
-                            NamedXContentRegistry.EMPTY,
-                            DeprecationHandler.IGNORE_DEPRECATIONS,
-                            response.getBodyBytes()));
-        } catch (IOException e) {
-            log.error("Error fetching changes for offsets {} to {}", fromOffset, toOffset, e);
-            return null;
-        }
+        return Privileged.doPrivilegedRequest(
+                () -> CTIClient.getInstance().getChanges(fromOffset, toOffset, null));
     }
 
     /**
@@ -157,11 +138,15 @@ public class ContentUpdater {
      */
     public void postUpdateCommand(Long updatedOffset) {
         log.info("Initiating call to command manager");
-        try {
-            // Post new command informing the new changes.
-            CommandManagerClient.getInstance().postCommand(Command.generateCtiCommand());
-        } catch (IOException e) {
-            log.error("Error posting update command", e);
-        }
+        // Post new command informing the new changes.
+        Privileged.doPrivilegedRequest(
+                () -> {
+                    try {
+                        CommandManagerClient.getInstance().postCommand(Command.generateCtiCommand());
+                    } catch (IOException e) {
+                        log.error("Error posting update command", e);
+                    }
+                    return null;
+                });
     }
 }

@@ -39,6 +39,7 @@ public class UpdaterHandler extends BaseRestHandler {
     public static final String NAME = "content_updater";
 
     private static final Logger log = LogManager.getLogger(UpdaterHandler.class);
+
     /** Exposes the endpoint */
     @Override
     public List<RestHandler.Route> routes() {
@@ -62,6 +63,7 @@ public class UpdaterHandler extends BaseRestHandler {
             CompletableFuture.runAsync(
                     () -> {
                         try {
+                            log.info("Calling command manager");
                             updater.fetchAndApplyUpdates(Long.parseLong(request.param("from_offset")));
                         } catch (ContentUpdater.ContentUpdateException e) {
                             // Log the error (using OpenSearch logger if available)

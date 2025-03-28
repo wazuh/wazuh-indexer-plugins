@@ -25,8 +25,6 @@ import org.apache.hc.core5.http.message.BasicHeader;
 
 import java.net.URI;
 
-import com.wazuh.contentmanager.settings.PluginSettings;
-
 /**
  * CommandManagerClient is a singleton class responsible for managing HTTP communication with the
  * Command Manager API.
