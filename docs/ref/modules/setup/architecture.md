@@ -33,7 +33,7 @@ sequenceDiagram
     activate SetupPlugin
     Note over Node,SetupPlugin: Invoked on Node::start()
 
-    
+
     activate WazuhIndices
     SetupPlugin->>WazuhIndices: initialize()
 
@@ -84,3 +84,8 @@ classDiagram
     WazuhIndices : +templateExists(String template) bool
     WazuhIndices : +initialize() void
 ```
+
+## The Job Scheduler task
+A periodic task performs an [updateByQuery](https://opensearch.org/docs/latest/api-reference/document-apis/update-by-query/) query to set the status of inactive agents to "disconnected".
+
+Issue: [https://github.com/wazuh/wazuh-indexer-plugins/issues/341](https://github.com/wazuh/wazuh-indexer-plugins/issues/341)
