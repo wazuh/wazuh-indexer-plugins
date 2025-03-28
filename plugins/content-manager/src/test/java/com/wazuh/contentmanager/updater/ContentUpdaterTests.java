@@ -16,33 +16,29 @@
  */
 package com.wazuh.contentmanager.updater;
 
-import org.opensearch.client.Client;
-import org.opensearch.cluster.service.ClusterService;
 import org.opensearch.test.OpenSearchIntegTestCase;
 import org.junit.Before;
 
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 
-import com.wazuh.contentmanager.client.CTIClient;
-import com.wazuh.contentmanager.client.CommandManagerClient;
 import com.wazuh.contentmanager.model.ctiapi.ContextChanges;
 import com.wazuh.contentmanager.model.ctiapi.Offset;
 import org.mockito.Mockito;
 
 import static org.mockito.Mockito.*;
 
+/** Tests of the Content Manager's updater */
 @OpenSearchIntegTestCase.ClusterScope(scope = OpenSearchIntegTestCase.Scope.SUITE)
 public class ContentUpdaterTests extends OpenSearchIntegTestCase {
-    private CTIClient mockCtiClient;
-    private CommandManagerClient mockCommandManagerClient;
-    private Client client;
-    private ClusterService clusterService;
-    private ContentUpdater contentUpdater;
     private ContentUpdater contentUpdaterSpy;
 
+    /**
+     * Set up the tests
+     *
+     * @throws Exception rethrown from parent method
+     */
     @Before
     public void setup() throws Exception {
         super.setUp();
@@ -50,7 +46,8 @@ public class ContentUpdaterTests extends OpenSearchIntegTestCase {
         contentUpdaterSpy = Mockito.spy(contentUpdater);
     }
 
-    public void testFetchAndApplyUpdatesNoNewUpdates() throws IOException {
+    /** Test Fetch and apply no new updates */
+    public void testFetchAndApplyUpdatesNoNewUpdates() {
         // Mock current and latest offset.
         doReturn(100L).when(contentUpdaterSpy).getCurrentOffset();
         doReturn(100L).when(contentUpdaterSpy).getLatestOffset();
@@ -60,7 +57,8 @@ public class ContentUpdaterTests extends OpenSearchIntegTestCase {
         verify(contentUpdaterSpy, never()).patchContextIndex(any());
     }
 
-    public void testFetchAndApplyUpdatesNewUpdates() throws IOException {
+    /** Test fetch and apply new updates */
+    public void testFetchAndApplyUpdatesNewUpdates() {
         Integer offsetsAmount = 3999;
         // Mock current and latest offset.
         doReturn(0L).when(contentUpdaterSpy).getCurrentOffset();
@@ -77,8 +75,9 @@ public class ContentUpdaterTests extends OpenSearchIntegTestCase {
         verify(contentUpdaterSpy, times(4)).patchContextIndex(any());
     }
 
-    public void testFetchAndApplyUpdatesErrorFetchingChanges() throws IOException {
-        Integer offsetsAmount = 3999;
+    /** Test error fetching changes */
+    public void testFetchAndApplyUpdatesErrorFetchingChanges() {
+        int offsetsAmount = 3999;
         // Mock current and latest offset.
         doReturn(0L).when(contentUpdaterSpy).getCurrentOffset();
         doReturn((long) offsetsAmount).when(contentUpdaterSpy).getLatestOffset();
@@ -86,16 +85,18 @@ public class ContentUpdaterTests extends OpenSearchIntegTestCase {
         doReturn(null).when(contentUpdaterSpy).getContextChanges(any(), any());
         // Act
         Exception exception =
-                assertThrows(
-                        RuntimeException.class,
-                        () -> {
-                            contentUpdaterSpy.fetchAndApplyUpdates(null);
-                        });
+                assertThrows(RuntimeException.class, () -> contentUpdaterSpy.fetchAndApplyUpdates(null));
         // Assert
         assertEquals("Error fetching changes for offsets 0 to 1000", exception.getMessage());
         verify(contentUpdaterSpy, times(1)).getContextChanges(any(), any());
     }
 
+    /**
+     * Generate context changes
+     *
+     * @param size of the generated changes list
+     * @return A ContextChanges object
+     */
     public ContextChanges generateContextChanges(Integer size) {
         List<Offset> offsets = new ArrayList<>();
         for (int i = 0; i < size; i++) {
