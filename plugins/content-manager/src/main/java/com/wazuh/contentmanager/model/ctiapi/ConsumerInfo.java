@@ -155,6 +155,15 @@ public class ConsumerInfo implements ToXContentObject {
     }
 
     /**
+     * Getter for the last offset number
+     *
+     * @return Last offset number as a long
+     */
+    public Long getLastOffset() {
+        return lastOffset;
+    }
+
+    /**
      * Retrieves the URL of the last consumer snapshot
      *
      * @return A Snapshot URL

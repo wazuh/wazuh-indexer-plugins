@@ -29,6 +29,7 @@ import java.nio.file.Path;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
 
+/** Class to handle unzip tests */
 public class UnzipTests extends OpenSearchTestCase {
 
     private Path tempDestinationDirectory;
@@ -61,12 +62,14 @@ public class UnzipTests extends OpenSearchTestCase {
         }
     }
 
+    @SuppressWarnings("EmptyMethod")
     @After
     @Override
     public void tearDown() throws Exception {
         super.tearDown();
     }
 
+    /** Test valid unzip process */
     public void testValidUnzip() {
         try {
             Unzip.unzip(this.zipFileName, "", this.environment);
@@ -79,12 +82,15 @@ public class UnzipTests extends OpenSearchTestCase {
         }
     }
 
+    /** Test NullPointerException */
+    @SuppressWarnings("DataFlowIssue")
     public void testNullPointerException() {
         assertThrows(
                 NullPointerException.class,
                 () -> Unzip.unzip(null, this.tempDestinationDirectory.toString(), this.environment));
     }
 
+    /** Test FileNotFoundException */
     public void testFileNotFoundException() {
         assertThrows(
                 FileNotFoundException.class,

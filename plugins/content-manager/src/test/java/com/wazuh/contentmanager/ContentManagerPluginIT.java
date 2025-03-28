@@ -30,8 +30,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.Collection;
 import java.util.Collections;
 
-import static org.hamcrest.Matchers.containsString;
-
+/** Class for Integration tests of the Content Manager Plugin */
 @ThreadLeakScope(ThreadLeakScope.Scope.NONE)
 @OpenSearchIntegTestCase.ClusterScope(scope = OpenSearchIntegTestCase.Scope.SUITE)
 public class ContentManagerPluginIT extends OpenSearchIntegTestCase {
@@ -41,11 +40,17 @@ public class ContentManagerPluginIT extends OpenSearchIntegTestCase {
         return Collections.singletonList(ContentManagerPlugin.class);
     }
 
+    /**
+     * Check if the plugin is listed as installed and running
+     *
+     * @throws IOException rethrown from the GET request
+     * @throws ParseException rethrown from the string parser of the reply
+     */
     public void testPluginInstalled() throws IOException, ParseException {
         Response response = getRestClient().performRequest(new Request("GET", "/_cat/plugins"));
         String body = EntityUtils.toString(response.getEntity(), StandardCharsets.UTF_8);
 
         logger.info("response body: {}", body);
-        assertThat(body, containsString("wazuh-indexer-content-manager"));
+        assertTrue(body.contains("wazuh-indexer-content-manager"));
     }
 }

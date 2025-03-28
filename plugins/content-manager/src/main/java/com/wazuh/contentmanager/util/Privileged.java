@@ -24,6 +24,7 @@ public class Privileged {
     /**
      * Executes an HTTP request with elevated privileges.
      *
+     * @param request The Action to be executed with privileged permissions
      * @param <T> A privileged action that performs the HTTP request.
      * @return The return value resulting from the request execution.
      */

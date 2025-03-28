@@ -32,13 +32,13 @@ public class HttpResponseCallback implements FutureCallback<SimpleHttpResponse> 
     private static final Logger log = LogManager.getLogger(HttpResponseCallback.class);
 
     /** The Http get request. */
-    SimpleHttpRequest httpRequest;
+    final SimpleHttpRequest httpRequest;
 
     /** The error message. */
-    String errorMessage;
+    final String errorMessage;
 
     /**
-     * Deafult constructor
+     * Default constructor
      *
      * @param httpRequest the request
      * @param errorMessage the error message

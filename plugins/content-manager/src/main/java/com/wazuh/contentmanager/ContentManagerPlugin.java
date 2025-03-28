@@ -19,6 +19,7 @@ package com.wazuh.contentmanager;
 import org.opensearch.client.Client;
 import org.opensearch.cluster.metadata.IndexNameExpressionResolver;
 import org.opensearch.cluster.node.DiscoveryNode;
+import org.opensearch.cluster.node.DiscoveryNodes;
 import org.opensearch.cluster.service.ClusterService;
 import org.opensearch.common.settings.*;
 import org.opensearch.core.common.io.stream.NamedWriteableRegistry;
@@ -29,11 +30,12 @@ import org.opensearch.plugins.ActionPlugin;
 import org.opensearch.plugins.ClusterPlugin;
 import org.opensearch.plugins.Plugin;
 import org.opensearch.repositories.RepositoriesService;
+import org.opensearch.rest.RestController;
+import org.opensearch.rest.RestHandler;
 import org.opensearch.script.ScriptService;
 import org.opensearch.threadpool.ThreadPool;
 import org.opensearch.watcher.ResourceWatcherService;
 
-import java.io.IOException;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
@@ -42,6 +44,7 @@ import java.util.function.Supplier;
 import com.wazuh.contentmanager.client.CTIClient;
 import com.wazuh.contentmanager.index.ContextIndex;
 import com.wazuh.contentmanager.model.ctiapi.ConsumerInfo;
+import com.wazuh.contentmanager.rest.UpdaterHandler;
 import com.wazuh.contentmanager.settings.PluginSettings;
 import com.wazuh.contentmanager.util.Privileged;
 
@@ -49,9 +52,6 @@ import com.wazuh.contentmanager.util.Privileged;
 public class ContentManagerPlugin extends Plugin implements ClusterPlugin, ActionPlugin {
 
     private ContextIndex contextIndex;
-
-    /** ClassConstructor * */
-    public ContentManagerPlugin() {}
 
     @Override
     public Collection<Object> createComponents(
@@ -71,6 +71,19 @@ public class ContentManagerPlugin extends Plugin implements ClusterPlugin, Actio
         return Collections.emptyList();
     }
 
+    @Override
+    public List<RestHandler> getRestHandlers(
+            Settings settings,
+            RestController restController,
+            ClusterSettings clusterSettings,
+            IndexScopedSettings indexScopedSettings,
+            SettingsFilter settingsFilter,
+            IndexNameExpressionResolver indexNameExpressionResolver,
+            Supplier<DiscoveryNodes> nodesInCluster) {
+        // Just for testing purposes
+        return Collections.singletonList(new UpdaterHandler());
+    }
+
     /**
      * Call the CTI API on startup and get the latest consumer information into an index
      *
@@ -81,16 +94,6 @@ public class ContentManagerPlugin extends Plugin implements ClusterPlugin, Actio
         ConsumerInfo consumerInfo =
                 Privileged.doPrivilegedRequest(() -> CTIClient.getInstance().getCatalog());
         this.contextIndex.index(consumerInfo);
-    }
-
-    /**
-     * Close the resources opened by this plugin.
-     *
-     * @throws IOException if the plugin failed to close its resources
-     */
-    @Override
-    public void close() throws IOException {
-        super.close();
     }
 
     @Override

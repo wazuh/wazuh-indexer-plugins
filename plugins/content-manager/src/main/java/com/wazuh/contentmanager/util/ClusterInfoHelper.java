@@ -51,7 +51,8 @@ public class ClusterInfoHelper {
         String clusterIp = "127.0.0.1:9200";
         if (node != null) {
             // Get the address in format <IP>:<PORT>.
-            clusterIp = node.getAddress().toString();
+            clusterIp =
+                    node.getAddress().getAddress() + ":" + clusterService.getSettings().get("http.port");
         }
         return protocol + "://" + clusterIp;
     }
