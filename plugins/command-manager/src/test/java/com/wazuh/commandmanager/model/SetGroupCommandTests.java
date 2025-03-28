@@ -25,8 +25,6 @@ import java.io.IOException;
 import java.util.Arrays;
 import java.util.List;
 
-import static com.wazuh.commandmanager.model.SetGroupCommand.parse;
-
 @OpenSearchIntegTestCase.ClusterScope(scope = OpenSearchIntegTestCase.Scope.SUITE)
 public class SetGroupCommandTests extends OpenSearchIntegTestCase {
 
@@ -49,7 +47,7 @@ public class SetGroupCommandTests extends OpenSearchIntegTestCase {
         // Initialize the parser
         parser.nextToken();
         // Call the parse method
-        Args args = parse(parser);
+        Args args = SetGroupCommand.parse(parser);
 
         // Verify the result
         assertNotNull(args);
@@ -70,7 +68,7 @@ public class SetGroupCommandTests extends OpenSearchIntegTestCase {
         // Create an XContentParser with an invalid JSON, that is not an array
         XContentBuilder builder = XContentFactory.jsonBuilder();
         builder.startObject();
-        builder.field("groups", "these isn't an array");
+        builder.field("groups", "this isn't an array");
         builder.endObject();
         BytesReference bytes = BytesReference.bytes(builder);
         MediaType mediaType = MediaTypeRegistry.JSON;
