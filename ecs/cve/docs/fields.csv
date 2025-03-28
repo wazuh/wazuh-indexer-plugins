@@ -3,17 +3,18 @@ ECS_Version,Indexed,Field_Set,Field,Type,Level,Normalization,Example,Description
 8.11.0,true,cve,cve.inserted_at,date,custom,,,The date the CVE was inserted.
 8.11.0,true,cve,cve.name,keyword,custom,,,The name of the CVE.
 8.11.0,true,cve,cve.offset,keyword,custom,,,The offset of the CVE.
-8.11.0,true,cve,cve.payload.containers.adp.affected.collectionURL,keyword,custom,,,The URL of the affected collection.
-8.11.0,true,cve,cve.payload.containers.adp.affected.cpes,keyword,custom,,,Common Platform Enumeration (CPE) entries for the affected product.
-8.11.0,true,cve,cve.payload.containers.adp.affected.defaultStatus,keyword,custom,,,The default status of the affected product.
-8.11.0,true,cve,cve.payload.containers.adp.affected.modules,keyword,custom,,,List of the affected modules.
-8.11.0,true,cve,cve.payload.containers.adp.affected.packageName,keyword,custom,,,The name of the affected package.
-8.11.0,true,cve,cve.payload.containers.adp.affected.platforms,keyword,custom,,,List of the affected platforms.
-8.11.0,true,cve,cve.payload.containers.adp.affected.product,keyword,custom,,,The affected product.
-8.11.0,true,cve,cve.payload.containers.adp.affected.programFiles,keyword,custom,,,List of the files of the affected programs.
-8.11.0,true,cve,cve.payload.containers.adp.affected.programRoutines.name,keyword,custom,,,The name of the routine.
-8.11.0,true,cve,cve.payload.containers.adp.affected.repo,keyword,custom,,,Affected package repository.
-8.11.0,true,cve,cve.payload.containers.adp.affected.vendor,keyword,custom,,,The affected vendor.
+8.11.0,true,cve,cve.payload.containers.adp.affected.collectionURL,keyword,custom,,https://access.redhat.com/downloads/content/package-browser,URL identifying a package collection (determines the meaning of packageName).
+8.11.0,true,cve,cve.payload.containers.adp.affected.cpes,keyword,custom,array,[cpe:2.3:a:example:example:1.0:*:*:*:*:*:*:*],Affected products defined by CPE.
+8.11.0,true,cve,cve.payload.containers.adp.affected.defaultStatus,keyword,custom,,affected,The default status for versions that are not otherwise listed in the versions list.
+8.11.0,true,cve,cve.payload.containers.adp.affected.modules,keyword,custom,array,"[module1, module2]","A list of the affected components, features, modules, APIs, commands, utilities, programs, or functionalities."
+8.11.0,true,cve,cve.payload.containers.adp.affected.packageName,keyword,custom,,example-package,Name or identifier of the affected software package as used in the package collection.
+8.11.0,true,cve,cve.payload.containers.adp.affected.platforms,keyword,custom,array,"[iOS, Android]",List of specific platforms if the vulnerability is only relevant in the context of these platforms.
+8.11.0,true,cve,cve.payload.containers.adp.affected.problemTypes,keyword,custom,array,,This is problem type information (e.g. CWE identifier).
+8.11.0,true,cve,cve.payload.containers.adp.affected.product,keyword,custom,,product1,Name of the affected product.
+8.11.0,true,cve,cve.payload.containers.adp.affected.programFiles,keyword,custom,array,,A list of the affected source code files.
+8.11.0,true,cve,cve.payload.containers.adp.affected.programRoutines.name,keyword,custom,,example_function,"Name of the affected source code file, function, method, subroutine, or procedure."
+8.11.0,true,cve,cve.payload.containers.adp.affected.repo,keyword,custom,,https://gitlab.com/example/example,"The URL of the source code repository, for informational purposes and/or to resolve git hash version ranges."
+8.11.0,true,cve,cve.payload.containers.adp.affected.vendor,keyword,custom,,Example Soft,"Name of the organization, project, community, or user that created or maintains this product or hosted service."
 8.11.0,true,cve,cve.payload.containers.adp.affected.versions.changes.at,keyword,custom,,,The location of the change
 8.11.0,true,cve,cve.payload.containers.adp.affected.versions.changes.status,keyword,custom,,,"The status of the change [affected, unaffected, unknown]"
 8.11.0,true,cve,cve.payload.containers.adp.affected.versions.lessThan,keyword,custom,,,The affected version is less than this version.
@@ -21,25 +22,27 @@ ECS_Version,Indexed,Field_Set,Field,Type,Level,Normalization,Example,Description
 8.11.0,true,cve,cve.payload.containers.adp.affected.versions.status,keyword,custom,,,The status of the affected version.
 8.11.0,true,cve,cve.payload.containers.adp.affected.versions.version,keyword,custom,,,The affected version.
 8.11.0,true,cve,cve.payload.containers.adp.affected.versions.versionType,keyword,custom,,,The type of the affected version.
-8.11.0,true,cve,cve.payload.containers.adp.configurations.lang,keyword,custom,,,The language of the description.
-8.11.0,true,cve,cve.payload.containers.adp.configurations.value,keyword,custom,,,The description of the CVE.
+8.11.0,true,cve,cve.payload.containers.adp.configurations.lang,keyword,custom,,en-US,"BCP 47 language code, language-region."
+8.11.0,true,cve,cve.payload.containers.adp.configurations.supportingMedia,keyword,custom,array,,"Supporting media data for the description such as markdown, diagrams, etc."
+8.11.0,true,cve,cve.payload.containers.adp.configurations.value,keyword,custom,,This is a description of the vulnerability.,Plain text description.
 8.11.0,true,cve,cve.payload.containers.adp.credits.lang,keyword,custom,,,The language of the credit.
 8.11.0,true,cve,cve.payload.containers.adp.credits.type,keyword,custom,,,The type of the credit.
 8.11.0,true,cve,cve.payload.containers.adp.credits.user,keyword,custom,,,The user of the credit.
 8.11.0,true,cve,cve.payload.containers.adp.credits.value,keyword,custom,,,The value of the credit.
-8.11.0,true,cve,cve.payload.containers.adp.descriptions.lang,keyword,custom,,,The language of the description.
+8.11.0,true,cve,cve.payload.containers.adp.descriptions.lang,keyword,custom,,en-US,"BCP 47 language code, language-region."
 8.11.0,true,cve,cve.payload.containers.adp.descriptions.supportingMedia.base64,boolean,custom,,,The media value is base64 encoded.
 8.11.0,true,cve,cve.payload.containers.adp.descriptions.supportingMedia.type,keyword,custom,,,The type of documentation [text/markdown].
 8.11.0,true,cve,cve.payload.containers.adp.descriptions.supportingMedia.value,keyword,custom,,,The media value.
-8.11.0,true,cve,cve.payload.containers.adp.descriptions.value,keyword,custom,,,The description of the CVE.
-8.11.0,true,cve,cve.payload.containers.adp.exploits.lang,keyword,custom,,,The language of the description.
-8.11.0,true,cve,cve.payload.containers.adp.exploits.value,keyword,custom,,,The description of the CVE.
+8.11.0,true,cve,cve.payload.containers.adp.descriptions.value,keyword,custom,,This is a description of the vulnerability.,Plain text description.
+8.11.0,true,cve,cve.payload.containers.adp.exploits.lang,keyword,custom,,en-US,"BCP 47 language code, language-region."
+8.11.0,true,cve,cve.payload.containers.adp.exploits.supportingMedia,keyword,custom,array,,"Supporting media data for the description such as markdown, diagrams, etc."
+8.11.0,true,cve,cve.payload.containers.adp.exploits.value,keyword,custom,,This is a description of the vulnerability.,Plain text description.
 8.11.0,true,cve,cve.payload.containers.adp.impacts.capecId,keyword,custom,,,The impact ID
-8.11.0,true,cve,cve.payload.containers.adp.impacts.descriptions.lang,keyword,custom,,,The language of the description.
+8.11.0,true,cve,cve.payload.containers.adp.impacts.descriptions.lang,keyword,custom,,en-US,"BCP 47 language code, language-region."
 8.11.0,true,cve,cve.payload.containers.adp.impacts.descriptions.supportingMedia.base64,boolean,custom,,,The media value is base64 encoded.
 8.11.0,true,cve,cve.payload.containers.adp.impacts.descriptions.supportingMedia.type,keyword,custom,,,The type of documentation [text/markdown].
 8.11.0,true,cve,cve.payload.containers.adp.impacts.descriptions.supportingMedia.value,keyword,custom,,,The media value.
-8.11.0,true,cve,cve.payload.containers.adp.impacts.descriptions.value,keyword,custom,,,The description of the CVE.
+8.11.0,true,cve,cve.payload.containers.adp.impacts.descriptions.value,keyword,custom,,This is a description of the vulnerability.,Plain text description.
 8.11.0,true,cve,cve.payload.containers.adp.metrics.cvssV2_0.accessComplexity,keyword,custom,,,The access complexity.
 8.11.0,true,cve,cve.payload.containers.adp.metrics.cvssV2_0.accessVector,keyword,custom,,,The access vector.
 8.11.0,true,cve,cve.payload.containers.adp.metrics.cvssV2_0.authentication,keyword,custom,,,The authentication.
@@ -159,26 +162,29 @@ ECS_Version,Indexed,Field_Set,Field,Type,Level,Normalization,Example,Description
 8.11.0,true,cve,cve.payload.containers.adp.problemTypes.descriptions.references.tags,keyword,custom,,,The tags of the reference
 8.11.0,true,cve,cve.payload.containers.adp.problemTypes.descriptions.references.url,keyword,custom,,,The URL of the reference
 8.11.0,true,cve,cve.payload.containers.adp.problemTypes.descriptions.type,keyword,custom,,,The type of the problem type.
-8.11.0,true,cve,cve.payload.containers.adp.solutions.lang,keyword,custom,,,The language of the description.
-8.11.0,true,cve,cve.payload.containers.adp.solutions.value,keyword,custom,,,The description of the CVE.
+8.11.0,true,cve,cve.payload.containers.adp.solutions.lang,keyword,custom,,en-US,"BCP 47 language code, language-region."
+8.11.0,true,cve,cve.payload.containers.adp.solutions.supportingMedia,keyword,custom,array,,"Supporting media data for the description such as markdown, diagrams, etc."
+8.11.0,true,cve,cve.payload.containers.adp.solutions.value,keyword,custom,,This is a description of the vulnerability.,Plain text description.
 8.11.0,true,cve,cve.payload.containers.adp.taxonomyMappings.taxonomyName,keyword,custom,,,The name of the taxonomy.
 8.11.0,true,cve,cve.payload.containers.adp.taxonomyMappings.taxonomyRelations.taxonomyId,keyword,custom,,,The taxonomy ID.
 8.11.0,true,cve,cve.payload.containers.adp.taxonomyMappings.taxonomyRelations.taxonomyName,keyword,custom,,,The taxonomy name.
 8.11.0,true,cve,cve.payload.containers.adp.taxonomyMappings.taxonomyRelations.taxonomyValue,keyword,custom,,,The taxonomy value.
 8.11.0,true,cve,cve.payload.containers.adp.taxonomyMappings.taxonomyVersion,keyword,custom,,,The version of the taxonomy.
-8.11.0,true,cve,cve.payload.containers.adp.workarounds.lang,keyword,custom,,,The language of the description.
-8.11.0,true,cve,cve.payload.containers.adp.workarounds.value,keyword,custom,,,The description of the CVE.
-8.11.0,true,cve,cve.payload.containers.cna.affected.collectionURL,keyword,custom,,,The URL of the affected collection.
-8.11.0,true,cve,cve.payload.containers.cna.affected.cpes,keyword,custom,,,Common Platform Enumeration (CPE) entries for the affected product.
-8.11.0,true,cve,cve.payload.containers.cna.affected.defaultStatus,keyword,custom,,,The default status of the affected product.
-8.11.0,true,cve,cve.payload.containers.cna.affected.modules,keyword,custom,,,List of the affected modules.
-8.11.0,true,cve,cve.payload.containers.cna.affected.packageName,keyword,custom,,,The name of the affected package.
-8.11.0,true,cve,cve.payload.containers.cna.affected.platforms,keyword,custom,,,List of the affected platforms.
-8.11.0,true,cve,cve.payload.containers.cna.affected.product,keyword,custom,,,The affected product.
-8.11.0,true,cve,cve.payload.containers.cna.affected.programFiles,keyword,custom,,,List of the files of the affected programs.
-8.11.0,true,cve,cve.payload.containers.cna.affected.programRoutines.name,keyword,custom,,,The name of the routine.
-8.11.0,true,cve,cve.payload.containers.cna.affected.repo,keyword,custom,,,Affected package repository.
-8.11.0,true,cve,cve.payload.containers.cna.affected.vendor,keyword,custom,,,The affected vendor.
+8.11.0,true,cve,cve.payload.containers.adp.workarounds.lang,keyword,custom,,en-US,"BCP 47 language code, language-region."
+8.11.0,true,cve,cve.payload.containers.adp.workarounds.supportingMedia,keyword,custom,array,,"Supporting media data for the description such as markdown, diagrams, etc."
+8.11.0,true,cve,cve.payload.containers.adp.workarounds.value,keyword,custom,,This is a description of the vulnerability.,Plain text description.
+8.11.0,true,cve,cve.payload.containers.cna.affected.collectionURL,keyword,custom,,https://access.redhat.com/downloads/content/package-browser,URL identifying a package collection (determines the meaning of packageName).
+8.11.0,true,cve,cve.payload.containers.cna.affected.cpes,keyword,custom,array,[cpe:2.3:a:example:example:1.0:*:*:*:*:*:*:*],Affected products defined by CPE.
+8.11.0,true,cve,cve.payload.containers.cna.affected.defaultStatus,keyword,custom,,affected,The default status for versions that are not otherwise listed in the versions list.
+8.11.0,true,cve,cve.payload.containers.cna.affected.modules,keyword,custom,array,"[module1, module2]","A list of the affected components, features, modules, APIs, commands, utilities, programs, or functionalities."
+8.11.0,true,cve,cve.payload.containers.cna.affected.packageName,keyword,custom,,example-package,Name or identifier of the affected software package as used in the package collection.
+8.11.0,true,cve,cve.payload.containers.cna.affected.platforms,keyword,custom,array,"[iOS, Android]",List of specific platforms if the vulnerability is only relevant in the context of these platforms.
+8.11.0,true,cve,cve.payload.containers.cna.affected.problemTypes,keyword,custom,array,,This is problem type information (e.g. CWE identifier).
+8.11.0,true,cve,cve.payload.containers.cna.affected.product,keyword,custom,,product1,Name of the affected product.
+8.11.0,true,cve,cve.payload.containers.cna.affected.programFiles,keyword,custom,array,,A list of the affected source code files.
+8.11.0,true,cve,cve.payload.containers.cna.affected.programRoutines.name,keyword,custom,,example_function,"Name of the affected source code file, function, method, subroutine, or procedure."
+8.11.0,true,cve,cve.payload.containers.cna.affected.repo,keyword,custom,,https://gitlab.com/example/example,"The URL of the source code repository, for informational purposes and/or to resolve git hash version ranges."
+8.11.0,true,cve,cve.payload.containers.cna.affected.vendor,keyword,custom,,Example Soft,"Name of the organization, project, community, or user that created or maintains this product or hosted service."
 8.11.0,true,cve,cve.payload.containers.cna.affected.versions.changes.at,keyword,custom,,,The location of the change
 8.11.0,true,cve,cve.payload.containers.cna.affected.versions.changes.status,keyword,custom,,,"The status of the change [affected, unaffected, unknown]"
 8.11.0,true,cve,cve.payload.containers.cna.affected.versions.lessThan,keyword,custom,,,The affected version is less than this version.
@@ -186,31 +192,31 @@ ECS_Version,Indexed,Field_Set,Field,Type,Level,Normalization,Example,Description
 8.11.0,true,cve,cve.payload.containers.cna.affected.versions.status,keyword,custom,,,The status of the affected version.
 8.11.0,true,cve,cve.payload.containers.cna.affected.versions.version,keyword,custom,,,The affected version.
 8.11.0,true,cve,cve.payload.containers.cna.affected.versions.versionType,keyword,custom,,,The type of the affected version.
-8.11.0,true,cve,cve.payload.containers.cna.configurations.lang,keyword,custom,,,The language of the description.
+8.11.0,true,cve,cve.payload.containers.cna.configurations.lang,keyword,custom,,en-US,"BCP 47 language code, language-region."
 8.11.0,true,cve,cve.payload.containers.cna.configurations.supportingMedia.base64,boolean,custom,,,The media value is base64 encoded.
 8.11.0,true,cve,cve.payload.containers.cna.configurations.supportingMedia.type,keyword,custom,,,The type of documentation [text/markdown].
 8.11.0,true,cve,cve.payload.containers.cna.configurations.supportingMedia.value,keyword,custom,,,The media value.
-8.11.0,true,cve,cve.payload.containers.cna.configurations.value,keyword,custom,,,The description of the CVE.
+8.11.0,true,cve,cve.payload.containers.cna.configurations.value,keyword,custom,,This is a description of the vulnerability.,Plain text description.
 8.11.0,true,cve,cve.payload.containers.cna.credits.lang,keyword,custom,,,The language of the credit.
 8.11.0,true,cve,cve.payload.containers.cna.credits.type,keyword,custom,,,The type of the credit.
 8.11.0,true,cve,cve.payload.containers.cna.credits.user,keyword,custom,,,The user of the credit.
 8.11.0,true,cve,cve.payload.containers.cna.credits.value,keyword,custom,,,The value of the credit.
-8.11.0,true,cve,cve.payload.containers.cna.descriptions.lang,keyword,custom,,,The language of the description.
+8.11.0,true,cve,cve.payload.containers.cna.descriptions.lang,keyword,custom,,en-US,"BCP 47 language code, language-region."
 8.11.0,true,cve,cve.payload.containers.cna.descriptions.supportingMedia.base64,boolean,custom,,,The media value is base64 encoded.
 8.11.0,true,cve,cve.payload.containers.cna.descriptions.supportingMedia.type,keyword,custom,,,The type of documentation [text/markdown].
 8.11.0,true,cve,cve.payload.containers.cna.descriptions.supportingMedia.value,keyword,custom,,,The media value.
-8.11.0,true,cve,cve.payload.containers.cna.descriptions.value,keyword,custom,,,The description of the CVE.
-8.11.0,true,cve,cve.payload.containers.cna.exploits.lang,keyword,custom,,,The language of the description.
+8.11.0,true,cve,cve.payload.containers.cna.descriptions.value,keyword,custom,,This is a description of the vulnerability.,Plain text description.
+8.11.0,true,cve,cve.payload.containers.cna.exploits.lang,keyword,custom,,en-US,"BCP 47 language code, language-region."
 8.11.0,true,cve,cve.payload.containers.cna.exploits.supportingMedia.base64,boolean,custom,,,The media value is base64 encoded.
 8.11.0,true,cve,cve.payload.containers.cna.exploits.supportingMedia.type,keyword,custom,,,The type of documentation [text/markdown].
 8.11.0,true,cve,cve.payload.containers.cna.exploits.supportingMedia.value,keyword,custom,,,The media value.
-8.11.0,true,cve,cve.payload.containers.cna.exploits.value,keyword,custom,,,The description of the CVE.
+8.11.0,true,cve,cve.payload.containers.cna.exploits.value,keyword,custom,,This is a description of the vulnerability.,Plain text description.
 8.11.0,true,cve,cve.payload.containers.cna.impacts.capecId,keyword,custom,,,The impact ID
-8.11.0,true,cve,cve.payload.containers.cna.impacts.descriptions.lang,keyword,custom,,,The language of the description.
+8.11.0,true,cve,cve.payload.containers.cna.impacts.descriptions.lang,keyword,custom,,en-US,"BCP 47 language code, language-region."
 8.11.0,true,cve,cve.payload.containers.cna.impacts.descriptions.supportingMedia.base64,boolean,custom,,,The media value is base64 encoded.
 8.11.0,true,cve,cve.payload.containers.cna.impacts.descriptions.supportingMedia.type,keyword,custom,,,The type of documentation [text/markdown].
 8.11.0,true,cve,cve.payload.containers.cna.impacts.descriptions.supportingMedia.value,keyword,custom,,,The media value.
-8.11.0,true,cve,cve.payload.containers.cna.impacts.descriptions.value,keyword,custom,,,The description of the CVE.
+8.11.0,true,cve,cve.payload.containers.cna.impacts.descriptions.value,keyword,custom,,This is a description of the vulnerability.,Plain text description.
 8.11.0,true,cve,cve.payload.containers.cna.metrics.cvssV2_0.accessComplexity,keyword,custom,,,The access complexity.
 8.11.0,true,cve,cve.payload.containers.cna.metrics.cvssV2_0.accessVector,keyword,custom,,,The access vector.
 8.11.0,true,cve,cve.payload.containers.cna.metrics.cvssV2_0.authentication,keyword,custom,,,The authentication.
@@ -337,11 +343,11 @@ ECS_Version,Indexed,Field_Set,Field,Type,Level,Normalization,Example,Description
 8.11.0,true,cve,cve.payload.containers.cna.references.name,keyword,custom,,,The name of the reference
 8.11.0,true,cve,cve.payload.containers.cna.references.tags,keyword,custom,,,The tags of the reference
 8.11.0,true,cve,cve.payload.containers.cna.references.url,keyword,custom,,,The URL of the reference
-8.11.0,true,cve,cve.payload.containers.cna.solutions.lang,keyword,custom,,,The language of the description.
+8.11.0,true,cve,cve.payload.containers.cna.solutions.lang,keyword,custom,,en-US,"BCP 47 language code, language-region."
 8.11.0,true,cve,cve.payload.containers.cna.solutions.supportingMedia.base64,boolean,custom,,,The media value is base64 encoded.
 8.11.0,true,cve,cve.payload.containers.cna.solutions.supportingMedia.type,keyword,custom,,,The type of documentation [text/markdown].
 8.11.0,true,cve,cve.payload.containers.cna.solutions.supportingMedia.value,keyword,custom,,,The media value.
-8.11.0,true,cve,cve.payload.containers.cna.solutions.value,keyword,custom,,,The description of the CVE.
+8.11.0,true,cve,cve.payload.containers.cna.solutions.value,keyword,custom,,This is a description of the vulnerability.,Plain text description.
 8.11.0,true,cve,cve.payload.containers.cna.taxonomyMappings.taxonomyName,keyword,custom,,,The name of the taxonomy.
 8.11.0,true,cve,cve.payload.containers.cna.taxonomyMappings.taxonomyRelations.taxonomyId,keyword,custom,,,The taxonomy ID.
 8.11.0,true,cve,cve.payload.containers.cna.taxonomyMappings.taxonomyRelations.taxonomyName,keyword,custom,,,The taxonomy name.
@@ -350,9 +356,9 @@ ECS_Version,Indexed,Field_Set,Field,Type,Level,Normalization,Example,Description
 8.11.0,true,cve,cve.payload.containers.cna.timeline.lang,keyword,custom,,,The language of the timeline.
 8.11.0,true,cve,cve.payload.containers.cna.timeline.time,keyword,custom,,,The time of the timeline.
 8.11.0,true,cve,cve.payload.containers.cna.timeline.value,keyword,custom,,,The value of the timeline.
-8.11.0,true,cve,cve.payload.containers.cna.workarounds.lang,keyword,custom,,,The language of the description.
+8.11.0,true,cve,cve.payload.containers.cna.workarounds.lang,keyword,custom,,en-US,"BCP 47 language code, language-region."
 8.11.0,true,cve,cve.payload.containers.cna.workarounds.supportingMedia.base64,boolean,custom,,,The media value is base64 encoded.
 8.11.0,true,cve,cve.payload.containers.cna.workarounds.supportingMedia.type,keyword,custom,,,The type of documentation [text/markdown].
 8.11.0,true,cve,cve.payload.containers.cna.workarounds.supportingMedia.value,keyword,custom,,,The media value.
-8.11.0,true,cve,cve.payload.containers.cna.workarounds.value,keyword,custom,,,The description of the CVE.
+8.11.0,true,cve,cve.payload.containers.cna.workarounds.value,keyword,custom,,This is a description of the vulnerability.,Plain text description.
 8.11.0,true,cve,cve.version,keyword,custom,,,The version of the CVE.
