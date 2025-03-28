@@ -137,7 +137,6 @@ public class ContentUpdater {
      * @param updatedOffset Last updated offset.
      */
     public void postUpdateCommand(Long updatedOffset) {
-        log.info("Initiating call to command manager");
         // Post new command informing the new changes.
         Privileged.doPrivilegedRequest(
                 () -> {

@@ -55,15 +55,12 @@ public class UpdaterHandler extends BaseRestHandler {
     @Override
     protected RestChannelConsumer prepareRequest(RestRequest request, NodeClient client)
             throws IOException {
-        log.info("Updater endpoint called: {}", request.method().name());
-        log.info("Params: {}", request.params().toString());
         if (Objects.requireNonNull(request.method()) == GET) {
             ContentUpdater updater = new ContentUpdater();
             // Run the update process asynchronously
             CompletableFuture.runAsync(
                     () -> {
                         try {
-                            log.info("Calling command manager");
                             updater.fetchAndApplyUpdates(Long.parseLong(request.param("from_offset")));
                         } catch (ContentUpdater.ContentUpdateException e) {
                             // Log the error (using OpenSearch logger if available)

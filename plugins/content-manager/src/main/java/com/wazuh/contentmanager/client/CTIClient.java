@@ -154,7 +154,7 @@ public class CTIClient extends HttpClient {
                             DeprecationHandler.THROW_UNSUPPORTED_OPERATION,
                             response.getBodyBytes()));
         } catch (IOException | IllegalArgumentException e) {
-            log.error("Unable to fetch catalog information: {}", e.getMessage());
+            log.error("Failed to fetch catalog information: {}", e.getMessage());
         }
         return null;
     }
