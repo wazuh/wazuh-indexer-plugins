@@ -11,20 +11,27 @@
     - name: name
       type: keyword
       level: custom
-      description: The Policy name.
+      description: >
+        The Policy name.
+      example: "<name>"
     - name: actions
       type: keyword
       level: custom
-      description: Actions allowed by the policy.
+      description: >
+        Actions allowed by the policy.
+      example: "agent:create"
     - name: resources
       type: keyword
       level: custom
       description: Resources affected by the policy.
+      example: "agent:group"
     - name: effect
       type: keyword
       level: custom
       description: The effect of the policy (allow/deny).
+      example: "allow"
     - name: level
       type: integer
       level: custom
       description: The permission level of the policy.
+      example: "1"
