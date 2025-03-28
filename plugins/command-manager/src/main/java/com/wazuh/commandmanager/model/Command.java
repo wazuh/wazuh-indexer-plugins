@@ -66,7 +66,7 @@ public class Command implements ToXContentObject {
             @NonNull String source,
             @NonNull Target target,
             @NonNull Integer timeout,
-            @NonNull String user,
+            String user,
             @NonNull Action action) {
         this.requestId = UUIDs.base64UUID();
         this.orderId = UUIDs.base64UUID();
@@ -108,20 +108,31 @@ public class Command implements ToXContentObject {
 
                 parser.nextToken();
                 switch (fieldName) {
+                    case Action.ACTION:
+                        action = Action.parse(parser);
+                        break;
                     case SOURCE:
                         source = parser.text();
                         break;
                     case Target.TARGET:
-                        target = Target.parse(parser);
+                        if (action == null) {
+                            throw new IllegalArgumentException(
+                                    "Expected [command.action] to be provided before [command.target]");
+                        }
+                        switch (action.getName()) {
+                            case Action.UPDATE:
+                                target = UpdateTarget.parse(parser);
+                                break;
+                            default:
+                                target = Target.parse(parser);
+                                break;
+                        }
                         break;
                     case TIMEOUT:
                         timeout = parser.intValue();
                         break;
                     case USER:
                         user = parser.text();
-                        break;
-                    case Action.ACTION:
-                        action = Action.parse(parser);
                         break;
                     default:
                         parser.skipChildren();
@@ -139,9 +150,6 @@ public class Command implements ToXContentObject {
         }
         if (timeout == null) {
             nullArguments.add("timeout");
-        }
-        if (user == null) {
-            nullArguments.add("user");
         }
         if (action == null) {
             nullArguments.add("action");
@@ -205,7 +213,6 @@ public class Command implements ToXContentObject {
         } else {
             log.error("Token does not match {}", parser.currentToken());
         }
-
         return commands;
     }
 

@@ -1,6 +1,6 @@
 ECS_Version,Indexed,Field_Set,Field,Type,Level,Normalization,Example,Description
 8.11.0,true,base,tags,keyword,core,array,"[""production"", ""env2""]",List of keywords used to tag each event.
-8.11.0,true,agent,agent.groups,keyword,custom,,,List of groups the agent belong to.
+8.11.0,true,agent,agent.groups,keyword,custom,array,"[""group1"", ""group2""]",List of groups the agent belongs to.
 8.11.0,true,agent,agent.host.architecture,keyword,core,,x86_64,Operating system architecture.
 8.11.0,true,agent,agent.host.boot.id,keyword,extended,,88a1f0ed-5ae5-41ee-af6b-41921c311872,Linux boot uuid taken from /proc/sys/kernel/random/boot_id
 8.11.0,true,agent,agent.host.cpu.usage,float,extended,,,"Percent CPU used, between 0 and 1."
@@ -110,22 +110,22 @@ ECS_Version,Indexed,Field_Set,Field,Type,Level,Normalization,Example,Description
 8.11.0,true,vulnerability,vulnerability.classification,keyword,extended,,CVSS,Classification of the vulnerability.
 8.11.0,true,vulnerability,vulnerability.description,keyword,extended,,"In macOS before 2.12.6, there is a vulnerability in the RPC...",Description of the vulnerability.
 8.11.0,true,vulnerability,vulnerability.description.text,keyword,extended,,"In macOS before 2.12.6, there is a vulnerability in the RPC...",Description of the vulnerability.
-8.11.0,true,vulnerability,vulnerability.detected_at,date,custom,,,Vulnerability's detection date.
+8.11.0,true,vulnerability,vulnerability.detected_at,date,custom,,2000-01-01T00:00:00.000Z,Vulnerability's detection date.
 8.11.0,true,vulnerability,vulnerability.enumeration,keyword,extended,,CVE,Identifier of the vulnerability.
 8.11.0,true,vulnerability,vulnerability.id,keyword,extended,,CVE-2019-00001,ID of the vulnerability.
-8.11.0,true,vulnerability,vulnerability.published_at,date,custom,,,Vulnerability's publication date.
+8.11.0,true,vulnerability,vulnerability.published_at,date,custom,,2000-01-01T00:00:00.000Z,Vulnerability's publication date.
 8.11.0,true,vulnerability,vulnerability.reference,keyword,extended,,https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2019-6111,Reference of the vulnerability.
 8.11.0,true,vulnerability,vulnerability.report_id,keyword,extended,,20191018.0001,Scan identification number.
-8.11.0,true,vulnerability,vulnerability.scanner.condition,keyword,custom,,,The condition matched by the package that led the scanner to consider it vulnerable.
-8.11.0,true,vulnerability,vulnerability.scanner.reference,keyword,custom,,,"Scanner's resource that provides additional information, context, and mitigations for the identified vulnerability."
-8.11.0,true,vulnerability,vulnerability.scanner.source,keyword,custom,,,The origin of the decision of the scanner (AKA feed used to detect the vulnerability).
+8.11.0,true,vulnerability,vulnerability.scanner.condition,keyword,custom,,<condition>,The condition matched by the package that led the scanner to consider it vulnerable.
+8.11.0,true,vulnerability,vulnerability.scanner.reference,keyword,custom,,<reference>,"Scanner's resource that provides additional information, context, and mitigations for the identified vulnerability."
+8.11.0,true,vulnerability,vulnerability.scanner.source,keyword,custom,,<source>,The origin of the decision of the scanner (AKA feed used to detect the vulnerability).
 8.11.0,true,vulnerability,vulnerability.scanner.vendor,keyword,extended,,Tenable,Name of the scanner vendor.
 8.11.0,true,vulnerability,vulnerability.score.base,float,extended,,5.5,Vulnerability Base score.
 8.11.0,true,vulnerability,vulnerability.score.environmental,float,extended,,5.5,Vulnerability Environmental score.
 8.11.0,true,vulnerability,vulnerability.score.temporal,float,extended,,,Vulnerability Temporal score.
 8.11.0,true,vulnerability,vulnerability.score.version,keyword,extended,,2.0,CVSS version.
 8.11.0,true,vulnerability,vulnerability.severity,keyword,extended,,Critical,Severity of the vulnerability.
-8.11.0,true,vulnerability,vulnerability.under_evaluation,boolean,custom,,,Indicates if the vulnerability is awaiting analysis by the NVD.
-8.11.0,true,wazuh,wazuh.cluster.name,keyword,custom,,,Wazuh cluster name.
-8.11.0,true,wazuh,wazuh.cluster.node,keyword,custom,,,Wazuh cluster node name.
-8.11.0,true,wazuh,wazuh.schema.version,keyword,custom,,,Wazuh schema version.
+8.11.0,true,vulnerability,vulnerability.under_evaluation,boolean,custom,,true,Indicates if the vulnerability is awaiting analysis by the NVD.
+8.11.0,true,wazuh,wazuh.cluster.name,keyword,custom,,wazuh-cluster-01,Wazuh cluster name.
+8.11.0,true,wazuh,wazuh.cluster.node,keyword,custom,,node-01,Wazuh cluster node name.
+8.11.0,true,wazuh,wazuh.schema.version,keyword,custom,,1.0.0,Wazuh schema version.

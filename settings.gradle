@@ -7,11 +7,11 @@
 
 rootProject.name = "wazuh-indexer-plugins"
 
-include(":setup")
-project(":setup").projectDir = "plugins/setup/" as File
+include(":wazuh-indexer-setup")
+project(":wazuh-indexer-setup").projectDir = "plugins/setup/" as File
 
-include(":command-manager")
-project(":command-manager").projectDir = "plugins/command-manager/" as File
+include(":wazuh-indexer-command-manager")
+project(":wazuh-indexer-command-manager").projectDir = "plugins/command-manager/" as File
 
-include(":content-manager")
-project(":content-manager").projectDir = "plugins/content-manager/" as File
+include(":wazuh-indexer-content-manager")
+project(":wazuh-indexer-content-manager").projectDir = "plugins/content-manager/" as File
