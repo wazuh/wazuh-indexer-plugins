@@ -86,7 +86,7 @@ dependencies {
 
     // ZipArchive dependencies used for integration tests
     zipArchive group: 'org.opensearch.plugin', name: 'opensearch-job-scheduler', version: "${opensearch_build}"
-    zipArchive group: 'com.wazuh', name:'command-manager', version: "${wazuh_version}.${revision}"
+    zipArchive group: 'com.wazuh', name:'wazuh-indexer-command-manager', version: "${wazuh_version}.${revision}"
 }
 
 // No need to validate license headers since spotless checks and applies it
