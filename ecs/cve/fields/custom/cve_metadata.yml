@@ -7,6 +7,10 @@
       - { at: cve, as: cveMetadata }
 
   fields:
+    - name: cveId
+      type: keyword
+      level: custom
+      description: The id of the CVE.
     - name: assignerOrgId
       type: keyword
       level: custom
@@ -15,18 +19,26 @@
       type: keyword
       level: custom
       description: The short name of the organization that assigned the CVE.
-    - name: cveId
+    - name: requesterUserId
       type: keyword
       level: custom
-      description: The id of the CVE.
-    - name: datePublished
-      type: date
-      level: custom
-      description: The date the CVE was published.
+      description: The user ID that requested the CVE.
     - name: dateUpdated
       type: date
       level: custom
       description: The date the CVE was last updated.
+    - name: serialNumber
+      type: keyword
+      level: custom
+      description: The serial number of the CVE.
+    - name: dateReserved
+      type: date
+      level: custom
+      description: The date the CVE was reserved.
+    - name: datePublished
+      type: date
+      level: custom
+      description: The date the CVE was published.
     - name: state
       type: keyword
       level: custom

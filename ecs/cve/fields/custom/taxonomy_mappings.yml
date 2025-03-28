@@ -1,0 +1,29 @@
+- name: taxonomyMappings
+  title: Taxonomy Mappings
+  description: CNA taxonomy mappings.
+  reusable:
+    top_level: false
+    expected:
+      - { at: cve.payload.containers.cna, as: taxonomyMappings }
+      - { at: cve.payload.containers.adp, as: taxonomyMappings }
+  fields:
+    - name: taxonomyName
+      type: keyword
+      level: custom
+      description: The name of the taxonomy.
+    - name: taxonomyVersion
+      type: keyword
+      level: custom
+      description: The version of the taxonomy.
+    - name: taxonomyRelations.taxonomyId
+      type: keyword
+      level: custom
+      description: The taxonomy ID.
+    - name: taxonomyRelations.taxonomyName
+      type: keyword
+      level: custom
+      description: The taxonomy name.
+    - name: taxonomyRelations.taxonomyValue
+      type: keyword
+      level: custom
+      description: The taxonomy value.

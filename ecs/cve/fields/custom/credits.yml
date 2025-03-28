@@ -1,0 +1,25 @@
+- name: credits
+  title: Credits
+  description: CNA Credits.
+  reusable:
+    top_level: false
+    expected:
+      - { at: payload.containers.cna, as: credits }
+      - { at: payload.containers.adp, as: credits }
+  fields:
+    - name: lang
+      type: keyword
+      level: custom
+      description: The language of the credit.
+    - name: value
+      type: keyword
+      level: custom
+      description: The value of the credit.
+    - name: user
+      type: keyword
+      level: custom
+      description: The user of the credit.
+    - name: type
+      type: keyword
+      level: custom
+      description: The type of the credit.

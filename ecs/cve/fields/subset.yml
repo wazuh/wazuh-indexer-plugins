@@ -41,6 +41,12 @@ fields:
                     fields: "*"
                   exploits:
                     fields: "*"
+                  timeline:
+                    fields: "*"
+                  credits:
+                    fields: "*"
+                  taxonomyMappings:
+                    fields: "*"
               adp:
                 fields:
                   affected:
@@ -54,6 +60,18 @@ fields:
                       descriptions:
                         fields: "*"
                   impacts:
+                    fields: "*"
+                  configurations:
+                    fields: "*"
+                  workarounds:
+                    fields: "*"
+                  solutions:
+                    fields: "*"
+                  exploits:
+                    fields: "*"
+                  credits:
+                    fields: "*"
+                  taxonomyMappings:
                     fields: "*"
 #                  providerMetadata:
 #                    fields: "*"

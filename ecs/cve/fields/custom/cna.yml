@@ -5,3 +5,32 @@
     top_level: false
     expected:
       - { at: containers, as: cna }
+  fields:
+    - name: dateAssigned
+      type: keyword
+      level: custom
+      description: The date the CVE was assigned to the CNA.
+    - name: datePublic
+      type: keyword
+      level: custom
+      description: The date the CVE was made public.
+    - name: title
+      type: keyword
+      level: custom
+      description: The title of the CNA.
+    - name: source
+      type: keyword
+      level: custom
+      description: The source of the CNA.
+    - name: tags
+      type: keyword
+      level: custom
+      description: The tags of the CNA.
+    - name: x_remediations
+      type: keyword
+      level: custom
+      description: The remediations of the CNA (CTI's custom field).
+    - name: replacedBy
+      type: keyword
+      level: custom
+      description: The CVE that replaced this one.
