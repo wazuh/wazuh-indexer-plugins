@@ -23,6 +23,7 @@ import org.opensearch.common.settings.Settings;
 
 import reactor.util.annotation.NonNull;
 
+/* Plugin settings */
 public class PluginSettings {
     private static final Logger log = LogManager.getLogger(PluginSettings.class);
 
@@ -185,6 +186,9 @@ public class PluginSettings {
         return AGENTS_INDEX;
     }
 
+    /**
+     * @return a string representation of the settings
+     */
     @Override
     public String toString() {
         return "{"

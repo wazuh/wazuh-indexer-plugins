@@ -89,11 +89,17 @@ public class SetupPlugin extends Plugin
         this.indices = new WazuhIndices(client, clusterService);
         PluginSettings.getInstance(environment.settings());
 
+        // Scheduled job initialization
+        // NOTE it's very likely that client and thread pool may not be required as the command
+        // index
+        // repository already use them. All queries to the index should be under this class.
         AgentJobRunner.getInstance()
                 .setClient(client)
                 .setThreadPool(threadPool)
                 .setClusterService(clusterService);
+
         this.scheduleAgentJob(client, clusterService, threadPool);
+
         return List.of(this.indices);
     }
 
