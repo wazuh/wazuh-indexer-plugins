@@ -1,0 +1,13 @@
+- name: impacts
+  title: Impacts
+  description: CNA Impacts.
+  reusable:
+    top_level: false
+    expected:
+      - { at: payload.containers.cna, as: impacts }
+      - { at: payload.containers.adp, as: impacts }
+  fields:
+    - name: capecId
+      type: keyword
+      level: custom
+      description: The impact ID

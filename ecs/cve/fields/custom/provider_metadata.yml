@@ -1,0 +1,26 @@
+- name: provider_metadata
+  title: Provider Metadata
+  description: Metadata of a CVE provider.
+  reusable:
+    top_level: false
+    expected:
+      - { at: cve.payload.containers.cna, as: providerMetadata }
+      - { at: cve.payload.containers.adp, as: providerMetadata }
+
+  fields:
+    - name: dateUpdated
+      type: date
+      level: custom
+      description: The date the CVE was last updated.
+    - name: orgId
+      type: keyword
+      level: custom
+      description: The organization ID of the CVE provider.
+    - name: shortName
+      type: keyword
+      level: custom
+      description: The short name of the CVE provider.
+    - name: x_subShortName
+      type: keyword
+      level: custom
+      description: The sub short name of the CVE provider.

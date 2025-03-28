@@ -83,6 +83,7 @@ detect_modified_modules() {
         [states-inventory-system]="index-template-system.json"
         [states-vulnerabilities]="index-template-vulnerabilities.json"
         [users]="index-template-users.json"
+        [cve]="index-template-cve.json"
     )
 
     relevant_modules=()

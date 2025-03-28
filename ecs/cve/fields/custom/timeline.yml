@@ -1,0 +1,21 @@
+- name: timeline
+  title: Timeline
+  description: CNA timeline.
+  reusable:
+    top_level: false
+    expected:
+      - { at: cve.payload.containers.cna, as: timeline }
+      - { at: cve.payload.containers.adp, as: timeline }
+  fields:
+    - name: time
+      type: keyword
+      level: custom
+      description: The time of the timeline.
+    - name: lang
+      type: keyword
+      level: custom
+      description: The language of the timeline.
+    - name: value
+      type: keyword
+      level: custom
+      description: The value of the timeline.

@@ -11,6 +11,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Add technical documentation [(#320)](https://github.com/wazuh/wazuh-indexer-plugins/pull/320)
 - Implement CTI snapshot download [(#318)](https://github.com/wazuh/wazuh-indexer-plugins/pull/318)
 - Implement CTI snapshot unzip tool [(#319)](https://github.com/wazuh/wazuh-indexer-plugins/pull/319)
+- Implement CVE ECS definition and index template [(#337)](https://github.com/wazuh/wazuh-indexer-plugins/pull/337)
 
 ### Dependencies
 

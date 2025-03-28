@@ -1,0 +1,28 @@
+- name: adp
+  title: Wazuh ADP
+  description: Wazuh CTI model for CVE
+  reusable:
+    top_level: false
+    expected:
+      - { at: containers, as: adp }
+  fields:
+    - name: datePublic
+      type: keyword
+      level: custom
+      description: The date the CVE was made public.
+    - name: title
+      type: keyword
+      level: custom
+      description: The title of the ADP.
+    - name: source
+      type: keyword
+      level: custom
+      description: The source of the ADP.
+    - name: tags
+      type: keyword
+      level: custom
+      description: The tags of the ADP.
+    - name: x_remediations
+      type: keyword
+      level: custom
+      description: The remediations of the ADP (CTI's custom field).
