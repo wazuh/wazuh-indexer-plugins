@@ -31,35 +31,32 @@ public class Command {
     /**
      * Generates a CTI Command for the Command Manager API
      *
-     * @return a command's XContentBuilder
+     * @param offset Indicates the CTI version.
+     * @return JSON string representing the request body.
+     * @throws IOException If there's an issue building the JSON.
      */
-    public static String generateCtiCommand() {
-        try (XContentBuilder builder = XContentFactory.jsonBuilder()) {
-            return builder
-                    .startObject()
-                    .startArray("commands")
-                    .startObject()
-                    .startObject("action")
-                    .startObject("args")
-                    .field("index", "content-index")
-                    .endObject()
-                    .field("name", "update")
-                    .field("version", "5.0.0") // Dynamic version
-                    .endObject()
-                    .field("source", "Content Manager")
-                    .field("user", "Content Manager")
-                    .field("timeout", 100)
-                    .startObject("target")
-                    .field("id", "TO-BE-DEFINED")
-                    .field("type", "server")
-                    .endObject()
-                    .endObject()
-                    .endArray()
-                    .endObject()
-                    .toString();
-        } catch (IOException e) {
-            log.error("Error building update command", e);
-        }
-        return null;
+    public static String create(String offset) throws IOException {
+        return XContentFactory.jsonBuilder()
+                .startObject()
+                .startArray("commands")
+                .startObject()
+                .startObject("action")
+                .field("name", "update")
+                .startObject("args")
+                .field("index", "content-index")
+                .field("offset", offset)
+                .endObject()
+                .field("version", "5.0.0") // Dynamic version
+                .endObject()
+                .field("source", "Content Manager")
+                .field("timeout", 100)
+                .startObject("target")
+                .field("id", "vulnerability-detector")
+                .field("type", "server")
+                .endObject()
+                .endObject()
+                .endArray()
+                .endObject()
+                .toString();
     }
 }

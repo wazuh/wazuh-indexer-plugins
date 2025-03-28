@@ -41,6 +41,7 @@ publishing {
             pom {
                 name = pluginName
                 description = pluginDescription
+                groupId = projectPath
                 licenses {
                     license {
                         name = "GNU Affero General Public License (AGPL) version 3.0"
@@ -116,6 +117,8 @@ repositories {
     maven { url "https://s3-eu-west-1.amazonaws.com/gatehillsoftware-maven/releases/" }
 }
 
+generatePomFileForPluginZipPublication.dependsOn(publishNebulaPublicationToMavenLocal)
+
 test {
     include '**/*Tests.class'
     jvmArgs "-Djava.security.policy=./plugins/command-manager/src/main/plugin-metadata/plugin-security.policy/plugin-security.policy"
@@ -154,7 +157,7 @@ run {
     exec {
         // Generate data for the wazuh-agents index, it is useful for the agent_groups commands development and testing.
         commandLine 'bash', './scripts/populate-agents-index.sh', '-n', '10', '-o', 'build/tmp/logs/'
-    } 
+    }
 }
 
 // updateVersion: Task to auto update version to the next development iteration

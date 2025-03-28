@@ -7,46 +7,55 @@
   fields:
     - name: memory
       description: >
-        Memory related data
+        Memory-related data.
       type: object
       level: custom
+      example: "\"total\": 100000, \"free\": 90000, \"used\": {\"percentage\": 10}"
     - name: memory.total
       description: >
-        Total memory in MB
+        Total memory in MB.
       type: long
       level: custom
+      example: 1024
     - name: memory.free
       description: >
-        Free memory in MB
+        Free memory in MB.
       type: long
       level: custom
+      example: 1024
     - name: memory.used
       description: >
-        Used memory related data
+        Used memory-related data.
       type: object
       level: custom
+      example: "\"percentage\": 10"
     - name: memory.used.percentage
       description: >
-        Used memory percentage
+        Used memory percentage.
       type: long
       level: custom
+      example: 10
     - name: cpu
       description: >
-        CPU related data
+        CPU-related data.
       type: object
       level: custom
+      example: "\"name\": \"Intel(R) Core(TM) i7-7700HQ CPU\", \"cores\": 4, \"speed\": 2800"
     - name: cpu.name
       description: >
-        CPU Model name
+        CPU Model name.
       type: keyword
       level: custom
+      example: "Intel(R) Core(TM) i7-7700HQ CPU"
     - name: cpu.cores
       description: >
-        Number of CPU cores
+        Number of CPU cores.
       type: long
       level: custom
+      example: 4
     - name: cpu.speed
       description: >
-        CPU clock speed
+        CPU clock speed.
       type: long
       level: custom
+      example: 2800

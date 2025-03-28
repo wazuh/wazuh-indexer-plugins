@@ -1,8 +1,11 @@
 import org.opensearch.gradle.test.RestIntegTestTask
 
+import java.util.concurrent.Callable
+
 buildscript {
     ext {
         opensearch_version = System.getProperty("opensearch.version", "2.19.1-SNAPSHOT")
+        opensearch_build = opensearch_version.replace("-SNAPSHOT","") + ".0"
         wazuh_version = System.getProperty("version", "5.0.0")
         revision = System.getProperty("revision", "0")
     }
@@ -70,12 +73,22 @@ opensearchplugin {
     noticeFile rootProject.file('NOTICE.txt')
 }
 
+configurations {
+  zipArchive
+}
+
 dependencies {
     implementation "org.apache.httpcomponents.client5:httpclient5:5.4"
     implementation "org.apache.httpcomponents.core5:httpcore5-h2:5.3.1"
     implementation "org.apache.httpcomponents.core5:httpcore5:5.3.1"
     implementation "org.apache.logging.log4j:log4j-slf4j-impl:2.23.1"
     implementation "org.slf4j:slf4j-api:2.0.16"
+
+    // ZipArchive dependencies used for integration tests
+    zipArchive group: 'org.opensearch.plugin', name: 'opensearch-job-scheduler', version: "${opensearch_build}"
+    // Uncomment this line to load the command-manager plugin from the local Maven repository.
+    // Keep it commented to allow GitHub Workflows to run the tests.
+    // zipArchive group: 'com.wazuh', name:'wazuh-indexer-command-manager', version: "${wazuh_version}.${revision}"
 }
 
 // No need to validate license headers since spotless checks and applies it
@@ -105,7 +118,7 @@ test {
 }
 
 dependencies {
-    implementation 'com.google.code.gson:gson:2.8.6'
+    implementation 'com.google.code.gson:gson:2.8.9'
 }
 
 task integTest(type: RestIntegTestTask) {
@@ -123,6 +136,21 @@ integTest {
 }
 
 testClusters.integTest {
+    // Installs all registered zipArchive dependencies on integTest cluster nodes
+    configurations.zipArchive.asFileTree.each {
+      plugin(provider(new Callable<RegularFile>(){
+        @Override
+        RegularFile call() throws Exception {
+          return new RegularFile() {
+            @Override
+            File getAsFile() {
+              return it
+            }
+          }
+        }
+      }))
+    }
+
     testDistribution = "INTEG_TEST"
 
     // This installs our plugin into the testClusters

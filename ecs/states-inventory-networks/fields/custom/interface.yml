@@ -15,13 +15,16 @@
       level: custom
       description: >
         Maximum transmission unit size.
+      example: 1500
     - name: state
       type: keyword
       level: custom
       description: >
         State of the network interface.
+      example: "up"
     - name: type
       type: keyword
       level: custom
       description: >
         Interface type.
+      example: "ethernet"

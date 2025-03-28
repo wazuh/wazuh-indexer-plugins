@@ -12,8 +12,10 @@
       group: 2
       description: >
         Hotfix related data.
+      example: "\"name\": \"hotfix.name\""
     - name: hotfix.name
       type: keyword
       level: custom
       description: >
         Name of the Hotfix.
+      example: "KB123456"
