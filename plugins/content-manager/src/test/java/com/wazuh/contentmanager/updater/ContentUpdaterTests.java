@@ -28,8 +28,8 @@ import java.util.List;
 
 import com.wazuh.contentmanager.client.CTIClient;
 import com.wazuh.contentmanager.client.CommandManagerClient;
-import com.wazuh.contentmanager.model.ctiapi.Offset;
 import com.wazuh.contentmanager.model.ctiapi.ContextChanges;
+import com.wazuh.contentmanager.model.ctiapi.Offset;
 import org.mockito.Mockito;
 
 import static org.mockito.Mockito.*;

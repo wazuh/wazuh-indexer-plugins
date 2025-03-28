@@ -141,7 +141,8 @@ public class ContentUpdater {
         // Post new command informing the new changes.
         Privileged.doPrivilegedRequest(
                 () -> {
-                    CommandManagerClient.getInstance().postCommand(Command.generateCtiCommand());
+                    CommandManagerClient.getInstance()
+                            .postCommand(Command.create(getCurrentOffset().toString()));
                     return null;
                 });
     }

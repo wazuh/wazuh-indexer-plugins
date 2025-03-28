@@ -73,14 +73,12 @@ public class CommandManagerClient extends HttpClient {
         SimpleHttpResponse response =
                 this.sendRequest(Method.POST, POST_COMMAND_ENDPOINT, requestBody, null, header);
         this.handlePostResponse(response);
-
-        return response;
     }
 
     /**
      * Handles the response of the POST request to the Command Manager endpoint.
      *
-     * @param response simplehttprespone
+     * @param response The response from the POST request
      */
     private void handlePostResponse(SimpleHttpResponse response) {
         if (response == null) {
