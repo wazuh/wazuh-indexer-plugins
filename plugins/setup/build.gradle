@@ -1,8 +1,12 @@
 import org.opensearch.gradle.test.RestIntegTestTask
+import java.util.concurrent.Callable
 
 buildscript {
     ext {
         opensearch_version = System.getProperty("opensearch.version", "2.19.1-SNAPSHOT")
+        opensearch_no_snapshot = opensearch_version.replace("-SNAPSHOT","")
+        opensearch_build = opensearch_no_snapshot + ".0"
+        job_scheduler_version = System.getProperty("job_scheduler.version", opensearch_build)
         wazuh_version = System.getProperty("version", "5.0.0")
         revision = System.getProperty("revision", "0")
     }
@@ -66,8 +70,27 @@ opensearchplugin {
     name pluginName
     description pluginDescription
     classname "${projectPath}.${pathToPlugin}.${pluginClassName}"
+    extendedPlugins = ['opensearch-job-scheduler']
     licenseFile rootProject.file('LICENSE.txt')
     noticeFile rootProject.file('NOTICE.txt')
+}
+
+def versions = [
+  log4j: "2.23.1"
+]
+
+configurations {
+  zipArchive
+}
+
+dependencies {
+  implementation "org.apache.logging.log4j:log4j-slf4j-impl:${versions.log4j}"
+
+  // Job Scheduler stuff
+  zipArchive group: 'org.opensearch.plugin', name: 'opensearch-job-scheduler', version: "${opensearch_build}"
+  // implementation "org.opensearch:opensearch:${opensearch_version}"
+  compileOnly "org.opensearch:opensearch-job-scheduler-spi:${job_scheduler_version}"
+
 }
 
 // No need to validate license headers since spotless checks and applies it
@@ -79,6 +102,9 @@ loggerUsageCheck.enabled = false
 // No need to validate pom, as we do not upload to maven/sonatype
 validateNebulaPom.enabled = false
 
+//Skip checking for third party licenses
+dependencyLicenses.enabled = false
+
 repositories {
     mavenLocal()
     maven { url "https://aws.oss.sonatype.org/content/repositories/snapshots" }
@@ -88,6 +114,22 @@ repositories {
 
 test {
     include '**/*Tests.class'
+}
+
+def getJobSchedulerPlugin() {
+  provider(new Callable<RegularFile>() {
+    @Override
+    RegularFile call() throws Exception {
+      return new RegularFile() {
+        @Override
+        File getAsFile() {
+          return configurations.zipArchive.asFileTree.matching {
+            include '**/opensearch-job-scheduler*'
+          }.singleFile
+        }
+      }
+    }
+  })
 }
 
 task integTest(type: RestIntegTestTask) {
@@ -105,7 +147,8 @@ integTest {
 }
 
 testClusters.integTest {
-    testDistribution = "INTEG_TEST"
+    plugin(getJobSchedulerPlugin())
+    testDistribution = "ARCHIVE"
 
     // This installs our plugin into the testClusters
     plugin(project.tasks.bundlePlugin.archiveFile)
