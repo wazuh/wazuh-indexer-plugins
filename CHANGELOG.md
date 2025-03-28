@@ -23,7 +23,6 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Add mappings for Wazuh rules (stage 1) to the Alerts index [#345](https://github.com/wazuh/wazuh-indexer-plugins/pull/345)
 - Improve ECS documentation II (add examples) [(#350)](https://github.com/wazuh/wazuh-indexer-plugins/pull/350)
 
-
 ### Deprecated
 
 ### Removed
@@ -37,4 +36,3 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 ### Security
 
 [Unreleased 5.0.x]: https://github.com/wazuh/wazuh-indexer-plugins/compare/main...main
-
