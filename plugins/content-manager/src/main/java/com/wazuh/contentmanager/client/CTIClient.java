@@ -51,7 +51,6 @@ public class CTIClient extends HttpClient {
 
     private static final Logger log = LogManager.getLogger(CTIClient.class);
 
-    private static final String API_BASE_URL = PluginSettings.getInstance().getCtiBaseUrl();
     private static final String CONSUMER_INFO_ENDPOINT =
             "/catalog/contexts/vd_1.0.0/consumers/vd_4.8.0";
     private static final String CONSUMER_CHANGES_ENDPOINT = CONSUMER_INFO_ENDPOINT + "/changes";
@@ -86,7 +85,7 @@ public class CTIClient extends HttpClient {
      * URL.
      */
     private CTIClient() {
-        super(URI.create(API_BASE_URL));
+        super(URI.create(PluginSettings.getInstance().getCtiBaseUrl()));
     }
 
     /** Singleton holder pattern ensures lazy initialization in a thread-safe manner. */
@@ -224,25 +223,4 @@ public class CTIClient extends HttpClient {
             log.error("Snapshot download was interrupted: {}", e.getMessage());
         }
     }
-
-    //    /**
-    //     * Builds a map of query parameters for the API request to fetch context changes.
-    //     *
-    //     * @param fromOffset The starting offset (inclusive).
-    //     * @param toOffset The ending offset (exclusive).
-    //     * @param withEmpties A flag indicating whether to include empty values. If null or empty,
-    // it will
-    //     *     be ignored.
-    //     * @return A map containing the query parameters.
-    //     */
-    //    public static Map<String, String> contextQueryParameters(
-    //            String fromOffset, String toOffset, String withEmpties) {
-    //        Map<String, String> params = new HashMap<>();
-    //        params.put(QueryParameters.FROM_OFFSET.getValue(), fromOffset);
-    //        params.put(QueryParameters.TO_OFFSET.getValue(), toOffset);
-    //        if (withEmpties != null && !withEmpties.isEmpty()) {
-    //            params.put(QueryParameters.WITH_EMPTIES.getValue(), withEmpties);
-    //        }
-    //        return params;
-    //    }
 }

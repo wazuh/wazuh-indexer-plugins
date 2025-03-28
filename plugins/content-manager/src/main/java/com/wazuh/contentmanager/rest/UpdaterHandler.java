@@ -16,8 +16,6 @@
  */
 package com.wazuh.contentmanager.rest;
 
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
 import org.opensearch.client.node.NodeClient;
 import org.opensearch.core.rest.RestStatus;
 import org.opensearch.rest.BaseRestHandler;
@@ -25,7 +23,6 @@ import org.opensearch.rest.BytesRestResponse;
 import org.opensearch.rest.RestHandler;
 import org.opensearch.rest.RestRequest;
 
-import java.io.IOException;
 import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
@@ -35,10 +32,9 @@ import com.wazuh.contentmanager.updater.ContentUpdater;
 import static org.opensearch.rest.RestRequest.Method.GET;
 import static com.wazuh.contentmanager.settings.PluginSettings.API_BASE_URI;
 
+/** A test class that creates a "/updater" endpoint that triggers a content update */
 public class UpdaterHandler extends BaseRestHandler {
     public static final String NAME = "content_updater";
-
-    private static final Logger log = LogManager.getLogger(UpdaterHandler.class);
 
     /** Exposes the endpoint */
     @Override
@@ -53,8 +49,7 @@ public class UpdaterHandler extends BaseRestHandler {
 
     /** Handles the REST request and calls the appropriate action */
     @Override
-    protected RestChannelConsumer prepareRequest(RestRequest request, NodeClient client)
-            throws IOException {
+    protected RestChannelConsumer prepareRequest(RestRequest request, NodeClient client) {
         if (Objects.requireNonNull(request.method()) == GET) {
             ContentUpdater updater = new ContentUpdater();
             // Run the update process asynchronously

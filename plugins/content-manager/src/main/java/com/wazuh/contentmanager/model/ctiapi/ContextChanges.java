@@ -39,6 +39,11 @@ public class ContextChanges implements ToXContentObject {
         this.offsetList = offsetList;
     }
 
+    /**
+     * Retrieve the list of offsets
+     *
+     * @return A List of offsets
+     */
     public List<Offset> getOffsetList() {
         return offsetList;
     }

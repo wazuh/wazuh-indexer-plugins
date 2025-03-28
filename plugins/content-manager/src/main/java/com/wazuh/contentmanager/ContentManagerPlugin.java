@@ -36,7 +36,6 @@ import org.opensearch.script.ScriptService;
 import org.opensearch.threadpool.ThreadPool;
 import org.opensearch.watcher.ResourceWatcherService;
 
-import java.io.IOException;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
@@ -53,9 +52,6 @@ import com.wazuh.contentmanager.util.Privileged;
 public class ContentManagerPlugin extends Plugin implements ClusterPlugin, ActionPlugin {
 
     private ContextIndex contextIndex;
-
-    /** ClassConstructor * */
-    public ContentManagerPlugin() {}
 
     @Override
     public Collection<Object> createComponents(
@@ -98,16 +94,6 @@ public class ContentManagerPlugin extends Plugin implements ClusterPlugin, Actio
         ConsumerInfo consumerInfo =
                 Privileged.doPrivilegedRequest(() -> CTIClient.getInstance().getCatalog());
         this.contextIndex.index(consumerInfo);
-    }
-
-    /**
-     * Close the resources opened by this plugin.
-     *
-     * @throws IOException if the plugin failed to close its resources
-     */
-    @Override
-    public void close() throws IOException {
-        super.close();
     }
 
     @Override

@@ -16,8 +16,6 @@
  */
 package com.wazuh.contentmanager.client;
 
-import com.wazuh.contentmanager.settings.PluginSettings;
-import org.apache.hc.client5.http.async.methods.SimpleHttpResponse;
 import org.apache.hc.core5.http.ContentType;
 import org.apache.hc.core5.http.Header;
 import org.apache.hc.core5.http.HttpHeaders;
@@ -25,6 +23,8 @@ import org.apache.hc.core5.http.Method;
 import org.apache.hc.core5.http.message.BasicHeader;
 
 import java.net.URI;
+
+import com.wazuh.contentmanager.settings.PluginSettings;
 
 /**
  * CommandManagerClient is a singleton class responsible for managing HTTP communication with the
@@ -65,10 +65,9 @@ public class CommandManagerClient extends HttpClient {
      * Sends a POST request to execute a command via the Command Manager API.
      *
      * @param requestBody The JSON request body containing the command details.
-     * @return A SimpleHttpResponse object containing the API response.
      */
-    public SimpleHttpResponse postCommand(String requestBody) {
+    public void postCommand(String requestBody) {
         Header header = new BasicHeader(HttpHeaders.CONTENT_TYPE, ContentType.APPLICATION_JSON);
-        return sendRequest(Method.POST, POST_COMMAND_ENDPOINT, requestBody, null, header);
+        sendRequest(Method.POST, POST_COMMAND_ENDPOINT, requestBody, null, header);
     }
 }

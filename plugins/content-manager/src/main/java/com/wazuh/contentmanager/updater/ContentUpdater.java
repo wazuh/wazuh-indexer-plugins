@@ -18,9 +18,6 @@ package com.wazuh.contentmanager.updater;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.opensearch.core.xcontent.*;
-
-import java.io.IOException;
 
 import com.wazuh.contentmanager.client.CTIClient;
 import com.wazuh.contentmanager.client.CommandManagerClient;
@@ -29,11 +26,19 @@ import com.wazuh.contentmanager.model.ctiapi.ConsumerInfo;
 import com.wazuh.contentmanager.model.ctiapi.ContextChanges;
 import com.wazuh.contentmanager.util.Privileged;
 
+/** Class in charge of updating */
 public class ContentUpdater {
     private static final Integer CHUNK_MAX_SIZE = 1000;
     private static final Logger log = LogManager.getLogger(ContentUpdater.class);
 
+    /** Exception thrown by the Content Updater */
     public static class ContentUpdateException extends RuntimeException {
+        /**
+         * Constructor method
+         *
+         * @param message Message to be thrown
+         * @param cause Cause of the exception
+         */
         public ContentUpdateException(String message, Throwable cause) {
             super(message, cause);
         }
@@ -131,20 +136,12 @@ public class ContentUpdater {
         // ContentIndex.patch(changes);
     }
 
-    /**
-     * Posts a new command to the Command Manager informing the new changes.
-     *
-     * @param updatedOffset Last updated offset.
-     */
-    public void postUpdateCommand(Long updatedOffset) {
+    /** Posts a new command to the Command Manager informing the new changes. */
+    public void postUpdateCommand() {
         // Post new command informing the new changes.
         Privileged.doPrivilegedRequest(
                 () -> {
-                    try {
-                        CommandManagerClient.getInstance().postCommand(Command.generateCtiCommand());
-                    } catch (IOException e) {
-                        log.error("Error posting update command", e);
-                    }
+                    CommandManagerClient.getInstance().postCommand(Command.generateCtiCommand());
                     return null;
                 });
     }
