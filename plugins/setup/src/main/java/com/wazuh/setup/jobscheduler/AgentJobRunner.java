@@ -71,7 +71,7 @@ public class AgentJobRunner implements ScheduledJobRunner {
                     PluginSettings.getAgentsIndex());
             return;
         }
-        log.info("{} index created, running agent status jobs", PluginSettings.getAgentsIndex());
+        log.debug("{} index created, running agent status jobs", PluginSettings.getAgentsIndex());
 
         final AgentStatusUpdateJob job = new AgentStatusUpdateJob(this.client);
         this.threadPool.generic().submit(job);
