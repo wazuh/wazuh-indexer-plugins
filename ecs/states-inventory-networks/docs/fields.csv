@@ -1,7 +1,7 @@
 ECS_Version,Indexed,Field_Set,Field,Type,Level,Normalization,Example,Description
 8.11.0,true,base,@timestamp,date,core,,2016-05-23T08:05:34.853Z,Date/time when the event originated.
 8.11.0,true,base,tags,keyword,core,array,"[""production"", ""env2""]",List of keywords used to tag each event.
-8.11.0,true,agent,agent.groups,keyword,custom,,,List of groups the agent belong to.
+8.11.0,true,agent,agent.groups,keyword,custom,array,"[""group1"", ""group2""]",List of groups the agent belong to.
 8.11.0,true,agent,agent.host.architecture,keyword,core,,x86_64,Operating system architecture.
 8.11.0,true,agent,agent.host.boot.id,keyword,extended,,88a1f0ed-5ae5-41ee-af6b-41921c311872,Linux boot uuid taken from /proc/sys/kernel/random/boot_id
 8.11.0,true,agent,agent.host.cpu.usage,float,extended,,,"Percent CPU used, between 0 and 1."
@@ -25,12 +25,12 @@ ECS_Version,Indexed,Field_Set,Field,Type,Level,Normalization,Example,Description
 8.11.0,true,agent,agent.host.mac,keyword,core,array,"[""00-00-5E-00-53-23"", ""00-00-5E-00-53-24""]",Host MAC addresses.
 8.11.0,true,agent,agent.host.name,keyword,core,,,Name of the host.
 8.11.0,true,agent,agent.host.network.egress.bytes,long,extended,,,The number of bytes sent on all network interfaces.
-8.11.0,true,agent,agent.host.network.egress.drops,long,custom,,,Number of dropped transmitted packets.
-8.11.0,true,agent,agent.host.network.egress.errors,long,custom,,,Number of transmission errors.
+8.11.0,true,agent,agent.host.network.egress.drops,long,custom,,10,Number of dropped transmitted packets.
+8.11.0,true,agent,agent.host.network.egress.errors,long,custom,,10,Number of transmission errors.
 8.11.0,true,agent,agent.host.network.egress.packets,long,extended,,,The number of packets sent on all network interfaces.
 8.11.0,true,agent,agent.host.network.ingress.bytes,long,extended,,,The number of bytes received on all network interfaces.
-8.11.0,true,agent,agent.host.network.ingress.drops,long,custom,,,Number of dropped received packets.
-8.11.0,true,agent,agent.host.network.ingress.errors,long,custom,,,Number of reception errors.
+8.11.0,true,agent,agent.host.network.ingress.drops,long,custom,,10,Number of dropped received packets.
+8.11.0,true,agent,agent.host.network.ingress.errors,long,custom,,10,Number of reception errors.
 8.11.0,true,agent,agent.host.network.ingress.packets,long,extended,,,The number of packets received on all network interfaces.
 8.11.0,true,agent,agent.host.os.family,keyword,extended,,debian,"OS family (such as redhat, debian, freebsd, windows)."
 8.11.0,true,agent,agent.host.os.full,keyword,extended,,Mac OS Mojave,"Operating system name, including the version or code name."
@@ -77,12 +77,12 @@ ECS_Version,Indexed,Field_Set,Field,Type,Level,Normalization,Example,Description
 8.11.0,true,host,host.mac,keyword,core,array,"[""00-00-5E-00-53-23"", ""00-00-5E-00-53-24""]",Host MAC addresses.
 8.11.0,true,host,host.name,keyword,core,,,Name of the host.
 8.11.0,true,host,host.network.egress.bytes,long,extended,,,The number of bytes sent on all network interfaces.
-8.11.0,true,host,host.network.egress.drops,long,custom,,,Number of dropped transmitted packets.
-8.11.0,true,host,host.network.egress.errors,long,custom,,,Number of transmission errors.
+8.11.0,true,host,host.network.egress.drops,long,custom,,10,Number of dropped transmitted packets.
+8.11.0,true,host,host.network.egress.errors,long,custom,,10,Number of transmission errors.
 8.11.0,true,host,host.network.egress.packets,long,extended,,,The number of packets sent on all network interfaces.
 8.11.0,true,host,host.network.ingress.bytes,long,extended,,,The number of bytes received on all network interfaces.
-8.11.0,true,host,host.network.ingress.drops,long,custom,,,Number of dropped received packets.
-8.11.0,true,host,host.network.ingress.errors,long,custom,,,Number of reception errors.
+8.11.0,true,host,host.network.ingress.drops,long,custom,,10,Number of dropped received packets.
+8.11.0,true,host,host.network.ingress.errors,long,custom,,10,Number of reception errors.
 8.11.0,true,host,host.network.ingress.packets,long,extended,,,The number of packets received on all network interfaces.
 8.11.0,true,host,host.os.family,keyword,extended,,debian,"OS family (such as redhat, debian, freebsd, windows)."
 8.11.0,true,host,host.os.full,keyword,extended,,Mac OS Mojave,"Operating system name, including the version or code name."
@@ -102,14 +102,14 @@ ECS_Version,Indexed,Field_Set,Field,Type,Level,Normalization,Example,Description
 8.11.0,true,host,host.risk.static_score_norm,float,extended,,83.0,A normalized risk score calculated by an external system.
 8.11.0,true,host,host.type,keyword,core,,,Type of host.
 8.11.0,true,host,host.uptime,long,extended,,1325,Seconds the host has been up.
-8.11.0,true,interface,interface.mtu,long,custom,,,Maximum transmission unit size.
-8.11.0,true,interface,interface.state,keyword,custom,,,State of the network interface.
-8.11.0,true,interface,interface.type,keyword,custom,,,Interface type.
-8.11.0,true,network,network.broadcast,ip,custom,,,Broadcast address
-8.11.0,true,network,network.dhcp,keyword,custom,,,"DHCP status (enabled, disabled, unknown, BOOTP)"
-8.11.0,true,network,network.gateway,ip,custom,,,Gateway address
-8.11.0,true,network,network.metric,long,custom,,,Metric of the network protocol
-8.11.0,true,network,network.netmask,ip,custom,,,Network mask
+8.11.0,true,interface,interface.mtu,long,custom,,1500,Maximum transmission unit size.
+8.11.0,true,interface,interface.state,keyword,custom,,up,State of the network interface.
+8.11.0,true,interface,interface.type,keyword,custom,,ethernet,Interface type.
+8.11.0,true,network,network.broadcast,ip,custom,,192.168.0.255,Broadcast address.
+8.11.0,true,network,network.dhcp,keyword,custom,,enabled,"DHCP status (enabled, disabled, unknown, BOOTP)."
+8.11.0,true,network,network.gateway,ip,custom,,192.168.0.1,Gateway address.
+8.11.0,true,network,network.metric,long,custom,,15,Metric of the network protocol.
+8.11.0,true,network,network.netmask,ip,custom,,255.255.255.0,Network mask
 8.11.0,true,network,network.protocol,keyword,core,,http,Application protocol name.
 8.11.0,true,network,network.type,keyword,core,,ipv4,"In the OSI Model this would be the Network Layer. ipv4, ipv6, ipsec, pim, etc"
 8.11.0,true,observer,observer.ingress,object,extended,,,Object field for ingress information
