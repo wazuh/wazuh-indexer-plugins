@@ -16,6 +16,7 @@
  */
 package com.wazuh.contentmanager.client;
 
+import com.wazuh.contentmanager.settings.PluginSettings;
 import org.apache.hc.client5.http.async.methods.SimpleHttpResponse;
 import org.apache.hc.core5.http.ContentType;
 import org.apache.hc.core5.http.Header;
@@ -40,7 +41,7 @@ public class CommandManagerClient extends HttpClient {
 
     /** Private constructor to initialize the CommandManagerClient with the base API URI. */
     private CommandManagerClient() {
-        super(URI.create("http://localhost:8080" + BASE_COMMAND_MANAGER_URI));
+        super(URI.create(PluginSettings.getInstance().getClusterBaseUrl() + BASE_COMMAND_MANAGER_URI));
     }
 
     /**
