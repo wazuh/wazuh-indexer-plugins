@@ -19,10 +19,13 @@ package com.wazuh.setup.jobscheduler;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.opensearch.client.Client;
+import org.opensearch.cluster.service.ClusterService;
 import org.opensearch.jobscheduler.spi.JobExecutionContext;
 import org.opensearch.jobscheduler.spi.ScheduledJobParameter;
 import org.opensearch.jobscheduler.spi.ScheduledJobRunner;
 import org.opensearch.threadpool.ThreadPool;
+
+import com.wazuh.setup.settings.PluginSettings;
 
 /**
  * Implements the ScheduledJobRunner interface, which exposes the runJob() method, which executes
@@ -30,13 +33,16 @@ import org.opensearch.threadpool.ThreadPool;
  */
 public class AgentJobRunner implements ScheduledJobRunner {
 
-    private static final Logger log = LogManager.getLogger(CommandManagerJobRunner.class);
+    private static final Logger log = LogManager.getLogger(AgentJobRunner.class);
 
     /** Singleton instance. */
     private static AgentJobRunner INSTANCE;
 
     /** OpenSearch's client. */
     private Client client;
+
+    /** OpenSearch's cluster service. */
+    private ClusterService clusterService;
 
     /** OpenSearch's thread pool. */
     private ThreadPool threadPool;
@@ -59,8 +65,42 @@ public class AgentJobRunner implements ScheduledJobRunner {
     @Override
     public void runJob(
             ScheduledJobParameter scheduledJobParameter, JobExecutionContext jobExecutionContext) {
+        if (!this.clusterService.state().routingTable().hasIndex(PluginSettings.getAgentsIndex())) {
+            log.info(
+                    "{} index not yet created, not running agent status jobs",
+                    PluginSettings.getAgentsIndex());
+            return;
+        }
+        log.info("{} index created, running agent status jobs", PluginSettings.getAgentsIndex());
 
         final AgentStatusUpdateJob job = new AgentStatusUpdateJob(this.client);
         this.threadPool.generic().submit(job);
+    }
+
+    public AgentJobRunner setClient(Client client) {
+        this.client = client;
+        return getInstance();
+    }
+
+    /**
+     * Sets the thread pool.
+     *
+     * @param threadPool OpenSearch's thread pool.
+     * @return invoking instance to allow concatenation of setWhatever() calls.
+     */
+    public AgentJobRunner setThreadPool(ThreadPool threadPool) {
+        this.threadPool = threadPool;
+        return getInstance();
+    }
+
+    /**
+     * Sets the thread pool.
+     *
+     * @param clusterService OpenSearch's cluster service.
+     * @return invoking instance to allow concatenation of setWhatever() calls.
+     */
+    public AgentJobRunner setClusterService(ClusterService clusterService) {
+        this.clusterService = clusterService;
+        return getInstance();
     }
 }
