@@ -113,6 +113,38 @@
                           }
                         }
                       },
+                      "configurations": {
+                        "properties": {
+                          "lang": {
+                            "ignore_above": 1024,
+                            "type": "keyword"
+                          },
+                          "value": {
+                            "ignore_above": 1024,
+                            "type": "keyword"
+                          }
+                        }
+                      },
+                      "credits": {
+                        "properties": {
+                          "lang": {
+                            "ignore_above": 1024,
+                            "type": "keyword"
+                          },
+                          "type": {
+                            "ignore_above": 1024,
+                            "type": "keyword"
+                          },
+                          "user": {
+                            "ignore_above": 1024,
+                            "type": "keyword"
+                          },
+                          "value": {
+                            "ignore_above": 1024,
+                            "type": "keyword"
+                          }
+                        }
+                      },
                       "descriptions": {
                         "properties": {
                           "lang": {
@@ -133,6 +165,18 @@
                                 "type": "keyword"
                               }
                             }
+                          },
+                          "value": {
+                            "ignore_above": 1024,
+                            "type": "keyword"
+                          }
+                        }
+                      },
+                      "exploits": {
+                        "properties": {
+                          "lang": {
+                            "ignore_above": 1024,
+                            "type": "keyword"
                           },
                           "value": {
                             "ignore_above": 1024,
@@ -686,6 +730,58 @@
                             }
                           }
                         }
+                      },
+                      "solutions": {
+                        "properties": {
+                          "lang": {
+                            "ignore_above": 1024,
+                            "type": "keyword"
+                          },
+                          "value": {
+                            "ignore_above": 1024,
+                            "type": "keyword"
+                          }
+                        }
+                      },
+                      "taxonomyMappings": {
+                        "properties": {
+                          "taxonomyName": {
+                            "ignore_above": 1024,
+                            "type": "keyword"
+                          },
+                          "taxonomyRelations": {
+                            "properties": {
+                              "taxonomyId": {
+                                "ignore_above": 1024,
+                                "type": "keyword"
+                              },
+                              "taxonomyName": {
+                                "ignore_above": 1024,
+                                "type": "keyword"
+                              },
+                              "taxonomyValue": {
+                                "ignore_above": 1024,
+                                "type": "keyword"
+                              }
+                            }
+                          },
+                          "taxonomyVersion": {
+                            "ignore_above": 1024,
+                            "type": "keyword"
+                          }
+                        }
+                      },
+                      "workarounds": {
+                        "properties": {
+                          "lang": {
+                            "ignore_above": 1024,
+                            "type": "keyword"
+                          },
+                          "value": {
+                            "ignore_above": 1024,
+                            "type": "keyword"
+                          }
+                        }
                       }
                     }
                   },
@@ -799,6 +895,26 @@
                                 "type": "keyword"
                               }
                             }
+                          },
+                          "value": {
+                            "ignore_above": 1024,
+                            "type": "keyword"
+                          }
+                        }
+                      },
+                      "credits": {
+                        "properties": {
+                          "lang": {
+                            "ignore_above": 1024,
+                            "type": "keyword"
+                          },
+                          "type": {
+                            "ignore_above": 1024,
+                            "type": "keyword"
+                          },
+                          "user": {
+                            "ignore_above": 1024,
+                            "type": "keyword"
                           },
                           "value": {
                             "ignore_above": 1024,
@@ -1462,6 +1578,50 @@
                                 "type": "keyword"
                               }
                             }
+                          },
+                          "value": {
+                            "ignore_above": 1024,
+                            "type": "keyword"
+                          }
+                        }
+                      },
+                      "taxonomyMappings": {
+                        "properties": {
+                          "taxonomyName": {
+                            "ignore_above": 1024,
+                            "type": "keyword"
+                          },
+                          "taxonomyRelations": {
+                            "properties": {
+                              "taxonomyId": {
+                                "ignore_above": 1024,
+                                "type": "keyword"
+                              },
+                              "taxonomyName": {
+                                "ignore_above": 1024,
+                                "type": "keyword"
+                              },
+                              "taxonomyValue": {
+                                "ignore_above": 1024,
+                                "type": "keyword"
+                              }
+                            }
+                          },
+                          "taxonomyVersion": {
+                            "ignore_above": 1024,
+                            "type": "keyword"
+                          }
+                        }
+                      },
+                      "timeline": {
+                        "properties": {
+                          "lang": {
+                            "ignore_above": 1024,
+                            "type": "keyword"
+                          },
+                          "time": {
+                            "ignore_above": 1024,
+                            "type": "keyword"
                           },
                           "value": {
                             "ignore_above": 1024,

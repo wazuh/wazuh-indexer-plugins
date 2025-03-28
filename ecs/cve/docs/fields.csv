@@ -21,11 +21,19 @@ ECS_Version,Indexed,Field_Set,Field,Type,Level,Normalization,Example,Description
 8.11.0,true,cve,cve.payload.containers.adp.affected.versions.status,keyword,custom,,,The status of the affected version.
 8.11.0,true,cve,cve.payload.containers.adp.affected.versions.version,keyword,custom,,,The affected version.
 8.11.0,true,cve,cve.payload.containers.adp.affected.versions.versionType,keyword,custom,,,The type of the affected version.
+8.11.0,true,cve,cve.payload.containers.adp.configurations.lang,keyword,custom,,,The language of the description.
+8.11.0,true,cve,cve.payload.containers.adp.configurations.value,keyword,custom,,,The description of the CVE.
+8.11.0,true,cve,cve.payload.containers.adp.credits.lang,keyword,custom,,,The language of the credit.
+8.11.0,true,cve,cve.payload.containers.adp.credits.type,keyword,custom,,,The type of the credit.
+8.11.0,true,cve,cve.payload.containers.adp.credits.user,keyword,custom,,,The user of the credit.
+8.11.0,true,cve,cve.payload.containers.adp.credits.value,keyword,custom,,,The value of the credit.
 8.11.0,true,cve,cve.payload.containers.adp.descriptions.lang,keyword,custom,,,The language of the description.
 8.11.0,true,cve,cve.payload.containers.adp.descriptions.supportingMedia.base64,boolean,custom,,,The media value is base64 encoded.
 8.11.0,true,cve,cve.payload.containers.adp.descriptions.supportingMedia.type,keyword,custom,,,The type of documentation [text/markdown].
 8.11.0,true,cve,cve.payload.containers.adp.descriptions.supportingMedia.value,keyword,custom,,,The media value.
 8.11.0,true,cve,cve.payload.containers.adp.descriptions.value,keyword,custom,,,The description of the CVE.
+8.11.0,true,cve,cve.payload.containers.adp.exploits.lang,keyword,custom,,,The language of the description.
+8.11.0,true,cve,cve.payload.containers.adp.exploits.value,keyword,custom,,,The description of the CVE.
 8.11.0,true,cve,cve.payload.containers.adp.impacts.capecId,keyword,custom,,,The impact ID
 8.11.0,true,cve,cve.payload.containers.adp.impacts.descriptions.lang,keyword,custom,,,The language of the description.
 8.11.0,true,cve,cve.payload.containers.adp.impacts.descriptions.supportingMedia.base64,boolean,custom,,,The media value is base64 encoded.
@@ -151,6 +159,15 @@ ECS_Version,Indexed,Field_Set,Field,Type,Level,Normalization,Example,Description
 8.11.0,true,cve,cve.payload.containers.adp.problemTypes.descriptions.references.tags,keyword,custom,,,The tags of the reference
 8.11.0,true,cve,cve.payload.containers.adp.problemTypes.descriptions.references.url,keyword,custom,,,The URL of the reference
 8.11.0,true,cve,cve.payload.containers.adp.problemTypes.descriptions.type,keyword,custom,,,The type of the problem type.
+8.11.0,true,cve,cve.payload.containers.adp.solutions.lang,keyword,custom,,,The language of the description.
+8.11.0,true,cve,cve.payload.containers.adp.solutions.value,keyword,custom,,,The description of the CVE.
+8.11.0,true,cve,cve.payload.containers.adp.taxonomyMappings.taxonomyName,keyword,custom,,,The name of the taxonomy.
+8.11.0,true,cve,cve.payload.containers.adp.taxonomyMappings.taxonomyRelations.taxonomyId,keyword,custom,,,The taxonomy ID.
+8.11.0,true,cve,cve.payload.containers.adp.taxonomyMappings.taxonomyRelations.taxonomyName,keyword,custom,,,The taxonomy name.
+8.11.0,true,cve,cve.payload.containers.adp.taxonomyMappings.taxonomyRelations.taxonomyValue,keyword,custom,,,The taxonomy value.
+8.11.0,true,cve,cve.payload.containers.adp.taxonomyMappings.taxonomyVersion,keyword,custom,,,The version of the taxonomy.
+8.11.0,true,cve,cve.payload.containers.adp.workarounds.lang,keyword,custom,,,The language of the description.
+8.11.0,true,cve,cve.payload.containers.adp.workarounds.value,keyword,custom,,,The description of the CVE.
 8.11.0,true,cve,cve.payload.containers.cna.affected.collectionURL,keyword,custom,,,The URL of the affected collection.
 8.11.0,true,cve,cve.payload.containers.cna.affected.cpes,keyword,custom,,,Common Platform Enumeration (CPE) entries for the affected product.
 8.11.0,true,cve,cve.payload.containers.cna.affected.defaultStatus,keyword,custom,,,The default status of the affected product.
@@ -174,6 +191,10 @@ ECS_Version,Indexed,Field_Set,Field,Type,Level,Normalization,Example,Description
 8.11.0,true,cve,cve.payload.containers.cna.configurations.supportingMedia.type,keyword,custom,,,The type of documentation [text/markdown].
 8.11.0,true,cve,cve.payload.containers.cna.configurations.supportingMedia.value,keyword,custom,,,The media value.
 8.11.0,true,cve,cve.payload.containers.cna.configurations.value,keyword,custom,,,The description of the CVE.
+8.11.0,true,cve,cve.payload.containers.cna.credits.lang,keyword,custom,,,The language of the credit.
+8.11.0,true,cve,cve.payload.containers.cna.credits.type,keyword,custom,,,The type of the credit.
+8.11.0,true,cve,cve.payload.containers.cna.credits.user,keyword,custom,,,The user of the credit.
+8.11.0,true,cve,cve.payload.containers.cna.credits.value,keyword,custom,,,The value of the credit.
 8.11.0,true,cve,cve.payload.containers.cna.descriptions.lang,keyword,custom,,,The language of the description.
 8.11.0,true,cve,cve.payload.containers.cna.descriptions.supportingMedia.base64,boolean,custom,,,The media value is base64 encoded.
 8.11.0,true,cve,cve.payload.containers.cna.descriptions.supportingMedia.type,keyword,custom,,,The type of documentation [text/markdown].
@@ -321,6 +342,14 @@ ECS_Version,Indexed,Field_Set,Field,Type,Level,Normalization,Example,Description
 8.11.0,true,cve,cve.payload.containers.cna.solutions.supportingMedia.type,keyword,custom,,,The type of documentation [text/markdown].
 8.11.0,true,cve,cve.payload.containers.cna.solutions.supportingMedia.value,keyword,custom,,,The media value.
 8.11.0,true,cve,cve.payload.containers.cna.solutions.value,keyword,custom,,,The description of the CVE.
+8.11.0,true,cve,cve.payload.containers.cna.taxonomyMappings.taxonomyName,keyword,custom,,,The name of the taxonomy.
+8.11.0,true,cve,cve.payload.containers.cna.taxonomyMappings.taxonomyRelations.taxonomyId,keyword,custom,,,The taxonomy ID.
+8.11.0,true,cve,cve.payload.containers.cna.taxonomyMappings.taxonomyRelations.taxonomyName,keyword,custom,,,The taxonomy name.
+8.11.0,true,cve,cve.payload.containers.cna.taxonomyMappings.taxonomyRelations.taxonomyValue,keyword,custom,,,The taxonomy value.
+8.11.0,true,cve,cve.payload.containers.cna.taxonomyMappings.taxonomyVersion,keyword,custom,,,The version of the taxonomy.
+8.11.0,true,cve,cve.payload.containers.cna.timeline.lang,keyword,custom,,,The language of the timeline.
+8.11.0,true,cve,cve.payload.containers.cna.timeline.time,keyword,custom,,,The time of the timeline.
+8.11.0,true,cve,cve.payload.containers.cna.timeline.value,keyword,custom,,,The value of the timeline.
 8.11.0,true,cve,cve.payload.containers.cna.workarounds.lang,keyword,custom,,,The language of the description.
 8.11.0,true,cve,cve.payload.containers.cna.workarounds.supportingMedia.base64,boolean,custom,,,The media value is base64 encoded.
 8.11.0,true,cve,cve.payload.containers.cna.workarounds.supportingMedia.type,keyword,custom,,,The type of documentation [text/markdown].
