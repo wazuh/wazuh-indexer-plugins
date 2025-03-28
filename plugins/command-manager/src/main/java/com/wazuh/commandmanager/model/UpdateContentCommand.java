@@ -51,6 +51,7 @@ public class UpdateContentCommand extends Args {
             XContentParser.Token currentToken = parser.currentToken();
             switch (currentToken) {
                 case FIELD_NAME:
+                    // Ignore unexpected fields.
                     fieldName = parser.currentName();
                     if (!fieldName.equals(INDEX_KEY) && !fieldName.equals(OFFSET_KEY)) {
                         log.warn(INVALID_ARGS_MESSAGE + ", got [{}]", parser.currentName());

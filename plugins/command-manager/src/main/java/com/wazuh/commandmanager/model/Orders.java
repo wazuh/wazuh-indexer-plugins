@@ -28,7 +28,6 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 
 import com.wazuh.commandmanager.settings.PluginSettings;
 import com.wazuh.commandmanager.utils.Search;
@@ -97,23 +96,22 @@ public class Orders implements ToXContentObject {
         for (Command command : commands) {
             List<Agent> agentList = new ArrayList<>();
             String queryField = "";
-            Target.Type targetType = command.getTarget().getType();
-            String targetId = command.getTarget().getId();
-            Boolean isAgentCommand = false;
+            Target target = command.getTarget();
+            boolean requiresExpansion = false;
 
-            if (Objects.equals(targetType, Target.Type.GROUP)) {
+            if (target.getType() == Target.Type.GROUP) {
                 queryField = "agent.groups";
-                isAgentCommand = true;
-            } else if (Objects.equals(targetType, Target.Type.AGENT)) {
+                requiresExpansion = true;
+            } else if (target.getType() == Target.Type.AGENT) {
                 queryField = "agent.id";
-                isAgentCommand = true;
+                requiresExpansion = true;
             }
 
             // Build and execute the search query
-            if (isAgentCommand) {
-                log.info("Searching for agents using field {} with value {}", queryField, targetId);
+            if (requiresExpansion) {
+                log.info("Searching for agents using field {} with value {}", queryField, target.getId());
                 SearchHits hits =
-                        Search.syncSearch(client, PluginSettings.getAgentsIndex(), queryField, targetId);
+                        Search.syncSearch(client, PluginSettings.getAgentsIndex(), queryField, target.getId());
                 if (hits != null) {
                     for (SearchHit hit : hits) {
                         final Map<String, Object> agentMap =
@@ -140,7 +138,9 @@ public class Orders implements ToXContentObject {
                     orders.add(order);
                 }
             } else {
-                log.info("Generating order without agent");
+                log.info(
+                        "Command's target is [{}], no expansion required.",
+                        command.getTarget().getType().name());
                 Order order = new Order(null, command);
                 orders.add(order);
             }

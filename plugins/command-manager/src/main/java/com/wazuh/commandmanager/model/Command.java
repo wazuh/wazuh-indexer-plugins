@@ -42,7 +42,6 @@ public class Command implements ToXContentObject {
     public static final String TIMEOUT = "timeout";
     public static final String USER = "user";
     public static final String STATUS = "status";
-    private static final String UPDATE_COMMAND = "update";
     private final String orderId;
     private final String requestId;
     private final String source;
@@ -67,7 +66,7 @@ public class Command implements ToXContentObject {
             @NonNull String source,
             @NonNull Target target,
             @NonNull Integer timeout,
-            @NonNull String user,
+            String user,
             @NonNull Action action) {
         this.requestId = UUIDs.base64UUID();
         this.orderId = UUIDs.base64UUID();
@@ -157,7 +156,7 @@ public class Command implements ToXContentObject {
         }
 
         if (!nullArguments.isEmpty()) {
-            throw new IllegalArgumentException("Missing arguments in command parse: " + nullArguments);
+            throw new IllegalArgumentException("Missing arguments: " + nullArguments);
         } else {
             return new Command(source, target, timeout, user, action);
         }
@@ -185,9 +184,7 @@ public class Command implements ToXContentObject {
     public XContentBuilder toXContent(XContentBuilder builder, Params params) throws IOException {
         builder.startObject(COMMAND);
         builder.field(SOURCE, this.source);
-        if (this.user != null) {
-            builder.field(USER, this.user);
-        }
+        builder.field(USER, this.user);
         this.target.toXContent(builder, ToXContent.EMPTY_PARAMS);
         this.action.toXContent(builder, ToXContent.EMPTY_PARAMS);
         builder.field(TIMEOUT, timeout);
@@ -272,7 +269,7 @@ public class Command implements ToXContentObject {
                 + ", timeout="
                 + timeout
                 + ", user='"
-                + (user != null ? user : "")
+                + user
                 + '\''
                 + ", status="
                 + status
