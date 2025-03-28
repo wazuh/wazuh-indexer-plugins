@@ -16,6 +16,9 @@
  */
 package com.wazuh.contentmanager.rest;
 
+import com.wazuh.contentmanager.client.CommandManagerClient;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.opensearch.client.node.NodeClient;
 import org.opensearch.core.rest.RestStatus;
 import org.opensearch.rest.BaseRestHandler;
@@ -34,6 +37,9 @@ import static com.wazuh.contentmanager.settings.PluginSettings.API_BASE_URI;
 
 /** A test class that creates a "/updater" endpoint that triggers a content update */
 public class UpdaterHandler extends BaseRestHandler {
+
+    private static final Logger log = LogManager.getLogger(UpdaterHandler.class);
+
     public static final String NAME = "content_updater";
 
     /** Exposes the endpoint */
@@ -59,7 +65,7 @@ public class UpdaterHandler extends BaseRestHandler {
                             updater.fetchAndApplyUpdates(Long.parseLong(request.param("from_offset")));
                         } catch (ContentUpdater.ContentUpdateException e) {
                             // Log the error (using OpenSearch logger if available)
-                            System.err.println("Error updating content: " + e.getMessage());
+                            log.error("Error updating content: {}", e.getMessage());
                         }
                     });
             return channel ->
