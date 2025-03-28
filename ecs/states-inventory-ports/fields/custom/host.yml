@@ -10,8 +10,10 @@
       level: custom
       description: >
         Receive queue length.
+      example: 10
     - name: network.egress.queue
       type: long
       level: custom
       description: >
         Transmit queue length.
+      example: 10
