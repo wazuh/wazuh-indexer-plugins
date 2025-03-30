@@ -83,9 +83,3 @@
       normalize:
         - array
       example: '[1.0, 2.0]'
-    - name: problemTypes
-      type: keyword
-      level: custom
-      description: This is problem type information (e.g. CWE identifier).
-      normalize:
-        - array

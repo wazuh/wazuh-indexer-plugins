@@ -1,6 +1,6 @@
 - name: changes
   title: Changes
-  description: Changes associated with a CVE.
+  description: Status changes that take place during the range. 
   reusable:
     top_level: false
     expected:
@@ -9,8 +9,10 @@
     - name: at
       type: keyword
       level: custom
-      description: The location of the change
+      description: The version at which a status change occurs.
+      example: 1.0.0
     - name: status
       type: keyword
       level: custom
-      description: The status of the change [affected, unaffected, unknown]
+      description: The new status in the range starting at the given version.
+      example: affected

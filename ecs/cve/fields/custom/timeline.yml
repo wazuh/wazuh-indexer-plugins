@@ -1,6 +1,6 @@
 - name: timeline
   title: Timeline
-  description: CNA timeline.
+  description: This is timeline information for significant events about this vulnerability or changes to the CVE Record.
   reusable:
     top_level: false
     expected:
@@ -10,12 +10,15 @@
     - name: time
       type: keyword
       level: custom
-      description: The time of the timeline.
+      description: Timestamp representing when the event in the timeline occurred. 
+      example: 2023-10-01T12:00:00Z
     - name: lang
       type: keyword
       level: custom
-      description: The language of the timeline.
+      description: The language used in the description of the event.
+      example: en
     - name: value
       type: keyword
       level: custom
-      description: The value of the timeline.
+      description: A summary of the event.
+      example: "CVE-2023-12345 was assigned to a new vulnerability."

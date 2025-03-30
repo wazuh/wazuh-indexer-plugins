@@ -10,119 +10,149 @@
       type: keyword
       level: custom
       description: The version of CVSS.
+      example: 3.1
     - name: vectorString
       type: keyword
       level: custom
       description: The vector string.
+      example: CVSS:3.1/AV:N/AC:L/PR:N/UI:R/S:U/C:H/I:H/A:N
     - name: attackVector
       type: keyword
       level: custom
       description: The attack vector.
+      example: ADJACENT_NETWORK
     - name: attackComplexity
       type: keyword
       level: custom
       description: The attack complexity.
+      example: HIGH
     - name: privilegesRequired
       type: keyword
       level: custom
       description: The privileges required.
+      example: LOW
     - name: userInteraction
       type: keyword
       level: custom
       description: The user interaction.
+      example: REQUIRED
     - name: scope
       type: keyword
       level: custom
       description: The scope.
+      example: CHANGED
     - name: confidentialityImpact
       type: keyword
       level: custom
       description: The confidentiality impact.
+      example: HIGH
     - name: integrityImpact
       type: keyword
       level: custom
       description: The integrity impact.
+      example: HIGH
     - name: availabilityImpact
       type: keyword
       level: custom
       description: The availability impact.
+      example: LOW
     - name: baseScore
       type: keyword
       level: custom
-      description: The base score.
+      description: The base score from 0 to 10.
+      example: 7
     - name: baseSeverity
       type: keyword
       level: custom
       description: The base severity.
+      example: CRITICAL
     - name: exploitCodeMaturity
       type: keyword
       level: custom
       description: The exploit code maturity.
+      example: FUNCTIONAL
     - name: remediationLevel
       type: keyword
       level: custom
       description: The remediation level.
+      example: WORKAROUND
     - name: reportConfidence
       type: keyword
       level: custom
       description: The report confidence.
+      example: CONFIRMED
     - name: temporalScore
       type: keyword
       level: custom
-      description: The temporal score.
+      description: The temporal score from 0 to 10.
+      example: 6
     - name: temporalSeverity
       type: keyword
       level: custom
       description: The temporal severity.
+      example: HIGH
     - name: confidentialityRequirement
       type: keyword
       level: custom
       description: The confidentiality requirement.
+      example: MEDIUM
     - name: integrityRequirement
       type: keyword
       level: custom
       description: The integrity requirement.
+      example: HIGH
     - name: availabilityRequirement
       type: keyword
       level: custom
       description: The availability requirement.
+      example: LOW
     - name: modifiedAttackVector
       type: keyword
       level: custom
       description: The modified attack vector.
+      example: LOCAL
     - name: modifiedAttackComplexity
       type: keyword
       level: custom
       description: The modified attack complexity.
+      example: HIGH
     - name: modifiedPrivilegesRequired
       type: keyword
       level: custom
       description: The modified privileges required.
+      example: NONE
     - name: modifiedUserInteraction
       type: keyword
       level: custom
       description: The modified user interaction.
+      example: REQUIRED
     - name: modifiedScope
       type: keyword
       level: custom
       description: The modified scope.
+      example: UNCHANGED
     - name: modifiedConfidentialityImpact
       type: keyword
       level: custom
       description: The modified confidentiality impact.
+      example: HIGH
     - name: modifiedIntegrityImpact
       type: keyword
       level: custom
       description: The modified integrity impact.
+      example: NONE
     - name: modifiedAvailabilityImpact
       type: keyword
       level: custom
       description: The modified availability impact.
+      example: HIGH
     - name: environmentalScore
       type: keyword
       level: custom
-      description: The environmental score.
+      description: The environmental score from 0 to 10.
+      example: 10
     - name: environmentalSeverity
       type: keyword
       level: custom
       description: The environmental severity.
+      example: LOW

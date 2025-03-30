@@ -1,6 +1,6 @@
 - name: metrics
   title: Metrics
-  description: Metrics associated with a CVE.
+  description: Impact scores with attribution.
   reusable:
     top_level: false
     expected:
@@ -11,12 +11,21 @@
     - name: format
       type: keyword
       level: custom
-      description: The format of the metrics.
+      description: Name of the scoring format.
+      example: CVSSv3_0
+    - name: scenarios
+      type: keyword
+      level: custom
+      description: Description of the scenarios this metrics object applies to.
+      normalize:
+        - array
     - name: other.type
       type: keyword
       level: custom
-      description: The type of the metric.
+      description: Name of the non-standard impact metrics format used.
+      example: MetricX
     - name: other.content
       type: keyword
       level: custom
-      description: The content of the metric.
+      description: JSON object not covered by another metrics format.
+      example: '{"key": "value"}'

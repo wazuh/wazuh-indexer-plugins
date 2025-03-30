@@ -10,55 +10,94 @@
       type: keyword
       level: custom
       description: The version of CVSS.
+      example: 2.0
     - name: vectorString
       type: keyword
       level: custom
       description: The vector string.
+      example: AV:N/AC:L/Au:N/C:P/I:P/A:P
     - name: accessVector
       type: keyword
       level: custom
       description: The access vector.
+      example: ADJACENT_NETWORK
     - name: accessComplexity
       type: keyword
       level: custom
       description: The access complexity.
+      example: MEDIUM
     - name: authentication
       type: keyword
       level: custom
       description: The authentication.
+      example: SINGLE
     - name: confidentialityImpact
       type: keyword
       level: custom
       description: The confidentiality impact.
+      example: PARTIAL
     - name: integrityImpact
       type: keyword
       level: custom
       description: The integrity impact.
+      example: COMPLETE
     - name: availabilityImpact
       type: keyword
       level: custom
       description: The availability impact.
+      example: COMPLETE
     - name: baseScore
       type: keyword
       level: custom
-      description: The base score.
+      description: The base score from 0 to 10.
+      example: 4
     - name: exploitability
       type: keyword
       level: custom
       description: The exploitability.
+      example: PROOF_OF_CONCEPT
     - name: remediationLevel
       type: keyword
       level: custom
       description: The remediation level.
+      example: OFFICIAL_FIX
     - name: reportConfidence
       type: keyword
       level: custom
       description: The report confidence.
+      example: UNCONFIRMED
     - name: temporalScore
       type: keyword
       level: custom
-      description: The temporal score.
+      description: The temporal score from 0 to 10.
+      example: 6
     - name: collateralDamagePotential
       type: keyword
       level: custom
       description: The collateral damage potential.
+      example: LOW_MEDIUM
+    - name: targetDistribution
+      type: keyword
+      level: custom
+      description: The target distribution.
+      example: LOW
+    - name: confidentialityRequirement
+      type: keyword
+      level: custom
+      description: The confidentiality requirement.
+      example: LOW
+    - name: integrityRequirement
+      type: keyword
+      level: custom
+      description: The integrity requirement.
+      example: LOW
+    - name: availabilityRequirement
+      type: keyword
+      level: custom
+      description: The availability requirement.
+      example: MEDIUM
+    - name: environmentalScore
+      type: keyword
+      level: custom
+      description: The environmental score from 0 to 10.
+      example: 5

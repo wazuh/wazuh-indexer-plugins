@@ -1,6 +1,6 @@
 - name: references
   title: References
-  description: CNA references.
+  description: This is reference data in the form of URLs or file objects.
   reusable:
     top_level: false
     expected:
@@ -10,12 +10,17 @@
     - name: url
       type: keyword
       level: custom
-      description: The URL of the reference
+      description: The uniform resource locator (URL), according to RFC 3986.
+      example: https://example.com
     - name: name
       type: keyword
       level: custom
-      description: The name of the reference
+      description: User created name for the reference, often the title of the page.
+      example: Example Reference
     - name: tags
       type: keyword
       level: custom
-      description: The tags of the reference
+      description: An array of one or more tags that describe the resource referenced by 'url'.
+      example: '[ "cve", "advisory", "bug" ]'
+      normalize:
+        - array
