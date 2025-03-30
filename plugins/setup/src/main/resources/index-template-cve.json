@@ -51,10 +51,6 @@
                             "ignore_above": 1024,
                             "type": "keyword"
                           },
-                          "problemTypes": {
-                            "ignore_above": 1024,
-                            "type": "keyword"
-                          },
                           "product": {
                             "ignore_above": 1024,
                             "type": "keyword"
@@ -251,6 +247,10 @@
                                 "ignore_above": 1024,
                                 "type": "keyword"
                               },
+                              "availabilityRequirement": {
+                                "ignore_above": 1024,
+                                "type": "keyword"
+                              },
                               "baseScore": {
                                 "ignore_above": 1024,
                                 "type": "keyword"
@@ -263,6 +263,14 @@
                                 "ignore_above": 1024,
                                 "type": "keyword"
                               },
+                              "confidentialityRequirement": {
+                                "ignore_above": 1024,
+                                "type": "keyword"
+                              },
+                              "environmentalScore": {
+                                "ignore_above": 1024,
+                                "type": "keyword"
+                              },
                               "exploitability": {
                                 "ignore_above": 1024,
                                 "type": "keyword"
@@ -271,11 +279,19 @@
                                 "ignore_above": 1024,
                                 "type": "keyword"
                               },
+                              "integrityRequirement": {
+                                "ignore_above": 1024,
+                                "type": "keyword"
+                              },
                               "remediationLevel": {
                                 "ignore_above": 1024,
                                 "type": "keyword"
                               },
                               "reportConfidence": {
+                                "ignore_above": 1024,
+                                "type": "keyword"
+                              },
+                              "targetDistribution": {
                                 "ignore_above": 1024,
                                 "type": "keyword"
                               },
@@ -639,6 +655,10 @@
                                 "ignore_above": 1024,
                                 "type": "keyword"
                               },
+                              "providerUrgency": {
+                                "ignore_above": 1024,
+                                "type": "keyword"
+                              },
                               "subAvailabilityImpact": {
                                 "ignore_above": 1024,
                                 "type": "keyword"
@@ -700,6 +720,10 @@
                                 "type": "keyword"
                               }
                             }
+                          },
+                          "scenarios": {
+                            "ignore_above": 1024,
+                            "type": "keyword"
                           }
                         }
                       },
@@ -767,15 +791,15 @@
                           },
                           "taxonomyRelations": {
                             "properties": {
+                              "relationshipName": {
+                                "ignore_above": 1024,
+                                "type": "keyword"
+                              },
+                              "relationshipValue": {
+                                "ignore_above": 1024,
+                                "type": "keyword"
+                              },
                               "taxonomyId": {
-                                "ignore_above": 1024,
-                                "type": "keyword"
-                              },
-                              "taxonomyName": {
-                                "ignore_above": 1024,
-                                "type": "keyword"
-                              },
-                              "taxonomyValue": {
                                 "ignore_above": 1024,
                                 "type": "keyword"
                               }
@@ -830,10 +854,6 @@
                             "type": "keyword"
                           },
                           "platforms": {
-                            "ignore_above": 1024,
-                            "type": "keyword"
-                          },
-                          "problemTypes": {
                             "ignore_above": 1024,
                             "type": "keyword"
                           },
@@ -1055,6 +1075,10 @@
                                 "ignore_above": 1024,
                                 "type": "keyword"
                               },
+                              "availabilityRequirement": {
+                                "ignore_above": 1024,
+                                "type": "keyword"
+                              },
                               "baseScore": {
                                 "ignore_above": 1024,
                                 "type": "keyword"
@@ -1067,6 +1091,14 @@
                                 "ignore_above": 1024,
                                 "type": "keyword"
                               },
+                              "confidentialityRequirement": {
+                                "ignore_above": 1024,
+                                "type": "keyword"
+                              },
+                              "environmentalScore": {
+                                "ignore_above": 1024,
+                                "type": "keyword"
+                              },
                               "exploitability": {
                                 "ignore_above": 1024,
                                 "type": "keyword"
@@ -1075,11 +1107,19 @@
                                 "ignore_above": 1024,
                                 "type": "keyword"
                               },
+                              "integrityRequirement": {
+                                "ignore_above": 1024,
+                                "type": "keyword"
+                              },
                               "remediationLevel": {
                                 "ignore_above": 1024,
                                 "type": "keyword"
                               },
                               "reportConfidence": {
+                                "ignore_above": 1024,
+                                "type": "keyword"
+                              },
+                              "targetDistribution": {
                                 "ignore_above": 1024,
                                 "type": "keyword"
                               },
@@ -1443,6 +1483,10 @@
                                 "ignore_above": 1024,
                                 "type": "keyword"
                               },
+                              "providerUrgency": {
+                                "ignore_above": 1024,
+                                "type": "keyword"
+                              },
                               "subAvailabilityImpact": {
                                 "ignore_above": 1024,
                                 "type": "keyword"
@@ -1504,6 +1548,10 @@
                                 "type": "keyword"
                               }
                             }
+                          },
+                          "scenarios": {
+                            "ignore_above": 1024,
+                            "type": "keyword"
                           }
                         }
                       },
@@ -1617,15 +1665,15 @@
                           },
                           "taxonomyRelations": {
                             "properties": {
+                              "relationshipName": {
+                                "ignore_above": 1024,
+                                "type": "keyword"
+                              },
+                              "relationshipValue": {
+                                "ignore_above": 1024,
+                                "type": "keyword"
+                              },
                               "taxonomyId": {
-                                "ignore_above": 1024,
-                                "type": "keyword"
-                              },
-                              "taxonomyName": {
-                                "ignore_above": 1024,
-                                "type": "keyword"
-                              },
-                              "taxonomyValue": {
                                 "ignore_above": 1024,
                                 "type": "keyword"
                               }
