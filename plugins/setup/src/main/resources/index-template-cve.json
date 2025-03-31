@@ -14,8 +14,7 @@
         "type": "keyword"
       },
       "offset": {
-        "ignore_above": 1024,
-        "type": "keyword"
+        "type": "unsigned_long"
       },
       "payload": {
         "properties": {

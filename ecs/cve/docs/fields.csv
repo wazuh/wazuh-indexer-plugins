@@ -1,7 +1,7 @@
 ECS_Version,Indexed,Field_Set,Field,Type,Level,Normalization,Example,Description
 8.11.0,true,base,inserted_at,date,custom,,,The date the CVE was inserted.
 8.11.0,true,base,name,keyword,custom,,,The name of the CVE.
-8.11.0,true,base,offset,keyword,custom,,,The offset of the CVE.
+8.11.0,true,base,offset,unsigned_long,custom,,,The offset of the CVE.
 8.11.0,true,base,tags,keyword,core,array,"[""production"", ""env2""]",List of keywords used to tag each event.
 8.11.0,true,base,version,keyword,custom,,,The version of the CVE.
 8.11.0,true,payload,payload.containers.adp.affected.collectionURL,keyword,custom,,https://access.redhat.com/downloads/content/package-browser,URL identifying a package collection (determines the meaning of packageName).
