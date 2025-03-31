@@ -10,10 +10,10 @@ fields:
       offset: {}
       version: {}
       inserted_at: {}
-  cveMetadata:
-    fields: "*"
   payload:
     fields:
+      cveMetadata:
+        fields: "*"
       containers:
         fields:
           cna:
