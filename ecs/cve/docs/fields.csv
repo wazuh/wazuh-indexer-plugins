@@ -390,3 +390,5 @@ ECS_Version,Indexed,Field_Set,Field,Type,Level,Normalization,Example,Description
 8.11.0,true,payload,payload.cveMetadata.requesterUserId,keyword,custom,,550e8400-e29b-41d4-a716-446655440000,The user that requested the CVE identifier.
 8.11.0,true,payload,payload.cveMetadata.serial,keyword,custom,,1,"The system of record causes this to start at 1, and increment by 1 each time this CVE Record changes."
 8.11.0,true,payload,payload.cveMetadata.state,keyword,custom,,PUBLISHED,State of CVE.
+8.11.0,true,payload,payload.dataType,keyword,custom,,CVE_RECORD,Indicates the type of information represented in the JSON instance.
+8.11.0,true,payload,payload.dataVersion,keyword,custom,,5.0,The version of the CVE schema used for validating this record. Used to support multiple versions of this format.
