@@ -311,7 +311,7 @@
                           }
                         }
                       },
-                      "cvssV3": {
+                      "cvssV3_0": {
                         "properties": {
                           "attackComplexity": {
                             "ignore_above": 1024,
@@ -1197,7 +1197,7 @@
                           }
                         }
                       },
-                      "cvssV3": {
+                      "cvssV3_0": {
                         "properties": {
                           "attackComplexity": {
                             "ignore_above": 1024,
