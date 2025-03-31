@@ -136,28 +136,30 @@ def generate_random_geo():
     return geo
 
 def generate_random_policy():
-    return {
-        'id': f'policy{random.randint(0, 999)}',
-        'name': f'Policy {random.randint(0, 999)}',
-        'file': f'policy{random.randint(0, 999)}.yml',
-        'description': 'Generated policy description.',
-        'references': [f'https://example.com/policy{random.randint(0, 999)}']
+    policy = {
+      'id': f'policy{random.randint(0, 999)}',
+      'name': f'Policy {random.randint(0, 999)}',
+      'file': f'policy{random.randint(0, 999)}.yml',
+      'description': 'Generated policy description.',
+      'references': [f'https://example.com/policy{random.randint(0, 999)}']
     }
+    return policy
 
 def generate_random_check():
-    return {
-        'id': f'check{random.randint(0, 9999)}',
-        'name': 'Check Example',
-        'description': 'Generated check description.',
-        'rationale': 'Generated rationale.',
-        'remediation': 'Generated remediation.',
-        'references': [f'https://example.com/check{random.randint(0, 9999)}'],
-        'condition': 'all',
-        'compliance': [f'cis:{random.randint(1, 10)}.{random.randint(1, 10)}.{random.randint(1, 10)}'],
-        'rules': {},
-        'result': 'pass',
-        'reason': 'Randomly passed.'
+    check = {
+      'id': f'check{random.randint(0, 9999)}',
+      'name': 'Check Example',
+      'description': 'Generated check description.',
+      'rationale': 'Generated rationale.',
+      'remediation': 'Generated remediation.',
+      'references': [f'https://example.com/check{random.randint(0, 9999)}'],
+      'condition': 'all',
+      'compliance': [f'cis:{random.randint(1, 10)}.{random.randint(1, 10)}.{random.randint(1, 10)}'],
+      'rules': {},
+      'result': 'pass',
+      'reason': 'Randomly passed.'
     }
+    return check
 
 def generate_random_data(number):
     return [{

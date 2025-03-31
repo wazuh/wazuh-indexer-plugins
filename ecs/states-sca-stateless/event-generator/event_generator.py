@@ -136,28 +136,40 @@ def generate_random_geo():
     return geo
 
 def generate_random_policy():
-    return {
-        'id': f'policy{random.randint(0, 999)}',
-        'name': f'Policy {random.randint(0, 999)}',
-        'file': f'policy{random.randint(0, 999)}.yml',
-        'description': 'Generated policy description.',
-        'references': [f'https://example.com/policy{random.randint(0, 999)}']
+    policy = {
+      'id': f'policy{random.randint(0, 999)}',
+      'name': f'Policy {random.randint(0, 999)}',
+      'file': f'policy{random.randint(0, 999)}.yml',
+      'description': 'Generated policy description.',
+      'references': [f'https://example.com/policy{random.randint(0, 999)}']
     }
+    return policy
 
 def generate_random_check():
-    return {
-        'id': f'check{random.randint(0, 9999)}',
-        'name': 'Check Example',
-        'description': 'Generated check description.',
-        'rationale': 'Generated rationale.',
-        'remediation': 'Generated remediation.',
-        'references': [f'https://example.com/check{random.randint(0, 9999)}'],
-        'condition': 'all',
-        'compliance': [f'cis:{random.randint(1, 10)}.{random.randint(1, 10)}.{random.randint(1, 10)}'],
-        'rules': {},
-        'result': 'pass',
-        'reason': 'Randomly passed.'
+    check = {
+      'id': f'check{random.randint(0, 9999)}',
+      'name': 'Check Example',
+      'description': 'Generated check description.',
+      'rationale': 'Generated rationale.',
+      'remediation': 'Generated remediation.',
+      'references': [f'https://example.com/check{random.randint(0, 9999)}'],
+      'condition': 'all',
+      'compliance': [f'cis:{random.randint(1, 10)}.{random.randint(1, 10)}.{random.randint(1, 10)}'],
+      'rules': {},
+      'result': 'pass',
+      'reason': 'Randomly passed.'
     }
+    return check
+
+def generate_random_event():
+    event = {
+      'created': datetime.utcnow().isoformat() + "Z",
+      'category': ["configuration"],
+      'type': ["change"],
+      'action': "check-updated",
+      'changed_fields': ["policy.name", "check.condition", "check.result"]
+    }
+    return event
 
 def generate_random_data(number):
     return [{
@@ -165,7 +177,8 @@ def generate_random_data(number):
         'agent': generate_random_agent(),
         'host': generate_random_host(),
         'policy': generate_random_policy(),
-        'check': generate_random_check()
+        'check': generate_random_check(),
+        'event': generate_random_event()
     } for _ in range(number)]
 
 def inject_events(ip, port, index, username, password, data):
