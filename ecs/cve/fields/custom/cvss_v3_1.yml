@@ -57,10 +57,10 @@
       description: The availability impact.
       example: LOW
     - name: baseScore
-      type: keyword
+      type: float
       level: custom
       description: The base score from 0 to 10.
-      example: 7
+      example: 7.4
     - name: baseSeverity
       type: keyword
       level: custom
@@ -82,10 +82,10 @@
       description: The report confidence.
       example: CONFIRMED
     - name: temporalScore
-      type: keyword
+      type: float
       level: custom
       description: The temporal score from 0 to 10.
-      example: 6
+      example: 6.0
     - name: temporalSeverity
       type: keyword
       level: custom
@@ -147,10 +147,10 @@
       description: The modified availability impact.
       example: HIGH
     - name: environmentalScore
-      type: keyword
+      type: float
       level: custom
       description: The environmental score from 0 to 10.
-      example: 10
+      example: 10.0
     - name: environmentalSeverity
       type: keyword
       level: custom

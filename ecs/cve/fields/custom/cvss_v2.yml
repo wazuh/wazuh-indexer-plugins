@@ -47,10 +47,10 @@
       description: The availability impact.
       example: COMPLETE
     - name: baseScore
-      type: keyword
+      type: float
       level: custom
       description: The base score from 0 to 10.
-      example: 4
+      example: 4.0
     - name: exploitability
       type: keyword
       level: custom
@@ -67,10 +67,10 @@
       description: The report confidence.
       example: UNCONFIRMED
     - name: temporalScore
-      type: keyword
+      type: float
       level: custom
       description: The temporal score from 0 to 10.
-      example: 6
+      example: 6.0
     - name: collateralDamagePotential
       type: keyword
       level: custom
@@ -97,7 +97,7 @@
       description: The availability requirement.
       example: MEDIUM
     - name: environmentalScore
-      type: keyword
+      type: float
       level: custom
       description: The environmental score from 0 to 10.
-      example: 5
+      example: 5.0
