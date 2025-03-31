@@ -36,7 +36,6 @@ import org.opensearch.jobscheduler.spi.JobSchedulerExtension;
 import org.opensearch.jobscheduler.spi.ScheduledJobParser;
 import org.opensearch.jobscheduler.spi.ScheduledJobRunner;
 import org.opensearch.jobscheduler.spi.schedule.ScheduleParser;
-import org.opensearch.plugins.ActionPlugin;
 import org.opensearch.plugins.ClusterPlugin;
 import org.opensearch.plugins.Plugin;
 import org.opensearch.plugins.ReloadablePlugin;
