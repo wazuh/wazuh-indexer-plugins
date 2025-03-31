@@ -25,7 +25,7 @@
       description: Name of the non-standard impact metrics format used.
       example: MetricX
     - name: other.content
-      type: keyword
+      type: text
       level: custom
       description: JSON object not covered by another metrics format.
       example: '{"key": "value"}'
