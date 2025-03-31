@@ -11,6 +11,7 @@
       - { at: payload.containers.cna, as: workarounds }
       - { at: payload.containers.cna, as: solutions }
       - { at: payload.containers.cna, as: exploits }
+      - { at: payload.containers.cna, as: rejectedReasons }
       - { at: payload.containers.adp, as: configurations }
       - { at: payload.containers.adp, as: workarounds }
       - { at: payload.containers.adp, as: solutions }

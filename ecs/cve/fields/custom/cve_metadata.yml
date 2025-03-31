@@ -41,6 +41,11 @@
       level: custom
       description: The date/time this CVE ID was reserved in the CVE automation workgroup services system.
       example: 2025-01-01T00:00:00.000Z
+    - name: dateRejected
+      type: date
+      level: custom
+      description: The date/time the CVE ID was rejected.
+      example: 2025-01-01T00:00:00.000Z
     - name: datePublished
       type: date
       level: custom

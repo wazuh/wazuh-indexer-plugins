@@ -20,6 +20,13 @@ fields:
         fields:
           cna:
             fields:
+              dateAssigned: {}
+              datePublic: {}
+              title: {}
+              source: {}
+              tags: []
+              replacedBy: {}
+              x_remediations: {}
               affected:
                 fields: "*"
               impacts:
@@ -50,8 +57,15 @@ fields:
                 fields: "*"
               taxonomyMappings:
                 fields: "*"
+              rejectedReasons:
+                fields: "*"
           adp:
             fields:
+              datePublic: {}
+              title: {}
+              tags: []
+              source: {}
+              x_remediations: {}
               affected:
                 fields: "*"
               descriptions:
