@@ -1,0 +1,48 @@
+---
+- name: x_remediations
+  title: x_remediations
+  group: 2
+  description: These fields contain Windows Portable Executable (PE) metadata.
+  type: group
+  reusable:
+    top_level: false
+    order: 1
+    required: true
+    expected:
+      - adp
+      - cna
+
+  fields:
+    - name: windows
+      short: Section information of the PE file.
+      description: >
+        An array containing an object for each section of the PE file.
+
+        The keys that should be present in these objects are defined by sub-fields
+        underneath `pe.sections.*`.
+      type: nested
+      level: custom
+      normalize:
+        - "array"
+
+    - name: windows.anyOf
+      description: >
+        Shannon entropy calculation from the section.
+      type: keyword
+      level: custom
+      normalize:
+        - "array"
+
+    - name: windows.products
+      description: >
+        PE Section List name.
+      type: keyword
+      level: custom
+      normalize:
+        - "array"
+
+    - name: windows.type
+      description: >
+        PE Section List physical size.
+      type: keyword
+      level: custom
