@@ -23,7 +23,7 @@ import org.opensearch.common.settings.Settings;
 
 import reactor.util.annotation.NonNull;
 
-/* Plugin settings */
+/** Plugin settings */
 public class PluginSettings {
     private static final Logger log = LogManager.getLogger(PluginSettings.class);
 
@@ -44,7 +44,7 @@ public class PluginSettings {
     // Maximum number of documents to be returned by query.
     public static final Setting<Integer> MAX_DOCS =
             Setting.intSetting(
-                    "command_manager.job.max_docs",
+                    "setup.job.max_docs",
                     DEFAULT_MAX_DOCS,
                     5,
                     100000,
@@ -54,7 +54,7 @@ public class PluginSettings {
     // Currently used for client.index() and client.search() methods.
     public static final Setting<Integer> CLIENT_TIMEOUT =
             Setting.intSetting(
-                    "command_manager.client.timeout",
+                    "setup.client.timeout",
                     DEFAULT_CLIENT_TIMEOUT,
                     5,
                     120,
@@ -64,7 +64,7 @@ public class PluginSettings {
     // Must be greater than CLIENT_TIMEOUT
     public static final Setting<Integer> JOB_SCHEDULE =
             Setting.intSetting(
-                    "command_manager.job.schedule",
+                    "setup.job.schedule",
                     DEFAULT_JOB_SCHEDULE,
                     1,
                     10,
@@ -105,6 +105,7 @@ public class PluginSettings {
     /**
      * Singleton instance accessor. Initializes the settings
      *
+     * @param settings
      * @return {@link PluginSettings#instance}
      */
     public static PluginSettings getInstance(@NonNull final Settings settings) {

@@ -77,6 +77,12 @@ public class AgentJobRunner implements ScheduledJobRunner {
         this.threadPool.generic().submit(job);
     }
 
+    /**
+     * Set the client.
+     *
+     * @param client OpenSearch's client.
+     * @return invoking instance to allow concatenation of setWhatever() calls.
+     */
     public AgentJobRunner setClient(Client client) {
         this.client = client;
         return getInstance();
