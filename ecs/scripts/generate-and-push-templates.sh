@@ -81,6 +81,8 @@ detect_modified_modules() {
         [states-inventory-processes]="index-template-processes.json"
         [states-inventory-scheduled-commands]="index-template-scheduled-commands.json"
         [states-inventory-system]="index-template-system.json"
+        [states-inventory-sca]="states-inventory-sca.json"
+        [states-inventory-sca-stateless]="states-inventory-sca-stateless.json"
         [states-vulnerabilities]="index-template-vulnerabilities.json"
         [users]="index-template-users.json"
     )
