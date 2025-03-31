@@ -10,7 +10,7 @@
       level: custom
       description: The name of the CVE.
     - name: offset
-      type: keyword
+      type: unsigned_long
       level: custom
       description: The offset of the CVE.
     - name: version
