@@ -29,6 +29,7 @@ ECS_Version,Indexed,Field_Set,Field,Type,Level,Normalization,Example,Description
 8.11.0,true,payload,payload.containers.adp.credits.type,keyword,custom,,analyst,Type or role of the entity being credited.
 8.11.0,true,payload,payload.containers.adp.credits.user,keyword,custom,,123e4567-e89b-12d3-a456-426614174000,UUID of the user being credited if present in the CVE User Registry.
 8.11.0,true,payload,payload.containers.adp.credits.value,keyword,custom,,This CVE was assigned by the CNA.,The content of the credit.
+8.11.0,true,payload,payload.containers.adp.datePublic,keyword,custom,,2025-01-01 00:00:00+00:00,"If known, the date/time the vulnerability was disclosed publicly."
 8.11.0,true,payload,payload.containers.adp.descriptions.lang,keyword,custom,,en-US,"BCP 47 language code, language-region."
 8.11.0,true,payload,payload.containers.adp.descriptions.supportingMedia.base64,boolean,custom,,True,If true then the value field contains the media data encoded in base64.
 8.11.0,true,payload,payload.containers.adp.descriptions.supportingMedia.type,keyword,custom,,image/png,RFC2046 compliant IANA Media type.
@@ -179,14 +180,18 @@ ECS_Version,Indexed,Field_Set,Field,Type,Level,Normalization,Example,Description
 8.11.0,true,payload,payload.containers.adp.solutions.lang,keyword,custom,,en-US,"BCP 47 language code, language-region."
 8.11.0,true,payload,payload.containers.adp.solutions.supportingMedia,keyword,custom,array,,"Supporting media data for the description such as markdown, diagrams, etc."
 8.11.0,true,payload,payload.containers.adp.solutions.value,keyword,custom,,This is a description of the vulnerability.,Plain text description.
+8.11.0,true,payload,payload.containers.adp.source,keyword,custom,,,This is the source information and optionally a chain of CNA information.
+8.11.0,true,payload,payload.containers.adp.tags,keyword,custom,array,,Tags provided by an ADP describing the CVE Record.
 8.11.0,true,payload,payload.containers.adp.taxonomyMappings.taxonomyName,keyword,custom,,CWE,The name of the taxonomy.
 8.11.0,true,payload,payload.containers.adp.taxonomyMappings.taxonomyRelations.relationshipName,keyword,custom,,CWE-123: Example description of the relationship.,A description of the relationship.
 8.11.0,true,payload,payload.containers.adp.taxonomyMappings.taxonomyRelations.relationshipValue,keyword,custom,,CVE-2023-12345,The target of the relationship. Can be the CVE ID or another taxonomy identifier.
 8.11.0,true,payload,payload.containers.adp.taxonomyMappings.taxonomyRelations.taxonomyId,keyword,custom,,CWE-123,Identifier of the item in the taxonomy. Used as the subject of the relationship.
 8.11.0,true,payload,payload.containers.adp.taxonomyMappings.taxonomyVersion,keyword,custom,,4.0,The version of taxonomy the identifiers come from.
+8.11.0,true,payload,payload.containers.adp.title,keyword,custom,,Buffer overflow in Example Soft.,"A title, headline, or a brief phrase summarizing the CVE record."
 8.11.0,true,payload,payload.containers.adp.workarounds.lang,keyword,custom,,en-US,"BCP 47 language code, language-region."
 8.11.0,true,payload,payload.containers.adp.workarounds.supportingMedia,keyword,custom,array,,"Supporting media data for the description such as markdown, diagrams, etc."
 8.11.0,true,payload,payload.containers.adp.workarounds.value,keyword,custom,,This is a description of the vulnerability.,Plain text description.
+8.11.0,true,payload,payload.containers.adp.x_remediations,keyword,custom,,,The remediations of the ADP (CTI's custom field).
 8.11.0,true,payload,payload.containers.cna.affected.collectionURL,keyword,custom,,https://access.redhat.com/downloads/content/package-browser,URL identifying a package collection (determines the meaning of packageName).
 8.11.0,true,payload,payload.containers.cna.affected.cpes,keyword,custom,array,[cpe:2.3:a:example:example:1.0:*:*:*:*:*:*:*],Affected products defined by CPE.
 8.11.0,true,payload,payload.containers.cna.affected.defaultStatus,keyword,custom,,affected,The default status for versions that are not otherwise listed in the versions list.
@@ -214,6 +219,8 @@ ECS_Version,Indexed,Field_Set,Field,Type,Level,Normalization,Example,Description
 8.11.0,true,payload,payload.containers.cna.credits.type,keyword,custom,,analyst,Type or role of the entity being credited.
 8.11.0,true,payload,payload.containers.cna.credits.user,keyword,custom,,123e4567-e89b-12d3-a456-426614174000,UUID of the user being credited if present in the CVE User Registry.
 8.11.0,true,payload,payload.containers.cna.credits.value,keyword,custom,,This CVE was assigned by the CNA.,The content of the credit.
+8.11.0,true,payload,payload.containers.cna.dateAssigned,keyword,custom,,2025-01-01 00:00:00+00:00,The date/time this CVE ID was associated with a vulnerability by a CNA.
+8.11.0,true,payload,payload.containers.cna.datePublic,keyword,custom,,2025-01-01 00:00:00+00:00,"If known, the date/time the vulnerability was disclosed publicly."
 8.11.0,true,payload,payload.containers.cna.descriptions.lang,keyword,custom,,en-US,"BCP 47 language code, language-region."
 8.11.0,true,payload,payload.containers.cna.descriptions.supportingMedia.base64,boolean,custom,,True,If true then the value field contains the media data encoded in base64.
 8.11.0,true,payload,payload.containers.cna.descriptions.supportingMedia.type,keyword,custom,,image/png,RFC2046 compliant IANA Media type.
@@ -363,11 +370,17 @@ ECS_Version,Indexed,Field_Set,Field,Type,Level,Normalization,Example,Description
 8.11.0,true,payload,payload.containers.cna.references.name,keyword,custom,,Example Reference,"User created name for the reference, often the title of the page."
 8.11.0,true,payload,payload.containers.cna.references.tags,keyword,custom,array,"[ ""cve"", ""advisory"", ""bug"" ]",An array of one or more tags that describe the resource referenced by 'url'.
 8.11.0,true,payload,payload.containers.cna.references.url,keyword,custom,,https://example.com,"The uniform resource locator (URL), according to RFC 3986."
+8.11.0,true,payload,payload.containers.cna.rejectedReasons.lang,keyword,custom,,en-US,"BCP 47 language code, language-region."
+8.11.0,true,payload,payload.containers.cna.rejectedReasons.supportingMedia,keyword,custom,array,,"Supporting media data for the description such as markdown, diagrams, etc."
+8.11.0,true,payload,payload.containers.cna.rejectedReasons.value,keyword,custom,,This is a description of the vulnerability.,Plain text description.
+8.11.0,true,payload,payload.containers.cna.replacedBy,keyword,custom,,CVE-2025-12345,The CVE that replaced this one.
 8.11.0,true,payload,payload.containers.cna.solutions.lang,keyword,custom,,en-US,"BCP 47 language code, language-region."
 8.11.0,true,payload,payload.containers.cna.solutions.supportingMedia.base64,boolean,custom,,True,If true then the value field contains the media data encoded in base64.
 8.11.0,true,payload,payload.containers.cna.solutions.supportingMedia.type,keyword,custom,,image/png,RFC2046 compliant IANA Media type.
 8.11.0,true,payload,payload.containers.cna.solutions.supportingMedia.value,keyword,custom,,iVBORw0KGgoAAAANSUhEUgAA...,"Supporting media content, up to 16K. If base64 is true, this field stores base64 encoded data."
 8.11.0,true,payload,payload.containers.cna.solutions.value,keyword,custom,,This is a description of the vulnerability.,Plain text description.
+8.11.0,true,payload,payload.containers.cna.source,keyword,custom,,,"This is the source information (who discovered it, who researched it, etc.) and optionally a chain of CNA information."
+8.11.0,true,payload,payload.containers.cna.tags,keyword,custom,array,"[""buffer_overflow"", ""example_soft""]",Tags provided by a CNA describing the CVE Record.
 8.11.0,true,payload,payload.containers.cna.taxonomyMappings.taxonomyName,keyword,custom,,CWE,The name of the taxonomy.
 8.11.0,true,payload,payload.containers.cna.taxonomyMappings.taxonomyRelations.relationshipName,keyword,custom,,CWE-123: Example description of the relationship.,A description of the relationship.
 8.11.0,true,payload,payload.containers.cna.taxonomyMappings.taxonomyRelations.relationshipValue,keyword,custom,,CVE-2023-12345,The target of the relationship. Can be the CVE ID or another taxonomy identifier.
@@ -376,15 +389,18 @@ ECS_Version,Indexed,Field_Set,Field,Type,Level,Normalization,Example,Description
 8.11.0,true,payload,payload.containers.cna.timeline.lang,keyword,custom,,en,The language used in the description of the event.
 8.11.0,true,payload,payload.containers.cna.timeline.time,keyword,custom,,2023-10-01 12:00:00+00:00,Timestamp representing when the event in the timeline occurred.
 8.11.0,true,payload,payload.containers.cna.timeline.value,keyword,custom,,CVE-2023-12345 was assigned to a new vulnerability.,A summary of the event.
+8.11.0,true,payload,payload.containers.cna.title,keyword,custom,,Buffer overflow in Example Soft.,"A title, headline, or a brief phrase summarizing the CVE record."
 8.11.0,true,payload,payload.containers.cna.workarounds.lang,keyword,custom,,en-US,"BCP 47 language code, language-region."
 8.11.0,true,payload,payload.containers.cna.workarounds.supportingMedia.base64,boolean,custom,,True,If true then the value field contains the media data encoded in base64.
 8.11.0,true,payload,payload.containers.cna.workarounds.supportingMedia.type,keyword,custom,,image/png,RFC2046 compliant IANA Media type.
 8.11.0,true,payload,payload.containers.cna.workarounds.supportingMedia.value,keyword,custom,,iVBORw0KGgoAAAANSUhEUgAA...,"Supporting media content, up to 16K. If base64 is true, this field stores base64 encoded data."
 8.11.0,true,payload,payload.containers.cna.workarounds.value,keyword,custom,,This is a description of the vulnerability.,Plain text description.
+8.11.0,true,payload,payload.containers.cna.x_remediations,keyword,custom,,,The remediations of the CNA (CTI's custom field).
 8.11.0,true,payload,payload.cveMetadata.assignerOrgId,keyword,custom,,550e8400-e29b-41d4-a716-446655440000,The UUID for the organization to which the CVE ID was originally assigned.
 8.11.0,true,payload,payload.cveMetadata.assignerShortName,keyword,custom,,MITRE,The short name for the organization to which the CVE ID was originally assigned.
 8.11.0,true,payload,payload.cveMetadata.cveId,keyword,custom,,CVE-2019-0001,The CVE identifier that this record pertains to.
 8.11.0,true,payload,payload.cveMetadata.datePublished,date,custom,,2025-01-01 00:00:00+00:00,The date/time the CVE Record was first published in the CVE List.
+8.11.0,true,payload,payload.cveMetadata.dateRejected,date,custom,,2025-01-01 00:00:00+00:00,The date/time the CVE ID was rejected.
 8.11.0,true,payload,payload.cveMetadata.dateReserved,date,custom,,2025-01-01 00:00:00+00:00,The date/time this CVE ID was reserved in the CVE automation workgroup services system.
 8.11.0,true,payload,payload.cveMetadata.dateUpdated,date,custom,,2025-01-01 00:00:00+00:00,The date/time the record was last updated.
 8.11.0,true,payload,payload.cveMetadata.requesterUserId,keyword,custom,,550e8400-e29b-41d4-a716-446655440000,The user that requested the CVE identifier.

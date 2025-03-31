@@ -147,6 +147,10 @@
                       }
                     }
                   },
+                  "datePublic": {
+                    "ignore_above": 1024,
+                    "type": "keyword"
+                  },
                   "descriptions": {
                     "properties": {
                       "lang": {
@@ -816,6 +820,14 @@
                       }
                     }
                   },
+                  "source": {
+                    "ignore_above": 1024,
+                    "type": "keyword"
+                  },
+                  "tags": {
+                    "ignore_above": 1024,
+                    "type": "keyword"
+                  },
                   "taxonomyMappings": {
                     "properties": {
                       "taxonomyName": {
@@ -844,6 +856,10 @@
                       }
                     }
                   },
+                  "title": {
+                    "ignore_above": 1024,
+                    "type": "keyword"
+                  },
                   "workarounds": {
                     "properties": {
                       "lang": {
@@ -859,6 +875,10 @@
                         "type": "keyword"
                       }
                     }
+                  },
+                  "x_remediations": {
+                    "ignore_above": 1024,
+                    "type": "keyword"
                   }
                 }
               },
@@ -999,6 +1019,14 @@
                       }
                     }
                   },
+                  "dateAssigned": {
+                    "ignore_above": 1024,
+                    "type": "keyword"
+                  },
+                  "datePublic": {
+                    "ignore_above": 1024,
+                    "type": "keyword"
+                  },
                   "descriptions": {
                     "properties": {
                       "lang": {
@@ -1663,6 +1691,26 @@
                       }
                     }
                   },
+                  "rejectedReasons": {
+                    "properties": {
+                      "lang": {
+                        "ignore_above": 1024,
+                        "type": "keyword"
+                      },
+                      "supportingMedia": {
+                        "ignore_above": 1024,
+                        "type": "keyword"
+                      },
+                      "value": {
+                        "ignore_above": 1024,
+                        "type": "keyword"
+                      }
+                    }
+                  },
+                  "replacedBy": {
+                    "ignore_above": 1024,
+                    "type": "keyword"
+                  },
                   "solutions": {
                     "properties": {
                       "lang": {
@@ -1689,6 +1737,14 @@
                         "type": "keyword"
                       }
                     }
+                  },
+                  "source": {
+                    "ignore_above": 1024,
+                    "type": "keyword"
+                  },
+                  "tags": {
+                    "ignore_above": 1024,
+                    "type": "keyword"
                   },
                   "taxonomyMappings": {
                     "properties": {
@@ -1734,6 +1790,10 @@
                       }
                     }
                   },
+                  "title": {
+                    "ignore_above": 1024,
+                    "type": "keyword"
+                  },
                   "workarounds": {
                     "properties": {
                       "lang": {
@@ -1760,6 +1820,10 @@
                         "type": "keyword"
                       }
                     }
+                  },
+                  "x_remediations": {
+                    "ignore_above": 1024,
+                    "type": "keyword"
                   }
                 }
               }
@@ -1780,6 +1844,9 @@
                 "type": "keyword"
               },
               "datePublished": {
+                "type": "date"
+              },
+              "dateRejected": {
                 "type": "date"
               },
               "dateReserved": {
