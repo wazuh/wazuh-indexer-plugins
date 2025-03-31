@@ -49,29 +49,29 @@ ECS_Version,Indexed,Field_Set,Field,Type,Level,Normalization,Example,Description
 8.11.0,true,payload,payload.containers.adp.metrics.cvssV2_0.authentication,keyword,custom,,SINGLE,The authentication.
 8.11.0,true,payload,payload.containers.adp.metrics.cvssV2_0.availabilityImpact,keyword,custom,,COMPLETE,The availability impact.
 8.11.0,true,payload,payload.containers.adp.metrics.cvssV2_0.availabilityRequirement,keyword,custom,,MEDIUM,The availability requirement.
-8.11.0,true,payload,payload.containers.adp.metrics.cvssV2_0.baseScore,keyword,custom,,4,The base score from 0 to 10.
+8.11.0,true,payload,payload.containers.adp.metrics.cvssV2_0.baseScore,float,custom,,4.0,The base score from 0 to 10.
 8.11.0,true,payload,payload.containers.adp.metrics.cvssV2_0.collateralDamagePotential,keyword,custom,,LOW_MEDIUM,The collateral damage potential.
 8.11.0,true,payload,payload.containers.adp.metrics.cvssV2_0.confidentialityImpact,keyword,custom,,PARTIAL,The confidentiality impact.
 8.11.0,true,payload,payload.containers.adp.metrics.cvssV2_0.confidentialityRequirement,keyword,custom,,LOW,The confidentiality requirement.
-8.11.0,true,payload,payload.containers.adp.metrics.cvssV2_0.environmentalScore,keyword,custom,,5,The environmental score from 0 to 10.
+8.11.0,true,payload,payload.containers.adp.metrics.cvssV2_0.environmentalScore,float,custom,,5.0,The environmental score from 0 to 10.
 8.11.0,true,payload,payload.containers.adp.metrics.cvssV2_0.exploitability,keyword,custom,,PROOF_OF_CONCEPT,The exploitability.
 8.11.0,true,payload,payload.containers.adp.metrics.cvssV2_0.integrityImpact,keyword,custom,,COMPLETE,The integrity impact.
 8.11.0,true,payload,payload.containers.adp.metrics.cvssV2_0.integrityRequirement,keyword,custom,,LOW,The integrity requirement.
 8.11.0,true,payload,payload.containers.adp.metrics.cvssV2_0.remediationLevel,keyword,custom,,OFFICIAL_FIX,The remediation level.
 8.11.0,true,payload,payload.containers.adp.metrics.cvssV2_0.reportConfidence,keyword,custom,,UNCONFIRMED,The report confidence.
 8.11.0,true,payload,payload.containers.adp.metrics.cvssV2_0.targetDistribution,keyword,custom,,LOW,The target distribution.
-8.11.0,true,payload,payload.containers.adp.metrics.cvssV2_0.temporalScore,keyword,custom,,6,The temporal score from 0 to 10.
+8.11.0,true,payload,payload.containers.adp.metrics.cvssV2_0.temporalScore,float,custom,,6.0,The temporal score from 0 to 10.
 8.11.0,true,payload,payload.containers.adp.metrics.cvssV2_0.vectorString,keyword,custom,,AV:N/AC:L/Au:N/C:P/I:P/A:P,The vector string.
 8.11.0,true,payload,payload.containers.adp.metrics.cvssV2_0.version,keyword,custom,,2.0,The version of CVSS.
 8.11.0,true,payload,payload.containers.adp.metrics.cvssV3_0.attackComplexity,keyword,custom,,HIGH,The attack complexity.
 8.11.0,true,payload,payload.containers.adp.metrics.cvssV3_0.attackVector,keyword,custom,,PHYSICAL,The attack vector.
 8.11.0,true,payload,payload.containers.adp.metrics.cvssV3_0.availabilityImpact,keyword,custom,,NONE,The availability impact.
 8.11.0,true,payload,payload.containers.adp.metrics.cvssV3_0.availabilityRequirement,keyword,custom,,LOW,The availability requirement.
-8.11.0,true,payload,payload.containers.adp.metrics.cvssV3_0.baseScore,keyword,custom,,3,The base score from 0 to 10.
+8.11.0,true,payload,payload.containers.adp.metrics.cvssV3_0.baseScore,float,custom,,3.0,The base score from 0 to 10.
 8.11.0,true,payload,payload.containers.adp.metrics.cvssV3_0.baseSeverity,keyword,custom,,MEDIUM,The base severity.
 8.11.0,true,payload,payload.containers.adp.metrics.cvssV3_0.confidentialityImpact,keyword,custom,,LOW,The confidentiality impact.
 8.11.0,true,payload,payload.containers.adp.metrics.cvssV3_0.confidentialityRequirement,keyword,custom,,NOT_DEFINED,The confidentiality requirement.
-8.11.0,true,payload,payload.containers.adp.metrics.cvssV3_0.environmentalScore,keyword,custom,,9,The environmental score from 0 to 10.
+8.11.0,true,payload,payload.containers.adp.metrics.cvssV3_0.environmentalScore,float,custom,,9.3,The environmental score from 0 to 10.
 8.11.0,true,payload,payload.containers.adp.metrics.cvssV3_0.environmentalSeverity,keyword,custom,,HIGH,The environmental severity.
 8.11.0,true,payload,payload.containers.adp.metrics.cvssV3_0.exploitCodeMaturity,keyword,custom,,UNPROVEN,The exploit code maturity.
 8.11.0,true,payload,payload.containers.adp.metrics.cvssV3_0.integrityImpact,keyword,custom,,LOW,The integrity impact.
@@ -88,7 +88,7 @@ ECS_Version,Indexed,Field_Set,Field,Type,Level,Normalization,Example,Description
 8.11.0,true,payload,payload.containers.adp.metrics.cvssV3_0.remediationLevel,keyword,custom,,OFFICIAL_FIX,The remediation level.
 8.11.0,true,payload,payload.containers.adp.metrics.cvssV3_0.reportConfidence,keyword,custom,,CONFIRMED,The report confidence.
 8.11.0,true,payload,payload.containers.adp.metrics.cvssV3_0.scope,keyword,custom,,CHANGED,The scope.
-8.11.0,true,payload,payload.containers.adp.metrics.cvssV3_0.temporalScore,keyword,custom,,6,The temporal score from 0 to 10.
+8.11.0,true,payload,payload.containers.adp.metrics.cvssV3_0.temporalScore,float,custom,,6.0,The temporal score from 0 to 10.
 8.11.0,true,payload,payload.containers.adp.metrics.cvssV3_0.temporalSeverity,keyword,custom,,HIGH,The temporal severity.
 8.11.0,true,payload,payload.containers.adp.metrics.cvssV3_0.userInteraction,keyword,custom,,REQUIRED,The user interaction.
 8.11.0,true,payload,payload.containers.adp.metrics.cvssV3_0.vectorString,keyword,custom,,CVSS:3.0/AV:N/AC:L/PR:N/UI:R/S:U/C:H/I:H/A:N,The vector string.
@@ -97,11 +97,11 @@ ECS_Version,Indexed,Field_Set,Field,Type,Level,Normalization,Example,Description
 8.11.0,true,payload,payload.containers.adp.metrics.cvssV3_1.attackVector,keyword,custom,,ADJACENT_NETWORK,The attack vector.
 8.11.0,true,payload,payload.containers.adp.metrics.cvssV3_1.availabilityImpact,keyword,custom,,LOW,The availability impact.
 8.11.0,true,payload,payload.containers.adp.metrics.cvssV3_1.availabilityRequirement,keyword,custom,,LOW,The availability requirement.
-8.11.0,true,payload,payload.containers.adp.metrics.cvssV3_1.baseScore,keyword,custom,,7,The base score from 0 to 10.
+8.11.0,true,payload,payload.containers.adp.metrics.cvssV3_1.baseScore,float,custom,,7.4,The base score from 0 to 10.
 8.11.0,true,payload,payload.containers.adp.metrics.cvssV3_1.baseSeverity,keyword,custom,,CRITICAL,The base severity.
 8.11.0,true,payload,payload.containers.adp.metrics.cvssV3_1.confidentialityImpact,keyword,custom,,HIGH,The confidentiality impact.
 8.11.0,true,payload,payload.containers.adp.metrics.cvssV3_1.confidentialityRequirement,keyword,custom,,MEDIUM,The confidentiality requirement.
-8.11.0,true,payload,payload.containers.adp.metrics.cvssV3_1.environmentalScore,keyword,custom,,10,The environmental score from 0 to 10.
+8.11.0,true,payload,payload.containers.adp.metrics.cvssV3_1.environmentalScore,float,custom,,10.0,The environmental score from 0 to 10.
 8.11.0,true,payload,payload.containers.adp.metrics.cvssV3_1.environmentalSeverity,keyword,custom,,LOW,The environmental severity.
 8.11.0,true,payload,payload.containers.adp.metrics.cvssV3_1.exploitCodeMaturity,keyword,custom,,FUNCTIONAL,The exploit code maturity.
 8.11.0,true,payload,payload.containers.adp.metrics.cvssV3_1.integrityImpact,keyword,custom,,HIGH,The integrity impact.
@@ -118,7 +118,7 @@ ECS_Version,Indexed,Field_Set,Field,Type,Level,Normalization,Example,Description
 8.11.0,true,payload,payload.containers.adp.metrics.cvssV3_1.remediationLevel,keyword,custom,,WORKAROUND,The remediation level.
 8.11.0,true,payload,payload.containers.adp.metrics.cvssV3_1.reportConfidence,keyword,custom,,CONFIRMED,The report confidence.
 8.11.0,true,payload,payload.containers.adp.metrics.cvssV3_1.scope,keyword,custom,,CHANGED,The scope.
-8.11.0,true,payload,payload.containers.adp.metrics.cvssV3_1.temporalScore,keyword,custom,,6,The temporal score from 0 to 10.
+8.11.0,true,payload,payload.containers.adp.metrics.cvssV3_1.temporalScore,float,custom,,6.0,The temporal score from 0 to 10.
 8.11.0,true,payload,payload.containers.adp.metrics.cvssV3_1.temporalSeverity,keyword,custom,,HIGH,The temporal severity.
 8.11.0,true,payload,payload.containers.adp.metrics.cvssV3_1.userInteraction,keyword,custom,,REQUIRED,The user interaction.
 8.11.0,true,payload,payload.containers.adp.metrics.cvssV3_1.vectorString,keyword,custom,,CVSS:3.1/AV:N/AC:L/PR:N/UI:R/S:U/C:H/I:H/A:N,The vector string.
@@ -130,7 +130,7 @@ ECS_Version,Indexed,Field_Set,Field,Type,Level,Normalization,Example,Description
 8.11.0,true,payload,payload.containers.adp.metrics.cvssV4_0.attackRequirements,keyword,custom,,PRESENT,The attack requirements.
 8.11.0,true,payload,payload.containers.adp.metrics.cvssV4_0.attackVector,keyword,custom,,NETWORK,The attack vector.
 8.11.0,true,payload,payload.containers.adp.metrics.cvssV4_0.availabilityRequirement,keyword,custom,,HIGH,The availability requirement.
-8.11.0,true,payload,payload.containers.adp.metrics.cvssV4_0.baseScore,keyword,custom,,7.5,The base score number.
+8.11.0,true,payload,payload.containers.adp.metrics.cvssV4_0.baseScore,float,custom,,7.5,The base score number.
 8.11.0,true,payload,payload.containers.adp.metrics.cvssV4_0.baseSeverity,keyword,custom,,HIGH,The base severity.
 8.11.0,true,payload,payload.containers.adp.metrics.cvssV4_0.confidentialityRequirement,keyword,custom,,MEDIUM,The confidentiality requirement.
 8.11.0,true,payload,payload.containers.adp.metrics.cvssV4_0.exploitMaturity,keyword,custom,,ATTACKED,The exploit maturity.
@@ -248,29 +248,29 @@ ECS_Version,Indexed,Field_Set,Field,Type,Level,Normalization,Example,Description
 8.11.0,true,payload,payload.containers.cna.metrics.cvssV2_0.authentication,keyword,custom,,SINGLE,The authentication.
 8.11.0,true,payload,payload.containers.cna.metrics.cvssV2_0.availabilityImpact,keyword,custom,,COMPLETE,The availability impact.
 8.11.0,true,payload,payload.containers.cna.metrics.cvssV2_0.availabilityRequirement,keyword,custom,,MEDIUM,The availability requirement.
-8.11.0,true,payload,payload.containers.cna.metrics.cvssV2_0.baseScore,keyword,custom,,4,The base score from 0 to 10.
+8.11.0,true,payload,payload.containers.cna.metrics.cvssV2_0.baseScore,float,custom,,4.0,The base score from 0 to 10.
 8.11.0,true,payload,payload.containers.cna.metrics.cvssV2_0.collateralDamagePotential,keyword,custom,,LOW_MEDIUM,The collateral damage potential.
 8.11.0,true,payload,payload.containers.cna.metrics.cvssV2_0.confidentialityImpact,keyword,custom,,PARTIAL,The confidentiality impact.
 8.11.0,true,payload,payload.containers.cna.metrics.cvssV2_0.confidentialityRequirement,keyword,custom,,LOW,The confidentiality requirement.
-8.11.0,true,payload,payload.containers.cna.metrics.cvssV2_0.environmentalScore,keyword,custom,,5,The environmental score from 0 to 10.
+8.11.0,true,payload,payload.containers.cna.metrics.cvssV2_0.environmentalScore,float,custom,,5.0,The environmental score from 0 to 10.
 8.11.0,true,payload,payload.containers.cna.metrics.cvssV2_0.exploitability,keyword,custom,,PROOF_OF_CONCEPT,The exploitability.
 8.11.0,true,payload,payload.containers.cna.metrics.cvssV2_0.integrityImpact,keyword,custom,,COMPLETE,The integrity impact.
 8.11.0,true,payload,payload.containers.cna.metrics.cvssV2_0.integrityRequirement,keyword,custom,,LOW,The integrity requirement.
 8.11.0,true,payload,payload.containers.cna.metrics.cvssV2_0.remediationLevel,keyword,custom,,OFFICIAL_FIX,The remediation level.
 8.11.0,true,payload,payload.containers.cna.metrics.cvssV2_0.reportConfidence,keyword,custom,,UNCONFIRMED,The report confidence.
 8.11.0,true,payload,payload.containers.cna.metrics.cvssV2_0.targetDistribution,keyword,custom,,LOW,The target distribution.
-8.11.0,true,payload,payload.containers.cna.metrics.cvssV2_0.temporalScore,keyword,custom,,6,The temporal score from 0 to 10.
+8.11.0,true,payload,payload.containers.cna.metrics.cvssV2_0.temporalScore,float,custom,,6.0,The temporal score from 0 to 10.
 8.11.0,true,payload,payload.containers.cna.metrics.cvssV2_0.vectorString,keyword,custom,,AV:N/AC:L/Au:N/C:P/I:P/A:P,The vector string.
 8.11.0,true,payload,payload.containers.cna.metrics.cvssV2_0.version,keyword,custom,,2.0,The version of CVSS.
 8.11.0,true,payload,payload.containers.cna.metrics.cvssV3_0.attackComplexity,keyword,custom,,HIGH,The attack complexity.
 8.11.0,true,payload,payload.containers.cna.metrics.cvssV3_0.attackVector,keyword,custom,,PHYSICAL,The attack vector.
 8.11.0,true,payload,payload.containers.cna.metrics.cvssV3_0.availabilityImpact,keyword,custom,,NONE,The availability impact.
 8.11.0,true,payload,payload.containers.cna.metrics.cvssV3_0.availabilityRequirement,keyword,custom,,LOW,The availability requirement.
-8.11.0,true,payload,payload.containers.cna.metrics.cvssV3_0.baseScore,keyword,custom,,3,The base score from 0 to 10.
+8.11.0,true,payload,payload.containers.cna.metrics.cvssV3_0.baseScore,float,custom,,3.0,The base score from 0 to 10.
 8.11.0,true,payload,payload.containers.cna.metrics.cvssV3_0.baseSeverity,keyword,custom,,MEDIUM,The base severity.
 8.11.0,true,payload,payload.containers.cna.metrics.cvssV3_0.confidentialityImpact,keyword,custom,,LOW,The confidentiality impact.
 8.11.0,true,payload,payload.containers.cna.metrics.cvssV3_0.confidentialityRequirement,keyword,custom,,NOT_DEFINED,The confidentiality requirement.
-8.11.0,true,payload,payload.containers.cna.metrics.cvssV3_0.environmentalScore,keyword,custom,,9,The environmental score from 0 to 10.
+8.11.0,true,payload,payload.containers.cna.metrics.cvssV3_0.environmentalScore,float,custom,,9.3,The environmental score from 0 to 10.
 8.11.0,true,payload,payload.containers.cna.metrics.cvssV3_0.environmentalSeverity,keyword,custom,,HIGH,The environmental severity.
 8.11.0,true,payload,payload.containers.cna.metrics.cvssV3_0.exploitCodeMaturity,keyword,custom,,UNPROVEN,The exploit code maturity.
 8.11.0,true,payload,payload.containers.cna.metrics.cvssV3_0.integrityImpact,keyword,custom,,LOW,The integrity impact.
@@ -287,7 +287,7 @@ ECS_Version,Indexed,Field_Set,Field,Type,Level,Normalization,Example,Description
 8.11.0,true,payload,payload.containers.cna.metrics.cvssV3_0.remediationLevel,keyword,custom,,OFFICIAL_FIX,The remediation level.
 8.11.0,true,payload,payload.containers.cna.metrics.cvssV3_0.reportConfidence,keyword,custom,,CONFIRMED,The report confidence.
 8.11.0,true,payload,payload.containers.cna.metrics.cvssV3_0.scope,keyword,custom,,CHANGED,The scope.
-8.11.0,true,payload,payload.containers.cna.metrics.cvssV3_0.temporalScore,keyword,custom,,6,The temporal score from 0 to 10.
+8.11.0,true,payload,payload.containers.cna.metrics.cvssV3_0.temporalScore,float,custom,,6.0,The temporal score from 0 to 10.
 8.11.0,true,payload,payload.containers.cna.metrics.cvssV3_0.temporalSeverity,keyword,custom,,HIGH,The temporal severity.
 8.11.0,true,payload,payload.containers.cna.metrics.cvssV3_0.userInteraction,keyword,custom,,REQUIRED,The user interaction.
 8.11.0,true,payload,payload.containers.cna.metrics.cvssV3_0.vectorString,keyword,custom,,CVSS:3.0/AV:N/AC:L/PR:N/UI:R/S:U/C:H/I:H/A:N,The vector string.
@@ -296,11 +296,11 @@ ECS_Version,Indexed,Field_Set,Field,Type,Level,Normalization,Example,Description
 8.11.0,true,payload,payload.containers.cna.metrics.cvssV3_1.attackVector,keyword,custom,,ADJACENT_NETWORK,The attack vector.
 8.11.0,true,payload,payload.containers.cna.metrics.cvssV3_1.availabilityImpact,keyword,custom,,LOW,The availability impact.
 8.11.0,true,payload,payload.containers.cna.metrics.cvssV3_1.availabilityRequirement,keyword,custom,,LOW,The availability requirement.
-8.11.0,true,payload,payload.containers.cna.metrics.cvssV3_1.baseScore,keyword,custom,,7,The base score from 0 to 10.
+8.11.0,true,payload,payload.containers.cna.metrics.cvssV3_1.baseScore,float,custom,,7.4,The base score from 0 to 10.
 8.11.0,true,payload,payload.containers.cna.metrics.cvssV3_1.baseSeverity,keyword,custom,,CRITICAL,The base severity.
 8.11.0,true,payload,payload.containers.cna.metrics.cvssV3_1.confidentialityImpact,keyword,custom,,HIGH,The confidentiality impact.
 8.11.0,true,payload,payload.containers.cna.metrics.cvssV3_1.confidentialityRequirement,keyword,custom,,MEDIUM,The confidentiality requirement.
-8.11.0,true,payload,payload.containers.cna.metrics.cvssV3_1.environmentalScore,keyword,custom,,10,The environmental score from 0 to 10.
+8.11.0,true,payload,payload.containers.cna.metrics.cvssV3_1.environmentalScore,float,custom,,10.0,The environmental score from 0 to 10.
 8.11.0,true,payload,payload.containers.cna.metrics.cvssV3_1.environmentalSeverity,keyword,custom,,LOW,The environmental severity.
 8.11.0,true,payload,payload.containers.cna.metrics.cvssV3_1.exploitCodeMaturity,keyword,custom,,FUNCTIONAL,The exploit code maturity.
 8.11.0,true,payload,payload.containers.cna.metrics.cvssV3_1.integrityImpact,keyword,custom,,HIGH,The integrity impact.
@@ -317,7 +317,7 @@ ECS_Version,Indexed,Field_Set,Field,Type,Level,Normalization,Example,Description
 8.11.0,true,payload,payload.containers.cna.metrics.cvssV3_1.remediationLevel,keyword,custom,,WORKAROUND,The remediation level.
 8.11.0,true,payload,payload.containers.cna.metrics.cvssV3_1.reportConfidence,keyword,custom,,CONFIRMED,The report confidence.
 8.11.0,true,payload,payload.containers.cna.metrics.cvssV3_1.scope,keyword,custom,,CHANGED,The scope.
-8.11.0,true,payload,payload.containers.cna.metrics.cvssV3_1.temporalScore,keyword,custom,,6,The temporal score from 0 to 10.
+8.11.0,true,payload,payload.containers.cna.metrics.cvssV3_1.temporalScore,float,custom,,6.0,The temporal score from 0 to 10.
 8.11.0,true,payload,payload.containers.cna.metrics.cvssV3_1.temporalSeverity,keyword,custom,,HIGH,The temporal severity.
 8.11.0,true,payload,payload.containers.cna.metrics.cvssV3_1.userInteraction,keyword,custom,,REQUIRED,The user interaction.
 8.11.0,true,payload,payload.containers.cna.metrics.cvssV3_1.vectorString,keyword,custom,,CVSS:3.1/AV:N/AC:L/PR:N/UI:R/S:U/C:H/I:H/A:N,The vector string.
@@ -329,7 +329,7 @@ ECS_Version,Indexed,Field_Set,Field,Type,Level,Normalization,Example,Description
 8.11.0,true,payload,payload.containers.cna.metrics.cvssV4_0.attackRequirements,keyword,custom,,PRESENT,The attack requirements.
 8.11.0,true,payload,payload.containers.cna.metrics.cvssV4_0.attackVector,keyword,custom,,NETWORK,The attack vector.
 8.11.0,true,payload,payload.containers.cna.metrics.cvssV4_0.availabilityRequirement,keyword,custom,,HIGH,The availability requirement.
-8.11.0,true,payload,payload.containers.cna.metrics.cvssV4_0.baseScore,keyword,custom,,7.5,The base score number.
+8.11.0,true,payload,payload.containers.cna.metrics.cvssV4_0.baseScore,float,custom,,7.5,The base score number.
 8.11.0,true,payload,payload.containers.cna.metrics.cvssV4_0.baseSeverity,keyword,custom,,HIGH,The base severity.
 8.11.0,true,payload,payload.containers.cna.metrics.cvssV4_0.confidentialityRequirement,keyword,custom,,MEDIUM,The confidentiality requirement.
 8.11.0,true,payload,payload.containers.cna.metrics.cvssV4_0.exploitMaturity,keyword,custom,,ATTACKED,The exploit maturity.
