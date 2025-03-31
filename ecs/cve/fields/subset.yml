@@ -12,6 +12,8 @@ fields:
       inserted_at: {}
   payload:
     fields:
+      dataType: {}
+      dataVersion: {}
       cveMetadata:
         fields: "*"
       containers:
