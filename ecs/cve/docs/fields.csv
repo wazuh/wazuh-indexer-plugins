@@ -194,10 +194,10 @@ ECS_Version,Indexed,Field_Set,Field,Type,Level,Normalization,Example,Description
 8.11.0,true,payload,payload.containers.adp.workarounds.lang,keyword,custom,,en-US,"BCP 47 language code, language-region."
 8.11.0,true,payload,payload.containers.adp.workarounds.supportingMedia,keyword,custom,array,,"Supporting media data for the description such as markdown, diagrams, etc."
 8.11.0,true,payload,payload.containers.adp.workarounds.value,keyword,custom,,This is a description of the vulnerability.,Plain text description.
-8.11.0,true,payload,payload.containers.adp.x_remediations.windows,nested,custom,array,,Section information of the PE file.
-8.11.0,true,payload,payload.containers.adp.x_remediations.windows.anyOf,keyword,custom,array,,Shannon entropy calculation from the section.
-8.11.0,true,payload,payload.containers.adp.x_remediations.windows.products,keyword,custom,array,,PE Section List name.
-8.11.0,true,payload,payload.containers.adp.x_remediations.windows.type,keyword,custom,,,PE Section List physical size.
+8.11.0,true,payload,payload.containers.adp.x_remediations.windows,nested,custom,array,,Windows updates for a CVE.
+8.11.0,true,payload,payload.containers.adp.x_remediations.windows.anyOf,keyword,custom,array,"[""KB5049981""]",An array containing the IDs of the patches that fix a CVE.
+8.11.0,true,payload,payload.containers.adp.x_remediations.windows.products,keyword,custom,array,"[""Windows 10""]",Windows products that can apply this patch.
+8.11.0,true,payload,payload.containers.adp.x_remediations.windows.type,keyword,custom,,update,Type of patch.
 8.11.0,true,payload,payload.containers.cna.affected.collectionURL,keyword,custom,,https://access.redhat.com/downloads/content/package-browser,URL identifying a package collection (determines the meaning of packageName).
 8.11.0,true,payload,payload.containers.cna.affected.cpes,keyword,custom,array,[cpe:2.3:a:example:example:1.0:*:*:*:*:*:*:*],Affected products defined by CPE.
 8.11.0,true,payload,payload.containers.cna.affected.defaultStatus,keyword,custom,,affected,The default status for versions that are not otherwise listed in the versions list.
@@ -401,10 +401,10 @@ ECS_Version,Indexed,Field_Set,Field,Type,Level,Normalization,Example,Description
 8.11.0,true,payload,payload.containers.cna.workarounds.supportingMedia.type,keyword,custom,,image/png,RFC2046 compliant IANA Media type.
 8.11.0,true,payload,payload.containers.cna.workarounds.supportingMedia.value,keyword,custom,,iVBORw0KGgoAAAANSUhEUgAA...,"Supporting media content, up to 16K. If base64 is true, this field stores base64 encoded data."
 8.11.0,true,payload,payload.containers.cna.workarounds.value,keyword,custom,,This is a description of the vulnerability.,Plain text description.
-8.11.0,true,payload,payload.containers.cna.x_remediations.windows,nested,custom,array,,Section information of the PE file.
-8.11.0,true,payload,payload.containers.cna.x_remediations.windows.anyOf,keyword,custom,array,,Shannon entropy calculation from the section.
-8.11.0,true,payload,payload.containers.cna.x_remediations.windows.products,keyword,custom,array,,PE Section List name.
-8.11.0,true,payload,payload.containers.cna.x_remediations.windows.type,keyword,custom,,,PE Section List physical size.
+8.11.0,true,payload,payload.containers.cna.x_remediations.windows,nested,custom,array,,Windows updates for a CVE.
+8.11.0,true,payload,payload.containers.cna.x_remediations.windows.anyOf,keyword,custom,array,"[""KB5049981""]",An array containing the IDs of the patches that fix a CVE.
+8.11.0,true,payload,payload.containers.cna.x_remediations.windows.products,keyword,custom,array,"[""Windows 10""]",Windows products that can apply this patch.
+8.11.0,true,payload,payload.containers.cna.x_remediations.windows.type,keyword,custom,,update,Type of patch.
 8.11.0,true,payload,payload.cveMetadata.assignerOrgId,keyword,custom,,550e8400-e29b-41d4-a716-446655440000,The UUID for the organization to which the CVE ID was originally assigned.
 8.11.0,true,payload,payload.cveMetadata.assignerShortName,keyword,custom,,MITRE,The short name for the organization to which the CVE ID was originally assigned.
 8.11.0,true,payload,payload.cveMetadata.cveId,keyword,custom,,CVE-2019-0001,The CVE identifier that this record pertains to.
