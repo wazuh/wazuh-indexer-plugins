@@ -714,8 +714,7 @@
                       "other": {
                         "properties": {
                           "content": {
-                            "norms": false,
-                            "type": "text"
+                            "type": "flat_object"
                           },
                           "type": {
                             "ignore_above": 1024,
@@ -1601,8 +1600,7 @@
                       "other": {
                         "properties": {
                           "content": {
-                            "norms": false,
-                            "type": "text"
+                            "type": "flat_object"
                           },
                           "type": {
                             "ignore_above": 1024,
