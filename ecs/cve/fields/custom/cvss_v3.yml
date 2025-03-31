@@ -1,10 +1,10 @@
-- name: cvssV3
+- name: cvssV3_0
   title: CVSS V3
   description: CVSS V3 metrics
   reusable:
     top_level: false
     expected:
-      - { at: metrics, as: cvssV3 }
+      - { at: metrics, as: cvssV3_0 }
   fields:
     - name: version
       type: keyword

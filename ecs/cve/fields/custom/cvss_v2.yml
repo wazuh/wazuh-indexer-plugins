@@ -1,4 +1,4 @@
-- name: cvss
+- name: cvssV2_0
   title: CVSS V2
   description: CVSS V2 metrics
   reusable:
