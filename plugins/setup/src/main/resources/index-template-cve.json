@@ -6,43 +6,6 @@
     "date_detection": false,
     "dynamic": "strict",
     "properties": {
-      "cveMetadata": {
-        "properties": {
-          "assignerOrgId": {
-            "ignore_above": 1024,
-            "type": "keyword"
-          },
-          "assignerShortName": {
-            "ignore_above": 1024,
-            "type": "keyword"
-          },
-          "cveId": {
-            "ignore_above": 1024,
-            "type": "keyword"
-          },
-          "datePublished": {
-            "type": "date"
-          },
-          "dateReserved": {
-            "type": "date"
-          },
-          "dateUpdated": {
-            "type": "date"
-          },
-          "requesterUserId": {
-            "ignore_above": 1024,
-            "type": "keyword"
-          },
-          "serial": {
-            "ignore_above": 1024,
-            "type": "keyword"
-          },
-          "state": {
-            "ignore_above": 1024,
-            "type": "keyword"
-          }
-        }
-      },
       "inserted_at": {
         "type": "date"
       },
@@ -1799,6 +1762,43 @@
                     }
                   }
                 }
+              }
+            }
+          },
+          "cveMetadata": {
+            "properties": {
+              "assignerOrgId": {
+                "ignore_above": 1024,
+                "type": "keyword"
+              },
+              "assignerShortName": {
+                "ignore_above": 1024,
+                "type": "keyword"
+              },
+              "cveId": {
+                "ignore_above": 1024,
+                "type": "keyword"
+              },
+              "datePublished": {
+                "type": "date"
+              },
+              "dateReserved": {
+                "type": "date"
+              },
+              "dateUpdated": {
+                "type": "date"
+              },
+              "requesterUserId": {
+                "ignore_above": 1024,
+                "type": "keyword"
+              },
+              "serial": {
+                "ignore_above": 1024,
+                "type": "keyword"
+              },
+              "state": {
+                "ignore_above": 1024,
+                "type": "keyword"
               }
             }
           }

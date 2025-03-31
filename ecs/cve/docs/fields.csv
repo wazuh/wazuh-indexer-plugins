@@ -4,15 +4,6 @@ ECS_Version,Indexed,Field_Set,Field,Type,Level,Normalization,Example,Description
 8.11.0,true,base,offset,keyword,custom,,,The offset of the CVE.
 8.11.0,true,base,tags,keyword,core,array,"[""production"", ""env2""]",List of keywords used to tag each event.
 8.11.0,true,base,version,keyword,custom,,,The version of the CVE.
-8.11.0,true,cveMetadata,cveMetadata.assignerOrgId,keyword,custom,,550e8400-e29b-41d4-a716-446655440000,The UUID for the organization to which the CVE ID was originally assigned.
-8.11.0,true,cveMetadata,cveMetadata.assignerShortName,keyword,custom,,MITRE,The short name for the organization to which the CVE ID was originally assigned.
-8.11.0,true,cveMetadata,cveMetadata.cveId,keyword,custom,,CVE-2019-0001,The CVE identifier that this record pertains to.
-8.11.0,true,cveMetadata,cveMetadata.datePublished,date,custom,,2025-01-01 00:00:00+00:00,The date/time the CVE Record was first published in the CVE List.
-8.11.0,true,cveMetadata,cveMetadata.dateReserved,date,custom,,2025-01-01 00:00:00+00:00,The date/time this CVE ID was reserved in the CVE automation workgroup services system.
-8.11.0,true,cveMetadata,cveMetadata.dateUpdated,date,custom,,2025-01-01 00:00:00+00:00,The date/time the record was last updated.
-8.11.0,true,cveMetadata,cveMetadata.requesterUserId,keyword,custom,,550e8400-e29b-41d4-a716-446655440000,The user that requested the CVE identifier.
-8.11.0,true,cveMetadata,cveMetadata.serial,keyword,custom,,1,"The system of record causes this to start at 1, and increment by 1 each time this CVE Record changes."
-8.11.0,true,cveMetadata,cveMetadata.state,keyword,custom,,PUBLISHED,State of CVE.
 8.11.0,true,payload,payload.containers.adp.affected.collectionURL,keyword,custom,,https://access.redhat.com/downloads/content/package-browser,URL identifying a package collection (determines the meaning of packageName).
 8.11.0,true,payload,payload.containers.adp.affected.cpes,keyword,custom,array,[cpe:2.3:a:example:example:1.0:*:*:*:*:*:*:*],Affected products defined by CPE.
 8.11.0,true,payload,payload.containers.adp.affected.defaultStatus,keyword,custom,,affected,The default status for versions that are not otherwise listed in the versions list.
@@ -390,3 +381,12 @@ ECS_Version,Indexed,Field_Set,Field,Type,Level,Normalization,Example,Description
 8.11.0,true,payload,payload.containers.cna.workarounds.supportingMedia.type,keyword,custom,,image/png,RFC2046 compliant IANA Media type.
 8.11.0,true,payload,payload.containers.cna.workarounds.supportingMedia.value,keyword,custom,,iVBORw0KGgoAAAANSUhEUgAA...,"Supporting media content, up to 16K. If base64 is true, this field stores base64 encoded data."
 8.11.0,true,payload,payload.containers.cna.workarounds.value,keyword,custom,,This is a description of the vulnerability.,Plain text description.
+8.11.0,true,payload,payload.cveMetadata.assignerOrgId,keyword,custom,,550e8400-e29b-41d4-a716-446655440000,The UUID for the organization to which the CVE ID was originally assigned.
+8.11.0,true,payload,payload.cveMetadata.assignerShortName,keyword,custom,,MITRE,The short name for the organization to which the CVE ID was originally assigned.
+8.11.0,true,payload,payload.cveMetadata.cveId,keyword,custom,,CVE-2019-0001,The CVE identifier that this record pertains to.
+8.11.0,true,payload,payload.cveMetadata.datePublished,date,custom,,2025-01-01 00:00:00+00:00,The date/time the CVE Record was first published in the CVE List.
+8.11.0,true,payload,payload.cveMetadata.dateReserved,date,custom,,2025-01-01 00:00:00+00:00,The date/time this CVE ID was reserved in the CVE automation workgroup services system.
+8.11.0,true,payload,payload.cveMetadata.dateUpdated,date,custom,,2025-01-01 00:00:00+00:00,The date/time the record was last updated.
+8.11.0,true,payload,payload.cveMetadata.requesterUserId,keyword,custom,,550e8400-e29b-41d4-a716-446655440000,The user that requested the CVE identifier.
+8.11.0,true,payload,payload.cveMetadata.serial,keyword,custom,,1,"The system of record causes this to start at 1, and increment by 1 each time this CVE Record changes."
+8.11.0,true,payload,payload.cveMetadata.state,keyword,custom,,PUBLISHED,State of CVE.
