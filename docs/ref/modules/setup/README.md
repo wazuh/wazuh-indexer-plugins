@@ -8,4 +8,4 @@ The `wazuh-indexer-setup` plugin is a module composing the Wazuh Indexer respons
 - For stateless indices, it creates the indices aliases and lifecycle policies for rollover.
 
 **Key Features:**
-- The plugin extends the Job Scheduler plugin via its SPI. The job periodically searches for agents in an active state whose last login was 15 minutes ago or more and changes their status to disconnected".
+- The plugin extends the Job Scheduler plugin via its SPI. The job periodically searches for agents in "active" state whose last login was 15 minutes ago or more and changes their status to "disconnected".

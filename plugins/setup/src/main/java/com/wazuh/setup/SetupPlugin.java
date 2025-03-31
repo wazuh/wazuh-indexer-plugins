@@ -64,7 +64,7 @@ import com.wazuh.setup.settings.PluginSettings;
  * templates and indices required by Wazuh to work properly.
  */
 public class SetupPlugin extends Plugin
-        implements ClusterPlugin, ActionPlugin, JobSchedulerExtension, ReloadablePlugin {
+        implements ClusterPlugin, JobSchedulerExtension, ReloadablePlugin {
     private static final Logger log = LogManager.getLogger(SetupPlugin.class);
 
     private WazuhIndices indices;
@@ -89,10 +89,6 @@ public class SetupPlugin extends Plugin
         this.indices = new WazuhIndices(client, clusterService);
         PluginSettings.getInstance(environment.settings());
 
-        // Scheduled job initialization
-        // NOTE it's very likely that client and thread pool may not be required as the command
-        // index
-        // repository already use them. All queries to the index should be under this class.
         AgentJobRunner.getInstance()
                 .setClient(client)
                 .setThreadPool(threadPool)
@@ -133,7 +129,7 @@ public class SetupPlugin extends Plugin
                         indexResponseCompletableFuture.thenAccept(
                                 indexResponse -> {
                                     log.info(
-                                            "Scheduled task successfully, response: {}",
+                                            "Task scheduled successfully, response: {}",
                                             indexResponse.getResult().toString());
                                 });
                     }
