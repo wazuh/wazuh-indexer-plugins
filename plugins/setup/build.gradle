@@ -26,7 +26,8 @@ apply plugin: 'java'
 apply plugin: 'idea'
 apply plugin: 'eclipse'
 apply plugin: 'opensearch.opensearchplugin'
-apply plugin: 'opensearch.yaml-rest-test'
+apply plugin: 'opensearch.testclusters'
+apply plugin: 'opensearch.java-rest-test'
 apply plugin: 'opensearch.pluginzip'
 
 def pluginName = 'wazuh-indexer-setup'
@@ -89,7 +90,7 @@ dependencies {
   // Job Scheduler stuff
   zipArchive group: 'org.opensearch.plugin', name: 'opensearch-job-scheduler', version: "${opensearch_build}"
   // implementation "org.opensearch:opensearch:${opensearch_version}"
-  compileOnly "org.opensearch:opensearch-job-scheduler-spi:${job_scheduler_version}"
+  compileOnly "org.opensearch:opensearch-job-scheduler-spi:${opensearch_build}"
 
 }
 
@@ -133,9 +134,9 @@ def getJobSchedulerPlugin() {
 }
 
 task integTest(type: RestIntegTestTask) {
-    description = "Run tests against a cluster"
-    testClassesDirs = sourceSets.test.output.classesDirs
-    classpath = sourceSets.test.runtimeClasspath
+  description = "Run tests against a cluster"
+  testClassesDirs = sourceSets.test.output.classesDirs
+  classpath = sourceSets.test.runtimeClasspath
 }
 tasks.named("check").configure { dependsOn(integTest) }
 
