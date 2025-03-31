@@ -38,8 +38,8 @@ import java.util.List;
 public class ContentIndex {
     private static final Logger log = LogManager.getLogger(ContentIndex.class);
 
-    private static final String INDEX_NAME = "wazuh-content";
-    private final int MAX_DOCUMENTS = 50;
+    private static final String INDEX_NAME = "wazuh-cve";
+    private final int MAX_DOCUMENTS = 25;
 
     private final Client client;
 
@@ -61,7 +61,10 @@ public class ContentIndex {
         BulkRequest bulkRequest = new BulkRequest(INDEX_NAME);
 
         for (JsonObject document : documents) {
-            bulkRequest.add(new IndexRequest().source(document.toString(), XContentType.JSON));
+            bulkRequest.add(
+                    new IndexRequest()
+                            .id(document.get("name").getAsString())
+                            .source(document.toString(), XContentType.JSON));
         }
 
         client.bulk(
@@ -111,8 +114,13 @@ public class ContentIndex {
         try (BufferedReader reader = new BufferedReader(new FileReader(path, StandardCharsets.UTF_8))) {
             while ((line = reader.readLine()) != null) {
                 json = JsonParser.parseString(line).getAsJsonObject();
-                items.add(json);
-                lineCount++;
+                String name = json.get("name").getAsString();
+                if (name.startsWith("CVE-")) {
+                    items.add(json);
+                    lineCount++;
+                } else {
+                    log.warn("Skipping non CVE element [{}]", name);
+                }
 
                 // Index items (MAX_DOCUMENTS reached)
                 if (lineCount == MAX_DOCUMENTS) {
