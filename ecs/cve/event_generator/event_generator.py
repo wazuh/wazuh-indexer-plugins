@@ -41,6 +41,8 @@ def generate_random_cve():
         "offset": str(uuid.uuid4()),
         "version": "4.0",
         "payload": {
+            "dataType": "CVE_RECORD",
+            "dataVersion": "4.0",
             "containers": {
                 "cna": {
                     "affected": {
