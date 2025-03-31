@@ -159,7 +159,7 @@ ECS_Version,Indexed,Field_Set,Field,Type,Level,Normalization,Example,Description
 8.11.0,true,payload,payload.containers.adp.metrics.cvssV4_0.vulnIntegrityImpact,keyword,custom,,LOW,The vulnerability integrity impact.
 8.11.0,true,payload,payload.containers.adp.metrics.cvssV4_0.vulnerabilityResponseEffort,keyword,custom,,MODERATE,The vulnerability response effort.
 8.11.0,true,payload,payload.containers.adp.metrics.format,keyword,custom,,CVSSv3_0,Name of the scoring format.
-8.11.0,true,payload,payload.containers.adp.metrics.other.content,keyword,custom,,"{""key"": ""value""}",JSON object not covered by another metrics format.
+8.11.0,true,payload,payload.containers.adp.metrics.other.content,text,custom,,"{""key"": ""value""}",JSON object not covered by another metrics format.
 8.11.0,true,payload,payload.containers.adp.metrics.other.type,keyword,custom,,MetricX,Name of the non-standard impact metrics format used.
 8.11.0,true,payload,payload.containers.adp.metrics.scenarios,keyword,custom,array,,Description of the scenarios this metrics object applies to.
 8.11.0,true,payload,payload.containers.adp.problemTypes.descriptions.cweId,keyword,custom,,CWE-123,CWE ID of the CWE that best describes this problemType entry.
@@ -346,7 +346,7 @@ ECS_Version,Indexed,Field_Set,Field,Type,Level,Normalization,Example,Description
 8.11.0,true,payload,payload.containers.cna.metrics.cvssV4_0.vulnIntegrityImpact,keyword,custom,,LOW,The vulnerability integrity impact.
 8.11.0,true,payload,payload.containers.cna.metrics.cvssV4_0.vulnerabilityResponseEffort,keyword,custom,,MODERATE,The vulnerability response effort.
 8.11.0,true,payload,payload.containers.cna.metrics.format,keyword,custom,,CVSSv3_0,Name of the scoring format.
-8.11.0,true,payload,payload.containers.cna.metrics.other.content,keyword,custom,,"{""key"": ""value""}",JSON object not covered by another metrics format.
+8.11.0,true,payload,payload.containers.cna.metrics.other.content,text,custom,,"{""key"": ""value""}",JSON object not covered by another metrics format.
 8.11.0,true,payload,payload.containers.cna.metrics.other.type,keyword,custom,,MetricX,Name of the non-standard impact metrics format used.
 8.11.0,true,payload,payload.containers.cna.metrics.scenarios,keyword,custom,array,,Description of the scenarios this metrics object applies to.
 8.11.0,true,payload,payload.containers.cna.problemTypes.descriptions.cweId,keyword,custom,,CWE-123,CWE ID of the CWE that best describes this problemType entry.

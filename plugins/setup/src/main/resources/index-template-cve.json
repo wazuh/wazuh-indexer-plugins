@@ -710,8 +710,8 @@
                       "other": {
                         "properties": {
                           "content": {
-                            "ignore_above": 1024,
-                            "type": "keyword"
+                            "norms": false,
+                            "type": "text"
                           },
                           "type": {
                             "ignore_above": 1024,
@@ -1573,8 +1573,8 @@
                       "other": {
                         "properties": {
                           "content": {
-                            "ignore_above": 1024,
-                            "type": "keyword"
+                            "norms": false,
+                            "type": "text"
                           },
                           "type": {
                             "ignore_above": 1024,
