@@ -1,11 +1,11 @@
 - name: taxonomyMappings
   title: Taxonomy Mappings
-  description: A taxonomy mapping object identifies the taxonomy by a name and version with a list of relations relevant to this CVE.
+  description: A taxonomy mapping object identifies the taxonomy by a name and version with a list of relations relevant to this 
   reusable:
     top_level: false
     expected:
-      - { at: cve.payload.containers.cna, as: taxonomyMappings }
-      - { at: cve.payload.containers.adp, as: taxonomyMappings }
+      - { at: payload.containers.cna, as: taxonomyMappings }
+      - { at: payload.containers.adp, as: taxonomyMappings }
   fields:
     - name: taxonomyName
       type: keyword

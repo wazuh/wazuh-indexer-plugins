@@ -3,6 +3,7 @@
   description: Wazuh CTI model for CVE
   type: group
   group: 2
+  root: true
   fields:
     - name: name
       type: keyword

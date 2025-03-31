@@ -4,8 +4,8 @@
   reusable:
     top_level: false
     expected:
-      - { at: cve.payload.containers.cna, as: providerMetadata }
-      - { at: cve.payload.containers.adp, as: providerMetadata }
+      - { at: payload.containers.cna, as: providerMetadata }
+      - { at: payload.containers.adp, as: providerMetadata }
 
   fields:
     - name: dateUpdated

@@ -5,75 +5,76 @@ fields:
     fields:
       tags: []
   cve:
-#    fields: "*"
     fields:
       name: {}
       offset: {}
       version: {}
       inserted_at: {}
-      payload:
+  cveMetadata:
+    fields: "*"
+  payload:
+    fields:
+      containers:
         fields:
-          containers:
+          cna:
             fields:
-              cna:
+              affected:
+                fields: "*"
+              impacts:
+                fields: "*"
+              descriptions:
+                fields: "*"
+              metrics:
+                fields: "*"
+              providerMetadata:
+                fields: "*"
+              references:
+                fields: "*"
+              problemTypes:
                 fields:
-                  affected:
-                    fields: "*"
-                  impacts:
-                    fields: "*"
                   descriptions:
                     fields: "*"
-                  metrics:
-                    fields: "*"
-                  providerMetadata:
-                    fields: "*"
-                  references:
-                    fields: "*"
-                  problemTypes:
-                    fields:
-                      descriptions:
-                        fields: "*"
-                  configurations:
-                    fields: "*"
-                  workarounds:
-                    fields: "*"
-                  solutions:
-                    fields: "*"
-                  exploits:
-                    fields: "*"
-                  timeline:
-                    fields: "*"
-                  credits:
-                    fields: "*"
-                  taxonomyMappings:
-                    fields: "*"
-              adp:
+              configurations:
+                fields: "*"
+              workarounds:
+                fields: "*"
+              solutions:
+                fields: "*"
+              exploits:
+                fields: "*"
+              timeline:
+                fields: "*"
+              credits:
+                fields: "*"
+              taxonomyMappings:
+                fields: "*"
+          adp:
+            fields:
+              affected:
+                fields: "*"
+              descriptions:
+                fields: "*"
+              metrics:
+                fields: "*"
+              problemTypes:
                 fields:
-                  affected:
-                    fields: "*"
                   descriptions:
                     fields: "*"
-                  metrics:
-                    fields: "*"
-                  problemTypes:
-                    fields:
-                      descriptions:
-                        fields: "*"
-                  impacts:
-                    fields: "*"
-                  configurations:
-                    fields: "*"
-                  workarounds:
-                    fields: "*"
-                  solutions:
-                    fields: "*"
-                  exploits:
-                    fields: "*"
-                  credits:
-                    fields: "*"
-                  taxonomyMappings:
-                    fields: "*"
-#                  providerMetadata:
-#                    fields: "*"
-#                  references:
-#                    fields: "*"
+              impacts:
+                fields: "*"
+              configurations:
+                fields: "*"
+              workarounds:
+                fields: "*"
+              solutions:
+                fields: "*"
+              exploits:
+                fields: "*"
+              credits:
+                fields: "*"
+              taxonomyMappings:
+                fields: "*"
+              providerMetadata:
+                fields: "*"
+              references:
+                fields: "*"

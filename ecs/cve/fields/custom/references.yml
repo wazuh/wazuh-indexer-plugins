@@ -4,8 +4,8 @@
   reusable:
     top_level: false
     expected:
-      - { at: cve.payload.containers.cna, as: references }
-      - { at: cve.payload.containers.adp, as: references }
+      - { at: payload.containers.cna, as: references }
+      - { at: payload.containers.adp, as: references }
   fields:
     - name: url
       type: keyword

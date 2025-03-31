@@ -4,5 +4,5 @@
   reusable:
     top_level: false
     expected:
-      - { at: cve.payload.containers.cna, as: problemTypes }
-      - { at: cve.payload.containers.adp, as: problemTypes }
+      - { at: payload.containers.cna, as: problemTypes }
+      - { at: payload.containers.adp, as: problemTypes }

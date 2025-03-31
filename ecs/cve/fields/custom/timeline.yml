@@ -4,8 +4,8 @@
   reusable:
     top_level: false
     expected:
-      - { at: cve.payload.containers.cna, as: timeline }
-      - { at: cve.payload.containers.adp, as: timeline }
+      - { at: payload.containers.cna, as: timeline }
+      - { at: payload.containers.adp, as: timeline }
   fields:
     - name: time
       type: keyword

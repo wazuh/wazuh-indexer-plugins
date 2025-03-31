@@ -1,11 +1,8 @@
 - name: cveMetadata
   title: CVE Metadata
   description: This is meta data about the CVE ID.
-  reusable:
-    top_level: false
-    expected:
-      - { at: cve, as: cveMetadata }
-
+  type: group
+  group: 2
   fields:
     - name: cveId
       type: keyword

@@ -4,8 +4,8 @@
   reusable:
     top_level: false
     expected:
-      - { at: cve.payload.containers.cna.affected, as: versions }
-      - { at: cve.payload.containers.adp.affected, as: versions }
+      - { at: payload.containers.cna.affected, as: versions }
+      - { at: payload.containers.adp.affected, as: versions }
   fields:
     - name: status
       type: keyword

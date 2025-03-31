@@ -36,58 +36,56 @@ def generate_random_date(initial_date=None, days_range=30):
 
 def generate_random_cve():
     return {
-        "cve": {
-            "inserted_at": generate_random_date(),
-            "name": f"CVE-{random.randint(2000, 2025)}-{random.randint(1000, 9999)}",
-            "offset": str(uuid.uuid4()),
-            "version": "4.0",
-            "payload": {
-                "containers": {
-                    "cna": {
-                        "affected": {
-                            "cpes": [f"cpe:/a:vendor:product:{random.randint(1, 10)}"],
-                            "defaultStatus": random.choice(["affected", "unaffected"]),
-                            "product": f"Product {random.randint(1, 100)}",
-                            "vendor": f"Vendor {random.randint(1, 100)}",
-                            "versions": [{
-                                "status": random.choice(["known", "unknown"]),
-                                "version": f"{random.randint(1, 10)}.0"
-                            }]
-                        },
-                        "descriptions": [{
-                            "lang": "en",
-                            "value": f"Description for CVE {random.randint(1000, 9999)}"
-                        }],
-                        "metrics": {
-                            "cvssV2_0": {
-                                "accessComplexity": random.choice(["LOW", "MEDIUM", "HIGH"]),
-                                "accessVector": random.choice(["NETWORK", "LOCAL"]),
-                                "authentication": random.choice(["NONE", "SINGLE", "MULTIPLE"]),
-                                "availabilityImpact": random.choice(["NONE", "PARTIAL", "COMPLETE"]),
-                                "baseScore": str(round(random.uniform(0, 10), 1)),
-                                "confidentialityImpact": random.choice(["NONE", "PARTIAL", "COMPLETE"]),
-                                "integrityImpact": random.choice(["NONE", "PARTIAL", "COMPLETE"]),
-                                "vectorString": f"(AV:{random.choice(['N', 'L'])}/AC:{random.choice(['L', 'H'])}/PR:{random.choice(['N', 'L', 'H'])})",
-                                "version": "2.0"
-                            }
-                        },
-                        "problemTypes": [{
-                            "descriptions": [{
-                                "cweId": f"CWE-{random.randint(1, 100)}",
-                                "description": "Example problem type",
-                                "lang": "en"
-                            }]
-                        }],
-                        "providerMetadata": {
-                            "dateUpdated": generate_random_date(),
-                            "orgId": "ExampleOrg",
-                            "shortName": "EXO",
-                            "x_subShortName": "EXOSUB"
-                        },
-                        "references": [{
-                            "url": f"https://example.com/cve/{random.randint(1000, 9999)}"
+        "inserted_at": generate_random_date(),
+        "name": f"CVE-{random.randint(2000, 2025)}-{random.randint(1000, 9999)}",
+        "offset": str(uuid.uuid4()),
+        "version": "4.0",
+        "payload": {
+            "containers": {
+                "cna": {
+                    "affected": {
+                        "cpes": [f"cpe:/a:vendor:product:{random.randint(1, 10)}"],
+                        "defaultStatus": random.choice(["affected", "unaffected"]),
+                        "product": f"Product {random.randint(1, 100)}",
+                        "vendor": f"Vendor {random.randint(1, 100)}",
+                        "versions": [{
+                            "status": random.choice(["known", "unknown"]),
+                            "version": f"{random.randint(1, 10)}.0"
                         }]
-                    }
+                    },
+                    "descriptions": [{
+                        "lang": "en",
+                        "value": f"Description for CVE {random.randint(1000, 9999)}"
+                    }],
+                    "metrics": {
+                        "cvssV2_0": {
+                            "accessComplexity": random.choice(["LOW", "MEDIUM", "HIGH"]),
+                            "accessVector": random.choice(["NETWORK", "LOCAL"]),
+                            "authentication": random.choice(["NONE", "SINGLE", "MULTIPLE"]),
+                            "availabilityImpact": random.choice(["NONE", "PARTIAL", "COMPLETE"]),
+                            "baseScore": str(round(random.uniform(0, 10), 1)),
+                            "confidentialityImpact": random.choice(["NONE", "PARTIAL", "COMPLETE"]),
+                            "integrityImpact": random.choice(["NONE", "PARTIAL", "COMPLETE"]),
+                            "vectorString": f"(AV:{random.choice(['N', 'L'])}/AC:{random.choice(['L', 'H'])}/PR:{random.choice(['N', 'L', 'H'])})",
+                            "version": "2.0"
+                        }
+                    },
+                    "problemTypes": [{
+                        "descriptions": [{
+                            "cweId": f"CWE-{random.randint(1, 100)}",
+                            "description": "Example problem type",
+                            "lang": "en"
+                        }]
+                    }],
+                    "providerMetadata": {
+                        "dateUpdated": generate_random_date(),
+                        "orgId": "ExampleOrg",
+                        "shortName": "EXO",
+                        "x_subShortName": "EXOSUB"
+                    },
+                    "references": [{
+                        "url": f"https://example.com/cve/{random.randint(1000, 9999)}"
+                    }]
                 }
             }
         }
