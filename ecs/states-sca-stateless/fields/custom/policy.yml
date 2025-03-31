@@ -1,0 +1,38 @@
+---
+- name: policy
+  title: SCA policies
+  type: group
+  group: 2
+  fields:
+    - id:
+      type: keyword
+      level: custom
+      description: >
+        Policy ID.
+      example: "cis_win11_enterprise_21H2"
+    - name:
+      type: keyword
+      level: custom
+      description: >
+        Policy name.
+      example: "CIS Microsoft Windows 11 Enterprise Benchmark v1.0.0"
+    - file:
+      type: keyword
+      level: custom
+      description: >
+        File containing the policy definition.
+      example: "cis_win11_enterprise.yml"
+    - description:
+        type: keyword
+        level: custom
+        description: >
+          Policy description.
+        example: "This document provides prescriptive guidance f..."
+    - references:
+      type: keyword
+      level: custom
+      description: >
+        List of references.
+      normalize:
+        - array
+      example: "[\"https://www.cisecurity.org/cis-benchmarks/\"]"
