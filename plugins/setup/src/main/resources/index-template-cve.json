@@ -855,6 +855,22 @@
                       }
                     }
                   },
+                  "timeline": {
+                    "properties": {
+                      "lang": {
+                        "ignore_above": 1024,
+                        "type": "keyword"
+                      },
+                      "time": {
+                        "ignore_above": 1024,
+                        "type": "keyword"
+                      },
+                      "value": {
+                        "ignore_above": 1024,
+                        "type": "keyword"
+                      }
+                    }
+                  },
                   "title": {
                     "ignore_above": 1024,
                     "type": "keyword"
@@ -876,8 +892,25 @@
                     }
                   },
                   "x_remediations": {
-                    "ignore_above": 1024,
-                    "type": "keyword"
+                    "properties": {
+                      "windows": {
+                        "properties": {
+                          "anyOf": {
+                            "ignore_above": 1024,
+                            "type": "keyword"
+                          },
+                          "products": {
+                            "ignore_above": 1024,
+                            "type": "keyword"
+                          },
+                          "type": {
+                            "ignore_above": 1024,
+                            "type": "keyword"
+                          }
+                        },
+                        "type": "nested"
+                      }
+                    }
                   }
                 }
               },
@@ -1820,8 +1853,25 @@
                     }
                   },
                   "x_remediations": {
-                    "ignore_above": 1024,
-                    "type": "keyword"
+                    "properties": {
+                      "windows": {
+                        "properties": {
+                          "anyOf": {
+                            "ignore_above": 1024,
+                            "type": "keyword"
+                          },
+                          "products": {
+                            "ignore_above": 1024,
+                            "type": "keyword"
+                          },
+                          "type": {
+                            "ignore_above": 1024,
+                            "type": "keyword"
+                          }
+                        },
+                        "type": "nested"
+                      }
+                    }
                   }
                 }
               }
