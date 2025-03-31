@@ -9,4 +9,7 @@
       type: keyword
       level: custom
       description: >
-        List of groups the agent belong to.
+        List of groups the agent belongs to.
+      normalize:
+        - array
+      example: "[\"group1\", \"group2\"]"

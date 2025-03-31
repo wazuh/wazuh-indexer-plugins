@@ -3,9 +3,13 @@ ECS_Version,Indexed,Field_Set,Field,Type,Level,Normalization,Example,Description
 8.11.0,true,base,labels,object,core,,"{""application"": ""foo-bar"", ""env"": ""production""}",Custom key/value pairs.
 8.11.0,true,base,message,keyword,core,,Hello World,Log message optimized for viewing in a log viewer.
 8.11.0,true,base,tags,keyword,core,array,"[""production"", ""env2""]",List of keywords used to tag each event.
-8.11.0,true,agent,agent.groups,keyword,custom,,,List of groups the agent belong to.
+8.11.0,true,agent,agent.groups,keyword,custom,array,"[""group1"", ""group2""]",List of groups the agent belongs to.
 8.11.0,true,agent,agent.host.architecture,keyword,core,,x86_64,Operating system architecture.
 8.11.0,true,agent,agent.host.boot.id,keyword,extended,,88a1f0ed-5ae5-41ee-af6b-41921c311872,Linux boot uuid taken from /proc/sys/kernel/random/boot_id
+8.11.0,true,agent,agent.host.cpu,object,custom,,"""name"": ""Intel(R) Core(TM) i7-7700HQ CPU"", ""cores"": 4, ""speed"": 2800",CPU-related data.
+8.11.0,true,agent,agent.host.cpu.cores,long,custom,,4,Number of CPU cores.
+8.11.0,true,agent,agent.host.cpu.name,keyword,custom,,Intel(R) Core(TM) i7-7700HQ CPU,CPU Model name.
+8.11.0,true,agent,agent.host.cpu.speed,long,custom,,2800,CPU clock speed.
 8.11.0,true,agent,agent.host.cpu.usage,float,extended,,,"Percent CPU used, between 0 and 1."
 8.11.0,true,agent,agent.host.disk.read.bytes,long,extended,,,The number of bytes read by all disks.
 8.11.0,true,agent,agent.host.disk.write.bytes,long,extended,,,The number of bytes written on all disks.
@@ -25,11 +29,22 @@ ECS_Version,Indexed,Field_Set,Field,Type,Level,Normalization,Example,Description
 8.11.0,true,agent,agent.host.id,keyword,core,,,Unique host id.
 8.11.0,true,agent,agent.host.ip,ip,core,array,,Host ip addresses.
 8.11.0,true,agent,agent.host.mac,keyword,core,array,"[""00-00-5E-00-53-23"", ""00-00-5E-00-53-24""]",Host MAC addresses.
+8.11.0,true,agent,agent.host.memory,object,custom,,"""total"": 100000, ""free"": 90000, ""used"": {""percentage"": 10}",Memory-related data.
+8.11.0,true,agent,agent.host.memory.free,long,custom,,1024,Free memory in MB.
+8.11.0,true,agent,agent.host.memory.total,long,custom,,1024,Total memory in MB.
+8.11.0,true,agent,agent.host.memory.used,object,custom,,"""percentage"": 10",Used memory-related data.
+8.11.0,true,agent,agent.host.memory.used.percentage,long,custom,,10,Used memory percentage.
 8.11.0,true,agent,agent.host.name,keyword,core,,,Name of the host.
 8.11.0,true,agent,agent.host.network.egress.bytes,long,extended,,,The number of bytes sent on all network interfaces.
+8.11.0,true,agent,agent.host.network.egress.drops,long,custom,,10,Number of dropped transmitted packets.
+8.11.0,true,agent,agent.host.network.egress.errors,long,custom,,10,Number of transmission errors.
 8.11.0,true,agent,agent.host.network.egress.packets,long,extended,,,The number of packets sent on all network interfaces.
+8.11.0,true,agent,agent.host.network.egress.queue,long,custom,,10,Transmit queue length.
 8.11.0,true,agent,agent.host.network.ingress.bytes,long,extended,,,The number of bytes received on all network interfaces.
+8.11.0,true,agent,agent.host.network.ingress.drops,long,custom,,10,Number of dropped received packets.
+8.11.0,true,agent,agent.host.network.ingress.errors,long,custom,,10,Number of reception errors.
 8.11.0,true,agent,agent.host.network.ingress.packets,long,extended,,,The number of packets received on all network interfaces.
+8.11.0,true,agent,agent.host.network.ingress.queue,long,custom,,10,Receive queue length.
 8.11.0,true,agent,agent.host.os.family,keyword,extended,,debian,"OS family (such as redhat, debian, freebsd, windows)."
 8.11.0,true,agent,agent.host.os.full,keyword,extended,,Mac OS Mojave,"Operating system name, including the version or code name."
 8.11.0,true,agent,agent.host.os.full.text,keyword,extended,,Mac OS Mojave,"Operating system name, including the version or code name."
@@ -278,7 +293,9 @@ ECS_Version,Indexed,Field_Set,Field,Type,Level,Normalization,Example,Description
 8.11.0,true,event,event.action,keyword,core,,user-password-change,The action captured by the event.
 8.11.0,true,event,event.agent_id_status,keyword,extended,,verified,Validation status of the event's agent.id field.
 8.11.0,true,event,event.category,keyword,core,array,authentication,Event category. The second categorization field in the hierarchy.
+8.11.0,true,event,event.changed_fields,keyword,custom,array,"[""foo"", ""bar""]",Fields that were updated since last scan.
 8.11.0,true,event,event.code,keyword,extended,,4648,Identification code for this event.
+8.11.0,true,event,event.collector,keyword,custom,,file,Collector used to retrieve the event.
 8.11.0,true,event,event.created,date,core,,2016-05-23T08:05:34.857Z,Time when the event was first read by an agent or by your pipeline.
 8.11.0,true,event,event.dataset,keyword,core,,apache.access,Name of the dataset.
 8.11.0,true,event,event.duration,long,core,,,Duration of the event in nanoseconds.
@@ -454,6 +471,10 @@ ECS_Version,Indexed,Field_Set,Field,Type,Level,Normalization,Example,Description
 8.11.0,true,group,group.name,keyword,extended,,,Name of the group.
 8.11.0,true,host,host.architecture,keyword,core,,x86_64,Operating system architecture.
 8.11.0,true,host,host.boot.id,keyword,extended,,88a1f0ed-5ae5-41ee-af6b-41921c311872,Linux boot uuid taken from /proc/sys/kernel/random/boot_id
+8.11.0,true,host,host.cpu,object,custom,,"""name"": ""Intel(R) Core(TM) i7-7700HQ CPU"", ""cores"": 4, ""speed"": 2800",CPU-related data.
+8.11.0,true,host,host.cpu.cores,long,custom,,4,Number of CPU cores.
+8.11.0,true,host,host.cpu.name,keyword,custom,,Intel(R) Core(TM) i7-7700HQ CPU,CPU Model name.
+8.11.0,true,host,host.cpu.speed,long,custom,,2800,CPU clock speed.
 8.11.0,true,host,host.cpu.usage,float,extended,,,"Percent CPU used, between 0 and 1."
 8.11.0,true,host,host.disk.read.bytes,long,extended,,,The number of bytes read by all disks.
 8.11.0,true,host,host.disk.write.bytes,long,extended,,,The number of bytes written on all disks.
@@ -473,11 +494,22 @@ ECS_Version,Indexed,Field_Set,Field,Type,Level,Normalization,Example,Description
 8.11.0,true,host,host.id,keyword,core,,,Unique host id.
 8.11.0,true,host,host.ip,ip,core,array,,Host ip addresses.
 8.11.0,true,host,host.mac,keyword,core,array,"[""00-00-5E-00-53-23"", ""00-00-5E-00-53-24""]",Host MAC addresses.
+8.11.0,true,host,host.memory,object,custom,,"""total"": 100000, ""free"": 90000, ""used"": {""percentage"": 10}",Memory-related data.
+8.11.0,true,host,host.memory.free,long,custom,,1024,Free memory in MB.
+8.11.0,true,host,host.memory.total,long,custom,,1024,Total memory in MB.
+8.11.0,true,host,host.memory.used,object,custom,,"""percentage"": 10",Used memory-related data.
+8.11.0,true,host,host.memory.used.percentage,long,custom,,10,Used memory percentage.
 8.11.0,true,host,host.name,keyword,core,,,Name of the host.
 8.11.0,true,host,host.network.egress.bytes,long,extended,,,The number of bytes sent on all network interfaces.
+8.11.0,true,host,host.network.egress.drops,long,custom,,10,Number of dropped transmitted packets.
+8.11.0,true,host,host.network.egress.errors,long,custom,,10,Number of transmission errors.
 8.11.0,true,host,host.network.egress.packets,long,extended,,,The number of packets sent on all network interfaces.
+8.11.0,true,host,host.network.egress.queue,long,custom,,10,Transmit queue length.
 8.11.0,true,host,host.network.ingress.bytes,long,extended,,,The number of bytes received on all network interfaces.
+8.11.0,true,host,host.network.ingress.drops,long,custom,,10,Number of dropped received packets.
+8.11.0,true,host,host.network.ingress.errors,long,custom,,10,Number of reception errors.
 8.11.0,true,host,host.network.ingress.packets,long,extended,,,The number of packets received on all network interfaces.
+8.11.0,true,host,host.network.ingress.queue,long,custom,,10,Receive queue length.
 8.11.0,true,host,host.os.family,keyword,extended,,debian,"OS family (such as redhat, debian, freebsd, windows)."
 8.11.0,true,host,host.os.full,keyword,extended,,Mac OS Mojave,"Operating system name, including the version or code name."
 8.11.0,true,host,host.os.full.text,keyword,extended,,Mac OS Mojave,"Operating system name, including the version or code name."
@@ -511,6 +543,12 @@ ECS_Version,Indexed,Field_Set,Field,Type,Level,Normalization,Example,Description
 8.11.0,true,http,http.response.mime_type,keyword,extended,,image/gif,Mime type of the body of the response.
 8.11.0,true,http,http.response.status_code,long,extended,,404,HTTP response status code.
 8.11.0,true,http,http.version,keyword,extended,,1.1,HTTP version.
+8.11.0,true,interface,interface.alias,keyword,extended,,outside,Interface alias
+8.11.0,true,interface,interface.id,keyword,extended,,10,Interface ID
+8.11.0,true,interface,interface.mtu,long,custom,,1500,Maximum transmission unit size.
+8.11.0,true,interface,interface.name,keyword,extended,,eth0,Interface name
+8.11.0,true,interface,interface.state,keyword,custom,,up,State of the network interface.
+8.11.0,true,interface,interface.type,keyword,custom,,ethernet,Interface type.
 8.11.0,true,log,log.file.path,keyword,extended,,/var/log/fun-times.log,Full path to the log file this event came from.
 8.11.0,true,log,log.level,keyword,core,,error,Log level of the log event.
 8.11.0,true,log,log.logger,keyword,core,,org.elasticsearch.bootstrap.Bootstrap,Name of the logger.
@@ -530,15 +568,20 @@ ECS_Version,Indexed,Field_Set,Field,Type,Level,Normalization,Example,Description
 8.11.0,true,log,log.syslog.structured_data,flat_object,extended,,,Structured data expressed in RFC 5424 messages.
 8.11.0,true,log,log.syslog.version,keyword,extended,,1,Syslog protocol version.
 8.11.0,true,network,network.application,keyword,extended,,aim,Application level protocol name.
+8.11.0,true,network,network.broadcast,ip,custom,,192.168.0.255,Broadcast address.
 8.11.0,true,network,network.bytes,long,core,,368,Total bytes transferred in both directions.
 8.11.0,true,network,network.community_id,keyword,extended,,1:hO+sN4H+MG5MY/8hIrXPqc4ZQz0=,A hash of source and destination IPs and ports.
+8.11.0,true,network,network.dhcp,keyword,custom,,enabled,"DHCP status (enabled, disabled, unknown, BOOTP)."
 8.11.0,true,network,network.direction,keyword,core,,inbound,Direction of the network traffic.
 8.11.0,true,network,network.forwarded_ip,ip,core,,192.1.1.2,Host IP address when the source IP address is the proxy.
+8.11.0,true,network,network.gateway,ip,custom,,192.168.0.1,Gateway address.
 8.11.0,true,network,network.iana_number,keyword,extended,,6,IANA Protocol Number.
 8.11.0,true,network,network.inner,object,extended,,,Inner VLAN tag information
 8.11.0,true,network,network.inner.vlan.id,keyword,extended,,10,VLAN ID as reported by the observer.
 8.11.0,true,network,network.inner.vlan.name,keyword,extended,,outside,Optional VLAN name as reported by the observer.
+8.11.0,true,network,network.metric,long,custom,,15,Metric of the network protocol.
 8.11.0,true,network,network.name,keyword,extended,,Guest Wifi,Name given by operators to sections of their network.
+8.11.0,true,network,network.netmask,ip,custom,,255.255.255.0,Network mask
 8.11.0,true,network,network.packets,long,core,,24,Total packets transferred in both directions.
 8.11.0,true,network,network.protocol,keyword,core,,http,Application protocol name.
 8.11.0,true,network,network.transport,keyword,core,,tcp,Protocol Name corresponding to the field `iana_number`.
@@ -548,7 +591,16 @@ ECS_Version,Indexed,Field_Set,Field,Type,Level,Normalization,Example,Description
 8.11.0,true,observer,observer.egress,object,extended,,,Object field for egress information
 8.11.0,true,observer,observer.egress.interface.alias,keyword,extended,,outside,Interface alias
 8.11.0,true,observer,observer.egress.interface.id,keyword,extended,,10,Interface ID
+8.11.0,true,observer,observer.egress.interface.mtu,long,custom,,1500,Maximum transmission unit size.
 8.11.0,true,observer,observer.egress.interface.name,keyword,extended,,eth0,Interface name
+8.11.0,true,observer,observer.egress.interface.observer.ingress.interface.alias,keyword,extended,,outside,Interface alias
+8.11.0,true,observer,observer.egress.interface.observer.ingress.interface.id,keyword,extended,,10,Interface ID
+8.11.0,true,observer,observer.egress.interface.observer.ingress.interface.mtu,long,custom,,1500,Maximum transmission unit size.
+8.11.0,true,observer,observer.egress.interface.observer.ingress.interface.name,keyword,extended,,eth0,Interface name
+8.11.0,true,observer,observer.egress.interface.observer.ingress.interface.state,keyword,custom,,up,State of the network interface.
+8.11.0,true,observer,observer.egress.interface.observer.ingress.interface.type,keyword,custom,,ethernet,Interface type.
+8.11.0,true,observer,observer.egress.interface.state,keyword,custom,,up,State of the network interface.
+8.11.0,true,observer,observer.egress.interface.type,keyword,custom,,ethernet,Interface type.
 8.11.0,true,observer,observer.egress.vlan.id,keyword,extended,,10,VLAN ID as reported by the observer.
 8.11.0,true,observer,observer.egress.vlan.name,keyword,extended,,outside,Optional VLAN name as reported by the observer.
 8.11.0,true,observer,observer.egress.zone,keyword,extended,,Public_Internet,Observer Egress zone
@@ -567,7 +619,10 @@ ECS_Version,Indexed,Field_Set,Field,Type,Level,Normalization,Example,Description
 8.11.0,true,observer,observer.ingress,object,extended,,,Object field for ingress information
 8.11.0,true,observer,observer.ingress.interface.alias,keyword,extended,,outside,Interface alias
 8.11.0,true,observer,observer.ingress.interface.id,keyword,extended,,10,Interface ID
+8.11.0,true,observer,observer.ingress.interface.mtu,long,custom,,1500,Maximum transmission unit size.
 8.11.0,true,observer,observer.ingress.interface.name,keyword,extended,,eth0,Interface name
+8.11.0,true,observer,observer.ingress.interface.state,keyword,custom,,up,State of the network interface.
+8.11.0,true,observer,observer.ingress.interface.type,keyword,custom,,ethernet,Interface type.
 8.11.0,true,observer,observer.ingress.vlan.id,keyword,extended,,10,VLAN ID as reported by the observer.
 8.11.0,true,observer,observer.ingress.vlan.name,keyword,extended,,outside,Optional VLAN name as reported by the observer.
 8.11.0,true,observer,observer.ingress.zone,keyword,extended,,DMZ,Observer ingress zone
@@ -1783,10 +1838,12 @@ ECS_Version,Indexed,Field_Set,Field,Type,Level,Normalization,Example,Description
 8.11.0,true,vulnerability,vulnerability.id,keyword,extended,,CVE-2019-00001,ID of the vulnerability.
 8.11.0,true,vulnerability,vulnerability.reference,keyword,extended,,https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2019-6111,Reference of the vulnerability.
 8.11.0,true,vulnerability,vulnerability.report_id,keyword,extended,,20191018.0001,Scan identification number.
-8.11.0,true,vulnerability,vulnerability.scanner.reference,keyword,custom,,,"Scanner's resource that provides additional information, context, and mitigations for the identified vulnerability."
+8.11.0,true,vulnerability,vulnerability.scanner.reference,keyword,custom,,https://www.example.com/vulnerability/12345,"Scanner's resource that provides additional information, context, and mitigations for the identified vulnerability."
 8.11.0,true,vulnerability,vulnerability.scanner.vendor,keyword,extended,,Tenable,Name of the scanner vendor.
 8.11.0,true,vulnerability,vulnerability.score.base,float,extended,,5.5,Vulnerability Base score.
 8.11.0,true,vulnerability,vulnerability.score.environmental,float,extended,,5.5,Vulnerability Environmental score.
 8.11.0,true,vulnerability,vulnerability.score.temporal,float,extended,,,Vulnerability Temporal score.
 8.11.0,true,vulnerability,vulnerability.score.version,keyword,extended,,2.0,CVSS version.
 8.11.0,true,vulnerability,vulnerability.severity,keyword,extended,,Critical,Severity of the vulnerability.
+8.11.0,true,wazuh,wazuh.decoder,keyword,custom,array,"[""foo"", ""bar""]",Wazuh decoder used.
+8.11.0,true,wazuh,wazuh.rules,keyword,custom,array,"[""foo"", ""bar""]",Wazuh rules triggered by the event.

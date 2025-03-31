@@ -1,17 +1,17 @@
 ECS_Version,Indexed,Field_Set,Field,Type,Level,Normalization,Example,Description
 8.11.0,true,base,tags,keyword,core,array,"[""production"", ""env2""]",List of keywords used to tag each event.
-8.11.0,true,user,user.allow_run_as,boolean,custom,,,Whether the user can run as admin.
-8.11.0,true,user,user.created_at,date,custom,,,Timestamp when the user was created.
-8.11.0,true,user,user.id,keyword,custom,,S-1-5-21-202424912787-2692429404-2351956786-1000,Unique identifier of the user.
-8.11.0,true,user,user.name,keyword,custom,,a.einstein,The user’s name.
-8.11.0,true,user,user.name.text,keyword,custom,,a.einstein,The user’s name.
-8.11.0,true,user,user.password,keyword,custom,,,The hashed password of the user.
-8.11.0,true,user,user.roles.level,integer,custom,,,The permission level of the role.
-8.11.0,true,user,user.roles.name,keyword,custom,,,The role name.
-8.11.0,true,user,user.roles.policies.actions,keyword,custom,,,Actions allowed by the policy.
-8.11.0,true,user,user.roles.policies.effect,keyword,custom,,,The effect of the policy (allow/deny).
-8.11.0,true,user,user.roles.policies.level,integer,custom,,,The permission level of the policy.
-8.11.0,true,user,user.roles.policies.name,keyword,custom,,,The Policy name.
-8.11.0,true,user,user.roles.policies.resources,keyword,custom,,,Resources affected by the policy.
-8.11.0,true,user,user.roles.rules.body,object,custom,,,The complete body of the rule in JSON.
-8.11.0,true,user,user.roles.rules.name,keyword,custom,,BLOCK_DNS_over_TLS,Rule name
+8.11.0,true,user,user.allow_run_as,boolean,custom,,true,Whether the user can run as admin.
+8.11.0,true,user,user.created_at,date,custom,,2020-01-01T00:00:00.000Z,Timestamp when the user was created.
+8.11.0,true,user,user.id,keyword,custom,,123456,Unique identifier of the user.
+8.11.0,true,user,user.name,keyword,custom,,John Doe,The user’s name.
+8.11.0,true,user,user.name.text,keyword,custom,,John Doe,The user’s name.
+8.11.0,true,user,user.password,keyword,custom,,hashed_password,The hashed password of the user.
+8.11.0,true,user,user.roles.level,integer,custom,,1,The permission level of the role.
+8.11.0,true,user,user.roles.name,keyword,custom,,administrator,The role name.
+8.11.0,true,user,user.roles.policies.actions,keyword,custom,,agent:create,Actions allowed by the policy.
+8.11.0,true,user,user.roles.policies.effect,keyword,custom,,allow,The effect of the policy (allow/deny).
+8.11.0,true,user,user.roles.policies.level,integer,custom,,1,The permission level of the policy.
+8.11.0,true,user,user.roles.policies.name,keyword,custom,,<name>,The Policy name.
+8.11.0,true,user,user.roles.policies.resources,keyword,custom,,agent:group,Resources affected by the policy.
+8.11.0,true,user,user.roles.rules.body,object,custom,,"{""level"": 1, ""id"": 1003, ""maxsize"": 5000, ""frequency"": 10, ...}",The complete body of the rule in JSON.
+8.11.0,true,user,user.roles.rules.name,keyword,custom,,<rulename>,Rule name

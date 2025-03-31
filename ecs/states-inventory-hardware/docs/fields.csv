@@ -1,13 +1,13 @@
 ECS_Version,Indexed,Field_Set,Field,Type,Level,Normalization,Example,Description
 8.11.0,true,base,@timestamp,date,core,,2016-05-23T08:05:34.853Z,Date/time when the event originated.
 8.11.0,true,base,tags,keyword,core,array,"[""production"", ""env2""]",List of keywords used to tag each event.
-8.11.0,true,agent,agent.groups,keyword,custom,,,List of groups the agent belong to.
+8.11.0,true,agent,agent.groups,keyword,custom,array,"[""group1"", ""group2""]",List of groups the agent belongs to.
 8.11.0,true,agent,agent.host.architecture,keyword,core,,x86_64,Operating system architecture.
 8.11.0,true,agent,agent.host.boot.id,keyword,extended,,88a1f0ed-5ae5-41ee-af6b-41921c311872,Linux boot uuid taken from /proc/sys/kernel/random/boot_id
-8.11.0,true,agent,agent.host.cpu,object,custom,,,CPU related data
-8.11.0,true,agent,agent.host.cpu.cores,long,custom,,,Number of CPU cores
-8.11.0,true,agent,agent.host.cpu.name,keyword,custom,,,CPU Model name
-8.11.0,true,agent,agent.host.cpu.speed,long,custom,,,CPU clock speed
+8.11.0,true,agent,agent.host.cpu,object,custom,,"""name"": ""Intel(R) Core(TM) i7-7700HQ CPU"", ""cores"": 4, ""speed"": 2800",CPU-related data.
+8.11.0,true,agent,agent.host.cpu.cores,long,custom,,4,Number of CPU cores.
+8.11.0,true,agent,agent.host.cpu.name,keyword,custom,,Intel(R) Core(TM) i7-7700HQ CPU,CPU Model name.
+8.11.0,true,agent,agent.host.cpu.speed,long,custom,,2800,CPU clock speed.
 8.11.0,true,agent,agent.host.cpu.usage,float,extended,,,"Percent CPU used, between 0 and 1."
 8.11.0,true,agent,agent.host.disk.read.bytes,long,extended,,,The number of bytes read by all disks.
 8.11.0,true,agent,agent.host.disk.write.bytes,long,extended,,,The number of bytes written on all disks.
@@ -27,11 +27,11 @@ ECS_Version,Indexed,Field_Set,Field,Type,Level,Normalization,Example,Description
 8.11.0,true,agent,agent.host.id,keyword,core,,,Unique host id.
 8.11.0,true,agent,agent.host.ip,ip,core,array,,Host ip addresses.
 8.11.0,true,agent,agent.host.mac,keyword,core,array,"[""00-00-5E-00-53-23"", ""00-00-5E-00-53-24""]",Host MAC addresses.
-8.11.0,true,agent,agent.host.memory,object,custom,,,Memory related data
-8.11.0,true,agent,agent.host.memory.free,long,custom,,,Free memory in MB
-8.11.0,true,agent,agent.host.memory.total,long,custom,,,Total memory in MB
-8.11.0,true,agent,agent.host.memory.used,object,custom,,,Used memory related data
-8.11.0,true,agent,agent.host.memory.used.percentage,long,custom,,,Used memory percentage
+8.11.0,true,agent,agent.host.memory,object,custom,,"""total"": 100000, ""free"": 90000, ""used"": {""percentage"": 10}",Memory-related data.
+8.11.0,true,agent,agent.host.memory.free,long,custom,,1024,Free memory in MB.
+8.11.0,true,agent,agent.host.memory.total,long,custom,,1024,Total memory in MB.
+8.11.0,true,agent,agent.host.memory.used,object,custom,,"""percentage"": 10",Used memory-related data.
+8.11.0,true,agent,agent.host.memory.used.percentage,long,custom,,10,Used memory percentage.
 8.11.0,true,agent,agent.host.name,keyword,core,,,Name of the host.
 8.11.0,true,agent,agent.host.network.egress.bytes,long,extended,,,The number of bytes sent on all network interfaces.
 8.11.0,true,agent,agent.host.network.egress.packets,long,extended,,,The number of packets sent on all network interfaces.
@@ -59,14 +59,14 @@ ECS_Version,Indexed,Field_Set,Field,Type,Level,Normalization,Example,Description
 8.11.0,true,agent,agent.name,keyword,core,,foo,Custom name of the agent.
 8.11.0,true,agent,agent.type,keyword,core,,filebeat,Type of the agent.
 8.11.0,true,agent,agent.version,keyword,core,,6.0.0-rc2,Version of the agent.
-8.11.0,true,host,host.cpu,object,custom,,,CPU related data
-8.11.0,true,host,host.cpu.cores,long,custom,,,Number of CPU cores
-8.11.0,true,host,host.cpu.name,keyword,custom,,,CPU Model name
-8.11.0,true,host,host.cpu.speed,long,custom,,,CPU clock speed
+8.11.0,true,host,host.cpu,object,custom,,"""name"": ""Intel(R) Core(TM) i7-7700HQ CPU"", ""cores"": 4, ""speed"": 2800",CPU-related data.
+8.11.0,true,host,host.cpu.cores,long,custom,,4,Number of CPU cores.
+8.11.0,true,host,host.cpu.name,keyword,custom,,Intel(R) Core(TM) i7-7700HQ CPU,CPU Model name.
+8.11.0,true,host,host.cpu.speed,long,custom,,2800,CPU clock speed.
 8.11.0,true,host,host.cpu.usage,float,extended,,,"Percent CPU used, between 0 and 1."
-8.11.0,true,host,host.memory,object,custom,,,Memory related data
-8.11.0,true,host,host.memory.free,long,custom,,,Free memory in MB
-8.11.0,true,host,host.memory.total,long,custom,,,Total memory in MB
-8.11.0,true,host,host.memory.used,object,custom,,,Used memory related data
-8.11.0,true,host,host.memory.used.percentage,long,custom,,,Used memory percentage
+8.11.0,true,host,host.memory,object,custom,,"""total"": 100000, ""free"": 90000, ""used"": {""percentage"": 10}",Memory-related data.
+8.11.0,true,host,host.memory.free,long,custom,,1024,Free memory in MB.
+8.11.0,true,host,host.memory.total,long,custom,,1024,Total memory in MB.
+8.11.0,true,host,host.memory.used,object,custom,,"""percentage"": 10",Used memory-related data.
+8.11.0,true,host,host.memory.used.percentage,long,custom,,10,Used memory percentage.
 8.11.0,true,observer,observer.serial_number,keyword,extended,,,Observer serial number.
