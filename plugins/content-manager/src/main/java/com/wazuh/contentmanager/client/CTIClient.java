@@ -108,7 +108,7 @@ public class CTIClient extends HttpClient {
      * @param fromOffset The starting offset (inclusive) for fetching changes.
      * @param toOffset The ending offset (exclusive) for fetching changes.
      * @param withEmpties A flag indicating whether to include empty values (Optional).
-     * @return A {@link SimpleHttpResponse} containing the API response.
+     * @return {@link ContextChanges} instance with the current changes.
      */
     public ContextChanges getChanges(String fromOffset, String toOffset, String withEmpties) {
         XContent xContent = XContentType.JSON.xContent();
@@ -135,7 +135,7 @@ public class CTIClient extends HttpClient {
     /**
      * Fetches the entire CTI catalog from the API.
      *
-     * @return A {@link SimpleHttpResponse} containing the API response with the catalog data.
+     * @return A {@link ConsumerInfo} object containing the catalog information.
      */
     public ConsumerInfo getCatalog() {
         XContent xContent = XContentType.JSON.xContent();
