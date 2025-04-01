@@ -1,0 +1,40 @@
+- name: versions
+  title: Versions
+  description: Set of product versions or version ranges related to the vulnerability. It satisfy the CNA Rules 8.1.2 requirement. 
+  reusable:
+    top_level: false
+    expected:
+      - { at: payload.containers.cna.affected, as: versions }
+      - { at: payload.containers.adp.affected, as: versions }
+  fields:
+    - name: status
+      type: keyword
+      level: custom
+      description: The vulnerability status for the version or range of versions.
+      example: affected
+    - name: version
+      type: keyword
+      level: custom
+      description: The single version being described, or the version at the start of the range.
+      example: 1.0.0
+    - name: versionType
+      type: keyword
+      level: custom
+      description: The version numbering system used for specifying the range. 
+      example: rpm
+    - name: lessThan
+      type: keyword
+      level: custom
+      description: The non-inclusive upper limit of the range.
+      example: 2.0.0
+    - name: lessThanOrEqual
+      type: keyword
+      level: custom
+      description: The inclusive upper limit of the range.
+      example: 2.0.0
+    - name: changes
+      type: keyword
+      level: custom
+      description: A list of status changes that take place during the range.
+      normalize:
+        - array

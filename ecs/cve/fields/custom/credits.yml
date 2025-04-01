@@ -1,0 +1,29 @@
+- name: credits
+  title: Credits
+  description: Statements acknowledging people, organizations, or tools recognizing the work done with activities related to this CVE.
+  reusable:
+    top_level: false
+    expected:
+      - { at: payload.containers.cna, as: credits }
+      - { at: payload.containers.adp, as: credits }
+  fields:
+    - name: lang
+      type: keyword
+      level: custom
+      description: The language used when describing the credits.
+      example: en
+    - name: value
+      type: keyword
+      level: custom
+      description: The content of the credit.
+      example: "This CVE was assigned by the CNA."
+    - name: user
+      type: keyword
+      level: custom
+      description: UUID of the user being credited if present in the CVE User Registry.
+      example: "123e4567-e89b-12d3-a456-426614174000"
+    - name: type
+      type: keyword
+      level: custom
+      description: Type or role of the entity being credited.
+      example: "analyst"
