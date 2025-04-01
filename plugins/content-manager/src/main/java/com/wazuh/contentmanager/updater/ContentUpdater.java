@@ -148,7 +148,7 @@ public class ContentUpdater {
     }
 
     /** Resets the consumer info by setting its last offset to zero. */
-    private void restartConsumerInfo() {
+    public void restartConsumerInfo() {
         ContextIndex.getInstance()
                 .index(new ConsumerInfo(PluginSettings.CONSUMER_ID, PluginSettings.CONTEXT_ID, 0L, null));
     }

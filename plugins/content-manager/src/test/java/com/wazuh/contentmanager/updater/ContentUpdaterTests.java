@@ -16,6 +16,7 @@
  */
 package com.wazuh.contentmanager.updater;
 
+import org.opensearch.client.Client;
 import org.opensearch.test.OpenSearchIntegTestCase;
 import org.junit.Before;
 
@@ -23,6 +24,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 
+import com.wazuh.contentmanager.index.ContextIndex;
 import com.wazuh.contentmanager.model.ctiapi.ContextChanges;
 import com.wazuh.contentmanager.model.ctiapi.Offset;
 import org.mockito.Mockito;
@@ -33,6 +35,7 @@ import static org.mockito.Mockito.*;
 @OpenSearchIntegTestCase.ClusterScope(scope = OpenSearchIntegTestCase.Scope.SUITE)
 public class ContentUpdaterTests extends OpenSearchIntegTestCase {
     private ContentUpdater contentUpdaterSpy;
+    private Client client;
 
     /**
      * Set up the tests
@@ -44,6 +47,8 @@ public class ContentUpdaterTests extends OpenSearchIntegTestCase {
         super.setUp();
         ContentUpdater contentUpdater = new ContentUpdater();
         contentUpdaterSpy = Mockito.spy(contentUpdater);
+        client = mock(Client.class);
+        ContextIndex.getInstance(client);
     }
 
     /** Test Fetch and apply no new updates */
@@ -89,6 +94,24 @@ public class ContentUpdaterTests extends OpenSearchIntegTestCase {
         // Assert
         assertEquals("Error fetching changes for offsets 0 to 1000", exception.getMessage());
         verify(contentUpdaterSpy, times(1)).getContextChanges(any(), any());
+    }
+
+    /** Test error on patchContextIndex method (method return false) */
+    public void testFetchAndApplyUpdatesErrorOnPatchContextIndex() {
+        int offsetsAmount = 3999;
+        // Mock current and latest offset.
+        doReturn(0L).when(contentUpdaterSpy).getCurrentOffset();
+        doReturn((long) offsetsAmount).when(contentUpdaterSpy).getLatestOffset();
+        // Mock getContextChanges method.
+        doReturn(generateContextChanges(offsetsAmount))
+                .when(contentUpdaterSpy)
+                .getContextChanges(any(), any());
+        // Mock patchContextIndex method.
+        doReturn(false).when(contentUpdaterSpy).patchContextIndex(any());
+        // Act
+        contentUpdaterSpy.fetchAndApplyUpdates(null);
+        // Assert
+        verify(contentUpdaterSpy, times(1)).restartConsumerInfo();
     }
 
     /**
