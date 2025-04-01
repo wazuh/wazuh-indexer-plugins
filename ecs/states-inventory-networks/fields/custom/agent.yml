@@ -10,3 +10,6 @@
       level: custom
       description: >
         List of groups the agent belong to.
+      normalize:
+        - array
+      example: "[\"group1\", \"group2\"]"

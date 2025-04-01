@@ -14,6 +14,8 @@ CSV_SUBPATH="mappings/${ECS_VERSION}/generated/csv/fields.csv"
 COMMITER_EMAIL=${COMMITER_EMAIL:-$(git config user.email)}
 COMMITTER_USERNAME=${COMMITTER_USERNAME:-$(git config user.name)} # Human readable username
 
+set -euo pipefail
+
 # Global variables
 declare -a relevant_modules
 declare -A module_to_file
@@ -81,6 +83,7 @@ detect_modified_modules() {
         [states-inventory-system]="index-template-system.json"
         [states-vulnerabilities]="index-template-vulnerabilities.json"
         [users]="index-template-users.json"
+        [cve]="index-template-cve.json"
     )
 
     relevant_modules=()
@@ -98,8 +101,12 @@ run_ecs_generator() {
     echo "---> Running ECS Generator script..."
     if [[ ${#relevant_modules[@]} -gt 0 ]]; then
         for ecs_module in "${relevant_modules[@]}"; do
-            bash ecs/generator/mapping-generator.sh run "$ecs_module"
-            echo "Processed ECS module: $ecs_module"
+            if [ "$(bash ecs/generator/mapping-generator.sh run "$ecs_module")" -ne 0 ]; then
+                echo "Error: Failed to run ECS generator for module: $ecs_module"
+                exit 1
+            else
+                echo "Processed ECS module: $ecs_module"
+            fi
             bash ecs/generator/mapping-generator.sh down
         done
     else
@@ -136,9 +143,6 @@ commit_and_push_changes() {
         echo "Configuring Git for ${COMMITTER_USERNAME}"
         configure_git
     fi
-
-    echo
-    echo "---> Committing and pushing changes to ${PLUGINS_REPO} repository..."
 
     echo "Copying ECS templates and csv definitions to the plugins repository..."
     for ecs_module in "${relevant_modules[@]}"; do
@@ -200,7 +204,7 @@ EOF
 
     # Authorize GitHub CLI for the current repository and
     # create a pull-requests containing the updates.
-    gh auth login --with-token < token.txt
+    gh auth login --with-token < token.txt || true # Ignore authentication warning
 
     if [ -z "$existing_pr" ]; then
         output=$(gh pr create --title "$title" --body "$body" --base main --head "$BRANCH_NAME")

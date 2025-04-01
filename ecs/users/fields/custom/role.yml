@@ -12,7 +12,9 @@
       type: keyword
       level: custom
       description: The role name.
+      example: "administrator"
     - name: level
       type: integer
       level: custom
       description: The permission level of the role.
+      example: "1"
