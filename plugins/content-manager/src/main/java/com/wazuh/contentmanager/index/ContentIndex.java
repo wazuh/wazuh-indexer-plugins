@@ -33,6 +33,7 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.Semaphore;
 
 /** Class to manage the Content Manager index. */
 public class ContentIndex {
@@ -40,8 +41,11 @@ public class ContentIndex {
 
     private static final String INDEX_NAME = "wazuh-cve";
     private final int MAX_DOCUMENTS = 25;
+    private static final int MAX_CONCURRENT_PETITIONS = 5;
 
     private final Client client;
+    private final Semaphore semaphore = new Semaphore(MAX_CONCURRENT_PETITIONS);
+
 
     /**
      * Default constructor
@@ -72,9 +76,11 @@ public class ContentIndex {
                 new ActionListener<>() {
                     @Override
                     public void onResponse(BulkResponse bulkResponse) {
+                        semaphore.release();
                         if (bulkResponse.hasFailures()) {
                             log.error(
                                     "Snapshot indexing bulk request failed: {}", bulkResponse.buildFailureMessage());
+
                         } else {
                             log.debug(
                                     "Snapshot indexing bulk request was successful: took [{}]ms",
@@ -84,7 +90,9 @@ public class ContentIndex {
 
                     @Override
                     public void onFailure(Exception e) {
-                        log.error("Snapshot indexing bulk request failed: {}", e.getMessage());
+                        semaphore.release();
+                        log.error("Snapshot indexing bulk request has failed: {}", e.getMessage());
+
                     }
                 });
     }
@@ -124,6 +132,7 @@ public class ContentIndex {
 
                 // Index items (MAX_DOCUMENTS reached)
                 if (lineCount == MAX_DOCUMENTS) {
+                    semaphore.acquire();
                     this.index(items);
                     lineCount = 0;
                     items.clear();
@@ -131,9 +140,10 @@ public class ContentIndex {
             }
             // Index remaining items (> MAX_DOCUMENTS)
             if (lineCount > 0) {
+                semaphore.acquire();
                 this.index(items);
             }
-        } catch (IOException e) {
+        } catch (Exception e) {
             log.error("Error processing snapshot file {}", e.getMessage());
         }
     }
