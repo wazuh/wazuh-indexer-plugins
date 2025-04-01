@@ -78,14 +78,12 @@ public class ContentUpdater {
                         "Error fetching changes for offsets " + currentOffset + " to " + nextOffset, null);
             }
             // Apply the fetched changes to the indexed context.
-            this.patchContextIndex(changes);
-            // Update the current offset.
-            if (nextOffset >= currentOffset) {
-                currentOffset = nextOffset;
-            } else {
-                log.info("No new updates available. Current offset ({}) is up to date.", currentOffset);
-                break;
+            if (!this.patchContextIndex(changes)) {
+                // TODO: Set offset to 0 and break.
+                return;
             }
+            // TODO: Index new current offset.
+            currentOffset = nextOffset;
         }
         // Post new command informing the new changes.
         this.postUpdateCommand();
@@ -131,9 +129,9 @@ public class ContentUpdater {
      *
      * @param changes Detected Context changes.
      */
-    public void patchContextIndex(ContextChanges changes) {
-        // Placeholder for actual implementation.
-        // ContentIndex.patch(changes);
+    public boolean patchContextIndex(ContextChanges changes) {
+        // TODO: Call the patch method, return false on error.
+        return true;
     }
 
     /** Posts a new command to the Command Manager informing the new changes. */
