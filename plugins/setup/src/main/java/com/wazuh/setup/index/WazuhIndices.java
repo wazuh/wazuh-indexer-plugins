@@ -18,6 +18,7 @@ package com.wazuh.setup.index;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.opensearch.ResourceAlreadyExistsException;
 import org.opensearch.action.admin.indices.create.CreateIndexRequest;
 import org.opensearch.action.admin.indices.create.CreateIndexResponse;
 import org.opensearch.action.admin.indices.template.put.PutIndexTemplateRequest;
@@ -102,23 +103,29 @@ public class WazuhIndices {
 
         } catch (IOException e) {
             log.error("Error reading index template from filesystem {}", templateName);
+        } catch (ResourceAlreadyExistsException e) {
+            log.info("Index template {} already exists. Skipping.", templateName);
         }
     }
 
     /**
      * Creates an index
      *
-     * @param indexName: Name of the index to be created
+     * @param indexName Name of the index to be created
      */
     public void putIndex(String indexName) {
-        if (!indexExists(indexName)) {
-            CreateIndexRequest request = new CreateIndexRequest(indexName);
-            CreateIndexResponse createIndexResponse =
-                    this.client.admin().indices().create(request).actionGet();
-            log.info(
-                    "Index created successfully: {} {}",
-                    createIndexResponse.index(),
-                    createIndexResponse.isAcknowledged());
+        try {
+            if (!indexExists(indexName)) {
+                CreateIndexRequest request = new CreateIndexRequest(indexName);
+                CreateIndexResponse createIndexResponse =
+                        this.client.admin().indices().create(request).actionGet();
+                log.info(
+                        "Index created successfully: {} {}",
+                        createIndexResponse.index(),
+                        createIndexResponse.isAcknowledged());
+            }
+        } catch (ResourceAlreadyExistsException e) {
+            log.info("Index {} already exists. Skipping.", indexName);
         }
     }
 
