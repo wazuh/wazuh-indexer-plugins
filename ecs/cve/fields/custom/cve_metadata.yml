@@ -1,0 +1,58 @@
+- name: cveMetadata
+  title: CVE Metadata
+  description: This is meta data about the CVE ID.
+  reusable:
+    top_level: false
+    expected:
+      - { at: payload, as: cveMetadata }
+  fields:
+    - name: cveId
+      type: keyword
+      level: custom
+      description: The CVE identifier that this record pertains to.
+      example: CVE-2019-0001
+    - name: assignerOrgId
+      type: keyword
+      level: custom
+      description: The UUID for the organization to which the CVE ID was originally assigned.
+      example: 550e8400-e29b-41d4-a716-446655440000
+    - name: assignerShortName
+      type: keyword
+      level: custom
+      description: The short name for the organization to which the CVE ID was originally assigned.
+      example: MITRE
+    - name: requesterUserId
+      type: keyword
+      level: custom
+      description: The user that requested the CVE identifier.
+      example: 550e8400-e29b-41d4-a716-446655440000
+    - name: dateUpdated
+      type: date
+      level: custom
+      description: The date/time the record was last updated.
+      example: 2025-01-01T00:00:00.000Z
+    - name: serial
+      type: keyword
+      level: custom
+      description: The system of record causes this to start at 1, and increment by 1 each time this CVE Record changes.
+      example: 1
+    - name: dateReserved
+      type: date
+      level: custom
+      description: The date/time this CVE ID was reserved in the CVE automation workgroup services system.
+      example: 2025-01-01T00:00:00.000Z
+    - name: dateRejected
+      type: date
+      level: custom
+      description: The date/time the CVE ID was rejected.
+      example: 2025-01-01T00:00:00.000Z
+    - name: datePublished
+      type: date
+      level: custom
+      description: The date/time the CVE Record was first published in the CVE List.
+      example: 2025-01-01T00:00:00.000Z
+    - name: state
+      type: keyword
+      level: custom
+      description: State of CVE.
+      example: PUBLISHED

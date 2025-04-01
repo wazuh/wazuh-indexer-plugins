@@ -1,0 +1,30 @@
+- name: supporting_media
+  title: Supporting Media
+  description: Supporting media data for the description such as markdown, diagrams, etc.
+  reusable:
+    top_level: false
+    expected:
+      - { at: payload.containers.cna.descriptions, as: supportingMedia }
+      - { at: payload.containers.adp.descriptions, as: supportingMedia }
+      - { at: payload.containers.cna.impacts.descriptions, as: supportingMedia }
+      - { at: payload.containers.adp.impacts.descriptions, as: supportingMedia }
+      - { at: payload.containers.cna.configurations, as: supportingMedia }
+      - { at: payload.containers.cna.workarounds, as: supportingMedia }
+      - { at: payload.containers.cna.solutions, as: supportingMedia }
+      - { at: payload.containers.cna.exploits, as: supportingMedia }
+  fields:
+    - name: type
+      type: keyword
+      level: custom
+      description: RFC2046 compliant IANA Media type.
+      example: image/png
+    - name: value
+      type: keyword
+      level: custom
+      description: Supporting media content, up to 16K. If base64 is true, this field stores base64 encoded data.
+      example: iVBORw0KGgoAAAANSUhEUgAA...
+    - name: base64
+      type: boolean
+      level: custom
+      description: If true then the value field contains the media data encoded in base64.
+      example: true
