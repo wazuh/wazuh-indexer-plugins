@@ -124,9 +124,11 @@ public class ContentUpdater {
      */
     @VisibleForTesting
     Long getCurrentOffset() {
-        return ContextIndex.getInstance()
-                .getConsumer(PluginSettings.CONSUMER_ID, PluginSettings.CONTEXT_ID)
-                .getLastOffset();
+        return Privileged.doPrivilegedRequest(
+                () ->
+                        ContextIndex.getInstance()
+                                .getConsumer(PluginSettings.CONTEXT_ID, PluginSettings.CONSUMER_ID)
+                                .getLastOffset());
     }
 
     /**
@@ -156,7 +158,13 @@ public class ContentUpdater {
     /** Resets the consumer info by setting its last offset to zero. */
     @VisibleForTesting
     void restartConsumerInfo() {
-        ContextIndex.getInstance()
-                .index(new ConsumerInfo(PluginSettings.CONSUMER_ID, PluginSettings.CONTEXT_ID, 0L, null));
+        Privileged.doPrivilegedRequest(
+                () -> {
+                    ContextIndex.getInstance()
+                            .index(
+                                    new ConsumerInfo(
+                                            PluginSettings.CONSUMER_ID, PluginSettings.CONTEXT_ID, 0L, null));
+                    return null;
+                });
     }
 }

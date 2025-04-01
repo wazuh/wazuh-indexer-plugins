@@ -1,4 +1,5 @@
 grant {
     permission java.net.SocketPermission "*", "connect,resolve";
     permission java.io.FilePermission "*", "write";
+    permission java.util.PropertyPermission "opensearch.experimental.feature.tiered_remote_index.enabled", "read";
 };
