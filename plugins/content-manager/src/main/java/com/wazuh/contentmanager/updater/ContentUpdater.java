@@ -27,6 +27,7 @@ import com.wazuh.contentmanager.model.ctiapi.ConsumerInfo;
 import com.wazuh.contentmanager.model.ctiapi.ContextChanges;
 import com.wazuh.contentmanager.settings.PluginSettings;
 import com.wazuh.contentmanager.util.Privileged;
+import com.wazuh.contentmanager.util.VisibleForTesting;
 
 /** Class responsible for managing content updates by fetching and applying changes in chunks. */
 public class ContentUpdater {
@@ -98,7 +99,8 @@ public class ContentUpdater {
      * @param toOffset Ending offset (exclusive).
      * @return ContextChanges object containing the changes.
      */
-    public ContextChanges getContextChanges(String fromOffset, String toOffset) {
+    @VisibleForTesting
+    ContextChanges getContextChanges(String fromOffset, String toOffset) {
         return Privileged.doPrivilegedRequest(
                 () -> CTIClient.getInstance().getChanges(fromOffset, toOffset, null));
     }
@@ -108,7 +110,8 @@ public class ContentUpdater {
      *
      * @return Latest available offset.
      */
-    public Long getLatestOffset() {
+    @VisibleForTesting
+    Long getLatestOffset() {
         ConsumerInfo consumerInfo =
                 Privileged.doPrivilegedRequest(() -> CTIClient.getInstance().getCatalog());
         return consumerInfo.getLastOffset();
@@ -119,7 +122,8 @@ public class ContentUpdater {
      *
      * @return The current "last" offset.
      */
-    public Long getCurrentOffset() {
+    @VisibleForTesting
+    Long getCurrentOffset() {
         return ContextIndex.getInstance()
                 .getConsumer(PluginSettings.CONSUMER_ID, PluginSettings.CONTEXT_ID)
                 .getLastOffset();
@@ -131,13 +135,15 @@ public class ContentUpdater {
      * @param changes Detected context changes.
      * @return true if the changes were successfully applied, false otherwise.
      */
-    public boolean patchContextIndex(ContextChanges changes) {
+    @VisibleForTesting
+    boolean patchContextIndex(ContextChanges changes) {
         // TODO: Call the patch method, return false on error.
         return true;
     }
 
     /** Posts a new command to the Command Manager informing about the new changes. */
-    public void postUpdateCommand() {
+    @VisibleForTesting
+    void postUpdateCommand() {
         // Post new command informing the new changes.
         Privileged.doPrivilegedRequest(
                 () -> {
@@ -148,7 +154,8 @@ public class ContentUpdater {
     }
 
     /** Resets the consumer info by setting its last offset to zero. */
-    public void restartConsumerInfo() {
+    @VisibleForTesting
+    void restartConsumerInfo() {
         ContextIndex.getInstance()
                 .index(new ConsumerInfo(PluginSettings.CONSUMER_ID, PluginSettings.CONTEXT_ID, 0L, null));
     }

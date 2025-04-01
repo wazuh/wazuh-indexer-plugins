@@ -35,7 +35,6 @@ import static org.mockito.Mockito.*;
 @OpenSearchIntegTestCase.ClusterScope(scope = OpenSearchIntegTestCase.Scope.SUITE)
 public class ContentUpdaterTests extends OpenSearchIntegTestCase {
     private ContentUpdater contentUpdaterSpy;
-    private Client client;
 
     /**
      * Set up the tests
@@ -47,7 +46,7 @@ public class ContentUpdaterTests extends OpenSearchIntegTestCase {
         super.setUp();
         ContentUpdater contentUpdater = new ContentUpdater();
         contentUpdaterSpy = Mockito.spy(contentUpdater);
-        client = mock(Client.class);
+        Client client = mock(Client.class);
         ContextIndex.getInstance(client);
     }
 
