@@ -1,40 +1,42 @@
 ---
 - name: check
   title: SCA policy check
+  description: >
+    Custom fields for SCA policy check.
   type: group
   group: 2
   fields:
-    - id:
+    - name: id
       type: keyword
       level: custom
       description: >
         Check ID.
       example: "26000"
-    - name:
+    - name: name
       type: keyword
       level: custom
       description: >
         Check name.
       example: "Ensure 'Enforce password history' is set to '24 or more password(s)'."
-    - description:
-        type: keyword
-        level: custom
-        description: >
-          Check description.
-        example: "This policy setting determines ..."
-    - rationale:
+    - name: description
+      type: keyword
+      level: custom
+      description: >
+        Check description.
+      example: "This policy setting determines ..."
+    - name: rationale
       type: keyword
       level: custom
       description: >
         Rationale for the check.
       example: "The longer a user uses the same password ..."
-    - remediation:
+    - name: remediation
       type: keyword
       level: custom
       description: >
         Remediation steps for the check.
       example: "To establish the recommended configuration ..."
-    - references:
+    - name: references
       type: keyword
       level: custom
       description: >
@@ -42,13 +44,13 @@
       normalize:
         - array
       example: "[\"https://workbench.cisecurity.org\"]"
-    - condition:
+    - name: condition
       type: keyword
       level: custom
       description: >
         Condition for the check.
       example: "all"
-    - compliance:
+    - name: compliance
       type: keyword
       level: custom
       description: >
@@ -56,7 +58,7 @@
       normalize:
         - array
       example: "[\"cis:1.1.1\",\"cis_csc:5.2\"]"
-    - rules:
+    - name: rules
       type: keyword
       level: custom
       description: >
@@ -66,13 +68,13 @@
       example: >
         "[\"c:net.exe accounts -> n:Maximum password age \(days\):\s+(\d+) compare > 0\"," >
         "\"c:net.exe accounts -> n:Length of password history maintained:\s+(\d+) compare >= 24\"]"
-    - result:
+    - name: rasult
       type: keyword
       level: custom
       description: >
         Check result.
       example: "failed"
-    - reason:
+    - name: reason
       type: keyword
       level: custom
       description: >

@@ -1,16 +1,18 @@
 ---
 - name: event
   title: SCA stateless events
+  description: >
+    Custom fields for SCA stateless events.
   type: group
   group: 2
   fields:
-    - created:
+    - name: created
       type: date
       level: custom
       description: >
         Event creation date.
       example: "2025-03-11T19:35:58.237Z"
-    - category:
+    - name: category
       type: keyword
       level: custom
       description: >
@@ -18,21 +20,21 @@
       normalize:
         - array
       example: "[\"configuration\"]"
-    - type:
-        type: keyword
-        level: custom
-        description: >
-          Event type.
-        normalize:
-          - array
-        example: "[\"change\"]"
-    - action:
+    - name: type
+      type: keyword
+      level: custom
+      description: >
+        Event type.
+      normalize:
+        - array
+      example: "[\"change\"]"
+    - name: action
       type: keyword
       level: custom
       description: >
         Event action.
       example: "check-updated"
-    - changed_fields:
+    - name: changed_fields
       type: keyword
       level: custom
       description: >

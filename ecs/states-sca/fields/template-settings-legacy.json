@@ -1,5 +1,5 @@
 {
-  "index_patterns": ["wazuh-states-inventory-system*"],
+  "index_patterns": ["wazuh-states-sca*"],
   "order": 1,
   "settings": {
     "index": {

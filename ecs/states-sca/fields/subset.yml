@@ -1,5 +1,5 @@
 ---
-name: wazuh-states-inventory-system
+name: wazuh-states-sca
 fields:
   base:
     fields:
@@ -16,24 +16,10 @@ fields:
         fields: "*"
   check:
     fields:
-      id: {}
-      name: {}
-      description: {}
-      rationale: {}
-      remediation: {}
-      references: {}
-      condition: {}
-      compliance: {}
-      rules: {}
-      result: {}
-      reason: {}
+      "*"
   host:
     fields: "*"
   policy:
     fields:
-      id: {}
-      name: {}
-      file: {}
-      description: {}
-      references: {}
+      "*"
 
