@@ -21,17 +21,19 @@ import org.apache.logging.log4j.Logger;
 
 import com.wazuh.contentmanager.client.CTIClient;
 import com.wazuh.contentmanager.client.CommandManagerClient;
+import com.wazuh.contentmanager.index.ContextIndex;
 import com.wazuh.contentmanager.model.commandmanager.Command;
 import com.wazuh.contentmanager.model.ctiapi.ConsumerInfo;
 import com.wazuh.contentmanager.model.ctiapi.ContextChanges;
+import com.wazuh.contentmanager.settings.PluginSettings;
 import com.wazuh.contentmanager.util.Privileged;
 
-/** Class in charge of updating */
+/** Class responsible for managing content updates by fetching and applying changes in chunks. */
 public class ContentUpdater {
     private static final Integer CHUNK_MAX_SIZE = 1000;
     private static final Logger log = LogManager.getLogger(ContentUpdater.class);
 
-    /** Exception thrown by the Content Updater */
+    /** Exception thrown by the Content Updater in case of errors. */
     public static class ContentUpdateException extends RuntimeException {
         /**
          * Constructor method
@@ -52,7 +54,6 @@ public class ContentUpdater {
      * @throws ContentUpdateException If there was an error fetching the changes.
      */
     public void fetchAndApplyUpdates(Long fixedOffset) throws ContentUpdateException {
-        // Offset model will be renamed to ContextChange
         Long currentOffset = this.getCurrentOffset();
         Long lastOffset = this.getLatestOffset();
 
@@ -72,20 +73,21 @@ public class ContentUpdater {
             ContextChanges changes =
                     this.getContextChanges(currentOffset.toString(), nextOffset.toString());
             log.info("Fetched offsets from {} to {}", currentOffset, nextOffset);
-            // If there was an error fetching the changes, stop the process.
+
+            // If there is an error fetching the changes, stop the process.
             if (changes == null) {
                 throw new ContentUpdateException(
                         "Error fetching changes for offsets " + currentOffset + " to " + nextOffset, null);
             }
             // Apply the fetched changes to the indexed context.
             if (!this.patchContextIndex(changes)) {
-                // TODO: Set offset to 0 and break.
+                this.restartConsumerInfo();
                 return;
             }
-            // TODO: Index new current offset.
+
             currentOffset = nextOffset;
         }
-        // Post new command informing the new changes.
+
         this.postUpdateCommand();
     }
 
@@ -113,28 +115,28 @@ public class ContentUpdater {
     }
 
     /**
-     * Retrieves the current stored offset from the wazuh-context index.
+     * Retrieves the current stored "last" offset from {@link ContextIndex}.
      *
-     * @return The current offset.
+     * @return The current "last" offset.
      */
     public Long getCurrentOffset() {
-        // Placeholder for actual implementation.
-        // It should fetch the current offset from the index.
-        // ContextIndex.get().getOffset();
-        return 1234L;
+        return ContextIndex.getInstance()
+                .getConsumer(PluginSettings.CONSUMER_ID, PluginSettings.CONTEXT_ID)
+                .getLastOffset();
     }
 
     /**
-     * Apply the fetched changes to the indexed context.
+     * Applies the fetched changes to the indexed context.
      *
-     * @param changes Detected Context changes.
+     * @param changes Detected context changes.
+     * @return true if the changes were successfully applied, false otherwise.
      */
     public boolean patchContextIndex(ContextChanges changes) {
         // TODO: Call the patch method, return false on error.
         return true;
     }
 
-    /** Posts a new command to the Command Manager informing the new changes. */
+    /** Posts a new command to the Command Manager informing about the new changes. */
     public void postUpdateCommand() {
         // Post new command informing the new changes.
         Privileged.doPrivilegedRequest(
@@ -143,5 +145,11 @@ public class ContentUpdater {
                             .postCommand(Command.create(getCurrentOffset().toString()));
                     return null;
                 });
+    }
+
+    /** Resets the consumer info by setting its last offset to zero. */
+    private void restartConsumerInfo() {
+        ContextIndex.getInstance()
+                .index(new ConsumerInfo(PluginSettings.CONSUMER_ID, PluginSettings.CONTEXT_ID, 0L, null));
     }
 }

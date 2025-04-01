@@ -38,6 +38,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
 import com.wazuh.contentmanager.model.ctiapi.ConsumerInfo;
+import com.wazuh.contentmanager.settings.PluginSettings;
 
 /** Class to manage the Context index. */
 public class ContextIndex {
@@ -51,6 +52,8 @@ public class ContextIndex {
 
     private final Client client;
 
+    public static ContextIndex INSTANCE;
+
     /**
      * Constructor for the class.
      *
@@ -58,6 +61,34 @@ public class ContextIndex {
      */
     public ContextIndex(Client client) {
         this.client = client;
+    }
+
+    /**
+     * Returns the singleton instance of {@link ContextIndex}, initializing it if necessary.
+     *
+     * @param client The Elasticsearch client used for index and search operations.
+     * @return The singleton instance of {@link ContextIndex}.
+     */
+    public static ContextIndex getInstance(Client client) {
+        if (ContextIndex.INSTANCE == null) {
+            synchronized (PluginSettings.class) {
+                ContextIndex.INSTANCE = new ContextIndex(client);
+            }
+        }
+        return INSTANCE;
+    }
+
+    /**
+     * Returns the existing singleton instance of {@link ContextIndex}.
+     *
+     * @return The singleton instance of {@link ContextIndex}.
+     * @throws IllegalStateException If the instance has not been initialized.
+     */
+    public static ContextIndex getInstance() {
+        if (ContextIndex.INSTANCE == null) {
+            throw new IllegalStateException("ContextIndex has not been initialized.");
+        }
+        return INSTANCE;
     }
 
     /**

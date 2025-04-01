@@ -52,7 +52,7 @@ public class CTIClient extends HttpClient {
     private static final Logger log = LogManager.getLogger(CTIClient.class);
 
     private static final String CONSUMER_INFO_ENDPOINT =
-            "/catalog/contexts/vd_1.0.0/consumers/vd_4.8.0";
+            "/catalog/contexts/" + PluginSettings.CONTEXT_ID + "/consumers/" + PluginSettings.CONSUMER_ID;
     private static final String CONSUMER_CHANGES_ENDPOINT = CONSUMER_INFO_ENDPOINT + "/changes";
 
     /** Enum representing the query parameters used in CTI API requests. */

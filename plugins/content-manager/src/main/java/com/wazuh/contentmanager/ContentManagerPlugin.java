@@ -67,7 +67,7 @@ public class ContentManagerPlugin extends Plugin implements ClusterPlugin, Actio
             IndexNameExpressionResolver indexNameExpressionResolver,
             Supplier<RepositoriesService> repositoriesServiceSupplier) {
         PluginSettings.initializeInstance(environment.settings(), clusterService);
-        this.contextIndex = new ContextIndex(client);
+        this.contextIndex = ContextIndex.getInstance(client);
         return Collections.emptyList();
     }
 
