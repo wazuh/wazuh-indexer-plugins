@@ -1,0 +1,1926 @@
+{
+  "index_patterns": [
+    "wazuh-cve*"
+  ],
+  "mappings": {
+    "date_detection": false,
+    "dynamic": "strict",
+    "properties": {
+      "inserted_at": {
+        "type": "date"
+      },
+      "name": {
+        "ignore_above": 1024,
+        "type": "keyword"
+      },
+      "offset": {
+        "type": "unsigned_long"
+      },
+      "payload": {
+        "properties": {
+          "containers": {
+            "properties": {
+              "adp": {
+                "properties": {
+                  "affected": {
+                    "properties": {
+                      "collectionURL": {
+                        "ignore_above": 1024,
+                        "type": "keyword"
+                      },
+                      "cpes": {
+                        "ignore_above": 1024,
+                        "type": "keyword"
+                      },
+                      "defaultStatus": {
+                        "ignore_above": 1024,
+                        "type": "keyword"
+                      },
+                      "modules": {
+                        "ignore_above": 1024,
+                        "type": "keyword"
+                      },
+                      "packageName": {
+                        "ignore_above": 1024,
+                        "type": "keyword"
+                      },
+                      "platforms": {
+                        "ignore_above": 1024,
+                        "type": "keyword"
+                      },
+                      "product": {
+                        "ignore_above": 1024,
+                        "type": "keyword"
+                      },
+                      "programFiles": {
+                        "ignore_above": 1024,
+                        "type": "keyword"
+                      },
+                      "programRoutines": {
+                        "properties": {
+                          "name": {
+                            "ignore_above": 1024,
+                            "type": "keyword"
+                          }
+                        }
+                      },
+                      "repo": {
+                        "ignore_above": 1024,
+                        "type": "keyword"
+                      },
+                      "vendor": {
+                        "ignore_above": 1024,
+                        "type": "keyword"
+                      },
+                      "versions": {
+                        "properties": {
+                          "changes": {
+                            "properties": {
+                              "at": {
+                                "ignore_above": 1024,
+                                "type": "keyword"
+                              },
+                              "status": {
+                                "ignore_above": 1024,
+                                "type": "keyword"
+                              }
+                            }
+                          },
+                          "lessThan": {
+                            "ignore_above": 1024,
+                            "type": "keyword"
+                          },
+                          "lessThanOrEqual": {
+                            "ignore_above": 1024,
+                            "type": "keyword"
+                          },
+                          "status": {
+                            "ignore_above": 1024,
+                            "type": "keyword"
+                          },
+                          "version": {
+                            "ignore_above": 1024,
+                            "type": "keyword"
+                          },
+                          "versionType": {
+                            "ignore_above": 1024,
+                            "type": "keyword"
+                          }
+                        }
+                      }
+                    }
+                  },
+                  "configurations": {
+                    "properties": {
+                      "lang": {
+                        "ignore_above": 1024,
+                        "type": "keyword"
+                      },
+                      "supportingMedia": {
+                        "ignore_above": 1024,
+                        "type": "keyword"
+                      },
+                      "value": {
+                        "ignore_above": 1024,
+                        "type": "keyword"
+                      }
+                    }
+                  },
+                  "credits": {
+                    "properties": {
+                      "lang": {
+                        "ignore_above": 1024,
+                        "type": "keyword"
+                      },
+                      "type": {
+                        "ignore_above": 1024,
+                        "type": "keyword"
+                      },
+                      "user": {
+                        "ignore_above": 1024,
+                        "type": "keyword"
+                      },
+                      "value": {
+                        "ignore_above": 1024,
+                        "type": "keyword"
+                      }
+                    }
+                  },
+                  "datePublic": {
+                    "ignore_above": 1024,
+                    "type": "keyword"
+                  },
+                  "descriptions": {
+                    "properties": {
+                      "lang": {
+                        "ignore_above": 1024,
+                        "type": "keyword"
+                      },
+                      "supportingMedia": {
+                        "properties": {
+                          "base64": {
+                            "type": "boolean"
+                          },
+                          "type": {
+                            "ignore_above": 1024,
+                            "type": "keyword"
+                          },
+                          "value": {
+                            "ignore_above": 1024,
+                            "type": "keyword"
+                          }
+                        }
+                      },
+                      "value": {
+                        "ignore_above": 1024,
+                        "type": "keyword"
+                      }
+                    }
+                  },
+                  "exploits": {
+                    "properties": {
+                      "lang": {
+                        "ignore_above": 1024,
+                        "type": "keyword"
+                      },
+                      "supportingMedia": {
+                        "ignore_above": 1024,
+                        "type": "keyword"
+                      },
+                      "value": {
+                        "ignore_above": 1024,
+                        "type": "keyword"
+                      }
+                    }
+                  },
+                  "impacts": {
+                    "properties": {
+                      "capecId": {
+                        "ignore_above": 1024,
+                        "type": "keyword"
+                      },
+                      "descriptions": {
+                        "properties": {
+                          "lang": {
+                            "ignore_above": 1024,
+                            "type": "keyword"
+                          },
+                          "supportingMedia": {
+                            "properties": {
+                              "base64": {
+                                "type": "boolean"
+                              },
+                              "type": {
+                                "ignore_above": 1024,
+                                "type": "keyword"
+                              },
+                              "value": {
+                                "ignore_above": 1024,
+                                "type": "keyword"
+                              }
+                            }
+                          },
+                          "value": {
+                            "ignore_above": 1024,
+                            "type": "keyword"
+                          }
+                        }
+                      }
+                    }
+                  },
+                  "metrics": {
+                    "properties": {
+                      "cvssV2_0": {
+                        "properties": {
+                          "accessComplexity": {
+                            "ignore_above": 1024,
+                            "type": "keyword"
+                          },
+                          "accessVector": {
+                            "ignore_above": 1024,
+                            "type": "keyword"
+                          },
+                          "authentication": {
+                            "ignore_above": 1024,
+                            "type": "keyword"
+                          },
+                          "availabilityImpact": {
+                            "ignore_above": 1024,
+                            "type": "keyword"
+                          },
+                          "availabilityRequirement": {
+                            "ignore_above": 1024,
+                            "type": "keyword"
+                          },
+                          "baseScore": {
+                            "type": "float"
+                          },
+                          "collateralDamagePotential": {
+                            "ignore_above": 1024,
+                            "type": "keyword"
+                          },
+                          "confidentialityImpact": {
+                            "ignore_above": 1024,
+                            "type": "keyword"
+                          },
+                          "confidentialityRequirement": {
+                            "ignore_above": 1024,
+                            "type": "keyword"
+                          },
+                          "environmentalScore": {
+                            "type": "float"
+                          },
+                          "exploitability": {
+                            "ignore_above": 1024,
+                            "type": "keyword"
+                          },
+                          "integrityImpact": {
+                            "ignore_above": 1024,
+                            "type": "keyword"
+                          },
+                          "integrityRequirement": {
+                            "ignore_above": 1024,
+                            "type": "keyword"
+                          },
+                          "remediationLevel": {
+                            "ignore_above": 1024,
+                            "type": "keyword"
+                          },
+                          "reportConfidence": {
+                            "ignore_above": 1024,
+                            "type": "keyword"
+                          },
+                          "targetDistribution": {
+                            "ignore_above": 1024,
+                            "type": "keyword"
+                          },
+                          "temporalScore": {
+                            "type": "float"
+                          },
+                          "vectorString": {
+                            "ignore_above": 1024,
+                            "type": "keyword"
+                          },
+                          "version": {
+                            "ignore_above": 1024,
+                            "type": "keyword"
+                          }
+                        }
+                      },
+                      "cvssV3_0": {
+                        "properties": {
+                          "attackComplexity": {
+                            "ignore_above": 1024,
+                            "type": "keyword"
+                          },
+                          "attackVector": {
+                            "ignore_above": 1024,
+                            "type": "keyword"
+                          },
+                          "availabilityImpact": {
+                            "ignore_above": 1024,
+                            "type": "keyword"
+                          },
+                          "availabilityRequirement": {
+                            "ignore_above": 1024,
+                            "type": "keyword"
+                          },
+                          "baseScore": {
+                            "type": "float"
+                          },
+                          "baseSeverity": {
+                            "ignore_above": 1024,
+                            "type": "keyword"
+                          },
+                          "confidentialityImpact": {
+                            "ignore_above": 1024,
+                            "type": "keyword"
+                          },
+                          "confidentialityRequirement": {
+                            "ignore_above": 1024,
+                            "type": "keyword"
+                          },
+                          "environmentalScore": {
+                            "type": "float"
+                          },
+                          "environmentalSeverity": {
+                            "ignore_above": 1024,
+                            "type": "keyword"
+                          },
+                          "exploitCodeMaturity": {
+                            "ignore_above": 1024,
+                            "type": "keyword"
+                          },
+                          "integrityImpact": {
+                            "ignore_above": 1024,
+                            "type": "keyword"
+                          },
+                          "integrityRequirement": {
+                            "ignore_above": 1024,
+                            "type": "keyword"
+                          },
+                          "modifiedAttackComplexity": {
+                            "ignore_above": 1024,
+                            "type": "keyword"
+                          },
+                          "modifiedAttackVector": {
+                            "ignore_above": 1024,
+                            "type": "keyword"
+                          },
+                          "modifiedAvailabilityImpact": {
+                            "ignore_above": 1024,
+                            "type": "keyword"
+                          },
+                          "modifiedConfidentialityImpact": {
+                            "ignore_above": 1024,
+                            "type": "keyword"
+                          },
+                          "modifiedIntegrityImpact": {
+                            "ignore_above": 1024,
+                            "type": "keyword"
+                          },
+                          "modifiedPrivilegesRequired": {
+                            "ignore_above": 1024,
+                            "type": "keyword"
+                          },
+                          "modifiedScope": {
+                            "ignore_above": 1024,
+                            "type": "keyword"
+                          },
+                          "modifiedUserInteraction": {
+                            "ignore_above": 1024,
+                            "type": "keyword"
+                          },
+                          "privilegesRequired": {
+                            "ignore_above": 1024,
+                            "type": "keyword"
+                          },
+                          "remediationLevel": {
+                            "ignore_above": 1024,
+                            "type": "keyword"
+                          },
+                          "reportConfidence": {
+                            "ignore_above": 1024,
+                            "type": "keyword"
+                          },
+                          "scope": {
+                            "ignore_above": 1024,
+                            "type": "keyword"
+                          },
+                          "temporalScore": {
+                            "type": "float"
+                          },
+                          "temporalSeverity": {
+                            "ignore_above": 1024,
+                            "type": "keyword"
+                          },
+                          "userInteraction": {
+                            "ignore_above": 1024,
+                            "type": "keyword"
+                          },
+                          "vectorString": {
+                            "ignore_above": 1024,
+                            "type": "keyword"
+                          },
+                          "version": {
+                            "ignore_above": 1024,
+                            "type": "keyword"
+                          }
+                        }
+                      },
+                      "cvssV3_1": {
+                        "properties": {
+                          "attackComplexity": {
+                            "ignore_above": 1024,
+                            "type": "keyword"
+                          },
+                          "attackVector": {
+                            "ignore_above": 1024,
+                            "type": "keyword"
+                          },
+                          "availabilityImpact": {
+                            "ignore_above": 1024,
+                            "type": "keyword"
+                          },
+                          "availabilityRequirement": {
+                            "ignore_above": 1024,
+                            "type": "keyword"
+                          },
+                          "baseScore": {
+                            "type": "float"
+                          },
+                          "baseSeverity": {
+                            "ignore_above": 1024,
+                            "type": "keyword"
+                          },
+                          "confidentialityImpact": {
+                            "ignore_above": 1024,
+                            "type": "keyword"
+                          },
+                          "confidentialityRequirement": {
+                            "ignore_above": 1024,
+                            "type": "keyword"
+                          },
+                          "environmentalScore": {
+                            "type": "float"
+                          },
+                          "environmentalSeverity": {
+                            "ignore_above": 1024,
+                            "type": "keyword"
+                          },
+                          "exploitCodeMaturity": {
+                            "ignore_above": 1024,
+                            "type": "keyword"
+                          },
+                          "integrityImpact": {
+                            "ignore_above": 1024,
+                            "type": "keyword"
+                          },
+                          "integrityRequirement": {
+                            "ignore_above": 1024,
+                            "type": "keyword"
+                          },
+                          "modifiedAttackComplexity": {
+                            "ignore_above": 1024,
+                            "type": "keyword"
+                          },
+                          "modifiedAttackVector": {
+                            "ignore_above": 1024,
+                            "type": "keyword"
+                          },
+                          "modifiedAvailabilityImpact": {
+                            "ignore_above": 1024,
+                            "type": "keyword"
+                          },
+                          "modifiedConfidentialityImpact": {
+                            "ignore_above": 1024,
+                            "type": "keyword"
+                          },
+                          "modifiedIntegrityImpact": {
+                            "ignore_above": 1024,
+                            "type": "keyword"
+                          },
+                          "modifiedPrivilegesRequired": {
+                            "ignore_above": 1024,
+                            "type": "keyword"
+                          },
+                          "modifiedScope": {
+                            "ignore_above": 1024,
+                            "type": "keyword"
+                          },
+                          "modifiedUserInteraction": {
+                            "ignore_above": 1024,
+                            "type": "keyword"
+                          },
+                          "privilegesRequired": {
+                            "ignore_above": 1024,
+                            "type": "keyword"
+                          },
+                          "remediationLevel": {
+                            "ignore_above": 1024,
+                            "type": "keyword"
+                          },
+                          "reportConfidence": {
+                            "ignore_above": 1024,
+                            "type": "keyword"
+                          },
+                          "scope": {
+                            "ignore_above": 1024,
+                            "type": "keyword"
+                          },
+                          "temporalScore": {
+                            "type": "float"
+                          },
+                          "temporalSeverity": {
+                            "ignore_above": 1024,
+                            "type": "keyword"
+                          },
+                          "userInteraction": {
+                            "ignore_above": 1024,
+                            "type": "keyword"
+                          },
+                          "vectorString": {
+                            "ignore_above": 1024,
+                            "type": "keyword"
+                          },
+                          "version": {
+                            "ignore_above": 1024,
+                            "type": "keyword"
+                          }
+                        }
+                      },
+                      "cvssV4_0": {
+                        "properties": {
+                          "Automatable": {
+                            "ignore_above": 1024,
+                            "type": "keyword"
+                          },
+                          "Recovery": {
+                            "ignore_above": 1024,
+                            "type": "keyword"
+                          },
+                          "Safety": {
+                            "ignore_above": 1024,
+                            "type": "keyword"
+                          },
+                          "attackComplexity": {
+                            "ignore_above": 1024,
+                            "type": "keyword"
+                          },
+                          "attackRequirements": {
+                            "ignore_above": 1024,
+                            "type": "keyword"
+                          },
+                          "attackVector": {
+                            "ignore_above": 1024,
+                            "type": "keyword"
+                          },
+                          "availabilityRequirement": {
+                            "ignore_above": 1024,
+                            "type": "keyword"
+                          },
+                          "baseScore": {
+                            "type": "float"
+                          },
+                          "baseSeverity": {
+                            "ignore_above": 1024,
+                            "type": "keyword"
+                          },
+                          "confidentialityRequirement": {
+                            "ignore_above": 1024,
+                            "type": "keyword"
+                          },
+                          "exploitMaturity": {
+                            "ignore_above": 1024,
+                            "type": "keyword"
+                          },
+                          "integrityRequirement": {
+                            "ignore_above": 1024,
+                            "type": "keyword"
+                          },
+                          "modifiedAttackComplexity": {
+                            "ignore_above": 1024,
+                            "type": "keyword"
+                          },
+                          "modifiedAttackRequirements": {
+                            "ignore_above": 1024,
+                            "type": "keyword"
+                          },
+                          "modifiedAttackVector": {
+                            "ignore_above": 1024,
+                            "type": "keyword"
+                          },
+                          "modifiedPrivilegesRequired": {
+                            "ignore_above": 1024,
+                            "type": "keyword"
+                          },
+                          "modifiedSubAvailabilityImpact": {
+                            "ignore_above": 1024,
+                            "type": "keyword"
+                          },
+                          "modifiedSubConfidentialityImpact": {
+                            "ignore_above": 1024,
+                            "type": "keyword"
+                          },
+                          "modifiedSubIntegrityImpact": {
+                            "ignore_above": 1024,
+                            "type": "keyword"
+                          },
+                          "modifiedUserInteraction": {
+                            "ignore_above": 1024,
+                            "type": "keyword"
+                          },
+                          "modifiedVulnAvailabilityImpact": {
+                            "ignore_above": 1024,
+                            "type": "keyword"
+                          },
+                          "modifiedVulnConfidentialityImpact": {
+                            "ignore_above": 1024,
+                            "type": "keyword"
+                          },
+                          "modifiedVulnIntegrityImpact": {
+                            "ignore_above": 1024,
+                            "type": "keyword"
+                          },
+                          "privilegesRequired": {
+                            "ignore_above": 1024,
+                            "type": "keyword"
+                          },
+                          "providerUrgency": {
+                            "ignore_above": 1024,
+                            "type": "keyword"
+                          },
+                          "subAvailabilityImpact": {
+                            "ignore_above": 1024,
+                            "type": "keyword"
+                          },
+                          "subConfidentialityImpact": {
+                            "ignore_above": 1024,
+                            "type": "keyword"
+                          },
+                          "subIntegrityImpact": {
+                            "ignore_above": 1024,
+                            "type": "keyword"
+                          },
+                          "userInteraction": {
+                            "ignore_above": 1024,
+                            "type": "keyword"
+                          },
+                          "valueDensity": {
+                            "ignore_above": 1024,
+                            "type": "keyword"
+                          },
+                          "vectorString": {
+                            "ignore_above": 1024,
+                            "type": "keyword"
+                          },
+                          "version": {
+                            "ignore_above": 1024,
+                            "type": "keyword"
+                          },
+                          "vulnAvailabilityImpact": {
+                            "ignore_above": 1024,
+                            "type": "keyword"
+                          },
+                          "vulnConfidentialityImpact": {
+                            "ignore_above": 1024,
+                            "type": "keyword"
+                          },
+                          "vulnIntegrityImpact": {
+                            "ignore_above": 1024,
+                            "type": "keyword"
+                          },
+                          "vulnerabilityResponseEffort": {
+                            "ignore_above": 1024,
+                            "type": "keyword"
+                          }
+                        }
+                      },
+                      "format": {
+                        "ignore_above": 1024,
+                        "type": "keyword"
+                      },
+                      "other": {
+                        "properties": {
+                          "content": {
+                            "type": "flat_object"
+                          },
+                          "type": {
+                            "ignore_above": 1024,
+                            "type": "keyword"
+                          }
+                        }
+                      },
+                      "scenarios": {
+                        "ignore_above": 1024,
+                        "type": "keyword"
+                      }
+                    }
+                  },
+                  "problemTypes": {
+                    "properties": {
+                      "descriptions": {
+                        "properties": {
+                          "cweId": {
+                            "ignore_above": 1024,
+                            "type": "keyword"
+                          },
+                          "description": {
+                            "ignore_above": 1024,
+                            "type": "keyword"
+                          },
+                          "lang": {
+                            "ignore_above": 1024,
+                            "type": "keyword"
+                          },
+                          "references": {
+                            "properties": {
+                              "name": {
+                                "ignore_above": 1024,
+                                "type": "keyword"
+                              },
+                              "tags": {
+                                "ignore_above": 1024,
+                                "type": "keyword"
+                              },
+                              "url": {
+                                "ignore_above": 1024,
+                                "type": "keyword"
+                              }
+                            }
+                          },
+                          "type": {
+                            "ignore_above": 1024,
+                            "type": "keyword"
+                          }
+                        }
+                      }
+                    }
+                  },
+                  "providerMetadata": {
+                    "properties": {
+                      "dateUpdated": {
+                        "type": "date"
+                      },
+                      "orgId": {
+                        "ignore_above": 1024,
+                        "type": "keyword"
+                      },
+                      "shortName": {
+                        "ignore_above": 1024,
+                        "type": "keyword"
+                      },
+                      "x_subShortName": {
+                        "ignore_above": 1024,
+                        "type": "keyword"
+                      }
+                    }
+                  },
+                  "references": {
+                    "properties": {
+                      "name": {
+                        "ignore_above": 1024,
+                        "type": "keyword"
+                      },
+                      "tags": {
+                        "ignore_above": 1024,
+                        "type": "keyword"
+                      },
+                      "url": {
+                        "ignore_above": 1024,
+                        "type": "keyword"
+                      }
+                    }
+                  },
+                  "solutions": {
+                    "properties": {
+                      "lang": {
+                        "ignore_above": 1024,
+                        "type": "keyword"
+                      },
+                      "supportingMedia": {
+                        "ignore_above": 1024,
+                        "type": "keyword"
+                      },
+                      "value": {
+                        "ignore_above": 1024,
+                        "type": "keyword"
+                      }
+                    }
+                  },
+                  "source": {
+                    "ignore_above": 1024,
+                    "type": "keyword"
+                  },
+                  "tags": {
+                    "ignore_above": 1024,
+                    "type": "keyword"
+                  },
+                  "taxonomyMappings": {
+                    "properties": {
+                      "taxonomyName": {
+                        "ignore_above": 1024,
+                        "type": "keyword"
+                      },
+                      "taxonomyRelations": {
+                        "properties": {
+                          "relationshipName": {
+                            "ignore_above": 1024,
+                            "type": "keyword"
+                          },
+                          "relationshipValue": {
+                            "ignore_above": 1024,
+                            "type": "keyword"
+                          },
+                          "taxonomyId": {
+                            "ignore_above": 1024,
+                            "type": "keyword"
+                          }
+                        }
+                      },
+                      "taxonomyVersion": {
+                        "ignore_above": 1024,
+                        "type": "keyword"
+                      }
+                    }
+                  },
+                  "timeline": {
+                    "properties": {
+                      "lang": {
+                        "ignore_above": 1024,
+                        "type": "keyword"
+                      },
+                      "time": {
+                        "ignore_above": 1024,
+                        "type": "keyword"
+                      },
+                      "value": {
+                        "ignore_above": 1024,
+                        "type": "keyword"
+                      }
+                    }
+                  },
+                  "title": {
+                    "ignore_above": 1024,
+                    "type": "keyword"
+                  },
+                  "workarounds": {
+                    "properties": {
+                      "lang": {
+                        "ignore_above": 1024,
+                        "type": "keyword"
+                      },
+                      "supportingMedia": {
+                        "ignore_above": 1024,
+                        "type": "keyword"
+                      },
+                      "value": {
+                        "ignore_above": 1024,
+                        "type": "keyword"
+                      }
+                    }
+                  },
+                  "x_remediations": {
+                    "properties": {
+                      "windows": {
+                        "properties": {
+                          "anyOf": {
+                            "ignore_above": 1024,
+                            "type": "keyword"
+                          },
+                          "products": {
+                            "ignore_above": 1024,
+                            "type": "keyword"
+                          },
+                          "type": {
+                            "ignore_above": 1024,
+                            "type": "keyword"
+                          }
+                        },
+                        "type": "nested"
+                      }
+                    }
+                  }
+                }
+              },
+              "cna": {
+                "properties": {
+                  "affected": {
+                    "properties": {
+                      "collectionURL": {
+                        "ignore_above": 1024,
+                        "type": "keyword"
+                      },
+                      "cpes": {
+                        "ignore_above": 1024,
+                        "type": "keyword"
+                      },
+                      "defaultStatus": {
+                        "ignore_above": 1024,
+                        "type": "keyword"
+                      },
+                      "modules": {
+                        "ignore_above": 1024,
+                        "type": "keyword"
+                      },
+                      "packageName": {
+                        "ignore_above": 1024,
+                        "type": "keyword"
+                      },
+                      "platforms": {
+                        "ignore_above": 1024,
+                        "type": "keyword"
+                      },
+                      "product": {
+                        "ignore_above": 1024,
+                        "type": "keyword"
+                      },
+                      "programFiles": {
+                        "ignore_above": 1024,
+                        "type": "keyword"
+                      },
+                      "programRoutines": {
+                        "properties": {
+                          "name": {
+                            "ignore_above": 1024,
+                            "type": "keyword"
+                          }
+                        }
+                      },
+                      "repo": {
+                        "ignore_above": 1024,
+                        "type": "keyword"
+                      },
+                      "vendor": {
+                        "ignore_above": 1024,
+                        "type": "keyword"
+                      },
+                      "versions": {
+                        "properties": {
+                          "changes": {
+                            "properties": {
+                              "at": {
+                                "ignore_above": 1024,
+                                "type": "keyword"
+                              },
+                              "status": {
+                                "ignore_above": 1024,
+                                "type": "keyword"
+                              }
+                            }
+                          },
+                          "lessThan": {
+                            "ignore_above": 1024,
+                            "type": "keyword"
+                          },
+                          "lessThanOrEqual": {
+                            "ignore_above": 1024,
+                            "type": "keyword"
+                          },
+                          "status": {
+                            "ignore_above": 1024,
+                            "type": "keyword"
+                          },
+                          "version": {
+                            "ignore_above": 1024,
+                            "type": "keyword"
+                          },
+                          "versionType": {
+                            "ignore_above": 1024,
+                            "type": "keyword"
+                          }
+                        }
+                      }
+                    }
+                  },
+                  "configurations": {
+                    "properties": {
+                      "lang": {
+                        "ignore_above": 1024,
+                        "type": "keyword"
+                      },
+                      "supportingMedia": {
+                        "properties": {
+                          "base64": {
+                            "type": "boolean"
+                          },
+                          "type": {
+                            "ignore_above": 1024,
+                            "type": "keyword"
+                          },
+                          "value": {
+                            "ignore_above": 1024,
+                            "type": "keyword"
+                          }
+                        }
+                      },
+                      "value": {
+                        "ignore_above": 1024,
+                        "type": "keyword"
+                      }
+                    }
+                  },
+                  "credits": {
+                    "properties": {
+                      "lang": {
+                        "ignore_above": 1024,
+                        "type": "keyword"
+                      },
+                      "type": {
+                        "ignore_above": 1024,
+                        "type": "keyword"
+                      },
+                      "user": {
+                        "ignore_above": 1024,
+                        "type": "keyword"
+                      },
+                      "value": {
+                        "ignore_above": 1024,
+                        "type": "keyword"
+                      }
+                    }
+                  },
+                  "dateAssigned": {
+                    "ignore_above": 1024,
+                    "type": "keyword"
+                  },
+                  "datePublic": {
+                    "ignore_above": 1024,
+                    "type": "keyword"
+                  },
+                  "descriptions": {
+                    "properties": {
+                      "lang": {
+                        "ignore_above": 1024,
+                        "type": "keyword"
+                      },
+                      "supportingMedia": {
+                        "properties": {
+                          "base64": {
+                            "type": "boolean"
+                          },
+                          "type": {
+                            "ignore_above": 1024,
+                            "type": "keyword"
+                          },
+                          "value": {
+                            "ignore_above": 1024,
+                            "type": "keyword"
+                          }
+                        }
+                      },
+                      "value": {
+                        "ignore_above": 1024,
+                        "type": "keyword"
+                      }
+                    }
+                  },
+                  "exploits": {
+                    "properties": {
+                      "lang": {
+                        "ignore_above": 1024,
+                        "type": "keyword"
+                      },
+                      "supportingMedia": {
+                        "properties": {
+                          "base64": {
+                            "type": "boolean"
+                          },
+                          "type": {
+                            "ignore_above": 1024,
+                            "type": "keyword"
+                          },
+                          "value": {
+                            "ignore_above": 1024,
+                            "type": "keyword"
+                          }
+                        }
+                      },
+                      "value": {
+                        "ignore_above": 1024,
+                        "type": "keyword"
+                      }
+                    }
+                  },
+                  "impacts": {
+                    "properties": {
+                      "capecId": {
+                        "ignore_above": 1024,
+                        "type": "keyword"
+                      },
+                      "descriptions": {
+                        "properties": {
+                          "lang": {
+                            "ignore_above": 1024,
+                            "type": "keyword"
+                          },
+                          "supportingMedia": {
+                            "properties": {
+                              "base64": {
+                                "type": "boolean"
+                              },
+                              "type": {
+                                "ignore_above": 1024,
+                                "type": "keyword"
+                              },
+                              "value": {
+                                "ignore_above": 1024,
+                                "type": "keyword"
+                              }
+                            }
+                          },
+                          "value": {
+                            "ignore_above": 1024,
+                            "type": "keyword"
+                          }
+                        }
+                      }
+                    }
+                  },
+                  "metrics": {
+                    "properties": {
+                      "cvssV2_0": {
+                        "properties": {
+                          "accessComplexity": {
+                            "ignore_above": 1024,
+                            "type": "keyword"
+                          },
+                          "accessVector": {
+                            "ignore_above": 1024,
+                            "type": "keyword"
+                          },
+                          "authentication": {
+                            "ignore_above": 1024,
+                            "type": "keyword"
+                          },
+                          "availabilityImpact": {
+                            "ignore_above": 1024,
+                            "type": "keyword"
+                          },
+                          "availabilityRequirement": {
+                            "ignore_above": 1024,
+                            "type": "keyword"
+                          },
+                          "baseScore": {
+                            "type": "float"
+                          },
+                          "collateralDamagePotential": {
+                            "ignore_above": 1024,
+                            "type": "keyword"
+                          },
+                          "confidentialityImpact": {
+                            "ignore_above": 1024,
+                            "type": "keyword"
+                          },
+                          "confidentialityRequirement": {
+                            "ignore_above": 1024,
+                            "type": "keyword"
+                          },
+                          "environmentalScore": {
+                            "type": "float"
+                          },
+                          "exploitability": {
+                            "ignore_above": 1024,
+                            "type": "keyword"
+                          },
+                          "integrityImpact": {
+                            "ignore_above": 1024,
+                            "type": "keyword"
+                          },
+                          "integrityRequirement": {
+                            "ignore_above": 1024,
+                            "type": "keyword"
+                          },
+                          "remediationLevel": {
+                            "ignore_above": 1024,
+                            "type": "keyword"
+                          },
+                          "reportConfidence": {
+                            "ignore_above": 1024,
+                            "type": "keyword"
+                          },
+                          "targetDistribution": {
+                            "ignore_above": 1024,
+                            "type": "keyword"
+                          },
+                          "temporalScore": {
+                            "type": "float"
+                          },
+                          "vectorString": {
+                            "ignore_above": 1024,
+                            "type": "keyword"
+                          },
+                          "version": {
+                            "ignore_above": 1024,
+                            "type": "keyword"
+                          }
+                        }
+                      },
+                      "cvssV3_0": {
+                        "properties": {
+                          "attackComplexity": {
+                            "ignore_above": 1024,
+                            "type": "keyword"
+                          },
+                          "attackVector": {
+                            "ignore_above": 1024,
+                            "type": "keyword"
+                          },
+                          "availabilityImpact": {
+                            "ignore_above": 1024,
+                            "type": "keyword"
+                          },
+                          "availabilityRequirement": {
+                            "ignore_above": 1024,
+                            "type": "keyword"
+                          },
+                          "baseScore": {
+                            "type": "float"
+                          },
+                          "baseSeverity": {
+                            "ignore_above": 1024,
+                            "type": "keyword"
+                          },
+                          "confidentialityImpact": {
+                            "ignore_above": 1024,
+                            "type": "keyword"
+                          },
+                          "confidentialityRequirement": {
+                            "ignore_above": 1024,
+                            "type": "keyword"
+                          },
+                          "environmentalScore": {
+                            "type": "float"
+                          },
+                          "environmentalSeverity": {
+                            "ignore_above": 1024,
+                            "type": "keyword"
+                          },
+                          "exploitCodeMaturity": {
+                            "ignore_above": 1024,
+                            "type": "keyword"
+                          },
+                          "integrityImpact": {
+                            "ignore_above": 1024,
+                            "type": "keyword"
+                          },
+                          "integrityRequirement": {
+                            "ignore_above": 1024,
+                            "type": "keyword"
+                          },
+                          "modifiedAttackComplexity": {
+                            "ignore_above": 1024,
+                            "type": "keyword"
+                          },
+                          "modifiedAttackVector": {
+                            "ignore_above": 1024,
+                            "type": "keyword"
+                          },
+                          "modifiedAvailabilityImpact": {
+                            "ignore_above": 1024,
+                            "type": "keyword"
+                          },
+                          "modifiedConfidentialityImpact": {
+                            "ignore_above": 1024,
+                            "type": "keyword"
+                          },
+                          "modifiedIntegrityImpact": {
+                            "ignore_above": 1024,
+                            "type": "keyword"
+                          },
+                          "modifiedPrivilegesRequired": {
+                            "ignore_above": 1024,
+                            "type": "keyword"
+                          },
+                          "modifiedScope": {
+                            "ignore_above": 1024,
+                            "type": "keyword"
+                          },
+                          "modifiedUserInteraction": {
+                            "ignore_above": 1024,
+                            "type": "keyword"
+                          },
+                          "privilegesRequired": {
+                            "ignore_above": 1024,
+                            "type": "keyword"
+                          },
+                          "remediationLevel": {
+                            "ignore_above": 1024,
+                            "type": "keyword"
+                          },
+                          "reportConfidence": {
+                            "ignore_above": 1024,
+                            "type": "keyword"
+                          },
+                          "scope": {
+                            "ignore_above": 1024,
+                            "type": "keyword"
+                          },
+                          "temporalScore": {
+                            "type": "float"
+                          },
+                          "temporalSeverity": {
+                            "ignore_above": 1024,
+                            "type": "keyword"
+                          },
+                          "userInteraction": {
+                            "ignore_above": 1024,
+                            "type": "keyword"
+                          },
+                          "vectorString": {
+                            "ignore_above": 1024,
+                            "type": "keyword"
+                          },
+                          "version": {
+                            "ignore_above": 1024,
+                            "type": "keyword"
+                          }
+                        }
+                      },
+                      "cvssV3_1": {
+                        "properties": {
+                          "attackComplexity": {
+                            "ignore_above": 1024,
+                            "type": "keyword"
+                          },
+                          "attackVector": {
+                            "ignore_above": 1024,
+                            "type": "keyword"
+                          },
+                          "availabilityImpact": {
+                            "ignore_above": 1024,
+                            "type": "keyword"
+                          },
+                          "availabilityRequirement": {
+                            "ignore_above": 1024,
+                            "type": "keyword"
+                          },
+                          "baseScore": {
+                            "type": "float"
+                          },
+                          "baseSeverity": {
+                            "ignore_above": 1024,
+                            "type": "keyword"
+                          },
+                          "confidentialityImpact": {
+                            "ignore_above": 1024,
+                            "type": "keyword"
+                          },
+                          "confidentialityRequirement": {
+                            "ignore_above": 1024,
+                            "type": "keyword"
+                          },
+                          "environmentalScore": {
+                            "type": "float"
+                          },
+                          "environmentalSeverity": {
+                            "ignore_above": 1024,
+                            "type": "keyword"
+                          },
+                          "exploitCodeMaturity": {
+                            "ignore_above": 1024,
+                            "type": "keyword"
+                          },
+                          "integrityImpact": {
+                            "ignore_above": 1024,
+                            "type": "keyword"
+                          },
+                          "integrityRequirement": {
+                            "ignore_above": 1024,
+                            "type": "keyword"
+                          },
+                          "modifiedAttackComplexity": {
+                            "ignore_above": 1024,
+                            "type": "keyword"
+                          },
+                          "modifiedAttackVector": {
+                            "ignore_above": 1024,
+                            "type": "keyword"
+                          },
+                          "modifiedAvailabilityImpact": {
+                            "ignore_above": 1024,
+                            "type": "keyword"
+                          },
+                          "modifiedConfidentialityImpact": {
+                            "ignore_above": 1024,
+                            "type": "keyword"
+                          },
+                          "modifiedIntegrityImpact": {
+                            "ignore_above": 1024,
+                            "type": "keyword"
+                          },
+                          "modifiedPrivilegesRequired": {
+                            "ignore_above": 1024,
+                            "type": "keyword"
+                          },
+                          "modifiedScope": {
+                            "ignore_above": 1024,
+                            "type": "keyword"
+                          },
+                          "modifiedUserInteraction": {
+                            "ignore_above": 1024,
+                            "type": "keyword"
+                          },
+                          "privilegesRequired": {
+                            "ignore_above": 1024,
+                            "type": "keyword"
+                          },
+                          "remediationLevel": {
+                            "ignore_above": 1024,
+                            "type": "keyword"
+                          },
+                          "reportConfidence": {
+                            "ignore_above": 1024,
+                            "type": "keyword"
+                          },
+                          "scope": {
+                            "ignore_above": 1024,
+                            "type": "keyword"
+                          },
+                          "temporalScore": {
+                            "type": "float"
+                          },
+                          "temporalSeverity": {
+                            "ignore_above": 1024,
+                            "type": "keyword"
+                          },
+                          "userInteraction": {
+                            "ignore_above": 1024,
+                            "type": "keyword"
+                          },
+                          "vectorString": {
+                            "ignore_above": 1024,
+                            "type": "keyword"
+                          },
+                          "version": {
+                            "ignore_above": 1024,
+                            "type": "keyword"
+                          }
+                        }
+                      },
+                      "cvssV4_0": {
+                        "properties": {
+                          "Automatable": {
+                            "ignore_above": 1024,
+                            "type": "keyword"
+                          },
+                          "Recovery": {
+                            "ignore_above": 1024,
+                            "type": "keyword"
+                          },
+                          "Safety": {
+                            "ignore_above": 1024,
+                            "type": "keyword"
+                          },
+                          "attackComplexity": {
+                            "ignore_above": 1024,
+                            "type": "keyword"
+                          },
+                          "attackRequirements": {
+                            "ignore_above": 1024,
+                            "type": "keyword"
+                          },
+                          "attackVector": {
+                            "ignore_above": 1024,
+                            "type": "keyword"
+                          },
+                          "availabilityRequirement": {
+                            "ignore_above": 1024,
+                            "type": "keyword"
+                          },
+                          "baseScore": {
+                            "type": "float"
+                          },
+                          "baseSeverity": {
+                            "ignore_above": 1024,
+                            "type": "keyword"
+                          },
+                          "confidentialityRequirement": {
+                            "ignore_above": 1024,
+                            "type": "keyword"
+                          },
+                          "exploitMaturity": {
+                            "ignore_above": 1024,
+                            "type": "keyword"
+                          },
+                          "integrityRequirement": {
+                            "ignore_above": 1024,
+                            "type": "keyword"
+                          },
+                          "modifiedAttackComplexity": {
+                            "ignore_above": 1024,
+                            "type": "keyword"
+                          },
+                          "modifiedAttackRequirements": {
+                            "ignore_above": 1024,
+                            "type": "keyword"
+                          },
+                          "modifiedAttackVector": {
+                            "ignore_above": 1024,
+                            "type": "keyword"
+                          },
+                          "modifiedPrivilegesRequired": {
+                            "ignore_above": 1024,
+                            "type": "keyword"
+                          },
+                          "modifiedSubAvailabilityImpact": {
+                            "ignore_above": 1024,
+                            "type": "keyword"
+                          },
+                          "modifiedSubConfidentialityImpact": {
+                            "ignore_above": 1024,
+                            "type": "keyword"
+                          },
+                          "modifiedSubIntegrityImpact": {
+                            "ignore_above": 1024,
+                            "type": "keyword"
+                          },
+                          "modifiedUserInteraction": {
+                            "ignore_above": 1024,
+                            "type": "keyword"
+                          },
+                          "modifiedVulnAvailabilityImpact": {
+                            "ignore_above": 1024,
+                            "type": "keyword"
+                          },
+                          "modifiedVulnConfidentialityImpact": {
+                            "ignore_above": 1024,
+                            "type": "keyword"
+                          },
+                          "modifiedVulnIntegrityImpact": {
+                            "ignore_above": 1024,
+                            "type": "keyword"
+                          },
+                          "privilegesRequired": {
+                            "ignore_above": 1024,
+                            "type": "keyword"
+                          },
+                          "providerUrgency": {
+                            "ignore_above": 1024,
+                            "type": "keyword"
+                          },
+                          "subAvailabilityImpact": {
+                            "ignore_above": 1024,
+                            "type": "keyword"
+                          },
+                          "subConfidentialityImpact": {
+                            "ignore_above": 1024,
+                            "type": "keyword"
+                          },
+                          "subIntegrityImpact": {
+                            "ignore_above": 1024,
+                            "type": "keyword"
+                          },
+                          "userInteraction": {
+                            "ignore_above": 1024,
+                            "type": "keyword"
+                          },
+                          "valueDensity": {
+                            "ignore_above": 1024,
+                            "type": "keyword"
+                          },
+                          "vectorString": {
+                            "ignore_above": 1024,
+                            "type": "keyword"
+                          },
+                          "version": {
+                            "ignore_above": 1024,
+                            "type": "keyword"
+                          },
+                          "vulnAvailabilityImpact": {
+                            "ignore_above": 1024,
+                            "type": "keyword"
+                          },
+                          "vulnConfidentialityImpact": {
+                            "ignore_above": 1024,
+                            "type": "keyword"
+                          },
+                          "vulnIntegrityImpact": {
+                            "ignore_above": 1024,
+                            "type": "keyword"
+                          },
+                          "vulnerabilityResponseEffort": {
+                            "ignore_above": 1024,
+                            "type": "keyword"
+                          }
+                        }
+                      },
+                      "format": {
+                        "ignore_above": 1024,
+                        "type": "keyword"
+                      },
+                      "other": {
+                        "properties": {
+                          "content": {
+                            "type": "flat_object"
+                          },
+                          "type": {
+                            "ignore_above": 1024,
+                            "type": "keyword"
+                          }
+                        }
+                      },
+                      "scenarios": {
+                        "ignore_above": 1024,
+                        "type": "keyword"
+                      }
+                    }
+                  },
+                  "problemTypes": {
+                    "properties": {
+                      "descriptions": {
+                        "properties": {
+                          "cweId": {
+                            "ignore_above": 1024,
+                            "type": "keyword"
+                          },
+                          "description": {
+                            "ignore_above": 1024,
+                            "type": "keyword"
+                          },
+                          "lang": {
+                            "ignore_above": 1024,
+                            "type": "keyword"
+                          },
+                          "references": {
+                            "properties": {
+                              "name": {
+                                "ignore_above": 1024,
+                                "type": "keyword"
+                              },
+                              "tags": {
+                                "ignore_above": 1024,
+                                "type": "keyword"
+                              },
+                              "url": {
+                                "ignore_above": 1024,
+                                "type": "keyword"
+                              }
+                            }
+                          },
+                          "type": {
+                            "ignore_above": 1024,
+                            "type": "keyword"
+                          }
+                        }
+                      }
+                    }
+                  },
+                  "providerMetadata": {
+                    "properties": {
+                      "dateUpdated": {
+                        "type": "date"
+                      },
+                      "orgId": {
+                        "ignore_above": 1024,
+                        "type": "keyword"
+                      },
+                      "shortName": {
+                        "ignore_above": 1024,
+                        "type": "keyword"
+                      },
+                      "x_subShortName": {
+                        "ignore_above": 1024,
+                        "type": "keyword"
+                      }
+                    }
+                  },
+                  "references": {
+                    "properties": {
+                      "name": {
+                        "ignore_above": 1024,
+                        "type": "keyword"
+                      },
+                      "tags": {
+                        "ignore_above": 1024,
+                        "type": "keyword"
+                      },
+                      "url": {
+                        "ignore_above": 1024,
+                        "type": "keyword"
+                      }
+                    }
+                  },
+                  "rejectedReasons": {
+                    "properties": {
+                      "lang": {
+                        "ignore_above": 1024,
+                        "type": "keyword"
+                      },
+                      "supportingMedia": {
+                        "ignore_above": 1024,
+                        "type": "keyword"
+                      },
+                      "value": {
+                        "ignore_above": 1024,
+                        "type": "keyword"
+                      }
+                    }
+                  },
+                  "replacedBy": {
+                    "ignore_above": 1024,
+                    "type": "keyword"
+                  },
+                  "solutions": {
+                    "properties": {
+                      "lang": {
+                        "ignore_above": 1024,
+                        "type": "keyword"
+                      },
+                      "supportingMedia": {
+                        "properties": {
+                          "base64": {
+                            "type": "boolean"
+                          },
+                          "type": {
+                            "ignore_above": 1024,
+                            "type": "keyword"
+                          },
+                          "value": {
+                            "ignore_above": 1024,
+                            "type": "keyword"
+                          }
+                        }
+                      },
+                      "value": {
+                        "ignore_above": 1024,
+                        "type": "keyword"
+                      }
+                    }
+                  },
+                  "source": {
+                    "ignore_above": 1024,
+                    "type": "keyword"
+                  },
+                  "tags": {
+                    "ignore_above": 1024,
+                    "type": "keyword"
+                  },
+                  "taxonomyMappings": {
+                    "properties": {
+                      "taxonomyName": {
+                        "ignore_above": 1024,
+                        "type": "keyword"
+                      },
+                      "taxonomyRelations": {
+                        "properties": {
+                          "relationshipName": {
+                            "ignore_above": 1024,
+                            "type": "keyword"
+                          },
+                          "relationshipValue": {
+                            "ignore_above": 1024,
+                            "type": "keyword"
+                          },
+                          "taxonomyId": {
+                            "ignore_above": 1024,
+                            "type": "keyword"
+                          }
+                        }
+                      },
+                      "taxonomyVersion": {
+                        "ignore_above": 1024,
+                        "type": "keyword"
+                      }
+                    }
+                  },
+                  "timeline": {
+                    "properties": {
+                      "lang": {
+                        "ignore_above": 1024,
+                        "type": "keyword"
+                      },
+                      "time": {
+                        "ignore_above": 1024,
+                        "type": "keyword"
+                      },
+                      "value": {
+                        "ignore_above": 1024,
+                        "type": "keyword"
+                      }
+                    }
+                  },
+                  "title": {
+                    "ignore_above": 1024,
+                    "type": "keyword"
+                  },
+                  "workarounds": {
+                    "properties": {
+                      "lang": {
+                        "ignore_above": 1024,
+                        "type": "keyword"
+                      },
+                      "supportingMedia": {
+                        "properties": {
+                          "base64": {
+                            "type": "boolean"
+                          },
+                          "type": {
+                            "ignore_above": 1024,
+                            "type": "keyword"
+                          },
+                          "value": {
+                            "ignore_above": 1024,
+                            "type": "keyword"
+                          }
+                        }
+                      },
+                      "value": {
+                        "ignore_above": 1024,
+                        "type": "keyword"
+                      }
+                    }
+                  },
+                  "x_remediations": {
+                    "properties": {
+                      "windows": {
+                        "properties": {
+                          "anyOf": {
+                            "ignore_above": 1024,
+                            "type": "keyword"
+                          },
+                          "products": {
+                            "ignore_above": 1024,
+                            "type": "keyword"
+                          },
+                          "type": {
+                            "ignore_above": 1024,
+                            "type": "keyword"
+                          }
+                        },
+                        "type": "nested"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "cveMetadata": {
+            "properties": {
+              "assignerOrgId": {
+                "ignore_above": 1024,
+                "type": "keyword"
+              },
+              "assignerShortName": {
+                "ignore_above": 1024,
+                "type": "keyword"
+              },
+              "cveId": {
+                "ignore_above": 1024,
+                "type": "keyword"
+              },
+              "datePublished": {
+                "type": "date"
+              },
+              "dateRejected": {
+                "type": "date"
+              },
+              "dateReserved": {
+                "type": "date"
+              },
+              "dateUpdated": {
+                "type": "date"
+              },
+              "requesterUserId": {
+                "ignore_above": 1024,
+                "type": "keyword"
+              },
+              "serial": {
+                "ignore_above": 1024,
+                "type": "keyword"
+              },
+              "state": {
+                "ignore_above": 1024,
+                "type": "keyword"
+              }
+            }
+          },
+          "dataType": {
+            "ignore_above": 1024,
+            "type": "keyword"
+          },
+          "dataVersion": {
+            "ignore_above": 1024,
+            "type": "keyword"
+          }
+        }
+      },
+      "version": {
+        "ignore_above": 1024,
+        "type": "keyword"
+      }
+    }
+  },
+  "order": 1,
+  "settings": {
+    "index": {
+      "number_of_replicas": "0",
+      "number_of_shards": "1",
+      "query.default_field": [
+        "name"
+      ],
+      "refresh_interval": "5s"
+    }
+  }
+}

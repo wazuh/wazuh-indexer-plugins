@@ -13,6 +13,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Implement CTI snapshot unzip tool [(#319)](https://github.com/wazuh/wazuh-indexer-plugins/pull/319)
 - Implement content "update" command [(#339)](https://github.com/wazuh/wazuh-indexer-plugins/pull/339)
 - Add mappings for Wazuh rules (stage 1) to the Alerts index [#345](https://github.com/wazuh/wazuh-indexer-plugins/pull/345)
+- Implement CVE ECS definition and index template [(#337)](https://github.com/wazuh/wazuh-indexer-plugins/pull/337)
 
 ### Dependencies
 

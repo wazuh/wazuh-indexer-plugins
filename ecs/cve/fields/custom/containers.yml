@@ -1,0 +1,14 @@
+- name: containers
+  title: Containers
+  description: A set of structures used to store vulnerability information related to a specific CVE ID provided by an organization.
+  reusable:
+    top_level: false
+    expected:
+      - { at: payload, as: containers }
+  fields:
+    - name: adp
+      type: keyword
+      level: custom
+      description: The JSON instance of the Automated Data Provider (ADP) container.
+      normalize:
+        - array

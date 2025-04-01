@@ -1,0 +1,51 @@
+---
+- name: x_remediations
+  title: x_remediations
+  group: 2
+  description: These fields contain Windows remediations (hotfixes) for a CVE.
+  type: group
+  reusable:
+    top_level: false
+    order: 1
+    required: true
+    expected:
+      - adp
+      - cna
+
+  fields:
+    - name: windows
+      short: Windows updates for a CVE.
+      description: >
+        An array containing objects for each patch that fixes a CVE in Windows.
+
+        The keys that should be present in these objects are defined by sub-fields
+        underneath `x_remediations.windows.*`.
+      type: nested
+      level: custom
+      normalize:
+        - "array"
+
+    - name: windows.anyOf
+      description: >
+        An array containing the IDs of the patches that fix a CVE.
+      type: keyword
+      level: custom
+      normalize:
+        - "array"
+      example: "[\"KB5049981\"]"
+
+    - name: windows.products
+      description: >
+        Windows products that can apply this patch.
+      type: keyword
+      level: custom
+      normalize:
+        - "array"
+      example: "[\"Windows 10\"]"
+
+    - name: windows.type
+      description: >
+        Type of patch.
+      type: keyword
+      level: custom
+      example: "update"
