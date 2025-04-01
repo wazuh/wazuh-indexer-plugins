@@ -67,7 +67,7 @@ public class AgentJobRunner implements ScheduledJobRunner {
             ScheduledJobParameter scheduledJobParameter, JobExecutionContext jobExecutionContext) {
         if (!this.clusterService.state().routingTable().hasIndex(PluginSettings.getAgentsIndex())) {
             log.info(
-                    "{} index not yet created, not running agent status jobs",
+                    "{} index not created yet, not running agent status jobs",
                     PluginSettings.getAgentsIndex());
             return;
         }

@@ -25,7 +25,6 @@ import org.opensearch.cluster.node.DiscoveryNode;
 import org.opensearch.cluster.service.ClusterService;
 import org.opensearch.common.UUIDs;
 import org.opensearch.common.settings.Setting;
-import org.opensearch.common.settings.Settings;
 import org.opensearch.core.common.io.stream.NamedWriteableRegistry;
 import org.opensearch.core.xcontent.NamedXContentRegistry;
 import org.opensearch.core.xcontent.XContentParser;
@@ -38,7 +37,6 @@ import org.opensearch.jobscheduler.spi.ScheduledJobRunner;
 import org.opensearch.jobscheduler.spi.schedule.ScheduleParser;
 import org.opensearch.plugins.ClusterPlugin;
 import org.opensearch.plugins.Plugin;
-import org.opensearch.plugins.ReloadablePlugin;
 import org.opensearch.repositories.RepositoriesService;
 import org.opensearch.script.ScriptService;
 import org.opensearch.threadpool.ThreadPool;
@@ -62,8 +60,7 @@ import com.wazuh.setup.settings.PluginSettings;
  * Main class of the Indexer Setup plugin. This plugin is responsible for the creation of the index
  * templates and indices required by Wazuh to work properly.
  */
-public class SetupPlugin extends Plugin
-        implements ClusterPlugin, JobSchedulerExtension, ReloadablePlugin {
+public class SetupPlugin extends Plugin implements ClusterPlugin, JobSchedulerExtension {
     private static final Logger log = LogManager.getLogger(SetupPlugin.class);
 
     private WazuhIndices indices;
@@ -107,7 +104,7 @@ public class SetupPlugin extends Plugin
      * Indexes a document into the jobs index, so that JobScheduler plugin can run it
      *
      * @param client: The cluster client, used for indexing
-     * @param clusterService: Provides the addListener method. We use it to determine if this is a new
+     * @param clusterService Provides the addListener method. We use it to determine if this is a new
      *     cluster.
      * @param threadPool: Used by jobDocument to create the document in a thread.
      */
@@ -209,7 +206,4 @@ public class SetupPlugin extends Plugin
         XContentParserUtils.throwUnknownToken(parser.currentToken(), parser.getTokenLocation());
         return null;
     }
-
-    @Override
-    public void reload(Settings settings) throws Exception {}
 }
