@@ -71,7 +71,8 @@ public class PluginSettings {
      * @param settings as obtained in createComponents.
      * @param clusterService service to get cluster stats.
      */
-    public static void getInstance(@NonNull final Settings settings, ClusterService clusterService) {
+    public static void initializeInstance(
+            @NonNull final Settings settings, ClusterService clusterService) {
         if (INSTANCE != null) {
             return;
         }

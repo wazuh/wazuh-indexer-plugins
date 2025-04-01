@@ -5,19 +5,8 @@ info:
 servers:
   - url: http://127.0.0.1:9200/_plugins/_content_manager
 paths:
-  /vd-catalog:
-    get:
-      summary: Get the catalog details
-      tags:
-        - "catalog"
-      operationId: getCatalogDetails
-      responses:
-        "200":
-          description: OK
-
   /updater:
     get:
-
       summary: Launch the Content Updater module
       tags:
         - "update"

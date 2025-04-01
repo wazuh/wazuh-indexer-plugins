@@ -16,7 +16,6 @@
  */
 package com.wazuh.contentmanager.rest;
 
-import com.wazuh.contentmanager.client.CommandManagerClient;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.opensearch.client.node.NodeClient;
