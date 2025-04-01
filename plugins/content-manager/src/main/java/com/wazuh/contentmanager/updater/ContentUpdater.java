@@ -124,11 +124,12 @@ public class ContentUpdater {
      */
     @VisibleForTesting
     Long getCurrentOffset() {
-        return Privileged.doPrivilegedRequest(
-                () ->
-                        ContextIndex.getInstance()
-                                .getConsumer(PluginSettings.CONTEXT_ID, PluginSettings.CONSUMER_ID)
-                                .getLastOffset());
+        ConsumerInfo consumerInfo =
+                Privileged.doPrivilegedRequest(
+                        () ->
+                                ContextIndex.getInstance()
+                                        .getConsumer(PluginSettings.CONTEXT_ID, PluginSettings.CONSUMER_ID));
+        return consumerInfo.getLastOffset();
     }
 
     /**

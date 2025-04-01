@@ -33,7 +33,6 @@ import org.opensearch.search.builder.SearchSourceBuilder;
 import java.io.IOException;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
@@ -179,15 +178,29 @@ public class ContextIndex {
     public ConsumerInfo getConsumer(String context, String consumer) {
         try {
             SearchResponse searchResponse = get(context).get(TIMEOUT, TimeUnit.SECONDS);
+            log.info("Received search response for {}: {}", context, searchResponse.status());
+
             Map<String, Object> source =
                     (Map<String, Object>)
                             searchResponse.getHits().getHits()[0].getSourceAsMap().get(consumer);
-            Long last_offset = (Long) source.get(ConsumerInfo.LAST_OFFSET);
+            if (source == null) {
+                log.warn("Consumer {} not found in context {}", consumer, context);
+                return null;
+            }
+
+            Object offsetObj = source.get(ConsumerInfo.LAST_OFFSET);
+            Long last_offset = (offsetObj instanceof Number) ? ((Number) offsetObj).longValue() : null;
             String snapshot = (String) source.get(ConsumerInfo.LAST_SNAPSHOT_LINK);
             return new ConsumerInfo(consumer, context, last_offset, snapshot);
-        } catch (InterruptedException | ExecutionException | TimeoutException e) {
+        } catch (TimeoutException e) {
+            log.error("Timeout retrieving context [{}], consumer [{}]", context, consumer, e);
+        } catch (Exception e) {
             log.error(
-                    "Failed to retrieve context [{}], consumer [{}]: {}", context, consumer, e.getMessage());
+                    "Failed to retrieve context [{}], consumer [{}]: {}",
+                    context,
+                    consumer,
+                    e.getMessage(),
+                    e);
         }
         return null;
     }
