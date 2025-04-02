@@ -1,5 +1,6 @@
 #!/bin/python3
 
+import argparse
 import datetime
 import json
 import logging
@@ -120,14 +121,6 @@ def generate_random_host(is_root_level=False):
                 'version': version
             },
             'pid_ns_ino': f'{random.randint(1000000, 9999999)}',
-            'risk': {
-                'calculated_level': random.choice(['low', 'medium', 'high']),
-                'calculated_score': random.uniform(0, 100),
-                'calculated_score_norm': random.uniform(0, 1),
-                'static_level': random.choice(['low', 'medium', 'high']),
-                'static_score': random.uniform(0, 100),
-                'static_score_norm': random.uniform(0, 1)
-            },
             'uptime': random.randint(0, 1000000)
         }
     return host
@@ -152,7 +145,7 @@ def generate_random_check():
       'references': [f'https://example.com/check{random.randint(0, 9999)}'],
       'condition': 'all',
       'compliance': [f'cis:{random.randint(1, 10)}.{random.randint(1, 10)}.{random.randint(1, 10)}'],
-      'rules': {},
+      'rules': [f'Rule {random.randint(1, 100)}', f'Rule {random.randint(1, 100)}'],
       'result': 'pass',
       'reason': 'Randomly passed.'
     }
@@ -171,8 +164,9 @@ def generate_random_data(number):
         data.append(event_data)
     return data
 
-def inject_events(ip, port, index, username, password, data):
-    url = f'https://{ip}:{port}/{index}/_doc'
+def inject_events(protocol, ip, port, index, username, password, data):
+    url = f'{protocol}://{ip}:{port}/{index}/_doc'
+    print(f'Injecting data into {url}')
     session = requests.Session()
     session.auth = (username, password)
     session.verify = False
@@ -189,6 +183,16 @@ def inject_events(ip, port, index, username, password, data):
         logging.error(f'Error: {str(e)}')
 
 def main():
+    parser = argparse.ArgumentParser(
+        description="Generate and optionally inject events into an OpenSearch index or Command Manager."
+    )
+    parser.add_argument(
+        "--protocol",
+        choices=['http', 'https'],
+        default='https',
+        help="Specify the protocol to use: http or https."
+    )
+    args = parser.parse_args()
     try:
         number = int(input("How many events do you want to generate? "))
     except ValueError:
@@ -210,7 +214,7 @@ def main():
         index = input(f"Enter the index name (default: '{INDEX_NAME}'): ") or INDEX_NAME
         username = input(f"Username (default: '{USERNAME}'): ") or USERNAME
         password = input(f"Password (default: '{PASSWORD}'): ") or PASSWORD
-        inject_events(ip, port, index, username, password, data)
+        inject_events(args.protocol, ip, port, index, username, password, data)
 
 if __name__ == "__main__":
     main()
