@@ -10,9 +10,14 @@
         "query.default_field": [
           "agent.id",
           "agent.groups",
+          "check.name",
+          "check.id",
+          "check.description",
           "host.name",
           "host.os.type",
-          "host.os.version"
+          "host.os.version",
+          "policy.name",
+          "policy.description"
         ]
       }
     }
