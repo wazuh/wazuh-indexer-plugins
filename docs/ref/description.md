@@ -28,9 +28,5 @@ The Wazuh indexer stores the data collected by the Wazuh agents in separate indi
 | wazuh-states-vulnerabilities     | Active vulnerabilities on the endpoint and its details.                                                                                                                                                                                              |
 | wazuh‑archives                   | Stores all events (archive data) received by the [Wazuh server](https://documentation.wazuh.com/current/getting-started/components/wazuh-server.html), whether they trip a rule.                                                                     |
 | wazuh-internal-users             | Stores information about internal users, including authentication details and role-based access control (RBAC) permissions.                                                                                                                          |
-<<<<<<< HEAD
 | wazuh-custom-users	           | Stores information about custom users defined by administrators, including user-specific roles and permissions.                                                                                                                                      |
 | wazuh-cve                      | Stores information about Common Vulnerabilities and Exposures (CVEs) and their details.                                                                                                                                                              |
-=======
-| wazuh-custom-users               | Stores information about custom users defined by administrators, including user-specific roles and permissions.                                                                                                                                      |
->>>>>>> cf4ce19 (Update documentation reference manual with new sca indexes)
