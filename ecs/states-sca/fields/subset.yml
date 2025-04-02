@@ -15,11 +15,9 @@ fields:
       host:
         fields: "*"
   check:
-    fields:
-      "*"
+    fields: "*"
   host:
     fields: "*"
   policy:
-    fields:
-      "*"
+    fields: "*"
 
