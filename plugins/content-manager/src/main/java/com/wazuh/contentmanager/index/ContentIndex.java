@@ -45,7 +45,6 @@ public class ContentIndex {
     private final Client client;
     private final Semaphore semaphore = new Semaphore(MAX_CONCURRENT_PETITIONS);
 
-
     /**
      * Default constructor
      *
@@ -91,7 +90,6 @@ public class ContentIndex {
                     public void onFailure(Exception e) {
                         semaphore.release();
                         log.error("Snapshot indexing bulk request has failed: {}", e.getMessage());
-
                     }
                 });
     }
@@ -113,6 +111,8 @@ public class ContentIndex {
      * @param path path to the CTI snapshot JSON file to be indexed.
      */
     public void fromSnapshot(String path) {
+        long startTime = System.currentTimeMillis();
+
         String line;
         JsonObject json;
         int lineCount = 0;
@@ -121,12 +121,15 @@ public class ContentIndex {
         try (BufferedReader reader = new BufferedReader(new FileReader(path, StandardCharsets.UTF_8))) {
             while ((line = reader.readLine()) != null) {
                 json = JsonParser.parseString(line).getAsJsonObject();
+                // Not every line in the snapshot is a CVE. We filter out the content by the "name" field of
+                // the
+                // current JSON object, if it starts with "CVE-". Any other case is skipped.
                 String name = json.get("name").getAsString();
                 if (name.startsWith("CVE-")) {
                     items.add(json);
                     lineCount++;
                 } else {
-                    log.warn("Skipping non CVE element [{}]", name);
+                    log.debug("Skipping non CVE element [{}]", name);
                 }
 
                 // Index items (MAX_DOCUMENTS reached)
@@ -145,5 +148,7 @@ public class ContentIndex {
         } catch (Exception e) {
             log.error("Error processing snapshot file {}", e.getMessage());
         }
+        long estimatedTime = System.currentTimeMillis() - startTime;
+        log.info("Snapshot indexing finished successfully in {} ms", estimatedTime);
     }
 }

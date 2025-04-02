@@ -45,7 +45,6 @@ import com.wazuh.contentmanager.index.ContextIndex;
 import com.wazuh.contentmanager.model.ctiapi.ConsumerInfo;
 import com.wazuh.contentmanager.settings.PluginSettings;
 import com.wazuh.contentmanager.util.Privileged;
-import com.wazuh.contentmanager.util.Unzip;
 
 /** Main class of the Content Manager Plugin */
 public class ContentManagerPlugin extends Plugin implements ClusterPlugin, ActionPlugin {
@@ -90,27 +89,30 @@ public class ContentManagerPlugin extends Plugin implements ClusterPlugin, Actio
         this.contextIndex.index(consumerInfo);
 
         // Wrapping up for testing
-        Privileged.doPrivilegedRequest(
-                () -> {
-                    CTIClient.getInstance()
-                            .download(
-                                    "https://cti.wazuh.com/store/contexts/vd_1.0.0/consumers/vd_4.8.0/1432540_1741603172.zip",
-                                    environment);
-                    String snapshotZip =
-                            this.environment.resolveRepoFile("1432540_1741603172.zip").toString();
-                    String snapshot =
-                            this.environment
-                                    .resolveRepoFile("vd_1.0.0_vd_4.8.0_1432540_1741603172.json")
-                                    .toString();
-                    String dir = this.environment.resolveRepoFile("").toString();
-                    try {
-                        Unzip.unzip(snapshotZip, dir, this.environment);
-                    } catch (IOException e) {
-                        throw new RuntimeException(e);
-                    }
-                    this.contentIndex.fromSnapshot(snapshot);
-                    return null;
-                });
+        //        Privileged.doPrivilegedRequest(
+        //                () -> {
+        //                    CTIClient.getInstance()
+        //                            .download(
+        //
+        // "https://cti.wazuh.com/store/contexts/vd_1.0.0/consumers/vd_4.8.0/1432540_1741603172.zip",
+        //                                    environment);
+        //                    String snapshotZip =
+        //
+        // this.environment.resolveRepoFile("1432540_1741603172.zip").toString();
+        //                    String snapshot =
+        //                            this.environment
+        //
+        // .resolveRepoFile("vd_1.0.0_vd_4.8.0_1432540_1741603172.json")
+        //                                    .toString();
+        //                    String dir = this.environment.resolveRepoFile("").toString();
+        //                    try {
+        //                        Unzip.unzip(snapshotZip, dir, this.environment);
+        //                    } catch (IOException e) {
+        //                        throw new RuntimeException(e);
+        //                    }
+        //                    this.contentIndex.fromSnapshot(snapshot);
+        //                    return null;
+        //                });
     }
 
     /**
