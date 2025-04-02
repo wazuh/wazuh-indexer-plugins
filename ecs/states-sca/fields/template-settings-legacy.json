@@ -11,12 +11,12 @@
         "agent.groups",
         "check.name",
         "check.id",
-        "check.description",
         "host.name",
         "host.os.type",
         "host.os.version",
+        "policy.id",
         "policy.name",
-        "policy.description"
+        "policy.file"
       ]
     }
   }
