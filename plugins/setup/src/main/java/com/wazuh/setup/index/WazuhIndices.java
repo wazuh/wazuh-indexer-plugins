@@ -75,6 +75,7 @@ public class WazuhIndices {
         this.indexTemplates.put(
                 "index-template-users", List.of("wazuh-internal-users", "wazuh-custom-users"));
         this.indexTemplates.put("index-template-cve", List.of("wazuh-cve"));
+        this.indexTemplates.put("index-template-sca", List.of("wazuh-states-sca"));
     }
 
     /**
