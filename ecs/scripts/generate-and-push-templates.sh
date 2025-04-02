@@ -82,6 +82,7 @@ detect_modified_modules() {
         [states-inventory-protocols]="index-template-protocols.json"
         [states-inventory-system]="index-template-system.json"
         [states-inventory-users]="index-template-users.json"
+        [states-sca]="index-template-sca.json"
         [states-vulnerabilities]="index-template-vulnerabilities.json"
     )
 
