@@ -68,7 +68,7 @@
       example: >
         "[\"c:net.exe accounts -> n:Maximum password age \(days\):\s+(\d+) compare > 0\"," >
         "\"c:net.exe accounts -> n:Length of password history maintained:\s+(\d+) compare >= 24\"]"
-    - name: rasult
+    - name: result
       type: keyword
       level: custom
       description: >
