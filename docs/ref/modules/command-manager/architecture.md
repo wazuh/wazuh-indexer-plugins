@@ -102,6 +102,37 @@ The command takes the `groups` argument, an array of strings depicting the **ful
 }
 ```
 
+### update
+
+The `update` command is used to notify about new content being available. We usually refer to content to the CVE and Ruleset catalog.
+
+Only accepted value for `target.type` is `server`. The `target.id` represents the server's module that is interested on the new content.
+
+The command takes the `index` and `offset` arguments, strings depicting the index where the new content is and its version, respectively. Any other value than a string is rejected. Additional arguments are ignored.
+
+```json
+{
+  "commands": [
+    {
+      "action": {
+        "name": "update",
+        "args": {
+          "index": "content-index",
+          "offset": "1111"
+        },
+        "version": "5.0.0"
+      },
+      "source": "Content Manager",
+      "timeout": 100,
+      "target": {
+        "id": "vulnerability-detector",
+        "type": "server"
+      }
+    }
+  ]
+}
+```
+
 ## Commands expansion
 
 Commands can be targeted to a group of agents, too. This is achieved by setting `group` as the target type and the name of the group as the target ID. For example:

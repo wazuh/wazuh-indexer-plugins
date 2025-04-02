@@ -1,0 +1,16 @@
+- name: scenarios
+  title: Scenarios
+  description: Scenarios metrics
+  reusable:
+    top_level: false
+    expected:
+      - { at: metrics, as: scenarios }
+  fields:
+    - name: lang
+      type: keyword
+      level: custom
+      description: The language of the scenario.
+    - name: value
+      type: keyword
+      level: custom
+      description: The value of the scenario.

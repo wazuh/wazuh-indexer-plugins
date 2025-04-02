@@ -85,6 +85,7 @@ detect_modified_modules() {
         [states-inventory-sca-stateless]="states-inventory-sca-stateless.json"
         [states-vulnerabilities]="index-template-vulnerabilities.json"
         [users]="index-template-users.json"
+        [cve]="index-template-cve.json"
     )
 
     relevant_modules=()
@@ -205,7 +206,7 @@ EOF
 
     # Authorize GitHub CLI for the current repository and
     # create a pull-requests containing the updates.
-    gh auth login --with-token < token.txt
+    gh auth login --with-token < token.txt || true # Ignore authentication warning
 
     if [ -z "$existing_pr" ]; then
         output=$(gh pr create --title "$title" --body "$body" --base main --head "$BRANCH_NAME")
