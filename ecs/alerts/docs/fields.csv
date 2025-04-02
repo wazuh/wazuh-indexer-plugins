@@ -67,6 +67,17 @@ ECS_Version,Indexed,Field_Set,Field,Type,Level,Normalization,Example,Description
 8.11.0,true,agent,agent.name,keyword,core,,foo,Custom name of the agent.
 8.11.0,true,agent,agent.type,keyword,core,,filebeat,Type of the agent.
 8.11.0,true,agent,agent.version,keyword,core,,6.0.0-rc2,Version of the agent.
+8.11.0,true,check,check.compliance,keyword,custom,array,"[""cis:1.1.1"",""cis_csc:5.2""]",List of compliance standards.
+8.11.0,true,check,check.condition,keyword,custom,,all,Condition for the check.
+8.11.0,true,check,check.description,keyword,custom,,This policy setting determines ...,Check description.
+8.11.0,true,check,check.id,keyword,custom,,26000,Check ID.
+8.11.0,true,check,check.name,keyword,custom,,Ensure 'Enforce password history' is set to '24 or more password(s)'.,Check name.
+8.11.0,true,check,check.rationale,keyword,custom,,The longer a user uses the same password ...,Rationale for the check.
+8.11.0,true,check,check.reason,keyword,custom,,<reason>,Reason for the check result.
+8.11.0,true,check,check.references,keyword,custom,array,"[""https://workbench.cisecurity.org""]",List of references.
+8.11.0,true,check,check.remediation,keyword,custom,,To establish the recommended configuration ...,Remediation steps for the check.
+8.11.0,true,check,check.result,keyword,custom,,failed,Check result.
+8.11.0,true,check,check.rules,keyword,custom,array,"""[\""c:net.exe accounts -> n:Maximum password age \(days\):\s+(\d+) compare > 0\"","" > ""\""c:net.exe accounts -> n:Length of password history maintained:\s+(\d+) compare >= 24\""]""",List of rules.
 8.11.0,true,client,client.address,keyword,extended,,,Client network address.
 8.11.0,true,client,client.as.number,long,extended,,15169,Unique number allocated to the autonomous system.
 8.11.0,true,client,client.as.organization.name,keyword,extended,,Google LLC,Organization name.
@@ -674,6 +685,11 @@ ECS_Version,Indexed,Field_Set,Field,Type,Level,Normalization,Example,Description
 8.11.0,true,package,package.size,long,extended,,62231,Package size in bytes.
 8.11.0,true,package,package.type,keyword,extended,,rpm,Package type
 8.11.0,true,package,package.version,keyword,extended,,1.12.9,Package version
+8.11.0,true,policy,policy.description,keyword,custom,,This document provides prescriptive guidance f...,Policy description.
+8.11.0,true,policy,policy.file,keyword,custom,,cis_win11_enterprise.yml,File containing the policy definition.
+8.11.0,true,policy,policy.id,keyword,custom,,cis_win11_enterprise_21H2,Policy ID.
+8.11.0,true,policy,policy.name,keyword,custom,,CIS Microsoft Windows 11 Enterprise Benchmark v1.0.0,Policy name.
+8.11.0,true,policy,policy.references,keyword,custom,array,"[""https://www.cisecurity.org/cis-benchmarks/""]",List of references.
 8.11.0,true,process,process.args,keyword,extended,array,"[""/usr/bin/ssh"", ""-l"", ""user"", ""10.0.0.16""]",Array of process arguments.
 8.11.0,true,process,process.args_count,long,extended,,4,Length of the process.args array.
 8.11.0,true,process,process.code_signature.digest_algorithm,keyword,extended,,sha256,Hashing algorithm used to sign the process.
