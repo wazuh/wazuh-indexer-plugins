@@ -30,6 +30,7 @@
     - name: references
       type: keyword
       level: custom
+      short: References for the policy.
       description: >
         References for the policy. This can include links to documentation, articles, or other resources that provide additional information about the policy, such as Common Configuration Enumeration (CCE).
 

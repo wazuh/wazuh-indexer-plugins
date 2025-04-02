@@ -37,6 +37,7 @@
     - name: references
       type: keyword
       level: custom
+      short: References for the check.
       description: >
         References for the check. This can include links to documentation, articles, or other resources that provide additional information about the check, such as Common Configuration Enumeration (CCE).
 
@@ -47,6 +48,7 @@
     - name: condition
       type: keyword
       level: custom
+      short: Relationship between the rules.
       description: >
         Describes the relationship between the rules. This field indicates how the rules should be evaluated to determine the overall result of the check.
 
@@ -58,6 +60,7 @@
     - name: compliance
       type: keyword
       level: custom
+      short: CIS compliance standard.
       description: >
         CIS compliance standard under which the check is defined. This field indicates the specific compliance standard that the check is associated with, such as CIS benchmarks or other compliance frameworks.
 
@@ -68,6 +71,7 @@
     - name: rules
       type: keyword
       level: custom
+      short: Rules to be evaluated.
       description: >
         Expression to be evaluated. This field contains the specific rules or expressions that need to be evaluated to determine the result of the check. The rules are typically defined using a specific syntax or format that allows for logical comparisons and evaluations.
         The rules can include various conditions, operators, and values that are used to assess the compliance status of the system or configuration being checked.
@@ -81,12 +85,14 @@
     - name: result
       type: keyword
       level: custom
+      short: Result of the check.
       description: >
         The result of the check. This field indicates whether the check passed or failed based on the evaluation of the rules. The result is typically represented as a boolean value, where "passed" indicates that the check was successful and "failed" indicates that the check did not meet the specified criteria.
       example: "failed"
     - name: reason
       type: keyword
       level: custom
+      short: Reason for the check result.
       description: >
         The reason for the check result. This field provides additional information or context about the result of the check. It may include details about why the check passed or failed, any specific conditions that were not met, or any other relevant information that helps to understand the outcome of the check.
       example: >
