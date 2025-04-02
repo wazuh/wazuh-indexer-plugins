@@ -166,7 +166,6 @@ def generate_random_data(number):
 
 def inject_events(protocol, ip, port, index, username, password, data):
     url = f'{protocol}://{ip}:{port}/{index}/_doc'
-    print(f'Injecting data into {url}')
     session = requests.Session()
     session.auth = (username, password)
     session.verify = False
