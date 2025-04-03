@@ -49,6 +49,11 @@ public class ContentUpdater {
         }
     }
 
+    /**
+     * Constructor method
+     *
+     * @param client the OpenSearch Client to interact with the cluster
+     */
     public ContentUpdater(Client client) {
         this.contextIndex = new ContextIndex(client);
     }
@@ -130,11 +135,9 @@ public class ContentUpdater {
      */
     @VisibleForTesting
     Long getCurrentOffset() {
-        return Privileged.doPrivilegedRequest(
-                () ->
-                        contextIndex
-                                .getConsumer(PluginSettings.CONTEXT_ID, PluginSettings.CONSUMER_ID)
-                                .getLastOffset());
+        return contextIndex
+                .getConsumer(PluginSettings.CONTEXT_ID, PluginSettings.CONSUMER_ID)
+                .getLastOffset();
     }
 
     /**

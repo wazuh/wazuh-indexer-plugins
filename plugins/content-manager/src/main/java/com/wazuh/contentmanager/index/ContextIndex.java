@@ -18,17 +18,14 @@ package com.wazuh.contentmanager.index;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.opensearch.action.get.GetRequest;
+import org.opensearch.action.get.GetResponse;
 import org.opensearch.action.index.IndexRequest;
 import org.opensearch.action.index.IndexResponse;
-import org.opensearch.action.search.SearchRequest;
-import org.opensearch.action.search.SearchResponse;
 import org.opensearch.client.Client;
 import org.opensearch.common.xcontent.XContentFactory;
 import org.opensearch.core.action.ActionListener;
 import org.opensearch.core.xcontent.ToXContent;
-import org.opensearch.index.query.QueryBuilders;
-import org.opensearch.index.query.TermQueryBuilder;
-import org.opensearch.search.builder.SearchSourceBuilder;
 
 import java.io.IOException;
 import java.util.Map;
@@ -103,28 +100,19 @@ public class ContextIndex {
      * @param contextName ID of the context to be retrieved
      * @return A completable future holding the response of the query
      */
-    public CompletableFuture<SearchResponse> get(String contextName) {
+    public CompletableFuture<GetResponse> get(String contextName) {
 
-        final TermQueryBuilder termQueryBuilder = QueryBuilders.termQuery("_id", contextName);
+        GetRequest getRequest = new GetRequest(CONTEXTS_INDEX, contextName);
 
-        SearchSourceBuilder searchSourceBuilder = new SearchSourceBuilder();
-        searchSourceBuilder.query(termQueryBuilder);
+        CompletableFuture<GetResponse> future = new CompletableFuture<>();
 
-        SearchRequest searchRequest = new SearchRequest(CONTEXTS_INDEX);
-        searchRequest.source(searchSourceBuilder);
-
-        CompletableFuture<SearchResponse> future = new CompletableFuture<>();
-
-        this.client.search(
-                searchRequest,
+        this.client.get(
+                getRequest,
                 new ActionListener<>() {
                     @Override
-                    public void onResponse(SearchResponse searchResponse) {
-                        log.info(
-                                "Retrieved CTI Catalog Context {} from index with status {}",
-                                contextName,
-                                searchResponse.status());
-                        future.complete(searchResponse);
+                    public void onResponse(GetResponse getResponse) {
+                        log.info("Retrieved CTI Catalog Context {} from index", contextName);
+                        future.complete(getResponse);
                     }
 
                     @Override
@@ -146,12 +134,10 @@ public class ContextIndex {
     @SuppressWarnings("unchecked")
     public ConsumerInfo getConsumer(String context, String consumer) {
         try {
-            SearchResponse searchResponse = get(context).get(TIMEOUT, TimeUnit.SECONDS);
-            log.info("Received search response for {}: {}", context, searchResponse.status());
+            GetResponse getResponse = get(context).get(TIMEOUT, TimeUnit.SECONDS);
+            log.info("Received search response for {}", context);
 
-            Map<String, Object> source =
-                    (Map<String, Object>)
-                            searchResponse.getHits().getHits()[0].getSourceAsMap().get(consumer);
+            Map<String, Object> source = (Map<String, Object>) getResponse.getSourceAsMap().get(consumer);
             if (source == null) {
                 log.warn("Consumer {} not found in context {}", consumer, context);
                 return null;
