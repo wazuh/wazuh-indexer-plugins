@@ -45,12 +45,12 @@ public class Unzip {
      */
     public static void unzip(@NonNull String file, @NonNull String to, @NonNull Environment env)
             throws IOException {
-        Path path = env.resolveRepoFile(file);
-        if (path == null || !Files.exists(path)) {
+        Path path = env.tmpFile().resolve(file);
+        if (!Files.exists(path)) {
             throw new FileNotFoundException("ZIP file does not exist: " + path);
         }
 
-        Path destinationPath = env.resolveRepoFile(to);
+        Path destinationPath = env.tmpFile().resolve(to);
         try (ZipInputStream zipInputStream = new ZipInputStream(Files.newInputStream(path))) {
             ZipEntry zipEntry;
             while ((zipEntry = zipInputStream.getNextEntry()) != null) {
