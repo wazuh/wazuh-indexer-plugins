@@ -379,14 +379,4 @@ public class CTIClient extends HttpClient {
             log.error("Snapshot download was interrupted: {}", e.getMessage());
         }
     }
-
-    /**
-     * Handles the HTTP response based on the provided status code.
-     *
-     * @param response The HTTP response to be handled.
-     * @throws IOException If an error occurs during response processing.
-     */
-    private void handleHttpResponse(SimpleHttpResponse response) throws IOException {
-        int statusCode = response.getCode();
-    }
 }
