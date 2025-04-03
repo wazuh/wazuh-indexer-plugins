@@ -1,3 +1,19 @@
+/*
+ * Copyright (C) 2024, Wazuh Inc.
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as
+ * published by the Free Software Foundation, either version 3 of the
+ * License, or (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
 package com.wazuh.setup.index;
 
 import org.apache.logging.log4j.LogManager;
@@ -14,9 +30,7 @@ import org.opensearch.core.xcontent.MediaTypeRegistry;
 import java.io.IOException;
 import java.util.Objects;
 
-/**
- * Class to handle indexing of RBAC related resources
- */
+/** Class to handle indexing of RBAC related resources */
 public class WazuhRBAC {
 
     private static final String DEFAULT_USERS_FILENAME = "default-rbac-users.json";
@@ -28,6 +42,7 @@ public class WazuhRBAC {
 
     /**
      * Constructor for the RBAC index handling class
+     *
      * @param client The cluster client that performs indexing and search operations
      */
     public WazuhRBAC(Client client) {
@@ -50,43 +65,45 @@ public class WazuhRBAC {
         return false;
     }
 
-    /**
-     * Indexes the default internal users data
-     */
+    /** Indexes the default internal users data */
     public void indexRBACUsers() {
         if (documentExists(RBAC_INDEX_NAME, DEFAULT_USER_ID)) {
             return;
         }
 
-        BytesReference bytesReference =
-            null;
+        BytesReference bytesReference = null;
         try {
-            bytesReference = new BytesArray(
-                Objects.requireNonNull(
-                        getClass().getClassLoader().getResourceAsStream(DEFAULT_USERS_FILENAME))
-                    .readAllBytes());
+            bytesReference =
+                    new BytesArray(
+                            Objects.requireNonNull(
+                                            getClass().getClassLoader().getResourceAsStream(DEFAULT_USERS_FILENAME))
+                                    .readAllBytes());
         } catch (IOException | OutOfMemoryError | NullPointerException | SecurityException e) {
-            log.error("Failed to get default internal users from file [{}]: {}", DEFAULT_USERS_FILENAME, e.getMessage());
+            log.error(
+                    "Failed to get default internal users from file [{}]: {}",
+                    DEFAULT_USERS_FILENAME,
+                    e.getMessage());
         }
 
         IndexRequest indexRequest =
-            new IndexRequest(RBAC_INDEX_NAME)
-                .index(RBAC_INDEX_NAME)
-                .id("1")
-                .source(bytesReference, MediaTypeRegistry.JSON)
-                .create(true);
+                new IndexRequest(RBAC_INDEX_NAME)
+                        .index(RBAC_INDEX_NAME)
+                        .id("1")
+                        .source(bytesReference, MediaTypeRegistry.JSON)
+                        .create(true);
 
-        client.index(indexRequest, new ActionListener<>() {
-            @Override
-            public void onResponse(IndexResponse indexResponse) {
-                log.info("Default internal users created: {}", indexResponse.getResult());
-            }
+        client.index(
+                indexRequest,
+                new ActionListener<>() {
+                    @Override
+                    public void onResponse(IndexResponse indexResponse) {
+                        log.info("Default internal users created: {}", indexResponse.getResult());
+                    }
 
-            @Override
-            public void onFailure(Exception e) {
-                log.error("Failed to index internal users: {}", e.getMessage());
-
-            }
-        });
+                    @Override
+                    public void onFailure(Exception e) {
+                        log.error("Failed to index internal users: {}", e.getMessage());
+                    }
+                });
     }
 }

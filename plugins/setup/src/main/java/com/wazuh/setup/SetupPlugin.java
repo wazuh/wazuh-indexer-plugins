@@ -16,7 +16,6 @@
  */
 package com.wazuh.setup;
 
-import com.wazuh.setup.index.WazuhRBAC;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.opensearch.action.index.IndexResponse;
@@ -52,6 +51,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.function.Supplier;
 
 import com.wazuh.setup.index.WazuhIndices;
+import com.wazuh.setup.index.WazuhRBAC;
 import com.wazuh.setup.jobscheduler.AgentJobParameter;
 import com.wazuh.setup.jobscheduler.AgentJobRunner;
 import com.wazuh.setup.jobscheduler.JobDocument;
