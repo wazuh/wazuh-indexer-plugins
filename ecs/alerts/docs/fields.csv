@@ -67,6 +67,17 @@ ECS_Version,Indexed,Field_Set,Field,Type,Level,Normalization,Example,Description
 8.11.0,true,agent,agent.name,keyword,core,,foo,Custom name of the agent.
 8.11.0,true,agent,agent.type,keyword,core,,filebeat,Type of the agent.
 8.11.0,true,agent,agent.version,keyword,core,,6.0.0-rc2,Version of the agent.
+8.11.0,true,check,check.compliance,keyword,custom,array,"[""cis:1.1.1"",""cis_csc:5.2""]",CIS compliance standard.
+8.11.0,true,check,check.condition,keyword,custom,,all,Relationship between the rules.
+8.11.0,true,check,check.description,keyword,custom,,"""The password history setting determines the number of unique new passwords a user must use before an old password can be reused.""",Extended description of the check.
+8.11.0,true,check,check.id,keyword,custom,,26000,The ID of the SCA policy check.
+8.11.0,true,check,check.name,keyword,custom,,Ensure 'Enforce password history' is set to '24 or more password(s)'.,The name of the SCA policy check.
+8.11.0,true,check,check.rationale,keyword,custom,,"""The longer a user uses the same password, the more likely it is that the password will be compromised.""",The reason for the check. Why it is important.
+8.11.0,true,check,check.reason,keyword,custom,,"""The password history setting is not set to 24 or more password(s).""",Reason for the check result.
+8.11.0,true,check,check.references,keyword,custom,array,"[""https://workbench.cisecurity.org""]",References for the check.
+8.11.0,true,check,check.remediation,keyword,custom,,"""To establish the recommended configuration, set the following registry value to 24 or more password(s):""",Actions to take to remediate the check.
+8.11.0,true,check,check.result,keyword,custom,,failed,Result of the check.
+8.11.0,true,check,check.rules,keyword,custom,array,"""[\""c:net.exe accounts -> n:Maximum password age \(days\):\s+(\d+) compare > 0\"","" > ""\""c:net.exe accounts -> n:Length of password history maintained:\s+(\d+) compare >= 24\""]""",Rules to be evaluated.
 8.11.0,true,client,client.address,keyword,extended,,,Client network address.
 8.11.0,true,client,client.as.number,long,extended,,15169,Unique number allocated to the autonomous system.
 8.11.0,true,client,client.as.organization.name,keyword,extended,,Google LLC,Organization name.
@@ -674,6 +685,11 @@ ECS_Version,Indexed,Field_Set,Field,Type,Level,Normalization,Example,Description
 8.11.0,true,package,package.size,long,extended,,62231,Package size in bytes.
 8.11.0,true,package,package.type,keyword,extended,,rpm,Package type
 8.11.0,true,package,package.version,keyword,extended,,1.12.9,Package version
+8.11.0,true,policy,policy.description,keyword,custom,,"""The CIS Microsoft Windows 11 Enterprise Benchmark v1.0.0 is a comprehensive security configuration guide that provides prescriptive guidance for establishing a secure baseline configuration for Microsoft Windows 11 Enterprise.""",Extended description of the policy.
+8.11.0,true,policy,policy.file,keyword,custom,,cis_win11_enterprise.yml,The file name of the SCA policy.
+8.11.0,true,policy,policy.id,keyword,custom,,cis_win11_enterprise_21H2,The ID of the SCA policy.
+8.11.0,true,policy,policy.name,keyword,custom,,CIS Microsoft Windows 11 Enterprise Benchmark v1.0.0,The name of the SCA policy.
+8.11.0,true,policy,policy.references,keyword,custom,array,"[""https://www.cisecurity.org/cis-benchmarks/""]",References for the policy.
 8.11.0,true,process,process.args,keyword,extended,array,"[""/usr/bin/ssh"", ""-l"", ""user"", ""10.0.0.16""]",Array of process arguments.
 8.11.0,true,process,process.args_count,long,extended,,4,Length of the process.args array.
 8.11.0,true,process,process.code_signature.digest_algorithm,keyword,extended,,sha256,Hashing algorithm used to sign the process.

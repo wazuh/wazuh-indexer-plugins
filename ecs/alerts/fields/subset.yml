@@ -45,6 +45,8 @@ fields:
                     id: {}
                     name: {}
                     roles: {}
+    check:
+        fields: "*"
     cloud:
         fields: "*"
     code_signature:
@@ -133,6 +135,8 @@ fields:
     package:
         fields: "*"
     pe:
+        fields: "*"
+    policy:
         fields: "*"
     process:
         fields:

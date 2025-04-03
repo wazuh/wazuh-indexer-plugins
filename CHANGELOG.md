@@ -15,6 +15,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Implement CTI snapshot indexing [(#338)](https://github.com/wazuh/wazuh-indexer-plugins/pull/338)
 - Implement content "update" command [(#339)](https://github.com/wazuh/wazuh-indexer-plugins/pull/339)
 - Add mappings for Wazuh rules (stage 1) to the Alerts index [#345](https://github.com/wazuh/wazuh-indexer-plugins/pull/345)
+- Add index templates for SCA [(#351)](https://github.com/wazuh/wazuh-indexer-plugins/issues/351)
 - Implement CVE ECS definition and index template [(#337)](https://github.com/wazuh/wazuh-indexer-plugins/pull/337)
 - Implement a time-based management of the agent.status attribute in the wazuh-agents index [(#349)](https://github.com/wazuh/wazuh-indexer-plugins/pull/349)
 
