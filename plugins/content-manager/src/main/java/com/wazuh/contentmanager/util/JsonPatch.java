@@ -30,10 +30,11 @@ public class JsonPatch {
      * @param document The target JSON document.
      * @param operation The JSON Patch operation.
      */
-    private void applyPatchOperation(JsonObject document, JsonObject operation) {
+    public void applyOperation(JsonObject document, JsonObject operation) {
         String op = operation.get("op").getAsString();
         String path = operation.get("path").getAsString();
         JsonElement value = operation.has("value") ? operation.get("value") : null;
+        String from = operation.has("from") ? operation.get("from").getAsString() : null;
 
         switch (op) {
             case "add":
@@ -46,10 +47,10 @@ public class JsonPatch {
                 replaceOperation(document, path, value);
                 break;
             case "move":
-                moveOperation(document, path, value);
+                moveOperation(document, from, path);
                 break;
             case "copy":
-                copyOperation(document, path, value);
+                copyOperation(document, from, path);
                 break;
             case "test":
                 testOperation(document, path, value);
@@ -59,7 +60,13 @@ public class JsonPatch {
         }
     }
 
-    /** Handles the "add" operation. */
+    /**
+     * Handles the "add" operation.
+     *
+     * @param document The target JSON document.
+     * @param path The JSON path where the value should be added.
+     * @param value The value to be added.
+     */
     private void addOperation(JsonObject document, String path, JsonElement value) {
         JsonElement target = navigateToParent(document, path);
         if (target instanceof JsonObject) {
@@ -68,7 +75,12 @@ public class JsonPatch {
         }
     }
 
-    /** Handles the "remove" operation. */
+    /**
+     * Handles the "remove" operation.
+     *
+     * @param document The target JSON document.
+     * @param path The JSON path where the value should be removed.
+     */
     private void removeOperation(JsonObject document, String path) {
         JsonElement target = navigateToParent(document, path);
         if (target instanceof JsonObject) {
@@ -77,26 +89,51 @@ public class JsonPatch {
         }
     }
 
-    /** Handles the "replace" operation. */
+    /**
+     * Handles the "replace" operation.
+     *
+     * @param document The target JSON document.
+     * @param path The JSON path where the value should be replaced.
+     * @param value The new value to be added.
+     */
     private void replaceOperation(JsonObject document, String path, JsonElement value) {
         removeOperation(document, path);
         addOperation(document, path, value);
     }
 
-    /** Handles the "move" operation. */
+    /**
+     * Handles the "move" operation.
+     *
+     * @param document The target JSON document.
+     * @param fromPath The JSON path from where the value should be moved.
+     * @param toPath The JSON path where the value should be moved.
+     */
     private void moveOperation(JsonObject document, String fromPath, String toPath) {
         JsonElement value = navigateToParent(document, fromPath);
         removeOperation(document, fromPath);
         addOperation(document, toPath, value);
     }
 
-    /** Handles the "copy" operation. */
+    /**
+     * Handles the "copy" operation.
+     *
+     * @param document The target JSON document.
+     * @param fromPath The JSON path from where the value should be copied.
+     * @param toPath The JSON path where the value should be copied.
+     */
     private void copyOperation(JsonObject document, String fromPath, String toPath) {
         JsonElement value = navigateToParent(document, fromPath);
         addOperation(document, toPath, value);
     }
 
-    /** Handles the "test" operation. */
+    /**
+     * Handles the "test" operation.
+     *
+     * @param document The target JSON document.
+     * @param path The JSON path where the value should be tested.
+     * @param value The expected value to be tested against.
+     * @throws IllegalArgumentException if the value does not match.
+     */
     private void testOperation(JsonObject document, String path, JsonElement value) {
         JsonElement target = navigateToParent(document, path);
         if (target instanceof JsonObject) {
@@ -108,18 +145,12 @@ public class JsonPatch {
     }
 
     /**
-     * Applies a JSON Patch to a document.
+     * Navigates to the parent JSON element based on the given path.
      *
      * @param document The target JSON document.
-     * @param patch The JSON Patch operations.
+     * @param path The JSON path to navigate.
+     * @return The parent JSON element.
      */
-    public void applyPatch(JsonObject document, JsonObject patch) {
-        for (JsonElement operation : patch.getAsJsonArray("operations")) {
-            applyPatchOperation(document, operation.getAsJsonObject());
-        }
-    }
-
-    /** Navigates to the parent JSON element based on the given path. */
     private JsonElement navigateToParent(JsonObject document, String path) {
         String[] parts = path.split("/");
         JsonElement current = document;
@@ -129,7 +160,12 @@ public class JsonPatch {
         return current;
     }
 
-    /** Extracts the last key from the JSON path. */
+    /**
+     * Extracts the last key from the JSON path.
+     *
+     * @param path The JSON path.
+     * @return The last key in the path.
+     */
     private String extractKeyFromPath(String path) {
         String[] parts = path.split("/");
         return parts[parts.length - 1];
