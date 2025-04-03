@@ -76,23 +76,24 @@ public class PluginSettings {
      *
      * @param settings as obtained in createComponents.
      * @param clusterService service to get cluster stats.
+     * @return {@link PluginSettings#INSTANCE}
      */
-    public static void initializeInstance(
+    public static PluginSettings getInstance(
             @NonNull final Settings settings, ClusterService clusterService) {
-        if (INSTANCE != null) {
-            return;
-        }
-        synchronized (PluginSettings.class) {
-            if (INSTANCE == null) {
+        if (INSTANCE == null) {
+            synchronized (PluginSettings.class) {
                 INSTANCE = new PluginSettings(settings, clusterService);
             }
         }
+        return INSTANCE;
     }
 
     /**
      * Singleton instance accessor
      *
      * @return {@link PluginSettings#INSTANCE}
+     * @throws IllegalStateException if the instance has not been initialized
+     * @see PluginSettings#getInstance(Settings, ClusterService)
      */
     public static PluginSettings getInstance() {
         if (PluginSettings.INSTANCE == null) {

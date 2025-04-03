@@ -59,9 +59,7 @@ public class Command {
                     .endObject()
                     .toString();
         } catch (IOException e) {
-
-            log.error("Failed to create Command JSON: {}", e.getMessage());
+            throw new RuntimeException("Failed to create Command JSON", e);
         }
-        return null;
     }
 }

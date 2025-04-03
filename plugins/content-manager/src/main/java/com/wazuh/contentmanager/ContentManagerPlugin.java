@@ -69,15 +69,9 @@ public class ContentManagerPlugin extends Plugin implements ClusterPlugin, Actio
             NamedWriteableRegistry namedWriteableRegistry,
             IndexNameExpressionResolver indexNameExpressionResolver,
             Supplier<RepositoriesService> repositoriesServiceSupplier) {
-        // enhancement/256-content-updater
-        PluginSettings.initializeInstance(environment.settings(), clusterService);
-        this.contextIndex = ContextIndex.getInstance(client);
-        // main
         PluginSettings.getInstance(environment.settings(), clusterService);
         this.contextIndex = new ContextIndex(client);
-        this.contentIndex = new ContentIndex(client);
         this.environment = environment;
-
         return Collections.emptyList();
     }
 

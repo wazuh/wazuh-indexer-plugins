@@ -56,7 +56,7 @@ public class UpdaterHandler extends BaseRestHandler {
     @Override
     protected RestChannelConsumer prepareRequest(RestRequest request, NodeClient client) {
         if (Objects.requireNonNull(request.method()) == GET) {
-            ContentUpdater updater = new ContentUpdater();
+            ContentUpdater updater = new ContentUpdater(client);
             // Run the update process asynchronously
             CompletableFuture.runAsync(
                     () -> {

@@ -37,7 +37,6 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
 import com.wazuh.contentmanager.model.ctiapi.ConsumerInfo;
-import com.wazuh.contentmanager.settings.PluginSettings;
 
 /** Class to manage the Context index. */
 public class ContextIndex {
@@ -51,8 +50,6 @@ public class ContextIndex {
 
     private final Client client;
 
-    public static ContextIndex INSTANCE;
-
     /**
      * Constructor for the class.
      *
@@ -60,34 +57,6 @@ public class ContextIndex {
      */
     public ContextIndex(Client client) {
         this.client = client;
-    }
-
-    /**
-     * Returns the singleton instance of {@link ContextIndex}, initializing it if necessary.
-     *
-     * @param client The Elasticsearch client used for index and search operations.
-     * @return The singleton instance of {@link ContextIndex}.
-     */
-    public static ContextIndex getInstance(Client client) {
-        if (ContextIndex.INSTANCE == null) {
-            synchronized (PluginSettings.class) {
-                ContextIndex.INSTANCE = new ContextIndex(client);
-            }
-        }
-        return INSTANCE;
-    }
-
-    /**
-     * Returns the existing singleton instance of {@link ContextIndex}.
-     *
-     * @return The singleton instance of {@link ContextIndex}.
-     * @throws IllegalStateException If the instance has not been initialized.
-     */
-    public static ContextIndex getInstance() {
-        if (ContextIndex.INSTANCE == null) {
-            throw new IllegalStateException("ContextIndex has not been initialized.");
-        }
-        return INSTANCE;
     }
 
     /**
@@ -193,15 +162,9 @@ public class ContextIndex {
             String snapshot = (String) source.get(ConsumerInfo.LAST_SNAPSHOT_LINK);
             return new ConsumerInfo(consumer, context, last_offset, snapshot);
         } catch (TimeoutException e) {
-            log.error("Timeout retrieving context [{}], consumer [{}]", context, consumer, e);
+            throw new RuntimeException("Timeout retrieving context", e);
         } catch (Exception e) {
-            log.error(
-                    "Failed to retrieve context [{}], consumer [{}]: {}",
-                    context,
-                    consumer,
-                    e.getMessage(),
-                    e);
+            throw new RuntimeException("Failed to retrieve context", e);
         }
-        return null;
     }
 }

@@ -18,6 +18,7 @@ package com.wazuh.contentmanager.updater;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.opensearch.client.Client;
 
 import com.wazuh.contentmanager.client.CTIClient;
 import com.wazuh.contentmanager.client.CommandManagerClient;
@@ -33,6 +34,7 @@ import com.wazuh.contentmanager.util.VisibleForTesting;
 public class ContentUpdater {
     private static final Integer CHUNK_MAX_SIZE = 1000;
     private static final Logger log = LogManager.getLogger(ContentUpdater.class);
+    private final ContextIndex contextIndex;
 
     /** Exception thrown by the Content Updater in case of errors. */
     public static class ContentUpdateException extends RuntimeException {
@@ -45,6 +47,10 @@ public class ContentUpdater {
         public ContentUpdateException(String message, Throwable cause) {
             super(message, cause);
         }
+    }
+
+    public ContentUpdater(Client client) {
+        this.contextIndex = new ContextIndex(client);
     }
 
     /**
@@ -124,12 +130,11 @@ public class ContentUpdater {
      */
     @VisibleForTesting
     Long getCurrentOffset() {
-        ConsumerInfo consumerInfo =
-                Privileged.doPrivilegedRequest(
-                        () ->
-                                ContextIndex.getInstance()
-                                        .getConsumer(PluginSettings.CONTEXT_ID, PluginSettings.CONSUMER_ID));
-        return consumerInfo.getLastOffset();
+        return Privileged.doPrivilegedRequest(
+                () ->
+                        contextIndex
+                                .getConsumer(PluginSettings.CONTEXT_ID, PluginSettings.CONSUMER_ID)
+                                .getLastOffset());
     }
 
     /**
@@ -161,10 +166,8 @@ public class ContentUpdater {
     void restartConsumerInfo() {
         Privileged.doPrivilegedRequest(
                 () -> {
-                    ContextIndex.getInstance()
-                            .index(
-                                    new ConsumerInfo(
-                                            PluginSettings.CONSUMER_ID, PluginSettings.CONTEXT_ID, 0L, null));
+                    contextIndex.index(
+                            new ConsumerInfo(PluginSettings.CONSUMER_ID, PluginSettings.CONTEXT_ID, 0L, null));
                     return null;
                 });
     }

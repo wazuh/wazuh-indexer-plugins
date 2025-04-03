@@ -116,8 +116,11 @@ public class CTIClient extends HttpClient {
         SimpleHttpResponse response =
                 sendRequest(Method.GET, CONSUMER_CHANGES_ENDPOINT, null, params, (Header) null);
         if (response == null) {
-            log.error("No response from CTI API Changes endpoint");
-            return null;
+            throw new RuntimeException("No response from CTI API Changes endpoint");
+        }
+        if (response.getCode() != HttpStatus.SC_OK) {
+            throw new RuntimeException(
+                    "CTI API Changes endpoint returned an error: " + response.getBody());
         }
         log.debug("CTI API Changes endpoint replied with status: [{}]", response.getCode());
         try {
@@ -127,9 +130,8 @@ public class CTIClient extends HttpClient {
                             DeprecationHandler.THROW_UNSUPPORTED_OPERATION,
                             response.getBodyBytes()));
         } catch (IOException | IllegalArgumentException e) {
-            log.error("Unable to fetch changes: {}", e.getMessage());
+            throw new RuntimeException("Failed to fetch changes information: " + e.getMessage(), e);
         }
-        return null;
     }
 
     /**
@@ -142,8 +144,10 @@ public class CTIClient extends HttpClient {
         SimpleHttpResponse response =
                 sendRequest(Method.GET, CONSUMER_INFO_ENDPOINT, null, null, (Header) null);
         if (response == null) {
-            log.error("No response from CTI API");
-            return null;
+            throw new RuntimeException("No response from CTI API");
+        }
+        if (response.getCode() != HttpStatus.SC_OK) {
+            throw new RuntimeException("CTI API returned an error: " + response.getBody());
         }
         log.debug("CTI API replied with status: [{}]", response.getCode());
         try {
@@ -153,9 +157,8 @@ public class CTIClient extends HttpClient {
                             DeprecationHandler.THROW_UNSUPPORTED_OPERATION,
                             response.getBodyBytes()));
         } catch (IOException | IllegalArgumentException e) {
-            log.error("Failed to fetch catalog information: {}", e.getMessage());
+            throw new RuntimeException("Failed to fetch consumer information: " + e.getMessage(), e);
         }
-        return null;
     }
 
     /**
@@ -212,15 +215,16 @@ public class CTIClient extends HttpClient {
                     out.write(buffer, 0, bytesRead);
                 }
             } catch (IOException e) {
-                log.error("Failed to write snapshot {}", e.getMessage());
+                throw new RuntimeException("Failed to write snapshot", e);
             }
             log.info("Snapshot downloaded to {}", path);
         } catch (URISyntaxException e) {
-            log.error("Failed to download snapshot. Invalid URL provided: {}", e.getMessage());
+            throw new RuntimeException("Invalid URL provided", e);
         } catch (ExecutionException e) {
-            log.error("Snapshot download failed: {}", e.getMessage());
+            throw new RuntimeException("Snapshot download failed", e);
         } catch (InterruptedException e) {
-            log.error("Snapshot download was interrupted: {}", e.getMessage());
+            Thread.currentThread().interrupt(); // Restore the interrupted status
+            throw new RuntimeException("Snapshot download was interrupted", e);
         }
     }
 }
