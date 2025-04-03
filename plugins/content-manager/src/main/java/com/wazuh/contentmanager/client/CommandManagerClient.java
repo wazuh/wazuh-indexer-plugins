@@ -42,7 +42,7 @@ public class CommandManagerClient extends HttpClient {
     public static final String POST_COMMAND_ENDPOINT = "/commands";
 
     /** Private constructor to initialize the CommandManagerClient with the base API URI. */
-    private CommandManagerClient() {
+    private CommandManagerClient() throws HttpClientException {
         super(URI.create(PluginSettings.getInstance().getClusterBaseUrl() + BASE_COMMAND_MANAGER_URI));
     }
 
@@ -52,7 +52,7 @@ public class CommandManagerClient extends HttpClient {
      *
      * @return The singleton instance of CommandManagerClient.
      */
-    public static CommandManagerClient getInstance() {
+    public static CommandManagerClient getInstance() throws HttpClientException {
         if (instance == null) {
             synchronized (CommandManagerClient.class) {
                 if (instance == null) {
@@ -67,8 +67,10 @@ public class CommandManagerClient extends HttpClient {
      * Sends a POST request to execute a command via the Command Manager API.
      *
      * @param requestBody The JSON request body containing the command details.
+     * @throws HttpClientException If an error occurs while sending the request or processing the
+     *     response.
      */
-    public void postCommand(String requestBody) {
+    public void postCommand(String requestBody) throws HttpClientException {
         Header header = new BasicHeader(HttpHeaders.CONTENT_TYPE, ContentType.APPLICATION_JSON);
         SimpleHttpResponse response =
                 this.sendRequest(Method.POST, POST_COMMAND_ENDPOINT, requestBody, null, header);
@@ -79,8 +81,9 @@ public class CommandManagerClient extends HttpClient {
      * Handles the response of the POST request to the Command Manager endpoint.
      *
      * @param response The response from the POST request
+     * @throws HttpClientException If an error occurs while handling the response.
      */
-    private void handlePostResponse(SimpleHttpResponse response) {
+    private void handlePostResponse(SimpleHttpResponse response) throws HttpClientException {
         if (response == null) {
             log.error("No reply from server");
         } else {
@@ -89,13 +92,11 @@ public class CommandManagerClient extends HttpClient {
                     log.info("Received OK response: {}", response.getBody().toString());
                     break;
                 case HttpStatus.SC_CLIENT_ERROR:
-                    log.error("Client error: {}", response.getBody().toString());
-                    break;
+                    throw new HttpClientException("Client error: {}" + response.getBody().toString());
                 case HttpStatus.SC_SERVER_ERROR:
-                    log.error("Internal server error");
-                    break;
+                    throw new HttpClientException("Server error: {}" + response.getBody().toString());
                 default:
-                    log.info("Unexpected response code: {}", response.getCode());
+                    log.warn("Unexpected response code: {}", response.getCode());
             }
         }
     }

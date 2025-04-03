@@ -75,7 +75,7 @@ public class Offset implements ToXContentObject {
      * @return the context name as a String
      */
     public String getContext() {
-        return context;
+        return this.context;
     }
 
     /**
@@ -84,7 +84,7 @@ public class Offset implements ToXContentObject {
      * @return the offset value as a Long
      */
     public Long getOffset() {
-        return offset;
+        return this.offset;
     }
 
     /**
@@ -93,7 +93,7 @@ public class Offset implements ToXContentObject {
      * @return the resource field value as a String
      */
     public String getResource() {
-        return resource;
+        return this.resource;
     }
 
     /**
@@ -102,7 +102,7 @@ public class Offset implements ToXContentObject {
      * @return the type field as a String
      */
     public String getType() {
-        return type;
+        return this.type;
     }
 
     /**
@@ -111,7 +111,7 @@ public class Offset implements ToXContentObject {
      * @return The version field as a Long
      */
     public Long getVersion() {
-        return version;
+        return this.version;
     }
 
     /**
@@ -120,7 +120,7 @@ public class Offset implements ToXContentObject {
      * @return the actual payload of an offset as a Map
      */
     public Map<String, Object> getPayload() {
-        return payload;
+        return this.payload;
     }
 
     /**

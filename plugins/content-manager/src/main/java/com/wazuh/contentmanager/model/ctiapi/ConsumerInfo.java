@@ -151,7 +151,7 @@ public class ConsumerInfo implements ToXContentObject {
      * @return Context name as a String
      */
     public String getContext() {
-        return context;
+        return this.context;
     }
 
     /**
@@ -160,7 +160,7 @@ public class ConsumerInfo implements ToXContentObject {
      * @return Last offset number as a long
      */
     public Long getLastOffset() {
-        return lastOffset;
+        return this.lastOffset;
     }
 
     /**
@@ -169,6 +169,6 @@ public class ConsumerInfo implements ToXContentObject {
      * @return A Snapshot URL
      */
     public String getLastSnapshotLink() {
-        return lastSnapshotLink;
+        return this.lastSnapshotLink;
     }
 }

@@ -24,7 +24,6 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 
-import com.wazuh.contentmanager.index.ContextIndex;
 import com.wazuh.contentmanager.model.ctiapi.ContextChanges;
 import com.wazuh.contentmanager.model.ctiapi.Offset;
 import org.mockito.Mockito;
@@ -44,10 +43,9 @@ public class ContentUpdaterTests extends OpenSearchIntegTestCase {
     @Before
     public void setup() throws Exception {
         super.setUp();
-        ContentUpdater contentUpdater = new ContentUpdater();
-        contentUpdaterSpy = Mockito.spy(contentUpdater);
         Client client = mock(Client.class);
-        ContextIndex.getInstance(client);
+        ContentUpdater contentUpdater = new ContentUpdater(client);
+        contentUpdaterSpy = Mockito.spy(contentUpdater);
     }
 
     /** Test Fetch and apply no new updates */

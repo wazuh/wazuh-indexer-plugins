@@ -55,12 +55,23 @@ public class HttpClient {
 
     protected final URI apiUri;
 
+    /** Exception class for handling HTTP client errors. */
+    public static class HttpClientException extends Exception {
+        public HttpClientException(String message, Throwable cause) {
+            super(message, cause);
+        }
+
+        public HttpClientException(String message) {
+            super(message);
+        }
+    }
+
     /**
      * Constructs an HttpClient instance with the specified API URI.
      *
      * @param apiUri The base URI for API requests.
      */
-    protected HttpClient(@NonNull URI apiUri) {
+    protected HttpClient(@NonNull URI apiUri) throws HttpClientException {
         this.apiUri = apiUri;
         startHttpAsyncClient();
     }
@@ -68,8 +79,10 @@ public class HttpClient {
     /**
      * Initializes and starts the HTTP asynchronous client if not already started. Ensures thread-safe
      * initialization.
+     *
+     * @throws HttpClientException If an error occurs during client initialization.
      */
-    private static void startHttpAsyncClient() {
+    private static void startHttpAsyncClient() throws HttpClientException {
         synchronized (LOCK) {
             if (httpClient == null) {
                 try {
@@ -88,8 +101,7 @@ public class HttpClient {
                                     .build();
                     httpClient.start();
                 } catch (NoSuchAlgorithmException | KeyStoreException | KeyManagementException e) {
-                    log.error("Error initializing HTTP client: {}", e.getMessage());
-                    throw new RuntimeException("Failed to initialize HttpClient", e);
+                    throw new HttpClientException("Failed to initialize HttpClient", e);
                 }
             }
         }
@@ -104,13 +116,15 @@ public class HttpClient {
      * @param queryParameters The query parameters (optional).
      * @param headers The headers to include in the request (optional).
      * @return A SimpleHttpResponse containing the response details.
+     * @throws HttpClientException If an error occurs during the request.
      */
     protected SimpleHttpResponse sendRequest(
             @NonNull Method method,
             String endpoint,
             String requestBody,
             Map<String, String> queryParameters,
-            Header... headers) {
+            Header... headers)
+            throws HttpClientException {
         URI _apiUri;
         if (httpClient == null) {
             startHttpAsyncClient();
@@ -146,11 +160,10 @@ public class HttpClient {
                                     request, "Failed to execute outgoing " + method + " request"))
                     .get(TIMEOUT, TimeUnit.SECONDS);
         } catch (InterruptedException | ExecutionException | TimeoutException e) {
-            log.error("HTTP {} request failed: {}", method, e.getMessage());
             Thread.currentThread().interrupt();
+            throw new HttpClientException("HTTP request failed: " + e.getMessage());
         } catch (Exception e) {
-            log.error("Unexpected error in HTTP {} request: {}", method, e.getMessage());
+            throw new HttpClientException("Unexpected error: " + e.getMessage());
         }
-        return null;
     }
 }

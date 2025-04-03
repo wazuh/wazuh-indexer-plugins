@@ -55,6 +55,7 @@ public class UpdaterHandler extends BaseRestHandler {
     /** Handles the REST request and calls the appropriate action */
     @Override
     protected RestChannelConsumer prepareRequest(RestRequest request, NodeClient client) {
+        // TODO: Remove on JobScheduler implementation.
         if (Objects.requireNonNull(request.method()) == GET) {
             ContentUpdater updater = new ContentUpdater(client);
             // Run the update process asynchronously

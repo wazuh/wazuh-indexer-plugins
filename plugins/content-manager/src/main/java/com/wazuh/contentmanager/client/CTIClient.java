@@ -83,14 +83,24 @@ public class CTIClient extends HttpClient {
     /**
      * Private constructor to enforce singleton pattern. Initializes the client with the CTI API base
      * URL.
+     *
+     * @throws HttpClientException If an error occurs while creating the HTTP client.
      */
-    private CTIClient() {
+    private CTIClient() throws HttpClientException {
         super(URI.create(PluginSettings.getInstance().getCtiBaseUrl()));
     }
 
     /** Singleton holder pattern ensures lazy initialization in a thread-safe manner. */
     private static class CTIClientHolder {
-        private static final CTIClient INSTANCE = new CTIClient();
+        private static final CTIClient INSTANCE;
+
+        static {
+            try {
+                INSTANCE = new CTIClient();
+            } catch (HttpClientException e) {
+                throw new RuntimeException(e);
+            }
+        }
     }
 
     /**
@@ -109,17 +119,19 @@ public class CTIClient extends HttpClient {
      * @param toOffset The ending offset (exclusive) for fetching changes.
      * @param withEmpties A flag indicating whether to include empty values (Optional).
      * @return {@link ContextChanges} instance with the current changes.
+     * @throws HttpClientException If an error occurs while fetching changes.
      */
-    public ContextChanges getChanges(String fromOffset, String toOffset, String withEmpties) {
+    public ContextChanges getChanges(String fromOffset, String toOffset, String withEmpties)
+            throws HttpClientException {
         XContent xContent = XContentType.JSON.xContent();
         Map<String, String> params = contextQueryParameters(fromOffset, toOffset, withEmpties);
         SimpleHttpResponse response =
                 sendRequest(Method.GET, CONSUMER_CHANGES_ENDPOINT, null, params, (Header) null);
         if (response == null) {
-            throw new RuntimeException("No response from CTI API Changes endpoint");
+            throw new HttpClientException("No response from CTI API Changes endpoint");
         }
         if (response.getCode() != HttpStatus.SC_OK) {
-            throw new RuntimeException(
+            throw new HttpClientException(
                     "CTI API Changes endpoint returned an error: " + response.getBody());
         }
         log.debug("CTI API Changes endpoint replied with status: [{}]", response.getCode());
@@ -130,7 +142,7 @@ public class CTIClient extends HttpClient {
                             DeprecationHandler.THROW_UNSUPPORTED_OPERATION,
                             response.getBodyBytes()));
         } catch (IOException | IllegalArgumentException e) {
-            throw new RuntimeException("Failed to fetch changes information: " + e.getMessage(), e);
+            throw new HttpClientException("Failed to fetch changes information", e);
         }
     }
 
@@ -138,16 +150,17 @@ public class CTIClient extends HttpClient {
      * Fetches the entire CTI catalog from the API.
      *
      * @return A {@link ConsumerInfo} object containing the catalog information.
+     * @throws HttpClientException If an error occurs while fetching the catalog.
      */
-    public ConsumerInfo getCatalog() {
+    public ConsumerInfo getCatalog() throws HttpClientException {
         XContent xContent = XContentType.JSON.xContent();
         SimpleHttpResponse response =
                 sendRequest(Method.GET, CONSUMER_INFO_ENDPOINT, null, null, (Header) null);
         if (response == null) {
-            throw new RuntimeException("No response from CTI API");
+            throw new HttpClientException("No response from CTI API");
         }
         if (response.getCode() != HttpStatus.SC_OK) {
-            throw new RuntimeException("CTI API returned an error: " + response.getBody());
+            throw new HttpClientException("CTI API returned an error: " + response.getBody());
         }
         log.debug("CTI API replied with status: [{}]", response.getCode());
         try {
@@ -157,7 +170,7 @@ public class CTIClient extends HttpClient {
                             DeprecationHandler.THROW_UNSUPPORTED_OPERATION,
                             response.getBodyBytes()));
         } catch (IOException | IllegalArgumentException e) {
-            throw new RuntimeException("Failed to fetch consumer information: " + e.getMessage(), e);
+            throw new HttpClientException("Failed to fetch consumer information", e);
         }
     }
 
@@ -187,7 +200,7 @@ public class CTIClient extends HttpClient {
      * @param snapshotURI URI to the file to download.
      * @param env environment. Required to resolve files' paths.
      */
-    public void download(String snapshotURI, Environment env) {
+    public void download(String snapshotURI, Environment env) throws HttpClientException {
         try {
             // Setup
             URI uri = new URI(snapshotURI);
@@ -215,16 +228,16 @@ public class CTIClient extends HttpClient {
                     out.write(buffer, 0, bytesRead);
                 }
             } catch (IOException e) {
-                throw new RuntimeException("Failed to write snapshot", e);
+                throw new HttpClientException("Failed to write snapshot", e);
             }
             log.info("Snapshot downloaded to {}", path);
         } catch (URISyntaxException e) {
-            throw new RuntimeException("Invalid URL provided", e);
+            throw new HttpClientException("Invalid URL provided", e);
         } catch (ExecutionException e) {
-            throw new RuntimeException("Snapshot download failed", e);
+            throw new HttpClientException("Snapshot download failed", e);
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt(); // Restore the interrupted status
-            throw new RuntimeException("Snapshot download was interrupted", e);
+            throw new HttpClientException("Snapshot download was interrupted", e);
         }
     }
 }

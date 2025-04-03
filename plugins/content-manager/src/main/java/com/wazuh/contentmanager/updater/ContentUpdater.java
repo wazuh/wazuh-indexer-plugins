@@ -22,6 +22,7 @@ import org.opensearch.client.Client;
 
 import com.wazuh.contentmanager.client.CTIClient;
 import com.wazuh.contentmanager.client.CommandManagerClient;
+import com.wazuh.contentmanager.client.HttpClient;
 import com.wazuh.contentmanager.index.ContextIndex;
 import com.wazuh.contentmanager.model.commandmanager.Command;
 import com.wazuh.contentmanager.model.ctiapi.ConsumerInfo;
@@ -68,6 +69,7 @@ public class ContentUpdater {
     public void fetchAndApplyUpdates(Long fixedOffset) throws ContentUpdateException {
         Long currentOffset = this.getCurrentOffset();
         Long lastOffset = this.getLatestOffset();
+        log.info("Current offset: {}, Last offset: {}", currentOffset, lastOffset);
 
         // Placeholder for testing purposes. TODO: Remove.
         if (fixedOffset != null) {
@@ -89,7 +91,7 @@ public class ContentUpdater {
             // If there is an error fetching the changes, stop the process.
             if (changes == null) {
                 throw new ContentUpdateException(
-                        "Error fetching changes for offsets " + currentOffset + " to " + nextOffset, null);
+                        "Unable to fetch changes for offsets " + currentOffset + " to " + nextOffset, null);
             }
             // Apply the fetched changes to the indexed context.
             if (!this.patchContextIndex(changes)) {
@@ -113,7 +115,13 @@ public class ContentUpdater {
     @VisibleForTesting
     ContextChanges getContextChanges(String fromOffset, String toOffset) {
         return Privileged.doPrivilegedRequest(
-                () -> CTIClient.getInstance().getChanges(fromOffset, toOffset, null));
+                () -> {
+                    try {
+                        return CTIClient.getInstance().getChanges(fromOffset, toOffset, null);
+                    } catch (HttpClient.HttpClientException e) {
+                        throw new ContentUpdateException("Unable to fetch changes from CTI API", e);
+                    }
+                });
     }
 
     /**
@@ -124,7 +132,14 @@ public class ContentUpdater {
     @VisibleForTesting
     Long getLatestOffset() {
         ConsumerInfo consumerInfo =
-                Privileged.doPrivilegedRequest(() -> CTIClient.getInstance().getCatalog());
+                Privileged.doPrivilegedRequest(
+                        () -> {
+                            try {
+                                return CTIClient.getInstance().getCatalog();
+                            } catch (HttpClient.HttpClientException e) {
+                                throw new ContentUpdateException("Unable to fetch latest offset from CTI API", e);
+                            }
+                        });
         return consumerInfo.getLastOffset();
     }
 
@@ -158,8 +173,12 @@ public class ContentUpdater {
         // Post new command informing the new changes.
         Privileged.doPrivilegedRequest(
                 () -> {
-                    CommandManagerClient.getInstance()
-                            .postCommand(Command.create(getCurrentOffset().toString()));
+                    try {
+                        CommandManagerClient.getInstance()
+                                .postCommand(Command.create(getCurrentOffset().toString()));
+                    } catch (HttpClient.HttpClientException e) {
+                        throw new ContentUpdateException("Unable to post command to Command Manager", e);
+                    }
                     return null;
                 });
     }
@@ -167,11 +186,7 @@ public class ContentUpdater {
     /** Resets the consumer info by setting its last offset to zero. */
     @VisibleForTesting
     void restartConsumerInfo() {
-        Privileged.doPrivilegedRequest(
-                () -> {
-                    contextIndex.index(
-                            new ConsumerInfo(PluginSettings.CONSUMER_ID, PluginSettings.CONTEXT_ID, 0L, null));
-                    return null;
-                });
+        contextIndex.index(
+                new ConsumerInfo(PluginSettings.CONSUMER_ID, PluginSettings.CONTEXT_ID, 0L, null));
     }
 }
