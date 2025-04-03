@@ -89,7 +89,7 @@ public class ContentUpdaterTests extends OpenSearchIntegTestCase {
         Exception exception =
                 assertThrows(RuntimeException.class, () -> contentUpdaterSpy.fetchAndApplyUpdates(null));
         // Assert
-        assertEquals("Error fetching changes for offsets 0 to 1000", exception.getMessage());
+        assertEquals("Unable to fetch changes for offsets 0 to 1000", exception.getMessage());
         verify(contentUpdaterSpy, times(1)).getContextChanges(any(), any());
     }
 
