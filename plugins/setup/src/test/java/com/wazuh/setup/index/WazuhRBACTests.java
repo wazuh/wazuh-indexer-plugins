@@ -16,6 +16,11 @@
  */
 package com.wazuh.setup.index;
 
+import org.apache.logging.log4j.Level;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.core.Appender;
+import org.apache.logging.log4j.core.LogEvent;
+import org.apache.logging.log4j.core.Logger;
 import org.opensearch.action.index.IndexRequest;
 import org.opensearch.action.index.IndexResponse;
 import org.opensearch.client.Client;
@@ -40,6 +45,8 @@ import static org.mockito.Mockito.*;
 public class WazuhRBACTests extends OpenSearchTestCase {
     @Mock private WazuhRBAC wazuhRBAC;
     @Mock private Client client;
+    private Appender mockAppender;
+    private ArgumentCaptor<LogEvent> logEventCaptor;
 
     /** Setup the prerequisites for the tests */
     @Before
@@ -86,6 +93,15 @@ public class WazuhRBACTests extends OpenSearchTestCase {
 
     /** Test failure to index the document */
     public void testIndexRBACUsers_IndexingFails() {
+        mockAppender = mock(Appender.class);
+        logEventCaptor = ArgumentCaptor.forClass(LogEvent.class);
+        when(mockAppender.getName()).thenReturn("MockAppender");
+        when(mockAppender.isStarted()).thenReturn(true);
+        final Logger logger = (Logger) LogManager.getLogger(WazuhRBAC.class);
+        logger.addAppender(mockAppender);
+        logger.setLevel(Level.DEBUG);
+
+
         doReturn(false).when(wazuhRBAC).documentExists(anyString(), anyString());
         doAnswer(
                         invocation -> {
@@ -97,5 +113,11 @@ public class WazuhRBACTests extends OpenSearchTestCase {
                 .index(any(), any());
 
         wazuhRBAC.indexRBACUsers();
+
+        verify(mockAppender, times(1)).append(logEventCaptor.capture());
+
+        final LogEvent logEvent = logEventCaptor.getValue();
+        final String logMessage = logEvent.getMessage().getFormattedMessage();
+        assertTrue(logMessage.contains("Failed to index"));
     }
 }
