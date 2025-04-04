@@ -139,7 +139,7 @@ On the Lambda AWS Account, follow the [official documentation](https://docs.aws.
 
 ### Validation
 
-To validate that the Lambda function works as it should, add the sample events below to the `sample.txt` file and upload it to the S3 bucket.
+To validate that the Lambda function works as it should, add the sample events below to the `20240422_ls.s3.2f062956-5a30-4c2a-b693-a0f5d878294c.2024-04-22T14.20.part39.txt` file and upload it to the S3 bucket.
 
 ```
 {"cluster":{"name":"wazuh-cluster","node":"wazuh-manager"},"timestamp":"2024-04-22T14:20:46.976+0000","rule":{"mail":false,"gdpr":["IV_30.1.g"],"groups":["audit","audit_command"],"level":3,"firedtimes":1,"id":"80791","description":"Audit: Command: /usr/sbin/crond"},"location":"","agent":{"id":"004","ip":"47.204.15.21","name":"Ubuntu"},"data":{"audit":{"type":"NORMAL","file":{"name":"/etc/sample/file"},"success":"yes","command":"cron","exe":"/usr/sbin/crond","cwd":"/home/wazuh"}},"predecoder":{},"manager":{"name":"wazuh-manager"},"id":"1580123327.49031","decoder":{},"@version":"1","@timestamp":"2024-04-22T14:20:46.976Z"}
