@@ -24,7 +24,6 @@ import java.io.BufferedOutputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.nio.file.*;
-import java.nio.file.StandardOpenOption;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
 
@@ -41,7 +40,7 @@ public class Unzip {
      * @param to extraction destination folder.
      * @param env Required to resolve files' paths. Environment will contain the configuration of the
      *     enclosed directory where the unzip process will happen.
-     * @throws IOException
+     * @throws IOException rethrown from getNextEntry()
      */
     public static void unzip(@NonNull String file, @NonNull String to, @NonNull Environment env)
             throws IOException {

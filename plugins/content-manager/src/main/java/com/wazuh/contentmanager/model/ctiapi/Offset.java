@@ -69,6 +69,67 @@ public class Offset implements ToXContentObject {
         this.payload = payload;
     }
 
+    /**
+     * Getter for the context name
+     *
+     * @return the context name as a String
+     */
+    public String getContext() {
+        return this.context;
+    }
+
+    /**
+     * Getter for the Offset value
+     *
+     * @return the offset value as a Long
+     */
+    public Long getOffset() {
+        return this.offset;
+    }
+
+    /**
+     * Getter for the resource field of an offset
+     *
+     * @return the resource field value as a String
+     */
+    public String getResource() {
+        return this.resource;
+    }
+
+    /**
+     * Getter for the type field of an offset
+     *
+     * @return the type field as a String
+     */
+    public String getType() {
+        return this.type;
+    }
+
+    /**
+     * The version field of an offset
+     *
+     * @return The version field as a Long
+     */
+    public Long getVersion() {
+        return this.version;
+    }
+
+    /**
+     * Getter for the payload of an offset
+     *
+     * @return the actual payload of an offset as a Map
+     */
+    public Map<String, Object> getPayload() {
+        return this.payload;
+    }
+
+    /**
+     * A method to parse arrays recursively
+     *
+     * @param parser an XContentParser containing an array
+     * @return the parsed list as a List
+     * @throws IOException rethrown from parseObject
+     */
     private static List<Object> parseArray(XContentParser parser) throws IOException {
         List<Object> array = new ArrayList<>();
         while (parser.nextToken() != XContentParser.Token.END_ARRAY) {

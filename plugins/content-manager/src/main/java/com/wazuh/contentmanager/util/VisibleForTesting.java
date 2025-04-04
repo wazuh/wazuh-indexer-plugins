@@ -16,19 +16,20 @@
  */
 package com.wazuh.contentmanager.util;
 
-import java.security.AccessController;
-
-/** Privileged utility class for executing privileged HTTP requests. */
-public class Privileged {
-
-    /**
-     * Executes an HTTP request with elevated privileges.
-     *
-     * @param request The Action to be executed with privileged permissions
-     * @param <T> A privileged action that performs the HTTP request.
-     * @return The return value resulting from the request execution.
-     */
-    public static <T> T doPrivilegedRequest(java.security.PrivilegedAction<T> request) {
-        return AccessController.doPrivileged(request);
-    }
-}
+/**
+ * Annotation to indicate that a method, field, or class is more visible than necessary strictly for
+ * testing purposes.
+ *
+ * <p>This annotation serves as a documentation aid to highlight that the increased visibility of an
+ * otherwise private or package-private member is intentional for unit testing.
+ *
+ * <p>Usage example:
+ *
+ * <pre>{@code
+ * @VisibleForTesting
+ * void someTestableMethod() {
+ *     // Implementation
+ * }
+ * }</pre>
+ */
+public @interface VisibleForTesting {}

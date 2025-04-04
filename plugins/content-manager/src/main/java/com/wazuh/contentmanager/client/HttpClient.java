@@ -46,13 +46,12 @@ import reactor.util.annotation.NonNull;
  * communication using SSL/TLS and manages an async HTTP client.
  */
 public class HttpClient {
-
     private static final Logger log = LogManager.getLogger(HttpClient.class);
 
     private static final int TIMEOUT = 10;
     private static final Object LOCK = new Object();
-    protected static CloseableHttpAsyncClient httpClient;
 
+    protected static CloseableHttpAsyncClient httpClient;
     protected final URI apiUri;
 
     /**
@@ -68,8 +67,10 @@ public class HttpClient {
     /**
      * Initializes and starts the HTTP asynchronous client if not already started. Ensures thread-safe
      * initialization.
+     *
+     * @throws RuntimeException error initializing the HttpClient.
      */
-    private static void startHttpAsyncClient() {
+    private static void startHttpAsyncClient() throws RuntimeException {
         synchronized (LOCK) {
             if (httpClient == null) {
                 try {

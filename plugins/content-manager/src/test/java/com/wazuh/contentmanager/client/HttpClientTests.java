@@ -27,9 +27,9 @@ import org.junit.Before;
 import java.util.Collections;
 import java.util.Map;
 
-import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
+/** Tests the HttpClient */
 @OpenSearchIntegTestCase.ClusterScope(scope = OpenSearchIntegTestCase.Scope.SUITE)
 public class HttpClientTests extends OpenSearchIntegTestCase {
 
@@ -42,12 +42,14 @@ public class HttpClientTests extends OpenSearchIntegTestCase {
         httpClient = mock(HttpClient.class);
     }
 
+    @SuppressWarnings("EmptyMethod")
     @After
     @Override
     public void tearDown() throws Exception {
         super.tearDown();
     }
 
+    /** Test send request success */
     public void testSendRequestSuccess() {
         SimpleHttpResponse mockResponse = new SimpleHttpResponse(HttpStatus.SC_SUCCESS, "OK");
 
@@ -62,6 +64,7 @@ public class HttpClientTests extends OpenSearchIntegTestCase {
         assertEquals(HttpStatus.SC_SUCCESS, response.getCode());
     }
 
+    /** Test send POST request */
     public void testSendPostRequest() {
         SimpleHttpResponse mockResponse = new SimpleHttpResponse(HttpStatus.SC_CREATED, "Created");
         String requestBody = "{\"key\":\"value\"}";
@@ -77,6 +80,7 @@ public class HttpClientTests extends OpenSearchIntegTestCase {
         assertEquals(HttpStatus.SC_CREATED, response.getCode());
     }
 
+    /** Test sending request with query parameters */
     public void testSendRequestWithQueryParams() {
         SimpleHttpResponse mockResponse = new SimpleHttpResponse(HttpStatus.SC_SUCCESS, "OK");
         Map<String, String> queryParams = Map.of("param1", "value1", "param2", "value2");
@@ -91,6 +95,7 @@ public class HttpClientTests extends OpenSearchIntegTestCase {
         assertEquals(HttpStatus.SC_SUCCESS, response.getCode());
     }
 
+    /** Test send request failure */
     public void testSendRequestFailure() {
         SimpleHttpResponse mockResponse =
                 new SimpleHttpResponse(HttpStatus.SC_SERVER_ERROR, "Internal Server Error");
@@ -106,6 +111,7 @@ public class HttpClientTests extends OpenSearchIntegTestCase {
         assertEquals(HttpStatus.SC_SERVER_ERROR, response.getCode());
     }
 
+    /** Test sendRequest() timeout */
     public void testSendRequestTimeout() {
         when(httpClient.sendRequest(
                         any(Method.class), anyString(), any(), anyMap(), any(Header[].class)))
