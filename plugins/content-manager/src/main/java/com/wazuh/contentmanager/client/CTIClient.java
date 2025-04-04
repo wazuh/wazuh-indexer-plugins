@@ -163,20 +163,32 @@ public class CTIClient extends HttpClient {
      */
     public ConsumerInfo getCatalog() {
         XContent xContent = XContentType.JSON.xContent();
-        SimpleHttpResponse response =
-                sendRequest(Method.GET, CONSUMER_INFO_ENDPOINT, null, null, (Header) null);
-        if (response == null) {
-            log.error("No response from CTI API");
-            return null;
-        }
-        log.debug("CTI API replied with status: [{}]", response.getCode());
+        CompletableFuture<SimpleHttpResponse> futureResponse = new CompletableFuture<>();
+        fetchWithRetry(
+                Functions.GET_CATALOG,
+                Method.GET,
+                CONSUMER_INFO_ENDPOINT,
+                null,
+                null,
+                null,
+                MAX_ATTEMPTS,
+                futureResponse);
+
+        SimpleHttpResponse response;
         try {
+            response = futureResponse.get();
+            if (response == null) {
+                log.error("No response from CTI API");
+                return null;
+            }
+            log.debug("CTI API replied with status: [{}]", response.getCode());
+
             return ConsumerInfo.parse(
                     xContent.createParser(
                             NamedXContentRegistry.EMPTY,
                             DeprecationHandler.THROW_UNSUPPORTED_OPERATION,
                             response.getBodyBytes()));
-        } catch (IOException | IllegalArgumentException e) {
+        } catch (IOException | InterruptedException | ExecutionException | IllegalArgumentException e) {
             log.error("Unable to fetch catalog information: {}", e.getMessage());
         }
         return null;
@@ -241,6 +253,7 @@ public class CTIClient extends HttpClient {
             CompletableFuture<SimpleHttpResponse> futureResponse) {
         SimpleHttpResponse response = sendRequest(method, endpoint, body, params, header);
 
+        Header retryAfter = null;
         int statusCode = response.getCode();
         Boolean retry = false;
 
@@ -254,16 +267,6 @@ public class CTIClient extends HttpClient {
                         new HttpException(
                                 "Operation failed: Status code 400 - Error: " + response.getBodyText()));
                 break;
-            case 429:
-                if (attemptsLeft > 0) {
-                    log.warn("Too many requests: Status code 429 - Error: {}", response.getBodyText());
-                    retry = true;
-                } else {
-                    futureResponse.completeExceptionally(
-                            new HttpException(
-                                    "Too many requests: Status code 429 - Error: " + response.getBodyText()));
-                }
-                break;
             case 422:
                 if (attemptsLeft > 0) {
                     log.warn("Unprocessable Entity: Status code 422 - Error: {}", response.getBodyText());
@@ -272,6 +275,21 @@ public class CTIClient extends HttpClient {
                     futureResponse.completeExceptionally(
                             new HttpException(
                                     "Server Error: Status code 500 - Error: " + response.getBodyText()));
+                }
+                break;
+            case 429:
+                try {
+                    retryAfter = response.getHeader("Retry-After");
+                } catch (ProtocolException e) {
+                    throw new RuntimeException(e);
+                }
+                if (attemptsLeft > 0) {
+                    log.warn("Too many requests: Status code 429 - Error: {}", response.getBodyText());
+                    retry = true;
+                } else {
+                    futureResponse.completeExceptionally(
+                            new HttpException(
+                                    "Too many requests: Status code 429 - Error: " + response.getBodyText()));
                 }
                 break;
             case 500:
@@ -293,8 +311,14 @@ public class CTIClient extends HttpClient {
         }
 
         if (retry) {
+            Integer timeout = (MAX_ATTEMPTS - attemptsLeft + 1) * SLEEP_TIME;
+
+            // If the Retry-After header is present, use it as the timeout
+            if (retryAfter != null) {
+                timeout = Integer.parseInt(retryAfter.getValue());
+            }
+
             ScheduledExecutorService scheduler = Executors.newSingleThreadScheduledExecutor();
-            int timeout = (MAX_ATTEMPTS - attemptsLeft + 1) * SLEEP_TIME;
             switch (function) {
                 case GET_CHANGES:
                     scheduler.schedule(
