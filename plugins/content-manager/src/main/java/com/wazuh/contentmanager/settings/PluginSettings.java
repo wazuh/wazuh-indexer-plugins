@@ -97,7 +97,11 @@ public class PluginSettings {
      */
     public static PluginSettings getInstance() {
         if (PluginSettings.INSTANCE == null) {
-            throw new IllegalStateException("Plugin settings have not been initialized.");
+            synchronized (PluginSettings.class) {
+                if (INSTANCE == null) {
+                    throw new IllegalStateException("Plugin settings have not been initialized.");
+                }
+            }
         }
         return INSTANCE;
     }
