@@ -29,6 +29,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Add cross-account support for Security Lake integration [(#322)](https://github.com/wazuh/wazuh-indexer-plugins/pull/322)
 - Improve ECS documentation I [(#328)](https://github.com/wazuh/wazuh-indexer-plugins/pull/328)
 - Improve ECS documentation II [(#350)](https://github.com/wazuh/wazuh-indexer-plugins/pull/350)
+- Index RBAC information on startup [(#356)](https://github.com/wazuh/wazuh-indexer-plugins/pull/356)
 
 ### Deprecated
 
