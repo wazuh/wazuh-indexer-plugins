@@ -24,10 +24,9 @@ import org.opensearch.core.xcontent.MediaTypeRegistry;
 import org.opensearch.test.OpenSearchTestCase;
 import org.junit.Before;
 
-import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.nio.charset.StandardCharsets;
+import java.util.Locale;
 
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
@@ -42,13 +41,14 @@ public class WazuhRBACTests extends OpenSearchTestCase {
     @Mock private WazuhRBAC wazuhRBAC;
     @Mock private Client client;
 
+    /** Setup the prerequisites for the tests */
     @Before
     public void setup() {
         client = mock(Client.class);
-        // wazuhRBAC = Mockito.spy(new WazuhRBAC(client));
         wazuhRBAC = Mockito.spy(new WazuhRBAC(client));
     }
 
+    /** Test the case where an RBAC users document is already found */
     public void testIndexRBACUsers_WhenDocumentExists() {
         doReturn(true).when(wazuhRBAC).documentExists(anyString(), anyString());
 
@@ -57,6 +57,7 @@ public class WazuhRBACTests extends OpenSearchTestCase {
         verify(client, never()).index(any(), any());
     }
 
+    /** Test failing to perform a file read */
     public void testIndexRBACUsers_WhenFileReadFails() {
         doReturn(false).when(wazuhRBAC).documentExists(anyString(), anyString());
         doThrow(new NullPointerException()).when(wazuhRBAC).getResourceAsStream(anyString());
@@ -64,6 +65,7 @@ public class WazuhRBACTests extends OpenSearchTestCase {
         verify(client, never()).index(any(), any());
     }
 
+    /** Test successful indexing of the document */
     public void testIndexRBACUsers_SuccessfulIndexing() {
         doReturn(false).when(wazuhRBAC).documentExists(anyString(), anyString());
         // String jsonContent = "{\"user\": \"admin\"}";
@@ -78,10 +80,11 @@ public class WazuhRBACTests extends OpenSearchTestCase {
         try {
             assertArrayEquals(jsonContent.readAllBytes(), capturedRequest.source().toBytesRef().bytes);
         } catch (IOException | OutOfMemoryError e) {
-            fail(String.format("Exception thrown: %s", e.getMessage()));
+            fail(String.format(Locale.ROOT, "Exception thrown: %s", e.getMessage()));
         }
     }
 
+    /** Test failure to index the document */
     public void testIndexRBACUsers_IndexingFails() {
         doReturn(false).when(wazuhRBAC).documentExists(anyString(), anyString());
         doAnswer(
