@@ -101,7 +101,6 @@ public class WazuhRBACTests extends OpenSearchTestCase {
         logger.addAppender(mockAppender);
         logger.setLevel(Level.DEBUG);
 
-
         doReturn(false).when(wazuhRBAC).documentExists(anyString(), anyString());
         doAnswer(
                         invocation -> {

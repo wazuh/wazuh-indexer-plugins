@@ -29,7 +29,6 @@ import org.opensearch.core.xcontent.MediaTypeRegistry;
 
 import java.io.IOException;
 import java.io.InputStream;
-import java.util.Objects;
 
 /** Class to handle indexing of RBAC related resources */
 public class WazuhRBAC {
@@ -73,10 +72,8 @@ public class WazuhRBAC {
         }
 
         BytesReference bytesReference;
-        try {
-            bytesReference =
-                    new BytesArray(
-                            (Objects.requireNonNull(getResourceAsStream(DEFAULT_USERS_FILENAME))).readAllBytes());
+        try (InputStream is = getResourceAsStream(DEFAULT_USERS_FILENAME)) {
+            bytesReference = new BytesArray(is.readAllBytes());
         } catch (IOException | OutOfMemoryError | NullPointerException | SecurityException e) {
             log.error(
                     "Failed to get default internal users from file [{}]: {}",
@@ -88,7 +85,7 @@ public class WazuhRBAC {
         IndexRequest indexRequest =
                 new IndexRequest(RBAC_INDEX_NAME)
                         .index(RBAC_INDEX_NAME)
-                        .id("1")
+                        .id(DEFAULT_USER_ID)
                         .source(bytesReference, MediaTypeRegistry.JSON)
                         .create(true);
 
