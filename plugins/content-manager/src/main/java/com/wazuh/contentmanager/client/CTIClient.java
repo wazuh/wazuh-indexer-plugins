@@ -136,7 +136,8 @@ public class CTIClient extends HttpClient {
      * @param withEmpties A flag indicating whether to include empty values (Optional).
      * @return {@link ContextChanges} instance with the current changes.
      */
-    public ContextChanges getChanges(String fromOffset, String toOffset, String withEmpties) throws HttpException, IllegalArgumentException {
+    public ContextChanges getChanges(String fromOffset, String toOffset, String withEmpties)
+            throws HttpException, IllegalArgumentException {
         XContent xContent = XContentType.JSON.xContent();
 
         Map<String, String> params = contextQueryParameters(fromOffset, toOffset, withEmpties);
