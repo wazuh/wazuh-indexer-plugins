@@ -40,6 +40,15 @@ public class ContextChanges implements ToXContentObject {
     }
 
     /**
+     * Retrieve the list of offsets
+     *
+     * @return A List of offsets
+     */
+    public List<Offset> getOffsetList() {
+        return this.offsetList;
+    }
+
+    /**
      * Parses the data[] object from the CTI API changes response body
      *
      * @param parser The received parser object

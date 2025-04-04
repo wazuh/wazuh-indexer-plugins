@@ -16,41 +16,50 @@
  */
 package com.wazuh.contentmanager.model.commandmanager;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.opensearch.common.xcontent.XContentFactory;
+import org.opensearch.core.xcontent.XContentBuilder;
 
 import java.io.IOException;
 
 /** This class represents the model of the posted command to the Command Manager API. */
 public class Command {
+    /** Constructs the JSON request body for the command. */
+    private static final Logger log = LogManager.getLogger(Command.class);
+
     /**
-     * Constructs the JSON request body for the command.
+     * Generates a CTI Command for the Command Manager API
      *
      * @param offset Indicates the CTI version.
      * @return JSON string representing the request body.
-     * @throws IOException If there's an issue building the JSON.
      */
-    public static String create(String offset) throws IOException {
-        return XContentFactory.jsonBuilder()
-                .startObject()
-                .startArray("commands")
-                .startObject()
-                .startObject("action")
-                .field("name", "update")
-                .startObject("args")
-                .field("index", "content-index")
-                .field("offset", offset)
-                .endObject()
-                .field("version", "5.0.0") // Dynamic version
-                .endObject()
-                .field("source", "Content Manager")
-                .field("timeout", 100)
-                .startObject("target")
-                .field("id", "vulnerability-detector")
-                .field("type", "server")
-                .endObject()
-                .endObject()
-                .endArray()
-                .endObject()
-                .toString();
+    public static String create(String offset) {
+        try (XContentBuilder builder = XContentFactory.jsonBuilder()) {
+            return builder
+                    .startObject()
+                    .startArray("commands")
+                    .startObject()
+                    .startObject("action")
+                    .field("name", "update")
+                    .startObject("args")
+                    .field("index", "content-index")
+                    .field("offset", offset)
+                    .endObject()
+                    .field("version", "5.0.0") // Dynamic version
+                    .endObject()
+                    .field("source", "Content Manager")
+                    .field("timeout", 100)
+                    .startObject("target")
+                    .field("id", "vulnerability-detector")
+                    .field("type", "server")
+                    .endObject()
+                    .endObject()
+                    .endArray()
+                    .endObject()
+                    .toString();
+        } catch (IOException e) {
+            throw new RuntimeException("Failed to create Command JSON", e);
+        }
     }
 }

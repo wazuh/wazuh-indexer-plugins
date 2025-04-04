@@ -37,6 +37,7 @@ import java.util.Map;
 import java.util.concurrent.*;
 
 import com.wazuh.contentmanager.model.ctiapi.ConsumerInfo;
+import com.wazuh.contentmanager.model.ctiapi.ContextChanges;
 import com.wazuh.contentmanager.settings.PluginSettings;
 
 /**
@@ -52,8 +53,10 @@ public class CTIClient extends HttpClient {
 
     private static final String API_BASE_URL = PluginSettings.getInstance().getCtiBaseUrl();
     private static final String CONSUMER_INFO_ENDPOINT =
-            "/catalog/contexts/vd_1.0.0/consumers/vd_4.8.0";
-    private static final String CONSUMER_CHANGES_ENDPOINT = "/changes";
+            "/catalog/contexts/" + PluginSettings.CONTEXT_ID + "/consumers/" + PluginSettings.CONSUMER_ID;
+    private static final String CONSUMER_CHANGES_ENDPOINT = CONSUMER_INFO_ENDPOINT + "/changes";
+
+    private static CTIClient INSTANCE;
 
     private static final int MAX_OFFSETS = 1000;
     private static final int MAX_ATTEMPTS = 3;
@@ -110,12 +113,7 @@ public class CTIClient extends HttpClient {
      * URL.
      */
     private CTIClient() {
-        super(URI.create(API_BASE_URL));
-    }
-
-    /** Singleton holder pattern ensures lazy initialization in a thread-safe manner. */
-    private static class CTIClientHolder {
-        private static final CTIClient INSTANCE = new CTIClient();
+        super(URI.create(PluginSettings.getInstance().getCtiBaseUrl()));
     }
 
     /**
@@ -123,8 +121,11 @@ public class CTIClient extends HttpClient {
      *
      * @return The singleton instance of {@code CTIClient}.
      */
-    public static CTIClient getInstance() {
-        return CTIClientHolder.INSTANCE;
+    public static synchronized CTIClient getInstance() {
+        if (INSTANCE == null) {
+            INSTANCE = new CTIClient();
+        }
+        return INSTANCE;
     }
 
     /**
@@ -133,62 +134,58 @@ public class CTIClient extends HttpClient {
      * @param fromOffset The starting offset (inclusive) for fetching changes.
      * @param toOffset The ending offset (exclusive) for fetching changes.
      * @param withEmpties A flag indicating whether to include empty values (Optional).
-     * @return A {@link SimpleHttpResponse} containing the API response.
+     * @return {@link ContextChanges} instance with the current changes.
      */
-    public SimpleHttpResponse getChanges(String fromOffset, String toOffset, String withEmpties)
-            throws HttpException, IllegalArgumentException {
-        Map<String, String> params = contextQueryParameters(fromOffset, toOffset, withEmpties);
-        CompletableFuture<SimpleHttpResponse> futureResponse = new CompletableFuture<>();
-        fetchWithRetry(
-                Functions.GET_CHANGES,
-                Method.GET,
-                CONSUMER_CHANGES_ENDPOINT,
-                null,
-                params,
-                null,
-                MAX_ATTEMPTS,
-                futureResponse);
+    public ContextChanges getChanges(String fromOffset, String toOffset, String withEmpties) throws HttpException, IllegalArgumentException {
+        XContent xContent = XContentType.JSON.xContent();
 
-        try {
-            return futureResponse.get();
-        } catch (InterruptedException | ExecutionException e) {
-            throw new HttpException("Failed to fetch changes: " + e.getMessage(), e);
+        Map<String, String> params = contextQueryParameters(fromOffset, toOffset, withEmpties);
+        SimpleHttpResponse response =
+                sendRequest(Method.GET, CONSUMER_CHANGES_ENDPOINT, null, params, (Header) null);
+        if (response == null) {
+            log.error("No response from CTI API Changes endpoint");
+            return null;
         }
+        if (response.getCode() != HttpStatus.SC_OK) {
+            log.error("CTI API Changes endpoint returned an error: {}", response.getBody());
+        }
+        log.debug("CTI API Changes endpoint replied with status: [{}]", response.getCode());
+        try {
+            return ContextChanges.parse(
+                    xContent.createParser(
+                            NamedXContentRegistry.EMPTY,
+                            DeprecationHandler.THROW_UNSUPPORTED_OPERATION,
+                            response.getBodyBytes()));
+        } catch (IOException | IllegalArgumentException e) {
+            log.error("Failed to fetch changes information", e);
+        }
+        return null;
     }
 
     /**
      * Fetches the entire CTI catalog from the API.
      *
-     * @return A {@link SimpleHttpResponse} containing the API response with the catalog data.
+     * @return A {@link ConsumerInfo} object containing the catalog information.
      */
     public ConsumerInfo getCatalog() {
         XContent xContent = XContentType.JSON.xContent();
-        CompletableFuture<SimpleHttpResponse> futureResponse = new CompletableFuture<>();
-        fetchWithRetry(
-                Functions.GET_CATALOG,
-                Method.GET,
-                CONSUMER_INFO_ENDPOINT,
-                null,
-                null,
-                null,
-                MAX_ATTEMPTS,
-                futureResponse);
-
-        SimpleHttpResponse response;
+        SimpleHttpResponse response =
+                sendRequest(Method.GET, CONSUMER_INFO_ENDPOINT, null, null, (Header) null);
+        if (response == null) {
+            log.error("No response from CTI API");
+            return null;
+        }
+        if (response.getCode() != HttpStatus.SC_OK) {
+            log.error("CTI API returned an error: {}", response.getBody());
+        }
+        log.debug("CTI API replied with status: [{}]", response.getCode());
         try {
-            response = futureResponse.get();
-            if (response == null) {
-                log.error("No response from CTI API");
-                return null;
-            }
-            log.debug("CTI API replied with status: [{}]", response.getCode());
-
             return ConsumerInfo.parse(
                     xContent.createParser(
                             NamedXContentRegistry.EMPTY,
                             DeprecationHandler.THROW_UNSUPPORTED_OPERATION,
                             response.getBodyBytes()));
-        } catch (IOException | InterruptedException | ExecutionException | IllegalArgumentException e) {
+        } catch (IOException | IllegalArgumentException e) {
             log.error("Unable to fetch catalog information: {}", e.getMessage());
         }
         return null;
@@ -400,6 +397,7 @@ public class CTIClient extends HttpClient {
         } catch (ExecutionException e) {
             log.error("Snapshot download failed: {}", e.getMessage());
         } catch (InterruptedException e) {
+            Thread.currentThread().interrupt(); // Restore the interrupted status
             log.error("Snapshot download was interrupted: {}", e.getMessage());
         }
     }
