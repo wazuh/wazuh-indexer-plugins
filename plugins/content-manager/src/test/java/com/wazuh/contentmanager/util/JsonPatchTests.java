@@ -49,4 +49,81 @@ public class JsonPatchTests extends OpenSearchTestCase {
         assertTrue(document.has("newField"));
         assertEquals("newValue", document.get("newField").getAsString());
     }
+
+    /** Test the remove operation */
+    public void testApplyOperationRemove() {
+        JsonObject document = new JsonObject();
+        document.addProperty("fieldToRemove", "value");
+        JsonObject operation = new JsonObject();
+        operation.addProperty("op", "remove");
+        operation.addProperty("path", "/fieldToRemove");
+        JsonPatch jsonPatch = new JsonPatch();
+        jsonPatch.applyOperation(document, operation);
+        assertFalse(document.has("fieldToRemove"));
+    }
+
+    /** Test the replace operation */
+    public void testApplyOperationReplace() {
+        JsonObject document = new JsonObject();
+        document.addProperty("fieldToReplace", "oldValue");
+        JsonObject operation = new JsonObject();
+        operation.addProperty("op", "replace");
+        operation.addProperty("path", "/fieldToReplace");
+        operation.addProperty("value", "newValue");
+        JsonPatch jsonPatch = new JsonPatch();
+        jsonPatch.applyOperation(document, operation);
+        assertEquals("newValue", document.get("fieldToReplace").getAsString());
+    }
+
+    /** Test the move operation */
+    public void testApplyOperationMove() {
+        JsonObject document = new JsonObject();
+        document.addProperty("fieldToMove", "value");
+        JsonObject operation = new JsonObject();
+        operation.addProperty("op", "move");
+        operation.addProperty("from", "/fieldToMove");
+        operation.addProperty("path", "/newField");
+        JsonPatch jsonPatch = new JsonPatch();
+        jsonPatch.applyOperation(document, operation);
+        assertFalse(document.has("fieldToMove"));
+        assertTrue(document.has("newField"));
+    }
+
+    /** Test the copy operation */
+    public void testApplyOperationCopy() {
+        JsonObject document = new JsonObject();
+        document.addProperty("fieldToCopy", "value");
+        JsonObject operation = new JsonObject();
+        operation.addProperty("op", "copy");
+        operation.addProperty("from", "/fieldToCopy");
+        operation.addProperty("path", "/newField");
+        JsonPatch jsonPatch = new JsonPatch();
+        jsonPatch.applyOperation(document, operation);
+        assertTrue(document.has("newField"));
+        assertEquals("value", document.get("newField").getAsString());
+    }
+
+    /** Test the test operation */
+    public void testApplyOperationTest() {
+        JsonObject document = new JsonObject();
+        document.addProperty("fieldToTest", "value");
+        JsonObject operation = new JsonObject();
+        operation.addProperty("op", "test");
+        operation.addProperty("path", "/fieldToTest");
+        operation.addProperty("value", "value");
+        JsonPatch jsonPatch = new JsonPatch();
+        jsonPatch.applyOperation(document, operation);
+        assertTrue(document.has("fieldToTest"));
+    }
+
+    /** Test the unsupported operation */
+    public void testApplyOperationUnsupported() {
+        JsonObject document = new JsonObject();
+        JsonObject operation = new JsonObject();
+        operation.addProperty("op", "unsupported");
+        operation.addProperty("path", "/field");
+        JsonPatch jsonPatch = new JsonPatch();
+        jsonPatch.applyOperation(document, operation);
+        assertFalse(document.has("field"));
+    }
 }

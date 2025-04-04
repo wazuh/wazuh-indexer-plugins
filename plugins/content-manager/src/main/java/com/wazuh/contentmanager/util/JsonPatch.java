@@ -122,8 +122,26 @@ public class JsonPatch {
      * @param toPath The JSON path where the value should be copied.
      */
     private void copyOperation(JsonObject document, String fromPath, String toPath) {
-        JsonElement value = navigateToParent(document, fromPath);
-        addOperation(document, toPath, value);
+        JsonElement parent = navigateToParent(document, fromPath);
+        if (parent == null || !parent.isJsonObject()) {
+            log.error("Invalid 'from' path for copy operation: {}", fromPath);
+            return;
+        }
+
+        String fromKey = extractKeyFromPath(fromPath);
+        if (!parent.getAsJsonObject().has(fromKey)) {
+            log.error("Source key '{}' does not exist in 'from' path '{}'", fromKey, fromPath);
+            return;
+        }
+
+        // Get the actual value to copy
+        JsonElement valueToCopy = parent.getAsJsonObject().get(fromKey);
+
+        // Deep copy to avoid reference issues
+        JsonElement copiedValue = valueToCopy.deepCopy();
+
+        // Now add the copied value to the new location
+        addOperation(document, toPath, copiedValue);
     }
 
     /**
@@ -154,8 +172,17 @@ public class JsonPatch {
     private JsonElement navigateToParent(JsonObject document, String path) {
         String[] parts = path.split("/");
         JsonElement current = document;
-        for (int i = 1; i < parts.length - 1; i++) { // Navigate to parent
-            current = ((JsonObject) current).get(parts[i]);
+
+        for (int i = 1; i < parts.length - 1; i++) { // Navigate to parent object
+            if (current.isJsonObject()) {
+                JsonObject obj = current.getAsJsonObject();
+                if (!obj.has(parts[i])) {
+                    return null; // Path does not exist
+                }
+                current = obj.get(parts[i]);
+            } else {
+                return null; // Trying to navigate inside a non-object
+            }
         }
         return current;
     }
