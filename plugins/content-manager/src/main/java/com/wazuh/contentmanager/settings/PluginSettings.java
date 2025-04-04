@@ -42,6 +42,12 @@ public class PluginSettings {
     /** Content Manager CTI API setting field key */
     private static final String CONTENT_MANAGER_API_CTI = "content-manager.api.cti";
 
+    /** Content Manager CTI API consumer id/name */
+    public static final String CONSUMER_ID = "vd_4.8.0";
+
+    /** Content Manager CTI API context id/name */
+    public static final String CONTEXT_ID = "vd_1.0.0";
+
     /** Read the CTI API URL from configuration file */
     public static final Setting<String> CTI_API_URL =
             Setting.simpleString(
@@ -72,14 +78,10 @@ public class PluginSettings {
      * @param clusterService service to get cluster stats.
      * @return {@link PluginSettings#INSTANCE}
      */
-    public static PluginSettings getInstance(
+    public static synchronized PluginSettings getInstance(
             @NonNull final Settings settings, ClusterService clusterService) {
         if (INSTANCE == null) {
-            synchronized (PluginSettings.class) {
-                if (INSTANCE == null) {
-                    INSTANCE = new PluginSettings(settings, clusterService);
-                }
-            }
+            INSTANCE = new PluginSettings(settings, clusterService);
         }
         return INSTANCE;
     }
@@ -88,8 +90,10 @@ public class PluginSettings {
      * Singleton instance accessor
      *
      * @return {@link PluginSettings#INSTANCE}
+     * @throws IllegalStateException if the instance has not been initialized
+     * @see PluginSettings#getInstance(Settings, ClusterService)
      */
-    public static PluginSettings getInstance() {
+    public static synchronized PluginSettings getInstance() {
         if (PluginSettings.INSTANCE == null) {
             throw new IllegalStateException("Plugin settings have not been initialized.");
         }

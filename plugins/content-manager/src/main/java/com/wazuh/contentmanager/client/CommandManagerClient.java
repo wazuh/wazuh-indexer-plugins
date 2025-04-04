@@ -33,7 +33,7 @@ import com.wazuh.contentmanager.settings.PluginSettings;
 public class CommandManagerClient extends HttpClient {
     private static final Logger log = LogManager.getLogger(CommandManagerClient.class);
 
-    private static volatile CommandManagerClient instance;
+    private static CommandManagerClient INSTANCE;
 
     /** Base Content Manager Plugin API endpoint. */
     public static final String BASE_COMMAND_MANAGER_URI = "/_plugins/_command_manager";
@@ -52,36 +52,29 @@ public class CommandManagerClient extends HttpClient {
      *
      * @return The singleton instance of CommandManagerClient.
      */
-    public static CommandManagerClient getInstance() {
-        if (instance == null) {
-            synchronized (CommandManagerClient.class) {
-                if (instance == null) {
-                    instance = new CommandManagerClient();
-                }
-            }
+    public static synchronized CommandManagerClient getInstance() {
+        if (INSTANCE == null) {
+            INSTANCE = new CommandManagerClient();
         }
-        return instance;
+        return INSTANCE;
     }
 
     /**
      * Sends a POST request to execute a command via the Command Manager API.
      *
      * @param requestBody The JSON request body containing the command details.
-     * @return A SimpleHttpResponse object containing the API response.
      */
-    public SimpleHttpResponse postCommand(String requestBody) {
+    public void postCommand(String requestBody) {
         Header header = new BasicHeader(HttpHeaders.CONTENT_TYPE, ContentType.APPLICATION_JSON);
         SimpleHttpResponse response =
                 this.sendRequest(Method.POST, POST_COMMAND_ENDPOINT, requestBody, null, header);
         this.handlePostResponse(response);
-
-        return response;
     }
 
     /**
      * Handles the response of the POST request to the Command Manager endpoint.
      *
-     * @param response simplehttprespone
+     * @param response The response from the POST request
      */
     private void handlePostResponse(SimpleHttpResponse response) {
         if (response == null) {
@@ -95,10 +88,11 @@ public class CommandManagerClient extends HttpClient {
                     log.error("Client error: {}", response.getBody().toString());
                     break;
                 case HttpStatus.SC_SERVER_ERROR:
-                    log.error("Internal server error");
+                    log.error("Server error: {}", response.getBody().toString());
                     break;
                 default:
-                    log.info("Unexpected response code: {}", response.getCode());
+                    log.warn("Unexpected response code: {}", response.getCode());
+                    break;
             }
         }
     }

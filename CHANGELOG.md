@@ -8,6 +8,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ### Added
 - Add RBAC index templates with its corresponding event generator [(#303)](https://github.com/wazuh/wazuh-indexer-plugins/pull/303)
+- Implement content update based on offsets [(#307)](https://github.com/wazuh/wazuh-indexer-plugins/pull/307)
 - Add technical documentation [(#320)](https://github.com/wazuh/wazuh-indexer-plugins/pull/320)
 - Implement CTI snapshot download [(#318)](https://github.com/wazuh/wazuh-indexer-plugins/pull/318)
 - Implement CTI snapshot unzip tool [(#319)](https://github.com/wazuh/wazuh-indexer-plugins/pull/319)
@@ -25,6 +26,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Improved mdbook installation instructions [#332](https://github.com/wazuh/wazuh-indexer-plugins/pull/332)
 - Third-party integrations maintenance [(#299)](https://github.com/wazuh/wazuh-indexer-plugins/pull/299)
 - Upgrade to Opensearch 2.19.1 [(#304)](https://github.com/wazuh/wazuh-indexer-plugins/pull/304)
+- Add cross-account support for Security Lake integration [(#322)](https://github.com/wazuh/wazuh-indexer-plugins/pull/322)
 - Improve ECS documentation I [(#328)](https://github.com/wazuh/wazuh-indexer-plugins/pull/328)
 - Improve ECS documentation II [(#350)](https://github.com/wazuh/wazuh-indexer-plugins/pull/350)
 
