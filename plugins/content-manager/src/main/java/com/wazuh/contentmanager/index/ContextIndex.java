@@ -30,6 +30,7 @@ import org.opensearch.core.xcontent.ToXContent;
 import java.io.IOException;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
@@ -147,10 +148,10 @@ public class ContextIndex {
             Long last_offset = (offsetObj instanceof Number) ? ((Number) offsetObj).longValue() : null;
             String snapshot = (String) source.get(ConsumerInfo.LAST_SNAPSHOT_LINK);
             return new ConsumerInfo(consumer, context, last_offset, snapshot);
-        } catch (TimeoutException e) {
-            throw new RuntimeException("Timeout retrieving context", e);
-        } catch (Exception e) {
-            throw new RuntimeException("Failed to retrieve context", e);
+        } catch (InterruptedException | ExecutionException | TimeoutException e) {
+            log.error(
+                    "Failed to retrieve context [{}], consumer [{}]: {}", context, consumer, e.getMessage());
         }
+        return null;
     }
 }

@@ -22,7 +22,6 @@ import org.opensearch.client.Client;
 
 import com.wazuh.contentmanager.client.CTIClient;
 import com.wazuh.contentmanager.client.CommandManagerClient;
-import com.wazuh.contentmanager.client.HttpClient;
 import com.wazuh.contentmanager.index.ContextIndex;
 import com.wazuh.contentmanager.model.commandmanager.Command;
 import com.wazuh.contentmanager.model.ctiapi.ConsumerInfo;
@@ -115,13 +114,7 @@ public class ContentUpdater {
     @VisibleForTesting
     ContextChanges getContextChanges(String fromOffset, String toOffset) {
         return Privileged.doPrivilegedRequest(
-                () -> {
-                    try {
-                        return CTIClient.getInstance().getChanges(fromOffset, toOffset, null);
-                    } catch (HttpClient.HttpClientException e) {
-                        throw new ContentUpdateException("Unable to fetch changes from CTI API", e);
-                    }
-                });
+                () -> CTIClient.getInstance().getChanges(fromOffset, toOffset, null));
     }
 
     /**
@@ -132,14 +125,7 @@ public class ContentUpdater {
     @VisibleForTesting
     Long getLatestOffset() {
         ConsumerInfo consumerInfo =
-                Privileged.doPrivilegedRequest(
-                        () -> {
-                            try {
-                                return CTIClient.getInstance().getCatalog();
-                            } catch (HttpClient.HttpClientException e) {
-                                throw new ContentUpdateException("Unable to fetch latest offset from CTI API", e);
-                            }
-                        });
+                Privileged.doPrivilegedRequest(() -> CTIClient.getInstance().getCatalog());
         return consumerInfo.getLastOffset();
     }
 
@@ -173,12 +159,8 @@ public class ContentUpdater {
         // Post new command informing the new changes.
         Privileged.doPrivilegedRequest(
                 () -> {
-                    try {
-                        CommandManagerClient.getInstance()
-                                .postCommand(Command.create(getCurrentOffset().toString()));
-                    } catch (HttpClient.HttpClientException e) {
-                        throw new ContentUpdateException("Unable to post command to Command Manager", e);
-                    }
+                    CommandManagerClient.getInstance()
+                            .postCommand(Command.create(getCurrentOffset().toString()));
                     return null;
                 });
     }

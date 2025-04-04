@@ -42,7 +42,6 @@ import java.util.List;
 import java.util.function.Supplier;
 
 import com.wazuh.contentmanager.client.CTIClient;
-import com.wazuh.contentmanager.client.HttpClient;
 import com.wazuh.contentmanager.index.ContentIndex;
 import com.wazuh.contentmanager.index.ContextIndex;
 import com.wazuh.contentmanager.model.ctiapi.ConsumerInfo;
@@ -97,14 +96,7 @@ public class ContentManagerPlugin extends Plugin implements ClusterPlugin, Actio
     @Override
     public void onNodeStarted(DiscoveryNode localNode) {
         ConsumerInfo consumerInfo =
-                Privileged.doPrivilegedRequest(
-                        () -> {
-                            try {
-                                return CTIClient.getInstance().getCatalog();
-                            } catch (HttpClient.HttpClientException e) {
-                                throw new RuntimeException(e);
-                            }
-                        });
+                Privileged.doPrivilegedRequest(() -> CTIClient.getInstance().getCatalog());
         this.contextIndex.index(consumerInfo);
 
         // Wrapping up for testing

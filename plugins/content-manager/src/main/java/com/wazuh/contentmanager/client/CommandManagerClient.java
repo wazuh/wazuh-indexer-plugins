@@ -33,7 +33,7 @@ import com.wazuh.contentmanager.settings.PluginSettings;
 public class CommandManagerClient extends HttpClient {
     private static final Logger log = LogManager.getLogger(CommandManagerClient.class);
 
-    private static volatile CommandManagerClient instance;
+    private static CommandManagerClient INSTANCE;
 
     /** Base Content Manager Plugin API endpoint. */
     public static final String BASE_COMMAND_MANAGER_URI = "/_plugins/_command_manager";
@@ -42,7 +42,7 @@ public class CommandManagerClient extends HttpClient {
     public static final String POST_COMMAND_ENDPOINT = "/commands";
 
     /** Private constructor to initialize the CommandManagerClient with the base API URI. */
-    private CommandManagerClient() throws HttpClientException {
+    private CommandManagerClient() {
         super(URI.create(PluginSettings.getInstance().getClusterBaseUrl() + BASE_COMMAND_MANAGER_URI));
     }
 
@@ -52,25 +52,19 @@ public class CommandManagerClient extends HttpClient {
      *
      * @return The singleton instance of CommandManagerClient.
      */
-    public static CommandManagerClient getInstance() throws HttpClientException {
-        if (instance == null) {
-            synchronized (CommandManagerClient.class) {
-                if (instance == null) {
-                    instance = new CommandManagerClient();
-                }
-            }
+    public static synchronized CommandManagerClient getInstance() {
+        if (INSTANCE == null) {
+            INSTANCE = new CommandManagerClient();
         }
-        return instance;
+        return INSTANCE;
     }
 
     /**
      * Sends a POST request to execute a command via the Command Manager API.
      *
      * @param requestBody The JSON request body containing the command details.
-     * @throws HttpClientException If an error occurs while sending the request or processing the
-     *     response.
      */
-    public void postCommand(String requestBody) throws HttpClientException {
+    public void postCommand(String requestBody) {
         Header header = new BasicHeader(HttpHeaders.CONTENT_TYPE, ContentType.APPLICATION_JSON);
         SimpleHttpResponse response =
                 this.sendRequest(Method.POST, POST_COMMAND_ENDPOINT, requestBody, null, header);
@@ -81,9 +75,8 @@ public class CommandManagerClient extends HttpClient {
      * Handles the response of the POST request to the Command Manager endpoint.
      *
      * @param response The response from the POST request
-     * @throws HttpClientException If an error occurs while handling the response.
      */
-    private void handlePostResponse(SimpleHttpResponse response) throws HttpClientException {
+    private void handlePostResponse(SimpleHttpResponse response) {
         if (response == null) {
             log.error("No reply from server");
         } else {
@@ -92,11 +85,14 @@ public class CommandManagerClient extends HttpClient {
                     log.info("Received OK response: {}", response.getBody().toString());
                     break;
                 case HttpStatus.SC_CLIENT_ERROR:
-                    throw new HttpClientException("Client error: {}" + response.getBody().toString());
+                    log.error("Client error: {}", response.getBody().toString());
+                    break;
                 case HttpStatus.SC_SERVER_ERROR:
-                    throw new HttpClientException("Server error: {}" + response.getBody().toString());
+                    log.error("Server error: {}", response.getBody().toString());
+                    break;
                 default:
                     log.warn("Unexpected response code: {}", response.getCode());
+                    break;
             }
         }
     }

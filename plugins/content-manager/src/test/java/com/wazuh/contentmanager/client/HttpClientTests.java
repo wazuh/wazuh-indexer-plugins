@@ -50,7 +50,7 @@ public class HttpClientTests extends OpenSearchIntegTestCase {
     }
 
     /** Test send request success */
-    public void testSendRequestSuccess() throws HttpClient.HttpClientException {
+    public void testSendRequestSuccess() {
         SimpleHttpResponse mockResponse = new SimpleHttpResponse(HttpStatus.SC_SUCCESS, "OK");
 
         when(httpClient.sendRequest(
@@ -65,7 +65,7 @@ public class HttpClientTests extends OpenSearchIntegTestCase {
     }
 
     /** Test send POST request */
-    public void testSendPostRequest() throws HttpClient.HttpClientException {
+    public void testSendPostRequest() {
         SimpleHttpResponse mockResponse = new SimpleHttpResponse(HttpStatus.SC_CREATED, "Created");
         String requestBody = "{\"key\":\"value\"}";
 
@@ -81,7 +81,7 @@ public class HttpClientTests extends OpenSearchIntegTestCase {
     }
 
     /** Test sending request with query parameters */
-    public void testSendRequestWithQueryParams() throws HttpClient.HttpClientException {
+    public void testSendRequestWithQueryParams() {
         SimpleHttpResponse mockResponse = new SimpleHttpResponse(HttpStatus.SC_SUCCESS, "OK");
         Map<String, String> queryParams = Map.of("param1", "value1", "param2", "value2");
 
@@ -96,7 +96,7 @@ public class HttpClientTests extends OpenSearchIntegTestCase {
     }
 
     /** Test send request failure */
-    public void testSendRequestFailure() throws HttpClient.HttpClientException {
+    public void testSendRequestFailure() {
         SimpleHttpResponse mockResponse =
                 new SimpleHttpResponse(HttpStatus.SC_SERVER_ERROR, "Internal Server Error");
 
@@ -112,7 +112,7 @@ public class HttpClientTests extends OpenSearchIntegTestCase {
     }
 
     /** Test sendRequest() timeout */
-    public void testSendRequestTimeout() throws HttpClient.HttpClientException {
+    public void testSendRequestTimeout() {
         when(httpClient.sendRequest(
                         any(Method.class), anyString(), any(), anyMap(), any(Header[].class)))
                 .thenThrow(new RuntimeException("Request timeout"));

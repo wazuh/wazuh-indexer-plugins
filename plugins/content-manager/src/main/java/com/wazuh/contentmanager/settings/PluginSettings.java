@@ -78,12 +78,10 @@ public class PluginSettings {
      * @param clusterService service to get cluster stats.
      * @return {@link PluginSettings#INSTANCE}
      */
-    public static PluginSettings getInstance(
+    public static synchronized PluginSettings getInstance(
             @NonNull final Settings settings, ClusterService clusterService) {
         if (INSTANCE == null) {
-            synchronized (PluginSettings.class) {
-                INSTANCE = new PluginSettings(settings, clusterService);
-            }
+            INSTANCE = new PluginSettings(settings, clusterService);
         }
         return INSTANCE;
     }
@@ -95,13 +93,9 @@ public class PluginSettings {
      * @throws IllegalStateException if the instance has not been initialized
      * @see PluginSettings#getInstance(Settings, ClusterService)
      */
-    public static PluginSettings getInstance() {
+    public static synchronized PluginSettings getInstance() {
         if (PluginSettings.INSTANCE == null) {
-            synchronized (PluginSettings.class) {
-                if (INSTANCE == null) {
-                    throw new IllegalStateException("Plugin settings have not been initialized.");
-                }
-            }
+            throw new IllegalStateException("Plugin settings have not been initialized.");
         }
         return INSTANCE;
     }
