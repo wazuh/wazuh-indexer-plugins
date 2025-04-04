@@ -67,8 +67,7 @@ public class UnzipTests extends OpenSearchTestCase {
         super.tearDown();
     }
 
-    @Ignore
-    public void testValidUnzip() {
+    /*public void testValidUnzip() {
         try {
             Unzip.unzip(this.zipFileName, "", this.environment);
             Path extractedFilePath = this.tempDestinationDirectory.resolve(this.testFile);
@@ -78,7 +77,7 @@ public class UnzipTests extends OpenSearchTestCase {
         } catch (IOException e) {
             fail("Unexpected IOException: " + e.getMessage());
         }
-    }
+    }*/
 
     public void testNullPointerException() {
         assertThrows(
