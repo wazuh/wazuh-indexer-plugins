@@ -28,14 +28,15 @@ import org.opensearch.core.common.bytes.BytesReference;
 import org.opensearch.core.xcontent.MediaTypeRegistry;
 
 import java.io.IOException;
+import java.io.InputStream;
 import java.util.Objects;
 
 /** Class to handle indexing of RBAC related resources */
 public class WazuhRBAC {
 
-    private static final String DEFAULT_USERS_FILENAME = "default-rbac-users.json";
-    private static final String DEFAULT_USER_ID = "1";
-    private static final String RBAC_INDEX_NAME = "wazuh-internal-users";
+    public static final String DEFAULT_USERS_FILENAME = "default-rbac-users.json";
+    public static final String DEFAULT_USER_ID = "1";
+    public static final String RBAC_INDEX_NAME = "wazuh-internal-users";
     private final Client client;
 
     private static final Logger log = LogManager.getLogger(WazuhRBAC.class);
@@ -56,7 +57,7 @@ public class WazuhRBAC {
      * @param documentId The document to look for
      * @return Return true if document exists
      */
-    private boolean documentExists(String indexName, String documentId) {
+    public boolean documentExists(String indexName, String documentId) {
         try {
             return client.get(new GetRequest(indexName, documentId)).actionGet().isExists();
         } catch (IllegalStateException e) {
@@ -71,18 +72,17 @@ public class WazuhRBAC {
             return;
         }
 
-        BytesReference bytesReference = null;
+        BytesReference bytesReference;
         try {
             bytesReference =
                     new BytesArray(
-                            Objects.requireNonNull(
-                                            getClass().getClassLoader().getResourceAsStream(DEFAULT_USERS_FILENAME))
-                                    .readAllBytes());
+                            (Objects.requireNonNull(getResourceAsStream(DEFAULT_USERS_FILENAME))).readAllBytes());
         } catch (IOException | OutOfMemoryError | NullPointerException | SecurityException e) {
             log.error(
                     "Failed to get default internal users from file [{}]: {}",
                     DEFAULT_USERS_FILENAME,
                     e.getMessage());
+            return;
         }
 
         IndexRequest indexRequest =
@@ -105,5 +105,15 @@ public class WazuhRBAC {
                         log.error("Failed to index internal users: {}", e.getMessage());
                     }
                 });
+    }
+
+    /**
+     * This is extracted to a method for ease of mocking
+     *
+     * @param filename The filename of the resource to be loaded
+     * @return An InputStream with the contents of the file
+     */
+    public InputStream getResourceAsStream(String filename) {
+        return WazuhRBAC.class.getClassLoader().getResourceAsStream(filename);
     }
 }
