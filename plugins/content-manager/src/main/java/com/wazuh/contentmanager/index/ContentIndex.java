@@ -16,12 +16,14 @@
  */
 package com.wazuh.contentmanager.index;
 
+import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.opensearch.action.bulk.BulkRequest;
 import org.opensearch.action.bulk.BulkResponse;
+import org.opensearch.action.get.GetResponse;
 import org.opensearch.action.index.IndexRequest;
 import org.opensearch.client.Client;
 import org.opensearch.common.xcontent.XContentType;
@@ -32,7 +34,9 @@ import java.io.FileReader;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.Semaphore;
+import java.util.concurrent.*;
+
+import com.wazuh.contentmanager.util.JsonPatch;
 
 /** Class to manage the Content Manager index. */
 public class ContentIndex {
@@ -41,6 +45,7 @@ public class ContentIndex {
     private static final String INDEX_NAME = "wazuh-cve";
     private final int MAX_DOCUMENTS = 25;
     private static final int MAX_CONCURRENT_PETITIONS = 5;
+    public static final Long TIMEOUT = 10L;
 
     private final Client client;
     private final Semaphore semaphore = new Semaphore(MAX_CONCURRENT_PETITIONS);
@@ -95,12 +100,34 @@ public class ContentIndex {
     }
 
     /**
-     * Patch a document
+     * Patch the content of the current snapshot with the changes provided in JSON Patch format.
      *
-     * @param document the document to patch the existing document
+     * @param changes the changes in JSON Patch format to patch the existing document
      */
-    public void patch(JsonObject document) {
-        log.error("Unimplemented method");
+    public void patch(JsonObject changes)
+            throws ExecutionException, InterruptedException, TimeoutException {
+        // Get the current content of the document
+        String id = changes.get("context").getAsString();
+        GetResponse getResponse = this.get(id).get(TIMEOUT, TimeUnit.SECONDS);
+        // TODO: Convert the response to JsonObject
+        // JsonObject currentContent = getResponse.toXContent();
+        JsonObject currentContent = new JsonObject();
+        if (getResponse == null) {
+            throw new IllegalArgumentException("Document not found");
+        }
+
+        // Apply the changes to the current content
+        JsonPatch jsonPatch = new JsonPatch();
+        for (JsonElement operation : changes.get("operations").getAsJsonArray()) {
+            jsonPatch.applyOperation(currentContent, (JsonObject) operation);
+        }
+
+        // Index the updated content
+        this.index(List.of(currentContent));
+    }
+
+    public CompletableFuture<GetResponse> get(String id) {
+        return null;
     }
 
     /**
