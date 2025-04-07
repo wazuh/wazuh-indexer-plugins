@@ -28,15 +28,15 @@ public class ContextChanges implements ToXContentObject {
 
     private static final String DATA = "data";
 
-    private final List<Offset> offsetList;
+    private final List<PatchChange> changes;
 
     /**
      * Constructor method
      *
-     * @param offsetList a List of the Offset objects, containing a json patch each.
+     * @param changes a List of the PatchChange objects, containing a json patch each.
      */
-    public ContextChanges(List<Offset> offsetList) {
-        this.offsetList = offsetList;
+    public ContextChanges(List<PatchChange> changes) {
+        this.changes = changes;
     }
 
     /**
@@ -44,8 +44,8 @@ public class ContextChanges implements ToXContentObject {
      *
      * @return A List of offsets
      */
-    public List<Offset> getOffsetList() {
-        return this.offsetList;
+    public List<PatchChange> getChangesList() {
+        return this.changes;
     }
 
     /**
@@ -59,7 +59,7 @@ public class ContextChanges implements ToXContentObject {
      */
     public static ContextChanges parse(XContentParser parser)
             throws IOException, IllegalArgumentException, ParsingException {
-        List<Offset> changes = new ArrayList<>();
+        List<PatchChange> changes = new ArrayList<>();
         // Make sure we are at the start
         XContentParserUtils.ensureExpectedToken(
                 XContentParser.Token.START_OBJECT, parser.nextToken(), parser);
@@ -68,9 +68,9 @@ public class ContextChanges implements ToXContentObject {
         // Check we are at the start of the array
         XContentParserUtils.ensureExpectedToken(
                 XContentParser.Token.START_ARRAY, parser.nextToken(), parser);
-        // Iterate over the array and add each Offset object to changes array
+        // Iterate over the array and add each PatchChange object to changes array
         while (parser.nextToken() != XContentParser.Token.END_ARRAY) {
-            changes.add(Offset.parse(parser));
+            changes.add(PatchChange.parse(parser));
         }
         return new ContextChanges(changes);
     }
@@ -81,14 +81,14 @@ public class ContextChanges implements ToXContentObject {
      * @param builder the received builder object
      * @param params We don't really use this one
      * @return an XContentBuilder object ready to be printed
-     * @throws IOException rethrown from Offset's toXContent
+     * @throws IOException rethrown from PatchChange's toXContent
      */
     @Override
     public XContentBuilder toXContent(XContentBuilder builder, Params params) throws IOException {
         builder.startObject();
         builder.startArray(DATA);
-        // For each Offset in the data field, add them to an XContentBuilder array
-        offsetList.forEach(
+        // For each PatchChange in the data field, add them to an XContentBuilder array
+        changes.forEach(
                 (offset) -> {
                     try {
                         offset.toXContent(builder, ToXContentObject.EMPTY_PARAMS);
@@ -102,6 +102,6 @@ public class ContextChanges implements ToXContentObject {
 
     @Override
     public String toString() {
-        return "ContextChanges{" + "offsets=" + offsetList + '}';
+        return "ContextChanges{" + "changes=" + changes + '}';
     }
 }

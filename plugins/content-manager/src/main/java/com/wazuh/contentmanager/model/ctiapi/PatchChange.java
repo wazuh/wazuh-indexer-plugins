@@ -28,30 +28,6 @@ import java.util.List;
 
 import static com.wazuh.contentmanager.model.ctiapi.ConsumerInfo.DATA;
 
-// This is the format the PatchChange model should parse.
-// {
-//     "offset": 1675415,
-//     "type": "update",
-//     "version": 4,
-//     "context": "vd_1.0.0",
-//     "resource": "CVE-2025-31164",
-//     "operations": [
-//         {
-//             "op": "remove",
-//             "path": "/containers/adp/0/affected/3"
-//         },
-//         {
-//             "op": "add",
-//             "path": "/containers/adp/0/affected/0/platforms/1",
-//             "value": "bullseye"
-//         },
-//         {
-//             "op": "replace",
-//             "path": "/containers/adp/0/affected/0/defaultStatus",
-//             "value": "unaffected"
-//         }
-//     ]
-// }
 public class PatchChange implements ToXContentObject {
 
     private static final String CONTEXT = "context";

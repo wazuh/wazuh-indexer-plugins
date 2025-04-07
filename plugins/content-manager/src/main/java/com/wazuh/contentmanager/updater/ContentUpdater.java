@@ -20,8 +20,12 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.opensearch.client.Client;
 
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeoutException;
+
 import com.wazuh.contentmanager.client.CTIClient;
 import com.wazuh.contentmanager.client.CommandManagerClient;
+import com.wazuh.contentmanager.index.ContentIndex;
 import com.wazuh.contentmanager.index.ContextIndex;
 import com.wazuh.contentmanager.model.commandmanager.Command;
 import com.wazuh.contentmanager.model.ctiapi.ConsumerInfo;
@@ -35,6 +39,7 @@ public class ContentUpdater {
     private static final Integer CHUNK_MAX_SIZE = 1000;
     private static final Logger log = LogManager.getLogger(ContentUpdater.class);
     private final ContextIndex contextIndex;
+    private final ContentIndex contentIndex;
 
     /** Exception thrown by the Content Updater in case of errors. */
     public static class ContentUpdateException extends RuntimeException {
@@ -55,6 +60,7 @@ public class ContentUpdater {
      * @param client the OpenSearch Client to interact with the cluster
      */
     public ContentUpdater(Client client) {
+        this.contentIndex = new ContentIndex(client);
         this.contextIndex = new ContextIndex(client);
     }
 
@@ -94,7 +100,11 @@ public class ContentUpdater {
             }
             // Apply the fetched changes to the indexed context.
             if (!this.patchContextIndex(changes)) {
-                this.restartConsumerInfo();
+                // If there was an error applying the changes, restart the consumer info.
+                restartConsumerInfo();
+                log.warn(
+                        "Restarted consumer info. Current offset set to 0. "
+                                + "Please restart the content updater.");
                 return;
             }
 
@@ -149,7 +159,15 @@ public class ContentUpdater {
      */
     @VisibleForTesting
     boolean patchContextIndex(ContextChanges changes) {
-        // TODO: Call the patch method, return false on error.
+        try {
+            log.info("Patching context index with changes: {}", changes);
+            // Apply the changes to the context index.
+            contentIndex.patch(changes);
+        } catch (ExecutionException | InterruptedException | TimeoutException e) {
+            log.error("Failed to apply changes to content index: {}", e.toString());
+            return false;
+        }
+
         return true;
     }
 

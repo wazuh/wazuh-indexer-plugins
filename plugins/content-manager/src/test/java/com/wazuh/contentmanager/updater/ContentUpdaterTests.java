@@ -21,11 +21,11 @@ import org.opensearch.test.OpenSearchIntegTestCase;
 import org.junit.Before;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 
 import com.wazuh.contentmanager.model.ctiapi.ContextChanges;
-import com.wazuh.contentmanager.model.ctiapi.Offset;
+import com.wazuh.contentmanager.model.ctiapi.PatchChange;
+import com.wazuh.contentmanager.model.ctiapi.PatchOperation;
 import org.mockito.Mockito;
 
 import static org.mockito.Mockito.*;
@@ -71,6 +71,8 @@ public class ContentUpdaterTests extends OpenSearchIntegTestCase {
                 .getContextChanges(any(), any());
         // Mock postUpdateCommand method.
         doNothing().when(contentUpdaterSpy).postUpdateCommand();
+        // Mock ContentIndex.patch
+        doReturn(true).when(contentUpdaterSpy).patchContextIndex(any());
         // Act
         contentUpdaterSpy.fetchAndApplyUpdates(null);
         // Assert patchContextIndex is called 4 times (one each 1000 starting from 0).
@@ -118,9 +120,16 @@ public class ContentUpdaterTests extends OpenSearchIntegTestCase {
      * @return A ContextChanges object
      */
     public ContextChanges generateContextChanges(Integer size) {
-        List<Offset> offsets = new ArrayList<>();
+        List<PatchChange> offsets = new ArrayList<>();
         for (int i = 0; i < size; i++) {
-            offsets.add(new Offset("context", (long) i, "resource", "type", 0L, new HashMap<>()));
+            offsets.add(
+                    new PatchChange(
+                            "context",
+                            (long) i,
+                            "resource",
+                            "type",
+                            0L,
+                            List.of(new PatchOperation("op", "path", "from", "value"))));
         }
         return new ContextChanges(offsets);
     }

@@ -26,72 +26,14 @@ import org.opensearch.core.xcontent.XContentParserUtils;
 
 import java.io.IOException;
 
-// This model represents the JSON Patch operation format
-// "operations": [
-//     {
-//         "op": "remove",
-//         "path": "/containers/adp/0/affected/3"
-//     },
-//     {
-//         "op": "add",
-//         "path": "/containers/adp/0/affected/0/platforms/1",
-//         "value": "bullseye"
-//     },
-//     {
-//         "op": "replace",
-//         "path": "/containers/adp/0/affected/0/defaultStatus",
-//         "value": "unaffected"
-//     },
-//     {
-//         "op": "add",
-//         "path": "/containers/adp/3",
-//         "value": {
-//             "metrics": [
-//                 {
-//                     "other": {
-//                         "type": "Unknown",
-//                         "content": {
-//                             "data": "{\"description\":\"unimportant\"}"
-//                         }
-//                     }
-//                 }
-//             ],
-//             "affected": [
-//                 {
-//                     "vendor": "debian",
-//                     "product": "gnuplot",
-//                     "platforms": [
-//                         "bookworm",
-//                         "bullseye",
-//                         "sid",
-//                         "trixie"
-//                     ],
-//                     "defaultStatus": "unaffected"
-//                 }
-//             ],
-//             "references": [
-//                 {
-//                     "url": "https://security-tracker.debian.org/tracker/CVE-2025-31177"
-//                 }
-//             ],
-//             "descriptions": [
-//                 {
-//                     "lang": "en",
-//                     "value": "not defined"
-//                 }
-//             ],
-//             "providerMetadata": {
-//                 "orgId": "79363d38-fa19-49d1-9214-5f28da3f3ac5",
-//                 "shortName": "debian",
-//                 "x_subShortName": "debian"
-//             }
-//         }
-//     }
 public class PatchOperation implements ToXContentObject {
+    private static final String OP = "op";
+    private static final String PATH = "path";
+    private static final String FROM = "from";
+    private static final String VALUE = "value";
     private final String op;
     private final String path;
     private final String from;
-    // The value can be a JSON object, so we use String to represent it
     private final String value;
 
     /**
@@ -110,7 +52,7 @@ public class PatchOperation implements ToXContentObject {
     }
 
     public static PatchOperation parse(XContentParser parser)
-            throws IOException, IllegalArgumentException, IOException {
+            throws IllegalArgumentException, IOException {
         String op = null;
         String path = null;
         String from = null;
@@ -124,16 +66,16 @@ public class PatchOperation implements ToXContentObject {
             String fieldName = parser.currentName();
             parser.nextToken();
             switch (fieldName) {
-                case "op":
+                case OP:
                     op = parser.text();
                     break;
-                case "path":
+                case PATH:
                     path = parser.text();
                     break;
-                case "from":
+                case FROM:
                     from = parser.text();
                     break;
-                case "value":
+                case VALUE:
                     value = parser.text();
                     break;
                 default:
@@ -187,7 +129,7 @@ public class PatchOperation implements ToXContentObject {
             return JsonParser.parseString(this.value).getAsJsonObject();
         } catch (JsonSyntaxException | IllegalStateException e) {
             // Not a valid JSON object, or it's not a JSON object at all
-            return null;
+            throw new IllegalArgumentException("Invalid JSON object in value field: " + this.value, e);
         }
     }
 

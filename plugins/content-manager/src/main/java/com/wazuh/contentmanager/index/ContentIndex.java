@@ -16,13 +16,13 @@
  */
 package com.wazuh.contentmanager.index;
 
-import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.opensearch.action.bulk.BulkRequest;
 import org.opensearch.action.bulk.BulkResponse;
+import org.opensearch.action.get.GetRequest;
 import org.opensearch.action.get.GetResponse;
 import org.opensearch.action.index.IndexRequest;
 import org.opensearch.client.Client;
@@ -36,6 +36,10 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.*;
 
+import com.wazuh.contentmanager.model.ctiapi.ContextChanges;
+import com.wazuh.contentmanager.model.ctiapi.PatchChange;
+import com.wazuh.contentmanager.model.ctiapi.PatchOperation;
+import com.wazuh.contentmanager.settings.PluginSettings;
 import com.wazuh.contentmanager.util.JsonPatch;
 
 /** Class to manage the Content Manager index. */
@@ -45,7 +49,7 @@ public class ContentIndex {
     private static final String INDEX_NAME = "wazuh-cve";
     private final int MAX_DOCUMENTS = 25;
     private static final int MAX_CONCURRENT_PETITIONS = 5;
-    public static final Long TIMEOUT = 10L;
+    public static final Long TIMEOUT = 50L;
 
     private final Client client;
     private final Semaphore semaphore = new Semaphore(MAX_CONCURRENT_PETITIONS);
@@ -104,11 +108,10 @@ public class ContentIndex {
      *
      * @param changes the changes in JSON Patch format to patch the existing document
      */
-    public void patch(JsonObject changes)
-            throws ExecutionException, InterruptedException, TimeoutException {
+    public void patch(ContextChanges changes)
+            throws RuntimeException, ExecutionException, InterruptedException, TimeoutException {
         // Get the current content of the document
-        String id = changes.get("context").getAsString();
-        GetResponse getResponse = this.get(id).get(TIMEOUT, TimeUnit.SECONDS);
+        GetResponse getResponse = this.get().get(TIMEOUT, TimeUnit.SECONDS);
         // TODO: Convert the response to JsonObject
         // JsonObject currentContent = getResponse.toXContent();
         JsonObject currentContent = new JsonObject();
@@ -118,16 +121,26 @@ public class ContentIndex {
 
         // Apply the changes to the current content
         JsonPatch jsonPatch = new JsonPatch();
-        for (JsonElement operation : changes.get("operations").getAsJsonArray()) {
-            jsonPatch.applyOperation(currentContent, (JsonObject) operation);
+        for (PatchChange change : changes.getChangesList()) {
+            for (PatchOperation operation : change.getOperations()) {
+                jsonPatch.applyOperation(currentContent, operation.getValueAsJson());
+            }
         }
-
         // Index the updated content
         this.index(List.of(currentContent));
     }
 
-    public CompletableFuture<GetResponse> get(String id) {
-        return null;
+    public CompletableFuture<GetResponse> get() {
+        CompletableFuture<GetResponse> future = new CompletableFuture<>();
+        client.get(
+                new GetRequest(INDEX_NAME, PluginSettings.CONTEXT_ID),
+                ActionListener.wrap(
+                        future::complete,
+                        e -> {
+                            log.error("Error getting content: {}", e.getMessage());
+                            future.completeExceptionally(e);
+                        }));
+        return future;
     }
 
     /**
