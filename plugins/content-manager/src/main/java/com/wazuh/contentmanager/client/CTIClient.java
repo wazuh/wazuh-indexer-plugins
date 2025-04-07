@@ -51,14 +51,12 @@ public class CTIClient extends HttpClient {
 
     private static final Logger log = LogManager.getLogger(CTIClient.class);
 
-    private static final String API_BASE_URL = PluginSettings.getInstance().getCtiBaseUrl();
     private static final String CONSUMER_INFO_ENDPOINT =
             "/catalog/contexts/" + PluginSettings.CONTEXT_ID + "/consumers/" + PluginSettings.CONSUMER_ID;
     private static final String CONSUMER_CHANGES_ENDPOINT = CONSUMER_INFO_ENDPOINT + "/changes";
 
     private static CTIClient INSTANCE;
 
-    private static final int MAX_OFFSETS = 1000;
     private static final int MAX_ATTEMPTS = 3;
     private static final int SLEEP_TIME = 1000;
 
@@ -141,6 +139,18 @@ public class CTIClient extends HttpClient {
         XContent xContent = XContentType.JSON.xContent();
 
         Map<String, String> params = contextQueryParameters(fromOffset, toOffset, withEmpties);
+
+        CompletableFuture<SimpleHttpResponse> futureResponse = new CompletableFuture<>();
+
+        fetchWithRetry(
+                Functions.GET_CHANGES,
+                Method.GET,
+                CONSUMER_CHANGES_ENDPOINT,
+                null,
+                params,
+                null,
+                MAX_ATTEMPTS);
+
         SimpleHttpResponse response =
                 sendRequest(Method.GET, CONSUMER_CHANGES_ENDPOINT, null, params, (Header) null);
         if (response == null) {
@@ -170,23 +180,27 @@ public class CTIClient extends HttpClient {
      */
     public ConsumerInfo getCatalog() {
         XContent xContent = XContentType.JSON.xContent();
-        SimpleHttpResponse response =
-                sendRequest(Method.GET, CONSUMER_INFO_ENDPOINT, null, null, (Header) null);
-        if (response == null) {
-            log.error("No response from CTI API");
-            return null;
-        }
-        if (response.getCode() != HttpStatus.SC_OK) {
-            log.error("CTI API returned an error: {}", response.getBody());
-        }
-        log.debug("CTI API replied with status: [{}]", response.getCode());
+
+        CompletableFuture<SimpleHttpResponse> futureResponse = new CompletableFuture<>();
+        fetchWithRetry(
+                Functions.GET_CATALOG, Method.GET, CONSUMER_INFO_ENDPOINT, null, null, null, MAX_ATTEMPTS);
+
+        SimpleHttpResponse response;
+
         try {
+            response = futureResponse.get();
+            if (response == null) {
+                log.error("No response from CTI API");
+                return null;
+            }
+            log.debug("CTI API replied with status: [{}]", response.getCode());
+
             return ConsumerInfo.parse(
                     xContent.createParser(
                             NamedXContentRegistry.EMPTY,
                             DeprecationHandler.THROW_UNSUPPORTED_OPERATION,
                             response.getBodyBytes()));
-        } catch (IOException | IllegalArgumentException e) {
+        } catch (IOException | InterruptedException | ExecutionException | IllegalArgumentException e) {
             log.error("Unable to fetch catalog information: {}", e.getMessage());
         }
         return null;
@@ -204,21 +218,6 @@ public class CTIClient extends HttpClient {
     public static Map<String, String> contextQueryParameters(
             String fromOffset, String toOffset, String withEmpties) throws IllegalArgumentException {
         Map<String, String> params = new HashMap<>();
-        if (fromOffset == null) {
-            throw new IllegalArgumentException("fromOffset cannot be null");
-        }
-        if (toOffset == null) {
-            throw new IllegalArgumentException("toOffset cannot be null");
-        }
-        Long longFromOffset = Long.parseLong(fromOffset);
-        Long longToOffset = Long.parseLong(toOffset);
-        long difference = longToOffset - longFromOffset;
-        if (longToOffset < longFromOffset || difference > MAX_OFFSETS) {
-            throw new IllegalArgumentException(
-                    "toOffset cannot be less than fromOffset or the difference cannot be greater than "
-                            + MAX_OFFSETS);
-        }
-
         params.put(QueryParameters.FROM_OFFSET.getValue(), fromOffset);
         params.put(QueryParameters.TO_OFFSET.getValue(), toOffset);
         if (withEmpties != null && !withEmpties.isEmpty()) {
@@ -237,123 +236,129 @@ public class CTIClient extends HttpClient {
      * @param params The query parameters (optional).
      * @param header The headers to include in the request (optional).
      * @param attemptsLeft The number of remaining attempts.
-     * @param futureResponse The CompletableFuture to complete with the response.
      * @throws IOException If an error occurs during response processing.
      */
-    private void fetchWithRetry(
+    private SimpleHttpResponse fetchWithRetry(
             Functions function,
             Method method,
             String endpoint,
             String body,
             Map<String, String> params,
             Header header,
-            int attemptsLeft,
-            CompletableFuture<SimpleHttpResponse> futureResponse) {
+            int attemptsLeft) {
+
         SimpleHttpResponse response = sendRequest(method, endpoint, body, params, header);
 
-        Header retryAfter = null;
+        if (response == null) {
+            return null;
+        }
+
         int statusCode = response.getCode();
-        Boolean retry = false;
+        Header retryAfter = null;
+        log.info(
+                "Before switch. Response CODE {} - BODY {}",
+                response.getCode(),
+                response.getBody()); // BORRAR
 
         switch (statusCode) {
             case 200:
                 log.info("Operation succeeded: Status code 200");
-                futureResponse.complete(response);
-                break;
+                return response;
+
             case 400:
-                futureResponse.completeExceptionally(
-                        new HttpException(
-                                "Operation failed: Status code 400 - Error: " + response.getBodyText()));
-                break;
+                log.error("Operation failed: Status code 400 - Error: {}", response.getBodyText());
+                return response;
+
             case 422:
-                if (attemptsLeft > 0) {
-                    log.warn("Unprocessable Entity: Status code 422 - Error: {}", response.getBodyText());
-                    retry = true;
-                } else {
-                    futureResponse.completeExceptionally(
-                            new HttpException(
-                                    "Server Error: Status code 500 - Error: " + response.getBodyText()));
-                }
-                break;
+                log.error("Unprocessable Entity: Status code 422 - Error: {}", response.getBodyText());
+                return response;
+
             case 429:
-                try {
-                    retryAfter = response.getHeader("Retry-After");
-                } catch (ProtocolException e) {
-                    throw new RuntimeException(e);
-                }
+                // If there are more attempts left, wait and retry
                 if (attemptsLeft > 0) {
                     log.warn("Too many requests: Status code 429 - Error: {}", response.getBodyText());
-                    retry = true;
+                    try {
+                        retryAfter = response.getHeader("Retry-After");
+                    } catch (ProtocolException e) {
+                        log.warn("Too many requests and no Retry-After Header.");
+                    }
                 } else {
-                    futureResponse.completeExceptionally(
-                            new HttpException(
-                                    "Too many requests: Status code 429 - Error: " + response.getBodyText()));
+                    log.error("Too many requests: Status code 429 - Error: {}", response.getBodyText());
+                    return response;
                 }
                 break;
+
             case 500:
+                // If there are more attempts left, wait and retry
                 if (attemptsLeft > 0) {
-                    log.error("Server Error: Status code 500 - Error: {}", response.getBodyText());
-                    retry = true;
+                    log.warn("Server Error: Status code 500 - Error: {}", response.getBodyText());
                 } else {
-                    futureResponse.completeExceptionally(
-                            new HttpException(
-                                    "Server Error: Status code 500 - Error: " + response.getBodyText()));
+                    log.error("Server Error: Status code 500 - Error: {}", response.getBodyText());
+                    return response;
                 }
                 break;
+
             default:
                 log.error("Unexpected status code: {}", statusCode);
-                futureResponse.completeExceptionally(
-                        new HttpException(
-                                "Unexpected status code: " + statusCode + " - Error: " + response.getBodyText()));
-                break;
+                return response;
         }
 
-        if (retry) {
-            Integer timeout = (MAX_ATTEMPTS - attemptsLeft + 1) * SLEEP_TIME;
+        Integer timeout = (MAX_ATTEMPTS - attemptsLeft + 1) * SLEEP_TIME;
 
-            // If the Retry-After header is present, use it as the timeout
-            if (retryAfter != null) {
-                timeout = Integer.parseInt(retryAfter.getValue());
-            }
-
-            ScheduledExecutorService scheduler = Executors.newSingleThreadScheduledExecutor();
-            switch (function) {
-                case GET_CHANGES:
-                    scheduler.schedule(
-                            () ->
-                                    fetchWithRetry(
-                                            Functions.GET_CHANGES,
-                                            Method.GET,
-                                            CONSUMER_CHANGES_ENDPOINT,
-                                            null,
-                                            params,
-                                            null,
-                                            attemptsLeft,
-                                            futureResponse),
-                            timeout,
-                            TimeUnit.MILLISECONDS);
-                    scheduler.shutdown();
-                    break;
-                case GET_CATALOG:
-                    scheduler.schedule(
-                            () ->
-                                    fetchWithRetry(
-                                            Functions.GET_CATALOG,
-                                            Method.GET,
-                                            CONSUMER_INFO_ENDPOINT,
-                                            null,
-                                            null,
-                                            null,
-                                            attemptsLeft,
-                                            futureResponse),
-                            timeout,
-                            TimeUnit.MILLISECONDS);
-                    scheduler.shutdown();
-                    break;
-                default:
-                    break;
-            }
+        // If the Retry-After header is present, use it as the timeout
+        if (retryAfter != null) {
+            timeout = Integer.parseInt(retryAfter.getValue());
         }
+        log.info("Waiting {} ms before retrying", timeout); // BORRAR
+        ScheduledExecutorService scheduler = Executors.newSingleThreadScheduledExecutor();
+        Future<SimpleHttpResponse> future;
+        switch (function) {
+            case GET_CHANGES:
+                future =
+                        scheduler.schedule(
+                                (Callable<SimpleHttpResponse>)
+                                        () ->
+                                                fetchWithRetry(
+                                                        Functions.GET_CHANGES,
+                                                        Method.GET,
+                                                        CONSUMER_CHANGES_ENDPOINT,
+                                                        null,
+                                                        params,
+                                                        null,
+                                                        attemptsLeft),
+                                timeout,
+                                TimeUnit.MILLISECONDS);
+
+                try {
+                    return future.get();
+                } catch (InterruptedException | ExecutionException e) {
+                    // Maneja la excepción
+                }
+
+            case GET_CATALOG:
+                future =
+                        scheduler.schedule(
+                                () ->
+                                        fetchWithRetry(
+                                                Functions.GET_CATALOG,
+                                                Method.GET,
+                                                CONSUMER_INFO_ENDPOINT,
+                                                null,
+                                                null,
+                                                null,
+                                                attemptsLeft),
+                                timeout,
+                                TimeUnit.MILLISECONDS);
+                scheduler.shutdown();
+
+                try {
+                    return future.get();
+                } catch (InterruptedException | ExecutionException e) {
+                    // Maneja la excepción
+                }
+        }
+
+        return response;
     }
 
     /***
