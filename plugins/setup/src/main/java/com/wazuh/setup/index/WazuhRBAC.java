@@ -21,14 +21,19 @@ import org.apache.logging.log4j.Logger;
 import org.opensearch.action.get.GetRequest;
 import org.opensearch.action.index.IndexRequest;
 import org.opensearch.action.index.IndexResponse;
+import org.opensearch.action.update.UpdateRequest;
+import org.opensearch.action.update.UpdateResponse;
 import org.opensearch.client.Client;
+import org.opensearch.common.xcontent.XContentFactory;
 import org.opensearch.core.action.ActionListener;
 import org.opensearch.core.common.bytes.BytesArray;
 import org.opensearch.core.common.bytes.BytesReference;
 import org.opensearch.core.xcontent.MediaTypeRegistry;
+import org.opensearch.core.xcontent.XContentBuilder;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.time.Instant;
 
 /** Class to handle indexing of RBAC related resources */
 public class WazuhRBAC {
@@ -65,6 +70,39 @@ public class WazuhRBAC {
         return false;
     }
 
+    /**
+     * Update "created_at" field with current date
+     */
+    private void updateCreatedAt() {
+        try (XContentBuilder xContentBuilder = XContentFactory.jsonBuilder()) {
+            client.update(
+                    new UpdateRequest(RBAC_INDEX_NAME, DEFAULT_USER_ID)
+                            .doc(
+                                    xContentBuilder
+                                            .startObject()
+                                            .startObject("user")
+                                            .field("created_at", Instant.now().toString())
+                                            .endObject()
+                                            .endObject()),
+                    new ActionListener<UpdateResponse>() {
+                        @Override
+                        public void onResponse(UpdateResponse updateResponse) {
+                            log.info("Successfully updated created_at field");
+                        }
+
+                        @Override
+                        public void onFailure(Exception e) {
+                            log.error(
+                                    "Failed to update created_at field for user id {}: {}",
+                                    DEFAULT_USER_ID,
+                                    e.getMessage());
+                        }
+                    });
+        } catch (IOException e) {
+            log.error("Failed to create JSON object: {}", e.getMessage());
+        }
+    }
+
     /** Indexes the default internal users data */
     public void indexRBACUsers() {
         if (documentExists(RBAC_INDEX_NAME, DEFAULT_USER_ID)) {
@@ -95,6 +133,7 @@ public class WazuhRBAC {
                     @Override
                     public void onResponse(IndexResponse indexResponse) {
                         log.info("Default internal users created: {}", indexResponse.getResult());
+                        updateCreatedAt();
                     }
 
                     @Override
