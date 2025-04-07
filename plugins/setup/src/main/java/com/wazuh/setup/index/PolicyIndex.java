@@ -20,17 +20,20 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.opensearch.action.index.IndexRequest;
 import org.opensearch.action.index.IndexResponse;
+import org.opensearch.action.update.UpdateRequest;
+import org.opensearch.action.update.UpdateResponse;
 import org.opensearch.client.Client;
 import org.opensearch.cluster.service.ClusterService;
-import org.opensearch.common.util.concurrent.ThreadContext;
+import org.opensearch.common.xcontent.XContentFactory;
+import org.opensearch.core.action.ActionListener;
+import org.opensearch.core.common.bytes.BytesArray;
 import org.opensearch.core.xcontent.MediaTypeRegistry;
+import org.opensearch.core.xcontent.XContentBuilder;
 import org.opensearch.index.shard.IndexingOperationListener;
-import org.opensearch.threadpool.ThreadPool;
 
 import java.io.IOException;
-import java.util.Locale;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ExecutorService;
+import java.time.Instant;
+import java.util.Objects;
 
 /** Class to manage the Command Manager index and index template. */
 public class PolicyIndex implements IndexingOperationListener {
@@ -39,28 +42,30 @@ public class PolicyIndex implements IndexingOperationListener {
 
     private final Client client;
     private final ClusterService clusterService;
-    private final ThreadPool threadPool;
     private final String POLICY_ID = "wazuh_rollover_policy";
 
     private final String ISM_INDEX = ".opendistro-ism-config";
 
-    public final String POLICY =
-            String.format(
-                    Locale.ROOT,
-                    "{\"policy\":{\"policy_id\":\"%s\",\"description\":\"Example rollover policy.\",\"last_updated_time\":1738947466825,\"schema_version\":21,\"error_notification\":null,\"default_state\":\"rollover\",\"states\":[{\"name\":\"rollover\",\"actions\":[{\"retry\":{\"count\":3,\"backoff\":\"exponential\",\"delay\":\"1m\"},\"rollover\":{\"min_doc_count\":1,\"copy_alias\":false}}],\"transitions\":[]}],\"ism_template\":[{\"index_patterns\":[\"test-index-*\"],\"priority\":100,\"last_updated_time\":1738947466825}],\"user\":{\"name\":\"admin\",\"backend_roles\":[\"admin\"],\"roles\":[\"own_index\",\"all_access\"],\"custom_attribute_names\":[],\"user_requested_tenant\":null}}}",
-                    POLICY_ID);
+    public final BytesArray POLICY;
 
     /**
      * Default constructor
      *
      * @param client OpenSearch client.
      * @param clusterService OpenSearch cluster service.
-     * @param threadPool An OpenSearch ThreadPool.
      */
-    public PolicyIndex(Client client, ClusterService clusterService, ThreadPool threadPool) {
+    public PolicyIndex(Client client, ClusterService clusterService) {
         this.client = client;
         this.clusterService = clusterService;
-        this.threadPool = threadPool;
+        try {
+            POLICY =
+                    new BytesArray(
+                            Objects.requireNonNull(
+                                            PolicyIndex.class.getClassLoader().getResourceAsStream(POLICY_ID + ".json"))
+                                    .readAllBytes());
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     /**
@@ -72,42 +77,65 @@ public class PolicyIndex implements IndexingOperationListener {
         return this.clusterService.state().routingTable().hasIndex(ISM_INDEX);
     }
 
-    /**
-     * Indexes an array of documents asynchronously.
-     *
-     * @return A CompletableFuture with the RestStatus response from the operation
-     */
-    public CompletableFuture<IndexResponse> indexPolicy() {
-        final CompletableFuture<IndexResponse> future = new CompletableFuture<>();
-        final ExecutorService executor = this.threadPool.executor(ThreadPool.Names.WRITE);
+    private void updateCreatedAt() {
+        long timestamp = Instant.now().toEpochMilli();
+        try (XContentBuilder xContentBuilder = XContentFactory.jsonBuilder()) {
+            client.update(
+                    new UpdateRequest(ISM_INDEX, POLICY_ID)
+                            .doc(
+                                    xContentBuilder
+                                            .startObject()
+                                            .startObject("policy")
+                                            .startArray("ism_template")
+                                            .startObject()
+                                            .timeField("last_updated_time", timestamp)
+                                            .endObject()
+                                            .endArray()
+                                            .timeField("last_updated_time", timestamp)
+                                            .endObject()
+                                            .endObject()),
+                    new ActionListener<>() {
+                        @Override
+                        public void onResponse(UpdateResponse updateResponse) {
+                            log.info("Successfully updated created_at field");
+                        }
 
-        executor.submit(
-                () -> {
-                    try (ThreadContext.StoredContext ignored =
-                            this.threadPool.getThreadContext().stashContext()) {
-                        final IndexResponse indexResponse =
-                                client.index(createIndexRequest("wazuh_rollover_policy", POLICY)).actionGet();
-                        future.complete(indexResponse);
-                    } catch (Exception e) {
-                        log.error("Error indexing commands with bulk due to {}", e.getMessage());
-                        future.completeExceptionally(e);
-                    }
-                });
-        return future;
+                        @Override
+                        public void onFailure(Exception e) {
+                            log.error(
+                                    "Failed to update created_at field for user id {}: {}",
+                                    POLICY_ID,
+                                    e.getMessage());
+                        }
+                    });
+        } catch (IOException e) {
+            log.error("Failed to create JSON object: {}", e.getMessage());
+        }
     }
 
-    /**
-     * Create an IndexRequest object from a Document object.
-     *
-     * @param document the document to create the IndexRequest for COMMAND_MANAGER_INDEX
-     * @return an IndexRequest object
-     * @throws IOException thrown by XContentFactory.jsonBuilder()
-     */
-    private IndexRequest createIndexRequest(String id, String document) throws IOException {
-        return new IndexRequest()
-                .index(ISM_INDEX)
-                .source(document, MediaTypeRegistry.JSON)
-                .id(id)
-                .create(true);
+    /** Indexes an array of documents asynchronously. */
+    public void indexPolicy() {
+
+        IndexRequest indexRequest =
+                new IndexRequest(ISM_INDEX)
+                        .index(ISM_INDEX)
+                        .id(POLICY_ID)
+                        .source(POLICY, MediaTypeRegistry.JSON)
+                        .create(true);
+
+        client.index(
+                indexRequest,
+                new ActionListener<>() {
+                    @Override
+                    public void onResponse(IndexResponse indexResponse) {
+                        log.info("Successfully indexed Wazuh Rollover Policy");
+                        updateCreatedAt();
+                    }
+
+                    @Override
+                    public void onFailure(Exception e) {
+                        log.error("Failed to index Wazuh Rollover Policy: {}", e.getMessage());
+                    }
+                });
     }
 }

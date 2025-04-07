@@ -85,7 +85,7 @@ public class SetupPlugin extends Plugin implements ClusterPlugin, JobSchedulerEx
             IndexNameExpressionResolver indexNameExpressionResolver,
             Supplier<RepositoriesService> repositoriesServiceSupplier) {
         this.indices = new WazuhIndices(client, clusterService);
-        this.policyIndex = new PolicyIndex(client, clusterService, threadPool);
+        this.policyIndex = new PolicyIndex(client, clusterService);
         PluginSettings.getInstance(environment.settings());
 
         AgentJobRunner.getInstance()
