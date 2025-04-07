@@ -50,6 +50,7 @@ import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Supplier;
 
+import com.wazuh.setup.index.PolicyIndex;
 import com.wazuh.setup.index.WazuhIndices;
 import com.wazuh.setup.jobscheduler.AgentJobParameter;
 import com.wazuh.setup.jobscheduler.AgentJobRunner;
@@ -65,6 +66,7 @@ public class SetupPlugin extends Plugin implements ClusterPlugin, JobSchedulerEx
 
     private WazuhIndices indices;
     private JobDocument jobDocument;
+    private PolicyIndex policyIndex;
 
     /** Default constructor */
     public SetupPlugin() {}
@@ -83,6 +85,7 @@ public class SetupPlugin extends Plugin implements ClusterPlugin, JobSchedulerEx
             IndexNameExpressionResolver indexNameExpressionResolver,
             Supplier<RepositoriesService> repositoriesServiceSupplier) {
         this.indices = new WazuhIndices(client, clusterService);
+        this.policyIndex = new PolicyIndex(client, clusterService, threadPool);
         PluginSettings.getInstance(environment.settings());
 
         AgentJobRunner.getInstance()
@@ -98,6 +101,7 @@ public class SetupPlugin extends Plugin implements ClusterPlugin, JobSchedulerEx
     @Override
     public void onNodeStarted(DiscoveryNode localNode) {
         this.indices.initialize();
+        this.policyIndex.indexPolicy();
     }
 
     /**

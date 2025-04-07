@@ -1,4 +1,7 @@
+import org.gradle.api.file.RegularFile
 import org.opensearch.gradle.test.RestIntegTestTask
+import java.util.concurrent.Callable
+
 import java.util.concurrent.Callable
 
 buildscript {
@@ -88,9 +91,10 @@ dependencies {
   implementation "org.slf4j:slf4j-api:2.0.16"
 
   // Job Scheduler stuff
-  zipArchive group: 'org.opensearch.plugin', name: 'opensearch-job-scheduler', version: "${opensearch_build}"
+  zipArchive group: 'org.opensearch.plugin', name: 'opensearch-job-scheduler', version: "2.19.1.0"
+  zipArchive group: 'org.opensearch.plugin', name: 'opensearch-index-management', version: "2.19.1.0"
   // implementation "org.opensearch:opensearch:${opensearch_version}"
-  compileOnly "org.opensearch:opensearch-job-scheduler-spi:${opensearch_build}"
+  compileOnly "org.opensearch:opensearch-job-scheduler-spi:2.19.1.0"
 
 }
 
@@ -118,19 +122,35 @@ test {
 }
 
 def getJobSchedulerPlugin() {
-  provider(new Callable<RegularFile>() {
-    @Override
-    RegularFile call() throws Exception {
-      return new RegularFile() {
+    provider(new Callable<RegularFile>() {
         @Override
-        File getAsFile() {
-          return configurations.zipArchive.asFileTree.matching {
-            include '**/opensearch-job-scheduler*'
-          }.singleFile
+        RegularFile call() throws Exception {
+            return new RegularFile() {
+                @Override
+                File getAsFile() {
+                    return configurations.zipArchive.asFileTree.matching {
+                        include '**/opensearch-job-scheduler*'
+                    }.singleFile
+                }
+            }
         }
-      }
-    }
-  })
+    })
+}
+
+def getIndexManagementPlugin() {
+    provider(new Callable<RegularFile>() {
+        @Override
+        RegularFile call() throws Exception {
+            return new RegularFile() {
+                @Override
+                File getAsFile() {
+                    return configurations.zipArchive.asFileTree.matching {
+                        include '**/opensearch-index-management*'
+                    }.singleFile
+                }
+            }
+        }
+    })
 }
 
 task integTest(type: RestIntegTestTask) {
@@ -149,11 +169,17 @@ integTest {
 
 testClusters.integTest {
     plugin(getJobSchedulerPlugin())
+    plugin(getIndexManagementPlugin())
     testDistribution = "ARCHIVE"
-
     // This installs our plugin into the testClusters
     plugin(project.tasks.bundlePlugin.archiveFile)
+
+    // The --debug-jvm command-line option makes the cluster debuggable; this makes the tests debuggable
+    if (System.getProperty("test.debug") != null) {
+        jvmArgs '-agentlib:jdwp=transport=dt_socket,server=y,suspend=y,address=*:5005'
+    }
 }
+
 
 run {
     useCluster testClusters.integTest
