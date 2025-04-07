@@ -1,0 +1,35 @@
+- name: descriptions
+  title: Descriptions
+  description: Text in a particular language with optional alternate markup or formatted representation or embedded media.
+  reusable:
+    top_level: false
+    expected:
+      - { at: payload.containers.cna, as: descriptions }
+      - { at: payload.containers.adp, as: descriptions }
+      - { at: impacts, as: descriptions }
+      - { at: payload.containers.cna, as: configurations }
+      - { at: payload.containers.cna, as: workarounds }
+      - { at: payload.containers.cna, as: solutions }
+      - { at: payload.containers.cna, as: exploits }
+      - { at: payload.containers.cna, as: rejectedReasons }
+      - { at: payload.containers.adp, as: configurations }
+      - { at: payload.containers.adp, as: workarounds }
+      - { at: payload.containers.adp, as: solutions }
+      - { at: payload.containers.adp, as: exploits }
+  fields:
+    - name: lang
+      type: keyword
+      level: custom
+      description: BCP 47 language code, language-region.
+      example: en-US
+    - name: value
+      type: keyword
+      level: custom
+      description: Plain text description.
+      example: This is a description of the vulnerability.
+    - name: supportingMedia
+      type: keyword
+      level: custom
+      description: Supporting media data for the description such as markdown, diagrams, etc.
+      normalize:
+        - array

@@ -1,0 +1,20 @@
+---
+- name: role
+  title: Wazuh's User Role
+  description: List of roles assigned to a user.
+  reusable:
+    top_level: false
+    expected:
+      - { at: user, as: roles }
+  level: nested
+  fields:
+    - name: name
+      type: keyword
+      level: custom
+      description: The role name.
+      example: "administrator"
+    - name: level
+      type: integer
+      level: custom
+      description: The permission level of the role.
+      example: "1"

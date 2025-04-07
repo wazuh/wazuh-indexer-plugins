@@ -1,0 +1,31 @@
+---
+- name: host
+  reusable:
+    top_level: true
+    expected:
+      - { at: agent, as: host }
+  fields:
+    - name: network.egress.drops
+      type: long
+      level: custom
+      description: >
+        Number of dropped transmitted packets.
+      example: 10
+    - name: network.egress.errors
+      type: long
+      level: custom
+      description: >
+        Number of transmission errors.
+      example: 10
+    - name: network.ingress.drops
+      type: long
+      level: custom
+      description: >
+        Number of dropped received packets.
+      example: 10
+    - name: network.ingress.errors
+      type: long
+      level: custom
+      description: >
+        Number of reception errors.
+      example: 10

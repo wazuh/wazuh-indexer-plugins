@@ -16,17 +16,22 @@
  */
 package com.wazuh.commandmanager.model;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.opensearch.common.UUIDs;
 import org.opensearch.core.xcontent.ToXContent;
 import org.opensearch.core.xcontent.ToXContentObject;
 import org.opensearch.core.xcontent.XContentBuilder;
 import org.opensearch.core.xcontent.XContentParser;
+import org.opensearch.rest.RestRequest;
 
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
 import reactor.util.annotation.NonNull;
+
+import static org.opensearch.core.xcontent.XContentParserUtils.ensureExpectedToken;
 
 /** Command's fields. */
 public class Command implements ToXContentObject {
@@ -46,6 +51,8 @@ public class Command implements ToXContentObject {
     private final Status status;
     private final Action action;
 
+    private static final Logger log = LogManager.getLogger(Command.class);
+
     /**
      * Default constructor
      *
@@ -59,7 +66,7 @@ public class Command implements ToXContentObject {
             @NonNull String source,
             @NonNull Target target,
             @NonNull Integer timeout,
-            @NonNull String user,
+            String user,
             @NonNull Action action) {
         this.requestId = UUIDs.base64UUID();
         this.orderId = UUIDs.base64UUID();
@@ -88,8 +95,7 @@ public class Command implements ToXContentObject {
      * @throws IOException error parsing request content
      * @throws IllegalArgumentException missing arguments
      */
-    public static Command parse(XContentParser parser)
-            throws IOException, IllegalArgumentException {
+    public static Command parse(XContentParser parser) throws IOException, IllegalArgumentException {
         String source = null;
         Target target = null;
         Integer timeout = null;
@@ -102,20 +108,31 @@ public class Command implements ToXContentObject {
 
                 parser.nextToken();
                 switch (fieldName) {
+                    case Action.ACTION:
+                        action = Action.parse(parser);
+                        break;
                     case SOURCE:
                         source = parser.text();
                         break;
                     case Target.TARGET:
-                        target = Target.parse(parser);
+                        if (action == null) {
+                            throw new IllegalArgumentException(
+                                    "Expected [command.action] to be provided before [command.target]");
+                        }
+                        switch (action.getName()) {
+                            case Action.UPDATE:
+                                target = UpdateTarget.parse(parser);
+                                break;
+                            default:
+                                target = Target.parse(parser);
+                                break;
+                        }
                         break;
                     case TIMEOUT:
                         timeout = parser.intValue();
                         break;
                     case USER:
                         user = parser.text();
-                        break;
-                    case Action.ACTION:
-                        action = Action.parse(parser);
                         break;
                     default:
                         parser.skipChildren();
@@ -133,9 +150,6 @@ public class Command implements ToXContentObject {
         }
         if (timeout == null) {
             nullArguments.add("timeout");
-        }
-        if (user == null) {
-            nullArguments.add("user");
         }
         if (action == null) {
             nullArguments.add("action");
@@ -182,6 +196,27 @@ public class Command implements ToXContentObject {
     }
 
     /**
+     * Parses the content of a RestRequest and retrieves a list of Command objects.
+     *
+     * @param request the RestRequest containing the command data.
+     * @return a list of Command objects parsed from the request content.
+     * @throws IOException if an error occurs while parsing the request content.
+     */
+    public static List<Command> parse(RestRequest request) throws IOException {
+        // Request parsing
+        XContentParser parser = request.contentParser();
+        List<Command> commands = new ArrayList<>();
+        ensureExpectedToken(XContentParser.Token.START_OBJECT, parser.nextToken(), parser);
+        parser.nextToken();
+        if (parser.nextToken() == XContentParser.Token.START_ARRAY) {
+            commands = Command.parseToArray(parser);
+        } else {
+            log.error("Token does not match {}", parser.currentToken());
+        }
+        return commands;
+    }
+
+    /**
      * Returns the nested Action fields.
      *
      * @return Action fields.
@@ -215,16 +250,6 @@ public class Command implements ToXContentObject {
      */
     public String getUser() {
         return this.user;
-    }
-
-    /**
-     * Retrieves the status of this command.
-     *
-     * @return the status of the command.
-     * @see Status
-     */
-    public Status getStatus() {
-        return this.status;
     }
 
     @Override

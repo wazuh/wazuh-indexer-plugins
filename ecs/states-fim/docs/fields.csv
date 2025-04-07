@@ -1,0 +1,71 @@
+ECS_Version,Indexed,Field_Set,Field,Type,Level,Normalization,Example,Description
+8.11.0,true,base,tags,keyword,core,array,"[""production"", ""env2""]",List of keywords used to tag each event.
+8.11.0,true,agent,agent.groups,keyword,custom,array,"[""group1"", ""group2""]",List of groups the agent belongs to.
+8.11.0,true,agent,agent.host.architecture,keyword,core,,x86_64,Operating system architecture.
+8.11.0,true,agent,agent.host.boot.id,keyword,extended,,88a1f0ed-5ae5-41ee-af6b-41921c311872,Linux boot uuid taken from /proc/sys/kernel/random/boot_id
+8.11.0,true,agent,agent.host.cpu.usage,float,extended,,,"Percent CPU used, between 0 and 1."
+8.11.0,true,agent,agent.host.disk.read.bytes,long,extended,,,The number of bytes read by all disks.
+8.11.0,true,agent,agent.host.disk.write.bytes,long,extended,,,The number of bytes written on all disks.
+8.11.0,true,agent,agent.host.domain,keyword,extended,,CONTOSO,Name of the directory the group is a member of.
+8.11.0,true,agent,agent.host.geo.city_name,keyword,core,,Montreal,City name.
+8.11.0,true,agent,agent.host.geo.continent_code,keyword,core,,NA,Continent code.
+8.11.0,true,agent,agent.host.geo.continent_name,keyword,core,,North America,Name of the continent.
+8.11.0,true,agent,agent.host.geo.country_iso_code,keyword,core,,CA,Country ISO code.
+8.11.0,true,agent,agent.host.geo.country_name,keyword,core,,Canada,Country name.
+8.11.0,true,agent,agent.host.geo.location,geo_point,core,,"{ ""lon"": -73.614830, ""lat"": 45.505918 }",Longitude and latitude.
+8.11.0,true,agent,agent.host.geo.name,keyword,extended,,boston-dc,User-defined description of a location.
+8.11.0,true,agent,agent.host.geo.postal_code,keyword,core,,94040,Postal code.
+8.11.0,true,agent,agent.host.geo.region_iso_code,keyword,core,,CA-QC,Region ISO code.
+8.11.0,true,agent,agent.host.geo.region_name,keyword,core,,Quebec,Region name.
+8.11.0,true,agent,agent.host.geo.timezone,keyword,core,,America/Argentina/Buenos_Aires,Time zone.
+8.11.0,true,agent,agent.host.hostname,keyword,core,,,Hostname of the host.
+8.11.0,true,agent,agent.host.id,keyword,core,,,Unique host id.
+8.11.0,true,agent,agent.host.ip,ip,core,array,,Host ip addresses.
+8.11.0,true,agent,agent.host.mac,keyword,core,array,"[""00-00-5E-00-53-23"", ""00-00-5E-00-53-24""]",Host MAC addresses.
+8.11.0,true,agent,agent.host.name,keyword,core,,,Name of the host.
+8.11.0,true,agent,agent.host.network.egress.bytes,long,extended,,,The number of bytes sent on all network interfaces.
+8.11.0,true,agent,agent.host.network.egress.packets,long,extended,,,The number of packets sent on all network interfaces.
+8.11.0,true,agent,agent.host.network.ingress.bytes,long,extended,,,The number of bytes received on all network interfaces.
+8.11.0,true,agent,agent.host.network.ingress.packets,long,extended,,,The number of packets received on all network interfaces.
+8.11.0,true,agent,agent.host.os.family,keyword,extended,,debian,"OS family (such as redhat, debian, freebsd, windows)."
+8.11.0,true,agent,agent.host.os.full,keyword,extended,,Mac OS Mojave,"Operating system name, including the version or code name."
+8.11.0,true,agent,agent.host.os.full.text,keyword,extended,,Mac OS Mojave,"Operating system name, including the version or code name."
+8.11.0,true,agent,agent.host.os.kernel,keyword,extended,,4.4.0-112-generic,Operating system kernel version as a raw string.
+8.11.0,true,agent,agent.host.os.name,keyword,extended,,Mac OS X,"Operating system name, without the version."
+8.11.0,true,agent,agent.host.os.name.text,keyword,extended,,Mac OS X,"Operating system name, without the version."
+8.11.0,true,agent,agent.host.os.platform,keyword,extended,,darwin,"Operating system platform (such centos, ubuntu, windows)."
+8.11.0,true,agent,agent.host.os.type,keyword,extended,,macos,"Which commercial OS family (one of: linux, macos, unix, windows, ios or android)."
+8.11.0,true,agent,agent.host.os.version,keyword,extended,,10.14.1,Operating system version as a raw string.
+8.11.0,true,agent,agent.host.pid_ns_ino,keyword,extended,,256383,Pid namespace inode
+8.11.0,true,agent,agent.host.risk.calculated_level,keyword,extended,,High,A risk classification level calculated by an internal system as part of entity analytics and entity risk scoring.
+8.11.0,true,agent,agent.host.risk.calculated_score,float,extended,,880.73,A risk classification score calculated by an internal system as part of entity analytics and entity risk scoring.
+8.11.0,true,agent,agent.host.risk.calculated_score_norm,float,extended,,88.73,A normalized risk score calculated by an internal system.
+8.11.0,true,agent,agent.host.risk.static_level,keyword,extended,,High,"A risk classification level obtained from outside the system, such as from some external Threat Intelligence Platform."
+8.11.0,true,agent,agent.host.risk.static_score,float,extended,,830.0,"A risk classification score obtained from outside the system, such as from some external Threat Intelligence Platform."
+8.11.0,true,agent,agent.host.risk.static_score_norm,float,extended,,83.0,A normalized risk score calculated by an external system.
+8.11.0,true,agent,agent.host.type,keyword,core,,,Type of host.
+8.11.0,true,agent,agent.host.uptime,long,extended,,1325,Seconds the host has been up.
+8.11.0,true,agent,agent.id,keyword,core,,8a4f500d,Unique identifier of this agent.
+8.11.0,true,agent,agent.name,keyword,core,,foo,Custom name of the agent.
+8.11.0,true,agent,agent.type,keyword,core,,filebeat,Type of the agent.
+8.11.0,true,agent,agent.version,keyword,core,,6.0.0-rc2,Version of the agent.
+8.11.0,true,file,file.attributes,keyword,extended,array,"[""readonly"", ""system""]",Array of file attributes.
+8.11.0,true,file,file.gid,keyword,extended,,1001,Primary group ID (GID) of the file.
+8.11.0,true,file,file.group,keyword,extended,,alice,Primary group name of the file.
+8.11.0,true,file,file.hash.md5,keyword,extended,,,MD5 hash.
+8.11.0,true,file,file.hash.sha1,keyword,extended,,,SHA1 hash.
+8.11.0,true,file,file.hash.sha256,keyword,extended,,,SHA256 hash.
+8.11.0,true,file,file.inode,keyword,extended,,256383,Inode representing the file in the filesystem.
+8.11.0,true,file,file.mode,keyword,extended,,0640,Mode of the file in octal representation.
+8.11.0,true,file,file.mtime,date,extended,,,Last time the file content was modified.
+8.11.0,true,file,file.name,keyword,extended,,example.png,"Name of the file including the extension, without the directory."
+8.11.0,true,file,file.owner,keyword,extended,,alice,File owner's username.
+8.11.0,true,file,file.path,keyword,extended,,/home/alice/example.png,"Full path to the file, including the file name."
+8.11.0,true,file,file.path.text,keyword,extended,,/home/alice/example.png,"Full path to the file, including the file name."
+8.11.0,true,file,file.size,long,extended,,16384,File size in bytes.
+8.11.0,true,file,file.target_path,keyword,extended,,,Target path for symlinks.
+8.11.0,true,file,file.target_path.text,keyword,extended,,,Target path for symlinks.
+8.11.0,true,file,file.type,keyword,extended,,file,"File type (file, dir, or symlink)."
+8.11.0,true,file,file.uid,keyword,extended,,1001,The user ID (UID) or security identifier (SID) of the file owner.
+8.11.0,true,registry,registry.key,keyword,core,,SOFTWARE\Microsoft\Windows NT\CurrentVersion\Image File Execution Options\winword.exe,Hive-relative path of keys.
+8.11.0,true,registry,registry.value,keyword,core,,Debugger,Name of the value written.

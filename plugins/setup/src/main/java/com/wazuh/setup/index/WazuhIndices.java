@@ -18,6 +18,7 @@ package com.wazuh.setup.index;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.opensearch.ResourceAlreadyExistsException;
 import org.opensearch.action.admin.indices.create.CreateIndexRequest;
 import org.opensearch.action.admin.indices.create.CreateIndexResponse;
 import org.opensearch.action.admin.indices.template.put.PutIndexTemplateRequest;
@@ -26,9 +27,7 @@ import org.opensearch.client.Client;
 import org.opensearch.cluster.service.ClusterService;
 
 import java.io.IOException;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 import com.wazuh.setup.utils.IndexTemplateUtils;
 import org.opensearch.core.action.ActionListener;
@@ -41,8 +40,11 @@ public class WazuhIndices {
     public static final String ISM_TEMPLATE_NAME = "opendistro-ism-config";
     public static final String ISM_INDEX = ".opendistro-ism-config";
 
-    /** | Key | value | | ------------------- | ---------- | | Index template name | index name | */
-    public final Map<String, String> indexTemplates = new HashMap<>();
+    /**
+     * | Key | value | | ------------------- | ---------- | | Index template name | [index name, ] |
+     * Map where the key is the index template name, and the value is a list of index names
+     */
+    public final Map<String, List<String>> indexTemplates = new HashMap<>();
 
     private final Client client;
     private final ClusterService clusterService;
@@ -58,21 +60,24 @@ public class WazuhIndices {
         this.clusterService = clusterService;
 
         // Create Index Templates - Indices map
-        this.indexTemplates.put("index-template-agent", "wazuh-agents");
-        this.indexTemplates.put("index-template-alerts", "wazuh-alerts-5.x-0001");
-        this.indexTemplates.put("index-template-commands", "wazuh-commands");
-        this.indexTemplates.put("index-template-scheduled-commands", ".scheduled-commands");
-        this.indexTemplates.put("index-template-fim", "wazuh-states-fim");
-        this.indexTemplates.put("index-template-hardware", "wazuh-states-inventory-hardware");
-        this.indexTemplates.put("index-template-hotfixes", "wazuh-states-inventory-hotfixes");
-        this.indexTemplates.put("index-template-networks", "wazuh-states-inventory-networks");
-        this.indexTemplates.put("index-template-packages", "wazuh-states-inventory-packages");
-        this.indexTemplates.put("index-template-ports", "wazuh-states-inventory-ports");
-        this.indexTemplates.put("index-template-processes", "wazuh-states-inventory-processes");
-        this.indexTemplates.put("index-template-system", "wazuh-states-inventory-system");
-        this.indexTemplates.put("index-template-vulnerabilities", "wazuh-states-vulnerabilities");
-        this.indexTemplates.put(ISM_TEMPLATE_NAME, ISM_INDEX);
+        this.indexTemplates.put("index-template-agent", List.of("wazuh-agents"));
+        this.indexTemplates.put("index-template-alerts", List.of("wazuh-alerts-5.x-0001"));
+        this.indexTemplates.put("index-template-commands", List.of("wazuh-commands"));
+        this.indexTemplates.put("index-template-cve", List.of("wazuh-cve"));
+        this.indexTemplates.put("index-template-fim", List.of("wazuh-states-fim"));
+        this.indexTemplates.put("index-template-hardware", List.of("wazuh-states-inventory-hardware"));
+        this.indexTemplates.put("index-template-hotfixes", List.of("wazuh-states-inventory-hotfixes"));
+        this.indexTemplates.put("index-template-networks", List.of("wazuh-states-inventory-networks"));
+        this.indexTemplates.put("index-template-packages", List.of("wazuh-states-inventory-packages"));
+        this.indexTemplates.put("index-template-ports", List.of("wazuh-states-inventory-ports"));
+        this.indexTemplates.put("index-template-processes", List.of("wazuh-states-inventory-processes"));
+        this.indexTemplates.put("index-template-sca", List.of("wazuh-states-sca"));
+        this.indexTemplates.put("index-template-scheduled-commands", List.of(".scheduled-commands"));
+        this.indexTemplates.put("index-template-system", List.of("wazuh-states-inventory-system"));
+        this.indexTemplates.put("index-template-users", List.of("wazuh-internal-users", "wazuh-custom-users"));
+        this.indexTemplates.put("index-template-vulnerabilities", List.of("wazuh-states-vulnerabilities"));
         this.indexTemplates.put("test-template", "test-index-0000");
+        this.indexTemplates.put(ISM_TEMPLATE_NAME, List.of(ISM_INDEX);
     }
 
     /**
@@ -82,7 +87,6 @@ public class WazuhIndices {
      */
     public void putTemplate(String templateName) {
         try {
-            // @throws IOException
             Map<String, Object> template = IndexTemplateUtils.fromFile(templateName + ".json");
 
             if (templateName.equals(ISM_TEMPLATE_NAME)) {
@@ -123,26 +127,32 @@ public class WazuhIndices {
 
         } catch (IOException e) {
             log.error("Error reading index template from filesystem {}", templateName);
+        } catch (ResourceAlreadyExistsException e) {
+            log.info("Index template {} already exists. Skipping.", templateName);
         }
     }
 
     /**
      * Creates an index
      *
-     * @param indexName: Name of the index to be created
+     * @param indexName Name of the index to be created
      */
     public void putIndex(String indexName) {
         if ( indexName.equals(ISM_INDEX)) {
            return;
         }
-        if (!indexExists(indexName)) {
-            CreateIndexRequest request = new CreateIndexRequest(indexName);
-            CreateIndexResponse createIndexResponse =
-                    this.client.admin().indices().create(request).actionGet();
-            log.info(
-                    "Index created successfully: {} {}",
-                    createIndexResponse.index(),
-                    createIndexResponse.isAcknowledged());
+        try {
+            if (!indexExists(indexName)) {
+                CreateIndexRequest request = new CreateIndexRequest(indexName);
+                CreateIndexResponse createIndexResponse =
+                        this.client.admin().indices().create(request).actionGet();
+                log.info(
+                        "Index created successfully: {} {}",
+                        createIndexResponse.index(),
+                        createIndexResponse.isAcknowledged());
+            }
+        } catch (ResourceAlreadyExistsException e) {
+            log.info("Index {} already exists. Skipping.", indexName);
         }
     }
 
@@ -167,7 +177,7 @@ public class WazuhIndices {
      * Returns whether the index exists
      *
      * @param indexName the name of the index to check
-     * @return true of the index exists on the cluster, false otherwise
+     * @return true if the index exists on the cluster, false otherwise
      */
     public boolean indexExists(String indexName) {
         return this.clusterService.state().getRoutingTable().hasIndex(indexName);
@@ -179,13 +189,9 @@ public class WazuhIndices {
         // 2. Upsert index template
         // 3. Create index
         this.indexTemplates.forEach(
-                (k, v) -> {
-                    this.putTemplate(k);
-                    if ("test-index-0000".equals(v)) {
-                        log.info("skipping creation of test-index-0000");
-                    } else {
-                        this.putIndex(v);
-                    }
+                (template, indices) -> {
+                    this.putTemplate(template);
+                    indices.forEach(this::putIndex);
                 });
     }
 }

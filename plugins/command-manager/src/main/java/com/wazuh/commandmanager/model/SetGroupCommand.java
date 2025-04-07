@@ -43,17 +43,13 @@ public class SetGroupCommand extends Args {
         XContentParser.Token currentToken = parser.currentToken();
         if (currentToken != XContentParser.Token.START_OBJECT) {
             throw new IllegalArgumentException(
-                    "Expected [command.action.args] to be an object, got ["
-                            + parser.currentName()
-                            + "]");
+                    "Expected [command.action.args] to be an object, got [" + parser.currentName() + "]");
         }
         // Next expected token is "groups" key, followed by an array of strings only.
         currentToken = parser.nextToken();
         if (currentToken != XContentParser.Token.FIELD_NAME) {
             throw new IllegalArgumentException(
-                    "Expected [command.action.args] to be an object, got ["
-                            + currentToken.name()
-                            + "]");
+                    "Expected [command.action.args] to be an object, got [" + currentToken.name() + "]");
         }
         if (!GROUPS_KEY.equals(parser.currentName())) {
             throw new IllegalArgumentException(
@@ -79,7 +75,9 @@ public class SetGroupCommand extends Args {
                                 + currentToken.name()
                                 + "]");
             }
-            groupList.add(parser.text());
+            if (!parser.text().isEmpty()) {
+                groupList.add(parser.text());
+            }
         }
         // Consume the END_OBJECT token
         parser.nextToken();

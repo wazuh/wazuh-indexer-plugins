@@ -1,11 +1,14 @@
 import org.gradle.api.file.RegularFile
 import org.opensearch.gradle.test.RestIntegTestTask
+import java.util.concurrent.Callable
 
 import java.util.concurrent.Callable
 
 buildscript {
     ext {
         opensearch_version = System.getProperty("opensearch.version", "2.19.1-SNAPSHOT")
+        opensearch_build = opensearch_version.replace("-SNAPSHOT","") + ".0"
+        job_scheduler_version = System.getProperty("job_scheduler.version", opensearch_build)
         wazuh_version = System.getProperty("version", "5.0.0")
         revision = System.getProperty("revision", "0")
     }
@@ -26,7 +29,8 @@ apply plugin: 'java'
 apply plugin: 'idea'
 apply plugin: 'eclipse'
 apply plugin: 'opensearch.opensearchplugin'
-apply plugin: 'opensearch.yaml-rest-test'
+apply plugin: 'opensearch.testclusters'
+apply plugin: 'opensearch.java-rest-test'
 apply plugin: 'opensearch.pluginzip'
 
 def pluginName = 'wazuh-indexer-setup'
@@ -69,22 +73,28 @@ opensearchplugin {
     name pluginName
     description pluginDescription
     classname "${projectPath}.${pathToPlugin}.${pluginClassName}"
+    extendedPlugins = ['opensearch-job-scheduler']
     licenseFile rootProject.file('LICENSE.txt')
     noticeFile rootProject.file('NOTICE.txt')
 }
 
+def versions = [
+  log4j: "2.23.1"
+]
+
 configurations {
-    zipArchive
+  zipArchive
 }
 
 dependencies {
-    implementation "org.apache.logging.log4j:log4j-slf4j-impl:${versions.log4j}"
+  implementation "org.apache.logging.log4j:log4j-slf4j-impl:${versions.log4j}"
+  implementation "org.slf4j:slf4j-api:2.0.16"
 
-    // Job Scheduler stuff
-    zipArchive group: 'org.opensearch.plugin', name: 'opensearch-job-scheduler', version: "2.19.1.0"
-    zipArchive group: 'org.opensearch.plugin', name: 'opensearch-index-management', version: "2.19.1.0"
-    // implementation "org.opensearch:opensearch:${opensearch_version}"
-    compileOnly "org.opensearch:opensearch-job-scheduler-spi:2.19.1.0"
+  // Job Scheduler stuff
+  zipArchive group: 'org.opensearch.plugin', name: 'opensearch-job-scheduler', version: "2.19.1.0"
+  zipArchive group: 'org.opensearch.plugin', name: 'opensearch-index-management', version: "2.19.1.0"
+  // implementation "org.opensearch:opensearch:${opensearch_version}"
+  compileOnly "org.opensearch:opensearch-job-scheduler-spi:2.19.1.0"
 
 }
 
@@ -96,6 +106,9 @@ loggerUsageCheck.enabled = false
 
 // No need to validate pom, as we do not upload to maven/sonatype
 validateNebulaPom.enabled = false
+
+//Skip checking for third party licenses
+dependencyLicenses.enabled = false
 
 repositories {
     mavenLocal()
@@ -141,9 +154,9 @@ def getIndexManagementPlugin() {
 }
 
 task integTest(type: RestIntegTestTask) {
-    description = "Run tests against a cluster"
-    testClassesDirs = sourceSets.test.output.classesDirs
-    classpath = sourceSets.test.runtimeClasspath
+  description = "Run tests against a cluster"
+  testClassesDirs = sourceSets.test.output.classesDirs
+  classpath = sourceSets.test.runtimeClasspath
 }
 tasks.named("check").configure { dependsOn(integTest) }
 

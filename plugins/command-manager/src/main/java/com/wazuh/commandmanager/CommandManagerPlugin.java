@@ -112,8 +112,8 @@ public class CommandManagerPlugin extends Plugin
      * Indexes a document into the jobs index, so that JobScheduler plugin can run it
      *
      * @param client: The cluster client, used for indexing
-     * @param clusterService: Provides the addListener method. We use it to determine if this is a
-     *     new cluster.
+     * @param clusterService: Provides the addListener method. We use it to determine if this is a new
+     *     cluster.
      * @param threadPool: Used by jobDocument to create the document in a thread.
      */
     private void scheduleCommandJob(
@@ -156,9 +156,7 @@ public class CommandManagerPlugin extends Plugin
     public List<Setting<?>> getSettings() {
         return Arrays.asList(
                 // Register API settings
-                PluginSettings.CLIENT_TIMEOUT,
-                PluginSettings.MAX_DOCS,
-                PluginSettings.JOB_SCHEDULE);
+                PluginSettings.CLIENT_TIMEOUT, PluginSettings.MAX_DOCS, PluginSettings.JOB_SCHEDULE);
     }
 
     @Override
@@ -205,8 +203,7 @@ public class CommandManagerPlugin extends Plugin
                         jobParameter.setSchedule(ScheduleParser.parse(parser));
                         break;
                     default:
-                        XContentParserUtils.throwUnknownToken(
-                                parser.currentToken(), parser.getTokenLocation());
+                        XContentParserUtils.throwUnknownToken(parser.currentToken(), parser.getTokenLocation());
                 }
             }
             return jobParameter;
@@ -214,8 +211,8 @@ public class CommandManagerPlugin extends Plugin
     }
 
     /**
-     * Returns the proper Instant object with milliseconds from the Unix epoch when the current
-     * token actually holds a value.
+     * Returns the proper Instant object with milliseconds from the Unix epoch when the current token
+     * actually holds a value.
      *
      * @param parser: The parser as provided by JobScheduler
      */

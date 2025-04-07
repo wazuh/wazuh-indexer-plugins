@@ -23,8 +23,8 @@ paths:
                 value:
                   commands:
                     - action:
-                        args: {}
                         name: restart
+                        args: {}
                         version: "5.0.0"
                       source: "Users/Services"
                       user: "Management API"
@@ -37,8 +37,8 @@ paths:
                 value:
                   commands:
                     - action:
-                        args: {}
                         name: fetch-config
+                        args: {}
                         version: "5.0.0"
                       source: "Users/Services"
                       user: "Management API"
@@ -51,11 +51,11 @@ paths:
                 value:
                   commands:
                     - action:
+                        name: set-group
                         args:
                           groups:
                             - "group_1"
                             - "group_2"
-                        name: set-group
                         version: "5.0.0"
                       source: "Users/Services"
                       user: "Management API"
@@ -63,6 +63,21 @@ paths:
                       target:
                         id: "d5b250c4-dfa1-4d94-827f-9f99210dbe6c"
                         type: "agent"
+              update:
+                summary: Update content command
+                value:
+                  commands:
+                    - action:
+                        name: update
+                        args:
+                          index: "content-index"
+                          offset: "1111"
+                        version: "5.0.0"
+                      source: "Content Manager"
+                      timeout: 100
+                      target:
+                        id: "vulnerability-detector"
+                        type: "server"
       responses:
         "200":
           description: OK
@@ -119,7 +134,7 @@ components:
               type: array
               items:
                 type: string
-              example: 
+              example:
                 - "group_1"
                 - "group_2"
         version:

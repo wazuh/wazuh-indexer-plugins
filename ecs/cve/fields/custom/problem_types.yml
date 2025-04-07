@@ -1,0 +1,8 @@
+- name: problemTypes
+  title: Problem Type
+  description: Problem types associated with a CVE.
+  reusable:
+    top_level: false
+    expected:
+      - { at: payload.containers.cna, as: problemTypes }
+      - { at: payload.containers.adp, as: problemTypes }
