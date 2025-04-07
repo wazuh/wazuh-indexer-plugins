@@ -102,9 +102,7 @@ public class ContentUpdater {
             if (!this.patchContextIndex(changes)) {
                 // If there was an error applying the changes, restart the consumer info.
                 restartConsumerInfo();
-                log.warn(
-                        "Restarted consumer info. Current offset set to 0. "
-                                + "Please restart the content updater.");
+                log.warn("Restarted consumer info. Current offset set to 0.");
                 return;
             }
 

@@ -49,7 +49,7 @@ public class ContentIndex {
     private static final String INDEX_NAME = "wazuh-cve";
     private final int MAX_DOCUMENTS = 25;
     private static final int MAX_CONCURRENT_PETITIONS = 5;
-    public static final Long TIMEOUT = 50L;
+    public static final Long TIMEOUT = 10L;
 
     private final Client client;
     private final Semaphore semaphore = new Semaphore(MAX_CONCURRENT_PETITIONS);
@@ -111,23 +111,29 @@ public class ContentIndex {
     public void patch(ContextChanges changes)
             throws RuntimeException, ExecutionException, InterruptedException, TimeoutException {
         // Get the current content of the document
-        GetResponse getResponse = this.get().get(TIMEOUT, TimeUnit.SECONDS);
-        // TODO: Convert the response to JsonObject
-        // JsonObject currentContent = getResponse.toXContent();
-        JsonObject currentContent = new JsonObject();
-        if (getResponse == null) {
-            throw new IllegalArgumentException("Document not found");
-        }
-
-        // Apply the changes to the current content
-        JsonPatch jsonPatch = new JsonPatch();
         for (PatchChange change : changes.getChangesList()) {
-            for (PatchOperation operation : change.getOperations()) {
-                jsonPatch.applyOperation(currentContent, operation.getValueAsJson());
+            // TODO: Switch case for change.type:
+            //      - Case update we use JsonPatch util
+            //      - Case create we index the document
+            //      - Case delete we delete the document
+
+            // --- THIS IS THE UPDATE CASE IMPLEMENTATION ---
+            // TODO: User change.resource to get the document by ID (ID="CVE-XXX")
+            GetResponse getResponse = this.get().get(TIMEOUT, TimeUnit.SECONDS);
+
+            JsonObject resource = new JsonObject();
+            if (getResponse == null) {
+                throw new IllegalArgumentException("Document not found");
             }
+
+            // Apply the changes to the current content
+            JsonPatch jsonPatch = new JsonPatch();
+            for (PatchOperation operation : change.getOperations()) {
+                jsonPatch.applyOperation(resource, operation.getValueAsJson());
+            }
+            // Index the updated content
+            this.index(List.of(resource));
         }
-        // Index the updated content
-        this.index(List.of(currentContent));
     }
 
     public CompletableFuture<GetResponse> get() {
