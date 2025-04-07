@@ -101,7 +101,7 @@ public class SetupPlugin extends Plugin implements ClusterPlugin, JobSchedulerEx
     @Override
     public void onNodeStarted(DiscoveryNode localNode) {
         this.indices.initialize();
-        this.rbac.indexRBACUsers();
+        this.rbac.initialize();
     }
 
     /**

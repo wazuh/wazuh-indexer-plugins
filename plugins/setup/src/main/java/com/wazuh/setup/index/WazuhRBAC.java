@@ -39,7 +39,7 @@ import java.time.Instant;
 public class WazuhRBAC {
 
     public static final String DEFAULT_USERS_FILENAME = "default-rbac-users.json";
-    public static final String DEFAULT_USER_ID = "1";
+    public static final String DEFAULT_USER_ID = "wazuh";
     public static final String RBAC_INDEX_NAME = "wazuh-internal-users";
     private final Client client;
 
@@ -63,19 +63,17 @@ public class WazuhRBAC {
      */
     public boolean documentExists(String indexName, String documentId) {
         try {
-            return client.get(new GetRequest(indexName, documentId)).actionGet().isExists();
+            return this.client.get(new GetRequest(indexName, documentId)).actionGet().isExists();
         } catch (IllegalStateException e) {
             log.error("Failed to get internal user [{}]: {}", documentId, e.getMessage());
         }
         return false;
     }
 
-    /**
-     * Update "created_at" field with current date
-     */
+    /** Update "created_at" field with current date */
     private void updateCreatedAt() {
         try (XContentBuilder xContentBuilder = XContentFactory.jsonBuilder()) {
-            client.update(
+            this.client.update(
                     new UpdateRequest(RBAC_INDEX_NAME, DEFAULT_USER_ID)
                             .doc(
                                     xContentBuilder
@@ -84,7 +82,7 @@ public class WazuhRBAC {
                                             .field("created_at", Instant.now().toString())
                                             .endObject()
                                             .endObject()),
-                    new ActionListener<UpdateResponse>() {
+                    new ActionListener<>() {
                         @Override
                         public void onResponse(UpdateResponse updateResponse) {
                             log.info("Successfully updated created_at field");
@@ -104,7 +102,7 @@ public class WazuhRBAC {
     }
 
     /** Indexes the default internal users data */
-    public void indexRBACUsers() {
+    public void initialize() {
         if (documentExists(RBAC_INDEX_NAME, DEFAULT_USER_ID)) {
             return;
         }
@@ -127,7 +125,7 @@ public class WazuhRBAC {
                         .source(bytesReference, MediaTypeRegistry.JSON)
                         .create(true);
 
-        client.index(
+        this.client.index(
                 indexRequest,
                 new ActionListener<>() {
                     @Override

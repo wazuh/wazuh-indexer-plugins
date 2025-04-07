@@ -1,6 +1,6 @@
 {
   "user": {
-    "id": "1",
+    "id": "wazuh",
     "name": "wazuh",
     "password": "9UwarPXx85C67NpZPnkBKMM1By19GWSUnmAwyOP51EQC3ml4tM8CM9a1TFw0JRjs",
     "allow_run_as": true,

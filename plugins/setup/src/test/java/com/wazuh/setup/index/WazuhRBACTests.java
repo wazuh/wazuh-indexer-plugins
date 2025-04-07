@@ -37,7 +37,6 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 
-import static com.wazuh.setup.index.WazuhRBAC.RBAC_INDEX_NAME;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.*;
 
@@ -45,10 +44,8 @@ import static org.mockito.Mockito.*;
 public class WazuhRBACTests extends OpenSearchTestCase {
     @Mock private WazuhRBAC wazuhRBAC;
     @Mock private Client client;
-    private Appender mockAppender;
-    private ArgumentCaptor<LogEvent> logEventCaptor;
 
-    /** Setup the prerequisites for the tests */
+    /** Set up the prerequisites for the tests */
     @Before
     public void setup() {
         client = mock(Client.class);
@@ -56,33 +53,33 @@ public class WazuhRBACTests extends OpenSearchTestCase {
     }
 
     /** Test the case where an RBAC users document is already found */
-    public void testIndexRBACUsers_WhenDocumentExists() {
+    public void testInitialize_WhenDocumentExists() {
         doReturn(true).when(wazuhRBAC).documentExists(anyString(), anyString());
 
-        wazuhRBAC.indexRBACUsers();
+        wazuhRBAC.initialize();
 
         verify(client, never()).index(any(), any());
     }
 
     /** Test failing to perform a file read */
-    public void testIndexRBACUsers_WhenFileReadFails() {
+    public void testInitialize_WhenFileReadFails() {
         doReturn(false).when(wazuhRBAC).documentExists(anyString(), anyString());
         doThrow(new NullPointerException()).when(wazuhRBAC).getResourceAsStream(anyString());
-        wazuhRBAC.indexRBACUsers();
+        wazuhRBAC.initialize();
         verify(client, never()).index(any(), any());
     }
 
     /** Test successful indexing of the document */
-    public void testIndexRBACUsers_SuccessfulIndexing() {
+    public void testInitialize_SuccessfulIndexing() {
         doReturn(false).when(wazuhRBAC).documentExists(anyString(), anyString());
         // String jsonContent = "{\"user\": \"admin\"}";
         InputStream jsonContent = wazuhRBAC.getResourceAsStream(WazuhRBAC.DEFAULT_USERS_FILENAME);
         ArgumentCaptor<IndexRequest> requestCaptor = ArgumentCaptor.forClass(IndexRequest.class);
-        wazuhRBAC.indexRBACUsers();
+        wazuhRBAC.initialize();
         verify(client).index(requestCaptor.capture(), any());
         IndexRequest capturedRequest = requestCaptor.getValue();
-        assertEquals(RBAC_INDEX_NAME, capturedRequest.index());
-        assertEquals("1", capturedRequest.id());
+        assertEquals(WazuhRBAC.RBAC_INDEX_NAME, capturedRequest.index());
+        assertEquals(WazuhRBAC.DEFAULT_USER_ID, capturedRequest.id());
         assertEquals(MediaTypeRegistry.JSON, capturedRequest.getContentType());
         try {
             assertArrayEquals(jsonContent.readAllBytes(), capturedRequest.source().toBytesRef().bytes);
@@ -92,9 +89,9 @@ public class WazuhRBACTests extends OpenSearchTestCase {
     }
 
     /** Test failure to index the document */
-    public void testIndexRBACUsers_IndexingFails() {
-        mockAppender = mock(Appender.class);
-        logEventCaptor = ArgumentCaptor.forClass(LogEvent.class);
+    public void testInitialize_IndexingFails() {
+        Appender mockAppender = mock(Appender.class);
+        ArgumentCaptor<LogEvent> logEventCaptor = ArgumentCaptor.forClass(LogEvent.class);
         when(mockAppender.getName()).thenReturn("MockAppender");
         when(mockAppender.isStarted()).thenReturn(true);
         final Logger logger = (Logger) LogManager.getLogger(WazuhRBAC.class);
@@ -111,7 +108,7 @@ public class WazuhRBACTests extends OpenSearchTestCase {
                 .when(client)
                 .index(any(), any());
 
-        wazuhRBAC.indexRBACUsers();
+        wazuhRBAC.initialize();
 
         verify(mockAppender, times(1)).append(logEventCaptor.capture());
 
