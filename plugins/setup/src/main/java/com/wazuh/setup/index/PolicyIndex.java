@@ -28,6 +28,7 @@ import org.opensearch.index.shard.IndexingOperationListener;
 import org.opensearch.threadpool.ThreadPool;
 
 import java.io.IOException;
+import java.util.Locale;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
 
@@ -43,12 +44,11 @@ public class PolicyIndex implements IndexingOperationListener {
 
     private final String ISM_INDEX = ".opendistro-ism-config";
 
-    //public final String POLICY =
-    //        "{\"policy\":{\"policy_id\":\"wazuh_rollover_policy\",\"description\":\"Wazuh rollover and alias policy\",\"error_notification\":null,\"default_state\":\"active\",\"states\":[{\"name\":\"active\",\"actions\":[{\"retry\":{\"count\":3,\"backoff\":\"exponential\",\"delay\":\"1m\"},\"rollover\":{\"min_doc_count\":5,\"copy_alias\":false}}],\"transitions\":[]}],\"ism_template\":[{\"index_patterns\":[\"test-index-*\"],\"priority\":50}],\"user\":{\"name\":\"admin\",\"backend_roles\":[\"admin\"],\"roles\":[\"own_index\",\"all_access\"],\"custom_attribute_names\":[],\"user_requested_tenant\":null}}}";
-
-    //public final String POLICY= "{\"policy\":{\"policy_id\":\"wazuh_rollover_policy\",\"description\":\"Wazuh rollover and alias policy\",\"default_state\":\"active\",\"states\":[{\"name\":\"active\",\"actions\":[{\"retry\":{\"count\":3,\"backoff\":\"exponential\",\"delay\":\"1m\"},\"rollover\":{\"min_doc_count\":5,\"copy_alias\":false}}],\"transitions\":[]}],\"ism_template\":[{\"index_patterns\":[\"test-index-*\"],\"priority\":50,\"last_updated_time\":1738255639727}],\"user\":{\"name\":\"admin\",\"backend_roles\":[\"admin\"],\"roles\":[\"own_index\",\"all_access\"],\"custom_attribute_names\":[],\"user_requested_tenant\":null}}}";
-    //public final String POLICY="{\"policy\":{\"description\":\"Example rollover policy.\",\"default_state\":\"rollover\",\"states\":[{\"name\":\"rollover\",\"actions\":[{\"rollover\":{\"min_doc_count\":1}}],\"transitions\":[]}],\"ism_template\":{\"index_patterns\":[\"test-index-*\"],\"priority\":100}}}";
-    public final String POLICY = String.format("{\"policy\":{\"policy_id\":\"%s\",\"description\":\"Example rollover policy.\",\"last_updated_time\":1738947466825,\"schema_version\":21,\"error_notification\":null,\"default_state\":\"rollover\",\"states\":[{\"name\":\"rollover\",\"actions\":[{\"retry\":{\"count\":3,\"backoff\":\"exponential\",\"delay\":\"1m\"},\"rollover\":{\"min_doc_count\":1,\"copy_alias\":false}}],\"transitions\":[]}],\"ism_template\":[{\"index_patterns\":[\"test-index-*\"],\"priority\":100,\"last_updated_time\":1738947466825}],\"user\":{\"name\":\"admin\",\"backend_roles\":[\"admin\"],\"roles\":[\"own_index\",\"all_access\"],\"custom_attribute_names\":[],\"user_requested_tenant\":null}}}",POLICY_ID);
+    public final String POLICY =
+            String.format(
+                    Locale.ROOT,
+                    "{\"policy\":{\"policy_id\":\"%s\",\"description\":\"Example rollover policy.\",\"last_updated_time\":1738947466825,\"schema_version\":21,\"error_notification\":null,\"default_state\":\"rollover\",\"states\":[{\"name\":\"rollover\",\"actions\":[{\"retry\":{\"count\":3,\"backoff\":\"exponential\",\"delay\":\"1m\"},\"rollover\":{\"min_doc_count\":1,\"copy_alias\":false}}],\"transitions\":[]}],\"ism_template\":[{\"index_patterns\":[\"test-index-*\"],\"priority\":100,\"last_updated_time\":1738947466825}],\"user\":{\"name\":\"admin\",\"backend_roles\":[\"admin\"],\"roles\":[\"own_index\",\"all_access\"],\"custom_attribute_names\":[],\"user_requested_tenant\":null}}}",
+                    POLICY_ID);
 
     /**
      * Default constructor
@@ -86,8 +86,7 @@ public class PolicyIndex implements IndexingOperationListener {
                     try (ThreadContext.StoredContext ignored =
                             this.threadPool.getThreadContext().stashContext()) {
                         final IndexResponse indexResponse =
-                                client.index(createIndexRequest("wazuh_rollover_policy", POLICY))
-                                        .actionGet();
+                                client.index(createIndexRequest("wazuh_rollover_policy", POLICY)).actionGet();
                         future.complete(indexResponse);
                     } catch (Exception e) {
                         log.error("Error indexing commands with bulk due to {}", e.getMessage());
