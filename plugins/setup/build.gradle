@@ -86,10 +86,10 @@ dependencies {
     implementation "org.apache.logging.log4j:log4j-slf4j-impl:${versions.log4j}"
 
     // Job Scheduler stuff
-    zipArchive group: 'org.opensearch.plugin', name: 'opensearch-job-scheduler', version: "2.18.0.0"
-    zipArchive group: 'org.opensearch.plugin', name: 'opensearch-index-management', version: "2.18.0.0"
+    zipArchive group: 'org.opensearch.plugin', name: 'opensearch-job-scheduler', version: "2.19.1.0"
+    zipArchive group: 'org.opensearch.plugin', name: 'opensearch-index-management', version: "2.19.1.0"
     // implementation "org.opensearch:opensearch:${opensearch_version}"
-    compileOnly "org.opensearch:opensearch-job-scheduler-spi:2.18.0.0"
+    compileOnly "org.opensearch:opensearch-job-scheduler-spi:2.19.1.0"
 
 }
 

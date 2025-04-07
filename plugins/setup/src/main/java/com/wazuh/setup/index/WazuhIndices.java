@@ -32,12 +32,15 @@ import java.util.List;
 import java.util.Map;
 
 import com.wazuh.setup.utils.IndexTemplateUtils;
+import org.opensearch.core.action.ActionListener;
 
 /**
  * This class contains the logic to create the index templates and the indices required by Wazuh.
  */
 public class WazuhIndices {
     private static final Logger log = LogManager.getLogger(WazuhIndices.class);
+    public static final String ISM_TEMPLATE_NAME = "opendistro-ism-config";
+    public static final String ISM_INDEX = ".opendistro-ism-config";
 
     /**
      * | Key | value | | ------------------- | ---------- | | Index template name | [index name, ] |
@@ -80,7 +83,7 @@ public class WazuhIndices {
         this.indexTemplates.put("index-template-system", List.of("wazuh-states-inventory-system"));
         this.indexTemplates.put(
                 "index-template-vulnerabilities", List.of("wazuh-states-vulnerabilities"));
-        this.indexTemplates.put("opendistro-ism-config", ".opendistro-ism-config");
+        this.indexTemplates.put(ISM_TEMPLATE_NAME, ISM_INDEX);
         this.indexTemplates.put("test-template", "test-index-0000");
     }
 
@@ -93,6 +96,27 @@ public class WazuhIndices {
     public void putTemplate(String templateName) {
         try {
             Map<String, Object> template = IndexTemplateUtils.fromFile(templateName + ".json");
+
+            if (templateName.equals(ISM_TEMPLATE_NAME)) {
+                client.admin().indices().create(
+                    new CreateIndexRequest(ISM_INDEX)
+                        .mapping(IndexTemplateUtils.get(template, "mappings"))
+                        .settings(IndexTemplateUtils.get(template, "settings")),
+                    new ActionListener<CreateIndexResponse>() {
+                        @Override
+                        public void onResponse(CreateIndexResponse createIndexResponse) {
+                            log.info("Created {} index with its template", ISM_INDEX);
+                        }
+
+                        @Override
+                        public void onFailure(Exception e) {
+                            log.error("Failed to create {} index:", ISM_INDEX, e.getMessage());
+
+                        }
+                    }
+                );
+                return;
+            }
 
             PutIndexTemplateRequest putIndexTemplateRequest =
                     new PutIndexTemplateRequest()
@@ -123,6 +147,9 @@ public class WazuhIndices {
      */
     public void putIndex(String indexName) {
         try {
+        if ( indexName.equals(ISM_INDEX)) {
+           return;
+        }
             if (!indexExists(indexName)) {
                 CreateIndexRequest request = new CreateIndexRequest(indexName);
                 CreateIndexResponse createIndexResponse =
