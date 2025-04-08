@@ -37,8 +37,8 @@ function wait_for_cluster() {
 # Index initial offsets
 function load_initial_offsets() {
     url="http://$IP:$PORT/$ENDPOINT?from_offset=${from_offset}&to_offset=${to_offset}"
-    response=$(curl -s -o /dev/null -w "%{http_code}" -u $USERNAME:$PASSWORD -H 'Content-Type: application/json'  -X GET "$url")
-    if [[ $response -ne 201 ]]; then
+    response=$(curl -s -o /dev/null -w "%{http_code}" -u $USERNAME:$PASSWORD  -X GET "$url")
+    if [[ $response -ne 201  &&  $response -ne 200 ]]; then
         echo "Error: $response"
     fi
 }
@@ -87,8 +87,6 @@ function populate_index() {
     echo "Starting initial offset supplying..."
     echo "Using from_offset: $from_offset"
     echo "Using to_offset: $to_offset"
-    echo "Using log_dir: $log_dir"
-    echo "Using log_file: $log_file"
     load_initial_offsets
     echo "Data generation completed."
 }

@@ -26,12 +26,16 @@ import org.opensearch.action.delete.DeleteRequest;
 import org.opensearch.action.get.GetRequest;
 import org.opensearch.action.get.GetResponse;
 import org.opensearch.action.index.IndexRequest;
+import org.opensearch.action.index.IndexResponse;
 import org.opensearch.client.Client;
+import org.opensearch.common.xcontent.XContentFactory;
 import org.opensearch.common.xcontent.XContentType;
 import org.opensearch.core.action.ActionListener;
+import org.opensearch.core.xcontent.*;
 
 import java.io.BufferedReader;
 import java.io.FileReader;
+import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
@@ -63,14 +67,42 @@ public class ContentIndex {
         this.client = client;
     }
 
+    public void index(PatchChange document) {
+        IndexRequest indexRequest = null;
+        try {
+            indexRequest =
+                    new IndexRequest()
+                            .index(INDEX_NAME)
+                            .source(document.toXContent(XContentFactory.jsonBuilder(), ToXContent.EMPTY_PARAMS))
+                            .id(document.getResource())
+                            .create(true);
+        } catch (IOException e) {
+            log.error("Failed to create JSON content builder: {}", e.getMessage());
+        }
+        this.client.index(
+                indexRequest,
+                new ActionListener<>() {
+                    @Override
+                    public void onResponse(IndexResponse indexResponse) {
+                        log.info("Indexed CTI Catalog Content {} to index", document.getResource());
+                    }
+
+                    @Override
+                    public void onFailure(Exception e) {
+                        log.error(
+                                "Failed to index CTI Catalog Content {}, Exception: {}", document.getResource(), e);
+                    }
+                });
+    }
+
     /**
      * Index an array of JSON objects using a BulkRequest
      *
      * @param documents the array of objects
      */
-    private void index(List<JsonObject> documents) {
+    private void indexBulk(List<JsonObject> documents) {
         BulkRequest bulkRequest = new BulkRequest(INDEX_NAME);
-
+        log.info("Indexing {} documents", documents.size());
         for (JsonObject document : documents) {
             bulkRequest.add(
                     new IndexRequest()
@@ -108,17 +140,26 @@ public class ContentIndex {
      * @param changes the ContextChanges to patch the existing document.
      */
     public void patch(ContextChanges changes)
-            throws RuntimeException, ExecutionException, InterruptedException, TimeoutException {
+            throws RuntimeException,
+                    ExecutionException,
+                    InterruptedException,
+                    TimeoutException,
+                    IOException {
+        if (changes.getChangesList().isEmpty()) {
+            log.info("No changes to apply");
+            return;
+        }
+        // Iterate over the changes and apply them
         for (PatchChange change : changes.getChangesList()) {
+            log.info("Processing change: {}", change);
             switch (change.getType()) {
                 case CREATE:
-                    JsonObject newResource = new JsonObject();
-                    for (PatchOperation operation : change.getOperations()) {
-                        newResource = operation.getValueAsJson();
-                    }
-                    this.index(List.of(newResource));
+                    log.info("Creating new resource: {}", change.getResource());
+                    this.index(change);
                     break;
+
                 case UPDATE:
+                    XContent xContent = XContentType.JSON.xContent();
                     GetResponse getResponseUpdate =
                             this.get(change.getResource()).get(TIMEOUT, TimeUnit.SECONDS);
                     if (!getResponseUpdate.isExists()) {
@@ -130,7 +171,13 @@ public class ContentIndex {
                     for (PatchOperation operation : change.getOperations()) {
                         jsonPatch.applyOperation(existingDoc, operation.getValueAsJson());
                     }
-                    this.index(List.of(existingDoc));
+
+                    this.index(
+                            PatchChange.parse(
+                                    xContent.createParser(
+                                            NamedXContentRegistry.EMPTY,
+                                            DeprecationHandler.THROW_UNSUPPORTED_OPERATION,
+                                            change.toString())));
                     break;
                 case DELETE:
                     GetResponse getResponseDelete =
@@ -141,6 +188,9 @@ public class ContentIndex {
                     DeleteRequest deleteRequest = new DeleteRequest(INDEX_NAME, change.getResource());
                     client.delete(deleteRequest);
                     break;
+                default:
+                    log.error("Unknown change type: {}", change.getType());
+                    throw new IllegalArgumentException("Unknown change type: " + change.getType());
             }
         }
     }
@@ -169,7 +219,7 @@ public class ContentIndex {
     /**
      * Initializes the index from a local snapshot. The snapshot file (in NDJSON format) is split in
      * chunks of {@link ContentIndex#MAX_DOCUMENTS} elements. These are bulk indexed using {@link
-     * ContentIndex#index(List)}.
+     * ContentIndex#indexBulk(List)}.
      *
      * @param path path to the CTI snapshot JSON file to be indexed.
      */
@@ -198,7 +248,7 @@ public class ContentIndex {
                 // Index items (MAX_DOCUMENTS reached)
                 if (lineCount == MAX_DOCUMENTS) {
                     semaphore.acquire();
-                    this.index(items);
+                    this.indexBulk(items);
                     lineCount = 0;
                     items.clear();
                 }
@@ -206,7 +256,7 @@ public class ContentIndex {
             // Index remaining items (> MAX_DOCUMENTS)
             if (lineCount > 0) {
                 semaphore.acquire();
-                this.index(items);
+                this.indexBulk(items);
             }
         } catch (Exception e) {
             log.error("Error processing snapshot file {}", e.getMessage());

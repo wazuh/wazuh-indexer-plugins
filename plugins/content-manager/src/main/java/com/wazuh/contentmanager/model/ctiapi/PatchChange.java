@@ -296,6 +296,9 @@ public class PatchChange implements ToXContentObject {
                 + version
                 + ", operations="
                 + operations
+                + '\''
+                + ", payload="
+                + payload
                 + '}';
     }
 }

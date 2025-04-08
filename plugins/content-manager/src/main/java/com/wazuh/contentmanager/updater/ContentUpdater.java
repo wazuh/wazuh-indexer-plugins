@@ -20,6 +20,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.opensearch.client.Client;
 
+import java.io.IOException;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeoutException;
 
@@ -161,10 +162,9 @@ public class ContentUpdater {
     @VisibleForTesting
     boolean patchContextIndex(ContextChanges changes) {
         try {
-            log.info("Patching context index with changes: {}", changes);
             // Apply the changes to the context index.
             contentIndex.patch(changes);
-        } catch (ExecutionException | InterruptedException | TimeoutException e) {
+        } catch (ExecutionException | InterruptedException | TimeoutException | IOException e) {
             log.error("Failed to apply changes to content index: {}", e.toString());
             return false;
         }
