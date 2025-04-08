@@ -42,19 +42,18 @@ import java.util.List;
 import java.util.function.Supplier;
 
 import com.wazuh.contentmanager.client.CTIClient;
-import com.wazuh.contentmanager.index.ContentIndex;
 import com.wazuh.contentmanager.index.ContextIndex;
 import com.wazuh.contentmanager.model.ctiapi.ConsumerInfo;
 import com.wazuh.contentmanager.rest.UpdaterHandler;
 import com.wazuh.contentmanager.settings.PluginSettings;
+import com.wazuh.contentmanager.updater.ContentUpdater;
 import com.wazuh.contentmanager.util.Privileged;
 
 /** Main class of the Content Manager Plugin */
 public class ContentManagerPlugin extends Plugin implements ClusterPlugin, ActionPlugin {
 
     private ContextIndex contextIndex;
-    private ContentIndex contentIndex;
-    private Environment environment;
+    private ContentUpdater updater;
 
     @Override
     public Collection<Object> createComponents(
@@ -71,7 +70,7 @@ public class ContentManagerPlugin extends Plugin implements ClusterPlugin, Actio
             Supplier<RepositoriesService> repositoriesServiceSupplier) {
         PluginSettings.getInstance(environment.settings(), clusterService);
         this.contextIndex = new ContextIndex(client);
-        this.environment = environment;
+        this.updater = new ContentUpdater(client);
         return Collections.emptyList();
     }
 
@@ -98,6 +97,8 @@ public class ContentManagerPlugin extends Plugin implements ClusterPlugin, Actio
         ConsumerInfo consumerInfo =
                 Privileged.doPrivilegedRequest(() -> CTIClient.getInstance().getCatalog());
         this.contextIndex.index(consumerInfo);
+        // TODO: CREATE WAZUH-CVE INDEX HERE TO AVOID ERRORS
+        updater.fetchAndApplyUpdates(0L, 10L);
 
         // Wrapping up for testing
         //        Privileged.doPrivilegedRequest(

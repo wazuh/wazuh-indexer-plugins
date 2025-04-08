@@ -90,7 +90,9 @@ public class ContentIndex {
                     @Override
                     public void onFailure(Exception e) {
                         log.error(
-                                "Failed to index CTI Catalog Content {}, Exception: {}", document.getResource(), e);
+                                "Failed to index CTI Catalog Content {}, Exception: {}",
+                                document.getResource(),
+                                e.getStackTrace());
                     }
                 });
     }

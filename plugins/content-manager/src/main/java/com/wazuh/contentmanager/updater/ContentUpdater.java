@@ -41,6 +41,7 @@ public class ContentUpdater {
     private static final Logger log = LogManager.getLogger(ContentUpdater.class);
     private final ContextIndex contextIndex;
     private final ContentIndex contentIndex;
+    public ContentUpdater INSTANCE;
 
     /** Exception thrown by the Content Updater in case of errors. */
     public static class ContentUpdateException extends RuntimeException {
@@ -74,14 +75,19 @@ public class ContentUpdater {
      * @throws ContentUpdateException If there was an error fetching the changes.
      */
     public void fetchAndApplyUpdates(Long from, Long to) throws ContentUpdateException {
-        Long currentOffset = this.getCurrentOffset();
-        Long lastOffset = this.getLatestOffset();
         // Placeholder for testing purposes. TODO: Remove.
+        Long currentOffset;
+        Long lastOffset;
         if (from != null) {
             currentOffset = from;
+        } else {
+
+            currentOffset = this.getCurrentOffset();
         }
         if (to != null) {
             lastOffset = to;
+        } else {
+            lastOffset = this.getLatestOffset();
         }
         log.info("Current offset: {}, Last offset: {}", currentOffset, lastOffset);
 
@@ -113,7 +119,7 @@ public class ContentUpdater {
             currentOffset = nextOffset;
         }
 
-        this.postUpdateCommand();
+        //        this.postUpdateCommand();
     }
 
     /**
