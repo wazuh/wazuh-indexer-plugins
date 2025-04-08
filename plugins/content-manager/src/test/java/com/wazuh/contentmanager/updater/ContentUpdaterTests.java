@@ -23,6 +23,7 @@ import org.junit.Before;
 import java.util.ArrayList;
 import java.util.List;
 
+import com.wazuh.contentmanager.model.ctiapi.ContentType;
 import com.wazuh.contentmanager.model.ctiapi.ContextChanges;
 import com.wazuh.contentmanager.model.ctiapi.PatchChange;
 import com.wazuh.contentmanager.model.ctiapi.PatchOperation;
@@ -54,7 +55,7 @@ public class ContentUpdaterTests extends OpenSearchIntegTestCase {
         doReturn(100L).when(contentUpdaterSpy).getCurrentOffset();
         doReturn(100L).when(contentUpdaterSpy).getLatestOffset();
         // Act
-        contentUpdaterSpy.fetchAndApplyUpdates(null);
+        contentUpdaterSpy.fetchAndApplyUpdates(null, null);
         // Assert patchContextIndex is not called.
         verify(contentUpdaterSpy, never()).patchContextIndex(any());
     }
@@ -74,7 +75,7 @@ public class ContentUpdaterTests extends OpenSearchIntegTestCase {
         // Mock ContentIndex.patch
         doReturn(true).when(contentUpdaterSpy).patchContextIndex(any());
         // Act
-        contentUpdaterSpy.fetchAndApplyUpdates(null);
+        contentUpdaterSpy.fetchAndApplyUpdates(null, null);
         // Assert patchContextIndex is called 4 times (one each 1000 starting from 0).
         verify(contentUpdaterSpy, times(4)).patchContextIndex(any());
     }
@@ -89,7 +90,8 @@ public class ContentUpdaterTests extends OpenSearchIntegTestCase {
         doReturn(null).when(contentUpdaterSpy).getContextChanges(any(), any());
         // Act
         Exception exception =
-                assertThrows(RuntimeException.class, () -> contentUpdaterSpy.fetchAndApplyUpdates(null));
+                assertThrows(
+                        RuntimeException.class, () -> contentUpdaterSpy.fetchAndApplyUpdates(null, null));
         // Assert
         assertEquals("Unable to fetch changes for offsets 0 to 1000", exception.getMessage());
         verify(contentUpdaterSpy, times(1)).getContextChanges(any(), any());
@@ -108,7 +110,7 @@ public class ContentUpdaterTests extends OpenSearchIntegTestCase {
         // Mock patchContextIndex method.
         doReturn(false).when(contentUpdaterSpy).patchContextIndex(any());
         // Act
-        contentUpdaterSpy.fetchAndApplyUpdates(null);
+        contentUpdaterSpy.fetchAndApplyUpdates(null, null);
         // Assert
         verify(contentUpdaterSpy, times(1)).restartConsumerInfo();
     }
@@ -127,9 +129,10 @@ public class ContentUpdaterTests extends OpenSearchIntegTestCase {
                             "context",
                             (long) i,
                             "resource",
-                            "type",
+                            ContentType.UPDATE,
                             0L,
-                            List.of(new PatchOperation("op", "path", "from", "value"))));
+                            List.of(new PatchOperation("op", "path", "from", "value")),
+                            null));
         }
         return new ContextChanges(offsets);
     }
