@@ -22,6 +22,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.opensearch.action.bulk.BulkRequest;
 import org.opensearch.action.bulk.BulkResponse;
+import org.opensearch.action.delete.DeleteRequest;
 import org.opensearch.action.get.GetRequest;
 import org.opensearch.action.get.GetResponse;
 import org.opensearch.action.index.IndexRequest;
@@ -36,7 +37,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.*;
 
-import com.wazuh.contentmanager.model.ctiapi.ContentType;
 import com.wazuh.contentmanager.model.ctiapi.ContextChanges;
 import com.wazuh.contentmanager.model.ctiapi.PatchChange;
 import com.wazuh.contentmanager.model.ctiapi.PatchOperation;
@@ -87,7 +87,6 @@ public class ContentIndex {
                         if (bulkResponse.hasFailures()) {
                             log.error(
                                     "Snapshot indexing bulk request failed: {}", bulkResponse.buildFailureMessage());
-
                         } else {
                             log.debug(
                                     "Snapshot indexing bulk request was successful: took [{}]ms",
@@ -106,41 +105,42 @@ public class ContentIndex {
     /**
      * Patch the content of the current snapshot with the changes provided in JSON Patch format.
      *
-     * @param changes the changes in JSON Patch format to patch the existing document
+     * @param changes the ContextChanges to patch the existing document.
      */
     public void patch(ContextChanges changes)
             throws RuntimeException, ExecutionException, InterruptedException, TimeoutException {
-        GetResponse getResponse;
-        // TODO: Switch case for change.type:
-        //      - Case update we use JsonPatch util. X
-        //      - Case create we index the document
-        //      - Case delete we delete the document
         for (PatchChange change : changes.getChangesList()) {
             switch (change.getType()) {
-                case ContentType.CREATE:
+                case CREATE:
+                    JsonObject newResource = new JsonObject();
+                    for (PatchOperation operation : change.getOperations()) {
+                        newResource = operation.getValueAsJson();
+                    }
+                    this.index(List.of(newResource));
                     break;
                 case UPDATE:
-                    // TODO: User change.resource to get the document by ID (ID="CVE-XXX")
-                    getResponse = this.get(change.getResource()).get(TIMEOUT, TimeUnit.SECONDS);
-                    if (getResponse == null) {
+                    GetResponse getResponseUpdate =
+                            this.get(change.getResource()).get(TIMEOUT, TimeUnit.SECONDS);
+                    if (!getResponseUpdate.isExists()) {
                         throw new IllegalArgumentException("Document not found");
                     }
-
-                    JsonObject resource = new JsonObject();
-
-                    // Apply the changes to the current content
+                    JsonObject existingDoc =
+                            JsonParser.parseString(getResponseUpdate.getSourceAsString()).getAsJsonObject();
                     JsonPatch jsonPatch = new JsonPatch();
                     for (PatchOperation operation : change.getOperations()) {
-                        jsonPatch.applyOperation(resource, operation.getValueAsJson());
+                        jsonPatch.applyOperation(existingDoc, operation.getValueAsJson());
                     }
-                    // Index the updated content
-                    this.index(List.of(resource));
+                    this.index(List.of(existingDoc));
+                    break;
                 case DELETE:
-                    // TODO: User change.resource to get the document by ID (ID="CVE-XXX")
-                    getResponse = this.get(change.getResource()).get(TIMEOUT, TimeUnit.SECONDS);
-                    if (getResponse == null) {
+                    GetResponse getResponseDelete =
+                            this.get(change.getResource()).get(TIMEOUT, TimeUnit.SECONDS);
+                    if (!getResponseDelete.isExists()) {
                         throw new IllegalArgumentException("Document not found");
                     }
+                    DeleteRequest deleteRequest = new DeleteRequest(INDEX_NAME, change.getResource());
+                    client.delete(deleteRequest);
+                    break;
             }
         }
     }

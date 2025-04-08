@@ -68,18 +68,21 @@ public class ContentUpdater {
      * Fetches and applies content updates in chunks from the current stored offset to the latest
      * available offset. It iterates over the updates and applies them in batch processing.
      *
-     * @param fixedOffset [PlaceHolderForTesting] Offset to start fetching updates from. TODO: Remove.
+     * @param from [PlaceHolderForTesting] Offset to start fetching updates from. TODO: Remove.
+     * @param to [PlaceHolderForTesting] Offset to end fetching updates to. TODO: Remove.
      * @throws ContentUpdateException If there was an error fetching the changes.
      */
-    public void fetchAndApplyUpdates(Long fixedOffset) throws ContentUpdateException {
+    public void fetchAndApplyUpdates(Long from, Long to) throws ContentUpdateException {
         Long currentOffset = this.getCurrentOffset();
         Long lastOffset = this.getLatestOffset();
-        log.info("Current offset: {}, Last offset: {}", currentOffset, lastOffset);
-
         // Placeholder for testing purposes. TODO: Remove.
-        if (fixedOffset != null) {
-            currentOffset = fixedOffset;
+        if (from != null) {
+            currentOffset = from;
         }
+        if (to != null) {
+            lastOffset = to;
+        }
+        log.info("Current offset: {}, Last offset: {}", currentOffset, lastOffset);
 
         if (lastOffset <= currentOffset) {
             log.info("No new updates available. Current offset ({}) is up to date.", currentOffset);

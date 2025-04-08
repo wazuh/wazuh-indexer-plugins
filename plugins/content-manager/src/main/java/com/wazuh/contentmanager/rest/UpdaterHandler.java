@@ -58,11 +58,14 @@ public class UpdaterHandler extends BaseRestHandler {
         // TODO: Remove on JobScheduler implementation.
         if (Objects.requireNonNull(request.method()) == GET) {
             ContentUpdater updater = new ContentUpdater(client);
+            Long from_offset = Long.parseLong(request.param("from_offset"));
+            Long to_offset = Long.parseLong(request.param("to_offset"));
+
             // Run the update process asynchronously
             CompletableFuture.runAsync(
                     () -> {
                         try {
-                            updater.fetchAndApplyUpdates(Long.parseLong(request.param("from_offset")));
+                            updater.fetchAndApplyUpdates(from_offset, to_offset);
                         } catch (ContentUpdater.ContentUpdateException e) {
                             // Log the error (using OpenSearch logger if available)
                             log.error("Error updating content: {}", e.getMessage());
