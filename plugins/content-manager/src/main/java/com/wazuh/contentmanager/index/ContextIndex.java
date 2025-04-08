@@ -41,7 +41,7 @@ public class ContextIndex {
     private static final Logger log = LogManager.getLogger(ContextIndex.class);
 
     /** The name of the Contexts index */
-    public static final String CONTEXTS_INDEX = "wazuh-context";
+    public static final String INDEX_NAME = "wazuh-context";
 
     /** Timeout of indexing operations */
     public static final Long TIMEOUT = 10L;
@@ -68,7 +68,7 @@ public class ContextIndex {
         try {
             indexRequest =
                     new IndexRequest()
-                            .index(CONTEXTS_INDEX)
+                            .index(INDEX_NAME)
                             .source(
                                     consumerInfo.toXContent(XContentFactory.jsonBuilder(), ToXContent.EMPTY_PARAMS))
                             .id(consumerInfo.getContext())
@@ -103,7 +103,7 @@ public class ContextIndex {
      */
     public CompletableFuture<GetResponse> get(String contextName) {
 
-        GetRequest getRequest = new GetRequest(CONTEXTS_INDEX, contextName);
+        GetRequest getRequest = new GetRequest(INDEX_NAME, contextName);
 
         CompletableFuture<GetResponse> future = new CompletableFuture<>();
 

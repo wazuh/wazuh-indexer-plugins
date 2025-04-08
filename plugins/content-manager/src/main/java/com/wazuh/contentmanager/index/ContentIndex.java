@@ -36,10 +36,10 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.*;
 
+import com.wazuh.contentmanager.model.ctiapi.ContentType;
 import com.wazuh.contentmanager.model.ctiapi.ContextChanges;
 import com.wazuh.contentmanager.model.ctiapi.PatchChange;
 import com.wazuh.contentmanager.model.ctiapi.PatchOperation;
-import com.wazuh.contentmanager.settings.PluginSettings;
 import com.wazuh.contentmanager.util.JsonPatch;
 
 /** Class to manage the Content Manager index. */
@@ -110,42 +110,59 @@ public class ContentIndex {
      */
     public void patch(ContextChanges changes)
             throws RuntimeException, ExecutionException, InterruptedException, TimeoutException {
-        // Get the current content of the document
+        GetResponse getResponse;
+        // TODO: Switch case for change.type:
+        //      - Case update we use JsonPatch util. X
+        //      - Case create we index the document
+        //      - Case delete we delete the document
         for (PatchChange change : changes.getChangesList()) {
-            // TODO: Switch case for change.type:
-            //      - Case update we use JsonPatch util
-            //      - Case create we index the document
-            //      - Case delete we delete the document
+            switch (change.getType()) {
+                case ContentType.CREATE:
+                    break;
+                case UPDATE:
+                    // TODO: User change.resource to get the document by ID (ID="CVE-XXX")
+                    getResponse = this.get(change.getResource()).get(TIMEOUT, TimeUnit.SECONDS);
+                    if (getResponse == null) {
+                        throw new IllegalArgumentException("Document not found");
+                    }
 
-            // --- THIS IS THE UPDATE CASE IMPLEMENTATION ---
-            // TODO: User change.resource to get the document by ID (ID="CVE-XXX")
-            GetResponse getResponse = this.get().get(TIMEOUT, TimeUnit.SECONDS);
+                    JsonObject resource = new JsonObject();
 
-            JsonObject resource = new JsonObject();
-            if (getResponse == null) {
-                throw new IllegalArgumentException("Document not found");
+                    // Apply the changes to the current content
+                    JsonPatch jsonPatch = new JsonPatch();
+                    for (PatchOperation operation : change.getOperations()) {
+                        jsonPatch.applyOperation(resource, operation.getValueAsJson());
+                    }
+                    // Index the updated content
+                    this.index(List.of(resource));
+                case DELETE:
+                    // TODO: User change.resource to get the document by ID (ID="CVE-XXX")
+                    getResponse = this.get(change.getResource()).get(TIMEOUT, TimeUnit.SECONDS);
+                    if (getResponse == null) {
+                        throw new IllegalArgumentException("Document not found");
+                    }
             }
-
-            // Apply the changes to the current content
-            JsonPatch jsonPatch = new JsonPatch();
-            for (PatchOperation operation : change.getOperations()) {
-                jsonPatch.applyOperation(resource, operation.getValueAsJson());
-            }
-            // Index the updated content
-            this.index(List.of(resource));
         }
     }
 
-    public CompletableFuture<GetResponse> get() {
+    public CompletableFuture<GetResponse> get(String id) {
         CompletableFuture<GetResponse> future = new CompletableFuture<>();
+        GetRequest getRequest = new GetRequest(INDEX_NAME, id);
         client.get(
-                new GetRequest(INDEX_NAME, PluginSettings.CONTEXT_ID),
-                ActionListener.wrap(
-                        future::complete,
-                        e -> {
-                            log.error("Error getting content: {}", e.getMessage());
-                            future.completeExceptionally(e);
-                        }));
+                getRequest,
+                new ActionListener<>() {
+                    @Override
+                    public void onResponse(GetResponse getResponse) {
+                        log.info("Retrieved CTI Catalog Content {} from index", id);
+                        future.complete(getResponse);
+                    }
+
+                    @Override
+                    public void onFailure(Exception e) {
+                        log.error("Failed to retrieve CTI Catalog Content {}, Exception: {}", id, e);
+                        future.completeExceptionally(e);
+                    }
+                });
         return future;
     }
 

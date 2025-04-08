@@ -24,9 +24,9 @@ import org.opensearch.core.xcontent.XContentParserUtils;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
-
-import static com.wazuh.contentmanager.model.ctiapi.ConsumerInfo.DATA;
+import java.util.Map;
 
 public class PatchChange implements ToXContentObject {
 
@@ -36,12 +36,14 @@ public class PatchChange implements ToXContentObject {
     private static final String TYPE = "type";
     private static final String VERSION = "version";
     private static final String OPERATIONS = "operations";
+    private static final String PAYLOAD = "payload";
     private final String context;
     private final Long offset;
     private final String resource;
-    private final String type;
+    private final ContentType type;
     private final Long version;
     private final List<PatchOperation> operations;
+    private final Map<String, Object> payload;
 
     /**
      * Constructor for the class
@@ -49,7 +51,7 @@ public class PatchChange implements ToXContentObject {
      * @param context Name of the context
      * @param offset Offset number of the record
      * @param resource Name of the resource
-     * @param type Type of operation to be performed
+     * @param type ContentType of operation to be performed
      * @param version Version Number
      * @param operations JSON Patch payload data
      */
@@ -57,61 +59,135 @@ public class PatchChange implements ToXContentObject {
             String context,
             Long offset,
             String resource,
-            String type,
+            ContentType type,
             Long version,
-            List<PatchOperation> operations) {
+            List<PatchOperation> operations,
+            Map<String, Object> payload) {
         this.context = context;
         this.offset = offset;
         this.resource = resource;
         this.type = type;
         this.version = version;
         this.operations = operations;
+        this.payload = payload;
     }
 
     public static PatchChange parse(XContentParser parser)
-            throws IOException, IllegalArgumentException, ParsingException, IOException {
+            throws IllegalArgumentException, ParsingException, IOException {
         String context = null;
         Long offset = null;
         String resource = null;
-        String type = null;
+        ContentType type = null;
         Long version = null;
         List<PatchOperation> operations = new ArrayList<>();
-        // Make sure we are at the start
-        XContentParserUtils.ensureExpectedToken(
-                XContentParser.Token.START_OBJECT, parser.nextToken(), parser);
-        // Check that we are indeed reading the "data" array
-        XContentParserUtils.ensureFieldName(parser, parser.nextToken(), DATA);
-        // Check we are at the start of the array
-        XContentParserUtils.ensureExpectedToken(
-                XContentParser.Token.START_ARRAY, parser.nextToken(), parser);
-        // Iterate over the array and add each Offset object to changes array
-        while (parser.nextToken() != XContentParser.Token.END_ARRAY) {
-            // Check that we are indeed reading the "context" field
-            XContentParserUtils.ensureFieldName(parser, parser.nextToken(), CONTEXT);
-            context = parser.text();
-            // Check that we are indeed reading the "offset" field
-            XContentParserUtils.ensureFieldName(parser, parser.nextToken(), OFFSET);
-            offset = parser.longValue();
-            // Check that we are indeed reading the "resource" field
-            XContentParserUtils.ensureFieldName(parser, parser.nextToken(), RESOURCE);
-            resource = parser.text();
-            // Check that we are indeed reading the "type" field
-            XContentParserUtils.ensureFieldName(parser, parser.nextToken(), TYPE);
-            type = parser.text();
-            // Check that we are indeed reading the "version" field
-            XContentParserUtils.ensureFieldName(parser, parser.nextToken(), VERSION);
-            version = parser.longValue();
-            // Check that we are indeed reading the "operations" field
-            XContentParserUtils.ensureFieldName(parser, parser.nextToken(), OPERATIONS);
-            // Check we are at the start of the array
-            XContentParserUtils.ensureExpectedToken(
-                    XContentParser.Token.START_ARRAY, parser.nextToken(), parser);
-            // Iterate over the array and add each JsonPatch object to operations array
-            while (parser.nextToken() != XContentParser.Token.END_ARRAY) {
-                operations.add(PatchOperation.parse(parser));
+        Map<String, Object> payload = new HashMap<>();
+        while (parser.nextToken() != XContentParser.Token.END_OBJECT) {
+            if (parser.currentToken() == XContentParser.Token.FIELD_NAME) {
+                String fieldName = parser.currentName();
+                parser.nextToken();
+                switch (fieldName) {
+                    case CONTEXT:
+                        context = parser.text();
+                        break;
+                    case OFFSET:
+                        offset = parser.longValue();
+                        break;
+                    case RESOURCE:
+                        resource = parser.text();
+                        break;
+                    case TYPE:
+                        type = ContentType.fromString(parser.text());
+                        break;
+                    case VERSION:
+                        version = parser.longValue();
+                        break;
+                    case OPERATIONS:
+                        XContentParserUtils.ensureExpectedToken(
+                                XContentParser.Token.START_ARRAY, parser.nextToken(), parser);
+                        while (parser.nextToken() != XContentParser.Token.END_ARRAY) {
+                            operations.add(PatchOperation.parse(parser));
+                        }
+                    case PAYLOAD:
+                        XContentParserUtils.ensureExpectedToken(
+                                XContentParser.Token.START_OBJECT, parser.currentToken(), parser);
+                        payload = parseObject(parser);
+                        break;
+                    default:
+                        parser.skipChildren();
+                        break;
+                }
             }
         }
-        return new PatchChange(context, offset, resource, type, version, operations);
+        return new PatchChange(context, offset, resource, type, version, operations, payload);
+    }
+
+    private static Map<String, Object> parseObject(XContentParser parser) throws IOException {
+        Map<String, Object> result = new HashMap<>();
+        while (parser.nextToken() != XContentParser.Token.END_OBJECT) {
+            if (parser.currentToken() == XContentParser.Token.FIELD_NAME) {
+                String fieldName = parser.currentName();
+                switch (parser.nextToken()) {
+                    case START_OBJECT:
+                        result.put(fieldName, parseObject(parser));
+                        break;
+                    case START_ARRAY:
+                        result.put(fieldName, parseArray(parser));
+                        break;
+                    case VALUE_STRING:
+                        result.put(fieldName, parser.text());
+                        break;
+                    case VALUE_NUMBER:
+                        result.put(fieldName, parser.numberValue());
+                        break;
+                    case VALUE_BOOLEAN:
+                        result.put(fieldName, parser.booleanValue());
+                        break;
+                    case VALUE_NULL:
+                        result.put(fieldName, null);
+                        break;
+                    default:
+                        parser.skipChildren();
+                }
+            }
+        }
+        return result;
+    }
+
+    /**
+     * A method to parse arrays recursively
+     *
+     * @param parser an XContentParser containing an array
+     * @return the parsed list as a List
+     * @throws IOException rethrown from parseObject
+     */
+    private static List<Object> parseArray(XContentParser parser) throws IOException {
+        List<Object> array = new ArrayList<>();
+        while (parser.nextToken() != XContentParser.Token.END_ARRAY) {
+            switch (parser.currentToken()) {
+                case START_OBJECT:
+                    array.add(parseObject(parser));
+                    break;
+                case START_ARRAY:
+                    array.add(parseArray(parser));
+                    break;
+                case VALUE_STRING:
+                    array.add(parser.text());
+                    break;
+                case VALUE_NUMBER:
+                    array.add(parser.numberValue());
+                    break;
+                case VALUE_BOOLEAN:
+                    array.add(parser.booleanValue());
+                    break;
+                case VALUE_NULL:
+                    array.add(null);
+                    break;
+                default:
+                    parser.skipChildren();
+            }
+        }
+
+        return array;
     }
 
     /**
@@ -137,15 +213,10 @@ public class PatchChange implements ToXContentObject {
      *
      * @return the type as a String
      */
-    public String getType() {
+    public ContentType getType() {
         return this.type;
     }
 
-    /**
-     * Getter for the version
-     *
-     * @return the version as a Long
-     */
     /**
      * Getter for the context name
      *
@@ -174,6 +245,15 @@ public class PatchChange implements ToXContentObject {
     }
 
     /**
+     * Getter for the payload
+     *
+     * @return the payload as mapping
+     */
+    public Map<String, Object> getPayload() {
+        return this.payload;
+    }
+
+    /**
      * Outputs an XContentBuilder object ready to be printed or manipulated
      *
      * @param builder the received builder object
@@ -194,6 +274,7 @@ public class PatchChange implements ToXContentObject {
             operation.toXContent(builder, ToXContentObject.EMPTY_PARAMS);
         }
         builder.endArray();
+        builder.field(PAYLOAD, this.payload);
         return builder.endObject();
     }
 
