@@ -2,7 +2,7 @@
   "policy": {
     "policy_id": "wazuh_rollover_policy",
     "description": "Example rollover policy.",
-    "last_updated_time": 0,
+    "last_updated_time": 1577990934044,
     "schema_version": 21,
     "error_notification": null,
     "default_state": "rollover",
@@ -31,7 +31,7 @@
           "test-index-*"
         ],
         "priority": 100,
-        "last_updated_time": 0
+        "last_updated_time": 1577990934044
       }
     ],
     "user": {

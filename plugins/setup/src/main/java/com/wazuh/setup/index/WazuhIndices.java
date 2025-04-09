@@ -39,8 +39,6 @@ import com.wazuh.setup.utils.IndexTemplateUtils;
  */
 public class WazuhIndices {
     private static final Logger log = LogManager.getLogger(WazuhIndices.class);
-    public static final String ISM_TEMPLATE_NAME = "opendistro-ism-config";
-    public static final String ISM_INDEX = ".opendistro-ism-config";
 
     /**
      * | Key | value | | ------------------- | ---------- | | Index template name | [index name, ] |
@@ -97,28 +95,6 @@ public class WazuhIndices {
         try {
             Map<String, Object> template = IndexTemplateUtils.fromFile(templateName + ".json");
 
-            if (templateName.equals(ISM_TEMPLATE_NAME)) {
-                client
-                        .admin()
-                        .indices()
-                        .create(
-                                new CreateIndexRequest(ISM_INDEX)
-                                        .mapping(IndexTemplateUtils.get(template, "mappings"))
-                                        .settings(IndexTemplateUtils.get(template, "settings")),
-                                new ActionListener<CreateIndexResponse>() {
-                                    @Override
-                                    public void onResponse(CreateIndexResponse createIndexResponse) {
-                                        log.info("Created {} index with its template", ISM_INDEX);
-                                    }
-
-                                    @Override
-                                    public void onFailure(Exception e) {
-                                        log.error("Failed to create {} index:", ISM_INDEX, e.getMessage());
-                                    }
-                                });
-                return;
-            }
-
             PutIndexTemplateRequest putIndexTemplateRequest =
                     new PutIndexTemplateRequest()
                             .mapping(IndexTemplateUtils.get(template, "mappings"))
@@ -161,24 +137,7 @@ public class WazuhIndices {
                         createIndexResponse.isAcknowledged());
             }
         } catch (ResourceAlreadyExistsException e) {
-            log.info("Index {} already exists. Skipping.", indexName);
-        }
-    }
-
-    /**
-     * Creates an index
-     *
-     * @param indexName: Name of the index to be created
-     */
-    public void ismIndex(String indexName) {
-        if (!indexExists(indexName)) {
-            CreateIndexRequest request = new CreateIndexRequest(indexName);
-            CreateIndexResponse createIndexResponse =
-                    this.client.admin().indices().create(request).actionGet();
-            log.info(
-                    "Index created successfully: {} {}",
-                    createIndexResponse.index(),
-                    createIndexResponse.isAcknowledged());
+            log.error("Index {} already exists. Skipping.", indexName);
         }
     }
 

@@ -171,7 +171,7 @@ public class SetupPluginTests extends OpenSearchTestCase {
         }
     }
 
-    /** Tests the indexExists() method */
+    /** Tests the iSMIndexExists() method */
     public void testIndexExists() {
         ClusterState mockClusterState = mock(ClusterState.class);
         RoutingTable mockRoutingTable = mock(RoutingTable.class);

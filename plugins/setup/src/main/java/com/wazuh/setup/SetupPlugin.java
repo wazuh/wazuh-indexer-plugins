@@ -44,8 +44,10 @@ import com.wazuh.setup.index.WazuhIndices;
  */
 public class SetupPlugin extends Plugin implements ClusterPlugin {
 
+    //private static final CountDownLatch onNodeStartedLatch = new CountDownLatch(1);
     private WazuhIndices indices;
     private PolicyIndex policyIndex;
+    private Client client;
 
     /** Default constructor */
     public SetupPlugin() {}
@@ -68,9 +70,44 @@ public class SetupPlugin extends Plugin implements ClusterPlugin {
         return List.of(this.indices);
     }
 
+    ///**
+    // * Mostly meant for integration test cases. Will wait for the onNodeStarted() method to be
+    // * executed until the timeout
+    // *
+    // * @param timeout Time to wait
+    // * @param unit Unit of the timeout
+    // * @return boolean representing the status
+    // */
+    //public boolean waitUntilNodeStarted(long timeout, TimeUnit unit)
+    //        throws InterruptedException {
+    //    // if (!onNodeStartedLatch.await(timeout, unit)) {
+    //    //    throw new IllegalStateException("Setup plugin node startup logic did not complete in
+    //    // time");
+    //    // }
+    //    return onNodeStartedLatch.await(timeout, unit);
+    //}
+
     @Override
     public void onNodeStarted(DiscoveryNode localNode) {
         this.indices.initialize();
-        this.policyIndex.indexPolicy();
+        this.policyIndex.putISMTemplate();
+        //testIndex();
+        // this.policyIndex.indexPolicy();
+        //onNodeStartedLatch.countDown();
+    }
+
+    private void testIndex() {
+        this.client.index(
+            new IndexRequest().index("test").id("1").source("{\"field\":\"value\"}"), new ActionListener<>() {
+                @Override
+                public void onResponse(IndexResponse indexResponse) {
+                    log.info("created");
+                }
+
+                @Override
+                public void onFailure(Exception e) {
+                    log.error("not created");
+                }
+            });
     }
 }
