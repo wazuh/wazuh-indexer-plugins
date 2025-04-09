@@ -76,6 +76,27 @@ public class RefreshCommandTests extends OpenSearchIntegTestCase {
         assertEquals("index2", indices.get(1));
     }
 
+    public void testParseMissingIndexKey() {
+        try {
+            XContentBuilder builder = XContentFactory.jsonBuilder();
+            builder.startObject();
+            builder.endObject();
+            BytesReference bytes = BytesReference.bytes(builder);
+            MediaType mediaType = MediaTypeRegistry.JSON;
+            XContentParser parser =
+                mediaType
+                    .xContent()
+                    .createParser(
+                        NamedXContentRegistry.EMPTY,
+                        DeprecationHandler.THROW_UNSUPPORTED_OPERATION,
+                        bytes.streamInput());
+            parser.nextToken();
+            RefreshCommand.parse(parser);
+        } catch (Exception e) {
+            fail("Expected no exception to be thrown, but got: " + e.getMessage());
+        }
+    }
+
     public void testParseInvalidIndexValue() {
         assertThrows(
             IllegalArgumentException.class,
