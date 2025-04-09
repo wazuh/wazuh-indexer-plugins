@@ -37,7 +37,7 @@ import java.util.Map;
 import java.util.concurrent.ExecutionException;
 
 import com.wazuh.contentmanager.model.ctiapi.ConsumerInfo;
-import com.wazuh.contentmanager.model.ctiapi.ContextChanges;
+import com.wazuh.contentmanager.model.ctiapi.ContentChanges;
 import com.wazuh.contentmanager.settings.PluginSettings;
 
 /**
@@ -108,9 +108,9 @@ public class CTIClient extends HttpClient {
      * @param fromOffset The starting offset (inclusive) for fetching changes.
      * @param toOffset The ending offset (exclusive) for fetching changes.
      * @param withEmpties A flag indicating whether to include empty values (Optional).
-     * @return {@link ContextChanges} instance with the current changes.
+     * @return {@link ContentChanges} instance with the current changes.
      */
-    public ContextChanges getChanges(String fromOffset, String toOffset, String withEmpties) {
+    public ContentChanges getChanges(String fromOffset, String toOffset, String withEmpties) {
         XContent xContent = XContentType.JSON.xContent();
         Map<String, String> params = contextQueryParameters(fromOffset, toOffset, withEmpties);
         SimpleHttpResponse response =
@@ -124,7 +124,7 @@ public class CTIClient extends HttpClient {
         }
         log.debug("CTI API Changes endpoint replied with status: [{}]", response.getCode());
         try {
-            return ContextChanges.parse(
+            return ContentChanges.parse(
                     xContent.createParser(
                             NamedXContentRegistry.EMPTY,
                             DeprecationHandler.THROW_UNSUPPORTED_OPERATION,

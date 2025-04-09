@@ -26,11 +26,11 @@ import java.util.concurrent.TimeoutException;
 
 import com.wazuh.contentmanager.client.CTIClient;
 import com.wazuh.contentmanager.client.CommandManagerClient;
-import com.wazuh.contentmanager.index.ContentIndex;
+import com.wazuh.contentmanager.index.CVEIndex;
 import com.wazuh.contentmanager.index.ContextIndex;
 import com.wazuh.contentmanager.model.commandmanager.Command;
 import com.wazuh.contentmanager.model.ctiapi.ConsumerInfo;
-import com.wazuh.contentmanager.model.ctiapi.ContextChanges;
+import com.wazuh.contentmanager.model.ctiapi.ContentChanges;
 import com.wazuh.contentmanager.settings.PluginSettings;
 import com.wazuh.contentmanager.util.Privileged;
 import com.wazuh.contentmanager.util.VisibleForTesting;
@@ -40,7 +40,7 @@ public class ContentUpdater {
     private static final Integer CHUNK_MAX_SIZE = 1000;
     private static final Logger log = LogManager.getLogger(ContentUpdater.class);
     private final ContextIndex contextIndex;
-    private final ContentIndex contentIndex;
+    private final CVEIndex CVEIndex;
     public ContentUpdater INSTANCE;
 
     /** Exception thrown by the Content Updater in case of errors. */
@@ -62,7 +62,7 @@ public class ContentUpdater {
      * @param client the OpenSearch Client to interact with the cluster
      */
     public ContentUpdater(Client client) {
-        this.contentIndex = new ContentIndex(client);
+        this.CVEIndex = new CVEIndex(client);
         this.contextIndex = new ContextIndex(client);
     }
 
@@ -99,7 +99,7 @@ public class ContentUpdater {
         log.info("New offsets available updating to offset: {}", lastOffset);
         while (currentOffset < lastOffset) {
             Long nextOffset = Math.min(currentOffset + CHUNK_MAX_SIZE, lastOffset);
-            ContextChanges changes =
+            ContentChanges changes =
                     this.getContextChanges(currentOffset.toString(), nextOffset.toString());
             log.info("Fetched offsets from {} to {}", currentOffset, nextOffset);
 
@@ -130,7 +130,7 @@ public class ContentUpdater {
      * @return ContextChanges object containing the changes.
      */
     @VisibleForTesting
-    ContextChanges getContextChanges(String fromOffset, String toOffset) {
+    ContentChanges getContextChanges(String fromOffset, String toOffset) {
         return Privileged.doPrivilegedRequest(
                 () -> CTIClient.getInstance().getChanges(fromOffset, toOffset, null));
     }
@@ -166,10 +166,10 @@ public class ContentUpdater {
      * @return true if the changes were successfully applied, false otherwise.
      */
     @VisibleForTesting
-    boolean patchContextIndex(ContextChanges changes) {
+    boolean patchContextIndex(ContentChanges changes) {
         try {
             // Apply the changes to the context index.
-            contentIndex.patch(changes);
+            CVEIndex.patch(changes);
         } catch (ExecutionException | InterruptedException | TimeoutException | IOException e) {
             log.error("Failed to apply changes to content index: {}", e.toString());
             return false;

@@ -41,14 +41,14 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.*;
 
-import com.wazuh.contentmanager.model.ctiapi.ContextChanges;
-import com.wazuh.contentmanager.model.ctiapi.PatchChange;
+import com.wazuh.contentmanager.model.ctiapi.CVEChange;
+import com.wazuh.contentmanager.model.ctiapi.ContentChanges;
 import com.wazuh.contentmanager.model.ctiapi.PatchOperation;
 import com.wazuh.contentmanager.util.JsonPatch;
 
 /** Class to manage the Content Manager index. */
-public class ContentIndex {
-    private static final Logger log = LogManager.getLogger(ContentIndex.class);
+public class CVEIndex {
+    private static final Logger log = LogManager.getLogger(CVEIndex.class);
 
     private static final String INDEX_NAME = "wazuh-cve";
     private final int MAX_DOCUMENTS = 25;
@@ -63,19 +63,18 @@ public class ContentIndex {
      *
      * @param client OpenSearch client.
      */
-    public ContentIndex(Client client) {
+    public CVEIndex(Client client) {
         this.client = client;
     }
 
-    public void index(PatchChange document) {
+    public void index(CVEChange document) {
         IndexRequest indexRequest = null;
         try {
             indexRequest =
                     new IndexRequest()
                             .index(INDEX_NAME)
                             .source(document.toXContent(XContentFactory.jsonBuilder(), ToXContent.EMPTY_PARAMS))
-                            .id(document.getResource())
-                            .create(true);
+                            .id(document.getResource());
         } catch (IOException e) {
             log.error("Failed to create JSON content builder: {}", e.getMessage());
         }
@@ -141,7 +140,7 @@ public class ContentIndex {
      *
      * @param changes the ContextChanges to patch the existing document.
      */
-    public void patch(ContextChanges changes)
+    public void patch(ContentChanges changes)
             throws RuntimeException,
                     ExecutionException,
                     InterruptedException,
@@ -152,16 +151,15 @@ public class ContentIndex {
             return;
         }
         // Iterate over the changes and apply them
-        for (PatchChange change : changes.getChangesList()) {
+        for (CVEChange change : changes.getChangesList()) {
             log.info("Processing change: {}", change);
             switch (change.getType()) {
                 case CREATE:
                     log.info("Creating new resource: {}", change.getResource());
                     this.index(change);
                     break;
-
                 case UPDATE:
-                    XContent xContent = XContentType.JSON.xContent();
+                    log.info("Updating resource: {}", change.getResource());
                     GetResponse getResponseUpdate =
                             this.get(change.getResource()).get(TIMEOUT, TimeUnit.SECONDS);
                     if (!getResponseUpdate.isExists()) {
@@ -173,15 +171,17 @@ public class ContentIndex {
                     for (PatchOperation operation : change.getOperations()) {
                         jsonPatch.applyOperation(existingDoc, operation.getValueAsJson());
                     }
+                    XContent xContent = XContentType.JSON.xContent();
 
                     this.index(
-                            PatchChange.parse(
+                            CVEChange.parse(
                                     xContent.createParser(
                                             NamedXContentRegistry.EMPTY,
                                             DeprecationHandler.THROW_UNSUPPORTED_OPERATION,
                                             change.toString())));
                     break;
                 case DELETE:
+                    log.info("Deleting resource: {}", change.getResource());
                     GetResponse getResponseDelete =
                             this.get(change.getResource()).get(TIMEOUT, TimeUnit.SECONDS);
                     if (!getResponseDelete.isExists()) {
@@ -220,8 +220,8 @@ public class ContentIndex {
 
     /**
      * Initializes the index from a local snapshot. The snapshot file (in NDJSON format) is split in
-     * chunks of {@link ContentIndex#MAX_DOCUMENTS} elements. These are bulk indexed using {@link
-     * ContentIndex#indexBulk(List)}.
+     * chunks of {@link CVEIndex#MAX_DOCUMENTS} elements. These are bulk indexed using {@link
+     * CVEIndex#indexBulk(List)}.
      *
      * @param path path to the CTI snapshot JSON file to be indexed.
      */

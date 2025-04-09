@@ -23,9 +23,9 @@ import org.junit.Before;
 import java.util.ArrayList;
 import java.util.List;
 
+import com.wazuh.contentmanager.model.ctiapi.CVEChange;
+import com.wazuh.contentmanager.model.ctiapi.ContentChanges;
 import com.wazuh.contentmanager.model.ctiapi.ContentType;
-import com.wazuh.contentmanager.model.ctiapi.ContextChanges;
-import com.wazuh.contentmanager.model.ctiapi.PatchChange;
 import com.wazuh.contentmanager.model.ctiapi.PatchOperation;
 import org.mockito.Mockito;
 
@@ -121,11 +121,11 @@ public class ContentUpdaterTests extends OpenSearchIntegTestCase {
      * @param size of the generated changes list
      * @return A ContextChanges object
      */
-    public ContextChanges generateContextChanges(Integer size) {
-        List<PatchChange> offsets = new ArrayList<>();
+    public ContentChanges generateContextChanges(Integer size) {
+        List<CVEChange> offsets = new ArrayList<>();
         for (int i = 0; i < size; i++) {
             offsets.add(
-                    new PatchChange(
+                    new CVEChange(
                             "context",
                             (long) i,
                             "resource",
@@ -134,6 +134,6 @@ public class ContentUpdaterTests extends OpenSearchIntegTestCase {
                             List.of(new PatchOperation("op", "path", "from", "value")),
                             null));
         }
-        return new ContextChanges(offsets);
+        return new ContentChanges(offsets);
     }
 }

@@ -28,7 +28,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-public class PatchChange implements ToXContentObject {
+public class CVEChange implements ToXContentObject {
 
     private static final String CONTEXT = "context";
     private static final String OFFSET = "offset";
@@ -55,7 +55,7 @@ public class PatchChange implements ToXContentObject {
      * @param version Version Number
      * @param operations JSON Patch payload data
      */
-    public PatchChange(
+    public CVEChange(
             String context,
             Long offset,
             String resource,
@@ -72,7 +72,7 @@ public class PatchChange implements ToXContentObject {
         this.payload = payload;
     }
 
-    public static PatchChange parse(XContentParser parser)
+    public static CVEChange parse(XContentParser parser)
             throws IllegalArgumentException, ParsingException, IOException {
         String context = null;
         Long offset = null;
@@ -118,7 +118,7 @@ public class PatchChange implements ToXContentObject {
                 }
             }
         }
-        return new PatchChange(context, offset, resource, type, version, operations, payload);
+        return new CVEChange(context, offset, resource, type, version, operations, payload);
     }
 
     private static Map<String, Object> parseObject(XContentParser parser) throws IOException {

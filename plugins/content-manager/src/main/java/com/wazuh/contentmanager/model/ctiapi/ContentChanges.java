@@ -24,27 +24,27 @@ import java.util.ArrayList;
 import java.util.List;
 
 /** ToXContentObject model to parse and build CTI API changes query replies. */
-public class ContextChanges implements ToXContentObject {
+public class ContentChanges implements ToXContentObject {
 
     private static final String DATA = "data";
 
-    private final List<PatchChange> changes;
+    private final List<CVEChange> changes;
 
     /**
      * Constructor method
      *
-     * @param changes a List of the PatchChange objects, containing a json patch each.
+     * @param changes a List of CVEChange objects, each containing a JSON patch.
      */
-    public ContextChanges(List<PatchChange> changes) {
+    public ContentChanges(List<CVEChange> changes) {
         this.changes = changes;
     }
 
     /**
-     * Retrieve the list of offsets
+     * Retrieve the list of CVE changes
      *
-     * @return A List of offsets
+     * @return A list of CVEChange objects
      */
-    public List<PatchChange> getChangesList() {
+    public List<CVEChange> getChangesList() {
         return this.changes;
     }
 
@@ -52,14 +52,14 @@ public class ContextChanges implements ToXContentObject {
      * Parses the data[] object from the CTI API changes response body
      *
      * @param parser The received parser object
-     * @return an ContextChanges object with all inner array values parsed.
+     * @return a ContentChanges object with all inner array values parsed.
      * @throws IOException rethrown from the inner parse() methods
      * @throws IllegalArgumentException rethrown from the inner parse() methods
      * @throws ParsingException rethrown from ensureExpectedToken()
      */
-    public static ContextChanges parse(XContentParser parser)
+    public static ContentChanges parse(XContentParser parser)
             throws IOException, IllegalArgumentException, ParsingException {
-        List<PatchChange> changes = new ArrayList<>();
+        List<CVEChange> changes = new ArrayList<>();
         // Make sure we are at the start
         XContentParserUtils.ensureExpectedToken(
                 XContentParser.Token.START_OBJECT, parser.nextToken(), parser);
@@ -68,30 +68,30 @@ public class ContextChanges implements ToXContentObject {
         // Check we are at the start of the array
         XContentParserUtils.ensureExpectedToken(
                 XContentParser.Token.START_ARRAY, parser.nextToken(), parser);
-        // Iterate over the array and add each PatchChange object to changes array
+        // Iterate over the array and add each CVEChange object to changes list
         while (parser.nextToken() != XContentParser.Token.END_ARRAY) {
-            changes.add(PatchChange.parse(parser));
+            changes.add(CVEChange.parse(parser));
         }
-        return new ContextChanges(changes);
+        return new ContentChanges(changes);
     }
 
     /**
      * Outputs an XContentBuilder object ready to be printed or manipulated
      *
      * @param builder the received builder object
-     * @param params We don't really use this one
+     * @param params Unused params
      * @return an XContentBuilder object ready to be printed
-     * @throws IOException rethrown from PatchChange's toXContent
+     * @throws IOException rethrown from CVEChange's toXContent
      */
     @Override
     public XContentBuilder toXContent(XContentBuilder builder, Params params) throws IOException {
         builder.startObject();
         builder.startArray(DATA);
-        // For each PatchChange in the data field, add them to an XContentBuilder array
+        // For each CVEChange in the data field, add them to an XContentBuilder array
         changes.forEach(
-                (offset) -> {
+                (change) -> {
                     try {
-                        offset.toXContent(builder, ToXContentObject.EMPTY_PARAMS);
+                        change.toXContent(builder, ToXContentObject.EMPTY_PARAMS);
                     } catch (IOException e) {
                         throw new RuntimeException(e);
                     }
@@ -102,6 +102,6 @@ public class ContextChanges implements ToXContentObject {
 
     @Override
     public String toString() {
-        return "ContextChanges{" + "changes=" + changes + '}';
+        return "ContentChanges{" + "changes=" + changes + '}';
     }
 }
