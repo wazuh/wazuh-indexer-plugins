@@ -33,6 +33,7 @@ public class Action implements ToXContentObject {
     private static final String SET_GROUP = "set-group";
     private static final String FETCH_CONFIG = "fetch-config";
     static final String UPDATE = "update";
+    static final String REFRESH = "refresh";
     private static final String GENERIC = "generic";
     private static final String PARSING_ARGUMENTS_FOR_COMMAND = "Parsing arguments for [{}] command";
     private final String name;
@@ -99,6 +100,10 @@ public class Action implements ToXContentObject {
                         case UPDATE:
                             log.info(PARSING_ARGUMENTS_FOR_COMMAND, UPDATE);
                             args = UpdateContentCommand.parse(parser);
+                            break;
+                        case REFRESH:
+                            log.info(PARSING_ARGUMENTS_FOR_COMMAND, REFRESH);
+                            args = RefreshContentCommand.parse(parser);
                             break;
                         default:
                             log.info(PARSING_ARGUMENTS_FOR_COMMAND, GENERIC);
