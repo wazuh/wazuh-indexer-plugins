@@ -79,7 +79,7 @@ paths:
                         id: "vulnerability-detector"
                         type: "server"
               refresh:
-                summary: Refresh content command
+                summary: Refresh RBAC resources command
                 value:
                   commands:
                     - action:

@@ -103,7 +103,7 @@ public class Action implements ToXContentObject {
                             break;
                         case REFRESH:
                             log.info(PARSING_ARGUMENTS_FOR_COMMAND, REFRESH);
-                            args = RefreshContentCommand.parse(parser);
+                            args = RefreshCommand.parse(parser);
                             break;
                         default:
                             log.info(PARSING_ARGUMENTS_FOR_COMMAND, GENERIC);

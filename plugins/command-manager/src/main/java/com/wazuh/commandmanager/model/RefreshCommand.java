@@ -26,8 +26,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-public class RefreshContentCommand extends Args {
-    private static final Logger log = LogManager.getLogger(RefreshContentCommand.class);
+public class RefreshCommand extends Args {
+    private static final Logger log = LogManager.getLogger(RefreshCommand.class);
 
     private static final String INDEX_KEY = "index";
     private static final String INVALID_ARGS_MESSAGE =
@@ -82,11 +82,6 @@ public class RefreshContentCommand extends Args {
                             + parser.currentName() + "]");
             }
         }
-
-        if (!args.containsKey(INDEX_KEY)) {
-            throw new IllegalArgumentException(INVALID_ARGS_MESSAGE);
-        }
-
         return new Args(args);
     }
 }

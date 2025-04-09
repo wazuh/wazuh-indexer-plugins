@@ -25,7 +25,7 @@ import java.io.IOException;
 import java.util.List;
 
 @OpenSearchIntegTestCase.ClusterScope(scope = OpenSearchIntegTestCase.Scope.SUITE)
-public class RefreshContentCommandTests extends OpenSearchIntegTestCase {
+public class RefreshCommandTests extends OpenSearchIntegTestCase {
 
     public void testParseValidSingleIndex() throws IOException {
         XContentBuilder builder = XContentFactory.jsonBuilder();
@@ -43,7 +43,7 @@ public class RefreshContentCommandTests extends OpenSearchIntegTestCase {
                     bytes.streamInput());
 
         parser.nextToken();
-        Args args = RefreshContentCommand.parse(parser);
+        Args args = RefreshCommand.parse(parser);
 
         assertNotNull(args);
         assertTrue(args.getArgs().get("index") instanceof List);
@@ -66,7 +66,7 @@ public class RefreshContentCommandTests extends OpenSearchIntegTestCase {
                     bytes.streamInput());
 
         parser.nextToken();
-        Args args = RefreshContentCommand.parse(parser);
+        Args args = RefreshCommand.parse(parser);
 
         assertNotNull(args);
         assertTrue(args.getArgs().get("index") instanceof List);
@@ -74,49 +74,6 @@ public class RefreshContentCommandTests extends OpenSearchIntegTestCase {
         assertEquals(2, indices.size());
         assertEquals("index1", indices.get(0));
         assertEquals("index2", indices.get(1));
-    }
-
-    public void testParseMissingIndexKey() {
-        assertThrows(
-            IllegalArgumentException.class,
-            () -> {
-                XContentBuilder builder = XContentFactory.jsonBuilder();
-                builder.startObject();
-                builder.endObject();
-                BytesReference bytes = BytesReference.bytes(builder);
-                MediaType mediaType = MediaTypeRegistry.JSON;
-                XContentParser parser =
-                    mediaType
-                        .xContent()
-                        .createParser(
-                            NamedXContentRegistry.EMPTY,
-                            DeprecationHandler.THROW_UNSUPPORTED_OPERATION,
-                            bytes.streamInput());
-                parser.nextToken();
-                RefreshContentCommand.parse(parser);
-            });
-    }
-
-    public void testParseWrongIndexKey() {
-        assertThrows(
-            IllegalArgumentException.class,
-            () -> {
-                XContentBuilder builder = XContentFactory.jsonBuilder();
-                builder.startObject();
-                builder.field("wrongKey", "test_index");
-                builder.endObject();
-                BytesReference bytes = BytesReference.bytes(builder);
-                MediaType mediaType = MediaTypeRegistry.JSON;
-                XContentParser parser =
-                    mediaType
-                        .xContent()
-                        .createParser(
-                            NamedXContentRegistry.EMPTY,
-                            DeprecationHandler.THROW_UNSUPPORTED_OPERATION,
-                            bytes.streamInput());
-                parser.nextToken();
-                RefreshContentCommand.parse(parser);
-            });
     }
 
     public void testParseInvalidIndexValue() {
@@ -137,7 +94,7 @@ public class RefreshContentCommandTests extends OpenSearchIntegTestCase {
                             DeprecationHandler.THROW_UNSUPPORTED_OPERATION,
                             bytes.streamInput());
                 parser.nextToken();
-                RefreshContentCommand.parse(parser);
+                RefreshCommand.parse(parser);
             });
     }
 
@@ -159,7 +116,7 @@ public class RefreshContentCommandTests extends OpenSearchIntegTestCase {
                             DeprecationHandler.THROW_UNSUPPORTED_OPERATION,
                             bytes.streamInput());
                 parser.nextToken();
-                RefreshContentCommand.parse(parser);
+                RefreshCommand.parse(parser);
             });
     }
 }
