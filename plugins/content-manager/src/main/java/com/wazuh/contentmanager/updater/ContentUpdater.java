@@ -149,7 +149,7 @@ public class ContentUpdater {
      * @return The current "last" offset.
      */
     @VisibleForTesting
-    Long getCurrentOffset() {
+    public Long getCurrentOffset() {
         return contextIndex
                 .getConsumer(PluginSettings.CONTEXT_ID, PluginSettings.CONSUMER_ID)
                 .getLastOffset();
