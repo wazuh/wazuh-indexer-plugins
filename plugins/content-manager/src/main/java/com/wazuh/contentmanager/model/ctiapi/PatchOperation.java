@@ -134,6 +134,19 @@ public class PatchOperation implements ToXContentObject {
     }
 
     /**
+     * Check if the value is a valid JSON object.
+     *
+     * @return true if value is valid JSON object, false otherwise
+     */
+    public boolean isValueJsonObject() {
+        try {
+            return JsonParser.parseString(this.value).isJsonObject();
+        } catch (JsonSyntaxException e) {
+            return false;
+        }
+    }
+
+    /**
      * Outputs an XContentBuilder object ready to be printed or manipulated
      *
      * @param builder the received builder object

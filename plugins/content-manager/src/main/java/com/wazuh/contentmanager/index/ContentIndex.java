@@ -16,6 +16,7 @@
  */
 package com.wazuh.contentmanager.index;
 
+import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import org.apache.logging.log4j.LogManager;
@@ -23,6 +24,7 @@ import org.apache.logging.log4j.Logger;
 import org.opensearch.action.bulk.BulkRequest;
 import org.opensearch.action.bulk.BulkResponse;
 import org.opensearch.action.delete.DeleteRequest;
+import org.opensearch.action.delete.DeleteResponse;
 import org.opensearch.action.get.GetRequest;
 import org.opensearch.action.get.GetResponse;
 import org.opensearch.action.index.IndexRequest;
@@ -31,7 +33,12 @@ import org.opensearch.client.Client;
 import org.opensearch.common.xcontent.XContentFactory;
 import org.opensearch.common.xcontent.XContentType;
 import org.opensearch.core.action.ActionListener;
-import org.opensearch.core.xcontent.*;
+import org.opensearch.core.xcontent.DeprecationHandler;
+import org.opensearch.core.xcontent.NamedXContentRegistry;
+import org.opensearch.core.xcontent.ToXContent;
+import org.opensearch.core.xcontent.ToXContentObject;
+import org.opensearch.core.xcontent.XContentBuilder;
+import org.opensearch.core.xcontent.XContentParser;
 
 import java.io.BufferedReader;
 import java.io.FileReader;
@@ -39,12 +46,17 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.*;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Semaphore;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 
 import com.wazuh.contentmanager.model.ctiapi.ContentChanges;
 import com.wazuh.contentmanager.model.ctiapi.Offset;
 import com.wazuh.contentmanager.model.ctiapi.PatchOperation;
 import com.wazuh.contentmanager.util.JsonPatch;
+import com.wazuh.contentmanager.util.VisibleForTesting;
 
 /** Class to manage the Content Manager index. */
 public class ContentIndex {
@@ -140,59 +152,63 @@ public class ContentIndex {
      *
      * @param changes the ContextChanges to patch the existing document.
      */
-    public void patch(ContentChanges changes)
-            throws RuntimeException,
-                    ExecutionException,
-                    InterruptedException,
-                    TimeoutException,
-                    IOException {
+    public void patch(ContentChanges changes) {
         if (changes.getChangesList().isEmpty()) {
             log.info("No changes to apply");
             return;
         }
         // Iterate over the changes and apply them
         for (Offset change : changes.getChangesList()) {
-            log.info("Processing change: {}", change);
-            switch (change.getType()) {
-                case CREATE:
-                    log.info("Creating new resource: {}", change.getResource());
-                    this.index(change);
-                    break;
-                case UPDATE:
-                    log.info("Updating resource: {}", change.getResource());
-                    GetResponse getResponseUpdate =
-                            this.get(change.getResource()).get(TIMEOUT, TimeUnit.SECONDS);
-                    if (!getResponseUpdate.isExists()) {
-                        throw new IllegalArgumentException("Document not found");
-                    }
-                    JsonObject existingDoc =
-                            JsonParser.parseString(getResponseUpdate.getSourceAsString()).getAsJsonObject();
-                    JsonPatch jsonPatch = new JsonPatch();
-                    for (PatchOperation operation : change.getOperations()) {
-                        jsonPatch.applyOperation(existingDoc, operation.getValueAsJson());
-                    }
-                    XContent xContent = XContentType.JSON.xContent();
-
-                    this.index(
-                            Offset.parse(
-                                    xContent.createParser(
-                                            NamedXContentRegistry.EMPTY,
-                                            DeprecationHandler.THROW_UNSUPPORTED_OPERATION,
-                                            change.toString())));
-                    break;
-                case DELETE:
-                    log.info("Deleting resource: {}", change.getResource());
-                    GetResponse getResponseDelete =
-                            this.get(change.getResource()).get(TIMEOUT, TimeUnit.SECONDS);
-                    if (!getResponseDelete.isExists()) {
-                        throw new IllegalArgumentException("Document not found");
-                    }
-                    DeleteRequest deleteRequest = new DeleteRequest(INDEX_NAME, change.getResource());
-                    client.delete(deleteRequest);
-                    break;
-                default:
-                    log.error("Unknown change type: {}", change.getType());
-                    throw new IllegalArgumentException("Unknown change type: " + change.getType());
+            log.debug("Processing change: {}", change);
+            try {
+                switch (change.getType()) {
+                    case CREATE:
+                        log.debug("Creating new resource: {}", change.getResource());
+                        this.index(change);
+                        break;
+                    case UPDATE:
+                        log.debug("Updating resource: {}", change.getResource());
+                        GetResponse getResponseUpdate = this.getWithTimeout(change.getResource());
+                        if (!getResponseUpdate.isExists()) {
+                            throw new IllegalArgumentException("Document not found");
+                        }
+                        String responseString = getResponseUpdate.getSourceAsString();
+                        JsonObject document = JsonParser.parseString(responseString).getAsJsonObject();
+                        for (PatchOperation operation : change.getOperations()) {
+                            JsonPatch.applyOperation(document, xContentObjectToJson(operation));
+                        }
+                        try (XContentParser parser =
+                                XContentType.JSON
+                                        .xContent()
+                                        .createParser(
+                                                NamedXContentRegistry.EMPTY,
+                                                DeprecationHandler.THROW_UNSUPPORTED_OPERATION,
+                                                document.toString())) {
+                            Offset updatedOffset = Offset.parse(parser);
+                            this.index(updatedOffset);
+                        } catch (IOException e) {
+                            log.error(
+                                    "Failed to parse updated document for {}: {}",
+                                    change.getResource(),
+                                    e.getMessage(),
+                                    e);
+                            throw e;
+                        }
+                        break;
+                    case DELETE:
+                        log.debug("Deleting resource: {}", change.getResource());
+                        this.delete(change.getResource());
+                        break;
+                    default:
+                        throw new IllegalArgumentException("Unknown change type: " + change.getType());
+                }
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                log.error("Thread interrupted while processing change: {}", change.getResource(), e);
+                throw new RuntimeException("Interrupted while patching", e);
+            } catch (Exception e) {
+                log.error("Failed to apply patch to {}: {}", change.getResource(), e.getMessage(), e);
+                throw new RuntimeException("Failed to apply patch operation", e);
             }
         }
     }
@@ -216,6 +232,23 @@ public class ContentIndex {
                     }
                 });
         return future;
+    }
+
+    public void delete(String id) {
+        DeleteRequest deleteRequest = new DeleteRequest(INDEX_NAME, id);
+        client.delete(
+                deleteRequest,
+                new ActionListener<>() {
+                    @Override
+                    public void onResponse(DeleteResponse deleteResponse) {
+                        log.info("Deleted CTI Catalog Content {} from index", id);
+                    }
+
+                    @Override
+                    public void onFailure(Exception e) {
+                        log.error("Failed to delete CTI Catalog Content {}, Exception: {}", id, e);
+                    }
+                });
     }
 
     /**
@@ -265,5 +298,23 @@ public class ContentIndex {
         }
         long estimatedTime = System.currentTimeMillis() - startTime;
         log.info("Snapshot indexing finished successfully in {} ms", estimatedTime);
+    }
+
+    private static JsonObject xContentObjectToJson(ToXContentObject content) throws IOException {
+        XContentBuilder builder = XContentFactory.jsonBuilder();
+        content.toXContent(builder, ToXContent.EMPTY_PARAMS);
+        JsonElement element = JsonParser.parseString(builder.toString());
+        return element.getAsJsonObject();
+    }
+
+    @VisibleForTesting
+    GetResponse getWithTimeout(String resourceId)
+            throws InterruptedException, ExecutionException, TimeoutException {
+        try {
+            return this.get(resourceId).get(TIMEOUT, TimeUnit.SECONDS);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw e;
+        }
     }
 }

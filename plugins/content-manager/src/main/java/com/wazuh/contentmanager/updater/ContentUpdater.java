@@ -20,10 +20,6 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.opensearch.client.Client;
 
-import java.io.IOException;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.TimeoutException;
-
 import com.wazuh.contentmanager.client.CTIClient;
 import com.wazuh.contentmanager.client.CommandManagerClient;
 import com.wazuh.contentmanager.index.ContentIndex;
@@ -170,7 +166,7 @@ public class ContentUpdater {
         try {
             // Apply the changes to the context index.
             ContentIndex.patch(changes);
-        } catch (ExecutionException | InterruptedException | TimeoutException | IOException e) {
+        } catch (RuntimeException e) {
             log.error("Failed to apply changes to content index: {}", e.toString());
             return false;
         }

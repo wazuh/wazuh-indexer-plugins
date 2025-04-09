@@ -30,7 +30,7 @@ public class JsonPatch {
      * @param document The target JSON document.
      * @param operation The JSON Patch operation.
      */
-    public void applyOperation(JsonObject document, JsonObject operation) {
+    public static void applyOperation(JsonObject document, JsonObject operation) {
         String op = operation.get("op").getAsString();
         String path = operation.get("path").getAsString();
         JsonElement value = operation.has("value") ? operation.get("value") : null;
@@ -67,7 +67,7 @@ public class JsonPatch {
      * @param path The JSON path where the value should be added.
      * @param value The value to be added.
      */
-    private void addOperation(JsonObject document, String path, JsonElement value) {
+    private static void addOperation(JsonObject document, String path, JsonElement value) {
         JsonElement target = navigateToParent(document, path);
         if (target instanceof JsonObject) {
             String key = extractKeyFromPath(path);
@@ -81,7 +81,7 @@ public class JsonPatch {
      * @param document The target JSON document.
      * @param path The JSON path where the value should be removed.
      */
-    private void removeOperation(JsonObject document, String path) {
+    private static void removeOperation(JsonObject document, String path) {
         JsonElement target = navigateToParent(document, path);
         if (target instanceof JsonObject) {
             String key = extractKeyFromPath(path);
@@ -96,7 +96,7 @@ public class JsonPatch {
      * @param path The JSON path where the value should be replaced.
      * @param value The new value to be added.
      */
-    private void replaceOperation(JsonObject document, String path, JsonElement value) {
+    private static void replaceOperation(JsonObject document, String path, JsonElement value) {
         removeOperation(document, path);
         addOperation(document, path, value);
     }
@@ -108,7 +108,7 @@ public class JsonPatch {
      * @param fromPath The JSON path from where the value should be moved.
      * @param toPath The JSON path where the value should be moved.
      */
-    private void moveOperation(JsonObject document, String fromPath, String toPath) {
+    private static void moveOperation(JsonObject document, String fromPath, String toPath) {
         JsonElement value = navigateToParent(document, fromPath);
         removeOperation(document, fromPath);
         addOperation(document, toPath, value);
@@ -121,7 +121,7 @@ public class JsonPatch {
      * @param fromPath The JSON path from where the value should be copied.
      * @param toPath The JSON path where the value should be copied.
      */
-    private void copyOperation(JsonObject document, String fromPath, String toPath) {
+    private static void copyOperation(JsonObject document, String fromPath, String toPath) {
         JsonElement parent = navigateToParent(document, fromPath);
         if (parent == null || !parent.isJsonObject()) {
             log.error("Invalid 'from' path for copy operation: {}", fromPath);
@@ -152,7 +152,7 @@ public class JsonPatch {
      * @param value The expected value to be tested against.
      * @throws IllegalArgumentException if the value does not match.
      */
-    private void testOperation(JsonObject document, String path, JsonElement value) {
+    private static void testOperation(JsonObject document, String path, JsonElement value) {
         JsonElement target = navigateToParent(document, path);
         if (target instanceof JsonObject) {
             String key = extractKeyFromPath(path);
@@ -169,7 +169,7 @@ public class JsonPatch {
      * @param path The JSON path to navigate.
      * @return The parent JSON element.
      */
-    private JsonElement navigateToParent(JsonObject document, String path) {
+    private static JsonElement navigateToParent(JsonObject document, String path) {
         String[] parts = path.split("/");
         JsonElement current = document;
 
@@ -193,7 +193,7 @@ public class JsonPatch {
      * @param path The JSON path.
      * @return The last key in the path.
      */
-    private String extractKeyFromPath(String path) {
+    private static String extractKeyFromPath(String path) {
         String[] parts = path.split("/");
         return parts[parts.length - 1];
     }
