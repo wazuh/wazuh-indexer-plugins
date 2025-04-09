@@ -16,7 +16,28 @@
  */
 package com.wazuh.contentmanager.index;
 
+import org.opensearch.client.Client;
 import org.opensearch.test.OpenSearchIntegTestCase;
+import org.junit.Before;
+
+import org.mockito.Mockito;
+
+import static org.mockito.Mockito.mock;
 
 @OpenSearchIntegTestCase.ClusterScope(scope = OpenSearchIntegTestCase.Scope.SUITE)
-public class CVEIndexTests extends OpenSearchIntegTestCase {}
+public class ContentIndexTests extends OpenSearchIntegTestCase {
+    private ContentIndex contentIndexSpy;
+
+    /**
+     * Set up the tests
+     *
+     * @throws Exception rethrown from parent method
+     */
+    @Before
+    public void setup() throws Exception {
+        super.setUp();
+        Client client = mock(Client.class);
+        ContentIndex contentIndex = new ContentIndex(client);
+        contentIndexSpy = Mockito.spy(contentIndex);
+    }
+}

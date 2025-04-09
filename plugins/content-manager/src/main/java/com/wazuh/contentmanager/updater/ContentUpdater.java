@@ -26,7 +26,7 @@ import java.util.concurrent.TimeoutException;
 
 import com.wazuh.contentmanager.client.CTIClient;
 import com.wazuh.contentmanager.client.CommandManagerClient;
-import com.wazuh.contentmanager.index.CVEIndex;
+import com.wazuh.contentmanager.index.ContentIndex;
 import com.wazuh.contentmanager.index.ContextIndex;
 import com.wazuh.contentmanager.model.commandmanager.Command;
 import com.wazuh.contentmanager.model.ctiapi.ConsumerInfo;
@@ -40,7 +40,7 @@ public class ContentUpdater {
     private static final Integer CHUNK_MAX_SIZE = 1000;
     private static final Logger log = LogManager.getLogger(ContentUpdater.class);
     private final ContextIndex contextIndex;
-    private final CVEIndex CVEIndex;
+    private final ContentIndex ContentIndex;
     public ContentUpdater INSTANCE;
 
     /** Exception thrown by the Content Updater in case of errors. */
@@ -62,7 +62,7 @@ public class ContentUpdater {
      * @param client the OpenSearch Client to interact with the cluster
      */
     public ContentUpdater(Client client) {
-        this.CVEIndex = new CVEIndex(client);
+        this.ContentIndex = new ContentIndex(client);
         this.contextIndex = new ContextIndex(client);
     }
 
@@ -169,7 +169,7 @@ public class ContentUpdater {
     boolean patchContextIndex(ContentChanges changes) {
         try {
             // Apply the changes to the context index.
-            CVEIndex.patch(changes);
+            ContentIndex.patch(changes);
         } catch (ExecutionException | InterruptedException | TimeoutException | IOException e) {
             log.error("Failed to apply changes to content index: {}", e.toString());
             return false;

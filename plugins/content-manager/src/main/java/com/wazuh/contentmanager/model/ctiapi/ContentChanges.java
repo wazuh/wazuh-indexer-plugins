@@ -28,14 +28,14 @@ public class ContentChanges implements ToXContentObject {
 
     private static final String DATA = "data";
 
-    private final List<CVEChange> changes;
+    private final List<Offset> changes;
 
     /**
      * Constructor method
      *
      * @param changes a List of CVEChange objects, each containing a JSON patch.
      */
-    public ContentChanges(List<CVEChange> changes) {
+    public ContentChanges(List<Offset> changes) {
         this.changes = changes;
     }
 
@@ -44,7 +44,7 @@ public class ContentChanges implements ToXContentObject {
      *
      * @return A list of CVEChange objects
      */
-    public List<CVEChange> getChangesList() {
+    public List<Offset> getChangesList() {
         return this.changes;
     }
 
@@ -59,7 +59,7 @@ public class ContentChanges implements ToXContentObject {
      */
     public static ContentChanges parse(XContentParser parser)
             throws IOException, IllegalArgumentException, ParsingException {
-        List<CVEChange> changes = new ArrayList<>();
+        List<Offset> changes = new ArrayList<>();
         // Make sure we are at the start
         XContentParserUtils.ensureExpectedToken(
                 XContentParser.Token.START_OBJECT, parser.nextToken(), parser);
@@ -70,7 +70,7 @@ public class ContentChanges implements ToXContentObject {
                 XContentParser.Token.START_ARRAY, parser.nextToken(), parser);
         // Iterate over the array and add each CVEChange object to changes list
         while (parser.nextToken() != XContentParser.Token.END_ARRAY) {
-            changes.add(CVEChange.parse(parser));
+            changes.add(Offset.parse(parser));
         }
         return new ContentChanges(changes);
     }

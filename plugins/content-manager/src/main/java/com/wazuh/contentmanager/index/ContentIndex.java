@@ -41,14 +41,14 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.*;
 
-import com.wazuh.contentmanager.model.ctiapi.CVEChange;
 import com.wazuh.contentmanager.model.ctiapi.ContentChanges;
+import com.wazuh.contentmanager.model.ctiapi.Offset;
 import com.wazuh.contentmanager.model.ctiapi.PatchOperation;
 import com.wazuh.contentmanager.util.JsonPatch;
 
 /** Class to manage the Content Manager index. */
-public class CVEIndex {
-    private static final Logger log = LogManager.getLogger(CVEIndex.class);
+public class ContentIndex {
+    private static final Logger log = LogManager.getLogger(ContentIndex.class);
 
     private static final String INDEX_NAME = "wazuh-cve";
     private final int MAX_DOCUMENTS = 25;
@@ -63,11 +63,11 @@ public class CVEIndex {
      *
      * @param client OpenSearch client.
      */
-    public CVEIndex(Client client) {
+    public ContentIndex(Client client) {
         this.client = client;
     }
 
-    public void index(CVEChange document) {
+    public void index(Offset document) {
         IndexRequest indexRequest = null;
         try {
             indexRequest =
@@ -151,7 +151,7 @@ public class CVEIndex {
             return;
         }
         // Iterate over the changes and apply them
-        for (CVEChange change : changes.getChangesList()) {
+        for (Offset change : changes.getChangesList()) {
             log.info("Processing change: {}", change);
             switch (change.getType()) {
                 case CREATE:
@@ -174,7 +174,7 @@ public class CVEIndex {
                     XContent xContent = XContentType.JSON.xContent();
 
                     this.index(
-                            CVEChange.parse(
+                            Offset.parse(
                                     xContent.createParser(
                                             NamedXContentRegistry.EMPTY,
                                             DeprecationHandler.THROW_UNSUPPORTED_OPERATION,
@@ -220,8 +220,8 @@ public class CVEIndex {
 
     /**
      * Initializes the index from a local snapshot. The snapshot file (in NDJSON format) is split in
-     * chunks of {@link CVEIndex#MAX_DOCUMENTS} elements. These are bulk indexed using {@link
-     * CVEIndex#indexBulk(List)}.
+     * chunks of {@link ContentIndex#MAX_DOCUMENTS} elements. These are bulk indexed using {@link
+     * ContentIndex#indexBulk(List)}.
      *
      * @param path path to the CTI snapshot JSON file to be indexed.
      */
