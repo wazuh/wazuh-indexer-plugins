@@ -177,6 +177,7 @@ public class ContentIndex {
                         for (PatchOperation operation : change.getOperations()) {
                             JsonPatch.applyOperation(document, xContentObjectToJson(operation));
                         }
+                        log.info("Updating with document {}", document);
                         try (XContentParser parser =
                                 XContentType.JSON
                                         .xContent()

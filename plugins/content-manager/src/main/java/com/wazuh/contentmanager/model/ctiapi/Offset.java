@@ -102,11 +102,13 @@ public class Offset implements ToXContentObject {
                         version = parser.longValue();
                         break;
                     case OPERATIONS:
+                        XContentParser.Token token = parser.currentToken();
                         XContentParserUtils.ensureExpectedToken(
-                                XContentParser.Token.START_ARRAY, parser.nextToken(), parser);
+                                XContentParser.Token.START_ARRAY, token, parser);
                         while (parser.nextToken() != XContentParser.Token.END_ARRAY) {
                             operations.add(PatchOperation.parse(parser));
                         }
+                        break;
                     case PAYLOAD:
                         XContentParserUtils.ensureExpectedToken(
                                 XContentParser.Token.START_OBJECT, parser.currentToken(), parser);

@@ -52,8 +52,8 @@ public class ContentUpdaterIT extends OpenSearchIntegTestCase {
         ctiClient = mock(CTIClient.class);
         updater = new ContentUpdater(client, ctiClient);
         contextIndex = new ContextIndex(client);
+        prepareInitialCVEInfo(client, initialOffset);
         prepareInitialConsumerInfo(client, initialOffset);
-        //        prepareInitialCVEInfo(client);
         Thread.sleep(1000);
     }
 
@@ -78,21 +78,35 @@ public class ContentUpdaterIT extends OpenSearchIntegTestCase {
         Offset createOffset =
                 new Offset(CONTEXT_ID, newOffset, "test", ContentType.CREATE, 1L, null, getDummyPayload());
         ContentChanges contentChanges = new ContentChanges(List.of(createOffset));
-
         // Mock
-        when(ctiClient.getChanges("0", "1", null)).thenReturn(contentChanges);
+        when(ctiClient.getChanges(initialOffset.toString(), "1", null)).thenReturn(contentChanges);
         // Act
         boolean updated = updater.fetchAndApplyUpdates(initialOffset, newOffset);
         ConsumerInfo updatedConsumer = contextIndex.getConsumer(CONTEXT_ID, CONSUMER_ID);
         // Assert
         assertTrue(updated);
         assertNotNull(updatedConsumer);
+        logger.info("Created consumer info: {}", updatedConsumer);
         assertEquals(newOffset, updatedConsumer.getLastOffset());
     }
 
     public void testFetchAndApplyUpdates_ContentChangesTypeUpdate() {
         // Arrange
         Long newOffset = 2L;
+        ContentChanges contentChanges = getContentChanges(newOffset);
+        // Mock
+        when(ctiClient.getChanges(initialOffset.toString(), "2", null)).thenReturn(contentChanges);
+        // Act
+        boolean updated = updater.fetchAndApplyUpdates(initialOffset, newOffset);
+        ConsumerInfo updatedConsumer = contextIndex.getConsumer(CONTEXT_ID, CONSUMER_ID);
+        // Assert
+        assertTrue(updated);
+        assertNotNull(updatedConsumer);
+        logger.info("Updated consumer info: {}", updatedConsumer);
+        assertEquals(newOffset, updatedConsumer.getLastOffset());
+    }
+
+    private ContentChanges getContentChanges(Long newOffset) {
         PatchOperation operation = new PatchOperation("add", "/newField", null, "test");
         // TODO: Add this offset as initial offset of wazuh-cve using prepare Index
         Offset createOffset =
@@ -100,17 +114,8 @@ public class ContentUpdaterIT extends OpenSearchIntegTestCase {
                         CONTEXT_ID, newOffset - 1, "test", ContentType.CREATE, 1L, null, getDummyPayload());
         Offset updateOffset =
                 new Offset(CONTEXT_ID, newOffset, "test", ContentType.UPDATE, 1L, List.of(operation), null);
-        ContentChanges contentChanges = new ContentChanges(List.of(createOffset, updateOffset));
 
-        // Mock
-        when(ctiClient.getChanges("0", "2", null)).thenReturn(contentChanges);
-        // Act
-        boolean updated = updater.fetchAndApplyUpdates(initialOffset, newOffset);
-        ConsumerInfo updatedConsumer = contextIndex.getConsumer(CONTEXT_ID, CONSUMER_ID);
-        // Assert
-        assertTrue(updated);
-        assertNotNull(updatedConsumer);
-        assertEquals(newOffset, updatedConsumer.getLastOffset());
+        return new ContentChanges(List.of(createOffset, updateOffset));
     }
 
     //
@@ -217,9 +222,16 @@ public class ContentUpdaterIT extends OpenSearchIntegTestCase {
         return dummyPayload;
     }
 
-    public void prepareInitialCVEInfo(Client client) throws Exception {
+    public void prepareInitialCVEInfo(Client client, Long offsetId) throws Exception {
         // Create a ConsumerInfo document manually in the test index
 
-        client.prepareIndex("wazuh-cve").setRefreshPolicy(WriteRequest.RefreshPolicy.IMMEDIATE).get();
+        Offset offset =
+                new Offset(CONTEXT_ID, offsetId, "test", ContentType.CREATE, 1L, null, getDummyPayload());
+        client
+                .prepareIndex("wazuh-cve")
+                .setId(CONTEXT_ID)
+                .setSource(offset.toXContent(XContentFactory.jsonBuilder(), ToXContent.EMPTY_PARAMS))
+                .setRefreshPolicy(WriteRequest.RefreshPolicy.IMMEDIATE)
+                .get();
     }
 }
