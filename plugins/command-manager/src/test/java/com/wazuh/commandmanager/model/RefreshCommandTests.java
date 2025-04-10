@@ -22,7 +22,9 @@ import org.opensearch.core.xcontent.*;
 import org.opensearch.test.OpenSearchIntegTestCase;
 
 import java.io.IOException;
+import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
 
 @OpenSearchIntegTestCase.ClusterScope(scope = OpenSearchIntegTestCase.Scope.SUITE)
 public class RefreshCommandTests extends OpenSearchIntegTestCase {
@@ -35,12 +37,12 @@ public class RefreshCommandTests extends OpenSearchIntegTestCase {
         BytesReference bytes = BytesReference.bytes(builder);
         MediaType mediaType = MediaTypeRegistry.JSON;
         XContentParser parser =
-            mediaType
-                .xContent()
-                .createParser(
-                    NamedXContentRegistry.EMPTY,
-                    DeprecationHandler.THROW_UNSUPPORTED_OPERATION,
-                    bytes.streamInput());
+                mediaType
+                        .xContent()
+                        .createParser(
+                                NamedXContentRegistry.EMPTY,
+                                DeprecationHandler.THROW_UNSUPPORTED_OPERATION,
+                                bytes.streamInput());
 
         parser.nextToken();
         Args args = RefreshCommand.parse(parser);
@@ -53,17 +55,17 @@ public class RefreshCommandTests extends OpenSearchIntegTestCase {
     public void testParseValidMultipleIndices() throws IOException {
         XContentBuilder builder = XContentFactory.jsonBuilder();
         builder.startObject();
-        builder.field("index", new String[]{"index1", "index2"});
+        builder.field("index", new String[] {"index1", "index2"});
         builder.endObject();
         BytesReference bytes = BytesReference.bytes(builder);
         MediaType mediaType = MediaTypeRegistry.JSON;
         XContentParser parser =
-            mediaType
-                .xContent()
-                .createParser(
-                    NamedXContentRegistry.EMPTY,
-                    DeprecationHandler.THROW_UNSUPPORTED_OPERATION,
-                    bytes.streamInput());
+                mediaType
+                        .xContent()
+                        .createParser(
+                                NamedXContentRegistry.EMPTY,
+                                DeprecationHandler.THROW_UNSUPPORTED_OPERATION,
+                                bytes.streamInput());
 
         parser.nextToken();
         Args args = RefreshCommand.parse(parser);
@@ -84,12 +86,12 @@ public class RefreshCommandTests extends OpenSearchIntegTestCase {
             BytesReference bytes = BytesReference.bytes(builder);
             MediaType mediaType = MediaTypeRegistry.JSON;
             XContentParser parser =
-                mediaType
-                    .xContent()
-                    .createParser(
-                        NamedXContentRegistry.EMPTY,
-                        DeprecationHandler.THROW_UNSUPPORTED_OPERATION,
-                        bytes.streamInput());
+                    mediaType
+                            .xContent()
+                            .createParser(
+                                    NamedXContentRegistry.EMPTY,
+                                    DeprecationHandler.THROW_UNSUPPORTED_OPERATION,
+                                    bytes.streamInput());
             parser.nextToken();
             RefreshCommand.parse(parser);
         } catch (Exception e) {
@@ -97,47 +99,80 @@ public class RefreshCommandTests extends OpenSearchIntegTestCase {
         }
     }
 
+    /** Invalid values for the "index" key are ignored. */
     public void testParseInvalidIndexValue() {
-        assertThrows(
-            IllegalArgumentException.class,
-            () -> {
-                XContentBuilder builder = XContentFactory.jsonBuilder();
-                builder.startObject();
-                builder.field("index", 12345);
-                builder.endObject();
-                BytesReference bytes = BytesReference.bytes(builder);
-                MediaType mediaType = MediaTypeRegistry.JSON;
-                XContentParser parser =
+        Args args;
+
+        try {
+            XContentBuilder builder = XContentFactory.jsonBuilder();
+            builder.startObject();
+            builder.field("index", 12345);
+            builder.endObject();
+            BytesReference bytes = BytesReference.bytes(builder);
+            MediaType mediaType = MediaTypeRegistry.JSON;
+            XContentParser parser =
                     mediaType
-                        .xContent()
-                        .createParser(
-                            NamedXContentRegistry.EMPTY,
-                            DeprecationHandler.THROW_UNSUPPORTED_OPERATION,
-                            bytes.streamInput());
-                parser.nextToken();
-                RefreshCommand.parse(parser);
-            });
+                            .xContent()
+                            .createParser(
+                                    NamedXContentRegistry.EMPTY,
+                                    DeprecationHandler.THROW_UNSUPPORTED_OPERATION,
+                                    bytes.streamInput());
+            parser.nextToken();
+
+            args = RefreshCommand.parse(parser);
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+
+        assertEquals(new Args().getArgs(), args.getArgs());
     }
 
+    /** Non-string values inside the "index" array are ignored. */
     public void testParseInvalidIndexArray() {
-        assertThrows(
-            IllegalArgumentException.class,
-            () -> {
-                XContentBuilder builder = XContentFactory.jsonBuilder();
-                builder.startObject();
-                builder.field("index", new int[]{1, 2, 3});
-                builder.endObject();
-                BytesReference bytes = BytesReference.bytes(builder);
-                MediaType mediaType = MediaTypeRegistry.JSON;
-                XContentParser parser =
+        Args args;
+
+        try {
+            XContentBuilder builder = XContentFactory.jsonBuilder();
+            builder.startObject();
+            builder.field("index", new int[] {1, 2, 3});
+            builder.endObject();
+            BytesReference bytes = BytesReference.bytes(builder);
+            MediaType mediaType = MediaTypeRegistry.JSON;
+            XContentParser parser =
                     mediaType
-                        .xContent()
-                        .createParser(
-                            NamedXContentRegistry.EMPTY,
-                            DeprecationHandler.THROW_UNSUPPORTED_OPERATION,
-                            bytes.streamInput());
-                parser.nextToken();
-                RefreshCommand.parse(parser);
-            });
+                            .xContent()
+                            .createParser(
+                                    NamedXContentRegistry.EMPTY,
+                                    DeprecationHandler.THROW_UNSUPPORTED_OPERATION,
+                                    bytes.streamInput());
+            parser.nextToken();
+            args = RefreshCommand.parse(parser);
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+
+        assertEquals(new Args().getArgs(), args.getArgs());
+
+        try {
+            XContentBuilder builder = XContentFactory.jsonBuilder();
+            builder.startObject();
+            builder.field("index", Arrays.asList("index-a", 1, 2));
+            builder.endObject();
+            BytesReference bytes = BytesReference.bytes(builder);
+            MediaType mediaType = MediaTypeRegistry.JSON;
+            XContentParser parser =
+                    mediaType
+                            .xContent()
+                            .createParser(
+                                    NamedXContentRegistry.EMPTY,
+                                    DeprecationHandler.THROW_UNSUPPORTED_OPERATION,
+                                    bytes.streamInput());
+            parser.nextToken();
+            args = RefreshCommand.parse(parser);
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+
+        assertEquals(new Args(Map.of("index", List.of("index-a"))).getArgs(), args.getArgs());
     }
 }

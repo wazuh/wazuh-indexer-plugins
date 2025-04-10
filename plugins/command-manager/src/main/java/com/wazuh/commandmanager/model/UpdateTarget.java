@@ -21,9 +21,9 @@ import org.opensearch.core.xcontent.XContentParser;
 import java.io.IOException;
 
 /**
- * Represents a target for the "update" command. This class extends the
- * Target class and is specifically designed to handle updates to server
- * targets with predefined constraints on type and id.
+ * Represents a target for the "update" command. This class extends the Target class and is
+ * specifically designed to handle updates to server targets with predefined constraints on type and
+ * id.
  */
 public class UpdateTarget extends Target {
 

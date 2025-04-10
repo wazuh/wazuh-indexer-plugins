@@ -25,8 +25,8 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * This class represents a command for assigning groups to users or agents.
- * It extends the Args class and features a dedicated parser for the "set-group" action type.
+ * This class represents a command for assigning groups to users or agents. It extends the Args
+ * class and features a dedicated parser for the "set-group" action type.
  */
 public class SetGroupCommand extends Args {
 

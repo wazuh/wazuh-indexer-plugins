@@ -22,8 +22,8 @@ import java.io.IOException;
 import java.util.HashMap;
 
 /**
- * This class represents a command for retrieving configuration. It extends the Args class
- * and includes a parser tailored for the "fetch-config" action type.
+ * This class represents a command for retrieving configuration. It extends the Args class and
+ * includes a parser tailored for the "fetch-config" action type.
  */
 public class FetchConfigCommand extends Args {
 

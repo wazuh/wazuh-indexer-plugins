@@ -132,12 +132,17 @@ The command takes the `index` and `offset` arguments, strings depicting the inde
   ]
 }
 ```
+
 ### refresh
-The `refresh` command is used to refresh the specified indices, ensuring that the most recent data is available for the system.
 
-Only accepted value for `target.type` is `server`. The `target.id` specifies the server's module that requires the refresh of the data.
+The `refresh` command is created when the Wazuh RBAC resources (users, roles, policies, ...) are modified.
 
-The command accepts an optional `index` argument, which can be an array of strings representing the indices to be refreshed. Any other value than a string or array is rejected. Additional arguments are ignored.
+This command serves to the Wazuh Server as a notification to update its local copy of these resources.
+
+The expected values for `target.type` and `target.id` are `server` and `rbac`, respectively.
+
+The command accepts an optional `index` argument, which must be an array of strings representing the RBAC indices that changed. Any other value than an array is strings is rejected. Additional arguments are ignored.
+
 ``` json
 {
   "commands": [
