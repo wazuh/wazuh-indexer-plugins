@@ -72,7 +72,7 @@ public class UnzipTests extends OpenSearchTestCase {
     /** Test valid unzip process */
     public void testValidUnzip() {
         try {
-            Unzip.unzip(this.zipFileName, "", this.environment);
+            Unzip.unzip(this.zipFileName, "");
             Path extractedFilePath = this.tempDestinationDirectory.resolve(this.testFile);
             assertTrue("File should be extracted", Files.exists(extractedFilePath));
             String fileContent = Files.readString(extractedFilePath, StandardCharsets.UTF_8);
@@ -87,15 +87,13 @@ public class UnzipTests extends OpenSearchTestCase {
     public void testNullPointerException() {
         assertThrows(
                 NullPointerException.class,
-                () -> Unzip.unzip(null, this.tempDestinationDirectory.toString(), this.environment));
+                () -> Unzip.unzip(null, this.tempDestinationDirectory.toString()));
     }
 
     /** Test FileNotFoundException */
     public void testFileNotFoundException() {
         assertThrows(
                 FileNotFoundException.class,
-                () ->
-                        Unzip.unzip(
-                                "NonExistentFile.zip", this.tempDestinationDirectory.toString(), this.environment));
+                () -> Unzip.unzip("NonExistentFile.zip", this.tempDestinationDirectory.toString()));
     }
 }

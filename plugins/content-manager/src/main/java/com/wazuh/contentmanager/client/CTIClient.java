@@ -191,7 +191,7 @@ public class CTIClient extends HttpClient {
      * @param env environment. Required to resolve files' paths.
      * @return The downloaded file's name
      */
-    public String download(String snapshotURI, Environment env) {
+    public Path download(String snapshotURI, Environment env) {
         try {
             // Setup
             URI uri = new URI(snapshotURI);
@@ -222,7 +222,7 @@ public class CTIClient extends HttpClient {
                 log.error("Failed to write snapshot {}", e.getMessage());
             }
             log.info("Snapshot downloaded to {}", path);
-            return filename;
+            return path;
         } catch (URISyntaxException e) {
             log.error("Failed to download snapshot. Invalid URL provided: {}", e.getMessage());
         } catch (ExecutionException e) {

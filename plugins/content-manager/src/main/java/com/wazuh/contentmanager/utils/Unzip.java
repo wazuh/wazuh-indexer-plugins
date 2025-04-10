@@ -18,7 +18,6 @@ package com.wazuh.contentmanager.utils;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.opensearch.env.Environment;
 
 import java.io.BufferedOutputStream;
 import java.io.FileNotFoundException;
@@ -38,14 +37,10 @@ public class Unzip {
      *
      * @param file ZIP file to decompress.
      * @param to extraction destination folder.
-     * @param env Required to resolve files' paths. Environment will contain the configuration of the
-     *     enclosed directory where the unzip process will happen.
      * @throws IOException rethrown from getNextEntry()
      */
-    public static void unzip(@NonNull String file, @NonNull Path destinationPath, @NonNull Environment env)
-            throws IOException {
-        Path path = env.resolveRepoFile(file);
-        if (path == null || !Files.exists(path)) {
+    public static void unzip(@NonNull Path path, @NonNull Path destinationPath) throws IOException {
+        if (!Files.exists(path)) {
             throw new FileNotFoundException("ZIP file does not exist: " + path);
         }
 
