@@ -21,28 +21,23 @@ import org.apache.logging.log4j.Logger;
 import org.opensearch.core.xcontent.XContentParser;
 
 import java.io.IOException;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.*;
+
+import static org.opensearch.core.xcontent.XContentParserUtils.ensureExpectedToken;
 
 /**
- * This class represents a command designed to update content within the system. It inherits from
- * the Args class and contains the necessary logic to interpret arguments that are particular to the
- * "update" action.
+ * Represents a command to refresh indices in the system. This class extends Args and provides a
+ * parser specifically for the "refresh" action type.
  */
-public class UpdateContentCommand extends Args {
-    private static final Logger log = LogManager.getLogger(UpdateContentCommand.class);
+public class RefreshCommand extends Args {
+    private static final Logger log = LogManager.getLogger(RefreshCommand.class);
 
     private static final String INDEX_KEY = "index";
-    private static final String OFFSET_KEY = "offset";
     private static final String INVALID_ARGS_MESSAGE =
-            "Expected [command.action.args] to contain the ["
-                    + INDEX_KEY
-                    + "] and ["
-                    + OFFSET_KEY
-                    + "] keys";
+            "Expected [command.action.args] to contain the [" + INDEX_KEY + "] key, got [{}]. Skipping.";
 
     /**
-     * Dedicated command.action.args parser for "update" action type.
+     * Dedicated command.action.args parser for "refresh" action type.
      *
      * @param parser An XContentParser containing an args to be deserialized
      * @return An Args object
@@ -50,32 +45,40 @@ public class UpdateContentCommand extends Args {
      */
     public static Args parse(XContentParser parser) throws IOException {
         Map<String, Object> args = new HashMap<>();
-        String fieldName = "";
+        List<String> indices = new ArrayList<>();
+        String fieldName = null;
 
+        ensureExpectedToken(XContentParser.Token.START_OBJECT, parser.currentToken(), parser);
         while (parser.nextToken() != XContentParser.Token.END_OBJECT) {
-            XContentParser.Token currentToken = parser.currentToken();
-            switch (currentToken) {
+            switch (parser.currentToken()) {
                 case FIELD_NAME:
-                    // Ignore unexpected fields.
-                    fieldName = parser.currentName();
-                    if (!fieldName.equals(INDEX_KEY) && !fieldName.equals(OFFSET_KEY)) {
-                        log.warn(INVALID_ARGS_MESSAGE + ", got [{}]", parser.currentName());
+                    if (parser.currentName().equals(INDEX_KEY)) {
+                        fieldName = parser.currentName();
+                    } else {
+                        log.warn(INVALID_ARGS_MESSAGE, parser.currentName());
+                        parser.skipChildren();
                     }
                     break;
+
                 case VALUE_STRING:
-                    args.put(fieldName, parser.objectText());
+                    if (INDEX_KEY.equals(fieldName)) {
+                        indices.add(parser.text());
+                    }
                     break;
+
+                case START_ARRAY:
+                case END_ARRAY:
+                    break;
+
                 default:
-                    throw new IllegalArgumentException(
-                            "Expected [command.action.args] to be an field or a text value, got ["
-                                    + parser.currentName()
-                                    + "]");
+                    parser.skipChildren();
+                    break;
             }
         }
 
-        if (args.containsKey(INDEX_KEY) && args.containsKey(OFFSET_KEY)) {
-            return new Args(args);
+        if (!indices.isEmpty()) {
+            args.put(INDEX_KEY, indices);
         }
-        throw new IllegalArgumentException(INVALID_ARGS_MESSAGE);
+        return new Args(args);
     }
 }
