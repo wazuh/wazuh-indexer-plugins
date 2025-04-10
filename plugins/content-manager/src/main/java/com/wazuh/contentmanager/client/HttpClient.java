@@ -38,7 +38,7 @@ import java.security.NoSuchAlgorithmException;
 import java.util.Map;
 import java.util.concurrent.*;
 
-import com.wazuh.contentmanager.util.http.HttpResponseCallback;
+import com.wazuh.contentmanager.utils.http.HttpResponseCallback;
 import reactor.util.annotation.NonNull;
 
 /**
