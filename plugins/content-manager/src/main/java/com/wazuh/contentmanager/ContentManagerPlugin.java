@@ -40,6 +40,8 @@ import org.opensearch.threadpool.ThreadPool;
 import org.opensearch.watcher.ResourceWatcherService;
 
 import java.io.IOException;
+import java.nio.file.DirectoryStream;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.*;
 import java.util.function.Predicate;
@@ -79,6 +81,7 @@ public class ContentManagerPlugin extends Plugin implements ClusterPlugin, Actio
             Supplier<RepositoriesService> repositoriesServiceSupplier) {
         PluginSettings.getInstance(environment.settings(), clusterService);
         this.contextIndex = new ContextIndex(client);
+        this.contentIndex = new ContentIndex(client);
         this.environment = environment;
         return Collections.emptyList();
     }
@@ -119,31 +122,29 @@ public class ContentManagerPlugin extends Plugin implements ClusterPlugin, Actio
             return;
         }
 
-        // Wrapping up for testing
         Privileged.doPrivilegedRequest(
                 () -> {
                     String zipFileName =
                             CTIClient.getInstance()
                                     .download(this.contextIndex.getLastSnapshotLink(), environment);
                     String snapshotZip = this.environment.resolveRepoFile(zipFileName).toString();
-                    String dir = this.environment.resolveRepoFile("").toString();
+                    Path outputDir = this.environment.resolveRepoFile("");
+
                     try {
-                        Unzip.unzip(snapshotZip, dir, this.environment);
+                        Unzip.unzip(snapshotZip, outputDir, this.environment);
                     } catch (IOException e) {
                         throw new RuntimeException(e);
                     }
 
-                    // Look for files in the environment  that
-                    Path[] repoFiles = environment.repoFiles();
-                    Pattern pattern = Pattern.compile(".*vd_1.0.0_vd_4.8.0_.+.json");
-                    Predicate<Path> matchesPattern = s -> pattern.matcher(s.toString()).matches();
-                    String snapshot =
-                            Arrays.stream(repoFiles)
-                                    .filter(matchesPattern)
-                                    .collect(Collectors.toList())
-                                    .get(0)
-                                    .toString();
-                    this.contentIndex.fromSnapshot(snapshot);
+                    List<Path> matchingFiles = new ArrayList<>();
+                    try (DirectoryStream<Path> stream = Files.newDirectoryStream(outputDir, "vd_1.0.0_vd_4.8.0_*.json")) {
+                        for (Path path : stream) {
+                            matchingFiles.add(path);
+                        }
+                    } catch (IOException e) {
+                        log.error("Failed to find uncompressed JSON snapshot");
+                    }
+                    this.contentIndex.fromSnapshot(matchingFiles.get(0).toString());
                     return null;
                 });
     }

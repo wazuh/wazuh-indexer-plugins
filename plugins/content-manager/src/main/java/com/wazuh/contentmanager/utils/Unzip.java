@@ -42,14 +42,13 @@ public class Unzip {
      *     enclosed directory where the unzip process will happen.
      * @throws IOException rethrown from getNextEntry()
      */
-    public static void unzip(@NonNull String file, @NonNull String to, @NonNull Environment env)
+    public static void unzip(@NonNull String file, @NonNull Path destinationPath, @NonNull Environment env)
             throws IOException {
         Path path = env.resolveRepoFile(file);
         if (path == null || !Files.exists(path)) {
             throw new FileNotFoundException("ZIP file does not exist: " + path);
         }
 
-        Path destinationPath = env.resolveRepoFile(to);
         try (ZipInputStream zipInputStream = new ZipInputStream(Files.newInputStream(path))) {
             ZipEntry zipEntry;
             while ((zipEntry = zipInputStream.getNextEntry()) != null) {

@@ -169,6 +169,6 @@ public class ContentUpdater {
     @VisibleForTesting
     void restartConsumerInfo() {
         contextIndex.index(
-                new ConsumerInfo(PluginSettings.CONSUMER_ID, PluginSettings.CONTEXT_ID, 0L, null));
+                new ConsumerInfo(PluginSettings.CONSUMER_ID, PluginSettings.CONTEXT_ID, 0L, 0L, null));
     }
 }
