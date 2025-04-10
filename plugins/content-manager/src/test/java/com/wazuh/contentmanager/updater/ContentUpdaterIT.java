@@ -19,57 +19,207 @@ package com.wazuh.contentmanager;
 import com.carrotsearch.randomizedtesting.annotations.ThreadLeakScope;
 
 import org.opensearch.action.support.WriteRequest;
+import org.opensearch.client.Client;
+import org.opensearch.common.xcontent.XContentFactory;
+import org.opensearch.core.xcontent.ToXContent;
+import org.opensearch.plugins.Plugin;
 import org.opensearch.test.OpenSearchIntegTestCase;
+import org.junit.Before;
+
+import java.util.*;
 
 import com.wazuh.contentmanager.client.CTIClient;
-import com.wazuh.contentmanager.model.ctiapi.ConsumerInfo;
+import com.wazuh.contentmanager.index.ContextIndex;
+import com.wazuh.contentmanager.model.ctiapi.*;
 import com.wazuh.contentmanager.updater.ContentUpdater;
-import com.wazuh.contentmanager.util.Privileged;
 
-import static org.hamcrest.Matchers.*;
+import static com.wazuh.contentmanager.settings.PluginSettings.CONSUMER_ID;
 import static com.wazuh.contentmanager.settings.PluginSettings.CONTEXT_ID;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 @ThreadLeakScope(ThreadLeakScope.Scope.NONE)
 @OpenSearchIntegTestCase.ClusterScope(scope = OpenSearchIntegTestCase.Scope.SUITE)
 public class ContentUpdaterIT extends OpenSearchIntegTestCase {
+    Long initialOffset = 0L;
+    ContentUpdater updater;
+    ContextIndex contextIndex;
+    CTIClient ctiClient;
 
-    public void testFetchAndApplyUpdates_appliesContentCorrectly() throws Exception {
-        // Given: a ContentUpdater with mocked dependencies
-        ContentUpdater updater = new ContentUpdater(client());
-
-        // Prepare the environment
-        prepareInitialConsumerInfo(0L); // Mock starting offset = 0
-
-        // Mock or create content that CTIClient would return if required
-        // You may want to inject a fake CTIClient in test scope, or use @VisibleForTesting override
-        // access
-
-        // When: fetch and apply updates
-        updater.fetchAndApplyUpdates(0L, 5000L);
-
-        // Then: assert changes were indexed properly
-        ConsumerInfo updatedConsumer =
-                Privileged.doPrivilegedRequest(() -> CTIClient.getInstance().getCatalog());
-        assertNotNull(updatedConsumer);
-        assertThat(updatedConsumer.getLastOffset(), greaterThan(0L));
+    @Before
+    public void setup() throws Exception {
+        Client client = client();
+        ctiClient = mock(CTIClient.class);
+        updater = new ContentUpdater(client, ctiClient);
+        contextIndex = new ContextIndex(client);
+        prepareInitialConsumerInfo(client, initialOffset);
+        //        prepareInitialCVEInfo(client);
+        Thread.sleep(1000);
     }
 
-    private void prepareInitialConsumerInfo(Long offset) throws Exception {
-        // Create a ConsumerInfo document manually in the test index
-        ConsumerInfo info = new ConsumerInfo("test-consumer", "test-context", offset, null);
+    @Override
+    protected Collection<Class<? extends Plugin>> nodePlugins() {
+        return Collections.singletonList(ContentManagerPlugin.class);
+    }
 
-        // Use your ContextIndex logic or raw index request
-        client()
-                .prepareIndex("wazuh-context-consumers")
-                .setId("test-context:test-consumer")
-                .setSource(
-                        "consumer_id",
-                        info.getName(),
-                        "context_id",
-                        CONTEXT_ID,
-                        "last_offset",
-                        info.getLastOffset())
+    //    public void testFetchAndApplyUpdates_appliesContentCorrectly() {
+    //        // Act
+    //        boolean updated = updater.fetchAndApplyUpdates(initialOffset, 10L);
+    //        ConsumerInfo updatedConsumer = contextIndex.getConsumer(CONTEXT_ID, CONSUMER_ID);
+    //        // Assert
+    //        assertTrue(updated);
+    //        assertNotNull(updatedConsumer);
+    //        assertEquals(10L, (long) updatedConsumer.getLastOffset());
+    //    }
+
+    public void testFetchAndApplyUpdates_ContentChangesTypeCreate() {
+        // Arrange
+        Long newOffset = 1L;
+        Offset createOffset =
+                new Offset(CONTEXT_ID, newOffset, "test", ContentType.CREATE, 1L, null, getDummyPayload());
+        ContentChanges contentChanges = new ContentChanges(List.of(createOffset));
+
+        // Mock
+        when(ctiClient.getChanges("0", "1", null)).thenReturn(contentChanges);
+        // Act
+        boolean updated = updater.fetchAndApplyUpdates(initialOffset, newOffset);
+        ConsumerInfo updatedConsumer = contextIndex.getConsumer(CONTEXT_ID, CONSUMER_ID);
+        // Assert
+        assertTrue(updated);
+        assertNotNull(updatedConsumer);
+        assertEquals(newOffset, updatedConsumer.getLastOffset());
+    }
+
+    public void testFetchAndApplyUpdates_ContentChangesTypeUpdate() {
+        // Arrange
+        Long newOffset = 2L;
+        PatchOperation operation = new PatchOperation("add", "/newField", null, "test");
+        // TODO: Add this offset as initial offset of wazuh-cve using prepare Index
+        Offset createOffset =
+                new Offset(
+                        CONTEXT_ID, newOffset - 1, "test", ContentType.CREATE, 1L, null, getDummyPayload());
+        Offset updateOffset =
+                new Offset(CONTEXT_ID, newOffset, "test", ContentType.UPDATE, 1L, List.of(operation), null);
+        ContentChanges contentChanges = new ContentChanges(List.of(createOffset, updateOffset));
+
+        // Mock
+        when(ctiClient.getChanges("0", "2", null)).thenReturn(contentChanges);
+        // Act
+        boolean updated = updater.fetchAndApplyUpdates(initialOffset, newOffset);
+        ConsumerInfo updatedConsumer = contextIndex.getConsumer(CONTEXT_ID, CONSUMER_ID);
+        // Assert
+        assertTrue(updated);
+        assertNotNull(updatedConsumer);
+        assertEquals(newOffset, updatedConsumer.getLastOffset());
+    }
+
+    //
+    //    public void testFetchAndApplyUpdates_ContentChangesTypeDelete() {
+    //        // Arrange
+    //        Long newOffset = 5L;
+    //        ContentChanges contentChanges =
+    //                new ContentChanges(
+    //                        List.of(new Offset("test", newOffset, "test", ContentType.DELETE, 1L,
+    // null, null)));
+    //        // Act
+    //        updater.fetchAndApplyUpdates(initialOffset, newOffset);
+    //        ConsumerInfo updatedConsumer = contextIndex.getConsumer(CONTEXT_ID, CONSUMER_ID);
+    //        // Assert
+    //        assertNotNull(updatedConsumer);
+    //        assertEquals(newOffset, updatedConsumer.getLastOffset());
+    //    }
+    //
+    //    public void testFetchAndApplyUpdates_noNewUpdates() {
+    //        // Arrange
+    //        Long currentOffset = 10L;
+    //        Long latestOffset = 10L;
+    //        // Act
+    //        boolean updated = updater.fetchAndApplyUpdates(currentOffset, latestOffset);
+    //        // Assert
+    //        assertFalse(updated);
+    //    }
+    //
+    //    public void testFetchAndApplyUpdates_errorFetchingChanges() {
+    //        // Arrange
+    //        Long currentOffset = 0L;
+    //        Long latestOffset = 10L;
+    //        // Act
+    //        Exception exception =
+    //                assertThrows(
+    //                        RuntimeException.class,
+    //                        () -> updater.fetchAndApplyUpdates(currentOffset, latestOffset));
+    //        // Assert
+    //        assertEquals("Unable to fetch changes for offsets 0 to 10", exception.getMessage());
+    //    }
+    //
+    //    public void testFetchAndApplyUpdates_errorOnPatchContextIndex() {
+    //        // Arrange
+    //        Long currentOffset = 0L;
+    //        Long latestOffset = 10L;
+    //        // Act
+    //        Exception exception =
+    //                assertThrows(
+    //                        RuntimeException.class,
+    //                        () -> updater.fetchAndApplyUpdates(currentOffset, latestOffset));
+    //        // Assert
+    //        assertEquals("Unable to fetch changes for offsets 0 to 10", exception.getMessage());
+    //    }
+    //
+    //    public void testFetchAndApplyUpdates_restartConsumerInfo() {
+    //        // Arrange
+    //        Long currentOffset = 0L;
+    //        Long latestOffset = 10L;
+    //        // Act
+    //        updater.fetchAndApplyUpdates(currentOffset, latestOffset);
+    //        ConsumerInfo updatedConsumer = contextIndex.getConsumer(CONTEXT_ID, CONSUMER_ID);
+    //        // Assert
+    //        assertNotNull(updatedConsumer);
+    //        assertEquals(0L, (long) updatedConsumer.getLastOffset());
+    //    }
+    //
+    //    public void testFetchAndApplyUpdates_postUpdateCommand() {
+    //        // Arrange
+    //        Long currentOffset = 0L;
+    //        Long latestOffset = 10L;
+    //        // Act
+    //        updater.fetchAndApplyUpdates(currentOffset, latestOffset);
+    //        ConsumerInfo updatedConsumer = contextIndex.getConsumer(CONTEXT_ID, CONSUMER_ID);
+    //        // Assert
+    //        assertNotNull(updatedConsumer);
+    //        assertEquals(10L, (long) updatedConsumer.getLastOffset());
+    //    }
+
+    /**
+     * Prepares the initial ConsumerInfo document in the test index.
+     *
+     * @param client The OpenSearch client.
+     * @param offset The initial offset to set.
+     * @throws Exception If an error occurs while preparing the document.
+     */
+    @SuppressWarnings("unchecked")
+    public void prepareInitialConsumerInfo(Client client, Long offset) throws Exception {
+        // Create a ConsumerInfo document manually in the test index
+        ConsumerInfo info = new ConsumerInfo(CONSUMER_ID, CONTEXT_ID, offset, null);
+
+        client
+                .prepareIndex("wazuh-context")
+                .setId(CONTEXT_ID)
+                .setSource(info.toXContent(XContentFactory.jsonBuilder(), ToXContent.EMPTY_PARAMS))
                 .setRefreshPolicy(WriteRequest.RefreshPolicy.IMMEDIATE)
                 .get();
+    }
+
+    public Map<String, Object> getDummyPayload() {
+        Map<String, Object> dummyPayload = new HashMap<>();
+        dummyPayload.put("name", "Dummy Threat");
+        dummyPayload.put("severity", "high");
+        dummyPayload.put("indicators", List.of("192.168.1.1", "example.com"));
+        return dummyPayload;
+    }
+
+    public void prepareInitialCVEInfo(Client client) throws Exception {
+        // Create a ConsumerInfo document manually in the test index
+
+        client.prepareIndex("wazuh-cve").setRefreshPolicy(WriteRequest.RefreshPolicy.IMMEDIATE).get();
     }
 }

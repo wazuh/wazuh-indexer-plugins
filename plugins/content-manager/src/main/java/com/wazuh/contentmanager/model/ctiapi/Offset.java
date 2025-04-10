@@ -270,8 +270,10 @@ public class Offset implements ToXContentObject {
         builder.field(TYPE, this.type);
         builder.field(VERSION, this.version);
         builder.startArray(OPERATIONS);
-        for (PatchOperation operation : operations) {
-            operation.toXContent(builder, ToXContentObject.EMPTY_PARAMS);
+        if (this.operations != null) {
+            for (PatchOperation operation : operations) {
+                operation.toXContent(builder, ToXContentObject.EMPTY_PARAMS);
+            }
         }
         builder.endArray();
         builder.field(PAYLOAD, this.payload);

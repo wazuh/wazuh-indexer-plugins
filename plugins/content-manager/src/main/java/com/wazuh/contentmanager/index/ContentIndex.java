@@ -159,15 +159,15 @@ public class ContentIndex {
         }
         // Iterate over the changes and apply them
         for (Offset change : changes.getChangesList()) {
-            log.debug("Processing change: {}", change);
+            log.info("Processing change: {}", change);
             try {
                 switch (change.getType()) {
                     case CREATE:
-                        log.debug("Creating new resource: {}", change.getResource());
+                        log.info("Creating new resource: {}", change.getResource());
                         this.index(change);
                         break;
                     case UPDATE:
-                        log.debug("Updating resource: {}", change.getResource());
+                        log.info("Updating resource: {}", change.getResource());
                         GetResponse getResponseUpdate = this.getWithTimeout(change.getResource());
                         if (!getResponseUpdate.isExists()) {
                             throw new IllegalArgumentException("Document not found");
