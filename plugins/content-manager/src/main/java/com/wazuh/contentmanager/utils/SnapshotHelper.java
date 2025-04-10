@@ -16,6 +16,8 @@
  */
 package com.wazuh.contentmanager.utils;
 
+import com.wazuh.contentmanager.client.CommandManagerClient;
+import com.wazuh.contentmanager.model.commandmanager.Command;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.opensearch.action.DocWriteResponse;
@@ -65,12 +67,18 @@ public final class SnapshotHelper {
                         for (Path path : stream) {
                             snapshotJson.add(path.toString());
                         }
+                        postUpdateCommand(contextIndex);
                     } catch (IOException e) {
                         log.error("Failed to find uncompressed JSON snapshot: {}", e.getMessage());
                     }
                     contentIndex.fromSnapshot(snapshotJson.get(0));
                     return null;
                 });
+    }
+
+    private static void postUpdateCommand(ContextIndex contextIndex) {
+        CommandManagerClient.getInstance()
+            .postCommand(Command.create(contextIndex.getLastOffset().toString()));
     }
 
     /**

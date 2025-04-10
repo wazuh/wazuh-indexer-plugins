@@ -174,6 +174,15 @@ public class ContextIndex {
     }
 
     /**
+     * Returns the current offset from the context index
+     *
+     * @return The long value of the offset
+     */
+    public Long getLastOffset() {
+        return getConsumer(PluginSettings.CONTEXT_ID, PluginSettings.CONSUMER_ID).getLastOffset();
+    }
+
+    /**
      * Returns the last snapshot link from the context index
      *
      * @return a String with the last snapshot link
