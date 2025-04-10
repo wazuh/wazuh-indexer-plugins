@@ -26,6 +26,10 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+/**
+ * Represents a command to refresh indices in the system. This class extends
+ * Args and provides a parser specifically for the "refresh" action type.
+ */
 public class RefreshCommand extends Args {
     private static final Logger log = LogManager.getLogger(RefreshCommand.class);
 

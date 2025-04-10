@@ -23,7 +23,11 @@ import org.opensearch.core.xcontent.XContentParser;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
-
+/**
+ * This class represents a command designed to update content within the system.
+ * It inherits from the Args class and contains the necessary logic to interpret
+ * arguments that are particular to the "update" action.
+ */
 public class UpdateContentCommand extends Args {
     private static final Logger log = LogManager.getLogger(UpdateContentCommand.class);
 

@@ -132,6 +132,33 @@ The command takes the `index` and `offset` arguments, strings depicting the inde
   ]
 }
 ```
+### refresh
+The `refresh` command is used to refresh the specified indices, ensuring that the most recent data is available for the system.
+
+Only accepted value for `target.type` is `server`. The `target.id` specifies the server's module that requires the refresh of the data.
+
+The command accepts an optional `index` argument, which can be an array of strings representing the indices to be refreshed. Any other value than a string or array is rejected. Additional arguments are ignored.
+``` json
+{
+  "commands": [
+    {
+      "action": {
+        "name": "refresh",
+        "args": {
+          "index": ["index-a", "index-b"], // Optional
+        },
+        "version": "5.0.0"
+      },
+      "source": "Users/Services",
+      "timeout": 100,
+      "target": {
+        "id": "rbac",
+        "type": "server"
+      }
+    }
+  ]
+}
+```
 
 ## Commands expansion
 
