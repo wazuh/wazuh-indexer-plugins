@@ -36,18 +36,14 @@ import org.opensearch.script.ScriptService;
 import org.opensearch.threadpool.ThreadPool;
 import org.opensearch.watcher.ResourceWatcherService;
 
-import java.util.Collection;
-import java.util.Collections;
-import java.util.List;
+import java.util.*;
 import java.util.function.Supplier;
 
-import com.wazuh.contentmanager.client.CTIClient;
 import com.wazuh.contentmanager.index.ContentIndex;
 import com.wazuh.contentmanager.index.ContextIndex;
-import com.wazuh.contentmanager.model.ctiapi.ConsumerInfo;
 import com.wazuh.contentmanager.rest.UpdaterHandler;
 import com.wazuh.contentmanager.settings.PluginSettings;
-import com.wazuh.contentmanager.util.Privileged;
+import com.wazuh.contentmanager.utils.SnapshotHelper;
 
 /** Main class of the Content Manager Plugin */
 public class ContentManagerPlugin extends Plugin implements ClusterPlugin, ActionPlugin {
@@ -71,6 +67,7 @@ public class ContentManagerPlugin extends Plugin implements ClusterPlugin, Actio
             Supplier<RepositoriesService> repositoriesServiceSupplier) {
         PluginSettings.getInstance(environment.settings(), clusterService);
         this.contextIndex = new ContextIndex(client);
+        this.contentIndex = new ContentIndex(client);
         this.environment = environment;
         return Collections.emptyList();
     }
@@ -95,35 +92,8 @@ public class ContentManagerPlugin extends Plugin implements ClusterPlugin, Actio
      */
     @Override
     public void onNodeStarted(DiscoveryNode localNode) {
-        ConsumerInfo consumerInfo =
-                Privileged.doPrivilegedRequest(() -> CTIClient.getInstance().getCatalog());
-        this.contextIndex.index(consumerInfo);
-
-        // Wrapping up for testing
-        //        Privileged.doPrivilegedRequest(
-        //                () -> {
-        //                    CTIClient.getInstance()
-        //                            .download(
-        //
-        // "https://cti.wazuh.com/store/contexts/vd_1.0.0/consumers/vd_4.8.0/1432540_1741603172.zip",
-        //                                    environment);
-        //                    String snapshotZip =
-        //
-        // this.environment.resolveRepoFile("1432540_1741603172.zip").toString();
-        //                    String snapshot =
-        //                            this.environment
-        //
-        // .resolveRepoFile("vd_1.0.0_vd_4.8.0_1432540_1741603172.json")
-        //                                    .toString();
-        //                    String dir = this.environment.resolveRepoFile("").toString();
-        //                    try {
-        //                        Unzip.unzip(snapshotZip, dir, this.environment);
-        //                    } catch (IOException e) {
-        //                        throw new RuntimeException(e);
-        //                    }
-        //                    this.contentIndex.fromSnapshot(snapshot);
-        //                    return null;
-        //                });
+        SnapshotHelper.getInstance(this.environment, this.contextIndex, this.contentIndex)
+                .initializeCVEIndex();
     }
 
     @Override

@@ -22,7 +22,7 @@ import org.opensearch.cluster.service.ClusterService;
 import org.opensearch.common.settings.Setting;
 import org.opensearch.common.settings.Settings;
 
-import com.wazuh.contentmanager.util.ClusterInfoHelper;
+import com.wazuh.contentmanager.utils.ClusterInfoHelper;
 import reactor.util.annotation.NonNull;
 
 /** Singleton class to manage the plugin's settings. */

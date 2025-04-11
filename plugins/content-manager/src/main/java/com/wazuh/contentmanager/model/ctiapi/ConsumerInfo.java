@@ -41,6 +41,7 @@ public class ConsumerInfo implements ToXContentObject {
     public static final String OPERATIONS = "operations";
     private final String context;
     private final String name;
+    private final Long offset;
     private final Long lastOffset;
     private final String lastSnapshotLink;
 
@@ -49,12 +50,15 @@ public class ConsumerInfo implements ToXContentObject {
      *
      * @param name Name of the consumer
      * @param context Name of the context
+     * @param offset The current offset number
      * @param lastOffset The last offset number
      * @param lastSnapshotLink URL link to the latest snapshot
      */
-    public ConsumerInfo(String name, String context, Long lastOffset, String lastSnapshotLink) {
+    public ConsumerInfo(
+            String name, String context, Long offset, Long lastOffset, String lastSnapshotLink) {
         this.name = name;
         this.context = context;
+        this.offset = offset;
         this.lastOffset = lastOffset;
         this.lastSnapshotLink = lastSnapshotLink;
     }
@@ -72,6 +76,8 @@ public class ConsumerInfo implements ToXContentObject {
         String context = null;
         String name = null;
         long lastOffset = 0L;
+        // We are initializing the offset to 0
+        long offset = 0L;
         String lastSnapshotLink = null;
         while (parser.nextToken() != XContentParser.Token.END_OBJECT) {
             if (parser.currentToken().equals(XContentParser.Token.FIELD_NAME)) {
@@ -106,7 +112,7 @@ public class ConsumerInfo implements ToXContentObject {
                 }
             }
         }
-        return new ConsumerInfo(name, context, lastOffset, lastSnapshotLink);
+        return new ConsumerInfo(name, context, offset, lastOffset, lastSnapshotLink);
     }
 
     /**
@@ -123,7 +129,7 @@ public class ConsumerInfo implements ToXContentObject {
         builder.startObject(this.name);
         builder.field(LAST_OFFSET, this.lastOffset);
         builder.field(LAST_SNAPSHOT_LINK, this.lastSnapshotLink);
-        builder.field(OFFSET, 0);
+        builder.field(OFFSET, this.offset);
         builder.endObject();
         return builder.endObject();
     }
@@ -161,6 +167,15 @@ public class ConsumerInfo implements ToXContentObject {
      */
     public Long getLastOffset() {
         return this.lastOffset;
+    }
+
+    /**
+     * Get the current offset number
+     *
+     * @return The offset as a Long value
+     */
+    public Long getOffset() {
+        return offset;
     }
 
     /**
