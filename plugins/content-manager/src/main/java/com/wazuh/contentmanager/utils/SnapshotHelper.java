@@ -16,8 +16,6 @@
  */
 package com.wazuh.contentmanager.utils;
 
-import com.wazuh.contentmanager.client.CommandManagerClient;
-import com.wazuh.contentmanager.model.commandmanager.Command;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.opensearch.action.DocWriteResponse;
@@ -32,8 +30,10 @@ import java.util.List;
 import java.util.Objects;
 
 import com.wazuh.contentmanager.client.CTIClient;
+import com.wazuh.contentmanager.client.CommandManagerClient;
 import com.wazuh.contentmanager.index.ContentIndex;
 import com.wazuh.contentmanager.index.ContextIndex;
+import com.wazuh.contentmanager.model.commandmanager.Command;
 import com.wazuh.contentmanager.model.ctiapi.ConsumerInfo;
 import com.wazuh.contentmanager.settings.PluginSettings;
 
@@ -78,7 +78,7 @@ public final class SnapshotHelper {
 
     private static void postUpdateCommand(ContextIndex contextIndex) {
         CommandManagerClient.getInstance()
-            .postCommand(Command.create(contextIndex.getLastOffset().toString()));
+                .postCommand(Command.create(contextIndex.getLastOffset().toString()));
     }
 
     /**
@@ -86,7 +86,7 @@ public final class SnapshotHelper {
      *
      * @param contextIndex the object in charge of indexing the data
      */
-    public static void updateContextIndex(ContextIndex contextIndex) {
+    public static void updateContextIndex(ContextIndex contextIndex) throws IOException {
         ConsumerInfo consumerInfo =
                 Privileged.doPrivilegedRequest(() -> CTIClient.getInstance().getCatalog());
 
@@ -96,7 +96,9 @@ public final class SnapshotHelper {
                 || Objects.requireNonNull(result) == DocWriteResponse.Result.UPDATED) {
             log.info("Successfully initialized consumer [{}]", consumerInfo.getContext());
         } else {
-            log.info("Consumer indexing operation returned with unexpected result [{}]", result);
+            throw new IOException(
+                    String.format(
+                            "Consumer indexing operation returned with unexpected result [%s]", result));
         }
     }
 }
