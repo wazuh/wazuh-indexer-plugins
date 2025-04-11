@@ -22,6 +22,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 ### Dependencies
 
 ### Changed
+- Glue logic to initialize the CVE index [#373](https://github.com/wazuh/wazuh-indexer-plugins/pull/373)
 - Refactor Content Manager's code and fix Catalog info indexing [(#317)](https://github.com/wazuh/wazuh-indexer-plugins/pull/317)
 - Improved mdbook installation instructions [#332](https://github.com/wazuh/wazuh-indexer-plugins/pull/332)
 - Third-party integrations maintenance [(#299)](https://github.com/wazuh/wazuh-indexer-plugins/pull/299)
