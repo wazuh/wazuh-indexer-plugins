@@ -18,6 +18,7 @@ package com.wazuh.contentmanager;
 
 import com.carrotsearch.randomizedtesting.annotations.ThreadLeakScope;
 
+import org.opensearch.action.get.GetResponse;
 import org.opensearch.action.support.WriteRequest;
 import org.opensearch.client.Client;
 import org.opensearch.common.xcontent.XContentFactory;
@@ -47,6 +48,7 @@ import static org.mockito.Mockito.when;
 @OpenSearchIntegTestCase.ClusterScope(scope = OpenSearchIntegTestCase.Scope.SUITE)
 public class ContentUpdaterIT extends OpenSearchIntegTestCase {
     Long initialOffset = 0L;
+    String testResource = "test";
     ContentUpdater updater;
     ContextIndex contextIndex;
     ContentIndex contentIndex;
@@ -61,7 +63,6 @@ public class ContentUpdaterIT extends OpenSearchIntegTestCase {
         contentIndex = new ContentIndex(client);
         prepareInitialCVEInfo(client, initialOffset);
         prepareInitialConsumerInfo(client, initialOffset);
-        Thread.sleep(1000);
     }
 
     @Override
@@ -119,12 +120,12 @@ public class ContentUpdaterIT extends OpenSearchIntegTestCase {
         boolean updated = updater.fetchAndApplyUpdates(initialOffset, offsetId);
         Thread.sleep(5000);
         ConsumerInfo updatedConsumer = contextIndex.getConsumer(CONTEXT_ID, CONSUMER_ID);
+        GetResponse getContent = contentIndex.get(testResource).get(TIMEOUT, TimeUnit.SECONDS);
         // Assert
         assertTrue(updated);
         assertNotNull(updatedConsumer);
         assertEquals(offsetId, updatedConsumer.getLastOffset());
-        assertFalse(
-                contentIndex.get(deleteOffset.getResource()).get(TIMEOUT, TimeUnit.SECONDS).isExists());
+        assertFalse(getContent.isExists());
     }
 
     private Offset getOffset(Long id, ContentType type) {
@@ -137,7 +138,7 @@ public class ContentUpdaterIT extends OpenSearchIntegTestCase {
             payload.put("name", "Dummy Threat");
             payload.put("indicators", List.of("192.168.1.1", "example.com"));
         }
-        return new Offset(CONTEXT_ID, id, "test", type, 1L, operations, payload);
+        return new Offset(CONTEXT_ID, id, testResource, type, 1L, operations, payload);
     }
 
     /**
@@ -153,26 +154,18 @@ public class ContentUpdaterIT extends OpenSearchIntegTestCase {
         ConsumerInfo info = new ConsumerInfo(CONSUMER_ID, CONTEXT_ID, offset, null);
 
         client
-                .prepareIndex("wazuh-context")
+                .prepareIndex(ContextIndex.INDEX_NAME)
                 .setId(CONTEXT_ID)
                 .setSource(info.toXContent(XContentFactory.jsonBuilder(), ToXContent.EMPTY_PARAMS))
                 .setRefreshPolicy(WriteRequest.RefreshPolicy.IMMEDIATE)
                 .get();
     }
 
-    public Map<String, Object> getDummyPayload() {
-        Map<String, Object> dummyPayload = new HashMap<>();
-        dummyPayload.put("name", "Dummy Threat");
-        dummyPayload.put("severity", "high");
-        dummyPayload.put("indicators", List.of("192.168.1.1", "example.com"));
-        return dummyPayload;
-    }
-
     public void prepareInitialCVEInfo(Client client, Long offsetId) throws Exception {
         // Create a ConsumerInfo document manually in the test index
         Offset offset = getOffset(offsetId, ContentType.CREATE);
         client
-                .prepareIndex("wazuh-cve")
+                .prepareIndex(ContentIndex.INDEX_NAME)
                 .setId(CONTEXT_ID)
                 .setSource(offset.toXContent(XContentFactory.jsonBuilder(), ToXContent.EMPTY_PARAMS))
                 .setRefreshPolicy(WriteRequest.RefreshPolicy.IMMEDIATE)

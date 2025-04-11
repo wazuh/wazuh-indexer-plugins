@@ -114,7 +114,7 @@ public class ContentUpdaterTests extends OpenSearchIntegTestCase {
     //        // Act
     //        contentUpdaterSpy.fetchAndApplyUpdates(null, null);
     //        // Assert
-    //        verify(contentUpdaterSpy, times(1)).restartConsumerInfo();
+    //        verify(contentUpdaterSpy, times(1)).resetConsumerOffset();
     //    }
 
     /**

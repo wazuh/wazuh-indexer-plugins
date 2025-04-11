@@ -75,9 +75,7 @@ public class ContentIndexTests extends OpenSearchIntegTestCase {
         // Mock JsonObject
         JsonObject json = new JsonObject();
         json.addProperty("field", "value");
-        when(mockResponse.getSourceAsString()).thenReturn(json.toString());
-        // Mock getWithTimeout() to return the mocked GetResponse
-        doReturn(mockResponse).when(contentIndexSpy).getWithTimeout(any());
+        doReturn(json).when(contentIndexSpy).getAsJson(any());
         // Mock index() to avoid actual client call
         doNothing().when(contentIndexSpy).index(any());
         // Arrange

@@ -16,7 +16,6 @@
  */
 package com.wazuh.contentmanager.index;
 
-import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import org.apache.logging.log4j.LogManager;
@@ -56,64 +55,62 @@ import com.wazuh.contentmanager.model.ctiapi.ContentChanges;
 import com.wazuh.contentmanager.model.ctiapi.Offset;
 import com.wazuh.contentmanager.model.ctiapi.PatchOperation;
 import com.wazuh.contentmanager.util.JsonPatch;
-import com.wazuh.contentmanager.util.VisibleForTesting;
 
-/** Class to manage the Content Manager index. */
+/** Manages operations for the Wazuh CVE content index. */
 public class ContentIndex {
     private static final Logger log = LogManager.getLogger(ContentIndex.class);
-
-    private static final String INDEX_NAME = "wazuh-cve";
-    private final int MAX_DOCUMENTS = 25;
+    private static final int MAX_DOCUMENTS = 25;
     private static final int MAX_CONCURRENT_PETITIONS = 5;
+    public static final String INDEX_NAME = "wazuh-cve";
     public static final Long TIMEOUT = 10L;
 
     private final Client client;
     private final Semaphore semaphore = new Semaphore(MAX_CONCURRENT_PETITIONS);
 
-    /**
-     * Default constructor
-     *
-     * @param client OpenSearch client.
-     */
     public ContentIndex(Client client) {
         this.client = client;
     }
 
+    /**
+     * Indexes a single Offset document.
+     *
+     * @param document the Offset document to be indexed.
+     */
     public void index(Offset document) {
-        IndexRequest indexRequest = null;
         try {
-            indexRequest =
+            IndexRequest indexRequest =
                     new IndexRequest()
                             .index(INDEX_NAME)
                             .source(document.toXContent(XContentFactory.jsonBuilder(), ToXContent.EMPTY_PARAMS))
                             .id(document.getResource());
-        } catch (IOException e) {
-            log.error("Failed to create JSON content builder: {}", e.getMessage());
-        }
-        this.client.index(
-                indexRequest,
-                new ActionListener<>() {
-                    @Override
-                    public void onResponse(IndexResponse indexResponse) {
-                        log.info("Indexed CTI Catalog Content {} to index", document.getResource());
-                    }
+            client.index(
+                    indexRequest,
+                    new ActionListener<>() {
+                        @Override
+                        public void onResponse(IndexResponse indexResponse) {
+                            log.info("Indexed CTI Catalog Content {} to index", document.getResource());
+                        }
 
-                    @Override
-                    public void onFailure(Exception e) {
-                        log.error(
-                                "Failed to index CTI Catalog Content {}, Exception: {}",
-                                document.getResource(),
-                                e.getStackTrace());
-                    }
-                });
+                        @Override
+                        public void onFailure(Exception e) {
+                            log.error(
+                                    "Failed to index CTI Catalog Content {}: {}",
+                                    document.getResource(),
+                                    e.getMessage(),
+                                    e);
+                        }
+                    });
+        } catch (IOException e) {
+            log.error("Failed to create JSON content builder: {}", e.getMessage(), e);
+        }
     }
 
     /**
-     * Index an array of JSON objects using a BulkRequest
+     * Indexes a list of JSON documents in bulk.
      *
-     * @param documents the array of objects
+     * @param documents list of JSON documents to be indexed.
      */
-    private void indexBulk(List<JsonObject> documents) {
+    public void indexBulk(List<JsonObject> documents) {
         BulkRequest bulkRequest = new BulkRequest(INDEX_NAME);
         log.info("Indexing {} documents", documents.size());
         for (JsonObject document : documents) {
@@ -134,7 +131,7 @@ public class ContentIndex {
                                     "Snapshot indexing bulk request failed: {}", bulkResponse.buildFailureMessage());
                         } else {
                             log.debug(
-                                    "Snapshot indexing bulk request was successful: took [{}]ms",
+                                    "Snapshot indexing bulk request succeeded in {} ms",
                                     bulkResponse.getTook().millis());
                         }
                     }
@@ -142,62 +139,47 @@ public class ContentIndex {
                     @Override
                     public void onFailure(Exception e) {
                         semaphore.release();
-                        log.error("Snapshot indexing bulk request has failed: {}", e.getMessage());
+                        log.error("Snapshot indexing bulk request failed: {}", e.getMessage(), e);
                     }
                 });
     }
 
     /**
-     * Patch the content of the current snapshot with the changes provided in JSON Patch format.
+     * Applies a set of changes (create, update, delete) to the content index.
      *
-     * @param changes the ContextChanges to patch the existing document.
+     * @param changes content changes to apply.
      */
     public void patch(ContentChanges changes) {
         if (changes.getChangesList().isEmpty()) {
             log.info("No changes to apply");
             return;
         }
-        // Iterate over the changes and apply them
+
         for (Offset change : changes.getChangesList()) {
-            log.info("Processing change: {}", change);
             try {
+                log.info("Processing change: {}", change);
                 switch (change.getType()) {
                     case CREATE:
-                        log.info("Creating new resource: {}", change.getResource());
+                        log.debug("Creating new resource: {}", change.getResource());
                         this.index(change);
                         break;
                     case UPDATE:
-                        log.info("Updating resource: {}", change.getResource());
-                        GetResponse getResponseUpdate = this.getWithTimeout(change.getResource());
-                        if (!getResponseUpdate.isExists()) {
-                            throw new IllegalArgumentException("Document not found");
+                        log.debug("Updating resource: {}", change.getResource());
+                        JsonObject content = getAsJson(change.getResource());
+                        for (PatchOperation op : change.getOperations()) {
+                            JsonPatch.applyOperation(content, xContentObjectToJson(op));
                         }
-                        String responseString = getResponseUpdate.getSourceAsString();
-                        JsonObject document = JsonParser.parseString(responseString).getAsJsonObject();
-                        for (PatchOperation operation : change.getOperations()) {
-                            JsonPatch.applyOperation(document, xContentObjectToJson(operation));
-                        }
-                        log.info("Updating with document {}", document);
                         try (XContentParser parser =
                                 XContentType.JSON
                                         .xContent()
                                         .createParser(
                                                 NamedXContentRegistry.EMPTY,
                                                 DeprecationHandler.THROW_UNSUPPORTED_OPERATION,
-                                                document.toString())) {
-                            Offset updatedOffset = Offset.parse(parser);
-                            this.index(updatedOffset);
-                        } catch (IOException e) {
-                            log.error(
-                                    "Failed to parse updated document for {}: {}",
-                                    change.getResource(),
-                                    e.getMessage(),
-                                    e);
-                            throw e;
+                                                content.toString())) {
+                            this.index(Offset.parse(parser));
                         }
                         break;
                     case DELETE:
-                        log.debug("Deleting resource: {}", change.getResource());
                         this.delete(change.getResource());
                         break;
                     default:
@@ -205,7 +187,6 @@ public class ContentIndex {
                 }
             } catch (InterruptedException e) {
                 Thread.currentThread().interrupt();
-                log.error("Thread interrupted while processing change: {}", change.getResource(), e);
                 throw new RuntimeException("Interrupted while patching", e);
             } catch (Exception e) {
                 log.error("Failed to apply patch to {}: {}", change.getResource(), e.getMessage(), e);
@@ -214,40 +195,49 @@ public class ContentIndex {
         }
     }
 
+    /**
+     * Retrieves a document from the index.
+     *
+     * @param id ID of the document to retrieve.
+     * @return CompletableFuture containing the GetResponse.
+     */
     public CompletableFuture<GetResponse> get(String id) {
         CompletableFuture<GetResponse> future = new CompletableFuture<>();
-        GetRequest getRequest = new GetRequest(INDEX_NAME, id);
         client.get(
-                getRequest,
+                new GetRequest(INDEX_NAME, id),
                 new ActionListener<>() {
                     @Override
-                    public void onResponse(GetResponse getResponse) {
+                    public void onResponse(GetResponse response) {
                         log.info("Retrieved CTI Catalog Content {} from index", id);
-                        future.complete(getResponse);
+                        future.complete(response);
                     }
 
                     @Override
                     public void onFailure(Exception e) {
-                        log.error("Failed to retrieve CTI Catalog Content {}, Exception: {}", id, e);
+                        log.error("Failed to retrieve CTI Catalog Content {}: {}", id, e.getMessage(), e);
                         future.completeExceptionally(e);
                     }
                 });
         return future;
     }
 
+    /**
+     * Deletes a document from the index.
+     *
+     * @param id ID of the document to delete.
+     */
     public void delete(String id) {
-        DeleteRequest deleteRequest = new DeleteRequest(INDEX_NAME, id);
         client.delete(
-                deleteRequest,
+                new DeleteRequest(INDEX_NAME, id),
                 new ActionListener<>() {
                     @Override
-                    public void onResponse(DeleteResponse deleteResponse) {
+                    public void onResponse(DeleteResponse response) {
                         log.info("Deleted CTI Catalog Content {} from index", id);
                     }
 
                     @Override
                     public void onFailure(Exception e) {
-                        log.error("Failed to delete CTI Catalog Content {}, Exception: {}", id, e);
+                        log.error("Failed to delete CTI Catalog Content {}: {}", id, e.getMessage(), e);
                     }
                 });
     }
@@ -301,18 +291,37 @@ public class ContentIndex {
         log.info("Snapshot indexing finished successfully in {} ms", estimatedTime);
     }
 
+    /**
+     * Converts a ToXContentObject to a JsonObject. TODO: Move to a generic util
+     *
+     * @param content the ToXContentObject to convert.
+     * @return the converted JsonObject.
+     * @throws IOException if an error occurs during conversion.
+     */
     private static JsonObject xContentObjectToJson(ToXContentObject content) throws IOException {
         XContentBuilder builder = XContentFactory.jsonBuilder();
         content.toXContent(builder, ToXContent.EMPTY_PARAMS);
-        JsonElement element = JsonParser.parseString(builder.toString());
-        return element.getAsJsonObject();
+        return JsonParser.parseString(builder.toString()).getAsJsonObject();
     }
 
-    @VisibleForTesting
-    GetResponse getWithTimeout(String resourceId)
+    /**
+     * Returns a Content in JsonObject format.
+     *
+     * @param resourceId the ID of the resource to retrieve.
+     * @return the JsonObject representation of the content.
+     * @throws InterruptedException if the operation is interrupted.
+     * @throws ExecutionException if an error occurs during execution.
+     * @throws TimeoutException if the operation times out.
+     * @throws IllegalArgumentException if the content is not found.
+     */
+    public JsonObject getAsJson(String resourceId)
             throws InterruptedException, ExecutionException, TimeoutException {
         try {
-            return this.get(resourceId).get(TIMEOUT, TimeUnit.SECONDS);
+            GetResponse response = this.get(resourceId).get(TIMEOUT, TimeUnit.SECONDS);
+            if (!response.isExists()) {
+                throw new IllegalArgumentException("Content not found");
+            }
+            return JsonParser.parseString(response.getSourceAsString()).getAsJsonObject();
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
             throw e;

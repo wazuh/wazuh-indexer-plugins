@@ -35,10 +35,10 @@ import static com.wazuh.contentmanager.settings.PluginSettings.CONTEXT_ID;
 
 /** Class responsible for managing content updates by fetching and applying changes in chunks. */
 public class ContentUpdater {
-    private static final Integer CHUNK_MAX_SIZE = 1000;
+    private static final int CHUNK_MAX_SIZE = 1000;
     private static final Logger log = LogManager.getLogger(ContentUpdater.class);
     private final ContextIndex contextIndex;
-    private final ContentIndex ContentIndex;
+    private final ContentIndex contentIndex;
     private final CTIClient ctiClient;
 
     /** Exception thrown by the Content Updater in case of errors. */
@@ -54,9 +54,9 @@ public class ContentUpdater {
         }
     }
 
-    // New constructor for test injection
+    // Constructor for test injection
     public ContentUpdater(Client client, CTIClient ctiClient) {
-        this.ContentIndex = new ContentIndex(client);
+        this.contentIndex = new ContentIndex(client);
         this.contextIndex = new ContextIndex(client);
         this.ctiClient = ctiClient;
     }
@@ -74,58 +74,46 @@ public class ContentUpdater {
      * Fetches and applies content updates in chunks from the current stored offset to the latest
      * available offset. It iterates over the updates and applies them in batch processing.
      *
-     * @param from [PlaceHolderForTesting] Offset to start fetching updates from. TODO: Remove.
-     * @param to [PlaceHolderForTesting] Offset to end fetching updates to. TODO: Remove.
+     * @param from [PlaceHolderForTesting] Offset to start updates from. TODO: Remove on JobScheduler
+     *     implementation.
+     * @param to [PlaceHolderForTesting] Offset to end updates to. TODO: Remove on JobScheduler
+     *     implementation.
      * @throws ContentUpdateException If there was an error fetching the changes.
      */
     public boolean fetchAndApplyUpdates(Long from, Long to) throws ContentUpdateException {
-        // Placeholder for testing purposes. TODO: Remove.
-        Long currentOffset;
-        Long lastOffset;
-        if (from != null) {
-            currentOffset = from;
-        } else {
-            currentOffset = this.getCurrentOffset();
-        }
-        if (to != null) {
-            lastOffset = to;
-        } else {
-            lastOffset = this.getLatestOffset();
-        }
-        log.info("Current offset: {}, Last offset: {}", currentOffset, lastOffset);
+        // 'from' and ''to are placeholder for testing purposes. TODO: Remove.
+        Long currentOffset = (from != null) ? from : getCurrentOffset();
+        Long lastOffset = (to != null) ? to : getLatestOffset();
+        log.debug("Current offset: {}, Last offset: {}", currentOffset, lastOffset);
 
-        if (lastOffset <= currentOffset) {
+        if (lastOffset.compareTo(currentOffset) <= 0) {
             log.info("No new updates available. Current offset ({}) is up to date.", currentOffset);
             return true;
         }
 
-        log.info("New offsets available updating to offset: {}", lastOffset);
+        log.info("New updates available. Processing from offset {} to {}", currentOffset, lastOffset);
         while (currentOffset < lastOffset) {
             Long nextOffset = Math.min(currentOffset + CHUNK_MAX_SIZE, lastOffset);
-            ContentChanges changes =
-                    this.getContextChanges(currentOffset.toString(), nextOffset.toString());
-            log.info("Fetched offsets from {} to {}", currentOffset, nextOffset);
+            ContentChanges changes = getContextChanges(currentOffset.toString(), nextOffset.toString());
+            log.debug("Fetched offsets from {} to {}", currentOffset, nextOffset);
 
-            // If there is an error fetching the changes, stop the process.
             if (changes == null) {
                 log.error("Unable to fetch changes for offsets {} to {}", currentOffset, nextOffset);
-                restartConsumerInfo();
+                resetConsumerOffset();
                 return false;
             }
-            // Apply the fetched changes to the indexed context.
-            if (!this.patchContextIndex(changes)) {
-                // If there was an error applying the changes, restart the consumer info.
-                restartConsumerInfo();
-                log.warn("Restarted consumer info. Current offset set to 0.");
+
+            if (!patchContextIndex(changes)) {
+                resetConsumerOffset();
                 return false;
             }
 
             currentOffset = nextOffset;
-            log.info("Update current offset to {}", currentOffset);
+            log.debug("Update current offset to {}", currentOffset);
             contextIndex.index(new ConsumerInfo(CONSUMER_ID, CONTEXT_ID, currentOffset, null));
         }
 
-        //        this.postUpdateCommand();
+        // this.postUpdateCommand();
         return true;
     }
 
@@ -138,8 +126,7 @@ public class ContentUpdater {
      */
     @VisibleForTesting
     public ContentChanges getContextChanges(String fromOffset, String toOffset) {
-        return Privileged.doPrivilegedRequest(
-                () -> this.ctiClient.getChanges(fromOffset, toOffset, null));
+        return Privileged.doPrivilegedRequest(() -> ctiClient.getChanges(fromOffset, toOffset, null));
     }
 
     /**
@@ -160,7 +147,8 @@ public class ContentUpdater {
      */
     @VisibleForTesting
     public Long getCurrentOffset() {
-        return contextIndex.getConsumer(CONTEXT_ID, CONSUMER_ID).getLastOffset();
+        ConsumerInfo consumer = contextIndex.getConsumer(CONTEXT_ID, CONSUMER_ID);
+        return consumer != null ? consumer.getLastOffset() : 0L;
     }
 
     /**
@@ -172,20 +160,17 @@ public class ContentUpdater {
     @VisibleForTesting
     boolean patchContextIndex(ContentChanges changes) {
         try {
-            // Apply the changes to the context index.
-            ContentIndex.patch(changes);
+            contentIndex.patch(changes);
+            return true;
         } catch (RuntimeException e) {
-            log.error("Failed to apply changes to content index: {}", e.toString());
+            log.error("Failed to apply changes to content index", e);
             return false;
         }
-
-        return true;
     }
 
     /** Posts a new command to the Command Manager informing about the new changes. */
     @VisibleForTesting
     void postUpdateCommand() {
-        // Post new command informing the new changes.
         Privileged.doPrivilegedRequest(
                 () -> {
                     CommandManagerClient.getInstance()
@@ -196,7 +181,8 @@ public class ContentUpdater {
 
     /** Resets the consumer info by setting its last offset to zero. */
     @VisibleForTesting
-    void restartConsumerInfo() {
+    void resetConsumerOffset() {
         contextIndex.index(new ConsumerInfo(CONSUMER_ID, CONTEXT_ID, 0L, null));
+        log.warn("Restarted consumer info. Current offset set to 0.");
     }
 }
