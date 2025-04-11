@@ -82,7 +82,6 @@ public class ContentUpdater {
      * @throws ContentUpdateException If there was an error fetching the changes.
      */
     public boolean fetchAndApplyUpdates() throws ContentUpdateException {
-        // 'from' and ''to are placeholder for testing purposes. TODO: Remove.
         Long currentOffset = getCurrentOffset();
         Long lastOffset = getLatestOffset();
         log.debug("Current offset: {}, Last offset: {}", currentOffset, lastOffset);
@@ -104,7 +103,7 @@ public class ContentUpdater {
                 return false;
             }
 
-            if (!patchContextIndex(changes)) {
+            if (!applyChangesToContextIndex(changes)) {
                 resetConsumerOffset();
                 return false;
             }
@@ -159,7 +158,7 @@ public class ContentUpdater {
      * @return true if the changes were successfully applied, false otherwise.
      */
     @VisibleForTesting
-    boolean patchContextIndex(ContentChanges changes) {
+    boolean applyChangesToContextIndex(ContentChanges changes) {
         try {
             contentIndex.patch(changes);
             return true;
