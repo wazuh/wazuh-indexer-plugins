@@ -36,26 +36,69 @@ import com.wazuh.contentmanager.index.ContextIndex;
 import com.wazuh.contentmanager.model.commandmanager.Command;
 import com.wazuh.contentmanager.model.ctiapi.ConsumerInfo;
 import com.wazuh.contentmanager.settings.PluginSettings;
+import reactor.util.annotation.NonNull;
 
 /** Helper class to handle indexing of snapshots */
 public final class SnapshotHelper {
 
     private static final Logger log = LogManager.getLogger(SnapshotHelper.class);
+    private static SnapshotHelper instance;
+    private final Environment environment;
+    private final ContextIndex contextIndex;
+    private final ContentIndex contentIndex;
+
+    private SnapshotHelper(
+            @NonNull Environment environment,
+            @NonNull ContextIndex contextIndex,
+            @NonNull ContentIndex contentIndex) {
+        this.environment = environment;
+        this.contextIndex = contextIndex;
+        this.contentIndex = contentIndex;
+    }
 
     /**
-     * Download, decompress and index a CTI snapshot
+     * Getter for the singleton object
      *
-     * @param environment necessary for file handling
-     * @param contextIndex Needed for interactions with the context index
-     * @param contentIndex Used to interact with the content index
+     * @param environment The environment to create files within
+     * @param contextIndex The object in charge of indexing operations on the wazuh-context index
+     * @param contentIndex The object in charge of indexing to the wazuh-cve index
+     * @return a SnapshotHelper instance
      */
-    public static void indexSnapshot(
-            Environment environment, ContextIndex contextIndex, ContentIndex contentIndex) {
+    public static synchronized SnapshotHelper getInstance(
+            @NonNull Environment environment,
+            @NonNull ContextIndex contextIndex,
+            @NonNull ContentIndex contentIndex) {
+        if (instance == null) {
+            instance = new SnapshotHelper(environment, contextIndex, contentIndex);
+        }
+        return instance;
+    }
+
+    /**
+     * Getter for the singleton object
+     *
+     * @return a SnapshotHelper instance
+     * @throws IllegalStateException if the object was not initialized
+     */
+    public static synchronized SnapshotHelper getInstance() throws IllegalStateException {
+        if (instance == null) {
+            throw new IllegalStateException(
+                    "Call getInstance(environment, contextIndex, contentIndex) first");
+        }
+        return instance;
+    }
+
+    /** Download, decompress and index a CTI snapshot */
+    private void indexSnapshot() {
+        if (this.contextIndex.getOffset() > 0) {
+            return;
+        }
         Privileged.doPrivilegedRequest(
                 () -> {
                     Path snapshotZip =
-                            CTIClient.getInstance().download(contextIndex.getLastSnapshotLink(), environment);
-                    Path outputDir = environment.resolveRepoFile("");
+                            CTIClient.getInstance()
+                                    .download(this.contextIndex.getLastSnapshotLink(), this.environment);
+                    Path outputDir = this.environment.resolveRepoFile("");
 
                     List<String> snapshotJson = new ArrayList<>();
                     try (DirectoryStream<Path> stream =
@@ -67,30 +110,31 @@ public final class SnapshotHelper {
                         for (Path path : stream) {
                             snapshotJson.add(path.toString());
                         }
-                        postUpdateCommand(contextIndex);
+                        postUpdateCommand();
                     } catch (IOException e) {
                         log.error("Failed to find uncompressed JSON snapshot: {}", e.getMessage());
                     }
-                    contentIndex.fromSnapshot(snapshotJson.get(0));
+                    this.contentIndex.fromSnapshot(snapshotJson.get(0));
                     return null;
                 });
     }
 
-    private static void postUpdateCommand(ContextIndex contextIndex) {
+    /** Posts a command to the command manager API on a successful snapshot operation */
+    private void postUpdateCommand() {
         CommandManagerClient.getInstance()
-                .postCommand(Command.create(contextIndex.getLastOffset().toString()));
+                .postCommand(Command.create(this.contextIndex.getLastOffset().toString()));
     }
 
     /**
      * Updates the context index with data from the CTI API
      *
-     * @param contextIndex the object in charge of indexing the data
+     * @throws IOException thrown when indexing failed
      */
-    public static void updateContextIndex(ContextIndex contextIndex) throws IOException {
+    private void updateContextIndex() throws IOException {
         ConsumerInfo consumerInfo =
                 Privileged.doPrivilegedRequest(() -> CTIClient.getInstance().getCatalog());
 
-        DocWriteResponse.Result result = contextIndex.index(consumerInfo).getResult();
+        DocWriteResponse.Result result = this.contextIndex.index(consumerInfo).getResult();
 
         if (Objects.requireNonNull(result) == DocWriteResponse.Result.CREATED
                 || Objects.requireNonNull(result) == DocWriteResponse.Result.UPDATED) {
@@ -99,6 +143,16 @@ public final class SnapshotHelper {
             throw new IOException(
                     String.format(
                             "Consumer indexing operation returned with unexpected result [%s]", result));
+        }
+    }
+
+    /** Trigger method for a CVE index initialization from a snapshot */
+    public void initializeCVEIndex() {
+        try {
+            updateContextIndex();
+            indexSnapshot();
+        } catch (IOException e) {
+            log.error("Failed to initialize CVE Index from snapshot: {}", e.getMessage());
         }
     }
 }

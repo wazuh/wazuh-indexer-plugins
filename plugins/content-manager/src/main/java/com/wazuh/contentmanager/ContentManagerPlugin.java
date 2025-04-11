@@ -36,7 +36,6 @@ import org.opensearch.script.ScriptService;
 import org.opensearch.threadpool.ThreadPool;
 import org.opensearch.watcher.ResourceWatcherService;
 
-import java.io.IOException;
 import java.util.*;
 import java.util.function.Supplier;
 
@@ -93,17 +92,8 @@ public class ContentManagerPlugin extends Plugin implements ClusterPlugin, Actio
      */
     @Override
     public void onNodeStarted(DiscoveryNode localNode) {
-        try {
-            SnapshotHelper.updateContextIndex(this.contextIndex);
-        } catch (IOException e) {
-            return;
-        }
-
-        if (this.contextIndex.getOffset() != 0) {
-            return;
-        }
-
-        SnapshotHelper.indexSnapshot(this.environment, this.contextIndex, this.contentIndex);
+        SnapshotHelper.getInstance(this.environment, this.contextIndex, this.contentIndex)
+                .initializeCVEIndex();
     }
 
     @Override
