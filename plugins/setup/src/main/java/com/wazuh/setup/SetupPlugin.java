@@ -51,6 +51,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.function.Supplier;
 
 import com.wazuh.setup.index.WazuhIndices;
+import com.wazuh.setup.index.WazuhRBAC;
 import com.wazuh.setup.jobscheduler.AgentJobParameter;
 import com.wazuh.setup.jobscheduler.AgentJobRunner;
 import com.wazuh.setup.jobscheduler.JobDocument;
@@ -64,6 +65,7 @@ public class SetupPlugin extends Plugin implements ClusterPlugin, JobSchedulerEx
     private static final Logger log = LogManager.getLogger(SetupPlugin.class);
 
     private WazuhIndices indices;
+    private WazuhRBAC rbac;
     private JobDocument jobDocument;
 
     /** Default constructor */
@@ -83,6 +85,7 @@ public class SetupPlugin extends Plugin implements ClusterPlugin, JobSchedulerEx
             IndexNameExpressionResolver indexNameExpressionResolver,
             Supplier<RepositoriesService> repositoriesServiceSupplier) {
         this.indices = new WazuhIndices(client, clusterService);
+        this.rbac = new WazuhRBAC(client);
         PluginSettings.getInstance(environment.settings());
 
         AgentJobRunner.getInstance()
@@ -98,6 +101,7 @@ public class SetupPlugin extends Plugin implements ClusterPlugin, JobSchedulerEx
     @Override
     public void onNodeStarted(DiscoveryNode localNode) {
         this.indices.initialize();
+        this.rbac.initialize();
     }
 
     /**
