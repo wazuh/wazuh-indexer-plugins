@@ -101,7 +101,7 @@ public final class SnapshotHelper {
                                     .download(this.contextIndex.getLastSnapshotLink(), this.environment);
                     Path outputDir = this.environment.resolveRepoFile("");
 
-                    List<String> snapshotJson = new ArrayList<>();
+                    List<Path> snapshotJson = new ArrayList<>();
                     try (DirectoryStream<Path> stream =
                             Files.newDirectoryStream(
                                     outputDir,
@@ -109,12 +109,15 @@ public final class SnapshotHelper {
                                             "%s_%s_*.json", PluginSettings.CONTEXT_ID, PluginSettings.CONSUMER_ID))) {
                         Unzip.unzip(snapshotZip, outputDir);
                         for (Path path : stream) {
-                            snapshotJson.add(path.toString());
+                            snapshotJson.add(path);
                         }
                         this.contentIndex.fromSnapshot(snapshotJson.get(0));
                         postUpdateCommand();
-                    } catch (IOException | ExecutionException | InterruptedException e) {
-                        log.error("Failed to find uncompressed JSON snapshot: {}", e.getMessage());
+                        this.contentIndex.fromSnapshot(snapshotJson.get(0).toString());
+                        Files.deleteIfExists(snapshotZip);
+                        Files.deleteIfExists(snapshotJson.get(0));
+                    } catch (IOException e) {
+                        log.error("Failed to index snapshot: {}", e.getMessage());
                     }
                     return null;
                 });
