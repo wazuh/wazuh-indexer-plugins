@@ -121,6 +121,7 @@ public class ContentUpdater {
             }
 
             currentOffset = nextOffset;
+            log.info("Update current offset to {}", currentOffset);
             contextIndex.index(new ConsumerInfo(CONSUMER_ID, CONTEXT_ID, currentOffset, null));
         }
 
