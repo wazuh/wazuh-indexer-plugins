@@ -78,6 +78,22 @@ paths:
                       target:
                         id: "vulnerability-detector"
                         type: "server"
+              refresh:
+                summary: Refresh RBAC resources command
+                value:
+                  commands:
+                    - action:
+                        name: refresh
+                        args:
+                          index:
+                            - "index-a"   # Optional: You can specify multiple indices
+                            - "index-b"
+                        version: "5.0.0"
+                      source: "Users/Services"
+                      timeout: 100
+                      target:
+                        id: "rbac"
+                        type: "server"
       responses:
         "200":
           description: OK
