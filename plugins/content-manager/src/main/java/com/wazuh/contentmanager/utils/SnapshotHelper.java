@@ -28,7 +28,6 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
-import java.util.concurrent.ExecutionException;
 
 import com.wazuh.contentmanager.client.CTIClient;
 import com.wazuh.contentmanager.client.CommandManagerClient;
@@ -111,7 +110,6 @@ public final class SnapshotHelper {
                         for (Path path : stream) {
                             snapshotJson.add(path);
                         }
-                        this.contentIndex.fromSnapshot(snapshotJson.get(0));
                         postUpdateCommand();
                         this.contentIndex.fromSnapshot(snapshotJson.get(0).toString());
                         Files.deleteIfExists(snapshotZip);
@@ -119,6 +117,7 @@ public final class SnapshotHelper {
                     } catch (IOException e) {
                         log.error("Failed to index snapshot: {}", e.getMessage());
                     }
+                    this.contentIndex.fromSnapshot(snapshotJson.get(0));
                     return null;
                 });
     }
