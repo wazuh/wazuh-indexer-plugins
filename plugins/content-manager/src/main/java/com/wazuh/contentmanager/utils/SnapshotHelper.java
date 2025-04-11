@@ -117,7 +117,6 @@ public final class SnapshotHelper {
                     } catch (IOException e) {
                         log.error("Failed to index snapshot: {}", e.getMessage());
                     }
-                    this.contentIndex.fromSnapshot(snapshotJson.get(0));
                     return null;
                 });
     }
