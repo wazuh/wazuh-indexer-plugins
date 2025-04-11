@@ -39,6 +39,7 @@ public class UpdaterHandler extends BaseRestHandler {
 
     private static final Logger log = LogManager.getLogger(UpdaterHandler.class);
 
+    /** The name of the handler */
     public static final String NAME = "content_updater";
 
     /** Exposes the endpoint */
@@ -65,7 +66,7 @@ public class UpdaterHandler extends BaseRestHandler {
             CompletableFuture.runAsync(
                     () -> {
                         try {
-                            updater.fetchAndApplyUpdates(from_offset, to_offset);
+                            updater.fetchAndApplyUpdates();
                         } catch (ContentUpdater.ContentUpdateException e) {
                             // Log the error (using OpenSearch logger if available)
                             log.error("Error updating content: {}", e.getMessage());

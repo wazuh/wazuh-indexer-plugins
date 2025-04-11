@@ -27,7 +27,11 @@ import org.opensearch.plugins.Plugin;
 import org.opensearch.test.OpenSearchIntegTestCase;
 import org.junit.Before;
 
-import java.util.*;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
@@ -35,7 +39,11 @@ import java.util.concurrent.TimeoutException;
 import com.wazuh.contentmanager.client.CTIClient;
 import com.wazuh.contentmanager.index.ContentIndex;
 import com.wazuh.contentmanager.index.ContextIndex;
-import com.wazuh.contentmanager.model.ctiapi.*;
+import com.wazuh.contentmanager.model.ctiapi.ConsumerInfo;
+import com.wazuh.contentmanager.model.ctiapi.ContentChanges;
+import com.wazuh.contentmanager.model.ctiapi.ContentType;
+import com.wazuh.contentmanager.model.ctiapi.Offset;
+import com.wazuh.contentmanager.model.ctiapi.PatchOperation;
 import com.wazuh.contentmanager.updater.ContentUpdater;
 
 import static com.wazuh.contentmanager.index.ContentIndex.TIMEOUT;
@@ -75,10 +83,12 @@ public class ContentUpdaterIT extends OpenSearchIntegTestCase {
         Long offsetId = 1L;
         Offset createOffset = getOffset(offsetId, ContentType.CREATE);
         ContentChanges contentChanges = new ContentChanges(List.of(createOffset));
+        ConsumerInfo testConsumer = new ConsumerInfo(CONSUMER_ID, CONTEXT_ID, offsetId, null);
         // Mock
         when(ctiClient.getChanges(initialOffset.toString(), "1", null)).thenReturn(contentChanges);
+        when(ctiClient.getCatalog()).thenReturn(testConsumer);
         // Act
-        boolean updated = updater.fetchAndApplyUpdates(initialOffset, offsetId);
+        boolean updated = updater.fetchAndApplyUpdates();
         Thread.sleep(1000);
         ConsumerInfo updatedConsumer = contextIndex.getConsumer(CONTEXT_ID, CONSUMER_ID);
         // Assert
@@ -93,12 +103,14 @@ public class ContentUpdaterIT extends OpenSearchIntegTestCase {
         Offset createOffset = getOffset(offsetId - 1, ContentType.CREATE);
         Offset updateOffset = getOffset(offsetId, ContentType.UPDATE);
         ContentChanges contentChanges = new ContentChanges(List.of(createOffset, updateOffset));
+        ConsumerInfo testConsumer = new ConsumerInfo(CONSUMER_ID, CONTEXT_ID, offsetId, null);
         // Mock
         when(ctiClient.getChanges(initialOffset.toString(), offsetId.toString(), null))
                 .thenReturn(contentChanges);
+        when(ctiClient.getCatalog()).thenReturn(testConsumer);
         // Act
-        boolean updated = updater.fetchAndApplyUpdates(initialOffset, offsetId);
-        Thread.sleep(5000);
+        boolean updated = updater.fetchAndApplyUpdates();
+        Thread.sleep(1000);
         ConsumerInfo updatedConsumer = contextIndex.getConsumer(CONTEXT_ID, CONSUMER_ID);
         // Assert
         assertTrue(updated);
@@ -113,12 +125,14 @@ public class ContentUpdaterIT extends OpenSearchIntegTestCase {
         Offset createOffset = getOffset(offsetId - 1, ContentType.CREATE);
         Offset deleteOffset = getOffset(offsetId, ContentType.DELETE);
         ContentChanges contentChanges = new ContentChanges(List.of(createOffset, deleteOffset));
+        ConsumerInfo testConsumer = new ConsumerInfo(CONSUMER_ID, CONTEXT_ID, offsetId, null);
         // Mock
         when(ctiClient.getChanges(initialOffset.toString(), offsetId.toString(), null))
                 .thenReturn(contentChanges);
+        when(ctiClient.getCatalog()).thenReturn(testConsumer);
         // Act
-        boolean updated = updater.fetchAndApplyUpdates(initialOffset, offsetId);
-        Thread.sleep(5000);
+        boolean updated = updater.fetchAndApplyUpdates();
+        Thread.sleep(1000);
         ConsumerInfo updatedConsumer = contextIndex.getConsumer(CONTEXT_ID, CONSUMER_ID);
         GetResponse getContent = contentIndex.get(testResource).get(TIMEOUT, TimeUnit.SECONDS);
         // Assert
@@ -128,6 +142,13 @@ public class ContentUpdaterIT extends OpenSearchIntegTestCase {
         assertFalse(getContent.isExists());
     }
 
+    /**
+     * Creates an Offset object with the specified ID and content type.
+     *
+     * @param id The ID of the offset.
+     * @param type The content type (CREATE, UPDATE, DELETE).
+     * @return An Offset object with the specified ID and content type.
+     */
     private Offset getOffset(Long id, ContentType type) {
         List<PatchOperation> operations = null;
         Map<String, Object> payload = null;
@@ -145,13 +166,13 @@ public class ContentUpdaterIT extends OpenSearchIntegTestCase {
      * Prepares the initial ConsumerInfo document in the test index.
      *
      * @param client The OpenSearch client.
-     * @param offset The initial offset to set.
+     * @param currentOffset The initial currentOffset to set.
      * @throws Exception If an error occurs while preparing the document.
      */
     @SuppressWarnings("unchecked")
-    public void prepareInitialConsumerInfo(Client client, Long offset) throws Exception {
+    public void prepareInitialConsumerInfo(Client client, Long currentOffset) throws Exception {
         // Create a ConsumerInfo document manually in the test index
-        ConsumerInfo info = new ConsumerInfo(CONSUMER_ID, CONTEXT_ID, offset, null);
+        ConsumerInfo info = new ConsumerInfo(CONSUMER_ID, CONTEXT_ID, currentOffset, null);
 
         client
                 .prepareIndex(ContextIndex.INDEX_NAME)
@@ -161,12 +182,19 @@ public class ContentUpdaterIT extends OpenSearchIntegTestCase {
                 .get();
     }
 
+    /**
+     * Prepares the initial CVE information in the test index.
+     *
+     * @param client The OpenSearch client.
+     * @param offsetId The initial offset ID to set.
+     * @throws Exception If an error occurs while preparing the document.
+     */
     public void prepareInitialCVEInfo(Client client, Long offsetId) throws Exception {
         // Create a ConsumerInfo document manually in the test index
         Offset offset = getOffset(offsetId, ContentType.CREATE);
         client
                 .prepareIndex(ContentIndex.INDEX_NAME)
-                .setId(CONTEXT_ID)
+                .setId(testResource)
                 .setSource(offset.toXContent(XContentFactory.jsonBuilder(), ToXContent.EMPTY_PARAMS))
                 .setRefreshPolicy(WriteRequest.RefreshPolicy.IMMEDIATE)
                 .get();

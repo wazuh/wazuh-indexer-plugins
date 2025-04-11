@@ -54,6 +54,7 @@ public class Offset implements ToXContentObject {
      * @param type ContentType of operation to be performed
      * @param version Version Number
      * @param operations JSON Patch payload data
+     * @param payload JSON Patch payload data
      */
     public Offset(
             String context,
@@ -72,6 +73,15 @@ public class Offset implements ToXContentObject {
         this.payload = payload;
     }
 
+    /**
+     * Parses an object to create an Offset instance
+     *
+     * @param parser The XContentParser to parse the object
+     * @return An Offset instance
+     * @throws IllegalArgumentException if the object is invalid
+     * @throws ParsingException if the object is not well-formed
+     * @throws IOException if an I/O error occurs during parsing
+     */
     public static Offset parse(XContentParser parser)
             throws IllegalArgumentException, ParsingException, IOException {
         String context = null;

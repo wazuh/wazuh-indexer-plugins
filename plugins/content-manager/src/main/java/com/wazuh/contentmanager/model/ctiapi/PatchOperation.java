@@ -51,6 +51,14 @@ public class PatchOperation implements ToXContentObject {
         this.value = value;
     }
 
+    /**
+     * Parses a JSON object to create a PatchOperation instance
+     *
+     * @param parser The XContentParser to parse the JSON object
+     * @return A PatchOperation instance
+     * @throws IllegalArgumentException if the JSON object is invalid
+     * @throws IOException if an I/O error occurs during parsing
+     */
     public static PatchOperation parse(XContentParser parser)
             throws IllegalArgumentException, IOException {
         String op = null;
@@ -121,6 +129,12 @@ public class PatchOperation implements ToXContentObject {
         return this.value;
     }
 
+    /**
+     * Retrieve the value as a JSON object
+     *
+     * @return The value as a JSON object
+     * @throws IllegalArgumentException if the value is not a valid JSON object
+     */
     public JsonObject getValueAsJson() {
         if (this.value == null) {
             return null;

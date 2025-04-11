@@ -56,7 +56,7 @@ public class ContentUpdaterTests extends OpenSearchIntegTestCase {
         doReturn(100L).when(contentUpdaterSpy).getCurrentOffset();
         doReturn(100L).when(contentUpdaterSpy).getLatestOffset();
         // Act
-        contentUpdaterSpy.fetchAndApplyUpdates(null, null);
+        contentUpdaterSpy.fetchAndApplyUpdates();
         // Assert patchContextIndex is not called.
         verify(contentUpdaterSpy, never()).patchContextIndex(any());
     }
@@ -76,7 +76,7 @@ public class ContentUpdaterTests extends OpenSearchIntegTestCase {
         // Mock ContentIndex.patch
         doReturn(true).when(contentUpdaterSpy).patchContextIndex(any());
         // Act
-        contentUpdaterSpy.fetchAndApplyUpdates(null, null);
+        contentUpdaterSpy.fetchAndApplyUpdates();
         // Assert patchContextIndex is called 4 times (one each 1000 starting from 0).
         verify(contentUpdaterSpy, times(4)).patchContextIndex(any());
     }

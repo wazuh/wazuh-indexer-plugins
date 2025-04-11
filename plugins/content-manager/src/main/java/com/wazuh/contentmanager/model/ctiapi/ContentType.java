@@ -16,6 +16,11 @@
  */
 package com.wazuh.contentmanager.model.ctiapi;
 
+/**
+ * Enum representing the type of content changes. This enum is used to specify the type of content
+ * changes that can occur in the system. The possible values are: CREATE: Represents a creation
+ * operation. UPDATE: Represents an update operation. DELETE: Represents a deletion operation.
+ */
 public enum ContentType {
     CREATE("create"),
     UPDATE("update"),

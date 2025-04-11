@@ -61,12 +61,19 @@ public class ContentIndex {
     private static final Logger log = LogManager.getLogger(ContentIndex.class);
     private static final int MAX_DOCUMENTS = 25;
     private static final int MAX_CONCURRENT_PETITIONS = 5;
+    // The name of the index
     public static final String INDEX_NAME = "wazuh-cve";
+    // The timeout for the get operation in seconds
     public static final Long TIMEOUT = 10L;
 
     private final Client client;
     private final Semaphore semaphore = new Semaphore(MAX_CONCURRENT_PETITIONS);
 
+    /**
+     * Constructor for the ContentIndex class.
+     *
+     * @param client the OpenSearch Client to interact with the cluster
+     */
     public ContentIndex(Client client) {
         this.client = client;
     }

@@ -54,7 +54,12 @@ public class ContentUpdater {
         }
     }
 
-    // Constructor for test injection
+    /**
+     * Constructor for the class.
+     *
+     * @param client the OpenSearch Client to interact with the cluster
+     * @param ctiClient the CTIClient to interact with the CTI API
+     */
     public ContentUpdater(Client client, CTIClient ctiClient) {
         this.contentIndex = new ContentIndex(client);
         this.contextIndex = new ContextIndex(client);
@@ -74,16 +79,12 @@ public class ContentUpdater {
      * Fetches and applies content updates in chunks from the current stored offset to the latest
      * available offset. It iterates over the updates and applies them in batch processing.
      *
-     * @param from [PlaceHolderForTesting] Offset to start updates from. TODO: Remove on JobScheduler
-     *     implementation.
-     * @param to [PlaceHolderForTesting] Offset to end updates to. TODO: Remove on JobScheduler
-     *     implementation.
      * @throws ContentUpdateException If there was an error fetching the changes.
      */
-    public boolean fetchAndApplyUpdates(Long from, Long to) throws ContentUpdateException {
+    public boolean fetchAndApplyUpdates() throws ContentUpdateException {
         // 'from' and ''to are placeholder for testing purposes. TODO: Remove.
-        Long currentOffset = (from != null) ? from : getCurrentOffset();
-        Long lastOffset = (to != null) ? to : getLatestOffset();
+        Long currentOffset = getCurrentOffset();
+        Long lastOffset = getLatestOffset();
         log.debug("Current offset: {}, Last offset: {}", currentOffset, lastOffset);
 
         if (lastOffset.compareTo(currentOffset) <= 0) {

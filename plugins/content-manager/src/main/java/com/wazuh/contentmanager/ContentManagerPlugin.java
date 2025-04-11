@@ -94,8 +94,6 @@ public class ContentManagerPlugin extends Plugin implements ClusterPlugin, Actio
         ConsumerInfo consumerInfo =
                 Privileged.doPrivilegedRequest(() -> CTIClient.getInstance().getCatalog());
         this.contextIndex.index(consumerInfo);
-        // TODO: CREATE WAZUH-CVE INDEX HERE TO AVOID ERRORS
-        // updater.fetchAndApplyUpdates(0L, 10L);
 
         // Wrapping up for testing
         //        Privileged.doPrivilegedRequest(
