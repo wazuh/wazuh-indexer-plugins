@@ -171,4 +171,13 @@ public class ConsumerInfo implements ToXContentObject {
     public String getLastSnapshotLink() {
         return this.lastSnapshotLink;
     }
+
+    /**
+     * Retrieves the name of the consumer
+     *
+     * @return The name of the consumer
+     */
+    public Object getName() {
+        return this.name;
+    }
 }
