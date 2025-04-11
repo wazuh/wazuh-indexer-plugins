@@ -20,7 +20,6 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import java.io.BufferedOutputStream;
-import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.nio.file.*;
 import java.util.zip.ZipEntry;
@@ -35,25 +34,17 @@ public class Unzip {
     /**
      * Unzips a ZIP file's content to the specified folder.
      *
-     * @param file ZIP file to decompress.
-     * @param to extraction destination folder.
+     * @param path ZIP file to decompress.
+     * @param destinationPath extraction destination folder.
      * @throws IOException rethrown from getNextEntry()
      */
     public static void unzip(@NonNull Path path, @NonNull Path destinationPath) throws IOException {
-        if (!Files.exists(path)) {
-            throw new FileNotFoundException("ZIP file does not exist: " + path);
-        }
-
-        try (ZipInputStream zipInputStream = new ZipInputStream(Files.newInputStream(path))) {
-            ZipEntry zipEntry;
-            while ((zipEntry = zipInputStream.getNextEntry()) != null) {
-                Path destinationFile = destinationPath.resolve(zipEntry.getName()).normalize();
-                if (!destinationFile.startsWith(destinationPath)) {
-                    throw new IOException("Bad zip entry: " + zipEntry.getName());
-                }
-                extract(zipInputStream, destinationFile);
-                zipInputStream.closeEntry();
-            }
+        ZipInputStream zipInputStream = new ZipInputStream(Files.newInputStream(path));
+        ZipEntry zipEntry;
+        while ((zipEntry = zipInputStream.getNextEntry()) != null) {
+            Path destinationFile = destinationPath.resolve(zipEntry.getName()).normalize();
+            extract(zipInputStream, destinationFile);
+            zipInputStream.closeEntry();
         }
         log.info("[{}] file unzipped to [{}]", path.toString(), destinationPath.toString());
     }
@@ -64,27 +55,18 @@ public class Unzip {
      * @param zipInputStream ZIP input stream.
      * @param destinationFile Path (directory) where the file will be extracted.
      */
-    private static void extract(ZipInputStream zipInputStream, Path destinationFile) {
+    private static void extract(ZipInputStream zipInputStream, Path destinationFile)
+            throws IOException {
         byte[] buffer = new byte[1024];
-        // Ensure parent directories exist
-        try {
-            Files.createDirectories(destinationFile.getParent());
-        } catch (IOException e) {
-            log.error("Destination directory does not exist: {}", e.getMessage());
-        }
+        Files.createDirectories(destinationFile.getParent());
 
-        try (BufferedOutputStream bufferedOutputStream =
+        BufferedOutputStream bufferedOutputStream =
                 new BufferedOutputStream(
                         Files.newOutputStream(
-                                destinationFile,
-                                StandardOpenOption.CREATE,
-                                StandardOpenOption.TRUNCATE_EXISTING))) {
-            int size;
-            while ((size = zipInputStream.read(buffer)) > 0) {
-                bufferedOutputStream.write(buffer, 0, size);
-            }
-        } catch (IOException e) {
-            log.error("Zip extraction failed: {}", e.getMessage());
+                                destinationFile, StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING));
+        int size;
+        while ((size = zipInputStream.read(buffer)) > 0) {
+            bufferedOutputStream.write(buffer, 0, size);
         }
     }
 }

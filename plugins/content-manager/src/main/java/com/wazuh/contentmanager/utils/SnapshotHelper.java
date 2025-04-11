@@ -28,6 +28,7 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
+import java.util.concurrent.ExecutionException;
 
 import com.wazuh.contentmanager.client.CTIClient;
 import com.wazuh.contentmanager.client.CommandManagerClient;
@@ -110,11 +111,11 @@ public final class SnapshotHelper {
                         for (Path path : stream) {
                             snapshotJson.add(path.toString());
                         }
+                        this.contentIndex.fromSnapshot(snapshotJson.get(0));
                         postUpdateCommand();
-                    } catch (IOException e) {
+                    } catch (IOException | ExecutionException | InterruptedException e) {
                         log.error("Failed to find uncompressed JSON snapshot: {}", e.getMessage());
                     }
-                    this.contentIndex.fromSnapshot(snapshotJson.get(0));
                     return null;
                 });
     }
