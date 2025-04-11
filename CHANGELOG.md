@@ -25,13 +25,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 ### Changed
 - Refactor Content Manager's code and fix Catalog info indexing [(#317)](https://github.com/wazuh/wazuh-indexer-plugins/pull/317)
 - Improved mdbook installation instructions [#332](https://github.com/wazuh/wazuh-indexer-plugins/pull/332)
-- Third-party integrations maintenance [(#299)](https://github.com/wazuh/wazuh-indexer-plugins/pull/299)
+- Third-party integrations maintenance [(#299)](https://github.com/wazuh/wazuh-indexer-plugins/pull/299) [(#374)](https://github.com/wazuh/wazuh-indexer-plugins/pull/374)
 - Upgrade to Opensearch 2.19.1 [(#304)](https://github.com/wazuh/wazuh-indexer-plugins/pull/304)
 - Add cross-account support for Security Lake integration [(#322)](https://github.com/wazuh/wazuh-indexer-plugins/pull/322)
 - Improve ECS documentation I [(#328)](https://github.com/wazuh/wazuh-indexer-plugins/pull/328)
 - Improve ECS documentation II [(#350)](https://github.com/wazuh/wazuh-indexer-plugins/pull/350)
 - Index RBAC information on startup [(#356)](https://github.com/wazuh/wazuh-indexer-plugins/pull/356)
-- Third-party integrations maintenance (month 4) [(#374)](https://github.com/wazuh/wazuh-indexer-plugins/pull/374)
 
 ### Deprecated
 
