@@ -79,19 +79,19 @@ public class ContentUpdater {
      * Fetches and applies content updates in chunks from the current stored offset to the latest
      * available offset. It iterates over the updates and applies them in batch processing.
      *
+     * @return true if the updates were successfully applied, false otherwise.
      * @throws ContentUpdateException If there was an error fetching the changes.
      */
     public boolean fetchAndApplyUpdates() throws ContentUpdateException {
         Long currentOffset = getCurrentOffset();
         Long lastOffset = getLatestOffset();
-        log.debug("Current offset: {}, Last offset: {}", currentOffset, lastOffset);
 
         if (lastOffset.compareTo(currentOffset) <= 0) {
-            log.info("No new updates available. Current offset ({}) is up to date.", currentOffset);
+            log.info("No updates available. Current offset ({}) is up to date.", currentOffset);
             return true;
         }
 
-        log.info("New updates available. Processing from offset {} to {}", currentOffset, lastOffset);
+        log.info("New updates available from offset {} to {}", currentOffset, lastOffset);
         while (currentOffset < lastOffset) {
             Long nextOffset = Math.min(currentOffset + CHUNK_MAX_SIZE, lastOffset);
             ContentChanges changes = getContextChanges(currentOffset.toString(), nextOffset.toString());
@@ -99,21 +99,21 @@ public class ContentUpdater {
 
             if (changes == null) {
                 log.error("Unable to fetch changes for offsets {} to {}", currentOffset, nextOffset);
-                resetConsumerOffset();
+                updateContext(0L);
                 return false;
             }
 
-            if (!applyChangesToContextIndex(changes)) {
-                resetConsumerOffset();
+            if (!updateContent(changes)) {
+                updateContext(0L);
                 return false;
             }
 
             currentOffset = nextOffset;
             log.debug("Update current offset to {}", currentOffset);
-            contextIndex.index(new ConsumerInfo(CONSUMER_ID, CONTEXT_ID, currentOffset, null));
         }
 
-        // this.postUpdateCommand();
+        this.updateContext(currentOffset);
+        this.postUpdateCommand();
         return true;
     }
 
@@ -152,13 +152,13 @@ public class ContentUpdater {
     }
 
     /**
-     * Applies the fetched changes to the indexed context.
+     * Applies the fetched changes to the indexed content.
      *
-     * @param changes Detected context changes.
+     * @param changes Detected content changes.
      * @return true if the changes were successfully applied, false otherwise.
      */
     @VisibleForTesting
-    boolean applyChangesToContextIndex(ContentChanges changes) {
+    boolean updateContent(ContentChanges changes) {
         try {
             contentIndex.patch(changes);
             return true;
@@ -181,8 +181,8 @@ public class ContentUpdater {
 
     /** Resets the consumer info by setting its last offset to zero. */
     @VisibleForTesting
-    void resetConsumerOffset() {
-        contextIndex.index(new ConsumerInfo(CONSUMER_ID, CONTEXT_ID, 0L, null));
-        log.warn("Restarted consumer info. Current offset set to 0.");
+    void updateContext(Long newOffset) {
+        contextIndex.index(new ConsumerInfo(CONSUMER_ID, CONTEXT_ID, newOffset, null));
+        log.info("Updated context index with new offset {}", newOffset);
     }
 }

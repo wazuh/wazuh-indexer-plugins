@@ -26,6 +26,13 @@ import org.opensearch.core.xcontent.XContentParserUtils;
 
 import java.io.IOException;
 
+/**
+ * Class representing a JSON Patch operation.
+ *
+ * <p>This class implements the ToXContentObject interface, allowing it to be serialized to XContent
+ * format. It is used to define operations that can be applied to a JSON document, such as adding,
+ * removing, or replacing elements.
+ */
 public class PatchOperation implements ToXContentObject {
     private static final String OP = "op";
     private static final String PATH = "path";

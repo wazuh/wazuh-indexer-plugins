@@ -148,3 +148,60 @@ Users may create new content by interacting with the Management API (**1a**) or 
     style Data_streams fill:#abc2eb
     style Plugins fill:#abc2eb
 ```
+## Module: Content Updater
+
+The Content Updater module is responsible for fetching content from the CTI API and storing it in the Indexer. It is a separate module that runs independently of the Content Manager and is responsible for the following tasks:
+- Fetching content from the CTI API
+- Storing the content in the Indexer
+- Notifying the Content Manager about the new content
+- Updating the content in the Indexer
+
+```mermaidflowchart TD
+flowchart TD
+    subgraph ContentUpdater["ContentUpdater"]
+        A["Start: Content is outdated"]
+        B["New updates?"]
+        C["Send update command"]
+        K["Succeed?"]
+        L["Restart context to 0"]
+        M["Exit"]
+        N["Update context to last offset"]
+    end
+
+    subgraph ContentIndex["ContentIndex"]
+        D["Check change type"]
+        E["Index new content"]
+        F["Delete content"]
+        G["Get content to update"]
+        H["Index updated content"]
+    end
+
+    subgraph JsonPatch["JsonPatch logic"]
+        I["Parse content to JsonObject"]
+        J["Apply corresponding Json Patch operations"]
+    end
+
+    %% Flow
+    A --> B
+    B -- No --> C --> N --> M
+    B -- Yes --> D
+
+
+    %% Create / Delete
+    D -- CREATE --> E --> K
+    D -- DELETE --> F --> K
+
+    %% Update path
+    D -- UPDATE --> G --> I --> J --> H --> K
+
+    %% On error
+    K -- Yes --> B
+    K -- No --> L --> M
+
+    style ContentUpdater fill:#abc2eb
+    style ContentIndex fill:#abc2eb
+    style JsonPatch fill:#abc2eb
+
+    B@{ shape: diam}
+    K@{ shape: diam}
+```

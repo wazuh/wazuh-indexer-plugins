@@ -58,7 +58,7 @@ public class ContentUpdaterTests extends OpenSearchIntegTestCase {
         // Act
         contentUpdaterSpy.fetchAndApplyUpdates();
         // Assert applyChangesToContextIndex is not called.
-        verify(contentUpdaterSpy, never()).applyChangesToContextIndex(any());
+        verify(contentUpdaterSpy, never()).updateContent(any());
     }
 
     /** Test fetch and apply new updates */
@@ -74,11 +74,11 @@ public class ContentUpdaterTests extends OpenSearchIntegTestCase {
         // Mock postUpdateCommand method.
         doNothing().when(contentUpdaterSpy).postUpdateCommand();
         // Mock ContentIndex.patch
-        doReturn(true).when(contentUpdaterSpy).applyChangesToContextIndex(any());
+        doReturn(true).when(contentUpdaterSpy).updateContent(any());
         // Act
         contentUpdaterSpy.fetchAndApplyUpdates();
         // Assert applyChangesToContextIndex is called 4 times (one each 1000 starting from 0).
-        verify(contentUpdaterSpy, times(4)).applyChangesToContextIndex(any());
+        verify(contentUpdaterSpy, times(4)).updateContent(any());
     }
 
     /** Test error fetching changes */
@@ -106,12 +106,12 @@ public class ContentUpdaterTests extends OpenSearchIntegTestCase {
                 .when(contentUpdaterSpy)
                 .getContextChanges(any(), any());
         // Mock applyChangesToContextIndex method.
-        doReturn(false).when(contentUpdaterSpy).applyChangesToContextIndex(any());
+        doReturn(false).when(contentUpdaterSpy).updateContent(any());
         // Act
         boolean updated = contentUpdaterSpy.fetchAndApplyUpdates();
         // Assert
         assertFalse(updated);
-        verify(contentUpdaterSpy, times(1)).resetConsumerOffset();
+        verify(contentUpdaterSpy, times(1)).updateContext(0L);
     }
 
     /**

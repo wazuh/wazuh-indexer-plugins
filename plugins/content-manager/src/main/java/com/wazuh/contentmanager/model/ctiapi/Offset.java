@@ -28,6 +28,11 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+/**
+ * ToXContentObject model to parse and build CTI API changes.
+ *
+ * <p>This class represents an offset in the context of a content change operation.
+ */
 public class Offset implements ToXContentObject {
 
     private static final String CONTEXT = "context";

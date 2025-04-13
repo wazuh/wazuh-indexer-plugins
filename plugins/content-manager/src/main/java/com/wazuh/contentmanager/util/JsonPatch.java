@@ -21,6 +21,12 @@ import com.google.gson.JsonObject;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+/**
+ * Utility class for applying JSON Patch operations to JSON documents.
+ *
+ * <p>This class provides methods to apply various JSON Patch operations such as add, remove,
+ * replace, move, copy, and test. It uses the Gson library for JSON manipulation.
+ */
 public class JsonPatch {
     private static final Logger log = LogManager.getLogger(JsonPatch.class);
 

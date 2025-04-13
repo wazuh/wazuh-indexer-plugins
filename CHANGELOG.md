@@ -19,6 +19,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Implement CVE ECS definition and index template [(#337)](https://github.com/wazuh/wazuh-indexer-plugins/pull/337)
 - Implement a time-based management of the agent.status attribute in the wazuh-agents index [(#349)](https://github.com/wazuh/wazuh-indexer-plugins/pull/349)
 - Implement RBAC "refresh" command [(#370)](https://github.com/wazuh/wazuh-indexer-plugins/pull/370)
+- Implement content update using Json Patch operations [(#362)](https://github.com/wazuh/wazuh-indexer-plugins/pull/362)
 
 ### Dependencies
 
