@@ -16,36 +16,17 @@
  */
 package com.wazuh.contentmanager.model.ctiapi;
 
+import java.util.Locale;
+
 /**
  * Enum representing the type of content changes. This enum is used to specify the type of content
  * changes that can occur in the system. The possible values are: CREATE: Represents a creation
  * operation. UPDATE: Represents an update operation. DELETE: Represents a deletion operation.
  */
 public enum ContentType {
-    CREATE("create"),
-    UPDATE("update"),
-    DELETE("delete");
-
-    /** The string value of the type. */
-    private final String value;
-
-    /**
-     * Constructs a new ContentType with the specified string value.
-     *
-     * @param value the string value of the type
-     */
-    ContentType(String value) {
-        this.value = value;
-    }
-
-    /**
-     * Gets the string value of the type.
-     *
-     * @return the string value of the type
-     */
-    public String getValue() {
-        return value;
-    }
+    CREATE,
+    UPDATE,
+    DELETE;
 
     /**
      * Converts a string to the corresponding ContentType enum.
@@ -56,15 +37,10 @@ public enum ContentType {
      */
     public static ContentType fromString(String value) {
         for (ContentType type : ContentType.values()) {
-            if (type.value.equalsIgnoreCase(value)) {
+            if (type.toString().equalsIgnoreCase(value.toUpperCase(Locale.ROOT))) {
                 return type;
             }
         }
         throw new IllegalArgumentException("Invalid type: " + value);
-    }
-
-    @Override
-    public String toString() {
-        return value;
     }
 }

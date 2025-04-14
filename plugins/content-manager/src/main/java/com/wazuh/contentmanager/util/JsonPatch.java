@@ -44,22 +44,22 @@ public class JsonPatch {
 
         switch (op) {
             case "add":
-                addOperation(document, path, value);
+                JsonPatch.addOperation(document, path, value);
                 break;
             case "remove":
-                removeOperation(document, path);
+                JsonPatch.removeOperation(document, path);
                 break;
             case "replace":
-                replaceOperation(document, path, value);
+                JsonPatch.replaceOperation(document, path, value);
                 break;
             case "move":
-                moveOperation(document, from, path);
+                JsonPatch.moveOperation(document, from, path);
                 break;
             case "copy":
-                copyOperation(document, from, path);
+                JsonPatch.copyOperation(document, from, path);
                 break;
             case "test":
-                testOperation(document, path, value);
+                JsonPatch.testOperation(document, path, value);
                 break;
             default:
                 log.warn("Unsupported JSON Patch operation: {}", op);
@@ -74,7 +74,7 @@ public class JsonPatch {
      * @param value The value to be added.
      */
     private static void addOperation(JsonObject document, String path, JsonElement value) {
-        JsonElement target = navigateToParent(document, path);
+        JsonElement target = JsonPatch.navigateToParent(document, path);
         if (target instanceof JsonObject) {
             String key = extractKeyFromPath(path);
             ((JsonObject) target).add(key, value);
@@ -88,7 +88,7 @@ public class JsonPatch {
      * @param path The JSON path where the value should be removed.
      */
     private static void removeOperation(JsonObject document, String path) {
-        JsonElement target = navigateToParent(document, path);
+        JsonElement target = JsonPatch.navigateToParent(document, path);
         if (target instanceof JsonObject) {
             String key = extractKeyFromPath(path);
             ((JsonObject) target).remove(key);
@@ -103,8 +103,8 @@ public class JsonPatch {
      * @param value The new value to be added.
      */
     private static void replaceOperation(JsonObject document, String path, JsonElement value) {
-        removeOperation(document, path);
-        addOperation(document, path, value);
+        JsonPatch.removeOperation(document, path);
+        JsonPatch.addOperation(document, path, value);
     }
 
     /**
@@ -116,8 +116,8 @@ public class JsonPatch {
      */
     private static void moveOperation(JsonObject document, String fromPath, String toPath) {
         JsonElement value = navigateToParent(document, fromPath);
-        removeOperation(document, fromPath);
-        addOperation(document, toPath, value);
+        JsonPatch.removeOperation(document, fromPath);
+        JsonPatch.addOperation(document, toPath, value);
     }
 
     /**
@@ -128,7 +128,7 @@ public class JsonPatch {
      * @param toPath The JSON path where the value should be copied.
      */
     private static void copyOperation(JsonObject document, String fromPath, String toPath) {
-        JsonElement parent = navigateToParent(document, fromPath);
+        JsonElement parent = JsonPatch.navigateToParent(document, fromPath);
         if (parent == null || !parent.isJsonObject()) {
             log.error("Invalid 'from' path for copy operation: {}", fromPath);
             return;
@@ -142,12 +142,10 @@ public class JsonPatch {
 
         // Get the actual value to copy
         JsonElement valueToCopy = parent.getAsJsonObject().get(fromKey);
-
         // Deep copy to avoid reference issues
         JsonElement copiedValue = valueToCopy.deepCopy();
-
         // Now add the copied value to the new location
-        addOperation(document, toPath, copiedValue);
+        JsonPatch.addOperation(document, toPath, copiedValue);
     }
 
     /**
@@ -159,9 +157,9 @@ public class JsonPatch {
      * @throws IllegalArgumentException if the value does not match.
      */
     private static void testOperation(JsonObject document, String path, JsonElement value) {
-        JsonElement target = navigateToParent(document, path);
+        JsonElement target = JsonPatch.navigateToParent(document, path);
         if (target instanceof JsonObject) {
-            String key = extractKeyFromPath(path);
+            String key = JsonPatch.extractKeyFromPath(path);
             if (!((JsonObject) target).get(key).equals(value)) {
                 throw new IllegalArgumentException("Test operation failed: value does not match");
             }

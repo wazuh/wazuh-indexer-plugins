@@ -55,7 +55,7 @@ public class ContentUpdater {
     }
 
     /**
-     * Constructor for the class.
+     * Constructor for the class. Mainly used for testing purposes.
      *
      * @param client the OpenSearch Client to interact with the cluster
      * @param ctiClient the CTIClient to interact with the CTI API
@@ -136,7 +136,7 @@ public class ContentUpdater {
      */
     @VisibleForTesting
     Long getLatestOffset() {
-        ConsumerInfo consumerInfo = Privileged.doPrivilegedRequest(() -> this.ctiClient.getCatalog());
+        ConsumerInfo consumerInfo = Privileged.doPrivilegedRequest(this.ctiClient::getCatalog);
         return consumerInfo.getLastOffset();
     }
 
@@ -147,7 +147,7 @@ public class ContentUpdater {
      */
     @VisibleForTesting
     public Long getCurrentOffset() {
-        ConsumerInfo consumer = contextIndex.getConsumer(CONTEXT_ID, CONSUMER_ID);
+        ConsumerInfo consumer = this.contextIndex.getConsumer(CONTEXT_ID, CONSUMER_ID);
         return consumer != null ? consumer.getLastOffset() : 0L;
     }
 
@@ -160,7 +160,7 @@ public class ContentUpdater {
     @VisibleForTesting
     boolean updateContent(ContentChanges changes) {
         try {
-            contentIndex.patch(changes);
+            this.contentIndex.patch(changes);
             return true;
         } catch (RuntimeException e) {
             log.error("Failed to apply changes to content index", e);
@@ -182,7 +182,7 @@ public class ContentUpdater {
     /** Resets the consumer info by setting its last offset to zero. */
     @VisibleForTesting
     void updateContext(Long newOffset) {
-        contextIndex.index(new ConsumerInfo(CONSUMER_ID, CONTEXT_ID, newOffset, null));
+        this.contextIndex.index(new ConsumerInfo(CONSUMER_ID, CONTEXT_ID, newOffset, null));
         log.info("Updated context index with new offset {}", newOffset);
     }
 }

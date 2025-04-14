@@ -17,7 +17,10 @@
 package com.wazuh.contentmanager.model.ctiapi;
 
 import org.opensearch.core.common.ParsingException;
-import org.opensearch.core.xcontent.*;
+import org.opensearch.core.xcontent.ToXContentObject;
+import org.opensearch.core.xcontent.XContentBuilder;
+import org.opensearch.core.xcontent.XContentParser;
+import org.opensearch.core.xcontent.XContentParserUtils;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -33,7 +36,7 @@ public class ContentChanges implements ToXContentObject {
     /**
      * Constructor method
      *
-     * @param changes a List of CVEChange objects, each containing a JSON patch.
+     * @param changes a List of Offset objects, each containing a JSON patch.
      */
     public ContentChanges(List<Offset> changes) {
         this.changes = changes;
@@ -42,7 +45,7 @@ public class ContentChanges implements ToXContentObject {
     /**
      * Retrieve the list of CVE changes
      *
-     * @return A list of CVEChange objects
+     * @return A list of Offset objects
      */
     public List<Offset> getChangesList() {
         return this.changes;
@@ -68,7 +71,7 @@ public class ContentChanges implements ToXContentObject {
         // Check we are at the start of the array
         XContentParserUtils.ensureExpectedToken(
                 XContentParser.Token.START_ARRAY, parser.nextToken(), parser);
-        // Iterate over the array and add each CVEChange object to changes list
+        // Iterate over the array and add each Offset object to changes list
         while (parser.nextToken() != XContentParser.Token.END_ARRAY) {
             changes.add(Offset.parse(parser));
         }
@@ -81,13 +84,13 @@ public class ContentChanges implements ToXContentObject {
      * @param builder the received builder object
      * @param params Unused params
      * @return an XContentBuilder object ready to be printed
-     * @throws IOException rethrown from CVEChange's toXContent
+     * @throws IOException rethrown from Offset's toXContent
      */
     @Override
     public XContentBuilder toXContent(XContentBuilder builder, Params params) throws IOException {
         builder.startObject();
         builder.startArray(DATA);
-        // For each CVEChange in the data field, add them to an XContentBuilder array
+        // For each Offset in the data field, add them to an XContentBuilder array
         changes.forEach(
                 (change) -> {
                     try {

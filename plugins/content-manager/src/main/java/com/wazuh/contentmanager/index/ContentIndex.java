@@ -32,11 +32,7 @@ import org.opensearch.client.Client;
 import org.opensearch.common.xcontent.XContentFactory;
 import org.opensearch.common.xcontent.XContentType;
 import org.opensearch.core.action.ActionListener;
-import org.opensearch.core.xcontent.DeprecationHandler;
-import org.opensearch.core.xcontent.NamedXContentRegistry;
 import org.opensearch.core.xcontent.ToXContent;
-import org.opensearch.core.xcontent.ToXContentObject;
-import org.opensearch.core.xcontent.XContentBuilder;
 import org.opensearch.core.xcontent.XContentParser;
 
 import java.io.BufferedReader;
@@ -55,6 +51,9 @@ import com.wazuh.contentmanager.model.ctiapi.ContentChanges;
 import com.wazuh.contentmanager.model.ctiapi.Offset;
 import com.wazuh.contentmanager.model.ctiapi.PatchOperation;
 import com.wazuh.contentmanager.util.JsonPatch;
+
+import static com.wazuh.contentmanager.util.XContentHelper.getParser;
+import static com.wazuh.contentmanager.util.XContentHelper.xContentObjectToJson;
 
 /** Manages operations for the Wazuh CVE content index. */
 public class ContentIndex {
@@ -117,7 +116,7 @@ public class ContentIndex {
      *
      * @param documents list of JSON documents to be indexed.
      */
-    public void indexBulk(List<JsonObject> documents) {
+    public void index(List<JsonObject> documents) {
         BulkRequest bulkRequest = new BulkRequest(INDEX_NAME);
         log.info("Indexing {} documents", documents.size());
         for (JsonObject document : documents) {
@@ -176,13 +175,7 @@ public class ContentIndex {
                         for (PatchOperation op : change.getOperations()) {
                             JsonPatch.applyOperation(content, xContentObjectToJson(op));
                         }
-                        try (XContentParser parser =
-                                XContentType.JSON
-                                        .xContent()
-                                        .createParser(
-                                                NamedXContentRegistry.EMPTY,
-                                                DeprecationHandler.THROW_UNSUPPORTED_OPERATION,
-                                                content.toString())) {
+                        try (XContentParser parser = getParser(content)) {
                             this.index(Offset.parse(parser));
                         }
                         break;
@@ -252,7 +245,7 @@ public class ContentIndex {
     /**
      * Initializes the index from a local snapshot. The snapshot file (in NDJSON format) is split in
      * chunks of {@link ContentIndex#MAX_DOCUMENTS} elements. These are bulk indexed using {@link
-     * ContentIndex#indexBulk(List)}.
+     * ContentIndex#index(List)}.
      *
      * @param path path to the CTI snapshot JSON file to be indexed.
      */
@@ -281,7 +274,7 @@ public class ContentIndex {
                 // Index items (MAX_DOCUMENTS reached)
                 if (lineCount == MAX_DOCUMENTS) {
                     semaphore.acquire();
-                    this.indexBulk(items);
+                    this.index(items);
                     lineCount = 0;
                     items.clear();
                 }
@@ -289,26 +282,13 @@ public class ContentIndex {
             // Index remaining items (> MAX_DOCUMENTS)
             if (lineCount > 0) {
                 semaphore.acquire();
-                this.indexBulk(items);
+                this.index(items);
             }
         } catch (Exception e) {
             log.error("Error processing snapshot file {}", e.getMessage());
         }
         long estimatedTime = System.currentTimeMillis() - startTime;
         log.info("Snapshot indexing finished successfully in {} ms", estimatedTime);
-    }
-
-    /**
-     * Converts a ToXContentObject to a JsonObject. TODO: Move to a generic util
-     *
-     * @param content the ToXContentObject to convert.
-     * @return the converted JsonObject.
-     * @throws IOException if an error occurs during conversion.
-     */
-    private static JsonObject xContentObjectToJson(ToXContentObject content) throws IOException {
-        XContentBuilder builder = XContentFactory.jsonBuilder();
-        content.toXContent(builder, ToXContent.EMPTY_PARAMS);
-        return JsonParser.parseString(builder.toString()).getAsJsonObject();
     }
 
     /**
@@ -322,7 +302,7 @@ public class ContentIndex {
      * @throws IllegalArgumentException if the content is not found.
      */
     public JsonObject getAsJson(String resourceId)
-            throws InterruptedException, ExecutionException, TimeoutException {
+            throws InterruptedException, ExecutionException, TimeoutException, IllegalArgumentException {
         try {
             GetResponse response = this.get(resourceId).get(TIMEOUT, TimeUnit.SECONDS);
             if (!response.isExists()) {

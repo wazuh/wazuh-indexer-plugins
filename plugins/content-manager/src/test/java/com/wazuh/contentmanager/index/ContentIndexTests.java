@@ -58,7 +58,7 @@ public class ContentIndexTests extends OpenSearchIntegTestCase {
     /** Test the ContentIndex.patch method with an Offset with Create content type. */
     public void testPatchCreate() {
         // Mock
-        doNothing().when(contentIndexSpy).index(any());
+        doNothing().when(contentIndexSpy).index((Offset) any());
         // Arrange
         Offset offset = new Offset("test", 1L, "test", ContentType.CREATE, 1L, null, null);
         // Act
@@ -77,7 +77,7 @@ public class ContentIndexTests extends OpenSearchIntegTestCase {
         json.addProperty("field", "value");
         doReturn(json).when(contentIndexSpy).getAsJson(any());
         // Mock index() to avoid actual client call
-        doNothing().when(contentIndexSpy).index(any());
+        doNothing().when(contentIndexSpy).index((Offset) any());
         // Arrange
         Offset offset =
                 new Offset(
@@ -91,7 +91,7 @@ public class ContentIndexTests extends OpenSearchIntegTestCase {
         // Act
         contentIndexSpy.patch(new ContentChanges(List.of(offset)));
         // Assert
-        verify(contentIndexSpy, times(1)).index(any());
+        verify(contentIndexSpy, times(1)).index((Offset) any());
     }
 
     /** Test the ContentIndex.patch method with an Offset with Delete content type. */
