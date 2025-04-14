@@ -156,7 +156,7 @@ The Content Updater module is responsible for fetching content from the CTI API 
 - Notifying the Content Manager about the new content
 - Updating the content in the Indexer
 
-```mermaidflowchart TD
+```mermaid
 flowchart TD
     subgraph ContentUpdater["ContentUpdater"]
         A["Start: Content is outdated"]
