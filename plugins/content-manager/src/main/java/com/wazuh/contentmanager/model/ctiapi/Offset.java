@@ -299,7 +299,7 @@ public class Offset implements ToXContentObject {
 
     @Override
     public String toString() {
-        return "PatchChange{"
+        return "Offset{"
                 + "context='"
                 + context
                 + '\''
