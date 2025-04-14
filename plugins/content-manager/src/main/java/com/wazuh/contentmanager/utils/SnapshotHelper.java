@@ -27,6 +27,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 import java.util.Objects;
 
 import com.wazuh.contentmanager.client.CTIClient;
@@ -105,7 +106,10 @@ public final class SnapshotHelper {
                             Files.newDirectoryStream(
                                     outputDir,
                                     String.format(
-                                            "%s_%s_*.json", PluginSettings.CONTEXT_ID, PluginSettings.CONSUMER_ID))) {
+                                            Locale.ROOT,
+                                            "%s_%s_*.json",
+                                            PluginSettings.CONTEXT_ID,
+                                            PluginSettings.CONSUMER_ID))) {
                         Unzip.unzip(snapshotZip, outputDir);
                         for (Path path : stream) {
                             snapshotJson.add(path);
@@ -114,7 +118,7 @@ public final class SnapshotHelper {
                         this.contentIndex.fromSnapshot(snapshotJson.get(0).toString());
                         Files.deleteIfExists(snapshotZip);
                         Files.deleteIfExists(snapshotJson.get(0));
-                    } catch (IOException e) {
+                    } catch (IOException | NullPointerException e) {
                         log.error("Failed to index snapshot: {}", e.getMessage());
                     }
                     return null;
@@ -144,7 +148,9 @@ public final class SnapshotHelper {
         } else {
             throw new IOException(
                     String.format(
-                            "Consumer indexing operation returned with unexpected result [%s]", result));
+                            Locale.ROOT,
+                            "Consumer indexing operation returned with unexpected result [%s]",
+                            result));
         }
     }
 

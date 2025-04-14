@@ -29,11 +29,14 @@ import java.nio.file.Path;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
 
+import static org.mockito.Mockito.*;
+
 /** Class to handle unzip tests */
 public class UnzipTests extends OpenSearchTestCase {
 
     private Path tempDestinationDirectory;
-    private final String zipFileName = "test.zip";
+    private Path tempZipPath;
+    private Path destinationPath;
     private final String testFile = "testfile.txt";
     private final String testFileMessage = "Hello, World!";
     private Environment environment;
@@ -45,13 +48,14 @@ public class UnzipTests extends OpenSearchTestCase {
 
         // Environment set up
         this.tempDestinationDirectory = createTempDir();
+        tempZipPath = tempDestinationDirectory.resolve("file.zip");
+        destinationPath = tempDestinationDirectory.resolve("");
         Settings settings =
                 Settings.builder()
                         .put("path.home", this.tempDestinationDirectory.toString()) // Required by OpenSearch
                         .putList("path.repo", this.tempDestinationDirectory.toString())
                         .build();
         this.environment = new Environment(settings, this.tempDestinationDirectory);
-        Path tempZipPath = this.tempDestinationDirectory.resolve(this.zipFileName);
 
         try (ZipOutputStream zipOutputStream =
                 new ZipOutputStream(Files.newOutputStream(tempZipPath))) {
@@ -72,7 +76,7 @@ public class UnzipTests extends OpenSearchTestCase {
     /** Test valid unzip process */
     public void testValidUnzip() {
         try {
-            Unzip.unzip(this.zipFileName, "");
+            Unzip.unzip(tempZipPath, destinationPath);
             Path extractedFilePath = this.tempDestinationDirectory.resolve(this.testFile);
             assertTrue("File should be extracted", Files.exists(extractedFilePath));
             String fileContent = Files.readString(extractedFilePath, StandardCharsets.UTF_8);
@@ -84,16 +88,18 @@ public class UnzipTests extends OpenSearchTestCase {
 
     /** Test NullPointerException */
     @SuppressWarnings("DataFlowIssue")
-    public void testNullPointerException() {
+    public void testNullPointerException() throws IOException {
+        // Path path = mock(Path.class);
+        // when(mock(Files.newInputStream(path)))
+        //        .thenThrow(new IOException("Mocking a non existing file thrown an exception"));
         assertThrows(
-                NullPointerException.class,
-                () -> Unzip.unzip(null, this.tempDestinationDirectory.toString()));
+                NullPointerException.class, () -> Unzip.unzip(null, this.tempDestinationDirectory));
     }
 
     /** Test FileNotFoundException */
     public void testFileNotFoundException() {
         assertThrows(
                 FileNotFoundException.class,
-                () -> Unzip.unzip("NonExistentFile.zip", this.tempDestinationDirectory.toString()));
+                () -> Unzip.unzip(environment.resolveRepoFile("fake.txt"), this.tempDestinationDirectory));
     }
 }

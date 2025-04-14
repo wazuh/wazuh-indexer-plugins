@@ -39,7 +39,8 @@ public class Unzip {
      * @param destinationPath extraction destination folder.
      * @throws IOException rethrown from getNextEntry()
      */
-    public static void unzip(@NonNull Path filePath, @NonNull Path destinationPath) throws IOException {
+    public static void unzip(@NonNull Path filePath, @NonNull Path destinationPath)
+            throws IOException {
         if (!Files.exists(filePath)) {
             throw new FileNotFoundException("ZIP filePath does not exist: " + filePath);
         }

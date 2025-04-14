@@ -218,7 +218,7 @@ public class CTIClient extends HttpClient {
                 while ((bytesRead = input.read(buffer)) != -1) {
                     out.write(buffer, 0, bytesRead);
                 }
-            } catch (IOException e) {
+            } catch (IOException | NullPointerException e) {
                 log.error("Failed to write snapshot {}", e.getMessage());
             }
             log.info("Snapshot downloaded to {}", path);

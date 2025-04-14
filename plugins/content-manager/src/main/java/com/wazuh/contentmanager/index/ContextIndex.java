@@ -77,8 +77,7 @@ public class ContextIndex {
                             .index(CONTEXTS_INDEX)
                             .source(
                                     consumerInfo.toXContent(XContentFactory.jsonBuilder(), ToXContent.EMPTY_PARAMS))
-                            .id(consumerInfo.getContext())
-                            .create(true);
+                            .id(consumerInfo.getContext());
         } catch (IOException e) {
             log.error("Failed to create JSON content builder: {}", e.getMessage());
         }
