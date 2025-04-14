@@ -68,7 +68,7 @@ public class ContextIndex {
      */
     public IndexResponse index(ConsumerInfo consumerInfo) {
         IndexRequest indexRequest = null;
-        IndexResponse indexResponse = null;
+        IndexResponse indexResponse;
         // Set this to null so that future get() operations need to read the values from the index
         this.consumerInfo = null;
         try {

@@ -33,18 +33,18 @@ public class Unzip {
     private static final Logger log = LogManager.getLogger(Unzip.class);
 
     /**
-     * Unzips a ZIP file's content to the specified folder.
+     * Unzips a ZIP filePath's content to the specified folder.
      *
-     * @param file ZIP file to decompress.
-     * @param to extraction destination folder.
+     * @param filePath ZIP filePath to decompress.
+     * @param destinationPath extraction destination folder.
      * @throws IOException rethrown from getNextEntry()
      */
-    public static void unzip(@NonNull Path path, @NonNull Path destinationPath) throws IOException {
-        if (!Files.exists(path)) {
-            throw new FileNotFoundException("ZIP file does not exist: " + path);
+    public static void unzip(@NonNull Path filePath, @NonNull Path destinationPath) throws IOException {
+        if (!Files.exists(filePath)) {
+            throw new FileNotFoundException("ZIP filePath does not exist: " + filePath);
         }
 
-        try (ZipInputStream zipInputStream = new ZipInputStream(Files.newInputStream(path))) {
+        try (ZipInputStream zipInputStream = new ZipInputStream(Files.newInputStream(filePath))) {
             ZipEntry zipEntry;
             while ((zipEntry = zipInputStream.getNextEntry()) != null) {
                 Path destinationFile = destinationPath.resolve(zipEntry.getName()).normalize();
@@ -55,7 +55,7 @@ public class Unzip {
                 zipInputStream.closeEntry();
             }
         }
-        log.info("[{}] file unzipped to [{}]", path.toString(), destinationPath.toString());
+        log.info("[{}] filePath unzipped to [{}]", filePath.toString(), destinationPath.toString());
     }
 
     /**
