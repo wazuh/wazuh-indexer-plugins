@@ -83,8 +83,8 @@ public class ContentUpdater {
      * @throws ContentUpdateException If there was an error fetching the changes.
      */
     public boolean fetchAndApplyUpdates() throws ContentUpdateException {
-        Long currentOffset = getCurrentOffset();
-        Long lastOffset = getLatestOffset();
+        Long currentOffset = this.getCurrentOffset();
+        Long lastOffset = this.getLatestOffset();
 
         if (lastOffset.compareTo(currentOffset) <= 0) {
             log.info("No updates available. Current offset ({}) is up to date.", currentOffset);
@@ -94,17 +94,18 @@ public class ContentUpdater {
         log.info("New updates available from offset {} to {}", currentOffset, lastOffset);
         while (currentOffset < lastOffset) {
             Long nextOffset = Math.min(currentOffset + CHUNK_MAX_SIZE, lastOffset);
-            ContentChanges changes = getContextChanges(currentOffset.toString(), nextOffset.toString());
+            ContentChanges changes =
+                    this.getContextChanges(currentOffset.toString(), nextOffset.toString());
             log.debug("Fetched offsets from {} to {}", currentOffset, nextOffset);
 
             if (changes == null) {
                 log.error("Unable to fetch changes for offsets {} to {}", currentOffset, nextOffset);
-                updateContext(0L);
+                this.updateContext(0L);
                 return false;
             }
 
-            if (!updateContent(changes)) {
-                updateContext(0L);
+            if (!this.updateContent(changes)) {
+                this.updateContext(0L);
                 return false;
             }
 
@@ -126,7 +127,8 @@ public class ContentUpdater {
      */
     @VisibleForTesting
     public ContentChanges getContextChanges(String fromOffset, String toOffset) {
-        return Privileged.doPrivilegedRequest(() -> ctiClient.getChanges(fromOffset, toOffset, null));
+        return Privileged.doPrivilegedRequest(
+                () -> this.ctiClient.getChanges(fromOffset, toOffset, null));
     }
 
     /**
