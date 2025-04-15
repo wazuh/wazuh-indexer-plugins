@@ -62,8 +62,6 @@ public final class CTIClient extends HttpClient {
     private static final int MAX_ATTEMPTS = 3;
     private static final int SLEEP_TIME = 60;
 
-    private ZonedDateTime timeAvailableToRetry = null;
-
     /** Enum representing the query parameters used in CTI API requests. */
     public enum QueryParameters {
         /** The starting offset parameter TO_OFFSET - FROM_OFFSET must be >1001 */
@@ -76,27 +74,6 @@ public final class CTIClient extends HttpClient {
         private final String value;
 
         QueryParameters(String value) {
-            this.value = value;
-        }
-
-        /**
-         * Returns the string representation of the query parameter.
-         *
-         * @return The query parameter key as a string.
-         */
-        public String getValue() {
-            return value;
-        }
-    }
-
-    /** Enum representing the query parameters used in CTI API requests. */
-    public enum Functions {
-        GET_CHANGES("getChanges"),
-        GET_CATALOG("getCatalog");
-
-        private final String value;
-
-        Functions(String value) {
             this.value = value;
         }
 
@@ -145,14 +122,7 @@ public final class CTIClient extends HttpClient {
         Map<String, String> params = contextQueryParameters(fromOffset, toOffset, withEmpties);
 
         SimpleHttpResponse response =
-                fetchWithRetry(
-                        Functions.GET_CHANGES,
-                        Method.GET,
-                        CONSUMER_CHANGES_ENDPOINT,
-                        null,
-                        params,
-                        null,
-                        MAX_ATTEMPTS);
+                fetchWithRetry(Method.GET, CONSUMER_CHANGES_ENDPOINT, null, params, null);
 
         if (response == null) {
             log.error("No response from CTI API Changes endpoint");
@@ -184,14 +154,7 @@ public final class CTIClient extends HttpClient {
 
         try {
             SimpleHttpResponse response =
-                    fetchWithRetry(
-                            Functions.GET_CATALOG,
-                            Method.GET,
-                            CONSUMER_INFO_ENDPOINT,
-                            null,
-                            null,
-                            null,
-                            MAX_ATTEMPTS);
+                    fetchWithRetry(Method.GET, CONSUMER_INFO_ENDPOINT, null, null, null);
 
             if (response == null) {
                 log.error("No response from CTI API");
@@ -233,26 +196,18 @@ public final class CTIClient extends HttpClient {
     /**
      * Send a request to the CTI API and handles the HTTP response based on the provided status code.
      *
-     * @param function The function to be executed.
      * @param method The HTTP method to use for the request.
      * @param endpoint The endpoint to append to the base API URI.
      * @param body The request body (optional, applicable for POST/PUT).
      * @param params The query parameters (optional).
      * @param header The headers to include in the request (optional).
-     * @param maxAttempts The number of remaining attempts.
      * @throws IOException If an error occurs during response processing.
      */
     private SimpleHttpResponse fetchWithRetry(
-            Functions function,
-            Method method,
-            String endpoint,
-            String body,
-            Map<String, String> params,
-            Header header,
-            int maxAttempts) {
+            Method method, String endpoint, String body, Map<String, String> params, Header header) {
 
-        int attemptsLeft = maxAttempts;
         ZonedDateTime cooldown = null;
+        int attemptsLeft = CTIClient.MAX_ATTEMPTS;
 
         while (attemptsLeft > 0) {
             // Check if in cooldown
@@ -278,7 +233,7 @@ public final class CTIClient extends HttpClient {
             log.info("Response code: {}", statusCode);
 
             // Calculate timeout
-            int timeout = (MAX_ATTEMPTS - attemptsLeft + 1) * SLEEP_TIME;
+            int timeout = (CTIClient.MAX_ATTEMPTS - attemptsLeft + 1) * CTIClient.SLEEP_TIME;
 
             switch (statusCode) {
                 case 200:

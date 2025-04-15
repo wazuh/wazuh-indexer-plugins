@@ -62,9 +62,6 @@ public class ContentManagerPlugin extends Plugin implements ClusterPlugin, Actio
 
     private static final Logger log = LogManager.getLogger(ContentManagerPlugin.class);
 
-    /** ClassConstructor * */
-    public ContentManagerPlugin() {}
-
     @Override
     public Collection<Object> createComponents(
             Client client,
@@ -111,7 +108,7 @@ public class ContentManagerPlugin extends Plugin implements ClusterPlugin, Actio
         this.contextIndex.index(consumerInfo);
 
         // Wrapping up for testing. Infinite loop
-       /* int responseCode = 0;
+        /*int responseCode = 0;
         while (responseCode == 0) {
             log.info("ENTRANDO AL WHILE");
             Privileged.doPrivilegedRequest(
