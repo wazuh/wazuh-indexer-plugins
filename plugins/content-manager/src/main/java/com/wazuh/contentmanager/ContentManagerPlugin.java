@@ -16,6 +16,10 @@
  */
 package com.wazuh.contentmanager;
 
+import com.wazuh.contentmanager.model.ctiapi.ContextChanges;
+import org.apache.hc.core5.http.HttpException;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.opensearch.client.Client;
 import org.opensearch.cluster.metadata.IndexNameExpressionResolver;
 import org.opensearch.cluster.node.DiscoveryNode;
@@ -55,6 +59,7 @@ public class ContentManagerPlugin extends Plugin implements ClusterPlugin, Actio
     private ContextIndex contextIndex;
     private ContentIndex contentIndex;
     private Environment environment;
+    private static final Logger log = LogManager.getLogger(ContentManagerPlugin.class);
 
     @Override
     public Collection<Object> createComponents(
@@ -99,31 +104,21 @@ public class ContentManagerPlugin extends Plugin implements ClusterPlugin, Actio
                 Privileged.doPrivilegedRequest(() -> CTIClient.getInstance().getCatalog());
         this.contextIndex.index(consumerInfo);
 
-        // Wrapping up for testing
-        //        Privileged.doPrivilegedRequest(
-        //                () -> {
-        //                    CTIClient.getInstance()
-        //                            .download(
-        //
-        // "https://cti.wazuh.com/store/contexts/vd_1.0.0/consumers/vd_4.8.0/1432540_1741603172.zip",
-        //                                    environment);
-        //                    String snapshotZip =
-        //
-        // this.environment.resolveRepoFile("1432540_1741603172.zip").toString();
-        //                    String snapshot =
-        //                            this.environment
-        //
-        // .resolveRepoFile("vd_1.0.0_vd_4.8.0_1432540_1741603172.json")
-        //                                    .toString();
-        //                    String dir = this.environment.resolveRepoFile("").toString();
-        //                    try {
-        //                        Unzip.unzip(snapshotZip, dir, this.environment);
-        //                    } catch (IOException e) {
-        //                        throw new RuntimeException(e);
-        //                    }
-        //                    this.contentIndex.fromSnapshot(snapshot);
-        //                    return null;
-        //                });
+        // Wrapping up for testing. Infinite loop
+       /* int responseCode = 0;
+        while (responseCode == 0) {
+            log.info("ENTRANDO AL WHILE");
+            Privileged.doPrivilegedRequest(
+                () -> {
+                    try {
+                        ContextChanges changes = CTIClient.getInstance().getChanges("1674417", "1674418", "false");
+                    } catch (HttpException e) {
+                        log.error("Failed to get changes", e.getMessage());
+                    }
+                    return null;
+                });
+        }
+        */
     }
 
     @Override

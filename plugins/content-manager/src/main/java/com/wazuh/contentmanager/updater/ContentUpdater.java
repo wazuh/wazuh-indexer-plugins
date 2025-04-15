@@ -73,6 +73,7 @@ public class ContentUpdater {
 
         // Placeholder for testing purposes. TODO: Remove.
         if (fixedOffset != null) {
+            log.info("Using fixed offset to test. Current offset: {}", fixedOffset);
             currentOffset = fixedOffset;
         }
 
