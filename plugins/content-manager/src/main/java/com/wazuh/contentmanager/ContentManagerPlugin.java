@@ -16,8 +16,6 @@
  */
 package com.wazuh.contentmanager;
 
-import com.wazuh.contentmanager.model.ctiapi.ContextChanges;
-import org.apache.hc.core5.http.HttpException;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.opensearch.client.Client;
@@ -40,6 +38,7 @@ import org.opensearch.script.ScriptService;
 import org.opensearch.threadpool.ThreadPool;
 import org.opensearch.watcher.ResourceWatcherService;
 
+import java.io.IOException;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
@@ -49,6 +48,7 @@ import com.wazuh.contentmanager.client.CTIClient;
 import com.wazuh.contentmanager.index.ContentIndex;
 import com.wazuh.contentmanager.index.ContextIndex;
 import com.wazuh.contentmanager.model.ctiapi.ConsumerInfo;
+import com.wazuh.contentmanager.model.ctiapi.ContextChanges;
 import com.wazuh.contentmanager.rest.UpdaterHandler;
 import com.wazuh.contentmanager.settings.PluginSettings;
 import com.wazuh.contentmanager.util.Privileged;
@@ -59,7 +59,11 @@ public class ContentManagerPlugin extends Plugin implements ClusterPlugin, Actio
     private ContextIndex contextIndex;
     private ContentIndex contentIndex;
     private Environment environment;
+
     private static final Logger log = LogManager.getLogger(ContentManagerPlugin.class);
+
+    /** ClassConstructor * */
+    public ContentManagerPlugin() {}
 
     @Override
     public Collection<Object> createComponents(
@@ -76,7 +80,9 @@ public class ContentManagerPlugin extends Plugin implements ClusterPlugin, Actio
             Supplier<RepositoriesService> repositoriesServiceSupplier) {
         PluginSettings.getInstance(environment.settings(), clusterService);
         this.contextIndex = new ContextIndex(client);
+        this.contentIndex = new ContentIndex(client);
         this.environment = environment;
+
         return Collections.emptyList();
     }
 
@@ -109,16 +115,23 @@ public class ContentManagerPlugin extends Plugin implements ClusterPlugin, Actio
         while (responseCode == 0) {
             log.info("ENTRANDO AL WHILE");
             Privileged.doPrivilegedRequest(
-                () -> {
-                    try {
-                        ContextChanges changes = CTIClient.getInstance().getChanges("1674417", "1674418", "false");
-                    } catch (HttpException e) {
-                        log.error("Failed to get changes", e.getMessage());
-                    }
-                    return null;
-                });
-        }
-        */
+                    () -> {
+                        ContextChanges changes =
+                                CTIClient.getInstance().getChanges("1674417", "1674418", "false");
+
+                        return null;
+                    });
+        }*/
+    }
+
+    /**
+     * Close the resources opened by this plugin.
+     *
+     * @throws IOException if the plugin failed to close its resources
+     */
+    @Override
+    public void close() throws IOException {
+        super.close();
     }
 
     @Override

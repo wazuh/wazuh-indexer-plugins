@@ -139,7 +139,7 @@ public final class CTIClient extends HttpClient {
      * @return {@link ContextChanges} instance with the current changes.
      */
     public ContextChanges getChanges(String fromOffset, String toOffset, String withEmpties)
-            throws HttpException, IllegalArgumentException {
+            throws IllegalArgumentException {
         XContent xContent = XContentType.JSON.xContent();
 
         Map<String, String> params = contextQueryParameters(fromOffset, toOffset, withEmpties);

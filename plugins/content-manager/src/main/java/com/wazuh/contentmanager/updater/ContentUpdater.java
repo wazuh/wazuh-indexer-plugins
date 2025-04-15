@@ -16,7 +16,6 @@
  */
 package com.wazuh.contentmanager.updater;
 
-import org.apache.hc.core5.http.HttpException;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.opensearch.client.Client;
@@ -117,11 +116,7 @@ public class ContentUpdater {
     ContextChanges getContextChanges(String fromOffset, String toOffset) {
         return Privileged.doPrivilegedRequest(
                 () -> {
-                    try {
-                        return CTIClient.getInstance().getChanges(fromOffset, toOffset, null);
-                    } catch (HttpException e) {
-                        throw new RuntimeException(e);
-                    }
+                    return CTIClient.getInstance().getChanges(fromOffset, toOffset, null);
                 });
     }
 
