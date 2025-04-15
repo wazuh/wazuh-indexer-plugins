@@ -303,15 +303,10 @@ public class ContentIndex {
      */
     public JsonObject getAsJson(String resourceId)
             throws InterruptedException, ExecutionException, TimeoutException, IllegalArgumentException {
-        try {
-            GetResponse response = this.get(resourceId).get(TIMEOUT, TimeUnit.SECONDS);
-            if (!response.isExists()) {
-                throw new IllegalArgumentException("Content not found");
-            }
-            return JsonParser.parseString(response.getSourceAsString()).getAsJsonObject();
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-            throw e;
+        GetResponse response = this.get(resourceId).get(TIMEOUT, TimeUnit.SECONDS);
+        if (!response.isExists()) {
+            throw new IllegalArgumentException("Content not found");
         }
+        return JsonParser.parseString(response.getSourceAsString()).getAsJsonObject();
     }
 }
