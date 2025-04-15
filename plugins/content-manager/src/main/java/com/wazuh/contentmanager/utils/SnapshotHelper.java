@@ -19,6 +19,7 @@ package com.wazuh.contentmanager.utils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.opensearch.action.DocWriteResponse;
+import org.opensearch.action.index.IndexResponse;
 import org.opensearch.env.Environment;
 
 import java.io.IOException;
@@ -44,14 +45,27 @@ public final class SnapshotHelper {
 
     private static final Logger log = LogManager.getLogger(SnapshotHelper.class);
     private static SnapshotHelper instance;
+    private final CTIClient ctiClient;
     private final Environment environment;
     private final ContextIndex contextIndex;
     private final ContentIndex contentIndex;
 
-    private SnapshotHelper(
+    public SnapshotHelper(
             @NonNull Environment environment,
             @NonNull ContextIndex contextIndex,
             @NonNull ContentIndex contentIndex) {
+        this.ctiClient = CTIClient.getInstance();
+        this.environment = environment;
+        this.contextIndex = contextIndex;
+        this.contentIndex = contentIndex;
+    }
+
+    public SnapshotHelper(
+            @NonNull CTIClient ctiClient,
+            @NonNull Environment environment,
+            @NonNull ContextIndex contextIndex,
+            @NonNull ContentIndex contentIndex) {
+        this.ctiClient = ctiClient;
         this.environment = environment;
         this.contextIndex = contextIndex;
         this.contentIndex = contentIndex;
@@ -78,6 +92,25 @@ public final class SnapshotHelper {
     /**
      * Getter for the singleton object
      *
+     * @param environment The environment to create files within
+     * @param contextIndex The object in charge of indexing operations on the wazuh-context index
+     * @param contentIndex The object in charge of indexing to the wazuh-cve index
+     * @return a SnapshotHelper instance
+     */
+    public static synchronized SnapshotHelper getInstance(
+            @NonNull CTIClient ctiClient,
+            @NonNull Environment environment,
+            @NonNull ContextIndex contextIndex,
+            @NonNull ContentIndex contentIndex) {
+        if (instance == null) {
+            instance = new SnapshotHelper(ctiClient, environment, contextIndex, contentIndex);
+        }
+        return instance;
+    }
+
+    /**
+     * Getter for the singleton object
+     *
      * @return a SnapshotHelper instance
      * @throws IllegalStateException if the object was not initialized
      */
@@ -90,15 +123,15 @@ public final class SnapshotHelper {
     }
 
     /** Download, decompress and index a CTI snapshot */
-    private void indexSnapshot() {
+    @VisibleForTesting
+    void indexSnapshot() {
         if (this.contextIndex.getOffset() > 0) {
             return;
         }
         Privileged.doPrivilegedRequest(
                 () -> {
                     Path snapshotZip =
-                            CTIClient.getInstance()
-                                    .download(this.contextIndex.getLastSnapshotLink(), this.environment);
+                            this.ctiClient.download(this.contextIndex.getLastSnapshotLink(), this.environment);
                     Path outputDir = this.environment.resolveRepoFile("");
 
                     List<Path> snapshotJson = new ArrayList<>();
@@ -136,21 +169,23 @@ public final class SnapshotHelper {
      *
      * @throws IOException thrown when indexing failed
      */
-    private void updateContextIndex() throws IOException {
-        ConsumerInfo consumerInfo =
-                Privileged.doPrivilegedRequest(() -> CTIClient.getInstance().getCatalog());
+    @VisibleForTesting
+    void updateContextIndex() throws IOException {
+        ConsumerInfo consumerInfo = Privileged.doPrivilegedRequest(this.ctiClient::getCatalog);
 
-        DocWriteResponse.Result result = this.contextIndex.index(consumerInfo).getResult();
+        //DocWriteResponse.Result result = this.contextIndex.index(consumerInfo).getResult();
 
-        if (Objects.requireNonNull(result) == DocWriteResponse.Result.CREATED
-                || Objects.requireNonNull(result) == DocWriteResponse.Result.UPDATED) {
+        IndexResponse response = this.contextIndex.index(consumerInfo);
+
+        if (response.getResult().equals(DocWriteResponse.Result.CREATED)
+                || response.getResult().equals(DocWriteResponse.Result.UPDATED)) {
             log.info("Successfully initialized consumer [{}]", consumerInfo.getContext());
         } else {
             throw new IOException(
                     String.format(
                             Locale.ROOT,
                             "Consumer indexing operation returned with unexpected result [%s]",
-                            result));
+                            response.getResult()));
         }
     }
 

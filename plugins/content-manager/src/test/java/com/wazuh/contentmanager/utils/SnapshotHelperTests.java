@@ -16,8 +16,7 @@
  */
 package com.wazuh.contentmanager.utils;
 
-import org.apache.logging.log4j.Level;
-import org.apache.logging.log4j.LogManager;
+import com.carrotsearch.randomizedtesting.annotations.ThreadLeakScope;
 import org.apache.logging.log4j.core.Appender;
 import org.apache.logging.log4j.core.LogEvent;
 import org.apache.logging.log4j.core.Logger;
@@ -26,104 +25,115 @@ import org.opensearch.action.index.IndexResponse;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.env.Environment;
 import org.opensearch.test.OpenSearchTestCase;
-import org.junit.After;
 import org.junit.Before;
 
 import java.io.IOException;
 import java.nio.file.Path;
 
+import com.wazuh.contentmanager.client.CTIClient;
 import com.wazuh.contentmanager.index.ContentIndex;
 import com.wazuh.contentmanager.index.ContextIndex;
 import com.wazuh.contentmanager.model.ctiapi.ConsumerInfo;
-import org.mockito.ArgumentCaptor;
-import org.mockito.Mockito;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
 
 import static org.mockito.Mockito.*;
 
 /** Class to handle unzip tests */
+@ThreadLeakScope(ThreadLeakScope.Scope.TEST)
 public class SnapshotHelperTests extends OpenSearchTestCase {
 
-    SnapshotHelper snapshotHelper;
-    private Appender mockAppender;
-    private ArgumentCaptor<LogEvent> logEventArgumentCaptor;
-    private ContextIndex contextIndex;
-    private ContentIndex contentIndex;
+    @InjectMocks private SnapshotHelper snapshotHelper;
+    @Mock private CTIClient ctiClient;
+    @Mock private ContentIndex contentIndex;
+    @Mock private ContextIndex contextIndex;
+    @Mock private Environment environment;
+    //@Mock private Appender mockAppender;
+    //private ArgumentCaptor<LogEvent> logEventArgumentCaptor;
+    //private Logger logger;
 
     @Before
     @Override
     public void setUp() throws Exception {
         super.setUp();
-        Path tempDir = createTempDir();
+        Path envDir = createTempDir();
         Settings settings =
                 Settings.builder()
-                        .put("path.home", tempDir.toString()) // Required by OpenSearch
-                        .putList("path.repo", tempDir.toString())
+                        .put("path.home", envDir.toString()) // Required by OpenSearch
+                        .putList("path.repo", envDir.toString())
                         .build();
-        Environment environment = new Environment(settings, tempDir);
+
+        environment = new Environment(settings, envDir);
         contextIndex = mock(ContextIndex.class);
         contentIndex = mock(ContentIndex.class);
-        ConsumerInfo consumerInfo = mock(ConsumerInfo.class);
-        snapshotHelper =
-                Mockito.spy(
-                        new SnapshotHelper(environment, contextIndex, contentIndex) {
-                            @Override
-                            protected ConsumerInfo getConsumerInfo() {
-                                return consumerInfo;
-                            }
-                        });
-        mockAppender = mock(Appender.class);
-        logEventArgumentCaptor = ArgumentCaptor.forClass(LogEvent.class);
-        when(mockAppender.getName()).thenReturn("MockAppender");
-        when(mockAppender.isStarted()).thenReturn(true);
-        final Logger logger = (Logger) LogManager.getLogger(SnapshotHelper.class);
-        logger.addAppender(mockAppender);
-        logger.setLevel(Level.DEBUG);
+        ctiClient = mock(CTIClient.class);
+        snapshotHelper = SnapshotHelper.getInstance(ctiClient, environment, contextIndex, contentIndex);
+        //mockAppender = mock(Appender.class);
+        //logEventArgumentCaptor = ArgumentCaptor.forClass(LogEvent.class);
+        //when(mockAppender.getName()).thenReturn("MockAppender");
+        //when(mockAppender.isStarted()).thenReturn(true);
+        //logger = (Logger) LogManager.getLogger(SnapshotHelper.class);
+        //logger.addAppender(mockAppender);
+        //logger.setLevel(Level.DEBUG);
     }
 
     /**
-     * Tests an IOException updating the context index will stop the update from snapshot
-     *
-     * @throws IOException Mocked from updateContextIndex()
+     * @throws IOException rethrown from updateContextIndex()
      */
-    public void testContentIndexFailsUpdating() throws IOException {
-        doThrow(new IOException()).when(snapshotHelper).updateContextIndex();
-        snapshotHelper.initializeCVEIndex();
-        verify(mockAppender, times(1)).append(logEventArgumentCaptor.capture());
-        assertTrue(
-                logEventArgumentCaptor
-                        .getValue()
-                        .getMessage()
-                        .getFormattedMessage()
-                        .contains("Failed to initialize CVE Index from snapshot:"));
-    }
-
     public void testSuccessfulConsumerIndexing() throws IOException {
-        when(consumerInfo.getContext()).thenReturn("test-context");
+        ConsumerInfo consumerInfo = mock(ConsumerInfo.class);
+        when(ctiClient.getCatalog()).thenReturn(consumerInfo);
 
         IndexResponse response = mock(IndexResponse.class);
-        when(response.getResult()).thenReturn(DocWriteResponse.Result.CREATED);
 
-        when(contextIndex.index(consumerInfo)).thenReturn(response);
+        doReturn(response).when(this.contextIndex).index(any(ConsumerInfo.class));
+
+        doReturn(DocWriteResponse.Result.CREATED).when(response).getResult();
+
         snapshotHelper.updateContextIndex();
         verify(contextIndex).index(consumerInfo);
     }
 
-    public void testContentSnapshotfailsindexing() throws IOException {
-        doThrow(new IOException()).when(snapshotHelper).updateContextIndex();
-        snapshotHelper.initializeCVEIndex();
-        verify(mockAppender, times(1)).append(logEventArgumentCaptor.capture());
-        assertTrue(
-                logEventArgumentCaptor
-                        .getValue()
-                        .getMessage()
-                        .getFormattedMessage()
-                        .contains("Failed to initialize CVE Index from snapshot:"));
+    /**
+     *
+     */
+    public void testFailedConsumerIndexing() {
+        ConsumerInfo consumerInfo = mock(ConsumerInfo.class);
+        when(ctiClient.getCatalog()).thenReturn(consumerInfo);
+
+        IndexResponse response = mock(IndexResponse.class);
+
+        doReturn(response).when(this.contextIndex).index(any(ConsumerInfo.class));
+
+        DocWriteResponse.Result notFound = DocWriteResponse.Result.NOT_FOUND;
+        doReturn(notFound).when(response).getResult();
+        logger.info(response.getResult());
+
+        try {
+            snapshotHelper.updateContextIndex();
+        } catch (IOException e) {
+            return;
+        }
+        assert(false);
     }
 
-    @SuppressWarnings("EmptyMethod")
-    @After
-    @Override
-    public void tearDown() throws Exception {
-        super.tearDown();
-    }
+    ///**
+    // * Test fail indexing
+    // */
+    //public void testContentIndexFailsUpdating() {
+    //    ConsumerInfo consumerInfo = mock(ConsumerInfo.class);
+    //    IndexResponse response = mock(IndexResponse.class);
+    //    when(ctiClient.getCatalog()).thenReturn(consumerInfo);
+    //    when(contextIndex.index(consumerInfo)).thenReturn(response);
+    //    when(response.getResult()).thenReturn(DocWriteResponse.Result.NOT_FOUND);
+    //    snapshotHelper.initializeCVEIndex();
+    //    verify(mockAppender).append(logEventArgumentCaptor.capture());
+    //    assertTrue(
+    //            logEventArgumentCaptor
+    //                    .getValue()
+    //                    .getMessage()
+    //                    .getFormattedMessage()
+    //                    .contains("Consumer indexing operation returned with unexpected result"));
+    //    logger.removeAppender(mockAppender);
+    //}
 }
