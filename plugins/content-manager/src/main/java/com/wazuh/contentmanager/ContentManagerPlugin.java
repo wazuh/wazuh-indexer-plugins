@@ -121,16 +121,6 @@ public class ContentManagerPlugin extends Plugin implements ClusterPlugin, Actio
         }*/
     }
 
-    /**
-     * Close the resources opened by this plugin.
-     *
-     * @throws IOException if the plugin failed to close its resources
-     */
-    @Override
-    public void close() throws IOException {
-        super.close();
-    }
-
     @Override
     public List<Setting<?>> getSettings() {
         return Collections.singletonList(PluginSettings.CTI_API_URL);
