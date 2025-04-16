@@ -22,6 +22,7 @@ import org.apache.hc.client5.http.async.methods.SimpleHttpResponse;
 import org.apache.hc.core5.http.Header;
 import org.apache.hc.core5.http.HttpStatus;
 import org.apache.hc.core5.http.Method;
+import org.mockito.Mock;
 import org.opensearch.test.OpenSearchIntegTestCase;
 import org.junit.After;
 import org.junit.Before;
@@ -38,11 +39,15 @@ public class CTIClientTests extends OpenSearchIntegTestCase{
 
     private CTIClient ctiClient;
 
+    @Mock
+    private HttpClient mockHttpClient;
+
     @Before
     @Override
     public void setUp() throws Exception {
         super.setUp(); // Ensure OpenSearch test setup runs
-        this.ctiClient = mock(CTIClient.class);
+        mockHttpClient = mock(HttpClient.class);
+        this.ctiClient = new CTIClient("www.test.com");
     }
 
     @After
@@ -55,12 +60,14 @@ public class CTIClientTests extends OpenSearchIntegTestCase{
         // Arrange
         SimpleHttpResponse mockResponse = new SimpleHttpResponse(HttpStatus.SC_SUCCESS, "OK");
 
-        when(this.ctiClient.sendRequest(
-            any(Method.class), anyString(), any(), anyMap(), any(Header[].class)))
+        CTIClient spyCtiClient = spy(this.ctiClient);
+
+        when(spyCtiClient.sendRequest(
+            Method.GET, "/catalog/contexts/vd_1.0.0/consumers/vd_4.8.0/changes", null, Collections.emptyMap(), (Header[]) null))
             .thenReturn(mockResponse);
 
         // Act
-        SimpleHttpResponse response = this.ctiClient.fetchWithRetry(Method.GET,
+        SimpleHttpResponse response = spyCtiClient.fetchWithRetry(Method.GET,
             "/catalog/contexts/vd_1.0.0/consumers/vd_4.8.0/changes",
             null,
             Collections.emptyMap(),
@@ -68,9 +75,10 @@ public class CTIClientTests extends OpenSearchIntegTestCase{
 
         // Assert
         assertNotNull("Response should not be null", response);
+
         if (response != null) {
             assertEquals(HttpStatus.SC_SUCCESS, response.getCode());
-            verify(this.ctiClient, times(1)).sendRequest(any(Method.class), eq("/test/endpoint"), isNull(), isNull(), isNull());
+            verify(spyCtiClient, times(1)).sendRequest(any(Method.class), eq("/catalog/contexts/vd_1.0.0/consumers/vd_4.8.0/changes"), isNull(), anyMap(), isNull());
         }
     }
 
