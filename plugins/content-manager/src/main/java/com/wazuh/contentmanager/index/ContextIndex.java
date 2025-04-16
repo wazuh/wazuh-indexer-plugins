@@ -63,7 +63,6 @@ public class ContextIndex {
      * @param consumerInfo Model containing information parsed from the CTI API
      */
     public void index(ConsumerInfo consumerInfo) {
-
         IndexRequest indexRequest = null;
         try {
             indexRequest =

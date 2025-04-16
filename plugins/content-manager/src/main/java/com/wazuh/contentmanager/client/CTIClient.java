@@ -32,9 +32,11 @@ import java.net.URISyntaxException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
+import java.time.Duration;
+import java.time.ZonedDateTime;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.concurrent.ExecutionException;
+import java.util.concurrent.*;
 
 import com.wazuh.contentmanager.model.ctiapi.ConsumerInfo;
 import com.wazuh.contentmanager.model.ctiapi.ContextChanges;
@@ -56,6 +58,9 @@ public class CTIClient extends HttpClient {
     private static final String CONSUMER_CHANGES_ENDPOINT = CONSUMER_INFO_ENDPOINT + "/changes";
 
     private static CTIClient INSTANCE;
+
+    private static final int MAX_ATTEMPTS = 3;
+    private static final int SLEEP_TIME = 60;
 
     /** Enum representing the query parameters used in CTI API requests. */
     public enum QueryParameters {
@@ -102,6 +107,11 @@ public class CTIClient extends HttpClient {
         return INSTANCE;
     }
 
+    // Just for testing
+    CTIClient(String CTIBaseURL) {
+        super(URI.create(CTIBaseURL));
+    }
+
     /**
      * Fetches content changes from the CTI API using the provided query parameters.
      *
@@ -110,11 +120,15 @@ public class CTIClient extends HttpClient {
      * @param withEmpties A flag indicating whether to include empty values (Optional).
      * @return {@link ContextChanges} instance with the current changes.
      */
-    public ContextChanges getChanges(String fromOffset, String toOffset, String withEmpties) {
+    public ContextChanges getChanges(String fromOffset, String toOffset, String withEmpties)
+            throws IllegalArgumentException {
         XContent xContent = XContentType.JSON.xContent();
+
         Map<String, String> params = contextQueryParameters(fromOffset, toOffset, withEmpties);
+
         SimpleHttpResponse response =
-                sendRequest(Method.GET, CONSUMER_CHANGES_ENDPOINT, null, params, (Header) null);
+                fetchWithRetry(Method.GET, CONSUMER_CHANGES_ENDPOINT, null, params, null);
+
         if (response == null) {
             log.error("No response from CTI API Changes endpoint");
             return null;
@@ -124,6 +138,7 @@ public class CTIClient extends HttpClient {
         }
         log.debug("CTI API Changes endpoint replied with status: [{}]", response.getCode());
         try {
+            log.info("Response body {}", response.getBodyText()); // Borrar
             return ContextChanges.parse(
                     xContent.createParser(
                             NamedXContentRegistry.EMPTY,
@@ -142,17 +157,17 @@ public class CTIClient extends HttpClient {
      */
     public ConsumerInfo getCatalog() {
         XContent xContent = XContentType.JSON.xContent();
-        SimpleHttpResponse response =
-                sendRequest(Method.GET, CONSUMER_INFO_ENDPOINT, null, null, (Header) null);
-        if (response == null) {
-            log.error("No response from CTI API");
-            return null;
-        }
-        if (response.getCode() != HttpStatus.SC_OK) {
-            log.error("CTI API returned an error: {}", response.getBody());
-        }
-        log.debug("CTI API replied with status: [{}]", response.getCode());
+
         try {
+            SimpleHttpResponse response =
+                    fetchWithRetry(Method.GET, CONSUMER_INFO_ENDPOINT, null, null, null);
+
+            if (response == null) {
+                log.error("No response from CTI API");
+                return null;
+            }
+            log.debug("CTI API replied with status: [{}]", response.getCode());
+
             return ConsumerInfo.parse(
                     xContent.createParser(
                             NamedXContentRegistry.EMPTY,
@@ -174,7 +189,7 @@ public class CTIClient extends HttpClient {
      * @return A map containing the query parameters.
      */
     public static Map<String, String> contextQueryParameters(
-            String fromOffset, String toOffset, String withEmpties) {
+            String fromOffset, String toOffset, String withEmpties) throws IllegalArgumentException {
         Map<String, String> params = new HashMap<>();
         params.put(QueryParameters.FROM_OFFSET.getValue(), fromOffset);
         params.put(QueryParameters.TO_OFFSET.getValue(), toOffset);
@@ -182,6 +197,93 @@ public class CTIClient extends HttpClient {
             params.put(QueryParameters.WITH_EMPTIES.getValue(), withEmpties);
         }
         return params;
+    }
+
+    /**
+     * Send a request to the CTI API and handles the HTTP response based on the provided status code.
+     *
+     * @param method The HTTP method to use for the request.
+     * @param endpoint The endpoint to append to the base API URI.
+     * @param body The request body (optional, applicable for POST/PUT).
+     * @param params The query parameters (optional).
+     * @param header The headers to include in the request (optional).
+     * @throws IOException If an error occurs during response processing.
+     */
+    SimpleHttpResponse fetchWithRetry(
+            Method method, String endpoint, String body, Map<String, String> params, Header header) {
+
+        ZonedDateTime cooldown = null;
+        int attemptsLeft = CTIClient.MAX_ATTEMPTS;
+
+        while (attemptsLeft > 0) {
+            // Check if in cooldown
+            if (cooldown != null && ZonedDateTime.now().isBefore(cooldown)) {
+                long waitTime = Duration.between(ZonedDateTime.now(), cooldown).getSeconds();
+                log.info("In cooldown, waiting {} seconds", waitTime);
+                try {
+                    Thread.sleep(waitTime * 1000); // Wait before retrying
+                } catch (InterruptedException e) {
+                    log.error("Interrupted while waiting for cooldown", e);
+                    Thread.currentThread().interrupt(); // Reset interrupt status
+                }
+            }
+
+            log.info("Making request to CTI API");
+            SimpleHttpResponse response = sendRequest(method, endpoint, body, params, header);
+
+            if (response == null) {
+                return null; // Handle null
+            }
+
+            int statusCode = response.getCode();
+            log.info("Response code: {}", statusCode);
+
+            // Calculate timeout
+            int timeout = (CTIClient.MAX_ATTEMPTS - attemptsLeft + 1) * CTIClient.SLEEP_TIME;
+
+            switch (statusCode) {
+                case 200:
+                    log.info("Operation succeeded: status code 200");
+                    return response;
+
+                case 400:
+                    log.error("Operation failed: status code 400 - Error: {}", response.getBodyText());
+                    return response;
+
+                case 422:
+                    log.error("Unprocessable Entity: status code 422 - Error: {}", response.getBodyText());
+                    return response;
+
+                case 429: // Handling Too Many Requests
+                    log.warn("Max requests limit reached: status code 429");
+                    try {
+                        String retryAfterValue = response.getHeader("Retry-After").getValue();
+                        if (retryAfterValue != null) {
+                            timeout = Integer.parseInt(retryAfterValue);
+                        }
+                        cooldown = ZonedDateTime.now().plusSeconds(timeout); // Set cooldown
+                        log.info("Cooldown until {}", cooldown);
+                    } catch (ProtocolException | NullPointerException e) {
+                        log.warn("Retry-After header not present or invalid format: {}", e.getMessage());
+                        cooldown = ZonedDateTime.now().plusSeconds(timeout); // Default cooldown
+                    }
+                    break;
+
+                case 500: // Handling Server Error
+                    log.warn("Server Error: status code 500 - Error: {}", response.getBodyText());
+                    cooldown = ZonedDateTime.now().plusSeconds(60); // Set cooldown for server errors
+                    break;
+
+                default:
+                    log.error("Unexpected status code: {}", statusCode);
+                    return response;
+            }
+
+            attemptsLeft--; // Decrease remaining attempts
+        }
+
+        log.error("All attempts exhausted for the request to CTI API.");
+        return null; // Return null if all attempts fail
     }
 
     /***
@@ -229,5 +331,10 @@ public class CTIClient extends HttpClient {
             Thread.currentThread().interrupt(); // Restore the interrupted status
             log.error("Snapshot download was interrupted: {}", e.getMessage());
         }
+    }
+
+    public CTIClient clearInstance() {
+        this.INSTANCE = null;
+        return this.INSTANCE;
     }
 }

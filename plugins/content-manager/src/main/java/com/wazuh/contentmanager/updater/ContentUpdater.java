@@ -72,6 +72,7 @@ public class ContentUpdater {
 
         // Placeholder for testing purposes. TODO: Remove.
         if (fixedOffset != null) {
+            log.info("Using fixed offset to test. Current offset: {}", fixedOffset);
             currentOffset = fixedOffset;
         }
 
@@ -114,7 +115,9 @@ public class ContentUpdater {
     @VisibleForTesting
     ContextChanges getContextChanges(String fromOffset, String toOffset) {
         return Privileged.doPrivilegedRequest(
-                () -> CTIClient.getInstance().getChanges(fromOffset, toOffset, null));
+                () -> {
+                    return CTIClient.getInstance().getChanges(fromOffset, toOffset, null);
+                });
     }
 
     /**
