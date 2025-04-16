@@ -27,8 +27,8 @@ import com.wazuh.contentmanager.model.commandmanager.Command;
 import com.wazuh.contentmanager.model.ctiapi.ConsumerInfo;
 import com.wazuh.contentmanager.model.ctiapi.ContextChanges;
 import com.wazuh.contentmanager.settings.PluginSettings;
-import com.wazuh.contentmanager.util.Privileged;
-import com.wazuh.contentmanager.util.VisibleForTesting;
+import com.wazuh.contentmanager.utils.Privileged;
+import com.wazuh.contentmanager.utils.VisibleForTesting;
 
 /** Class responsible for managing content updates by fetching and applying changes in chunks. */
 public class ContentUpdater {
@@ -169,6 +169,6 @@ public class ContentUpdater {
     @VisibleForTesting
     void restartConsumerInfo() {
         contextIndex.index(
-                new ConsumerInfo(PluginSettings.CONSUMER_ID, PluginSettings.CONTEXT_ID, 0L, null));
+                new ConsumerInfo(PluginSettings.CONSUMER_ID, PluginSettings.CONTEXT_ID, 0L, 0L, null));
     }
 }

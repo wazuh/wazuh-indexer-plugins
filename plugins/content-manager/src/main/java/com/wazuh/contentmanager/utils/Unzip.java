@@ -14,11 +14,10 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-package com.wazuh.contentmanager.util;
+package com.wazuh.contentmanager.utils;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.opensearch.env.Environment;
 
 import java.io.BufferedOutputStream;
 import java.io.FileNotFoundException;
@@ -34,23 +33,19 @@ public class Unzip {
     private static final Logger log = LogManager.getLogger(Unzip.class);
 
     /**
-     * Unzips a ZIP file's content to the specified folder.
+     * Unzips a ZIP filePath's content to the specified folder.
      *
-     * @param file ZIP file to decompress.
-     * @param to extraction destination folder.
-     * @param env Required to resolve files' paths. Environment will contain the configuration of the
-     *     enclosed directory where the unzip process will happen.
+     * @param filePath ZIP filePath to decompress.
+     * @param destinationPath extraction destination folder.
      * @throws IOException rethrown from getNextEntry()
      */
-    public static void unzip(@NonNull String file, @NonNull String to, @NonNull Environment env)
+    public static void unzip(@NonNull Path filePath, @NonNull Path destinationPath)
             throws IOException {
-        Path path = env.resolveRepoFile(file);
-        if (path == null || !Files.exists(path)) {
-            throw new FileNotFoundException("ZIP file does not exist: " + path);
+        if (!Files.exists(filePath)) {
+            throw new FileNotFoundException("ZIP filePath does not exist: " + filePath);
         }
 
-        Path destinationPath = env.resolveRepoFile(to);
-        try (ZipInputStream zipInputStream = new ZipInputStream(Files.newInputStream(path))) {
+        try (ZipInputStream zipInputStream = new ZipInputStream(Files.newInputStream(filePath))) {
             ZipEntry zipEntry;
             while ((zipEntry = zipInputStream.getNextEntry()) != null) {
                 Path destinationFile = destinationPath.resolve(zipEntry.getName()).normalize();
@@ -61,7 +56,7 @@ public class Unzip {
                 zipInputStream.closeEntry();
             }
         }
-        log.info("[{}] file unzipped to [{}]", path.toString(), destinationPath.toString());
+        log.info("[{}] filePath unzipped to [{}]", filePath.toString(), destinationPath.toString());
     }
 
     /**
