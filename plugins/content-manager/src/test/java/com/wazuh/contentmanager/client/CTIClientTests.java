@@ -42,7 +42,7 @@ public class CTIClientTests extends OpenSearchIntegTestCase{
     @Override
     public void setUp() throws Exception {
         super.setUp(); // Ensure OpenSearch test setup runs
-        ctiClient = mock(CTIClient.class);
+        this.ctiClient = mock(CTIClient.class);
     }
 
     @After
@@ -55,12 +55,12 @@ public class CTIClientTests extends OpenSearchIntegTestCase{
         // Arrange
         SimpleHttpResponse mockResponse = new SimpleHttpResponse(HttpStatus.SC_SUCCESS, "OK");
 
-        when(ctiClient.sendRequest(
+        when(this.ctiClient.sendRequest(
             any(Method.class), anyString(), any(), anyMap(), any(Header[].class)))
             .thenReturn(mockResponse);
 
         // Act
-        SimpleHttpResponse response = ctiClient.fetchWithRetry(Method.GET,
+        SimpleHttpResponse response = this.ctiClient.fetchWithRetry(Method.GET,
             "/catalog/contexts/vd_1.0.0/consumers/vd_4.8.0/changes",
             null,
             Collections.emptyMap(),
@@ -70,16 +70,16 @@ public class CTIClientTests extends OpenSearchIntegTestCase{
         assertNotNull("Response should not be null", response);
         if (response != null) {
             assertEquals(HttpStatus.SC_SUCCESS, response.getCode());
-            verify(ctiClient, times(1)).sendRequest(any(Method.class), eq("/test/endpoint"), isNull(), isNull(), isNull());
+            verify(this.ctiClient, times(1)).sendRequest(any(Method.class), eq("/test/endpoint"), isNull(), isNull(), isNull());
         }
     }
 
     public void testGetCatalogNullResponse() {
         // Arrange
-        doReturn(null).when(ctiClient).fetchWithRetry(any(), any(), any(), any(), any());
+        doReturn(null).when(this.ctiClient).fetchWithRetry(any(), any(), any(), any(), any());
 
         // Act
-        ConsumerInfo result = ctiClient.getCatalog();
+        ConsumerInfo result = this.ctiClient.getCatalog();
 
         // Assert
         assertNull(result);
@@ -103,9 +103,9 @@ public class CTIClientTests extends OpenSearchIntegTestCase{
 
     public void testGetChangesNullResponse() {
         // Mock the HTTP response
-        when(ctiClient.fetchWithRetry(any(Method.class), anyString(), anyString(), anyMap(), any(Header.class))).thenReturn(null);
+        when(this.ctiClient.fetchWithRetry(any(Method.class), anyString(), anyString(), anyMap(), any(Header.class))).thenReturn(null);
 
-        ContextChanges changes = ctiClient.getChanges("0", "100", "true");
+        ContextChanges changes = this.ctiClient.getChanges("0", "100", "true");
         assertNull(changes);
     }
 
@@ -137,12 +137,11 @@ public class CTIClientTests extends OpenSearchIntegTestCase{
 
 
     public void testContextQueryParameters() {
-        Map<String, String> params = ctiClient.contextQueryParameters("fromOffset", "toOffset", "withEmpties");
+        Map<String, String> params = CTIClient.contextQueryParameters("fromOffset", "toOffset", "withEmpties");
         assertEquals(3, params.size());
         assertEquals("fromOffset", params.get(CTIClient.QueryParameters.FROM_OFFSET.getValue()));
         assertEquals("toOffset", params.get(CTIClient.QueryParameters.TO_OFFSET.getValue()));
         assertEquals("withEmpties", params.get(CTIClient.QueryParameters.WITH_EMPTIES.getValue()));
     }
-
 
 }
