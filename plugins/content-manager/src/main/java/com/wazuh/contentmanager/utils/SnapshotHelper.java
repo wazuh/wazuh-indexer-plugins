@@ -29,7 +29,6 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
-import java.util.Objects;
 
 import com.wazuh.contentmanager.client.CTIClient;
 import com.wazuh.contentmanager.client.CommandManagerClient;
@@ -173,9 +172,11 @@ public final class SnapshotHelper {
     void updateContextIndex() throws IOException {
         ConsumerInfo consumerInfo = Privileged.doPrivilegedRequest(this.ctiClient::getCatalog);
 
-        //DocWriteResponse.Result result = this.contextIndex.index(consumerInfo).getResult();
+        // DocWriteResponse.Result result = this.contextIndex.index(consumerInfo).getResult();
 
         IndexResponse response = this.contextIndex.index(consumerInfo);
+
+        log.info(response.getResult());
 
         if (response.getResult().equals(DocWriteResponse.Result.CREATED)
                 || response.getResult().equals(DocWriteResponse.Result.UPDATED)) {
@@ -197,5 +198,10 @@ public final class SnapshotHelper {
         } catch (IOException e) {
             log.error("Failed to initialize CVE Index from snapshot: {}", e.getMessage());
         }
+    }
+
+    public SnapshotHelper clearInstance() {
+        instance = null;
+        return instance;
     }
 }
