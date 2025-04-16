@@ -49,7 +49,7 @@ import com.wazuh.contentmanager.settings.PluginSettings;
  * <p>This client provides methods to fetch CTI catalog data and retrieve content changes based on
  * query parameters.
  */
-public final class CTIClient extends HttpClient {
+public class CTIClient extends HttpClient {
 
     private static final Logger log = LogManager.getLogger(CTIClient.class);
 
@@ -107,6 +107,11 @@ public final class CTIClient extends HttpClient {
         return INSTANCE;
     }
 
+    // Just for testing
+    CTIClient(String CTIBaseURL) {
+        super(URI.create(CTIBaseURL));
+    }
+
     /**
      * Fetches content changes from the CTI API using the provided query parameters.
      *
@@ -133,6 +138,7 @@ public final class CTIClient extends HttpClient {
         }
         log.debug("CTI API Changes endpoint replied with status: [{}]", response.getCode());
         try {
+            log.info("Response body {}", response.getBodyText()); // Borrar
             return ContextChanges.parse(
                     xContent.createParser(
                             NamedXContentRegistry.EMPTY,
@@ -203,7 +209,7 @@ public final class CTIClient extends HttpClient {
      * @param header The headers to include in the request (optional).
      * @throws IOException If an error occurs during response processing.
      */
-    private SimpleHttpResponse fetchWithRetry(
+    SimpleHttpResponse fetchWithRetry(
             Method method, String endpoint, String body, Map<String, String> params, Header header) {
 
         ZonedDateTime cooldown = null;
