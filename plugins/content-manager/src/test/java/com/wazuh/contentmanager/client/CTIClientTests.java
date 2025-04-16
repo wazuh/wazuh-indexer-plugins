@@ -28,6 +28,7 @@ import org.junit.After;
 import org.junit.Before;
 
 
+import java.io.IOException;
 import java.util.Collections;
 import java.util.Map;
 
@@ -39,20 +40,19 @@ public class CTIClientTests extends OpenSearchIntegTestCase{
 
     private CTIClient ctiClient;
 
-    @Mock
-    private HttpClient mockHttpClient;
-
     @Before
     @Override
     public void setUp() throws Exception {
         super.setUp(); // Ensure OpenSearch test setup runs
-        mockHttpClient = mock(HttpClient.class);
         this.ctiClient = new CTIClient("www.test.com");
     }
 
     @After
     @Override
     public void tearDown() throws Exception {
+        if (ctiClient != null) {
+            ctiClient.close();
+        }
         super.tearDown();
     }
 
@@ -80,17 +80,32 @@ public class CTIClientTests extends OpenSearchIntegTestCase{
             assertEquals(HttpStatus.SC_SUCCESS, response.getCode());
             verify(spyCtiClient, times(1)).sendRequest(any(Method.class), eq("/catalog/contexts/vd_1.0.0/consumers/vd_4.8.0/changes"), isNull(), anyMap(), isNull());
         }
+        try {
+            spyCtiClient.close();
+        } catch (IOException e) {
+            logger.error("Exception tryng to close spy of CtiClient {}", e.getMessage());
+        }
+        this.ctiClient = this.ctiClient.clearInstance();
     }
 
     public void testGetCatalogNullResponse() {
         // Arrange
-        doReturn(null).when(this.ctiClient).fetchWithRetry(any(), any(), any(), any(), any());
+        CTIClient spyCtiClient = spy(this.ctiClient);
+
+        doReturn(null).when(spyCtiClient).fetchWithRetry(any(), any(), any(), any(), any());
 
         // Act
-        ConsumerInfo result = this.ctiClient.getCatalog();
+        ConsumerInfo result = spyCtiClient.getCatalog();
 
         // Assert
         assertNull(result);
+
+        try {
+            spyCtiClient.close();
+        } catch (IOException e) {
+            logger.error("Exception tryng to close spy of CtiClient {}", e.getMessage());
+        }
+        this.ctiClient = this.ctiClient.clearInstance();
     }
 
     /*
@@ -111,10 +126,19 @@ public class CTIClientTests extends OpenSearchIntegTestCase{
 
     public void testGetChangesNullResponse() {
         // Mock the HTTP response
-        when(this.ctiClient.fetchWithRetry(any(Method.class), anyString(), anyString(), anyMap(), any(Header.class))).thenReturn(null);
+        CTIClient spyCtiClient = spy(this.ctiClient);
 
-        ContextChanges changes = this.ctiClient.getChanges("0", "100", "true");
+        when(spyCtiClient.fetchWithRetry(any(Method.class), anyString(), anyString(), anyMap(), any(Header.class))).thenReturn(null);
+
+        ContextChanges changes = spyCtiClient.getChanges("0", "100", "true");
         assertNull(changes);
+
+        try {
+            spyCtiClient.close();
+        } catch (IOException e) {
+            logger.error("Exception tryng to close spy of CtiClient {}", e.getMessage());
+        }
+        this.ctiClient = this.ctiClient.clearInstance();
     }
 
     /*
@@ -150,6 +174,8 @@ public class CTIClientTests extends OpenSearchIntegTestCase{
         assertEquals("fromOffset", params.get(CTIClient.QueryParameters.FROM_OFFSET.getValue()));
         assertEquals("toOffset", params.get(CTIClient.QueryParameters.TO_OFFSET.getValue()));
         assertEquals("withEmpties", params.get(CTIClient.QueryParameters.WITH_EMPTIES.getValue()));
+
+        this.ctiClient = this.ctiClient.clearInstance();
     }
 
 }

@@ -332,4 +332,9 @@ public class CTIClient extends HttpClient {
             log.error("Snapshot download was interrupted: {}", e.getMessage());
         }
     }
+
+    public CTIClient clearInstance() {
+        this.INSTANCE = null;
+        return this.INSTANCE;
+    }
 }

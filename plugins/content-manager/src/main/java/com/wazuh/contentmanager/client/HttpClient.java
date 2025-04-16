@@ -31,6 +31,7 @@ import org.apache.logging.log4j.Logger;
 
 import javax.net.ssl.SSLContext;
 
+import java.io.IOException;
 import java.net.URI;
 import java.security.KeyManagementException;
 import java.security.KeyStoreException;
@@ -153,5 +154,11 @@ public class HttpClient {
             log.error("Unexpected error in HTTP {} request: {}", method, e.getMessage());
         }
         return null;
+    }
+
+    public void close() throws IOException {
+        if (httpClient != null) {
+            httpClient.close();
+        }
     }
 }
