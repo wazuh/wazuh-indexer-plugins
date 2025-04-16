@@ -63,10 +63,10 @@ public class ContextIndex {
     /**
      * Index CTI API consumer information
      *
-     * @param consumerInfo Model containing information parsed from the CTI API
+     * @param newConsumerInfo Model containing information parsed from the CTI API
      * @return the IndexResponse from the indexing operation
      */
-    public IndexResponse index(ConsumerInfo consumerInfo) {
+    public IndexResponse index(ConsumerInfo newConsumerInfo) {
         IndexRequest indexRequest = null;
         IndexResponse indexResponse;
         // Set this to null so that future get() operations need to read the values from the index
@@ -76,8 +76,8 @@ public class ContextIndex {
                     new IndexRequest()
                             .index(CONTEXTS_INDEX)
                             .source(
-                                    consumerInfo.toXContent(XContentFactory.jsonBuilder(), ToXContent.EMPTY_PARAMS))
-                            .id(consumerInfo.getContext());
+                                    newConsumerInfo.toXContent(XContentFactory.jsonBuilder(), ToXContent.EMPTY_PARAMS))
+                            .id(newConsumerInfo.getContext());
         } catch (IOException e) {
             log.error("Failed to create JSON content builder: {}", e.getMessage());
         }
@@ -89,7 +89,7 @@ public class ContextIndex {
         } catch (InterruptedException | ExecutionException | TimeoutException e) {
             log.error(
                     "Failed to index Consumer [{}] information due to: {}",
-                    consumerInfo.getContext(),
+                    newConsumerInfo.getContext(),
                     e.getMessage());
             return null;
         }

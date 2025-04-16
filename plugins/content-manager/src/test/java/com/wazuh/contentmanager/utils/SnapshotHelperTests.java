@@ -22,7 +22,6 @@ import org.opensearch.action.DocWriteResponse;
 import org.opensearch.action.index.IndexResponse;
 import org.opensearch.client.Client;
 import org.opensearch.common.settings.Settings;
-import org.opensearch.core.index.shard.ShardId;
 import org.opensearch.env.Environment;
 import org.opensearch.test.OpenSearchTestCase;
 import org.junit.Before;
@@ -43,7 +42,7 @@ import static org.mockito.Mockito.*;
 @ThreadLeakScope(ThreadLeakScope.Scope.TEST)
 public class SnapshotHelperTests extends OpenSearchTestCase {
 
-    //@InjectMocks private SnapshotHelper snapshotHelper;
+    @InjectMocks private SnapshotHelper snapshotHelper;
     @Mock private CTIClient ctiClient;
     @Mock private ContentIndex contentIndex;
     @Mock private ContextIndex contextIndex;
@@ -54,7 +53,6 @@ public class SnapshotHelperTests extends OpenSearchTestCase {
     // private Logger logger;
 
     @Before
-    @Override
     public void setUp() throws Exception {
         super.setUp();
         Path envDir = createTempDir();
@@ -65,10 +63,10 @@ public class SnapshotHelperTests extends OpenSearchTestCase {
                         .build();
 
         environment = new Environment(settings, envDir);
-        // contextIndex = mock(ContextIndex.class);
         contextIndex = spy(new ContextIndex(mock(Client.class)));
         contentIndex = mock(ContentIndex.class);
         ctiClient = mock(CTIClient.class);
+        snapshotHelper = SnapshotHelper.getInstance(ctiClient, environment, contextIndex, contentIndex);
         // mockAppender = mock(Appender.class);
         // logEventArgumentCaptor = ArgumentCaptor.forClass(LogEvent.class);
         // when(mockAppender.getName()).thenReturn("MockAppender");
@@ -78,58 +76,31 @@ public class SnapshotHelperTests extends OpenSearchTestCase {
         // logger.setLevel(Level.DEBUG);
     }
 
-    /**
-     * @throws IOException rethrown from updateContextIndex()
-     */
     public void testSuccessfulConsumerIndexing() throws IOException {
-        SnapshotHelper snapshotHelper = SnapshotHelper.getInstance(ctiClient, environment, contextIndex, contentIndex);
-        ConsumerInfo consumerInfo = mock(ConsumerInfo.class);
+        ConsumerInfo consumerInfo = new ConsumerInfo("test-name", "test-context", 1L, 1L, "http://example.com");
         when(ctiClient.getCatalog()).thenReturn(consumerInfo);
+        IndexResponse response = mock(IndexResponse.class, "SuccessfulResponse");
 
-        IndexResponse response = mock(IndexResponse.class);
         doReturn(DocWriteResponse.Result.CREATED).when(response).getResult();
+        doReturn(response).when(contextIndex).index(any(ConsumerInfo.class));
 
-        doReturn(response).when(this.contextIndex).index(any(ConsumerInfo.class));
-
-
-        snapshotHelper.updateContextIndex();
-        snapshotHelper = snapshotHelper.clearInstance();
-        verify(contextIndex).index(consumerInfo);
+        snapshotHelper.updateContextIndex(contextIndex);
+        verify(contextIndex).index(any(ConsumerInfo.class));
     }
 
-    /** */
     public void testFailedConsumerIndexing() {
-        SnapshotHelper snapshotHelper = SnapshotHelper.getInstance(ctiClient, environment, contextIndex, contentIndex);
-        ConsumerInfo consumerInfo = mock(ConsumerInfo.class);
+        ConsumerInfo consumerInfo = new ConsumerInfo("test-name", "test-context", 1L, 1L, "http://example.com");
         when(ctiClient.getCatalog()).thenReturn(consumerInfo);
+        IndexResponse response = mock(IndexResponse.class, "FailedResponse");
 
-        //IndexResponse.Builder builder = new IndexResponse.Builder();
-        //builder.setShardId(new ShardId("index","indexUUID", 50));
-        //builder.setId("1");
-        //builder.setVersion(1L);
-        //builder.setSeqNo(1L);
-        //builder.setPrimaryTerm(1L);
-        //builder.setForcedRefresh(true);
-        //builder.setResult(DocWriteResponse.Result.NOT_FOUND);
-
-        //IndexResponse response = spy(builder.build());
-
-        IndexResponse response = mock(IndexResponse.class);
-
-        DocWriteResponse.Result notFound = DocWriteResponse.Result.NOT_FOUND;
-        doReturn(notFound).when(response).getResult();
-
-        doReturn(response).when(this.contextIndex).index(any(ConsumerInfo.class));
-
-        logger.info(response.getResult());
+        doReturn(DocWriteResponse.Result.NOT_FOUND).when(response).getResult();
+        doReturn(response).when(contextIndex).index(any(ConsumerInfo.class));
 
         try {
-            snapshotHelper.updateContextIndex();
+            snapshotHelper.updateContextIndex(this.contextIndex);
         } catch (IOException e) {
-            snapshotHelper = snapshotHelper.clearInstance();
             return;
         }
-        snapshotHelper = snapshotHelper.clearInstance();
         assert (false);
     }
 

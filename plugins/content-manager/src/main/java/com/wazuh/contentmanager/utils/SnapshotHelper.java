@@ -146,7 +146,7 @@ public final class SnapshotHelper {
                         for (Path path : stream) {
                             snapshotJson.add(path);
                         }
-                        postUpdateCommand();
+                        postUpdateCommand(CommandManagerClient.getInstance());
                         this.contentIndex.fromSnapshot(snapshotJson.get(0).toString());
                         Files.deleteIfExists(snapshotZip);
                         Files.deleteIfExists(snapshotJson.get(0));
@@ -158,8 +158,8 @@ public final class SnapshotHelper {
     }
 
     /** Posts a command to the command manager API on a successful snapshot operation */
-    private void postUpdateCommand() {
-        CommandManagerClient.getInstance()
+    private void postUpdateCommand(CommandManagerClient commandManagerClient) {
+        commandManagerClient
                 .postCommand(Command.create(this.contextIndex.getLastOffset().toString()));
     }
 
@@ -169,14 +169,9 @@ public final class SnapshotHelper {
      * @throws IOException thrown when indexing failed
      */
     @VisibleForTesting
-    void updateContextIndex() throws IOException {
+    void updateContextIndex(ContextIndex contextIndex) throws IOException {
         ConsumerInfo consumerInfo = Privileged.doPrivilegedRequest(this.ctiClient::getCatalog);
-
-        // DocWriteResponse.Result result = this.contextIndex.index(consumerInfo).getResult();
-
-        IndexResponse response = this.contextIndex.index(consumerInfo);
-
-        log.info(response.getResult());
+        IndexResponse response = contextIndex.index(consumerInfo);
 
         if (response.getResult().equals(DocWriteResponse.Result.CREATED)
                 || response.getResult().equals(DocWriteResponse.Result.UPDATED)) {
@@ -193,15 +188,10 @@ public final class SnapshotHelper {
     /** Trigger method for a CVE index initialization from a snapshot */
     public void initializeCVEIndex() {
         try {
-            updateContextIndex();
+            updateContextIndex(this.contextIndex);
             indexSnapshot();
         } catch (IOException e) {
             log.error("Failed to initialize CVE Index from snapshot: {}", e.getMessage());
         }
-    }
-
-    public SnapshotHelper clearInstance() {
-        instance = null;
-        return instance;
     }
 }
