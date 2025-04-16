@@ -16,6 +16,7 @@
  */
 package com.wazuh.contentmanager.client;
 
+import com.wazuh.contentmanager.model.ctiapi.ConsumerInfo;
 import com.wazuh.contentmanager.model.ctiapi.ContextChanges;
 import org.apache.hc.client5.http.async.methods.SimpleHttpResponse;
 import org.apache.hc.core5.http.Header;
@@ -73,15 +74,16 @@ public class CTIClientTests extends OpenSearchIntegTestCase{
         }
     }
 
-    /*
     public void testGetCatalogNullResponse() {
-        // Mock the HTTP response
-        when(ctiClient.fetchWithRetry(Method.GET, anyString(), null, null, null)).thenReturn(null);
+        // Arrange
+        doReturn(null).when(ctiClient).fetchWithRetry(any(), any(), any(), any(), any());
 
-        ConsumerInfo catalog = ctiClient.getCatalog();
-        assertNull(catalog);
+        // Act
+        ConsumerInfo result = ctiClient.getCatalog();
+
+        // Assert
+        assertNull(result);
     }
-    */
 
     /*
     public void testGetCatalogSuccess() {
@@ -97,7 +99,7 @@ public class CTIClientTests extends OpenSearchIntegTestCase{
         assertNotNull(catalog);
         assertEquals(catalog, mockConsumerInfo);
     }
-    */
+   */
 
     public void testGetChangesNullResponse() {
         // Mock the HTTP response
@@ -131,14 +133,16 @@ public class CTIClientTests extends OpenSearchIntegTestCase{
         assertNotNull(changes);
         // Additional assertions as needed
     }
+    */
 
-    /*public void testContextQueryParameters() {
+
+    public void testContextQueryParameters() {
         Map<String, String> params = ctiClient.contextQueryParameters("fromOffset", "toOffset", "withEmpties");
         assertEquals(3, params.size());
         assertEquals("fromOffset", params.get(CTIClient.QueryParameters.FROM_OFFSET.getValue()));
         assertEquals("toOffset", params.get(CTIClient.QueryParameters.TO_OFFSET.getValue()));
         assertEquals("withEmpties", params.get(CTIClient.QueryParameters.WITH_EMPTIES.getValue()));
-    }*/
+    }
 
 
 }
