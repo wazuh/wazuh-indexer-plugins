@@ -127,7 +127,8 @@ public class CTIClient extends HttpClient {
         Map<String, String> params = contextQueryParameters(fromOffset, toOffset, withEmpties);
 
         SimpleHttpResponse response =
-                sendRequest(Method.GET, CONSUMER_CHANGES_ENDPOINT, null, params, null, CTIClient.MAX_ATTEMPTS);
+                sendRequest(
+                        Method.GET, CONSUMER_CHANGES_ENDPOINT, null, params, null, CTIClient.MAX_ATTEMPTS);
 
         if (response == null) {
             log.error("No response from CTI API Changes endpoint");
@@ -209,7 +210,12 @@ public class CTIClient extends HttpClient {
      * @throws IOException If an error occurs during response processing.
      */
     SimpleHttpResponse sendRequest(
-            Method method, String endpoint, String body, Map<String, String> params, Header header, int attemptsLeft) {
+            Method method,
+            String endpoint,
+            String body,
+            Map<String, String> params,
+            Header header,
+            int attemptsLeft) {
 
         ZonedDateTime cooldown = null;
         SimpleHttpResponse response = null;
@@ -332,23 +338,22 @@ public class CTIClient extends HttpClient {
     }
 
     /**
-     * Sends an HTTP request to the specified endpoint using the provided method, body, parameters, and header.
+     * Sends an HTTP request to the specified endpoint using the provided method, body, parameters,
+     * and header.
      *
-     * This method is intentionally separated from the main logic to facilitate mocking in unit tests.
+     * <p>This method is intentionally separated from the main logic to facilitate mocking in unit
+     * tests.
      *
      * @param method the HTTP method to use (e.g. GET, POST, PUT, etc.)
      * @param endpoint the URL of the endpoint to send the request to
      * @param body the request body, or null if no body is required
-     * @param params a map of query parameters to include in the request, or null if no parameters are required
+     * @param params a map of query parameters to include in the request, or null if no parameters are
+     *     required
      * @param header the request header, or null if no header is required
      * @return the response from the server, or null if an error occurs
      */
     protected SimpleHttpResponse doHttpClientSendRequest(
-        Method method,
-        String endpoint,
-        String body,
-        Map<String, String> params,
-        Header header) {
+            Method method, String endpoint, String body, Map<String, String> params, Header header) {
         return super.sendRequest(method, endpoint, body, params, header);
     }
 

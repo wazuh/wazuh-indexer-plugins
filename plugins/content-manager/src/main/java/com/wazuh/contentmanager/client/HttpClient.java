@@ -157,8 +157,8 @@ public class HttpClient {
     }
 
     /**
-     * Closes the underlying HTTP asynchronous client if it exists.
-     * Used in tests
+     * Closes the underlying HTTP asynchronous client if it exists. Used in tests
+     *
      * @throws IOException if an I/O error occurs while closing the client
      */
     public void close() throws IOException {
