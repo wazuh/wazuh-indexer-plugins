@@ -19,10 +19,10 @@ package com.wazuh.contentmanager.client;
 import com.wazuh.contentmanager.model.ctiapi.ConsumerInfo;
 import com.wazuh.contentmanager.model.ctiapi.ContextChanges;
 import org.apache.hc.client5.http.async.methods.SimpleHttpResponse;
+import org.apache.hc.core5.http.ContentType;
 import org.apache.hc.core5.http.Header;
 import org.apache.hc.core5.http.HttpStatus;
 import org.apache.hc.core5.http.Method;
-import org.mockito.Mock;
 import org.opensearch.test.OpenSearchIntegTestCase;
 import org.junit.After;
 import org.junit.Before;
@@ -56,29 +56,31 @@ public class CTIClientTests extends OpenSearchIntegTestCase{
         super.tearDown();
     }
 
-    public void testFetchWithRetry_SuccessfulRequest() {
+    public void testSendRequest_SuccessfulRequest() {
         // Arrange
         SimpleHttpResponse mockResponse = new SimpleHttpResponse(HttpStatus.SC_SUCCESS, "OK");
 
         CTIClient spyCtiClient = spy(this.ctiClient);
 
-        when(spyCtiClient.sendRequest(
-            Method.GET, "/catalog/contexts/vd_1.0.0/consumers/vd_4.8.0/changes", null, Collections.emptyMap(), (Header[]) null))
+        when(spyCtiClient.doHttpClientSendRequest(
+            Method.GET, "/catalog/contexts/vd_1.0.0/consumers/vd_4.8.0/changes", null, Collections.emptyMap(), null))
             .thenReturn(mockResponse);
 
         // Act
-        SimpleHttpResponse response = spyCtiClient.fetchWithRetry(Method.GET,
+        SimpleHttpResponse response;
+        response = spyCtiClient.sendRequest(Method.GET,
             "/catalog/contexts/vd_1.0.0/consumers/vd_4.8.0/changes",
             null,
             Collections.emptyMap(),
-            null);
+            null,
+            3);
 
         // Assert
         assertNotNull("Response should not be null", response);
 
         if (response != null) {
             assertEquals(HttpStatus.SC_SUCCESS, response.getCode());
-            verify(spyCtiClient, times(1)).sendRequest(any(Method.class), eq("/catalog/contexts/vd_1.0.0/consumers/vd_4.8.0/changes"), isNull(), anyMap(), isNull());
+            verify(spyCtiClient, times(1)).sendRequest(any(Method.class), eq("/catalog/contexts/vd_1.0.0/consumers/vd_4.8.0/changes"), isNull(), anyMap(), isNull(), eq(3));
         }
         try {
             spyCtiClient.close();
@@ -88,11 +90,71 @@ public class CTIClientTests extends OpenSearchIntegTestCase{
         this.ctiClient = this.ctiClient.clearInstance();
     }
 
-    public void testGetCatalogNullResponse() {
+    public void testSendRequest_BadRequest() {
         // Arrange
+        SimpleHttpResponse mockResponse = new SimpleHttpResponse(HttpStatus.SC_BAD_REQUEST, "Bad Request");
+
+        CTIClient spyCtiClient = spy(this.ctiClient);
+        when(spyCtiClient.doHttpClientSendRequest(
+            Method.GET, "/catalog/contexts/vd_1.0.0/consumers/vd_4.8.0/changes", null, Collections.emptyMap(), null))
+            .thenReturn(mockResponse);
+
+        SimpleHttpResponse response;
+        response = spyCtiClient.sendRequest(Method.GET,
+            "/catalog/contexts/vd_1.0.0/consumers/vd_4.8.0/changes",
+            null,
+            Collections.emptyMap(),
+            null,
+            3);
+
+        // Assert
+        assertNotNull(response);
+        assertEquals(HttpStatus.SC_BAD_REQUEST, response.getCode());
+    }
+
+    public void testSendRequest_TooManyRequests_RetriesThreeTimes() throws Exception {
+        // Arrange
+        SimpleHttpResponse mockResponse429 = new SimpleHttpResponse(HttpStatus.SC_TOO_MANY_REQUESTS, "Too Many Requests");
+        mockResponse429.setHeader("Retry-After", "1"); // Timeout para el cooldown
+
         CTIClient spyCtiClient = spy(this.ctiClient);
 
-        doReturn(null).when(spyCtiClient).fetchWithRetry(any(), any(), any(), any(), any());
+        // Simular que sendRequest devuelve 429 tres veces
+        when(spyCtiClient.doHttpClientSendRequest(
+            Method.GET, "/catalog/contexts/vd_1.0.0/consumers/vd_4.8.0/changes", null, Collections.emptyMap(), null))
+            .thenReturn(mockResponse429);
+
+        // Act
+        SimpleHttpResponse response = spyCtiClient.sendRequest(Method.GET, "/catalog/contexts/vd_1.0.0/consumers/vd_4.8.0/changes", null, Collections.emptyMap(), null, 3);
+
+        // Assert
+        assertNotNull(response);
+        assertEquals(HttpStatus.SC_TOO_MANY_REQUESTS, response.getCode());
+
+        // Verify three calls of doHttpClientSendRequest
+        verify(spyCtiClient, times(3)).doHttpClientSendRequest(any(Method.class), eq("/catalog/contexts/vd_1.0.0/consumers/vd_4.8.0/changes"), isNull(), any(Map.class), isNull());
+    }
+
+
+    public void testGetCatalog_SuccessfulRequest() {
+        // Arrange
+        CTIClient spyCtiClient = spy(this.ctiClient);
+        SimpleHttpResponse response = new SimpleHttpResponse(HttpStatus.SC_SUCCESS, "OK");
+        response.setBody("{\"data\":[{\"offset\":1761037,\"type\":\"update\",\"version\":19,\"context\":\"vd_1.0.0\",\"resource\":\"CVE-2019-0605\",\"operations\":[{\"op\":\"add\",\"path\":\"/containers/cna/x_remediations/windows/0/anyOf/133\",\"value\":\"KB5058922\"},{\"op\":\"add\",\"path\":\"/containers/cna/x_remediations/windows/5/anyOf/140\",\"value\":\"KB5058921\"}]}]}", ContentType.APPLICATION_JSON);
+
+        when(spyCtiClient.sendRequest(any(Method.class), anyString(), anyString(), anyMap(), any(Header.class), anyInt())).thenReturn(response);
+
+        // Act
+        ConsumerInfo consumerInfo = spyCtiClient.getCatalog();
+
+        // Assert
+        verify(spyCtiClient, times(1)).sendRequest(any(Method.class), anyString(), isNull(), isNull(), (Header) isNull(), anyInt());
+    }
+
+    public void testGetCatalog_NullResponse() {
+        // Arrange
+        CTIClient spyCtiClient = spy(this.ctiClient);
+        doReturn(null).when(spyCtiClient).sendRequest((Method) any(), any(), any(), any(), (Header) any(), anyInt());
 
         // Act
         ConsumerInfo result = spyCtiClient.getCatalog();
@@ -108,27 +170,26 @@ public class CTIClientTests extends OpenSearchIntegTestCase{
         this.ctiClient = this.ctiClient.clearInstance();
     }
 
-    /*
-    public void testGetCatalogSuccess() {
-        // Mock the HTTP response
+    public void testGetChanges_SuccessfulRequest() {
+        // Arrange
+        CTIClient spyCtiClient = spy(this.ctiClient);
         SimpleHttpResponse response = new SimpleHttpResponse(HttpStatus.SC_SUCCESS, "OK");
-        when(ctiClient.fetchWithRetry(any(Method.class), anyString(), anyString(), anyMap(), any(Header.class))).thenReturn(response);
-        when(response.getBodyBytes()).thenReturn("{\"data\": \"sample\"}".getBytes());
+        response.setBody("{\"data\":[{\"offset\":1761037,\"type\":\"update\",\"version\":19,\"context\":\"vd_1.0.0\",\"resource\":\"CVE-2019-0605\",\"operations\":[{\"op\":\"add\",\"path\":\"/containers/cna/x_remediations/windows/0/anyOf/133\",\"value\":\"KB5058922\"},{\"op\":\"add\",\"path\":\"/containers/cna/x_remediations/windows/5/anyOf/140\",\"value\":\"KB5058921\"}]}]}", ContentType.APPLICATION_JSON);
+
+        when(spyCtiClient.sendRequest(any(Method.class), anyString(), anyString(), anyMap(), any(Header.class), anyInt())).thenReturn(response);
 
         // Act
-        ContextChanges changes = ctiClient.getChanges("0", "200", "true");
+        ContextChanges changes = spyCtiClient.getChanges("0", "200", "true");
 
-        ConsumerInfo catalog = ctiClient.getCatalog();
-        assertNotNull(catalog);
-        assertEquals(catalog, mockConsumerInfo);
+        // Assert
+        verify(spyCtiClient, times(1)).sendRequest((Method) any(Method.class), anyString(), isNull(), anyMap(), (Header) isNull(), anyInt());
     }
-   */
 
-    public void testGetChangesNullResponse() {
+    public void testGetChanges_NullResponse() {
         // Mock the HTTP response
         CTIClient spyCtiClient = spy(this.ctiClient);
 
-        when(spyCtiClient.fetchWithRetry(any(Method.class), anyString(), anyString(), anyMap(), any(Header.class))).thenReturn(null);
+        when(spyCtiClient.sendRequest(any(Method.class), anyString(), anyString(), anyMap(), any(Header.class))).thenReturn(null);
 
         ContextChanges changes = spyCtiClient.getChanges("0", "100", "true");
         assertNull(changes);
@@ -140,33 +201,6 @@ public class CTIClientTests extends OpenSearchIntegTestCase{
         }
         this.ctiClient = this.ctiClient.clearInstance();
     }
-
-    /*
-    public void testGetChangesSuccess() throws Exception {
-        // Mock the HTTP response
-        SimpleHttpResponse response = new SimpleHttpResponse(HttpStatus.SC_SUCCESS, "OK");
-        response.setBody("{\"data\":[{\"offset\":1761037,\"type\":\"update\",\"version\":19,\"context\":\"vd_1.0.0\",\"resource\":\"CVE-2019-0605\",\"operations\":[{\"op\":\"add\",\"path\":\"/containers/cna/x_remediations/windows/0/anyOf/133\",\"value\":\"KB5058922\"},{\"op\":\"add\",\"path\":\"/containers/cna/x_remediations/windows/5/anyOf/140\",\"value\":\"KB5058921\"}]}]}", ContentType.APPLICATION_JSON);
-
-        // Configurar los parámetros simulados
-        Map<String, String> params = new HashMap<>();
-        params.put("from_offset", "1000");
-        params.put("to_offset", "2000");
-        params.put("with_empties", "false");
-
-        // Mockear el metodo separado que construye los parámetros
-        CTIClient spyCtiClient = spy(ctiClient);
-        when(spyCtiClient.fetchWithRetry(any(Method.class), anyString(), anyString(), anyMap(), any(Header.class)))
-            .thenReturn(response);
-
-        // Act
-        ContextChanges changes = spyCtiClient.getChanges("1000", "2000", "false");
-
-        // Assert
-        assertNotNull(changes);
-        // Additional assertions as needed
-    }
-    */
-
 
     public void testContextQueryParameters() {
         Map<String, String> params = CTIClient.contextQueryParameters("fromOffset", "toOffset", "withEmpties");

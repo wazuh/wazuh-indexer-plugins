@@ -107,7 +107,7 @@ public class CTIClient extends HttpClient {
         return INSTANCE;
     }
 
-    // Just for testing
+    // Just for tests
     CTIClient(String CTIBaseURL) {
         super(URI.create(CTIBaseURL));
     }
@@ -127,7 +127,7 @@ public class CTIClient extends HttpClient {
         Map<String, String> params = contextQueryParameters(fromOffset, toOffset, withEmpties);
 
         SimpleHttpResponse response =
-                fetchWithRetry(Method.GET, CONSUMER_CHANGES_ENDPOINT, null, params, null);
+                sendRequest(Method.GET, CONSUMER_CHANGES_ENDPOINT, null, params, null, CTIClient.MAX_ATTEMPTS);
 
         if (response == null) {
             log.error("No response from CTI API Changes endpoint");
@@ -138,7 +138,6 @@ public class CTIClient extends HttpClient {
         }
         log.debug("CTI API Changes endpoint replied with status: [{}]", response.getCode());
         try {
-            log.info("Response body {}", response.getBodyText()); // Borrar
             return ContextChanges.parse(
                     xContent.createParser(
                             NamedXContentRegistry.EMPTY,
@@ -160,7 +159,7 @@ public class CTIClient extends HttpClient {
 
         try {
             SimpleHttpResponse response =
-                    fetchWithRetry(Method.GET, CONSUMER_INFO_ENDPOINT, null, null, null);
+                    sendRequest(Method.GET, CONSUMER_INFO_ENDPOINT, null, null, null, CTIClient.MAX_ATTEMPTS);
 
             if (response == null) {
                 log.error("No response from CTI API");
@@ -209,12 +208,11 @@ public class CTIClient extends HttpClient {
      * @param header The headers to include in the request (optional).
      * @throws IOException If an error occurs during response processing.
      */
-    SimpleHttpResponse fetchWithRetry(
-            Method method, String endpoint, String body, Map<String, String> params, Header header) {
+    SimpleHttpResponse sendRequest(
+            Method method, String endpoint, String body, Map<String, String> params, Header header, int attemptsLeft) {
 
         ZonedDateTime cooldown = null;
-        int attemptsLeft = CTIClient.MAX_ATTEMPTS;
-
+        SimpleHttpResponse response = null;
         while (attemptsLeft > 0) {
             // Check if in cooldown
             if (cooldown != null && ZonedDateTime.now().isBefore(cooldown)) {
@@ -229,7 +227,7 @@ public class CTIClient extends HttpClient {
             }
 
             log.info("Making request to CTI API");
-            SimpleHttpResponse response = sendRequest(method, endpoint, body, params, header);
+            response = this.doHttpClientSendRequest(method, endpoint, body, params, header);
 
             if (response == null) {
                 return null; // Handle null
@@ -283,7 +281,7 @@ public class CTIClient extends HttpClient {
         }
 
         log.error("All attempts exhausted for the request to CTI API.");
-        return null; // Return null if all attempts fail
+        return response; // Return null if all attempts fail
     }
 
     /***
@@ -333,6 +331,32 @@ public class CTIClient extends HttpClient {
         }
     }
 
+    /**
+     * Sends an HTTP request to the specified endpoint using the provided method, body, parameters, and header.
+     *
+     * This method is intentionally separated from the main logic to facilitate mocking in unit tests.
+     *
+     * @param method the HTTP method to use (e.g. GET, POST, PUT, etc.)
+     * @param endpoint the URL of the endpoint to send the request to
+     * @param body the request body, or null if no body is required
+     * @param params a map of query parameters to include in the request, or null if no parameters are required
+     * @param header the request header, or null if no header is required
+     * @return the response from the server, or null if an error occurs
+     */
+    protected SimpleHttpResponse doHttpClientSendRequest(
+        Method method,
+        String endpoint,
+        String body,
+        Map<String, String> params,
+        Header header) {
+        return super.sendRequest(method, endpoint, body, params, header);
+    }
+
+    /**
+     * Clears the singleton instance of the CTIClient.
+     *
+     * @return null, as the instance is cleared
+     */
     public CTIClient clearInstance() {
         this.INSTANCE = null;
         return this.INSTANCE;
