@@ -16,7 +16,6 @@
  */
 package com.wazuh.contentmanager.model.ctiapi;
 
-import org.opensearch.core.common.ParsingException;
 import org.opensearch.core.xcontent.ToXContentObject;
 import org.opensearch.core.xcontent.XContentBuilder;
 import org.opensearch.core.xcontent.XContentParser;
@@ -34,7 +33,6 @@ import java.util.Map;
  * <p>This class represents an offset in the context of a content change operation.
  */
 public class Offset implements ToXContentObject {
-
     private static final String CONTEXT = "context";
     private static final String OFFSET = "offset";
     private static final String RESOURCE = "resource";
@@ -51,7 +49,7 @@ public class Offset implements ToXContentObject {
     private final Map<String, Object> payload;
 
     /**
-     * Constructor for the class
+     * Constructor.
      *
      * @param context Name of the context
      * @param offset Offset number of the record
@@ -79,16 +77,13 @@ public class Offset implements ToXContentObject {
     }
 
     /**
-     * Parses an object to create an Offset instance
+     * Builds an Offset instance from the content of an XContentParser.
      *
-     * @param parser The XContentParser to parse the object
-     * @return An Offset instance
-     * @throws IllegalArgumentException if the object is invalid
-     * @throws ParsingException if the object is not well-formed
-     * @throws IOException if an I/O error occurs during parsing
+     * @param parser The XContentParser parser holding the data.
+     * @return A new Offset instance.
+     * @throws IOException if an I/O error occurs during parsing.
      */
-    public static Offset parse(XContentParser parser)
-            throws IllegalArgumentException, ParsingException, IOException {
+    public static Offset parse(XContentParser parser) throws IOException {
         String context = null;
         Long offset = null;
         String resource = null;
@@ -96,6 +91,7 @@ public class Offset implements ToXContentObject {
         Long version = null;
         List<PatchOperation> operations = new ArrayList<>();
         Map<String, Object> payload = new HashMap<>();
+
         while (parser.nextToken() != XContentParser.Token.END_OBJECT) {
             if (parser.currentToken() == XContentParser.Token.FIELD_NAME) {
                 String fieldName = parser.currentName();
@@ -117,9 +113,8 @@ public class Offset implements ToXContentObject {
                         version = parser.longValue();
                         break;
                     case OPERATIONS:
-                        XContentParser.Token token = parser.currentToken();
                         XContentParserUtils.ensureExpectedToken(
-                                XContentParser.Token.START_ARRAY, token, parser);
+                                XContentParser.Token.START_ARRAY, parser.currentToken(), parser);
                         while (parser.nextToken() != XContentParser.Token.END_ARRAY) {
                             operations.add(PatchOperation.parse(parser));
                         }
@@ -127,7 +122,7 @@ public class Offset implements ToXContentObject {
                     case PAYLOAD:
                         XContentParserUtils.ensureExpectedToken(
                                 XContentParser.Token.START_OBJECT, parser.currentToken(), parser);
-                        payload = parseObject(parser);
+                        payload = Offset.parseObject(parser);
                         break;
                     default:
                         parser.skipChildren();
@@ -135,20 +130,27 @@ public class Offset implements ToXContentObject {
                 }
             }
         }
+
         return new Offset(context, offset, resource, type, version, operations, payload);
     }
 
+    /**
+     * @param parser
+     * @return
+     * @throws IOException
+     */
     private static Map<String, Object> parseObject(XContentParser parser) throws IOException {
         Map<String, Object> result = new HashMap<>();
+
         while (parser.nextToken() != XContentParser.Token.END_OBJECT) {
             if (parser.currentToken() == XContentParser.Token.FIELD_NAME) {
                 String fieldName = parser.currentName();
                 switch (parser.nextToken()) {
                     case START_OBJECT:
-                        result.put(fieldName, parseObject(parser));
+                        result.put(fieldName, Offset.parseObject(parser));
                         break;
                     case START_ARRAY:
-                        result.put(fieldName, parseArray(parser));
+                        result.put(fieldName, Offset.parseArray(parser));
                         break;
                     case VALUE_STRING:
                         result.put(fieldName, parser.text());
@@ -164,9 +166,11 @@ public class Offset implements ToXContentObject {
                         break;
                     default:
                         parser.skipChildren();
+                        break;
                 }
             }
         }
+
         return result;
     }
 
@@ -179,13 +183,14 @@ public class Offset implements ToXContentObject {
      */
     private static List<Object> parseArray(XContentParser parser) throws IOException {
         List<Object> array = new ArrayList<>();
+
         while (parser.nextToken() != XContentParser.Token.END_ARRAY) {
             switch (parser.currentToken()) {
                 case START_OBJECT:
-                    array.add(parseObject(parser));
+                    array.add(Offset.parseObject(parser));
                     break;
                 case START_ARRAY:
-                    array.add(parseArray(parser));
+                    array.add(Offset.parseArray(parser));
                     break;
                 case VALUE_STRING:
                     array.add(parser.text());
@@ -201,19 +206,11 @@ public class Offset implements ToXContentObject {
                     break;
                 default:
                     parser.skipChildren();
+                    break;
             }
         }
 
         return array;
-    }
-
-    /**
-     * Getter for the offset
-     *
-     * @return the offset as a Long
-     */
-    public Long getOffset() {
-        return this.offset;
     }
 
     /**
@@ -235,39 +232,12 @@ public class Offset implements ToXContentObject {
     }
 
     /**
-     * Getter for the context name
-     *
-     * @return the context name as a String
-     */
-    public String getContext() {
-        return this.context;
-    }
-
-    /**
      * Getter for the operations
      *
      * @return the operations as a List of JsonPatch
      */
     public List<PatchOperation> getOperations() {
         return this.operations;
-    }
-
-    /**
-     * Getter for the version
-     *
-     * @return the version as a Long
-     */
-    public Long getVersion() {
-        return this.version;
-    }
-
-    /**
-     * Getter for the payload
-     *
-     * @return the payload as mapping
-     */
-    public Map<String, Object> getPayload() {
-        return this.payload;
     }
 
     /**
@@ -288,36 +258,12 @@ public class Offset implements ToXContentObject {
         builder.field(VERSION, this.version);
         builder.startArray(OPERATIONS);
         if (this.operations != null) {
-            for (PatchOperation operation : operations) {
+            for (PatchOperation operation : this.operations) {
                 operation.toXContent(builder, ToXContentObject.EMPTY_PARAMS);
             }
         }
         builder.endArray();
         builder.field(PAYLOAD, this.payload);
         return builder.endObject();
-    }
-
-    @Override
-    public String toString() {
-        return "Offset{"
-                + "context='"
-                + context
-                + '\''
-                + ", offset="
-                + offset
-                + ", resource='"
-                + resource
-                + '\''
-                + ", type='"
-                + type
-                + '\''
-                + ", version="
-                + version
-                + ", operations="
-                + operations
-                + '\''
-                + ", payload="
-                + payload
-                + '}';
     }
 }
