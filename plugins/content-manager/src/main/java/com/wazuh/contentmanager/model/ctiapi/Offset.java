@@ -214,9 +214,9 @@ public class Offset implements ToXContentObject {
     }
 
     /**
-     * Getter for the resource name
+     * Returns the resource's name.
      *
-     * @return the resource name as a String
+     * @return the resource name.
      */
     public String getResource() {
         return this.resource;

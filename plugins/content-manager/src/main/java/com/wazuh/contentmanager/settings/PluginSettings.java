@@ -106,7 +106,7 @@ public class PluginSettings {
      * @return a string with the base URL
      */
     public String getCtiBaseUrl() {
-        return ctiBaseUrl;
+        return this.ctiBaseUrl;
     }
 
     /**
@@ -115,6 +115,6 @@ public class PluginSettings {
      * @return a string with the Content Manager full URL
      */
     public String getClusterBaseUrl() {
-        return ClusterInfoHelper.getClusterBaseUrl(clusterService);
+        return ClusterInfoHelper.getClusterBaseUrl(this.clusterService);
     }
 }

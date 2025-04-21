@@ -162,16 +162,17 @@ public class ContentIndex {
         }
 
         for (Offset change : changes.getChangesList()) {
+            String id = change.getResource();
             try {
                 log.info("Processing change: {}", change);
                 switch (change.getType()) {
                     case CREATE:
-                        log.debug("Creating new resource: {}", change.getResource());
+                        log.debug("Creating new resource with ID [{}]", id);
                         this.index(change);
                         break;
                     case UPDATE:
-                        log.debug("Updating resource: {}", change.getResource());
-                        JsonObject content = this.getById(change.getResource());
+                        log.debug("Updating resource with ID [{}]", id);
+                        JsonObject content = this.getById(id);
                         for (PatchOperation op : change.getOperations()) {
                             JsonPatch.applyOperation(content, XContentUtils.xContentObjectToJson(op));
                         }
@@ -180,7 +181,8 @@ public class ContentIndex {
                         }
                         break;
                     case DELETE:
-                        this.delete(change.getResource());
+                        log.debug("Deleting resource with ID [{}]", id);
+                        this.delete(id);
                         break;
                     default:
                         throw new IllegalArgumentException("Unknown change type: " + change.getType());
@@ -189,7 +191,7 @@ public class ContentIndex {
                 Thread.currentThread().interrupt();
                 throw new RuntimeException("Interrupted while patching", e);
             } catch (Exception e) {
-                log.error("Failed to apply patch to {}: {}", change.getResource(), e.getMessage(), e);
+                log.error("Failed to apply patch to {}: {}", id, e.getMessage(), e);
                 throw new RuntimeException("Failed to apply patch operation", e);
             }
         }
