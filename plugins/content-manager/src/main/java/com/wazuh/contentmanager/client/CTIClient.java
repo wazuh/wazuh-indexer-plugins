@@ -107,7 +107,11 @@ public class CTIClient extends HttpClient {
         return INSTANCE;
     }
 
-    // Just for tests
+    /**
+     * This constructor is only used on tests.
+     *
+     * @param CTIBaseURL base URL of the CTI API (mocked).
+     */
     CTIClient(String CTIBaseURL) {
         super(URI.create(CTIBaseURL));
     }
@@ -120,23 +124,23 @@ public class CTIClient extends HttpClient {
      * @param withEmpties A flag indicating whether to include empty values (Optional).
      * @return {@link ContextChanges} instance with the current changes.
      */
-    public ContextChanges getChanges(String fromOffset, String toOffset, String withEmpties)
-            throws IllegalArgumentException {
+    public ContextChanges getChanges(String fromOffset, String toOffset, String withEmpties) {
         XContent xContent = XContentType.JSON.xContent();
-
         Map<String, String> params = contextQueryParameters(fromOffset, toOffset, withEmpties);
-
         SimpleHttpResponse response =
                 sendRequest(
                         Method.GET, CONSUMER_CHANGES_ENDPOINT, null, params, null, CTIClient.MAX_ATTEMPTS);
 
+        // Fail fast
         if (response == null) {
             log.error("No response from CTI API Changes endpoint");
             return null;
         }
         if (response.getCode() != HttpStatus.SC_OK) {
             log.error("CTI API Changes endpoint returned an error: {}", response.getBody());
+            return null;
         }
+
         log.debug("CTI API Changes endpoint replied with status: [{}]", response.getCode());
         try {
             return ContextChanges.parse(
@@ -146,8 +150,8 @@ public class CTIClient extends HttpClient {
                             response.getBodyBytes()));
         } catch (IOException | IllegalArgumentException e) {
             log.error("Failed to fetch changes information", e);
+            return null;
         }
-        return null;
     }
 
     /**
@@ -189,7 +193,7 @@ public class CTIClient extends HttpClient {
      * @return A map containing the query parameters.
      */
     public static Map<String, String> contextQueryParameters(
-            String fromOffset, String toOffset, String withEmpties) throws IllegalArgumentException {
+            String fromOffset, String toOffset, String withEmpties) {
         Map<String, String> params = new HashMap<>();
         params.put(QueryParameters.FROM_OFFSET.getValue(), fromOffset);
         params.put(QueryParameters.TO_OFFSET.getValue(), toOffset);
@@ -202,11 +206,15 @@ public class CTIClient extends HttpClient {
     /**
      * Send a request to the CTI API and handles the HTTP response based on the provided status code.
      *
+     * <p>Implements a retry strategy based on {@code attemptsLeft}
+     *
      * @param method The HTTP method to use for the request.
      * @param endpoint The endpoint to append to the base API URI.
      * @param body The request body (optional, applicable for POST/PUT).
      * @param params The query parameters (optional).
      * @param header The headers to include in the request (optional).
+     * @param attemptsLeft number of retries left.
+     * @return SimpleHttpResponse or null.
      */
     SimpleHttpResponse sendRequest(
             Method method,
@@ -232,6 +240,7 @@ public class CTIClient extends HttpClient {
             }
 
             log.info("Making request to CTI API");
+            // WARN Changing this to sendRequest makes the test fail.
             response = this.doHttpClientSendRequest(method, endpoint, body, params, header);
 
             if (response == null) {
@@ -305,7 +314,7 @@ public class CTIClient extends HttpClient {
             // Download
             log.info("Starting snapshot download from [{}]", uri);
             SimpleHttpRequest request = SimpleHttpRequest.create(Method.GET, uri);
-            SimpleHttpResponse response = httpClient.execute(request, null).get();
+            SimpleHttpResponse response = CTIClient.httpClient.execute(request, null).get();
 
             // Write to disk
             InputStream input = new ByteArrayInputStream(response.getBodyBytes());
@@ -354,15 +363,5 @@ public class CTIClient extends HttpClient {
     protected SimpleHttpResponse doHttpClientSendRequest(
             Method method, String endpoint, String body, Map<String, String> params, Header header) {
         return super.sendRequest(method, endpoint, body, params, header);
-    }
-
-    /**
-     * Clears the singleton instance of the CTIClient.
-     *
-     * @return null, as the instance is cleared
-     */
-    public CTIClient clearInstance() {
-        this.INSTANCE = null;
-        return this.INSTANCE;
     }
 }

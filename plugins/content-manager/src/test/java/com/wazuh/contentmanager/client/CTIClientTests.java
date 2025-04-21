@@ -39,19 +39,26 @@ import static org.mockito.Mockito.*;
 public class CTIClientTests extends OpenSearchIntegTestCase {
 
     private CTIClient ctiClient;
+    private CTIClient spyCtiClient;
 
     @Before
     @Override
     public void setUp() throws Exception {
         super.setUp(); // Ensure OpenSearch test setup runs
         this.ctiClient = new CTIClient("www.test.com");
+        this.spyCtiClient = spy(this.ctiClient);
     }
 
     @After
     @Override
     public void tearDown() throws Exception {
-        if (ctiClient != null) {
-            ctiClient.close();
+        this.ctiClient = null;
+        try {
+            this.spyCtiClient.close();
+        } catch (IOException e) {
+            logger.error(
+                    "Exception trying to close spy of CtiClient {} in test testSendRequest_SuccessfulRequest",
+                    e.getMessage());
         }
         super.tearDown();
     }
@@ -60,9 +67,7 @@ public class CTIClientTests extends OpenSearchIntegTestCase {
         // Arrange
         SimpleHttpResponse mockResponse = new SimpleHttpResponse(HttpStatus.SC_SUCCESS, "OK");
 
-        CTIClient spyCtiClient = spy(this.ctiClient);
-
-        when(spyCtiClient.doHttpClientSendRequest(
+        when(this.spyCtiClient.doHttpClientSendRequest(
                         Method.GET,
                         "/catalog/contexts/vd_1.0.0/consumers/vd_4.8.0/changes",
                         null,
@@ -73,7 +78,7 @@ public class CTIClientTests extends OpenSearchIntegTestCase {
         // Act
         SimpleHttpResponse response;
         response =
-                spyCtiClient.sendRequest(
+                this.spyCtiClient.sendRequest(
                         Method.GET,
                         "/catalog/contexts/vd_1.0.0/consumers/vd_4.8.0/changes",
                         null,
@@ -85,7 +90,7 @@ public class CTIClientTests extends OpenSearchIntegTestCase {
         assertNotNull("Response should not be null", response);
 
         assertEquals(HttpStatus.SC_SUCCESS, response.getCode());
-        verify(spyCtiClient, times(1))
+        verify(this.spyCtiClient, times(1))
                 .sendRequest(
                         any(Method.class),
                         eq("/catalog/contexts/vd_1.0.0/consumers/vd_4.8.0/changes"),
@@ -93,13 +98,6 @@ public class CTIClientTests extends OpenSearchIntegTestCase {
                         anyMap(),
                         isNull(),
                         eq(3));
-
-        try {
-            spyCtiClient.close();
-        } catch (IOException e) {
-            logger.error("Exception trying to close spy of CtiClient {} in test testSendRequest_SuccessfulRequest", e.getMessage());
-        }
-        this.ctiClient = this.ctiClient.clearInstance();
     }
 
     public void testSendRequest_BadRequest() {
@@ -107,8 +105,7 @@ public class CTIClientTests extends OpenSearchIntegTestCase {
         SimpleHttpResponse mockResponse =
                 new SimpleHttpResponse(HttpStatus.SC_BAD_REQUEST, "Bad Request");
 
-        CTIClient spyCtiClient = spy(this.ctiClient);
-        when(spyCtiClient.doHttpClientSendRequest(
+        when(this.spyCtiClient.doHttpClientSendRequest(
                         Method.GET,
                         "/catalog/contexts/vd_1.0.0/consumers/vd_4.8.0/changes",
                         null,
@@ -118,7 +115,7 @@ public class CTIClientTests extends OpenSearchIntegTestCase {
 
         SimpleHttpResponse response;
         response =
-                spyCtiClient.sendRequest(
+                this.spyCtiClient.sendRequest(
                         Method.GET,
                         "/catalog/contexts/vd_1.0.0/consumers/vd_4.8.0/changes",
                         null,
@@ -137,10 +134,8 @@ public class CTIClientTests extends OpenSearchIntegTestCase {
                 new SimpleHttpResponse(HttpStatus.SC_TOO_MANY_REQUESTS, "Too Many Requests");
         mockResponse429.setHeader("Retry-After", "1"); // Timeout para el cooldown
 
-        CTIClient spyCtiClient = spy(this.ctiClient);
-
         // Mock that sendRequest returns 429 three times.
-        when(spyCtiClient.doHttpClientSendRequest(
+        when(this.spyCtiClient.doHttpClientSendRequest(
                         Method.GET,
                         "/catalog/contexts/vd_1.0.0/consumers/vd_4.8.0/changes",
                         null,
@@ -150,7 +145,7 @@ public class CTIClientTests extends OpenSearchIntegTestCase {
 
         // Act
         SimpleHttpResponse response =
-                spyCtiClient.sendRequest(
+                this.spyCtiClient.sendRequest(
                         Method.GET,
                         "/catalog/contexts/vd_1.0.0/consumers/vd_4.8.0/changes",
                         null,
@@ -163,7 +158,7 @@ public class CTIClientTests extends OpenSearchIntegTestCase {
         assertEquals(HttpStatus.SC_TOO_MANY_REQUESTS, response.getCode());
 
         // Verify three calls of doHttpClientSendRequest
-        verify(spyCtiClient, times(3))
+        verify(this.spyCtiClient, times(3))
                 .doHttpClientSendRequest(
                         any(Method.class),
                         eq("/catalog/contexts/vd_1.0.0/consumers/vd_4.8.0/changes"),
@@ -174,89 +169,62 @@ public class CTIClientTests extends OpenSearchIntegTestCase {
 
     public void testGetCatalog_SuccessfulRequest() {
         // Arrange
-        CTIClient spyCtiClient = spy(this.ctiClient);
         SimpleHttpResponse response = new SimpleHttpResponse(HttpStatus.SC_SUCCESS, "OK");
         response.setBody(
                 "{\"data\":[{\"offset\":1761037,\"type\":\"update\",\"version\":19,\"context\":\"vd_1.0.0\",\"resource\":\"CVE-2019-0605\",\"operations\":[{\"op\":\"add\",\"path\":\"/containers/cna/x_remediations/windows/0/anyOf/133\",\"value\":\"KB5058922\"},{\"op\":\"add\",\"path\":\"/containers/cna/x_remediations/windows/5/anyOf/140\",\"value\":\"KB5058921\"}]}]}",
                 ContentType.APPLICATION_JSON);
 
-        when(spyCtiClient.sendRequest(
+        when(this.spyCtiClient.sendRequest(
                         any(Method.class), anyString(), anyString(), anyMap(), any(Header.class), anyInt()))
                 .thenReturn(response);
 
         // Act
-        ConsumerInfo consumerInfo = spyCtiClient.getCatalog();
+        ConsumerInfo consumerInfo = this.spyCtiClient.getCatalog();
+        // TODO unused variable
 
         // Assert
-        verify(spyCtiClient, times(1))
-                .sendRequest(
-                        any(Method.class), anyString(), isNull(), isNull(),  isNull(), anyInt());
+        verify(this.spyCtiClient, times(1))
+                .sendRequest(any(Method.class), anyString(), isNull(), isNull(), isNull(), anyInt());
     }
 
     public void testGetCatalog_NullResponse() {
         // Arrange
-        CTIClient spyCtiClient = spy(this.ctiClient);
-        doReturn(null)
-                .when(spyCtiClient)
-                .sendRequest( any(), any(), any(), any(), any(), anyInt());
+        doReturn(null).when(this.spyCtiClient).sendRequest(any(), any(), any(), any(), any(), anyInt());
 
         // Act
-        ConsumerInfo result = spyCtiClient.getCatalog();
+        ConsumerInfo result = this.spyCtiClient.getCatalog();
 
         // Assert
         assertNull(result);
-
-        try {
-            spyCtiClient.close();
-        } catch (IOException e) {
-            logger.error("Exception tryng to close spy of CtiClient {} in test testGetCatalog_NullResponse", e.getMessage());
-        }
-        this.ctiClient = this.ctiClient.clearInstance();
     }
 
     public void testGetChanges_SuccessfulRequest() {
         // Arrange
-        CTIClient spyCtiClient = spy(this.ctiClient);
         SimpleHttpResponse response = new SimpleHttpResponse(HttpStatus.SC_SUCCESS, "OK");
         response.setBody(
                 "{\"data\":[{\"offset\":1761037,\"type\":\"update\",\"version\":19,\"context\":\"vd_1.0.0\",\"resource\":\"CVE-2019-0605\",\"operations\":[{\"op\":\"add\",\"path\":\"/containers/cna/x_remediations/windows/0/anyOf/133\",\"value\":\"KB5058922\"},{\"op\":\"add\",\"path\":\"/containers/cna/x_remediations/windows/5/anyOf/140\",\"value\":\"KB5058921\"}]}]}",
                 ContentType.APPLICATION_JSON);
 
-        when(spyCtiClient.sendRequest(
+        when(this.spyCtiClient.sendRequest(
                         any(Method.class), anyString(), anyString(), anyMap(), any(Header.class), anyInt()))
                 .thenReturn(response);
 
         // Act
-        ContextChanges changes = spyCtiClient.getChanges("0", "200", "true");
+        ContextChanges changes = this.spyCtiClient.getChanges("0", "200", "true");
+        // TODO unused variable
 
         // Assert
-        verify(spyCtiClient, times(1))
-                .sendRequest(
-                        any(Method.class),
-                        anyString(),
-                        isNull(),
-                        anyMap(),
-                        isNull(),
-                        anyInt());
+        verify(this.spyCtiClient, times(1))
+                .sendRequest(any(Method.class), anyString(), isNull(), anyMap(), isNull(), anyInt());
     }
 
     public void testGetChanges_NullResponse() {
-        // Mock the HTTP response
-        CTIClient spyCtiClient = spy(this.ctiClient);
-
-        when(spyCtiClient.sendRequest(
+        when(this.spyCtiClient.sendRequest(
                         any(Method.class), anyString(), anyString(), anyMap(), any(Header.class)))
                 .thenReturn(null);
 
-        ContextChanges changes = spyCtiClient.getChanges("0", "100", "true");
+        ContextChanges changes = this.spyCtiClient.getChanges("0", "100", "true");
         assertNull(changes);
-
-        try {
-            spyCtiClient.close();
-        } catch (IOException e) {
-            logger.error("Exception tryng to close spy of CtiClient {} in test testGetChanges_NullResponse", e.getMessage());
-        }
-        this.ctiClient = this.ctiClient.clearInstance();
     }
 
     public void testContextQueryParameters() {
@@ -266,7 +234,5 @@ public class CTIClientTests extends OpenSearchIntegTestCase {
         assertEquals("fromOffset", params.get(CTIClient.QueryParameters.FROM_OFFSET.getValue()));
         assertEquals("toOffset", params.get(CTIClient.QueryParameters.TO_OFFSET.getValue()));
         assertEquals("withEmpties", params.get(CTIClient.QueryParameters.WITH_EMPTIES.getValue()));
-
-        this.ctiClient = this.ctiClient.clearInstance();
     }
 }
