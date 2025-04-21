@@ -69,6 +69,7 @@ public class ContentManagerPlugin extends Plugin implements ClusterPlugin, Actio
         this.contextIndex = new ContextIndex(client);
         this.contentIndex = new ContentIndex(client);
         this.environment = environment;
+
         return Collections.emptyList();
     }
 

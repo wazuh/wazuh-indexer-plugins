@@ -133,6 +133,38 @@ The command takes the `index` and `offset` arguments, strings depicting the inde
 }
 ```
 
+### refresh
+
+The `refresh` command is created when the Wazuh RBAC resources (users, roles, policies, ...) are modified.
+
+This command serves to the Wazuh Server as a notification to update its local copy of these resources.
+
+The expected values for `target.type` and `target.id` are `server` and `rbac`, respectively.
+
+The command accepts an optional `index` argument, which must be an array of strings representing the RBAC indices that changed. Any other value than an array is strings is rejected. Additional arguments are ignored.
+
+``` json
+{
+  "commands": [
+    {
+      "action": {
+        "name": "refresh",
+        "args": {
+          "index": ["index-a", "index-b"], // Optional
+        },
+        "version": "5.0.0"
+      },
+      "source": "Users/Services",
+      "timeout": 100,
+      "target": {
+        "id": "rbac",
+        "type": "server"
+      }
+    }
+  ]
+}
+```
+
 ## Commands expansion
 
 Commands can be targeted to a group of agents, too. This is achieved by setting `group` as the target type and the name of the group as the target ID. For example:

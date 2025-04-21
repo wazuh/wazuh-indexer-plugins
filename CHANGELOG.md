@@ -18,6 +18,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Add index templates for SCA [(#351)](https://github.com/wazuh/wazuh-indexer-plugins/issues/351)
 - Implement CVE ECS definition and index template [(#337)](https://github.com/wazuh/wazuh-indexer-plugins/pull/337)
 - Implement a time-based management of the agent.status attribute in the wazuh-agents index [(#349)](https://github.com/wazuh/wazuh-indexer-plugins/pull/349)
+- Implement RBAC "refresh" command [(#370)](https://github.com/wazuh/wazuh-indexer-plugins/pull/370)
+-Implement CTI API client rate limit and enhanced response handling [(#363)](https://github.com/wazuh/wazuh-indexer-plugins/pull/363)
 
 ### Dependencies
 
@@ -25,7 +27,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Glue logic to initialize the CVE index [#373](https://github.com/wazuh/wazuh-indexer-plugins/pull/373)
 - Refactor Content Manager's code and fix Catalog info indexing [(#317)](https://github.com/wazuh/wazuh-indexer-plugins/pull/317)
 - Improved mdbook installation instructions [#332](https://github.com/wazuh/wazuh-indexer-plugins/pull/332)
-- Third-party integrations maintenance [(#299)](https://github.com/wazuh/wazuh-indexer-plugins/pull/299)
+- Third-party integrations maintenance [(#299)](https://github.com/wazuh/wazuh-indexer-plugins/pull/299) [(#374)](https://github.com/wazuh/wazuh-indexer-plugins/pull/374)
 - Upgrade to Opensearch 2.19.1 [(#304)](https://github.com/wazuh/wazuh-indexer-plugins/pull/304)
 - Add cross-account support for Security Lake integration [(#322)](https://github.com/wazuh/wazuh-indexer-plugins/pull/322)
 - Improve ECS documentation I [(#328)](https://github.com/wazuh/wazuh-indexer-plugins/pull/328)
