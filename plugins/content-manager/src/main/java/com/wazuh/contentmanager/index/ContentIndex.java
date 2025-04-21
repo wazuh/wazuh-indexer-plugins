@@ -41,6 +41,7 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Semaphore;
@@ -55,6 +56,7 @@ import com.wazuh.contentmanager.util.XContentUtils;
 
 /** Manages operations for the Wazuh CVE content index. */
 public class ContentIndex {
+    private static final String JSON_NAME_KEY = "name";
     private static final Logger log = LogManager.getLogger(ContentIndex.class);
     private static final int MAX_DOCUMENTS = 25;
     private static final int MAX_CONCURRENT_PETITIONS = 5;
@@ -87,7 +89,7 @@ public class ContentIndex {
                             .index(INDEX_NAME)
                             .source(document.toXContent(XContentFactory.jsonBuilder(), ToXContent.EMPTY_PARAMS))
                             .id(document.getResource());
-            client.index(
+            this.client.index(
                     indexRequest,
                     new ActionListener<>() {
                         @Override
@@ -120,11 +122,11 @@ public class ContentIndex {
         for (JsonObject document : documents) {
             bulkRequest.add(
                     new IndexRequest()
-                            .id(document.get("name").getAsString())
+                            .id(document.get(JSON_NAME_KEY).getAsString())
                             .source(document.toString(), XContentType.JSON));
         }
 
-        client.bulk(
+        this.client.bulk(
                 bulkRequest,
                 new ActionListener<>() {
                     @Override
@@ -169,7 +171,7 @@ public class ContentIndex {
                         break;
                     case UPDATE:
                         log.debug("Updating resource: {}", change.getResource());
-                        JsonObject content = getAsJson(change.getResource());
+                        JsonObject content = this.getById(change.getResource());
                         for (PatchOperation op : change.getOperations()) {
                             JsonPatch.applyOperation(content, XContentUtils.xContentObjectToJson(op));
                         }
@@ -201,7 +203,7 @@ public class ContentIndex {
      */
     public CompletableFuture<GetResponse> get(String id) {
         CompletableFuture<GetResponse> future = new CompletableFuture<>();
-        client.get(
+        this.client.get(
                 new GetRequest(INDEX_NAME, id),
                 new ActionListener<>() {
                     @Override
@@ -225,7 +227,7 @@ public class ContentIndex {
      * @param id ID of the document to delete.
      */
     public void delete(String id) {
-        client.delete(
+        this.client.delete(
                 new DeleteRequest(INDEX_NAME, id),
                 new ActionListener<>() {
                     @Override
@@ -258,10 +260,10 @@ public class ContentIndex {
         try (BufferedReader reader = new BufferedReader(new FileReader(path, StandardCharsets.UTF_8))) {
             while ((line = reader.readLine()) != null) {
                 json = JsonParser.parseString(line).getAsJsonObject();
-                // Not every line in the snapshot is a CVE. We filter out the content by the "name" field of
-                // the
-                // current JSON object, if it starts with "CVE-". Any other case is skipped.
-                String name = json.get("name").getAsString();
+                // Not every line in the snapshot is a CVE. We filter out the
+                // content by the "name" field of the current JSON object, if
+                // it starts with "CVE-". Any other case is skipped.
+                String name = json.get(JSON_NAME_KEY).getAsString();
                 if (name.startsWith("CVE-")) {
                     items.add(json);
                     lineCount++;
@@ -271,7 +273,7 @@ public class ContentIndex {
 
                 // Index items (MAX_DOCUMENTS reached)
                 if (lineCount == MAX_DOCUMENTS) {
-                    semaphore.acquire();
+                    this.semaphore.acquire();
                     this.index(items);
                     lineCount = 0;
                     items.clear();
@@ -279,7 +281,7 @@ public class ContentIndex {
             }
             // Index remaining items (> MAX_DOCUMENTS)
             if (lineCount > 0) {
-                semaphore.acquire();
+                this.semaphore.acquire();
                 this.index(items);
             }
         } catch (Exception e) {
@@ -290,21 +292,27 @@ public class ContentIndex {
     }
 
     /**
-     * Returns a Content in JsonObject format.
+     * Searches for an element in the {@link ContentIndex#INDEX_NAME} by its ID.
      *
-     * @param resourceId the ID of the resource to retrieve.
-     * @return the JsonObject representation of the content.
+     * @param resourceId the ID of the element to retrieve.
+     * @return the element as a JsonObject instance.
      * @throws InterruptedException if the operation is interrupted.
      * @throws ExecutionException if an error occurs during execution.
      * @throws TimeoutException if the operation times out.
      * @throws IllegalArgumentException if the content is not found.
      */
-    public JsonObject getAsJson(String resourceId)
+    public JsonObject getById(String resourceId)
             throws InterruptedException, ExecutionException, TimeoutException, IllegalArgumentException {
         GetResponse response = this.get(resourceId).get(TIMEOUT, TimeUnit.SECONDS);
-        if (!response.isExists()) {
-            throw new IllegalArgumentException("Content not found");
+        if (response.isExists()) {
+            return JsonParser.parseString(response.getSourceAsString()).getAsJsonObject();
         }
-        return JsonParser.parseString(response.getSourceAsString()).getAsJsonObject();
+        // else
+        throw new IllegalArgumentException(
+                String.format(
+                        Locale.ROOT,
+                        "Document with ID [%s] not found in the [%s] index",
+                        resourceId,
+                        INDEX_NAME));
     }
 }
