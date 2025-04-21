@@ -39,8 +39,8 @@ import java.util.List;
 import java.util.function.Supplier;
 
 import com.wazuh.contentmanager.client.CTIClient;
-import com.wazuh.contentmanager.index.ContextIndex;
 import com.wazuh.contentmanager.index.ContentIndex;
+import com.wazuh.contentmanager.index.ContextIndex;
 import com.wazuh.contentmanager.model.ctiapi.ConsumerInfo;
 import com.wazuh.contentmanager.settings.PluginSettings;
 import com.wazuh.contentmanager.util.Privileged;

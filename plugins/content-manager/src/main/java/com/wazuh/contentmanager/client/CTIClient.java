@@ -17,13 +17,10 @@
 package com.wazuh.contentmanager.client;
 
 import org.apache.hc.client5.http.HttpHostConnectException;
-import org.apache.hc.client5.http.HttpResponseException;
 import org.apache.hc.client5.http.async.methods.*;
 import org.apache.hc.core5.http.*;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.opensearch.common.xcontent.XContentType;
-import org.opensearch.core.xcontent.XContent;
 import org.opensearch.env.Environment;
 
 import java.io.*;
@@ -126,7 +123,6 @@ public class CTIClient extends HttpClient {
      * @return {@link ContentChanges} instance with the current changes.
      */
     public ContentChanges getChanges(String fromOffset, String toOffset, String withEmpties) {
-        XContent xContent = XContentType.JSON.xContent();
         Map<String, String> params = contextQueryParameters(fromOffset, toOffset, withEmpties);
         SimpleHttpResponse response =
                 sendRequest(
