@@ -25,8 +25,8 @@ import org.junit.Before;
 import java.util.List;
 
 import com.wazuh.contentmanager.model.ctiapi.ContentChanges;
-import com.wazuh.contentmanager.model.ctiapi.ContentType;
 import com.wazuh.contentmanager.model.ctiapi.Offset;
+import com.wazuh.contentmanager.model.ctiapi.OperationType;
 import com.wazuh.contentmanager.model.ctiapi.PatchOperation;
 import org.mockito.Mockito;
 
@@ -60,7 +60,7 @@ public class ContentIndexTests extends OpenSearchIntegTestCase {
         // Mock
         doNothing().when(contentIndexSpy).index((Offset) any());
         // Arrange
-        Offset offset = new Offset("test", 1L, "test", ContentType.CREATE, 1L, null, null);
+        Offset offset = new Offset("test", 1L, "test", OperationType.CREATE, 1L, null, null);
         // Act
         contentIndexSpy.patch(new ContentChanges(List.of(offset)));
         // Assert
@@ -84,7 +84,7 @@ public class ContentIndexTests extends OpenSearchIntegTestCase {
                         "test",
                         1L,
                         "test",
-                        ContentType.UPDATE,
+                        OperationType.UPDATE,
                         1L,
                         List.of(new PatchOperation("replace", "/field", null, "new_value")),
                         null);
@@ -102,7 +102,7 @@ public class ContentIndexTests extends OpenSearchIntegTestCase {
         // Mock this.delete() to avoid actual client call
         doNothing().when(contentIndexSpy).delete(any());
         // Arrange
-        Offset offset = new Offset("test", 1L, "test", ContentType.DELETE, 1L, null, null);
+        Offset offset = new Offset("test", 1L, "test", OperationType.DELETE, 1L, null, null);
         // Act
         contentIndexSpy.patch(new ContentChanges(List.of(offset)));
         // Assert

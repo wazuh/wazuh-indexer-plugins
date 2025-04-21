@@ -45,7 +45,7 @@ public class Offset implements ToXContentObject {
     private final String context;
     private final Long offset;
     private final String resource;
-    private final ContentType type;
+    private final OperationType type;
     private final Long version;
     private final List<PatchOperation> operations;
     private final Map<String, Object> payload;
@@ -56,7 +56,7 @@ public class Offset implements ToXContentObject {
      * @param context Name of the context
      * @param offset Offset number of the record
      * @param resource Name of the resource
-     * @param type ContentType of operation to be performed
+     * @param type OperationType of operation to be performed
      * @param version Version Number
      * @param operations JSON Patch payload data
      * @param payload JSON Patch payload data
@@ -65,7 +65,7 @@ public class Offset implements ToXContentObject {
             String context,
             Long offset,
             String resource,
-            ContentType type,
+            OperationType type,
             Long version,
             List<PatchOperation> operations,
             Map<String, Object> payload) {
@@ -92,7 +92,7 @@ public class Offset implements ToXContentObject {
         String context = null;
         Long offset = null;
         String resource = null;
-        ContentType type = null;
+        OperationType type = null;
         Long version = null;
         List<PatchOperation> operations = new ArrayList<>();
         Map<String, Object> payload = new HashMap<>();
@@ -111,7 +111,7 @@ public class Offset implements ToXContentObject {
                         resource = parser.text();
                         break;
                     case TYPE:
-                        type = ContentType.fromString(parser.text());
+                        type = OperationType.valueOf(parser.text());
                         break;
                     case VERSION:
                         version = parser.longValue();
@@ -230,7 +230,7 @@ public class Offset implements ToXContentObject {
      *
      * @return the type as a String
      */
-    public ContentType getType() {
+    public OperationType getType() {
         return this.type;
     }
 

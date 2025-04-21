@@ -25,8 +25,8 @@ import java.util.List;
 
 import com.wazuh.contentmanager.client.CTIClient;
 import com.wazuh.contentmanager.model.ctiapi.ContentChanges;
-import com.wazuh.contentmanager.model.ctiapi.ContentType;
 import com.wazuh.contentmanager.model.ctiapi.Offset;
+import com.wazuh.contentmanager.model.ctiapi.OperationType;
 import com.wazuh.contentmanager.model.ctiapi.PatchOperation;
 import org.mockito.Mockito;
 
@@ -128,7 +128,7 @@ public class ContentUpdaterTests extends OpenSearchIntegTestCase {
                             "context",
                             (long) i,
                             "resource",
-                            ContentType.UPDATE,
+                            OperationType.UPDATE,
                             0L,
                             List.of(new PatchOperation("op", "path", "from", "value")),
                             null));

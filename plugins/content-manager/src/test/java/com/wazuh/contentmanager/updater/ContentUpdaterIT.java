@@ -39,11 +39,8 @@ import java.util.concurrent.TimeoutException;
 import com.wazuh.contentmanager.client.CTIClient;
 import com.wazuh.contentmanager.index.ContentIndex;
 import com.wazuh.contentmanager.index.ContextIndex;
-import com.wazuh.contentmanager.model.ctiapi.ConsumerInfo;
-import com.wazuh.contentmanager.model.ctiapi.ContentChanges;
-import com.wazuh.contentmanager.model.ctiapi.ContentType;
-import com.wazuh.contentmanager.model.ctiapi.Offset;
-import com.wazuh.contentmanager.model.ctiapi.PatchOperation;
+import com.wazuh.contentmanager.model.ctiapi.*;
+import com.wazuh.contentmanager.model.ctiapi.OperationType;
 import com.wazuh.contentmanager.updater.ContentUpdater;
 
 import static com.wazuh.contentmanager.index.ContentIndex.TIMEOUT;
@@ -81,7 +78,7 @@ public class ContentUpdaterIT extends OpenSearchIntegTestCase {
     public void testFetchAndApplyUpdates_ContentChangesTypeCreate() throws InterruptedException {
         // Arrange
         Long offsetId = 1L;
-        Offset createOffset = getOffset(offsetId, ContentType.CREATE);
+        Offset createOffset = getOffset(offsetId, OperationType.CREATE);
         ContentChanges contentChanges = new ContentChanges(List.of(createOffset));
         ConsumerInfo testConsumer = new ConsumerInfo(CONSUMER_ID, CONTEXT_ID, offsetId, null);
         // Mock
@@ -100,8 +97,8 @@ public class ContentUpdaterIT extends OpenSearchIntegTestCase {
     public void testFetchAndApplyUpdates_ContentChangesTypeUpdate() throws InterruptedException {
         // Arrange
         Long offsetId = 2L;
-        Offset createOffset = getOffset(offsetId - 1, ContentType.CREATE);
-        Offset updateOffset = getOffset(offsetId, ContentType.UPDATE);
+        Offset createOffset = getOffset(offsetId - 1, OperationType.CREATE);
+        Offset updateOffset = getOffset(offsetId, OperationType.UPDATE);
         ContentChanges contentChanges = new ContentChanges(List.of(createOffset, updateOffset));
         ConsumerInfo testConsumer = new ConsumerInfo(CONSUMER_ID, CONTEXT_ID, offsetId, null);
         // Mock
@@ -122,8 +119,8 @@ public class ContentUpdaterIT extends OpenSearchIntegTestCase {
             throws InterruptedException, ExecutionException, TimeoutException {
         // Arrange
         Long offsetId = 2L;
-        Offset createOffset = getOffset(offsetId - 1, ContentType.CREATE);
-        Offset deleteOffset = getOffset(offsetId, ContentType.DELETE);
+        Offset createOffset = getOffset(offsetId - 1, OperationType.CREATE);
+        Offset deleteOffset = getOffset(offsetId, OperationType.DELETE);
         ContentChanges contentChanges = new ContentChanges(List.of(createOffset, deleteOffset));
         ConsumerInfo testConsumer = new ConsumerInfo(CONSUMER_ID, CONTEXT_ID, offsetId, null);
         // Mock
@@ -149,12 +146,12 @@ public class ContentUpdaterIT extends OpenSearchIntegTestCase {
      * @param type The content type (CREATE, UPDATE, DELETE).
      * @return An Offset object with the specified ID and content type.
      */
-    private Offset getOffset(Long id, ContentType type) {
+    private Offset getOffset(Long id, OperationType type) {
         List<PatchOperation> operations = null;
         Map<String, Object> payload = null;
-        if (type == ContentType.UPDATE) {
+        if (type == OperationType.UPDATE) {
             operations = List.of(new PatchOperation("add", "/newField", null, "test"));
-        } else if (type == ContentType.CREATE) {
+        } else if (type == OperationType.CREATE) {
             payload = new HashMap<>();
             payload.put("name", "Dummy Threat");
             payload.put("indicators", List.of("192.168.1.1", "example.com"));
@@ -191,7 +188,7 @@ public class ContentUpdaterIT extends OpenSearchIntegTestCase {
      */
     public void prepareInitialCVEInfo(Client client, Long offsetId) throws Exception {
         // Create a ConsumerInfo document manually in the test index
-        Offset offset = getOffset(offsetId, ContentType.CREATE);
+        Offset offset = getOffset(offsetId, OperationType.CREATE);
         client
                 .prepareIndex(ContentIndex.INDEX_NAME)
                 .setId(testResource)
