@@ -30,7 +30,7 @@ import java.util.Collections;
 import java.util.Map;
 
 import com.wazuh.contentmanager.model.ctiapi.ConsumerInfo;
-import com.wazuh.contentmanager.model.ctiapi.ContextChanges;
+import com.wazuh.contentmanager.model.ctiapi.ContentChanges;
 
 import static org.mockito.Mockito.*;
 
@@ -210,7 +210,7 @@ public class CTIClientTests extends OpenSearchIntegTestCase {
                 .thenReturn(response);
 
         // Act
-        ContextChanges changes = this.spyCtiClient.getChanges("0", "200", "true");
+        ContentChanges changes = this.spyCtiClient.getChanges("0", "200", "true");
         // TODO unused variable
 
         // Assert
@@ -223,7 +223,7 @@ public class CTIClientTests extends OpenSearchIntegTestCase {
                         any(Method.class), anyString(), anyString(), anyMap(), any(Header.class)))
                 .thenReturn(null);
 
-        ContextChanges changes = this.spyCtiClient.getChanges("0", "100", "true");
+        ContentChanges changes = this.spyCtiClient.getChanges("0", "100", "true");
         assertNull(changes);
     }
 
