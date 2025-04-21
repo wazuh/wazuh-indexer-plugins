@@ -105,18 +105,44 @@ public class ContentManagerPlugin extends Plugin implements ClusterPlugin, Actio
                 Privileged.doPrivilegedRequest(() -> CTIClient.getInstance().getCatalog());
         this.contextIndex.index(consumerInfo);
 
-        // Wrapping up for testing. Infinite loop
-        /*int responseCode = 0;
-        while (responseCode == 0) {
-            log.info("ENTERING THE WHILE");
-            Privileged.doPrivilegedRequest(
-                    () -> {
-                        ContextChanges changes =
-                                CTIClient.getInstance().getChanges("1674417", "1674418", "false");
+        // Wrapping up for testing
+        //        Privileged.doPrivilegedRequest(
+        //                () -> {
+        //                    CTIClient.getInstance()
+        //                            .download(
+        //
+        // "https://cti.wazuh.com/store/contexts/vd_1.0.0/consumers/vd_4.8.0/1432540_1741603172.zip",
+        //                                    environment);
+        //                    String snapshotZip =
+        //
+        // this.environment.resolveRepoFile("1432540_1741603172.zip").toString();
+        //                    String snapshot =
+        //                            this.environment
+        //
+        // .resolveRepoFile("vd_1.0.0_vd_4.8.0_1432540_1741603172.json")
+        //                                    .toString();
+        //                    String dir = this.environment.resolveRepoFile("").toString();
+        //                    try {
+        //                        Unzip.unzip(snapshotZip, dir, this.environment);
+        //                    } catch (IOException e) {
+        //                        throw new RuntimeException(e);
+        //                    }
+        //                    this.contentIndex.fromSnapshot(snapshot);
+        //                    return null;
+        //                });
 
-                        return null;
-                    });
-        }*/
+        // Rate limiting testing. Infinite loop
+        //        while (true) {
+        //            log.info("ENTERING THE WHILE");
+        //            Privileged.doPrivilegedRequest(
+        //                    () -> {
+        //                        ContextChanges changes =
+        //                                CTIClient.getInstance().getChanges("1674417", "1674418",
+        // "false");
+        //
+        //                        return null;
+        //                    });
+        //        }
     }
 
     @Override
