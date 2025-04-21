@@ -37,22 +37,19 @@ import com.wazuh.contentmanager.index.ContextIndex;
 import com.wazuh.contentmanager.model.commandmanager.Command;
 import com.wazuh.contentmanager.model.ctiapi.ConsumerInfo;
 import com.wazuh.contentmanager.settings.PluginSettings;
-import reactor.util.annotation.NonNull;
 
 /** Helper class to handle indexing of snapshots */
-public final class SnapshotHelper {
+public class SnapshotHelper {
 
     private static final Logger log = LogManager.getLogger(SnapshotHelper.class);
     private static SnapshotHelper instance;
-    private final CTIClient ctiClient;
-    private final Environment environment;
-    private final ContextIndex contextIndex;
-    private final ContentIndex contentIndex;
+    private CTIClient ctiClient;
+    private Environment environment;
+    private ContextIndex contextIndex;
+    private ContentIndex contentIndex;
 
     public SnapshotHelper(
-            @NonNull Environment environment,
-            @NonNull ContextIndex contextIndex,
-            @NonNull ContentIndex contentIndex) {
+            Environment environment, ContextIndex contextIndex, ContentIndex contentIndex) {
         this.ctiClient = CTIClient.getInstance();
         this.environment = environment;
         this.contextIndex = contextIndex;
@@ -60,10 +57,10 @@ public final class SnapshotHelper {
     }
 
     public SnapshotHelper(
-            @NonNull CTIClient ctiClient,
-            @NonNull Environment environment,
-            @NonNull ContextIndex contextIndex,
-            @NonNull ContentIndex contentIndex) {
+            CTIClient ctiClient,
+            Environment environment,
+            ContextIndex contextIndex,
+            ContentIndex contentIndex) {
         this.ctiClient = ctiClient;
         this.environment = environment;
         this.contextIndex = contextIndex;
@@ -79,9 +76,7 @@ public final class SnapshotHelper {
      * @return a SnapshotHelper instance
      */
     public static synchronized SnapshotHelper getInstance(
-            @NonNull Environment environment,
-            @NonNull ContextIndex contextIndex,
-            @NonNull ContentIndex contentIndex) {
+            Environment environment, ContextIndex contextIndex, ContentIndex contentIndex) {
         if (instance == null) {
             instance = new SnapshotHelper(environment, contextIndex, contentIndex);
         }
@@ -97,10 +92,10 @@ public final class SnapshotHelper {
      * @return a SnapshotHelper instance
      */
     public static synchronized SnapshotHelper getInstance(
-            @NonNull CTIClient ctiClient,
-            @NonNull Environment environment,
-            @NonNull ContextIndex contextIndex,
-            @NonNull ContentIndex contentIndex) {
+            CTIClient ctiClient,
+            Environment environment,
+            ContextIndex contextIndex,
+            ContentIndex contentIndex) {
         if (instance == null) {
             instance = new SnapshotHelper(ctiClient, environment, contextIndex, contentIndex);
         }
@@ -158,9 +153,9 @@ public final class SnapshotHelper {
     }
 
     /** Posts a command to the command manager API on a successful snapshot operation */
-    private void postUpdateCommand(CommandManagerClient commandManagerClient) {
-        commandManagerClient
-                .postCommand(Command.create(this.contextIndex.getLastOffset().toString()));
+    @VisibleForTesting
+    void postUpdateCommand(CommandManagerClient commandManagerClient) {
+        commandManagerClient.postCommand(Command.create(this.contextIndex.getLastOffset().toString()));
     }
 
     /**
@@ -169,9 +164,9 @@ public final class SnapshotHelper {
      * @throws IOException thrown when indexing failed
      */
     @VisibleForTesting
-    void updateContextIndex(ContextIndex contextIndex) throws IOException {
+    void updateContextIndex() throws IOException {
         ConsumerInfo consumerInfo = Privileged.doPrivilegedRequest(this.ctiClient::getCatalog);
-        IndexResponse response = contextIndex.index(consumerInfo);
+        IndexResponse response = this.contextIndex.index(consumerInfo);
 
         if (response.getResult().equals(DocWriteResponse.Result.CREATED)
                 || response.getResult().equals(DocWriteResponse.Result.UPDATED)) {
@@ -188,7 +183,7 @@ public final class SnapshotHelper {
     /** Trigger method for a CVE index initialization from a snapshot */
     public void initializeCVEIndex() {
         try {
-            updateContextIndex(this.contextIndex);
+            updateContextIndex();
             indexSnapshot();
         } catch (IOException e) {
             log.error("Failed to initialize CVE Index from snapshot: {}", e.getMessage());

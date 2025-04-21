@@ -86,7 +86,7 @@ public class CTIClient extends HttpClient {
      * Private constructor to enforce singleton pattern. Initializes the client with the CTI API base
      * URL.
      */
-    private CTIClient() {
+    public CTIClient() {
         super(URI.create(PluginSettings.getInstance().getCtiBaseUrl()));
     }
 

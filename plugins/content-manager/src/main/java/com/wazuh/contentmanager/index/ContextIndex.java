@@ -22,7 +22,6 @@ import org.opensearch.action.get.GetRequest;
 import org.opensearch.action.get.GetResponse;
 import org.opensearch.action.index.IndexRequest;
 import org.opensearch.action.index.IndexResponse;
-import org.opensearch.action.support.PlainActionFuture;
 import org.opensearch.client.Client;
 import org.opensearch.common.xcontent.XContentFactory;
 import org.opensearch.core.action.ActionListener;
@@ -48,7 +47,7 @@ public class ContextIndex {
     /** Timeout of indexing operations */
     public static final Long TIMEOUT = 10L;
 
-    private final Client client;
+    private Client client;
     private ConsumerInfo consumerInfo;
 
     /**
@@ -76,16 +75,15 @@ public class ContextIndex {
                     new IndexRequest()
                             .index(CONTEXTS_INDEX)
                             .source(
-                                    newConsumerInfo.toXContent(XContentFactory.jsonBuilder(), ToXContent.EMPTY_PARAMS))
+                                    newConsumerInfo.toXContent(
+                                            XContentFactory.jsonBuilder(), ToXContent.EMPTY_PARAMS))
                             .id(newConsumerInfo.getContext());
         } catch (IOException e) {
             log.error("Failed to create JSON content builder: {}", e.getMessage());
         }
 
-        PlainActionFuture<IndexResponse> future = new PlainActionFuture<>();
-        this.client.index(indexRequest, future);
         try {
-            indexResponse = future.get(TIMEOUT, TimeUnit.SECONDS);
+            indexResponse = this.client.index(indexRequest).get(TIMEOUT, TimeUnit.SECONDS);
         } catch (InterruptedException | ExecutionException | TimeoutException e) {
             log.error(
                     "Failed to index Consumer [{}] information due to: {}",
