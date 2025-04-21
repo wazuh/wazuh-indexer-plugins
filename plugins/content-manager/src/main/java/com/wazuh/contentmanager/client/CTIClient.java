@@ -207,7 +207,6 @@ public class CTIClient extends HttpClient {
      * @param body The request body (optional, applicable for POST/PUT).
      * @param params The query parameters (optional).
      * @param header The headers to include in the request (optional).
-     * @throws IOException If an error occurs during response processing.
      */
     SimpleHttpResponse sendRequest(
             Method method,

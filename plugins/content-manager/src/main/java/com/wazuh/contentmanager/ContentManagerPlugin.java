@@ -38,7 +38,6 @@ import org.opensearch.script.ScriptService;
 import org.opensearch.threadpool.ThreadPool;
 import org.opensearch.watcher.ResourceWatcherService;
 
-import java.io.IOException;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
@@ -48,7 +47,6 @@ import com.wazuh.contentmanager.client.CTIClient;
 import com.wazuh.contentmanager.index.ContentIndex;
 import com.wazuh.contentmanager.index.ContextIndex;
 import com.wazuh.contentmanager.model.ctiapi.ConsumerInfo;
-import com.wazuh.contentmanager.model.ctiapi.ContextChanges;
 import com.wazuh.contentmanager.rest.UpdaterHandler;
 import com.wazuh.contentmanager.settings.PluginSettings;
 import com.wazuh.contentmanager.util.Privileged;
@@ -110,7 +108,7 @@ public class ContentManagerPlugin extends Plugin implements ClusterPlugin, Actio
         // Wrapping up for testing. Infinite loop
         /*int responseCode = 0;
         while (responseCode == 0) {
-            log.info("ENTRANDO AL WHILE");
+            log.info("ENTERING THE WHILE");
             Privileged.doPrivilegedRequest(
                     () -> {
                         ContextChanges changes =

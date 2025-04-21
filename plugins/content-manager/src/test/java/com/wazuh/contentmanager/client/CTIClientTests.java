@@ -84,21 +84,20 @@ public class CTIClientTests extends OpenSearchIntegTestCase {
         // Assert
         assertNotNull("Response should not be null", response);
 
-        if (response != null) {
-            assertEquals(HttpStatus.SC_SUCCESS, response.getCode());
-            verify(spyCtiClient, times(1))
-                    .sendRequest(
-                            any(Method.class),
-                            eq("/catalog/contexts/vd_1.0.0/consumers/vd_4.8.0/changes"),
-                            isNull(),
-                            anyMap(),
-                            isNull(),
-                            eq(3));
-        }
+        assertEquals(HttpStatus.SC_SUCCESS, response.getCode());
+        verify(spyCtiClient, times(1))
+                .sendRequest(
+                        any(Method.class),
+                        eq("/catalog/contexts/vd_1.0.0/consumers/vd_4.8.0/changes"),
+                        isNull(),
+                        anyMap(),
+                        isNull(),
+                        eq(3));
+
         try {
             spyCtiClient.close();
         } catch (IOException e) {
-            logger.error("Exception tryng to close spy of CtiClient {}", e.getMessage());
+            logger.error("Exception trying to close spy of CtiClient {} in test testSendRequest_SuccessfulRequest", e.getMessage());
         }
         this.ctiClient = this.ctiClient.clearInstance();
     }
@@ -132,7 +131,7 @@ public class CTIClientTests extends OpenSearchIntegTestCase {
         assertEquals(HttpStatus.SC_BAD_REQUEST, response.getCode());
     }
 
-    public void testSendRequest_TooManyRequests_RetriesThreeTimes() throws Exception {
+    public void testSendRequest_TooManyRequests_RetriesThreeTimes() {
         // Arrange
         SimpleHttpResponse mockResponse429 =
                 new SimpleHttpResponse(HttpStatus.SC_TOO_MANY_REQUESTS, "Too Many Requests");
@@ -140,7 +139,7 @@ public class CTIClientTests extends OpenSearchIntegTestCase {
 
         CTIClient spyCtiClient = spy(this.ctiClient);
 
-        // Simular que sendRequest devuelve 429 tres veces
+        // Mock that sendRequest returns 429 three times.
         when(spyCtiClient.doHttpClientSendRequest(
                         Method.GET,
                         "/catalog/contexts/vd_1.0.0/consumers/vd_4.8.0/changes",
@@ -191,7 +190,7 @@ public class CTIClientTests extends OpenSearchIntegTestCase {
         // Assert
         verify(spyCtiClient, times(1))
                 .sendRequest(
-                        any(Method.class), anyString(), isNull(), isNull(), (Header) isNull(), anyInt());
+                        any(Method.class), anyString(), isNull(), isNull(),  isNull(), anyInt());
     }
 
     public void testGetCatalog_NullResponse() {
@@ -199,7 +198,7 @@ public class CTIClientTests extends OpenSearchIntegTestCase {
         CTIClient spyCtiClient = spy(this.ctiClient);
         doReturn(null)
                 .when(spyCtiClient)
-                .sendRequest((Method) any(), any(), any(), any(), (Header) any(), anyInt());
+                .sendRequest( any(), any(), any(), any(), any(), anyInt());
 
         // Act
         ConsumerInfo result = spyCtiClient.getCatalog();
@@ -210,7 +209,7 @@ public class CTIClientTests extends OpenSearchIntegTestCase {
         try {
             spyCtiClient.close();
         } catch (IOException e) {
-            logger.error("Exception tryng to close spy of CtiClient {}", e.getMessage());
+            logger.error("Exception tryng to close spy of CtiClient {} in test testGetCatalog_NullResponse", e.getMessage());
         }
         this.ctiClient = this.ctiClient.clearInstance();
     }
@@ -233,11 +232,11 @@ public class CTIClientTests extends OpenSearchIntegTestCase {
         // Assert
         verify(spyCtiClient, times(1))
                 .sendRequest(
-                        (Method) any(Method.class),
+                        any(Method.class),
                         anyString(),
                         isNull(),
                         anyMap(),
-                        (Header) isNull(),
+                        isNull(),
                         anyInt());
     }
 
@@ -255,7 +254,7 @@ public class CTIClientTests extends OpenSearchIntegTestCase {
         try {
             spyCtiClient.close();
         } catch (IOException e) {
-            logger.error("Exception tryng to close spy of CtiClient {}", e.getMessage());
+            logger.error("Exception tryng to close spy of CtiClient {} in test testGetChanges_NullResponse", e.getMessage());
         }
         this.ctiClient = this.ctiClient.clearInstance();
     }
