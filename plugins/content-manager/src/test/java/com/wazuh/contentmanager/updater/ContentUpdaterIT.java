@@ -14,7 +14,7 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-package com.wazuh.contentmanager;
+package com.wazuh.contentmanager.updater;
 
 import com.carrotsearch.randomizedtesting.annotations.ThreadLeakScope;
 
@@ -36,12 +36,12 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
+import com.wazuh.contentmanager.ContentManagerPlugin;
 import com.wazuh.contentmanager.client.CTIClient;
 import com.wazuh.contentmanager.index.ContentIndex;
 import com.wazuh.contentmanager.index.ContextIndex;
 import com.wazuh.contentmanager.model.ctiapi.*;
 import com.wazuh.contentmanager.model.ctiapi.OperationType;
-import com.wazuh.contentmanager.updater.ContentUpdater;
 
 import static com.wazuh.contentmanager.index.ContentIndex.TIMEOUT;
 import static com.wazuh.contentmanager.settings.PluginSettings.CONSUMER_ID;
@@ -62,12 +62,12 @@ public class ContentUpdaterIT extends OpenSearchIntegTestCase {
     @Before
     public void setup() throws Exception {
         Client client = client();
-        ctiClient = mock(CTIClient.class);
-        updater = new ContentUpdater(client, ctiClient);
-        contextIndex = new ContextIndex(client);
-        contentIndex = new ContentIndex(client);
-        prepareInitialCVEInfo(client, initialOffset);
-        prepareInitialConsumerInfo(client, initialOffset);
+        this.ctiClient = mock(CTIClient.class);
+        this.updater = new ContentUpdater(client, this.ctiClient);
+        this.contextIndex = new ContextIndex(client);
+        this.contentIndex = new ContentIndex(client);
+        prepareInitialCVEInfo(client, this.initialOffset);
+        prepareInitialConsumerInfo(client, this.initialOffset);
     }
 
     @Override
@@ -75,6 +75,9 @@ public class ContentUpdaterIT extends OpenSearchIntegTestCase {
         return Collections.singletonList(ContentManagerPlugin.class);
     }
 
+    /**
+     * @throws InterruptedException
+     */
     public void testFetchAndApplyUpdates_ContentChangesTypeCreate() throws InterruptedException {
         // Arrange
         Long offsetId = 1L;
@@ -82,18 +85,22 @@ public class ContentUpdaterIT extends OpenSearchIntegTestCase {
         ContentChanges contentChanges = new ContentChanges(List.of(createOffset));
         ConsumerInfo testConsumer = new ConsumerInfo(CONSUMER_ID, CONTEXT_ID, offsetId, null);
         // Mock
-        when(ctiClient.getChanges(initialOffset.toString(), "1", null)).thenReturn(contentChanges);
-        when(ctiClient.getCatalog()).thenReturn(testConsumer);
+        when(this.ctiClient.getChanges(this.initialOffset.toString(), "1", null))
+                .thenReturn(contentChanges);
+        when(this.ctiClient.getCatalog()).thenReturn(testConsumer);
         // Act
-        boolean updated = updater.fetchAndApplyUpdates();
+        boolean updated = this.updater.fetchAndApplyUpdates();
         Thread.sleep(1000);
-        ConsumerInfo updatedConsumer = contextIndex.getConsumer(CONTEXT_ID, CONSUMER_ID);
+        ConsumerInfo updatedConsumer = this.contextIndex.getConsumer(CONTEXT_ID, CONSUMER_ID);
         // Assert
         assertTrue(updated);
         assertNotNull(updatedConsumer);
         assertEquals(offsetId, updatedConsumer.getLastOffset());
     }
 
+    /**
+     * @throws InterruptedException
+     */
     public void testFetchAndApplyUpdates_ContentChangesTypeUpdate() throws InterruptedException {
         // Arrange
         Long offsetId = 2L;
@@ -102,19 +109,24 @@ public class ContentUpdaterIT extends OpenSearchIntegTestCase {
         ContentChanges contentChanges = new ContentChanges(List.of(createOffset, updateOffset));
         ConsumerInfo testConsumer = new ConsumerInfo(CONSUMER_ID, CONTEXT_ID, offsetId, null);
         // Mock
-        when(ctiClient.getChanges(initialOffset.toString(), offsetId.toString(), null))
+        when(this.ctiClient.getChanges(this.initialOffset.toString(), offsetId.toString(), null))
                 .thenReturn(contentChanges);
-        when(ctiClient.getCatalog()).thenReturn(testConsumer);
+        when(this.ctiClient.getCatalog()).thenReturn(testConsumer);
         // Act
-        boolean updated = updater.fetchAndApplyUpdates();
+        boolean updated = this.updater.fetchAndApplyUpdates();
         Thread.sleep(1000);
-        ConsumerInfo updatedConsumer = contextIndex.getConsumer(CONTEXT_ID, CONSUMER_ID);
+        ConsumerInfo updatedConsumer = this.contextIndex.getConsumer(CONTEXT_ID, CONSUMER_ID);
         // Assert
         assertTrue(updated);
         assertNotNull(updatedConsumer);
         assertEquals(offsetId, updatedConsumer.getLastOffset());
     }
 
+    /**
+     * @throws InterruptedException
+     * @throws ExecutionException
+     * @throws TimeoutException
+     */
     public void testFetchAndApplyUpdates_ContentChangesTypeDelete()
             throws InterruptedException, ExecutionException, TimeoutException {
         // Arrange
@@ -124,14 +136,15 @@ public class ContentUpdaterIT extends OpenSearchIntegTestCase {
         ContentChanges contentChanges = new ContentChanges(List.of(createOffset, deleteOffset));
         ConsumerInfo testConsumer = new ConsumerInfo(CONSUMER_ID, CONTEXT_ID, offsetId, null);
         // Mock
-        when(ctiClient.getChanges(initialOffset.toString(), offsetId.toString(), null))
+        when(this.ctiClient.getChanges(this.initialOffset.toString(), offsetId.toString(), null))
                 .thenReturn(contentChanges);
-        when(ctiClient.getCatalog()).thenReturn(testConsumer);
+        when(this.ctiClient.getCatalog()).thenReturn(testConsumer);
         // Act
-        boolean updated = updater.fetchAndApplyUpdates();
+        boolean updated = this.updater.fetchAndApplyUpdates();
         Thread.sleep(1000);
-        ConsumerInfo updatedConsumer = contextIndex.getConsumer(CONTEXT_ID, CONSUMER_ID);
-        GetResponse getContent = contentIndex.get(testResource).get(TIMEOUT, TimeUnit.SECONDS);
+        ConsumerInfo updatedConsumer = this.contextIndex.getConsumer(CONTEXT_ID, CONSUMER_ID);
+        GetResponse getContent =
+                this.contentIndex.get(this.testResource).get(TIMEOUT, TimeUnit.SECONDS);
         // Assert
         assertTrue(updated);
         assertNotNull(updatedConsumer);
@@ -156,7 +169,7 @@ public class ContentUpdaterIT extends OpenSearchIntegTestCase {
             payload.put("name", "Dummy Threat");
             payload.put("indicators", List.of("192.168.1.1", "example.com"));
         }
-        return new Offset(CONTEXT_ID, id, testResource, type, 1L, operations, payload);
+        return new Offset(CONTEXT_ID, id, this.testResource, type, 1L, operations, payload);
     }
 
     /**
@@ -170,7 +183,6 @@ public class ContentUpdaterIT extends OpenSearchIntegTestCase {
     public void prepareInitialConsumerInfo(Client client, Long currentOffset) throws Exception {
         // Create a ConsumerInfo document manually in the test index
         ConsumerInfo info = new ConsumerInfo(CONSUMER_ID, CONTEXT_ID, currentOffset, null);
-
         client
                 .prepareIndex(ContextIndex.INDEX_NAME)
                 .setId(CONTEXT_ID)
@@ -191,7 +203,7 @@ public class ContentUpdaterIT extends OpenSearchIntegTestCase {
         Offset offset = getOffset(offsetId, OperationType.CREATE);
         client
                 .prepareIndex(ContentIndex.INDEX_NAME)
-                .setId(testResource)
+                .setId(this.testResource)
                 .setSource(offset.toXContent(XContentFactory.jsonBuilder(), ToXContent.EMPTY_PARAMS))
                 .setRefreshPolicy(WriteRequest.RefreshPolicy.IMMEDIATE)
                 .get();

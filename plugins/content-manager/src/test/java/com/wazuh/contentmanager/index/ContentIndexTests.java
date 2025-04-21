@@ -40,7 +40,7 @@ import static org.mockito.Mockito.when;
 
 @OpenSearchIntegTestCase.ClusterScope(scope = OpenSearchIntegTestCase.Scope.SUITE)
 public class ContentIndexTests extends OpenSearchIntegTestCase {
-    private ContentIndex contentIndexSpy;
+    private ContentIndex contentUpdaterSpy;
 
     /**
      * Set up the tests
@@ -52,22 +52,22 @@ public class ContentIndexTests extends OpenSearchIntegTestCase {
         super.setUp();
         Client client = mock(Client.class);
         ContentIndex contentIndex = new ContentIndex(client);
-        contentIndexSpy = Mockito.spy(contentIndex);
+        this.contentUpdaterSpy = Mockito.spy(contentIndex);
     }
 
-    /** Test the ContentIndex.patch method with an Offset with Create content type. */
+    /** Test the {@code ContentIndex#patch} method with an Offset with Create content type. */
     public void testPatchCreate() {
         // Mock
-        doNothing().when(contentIndexSpy).index((Offset) any());
+        doNothing().when(this.contentUpdaterSpy).index((Offset) any());
         // Arrange
         Offset offset = new Offset("test", 1L, "test", OperationType.CREATE, 1L, null, null);
         // Act
-        contentIndexSpy.patch(new ContentChanges(List.of(offset)));
+        this.contentUpdaterSpy.patch(new ContentChanges(List.of(offset)));
         // Assert
-        verify(contentIndexSpy, times(1)).patch(any());
+        verify(this.contentUpdaterSpy, times(1)).patch(any());
     }
 
-    /** Test the ContentIndex.patch method with an Offset with Update content type. */
+    /** Test the {@code ContentIndex#patch} method with an Offset with Update content type. */
     public void testPatchUpdate() throws Exception {
         // Mock a GetResponse that returns a valid existing document
         GetResponse mockResponse = mock(GetResponse.class);
@@ -75,9 +75,9 @@ public class ContentIndexTests extends OpenSearchIntegTestCase {
         // Mock JsonObject
         JsonObject json = new JsonObject();
         json.addProperty("field", "value");
-        doReturn(json).when(contentIndexSpy).getById(any());
+        doReturn(json).when(this.contentUpdaterSpy).getById(any());
         // Mock index() to avoid actual client call
-        doNothing().when(contentIndexSpy).index((Offset) any());
+        doNothing().when(this.contentUpdaterSpy).index((Offset) any());
         // Arrange
         Offset offset =
                 new Offset(
@@ -89,23 +89,23 @@ public class ContentIndexTests extends OpenSearchIntegTestCase {
                         List.of(new PatchOperation("replace", "/field", null, "new_value")),
                         null);
         // Act
-        contentIndexSpy.patch(new ContentChanges(List.of(offset)));
+        this.contentUpdaterSpy.patch(new ContentChanges(List.of(offset)));
         // Assert
-        verify(contentIndexSpy, times(1)).index((Offset) any());
+        verify(this.contentUpdaterSpy, times(1)).index((Offset) any());
     }
 
-    /** Test the ContentIndex.patch method with an Offset with Delete content type. */
-    public void testPatchDelete() throws Exception {
+    /** Test the {@code ContentIndex#patch} method with an Offset with Delete content type. */
+    public void testPatchDelete() {
         // Mock a GetResponse that returns a valid existing document
         GetResponse mockResponse = mock(GetResponse.class);
         when(mockResponse.isExists()).thenReturn(true);
         // Mock this.delete() to avoid actual client call
-        doNothing().when(contentIndexSpy).delete(any());
+        doNothing().when(this.contentUpdaterSpy).delete(any());
         // Arrange
         Offset offset = new Offset("test", 1L, "test", OperationType.DELETE, 1L, null, null);
         // Act
-        contentIndexSpy.patch(new ContentChanges(List.of(offset)));
+        this.contentUpdaterSpy.patch(new ContentChanges(List.of(offset)));
         // Assert
-        verify(contentIndexSpy, times(1)).delete(any());
+        verify(this.contentUpdaterSpy, times(1)).delete(any());
     }
 }

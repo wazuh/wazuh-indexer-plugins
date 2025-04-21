@@ -33,10 +33,10 @@ import java.io.IOException;
  * removing, or replacing elements.
  */
 public class PatchOperation implements ToXContentObject {
-    private static final String OP = "op";
-    private static final String PATH = "path";
-    private static final String FROM = "from";
-    private static final String VALUE = "value";
+    public static final String OP = "op";
+    public static final String PATH = "path";
+    public static final String FROM = "from";
+    public static final String VALUE = "value";
     private final String op;
     private final String path;
     private final String from;
