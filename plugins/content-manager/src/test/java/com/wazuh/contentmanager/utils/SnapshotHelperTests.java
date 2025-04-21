@@ -37,7 +37,6 @@ import static org.mockito.Mockito.*;
 /** Class to handle unzip tests */
 public class SnapshotHelperTests extends OpenSearchTestCase {
 
-    private AutoCloseable closeable;
     private ContentIndex contentIndex;
     private CTIClient ctiClient;
     private ContextIndex contextIndex;
