@@ -29,12 +29,11 @@ import java.util.List;
 /** ToXContentObject model to parse and build CTI API changes query replies. */
 public class ContentChanges implements ToXContentObject {
 
-    private static final String DATA = "data";
-
+    private static final String JSON_DATA_KEY = "data";
     private final List<Offset> changes;
 
     /**
-     * Constructor method
+     * Constructor method.
      *
      * @param changes a List of Offset objects, each containing a JSON patch.
      */
@@ -43,7 +42,7 @@ public class ContentChanges implements ToXContentObject {
     }
 
     /**
-     * Retrieve the list of CVE changes
+     * Get the list of changes.
      *
      * @return A list of Offset objects
      */
@@ -52,13 +51,13 @@ public class ContentChanges implements ToXContentObject {
     }
 
     /**
-     * Parses the data[] object from the CTI API changes response body
+     * Parses the data[] object from the CTI API changes response body.
      *
-     * @param parser The received parser object
+     * @param parser The received parser object.
      * @return a ContentChanges object with all inner array values parsed.
-     * @throws IOException rethrown from the inner parse() methods
-     * @throws IllegalArgumentException rethrown from the inner parse() methods
-     * @throws ParsingException rethrown from ensureExpectedToken()
+     * @throws IOException rethrown from the inner parse() methods.
+     * @throws IllegalArgumentException rethrown from the inner parse() methods.
+     * @throws ParsingException rethrown from ensureExpectedToken().
      */
     public static ContentChanges parse(XContentParser parser)
             throws IOException, IllegalArgumentException, ParsingException {
@@ -67,7 +66,7 @@ public class ContentChanges implements ToXContentObject {
         XContentParserUtils.ensureExpectedToken(
                 XContentParser.Token.START_OBJECT, parser.nextToken(), parser);
         // Check that we are indeed reading the "data" array
-        XContentParserUtils.ensureFieldName(parser, parser.nextToken(), DATA);
+        XContentParserUtils.ensureFieldName(parser, parser.nextToken(), JSON_DATA_KEY);
         // Check we are at the start of the array
         XContentParserUtils.ensureExpectedToken(
                 XContentParser.Token.START_ARRAY, parser.nextToken(), parser);
@@ -89,22 +88,12 @@ public class ContentChanges implements ToXContentObject {
     @Override
     public XContentBuilder toXContent(XContentBuilder builder, Params params) throws IOException {
         builder.startObject();
-        builder.startArray(DATA);
+        builder.startArray(JSON_DATA_KEY);
         // For each Offset in the data field, add them to an XContentBuilder array
-        changes.forEach(
-                (change) -> {
-                    try {
-                        change.toXContent(builder, ToXContentObject.EMPTY_PARAMS);
-                    } catch (IOException e) {
-                        throw new RuntimeException(e);
-                    }
-                });
+        for (Offset change : this.changes) {
+            change.toXContent(builder, ToXContentObject.EMPTY_PARAMS);
+        }
         builder.endArray();
         return builder.endObject();
-    }
-
-    @Override
-    public String toString() {
-        return "ContentChanges{" + "changes=" + changes + '}';
     }
 }
