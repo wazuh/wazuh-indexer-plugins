@@ -40,6 +40,7 @@ import java.util.function.Supplier;
 
 import com.wazuh.contentmanager.client.CTIClient;
 import com.wazuh.contentmanager.index.ContextIndex;
+import com.wazuh.contentmanager.index.ContentIndex;
 import com.wazuh.contentmanager.model.ctiapi.ConsumerInfo;
 import com.wazuh.contentmanager.settings.PluginSettings;
 import com.wazuh.contentmanager.util.Privileged;
@@ -48,6 +49,8 @@ import com.wazuh.contentmanager.util.Privileged;
 public class ContentManagerPlugin extends Plugin implements ClusterPlugin, ActionPlugin {
 
     private ContextIndex contextIndex;
+    private ContentIndex contentIndex;
+    private Environment environment;
 
     @Override
     public Collection<Object> createComponents(
@@ -64,6 +67,9 @@ public class ContentManagerPlugin extends Plugin implements ClusterPlugin, Actio
             Supplier<RepositoriesService> repositoriesServiceSupplier) {
         PluginSettings.getInstance(environment.settings(), clusterService);
         this.contextIndex = new ContextIndex(client);
+        this.contentIndex = new ContentIndex(client);
+        this.environment = environment;
+
         return Collections.emptyList();
     }
 
@@ -103,6 +109,19 @@ public class ContentManagerPlugin extends Plugin implements ClusterPlugin, Actio
         //                    this.contentIndex.fromSnapshot(snapshot);
         //                    return null;
         //                });
+
+        // Rate limiting testing. Infinite loop
+        //        while (true) {
+        //            log.info("ENTERING THE WHILE");
+        //            Privileged.doPrivilegedRequest(
+        //                    () -> {
+        //                        ContextChanges changes =
+        //                                CTIClient.getInstance().getChanges("1674417", "1674418",
+        // "false");
+        //
+        //                        return null;
+        //                    });
+        //        }
     }
 
     @Override

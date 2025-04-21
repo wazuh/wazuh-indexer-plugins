@@ -35,6 +35,7 @@ import org.apache.logging.log4j.Logger;
 
 import javax.net.ssl.SSLContext;
 
+import java.io.IOException;
 import java.net.URI;
 import java.security.KeyManagementException;
 import java.security.KeyStoreException;
@@ -160,5 +161,16 @@ public class HttpClient {
             log.error("Unexpected error in HTTP {} request: {}", method, e.getMessage());
         }
         return null;
+    }
+
+    /**
+     * Closes the underlying HTTP asynchronous client if it exists. Used in tests
+     *
+     * @throws IOException if an I/O error occurs while closing the client
+     */
+    public void close() throws IOException {
+        if (httpClient != null) {
+            httpClient.close();
+        }
     }
 }
