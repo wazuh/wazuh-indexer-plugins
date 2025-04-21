@@ -26,8 +26,6 @@ import java.io.IOException;
 import java.nio.file.DirectoryStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.ArrayList;
-import java.util.List;
 import java.util.Locale;
 
 import com.wazuh.contentmanager.client.CTIClient;
@@ -42,7 +40,6 @@ import com.wazuh.contentmanager.settings.PluginSettings;
 public class SnapshotHelper {
 
     private static final Logger log = LogManager.getLogger(SnapshotHelper.class);
-    private static SnapshotHelper instance;
     private CTIClient ctiClient;
     private Environment environment;
     private ContextIndex contextIndex;
@@ -67,55 +64,6 @@ public class SnapshotHelper {
         this.contentIndex = contentIndex;
     }
 
-    /**
-     * Getter for the singleton object
-     *
-     * @param environment The environment to create files within
-     * @param contextIndex The object in charge of indexing operations on the wazuh-context index
-     * @param contentIndex The object in charge of indexing to the wazuh-cve index
-     * @return a SnapshotHelper instance
-     */
-    public static synchronized SnapshotHelper getInstance(
-            Environment environment, ContextIndex contextIndex, ContentIndex contentIndex) {
-        if (instance == null) {
-            instance = new SnapshotHelper(environment, contextIndex, contentIndex);
-        }
-        return instance;
-    }
-
-    /**
-     * Getter for the singleton object
-     *
-     * @param environment The environment to create files within
-     * @param contextIndex The object in charge of indexing operations on the wazuh-context index
-     * @param contentIndex The object in charge of indexing to the wazuh-cve index
-     * @return a SnapshotHelper instance
-     */
-    public static synchronized SnapshotHelper getInstance(
-            CTIClient ctiClient,
-            Environment environment,
-            ContextIndex contextIndex,
-            ContentIndex contentIndex) {
-        if (instance == null) {
-            instance = new SnapshotHelper(ctiClient, environment, contextIndex, contentIndex);
-        }
-        return instance;
-    }
-
-    /**
-     * Getter for the singleton object
-     *
-     * @return a SnapshotHelper instance
-     * @throws IllegalStateException if the object was not initialized
-     */
-    public static synchronized SnapshotHelper getInstance() throws IllegalStateException {
-        if (instance == null) {
-            throw new IllegalStateException(
-                    "Call getInstance(environment, contextIndex, contentIndex) first");
-        }
-        return instance;
-    }
-
     /** Download, decompress and index a CTI snapshot */
     @VisibleForTesting
     void indexSnapshot() {
@@ -128,23 +76,14 @@ public class SnapshotHelper {
                             this.ctiClient.download(this.contextIndex.getLastSnapshotLink(), this.environment);
                     Path outputDir = this.environment.resolveRepoFile("");
 
-                    List<Path> snapshotJson = new ArrayList<>();
-                    try (DirectoryStream<Path> stream =
-                            Files.newDirectoryStream(
-                                    outputDir,
-                                    String.format(
-                                            Locale.ROOT,
-                                            "%s_%s_*.json",
-                                            PluginSettings.CONTEXT_ID,
-                                            PluginSettings.CONSUMER_ID))) {
-                        Unzip.unzip(snapshotZip, outputDir);
-                        for (Path path : stream) {
-                            snapshotJson.add(path);
-                        }
-                        postUpdateCommand(CommandManagerClient.getInstance());
-                        this.contentIndex.fromSnapshot(snapshotJson.get(0).toString());
+                    Path snapshotJson = null;
+                    try (DirectoryStream<Path> stream = getStream(outputDir)) {
+                        unZip(snapshotZip, outputDir);
+                        snapshotJson = stream.iterator().next();
+                        postUpdateCommand();
+                        this.contentIndex.fromSnapshot(snapshotJson.toString());
                         Files.deleteIfExists(snapshotZip);
-                        Files.deleteIfExists(snapshotJson.get(0));
+                        Files.deleteIfExists(snapshotJson);
                     } catch (IOException | NullPointerException e) {
                         log.error("Failed to index snapshot: {}", e.getMessage());
                     }
@@ -152,10 +91,23 @@ public class SnapshotHelper {
                 });
     }
 
+    @VisibleForTesting
+    void unZip(Path snapshotZip, Path outputDir) throws IOException {
+        Unzip.unzip(snapshotZip, outputDir);
+    }
+
+    @VisibleForTesting
+    DirectoryStream<Path> getStream(Path outputDir) throws IOException {
+        return Files.newDirectoryStream(
+                outputDir,
+                String.format(
+                        Locale.ROOT, "%s_%s_*.json", PluginSettings.CONTEXT_ID, PluginSettings.CONSUMER_ID));
+    }
+
     /** Posts a command to the command manager API on a successful snapshot operation */
     @VisibleForTesting
-    void postUpdateCommand(CommandManagerClient commandManagerClient) {
-        commandManagerClient.postCommand(Command.create(this.contextIndex.getLastOffset().toString()));
+    void postUpdateCommand() {
+        CommandManagerClient.getInstance().postCommand(Command.create(this.contextIndex.getLastOffset().toString()));
     }
 
     /**
@@ -166,6 +118,10 @@ public class SnapshotHelper {
     @VisibleForTesting
     void updateContextIndex() throws IOException {
         ConsumerInfo consumerInfo = Privileged.doPrivilegedRequest(this.ctiClient::getCatalog);
+
+        if (consumerInfo == null) {
+            throw new IOException("Consumer Information is null. Skipping indexing");
+        }
         IndexResponse response = this.contextIndex.index(consumerInfo);
 
         if (response.getResult().equals(DocWriteResponse.Result.CREATED)

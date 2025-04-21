@@ -93,8 +93,9 @@ public class ContentManagerPlugin extends Plugin implements ClusterPlugin, Actio
      */
     @Override
     public void onNodeStarted(DiscoveryNode localNode) {
-        SnapshotHelper.getInstance(this.environment, this.contextIndex, this.contentIndex)
-                .initializeCVEIndex();
+        SnapshotHelper snapshotHelper =
+                new SnapshotHelper(this.environment, this.contextIndex, this.contentIndex);
+        snapshotHelper.initializeCVEIndex();
     }
 
     @Override

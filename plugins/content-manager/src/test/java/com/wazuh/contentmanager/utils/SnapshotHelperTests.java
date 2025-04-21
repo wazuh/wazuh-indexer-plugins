@@ -25,9 +25,12 @@ import org.junit.Before;
 import org.junit.Test;
 
 import java.io.IOException;
+import java.nio.file.DirectoryStream;
 import java.nio.file.Path;
+import java.util.Iterator;
 
 import com.wazuh.contentmanager.client.CTIClient;
+import com.wazuh.contentmanager.client.CommandManagerClient;
 import com.wazuh.contentmanager.index.ContentIndex;
 import com.wazuh.contentmanager.index.ContextIndex;
 import com.wazuh.contentmanager.model.ctiapi.ConsumerInfo;
@@ -53,18 +56,14 @@ public class SnapshotHelperTests extends OpenSearchTestCase {
                         .putList("path.repo", envDir.toString())
                         .build();
 
-        environment = new Environment(settings, envDir);
+        environment = spy(new Environment(settings, envDir));
         contentIndex = mock(ContentIndex.class);
         contextIndex = mock(ContextIndex.class);
         ctiClient = mock(CTIClient.class);
         snapshotHelper =
-                SnapshotHelper.getInstance(
-                        this.ctiClient, this.environment, this.contextIndex, this.contentIndex);
-    }
-
-    @Test
-    public void testSingleton() {
-        assertEquals(SnapshotHelper.getInstance(), snapshotHelper);
+                spy(
+                        new SnapshotHelper(
+                                this.ctiClient, this.environment, this.contextIndex, this.contentIndex));
     }
 
     @Test
@@ -77,9 +76,7 @@ public class SnapshotHelperTests extends OpenSearchTestCase {
         doReturn(response).when(this.contextIndex).index(consumerInfo);
         doReturn(DocWriteResponse.Result.CREATED).when(response).getResult();
 
-        logger.info(response);
-
-        SnapshotHelper.getInstance().updateContextIndex();
+        snapshotHelper.updateContextIndex();
         verify(this.contextIndex).index(any(ConsumerInfo.class));
     }
 
@@ -94,10 +91,47 @@ public class SnapshotHelperTests extends OpenSearchTestCase {
         doReturn(DocWriteResponse.Result.NOT_FOUND).when(response).getResult();
 
         try {
-            SnapshotHelper.getInstance().updateContextIndex();
+            snapshotHelper.updateContextIndex();
         } catch (IOException e) {
             return;
         }
         assert (false);
+    }
+
+    @Test
+    public void testNullConsumerInfo() {
+        ConsumerInfo consumerInfo = null;
+        doReturn(null).when(ctiClient).getCatalog();
+        IndexResponse response = mock(IndexResponse.class, "FailedResponse");
+
+        doReturn(response).when(this.contextIndex).index(consumerInfo);
+        doReturn(DocWriteResponse.Result.NOT_FOUND).when(response).getResult();
+
+        try {
+            snapshotHelper.updateContextIndex();
+        } catch (IOException e) {
+            return;
+        }
+        assert (false);
+    }
+
+    @Test
+    public void testSuccessfulIndexSnapshot() throws IOException {
+        doReturn(0L).when(this.contextIndex).getOffset();
+        Path snapshotZip = mock(Path.class);
+        doReturn("http://example.com/file.zip").when(this.contextIndex).getLastSnapshotLink();
+        doReturn(snapshotZip).when(this.ctiClient).download(anyString(), any(Environment.class));
+        Path outputDir = mock(Path.class);
+        doReturn(outputDir).when(this.environment).resolveRepoFile(anyString());
+        DirectoryStream<Path> stream = mock(DirectoryStream.class);
+        Path jsonPath = mock(Path.class);
+        Iterator<Path> iterator = mock(Iterator.class);
+        doReturn(iterator).when(stream).iterator();
+        doReturn(jsonPath).when(iterator).next();
+        doReturn(stream).when(snapshotHelper).getStream(any(Path.class));
+        doNothing().when(snapshotHelper).unZip(any(Path.class), any(Path.class));
+        doNothing().when(snapshotHelper).postUpdateCommand();
+        snapshotHelper.indexSnapshot();
+        verify(this.contentIndex).fromSnapshot(anyString());
     }
 }
