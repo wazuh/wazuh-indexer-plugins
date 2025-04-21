@@ -51,9 +51,7 @@ import com.wazuh.contentmanager.model.ctiapi.ContentChanges;
 import com.wazuh.contentmanager.model.ctiapi.Offset;
 import com.wazuh.contentmanager.model.ctiapi.PatchOperation;
 import com.wazuh.contentmanager.util.JsonPatch;
-
-import static com.wazuh.contentmanager.util.XContentHelper.getParser;
-import static com.wazuh.contentmanager.util.XContentHelper.xContentObjectToJson;
+import com.wazuh.contentmanager.util.XContentUtils;
 
 /** Manages operations for the Wazuh CVE content index. */
 public class ContentIndex {
@@ -173,9 +171,9 @@ public class ContentIndex {
                         log.debug("Updating resource: {}", change.getResource());
                         JsonObject content = getAsJson(change.getResource());
                         for (PatchOperation op : change.getOperations()) {
-                            JsonPatch.applyOperation(content, xContentObjectToJson(op));
+                            JsonPatch.applyOperation(content, XContentUtils.xContentObjectToJson(op));
                         }
-                        try (XContentParser parser = getParser(content)) {
+                        try (XContentParser parser = XContentUtils.createJSONParser(content)) {
                             this.index(Offset.parse(parser));
                         }
                         break;

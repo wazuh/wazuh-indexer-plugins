@@ -37,8 +37,7 @@ import java.util.concurrent.ExecutionException;
 import com.wazuh.contentmanager.model.ctiapi.ConsumerInfo;
 import com.wazuh.contentmanager.model.ctiapi.ContentChanges;
 import com.wazuh.contentmanager.settings.PluginSettings;
-
-import static com.wazuh.contentmanager.util.XContentHelper.getParser;
+import com.wazuh.contentmanager.util.XContentUtils;
 
 /**
  * CTIClient is a singleton class responsible for interacting with the Cyber Threat Intelligence
@@ -78,7 +77,7 @@ public class CTIClient extends HttpClient {
          * @return The query parameter key as a string.
          */
         public String getValue() {
-            return value;
+            return this.value;
         }
     }
 
@@ -124,7 +123,7 @@ public class CTIClient extends HttpClient {
         }
         log.debug("CTI API Changes endpoint replied with status: [{}]", response.getCode());
         try {
-            return ContentChanges.parse(getParser(response.getBodyBytes()));
+            return ContentChanges.parse(XContentUtils.createJSONParser(response.getBodyBytes()));
         } catch (IOException | IllegalArgumentException e) {
             log.error("Failed to fetch changes information", e);
         }
@@ -149,7 +148,7 @@ public class CTIClient extends HttpClient {
         }
         log.debug("CTI API replied with status: [{}]", response.getCode());
         try {
-            return ConsumerInfo.parse(getParser(response.getBodyBytes()));
+            return ConsumerInfo.parse(XContentUtils.createJSONParser(response.getBodyBytes()));
         } catch (IOException | IllegalArgumentException e) {
             log.error("Unable to fetch catalog information: {}", e.getMessage());
         }

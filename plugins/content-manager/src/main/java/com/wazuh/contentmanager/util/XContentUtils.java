@@ -29,7 +29,11 @@ import org.opensearch.core.xcontent.XContentParser;
 
 import java.io.IOException;
 
-public class XContentHelper {
+/**
+ * Class wrapping util functions for the {@code XContentParser} and {@code XContentBuilder} class
+ * methods.
+ */
+public class XContentUtils {
 
     /**
      * Converts a ToXContentObject to a JsonObject.
@@ -45,13 +49,13 @@ public class XContentHelper {
     }
 
     /**
-     * Converts a JsonObject to a ToXContentObject.
+     * Creates a new XContentParser for the given JSON object.
      *
-     * @param content the JsonObject to convert.
-     * @return the converted ToXContentObject.
-     * @throws IOException if an error occurs during conversion.
+     * @param content the JsonObject to create the parser for.
+     * @return an XContentParser for the given JSON object.
+     * @throws IOException if an error occurs during creation of the parser.
      */
-    public static XContentParser getParser(JsonObject content) throws IOException {
+    public static XContentParser createJSONParser(JsonObject content) throws IOException {
         return XContentType.JSON
                 .xContent()
                 .createParser(
@@ -61,13 +65,13 @@ public class XContentHelper {
     }
 
     /**
-     * Converts a byte array to a ToXContentObject.
+     * Creates a new XContentParser for the given JSON byte array representation.
      *
-     * @param content the byte array to convert.
-     * @return the converted ToXContentObject.
-     * @throws IOException if an error occurs during conversion.
+     * @param content the byte array representing the JSON content to create the parser for.
+     * @return an XContentParser for the given JSON object.
+     * @throws IOException if an error occurs during creation of the parser.
      */
-    public static XContentParser getParser(byte[] content) throws IOException {
+    public static XContentParser createJSONParser(byte[] content) throws IOException {
         return XContentType.JSON
                 .xContent()
                 .createParser(
