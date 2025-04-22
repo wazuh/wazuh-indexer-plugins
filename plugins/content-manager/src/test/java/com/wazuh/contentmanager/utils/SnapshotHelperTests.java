@@ -22,7 +22,6 @@ import org.opensearch.common.settings.Settings;
 import org.opensearch.env.Environment;
 import org.opensearch.test.OpenSearchTestCase;
 import org.junit.Before;
-import org.junit.Test;
 
 import java.io.IOException;
 import java.nio.file.DirectoryStream;
@@ -30,7 +29,6 @@ import java.nio.file.Path;
 import java.util.Iterator;
 
 import com.wazuh.contentmanager.client.CTIClient;
-import com.wazuh.contentmanager.client.CommandManagerClient;
 import com.wazuh.contentmanager.index.ContentIndex;
 import com.wazuh.contentmanager.index.ContextIndex;
 import com.wazuh.contentmanager.model.ctiapi.ConsumerInfo;
@@ -68,6 +66,7 @@ public class SnapshotHelperTests extends OpenSearchTestCase {
 
     /**
      * Test that updating the context index works
+     *
      * @throws IOException Rethrown from updateContextIndex()
      */
     public void testSuccessfulConsumerIndexing() throws IOException {
@@ -83,9 +82,7 @@ public class SnapshotHelperTests extends OpenSearchTestCase {
         verify(this.contextIndex).index(any(ConsumerInfo.class));
     }
 
-    /**
-     * Ensure IOException is thrown when updateContextIndex() fails
-     */
+    /** Ensure IOException is thrown when updateContextIndex() fails */
     public void testFailedConsumerIndexing() {
         ConsumerInfo consumerInfo =
                 new ConsumerInfo("test-name", "test-context", 1L, 1L, "http://example.com");
@@ -103,9 +100,7 @@ public class SnapshotHelperTests extends OpenSearchTestCase {
         assert (false);
     }
 
-    /**
-     * Check that a null consumerInfo makes updateContextIndex() thrown an exception
-     */
+    /** Check that a null consumerInfo makes updateContextIndex() thrown an exception */
     public void testNullConsumerInfo() {
         ConsumerInfo consumerInfo = null;
         doReturn(null).when(ctiClient).getCatalog();
@@ -124,6 +119,7 @@ public class SnapshotHelperTests extends OpenSearchTestCase {
 
     /**
      * Check that the fromSnapshot() method is being executed
+     *
      * @throws IOException rethrown from unzip()
      */
     public void testSuccessfulIndexSnapshot() throws IOException {

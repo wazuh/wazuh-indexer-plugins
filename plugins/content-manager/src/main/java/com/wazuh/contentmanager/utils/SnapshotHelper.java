@@ -47,6 +47,7 @@ public class SnapshotHelper {
 
     /**
      * Constructor for the class
+     *
      * @param environment Needed for snapshot file handling
      * @param contextIndex Handles context and consumer related metadata
      * @param contentIndex Handles indexed content
@@ -61,6 +62,7 @@ public class SnapshotHelper {
 
     /**
      * Alternate constructor that allows injecting CTIClient for test purposes
+     *
      * @param ctiClient The injected CTIClient
      * @param environment Needed for snapshot file handling
      * @param contextIndex Handles context and consumer related metadata
@@ -120,7 +122,8 @@ public class SnapshotHelper {
     /** Posts a command to the command manager API on a successful snapshot operation */
     @VisibleForTesting
     void postUpdateCommand() {
-        CommandManagerClient.getInstance().postCommand(Command.create(this.contextIndex.getLastOffset().toString()));
+        CommandManagerClient.getInstance()
+                .postCommand(Command.create(this.contextIndex.getLastOffset().toString()));
     }
 
     /**
