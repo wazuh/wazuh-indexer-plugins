@@ -83,7 +83,7 @@ public class ContentUpdaterIT extends OpenSearchIntegTestCase {
         long offsetId = 1L;
         Offset createOffset = getOffset(offsetId, OperationType.CREATE);
         ContentChanges contentChanges = new ContentChanges(List.of(createOffset));
-        ConsumerInfo testConsumer = new ConsumerInfo(CONSUMER_ID, CONTEXT_ID, offsetId, null);
+        ConsumerInfo testConsumer = new ConsumerInfo(CONSUMER_ID, CONTEXT_ID, offsetId, offsetId, null);
         // Mock
         when(this.ctiClient.getChanges(this.initialOffset, 1, false)).thenReturn(contentChanges);
         when(this.ctiClient.getCatalog()).thenReturn(testConsumer);
@@ -106,7 +106,7 @@ public class ContentUpdaterIT extends OpenSearchIntegTestCase {
         Offset createOffset = getOffset(offsetId - 1, OperationType.CREATE);
         Offset updateOffset = getOffset(offsetId, OperationType.UPDATE);
         ContentChanges contentChanges = new ContentChanges(List.of(createOffset, updateOffset));
-        ConsumerInfo testConsumer = new ConsumerInfo(CONSUMER_ID, CONTEXT_ID, offsetId, null);
+        ConsumerInfo testConsumer = new ConsumerInfo(CONSUMER_ID, CONTEXT_ID, offsetId, offsetId, null);
         // Mock
         when(this.ctiClient.getChanges(this.initialOffset, offsetId, false)).thenReturn(contentChanges);
         when(this.ctiClient.getCatalog()).thenReturn(testConsumer);
@@ -134,7 +134,7 @@ public class ContentUpdaterIT extends OpenSearchIntegTestCase {
         Offset createOffset = getOffset(offsetId - 1, OperationType.CREATE);
         Offset deleteOffset = getOffset(offsetId, OperationType.DELETE);
         ContentChanges contentChanges = new ContentChanges(List.of(createOffset, deleteOffset));
-        ConsumerInfo testConsumer = new ConsumerInfo(CONSUMER_ID, CONTEXT_ID, offsetId, null);
+        ConsumerInfo testConsumer = new ConsumerInfo(CONSUMER_ID, CONTEXT_ID, offsetId, offsetId, null);
         // Mock
         when(this.ctiClient.getChanges(this.initialOffset, offsetId, false)).thenReturn(contentChanges);
         when(this.ctiClient.getCatalog()).thenReturn(testConsumer);
@@ -181,7 +181,7 @@ public class ContentUpdaterIT extends OpenSearchIntegTestCase {
     @SuppressWarnings("unchecked")
     public void prepareInitialConsumerInfo(Client client, Long currentOffset) throws Exception {
         // Create a ConsumerInfo document manually in the test index
-        ConsumerInfo info = new ConsumerInfo(CONSUMER_ID, CONTEXT_ID, currentOffset, null);
+        ConsumerInfo info = new ConsumerInfo(CONSUMER_ID, CONTEXT_ID, currentOffset, null, null);
         client
                 .prepareIndex(ContextIndex.INDEX_NAME)
                 .setId(CONTEXT_ID)

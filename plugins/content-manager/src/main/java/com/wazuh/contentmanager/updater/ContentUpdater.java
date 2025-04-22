@@ -151,7 +151,7 @@ public class ContentUpdater {
     long getCurrentOffset() {
         ConsumerInfo consumer =
                 this.contextIndex.getConsumer(PluginSettings.CONTEXT_ID, PluginSettings.CONSUMER_ID);
-        return consumer != null ? consumer.getLastOffset() : 0L;
+        return consumer != null ? consumer.getOffset() : 0L;
     }
 
     /**
