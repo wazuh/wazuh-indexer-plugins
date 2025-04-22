@@ -22,54 +22,111 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.opensearch.action.bulk.BulkRequest;
 import org.opensearch.action.bulk.BulkResponse;
+import org.opensearch.action.delete.DeleteRequest;
+import org.opensearch.action.delete.DeleteResponse;
+import org.opensearch.action.get.GetRequest;
+import org.opensearch.action.get.GetResponse;
 import org.opensearch.action.index.IndexRequest;
+import org.opensearch.action.index.IndexResponse;
 import org.opensearch.client.Client;
+import org.opensearch.common.xcontent.XContentFactory;
 import org.opensearch.common.xcontent.XContentType;
 import org.opensearch.core.action.ActionListener;
+import org.opensearch.core.xcontent.ToXContent;
+import org.opensearch.core.xcontent.XContentParser;
 
 import java.io.BufferedReader;
 import java.io.FileReader;
+import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Semaphore;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 
-/** Class to manage the Content Manager index. */
+import com.wazuh.contentmanager.model.ctiapi.ContentChanges;
+import com.wazuh.contentmanager.model.ctiapi.Offset;
+import com.wazuh.contentmanager.model.ctiapi.PatchOperation;
+import com.wazuh.contentmanager.util.JsonPatch;
+import com.wazuh.contentmanager.util.XContentUtils;
+
+/** Manages operations for the Wazuh CVE content index. */
 public class ContentIndex {
+    private static final String JSON_NAME_KEY = "name";
     private static final Logger log = LogManager.getLogger(ContentIndex.class);
-
-    private static final String INDEX_NAME = "wazuh-cve";
-    private final int MAX_DOCUMENTS = 25;
+    private static final int MAX_DOCUMENTS = 25;
     private static final int MAX_CONCURRENT_PETITIONS = 5;
+    // The name of the index
+    public static final String INDEX_NAME = "wazuh-cve";
+    // The timeout for the get operation in seconds
+    public static final Long TIMEOUT = 10L;
 
     private final Client client;
     private final Semaphore semaphore = new Semaphore(MAX_CONCURRENT_PETITIONS);
 
     /**
-     * Default constructor
+     * Constructor for the ContentIndex class.
      *
-     * @param client OpenSearch client.
+     * @param client the OpenSearch Client to interact with the cluster
      */
     public ContentIndex(Client client) {
         this.client = client;
     }
 
     /**
-     * Index an array of JSON objects using a BulkRequest
+     * Indexes a single Offset document.
      *
-     * @param documents the array of objects
+     * @param document the Offset document to be indexed.
      */
-    private void index(List<JsonObject> documents) {
-        BulkRequest bulkRequest = new BulkRequest(INDEX_NAME);
+    public void index(Offset document) {
+        try {
+            IndexRequest indexRequest =
+                    new IndexRequest()
+                            .index(INDEX_NAME)
+                            .source(document.toXContent(XContentFactory.jsonBuilder(), ToXContent.EMPTY_PARAMS))
+                            .id(document.getResource());
+            this.client.index(
+                    indexRequest,
+                    new ActionListener<>() {
+                        @Override
+                        public void onResponse(IndexResponse indexResponse) {
+                            log.info("Indexed CTI Catalog Content {} to index", document.getResource());
+                        }
 
+                        @Override
+                        public void onFailure(Exception e) {
+                            log.error(
+                                    "Failed to index CTI Catalog Content {}: {}",
+                                    document.getResource(),
+                                    e.getMessage(),
+                                    e);
+                        }
+                    });
+        } catch (IOException e) {
+            log.error("Failed to create JSON content builder: {}", e.getMessage(), e);
+        }
+    }
+
+    /**
+     * Indexes a list of JSON documents in bulk.
+     *
+     * @param documents list of JSON documents to be indexed.
+     */
+    public void index(List<JsonObject> documents) {
+        BulkRequest bulkRequest = new BulkRequest(INDEX_NAME);
+        log.info("Indexing {} documents", documents.size());
         for (JsonObject document : documents) {
             bulkRequest.add(
                     new IndexRequest()
-                            .id(document.get("name").getAsString())
+                            .id(document.get(JSON_NAME_KEY).getAsString())
                             .source(document.toString(), XContentType.JSON));
         }
 
-        client.bulk(
+        this.client.bulk(
                 bulkRequest,
                 new ActionListener<>() {
                     @Override
@@ -78,10 +135,9 @@ public class ContentIndex {
                         if (bulkResponse.hasFailures()) {
                             log.error(
                                     "Snapshot indexing bulk request failed: {}", bulkResponse.buildFailureMessage());
-
                         } else {
                             log.debug(
-                                    "Snapshot indexing bulk request was successful: took [{}]ms",
+                                    "Snapshot indexing bulk request succeeded in {} ms",
                                     bulkResponse.getTook().millis());
                         }
                     }
@@ -89,18 +145,103 @@ public class ContentIndex {
                     @Override
                     public void onFailure(Exception e) {
                         semaphore.release();
-                        log.error("Snapshot indexing bulk request has failed: {}", e.getMessage());
+                        log.error("Snapshot indexing bulk request failed: {}", e.getMessage(), e);
                     }
                 });
     }
 
     /**
-     * Patch a document
+     * Applies a set of changes (create, update, delete) to the content index.
      *
-     * @param document the document to patch the existing document
+     * @param changes content changes to apply.
      */
-    public void patch(JsonObject document) {
-        log.error("Unimplemented method");
+    public void patch(ContentChanges changes) {
+        if (changes.getChangesList().isEmpty()) {
+            log.info("No changes to apply");
+            return;
+        }
+
+        for (Offset change : changes.getChangesList()) {
+            String id = change.getResource();
+            try {
+                log.info("Processing change: {}", change);
+                switch (change.getType()) {
+                    case CREATE:
+                        log.debug("Creating new resource with ID [{}]", id);
+                        this.index(change);
+                        break;
+                    case UPDATE:
+                        log.debug("Updating resource with ID [{}]", id);
+                        JsonObject content = this.getById(id);
+                        for (PatchOperation op : change.getOperations()) {
+                            JsonPatch.applyOperation(content, XContentUtils.xContentObjectToJson(op));
+                        }
+                        try (XContentParser parser = XContentUtils.createJSONParser(content)) {
+                            this.index(Offset.parse(parser));
+                        }
+                        break;
+                    case DELETE:
+                        log.debug("Deleting resource with ID [{}]", id);
+                        this.delete(id);
+                        break;
+                    default:
+                        throw new IllegalArgumentException("Unknown change type: " + change.getType());
+                }
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                throw new RuntimeException("Interrupted while patching", e);
+            } catch (Exception e) {
+                log.error("Failed to apply patch to {}: {}", id, e.getMessage(), e);
+                throw new RuntimeException("Failed to apply patch operation", e);
+            }
+        }
+    }
+
+    /**
+     * Retrieves a document from the index.
+     *
+     * @param id ID of the document to retrieve.
+     * @return CompletableFuture containing the GetResponse.
+     */
+    public CompletableFuture<GetResponse> get(String id) {
+        CompletableFuture<GetResponse> future = new CompletableFuture<>();
+        this.client.get(
+                new GetRequest(INDEX_NAME, id),
+                new ActionListener<>() {
+                    @Override
+                    public void onResponse(GetResponse response) {
+                        log.info("Retrieved CTI Catalog Content {} from index", id);
+                        future.complete(response);
+                    }
+
+                    @Override
+                    public void onFailure(Exception e) {
+                        log.error("Failed to retrieve CTI Catalog Content {}: {}", id, e.getMessage(), e);
+                        future.completeExceptionally(e);
+                    }
+                });
+        return future;
+    }
+
+    /**
+     * Deletes a document from the index.
+     *
+     * @param id ID of the document to delete.
+     */
+    public void delete(String id) {
+        this.client.delete(
+                new DeleteRequest(INDEX_NAME, id),
+                new ActionListener<>() {
+                    @Override
+                    public void onResponse(DeleteResponse response) {
+                        log.info("Deleted CTI Catalog Content {} from index", id);
+                    }
+
+                    @Override
+                    public void onFailure(Exception e) {
+                        log.error("Failed to delete CTI Catalog Content {}: {}", id, e.getMessage(), e);
+                    }
+                });
     }
 
     /**
@@ -121,10 +262,10 @@ public class ContentIndex {
         try (BufferedReader reader = new BufferedReader(new FileReader(path, StandardCharsets.UTF_8))) {
             while ((line = reader.readLine()) != null) {
                 json = JsonParser.parseString(line).getAsJsonObject();
-                // Not every line in the snapshot is a CVE. We filter out the content by the "name" field of
-                // the
-                // current JSON object, if it starts with "CVE-". Any other case is skipped.
-                String name = json.get("name").getAsString();
+                // Not every line in the snapshot is a CVE. We filter out the
+                // content by the "name" field of the current JSON object, if
+                // it starts with "CVE-". Any other case is skipped.
+                String name = json.get(JSON_NAME_KEY).getAsString();
                 if (name.startsWith("CVE-")) {
                     items.add(json);
                     lineCount++;
@@ -134,7 +275,7 @@ public class ContentIndex {
 
                 // Index items (MAX_DOCUMENTS reached)
                 if (lineCount == MAX_DOCUMENTS) {
-                    semaphore.acquire();
+                    this.semaphore.acquire();
                     this.index(items);
                     lineCount = 0;
                     items.clear();
@@ -142,7 +283,7 @@ public class ContentIndex {
             }
             // Index remaining items (> MAX_DOCUMENTS)
             if (lineCount > 0) {
-                semaphore.acquire();
+                this.semaphore.acquire();
                 this.index(items);
             }
         } catch (Exception e) {
@@ -150,5 +291,30 @@ public class ContentIndex {
         }
         long estimatedTime = System.currentTimeMillis() - startTime;
         log.info("Snapshot indexing finished successfully in {} ms", estimatedTime);
+    }
+
+    /**
+     * Searches for an element in the {@link ContentIndex#INDEX_NAME} by its ID.
+     *
+     * @param resourceId the ID of the element to retrieve.
+     * @return the element as a JsonObject instance.
+     * @throws InterruptedException if the operation is interrupted.
+     * @throws ExecutionException if an error occurs during execution.
+     * @throws TimeoutException if the operation times out.
+     * @throws IllegalArgumentException if the content is not found.
+     */
+    public JsonObject getById(String resourceId)
+            throws InterruptedException, ExecutionException, TimeoutException, IllegalArgumentException {
+        GetResponse response = this.get(resourceId).get(TIMEOUT, TimeUnit.SECONDS);
+        if (response.isExists()) {
+            return JsonParser.parseString(response.getSourceAsString()).getAsJsonObject();
+        }
+        // else
+        throw new IllegalArgumentException(
+                String.format(
+                        Locale.ROOT,
+                        "Document with ID [%s] not found in the [%s] index",
+                        resourceId,
+                        INDEX_NAME));
     }
 }

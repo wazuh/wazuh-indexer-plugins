@@ -41,7 +41,7 @@ public class ConsumerInfo implements ToXContentObject {
     public static final String OPERATIONS = "operations";
     private final String context;
     private final String name;
-    private final Long lastOffset;
+    private final long lastOffset;
     private final String lastSnapshotLink;
 
     /**
@@ -52,7 +52,7 @@ public class ConsumerInfo implements ToXContentObject {
      * @param lastOffset The last offset number
      * @param lastSnapshotLink URL link to the latest snapshot
      */
-    public ConsumerInfo(String name, String context, Long lastOffset, String lastSnapshotLink) {
+    public ConsumerInfo(String name, String context, long lastOffset, String lastSnapshotLink) {
         this.name = name;
         this.context = context;
         this.lastOffset = lastOffset;
@@ -159,7 +159,7 @@ public class ConsumerInfo implements ToXContentObject {
      *
      * @return Last offset number as a long
      */
-    public Long getLastOffset() {
+    public long getLastOffset() {
         return this.lastOffset;
     }
 
@@ -170,5 +170,14 @@ public class ConsumerInfo implements ToXContentObject {
      */
     public String getLastSnapshotLink() {
         return this.lastSnapshotLink;
+    }
+
+    /**
+     * Retrieves the name of the consumer
+     *
+     * @return The name of the consumer
+     */
+    public String getName() {
+        return this.name;
     }
 }

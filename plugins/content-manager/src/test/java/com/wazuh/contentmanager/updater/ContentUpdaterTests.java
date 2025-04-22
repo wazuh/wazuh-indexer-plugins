@@ -21,11 +21,13 @@ import org.opensearch.test.OpenSearchIntegTestCase;
 import org.junit.Before;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 
-import com.wazuh.contentmanager.model.ctiapi.ContextChanges;
+import com.wazuh.contentmanager.client.CTIClient;
+import com.wazuh.contentmanager.model.ctiapi.ContentChanges;
 import com.wazuh.contentmanager.model.ctiapi.Offset;
+import com.wazuh.contentmanager.model.ctiapi.OperationType;
+import com.wazuh.contentmanager.model.ctiapi.PatchOperation;
 import org.mockito.Mockito;
 
 import static org.mockito.Mockito.*;
@@ -44,71 +46,72 @@ public class ContentUpdaterTests extends OpenSearchIntegTestCase {
     public void setup() throws Exception {
         super.setUp();
         Client client = mock(Client.class);
-        ContentUpdater contentUpdater = new ContentUpdater(client);
-        contentUpdaterSpy = Mockito.spy(contentUpdater);
+        ContentUpdater contentUpdater = new ContentUpdater(client, mock(CTIClient.class));
+        this.contentUpdaterSpy = Mockito.spy(contentUpdater);
     }
 
     /** Test Fetch and apply no new updates */
-    public void testFetchAndApplyUpdatesNoNewUpdates() {
+    public void testUpdateNoChanges() {
         // Mock current and latest offset.
-        doReturn(100L).when(contentUpdaterSpy).getCurrentOffset();
-        doReturn(100L).when(contentUpdaterSpy).getLatestOffset();
+        doReturn(100L).when(this.contentUpdaterSpy).getCurrentOffset();
+        doReturn(100L).when(this.contentUpdaterSpy).getLatestOffset();
         // Act
-        contentUpdaterSpy.fetchAndApplyUpdates(null);
-        // Assert patchContextIndex is not called.
-        verify(contentUpdaterSpy, never()).patchContextIndex(any());
+        this.contentUpdaterSpy.update();
+        // Assert applyChangesToContextIndex is not called.
+        verify(this.contentUpdaterSpy, never()).applyChanges(any());
     }
 
     /** Test fetch and apply new updates */
-    public void testFetchAndApplyUpdatesNewUpdates() {
-        Integer offsetsAmount = 3999;
+    public void testUpdateNewChanges() {
+        long offsetsAmount = 3999L;
         // Mock current and latest offset.
-        doReturn(0L).when(contentUpdaterSpy).getCurrentOffset();
-        doReturn((long) offsetsAmount).when(contentUpdaterSpy).getLatestOffset();
+        doReturn(0L).when(this.contentUpdaterSpy).getCurrentOffset();
+        doReturn(offsetsAmount).when(this.contentUpdaterSpy).getLatestOffset();
         // Mock getContextChanges method.
-        doReturn(generateContextChanges(offsetsAmount))
-                .when(contentUpdaterSpy)
-                .getContextChanges(any(), any());
+        doReturn(generateContextChanges((int) offsetsAmount))
+                .when(this.contentUpdaterSpy)
+                .getChanges(anyLong(), anyLong());
         // Mock postUpdateCommand method.
-        doNothing().when(contentUpdaterSpy).postUpdateCommand();
+        doNothing().when(this.contentUpdaterSpy).postUpdateCommand();
+        // Mock ContentIndex.patch
+        doReturn(true).when(this.contentUpdaterSpy).applyChanges(any());
         // Act
-        contentUpdaterSpy.fetchAndApplyUpdates(null);
-        // Assert patchContextIndex is called 4 times (one each 1000 starting from 0).
-        verify(contentUpdaterSpy, times(4)).patchContextIndex(any());
+        this.contentUpdaterSpy.update();
+        // Assert applyChangesToContextIndex is called 4 times (one each 1000 starting from 0).
+        verify(this.contentUpdaterSpy, times(4)).applyChanges(any());
     }
 
     /** Test error fetching changes */
-    public void testFetchAndApplyUpdatesErrorFetchingChanges() {
-        int offsetsAmount = 3999;
+    public void testUpdateErrorFetchingChanges() {
+        long offsetsAmount = 3999L;
         // Mock current and latest offset.
-        doReturn(0L).when(contentUpdaterSpy).getCurrentOffset();
-        doReturn((long) offsetsAmount).when(contentUpdaterSpy).getLatestOffset();
+        doReturn(0L).when(this.contentUpdaterSpy).getCurrentOffset();
+        doReturn(offsetsAmount).when(this.contentUpdaterSpy).getLatestOffset();
         // Mock getContextChanges method.
-        doReturn(null).when(contentUpdaterSpy).getContextChanges(any(), any());
+        doReturn(null).when(this.contentUpdaterSpy).getChanges(anyLong(), anyLong());
         // Act
-        Exception exception =
-                assertThrows(RuntimeException.class, () -> contentUpdaterSpy.fetchAndApplyUpdates(null));
+        boolean updated = this.contentUpdaterSpy.update();
         // Assert
-        assertEquals("Unable to fetch changes for offsets 0 to 1000", exception.getMessage());
-        verify(contentUpdaterSpy, times(1)).getContextChanges(any(), any());
+        assertFalse(updated);
     }
 
-    /** Test error on patchContextIndex method (method return false) */
-    public void testFetchAndApplyUpdatesErrorOnPatchContextIndex() {
-        int offsetsAmount = 3999;
+    /** Test error on applyChangesToContextIndex method (method return false) */
+    public void testUpdateErrorOnPatchContextIndex() {
+        long offsetsAmount = 3999L;
         // Mock current and latest offset.
-        doReturn(0L).when(contentUpdaterSpy).getCurrentOffset();
-        doReturn((long) offsetsAmount).when(contentUpdaterSpy).getLatestOffset();
+        doReturn(0L).when(this.contentUpdaterSpy).getCurrentOffset();
+        doReturn(offsetsAmount).when(this.contentUpdaterSpy).getLatestOffset();
         // Mock getContextChanges method.
-        doReturn(generateContextChanges(offsetsAmount))
-                .when(contentUpdaterSpy)
-                .getContextChanges(any(), any());
-        // Mock patchContextIndex method.
-        doReturn(false).when(contentUpdaterSpy).patchContextIndex(any());
+        doReturn(generateContextChanges((int) offsetsAmount))
+                .when(this.contentUpdaterSpy)
+                .getChanges(anyLong(), anyLong());
+        // Mock applyChangesToContextIndex method.
+        doReturn(false).when(this.contentUpdaterSpy).applyChanges(any());
         // Act
-        contentUpdaterSpy.fetchAndApplyUpdates(null);
+        boolean updated = this.contentUpdaterSpy.update();
         // Assert
-        verify(contentUpdaterSpy, times(1)).restartConsumerInfo();
+        assertFalse(updated);
+        verify(this.contentUpdaterSpy, times(1)).updateContext(0L);
     }
 
     /**
@@ -117,11 +120,24 @@ public class ContentUpdaterTests extends OpenSearchIntegTestCase {
      * @param size of the generated changes list
      * @return A ContextChanges object
      */
-    public ContextChanges generateContextChanges(Integer size) {
+    public ContentChanges generateContextChanges(int size) {
         List<Offset> offsets = new ArrayList<>();
         for (int i = 0; i < size; i++) {
-            offsets.add(new Offset("context", (long) i, "resource", "type", 0L, new HashMap<>()));
+            offsets.add(
+                    new Offset(
+                            "context",
+                            (long) i,
+                            "resource",
+                            OperationType.UPDATE,
+                            0L,
+                            List.of(
+                                    new PatchOperation(
+                                            PatchOperation.OP,
+                                            PatchOperation.PATH,
+                                            PatchOperation.FROM,
+                                            PatchOperation.VALUE)),
+                            null));
         }
-        return new ContextChanges(offsets);
+        return new ContentChanges(offsets);
     }
 }

@@ -27,185 +27,71 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-/** Model class for individual changes within a consumer changes reply */
+/**
+ * ToXContentObject model to parse and build CTI API changes.
+ *
+ * <p>This class represents an offset in the context of a content change operation.
+ */
 public class Offset implements ToXContentObject {
-
     private static final String CONTEXT = "context";
     private static final String OFFSET = "offset";
     private static final String RESOURCE = "resource";
     private static final String TYPE = "type";
     private static final String VERSION = "version";
+    private static final String OPERATIONS = "operations";
     private static final String PAYLOAD = "payload";
-
     private final String context;
     private final Long offset;
     private final String resource;
-    private final String type;
+    private final OperationType type;
     private final Long version;
+    private final List<PatchOperation> operations;
     private final Map<String, Object> payload;
 
     /**
-     * Constructor for the class
+     * Constructor.
      *
      * @param context Name of the context
      * @param offset Offset number of the record
      * @param resource Name of the resource
-     * @param type Type of operation to be performed
+     * @param type OperationType of operation to be performed
      * @param version Version Number
+     * @param operations JSON Patch payload data
      * @param payload JSON Patch payload data
      */
     public Offset(
             String context,
             Long offset,
             String resource,
-            String type,
+            OperationType type,
             Long version,
+            List<PatchOperation> operations,
             Map<String, Object> payload) {
         this.context = context;
         this.offset = offset;
         this.resource = resource;
         this.type = type;
         this.version = version;
+        this.operations = operations;
         this.payload = payload;
     }
 
     /**
-     * Getter for the context name
+     * Builds an Offset instance from the content of an XContentParser.
      *
-     * @return the context name as a String
-     */
-    public String getContext() {
-        return this.context;
-    }
-
-    /**
-     * Getter for the Offset value
-     *
-     * @return the offset value as a Long
-     */
-    public Long getOffset() {
-        return this.offset;
-    }
-
-    /**
-     * Getter for the resource field of an offset
-     *
-     * @return the resource field value as a String
-     */
-    public String getResource() {
-        return this.resource;
-    }
-
-    /**
-     * Getter for the type field of an offset
-     *
-     * @return the type field as a String
-     */
-    public String getType() {
-        return this.type;
-    }
-
-    /**
-     * The version field of an offset
-     *
-     * @return The version field as a Long
-     */
-    public Long getVersion() {
-        return this.version;
-    }
-
-    /**
-     * Getter for the payload of an offset
-     *
-     * @return the actual payload of an offset as a Map
-     */
-    public Map<String, Object> getPayload() {
-        return this.payload;
-    }
-
-    /**
-     * A method to parse arrays recursively
-     *
-     * @param parser an XContentParser containing an array
-     * @return the parsed list as a List
-     * @throws IOException rethrown from parseObject
-     */
-    private static List<Object> parseArray(XContentParser parser) throws IOException {
-        List<Object> array = new ArrayList<>();
-        while (parser.nextToken() != XContentParser.Token.END_ARRAY) {
-            switch (parser.currentToken()) {
-                case START_OBJECT:
-                    array.add(parseObject(parser));
-                    break;
-                case START_ARRAY:
-                    array.add(parseArray(parser));
-                    break;
-                case VALUE_STRING:
-                    array.add(parser.text());
-                    break;
-                case VALUE_NUMBER:
-                    array.add(parser.numberValue());
-                    break;
-                case VALUE_BOOLEAN:
-                    array.add(parser.booleanValue());
-                    break;
-                case VALUE_NULL:
-                    array.add(null);
-                    break;
-                default:
-                    parser.skipChildren();
-            }
-        }
-
-        return array;
-    }
-
-    private static Map<String, Object> parseObject(XContentParser parser) throws IOException {
-        Map<String, Object> result = new HashMap<>();
-        while (parser.nextToken() != XContentParser.Token.END_OBJECT) {
-            if (parser.currentToken() == XContentParser.Token.FIELD_NAME) {
-                String fieldName = parser.currentName();
-                switch (parser.nextToken()) {
-                    case START_OBJECT:
-                        result.put(fieldName, parseObject(parser));
-                        break;
-                    case START_ARRAY:
-                        result.put(fieldName, parseArray(parser));
-                        break;
-                    case VALUE_STRING:
-                        result.put(fieldName, parser.text());
-                        break;
-                    case VALUE_NUMBER:
-                        result.put(fieldName, parser.numberValue());
-                        break;
-                    case VALUE_BOOLEAN:
-                        result.put(fieldName, parser.booleanValue());
-                        break;
-                    case VALUE_NULL:
-                        result.put(fieldName, null);
-                        break;
-                    default:
-                        parser.skipChildren();
-                }
-            }
-        }
-        return result;
-    }
-
-    /**
-     * Parser method for an individual Offset
-     *
-     * @param parser Incoming XContentParser object to be deserialized
-     * @return An Offset object
-     * @throws IOException Rethrown from XContentParser methods used
+     * @param parser The XContentParser parser holding the data.
+     * @return A new Offset instance.
+     * @throws IOException if an I/O error occurs during parsing.
      */
     public static Offset parse(XContentParser parser) throws IOException {
         String context = null;
         Long offset = null;
         String resource = null;
-        String type = null;
+        OperationType type = null;
         Long version = null;
+        List<PatchOperation> operations = new ArrayList<>();
         Map<String, Object> payload = new HashMap<>();
+
         while (parser.nextToken() != XContentParser.Token.END_OBJECT) {
             if (parser.currentToken() == XContentParser.Token.FIELD_NAME) {
                 String fieldName = parser.currentName();
@@ -221,15 +107,22 @@ public class Offset implements ToXContentObject {
                         resource = parser.text();
                         break;
                     case TYPE:
-                        type = parser.text();
+                        type = OperationType.valueOf(parser.text());
                         break;
                     case VERSION:
                         version = parser.longValue();
                         break;
+                    case OPERATIONS:
+                        XContentParserUtils.ensureExpectedToken(
+                                XContentParser.Token.START_ARRAY, parser.currentToken(), parser);
+                        while (parser.nextToken() != XContentParser.Token.END_ARRAY) {
+                            operations.add(PatchOperation.parse(parser));
+                        }
+                        break;
                     case PAYLOAD:
                         XContentParserUtils.ensureExpectedToken(
                                 XContentParser.Token.START_OBJECT, parser.currentToken(), parser);
-                        payload = parseObject(parser);
+                        payload = Offset.parseObject(parser);
                         break;
                     default:
                         parser.skipChildren();
@@ -237,9 +130,124 @@ public class Offset implements ToXContentObject {
                 }
             }
         }
-        return new Offset(context, offset, resource, type, version, payload);
+
+        return new Offset(context, offset, resource, type, version, operations, payload);
     }
 
+    /**
+     * @param parser
+     * @return
+     * @throws IOException
+     */
+    private static Map<String, Object> parseObject(XContentParser parser) throws IOException {
+        Map<String, Object> result = new HashMap<>();
+
+        while (parser.nextToken() != XContentParser.Token.END_OBJECT) {
+            if (parser.currentToken() == XContentParser.Token.FIELD_NAME) {
+                String fieldName = parser.currentName();
+                switch (parser.nextToken()) {
+                    case START_OBJECT:
+                        result.put(fieldName, Offset.parseObject(parser));
+                        break;
+                    case START_ARRAY:
+                        result.put(fieldName, Offset.parseArray(parser));
+                        break;
+                    case VALUE_STRING:
+                        result.put(fieldName, parser.text());
+                        break;
+                    case VALUE_NUMBER:
+                        result.put(fieldName, parser.numberValue());
+                        break;
+                    case VALUE_BOOLEAN:
+                        result.put(fieldName, parser.booleanValue());
+                        break;
+                    case VALUE_NULL:
+                        result.put(fieldName, null);
+                        break;
+                    default:
+                        parser.skipChildren();
+                        break;
+                }
+            }
+        }
+
+        return result;
+    }
+
+    /**
+     * A method to parse arrays recursively
+     *
+     * @param parser an XContentParser containing an array
+     * @return the parsed list as a List
+     * @throws IOException rethrown from parseObject
+     */
+    private static List<Object> parseArray(XContentParser parser) throws IOException {
+        List<Object> array = new ArrayList<>();
+
+        while (parser.nextToken() != XContentParser.Token.END_ARRAY) {
+            switch (parser.currentToken()) {
+                case START_OBJECT:
+                    array.add(Offset.parseObject(parser));
+                    break;
+                case START_ARRAY:
+                    array.add(Offset.parseArray(parser));
+                    break;
+                case VALUE_STRING:
+                    array.add(parser.text());
+                    break;
+                case VALUE_NUMBER:
+                    array.add(parser.numberValue());
+                    break;
+                case VALUE_BOOLEAN:
+                    array.add(parser.booleanValue());
+                    break;
+                case VALUE_NULL:
+                    array.add(null);
+                    break;
+                default:
+                    parser.skipChildren();
+                    break;
+            }
+        }
+
+        return array;
+    }
+
+    /**
+     * Returns the resource's name.
+     *
+     * @return the resource name.
+     */
+    public String getResource() {
+        return this.resource;
+    }
+
+    /**
+     * Getter for the type
+     *
+     * @return the type as a String
+     */
+    public OperationType getType() {
+        return this.type;
+    }
+
+    /**
+     * Getter for the operations
+     *
+     * @return the operations as a List of JsonPatch
+     */
+    public List<PatchOperation> getOperations() {
+        return this.operations;
+    }
+
+    /**
+     * Outputs an XContentBuilder object ready to be printed or manipulated
+     *
+     * @param builder the received builder object
+     * @param params We don't really use this one
+     * @return an XContentBuilder object ready to be printed
+     * @throws IOException rethrown from Offset's toXContent
+     */
     @Override
     public XContentBuilder toXContent(XContentBuilder builder, Params params) throws IOException {
         builder.startObject();
@@ -248,28 +256,14 @@ public class Offset implements ToXContentObject {
         builder.field(RESOURCE, this.resource);
         builder.field(TYPE, this.type);
         builder.field(VERSION, this.version);
+        builder.startArray(OPERATIONS);
+        if (this.operations != null) {
+            for (PatchOperation operation : this.operations) {
+                operation.toXContent(builder, ToXContentObject.EMPTY_PARAMS);
+            }
+        }
+        builder.endArray();
         builder.field(PAYLOAD, this.payload);
         return builder.endObject();
-    }
-
-    @Override
-    public String toString() {
-        return "Offset{"
-                + "context='"
-                + context
-                + '\''
-                + ", offset="
-                + offset
-                + ", resource='"
-                + resource
-                + '\''
-                + ", type='"
-                + type
-                + '\''
-                + ", version="
-                + version
-                + ", payload="
-                + payload
-                + '}';
     }
 }

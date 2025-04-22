@@ -148,3 +148,79 @@ Users may create new content by interacting with the Management API (**1a**) or 
     style Data_streams fill:#abc2eb
     style Plugins fill:#abc2eb
 ```
+## Content update process
+
+The update process of the Content Manager compares the offset values for the consumer
+
+To update the content, the Content Manager uses the CTI client to fetch the changes. It then processes the data and transforms it into create, update or delete operations to the content index. When the update is completed, it generates a command for the Command Manager using the API.
+
+The Content Updater module is the orchestrator of the update process, delegating the fetching and indexing operations to other modules.
+
+The update process is as follows:
+
+1. The Content Updater module compares the "offsets" in the `wazuh-context` index. If these values differ, it means that the version of the content in the Indexer and in CTI are different.
+2. If the content is outdated, it requests the CTI API for the newest changes, which are in JSON patch format. For performance purposes, these changes are obtained in chunks.
+3. Each of these chunks are applied to the content one by one. If the operation fails, the update process is interrupted and a recovery from a snapshot is required.
+4. The update continues until the offsets are equal.
+5. Once completed, the update is committed by updating the offset in the `wazuh-context` index and generating a command for the Command Manager notifying about the update's success.
+
+```mermaid
+---
+title: Content Manager offset-based update mechanism
+---
+flowchart TD
+    ContextIndex1@{ shape: lin-cyl, label: "Index storage" }
+    ContextIndex2@{ shape: lin-cyl, label: "Index storage" }
+    CTI_API@{ shape: lin-cyl, label: "CTI API" }
+    CM_API@{ shape: lin-cyl, label: "Command Manager API" }
+
+    subgraph ContentIndex["[apply change]"]
+        direction LR
+        OperationType --> Create
+        OperationType --> Update
+        OperationType --> Delete
+        Create -.-> CVE_Index
+        Delete -.-> CVE_Index
+        Update -.-> CVE_Index
+
+        OperationType@{ shape: hex, label: "Check operation" }
+
+        Create["Create"]
+        Delete["Delete"]
+        Update["Update"]
+
+        CVE_Index@{ shape: lin-cyl, label: "Index storage" }
+    end
+
+    subgraph ContentUpdater["Content update process"]
+        Start@{ shape: circle, label: "Start" }
+        End@{ shape: dbl-circ, label: "Stop" }
+        GetConsumerInfo["Get consumer info"]
+        CompareOffsets@{ shape: hex, label: "Compare offsets" }
+        IsOutdated@{ shape: diamond, label: "Is outdated?" }
+        GetChanges["Get changes"]
+        ApplyChange@{ shape: subproc, label: "apply change" }
+        IsLastOffset@{ shape: diamond, label: "Is last offset?"}
+        UpdateOffset["Update offset"]
+        GenerateCommand["Generate command"]
+    end
+
+    %% Flow
+    Start --> GetConsumerInfo
+    GetConsumerInfo --> CompareOffsets
+    GetConsumerInfo -.read.-> ContextIndex1
+    CompareOffsets --> IsOutdated
+    IsOutdated -- No --> End
+    IsOutdated -- Yes --> GetChanges
+    GetChanges -.GET.-> CTI_API
+    GetChanges --> ApplyChange
+    ApplyChange --> IsLastOffset
+    IsLastOffset -- No --> GetChanges
+    IsLastOffset -- Yes --> UpdateOffset
+    UpdateOffset --> GenerateCommand --> End
+    UpdateOffset -.write.-> ContextIndex2
+    GenerateCommand -.POST.-> CM_API
+
+    style ContentUpdater fill:#abc2eb
+    style ContentIndex fill:#abc2eb
+```
