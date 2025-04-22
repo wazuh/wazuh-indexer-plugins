@@ -17,91 +17,83 @@
 package com.wazuh.contentmanager.model.ctiapi;
 
 import org.opensearch.core.common.ParsingException;
-import org.opensearch.core.xcontent.*;
+import org.opensearch.core.xcontent.ToXContentObject;
+import org.opensearch.core.xcontent.XContentBuilder;
+import org.opensearch.core.xcontent.XContentParser;
+import org.opensearch.core.xcontent.XContentParserUtils;
 
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
 /** ToXContentObject model to parse and build CTI API changes query replies. */
-public class ContextChanges implements ToXContentObject {
+public class ContentChanges implements ToXContentObject {
 
-    private static final String DATA = "data";
-
-    private final List<Offset> offsetList;
+    private static final String JSON_DATA_KEY = "data";
+    private final List<Offset> changes;
 
     /**
-     * Constructor method
+     * Constructor method.
      *
-     * @param offsetList a List of the Offset objects, containing a json patch each.
+     * @param changes a List of Offset objects, each containing a JSON patch.
      */
-    public ContextChanges(List<Offset> offsetList) {
-        this.offsetList = offsetList;
+    public ContentChanges(List<Offset> changes) {
+        this.changes = changes;
     }
 
     /**
-     * Retrieve the list of offsets
+     * Get the list of changes.
      *
-     * @return A List of offsets
+     * @return A list of Offset objects
      */
-    public List<Offset> getOffsetList() {
-        return this.offsetList;
+    public List<Offset> getChangesList() {
+        return this.changes;
     }
 
     /**
-     * Parses the data[] object from the CTI API changes response body
+     * Parses the data[] object from the CTI API changes response body.
      *
-     * @param parser The received parser object
-     * @return an ContextChanges object with all inner array values parsed.
-     * @throws IOException rethrown from the inner parse() methods
-     * @throws IllegalArgumentException rethrown from the inner parse() methods
-     * @throws ParsingException rethrown from ensureExpectedToken()
+     * @param parser The received parser object.
+     * @return a ContentChanges object with all inner array values parsed.
+     * @throws IOException rethrown from the inner parse() methods.
+     * @throws IllegalArgumentException rethrown from the inner parse() methods.
+     * @throws ParsingException rethrown from ensureExpectedToken().
      */
-    public static ContextChanges parse(XContentParser parser)
+    public static ContentChanges parse(XContentParser parser)
             throws IOException, IllegalArgumentException, ParsingException {
         List<Offset> changes = new ArrayList<>();
         // Make sure we are at the start
         XContentParserUtils.ensureExpectedToken(
                 XContentParser.Token.START_OBJECT, parser.nextToken(), parser);
         // Check that we are indeed reading the "data" array
-        XContentParserUtils.ensureFieldName(parser, parser.nextToken(), DATA);
+        XContentParserUtils.ensureFieldName(parser, parser.nextToken(), JSON_DATA_KEY);
         // Check we are at the start of the array
         XContentParserUtils.ensureExpectedToken(
                 XContentParser.Token.START_ARRAY, parser.nextToken(), parser);
-        // Iterate over the array and add each Offset object to changes array
+        // Iterate over the array and add each Offset object to changes list
         while (parser.nextToken() != XContentParser.Token.END_ARRAY) {
             changes.add(Offset.parse(parser));
         }
-        return new ContextChanges(changes);
+        return new ContentChanges(changes);
     }
 
     /**
      * Outputs an XContentBuilder object ready to be printed or manipulated
      *
      * @param builder the received builder object
-     * @param params We don't really use this one
+     * @param params Unused params
      * @return an XContentBuilder object ready to be printed
      * @throws IOException rethrown from Offset's toXContent
      */
     @Override
     public XContentBuilder toXContent(XContentBuilder builder, Params params) throws IOException {
         builder.startObject();
-        builder.startArray(DATA);
+        builder.startArray(JSON_DATA_KEY);
         // For each Offset in the data field, add them to an XContentBuilder array
-        offsetList.forEach(
-                (offset) -> {
-                    try {
-                        offset.toXContent(builder, ToXContentObject.EMPTY_PARAMS);
-                    } catch (IOException e) {
-                        throw new RuntimeException(e);
-                    }
-                });
+        for (Offset change : this.changes) {
+            change.toXContent(builder, ToXContentObject.EMPTY_PARAMS);
+        }
         builder.endArray();
         return builder.endObject();
-    }
-
-    @Override
-    public String toString() {
-        return "ContextChanges{" + "offsets=" + offsetList + '}';
     }
 }

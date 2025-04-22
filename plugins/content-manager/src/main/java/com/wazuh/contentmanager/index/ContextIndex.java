@@ -42,7 +42,7 @@ public class ContextIndex {
     private static final Logger log = LogManager.getLogger(ContextIndex.class);
 
     /** The name of the Contexts index */
-    public static final String CONTEXTS_INDEX = "wazuh-context";
+    public static final String INDEX_NAME = "wazuh-context";
 
     /** Timeout of indexing operations */
     public static final Long TIMEOUT = 10L;
@@ -73,7 +73,7 @@ public class ContextIndex {
         try {
             indexRequest =
                     new IndexRequest()
-                            .index(CONTEXTS_INDEX)
+                            .index(ContextIndex.INDEX_NAME)
                             .source(
                                     newConsumerInfo.toXContent(
                                             XContentFactory.jsonBuilder(), ToXContent.EMPTY_PARAMS))
@@ -101,9 +101,7 @@ public class ContextIndex {
      * @return A completable future holding the response of the query
      */
     public CompletableFuture<GetResponse> get(String contextName) {
-
-        GetRequest getRequest = new GetRequest(CONTEXTS_INDEX, contextName);
-
+        GetRequest getRequest = new GetRequest(ContextIndex.INDEX_NAME, contextName);
         CompletableFuture<GetResponse> future = new CompletableFuture<>();
 
         this.client.get(
@@ -137,7 +135,7 @@ public class ContextIndex {
             return this.consumerInfo;
         }
         try {
-            GetResponse getResponse = get(context).get(TIMEOUT, TimeUnit.SECONDS);
+            GetResponse getResponse = get(context).get(ContextIndex.TIMEOUT, TimeUnit.SECONDS);
             log.info("Received search response for {}", context);
 
             Map<String, Object> source = (Map<String, Object>) getResponse.getSourceAsMap().get(consumer);

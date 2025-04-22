@@ -16,14 +16,11 @@
  */
 package com.wazuh.contentmanager.client;
 
+import org.apache.hc.client5.http.HttpHostConnectException;
 import org.apache.hc.client5.http.async.methods.*;
 import org.apache.hc.core5.http.*;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.opensearch.common.xcontent.XContentType;
-import org.opensearch.core.xcontent.DeprecationHandler;
-import org.opensearch.core.xcontent.NamedXContentRegistry;
-import org.opensearch.core.xcontent.XContent;
 import org.opensearch.env.Environment;
 
 import java.io.*;
@@ -39,8 +36,9 @@ import java.util.Map;
 import java.util.concurrent.*;
 
 import com.wazuh.contentmanager.model.ctiapi.ConsumerInfo;
-import com.wazuh.contentmanager.model.ctiapi.ContextChanges;
+import com.wazuh.contentmanager.model.ctiapi.ContentChanges;
 import com.wazuh.contentmanager.settings.PluginSettings;
+import com.wazuh.contentmanager.util.XContentUtils;
 
 /**
  * CTIClient is a singleton class responsible for interacting with the Cyber Threat Intelligence
@@ -83,7 +81,7 @@ public class CTIClient extends HttpClient {
          * @return The query parameter key as a string.
          */
         public String getValue() {
-            return value;
+            return this.value;
         }
     }
 
@@ -122,11 +120,11 @@ public class CTIClient extends HttpClient {
      * @param fromOffset The starting offset (inclusive) for fetching changes.
      * @param toOffset The ending offset (exclusive) for fetching changes.
      * @param withEmpties A flag indicating whether to include empty values (Optional).
-     * @return {@link ContextChanges} instance with the current changes.
+     * @return {@link ContentChanges} instance with the current changes.
      */
-    public ContextChanges getChanges(String fromOffset, String toOffset, String withEmpties) {
-        XContent xContent = XContentType.JSON.xContent();
-        Map<String, String> params = contextQueryParameters(fromOffset, toOffset, withEmpties);
+    public ContentChanges getChanges(long fromOffset, long toOffset, boolean withEmpties) {
+        Map<String, String> params =
+                CTIClient.contextQueryParameters(fromOffset, toOffset, withEmpties);
         SimpleHttpResponse response =
                 sendRequest(
                         Method.GET, CONSUMER_CHANGES_ENDPOINT, null, params, null, CTIClient.MAX_ATTEMPTS);
@@ -143,11 +141,7 @@ public class CTIClient extends HttpClient {
 
         log.debug("CTI API Changes endpoint replied with status: [{}]", response.getCode());
         try {
-            return ContextChanges.parse(
-                    xContent.createParser(
-                            NamedXContentRegistry.EMPTY,
-                            DeprecationHandler.THROW_UNSUPPORTED_OPERATION,
-                            response.getBodyBytes()));
+            return ContentChanges.parse(XContentUtils.createJSONParser(response.getBodyBytes()));
         } catch (IOException | IllegalArgumentException e) {
             log.error("Failed to fetch changes information", e);
             return null;
@@ -160,27 +154,27 @@ public class CTIClient extends HttpClient {
      * @return A {@link ConsumerInfo} object containing the catalog information.
      */
     public ConsumerInfo getCatalog() {
-        XContent xContent = XContentType.JSON.xContent();
-
         try {
-            SimpleHttpResponse response =
-                    sendRequest(Method.GET, CONSUMER_INFO_ENDPOINT, null, null, null, CTIClient.MAX_ATTEMPTS);
-
+            // spotless:off
+            SimpleHttpResponse response = sendRequest(
+                Method.GET,
+                CONSUMER_INFO_ENDPOINT,
+                null,
+                null,
+                null,
+                CTIClient.MAX_ATTEMPTS
+            );
+            // spotless:on
             if (response == null) {
-                log.error("No response from CTI API");
-                return null;
+                throw new HttpHostConnectException("No response from CTI API");
             }
             log.debug("CTI API replied with status: [{}]", response.getCode());
 
-            return ConsumerInfo.parse(
-                    xContent.createParser(
-                            NamedXContentRegistry.EMPTY,
-                            DeprecationHandler.THROW_UNSUPPORTED_OPERATION,
-                            response.getBodyBytes()));
+            return ConsumerInfo.parse(XContentUtils.createJSONParser(response.getBodyBytes()));
         } catch (IOException | IllegalArgumentException e) {
             log.error("Unable to fetch catalog information: {}", e.getMessage());
+            return null;
         }
-        return null;
     }
 
     /**
@@ -193,13 +187,11 @@ public class CTIClient extends HttpClient {
      * @return A map containing the query parameters.
      */
     public static Map<String, String> contextQueryParameters(
-            String fromOffset, String toOffset, String withEmpties) {
+            long fromOffset, long toOffset, boolean withEmpties) {
         Map<String, String> params = new HashMap<>();
-        params.put(QueryParameters.FROM_OFFSET.getValue(), fromOffset);
-        params.put(QueryParameters.TO_OFFSET.getValue(), toOffset);
-        if (withEmpties != null && !withEmpties.isEmpty()) {
-            params.put(QueryParameters.WITH_EMPTIES.getValue(), withEmpties);
-        }
+        params.put(QueryParameters.FROM_OFFSET.getValue(), String.valueOf(fromOffset));
+        params.put(QueryParameters.TO_OFFSET.getValue(), String.valueOf(toOffset));
+        params.put(QueryParameters.WITH_EMPTIES.getValue(), String.valueOf(withEmpties));
         return params;
     }
 

@@ -16,7 +16,11 @@
  */
 package com.wazuh.contentmanager.client;
 
-import org.apache.hc.client5.http.async.methods.*;
+import org.apache.hc.client5.http.async.methods.SimpleHttpRequest;
+import org.apache.hc.client5.http.async.methods.SimpleHttpResponse;
+import org.apache.hc.client5.http.async.methods.SimpleRequestBuilder;
+import org.apache.hc.client5.http.async.methods.SimpleRequestProducer;
+import org.apache.hc.client5.http.async.methods.SimpleResponseConsumer;
 import org.apache.hc.client5.http.impl.async.CloseableHttpAsyncClient;
 import org.apache.hc.client5.http.impl.async.HttpAsyncClients;
 import org.apache.hc.client5.http.impl.nio.PoolingAsyncClientConnectionManagerBuilder;
@@ -37,7 +41,9 @@ import java.security.KeyManagementException;
 import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
 import java.util.Map;
-import java.util.concurrent.*;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 
 import com.wazuh.contentmanager.utils.http.HttpResponseCallback;
 import reactor.util.annotation.NonNull;
@@ -51,8 +57,9 @@ public class HttpClient {
 
     private static final int TIMEOUT = 10;
     private static final Object LOCK = new Object();
-
+    // Singleton instance of the HTTP client
     protected static CloseableHttpAsyncClient httpClient;
+    // Base URI for API requests
     protected final URI apiUri;
 
     /**

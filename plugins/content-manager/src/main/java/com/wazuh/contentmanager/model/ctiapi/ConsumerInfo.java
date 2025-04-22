@@ -165,7 +165,7 @@ public class ConsumerInfo implements ToXContentObject {
      *
      * @return Last offset number as a long
      */
-    public Long getLastOffset() {
+    public long getLastOffset() {
         return this.lastOffset;
     }
 
@@ -185,5 +185,14 @@ public class ConsumerInfo implements ToXContentObject {
      */
     public String getLastSnapshotLink() {
         return this.lastSnapshotLink;
+    }
+
+    /**
+     * Retrieves the name of the consumer
+     *
+     * @return The name of the consumer
+     */
+    public String getName() {
+        return this.name;
     }
 }

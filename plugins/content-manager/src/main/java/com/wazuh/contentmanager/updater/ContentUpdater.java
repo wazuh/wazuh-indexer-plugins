@@ -22,19 +22,22 @@ import org.opensearch.client.Client;
 
 import com.wazuh.contentmanager.client.CTIClient;
 import com.wazuh.contentmanager.client.CommandManagerClient;
+import com.wazuh.contentmanager.index.ContentIndex;
 import com.wazuh.contentmanager.index.ContextIndex;
 import com.wazuh.contentmanager.model.commandmanager.Command;
 import com.wazuh.contentmanager.model.ctiapi.ConsumerInfo;
-import com.wazuh.contentmanager.model.ctiapi.ContextChanges;
+import com.wazuh.contentmanager.model.ctiapi.ContentChanges;
 import com.wazuh.contentmanager.settings.PluginSettings;
 import com.wazuh.contentmanager.utils.Privileged;
 import com.wazuh.contentmanager.utils.VisibleForTesting;
 
 /** Class responsible for managing content updates by fetching and applying changes in chunks. */
 public class ContentUpdater {
-    private static final Integer CHUNK_MAX_SIZE = 1000;
+    private static final int CHUNK_MAX_SIZE = 1000;
     private static final Logger log = LogManager.getLogger(ContentUpdater.class);
     private final ContextIndex contextIndex;
+    private final ContentIndex contentIndex;
+    private final CTIClient ctiClient;
 
     /** Exception thrown by the Content Updater in case of errors. */
     public static class ContentUpdateException extends RuntimeException {
@@ -50,125 +53,147 @@ public class ContentUpdater {
     }
 
     /**
-     * Constructor method
+     * Constructor. Mainly used for testing purposes.
+     *
+     * @param client the OpenSearch Client to interact with the cluster
+     * @param ctiClient the CTIClient to interact with the CTI API
+     */
+    public ContentUpdater(Client client, CTIClient ctiClient) {
+        this.contentIndex = new ContentIndex(client);
+        this.contextIndex = new ContextIndex(client);
+        this.ctiClient = ctiClient;
+    }
+
+    /**
+     * Default constructor. TODO unused method.
      *
      * @param client the OpenSearch Client to interact with the cluster
      */
     public ContentUpdater(Client client) {
-        this.contextIndex = new ContextIndex(client);
+        this(client, CTIClient.getInstance());
     }
 
     /**
      * Fetches and applies content updates in chunks from the current stored offset to the latest
      * available offset. It iterates over the updates and applies them in batch processing.
      *
-     * @param fixedOffset [PlaceHolderForTesting] Offset to start fetching updates from. TODO: Remove.
+     * @return true if the updates were successfully applied, false otherwise.
      * @throws ContentUpdateException If there was an error fetching the changes.
      */
-    public void fetchAndApplyUpdates(Long fixedOffset) throws ContentUpdateException {
-        Long currentOffset = this.getCurrentOffset();
-        Long lastOffset = this.getLatestOffset();
-        log.info("Current offset: {}, Last offset: {}", currentOffset, lastOffset);
+    public boolean update() throws ContentUpdateException {
+        long currentOffset = this.getCurrentOffset();
+        long lastOffset = this.getLatestOffset();
 
-        // Placeholder for testing purposes. TODO: Remove.
-        if (fixedOffset != null) {
-            currentOffset = fixedOffset;
+        if (lastOffset == currentOffset) {
+            log.info("No updates available. Current offset ({}) is up to date.", currentOffset);
+            return true;
         }
 
-        if (lastOffset <= currentOffset) {
-            log.info("No new updates available. Current offset ({}) is up to date.", currentOffset);
-            return;
-        }
-
-        log.info("New offsets available updating to offset: {}", lastOffset);
+        log.info("New updates available from offset {} to {}", currentOffset, lastOffset);
         while (currentOffset < lastOffset) {
-            Long nextOffset = Math.min(currentOffset + CHUNK_MAX_SIZE, lastOffset);
-            ContextChanges changes =
-                    this.getContextChanges(currentOffset.toString(), nextOffset.toString());
-            log.info("Fetched offsets from {} to {}", currentOffset, nextOffset);
+            long nextOffset = Math.min(currentOffset + ContentUpdater.CHUNK_MAX_SIZE, lastOffset);
+            ContentChanges changes = this.getChanges(currentOffset, nextOffset);
+            log.debug("Fetched offsets from {} to {}", currentOffset, nextOffset);
 
-            // If there is an error fetching the changes, stop the process.
             if (changes == null) {
-                throw new ContentUpdateException(
-                        "Unable to fetch changes for offsets " + currentOffset + " to " + nextOffset, null);
+                log.error("Unable to fetch changes for offsets {} to {}", currentOffset, nextOffset);
+                this.updateContext(0L, 0L);
+                return false;
             }
-            // Apply the fetched changes to the indexed context.
-            if (!this.patchContextIndex(changes)) {
-                this.restartConsumerInfo();
-                return;
+
+            if (!this.applyChanges(changes)) {
+                this.updateContext(0L, 0L);
+                return false;
             }
 
             currentOffset = nextOffset;
+            log.debug("Update current offset to {}", currentOffset);
         }
 
+        this.updateContext(currentOffset, lastOffset);
         this.postUpdateCommand();
+        return true;
     }
 
     /**
-     * Fetches the context changes between a given offset range from the CTI API.
+     * Fetches the context changes between a given offset range from the CTI API. TODO check if we can
+     * remove this wrapper method.
      *
      * @param fromOffset Starting offset (inclusive).
      * @param toOffset Ending offset (exclusive).
      * @return ContextChanges object containing the changes.
      */
     @VisibleForTesting
-    ContextChanges getContextChanges(String fromOffset, String toOffset) {
+    public ContentChanges getChanges(long fromOffset, long toOffset) {
         return Privileged.doPrivilegedRequest(
-                () -> CTIClient.getInstance().getChanges(fromOffset, toOffset, null));
+                () -> this.ctiClient.getChanges(fromOffset, toOffset, false));
     }
 
     /**
-     * Retrieves the latest offset from the CTI API.
+     * Retrieves the latest offset from the CTI API. TODO the last offset should be read from the
+     * wazuh-context index, not from the CTI API. ContextIndex.getLastOffset()
      *
      * @return Latest available offset.
      */
     @VisibleForTesting
-    Long getLatestOffset() {
-        ConsumerInfo consumerInfo =
-                Privileged.doPrivilegedRequest(() -> CTIClient.getInstance().getCatalog());
+    long getLatestOffset() {
+        ConsumerInfo consumerInfo = Privileged.doPrivilegedRequest(this.ctiClient::getCatalog);
         return consumerInfo.getLastOffset();
     }
 
     /**
-     * Retrieves the current stored "last" offset from {@link ContextIndex}.
+     * Retrieves the current stored "last" offset from {@link ContextIndex}. TODO this should be
+     * responsibility of the ContextIndex class. For example: ContextIndex.getOffset().
      *
      * @return The current "last" offset.
      */
     @VisibleForTesting
-    Long getCurrentOffset() {
-        return contextIndex
-                .getConsumer(PluginSettings.CONTEXT_ID, PluginSettings.CONSUMER_ID)
-                .getLastOffset();
+    long getCurrentOffset() {
+        ConsumerInfo consumer =
+                this.contextIndex.getConsumer(PluginSettings.CONTEXT_ID, PluginSettings.CONSUMER_ID);
+        return consumer != null ? consumer.getLastOffset() : 0L;
     }
 
     /**
-     * Applies the fetched changes to the indexed context.
+     * Applies the fetched changes to the indexed content. TODO check if we can remove this wrapper
+     * method.
      *
-     * @param changes Detected context changes.
+     * @param changes Detected content changes.
      * @return true if the changes were successfully applied, false otherwise.
      */
     @VisibleForTesting
-    boolean patchContextIndex(ContextChanges changes) {
-        // TODO: Call the patch method, return false on error.
-        return true;
+    boolean applyChanges(ContentChanges changes) {
+        try {
+            this.contentIndex.patch(changes);
+            return true;
+        } catch (RuntimeException e) {
+            log.error("Failed to apply changes to content index", e);
+            return false;
+        }
     }
 
-    /** Posts a new command to the Command Manager informing about the new changes. */
+    /**
+     * Posts a new command to the Command Manager informing about the new changes. TODO check if we
+     * can remove this wrapper method.
+     */
     @VisibleForTesting
     void postUpdateCommand() {
-        // Post new command informing the new changes.
         Privileged.doPrivilegedRequest(
                 () -> {
                     CommandManagerClient.getInstance()
-                            .postCommand(Command.create(getCurrentOffset().toString()));
+                            .postCommand(Command.create(String.valueOf(this.getCurrentOffset())));
                     return null;
                 });
     }
 
-    /** Resets the consumer info by setting its last offset to zero. */
+    /**
+     * Resets the consumer info by setting its last offset to zero. TODO this should be responsibility
+     * of the ContextIndex class. For example: ContextIndex.setOffset(offset).
+     */
     @VisibleForTesting
-    void restartConsumerInfo() {
-        contextIndex.index(
-                new ConsumerInfo(PluginSettings.CONSUMER_ID, PluginSettings.CONTEXT_ID, 0L, 0L, null));
+    void updateContext(Long newOffset, Long newLastOffset) {
+        this.contextIndex.index(
+                new ConsumerInfo(PluginSettings.CONSUMER_ID, PluginSettings.CONTEXT_ID, newOffset, newLastOffset, null));
+        log.info("Updated context index with new offset {}", newOffset);
     }
 }
