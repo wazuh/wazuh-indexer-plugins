@@ -124,7 +124,7 @@ public class SnapshotHelperTests extends OpenSearchTestCase {
 
     /**
      * Check that the fromSnapshot() method is being executed
-     * @throws IOException
+     * @throws IOException rethrown from unzip()
      */
     public void testSuccessfulIndexSnapshot() throws IOException {
         doReturn(0L).when(this.contextIndex).getOffset();
