@@ -66,6 +66,10 @@ public class SnapshotHelperTests extends OpenSearchTestCase {
                                 this.ctiClient, this.environment, this.contextIndex, this.contentIndex));
     }
 
+    /**
+     * Test that updating the context index works
+     * @throws IOException Rethrown from updateContextIndex()
+     */
     public void testSuccessfulConsumerIndexing() throws IOException {
         ConsumerInfo consumerInfo =
                 new ConsumerInfo("test-name", "test-context", 1L, 1L, "http://example.com");
@@ -79,6 +83,9 @@ public class SnapshotHelperTests extends OpenSearchTestCase {
         verify(this.contextIndex).index(any(ConsumerInfo.class));
     }
 
+    /**
+     * Ensure IOException is thrown when updateContextIndex() fails
+     */
     public void testFailedConsumerIndexing() {
         ConsumerInfo consumerInfo =
                 new ConsumerInfo("test-name", "test-context", 1L, 1L, "http://example.com");
@@ -96,6 +103,9 @@ public class SnapshotHelperTests extends OpenSearchTestCase {
         assert (false);
     }
 
+    /**
+     * Check that a null consumerInfo makes updateContextIndex() thrown an exception
+     */
     public void testNullConsumerInfo() {
         ConsumerInfo consumerInfo = null;
         doReturn(null).when(ctiClient).getCatalog();
@@ -112,6 +122,10 @@ public class SnapshotHelperTests extends OpenSearchTestCase {
         assert (false);
     }
 
+    /**
+     * Check that the fromSnapshot() method is being executed
+     * @throws IOException
+     */
     public void testSuccessfulIndexSnapshot() throws IOException {
         doReturn(0L).when(this.contextIndex).getOffset();
         Path snapshotZip = mock(Path.class);
