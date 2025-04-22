@@ -122,8 +122,9 @@ public class CTIClient extends HttpClient {
      * @param withEmpties A flag indicating whether to include empty values (Optional).
      * @return {@link ContentChanges} instance with the current changes.
      */
-    public ContentChanges getChanges(String fromOffset, String toOffset, String withEmpties) {
-        Map<String, String> params = contextQueryParameters(fromOffset, toOffset, withEmpties);
+    public ContentChanges getChanges(long fromOffset, long toOffset, boolean withEmpties) {
+        Map<String, String> params =
+                CTIClient.contextQueryParameters(fromOffset, toOffset, withEmpties);
         SimpleHttpResponse response =
                 sendRequest(
                         Method.GET, CONSUMER_CHANGES_ENDPOINT, null, params, null, CTIClient.MAX_ATTEMPTS);
@@ -186,13 +187,11 @@ public class CTIClient extends HttpClient {
      * @return A map containing the query parameters.
      */
     public static Map<String, String> contextQueryParameters(
-            String fromOffset, String toOffset, String withEmpties) {
+            long fromOffset, long toOffset, boolean withEmpties) {
         Map<String, String> params = new HashMap<>();
-        params.put(QueryParameters.FROM_OFFSET.getValue(), fromOffset);
-        params.put(QueryParameters.TO_OFFSET.getValue(), toOffset);
-        if (withEmpties != null && !withEmpties.isEmpty()) {
-            params.put(QueryParameters.WITH_EMPTIES.getValue(), withEmpties);
-        }
+        params.put(QueryParameters.FROM_OFFSET.getValue(), String.valueOf(fromOffset));
+        params.put(QueryParameters.TO_OFFSET.getValue(), String.valueOf(toOffset));
+        params.put(QueryParameters.WITH_EMPTIES.getValue(), String.valueOf(withEmpties));
         return params;
     }
 

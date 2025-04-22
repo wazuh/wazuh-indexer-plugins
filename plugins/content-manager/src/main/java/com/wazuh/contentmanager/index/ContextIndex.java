@@ -67,7 +67,7 @@ public class ContextIndex {
         try {
             indexRequest =
                     new IndexRequest()
-                            .index(INDEX_NAME)
+                            .index(ContextIndex.INDEX_NAME)
                             .source(
                                     consumerInfo.toXContent(XContentFactory.jsonBuilder(), ToXContent.EMPTY_PARAMS))
                             .id(consumerInfo.getContext());
@@ -100,9 +100,7 @@ public class ContextIndex {
      * @return A completable future holding the response of the query
      */
     public CompletableFuture<GetResponse> get(String contextName) {
-
-        GetRequest getRequest = new GetRequest(INDEX_NAME, contextName);
-
+        GetRequest getRequest = new GetRequest(ContextIndex.INDEX_NAME, contextName);
         CompletableFuture<GetResponse> future = new CompletableFuture<>();
 
         this.client.get(
@@ -133,7 +131,7 @@ public class ContextIndex {
     @SuppressWarnings("unchecked")
     public ConsumerInfo getConsumer(String context, String consumer) {
         try {
-            GetResponse getResponse = get(context).get(TIMEOUT, TimeUnit.SECONDS);
+            GetResponse getResponse = get(context).get(ContextIndex.TIMEOUT, TimeUnit.SECONDS);
             log.info("Received search response for {}", context);
 
             Map<String, Object> source = (Map<String, Object>) getResponse.getSourceAsMap().get(consumer);

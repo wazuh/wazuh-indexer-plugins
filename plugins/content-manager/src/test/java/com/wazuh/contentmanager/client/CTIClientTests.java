@@ -210,7 +210,7 @@ public class CTIClientTests extends OpenSearchIntegTestCase {
                 .thenReturn(response);
 
         // Act
-        ContentChanges changes = this.spyCtiClient.getChanges("0", "200", "true");
+        ContentChanges changes = this.spyCtiClient.getChanges(0, 200, true);
         // TODO unused variable
 
         // Assert
@@ -223,16 +223,16 @@ public class CTIClientTests extends OpenSearchIntegTestCase {
                         any(Method.class), anyString(), anyString(), anyMap(), any(Header.class)))
                 .thenReturn(null);
 
-        ContentChanges changes = this.spyCtiClient.getChanges("0", "100", "true");
+        ContentChanges changes = this.spyCtiClient.getChanges(0, 100, true);
         assertNull(changes);
     }
 
     public void testContextQueryParameters() {
-        Map<String, String> params =
-                CTIClient.contextQueryParameters("fromOffset", "toOffset", "withEmpties");
+        Map<String, String> params = CTIClient.contextQueryParameters(0, 10, true);
         assertEquals(3, params.size());
-        assertEquals("fromOffset", params.get(CTIClient.QueryParameters.FROM_OFFSET.getValue()));
-        assertEquals("toOffset", params.get(CTIClient.QueryParameters.TO_OFFSET.getValue()));
-        assertEquals("withEmpties", params.get(CTIClient.QueryParameters.WITH_EMPTIES.getValue()));
+        assertEquals(String.valueOf(0), params.get(CTIClient.QueryParameters.FROM_OFFSET.getValue()));
+        assertEquals(String.valueOf(10), params.get(CTIClient.QueryParameters.TO_OFFSET.getValue()));
+        assertEquals(
+                String.valueOf(true), params.get(CTIClient.QueryParameters.WITH_EMPTIES.getValue()));
     }
 }

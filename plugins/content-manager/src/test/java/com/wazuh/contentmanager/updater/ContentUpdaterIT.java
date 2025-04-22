@@ -52,7 +52,7 @@ import static org.mockito.Mockito.when;
 @ThreadLeakScope(ThreadLeakScope.Scope.NONE)
 @OpenSearchIntegTestCase.ClusterScope(scope = OpenSearchIntegTestCase.Scope.SUITE)
 public class ContentUpdaterIT extends OpenSearchIntegTestCase {
-    Long initialOffset = 0L;
+    long initialOffset = 0L;
     String testResource = "test";
     ContentUpdater updater;
     ContextIndex contextIndex;
@@ -78,18 +78,17 @@ public class ContentUpdaterIT extends OpenSearchIntegTestCase {
     /**
      * @throws InterruptedException
      */
-    public void testFetchAndApplyUpdates_ContentChangesTypeCreate() throws InterruptedException {
+    public void testUpdate_ContentChangesTypeCreate() throws InterruptedException {
         // Arrange
-        Long offsetId = 1L;
+        long offsetId = 1L;
         Offset createOffset = getOffset(offsetId, OperationType.CREATE);
         ContentChanges contentChanges = new ContentChanges(List.of(createOffset));
         ConsumerInfo testConsumer = new ConsumerInfo(CONSUMER_ID, CONTEXT_ID, offsetId, null);
         // Mock
-        when(this.ctiClient.getChanges(this.initialOffset.toString(), "1", null))
-                .thenReturn(contentChanges);
+        when(this.ctiClient.getChanges(this.initialOffset, 1, false)).thenReturn(contentChanges);
         when(this.ctiClient.getCatalog()).thenReturn(testConsumer);
         // Act
-        boolean updated = this.updater.fetchAndApplyUpdates();
+        boolean updated = this.updater.update();
         Thread.sleep(1000);
         ConsumerInfo updatedConsumer = this.contextIndex.getConsumer(CONTEXT_ID, CONSUMER_ID);
         // Assert
@@ -101,19 +100,18 @@ public class ContentUpdaterIT extends OpenSearchIntegTestCase {
     /**
      * @throws InterruptedException
      */
-    public void testFetchAndApplyUpdates_ContentChangesTypeUpdate() throws InterruptedException {
+    public void testUpdate_ContentChangesTypeUpdate() throws InterruptedException {
         // Arrange
-        Long offsetId = 2L;
+        long offsetId = 2L;
         Offset createOffset = getOffset(offsetId - 1, OperationType.CREATE);
         Offset updateOffset = getOffset(offsetId, OperationType.UPDATE);
         ContentChanges contentChanges = new ContentChanges(List.of(createOffset, updateOffset));
         ConsumerInfo testConsumer = new ConsumerInfo(CONSUMER_ID, CONTEXT_ID, offsetId, null);
         // Mock
-        when(this.ctiClient.getChanges(this.initialOffset.toString(), offsetId.toString(), null))
-                .thenReturn(contentChanges);
+        when(this.ctiClient.getChanges(this.initialOffset, offsetId, false)).thenReturn(contentChanges);
         when(this.ctiClient.getCatalog()).thenReturn(testConsumer);
         // Act
-        boolean updated = this.updater.fetchAndApplyUpdates();
+        boolean updated = this.updater.update();
         Thread.sleep(1000);
         ConsumerInfo updatedConsumer = this.contextIndex.getConsumer(CONTEXT_ID, CONSUMER_ID);
         // Assert
@@ -123,24 +121,25 @@ public class ContentUpdaterIT extends OpenSearchIntegTestCase {
     }
 
     /**
+     * TODO add Javadocs
+     *
      * @throws InterruptedException
      * @throws ExecutionException
      * @throws TimeoutException
      */
-    public void testFetchAndApplyUpdates_ContentChangesTypeDelete()
+    public void testUpdate_ContentChangesTypeDelete()
             throws InterruptedException, ExecutionException, TimeoutException {
         // Arrange
-        Long offsetId = 2L;
+        long offsetId = 2L;
         Offset createOffset = getOffset(offsetId - 1, OperationType.CREATE);
         Offset deleteOffset = getOffset(offsetId, OperationType.DELETE);
         ContentChanges contentChanges = new ContentChanges(List.of(createOffset, deleteOffset));
         ConsumerInfo testConsumer = new ConsumerInfo(CONSUMER_ID, CONTEXT_ID, offsetId, null);
         // Mock
-        when(this.ctiClient.getChanges(this.initialOffset.toString(), offsetId.toString(), null))
-                .thenReturn(contentChanges);
+        when(this.ctiClient.getChanges(this.initialOffset, offsetId, false)).thenReturn(contentChanges);
         when(this.ctiClient.getCatalog()).thenReturn(testConsumer);
         // Act
-        boolean updated = this.updater.fetchAndApplyUpdates();
+        boolean updated = this.updater.update();
         Thread.sleep(1000);
         ConsumerInfo updatedConsumer = this.contextIndex.getConsumer(CONTEXT_ID, CONSUMER_ID);
         GetResponse getContent =
