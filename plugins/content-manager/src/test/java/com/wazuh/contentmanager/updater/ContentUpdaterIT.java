@@ -46,13 +46,13 @@ import com.wazuh.contentmanager.model.ctiapi.OperationType;
 import static com.wazuh.contentmanager.index.ContentIndex.TIMEOUT;
 import static com.wazuh.contentmanager.settings.PluginSettings.CONSUMER_ID;
 import static com.wazuh.contentmanager.settings.PluginSettings.CONTEXT_ID;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 
 @ThreadLeakScope(ThreadLeakScope.Scope.NONE)
 @OpenSearchIntegTestCase.ClusterScope(scope = OpenSearchIntegTestCase.Scope.SUITE)
 public class ContentUpdaterIT extends OpenSearchIntegTestCase {
     long initialOffset = 0L;
+    long lastOffset = 0L;
     String testResource = "test";
     ContentUpdater updater;
     ContextIndex contextIndex;
@@ -63,11 +63,11 @@ public class ContentUpdaterIT extends OpenSearchIntegTestCase {
     public void setup() throws Exception {
         Client client = client();
         this.ctiClient = mock(CTIClient.class);
-        this.updater = new ContentUpdater(client, this.ctiClient);
-        this.contextIndex = new ContextIndex(client);
+        this.contextIndex = spy(new ContextIndex(client));
         this.contentIndex = new ContentIndex(client);
+        this.updater = new ContentUpdater(this.ctiClient, this.contextIndex, this.contentIndex);
         prepareInitialCVEInfo(client, this.initialOffset);
-        prepareInitialConsumerInfo(client, this.initialOffset);
+        prepareInitialConsumerInfo(client, this.initialOffset, this.lastOffset);
     }
 
     @Override
@@ -86,7 +86,7 @@ public class ContentUpdaterIT extends OpenSearchIntegTestCase {
         ConsumerInfo testConsumer = new ConsumerInfo(CONSUMER_ID, CONTEXT_ID, offsetId, offsetId, null);
         // Mock
         when(this.ctiClient.getChanges(this.initialOffset, 1, false)).thenReturn(contentChanges);
-        when(this.ctiClient.getCatalog()).thenReturn(testConsumer);
+        when(this.contextIndex.getConsumer(anyString(), anyString())).thenReturn(testConsumer);
         // Act
         boolean updated = this.updater.update();
         Thread.sleep(1000);
@@ -109,7 +109,7 @@ public class ContentUpdaterIT extends OpenSearchIntegTestCase {
         ConsumerInfo testConsumer = new ConsumerInfo(CONSUMER_ID, CONTEXT_ID, offsetId, offsetId, null);
         // Mock
         when(this.ctiClient.getChanges(this.initialOffset, offsetId, false)).thenReturn(contentChanges);
-        when(this.ctiClient.getCatalog()).thenReturn(testConsumer);
+        when(this.contextIndex.getConsumer(anyString(), anyString())).thenReturn(testConsumer);
         // Act
         boolean updated = this.updater.update();
         Thread.sleep(1000);
@@ -134,10 +134,10 @@ public class ContentUpdaterIT extends OpenSearchIntegTestCase {
         Offset createOffset = getOffset(offsetId - 1, OperationType.CREATE);
         Offset deleteOffset = getOffset(offsetId, OperationType.DELETE);
         ContentChanges contentChanges = new ContentChanges(List.of(createOffset, deleteOffset));
-        ConsumerInfo testConsumer = new ConsumerInfo(CONSUMER_ID, CONTEXT_ID, offsetId, offsetId, null);
+        ConsumerInfo testConsumer = new ConsumerInfo(CONSUMER_ID, CONTEXT_ID, 0L, offsetId, null);
         // Mock
         when(this.ctiClient.getChanges(this.initialOffset, offsetId, false)).thenReturn(contentChanges);
-        when(this.ctiClient.getCatalog()).thenReturn(testConsumer);
+        when(this.contextIndex.getConsumer(anyString(), anyString())).thenReturn(testConsumer);
         // Act
         boolean updated = this.updater.update();
         Thread.sleep(1000);
@@ -174,14 +174,15 @@ public class ContentUpdaterIT extends OpenSearchIntegTestCase {
     /**
      * Prepares the initial ConsumerInfo document in the test index.
      *
-     * @param client The OpenSearch client.
+     * @param client        The OpenSearch client.
      * @param currentOffset The initial currentOffset to set.
+     * @param lastOffset
      * @throws Exception If an error occurs while preparing the document.
      */
     @SuppressWarnings("unchecked")
-    public void prepareInitialConsumerInfo(Client client, Long currentOffset) throws Exception {
+    public void prepareInitialConsumerInfo(Client client, Long currentOffset, Long lastOffset) throws Exception {
         // Create a ConsumerInfo document manually in the test index
-        ConsumerInfo info = new ConsumerInfo(CONSUMER_ID, CONTEXT_ID, currentOffset, null, null);
+        ConsumerInfo info = new ConsumerInfo(CONSUMER_ID, CONTEXT_ID, currentOffset, currentOffset, null);
         client
                 .prepareIndex(ContextIndex.INDEX_NAME)
                 .setId(CONTEXT_ID)

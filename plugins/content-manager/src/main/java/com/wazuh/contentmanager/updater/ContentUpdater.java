@@ -18,7 +18,6 @@ package com.wazuh.contentmanager.updater;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.opensearch.client.Client;
 
 import com.wazuh.contentmanager.client.CTIClient;
 import com.wazuh.contentmanager.client.CommandManagerClient;
@@ -55,22 +54,14 @@ public class ContentUpdater {
     /**
      * Constructor. Mainly used for testing purposes.
      *
-     * @param client the OpenSearch Client to interact with the cluster
-     * @param ctiClient the CTIClient to interact with the CTI API
+     * @param ctiClient    the CTIClient to interact with the CTI API
+     * @param contextIndex An object that handles context and consumer information
+     * @param contentIndex An object that handles content index interactions
      */
-    public ContentUpdater(Client client, CTIClient ctiClient) {
-        this.contentIndex = new ContentIndex(client);
-        this.contextIndex = new ContextIndex(client);
+    public ContentUpdater(CTIClient ctiClient, ContextIndex contextIndex, ContentIndex contentIndex) {
+        this.contextIndex = contextIndex;
+        this.contentIndex = contentIndex;
         this.ctiClient = ctiClient;
-    }
-
-    /**
-     * Default constructor. TODO unused method.
-     *
-     * @param client the OpenSearch Client to interact with the cluster
-     */
-    public ContentUpdater(Client client) {
-        this(client, CTIClient.getInstance());
     }
 
     /**
@@ -81,8 +72,8 @@ public class ContentUpdater {
      * @throws ContentUpdateException If there was an error fetching the changes.
      */
     public boolean update() throws ContentUpdateException {
-        long currentOffset = this.getCurrentOffset();
-        long lastOffset = this.getLatestOffset();
+        long currentOffset = this.contextIndex.getOffset();
+        long lastOffset = this.contextIndex.getLastOffset();
 
         if (lastOffset == currentOffset) {
             log.info("No updates available. Current offset ({}) is up to date.", currentOffset);
@@ -116,8 +107,7 @@ public class ContentUpdater {
     }
 
     /**
-     * Fetches the context changes between a given offset range from the CTI API. TODO check if we can
-     * remove this wrapper method.
+     * Fetches the context changes between a given offset range from the CTI API.
      *
      * @param fromOffset Starting offset (inclusive).
      * @param toOffset Ending offset (exclusive).
@@ -130,8 +120,7 @@ public class ContentUpdater {
     }
 
     /**
-     * Retrieves the latest offset from the CTI API. TODO the last offset should be read from the
-     * wazuh-context index, not from the CTI API. ContextIndex.getLastOffset()
+     * Retrieves the latest offset from the CTI API.
      *
      * @return Latest available offset.
      */
@@ -182,7 +171,7 @@ public class ContentUpdater {
         Privileged.doPrivilegedRequest(
                 () -> {
                     CommandManagerClient.getInstance()
-                            .postCommand(Command.create(String.valueOf(this.getCurrentOffset())));
+                            .postCommand(Command.create(String.valueOf(this.contextIndex.getOffset())));
                     return null;
                 });
     }
