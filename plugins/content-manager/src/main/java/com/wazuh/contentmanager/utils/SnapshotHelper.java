@@ -47,7 +47,7 @@ public class SnapshotHelper {
 
     public SnapshotHelper(
             Environment environment, ContextIndex contextIndex, ContentIndex contentIndex) {
-        this.ctiClient = CTIClient.getInstance();
+        this.ctiClient = Privileged.doPrivilegedRequest(CTIClient::getInstance);
         this.environment = environment;
         this.contextIndex = contextIndex;
         this.contentIndex = contentIndex;
@@ -117,7 +117,7 @@ public class SnapshotHelper {
      */
     @VisibleForTesting
     void updateContextIndex() throws IOException {
-        ConsumerInfo consumerInfo = Privileged.doPrivilegedRequest(this.ctiClient::getCatalog);
+        ConsumerInfo consumerInfo = this.ctiClient.getCatalog();
 
         if (consumerInfo == null) {
             throw new IOException("Consumer Information is null. Skipping indexing");
