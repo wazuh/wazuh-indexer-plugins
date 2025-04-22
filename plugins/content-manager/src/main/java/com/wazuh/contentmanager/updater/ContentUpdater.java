@@ -137,8 +137,9 @@ public class ContentUpdater {
      */
     @VisibleForTesting
     long getLatestOffset() {
-        ConsumerInfo consumerInfo = Privileged.doPrivilegedRequest(this.ctiClient::getCatalog);
-        return consumerInfo.getLastOffset();
+        ConsumerInfo consumer =
+            this.contextIndex.getConsumer(PluginSettings.CONTEXT_ID, PluginSettings.CONSUMER_ID);
+        return consumer != null ? consumer.getLastOffset() : 0L;
     }
 
     /**
