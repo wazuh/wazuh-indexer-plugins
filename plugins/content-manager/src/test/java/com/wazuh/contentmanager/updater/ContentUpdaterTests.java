@@ -105,6 +105,7 @@ public class ContentUpdaterTests extends OpenSearchIntegTestCase {
                 .getContextChanges(any(), any());
         // Mock patchContextIndex method.
         doReturn(false).when(contentUpdaterSpy).patchContextIndex(any());
+        doNothing().when(contentUpdaterSpy).restartConsumerInfo();
         // Act
         contentUpdaterSpy.fetchAndApplyUpdates(null);
         // Assert
