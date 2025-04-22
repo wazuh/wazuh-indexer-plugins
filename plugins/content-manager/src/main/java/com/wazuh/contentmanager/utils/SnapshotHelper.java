@@ -40,11 +40,17 @@ import com.wazuh.contentmanager.settings.PluginSettings;
 public class SnapshotHelper {
 
     private static final Logger log = LogManager.getLogger(SnapshotHelper.class);
-    private CTIClient ctiClient;
-    private Environment environment;
-    private ContextIndex contextIndex;
-    private ContentIndex contentIndex;
+    private final CTIClient ctiClient;
+    private final Environment environment;
+    private final ContextIndex contextIndex;
+    private final ContentIndex contentIndex;
 
+    /**
+     * Constructor for the class
+     * @param environment Needed for snapshot file handling
+     * @param contextIndex Handles context and consumer related metadata
+     * @param contentIndex Handles indexed content
+     */
     public SnapshotHelper(
             Environment environment, ContextIndex contextIndex, ContentIndex contentIndex) {
         this.ctiClient = Privileged.doPrivilegedRequest(CTIClient::getInstance);
@@ -53,6 +59,13 @@ public class SnapshotHelper {
         this.contentIndex = contentIndex;
     }
 
+    /**
+     * Alternate constructor that allows injecting CTIClient for test purposes
+     * @param ctiClient The injected CTIClient
+     * @param environment Needed for snapshot file handling
+     * @param contextIndex Handles context and consumer related metadata
+     * @param contentIndex Handles indexed content
+     */
     public SnapshotHelper(
             CTIClient ctiClient,
             Environment environment,
@@ -76,7 +89,7 @@ public class SnapshotHelper {
                             this.ctiClient.download(this.contextIndex.getLastSnapshotLink(), this.environment);
                     Path outputDir = this.environment.resolveRepoFile("");
 
-                    Path snapshotJson = null;
+                    Path snapshotJson;
                     try (DirectoryStream<Path> stream = getStream(outputDir)) {
                         unZip(snapshotZip, outputDir);
                         snapshotJson = stream.iterator().next();
