@@ -122,8 +122,11 @@ public class SnapshotHelper {
     /** Posts a command to the command manager API on a successful snapshot operation */
     @VisibleForTesting
     void postUpdateCommand() {
-        CommandManagerClient.getInstance()
+        Privileged.doPrivilegedRequest(() ->
+            { CommandManagerClient.getInstance()
                 .postCommand(Command.create(String.valueOf(this.contextIndex.getLastOffset())));
+                return null;
+            });
     }
 
     /**
