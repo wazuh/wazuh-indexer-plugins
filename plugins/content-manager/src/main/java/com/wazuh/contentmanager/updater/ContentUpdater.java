@@ -120,19 +120,6 @@ public class ContentUpdater {
     }
 
     /**
-     * Retrieves the current stored "last" offset from {@link ContextIndex}. TODO this should be
-     * responsibility of the ContextIndex class. For example: ContextIndex.getOffset().
-     *
-     * @return The current "last" offset.
-     */
-    @VisibleForTesting
-    long getCurrentOffset() {
-        ConsumerInfo consumer =
-                this.contextIndex.getConsumer(PluginSettings.CONTEXT_ID, PluginSettings.CONSUMER_ID);
-        return consumer != null ? consumer.getOffset() : 0L;
-    }
-
-    /**
      * Applies the fetched changes to the indexed content. TODO check if we can remove this wrapper
      * method.
      *
