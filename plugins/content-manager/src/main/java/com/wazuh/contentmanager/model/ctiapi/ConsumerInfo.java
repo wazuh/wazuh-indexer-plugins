@@ -158,7 +158,7 @@ public class ConsumerInfo implements ToXContentObject {
      * @return The consumer's offset.
      */
     public long getOffset() {
-        return offset;
+        return this.offset;
     }
 
     /**
