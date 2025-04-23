@@ -79,17 +79,9 @@ public class ContentManagerPlugin extends Plugin implements ClusterPlugin, Actio
      */
     @Override
     public void onNodeStarted(DiscoveryNode localNode) {
-        // spotless:off
-        SnapshotHelper snapshotHelper = new SnapshotHelper(
-            this.threadPool,
-            this.environment,
-            this.contextIndex,
-            this.contentIndex
-        );
-        // spotless:on
-        // Used to check whether the "wazuh-cve" index and its mappings are created.
-        this.clusterService.addListener(snapshotHelper);
-        snapshotHelper.initialize();
+        SnapshotHelper snapshotHelper =
+                new SnapshotHelper(this.threadPool, this.clusterService, this.environment, this.contextIndex, this.contentIndex);
+        snapshotHelper.startListening();
     }
 
     @Override

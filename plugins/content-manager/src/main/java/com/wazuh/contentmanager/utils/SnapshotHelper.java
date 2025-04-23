@@ -68,6 +68,8 @@ public class SnapshotHelper implements ClusterStateListener {
         this.contextIndex = contextIndex;
         this.contentIndex = contentIndex;
         this.ctiClient = Privileged.doPrivilegedRequest(CTIClient::getInstance);
+
+        this.threadPool = threadPool;
     }
 
     /**
@@ -90,6 +92,13 @@ public class SnapshotHelper implements ClusterStateListener {
     }
 
     /**
+     * Start listening for cluster events
+     */
+    public void startListening() {
+        this.clusterService.addListener(this);
+    }
+    
+     /**
      * Initializes the content if {@code offset == 0}. This method downloads, decompresses and indexes
      * a CTI snapshot.
      */
@@ -183,6 +192,7 @@ public class SnapshotHelper implements ClusterStateListener {
         try {
             this.updateContextIndex();
             this.indexSnapshot();
+            this.clusterService.removeListener(this);
         } catch (IOException e) {
             log.error("Failed to initialize CVE Index from snapshot: {}", e.getMessage());
         }
@@ -197,21 +207,32 @@ public class SnapshotHelper implements ClusterStateListener {
     @Override
     public void clusterChanged(ClusterChangedEvent event) {
         IndexMetadata currentIndexMetadata = event.state().metadata().index(ContentIndex.INDEX_NAME);
-        IndexMetadata previousIndexMetadata =
-                event.previousState().metadata().index(ContentIndex.INDEX_NAME);
-        if (currentIndexMetadata == null || previousIndexMetadata == null) {
+        IndexMetadata previousIndexMetadata = event.previousState().metadata().index(ContentIndex.INDEX_NAME);
+        MappingMetadata previousMapping = null;
+        try {
+            previousMapping = previousIndexMetadata.mapping();
+        } catch (NullPointerException e) {
+            log.debug("Previous mapping does not exist: {}", e.getMessage());
+        }
+        if (currentIndexMetadata == null) {
+            return;
+        }
+        if (currentIndexMetadata.mapping() == null) {
+            return;
+        }
+        // The conditional below ensures that the snapshot is only processed
+        // when the "wazuh-cve" index was created with the right mapping.
+        if (!Objects.equals(currentIndexMetadata.mapping().getSourceAsMap().get("dynamic"), "strict")) {
+            return;
+        }
+        if (currentIndexMetadata.mapping().equals(previousMapping)) {
             return;
         }
 
-        MappingMetadata currentMappings = currentIndexMetadata.mapping();
-        MappingMetadata previousMappings = previousIndexMetadata.mapping();
-        if (currentMappings == null || previousMappings == null) {
-            return;
-        }
 
-        if (!currentMappings.equals(previousMappings)) {
-            Executor executor = threadPool.executor(ThreadPool.Names.GENERIC);
-            executor.execute(this::initialize);
-        }
+        Executor executor = threadPool.executor(ThreadPool.Names.GENERIC);
+        executor.execute(
+            this::initializeCVEIndex
+        );
     }
 }
