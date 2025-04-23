@@ -22,6 +22,7 @@ import org.opensearch.action.DocWriteResponse;
 import org.opensearch.action.index.IndexResponse;
 import org.opensearch.cluster.ClusterChangedEvent;
 import org.opensearch.cluster.ClusterStateListener;
+import org.opensearch.cluster.metadata.IndexMetadata;
 import org.opensearch.cluster.metadata.MappingMetadata;
 import org.opensearch.env.Environment;
 import org.opensearch.threadpool.ThreadPool;
@@ -195,14 +196,20 @@ public class SnapshotHelper implements ClusterStateListener {
      */
     @Override
     public void clusterChanged(ClusterChangedEvent event) {
-        MappingMetadata currentMappings =
-                event.state().metadata().index(ContentIndex.INDEX_NAME).mapping();
-        MappingMetadata previousMappings =
-                event.previousState().metadata().index(ContentIndex.INDEX_NAME).mapping();
+        IndexMetadata currentIndexMetadata = event.state().metadata().index(ContentIndex.INDEX_NAME);
+        IndexMetadata previousIndexMetadata =
+                event.previousState().metadata().index(ContentIndex.INDEX_NAME);
+        if (currentIndexMetadata == null || previousIndexMetadata == null) {
+            return;
+        }
 
-        if (previousMappings != null
-                && currentMappings != null
-                && !previousMappings.equals(currentMappings)) {
+        MappingMetadata currentMappings = currentIndexMetadata.mapping();
+        MappingMetadata previousMappings = previousIndexMetadata.mapping();
+        if (currentMappings == null || previousMappings == null) {
+            return;
+        }
+
+        if (!currentMappings.equals(previousMappings)) {
             Executor executor = threadPool.executor(ThreadPool.Names.GENERIC);
             executor.execute(this::initialize);
         }
