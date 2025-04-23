@@ -120,18 +120,6 @@ public class ContentUpdater {
     }
 
     /**
-     * Retrieves the latest offset from the CTI API.
-     *
-     * @return Latest available offset.
-     */
-    @VisibleForTesting
-    long getLatestOffset() {
-        ConsumerInfo consumer =
-                this.contextIndex.getConsumer(PluginSettings.CONTEXT_ID, PluginSettings.CONSUMER_ID);
-        return consumer != null ? consumer.getLastOffset() : 0L;
-    }
-
-    /**
      * Retrieves the current stored "last" offset from {@link ContextIndex}. TODO this should be
      * responsibility of the ContextIndex class. For example: ContextIndex.getOffset().
      *
