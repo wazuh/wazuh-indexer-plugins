@@ -24,7 +24,6 @@ import org.opensearch.cluster.ClusterChangedEvent;
 import org.opensearch.cluster.ClusterStateListener;
 import org.opensearch.cluster.metadata.IndexMetadata;
 import org.opensearch.cluster.metadata.MappingMetadata;
-import org.opensearch.cluster.service.ClusterService;
 import org.opensearch.env.Environment;
 
 import java.io.IOException;
@@ -32,7 +31,6 @@ import java.nio.file.DirectoryStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Locale;
-import java.util.Objects;
 import java.util.concurrent.Executor;
 
 import com.wazuh.contentmanager.client.CTIClient;
@@ -45,10 +43,9 @@ import com.wazuh.contentmanager.settings.PluginSettings;
 import org.opensearch.threadpool.ThreadPool;
 
 /** Helper class to handle indexing of snapshots */
-public class SnapshotHelper implements ClusterStateListener {
 
+public class SnapshotHelper implements ClusterStateListener {
     private static final Logger log = LogManager.getLogger(SnapshotHelper.class);
-    private ClusterService clusterService;
     private ThreadPool threadPool;
     private final CTIClient ctiClient;
     private final Environment environment;
@@ -56,34 +53,30 @@ public class SnapshotHelper implements ClusterStateListener {
     private final ContentIndex contentIndex;
 
     /**
-     * Constructor for the class
+     * Constructor.
      *
-     * @param clusterService Used to check whether the "wazuh-cve" index and its mappings are created
-     * @param environment    Needed for snapshot file handling
-     * @param contextIndex   Handles context and consumer related metadata
-     * @param contentIndex   Handles indexed content
+     * @param environment    Needed for snapshot file handling.
+     * @param contextIndex   Handles context and consumer related metadata.
+     * @param contentIndex   Handles indexed content.
      */
     public SnapshotHelper(
-        ThreadPool threadPool, ClusterService clusterService, Environment environment, ContextIndex contextIndex, ContentIndex contentIndex) {
-        this.ctiClient = Privileged.doPrivilegedRequest(CTIClient::getInstance);
-        this.clusterService = clusterService;
+        ThreadPool threadPool, Environment environment, ContextIndex contextIndex, ContentIndex contentIndex) {
+        this.threadPool = threadPool;
         this.environment = environment;
         this.contextIndex = contextIndex;
         this.contentIndex = contentIndex;
-
-        this.clusterService.addListener(this);
-        this.threadPool = threadPool;
+        this.ctiClient = Privileged.doPrivilegedRequest(CTIClient::getInstance);
     }
 
     /**
-     * Alternate constructor that allows injecting CTIClient for test purposes
+     * Alternate constructor that allows injecting CTIClient for test purposes.
      *
-     * @param ctiClient The injected CTIClient
-     * @param environment Needed for snapshot file handling
-     * @param contextIndex Handles context and consumer related metadata
-     * @param contentIndex Handles indexed content
+     * @param ctiClient Instance of CTIClient.
+     * @param environment Needed for snapshot file handling.
+     * @param contextIndex Handles context and consumer related metadata.
+     * @param contentIndex Handles indexed content.
      */
-    public SnapshotHelper(
+    protected SnapshotHelper(
             CTIClient ctiClient,
             Environment environment,
             ContextIndex contextIndex,
@@ -94,40 +87,54 @@ public class SnapshotHelper implements ClusterStateListener {
         this.contentIndex = contentIndex;
     }
 
-    /** Download, decompress and index a CTI snapshot */
-    @VisibleForTesting
-    void indexSnapshot() {
-        if (this.contextIndex.getOffset() > 0) {
-            return;
-        }
-        Privileged.doPrivilegedRequest(
-                () -> {
-                    Path snapshotZip =
-                            this.ctiClient.download(this.contextIndex.getLastSnapshotLink(), this.environment);
-                    Path outputDir = this.environment.resolveRepoFile("");
+    /**
+     * Initializes the content if {@code offset == 0}. This method downloads, decompresses and indexes
+     * a CTI snapshot.
+     */
+    protected void indexSnapshot() {
+        if (this.contextIndex.getOffset() == 0) {
+            Privileged.doPrivilegedRequest(
+                    () -> {
+                        // Download
+                        Path snapshotZip =
+                                this.ctiClient.download(this.contextIndex.getLastSnapshotLink(), this.environment);
+                        Path outputDir = this.environment.resolveRepoFile("");
 
-                    Path snapshotJson;
-                    try (DirectoryStream<Path> stream = getStream(outputDir)) {
-                        unZip(snapshotZip, outputDir);
-                        snapshotJson = stream.iterator().next();
-                        postUpdateCommand();
-                        this.contentIndex.fromSnapshot(snapshotJson.toString());
-                        Files.deleteIfExists(snapshotZip);
-                        Files.deleteIfExists(snapshotJson);
-                    } catch (IOException | NullPointerException e) {
-                        log.error("Failed to index snapshot: {}", e.getMessage());
-                    }
-                    return null;
-                });
+                        try (DirectoryStream<Path> stream = this.getStream(outputDir)) {
+                            this.unzip(snapshotZip, outputDir);
+                            Path snapshotJson = stream.iterator().next();
+                            this.contentIndex.fromSnapshot(snapshotJson.toString());
+
+                            this.postUpdateCommand();
+                            Files.deleteIfExists(snapshotZip);
+                            Files.deleteIfExists(snapshotJson);
+                        } catch (IOException | NullPointerException e) {
+                            log.error("Failed to index snapshot: {}", e.getMessage());
+                        }
+                        return null;
+                    });
+        }
     }
 
-    @VisibleForTesting
-    void unZip(Path snapshotZip, Path outputDir) throws IOException {
+    /**
+     * TODO missing Javadocs
+     *
+     * @param snapshotZip
+     * @param outputDir
+     * @throws IOException
+     */
+    protected void unzip(Path snapshotZip, Path outputDir) throws IOException {
         Unzip.unzip(snapshotZip, outputDir);
     }
 
-    @VisibleForTesting
-    DirectoryStream<Path> getStream(Path outputDir) throws IOException {
+    /**
+     * TODO missing Javadocs
+     *
+     * @param outputDir
+     * @return
+     * @throws IOException
+     */
+    protected DirectoryStream<Path> getStream(Path outputDir) throws IOException {
         return Files.newDirectoryStream(
                 outputDir,
                 String.format(
@@ -135,8 +142,7 @@ public class SnapshotHelper implements ClusterStateListener {
     }
 
     /** Posts a command to the command manager API on a successful snapshot operation */
-    @VisibleForTesting
-    void postUpdateCommand() {
+    protected void postUpdateCommand() {
         Privileged.doPrivilegedRequest(
                 () -> {
                     CommandManagerClient.getInstance()
@@ -150,8 +156,7 @@ public class SnapshotHelper implements ClusterStateListener {
      *
      * @throws IOException thrown when indexing failed
      */
-    @VisibleForTesting
-    void updateContextIndex() throws IOException {
+    protected void updateContextIndex() throws IOException {
         ConsumerInfo consumerInfo = this.ctiClient.getCatalog();
 
         if (consumerInfo == null) {
@@ -172,10 +177,10 @@ public class SnapshotHelper implements ClusterStateListener {
     }
 
     /** Trigger method for a CVE index initialization from a snapshot */
-    public void initializeCVEIndex() {
+    public void initialize() {
         try {
-            updateContextIndex();
-            indexSnapshot();
+            this.updateContextIndex();
+            this.indexSnapshot();
         } catch (IOException e) {
             log.error("Failed to initialize CVE Index from snapshot: {}", e.getMessage());
         }
@@ -189,27 +194,12 @@ public class SnapshotHelper implements ClusterStateListener {
      */
     @Override
     public void clusterChanged(ClusterChangedEvent event) {
-        IndexMetadata currentIndexMetadata = event.state().metadata().index(ContentIndex.INDEX_NAME);
-        IndexMetadata previousIndexMetadata = event.previousState().metadata().index(ContentIndex.INDEX_NAME);
-        MappingMetadata previousMapping = null;
-        try {
-            previousMapping = previousIndexMetadata.mapping();
-        } catch (NullPointerException e) {
-            log.debug("Previous mapping does not exist: {}", e.getMessage());
-        }
-        if (currentIndexMetadata == null) {
-            return;
-        }
-        if (currentIndexMetadata.mapping() == null) {
-            return;
-        }
-        if (currentIndexMetadata.mapping().equals(previousMapping)) {
-            return;
-        }
+        MappingMetadata currentMappings = event.state().metadata().index(ContentIndex.INDEX_NAME).mapping();
+        MappingMetadata previousMappings = event.previousState().metadata().index(ContentIndex.INDEX_NAME).mapping();
 
-        Executor executor = threadPool.executor(ThreadPool.Names.GENERIC);
-        executor.execute(
-            this::initializeCVEIndex
-        );
+        if (previousMappings != null && currentMappings != null && !previousMappings.equals(currentMappings)) {
+            Executor executor = threadPool.executor(ThreadPool.Names.GENERIC);
+            executor.execute(this::initialize);
+        }
     }
 }

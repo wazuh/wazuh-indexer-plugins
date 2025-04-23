@@ -33,7 +33,6 @@ import static org.mockito.Mockito.*;
 
 /** Class to handle unzip tests */
 public class UnzipTests extends OpenSearchTestCase {
-
     private Path tempDestinationDirectory;
     private Path tempZipPath;
     private Path destinationPath;
@@ -66,7 +65,6 @@ public class UnzipTests extends OpenSearchTestCase {
         }
     }
 
-    @SuppressWarnings("EmptyMethod")
     @After
     @Override
     public void tearDown() throws Exception {
@@ -87,11 +85,7 @@ public class UnzipTests extends OpenSearchTestCase {
     }
 
     /** Test NullPointerException */
-    @SuppressWarnings("DataFlowIssue")
     public void testNullPointerException() throws IOException {
-        // Path path = mock(Path.class);
-        // when(mock(Files.newInputStream(path)))
-        //        .thenThrow(new IOException("Mocking a non existing file thrown an exception"));
         assertThrows(
                 NullPointerException.class, () -> Unzip.unzip(null, this.tempDestinationDirectory));
     }

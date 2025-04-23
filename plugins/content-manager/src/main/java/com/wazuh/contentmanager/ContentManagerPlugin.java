@@ -43,7 +43,6 @@ import com.wazuh.contentmanager.utils.SnapshotHelper;
 
 /** Main class of the Content Manager Plugin */
 public class ContentManagerPlugin extends Plugin implements ClusterPlugin, ActionPlugin {
-
     private ContextIndex contextIndex;
     private ContentIndex contentIndex;
     private Environment environment;
@@ -80,9 +79,17 @@ public class ContentManagerPlugin extends Plugin implements ClusterPlugin, Actio
      */
     @Override
     public void onNodeStarted(DiscoveryNode localNode) {
-        SnapshotHelper snapshotHelper =
-                new SnapshotHelper(this.threadPool, this.clusterService, this.environment, this.contextIndex, this.contentIndex);
-        //snapshotHelper.initializeCVEIndex();
+        // spotless:off
+        SnapshotHelper snapshotHelper = new SnapshotHelper(
+            this.threadPool,
+            this.environment,
+            this.contextIndex,
+            this.contentIndex
+        );
+        // spotless:on
+        // Used to check whether the "wazuh-cve" index and its mappings are created.
+        this.clusterService.addListener(snapshotHelper);
+        snapshotHelper.initialize();
     }
 
     @Override
