@@ -42,10 +42,9 @@ import com.wazuh.contentmanager.index.ContentIndex;
 import com.wazuh.contentmanager.index.ContextIndex;
 import com.wazuh.contentmanager.model.ctiapi.*;
 import com.wazuh.contentmanager.model.ctiapi.OperationType;
+import com.wazuh.contentmanager.settings.PluginSettings;
 
 import static com.wazuh.contentmanager.index.ContentIndex.TIMEOUT;
-import static com.wazuh.contentmanager.settings.PluginSettings.CONSUMER_ID;
-import static com.wazuh.contentmanager.settings.PluginSettings.CONTEXT_ID;
 import static org.mockito.Mockito.*;
 
 @ThreadLeakScope(ThreadLeakScope.Scope.NONE)
@@ -76,21 +75,26 @@ public class ContentUpdaterIT extends OpenSearchIntegTestCase {
     }
 
     /**
+     * TODO add Javadocs
+     *
      * @throws InterruptedException
      */
     public void testUpdate_ContentChangesTypeCreate() throws InterruptedException {
         // Arrange
         long offsetId = 1L;
-        Offset createOffset = getOffset(offsetId, OperationType.CREATE);
+        Offset createOffset = this.getOffset(offsetId, OperationType.CREATE);
         ContentChanges contentChanges = new ContentChanges(List.of(createOffset));
-        ConsumerInfo testConsumer = new ConsumerInfo(CONSUMER_ID, CONTEXT_ID, offsetId, offsetId, null);
+        ConsumerInfo testConsumer =
+                new ConsumerInfo(
+                        PluginSettings.CONSUMER_ID, PluginSettings.CONTEXT_ID, offsetId, offsetId, null);
         // Mock
         when(this.ctiClient.getChanges(this.initialOffset, 1, false)).thenReturn(contentChanges);
         when(this.contextIndex.getConsumer(anyString(), anyString())).thenReturn(testConsumer);
         // Act
         boolean updated = this.updater.update();
         Thread.sleep(1000);
-        ConsumerInfo updatedConsumer = this.contextIndex.getConsumer(CONTEXT_ID, CONSUMER_ID);
+        ConsumerInfo updatedConsumer =
+                this.contextIndex.getConsumer(PluginSettings.CONTEXT_ID, PluginSettings.CONSUMER_ID);
         // Assert
         assertTrue(updated);
         assertNotNull(updatedConsumer);
@@ -98,22 +102,27 @@ public class ContentUpdaterIT extends OpenSearchIntegTestCase {
     }
 
     /**
+     * TODO add Javadocs
+     *
      * @throws InterruptedException
      */
     public void testUpdate_ContentChangesTypeUpdate() throws InterruptedException {
         // Arrange
         long offsetId = 2L;
-        Offset createOffset = getOffset(offsetId - 1, OperationType.CREATE);
-        Offset updateOffset = getOffset(offsetId, OperationType.UPDATE);
+        Offset createOffset = this.getOffset(offsetId - 1, OperationType.CREATE);
+        Offset updateOffset = this.getOffset(offsetId, OperationType.UPDATE);
         ContentChanges contentChanges = new ContentChanges(List.of(createOffset, updateOffset));
-        ConsumerInfo testConsumer = new ConsumerInfo(CONSUMER_ID, CONTEXT_ID, offsetId, offsetId, null);
+        ConsumerInfo testConsumer =
+                new ConsumerInfo(
+                        PluginSettings.CONSUMER_ID, PluginSettings.CONTEXT_ID, offsetId, offsetId, null);
         // Mock
         when(this.ctiClient.getChanges(this.initialOffset, offsetId, false)).thenReturn(contentChanges);
         when(this.contextIndex.getConsumer(anyString(), anyString())).thenReturn(testConsumer);
         // Act
         boolean updated = this.updater.update();
         Thread.sleep(1000);
-        ConsumerInfo updatedConsumer = this.contextIndex.getConsumer(CONTEXT_ID, CONSUMER_ID);
+        ConsumerInfo updatedConsumer =
+                this.contextIndex.getConsumer(PluginSettings.CONTEXT_ID, PluginSettings.CONSUMER_ID);
         // Assert
         assertTrue(updated);
         assertNotNull(updatedConsumer);
@@ -131,17 +140,19 @@ public class ContentUpdaterIT extends OpenSearchIntegTestCase {
             throws InterruptedException, ExecutionException, TimeoutException {
         // Arrange
         long offsetId = 2L;
-        Offset createOffset = getOffset(offsetId - 1, OperationType.CREATE);
-        Offset deleteOffset = getOffset(offsetId, OperationType.DELETE);
+        Offset createOffset = this.getOffset(offsetId - 1, OperationType.CREATE);
+        Offset deleteOffset = this.getOffset(offsetId, OperationType.DELETE);
         ContentChanges contentChanges = new ContentChanges(List.of(createOffset, deleteOffset));
-        ConsumerInfo testConsumer = new ConsumerInfo(CONSUMER_ID, CONTEXT_ID, 0L, offsetId, null);
+        ConsumerInfo testConsumer =
+                new ConsumerInfo(PluginSettings.CONSUMER_ID, PluginSettings.CONTEXT_ID, 0L, offsetId, null);
         // Mock
         when(this.ctiClient.getChanges(this.initialOffset, offsetId, false)).thenReturn(contentChanges);
         when(this.contextIndex.getConsumer(anyString(), anyString())).thenReturn(testConsumer);
         // Act
         boolean updated = this.updater.update();
         Thread.sleep(1000);
-        ConsumerInfo updatedConsumer = this.contextIndex.getConsumer(CONTEXT_ID, CONSUMER_ID);
+        ConsumerInfo updatedConsumer =
+                this.contextIndex.getConsumer(PluginSettings.CONTEXT_ID, PluginSettings.CONSUMER_ID);
         GetResponse getContent =
                 this.contentIndex.get(this.testResource).get(TIMEOUT, TimeUnit.SECONDS);
         // Assert
@@ -158,7 +169,7 @@ public class ContentUpdaterIT extends OpenSearchIntegTestCase {
      * @param type The content type (CREATE, UPDATE, DELETE).
      * @return An Offset object with the specified ID and content type.
      */
-    private Offset getOffset(Long id, OperationType type) {
+    private Offset getOffset(long id, OperationType type) {
         List<PatchOperation> operations = null;
         Map<String, Object> payload = null;
         if (type == OperationType.UPDATE) {
@@ -168,26 +179,28 @@ public class ContentUpdaterIT extends OpenSearchIntegTestCase {
             payload.put("name", "Dummy Threat");
             payload.put("indicators", List.of("192.168.1.1", "example.com"));
         }
-        return new Offset(CONTEXT_ID, id, this.testResource, type, 1L, operations, payload);
+        return new Offset(
+                PluginSettings.CONTEXT_ID, id, this.testResource, type, 1L, operations, payload);
     }
 
     /**
      * Prepares the initial ConsumerInfo document in the test index.
      *
      * @param client The OpenSearch client.
-     * @param currentOffset The initial currentOffset to set.
-     * @param lastOffset
+     * @param offset The initial offset to set.
+     * @param lastOffset The initial lastOffset to set.
      * @throws Exception If an error occurs while preparing the document.
      */
     @SuppressWarnings("unchecked")
-    public void prepareInitialConsumerInfo(Client client, Long currentOffset, Long lastOffset)
+    public void prepareInitialConsumerInfo(Client client, long offset, long lastOffset)
             throws Exception {
         // Create a ConsumerInfo document manually in the test index
         ConsumerInfo info =
-                new ConsumerInfo(CONSUMER_ID, CONTEXT_ID, currentOffset, currentOffset, null);
+                new ConsumerInfo(
+                        PluginSettings.CONSUMER_ID, PluginSettings.CONTEXT_ID, offset, lastOffset, null);
         client
                 .prepareIndex(ContextIndex.INDEX_NAME)
-                .setId(CONTEXT_ID)
+                .setId(PluginSettings.CONTEXT_ID)
                 .setSource(info.toXContent(XContentFactory.jsonBuilder(), ToXContent.EMPTY_PARAMS))
                 .setRefreshPolicy(WriteRequest.RefreshPolicy.IMMEDIATE)
                 .get();
@@ -200,9 +213,9 @@ public class ContentUpdaterIT extends OpenSearchIntegTestCase {
      * @param offsetId The initial offset ID to set.
      * @throws Exception If an error occurs while preparing the document.
      */
-    public void prepareInitialCVEInfo(Client client, Long offsetId) throws Exception {
+    public void prepareInitialCVEInfo(Client client, long offsetId) throws Exception {
         // Create a ConsumerInfo document manually in the test index
-        Offset offset = getOffset(offsetId, OperationType.CREATE);
+        Offset offset = this.getOffset(offsetId, OperationType.CREATE);
         client
                 .prepareIndex(ContentIndex.INDEX_NAME)
                 .setId(this.testResource)
