@@ -24,25 +24,24 @@ import java.io.IOException;
 
 /** ToXContentObject model to parse and build CTI API Catalog query replies */
 public class ConsumerInfo implements ToXContentObject {
-
-    public static final String ID = "id";
-    public static final String CONTEXT = "context";
-    public static final String NAME = "name";
+    private static final String ID = "id";
+    private static final String CONTEXT = "context";
+    private static final String NAME = "name";
     public static final String LAST_OFFSET = "last_offset";
     public static final String OFFSET = "offset";
-    public static final String PATHS_FILTER = "paths_filter";
+    private static final String PATHS_FILTER = "paths_filter";
     public static final String LAST_SNAPSHOT_LINK = "last_snapshot_link";
-    public static final String LAST_SNAPSHOT_OFFSET = "last_snapshot_offset";
-    public static final String LAST_SNAPSHOT_AT = "last_snapshot_at";
-    public static final String CHANGES_URL = "changes_url";
-    public static final String INSERTED_AT = "inserted_at";
-    public static final String DATA = "data";
-    public static final String UPDATED_AT = "updated_at";
-    public static final String OPERATIONS = "operations";
+    private static final String LAST_SNAPSHOT_OFFSET = "last_snapshot_offset";
+    private static final String LAST_SNAPSHOT_AT = "last_snapshot_at";
+    private static final String CHANGES_URL = "changes_url";
+    private static final String INSERTED_AT = "inserted_at";
+    private static final String DATA = "data";
+    private static final String UPDATED_AT = "updated_at";
+    private static final String OPERATIONS = "operations";
     private final String context;
     private final String name;
-    private final Long offset;
-    private final Long lastOffset;
+    private final long offset;
+    private final long lastOffset;
     private final String lastSnapshotLink;
 
     /**
@@ -55,7 +54,7 @@ public class ConsumerInfo implements ToXContentObject {
      * @param lastSnapshotLink URL link to the latest snapshot
      */
     public ConsumerInfo(
-            String name, String context, Long offset, Long lastOffset, String lastSnapshotLink) {
+            String name, String context, long offset, long lastOffset, String lastSnapshotLink) {
         this.name = name;
         this.context = context;
         this.offset = offset;
@@ -84,6 +83,7 @@ public class ConsumerInfo implements ToXContentObject {
                 String fieldName = parser.currentName();
                 parser.nextToken();
                 switch (fieldName) {
+                        // TODO maybe all these can be removed.
                     case DATA:
                     case ID:
                     case OPERATIONS:
@@ -134,65 +134,39 @@ public class ConsumerInfo implements ToXContentObject {
         return builder.endObject();
     }
 
-    @Override
-    public String toString() {
-        return "ConsumerInfo{"
-                + "context='"
-                + context
-                + '\''
-                + ", name='"
-                + name
-                + '\''
-                + ", lastOffset="
-                + lastOffset
-                + ", lastSnapshotLink='"
-                + lastSnapshotLink
-                + '\''
-                + '}';
-    }
-
     /**
-     * Getter for the context name
+     * Get this consumer's context name.
      *
-     * @return Context name as a String
+     * @return the consumer's context name.
      */
     public String getContext() {
         return this.context;
     }
 
     /**
-     * Getter for the last offset number
+     * Get the latest consumer's offset (as last fetched from the CTI API).
      *
-     * @return Last offset number as a long
+     * @return Consumer's latest available offset.
      */
     public long getLastOffset() {
         return this.lastOffset;
     }
 
     /**
-     * Get the current offset number
+     * Get the consumer's offset (in Indexer).
      *
-     * @return The offset as a Long value
+     * @return The consumer's offset.
      */
-    public Long getOffset() {
+    public long getOffset() {
         return offset;
     }
 
     /**
-     * Retrieves the URL of the last consumer snapshot
+     * Get the URL of the latest consumer's snapshot.
      *
-     * @return A Snapshot URL
+     * @return URL string.
      */
     public String getLastSnapshotLink() {
         return this.lastSnapshotLink;
-    }
-
-    /**
-     * Retrieves the name of the consumer
-     *
-     * @return The name of the consumer
-     */
-    public String getName() {
-        return this.name;
     }
 }
