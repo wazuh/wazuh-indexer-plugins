@@ -24,9 +24,7 @@ import com.wazuh.contentmanager.client.CommandManagerClient;
 import com.wazuh.contentmanager.index.ContentIndex;
 import com.wazuh.contentmanager.index.ContextIndex;
 import com.wazuh.contentmanager.model.commandmanager.Command;
-import com.wazuh.contentmanager.model.ctiapi.ConsumerInfo;
 import com.wazuh.contentmanager.model.ctiapi.ContentChanges;
-import com.wazuh.contentmanager.settings.PluginSettings;
 import com.wazuh.contentmanager.utils.Privileged;
 import com.wazuh.contentmanager.utils.VisibleForTesting;
 
@@ -71,9 +69,9 @@ public class ContentUpdater {
      * the CTI API for a list of changes to apply to the content. These changes are applied
      * sequentially. A maximum of {@link ContentUpdater#CHUNK_MAX_SIZE} changes are applied on each
      * iteration. When the update is completed, the value of "offset" is updated and equal to
-     * "lastOffset" {@link ContentUpdater#updateContext(Long, Long)}, and a command is generated for
-     * the Command Manager {@link ContentUpdater#postUpdateCommand()}. If the update fails, the
-     * "offset" is set to 0 to force a recovery from a snapshot.
+     * "lastOffset" {@link ContextIndex#setOffset(Long, Long)}, and a command is generated for the
+     * Command Manager {@link ContentUpdater#postUpdateCommand()}. If the update fails, the "offset"
+     * is set to 0 to force a recovery from a snapshot.
      *
      * @return true if the updates were successfully applied, false otherwise.
      * @throws ContentUpdateException If there was an error fetching the changes.
@@ -95,12 +93,12 @@ public class ContentUpdater {
 
             if (changes == null) {
                 log.error("Unable to fetch changes for offsets {} to {}", currentOffset, nextOffset);
-                this.updateContext(0L, 0L);
+                this.contextIndex.setOffset(0L, 0L);
                 return false;
             }
 
             if (!this.applyChanges(changes)) {
-                this.updateContext(0L, 0L);
+                this.contextIndex.setOffset(0L, 0L);
                 return false;
             }
 
@@ -108,15 +106,13 @@ public class ContentUpdater {
             log.debug("Update current offset to {}", currentOffset);
         }
 
-        this.updateContext(currentOffset, lastOffset);
+        this.contextIndex.setOffset(currentOffset, lastOffset);
         this.postUpdateCommand();
         return true;
     }
 
     /**
      * Fetches the context changes between a given offset range from the CTI API.
-     *
-     * <p>TODO check if we can remove this wrapper method.
      *
      * @param fromOffset Starting offset (inclusive).
      * @param toOffset Ending offset (exclusive).
@@ -130,8 +126,6 @@ public class ContentUpdater {
 
     /**
      * Applies the fetched changes to the indexed content.
-     *
-     * <p>TODO check if we can remove this wrapper method.
      *
      * @param changes Detected content changes.
      * @return true if the changes were successfully applied, false otherwise.
@@ -147,11 +141,7 @@ public class ContentUpdater {
         }
     }
 
-    /**
-     * Posts a new command to the Command Manager informing about the new changes.
-     *
-     * <p>TODO check if we can remove this wrapper method.
-     */
+    /** Posts a new command to the Command Manager informing about the new changes. */
     @VisibleForTesting
     protected void postUpdateCommand() {
         Privileged.doPrivilegedRequest(
@@ -160,19 +150,5 @@ public class ContentUpdater {
                             .postCommand(Command.create(String.valueOf(this.contextIndex.getOffset())));
                     return null;
                 });
-    }
-
-    /**
-     * Resets the consumer info by setting its last offset to zero.
-     *
-     * <p>TODO this should be responsibility of the ContextIndex class. For example:
-     * ContextIndex.setOffset(offset).
-     */
-    @VisibleForTesting
-    protected void updateContext(Long offset, Long lastOffset) {
-        this.contextIndex.index(
-                new ConsumerInfo(
-                        PluginSettings.CONSUMER_ID, PluginSettings.CONTEXT_ID, offset, lastOffset, null));
-        log.info("Updated context index with new offset {}", offset);
     }
 }

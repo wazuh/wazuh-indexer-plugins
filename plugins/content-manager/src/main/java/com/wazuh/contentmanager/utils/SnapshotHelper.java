@@ -32,6 +32,7 @@ import java.nio.file.DirectoryStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Locale;
+import java.util.Objects;
 import java.util.concurrent.Executor;
 
 import com.wazuh.contentmanager.client.CTIClient;
@@ -54,6 +55,7 @@ public class SnapshotHelper implements ClusterStateListener {
     /**
      * Constructor.
      *
+     * @param threadPool Used to launch the snapshot index task in its own thread
      * @param environment Needed for snapshot file handling.
      * @param contextIndex Handles context and consumer related metadata.
      * @param contentIndex Handles indexed content.
@@ -92,13 +94,6 @@ public class SnapshotHelper implements ClusterStateListener {
     }
 
     /**
-     * Start listening for cluster events
-     */
-    public void startListening() {
-        this.clusterService.addListener(this);
-    }
-    
-     /**
      * Initializes the content if {@code offset == 0}. This method downloads, decompresses and indexes
      * a CTI snapshot.
      */
@@ -128,22 +123,22 @@ public class SnapshotHelper implements ClusterStateListener {
     }
 
     /**
-     * TODO missing Javadocs
+     * Wrapper method to handle unzipping files
      *
-     * @param snapshotZip
-     * @param outputDir
-     * @throws IOException
+     * @param snapshotZip The Path to the zip file
+     * @param outputDir The output directory to extract files to
+     * @throws IOException Risen from unzip()
      */
     protected void unzip(Path snapshotZip, Path outputDir) throws IOException {
         Unzip.unzip(snapshotZip, outputDir);
     }
 
     /**
-     * TODO missing Javadocs
+     * Wrapper method to make newDirectoryStream() stubbable
      *
-     * @param outputDir
-     * @return
-     * @throws IOException
+     * @param outputDir The output directory
+     * @return A DirectoryStream Path
+     * @throws IOException rethrown from newDirectoryStream()
      */
     protected DirectoryStream<Path> getStream(Path outputDir) throws IOException {
         return Files.newDirectoryStream(
@@ -192,7 +187,6 @@ public class SnapshotHelper implements ClusterStateListener {
         try {
             this.updateContextIndex();
             this.indexSnapshot();
-            this.clusterService.removeListener(this);
         } catch (IOException e) {
             log.error("Failed to initialize CVE Index from snapshot: {}", e.getMessage());
         }
@@ -206,33 +200,50 @@ public class SnapshotHelper implements ClusterStateListener {
      */
     @Override
     public void clusterChanged(ClusterChangedEvent event) {
+        // Get index information from current and previous cluster state
+        IndexMetadata previousIndexMetadata =
+                event.previousState().metadata().index(ContentIndex.INDEX_NAME);
         IndexMetadata currentIndexMetadata = event.state().metadata().index(ContentIndex.INDEX_NAME);
-        IndexMetadata previousIndexMetadata = event.previousState().metadata().index(ContentIndex.INDEX_NAME);
-        MappingMetadata previousMapping = null;
-        try {
-            previousMapping = previousIndexMetadata.mapping();
-        } catch (NullPointerException e) {
-            log.debug("Previous mapping does not exist: {}", e.getMessage());
+
+        // Declare mappings variables
+        MappingMetadata previousMappings = null;
+        MappingMetadata currentMappings;
+
+        // If previous index state's metadata is null, don't try to its mappings
+        if (previousIndexMetadata != null) {
+            previousMappings = previousIndexMetadata.mapping();
         }
+
+        // Don't move forward unless there is index metadata in the current state
         if (currentIndexMetadata == null) {
             return;
         }
-        if (currentIndexMetadata.mapping() == null) {
-            return;
-        }
-        // The conditional below ensures that the snapshot is only processed
-        // when the "wazuh-cve" index was created with the right mapping.
-        if (!Objects.equals(currentIndexMetadata.mapping().getSourceAsMap().get("dynamic"), "strict")) {
-            return;
-        }
-        if (currentIndexMetadata.mapping().equals(previousMapping)) {
+
+        // At this point we can safely read the current mapping
+        currentMappings = currentIndexMetadata.mapping();
+
+        // Return when mappings haven't changed
+        if (Objects.equals(currentMappings, previousMappings)) {
             return;
         }
 
+        // Return when currentMappings is null
+        if (currentMappings == null) {
+            return;
+        }
 
+        // Make sure the current mappings are not the dynamically generated ones
+        Object dynamicField = currentMappings.getSourceAsMap().get("dynamic");
+        if (dynamicField == null) {
+            return;
+        }
+        if (!dynamicField.equals("strict")) {
+            return;
+        }
+
+        // Execute initialization in its own separate thread.
+        // This is necessary to avoid blocking the engine.
         Executor executor = threadPool.executor(ThreadPool.Names.GENERIC);
-        executor.execute(
-            this::initializeCVEIndex
-        );
+        executor.execute(this::initialize);
     }
 }

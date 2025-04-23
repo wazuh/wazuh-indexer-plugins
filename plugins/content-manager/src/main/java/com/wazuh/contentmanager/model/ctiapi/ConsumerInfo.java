@@ -83,7 +83,6 @@ public class ConsumerInfo implements ToXContentObject {
                 String fieldName = parser.currentName();
                 parser.nextToken();
                 switch (fieldName) {
-                        // TODO maybe all these can be removed.
                     case DATA:
                     case ID:
                     case OPERATIONS:

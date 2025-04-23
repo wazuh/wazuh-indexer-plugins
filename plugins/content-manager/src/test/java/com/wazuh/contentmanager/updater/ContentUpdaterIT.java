@@ -75,9 +75,9 @@ public class ContentUpdaterIT extends OpenSearchIntegTestCase {
     }
 
     /**
-     * TODO add Javadocs
+     * Tests whether a Create-type patch is correctly applied to the wazuh-cve index
      *
-     * @throws InterruptedException
+     * @throws InterruptedException Rethrown from Thread.sleep()
      */
     public void testUpdate_ContentChangesTypeCreate() throws InterruptedException {
         // Arrange
@@ -102,9 +102,9 @@ public class ContentUpdaterIT extends OpenSearchIntegTestCase {
     }
 
     /**
-     * TODO add Javadocs
+     * Tests whether an update-type patch is correctly applied to the wazuh-cve index
      *
-     * @throws InterruptedException
+     * @throws InterruptedException Rethrown from Thread.sleep()
      */
     public void testUpdate_ContentChangesTypeUpdate() throws InterruptedException {
         // Arrange
@@ -130,9 +130,9 @@ public class ContentUpdaterIT extends OpenSearchIntegTestCase {
     }
 
     /**
-     * TODO add Javadocs
+     * Tests whether a delete-type patch is correctly applied to the wazuh-cve index
      *
-     * @throws InterruptedException
+     * @throws InterruptedException Rethrown from Thread.sleep()
      * @throws ExecutionException
      * @throws TimeoutException
      */

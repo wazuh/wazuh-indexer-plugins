@@ -79,7 +79,7 @@ public class ContentUpdaterTests extends OpenSearchIntegTestCase {
         // Mock ContentIndex.patch
         doReturn(true).when(this.contentUpdaterSpy).applyChanges(any());
         // Act
-        doNothing().when(contentUpdaterSpy).updateContext(anyLong(), anyLong());
+        doNothing().when(this.contextIndex).setOffset(anyLong(), anyLong());
         this.contentUpdaterSpy.update();
         // Assert applyChangesToContextIndex is called 4 times (one each 1000 starting from 0).
         verify(this.contentUpdaterSpy, times(4)).applyChanges(any());
@@ -93,7 +93,7 @@ public class ContentUpdaterTests extends OpenSearchIntegTestCase {
         doReturn(offsetsAmount).when(this.contextIndex).getLastOffset();
         // Mock getContextChanges method.
         doReturn(null).when(this.contentUpdaterSpy).getChanges(anyLong(), anyLong());
-        doNothing().when(contentUpdaterSpy).updateContext(anyLong(), anyLong());
+        doNothing().when(this.contextIndex).setOffset(anyLong(), anyLong());
         // Act
         boolean updated = this.contentUpdaterSpy.update();
         // Assert
@@ -112,12 +112,12 @@ public class ContentUpdaterTests extends OpenSearchIntegTestCase {
                 .getChanges(anyLong(), anyLong());
         // Mock applyChangesToContextIndex method.
         doReturn(false).when(this.contentUpdaterSpy).applyChanges(any());
-        doNothing().when(contentUpdaterSpy).updateContext(anyLong(), anyLong());
+        doNothing().when(this.contextIndex).setOffset(anyLong(), anyLong());
         // Act
         boolean updated = this.contentUpdaterSpy.update();
         // Assert
         assertFalse(updated);
-        verify(this.contentUpdaterSpy, times(1)).updateContext(0L, 0L);
+        verify(this.contextIndex, times(1)).setOffset(0L, 0L);
     }
 
     /**

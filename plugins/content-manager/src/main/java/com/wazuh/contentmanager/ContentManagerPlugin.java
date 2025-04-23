@@ -80,8 +80,8 @@ public class ContentManagerPlugin extends Plugin implements ClusterPlugin, Actio
     @Override
     public void onNodeStarted(DiscoveryNode localNode) {
         SnapshotHelper snapshotHelper =
-                new SnapshotHelper(this.threadPool, this.clusterService, this.environment, this.contextIndex, this.contentIndex);
-        snapshotHelper.startListening();
+                new SnapshotHelper(this.threadPool, this.environment, this.contextIndex, this.contentIndex);
+        this.clusterService.addListener(snapshotHelper);
     }
 
     @Override

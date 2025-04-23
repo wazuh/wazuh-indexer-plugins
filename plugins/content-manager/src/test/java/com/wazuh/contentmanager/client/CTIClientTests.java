@@ -63,6 +63,7 @@ public class CTIClientTests extends OpenSearchIntegTestCase {
         super.tearDown();
     }
 
+
     public void testSendRequest_SuccessfulRequest() {
         // Arrange
         SimpleHttpResponse mockResponse = new SimpleHttpResponse(HttpStatus.SC_SUCCESS, "OK");
@@ -180,7 +181,6 @@ public class CTIClientTests extends OpenSearchIntegTestCase {
 
         // Act
         ConsumerInfo consumerInfo = this.spyCtiClient.getCatalog();
-        // TODO unused variable
 
         // Assert
         verify(this.spyCtiClient, times(1))
@@ -211,7 +211,6 @@ public class CTIClientTests extends OpenSearchIntegTestCase {
 
         // Act
         ContentChanges changes = this.spyCtiClient.getChanges(0, 200, true);
-        // TODO unused variable
 
         // Assert
         verify(this.spyCtiClient, times(1))

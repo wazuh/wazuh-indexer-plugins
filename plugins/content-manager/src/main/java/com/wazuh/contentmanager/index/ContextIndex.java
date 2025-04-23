@@ -195,4 +195,16 @@ public class ContextIndex {
     private static long asLong(Object o) {
         return o instanceof Number ? ((Number) o).longValue() : Long.parseLong(o.toString());
     }
+
+    /**
+     * Sets the context index current and last offset.
+     *
+     * <p>ContextIndex.setOffset(offset).
+     */
+    public void setOffset(Long offset, Long lastOffset) {
+        this.index(
+                new ConsumerInfo(
+                        PluginSettings.CONSUMER_ID, PluginSettings.CONTEXT_ID, offset, lastOffset, null));
+        log.info("Updated context index with new offset {}", offset);
+    }
 }
