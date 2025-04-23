@@ -54,7 +54,7 @@ public class ContentUpdater {
     /**
      * Constructor. Mainly used for testing purposes.
      *
-     * @param ctiClient    the CTIClient to interact with the CTI API
+     * @param ctiClient the CTIClient to interact with the CTI API
      * @param contextIndex An object that handles context and consumer information
      * @param contentIndex An object that handles content index interactions
      */
@@ -127,7 +127,7 @@ public class ContentUpdater {
     @VisibleForTesting
     long getLatestOffset() {
         ConsumerInfo consumer =
-            this.contextIndex.getConsumer(PluginSettings.CONTEXT_ID, PluginSettings.CONSUMER_ID);
+                this.contextIndex.getConsumer(PluginSettings.CONTEXT_ID, PluginSettings.CONSUMER_ID);
         return consumer != null ? consumer.getLastOffset() : 0L;
     }
 
@@ -183,7 +183,8 @@ public class ContentUpdater {
     @VisibleForTesting
     void updateContext(Long newOffset, Long newLastOffset) {
         this.contextIndex.index(
-                new ConsumerInfo(PluginSettings.CONSUMER_ID, PluginSettings.CONTEXT_ID, newOffset, newLastOffset, null));
+                new ConsumerInfo(
+                        PluginSettings.CONSUMER_ID, PluginSettings.CONTEXT_ID, newOffset, newLastOffset, null));
         log.info("Updated context index with new offset {}", newOffset);
     }
 }

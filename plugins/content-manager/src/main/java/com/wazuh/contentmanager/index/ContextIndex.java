@@ -28,7 +28,9 @@ import org.opensearch.core.action.ActionListener;
 import org.opensearch.core.xcontent.ToXContent;
 
 import java.io.IOException;
+import java.util.Locale;
 import java.util.Map;
+import java.util.NoSuchElementException;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
@@ -45,60 +47,56 @@ public class ContextIndex {
     public static final String INDEX_NAME = "wazuh-context";
 
     /** Timeout of indexing operations */
-    public static final Long TIMEOUT = 10L;
+    private static final long TIMEOUT = 10L;
 
-    private Client client;
+    private final Client client;
     private ConsumerInfo consumerInfo;
 
     /**
-     * Constructor for the class.
+     * Constructor.
      *
-     * @param client Necessary for index and search operations
+     * @param client OpenSearch client used for indexing and search operations.
      */
     public ContextIndex(Client client) {
         this.client = client;
     }
 
     /**
-     * Index CTI API consumer information
+     * Index CTI API consumer information.
      *
-     * @param newConsumerInfo Model containing information parsed from the CTI API
-     * @return the IndexResponse from the indexing operation
+     * @param consumerInfo Model containing information parsed from the CTI API.
+     * @return the IndexResponse from the indexing operation. or null.
      */
-    public IndexResponse index(ConsumerInfo newConsumerInfo) {
-        IndexRequest indexRequest = null;
-        IndexResponse indexResponse;
-        // Set this to null so that future get() operations need to read the values from the index
-        this.consumerInfo = null;
+    public IndexResponse index(ConsumerInfo consumerInfo) {
         try {
-            indexRequest =
+            IndexRequest indexRequest =
                     new IndexRequest()
                             .index(ContextIndex.INDEX_NAME)
                             .source(
-                                    newConsumerInfo.toXContent(
-                                            XContentFactory.jsonBuilder(), ToXContent.EMPTY_PARAMS))
-                            .id(newConsumerInfo.getContext());
+                                    consumerInfo.toXContent(XContentFactory.jsonBuilder(), ToXContent.EMPTY_PARAMS))
+                            .id(consumerInfo.getContext());
+
+            // Set this to null so that future get() operation needs to read from the index
+            this.consumerInfo = null;
+
+            return this.client.index(indexRequest).get(TIMEOUT, TimeUnit.SECONDS);
         } catch (IOException e) {
             log.error("Failed to create JSON content builder: {}", e.getMessage());
-        }
-
-        try {
-            indexResponse = this.client.index(indexRequest).get(TIMEOUT, TimeUnit.SECONDS);
         } catch (InterruptedException | ExecutionException | TimeoutException e) {
             log.error(
                     "Failed to index Consumer [{}] information due to: {}",
-                    newConsumerInfo.getContext(),
+                    consumerInfo.getContext(),
                     e.getMessage());
-            return null;
         }
-        return indexResponse;
+
+        return null;
     }
 
     /**
-     * Get a context off its index
+     * Get a context by ID (name).
      *
-     * @param contextName ID of the context to be retrieved
-     * @return A completable future holding the response of the query
+     * @param contextName ID of the context to be retrieved.
+     * @return A completable future holding the response of the query.
      */
     public CompletableFuture<GetResponse> get(String contextName) {
         GetRequest getRequest = new GetRequest(ContextIndex.INDEX_NAME, contextName);
@@ -123,40 +121,41 @@ public class ContextIndex {
     }
 
     /**
-     * Wrapper for get() that returns a single consumer out of the contexts index
+     * Get a consumer of a context by their IDs.
      *
-     * @param context Context to get from index
-     * @param consumer Consumer name to retrieve from context document
-     * @return a ConsumerInfo object
+     * @param context ID (name) of the context.
+     * @param consumer ID (name) of the consumer.
+     * @return the required consumer as an instance of {@link ConsumerInfo}, or null.
      */
     @SuppressWarnings("unchecked")
     public ConsumerInfo getConsumer(String context, String consumer) {
-        if (this.consumerInfo != null) {
-            return this.consumerInfo;
-        }
-        try {
-            GetResponse getResponse = get(context).get(ContextIndex.TIMEOUT, TimeUnit.SECONDS);
-            log.info("Received search response for {}", context);
+        if (this.consumerInfo == null) {
+            try {
+                GetResponse getResponse = this.get(context).get(ContextIndex.TIMEOUT, TimeUnit.SECONDS);
+                log.info("Received search response for {}", context);
 
-            Map<String, Object> source = (Map<String, Object>) getResponse.getSourceAsMap().get(consumer);
-            if (source == null) {
-                log.warn("Consumer {} not found in context {}", consumer, context);
-                return null;
+                Map<String, Object> source =
+                        (Map<String, Object>) getResponse.getSourceAsMap().get(consumer);
+                if (source == null) {
+                    throw new NoSuchElementException(
+                            String.format(
+                                    Locale.ROOT, "Consumer [%s] not found in context [%s]", consumer, context));
+                }
+
+                long offset = ContextIndex.asLong(source.get(ConsumerInfo.OFFSET));
+                long lastOffset = ContextIndex.asLong(source.get(ConsumerInfo.LAST_OFFSET));
+                String snapshot = (String) source.get(ConsumerInfo.LAST_SNAPSHOT_LINK);
+                this.consumerInfo = new ConsumerInfo(consumer, context, offset, lastOffset, snapshot);
+            } catch (InterruptedException | ExecutionException | TimeoutException e) {
+                log.error(
+                        "Failed to retrieve context [{}], consumer [{}]: {}",
+                        context,
+                        consumer,
+                        e.getMessage());
             }
-
-            Object lastOffsetObj = source.get(ConsumerInfo.LAST_OFFSET);
-            Long lastOffset =
-                    (lastOffsetObj instanceof Number) ? ((Number) lastOffsetObj).longValue() : null;
-            Object offsetObj = source.get(ConsumerInfo.OFFSET);
-            Long offset = (offsetObj instanceof Number) ? ((Number) offsetObj).longValue() : null;
-            String snapshot = (String) source.get(ConsumerInfo.LAST_SNAPSHOT_LINK);
-            this.consumerInfo = new ConsumerInfo(consumer, context, offset, lastOffset, snapshot);
-            return this.consumerInfo;
-        } catch (InterruptedException | ExecutionException | TimeoutException e) {
-            log.error(
-                    "Failed to retrieve context [{}], consumer [{}]: {}", context, consumer, e.getMessage());
         }
-        return null;
+
+        return this.consumerInfo;
     }
 
     /**
@@ -164,8 +163,8 @@ public class ContextIndex {
      *
      * @return The long value of the offset
      */
-    public Long getOffset() {
-        return getConsumer(PluginSettings.CONTEXT_ID, PluginSettings.CONSUMER_ID).getOffset();
+    public long getOffset() {
+        return this.getConsumer(PluginSettings.CONTEXT_ID, PluginSettings.CONSUMER_ID).getOffset();
     }
 
     /**
@@ -173,8 +172,8 @@ public class ContextIndex {
      *
      * @return The long value of the offset
      */
-    public Long getLastOffset() {
-        return getConsumer(PluginSettings.CONTEXT_ID, PluginSettings.CONSUMER_ID).getLastOffset();
+    public long getLastOffset() {
+        return this.getConsumer(PluginSettings.CONTEXT_ID, PluginSettings.CONSUMER_ID).getLastOffset();
     }
 
     /**
@@ -183,6 +182,17 @@ public class ContextIndex {
      * @return a String with the last snapshot link
      */
     public String getLastSnapshotLink() {
-        return getConsumer(PluginSettings.CONTEXT_ID, PluginSettings.CONSUMER_ID).getLastSnapshotLink();
+        return this.getConsumer(PluginSettings.CONTEXT_ID, PluginSettings.CONSUMER_ID)
+                .getLastSnapshotLink();
+    }
+
+    /**
+     * Utility method to parse an object value to primitive long.
+     *
+     * @param o the object to parse.
+     * @return the value as primitive long.
+     */
+    private static long asLong(Object o) {
+        return o instanceof Number ? ((Number) o).longValue() : Long.parseLong(o.toString());
     }
 }

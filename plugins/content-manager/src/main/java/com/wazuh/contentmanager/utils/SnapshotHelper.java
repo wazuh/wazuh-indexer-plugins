@@ -123,7 +123,7 @@ public class SnapshotHelper {
     @VisibleForTesting
     void postUpdateCommand() {
         CommandManagerClient.getInstance()
-                .postCommand(Command.create(this.contextIndex.getLastOffset().toString()));
+                .postCommand(Command.create(String.valueOf(this.contextIndex.getLastOffset())));
     }
 
     /**

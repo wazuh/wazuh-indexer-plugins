@@ -16,9 +16,6 @@
  */
 package com.wazuh.contentmanager.updater;
 
-import com.wazuh.contentmanager.index.ContentIndex;
-import com.wazuh.contentmanager.index.ContextIndex;
-import org.opensearch.client.Client;
 import org.opensearch.test.OpenSearchIntegTestCase;
 import org.junit.Before;
 
@@ -26,6 +23,8 @@ import java.util.ArrayList;
 import java.util.List;
 
 import com.wazuh.contentmanager.client.CTIClient;
+import com.wazuh.contentmanager.index.ContentIndex;
+import com.wazuh.contentmanager.index.ContextIndex;
 import com.wazuh.contentmanager.model.ctiapi.ContentChanges;
 import com.wazuh.contentmanager.model.ctiapi.Offset;
 import com.wazuh.contentmanager.model.ctiapi.OperationType;
@@ -49,7 +48,8 @@ public class ContentUpdaterTests extends OpenSearchIntegTestCase {
     public void setup() throws Exception {
         super.setUp();
         this.contextIndex = mock(ContextIndex.class);
-        ContentUpdater contentUpdater = new ContentUpdater(mock(CTIClient.class), this.contextIndex, mock(ContentIndex.class));
+        ContentUpdater contentUpdater =
+                new ContentUpdater(mock(CTIClient.class), this.contextIndex, mock(ContentIndex.class));
         this.contentUpdaterSpy = Mockito.spy(contentUpdater);
     }
 
@@ -79,7 +79,7 @@ public class ContentUpdaterTests extends OpenSearchIntegTestCase {
         // Mock ContentIndex.patch
         doReturn(true).when(this.contentUpdaterSpy).applyChanges(any());
         // Act
-        doNothing().when(contentUpdaterSpy).updateContext(anyLong(),anyLong());
+        doNothing().when(contentUpdaterSpy).updateContext(anyLong(), anyLong());
         this.contentUpdaterSpy.update();
         // Assert applyChangesToContextIndex is called 4 times (one each 1000 starting from 0).
         verify(this.contentUpdaterSpy, times(4)).applyChanges(any());
@@ -93,7 +93,7 @@ public class ContentUpdaterTests extends OpenSearchIntegTestCase {
         doReturn(offsetsAmount).when(this.contextIndex).getLastOffset();
         // Mock getContextChanges method.
         doReturn(null).when(this.contentUpdaterSpy).getChanges(anyLong(), anyLong());
-        doNothing().when(contentUpdaterSpy).updateContext(anyLong(),anyLong());
+        doNothing().when(contentUpdaterSpy).updateContext(anyLong(), anyLong());
         // Act
         boolean updated = this.contentUpdaterSpy.update();
         // Assert
@@ -112,12 +112,12 @@ public class ContentUpdaterTests extends OpenSearchIntegTestCase {
                 .getChanges(anyLong(), anyLong());
         // Mock applyChangesToContextIndex method.
         doReturn(false).when(this.contentUpdaterSpy).applyChanges(any());
-        doNothing().when(contentUpdaterSpy).updateContext(anyLong(),anyLong());
+        doNothing().when(contentUpdaterSpy).updateContext(anyLong(), anyLong());
         // Act
         boolean updated = this.contentUpdaterSpy.update();
         // Assert
         assertFalse(updated);
-        verify(this.contentUpdaterSpy, times(1)).updateContext(0L,0L);
+        verify(this.contentUpdaterSpy, times(1)).updateContext(0L, 0L);
     }
 
     /**
