@@ -65,8 +65,15 @@ public class ContentUpdater {
     }
 
     /**
-     * Fetches and applies content updates in chunks from the current stored offset to the latest
-     * available offset. It iterates over the updates and applies them in batch processing.
+     * Starts and orchestrates the process to update the content in the index with the latest changes
+     * from the CTI API. The content needs an update when the "offset" and the "lastOffset" values are
+     * different. In that case, the update process tries to bring the content up to date by querying
+     * the CTI API for a list of changes to apply to the content. These changes are applied
+     * sequentially. A maximum of {@link ContentUpdater#CHUNK_MAX_SIZE} changes are applied on each
+     * iteration. When the update is completed, the value of "offset" is updated and equal to
+     * "lastOffset" {@link ContentUpdater#updateContext(Long, Long)}, and a command is generated for
+     * the Command Manager {@link ContentUpdater#postUpdateCommand()}. If the update fails, the
+     * "offset" is set to 0 to force a recovery from a snapshot.
      *
      * @return true if the updates were successfully applied, false otherwise.
      * @throws ContentUpdateException If there was an error fetching the changes.
@@ -109,25 +116,28 @@ public class ContentUpdater {
     /**
      * Fetches the context changes between a given offset range from the CTI API.
      *
+     * <p>TODO check if we can remove this wrapper method.
+     *
      * @param fromOffset Starting offset (inclusive).
      * @param toOffset Ending offset (exclusive).
      * @return ContextChanges object containing the changes.
      */
     @VisibleForTesting
-    public ContentChanges getChanges(long fromOffset, long toOffset) {
+    protected ContentChanges getChanges(long fromOffset, long toOffset) {
         return Privileged.doPrivilegedRequest(
                 () -> this.ctiClient.getChanges(fromOffset, toOffset, false));
     }
 
     /**
-     * Applies the fetched changes to the indexed content. TODO check if we can remove this wrapper
-     * method.
+     * Applies the fetched changes to the indexed content.
+     *
+     * <p>TODO check if we can remove this wrapper method.
      *
      * @param changes Detected content changes.
      * @return true if the changes were successfully applied, false otherwise.
      */
     @VisibleForTesting
-    boolean applyChanges(ContentChanges changes) {
+    protected boolean applyChanges(ContentChanges changes) {
         try {
             this.contentIndex.patch(changes);
             return true;
@@ -138,11 +148,12 @@ public class ContentUpdater {
     }
 
     /**
-     * Posts a new command to the Command Manager informing about the new changes. TODO check if we
-     * can remove this wrapper method.
+     * Posts a new command to the Command Manager informing about the new changes.
+     *
+     * <p>TODO check if we can remove this wrapper method.
      */
     @VisibleForTesting
-    void postUpdateCommand() {
+    protected void postUpdateCommand() {
         Privileged.doPrivilegedRequest(
                 () -> {
                     CommandManagerClient.getInstance()
@@ -152,14 +163,16 @@ public class ContentUpdater {
     }
 
     /**
-     * Resets the consumer info by setting its last offset to zero. TODO this should be responsibility
-     * of the ContextIndex class. For example: ContextIndex.setOffset(offset).
+     * Resets the consumer info by setting its last offset to zero.
+     *
+     * <p>TODO this should be responsibility of the ContextIndex class. For example:
+     * ContextIndex.setOffset(offset).
      */
     @VisibleForTesting
-    void updateContext(Long newOffset, Long newLastOffset) {
+    protected void updateContext(Long offset, Long lastOffset) {
         this.contextIndex.index(
                 new ConsumerInfo(
-                        PluginSettings.CONSUMER_ID, PluginSettings.CONTEXT_ID, newOffset, newLastOffset, null));
-        log.info("Updated context index with new offset {}", newOffset);
+                        PluginSettings.CONSUMER_ID, PluginSettings.CONTEXT_ID, offset, lastOffset, null));
+        log.info("Updated context index with new offset {}", offset);
     }
 }

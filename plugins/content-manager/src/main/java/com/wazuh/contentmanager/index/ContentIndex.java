@@ -132,12 +132,9 @@ public class ContentIndex {
                     public void onResponse(BulkResponse bulkResponse) {
                         semaphore.release();
                         if (bulkResponse.hasFailures()) {
-                            log.error(
-                                    "Bulk index operation failed: {}", bulkResponse.buildFailureMessage());
+                            log.error("Bulk index operation failed: {}", bulkResponse.buildFailureMessage());
                         } else {
-                            log.debug(
-                                    "Bulk index operation succeeded in {} ms",
-                                    bulkResponse.getTook().millis());
+                            log.debug("Bulk index operation succeeded in {} ms", bulkResponse.getTook().millis());
                         }
                     }
 

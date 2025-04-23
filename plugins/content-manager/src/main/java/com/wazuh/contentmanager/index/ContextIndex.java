@@ -65,7 +65,7 @@ public class ContextIndex {
      * Index CTI API consumer information.
      *
      * @param consumerInfo Model containing information parsed from the CTI API.
-     * @return the IndexResponse from the indexing operation. or null.
+     * @return the IndexResponse from the indexing operation, or null.
      */
     public IndexResponse index(ConsumerInfo consumerInfo) {
         try {
@@ -159,27 +159,27 @@ public class ContextIndex {
     }
 
     /**
-     * Returns the current offset from the context index
+     * Returns the current offset from the context index.
      *
-     * @return The long value of the offset
+     * @return The long value of the offset.
      */
     public long getOffset() {
         return this.getConsumer(PluginSettings.CONTEXT_ID, PluginSettings.CONSUMER_ID).getOffset();
     }
 
     /**
-     * Returns the current offset from the context index
+     * Returns the current offset from the context index.
      *
-     * @return The long value of the offset
+     * @return The long value of the offset.
      */
     public long getLastOffset() {
         return this.getConsumer(PluginSettings.CONTEXT_ID, PluginSettings.CONSUMER_ID).getLastOffset();
     }
 
     /**
-     * Returns the last snapshot link from the context index
+     * Returns the last snapshot link from the context index.
      *
-     * @return a String with the last snapshot link
+     * @return a String with the last snapshot link.
      */
     public String getLastSnapshotLink() {
         return this.getConsumer(PluginSettings.CONTEXT_ID, PluginSettings.CONSUMER_ID)
