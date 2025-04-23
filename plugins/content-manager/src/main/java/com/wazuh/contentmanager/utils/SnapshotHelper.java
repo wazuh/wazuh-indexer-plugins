@@ -22,9 +22,9 @@ import org.opensearch.action.DocWriteResponse;
 import org.opensearch.action.index.IndexResponse;
 import org.opensearch.cluster.ClusterChangedEvent;
 import org.opensearch.cluster.ClusterStateListener;
-import org.opensearch.cluster.metadata.IndexMetadata;
 import org.opensearch.cluster.metadata.MappingMetadata;
 import org.opensearch.env.Environment;
+import org.opensearch.threadpool.ThreadPool;
 
 import java.io.IOException;
 import java.nio.file.DirectoryStream;
@@ -40,10 +40,8 @@ import com.wazuh.contentmanager.index.ContextIndex;
 import com.wazuh.contentmanager.model.commandmanager.Command;
 import com.wazuh.contentmanager.model.ctiapi.ConsumerInfo;
 import com.wazuh.contentmanager.settings.PluginSettings;
-import org.opensearch.threadpool.ThreadPool;
 
 /** Helper class to handle indexing of snapshots */
-
 public class SnapshotHelper implements ClusterStateListener {
     private static final Logger log = LogManager.getLogger(SnapshotHelper.class);
     private ThreadPool threadPool;
@@ -55,12 +53,15 @@ public class SnapshotHelper implements ClusterStateListener {
     /**
      * Constructor.
      *
-     * @param environment    Needed for snapshot file handling.
-     * @param contextIndex   Handles context and consumer related metadata.
-     * @param contentIndex   Handles indexed content.
+     * @param environment Needed for snapshot file handling.
+     * @param contextIndex Handles context and consumer related metadata.
+     * @param contentIndex Handles indexed content.
      */
     public SnapshotHelper(
-        ThreadPool threadPool, Environment environment, ContextIndex contextIndex, ContentIndex contentIndex) {
+            ThreadPool threadPool,
+            Environment environment,
+            ContextIndex contextIndex,
+            ContentIndex contentIndex) {
         this.threadPool = threadPool;
         this.environment = environment;
         this.contextIndex = contextIndex;
@@ -187,17 +188,21 @@ public class SnapshotHelper implements ClusterStateListener {
     }
 
     /**
-     * This is part of the ClusterStateListener interface.
-     * It is used to launch the indexing of the CVE snapshot upon detection
-     * of a new mapping being loaded into the "wazuh-cve" index
+     * This is part of the ClusterStateListener interface. It is used to launch the indexing of the
+     * CVE snapshot upon detection of a new mapping being loaded into the "wazuh-cve" index
+     *
      * @param event The event that allows us to detect the state change
      */
     @Override
     public void clusterChanged(ClusterChangedEvent event) {
-        MappingMetadata currentMappings = event.state().metadata().index(ContentIndex.INDEX_NAME).mapping();
-        MappingMetadata previousMappings = event.previousState().metadata().index(ContentIndex.INDEX_NAME).mapping();
+        MappingMetadata currentMappings =
+                event.state().metadata().index(ContentIndex.INDEX_NAME).mapping();
+        MappingMetadata previousMappings =
+                event.previousState().metadata().index(ContentIndex.INDEX_NAME).mapping();
 
-        if (previousMappings != null && currentMappings != null && !previousMappings.equals(currentMappings)) {
+        if (previousMappings != null
+                && currentMappings != null
+                && !previousMappings.equals(currentMappings)) {
             Executor executor = threadPool.executor(ThreadPool.Names.GENERIC);
             executor.execute(this::initialize);
         }
