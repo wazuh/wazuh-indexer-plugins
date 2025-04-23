@@ -47,6 +47,8 @@ public class ContentManagerPlugin extends Plugin implements ClusterPlugin, Actio
     private ContextIndex contextIndex;
     private ContentIndex contentIndex;
     private Environment environment;
+    private ClusterService clusterService;
+    private ThreadPool threadPool;
 
     @Override
     public Collection<Object> createComponents(
@@ -65,6 +67,8 @@ public class ContentManagerPlugin extends Plugin implements ClusterPlugin, Actio
         this.contextIndex = new ContextIndex(client);
         this.contentIndex = new ContentIndex(client);
         this.environment = environment;
+        this.clusterService = clusterService;
+        this.threadPool = threadPool;
 
         return Collections.emptyList();
     }
@@ -77,8 +81,8 @@ public class ContentManagerPlugin extends Plugin implements ClusterPlugin, Actio
     @Override
     public void onNodeStarted(DiscoveryNode localNode) {
         SnapshotHelper snapshotHelper =
-                new SnapshotHelper(this.environment, this.contextIndex, this.contentIndex);
-        snapshotHelper.initializeCVEIndex();
+                new SnapshotHelper(this.threadPool, this.clusterService, this.environment, this.contextIndex, this.contentIndex);
+        //snapshotHelper.initializeCVEIndex();
     }
 
     @Override

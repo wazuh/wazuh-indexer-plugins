@@ -20,6 +20,11 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.opensearch.action.DocWriteResponse;
 import org.opensearch.action.index.IndexResponse;
+import org.opensearch.cluster.ClusterChangedEvent;
+import org.opensearch.cluster.ClusterStateListener;
+import org.opensearch.cluster.metadata.IndexMetadata;
+import org.opensearch.cluster.metadata.MappingMetadata;
+import org.opensearch.cluster.service.ClusterService;
 import org.opensearch.env.Environment;
 
 import java.io.IOException;
@@ -27,6 +32,8 @@ import java.nio.file.DirectoryStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Locale;
+import java.util.Objects;
+import java.util.concurrent.Executor;
 
 import com.wazuh.contentmanager.client.CTIClient;
 import com.wazuh.contentmanager.client.CommandManagerClient;
@@ -35,11 +42,14 @@ import com.wazuh.contentmanager.index.ContextIndex;
 import com.wazuh.contentmanager.model.commandmanager.Command;
 import com.wazuh.contentmanager.model.ctiapi.ConsumerInfo;
 import com.wazuh.contentmanager.settings.PluginSettings;
+import org.opensearch.threadpool.ThreadPool;
 
 /** Helper class to handle indexing of snapshots */
-public class SnapshotHelper {
+public class SnapshotHelper implements ClusterStateListener {
 
     private static final Logger log = LogManager.getLogger(SnapshotHelper.class);
+    private ClusterService clusterService;
+    private ThreadPool threadPool;
     private final CTIClient ctiClient;
     private final Environment environment;
     private final ContextIndex contextIndex;
@@ -48,16 +58,21 @@ public class SnapshotHelper {
     /**
      * Constructor for the class
      *
-     * @param environment Needed for snapshot file handling
-     * @param contextIndex Handles context and consumer related metadata
-     * @param contentIndex Handles indexed content
+     * @param clusterService Used to check whether the "wazuh-cve" index and its mappings are created
+     * @param environment    Needed for snapshot file handling
+     * @param contextIndex   Handles context and consumer related metadata
+     * @param contentIndex   Handles indexed content
      */
     public SnapshotHelper(
-            Environment environment, ContextIndex contextIndex, ContentIndex contentIndex) {
+        ThreadPool threadPool, ClusterService clusterService, Environment environment, ContextIndex contextIndex, ContentIndex contentIndex) {
         this.ctiClient = Privileged.doPrivilegedRequest(CTIClient::getInstance);
+        this.clusterService = clusterService;
         this.environment = environment;
         this.contextIndex = contextIndex;
         this.contentIndex = contentIndex;
+
+        this.clusterService.addListener(this);
+        this.threadPool = threadPool;
     }
 
     /**
@@ -164,5 +179,37 @@ public class SnapshotHelper {
         } catch (IOException e) {
             log.error("Failed to initialize CVE Index from snapshot: {}", e.getMessage());
         }
+    }
+
+    /**
+     * This is part of the ClusterStateListener interface.
+     * It is used to launch the indexing of the CVE snapshot upon detection
+     * of a new mapping being loaded into the "wazuh-cve" index
+     * @param event The event that allows us to detect the state change
+     */
+    @Override
+    public void clusterChanged(ClusterChangedEvent event) {
+        IndexMetadata currentIndexMetadata = event.state().metadata().index(ContentIndex.INDEX_NAME);
+        IndexMetadata previousIndexMetadata = event.previousState().metadata().index(ContentIndex.INDEX_NAME);
+        MappingMetadata previousMapping = null;
+        try {
+            previousMapping = previousIndexMetadata.mapping();
+        } catch (NullPointerException e) {
+            log.debug("Previous mapping does not exist: {}", e.getMessage());
+        }
+        if (currentIndexMetadata == null) {
+            return;
+        }
+        if (currentIndexMetadata.mapping() == null) {
+            return;
+        }
+        if (currentIndexMetadata.mapping().equals(previousMapping)) {
+            return;
+        }
+
+        Executor executor = threadPool.executor(ThreadPool.Names.GENERIC);
+        executor.execute(
+            this::initializeCVEIndex
+        );
     }
 }
