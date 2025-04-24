@@ -70,8 +70,6 @@ public class SnapshotHelper implements ClusterStateListener {
         this.contextIndex = contextIndex;
         this.contentIndex = contentIndex;
         this.ctiClient = Privileged.doPrivilegedRequest(CTIClient::getInstance);
-
-        this.threadPool = threadPool;
     }
 
     /**

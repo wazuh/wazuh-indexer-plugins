@@ -25,7 +25,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 ### Dependencies
 
 ### Changed
-- Implement Glue Code for Snapshot Restore [#373](https://github.com/wazuh/wazuh-indexer-plugins/pull/373)
+- Content Manager tier 1 final wrap up [#373](https://github.com/wazuh/wazuh-indexer-plugins/pull/373)
 - Refactor Content Manager's code and fix Catalog info indexing [(#317)](https://github.com/wazuh/wazuh-indexer-plugins/pull/317)
 - Improved mdbook installation instructions [#332](https://github.com/wazuh/wazuh-indexer-plugins/pull/332)
 - Third-party integrations maintenance [(#299)](https://github.com/wazuh/wazuh-indexer-plugins/pull/299) [(#374)](https://github.com/wazuh/wazuh-indexer-plugins/pull/374)

@@ -47,8 +47,8 @@ public class UnzipTests extends OpenSearchTestCase {
 
         // Environment set up
         this.tempDestinationDirectory = createTempDir();
-        tempZipPath = tempDestinationDirectory.resolve("file.zip");
-        destinationPath = tempDestinationDirectory.resolve("");
+        tempZipPath = this.tempDestinationDirectory.resolve("file.zip");
+        destinationPath = this.tempDestinationDirectory.resolve("");
         Settings settings =
                 Settings.builder()
                         .put("path.home", this.tempDestinationDirectory.toString()) // Required by OpenSearch
@@ -74,7 +74,7 @@ public class UnzipTests extends OpenSearchTestCase {
     /** Test valid unzip process */
     public void testValidUnzip() {
         try {
-            Unzip.unzip(tempZipPath, destinationPath);
+            Unzip.unzip(this.tempZipPath, this.destinationPath);
             Path extractedFilePath = this.tempDestinationDirectory.resolve(this.testFile);
             assertTrue("File should be extracted", Files.exists(extractedFilePath));
             String fileContent = Files.readString(extractedFilePath, StandardCharsets.UTF_8);
