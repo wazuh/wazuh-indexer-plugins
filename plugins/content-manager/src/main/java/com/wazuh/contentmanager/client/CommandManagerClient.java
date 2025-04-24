@@ -82,13 +82,13 @@ public class CommandManagerClient extends HttpClient {
         } else {
             switch (response.getCode()) {
                 case HttpStatus.SC_OK:
-                    log.info("Received OK response: {}", response.getBody().toString());
+                    log.info("Received OK response: {}", response.getBodyText());
                     break;
                 case HttpStatus.SC_CLIENT_ERROR:
-                    log.error("Client error: {}", response.getBody().toString());
+                    log.error("Client error: {}", response.getBodyText());
                     break;
                 case HttpStatus.SC_SERVER_ERROR:
-                    log.error("Server error: {}", response.getBody().toString());
+                    log.error("Server error: {}", response.getBodyText());
                     break;
                 default:
                     log.warn("Unexpected response code: {}", response.getCode());

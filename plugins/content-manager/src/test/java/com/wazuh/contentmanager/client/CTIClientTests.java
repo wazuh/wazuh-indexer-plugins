@@ -63,7 +63,6 @@ public class CTIClientTests extends OpenSearchIntegTestCase {
         super.tearDown();
     }
 
-
     public void testSendRequest_SuccessfulRequest() {
         // Arrange
         SimpleHttpResponse mockResponse = new SimpleHttpResponse(HttpStatus.SC_SUCCESS, "OK");
