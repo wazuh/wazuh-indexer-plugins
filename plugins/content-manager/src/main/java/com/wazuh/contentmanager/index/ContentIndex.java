@@ -118,7 +118,6 @@ public class ContentIndex {
      */
     public void index(List<JsonObject> documents) {
         BulkRequest bulkRequest = new BulkRequest(INDEX_NAME);
-        log.info("Indexing {} documents", documents.size());
         for (JsonObject document : documents) {
             bulkRequest.add(
                     new IndexRequest()
@@ -133,19 +132,16 @@ public class ContentIndex {
                     public void onResponse(BulkResponse bulkResponse) {
                         semaphore.release();
                         if (bulkResponse.hasFailures()) {
-                            log.error(
-                                    "Snapshot indexing bulk request failed: {}", bulkResponse.buildFailureMessage());
+                            log.error("Bulk index operation failed: {}", bulkResponse.buildFailureMessage());
                         } else {
-                            log.debug(
-                                    "Snapshot indexing bulk request succeeded in {} ms",
-                                    bulkResponse.getTook().millis());
+                            log.debug("Bulk index operation succeeded in {} ms", bulkResponse.getTook().millis());
                         }
                     }
 
                     @Override
                     public void onFailure(Exception e) {
                         semaphore.release();
-                        log.error("Snapshot indexing bulk request failed: {}", e.getMessage(), e);
+                        log.error("Bulk index operation failed: {}", e.getMessage(), e);
                     }
                 });
     }

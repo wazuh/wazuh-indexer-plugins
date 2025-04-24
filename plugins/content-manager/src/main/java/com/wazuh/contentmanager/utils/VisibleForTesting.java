@@ -14,7 +14,7 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-package com.wazuh.contentmanager.util;
+package com.wazuh.contentmanager.utils;
 
 /**
  * Annotation to indicate that a method, field, or class is more visible than necessary strictly for

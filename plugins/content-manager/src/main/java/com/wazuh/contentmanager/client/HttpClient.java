@@ -45,7 +45,7 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
-import com.wazuh.contentmanager.util.http.HttpResponseCallback;
+import com.wazuh.contentmanager.utils.http.HttpResponseCallback;
 import reactor.util.annotation.NonNull;
 
 /**

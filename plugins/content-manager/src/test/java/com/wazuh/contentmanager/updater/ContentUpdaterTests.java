@@ -16,7 +16,6 @@
  */
 package com.wazuh.contentmanager.updater;
 
-import org.opensearch.client.Client;
 import org.opensearch.test.OpenSearchIntegTestCase;
 import org.junit.Before;
 
@@ -24,6 +23,8 @@ import java.util.ArrayList;
 import java.util.List;
 
 import com.wazuh.contentmanager.client.CTIClient;
+import com.wazuh.contentmanager.index.ContentIndex;
+import com.wazuh.contentmanager.index.ContextIndex;
 import com.wazuh.contentmanager.model.ctiapi.ContentChanges;
 import com.wazuh.contentmanager.model.ctiapi.Offset;
 import com.wazuh.contentmanager.model.ctiapi.OperationType;
@@ -36,6 +37,7 @@ import static org.mockito.Mockito.*;
 @OpenSearchIntegTestCase.ClusterScope(scope = OpenSearchIntegTestCase.Scope.SUITE)
 public class ContentUpdaterTests extends OpenSearchIntegTestCase {
     private ContentUpdater contentUpdaterSpy;
+    private ContextIndex contextIndex;
 
     /**
      * Set up the tests
@@ -45,16 +47,17 @@ public class ContentUpdaterTests extends OpenSearchIntegTestCase {
     @Before
     public void setup() throws Exception {
         super.setUp();
-        Client client = mock(Client.class);
-        ContentUpdater contentUpdater = new ContentUpdater(client, mock(CTIClient.class));
+        this.contextIndex = mock(ContextIndex.class);
+        ContentUpdater contentUpdater =
+                new ContentUpdater(mock(CTIClient.class), this.contextIndex, mock(ContentIndex.class));
         this.contentUpdaterSpy = Mockito.spy(contentUpdater);
     }
 
     /** Test Fetch and apply no new updates */
     public void testUpdateNoChanges() {
         // Mock current and latest offset.
-        doReturn(100L).when(this.contentUpdaterSpy).getCurrentOffset();
-        doReturn(100L).when(this.contentUpdaterSpy).getLatestOffset();
+        doReturn(0L).when(this.contextIndex).getOffset();
+        doReturn(0L).when(this.contextIndex).getLastOffset();
         // Act
         this.contentUpdaterSpy.update();
         // Assert applyChangesToContextIndex is not called.
@@ -65,8 +68,8 @@ public class ContentUpdaterTests extends OpenSearchIntegTestCase {
     public void testUpdateNewChanges() {
         long offsetsAmount = 3999L;
         // Mock current and latest offset.
-        doReturn(0L).when(this.contentUpdaterSpy).getCurrentOffset();
-        doReturn(offsetsAmount).when(this.contentUpdaterSpy).getLatestOffset();
+        doReturn(0L).when(this.contextIndex).getOffset();
+        doReturn(offsetsAmount).when(this.contextIndex).getLastOffset();
         // Mock getContextChanges method.
         doReturn(generateContextChanges((int) offsetsAmount))
                 .when(this.contentUpdaterSpy)
@@ -76,6 +79,7 @@ public class ContentUpdaterTests extends OpenSearchIntegTestCase {
         // Mock ContentIndex.patch
         doReturn(true).when(this.contentUpdaterSpy).applyChanges(any());
         // Act
+        doNothing().when(this.contextIndex).setOffset(anyLong(), anyLong());
         this.contentUpdaterSpy.update();
         // Assert applyChangesToContextIndex is called 4 times (one each 1000 starting from 0).
         verify(this.contentUpdaterSpy, times(4)).applyChanges(any());
@@ -85,10 +89,11 @@ public class ContentUpdaterTests extends OpenSearchIntegTestCase {
     public void testUpdateErrorFetchingChanges() {
         long offsetsAmount = 3999L;
         // Mock current and latest offset.
-        doReturn(0L).when(this.contentUpdaterSpy).getCurrentOffset();
-        doReturn(offsetsAmount).when(this.contentUpdaterSpy).getLatestOffset();
+        doReturn(0L).when(this.contextIndex).getOffset();
+        doReturn(offsetsAmount).when(this.contextIndex).getLastOffset();
         // Mock getContextChanges method.
         doReturn(null).when(this.contentUpdaterSpy).getChanges(anyLong(), anyLong());
+        doNothing().when(this.contextIndex).setOffset(anyLong(), anyLong());
         // Act
         boolean updated = this.contentUpdaterSpy.update();
         // Assert
@@ -99,19 +104,20 @@ public class ContentUpdaterTests extends OpenSearchIntegTestCase {
     public void testUpdateErrorOnPatchContextIndex() {
         long offsetsAmount = 3999L;
         // Mock current and latest offset.
-        doReturn(0L).when(this.contentUpdaterSpy).getCurrentOffset();
-        doReturn(offsetsAmount).when(this.contentUpdaterSpy).getLatestOffset();
+        doReturn(0L).when(this.contextIndex).getOffset();
+        doReturn(offsetsAmount).when(this.contextIndex).getLastOffset();
         // Mock getContextChanges method.
         doReturn(generateContextChanges((int) offsetsAmount))
                 .when(this.contentUpdaterSpy)
                 .getChanges(anyLong(), anyLong());
         // Mock applyChangesToContextIndex method.
         doReturn(false).when(this.contentUpdaterSpy).applyChanges(any());
+        doNothing().when(this.contextIndex).setOffset(anyLong(), anyLong());
         // Act
         boolean updated = this.contentUpdaterSpy.update();
         // Assert
         assertFalse(updated);
-        verify(this.contentUpdaterSpy, times(1)).updateContext(0L);
+        verify(this.contextIndex, times(1)).setOffset(0L, 0L);
     }
 
     /**

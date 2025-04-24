@@ -85,11 +85,8 @@ public class CTIClient extends HttpClient {
         }
     }
 
-    /**
-     * Private constructor to enforce singleton pattern. Initializes the client with the CTI API base
-     * URL.
-     */
-    private CTIClient() {
+    /** Public constructor method */
+    public CTIClient() {
         super(URI.create(PluginSettings.getInstance().getCtiBaseUrl()));
     }
 
@@ -126,7 +123,7 @@ public class CTIClient extends HttpClient {
         Map<String, String> params =
                 CTIClient.contextQueryParameters(fromOffset, toOffset, withEmpties);
         SimpleHttpResponse response =
-                sendRequest(
+                this.sendRequest(
                         Method.GET, CONSUMER_CHANGES_ENDPOINT, null, params, null, CTIClient.MAX_ATTEMPTS);
 
         // Fail fast
@@ -156,7 +153,7 @@ public class CTIClient extends HttpClient {
     public ConsumerInfo getCatalog() {
         try {
             // spotless:off
-            SimpleHttpResponse response = sendRequest(
+            SimpleHttpResponse response = this.sendRequest(
                 Method.GET,
                 CONSUMER_INFO_ENDPOINT,
                 null,
@@ -208,7 +205,7 @@ public class CTIClient extends HttpClient {
      * @param attemptsLeft number of retries left.
      * @return SimpleHttpResponse or null.
      */
-    SimpleHttpResponse sendRequest(
+    protected SimpleHttpResponse sendRequest(
             Method method,
             String endpoint,
             String body,
@@ -231,35 +228,41 @@ public class CTIClient extends HttpClient {
                 }
             }
 
-            log.info("Making request to CTI API");
+            int currentAttempt = CTIClient.MAX_ATTEMPTS - attemptsLeft + 1;
+            log.debug(
+                    "Sending {} request to [{}]. Attempt {}/{}.",
+                    method,
+                    endpoint,
+                    currentAttempt,
+                    MAX_ATTEMPTS);
             // WARN Changing this to sendRequest makes the test fail.
             response = this.doHttpClientSendRequest(method, endpoint, body, params, header);
-
             if (response == null) {
                 return null; // Handle null
             }
 
-            int statusCode = response.getCode();
-            log.info("Response code: {}", statusCode);
-
             // Calculate timeout
-            int timeout = (CTIClient.MAX_ATTEMPTS - attemptsLeft + 1) * CTIClient.SLEEP_TIME;
-
+            int timeout = currentAttempt * CTIClient.SLEEP_TIME;
+            int statusCode = response.getCode();
             switch (statusCode) {
                 case 200:
-                    log.info("Operation succeeded: status code 200");
+                    log.info("Operation succeeded: status code {} - {}", statusCode, response.getBodyText());
                     return response;
 
                 case 400:
-                    log.error("Operation failed: status code 400 - Error: {}", response.getBodyText());
+                    log.error(
+                            "Operation failed: status code {} - Error: {}", statusCode, response.getBodyText());
                     return response;
 
                 case 422:
-                    log.error("Unprocessable Entity: status code 422 - Error: {}", response.getBodyText());
+                    log.error(
+                            "Unprocessable Entity: status code {} - Error: {}",
+                            statusCode,
+                            response.getBodyText());
                     return response;
 
                 case 429: // Handling Too Many Requests
-                    log.warn("Max requests limit reached: status code 429");
+                    log.warn("Max requests limit reached: status code {}", statusCode);
                     try {
                         String retryAfterValue = response.getHeader("Retry-After").getValue();
                         if (retryAfterValue != null) {
@@ -274,7 +277,7 @@ public class CTIClient extends HttpClient {
                     break;
 
                 case 500: // Handling Server Error
-                    log.warn("Server Error: status code 500 - Error: {}", response.getBodyText());
+                    log.warn("Server Error: status code {} - Error: {}", statusCode, response.getBodyText());
                     cooldown = ZonedDateTime.now().plusSeconds(60); // Set cooldown for server errors
                     break;
 
@@ -282,7 +285,6 @@ public class CTIClient extends HttpClient {
                     log.error("Unexpected status code: {}", statusCode);
                     return response;
             }
-
             attemptsLeft--; // Decrease remaining attempts
         }
 
@@ -295,8 +297,9 @@ public class CTIClient extends HttpClient {
      *
      * @param snapshotURI URI to the file to download.
      * @param env environment. Required to resolve files' paths.
+     * @return The downloaded file's name
      */
-    public void download(String snapshotURI, Environment env) {
+    public Path download(String snapshotURI, Environment env) {
         try {
             // Setup
             URI uri = new URI(snapshotURI);
@@ -323,10 +326,11 @@ public class CTIClient extends HttpClient {
                 while ((bytesRead = input.read(buffer)) != -1) {
                     out.write(buffer, 0, bytesRead);
                 }
-            } catch (IOException e) {
+            } catch (IOException | NullPointerException e) {
                 log.error("Failed to write snapshot {}", e.getMessage());
             }
             log.info("Snapshot downloaded to {}", path);
+            return path;
         } catch (URISyntaxException e) {
             log.error("Failed to download snapshot. Invalid URL provided: {}", e.getMessage());
         } catch (ExecutionException e) {
@@ -335,6 +339,7 @@ public class CTIClient extends HttpClient {
             Thread.currentThread().interrupt(); // Restore the interrupted status
             log.error("Snapshot download was interrupted: {}", e.getMessage());
         }
+        return null;
     }
 
     /**

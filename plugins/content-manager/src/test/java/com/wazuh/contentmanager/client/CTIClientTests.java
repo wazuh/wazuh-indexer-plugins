@@ -180,7 +180,6 @@ public class CTIClientTests extends OpenSearchIntegTestCase {
 
         // Act
         ConsumerInfo consumerInfo = this.spyCtiClient.getCatalog();
-        // TODO unused variable
 
         // Assert
         verify(this.spyCtiClient, times(1))
@@ -211,7 +210,6 @@ public class CTIClientTests extends OpenSearchIntegTestCase {
 
         // Act
         ContentChanges changes = this.spyCtiClient.getChanges(0, 200, true);
-        // TODO unused variable
 
         // Assert
         verify(this.spyCtiClient, times(1))

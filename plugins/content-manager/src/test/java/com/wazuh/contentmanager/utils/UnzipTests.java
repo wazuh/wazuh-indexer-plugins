@@ -14,7 +14,7 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-package com.wazuh.contentmanager.util;
+package com.wazuh.contentmanager.utils;
 
 import org.opensearch.common.settings.Settings;
 import org.opensearch.env.Environment;
@@ -29,11 +29,13 @@ import java.nio.file.Path;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
 
+import static org.mockito.Mockito.*;
+
 /** Class to handle unzip tests */
 public class UnzipTests extends OpenSearchTestCase {
-
     private Path tempDestinationDirectory;
-    private final String zipFileName = "test.zip";
+    private Path tempZipPath;
+    private Path destinationPath;
     private final String testFile = "testfile.txt";
     private final String testFileMessage = "Hello, World!";
     private Environment environment;
@@ -45,13 +47,14 @@ public class UnzipTests extends OpenSearchTestCase {
 
         // Environment set up
         this.tempDestinationDirectory = createTempDir();
+        tempZipPath = this.tempDestinationDirectory.resolve("file.zip");
+        destinationPath = this.tempDestinationDirectory.resolve("");
         Settings settings =
                 Settings.builder()
                         .put("path.home", this.tempDestinationDirectory.toString()) // Required by OpenSearch
                         .putList("path.repo", this.tempDestinationDirectory.toString())
                         .build();
         this.environment = new Environment(settings, this.tempDestinationDirectory);
-        Path tempZipPath = this.tempDestinationDirectory.resolve(this.zipFileName);
 
         try (ZipOutputStream zipOutputStream =
                 new ZipOutputStream(Files.newOutputStream(tempZipPath))) {
@@ -62,7 +65,6 @@ public class UnzipTests extends OpenSearchTestCase {
         }
     }
 
-    @SuppressWarnings("EmptyMethod")
     @After
     @Override
     public void tearDown() throws Exception {
@@ -72,7 +74,7 @@ public class UnzipTests extends OpenSearchTestCase {
     /** Test valid unzip process */
     public void testValidUnzip() {
         try {
-            Unzip.unzip(this.zipFileName, "", this.environment);
+            Unzip.unzip(this.tempZipPath, this.destinationPath);
             Path extractedFilePath = this.tempDestinationDirectory.resolve(this.testFile);
             assertTrue("File should be extracted", Files.exists(extractedFilePath));
             String fileContent = Files.readString(extractedFilePath, StandardCharsets.UTF_8);
@@ -83,19 +85,15 @@ public class UnzipTests extends OpenSearchTestCase {
     }
 
     /** Test NullPointerException */
-    @SuppressWarnings("DataFlowIssue")
-    public void testNullPointerException() {
+    public void testNullPointerException() throws IOException {
         assertThrows(
-                NullPointerException.class,
-                () -> Unzip.unzip(null, this.tempDestinationDirectory.toString(), this.environment));
+                NullPointerException.class, () -> Unzip.unzip(null, this.tempDestinationDirectory));
     }
 
     /** Test FileNotFoundException */
     public void testFileNotFoundException() {
         assertThrows(
                 FileNotFoundException.class,
-                () ->
-                        Unzip.unzip(
-                                "NonExistentFile.zip", this.tempDestinationDirectory.toString(), this.environment));
+                () -> Unzip.unzip(environment.resolveRepoFile("fake.txt"), this.tempDestinationDirectory));
     }
 }
