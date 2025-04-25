@@ -57,7 +57,7 @@ jobs:
           affected_projects_str=$(echo "${affected_projects[@]}" | tr ' ' ',')
           # Output the list of affected projects
           if [ ${#affected_projects[@]} -gt 0 ]; then
-              echo "projects=${affected_projects[*]}" >> "$GITHUB_OUTPUT"
+              echo "projects=[$affected_projects_str]" >> "$GITHUB_OUTPUT"
           else
               echo "projects=[]" >> "$GITHUB_OUTPUT"
           fi
