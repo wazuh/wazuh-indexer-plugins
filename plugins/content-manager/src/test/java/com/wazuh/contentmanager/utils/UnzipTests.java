@@ -94,6 +94,7 @@ public class UnzipTests extends OpenSearchTestCase {
     public void testFileNotFoundException() {
         assertThrows(
                 FileNotFoundException.class,
-                () -> Unzip.unzip(environment.resolveRepoFile("fake.txt"), this.tempDestinationDirectory));
+                () ->
+                        Unzip.unzip(environment.tmpFile().resolve("fake.txt"), this.tempDestinationDirectory));
     }
 }
