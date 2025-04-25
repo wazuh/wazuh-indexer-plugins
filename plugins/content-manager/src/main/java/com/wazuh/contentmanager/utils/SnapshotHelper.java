@@ -102,7 +102,7 @@ public class SnapshotHelper implements ClusterStateListener {
                         // Download
                         Path snapshotZip =
                                 this.ctiClient.download(this.contextIndex.getLastSnapshotLink(), this.environment);
-                        Path outputDir = Path.of(System.getProperty("java.io.tmpdir"));
+                        Path outputDir = this.environment.tmpFile();
 
                         try (DirectoryStream<Path> stream = this.getStream(outputDir)) {
                             this.unzip(snapshotZip, outputDir);

@@ -32,9 +32,7 @@ import java.nio.file.StandardOpenOption;
 import java.time.Duration;
 import java.time.ZonedDateTime;
 import java.util.HashMap;
-import java.util.Locale;
 import java.util.Map;
-import java.util.Objects;
 import java.util.concurrent.*;
 
 import com.wazuh.contentmanager.model.ctiapi.ConsumerInfo;
@@ -306,7 +304,8 @@ public class CTIClient extends HttpClient {
         try {
             // Setup
             URI uri = new URI(snapshotURI);
-
+            String filename = uri.getPath().substring(uri.getPath().lastIndexOf('/') + 1);
+            Path path = env.tmpFile().resolve(filename);
             // Download
             log.info("Starting snapshot download from [{}]", uri);
             SimpleHttpRequest request = SimpleHttpRequest.create(Method.GET, uri);
@@ -314,11 +313,10 @@ public class CTIClient extends HttpClient {
 
             // Write to disk
             InputStream input = new ByteArrayInputStream(response.getBodyBytes());
-            Path snapshotZipPath = Objects.requireNonNull(getSnapshotZipPath(uri));
             try (OutputStream out =
                     new BufferedOutputStream(
                             Files.newOutputStream(
-                                    snapshotZipPath,
+                                    path,
                                     StandardOpenOption.CREATE,
                                     StandardOpenOption.WRITE,
                                     StandardOpenOption.TRUNCATE_EXISTING))) {
@@ -331,28 +329,17 @@ public class CTIClient extends HttpClient {
             } catch (IOException | NullPointerException e) {
                 log.error("Failed to write snapshot {}", e.getMessage());
             }
-            log.info("Snapshot downloaded to {}", snapshotZipPath);
-            return snapshotZipPath;
+            log.info("Snapshot downloaded to {}", path);
+            return path;
         } catch (URISyntaxException e) {
             log.error("Failed to download snapshot. Invalid URL provided: {}", e.getMessage());
-        } catch (ExecutionException | IOException e) {
+        } catch (ExecutionException e) {
             log.error("Snapshot download failed: {}", e.getMessage());
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt(); // Restore the interrupted status
             log.error("Snapshot download was interrupted: {}", e.getMessage());
         }
         return null;
-    }
-
-    private static Path getSnapshotZipPath(URI uri) throws IOException {
-        String filename = uri.getPath().substring(uri.getPath().lastIndexOf('/') + 1);
-        if (!filename.endsWith(SNAPTHOT_SUFFIX)) {
-            throw new IOException(
-                    String.format(Locale.ROOT, "Filename does not have .zip extension: [%s]", filename));
-        }
-        String prefix = filename.substring(0, filename.length() - SNAPTHOT_SUFFIX.length());
-
-        return Files.createTempFile(prefix, SNAPTHOT_SUFFIX);
     }
 
     /**
