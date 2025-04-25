@@ -63,9 +63,9 @@ jobs:
           fi
 
           echo "### Affected projects"      >> $GITHUB_STEP_SUMMARY
-          echo "```json"                    >> $GITHUB_STEP_SUMMARY
+          echo '```json'                    >> $GITHUB_STEP_SUMMARY
           echo "[$affected_projects_str]"   >> $GITHUB_STEP_SUMMARY
-          echo "```"                        >> $GITHUB_STEP_SUMMARY
+          echo '```'                        >> $GITHUB_STEP_SUMMARY
 
   call-build-workflow:
     needs: modified-plugins
