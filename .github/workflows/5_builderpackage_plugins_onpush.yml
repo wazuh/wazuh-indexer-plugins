@@ -40,33 +40,35 @@ jobs:
 
           # Check if any files are modified in wazuh-indexer-setup
           if echo "$changed_files" | grep -q "^plugins/setup/"; then
-              affected_projects+=("setup")
+              affected_projects+=('"setup"')
           fi
 
           # Check if any files are modified in wazuh-command-manager
           if echo "$changed_files" | grep -q "^plugins/command-manager/"; then
-              affected_projects+=("command-manager")
+              affected_projects+=('"command-manager"')
           fi
 
           # Check if any files are modified in wazuh-content-manager
           if echo "$changed_files" | grep -q "^plugins/content-manager/"; then
-              affected_projects+=("content-manager")
+              affected_projects+=('"content-manager"')
           fi
 
           # Output the list of affected projects
+          affected_projects_str="${affected_projects[*]//,/ }"
           if [ ${#affected_projects[@]} -gt 0 ]; then
-              echo "projects=[${affected_projects[*]}]" | sed 's/ /,/g' >> "$GITHUB_OUTPUT"
+              echo "projects=[affected_projects_str]" >> "$GITHUB_OUTPUT"
           else
               echo "projects=[]" >> "$GITHUB_OUTPUT"
           fi
 
-          echo "Affected projects: [${affected_projects[*]}]" >> $GITHUB_STEP_SUMMARY
+          echo "Affected projects: [$affected_projects_str]" >> $GITHUB_STEP_SUMMARY
 
   call-build-workflow:
     needs: modified-plugins
     strategy:
       matrix:
-        project: ${{ fromJson(needs.modified-plugins.outputs.projects) }}
+        project: ${{ needs.modified-plugins.outputs.projects }}
+        # project: ["setup", "command-manager", "content-manager"]
     uses: ./.github/workflows/5_builderpackage_plugins.yml
     secrets: inherit
     with:
