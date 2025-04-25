@@ -3,6 +3,10 @@ name: Build packages (on push)
 # This workflow runs when any of the following occur:
 # - On push
 on:
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+    paths:
+      - '**.java'
   push:
     paths:
       - '**.java'
