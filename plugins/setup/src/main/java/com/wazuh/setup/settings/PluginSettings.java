@@ -39,6 +39,7 @@ public class PluginSettings {
     private static final String JOB_INDEX_TEMPLATE = "index-template-scheduled-agents-status";
     private static final String JOB_INDEX = ".scheduled-agents-status";
     private static final String AGENTS_INDEX = "wazuh-agents";
+    private static final String test="test-workflow";
 
     // Command Manager Settings.
     // Maximum number of documents to be returned by query.

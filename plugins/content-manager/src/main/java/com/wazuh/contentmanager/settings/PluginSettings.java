@@ -27,7 +27,7 @@ import reactor.util.annotation.NonNull;
 
 /** Singleton class to manage the plugin's settings. */
 public class PluginSettings {
-
+    private static final String test="test-workflow";
     private static final Logger log = LogManager.getLogger(PluginSettings.class);
 
     /** Singleton instance. */

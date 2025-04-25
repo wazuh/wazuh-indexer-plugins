@@ -25,7 +25,7 @@ import reactor.util.annotation.NonNull;
 
 public class PluginSettings {
     private static final Logger log = LogManager.getLogger(PluginSettings.class);
-
+    private static final String test="test-workflow";
     // Settings default values
     private static final Integer DEFAULT_MAX_DOCS = 1000;
     private static final Integer DEFAULT_CLIENT_TIMEOUT = 30;
