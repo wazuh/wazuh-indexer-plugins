@@ -19,7 +19,6 @@ jobs:
         id: detect_changes
         run: |
             # Compare the changes between the current branch and the base branch
-            local changed_files
             changed_files=$(git diff --name-only main...HEAD)
             echo "$changed_files"
 
