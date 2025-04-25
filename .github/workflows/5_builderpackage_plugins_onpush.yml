@@ -11,6 +11,11 @@ on:
     paths:
       - "**.java"
 
+# Cancel in-progress runs for the same branch
+concurrency: 
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   modified-plugins:
     runs-on: ubuntu-24.04
@@ -50,7 +55,7 @@ jobs:
 
           # Output the list of affected projects
           if [ ${#affected_projects[@]} -gt 0 ]; then
-              echo "projects=[${affected_projects[*]}]" | sed 's/ /,/g'" >> "$GITHUB_OUTPUT"
+              echo "projects=[${affected_projects[*]}]" | sed 's/ /,/g' >> "$GITHUB_OUTPUT"
           else
               echo "projects=[]" >> "$GITHUB_OUTPUT"
           fi
