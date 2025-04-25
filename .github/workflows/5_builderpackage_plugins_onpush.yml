@@ -67,7 +67,7 @@ jobs:
     needs: modified-plugins
     strategy:
       matrix:
-        project: ${{ needs.modified-plugins.outputs.projects }}
+        project: ${{ join(needs.modified-plugins.outputs.projects) }}
         # project: ["setup", "command-manager", "content-manager"]
     uses: ./.github/workflows/5_builderpackage_plugins.yml
     secrets: inherit
