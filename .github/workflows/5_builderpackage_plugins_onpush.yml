@@ -40,17 +40,17 @@ jobs:
 
           # Check if any files are modified in wazuh-indexer-setup
           if echo "$changed_files" | grep -q "^plugins/setup/"; then
-              affected_projects+=('\"setup\"')
+              affected_projects+=("setup")
           fi
 
           # Check if any files are modified in wazuh-command-manager
           if echo "$changed_files" | grep -q "^plugins/command-manager/"; then
-              affected_projects+=('\"command-manager\"')
+              affected_projects+=("command-manager")
           fi
 
           # Check if any files are modified in wazuh-content-manager
           if echo "$changed_files" | grep -q "^plugins/content-manager/"; then
-              affected_projects+=('\"content-manager\"')
+              affected_projects+=("content-manager")
           fi
 
           # Output the list of affected projects
@@ -59,6 +59,8 @@ jobs:
           else
               echo "projects=[]" >> "$GITHUB_OUTPUT"
           fi
+
+          echo "Affected projects: [${affected_projects[*]}]" >> $GITHUB_STEP_SUMMARY
 
   call-build-workflow:
     needs: modified-plugins
