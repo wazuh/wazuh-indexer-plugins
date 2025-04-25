@@ -12,7 +12,7 @@ on:
       - "**.java"
 
 # Cancel in-progress runs for the same branch
-concurrency: 
+concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
@@ -62,7 +62,10 @@ jobs:
               echo "projects=[]" >> "$GITHUB_OUTPUT"
           fi
 
-          echo "### Affected projects: `[$affected_projects_str]`" >> $GITHUB_STEP_SUMMARY
+          echo "### Affected projects       >> $GITHUB_STEP_SUMMARY
+          echo "```json"                    >> $GITHUB_STEP_SUMMARY
+          echo "[$affected_projects_str]"   >> $GITHUB_STEP_SUMMARY
+          echo "```"                        >> $GITHUB_STEP_SUMMARY
 
   call-build-workflow:
     needs: modified-plugins
