@@ -54,7 +54,6 @@ public class CTIClient extends HttpClient {
     private static final String CONSUMER_INFO_ENDPOINT =
             "/catalog/contexts/" + PluginSettings.CONTEXT_ID + "/consumers/" + PluginSettings.CONSUMER_ID;
     private static final String CONSUMER_CHANGES_ENDPOINT = CONSUMER_INFO_ENDPOINT + "/changes";
-    public static final String SNAPTHOT_SUFFIX = ".zip";
 
     private static CTIClient INSTANCE;
 
