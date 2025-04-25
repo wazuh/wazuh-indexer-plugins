@@ -45,7 +45,7 @@ jobs:
 
             # Check if any files are modified in wazuh-content-manager
             if echo "$changed_files" | grep -q "^plugins/content-manager/"; then
-                echo "content-manager" >> affected_projects.txt
+                echo '"content-manager"' >> affected_projects.txt
             fi
 
             # Output the list of affected projects
