@@ -8,8 +8,50 @@ on:
       - '**.java'
 
 jobs:
+  modified-plugins:
+    runs-on: ubuntu-24.04
+    outputs:
+      projects: ${{ steps.detect_changes.outputs.projects }}
+    steps:
+      - uses: actions/checkout@v4
+       # Step to find which project folder contains modified files
+      - name: Detect modified plugins
+        id: detect_changes
+        run: |
+            # Compare the changes between the current branch and the base branch
+            local changed_files
+            changed_files=$(git diff --name-only main...HEAD)
+            echo "$changed_files"
+
+            # Check if any files are modified in wazuh-indexer-setup
+            if echo "$changed_files" | grep -q "^plugins/setup/"; then
+                echo '"setup"' >> affected_projects.txt
+            fi
+
+            # Check if any files are modified in wazuh-command-manager
+            if echo "$changed_files" | grep -q "^plugins/command-manager/"; then
+                echo '"command-manager"' >> affected_projects.txt
+            fi
+
+            # Check if any files are modified in wazuh-content-manager
+            if echo "$changed_files" | grep -q "^plugins/content-manager/"; then
+                echo "content-manager" >> affected_projects.txt
+            fi
+
+            # Output the list of affected projects
+            if [ -f affected_projects.txt ]; then
+                echo "[$(cat affected_projects.txt | paste -sd,)]" >> $GITHUB_OUTPUT
+            else
+                echo "[]" >> $GITHUB_OUTPUT
+            fi
+
   call-build-workflow:
+    needs: modified-plugins
+    strategy:
+        matrix:
+            plugin: ${{ fromJson(needs.modified-plugins.outputs.projects) }}
     uses: ./.github/workflows/5_builderpackage_plugins.yml
     secrets: inherit
     with:
       id: ${{ github.ref }}
+      plugin: ${{ matrix.plugin }}
