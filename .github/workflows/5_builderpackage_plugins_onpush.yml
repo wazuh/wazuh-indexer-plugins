@@ -53,8 +53,9 @@ jobs:
               affected_projects+=('"content-manager"')
           fi
 
+          # Join the array elements into a comma-separated string
+          affected_projects_str=$(echo "${affected_projects[@]}" | tr ' ' ',')
           # Output the list of affected projects
-          affected_projects_str="${affected_projects[*]// /, }"
           if [ ${#affected_projects[@]} -gt 0 ]; then
               echo "projects=${affected_projects[*]}" >> "$GITHUB_OUTPUT"
           else
@@ -67,7 +68,7 @@ jobs:
     needs: modified-plugins
     strategy:
       matrix:
-        project: ${{ join(needs.modified-plugins.outputs.projects) }}
+        project: ${{ needs.modified-plugins.outputs.projects }}
         # project: ["setup", "command-manager", "content-manager"]
     uses: ./.github/workflows/5_builderpackage_plugins.yml
     secrets: inherit
