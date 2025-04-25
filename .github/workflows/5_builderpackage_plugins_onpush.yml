@@ -62,14 +62,13 @@ jobs:
               echo "projects=[]" >> "$GITHUB_OUTPUT"
           fi
 
-          echo "Affected projects: [$affected_projects_str]" >> $GITHUB_STEP_SUMMARY
+          echo "### Affected projects: `[$affected_projects_str]`" >> $GITHUB_STEP_SUMMARY
 
   call-build-workflow:
     needs: modified-plugins
     strategy:
       matrix:
         project: ${{ fromJSON(needs.modified-plugins.outputs.projects) }}
-        # project: ["setup", "command-manager", "content-manager"]
     uses: ./.github/workflows/5_builderpackage_plugins.yml
     secrets: inherit
     with:
