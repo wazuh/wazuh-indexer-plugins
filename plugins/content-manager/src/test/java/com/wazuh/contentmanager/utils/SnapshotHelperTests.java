@@ -127,7 +127,7 @@ public class SnapshotHelperTests extends OpenSearchTestCase {
         doReturn("http://example.com/file.zip").when(this.contextIndex).getLastSnapshotLink();
         doReturn(snapshotZip).when(this.ctiClient).download(anyString(), any(Environment.class));
         Path outputDir = mock(Path.class);
-        doReturn(outputDir).when(this.environment).resolveRepoFile(anyString());
+        doReturn(outputDir).when(this.environment).tmpFile();
         DirectoryStream<Path> stream = mock(DirectoryStream.class);
         Path jsonPath = mock(Path.class);
         Iterator<Path> iterator = mock(Iterator.class);

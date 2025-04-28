@@ -304,8 +304,7 @@ public class CTIClient extends HttpClient {
             // Setup
             URI uri = new URI(snapshotURI);
             String filename = uri.getPath().substring(uri.getPath().lastIndexOf('/') + 1);
-            Path path = env.resolveRepoFile(filename);
-
+            Path path = env.tmpFile().resolve(filename);
             // Download
             log.info("Starting snapshot download from [{}]", uri);
             SimpleHttpRequest request = SimpleHttpRequest.create(Method.GET, uri);
