@@ -6,6 +6,7 @@ buildscript {
     ext {
         opensearch_version = System.getProperty("opensearch.version", "2.19.1-SNAPSHOT")
         opensearch_build = opensearch_version.replace("-SNAPSHOT","") + ".0"
+        job_scheduler_version = System.getProperty("job_scheduler.version", opensearch_build)
         wazuh_version = System.getProperty("version", "5.0.0")
         revision = System.getProperty("revision", "0")
     }
@@ -89,6 +90,7 @@ dependencies {
     // Uncomment this line to load the command-manager plugin from the local Maven repository.
     // Keep it commented to allow GitHub Workflows to run the tests.
     // zipArchive group: 'com.wazuh', name:'wazuh-indexer-command-manager', version: "${wazuh_version}.${revision}"
+    compileOnly "org.opensearch:opensearch-job-scheduler-spi:${job_scheduler_version}"
 }
 
 // No need to validate license headers since spotless checks and applies it
@@ -117,6 +119,22 @@ test {
     include '**/*Tests.class'
 }
 
+def getJobSchedulerPlugin() {
+    provider(new Callable<RegularFile>() {
+        @Override
+        RegularFile call() throws Exception {
+            return new RegularFile() {
+                @Override
+                File getAsFile() {
+                    return configurations.zipArchive.asFileTree.matching {
+                        include '**/opensearch-job-scheduler*'
+                    }.singleFile
+                }
+            }
+        }
+    })
+}
+
 dependencies {
     implementation 'com.google.code.gson:gson:2.8.9'
 }
@@ -136,6 +154,10 @@ integTest {
 }
 
 testClusters.integTest {
+    plugin(getJobSchedulerPlugin())
+    testDistribution = "ARCHIVE"
+    // This installs our plugin into the testClusters
+    plugin(project.tasks.bundlePlugin.archiveFile)
     // Installs all registered zipArchive dependencies on integTest cluster nodes
     configurations.zipArchive.asFileTree.each {
       plugin(provider(new Callable<RegularFile>(){
