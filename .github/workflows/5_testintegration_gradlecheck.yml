@@ -6,6 +6,11 @@ on:
       - "plugins/**/*.java" # Match changes in Java files.
       - "plugins/**/*.gradle" # Match changes in Gradle configuration.
 
+# Cancel in-progress runs for the same branch
+concurrency: 
+    group: ${{ github.workflow }}-${{ github.ref }}
+    cancel-in-progress: true
+
 jobs:
   ci:
     runs-on: ubuntu-24.04

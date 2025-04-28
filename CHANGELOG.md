@@ -45,6 +45,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Fix error on `generate-and-push-templates.sh` script when the index template file does not exist on setup plugin resources [(#303)](https://github.com/wazuh/wazuh-indexer-plugins/pull/303)
 - Fix validation of commands by forcing `action.name` to exist before `action.args` [(#260)](https://github.com/wazuh/wazuh-indexer-plugins/issues/260)
 - Fix mentions of `host.ip` and `host.os.full` in agents index template [(#330)](https://github.com/wazuh/wazuh-indexer-plugins/pull/330)
+- Fix workflow to build plugins on push [(#384)](https://github.com/wazuh/wazuh-indexer-plugins/pull/384)
 
 ### Security
 
