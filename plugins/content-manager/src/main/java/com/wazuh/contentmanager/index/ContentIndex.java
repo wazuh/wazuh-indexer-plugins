@@ -323,7 +323,7 @@ public class ContentIndex {
      */
     public boolean exists() {
         IndicesExistsRequest request = new IndicesExistsRequest(INDEX_NAME);
-        IndicesExistsResponse response = client.admin().indices().exists(request).actionGet();
+        IndicesExistsResponse response = this.client.admin().indices().exists(request).actionGet();
         return response.isExists();
     }
 }

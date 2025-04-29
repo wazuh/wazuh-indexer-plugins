@@ -25,7 +25,6 @@ import org.opensearch.core.common.io.stream.NamedWriteableRegistry;
 import org.opensearch.core.xcontent.NamedXContentRegistry;
 import org.opensearch.env.Environment;
 import org.opensearch.env.NodeEnvironment;
-import org.opensearch.plugins.ActionPlugin;
 import org.opensearch.plugins.ClusterPlugin;
 import org.opensearch.plugins.Plugin;
 import org.opensearch.repositories.RepositoriesService;
@@ -42,7 +41,7 @@ import com.wazuh.contentmanager.settings.PluginSettings;
 import com.wazuh.contentmanager.utils.SnapshotHelper;
 
 /** Main class of the Content Manager Plugin */
-public class ContentManagerPlugin extends Plugin implements ClusterPlugin, ActionPlugin {
+public class ContentManagerPlugin extends Plugin implements ClusterPlugin {
     private ContextIndex contextIndex;
     private ContentIndex contentIndex;
     private SnapshotHelper snapshotHelper;
@@ -75,7 +74,7 @@ public class ContentManagerPlugin extends Plugin implements ClusterPlugin, Actio
      */
     @Override
     public void onNodeStarted(DiscoveryNode localNode) {
-        if (this.contentIndex.exists() && contextIndex.getOffset() == 0L) {
+        if (this.contentIndex.exists() && this.contextIndex.getOffset() == 0L) {
             this.snapshotHelper.initialize();
         }
     }
