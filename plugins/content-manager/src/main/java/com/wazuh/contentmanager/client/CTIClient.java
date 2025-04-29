@@ -297,7 +297,7 @@ public class CTIClient extends HttpClient {
      *
      * @param snapshotURI URI to the file to download.
      * @param env environment. Required to resolve files' paths.
-     * @return The downloaded file's name.
+     * @return The downloaded file's name
      */
     public Path download(String snapshotURI, Environment env) {
         try {

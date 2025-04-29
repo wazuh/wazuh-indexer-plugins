@@ -97,7 +97,8 @@ public class CommandManagerPlugin extends Plugin
 
         // Scheduled job initialization
         // NOTE it's very likely that client and thread pool may not be required as the command
-        // index repository already use them. All queries to the index should be under this class.
+        // index
+        // repository already use them. All queries to the index should be under this class.
         CommandManagerJobRunner.getInstance()
                 .setClient(client)
                 .setThreadPool(threadPool)
