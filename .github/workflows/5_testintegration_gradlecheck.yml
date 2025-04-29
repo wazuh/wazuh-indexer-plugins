@@ -42,7 +42,7 @@ jobs:
       - name: Run tests for affected projects
         run: |
           if [[ "${{ steps.detect_changes.outputs.projects }}" != "[]" ]]; then
-            for project in $(echo "${{ fromJSON(steps.detect_changes.outputs.projects) }}"; do
+            for project in $(echo "${{ fromJSON(steps.detect_changes.outputs.projects) }}"); do
               echo "Running tests for $project"
               cd plugins/$project
               ./gradlew check
