@@ -18,6 +18,9 @@ package com.wazuh.contentmanager.updater;
 
 import com.carrotsearch.randomizedtesting.annotations.ThreadLeakScope;
 
+import com.wazuh.contentmanager.utils.Privileged;
+import org.opensearch.action.admin.indices.refresh.RefreshRequest;
+import org.opensearch.action.admin.indices.refresh.RefreshResponse;
 import org.opensearch.action.get.GetResponse;
 import org.opensearch.action.support.WriteRequest;
 import org.opensearch.client.Client;
@@ -27,6 +30,9 @@ import org.opensearch.plugins.Plugin;
 import org.opensearch.test.OpenSearchIntegTestCase;
 import org.junit.Before;
 
+import java.io.OutputStream;
+import java.net.HttpURLConnection;
+import java.net.URL;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
@@ -51,6 +57,7 @@ import static org.mockito.Mockito.*;
 @OpenSearchIntegTestCase.ClusterScope(scope = OpenSearchIntegTestCase.Scope.SUITE)
 public class ContentUpdaterIT extends OpenSearchIntegTestCase {
     long initialOffset = 0L;
+    Client client;
     long lastOffset = 0L;
     String testResource = "test";
     ContentUpdater updater;
@@ -60,7 +67,7 @@ public class ContentUpdaterIT extends OpenSearchIntegTestCase {
 
     @Before
     public void setup() throws Exception {
-        Client client = client();
+        this.client = client();
         this.ctiClient = mock(CTIClient.class);
         this.contextIndex = spy(new ContextIndex(client));
         this.contentIndex = new ContentIndex(client);
@@ -92,7 +99,14 @@ public class ContentUpdaterIT extends OpenSearchIntegTestCase {
         when(this.contextIndex.getConsumer(anyString(), anyString())).thenReturn(testConsumer);
         // Act
         boolean updated = this.updater.update();
-        Thread.sleep(1000);
+        Privileged.doPrivilegedRequest(
+            () -> {
+                RefreshRequest request = new RefreshRequest(contentIndex.INDEX_NAME);
+                this.client.admin().indices().refresh(request).actionGet();
+                return null;
+            }
+        );
+
         ConsumerInfo updatedConsumer =
                 this.contextIndex.getConsumer(PluginSettings.CONTEXT_ID, PluginSettings.CONSUMER_ID);
         // Assert
@@ -120,7 +134,14 @@ public class ContentUpdaterIT extends OpenSearchIntegTestCase {
         when(this.contextIndex.getConsumer(anyString(), anyString())).thenReturn(testConsumer);
         // Act
         boolean updated = this.updater.update();
-        Thread.sleep(1000);
+        Privileged.doPrivilegedRequest(
+            () -> {
+                RefreshRequest request = new RefreshRequest(contentIndex.INDEX_NAME);
+                this.client.admin().indices().refresh(request).actionGet();
+                return null;
+            }
+        );
+
         ConsumerInfo updatedConsumer =
                 this.contextIndex.getConsumer(PluginSettings.CONTEXT_ID, PluginSettings.CONSUMER_ID);
         // Assert
@@ -150,7 +171,14 @@ public class ContentUpdaterIT extends OpenSearchIntegTestCase {
         when(this.contextIndex.getConsumer(anyString(), anyString())).thenReturn(testConsumer);
         // Act
         boolean updated = this.updater.update();
-        Thread.sleep(1000);
+        Privileged.doPrivilegedRequest(
+            () -> {
+                RefreshRequest request = new RefreshRequest(contentIndex.INDEX_NAME);
+                this.client.admin().indices().refresh(request).actionGet();
+                return null;
+            }
+        );
+
         ConsumerInfo updatedConsumer =
                 this.contextIndex.getConsumer(PluginSettings.CONTEXT_ID, PluginSettings.CONSUMER_ID);
         GetResponse getContent =
