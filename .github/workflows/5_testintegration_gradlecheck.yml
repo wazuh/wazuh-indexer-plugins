@@ -34,32 +34,9 @@ jobs:
       # Step to find which project folder contains modified files
       - name: Detect modified plugins
         id: detect_changes
-        run: |
-          # Compare the changes between the current branch and the base branch
-          CHANGED_FILES=$(git diff --name-only origin/${{ github.event.pull_request.base.ref }})
-          echo $CHANGED_FILES
-
-          # Check if any files are modified in wazuh-indexer-setup
-          if echo "$CHANGED_FILES" | grep -q "^plugins/setup/"; then
-            echo "setup" >> affected_projects.txt
-          fi
-
-          # Check if any files are modified in wazuh-command-manager
-          if echo "$CHANGED_FILES" | grep -q "^plugins/command-manager/"; then
-            echo "command-manager" >> affected_projects.txt
-          fi
-
-          # Check if any files are modified in wazuh-content-manager
-          if echo "$CHANGED_FILES" | grep -q "^plugins/content-manager/"; then
-            echo "content-manager" >> affected_projects.txt
-          fi
-
-          # Output the list of affected projects
-          if [ -f affected_projects.txt ]; then
-            echo "projects=$(cat affected_projects.txt | paste -sd,)" >> $GITHUB_OUTPUT
-          else
-            echo "projects=none" >> $GITHUB_OUTPUT
-          fi
+        uses: ./.github/actions/5_codeanalysis_detect_modified_plugins
+        with:
+          base_branch: ${{ github.event.pull_request.base.ref }}
 
       # Run tests for affected projects
       - name: Run tests for affected projects

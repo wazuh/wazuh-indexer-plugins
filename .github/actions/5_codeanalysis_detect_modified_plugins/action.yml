@@ -1,0 +1,48 @@
+name: 'Detect Modified Plugins'
+
+# Detects modified plugins based on changed files in a pull request or push event.
+
+inputs:
+  base_branch:
+    description: 'The base branch to compare against (e.g., main or develop)'
+    required: true
+
+runs:
+  using: 'bash'
+  steps:
+    - name: Detect modified plugins
+      id: detect_changes
+      run: |
+        # Fetch the base branch to compare against
+        git fetch origin ${{ inputs.base_branch }}:refs/remotes/origin/${{ inputs.base_branch }}
+
+        # Compare the changes between the current branch and the base branch
+        changed_files=$(git diff --name-only origin/${{ inputs.base_branch }})
+        
+        affected_projects=()
+
+        # Check for each plugin folder
+        if echo "$changed_files" | grep -q "^plugins/setup/"; then
+            affected_projects+=('"setup"')
+        fi
+        if echo "$changed_files" | grep -q "^plugins/command-manager/"; then
+            affected_projects+=('"command-manager"')
+        fi
+        if echo "$changed_files" | grep -q "^plugins/content-manager/"; then
+            affected_projects+=('"content-manager"')
+        fi
+
+        # Join the array elements into a comma-separated string
+        affected_projects_str=$(echo "${affected_projects[@]}" | tr ' ' ',')
+        
+        # Output the list of affected projects
+        if [ ${#affected_projects[@]} -gt 0 ]; then
+            echo "projects=[$affected_projects_str]" >> "$GITHUB_OUTPUT"
+        else
+            echo "projects=[]" >> "$GITHUB_OUTPUT"
+        fi
+
+        echo "### Affected projects" >> $GITHUB_STEP_SUMMARY
+        echo '```json' >> $GITHUB_STEP_SUMMARY
+        echo "[$affected_projects_str]" >> $GITHUB_STEP_SUMMARY
+        echo '```' >> $GITHUB_STEP_SUMMARY
