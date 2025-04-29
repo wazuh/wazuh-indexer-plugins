@@ -154,28 +154,26 @@ integTest {
 }
 
 testClusters.integTest {
-    plugin(getJobSchedulerPlugin())
-    testDistribution = "ARCHIVE"
-    // This installs our plugin into the testClusters
-    plugin(project.tasks.bundlePlugin.archiveFile)
-    // Installs all registered zipArchive dependencies on integTest cluster nodes
-    configurations.zipArchive.asFileTree.each {
-      plugin(provider(new Callable<RegularFile>(){
-        @Override
-        RegularFile call() throws Exception {
-          return new RegularFile() {
-            @Override
-            File getAsFile() {
-              return it
-            }
+  testDistribution = "ARCHIVE"
+  // This installs our plugin into the testClusters
+  plugin(project.tasks.bundlePlugin.archiveFile)
+  // Installs all registered zipArchive dependencies on integTest cluster nodes
+  configurations.zipArchive.asFileTree.each {
+    plugin(provider(new Callable<RegularFile>(){
+      @Override
+      RegularFile call() throws Exception {
+        return new RegularFile() {
+          @Override
+          File getAsFile() {
+            return it
           }
         }
-      }))
-    }
-    testDistribution = "ARCHIVE"
-    // This installs our plugin into the testClusters
-    plugin(project.tasks.bundlePlugin.archiveFile)
+      }
+    }))
+  }
 }
+
+
 
 run {
     useCluster testClusters.integTest
