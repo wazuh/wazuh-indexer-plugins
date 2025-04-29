@@ -8,10 +8,11 @@ inputs:
     required: true
 
 runs:
-  using: 'bash'
+  using: 'composite'
   steps:
     - name: Detect modified plugins
       id: detect_changes
+      shell: bash
       run: |
         # Fetch the base branch to compare against
         git fetch origin ${{ inputs.base_branch }}:refs/remotes/origin/${{ inputs.base_branch }}
