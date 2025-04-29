@@ -27,45 +27,9 @@ jobs:
       # Step to find which project folder contains modified files
       - name: Detect modified plugins
         id: detect_changes
-        run: |
-          # Fetch the base branch (e.g., main or develop) to compare against
-          git fetch origin ${{ github.event.pull_request.base.ref }}:refs/remotes/origin/${{ github.event.pull_request.base.ref }}
-
-          # Compare the changes between the current branch and the base branch
-          changed_files=$(git diff --name-only origin/${{ github.event.pull_request.base.ref }})
-          echo "$changed_files"
-
-          # Create an array to store affected projects
-          affected_projects=()
-
-          # Check if any files are modified in wazuh-indexer-setup
-          if echo "$changed_files" | grep -q "^plugins/setup/"; then
-              affected_projects+=('"setup"')
-          fi
-
-          # Check if any files are modified in wazuh-command-manager
-          if echo "$changed_files" | grep -q "^plugins/command-manager/"; then
-              affected_projects+=('"command-manager"')
-          fi
-
-          # Check if any files are modified in wazuh-content-manager
-          if echo "$changed_files" | grep -q "^plugins/content-manager/"; then
-              affected_projects+=('"content-manager"')
-          fi
-
-          # Join the array elements into a comma-separated string
-          affected_projects_str=$(echo "${affected_projects[@]}" | tr ' ' ',')
-          # Output the list of affected projects
-          if [ ${#affected_projects[@]} -gt 0 ]; then
-              echo "projects=[$affected_projects_str]" >> "$GITHUB_OUTPUT"
-          else
-              echo "projects=[]" >> "$GITHUB_OUTPUT"
-          fi
-
-          echo "### Affected projects"      >> $GITHUB_STEP_SUMMARY
-          echo '```json'                    >> $GITHUB_STEP_SUMMARY
-          echo "[$affected_projects_str]"   >> $GITHUB_STEP_SUMMARY
-          echo '```'                        >> $GITHUB_STEP_SUMMARY
+        uses: ./.github/actions/5_codeanalysis_detect_modified_plugins
+        with:
+          base_branch: ${{ github.event_name == 'push' && github.ref_name || github.event.pull_request.base.ref }}
 
   call-build-workflow:
     needs: modified-plugins
