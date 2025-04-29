@@ -119,22 +119,6 @@ test {
     include '**/*Tests.class'
 }
 
-def getJobSchedulerPlugin() {
-    provider(new Callable<RegularFile>() {
-        @Override
-        RegularFile call() throws Exception {
-            return new RegularFile() {
-                @Override
-                File getAsFile() {
-                    return configurations.zipArchive.asFileTree.matching {
-                        include '**/opensearch-job-scheduler*'
-                    }.singleFile
-                }
-            }
-        }
-    })
-}
-
 dependencies {
     implementation 'com.google.code.gson:gson:2.8.9'
 }
@@ -172,8 +156,6 @@ testClusters.integTest {
     }))
   }
 }
-
-
 
 run {
     useCluster testClusters.integTest
