@@ -30,6 +30,8 @@ jobs:
         uses: ./.github/actions/5_codeanalysis_detect_modified_plugins
         with:
           base_branch: ${{ github.event_name == 'push' && github.ref_name || github.event.pull_request.base.ref }}
+      - name: Output Projects
+        run: echo "Detected projects ${{ steps.detect_changes.outputs.projects }}"
 
   call-build-workflow:
     needs: modified-plugins
