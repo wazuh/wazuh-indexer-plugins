@@ -41,8 +41,8 @@ jobs:
       # Run tests for affected projects
       - name: Run tests for affected projects
         run: |
-          if [[ "${{ steps.detect_changes.outputs.projects }}" != "none" ]]; then
-            for project in $(echo "${{ steps.detect_changes.outputs.projects }}" | tr ',' ' '); do
+          if [[ "${{ fromJSON(steps.detect_changes.outputs.projects) }}" != "none" ]]; then
+            for project in $(echo "${{ fromJSON(steps.detect_changes.outputs.projects) }}" | tr ',' ' '); do
               echo "Running tests for $project"
               cd plugins/$project
               ./gradlew check
