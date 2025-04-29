@@ -9,7 +9,7 @@ inputs:
 
 outputs:
   projects:
-    description: 'List of modified plugins'
+    description: 'List of modified plugins as a JSON array. For example: ["plugin-A", "plugin-B"]'
     value: ${{ steps.detect_changes.outputs.projects }}
     
 runs:
@@ -52,3 +52,4 @@ runs:
         echo '```json' >> $GITHUB_STEP_SUMMARY
         echo "[$affected_projects_str]" >> $GITHUB_STEP_SUMMARY
         echo '```' >> $GITHUB_STEP_SUMMARY
+        

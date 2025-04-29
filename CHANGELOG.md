@@ -21,6 +21,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Implement RBAC "refresh" command [(#370)](https://github.com/wazuh/wazuh-indexer-plugins/pull/370)
 - Implement content update using Json Patch operations [(#362)](https://github.com/wazuh/wazuh-indexer-plugins/pull/362)
 - Implement CTI API client rate limit and enhanced response handling [(#363)](https://github.com/wazuh/wazuh-indexer-plugins/pull/363)
+- Add custom action to list modified plugins [(#388)](https://github.com/wazuh/wazuh-indexer-plugins/pull/388)
 
 ### Dependencies
 
@@ -35,7 +36,6 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Improve ECS documentation II [(#350)](https://github.com/wazuh/wazuh-indexer-plugins/pull/350)
 - Index RBAC information on startup [(#356)](https://github.com/wazuh/wazuh-indexer-plugins/pull/356)
 - Change snapshot download directory to Java's tmp folder [(#382)](https://github.com/wazuh/wazuh-indexer-plugins/pull/382)
-- Custom action to detect modified plugins [(#388)](https://github.com/wazuh/wazuh-indexer-plugins/pull/388)
 
 ### Deprecated
 
