@@ -16,6 +16,8 @@
  */
 package com.wazuh.contentmanager;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.opensearch.client.Client;
 import org.opensearch.cluster.metadata.IndexNameExpressionResolver;
 import org.opensearch.cluster.node.DiscoveryNode;
@@ -42,9 +44,11 @@ import com.wazuh.contentmanager.utils.SnapshotHelper;
 
 /** Main class of the Content Manager Plugin */
 public class ContentManagerPlugin extends Plugin implements ClusterPlugin {
+    private static final Logger log = LogManager.getLogger(ContentManagerPlugin.class);
     private ContextIndex contextIndex;
     private ContentIndex contentIndex;
     private SnapshotHelper snapshotHelper;
+    private ThreadPool threadPool;
 
     @Override
     public Collection<Object> createComponents(
@@ -60,6 +64,7 @@ public class ContentManagerPlugin extends Plugin implements ClusterPlugin {
             IndexNameExpressionResolver indexNameExpressionResolver,
             Supplier<RepositoriesService> repositoriesServiceSupplier) {
         PluginSettings.getInstance(environment.settings(), clusterService);
+        this.threadPool = threadPool;
         this.contextIndex = new ContextIndex(client);
         this.contentIndex = new ContentIndex(client);
         this.snapshotHelper = new SnapshotHelper(environment, this.contextIndex, this.contentIndex);
@@ -75,7 +80,17 @@ public class ContentManagerPlugin extends Plugin implements ClusterPlugin {
     @Override
     public void onNodeStarted(DiscoveryNode localNode) {
         if (this.contentIndex.exists() && this.contextIndex.getOffset() == 0L) {
-            this.snapshotHelper.initialize();
+            threadPool
+                    .generic()
+                    .execute(
+                            () -> {
+                                try {
+                                    this.snapshotHelper.initialize();
+                                } catch (Exception e) {
+                                    // Log or handle exception
+                                    log.error("Error initializing snapshot helper: {}", e.getMessage(), e);
+                                }
+                            });
         }
     }
 
