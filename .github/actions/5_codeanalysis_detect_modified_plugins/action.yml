@@ -1,19 +1,16 @@
-name: 'Detect Modified Plugins'
-
-# Detects modified plugins based on changed files in a pull request or push event.
-
+name: "Detect Modified Plugins"
+description: "Detect modified plugins based on changed files in a pull request or push event."
 inputs:
   base_branch:
-    description: 'The base branch to compare against (e.g., main or develop)'
+    description: "The base branch to compare against (e.g., main or develop)"
     required: true
-
 outputs:
   projects:
     description: 'List of modified plugins as a JSON array. For example: ["plugin-A", "plugin-B"]'
     value: ${{ steps.detect_changes.outputs.projects }}
-    
+
 runs:
-  using: 'composite'
+  using: "composite"
   steps:
     - name: Detect modified plugins
       id: detect_changes
@@ -24,7 +21,7 @@ runs:
 
         # Compare the changes between the current branch and the base branch
         changed_files=$(git diff --name-only origin/${{ inputs.base_branch }})
-        
+
         affected_projects=()
 
         # Check for each plugin folder
@@ -40,7 +37,7 @@ runs:
 
         # Join the array elements into a comma-separated string
         affected_projects_str=$(echo "${affected_projects[@]}" | tr ' ' ',')
-        
+
         # Output the list of affected projects
         if [ ${#affected_projects[@]} -gt 0 ]; then
             echo "projects=[$affected_projects_str]" >> "$GITHUB_OUTPUT"
@@ -52,4 +49,3 @@ runs:
         echo '```json' >> $GITHUB_STEP_SUMMARY
         echo "[$affected_projects_str]" >> $GITHUB_STEP_SUMMARY
         echo '```' >> $GITHUB_STEP_SUMMARY
-        

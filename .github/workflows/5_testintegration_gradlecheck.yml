@@ -7,9 +7,9 @@ on:
       - "plugins/**/*.gradle" # Match changes in Gradle configuration.
 
 # Cancel in-progress runs for the same branch
-concurrency: 
-    group: ${{ github.workflow }}-${{ github.ref }}
-    cancel-in-progress: true
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   ci:
