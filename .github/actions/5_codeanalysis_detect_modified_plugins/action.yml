@@ -7,6 +7,11 @@ inputs:
     description: 'The base branch to compare against (e.g., main or develop)'
     required: true
 
+outputs:
+  projects:
+    description: 'List of modified plugins'
+    value: ${{ steps.detect_changes.outputs.projects }}
+    
 runs:
   using: 'composite'
   steps:
