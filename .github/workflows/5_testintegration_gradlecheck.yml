@@ -41,9 +41,8 @@ jobs:
       # Run tests for affected projects
       - name: Run tests for affected projects
         run: |
-          TEST_PROJECTS=$(echo "${{ steps.detect_changes.outputs.projects }}" | jq -r '.[]')
-          if [[ -n "$TEST_PROJECTS" ]]; then
-            for project in $TEST_PROJECTS; do
+          if [[ "${{ steps.detect_changes.outputs.projects }}" != "[]" ]]; then
+            for project in $(echo "${{ fromJSON(steps.detect_changes.outputs.projects) }}"; do
               echo "Running tests for $project"
               cd plugins/$project
               ./gradlew check
