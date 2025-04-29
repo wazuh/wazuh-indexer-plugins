@@ -25,6 +25,12 @@ jobs:
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v4
 
+      # Step to fetch the base branch for comparison
+      - name: Fetch base branch
+        run: |
+          # Fetch the base branch (e.g., main or develop) to compare against
+          git fetch origin ${{ github.event.pull_request.base.ref }}:refs/remotes/origin/${{ github.event.pull_request.base.ref }}
+
       # Step to find which project folder contains modified files
       - name: Detect modified plugins
         id: detect_changes
