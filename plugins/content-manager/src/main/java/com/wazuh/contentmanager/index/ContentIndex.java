@@ -20,6 +20,8 @@ import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.opensearch.action.admin.indices.exists.indices.IndicesExistsRequest;
+import org.opensearch.action.admin.indices.exists.indices.IndicesExistsResponse;
 import org.opensearch.action.bulk.BulkRequest;
 import org.opensearch.action.bulk.BulkResponse;
 import org.opensearch.action.delete.DeleteRequest;
@@ -312,5 +314,16 @@ public class ContentIndex {
                         "Document with ID [%s] not found in the [%s] index",
                         resourceId,
                         INDEX_NAME));
+    }
+
+    /**
+     * Checks if the index exists.
+     *
+     * @return true if the index exists, false otherwise.
+     */
+    public boolean exists() {
+        IndicesExistsRequest request = new IndicesExistsRequest(INDEX_NAME);
+        IndicesExistsResponse response = client.admin().indices().exists(request).actionGet();
+        return response.isExists();
     }
 }

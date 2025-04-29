@@ -45,9 +45,7 @@ import com.wazuh.contentmanager.utils.SnapshotHelper;
 public class ContentManagerPlugin extends Plugin implements ClusterPlugin, ActionPlugin {
     private ContextIndex contextIndex;
     private ContentIndex contentIndex;
-    private Environment environment;
-    private ClusterService clusterService;
-    private ThreadPool threadPool;
+    private SnapshotHelper snapshotHelper;
 
     @Override
     public Collection<Object> createComponents(
@@ -65,9 +63,7 @@ public class ContentManagerPlugin extends Plugin implements ClusterPlugin, Actio
         PluginSettings.getInstance(environment.settings(), clusterService);
         this.contextIndex = new ContextIndex(client);
         this.contentIndex = new ContentIndex(client);
-        this.environment = environment;
-        this.clusterService = clusterService;
-        this.threadPool = threadPool;
+        this.snapshotHelper = new SnapshotHelper(environment, this.contextIndex, this.contentIndex);
 
         return Collections.emptyList();
     }
@@ -79,9 +75,9 @@ public class ContentManagerPlugin extends Plugin implements ClusterPlugin, Actio
      */
     @Override
     public void onNodeStarted(DiscoveryNode localNode) {
-        SnapshotHelper snapshotHelper =
-                new SnapshotHelper(this.threadPool, this.environment, this.contextIndex, this.contentIndex);
-        this.clusterService.addListener(snapshotHelper);
+        if (this.contentIndex.exists() && contextIndex.getOffset() == 0L) {
+            this.snapshotHelper.initialize();
+        }
     }
 
     @Override

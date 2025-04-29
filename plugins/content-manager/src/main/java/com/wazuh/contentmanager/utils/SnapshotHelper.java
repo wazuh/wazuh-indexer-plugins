@@ -20,20 +20,13 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.opensearch.action.DocWriteResponse;
 import org.opensearch.action.index.IndexResponse;
-import org.opensearch.cluster.ClusterChangedEvent;
-import org.opensearch.cluster.ClusterStateListener;
-import org.opensearch.cluster.metadata.IndexMetadata;
-import org.opensearch.cluster.metadata.MappingMetadata;
 import org.opensearch.env.Environment;
-import org.opensearch.threadpool.ThreadPool;
 
 import java.io.IOException;
 import java.nio.file.DirectoryStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Locale;
-import java.util.Objects;
-import java.util.concurrent.Executor;
 
 import com.wazuh.contentmanager.client.CTIClient;
 import com.wazuh.contentmanager.client.CommandManagerClient;
@@ -44,9 +37,8 @@ import com.wazuh.contentmanager.model.ctiapi.ConsumerInfo;
 import com.wazuh.contentmanager.settings.PluginSettings;
 
 /** Helper class to handle indexing of snapshots */
-public class SnapshotHelper implements ClusterStateListener {
+public class SnapshotHelper {
     private static final Logger log = LogManager.getLogger(SnapshotHelper.class);
-    private ThreadPool threadPool;
     private final CTIClient ctiClient;
     private final Environment environment;
     private final ContextIndex contextIndex;
@@ -55,17 +47,12 @@ public class SnapshotHelper implements ClusterStateListener {
     /**
      * Constructor.
      *
-     * @param threadPool Used to launch the snapshot index task in its own thread
      * @param environment Needed for snapshot file handling.
      * @param contextIndex Handles context and consumer related metadata.
      * @param contentIndex Handles indexed content.
      */
     public SnapshotHelper(
-            ThreadPool threadPool,
-            Environment environment,
-            ContextIndex contextIndex,
-            ContentIndex contentIndex) {
-        this.threadPool = threadPool;
+            Environment environment, ContextIndex contextIndex, ContentIndex contentIndex) {
         this.environment = environment;
         this.contextIndex = contextIndex;
         this.contentIndex = contentIndex;
@@ -183,65 +170,11 @@ public class SnapshotHelper implements ClusterStateListener {
     /** Trigger method for a CVE index initialization from a snapshot */
     public void initialize() {
         try {
+            log.info("Initializing CVE index from a snapshot");
             this.updateContextIndex();
             this.indexSnapshot();
         } catch (IOException e) {
             log.error("Failed to initialize CVE Index from snapshot: {}", e.getMessage());
         }
-    }
-
-    /**
-     * This is part of the ClusterStateListener interface. It is used to launch the indexing of the
-     * CVE snapshot upon detection of a new mapping being loaded into the "wazuh-cve" index
-     *
-     * @param event The event that allows us to detect the state change
-     */
-    @Override
-    public void clusterChanged(ClusterChangedEvent event) {
-        // Get index information from current and previous cluster state
-        IndexMetadata previousIndexMetadata =
-                event.previousState().metadata().index(ContentIndex.INDEX_NAME);
-        IndexMetadata currentIndexMetadata = event.state().metadata().index(ContentIndex.INDEX_NAME);
-
-        // Declare mappings variables
-        MappingMetadata previousMappings = null;
-        MappingMetadata currentMappings;
-
-        // If previous index state's metadata is null, don't try to its mappings
-        if (previousIndexMetadata != null) {
-            previousMappings = previousIndexMetadata.mapping();
-        }
-
-        // Don't move forward unless there is index metadata in the current state
-        if (currentIndexMetadata == null) {
-            return;
-        }
-
-        // At this point we can safely read the current mapping
-        currentMappings = currentIndexMetadata.mapping();
-
-        // Return when mappings haven't changed
-        if (Objects.equals(currentMappings, previousMappings)) {
-            return;
-        }
-
-        // Return when currentMappings is null
-        if (currentMappings == null) {
-            return;
-        }
-
-        // Make sure the current mappings are not the dynamically generated ones
-        Object dynamicField = currentMappings.getSourceAsMap().get("dynamic");
-        if (dynamicField == null) {
-            return;
-        }
-        if (!dynamicField.equals("strict")) {
-            return;
-        }
-
-        // Execute initialization in its own separate thread.
-        // This is necessary to avoid blocking the engine.
-        Executor executor = threadPool.executor(ThreadPool.Names.GENERIC);
-        executor.execute(this::initialize);
     }
 }
