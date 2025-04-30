@@ -79,7 +79,7 @@ public class ContentManagerPlugin extends Plugin implements ClusterPlugin {
      */
     @Override
     public void onNodeStarted(DiscoveryNode localNode) {
-        if (this.contentIndex.exists() && this.contextIndex.getOffset() == 0L) {
+        if (this.contentIndex.exists()) {
             threadPool
                     .generic()
                     .execute(

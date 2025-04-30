@@ -84,6 +84,7 @@ public class SnapshotHelper {
      */
     protected void indexSnapshot() {
         if (this.contextIndex.getOffset() == 0) {
+            log.info("Initializing [{}] index from a snapshot", ContentIndex.INDEX_NAME);
             Privileged.doPrivilegedRequest(
                     () -> {
                         // Download
@@ -167,14 +168,13 @@ public class SnapshotHelper {
         }
     }
 
-    /** Trigger method for a CVE index initialization from a snapshot */
+    /** Trigger method for content initialization */
     public void initialize() {
         try {
-            log.info("Initializing CVE index from a snapshot");
             this.updateContextIndex();
             this.indexSnapshot();
         } catch (IOException e) {
-            log.error("Failed to initialize CVE Index from snapshot: {}", e.getMessage());
+            log.error("Failed to initialize: {}", e.getMessage());
         }
     }
 }
