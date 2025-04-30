@@ -158,7 +158,6 @@ public class ContentUpdaterIT extends OpenSearchIntegTestCase {
         RefreshRequest request = new RefreshRequest(ContentIndex.INDEX_NAME);
         this.client.admin().indices().refresh(request).actionGet();
 
-
         ConsumerInfo updatedConsumer =
                 this.contextIndex.getConsumer(PluginSettings.CONTEXT_ID, PluginSettings.CONSUMER_ID);
         GetResponse getContent =

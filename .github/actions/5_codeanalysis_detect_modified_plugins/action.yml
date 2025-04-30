@@ -2,8 +2,9 @@ name: "Detect Modified Plugins"
 description: "Detect modified plugins based on changed files in a pull request or push event."
 inputs:
   base_branch:
-    description: 'Base branch to compare.'
-    required: true
+    description: 'Base branch to compare against. Default is "main".'
+    default: 'main'
+    required: false
 outputs:
   projects:
     description: 'List of modified plugins as a JSON array. For example: ["plugin-A", "plugin-B"]'
@@ -17,10 +18,10 @@ runs:
       shell: bash
       run: |
         # Fetch the base branch to compare against
-        git fetch origin main:refs/remotes/origin/main
+        git fetch origin ${{ inputs.base_branch }}:refs/remotes/origin/${{ inputs.base_branch }}
 
         # Compare the changes between the current branch and the base branch
-        changed_files=$(git diff --name-only origin/main)
+        changed_files=$(git diff --name-only origin/${{ inputs.base_branch }})
 
         affected_projects=()
 
