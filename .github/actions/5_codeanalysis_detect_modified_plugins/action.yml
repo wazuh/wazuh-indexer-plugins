@@ -2,8 +2,9 @@ name: "Detect Modified Plugins"
 description: "Detect modified plugins based on changed files in a pull request or push event."
 inputs:
   base_branch:
-    description: "The base branch to compare against (e.g., main or develop)"
-    required: true
+    description: 'Base branch to compare against. Default is "main".'
+    default: 'main'
+    required: false
 outputs:
   projects:
     description: 'List of modified plugins as a JSON array. For example: ["plugin-A", "plugin-B"]'

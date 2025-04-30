@@ -29,9 +29,7 @@ jobs:
       - name: Detect modified plugins
         id: detect_changes
         uses: ./.github/actions/5_codeanalysis_detect_modified_plugins
-        with:
-          base_branch: ${{ github.event.pull_request.base.ref }}
-
+        
       # Run tests for affected projects
       - name: Run tests for affected projects
         run: |
