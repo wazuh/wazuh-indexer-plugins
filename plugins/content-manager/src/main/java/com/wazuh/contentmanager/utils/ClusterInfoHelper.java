@@ -58,9 +58,6 @@ public class ClusterInfoHelper {
             host = clusterService.getSettings().get("network.host", host);
             port = clusterService.getSettings().get("http.port", port);
         }
-        String url = String.format(Locale.ROOT, "%s://%s:%s", protocol, host, port);
-
-        log.info("Cluster base URL {}", url);
-        return url;
+        return String.format(Locale.ROOT, "%s://%s:%s", protocol, host, port);
     }
 }

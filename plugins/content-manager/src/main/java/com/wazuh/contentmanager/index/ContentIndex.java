@@ -70,7 +70,6 @@ public class ContentIndex {
 
     private final Client client;
     private final Semaphore semaphore = new Semaphore(MAX_CONCURRENT_PETITIONS);
-    private Long lastIndexedOffset;
 
     /**
      * Constructor for the ContentIndex class.
@@ -250,8 +249,9 @@ public class ContentIndex {
      * ContentIndex#index(List)}.
      *
      * @param path path to the CTI snapshot JSON file to be indexed.
+     * @return offset number of the last indexed resource of the snapshot. 0 on error.
      */
-    public void fromSnapshot(String path) {
+    public long fromSnapshot(String path) {
         long startTime = System.currentTimeMillis();
 
         String line;
@@ -278,7 +278,6 @@ public class ContentIndex {
                     this.semaphore.acquire();
                     this.index(items);
                     lineCount = 0;
-                    this.lastIndexedOffset = json.get(JSON_OFFSET_KEY).getAsLong();
                     items.clear();
                 }
             }
@@ -287,11 +286,17 @@ public class ContentIndex {
                 this.semaphore.acquire();
                 this.index(items);
             }
+        } catch (InterruptedException e) {
+            items.clear();
+            log.error("Processing snapshot file interrupted {}", e.getMessage());
         } catch (Exception e) {
-            log.error("Error processing snapshot file {}", e.getMessage());
+            items.clear();
+            log.error("Generic exception indexing the snapshot: {}", e.getMessage());
         }
         long estimatedTime = System.currentTimeMillis() - startTime;
         log.info("Snapshot indexing finished successfully in {} ms", estimatedTime);
+
+        return items.isEmpty() ? 0 : items.get(items.size() - 1).get(JSON_OFFSET_KEY).getAsLong();
     }
 
     /**
@@ -330,12 +335,12 @@ public class ContentIndex {
         return response.isExists();
     }
 
-    /**
-     * Retrieves the last indexed offset to the {@link ContentIndex#INDEX_NAME} index.
-     *
-     * @return Long value with the last indexed offset.
-     */
-    public Long getLastIndexedOffset() {
-        return this.lastIndexedOffset;
-    }
+    //    /**
+    //     * Retrieves the last indexed offset to the {@link ContentIndex#INDEX_NAME} index.
+    //     *
+    //     * @return Long value with the last indexed offset.
+    //     */
+    //    public Long getOffset() {
+    //        return this.offset;
+    //    }
 }

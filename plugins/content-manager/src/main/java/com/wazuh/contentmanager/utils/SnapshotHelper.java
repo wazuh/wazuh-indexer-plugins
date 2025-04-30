@@ -87,18 +87,22 @@ public class SnapshotHelper {
             log.info("Initializing [{}] index from a snapshot", ContentIndex.INDEX_NAME);
             Privileged.doPrivilegedRequest(
                     () -> {
-                        // Download
+                        // Download snapshot.
                         Path snapshotZip =
                                 this.ctiClient.download(this.contextIndex.getLastSnapshotLink(), this.environment);
                         Path outputDir = this.environment.tmpFile();
 
                         try (DirectoryStream<Path> stream = this.getStream(outputDir)) {
+                            // Unzip snapshot.
                             this.unzip(snapshotZip, outputDir);
                             Path snapshotJson = stream.iterator().next();
-                            this.contentIndex.fromSnapshot(snapshotJson.toString());
-                            // Update the context with the newest indexed offset.
-                            this.contextIndex.setOffset(this.contentIndex.getLastIndexedOffset());
+                            // Index snapshot.
+                            long offset = this.contentIndex.fromSnapshot(snapshotJson.toString());
+                            // Update the offset.
+                            this.contextIndex.setOffset(offset);
+                            // Send command.
                             this.postUpdateCommand();
+                            // Remove snapshot.
                             Files.deleteIfExists(snapshotZip);
                             Files.deleteIfExists(snapshotJson);
                         } catch (IOException | NullPointerException e) {
@@ -172,8 +176,8 @@ public class SnapshotHelper {
     /** Trigger method for content initialization */
     public void initialize() {
         try {
-            this.indexSnapshot();
             this.updateContextIndex();
+            this.indexSnapshot();
         } catch (IOException e) {
             log.error("Failed to initialize: {}", e.getMessage());
         }
