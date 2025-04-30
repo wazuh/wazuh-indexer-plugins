@@ -18,9 +18,7 @@ package com.wazuh.contentmanager.updater;
 
 import com.carrotsearch.randomizedtesting.annotations.ThreadLeakScope;
 
-import com.wazuh.contentmanager.utils.Privileged;
 import org.opensearch.action.admin.indices.refresh.RefreshRequest;
-import org.opensearch.action.admin.indices.refresh.RefreshResponse;
 import org.opensearch.action.get.GetResponse;
 import org.opensearch.action.support.WriteRequest;
 import org.opensearch.client.Client;
@@ -30,9 +28,6 @@ import org.opensearch.plugins.Plugin;
 import org.opensearch.test.OpenSearchIntegTestCase;
 import org.junit.Before;
 
-import java.io.OutputStream;
-import java.net.HttpURLConnection;
-import java.net.URL;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
