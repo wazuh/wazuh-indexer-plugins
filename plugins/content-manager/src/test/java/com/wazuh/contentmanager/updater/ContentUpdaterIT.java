@@ -78,10 +78,8 @@ public class ContentUpdaterIT extends OpenSearchIntegTestCase {
 
     /**
      * Tests whether a Create-type patch is correctly applied to the wazuh-cve index
-     *
-     * @throws InterruptedException Rethrown from Thread.sleep()
      */
-    public void testUpdate_ContentChangesTypeCreate() throws InterruptedException {
+    public void testUpdate_ContentChangesTypeCreate() {
         // Arrange
         long offsetId = 1L;
         Offset createOffset = this.getOffset(offsetId, OperationType.CREATE);
@@ -108,10 +106,8 @@ public class ContentUpdaterIT extends OpenSearchIntegTestCase {
 
     /**
      * Tests whether an update-type patch is correctly applied to the wazuh-cve index
-     *
-     * @throws InterruptedException Rethrown from Thread.sleep()
      */
-    public void testUpdate_ContentChangesTypeUpdate() throws InterruptedException {
+    public void testUpdate_ContentChangesTypeUpdate(){
         // Arrange
         long offsetId = 2L;
         Offset createOffset = this.getOffset(offsetId - 1, OperationType.CREATE);
@@ -140,7 +136,7 @@ public class ContentUpdaterIT extends OpenSearchIntegTestCase {
     /**
      * Tests whether a delete-type patch is correctly applied to the wazuh-cve index
      *
-     * @throws InterruptedException Rethrown from Thread.sleep()
+     * @throws InterruptedException
      * @throws ExecutionException
      * @throws TimeoutException
      */

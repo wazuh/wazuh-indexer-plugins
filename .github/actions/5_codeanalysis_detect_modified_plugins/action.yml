@@ -20,7 +20,7 @@ runs:
         git fetch origin main:refs/remotes/origin/main
 
         # Compare the changes between the current branch and the base branch
-        changed_files=$(git diff --name-only origin/main
+        changed_files=$(git diff --name-only origin/main)
 
         affected_projects=()
 
