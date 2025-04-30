@@ -18,6 +18,7 @@ package com.wazuh.contentmanager.updater;
 
 import com.carrotsearch.randomizedtesting.annotations.ThreadLeakScope;
 
+import org.opensearch.action.admin.indices.refresh.RefreshRequest;
 import org.opensearch.action.get.GetResponse;
 import org.opensearch.action.support.WriteRequest;
 import org.opensearch.client.Client;
@@ -51,6 +52,7 @@ import static org.mockito.Mockito.*;
 @OpenSearchIntegTestCase.ClusterScope(scope = OpenSearchIntegTestCase.Scope.SUITE)
 public class ContentUpdaterIT extends OpenSearchIntegTestCase {
     long initialOffset = 0L;
+    Client client;
     long lastOffset = 0L;
     String testResource = "test";
     ContentUpdater updater;
@@ -60,7 +62,7 @@ public class ContentUpdaterIT extends OpenSearchIntegTestCase {
 
     @Before
     public void setup() throws Exception {
-        Client client = client();
+        this.client = client();
         this.ctiClient = mock(CTIClient.class);
         this.contextIndex = spy(new ContextIndex(client));
         this.contentIndex = new ContentIndex(client);
@@ -76,10 +78,8 @@ public class ContentUpdaterIT extends OpenSearchIntegTestCase {
 
     /**
      * Tests whether a Create-type patch is correctly applied to the wazuh-cve index
-     *
-     * @throws InterruptedException Rethrown from Thread.sleep()
      */
-    public void testUpdate_ContentChangesTypeCreate() throws InterruptedException {
+    public void testUpdate_ContentChangesTypeCreate() {
         // Arrange
         long offsetId = 1L;
         Offset createOffset = this.getOffset(offsetId, OperationType.CREATE);
@@ -92,7 +92,10 @@ public class ContentUpdaterIT extends OpenSearchIntegTestCase {
         when(this.contextIndex.getConsumer(anyString(), anyString())).thenReturn(testConsumer);
         // Act
         boolean updated = this.updater.update();
-        Thread.sleep(1000);
+
+        RefreshRequest request = new RefreshRequest(ContentIndex.INDEX_NAME);
+        this.client.admin().indices().refresh(request).actionGet();
+
         ConsumerInfo updatedConsumer =
                 this.contextIndex.getConsumer(PluginSettings.CONTEXT_ID, PluginSettings.CONSUMER_ID);
         // Assert
@@ -103,10 +106,8 @@ public class ContentUpdaterIT extends OpenSearchIntegTestCase {
 
     /**
      * Tests whether an update-type patch is correctly applied to the wazuh-cve index
-     *
-     * @throws InterruptedException Rethrown from Thread.sleep()
      */
-    public void testUpdate_ContentChangesTypeUpdate() throws InterruptedException {
+    public void testUpdate_ContentChangesTypeUpdate(){
         // Arrange
         long offsetId = 2L;
         Offset createOffset = this.getOffset(offsetId - 1, OperationType.CREATE);
@@ -120,7 +121,10 @@ public class ContentUpdaterIT extends OpenSearchIntegTestCase {
         when(this.contextIndex.getConsumer(anyString(), anyString())).thenReturn(testConsumer);
         // Act
         boolean updated = this.updater.update();
-        Thread.sleep(1000);
+
+        RefreshRequest request = new RefreshRequest(ContentIndex.INDEX_NAME);
+        this.client.admin().indices().refresh(request).actionGet();
+
         ConsumerInfo updatedConsumer =
                 this.contextIndex.getConsumer(PluginSettings.CONTEXT_ID, PluginSettings.CONSUMER_ID);
         // Assert
@@ -132,7 +136,7 @@ public class ContentUpdaterIT extends OpenSearchIntegTestCase {
     /**
      * Tests whether a delete-type patch is correctly applied to the wazuh-cve index
      *
-     * @throws InterruptedException Rethrown from Thread.sleep()
+     * @throws InterruptedException
      * @throws ExecutionException
      * @throws TimeoutException
      */
@@ -150,7 +154,10 @@ public class ContentUpdaterIT extends OpenSearchIntegTestCase {
         when(this.contextIndex.getConsumer(anyString(), anyString())).thenReturn(testConsumer);
         // Act
         boolean updated = this.updater.update();
-        Thread.sleep(1000);
+
+        RefreshRequest request = new RefreshRequest(ContentIndex.INDEX_NAME);
+        this.client.admin().indices().refresh(request).actionGet();
+
         ConsumerInfo updatedConsumer =
                 this.contextIndex.getConsumer(PluginSettings.CONTEXT_ID, PluginSettings.CONSUMER_ID);
         GetResponse getContent =
