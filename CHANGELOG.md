@@ -22,7 +22,6 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Implement content update using Json Patch operations [(#362)](https://github.com/wazuh/wazuh-indexer-plugins/pull/362)
 - Implement CTI API client rate limit and enhanced response handling [(#363)](https://github.com/wazuh/wazuh-indexer-plugins/pull/363)
 - Add custom action to list modified plugins [(#388)](https://github.com/wazuh/wazuh-indexer-plugins/pull/388)
-- Implement a mechanism that refresh the index to fix test failures [(#391)](https://github.com/wazuh/wazuh-indexer-plugins/pull/391)
 
 ### Dependencies
 
@@ -48,6 +47,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Fix validation of commands by forcing `action.name` to exist before `action.args` [(#260)](https://github.com/wazuh/wazuh-indexer-plugins/issues/260)
 - Fix mentions of `host.ip` and `host.os.full` in agents index template [(#330)](https://github.com/wazuh/wazuh-indexer-plugins/pull/330)
 - Fix workflow to build plugins on push [(#384)](https://github.com/wazuh/wazuh-indexer-plugins/pull/384)
+- Fix flaky integration tests [(#391)](https://github.com/wazuh/wazuh-indexer-plugins/pull/391)
 
 ### Security
 
