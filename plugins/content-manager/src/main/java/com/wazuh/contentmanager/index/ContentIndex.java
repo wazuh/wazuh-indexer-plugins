@@ -59,6 +59,7 @@ import com.wazuh.contentmanager.util.XContentUtils;
 /** Manages operations for the Wazuh CVE content index. */
 public class ContentIndex {
     private static final String JSON_NAME_KEY = "name";
+    private static final String JSON_OFFSET_KEY = "offset";
     private static final Logger log = LogManager.getLogger(ContentIndex.class);
     private static final int MAX_DOCUMENTS = 25;
     private static final int MAX_CONCURRENT_PETITIONS = 5;
@@ -69,6 +70,7 @@ public class ContentIndex {
 
     private final Client client;
     private final Semaphore semaphore = new Semaphore(MAX_CONCURRENT_PETITIONS);
+    private Long lastIndexedOffset;
 
     /**
      * Constructor for the ContentIndex class.
@@ -276,6 +278,7 @@ public class ContentIndex {
                     this.semaphore.acquire();
                     this.index(items);
                     lineCount = 0;
+                    this.lastIndexedOffset = json.get(JSON_OFFSET_KEY).getAsLong();
                     items.clear();
                 }
             }
@@ -325,5 +328,14 @@ public class ContentIndex {
         IndicesExistsRequest request = new IndicesExistsRequest(INDEX_NAME);
         IndicesExistsResponse response = this.client.admin().indices().exists(request).actionGet();
         return response.isExists();
+    }
+
+    /**
+     * Retrieves the last indexed offset to the {@link ContentIndex#INDEX_NAME} index.
+     *
+     * @return Long value with the last indexed offset.
+     */
+    public Long getLastIndexedOffset() {
+        return this.lastIndexedOffset;
     }
 }

@@ -206,6 +206,24 @@ public class ContextIndex {
         this.index(
                 new ConsumerInfo(
                         PluginSettings.CONSUMER_ID, PluginSettings.CONTEXT_ID, offset, lastOffset, null));
+        log.info("Updated context index with new offset {} and last offset {}", offset, lastOffset);
+    }
+
+    /**
+     * Sets the context index current offset, maintaining the same last offset value.
+     *
+     * <p>ContextIndex.setOffset(offset).
+     *
+     * @param offset Long value of the new offset.
+     */
+    public void setOffset(Long offset) {
+        this.index(
+                new ConsumerInfo(
+                        PluginSettings.CONSUMER_ID,
+                        PluginSettings.CONTEXT_ID,
+                        offset,
+                        this.getLastOffset(),
+                        null));
         log.info("Updated context index with new offset {}", offset);
     }
 }

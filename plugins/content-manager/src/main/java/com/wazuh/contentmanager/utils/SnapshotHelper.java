@@ -96,7 +96,8 @@ public class SnapshotHelper {
                             this.unzip(snapshotZip, outputDir);
                             Path snapshotJson = stream.iterator().next();
                             this.contentIndex.fromSnapshot(snapshotJson.toString());
-                            // TODO update context offset
+                            // Update the context with the newest indexed offset.
+                            this.contextIndex.setOffset(this.contentIndex.getLastIndexedOffset());
                             this.postUpdateCommand();
                             Files.deleteIfExists(snapshotZip);
                             Files.deleteIfExists(snapshotJson);
