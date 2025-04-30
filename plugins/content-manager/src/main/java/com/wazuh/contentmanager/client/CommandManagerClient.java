@@ -71,13 +71,13 @@ public class CommandManagerClient extends HttpClient {
         String password = PluginSettings.getInstance().getAuthPassword();
         String auth = username + ":" + password;
         String encodedAuth = Base64.getEncoder().encodeToString(auth.getBytes(StandardCharsets.UTF_8));
-        Header authHeader = new BasicHeader(HttpHeaders.AUTHORIZATION, "Basic " + encodedAuth);
-        Header contentTypeHeader =
-                new BasicHeader(HttpHeaders.CONTENT_TYPE, ContentType.APPLICATION_JSON);
-
+        // Build headers
+        Header authentication = new BasicHeader(HttpHeaders.AUTHORIZATION, "Basic " + encodedAuth);
+        Header contentType = new BasicHeader(HttpHeaders.CONTENT_TYPE, ContentType.APPLICATION_JSON);
+        // Send post request to command manager API.
         SimpleHttpResponse response =
                 this.sendRequest(
-                        Method.POST, POST_COMMAND_ENDPOINT, requestBody, null, authHeader, contentTypeHeader);
+                        Method.POST, POST_COMMAND_ENDPOINT, requestBody, null, authentication, contentType);
 
         this.handlePostResponse(response);
     }
