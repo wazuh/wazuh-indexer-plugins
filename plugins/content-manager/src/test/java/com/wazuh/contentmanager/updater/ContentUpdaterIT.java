@@ -99,13 +99,8 @@ public class ContentUpdaterIT extends OpenSearchIntegTestCase {
         when(this.contextIndex.getConsumer(anyString(), anyString())).thenReturn(testConsumer);
         // Act
         boolean updated = this.updater.update();
-        Privileged.doPrivilegedRequest(
-            () -> {
-                RefreshRequest request = new RefreshRequest(contentIndex.INDEX_NAME);
-                this.client.admin().indices().refresh(request).actionGet();
-                return null;
-            }
-        );
+        RefreshRequest request = new RefreshRequest(ContentIndex.INDEX_NAME);
+        this.client.admin().indices().refresh(request).actionGet();
 
         ConsumerInfo updatedConsumer =
                 this.contextIndex.getConsumer(PluginSettings.CONTEXT_ID, PluginSettings.CONSUMER_ID);
@@ -134,13 +129,8 @@ public class ContentUpdaterIT extends OpenSearchIntegTestCase {
         when(this.contextIndex.getConsumer(anyString(), anyString())).thenReturn(testConsumer);
         // Act
         boolean updated = this.updater.update();
-        Privileged.doPrivilegedRequest(
-            () -> {
-                RefreshRequest request = new RefreshRequest(contentIndex.INDEX_NAME);
-                this.client.admin().indices().refresh(request).actionGet();
-                return null;
-            }
-        );
+        RefreshRequest request = new RefreshRequest(ContentIndex.INDEX_NAME);
+        this.client.admin().indices().refresh(request).actionGet();
 
         ConsumerInfo updatedConsumer =
                 this.contextIndex.getConsumer(PluginSettings.CONTEXT_ID, PluginSettings.CONSUMER_ID);
@@ -171,13 +161,9 @@ public class ContentUpdaterIT extends OpenSearchIntegTestCase {
         when(this.contextIndex.getConsumer(anyString(), anyString())).thenReturn(testConsumer);
         // Act
         boolean updated = this.updater.update();
-        Privileged.doPrivilegedRequest(
-            () -> {
-                RefreshRequest request = new RefreshRequest(contentIndex.INDEX_NAME);
-                this.client.admin().indices().refresh(request).actionGet();
-                return null;
-            }
-        );
+        RefreshRequest request = new RefreshRequest(ContentIndex.INDEX_NAME);
+        this.client.admin().indices().refresh(request).actionGet();
+
 
         ConsumerInfo updatedConsumer =
                 this.contextIndex.getConsumer(PluginSettings.CONTEXT_ID, PluginSettings.CONSUMER_ID);
