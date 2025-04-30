@@ -172,8 +172,8 @@ public class SnapshotHelper {
     /** Trigger method for content initialization */
     public void initialize() {
         try {
-            this.updateContextIndex();
             this.indexSnapshot();
+            this.updateContextIndex();
         } catch (IOException e) {
             log.error("Failed to initialize: {}", e.getMessage());
         }
