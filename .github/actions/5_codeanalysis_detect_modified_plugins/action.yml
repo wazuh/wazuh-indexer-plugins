@@ -17,7 +17,7 @@ runs:
       shell: bash
       run: |
         # Fetch the base branch to compare against
-        git fetch origin ${{ inputs.base_branch }}:refs/remotes/origin/${{ inputs.base_branch }}
+        git fetch origin/main:refs/remotes/origin/${{ inputs.base_branch }}
 
         # Compare the changes between the current branch and the base branch
         changed_files=$(git diff --name-only origin/${{ inputs.base_branch }})
