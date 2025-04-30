@@ -28,6 +28,7 @@ import org.opensearch.env.NodeEnvironment;
 import org.opensearch.plugins.ActionPlugin;
 import org.opensearch.plugins.ClusterPlugin;
 import org.opensearch.plugins.Plugin;
+import org.opensearch.plugins.ReloadablePlugin;
 import org.opensearch.repositories.RepositoriesService;
 import org.opensearch.script.ScriptService;
 import org.opensearch.threadpool.ThreadPool;
@@ -42,7 +43,8 @@ import com.wazuh.contentmanager.settings.PluginSettings;
 import com.wazuh.contentmanager.utils.SnapshotHelper;
 
 /** Main class of the Content Manager Plugin */
-public class ContentManagerPlugin extends Plugin implements ClusterPlugin, ActionPlugin {
+public class ContentManagerPlugin extends Plugin
+        implements ClusterPlugin, ActionPlugin, ReloadablePlugin {
     private ContextIndex contextIndex;
     private ContentIndex contentIndex;
     private Environment environment;
@@ -91,4 +93,7 @@ public class ContentManagerPlugin extends Plugin implements ClusterPlugin, Actio
                 PluginSettings.COMMAND_MANAGER_USERNAME,
                 PluginSettings.COMMAND_MANAGER_PASSWORD);
     }
+
+    @Override
+    public void reload(Settings settings) throws Exception {}
 }
