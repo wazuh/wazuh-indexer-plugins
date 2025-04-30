@@ -99,6 +99,7 @@ public class ContentUpdaterIT extends OpenSearchIntegTestCase {
         when(this.contextIndex.getConsumer(anyString(), anyString())).thenReturn(testConsumer);
         // Act
         boolean updated = this.updater.update();
+
         RefreshRequest request = new RefreshRequest(ContentIndex.INDEX_NAME);
         this.client.admin().indices().refresh(request).actionGet();
 
@@ -129,6 +130,7 @@ public class ContentUpdaterIT extends OpenSearchIntegTestCase {
         when(this.contextIndex.getConsumer(anyString(), anyString())).thenReturn(testConsumer);
         // Act
         boolean updated = this.updater.update();
+
         RefreshRequest request = new RefreshRequest(ContentIndex.INDEX_NAME);
         this.client.admin().indices().refresh(request).actionGet();
 
@@ -161,6 +163,7 @@ public class ContentUpdaterIT extends OpenSearchIntegTestCase {
         when(this.contextIndex.getConsumer(anyString(), anyString())).thenReturn(testConsumer);
         // Act
         boolean updated = this.updater.update();
+
         RefreshRequest request = new RefreshRequest(ContentIndex.INDEX_NAME);
         this.client.admin().indices().refresh(request).actionGet();
 
