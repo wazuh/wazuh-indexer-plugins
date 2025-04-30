@@ -76,9 +76,7 @@ public class ContentUpdaterIT extends OpenSearchIntegTestCase {
         return Collections.singletonList(ContentManagerPlugin.class);
     }
 
-    /**
-     * Tests whether a Create-type patch is correctly applied to the wazuh-cve index
-     */
+    /** Tests whether a Create-type patch is correctly applied to the wazuh-cve index */
     public void testUpdate_ContentChangesTypeCreate() {
         // Arrange
         long offsetId = 1L;
@@ -104,10 +102,8 @@ public class ContentUpdaterIT extends OpenSearchIntegTestCase {
         assertEquals(offsetId, updatedConsumer.getLastOffset());
     }
 
-    /**
-     * Tests whether an update-type patch is correctly applied to the wazuh-cve index
-     */
-    public void testUpdate_ContentChangesTypeUpdate(){
+    /** Tests whether an update-type patch is correctly applied to the wazuh-cve index */
+    public void testUpdate_ContentChangesTypeUpdate() {
         // Arrange
         long offsetId = 2L;
         Offset createOffset = this.getOffset(offsetId - 1, OperationType.CREATE);

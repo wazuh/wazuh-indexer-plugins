@@ -86,6 +86,9 @@ public class ContentManagerPlugin extends Plugin implements ClusterPlugin, Actio
 
     @Override
     public List<Setting<?>> getSettings() {
-        return Collections.singletonList(PluginSettings.CTI_API_URL);
+        return List.of(
+                PluginSettings.CTI_API_URL,
+                PluginSettings.COMMAND_MANAGER_USERNAME,
+                PluginSettings.COMMAND_MANAGER_PASSWORD);
     }
 }
