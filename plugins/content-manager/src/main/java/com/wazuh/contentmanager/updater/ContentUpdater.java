@@ -24,7 +24,9 @@ import com.wazuh.contentmanager.client.CommandManagerClient;
 import com.wazuh.contentmanager.index.ContentIndex;
 import com.wazuh.contentmanager.index.ContextIndex;
 import com.wazuh.contentmanager.model.commandmanager.Command;
+import com.wazuh.contentmanager.model.ctiapi.ConsumerInfo;
 import com.wazuh.contentmanager.model.ctiapi.ContentChanges;
+import com.wazuh.contentmanager.settings.PluginSettings;
 import com.wazuh.contentmanager.utils.Privileged;
 import com.wazuh.contentmanager.utils.VisibleForTesting;
 
@@ -69,7 +71,7 @@ public class ContentUpdater {
      * the CTI API for a list of changes to apply to the content. These changes are applied
      * sequentially. A maximum of {@link ContentUpdater#CHUNK_MAX_SIZE} changes are applied on each
      * iteration. When the update is completed, the value of "offset" is updated and equal to
-     * "lastOffset" {@link ContextIndex#setOffset(Long, Long)}, and a command is generated for the
+     * "lastOffset" {@link ContextIndex#index(ConsumerInfo)}, and a command is generated for the
      * Command Manager {@link ContentUpdater#postUpdateCommand()}. If the update fails, the "offset"
      * is set to 0 to force a recovery from a snapshot.
      *
@@ -77,8 +79,10 @@ public class ContentUpdater {
      * @throws ContentUpdateException If there was an error fetching the changes.
      */
     public boolean update() throws ContentUpdateException {
-        long currentOffset = this.contextIndex.getOffset();
-        long lastOffset = this.contextIndex.getLastOffset();
+        ConsumerInfo consumerInfo =
+                this.contextIndex.getConsumer(PluginSettings.CONTEXT_ID, PluginSettings.CONSUMER_ID);
+        long currentOffset = consumerInfo.getOffset();
+        long lastOffset = consumerInfo.getLastOffset();
 
         if (lastOffset == currentOffset) {
             log.info("No updates available. Current offset ({}) is up to date.", currentOffset);
@@ -93,12 +97,14 @@ public class ContentUpdater {
 
             if (changes == null) {
                 log.error("Unable to fetch changes for offsets {} to {}", currentOffset, nextOffset);
-                this.contextIndex.setOffset(0L, 0L);
+                consumerInfo.setOffset(0);
+                consumerInfo.setLastOffset(0);
                 return false;
             }
 
             if (!this.applyChanges(changes)) {
-                this.contextIndex.setOffset(0L, 0L);
+                consumerInfo.setOffset(0);
+                consumerInfo.setLastOffset(0);
                 return false;
             }
 
@@ -106,7 +112,8 @@ public class ContentUpdater {
             log.debug("Update current offset to {}", currentOffset);
         }
 
-        this.contextIndex.setOffset(currentOffset, lastOffset);
+        // Update consumer info.
+        this.contextIndex.index(consumerInfo);
         this.postUpdateCommand();
         return true;
     }
@@ -144,10 +151,12 @@ public class ContentUpdater {
     /** Posts a new command to the Command Manager informing about the new changes. */
     @VisibleForTesting
     protected void postUpdateCommand() {
+        ConsumerInfo consumerInfo =
+                this.contextIndex.getConsumer(PluginSettings.CONTEXT_ID, PluginSettings.CONSUMER_ID);
         Privileged.doPrivilegedRequest(
                 () -> {
                     CommandManagerClient.getInstance()
-                            .postCommand(Command.create(String.valueOf(this.contextIndex.getOffset())));
+                            .postCommand(Command.create(String.valueOf(consumerInfo.getOffset())));
                     return null;
                 });
     }

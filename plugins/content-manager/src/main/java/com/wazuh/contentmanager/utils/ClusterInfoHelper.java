@@ -16,8 +16,6 @@
  */
 package com.wazuh.contentmanager.utils;
 
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
 import org.opensearch.cluster.service.ClusterService;
 import org.opensearch.common.settings.Settings;
 
@@ -28,8 +26,6 @@ import java.util.Locale;
  * security settings and the cluster base URL.
  */
 public class ClusterInfoHelper {
-    private static final Logger log = LogManager.getLogger(ClusterInfoHelper.class);
-
     /**
      * Checks if the OpenSearch cluster is using HTTPS for communication.
      *

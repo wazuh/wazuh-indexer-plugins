@@ -42,6 +42,7 @@ public class SnapshotHelperTests extends OpenSearchTestCase {
     private ContextIndex contextIndex;
     private SnapshotHelper snapshotHelper;
     private Environment environment;
+    private ConsumerInfo consumerInfo;
 
     @Before
     public void setUp() throws Exception {
@@ -57,6 +58,7 @@ public class SnapshotHelperTests extends OpenSearchTestCase {
         this.contentIndex = mock(ContentIndex.class);
         this.contextIndex = mock(ContextIndex.class);
         this.ctiClient = mock(CTIClient.class);
+        this.consumerInfo = mock(ConsumerInfo.class);
         this.snapshotHelper =
                 spy(
                         new SnapshotHelper(
@@ -69,51 +71,41 @@ public class SnapshotHelperTests extends OpenSearchTestCase {
      * @throws IOException Rethrown from updateContextIndex()
      */
     public void testSuccessfulConsumerIndexing() throws IOException {
+        // Fixtures
         ConsumerInfo consumerInfo =
                 new ConsumerInfo("test-name", "test-context", 1L, 1L, "http://example.com");
-        doReturn(consumerInfo).when(this.ctiClient).getCatalog();
         IndexResponse response = mock(IndexResponse.class, "SuccessfulResponse");
 
-        doReturn(response).when(this.contextIndex).index(consumerInfo);
+        // Mocks
+        doReturn(consumerInfo).when(this.ctiClient).getCatalog();
+        doReturn(this.consumerInfo).when(this.contextIndex).getConsumer(anyString(), anyString());
+        doReturn(true).when(this.contextIndex).index(consumerInfo);
         doReturn(DocWriteResponse.Result.CREATED).when(response).getResult();
 
-        this.snapshotHelper.updateContextIndex();
+        // Act &6 Assert
+        this.snapshotHelper.initConsumer();
         verify(this.contextIndex).index(any(ConsumerInfo.class));
     }
 
-    /** Ensure IOException is thrown when updateContextIndex() fails */
-    public void testFailedConsumerIndexing() {
+    /**
+     * Ensure IOException is thrown when updateContextIndex() fails
+     *
+     * @throws IOException error parsing CTI response.
+     */
+    public void testFailedConsumerIndexing() throws IOException {
+        // Fixtures
         ConsumerInfo consumerInfo =
                 new ConsumerInfo("test-name", "test-context", 1L, 1L, "http://example.com");
+        IndexResponse response = mock(IndexResponse.class, "FailedResponse");
+
+        // Mocks
         doReturn(consumerInfo).when(this.ctiClient).getCatalog();
-        IndexResponse response = mock(IndexResponse.class, "FailedResponse");
-
-        doReturn(response).when(this.contextIndex).index(consumerInfo);
+        doReturn(this.consumerInfo).when(this.contextIndex).getConsumer(anyString(), anyString());
+        doReturn(false).when(this.contextIndex).index(consumerInfo);
         doReturn(DocWriteResponse.Result.NOT_FOUND).when(response).getResult();
 
-        try {
-            this.snapshotHelper.updateContextIndex();
-        } catch (IOException e) {
-            return;
-        }
-        assert (false);
-    }
-
-    /** Check that a null consumerInfo makes updateContextIndex() thrown an exception */
-    public void testNullConsumerInfo() {
-        ConsumerInfo consumerInfo = null;
-        doReturn(null).when(this.ctiClient).getCatalog();
-        IndexResponse response = mock(IndexResponse.class, "FailedResponse");
-
-        doReturn(response).when(this.contextIndex).index(consumerInfo);
-        doReturn(DocWriteResponse.Result.NOT_FOUND).when(response).getResult();
-
-        try {
-            this.snapshotHelper.updateContextIndex();
-        } catch (IOException e) {
-            return;
-        }
-        assert (false);
+        // Act && Assert
+        assertThrows(IOException.class, () -> this.snapshotHelper.initConsumer());
     }
 
     /**
@@ -122,9 +114,9 @@ public class SnapshotHelperTests extends OpenSearchTestCase {
      * @throws IOException rethrown from unzip()
      */
     public void testSuccessfulIndexSnapshot() throws IOException {
-        doReturn(0L).when(this.contextIndex).getOffset();
+        doReturn(this.consumerInfo).when(this.contextIndex).getConsumer(anyString(), anyString());
         Path snapshotZip = mock(Path.class);
-        doReturn("http://example.com/file.zip").when(this.contextIndex).getLastSnapshotLink();
+        doReturn("http://example.com/file.zip").when(this.consumerInfo).getLastSnapshotLink();
         doReturn(snapshotZip).when(this.ctiClient).download(anyString(), any(Environment.class));
         Path outputDir = mock(Path.class);
         doReturn(outputDir).when(this.environment).tmpFile();

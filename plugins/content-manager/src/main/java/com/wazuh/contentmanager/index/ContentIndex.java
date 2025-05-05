@@ -53,8 +53,8 @@ import java.util.concurrent.TimeoutException;
 import com.wazuh.contentmanager.model.ctiapi.ContentChanges;
 import com.wazuh.contentmanager.model.ctiapi.Offset;
 import com.wazuh.contentmanager.model.ctiapi.PatchOperation;
-import com.wazuh.contentmanager.util.JsonPatch;
-import com.wazuh.contentmanager.util.XContentUtils;
+import com.wazuh.contentmanager.utils.JsonPatch;
+import com.wazuh.contentmanager.utils.XContentUtils;
 
 /** Manages operations for the Wazuh CVE content index. */
 public class ContentIndex {

@@ -38,7 +38,7 @@ import java.util.concurrent.*;
 import com.wazuh.contentmanager.model.ctiapi.ConsumerInfo;
 import com.wazuh.contentmanager.model.ctiapi.ContentChanges;
 import com.wazuh.contentmanager.settings.PluginSettings;
-import com.wazuh.contentmanager.util.XContentUtils;
+import com.wazuh.contentmanager.utils.XContentUtils;
 
 /**
  * CTIClient is a singleton class responsible for interacting with the Cyber Threat Intelligence
@@ -51,13 +51,13 @@ public class CTIClient extends HttpClient {
 
     private static final Logger log = LogManager.getLogger(CTIClient.class);
 
-    private static final String CONSUMER_INFO_ENDPOINT =
+    static final String CONSUMER_INFO_ENDPOINT =
             "/catalog/contexts/" + PluginSettings.CONTEXT_ID + "/consumers/" + PluginSettings.CONSUMER_ID;
     private static final String CONSUMER_CHANGES_ENDPOINT = CONSUMER_INFO_ENDPOINT + "/changes";
 
     private static CTIClient INSTANCE;
 
-    private static final int MAX_ATTEMPTS = 3;
+    static final int MAX_ATTEMPTS = 3;
     private static final int SLEEP_TIME = 60;
 
     /** Enum representing the query parameters used in CTI API requests. */
@@ -149,29 +149,25 @@ public class CTIClient extends HttpClient {
      * Fetches the entire CTI catalog from the API.
      *
      * @return A {@link ConsumerInfo} object containing the catalog information.
+     * @throws HttpHostConnectException server unreachable.
+     * @throws IOException error parsing response.
      */
-    public ConsumerInfo getCatalog() {
-        try {
-            // spotless:off
-            SimpleHttpResponse response = this.sendRequest(
-                Method.GET,
-                CONSUMER_INFO_ENDPOINT,
-                null,
-                null,
-                null,
-                CTIClient.MAX_ATTEMPTS
-            );
-            // spotless:on
-            if (response == null) {
-                throw new HttpHostConnectException("No response from CTI API");
-            }
-            log.debug("CTI API replied with status: [{}]", response.getCode());
-
-            return ConsumerInfo.parse(XContentUtils.createJSONParser(response.getBodyBytes()));
-        } catch (IOException | IllegalArgumentException e) {
-            log.error("Unable to fetch catalog information: {}", e.getMessage());
-            return null;
+    public ConsumerInfo getCatalog() throws HttpHostConnectException, IOException {
+        // spotless:off
+        SimpleHttpResponse response = this.sendRequest(
+            Method.GET,
+            CONSUMER_INFO_ENDPOINT,
+            null,
+            null,
+            null,
+            CTIClient.MAX_ATTEMPTS
+        );
+        // spotless:on
+        if (response == null) {
+            throw new HttpHostConnectException("No response from CTI API");
         }
+        log.debug("CTI API replied with status: [{}]", response.getCode());
+        return ConsumerInfo.parse(XContentUtils.createJSONParser(response.getBodyBytes()));
     }
 
     /**

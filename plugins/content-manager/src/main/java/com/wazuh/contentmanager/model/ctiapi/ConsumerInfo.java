@@ -40,12 +40,12 @@ public class ConsumerInfo implements ToXContentObject {
     private static final String OPERATIONS = "operations";
     private final String context;
     private final String name;
-    private final long offset;
-    private final long lastOffset;
+    private long offset;
+    private long lastOffset;
     private final String lastSnapshotLink;
 
     /**
-     * Constructor method
+     * Constructor.
      *
      * @param name Name of the consumer
      * @param context Name of the context
@@ -143,6 +143,13 @@ public class ConsumerInfo implements ToXContentObject {
     }
 
     /**
+     * @return
+     */
+    public String getName() {
+        return this.name;
+    }
+
+    /**
      * Get the latest consumer's offset (as last fetched from the CTI API).
      *
      * @return Consumer's latest available offset.
@@ -167,5 +174,13 @@ public class ConsumerInfo implements ToXContentObject {
      */
     public String getLastSnapshotLink() {
         return this.lastSnapshotLink;
+    }
+
+    public void setOffset(long offset) {
+        this.offset = offset;
+    }
+
+    public void setLastOffset(long offset) {
+        this.lastOffset = offset;
     }
 }

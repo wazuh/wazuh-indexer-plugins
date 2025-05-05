@@ -18,8 +18,6 @@ package com.wazuh.contentmanager.utils;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.opensearch.action.DocWriteResponse;
-import org.opensearch.action.index.IndexResponse;
 import org.opensearch.env.Environment;
 
 import java.io.IOException;
@@ -83,13 +81,15 @@ public class SnapshotHelper {
      * a CTI snapshot.
      */
     protected void indexSnapshot() {
-        if (this.contextIndex.getOffset() == 0) {
+        ConsumerInfo consumerInfo =
+                this.contextIndex.getConsumer(PluginSettings.CONTEXT_ID, PluginSettings.CONSUMER_ID);
+        if (consumerInfo.getOffset() == 0) {
             log.info("Initializing [{}] index from a snapshot", ContentIndex.INDEX_NAME);
             Privileged.doPrivilegedRequest(
                     () -> {
                         // Download snapshot.
                         Path snapshotZip =
-                                this.ctiClient.download(this.contextIndex.getLastSnapshotLink(), this.environment);
+                                this.ctiClient.download(consumerInfo.getLastSnapshotLink(), this.environment);
                         Path outputDir = this.environment.tmpFile();
 
                         try (DirectoryStream<Path> stream = this.getStream(outputDir)) {
@@ -99,7 +99,9 @@ public class SnapshotHelper {
                             // Index snapshot.
                             long offset = this.contentIndex.fromSnapshot(snapshotJson.toString());
                             // Update the offset.
-                            this.contextIndex.setOffset(offset);
+                            consumerInfo.setOffset(offset);
+                            this.contextIndex.index(consumerInfo);
+                            //                            this.contextIndex.setOffset(offset);
                             // Send command.
                             this.postUpdateCommand();
                             // Remove snapshot.
@@ -140,10 +142,12 @@ public class SnapshotHelper {
 
     /** Posts a command to the command manager API on a successful snapshot operation */
     protected void postUpdateCommand() {
+        ConsumerInfo current =
+                this.contextIndex.getConsumer(PluginSettings.CONTEXT_ID, PluginSettings.CONSUMER_ID);
         Privileged.doPrivilegedRequest(
                 () -> {
                     CommandManagerClient.getInstance()
-                            .postCommand(Command.create(String.valueOf(this.contextIndex.getLastOffset())));
+                            .postCommand(Command.create(String.valueOf(current.getLastOffset())));
                     return null;
                 });
     }
@@ -153,30 +157,33 @@ public class SnapshotHelper {
      *
      * @throws IOException thrown when indexing failed
      */
-    protected void updateContextIndex() throws IOException {
-        ConsumerInfo consumerInfo = this.ctiClient.getCatalog();
+    protected void initConsumer() throws IOException {
+        ConsumerInfo current =
+                this.contextIndex.getConsumer(PluginSettings.CONTEXT_ID, PluginSettings.CONSUMER_ID);
+        ConsumerInfo latest = this.ctiClient.getCatalog();
 
-        if (consumerInfo == null) {
-            throw new IOException("Consumer Information is null. Skipping indexing");
-        }
-        IndexResponse response = this.contextIndex.index(consumerInfo);
-
-        if (response.getResult().equals(DocWriteResponse.Result.CREATED)
-                || response.getResult().equals(DocWriteResponse.Result.UPDATED)) {
-            log.info("Successfully initialized consumer [{}]", consumerInfo.getContext());
+        if (current.getOffset() == 0) {
+            log.info("Initializing consumer [{}] to offset [{}]", latest.getName(), latest.getOffset());
+            if (this.contextIndex.index(latest)) {
+                log.info("Successfully initialized consumer [{}]", latest.getContext());
+            } else {
+                log.error("Failed to initialize consumer [{}]", latest.getContext());
+                throw new IOException("Failed to initialize consumer [" + latest.getContext() + "]");
+            }
+        } else if (current.getOffset() == latest.getOffset()) {
+            log.info(
+                    "Consumer is up-to-date (offset {} == {}). Skipping...",
+                    current.getOffset(),
+                    latest.getOffset());
         } else {
-            throw new IOException(
-                    String.format(
-                            Locale.ROOT,
-                            "Consumer indexing operation returned with unexpected result [%s]",
-                            response.getResult()));
+            log.info("Consumer already initialized (offset {} != 0). Skipping...", current.getOffset());
         }
     }
 
     /** Trigger method for content initialization */
     public void initialize() {
         try {
-            this.updateContextIndex();
+            this.initConsumer();
             this.indexSnapshot();
         } catch (IOException e) {
             log.error("Failed to initialize: {}", e.getMessage());
