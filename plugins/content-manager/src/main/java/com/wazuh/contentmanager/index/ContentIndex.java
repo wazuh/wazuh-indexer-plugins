@@ -20,6 +20,8 @@ import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.opensearch.action.admin.indices.exists.indices.IndicesExistsRequest;
+import org.opensearch.action.admin.indices.exists.indices.IndicesExistsResponse;
 import org.opensearch.action.bulk.BulkRequest;
 import org.opensearch.action.bulk.BulkResponse;
 import org.opensearch.action.delete.DeleteRequest;
@@ -58,6 +60,7 @@ import com.wazuh.contentmanager.util.XContentUtils;
 /** Manages operations for the Wazuh CVE content index. */
 public class ContentIndex {
     private static final String JSON_NAME_KEY = "name";
+    private static final String JSON_OFFSET_KEY = "offset";
     private static final Logger log = LogManager.getLogger(ContentIndex.class);
     // The name of the index
     public static final String INDEX_NAME = "wazuh-cve";
@@ -244,8 +247,9 @@ public class ContentIndex {
      * {@link ContentIndex#index(List)}.
      *
      * @param path path to the CTI snapshot JSON file to be indexed.
+     * @return offset number of the last indexed resource of the snapshot. 0 on error.
      */
-    public void fromSnapshot(String path) {
+    public long fromSnapshot(String path) {
         long startTime = System.currentTimeMillis();
 
         String line;
@@ -280,11 +284,17 @@ public class ContentIndex {
                 this.semaphore.acquire();
                 this.index(items);
             }
+        } catch (InterruptedException e) {
+            items.clear();
+            log.error("Processing snapshot file interrupted {}", e.getMessage());
         } catch (Exception e) {
-            log.error("Error processing snapshot file {}", e.getMessage());
+            items.clear();
+            log.error("Generic exception indexing the snapshot: {}", e.getMessage());
         }
         long estimatedTime = System.currentTimeMillis() - startTime;
         log.info("Snapshot indexing finished successfully in {} ms", estimatedTime);
+
+        return items.isEmpty() ? 0 : items.get(items.size() - 1).get(JSON_OFFSET_KEY).getAsLong();
     }
 
     /**
@@ -312,4 +322,24 @@ public class ContentIndex {
                         resourceId,
                         INDEX_NAME));
     }
+
+    /**
+     * Checks if the index exists.
+     *
+     * @return true if the index exists, false otherwise.
+     */
+    public boolean exists() {
+        IndicesExistsRequest request = new IndicesExistsRequest(INDEX_NAME);
+        IndicesExistsResponse response = this.client.admin().indices().exists(request).actionGet();
+        return response.isExists();
+    }
+
+    //    /**
+    //     * Retrieves the last indexed offset to the {@link ContentIndex#INDEX_NAME} index.
+    //     *
+    //     * @return Long value with the last indexed offset.
+    //     */
+    //    public Long getOffset() {
+    //        return this.offset;
+    //    }
 }

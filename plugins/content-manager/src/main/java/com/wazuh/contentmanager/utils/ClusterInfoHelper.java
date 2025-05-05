@@ -16,15 +16,20 @@
  */
 package com.wazuh.contentmanager.utils;
 
-import org.opensearch.cluster.node.DiscoveryNode;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.opensearch.cluster.service.ClusterService;
 import org.opensearch.common.settings.Settings;
+
+import java.util.Locale;
 
 /**
  * ClusterInfoHelper provides utility methods for retrieving cluster-related information, such as
  * security settings and the cluster base URL.
  */
 public class ClusterInfoHelper {
+    private static final Logger log = LogManager.getLogger(ClusterInfoHelper.class);
+
     /**
      * Checks if the OpenSearch cluster is using HTTPS for communication.
      *
@@ -35,8 +40,8 @@ public class ClusterInfoHelper {
         Settings settings = clusterService.getSettings();
 
         // Check if security plugins have HTTPS enabled
-        return settings.getAsBoolean("xpack.security.http.ssl.enabled", false)
-                || settings.getAsBoolean("plugins.security.ssl.http.enabled", false);
+        return settings.getAsBoolean("plugins.security.ssl.http.enabled", false)
+                || settings.getAsBoolean("xpack.security.http.ssl.enabled", false);
     }
 
     /**
@@ -46,14 +51,13 @@ public class ClusterInfoHelper {
      * @return The cluster base URL in the format "http(s)://[IP]:[PORT]".
      */
     public static String getClusterBaseUrl(ClusterService clusterService) {
-        DiscoveryNode node = clusterService.state().nodes().getClusterManagerNode();
-        String protocol = isHttpsEnabled(clusterService) ? "https" : "http";
-        String clusterIp = "127.0.0.1:9200";
-        if (node != null) {
-            // Get the address in format <IP>:<PORT>.
-            clusterIp =
-                    node.getAddress().getAddress() + ":" + clusterService.getSettings().get("http.port");
+        String protocol = ClusterInfoHelper.isHttpsEnabled(clusterService) ? "https" : "http";
+        String host = "127.0.0.1";
+        String port = "9200";
+        if (clusterService.state().nodes().getClusterManagerNode() != null) {
+            host = clusterService.getSettings().get("network.host", host);
+            port = clusterService.getSettings().get("http.port", port);
         }
-        return protocol + "://" + clusterIp;
+        return String.format(Locale.ROOT, "%s://%s:%s", protocol, host, port);
     }
 }

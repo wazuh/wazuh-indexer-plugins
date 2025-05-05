@@ -38,6 +38,7 @@ import java.util.concurrent.TimeoutException;
 
 import com.wazuh.contentmanager.model.ctiapi.ConsumerInfo;
 import com.wazuh.contentmanager.settings.PluginSettings;
+import reactor.util.annotation.NonNull;
 
 /** Class to manage the Context index. */
 public class ContextIndex {
@@ -98,7 +99,7 @@ public class ContextIndex {
      * @param contextName ID of the context to be retrieved.
      * @return A completable future holding the response of the query.
      */
-    public CompletableFuture<GetResponse> get(String contextName) {
+    public CompletableFuture<GetResponse> get(@NonNull String contextName) {
         GetRequest getRequest = new GetRequest(ContextIndex.INDEX_NAME, contextName);
         CompletableFuture<GetResponse> future = new CompletableFuture<>();
 
@@ -211,6 +212,24 @@ public class ContextIndex {
                         pluginSettings.getContextId(),
                         offset,
                         lastOffset,
+                        null));
+        log.info("Updated context index with new offset {} and last offset {}", offset, lastOffset);
+    }
+
+    /**
+     * Sets the context index current offset, maintaining the same last offset value.
+     *
+     * <p>ContextIndex.setOffset(offset).
+     *
+     * @param offset Long value of the new offset.
+     */
+    public void setOffset(Long offset) {
+        this.index(
+                new ConsumerInfo(
+                        pluginSettings.getConsumerId(),
+                        pluginSettings.getContextId(),
+                        offset,
+                        this.getLastOffset(),
                         null));
         log.info("Updated context index with new offset {}", offset);
     }
