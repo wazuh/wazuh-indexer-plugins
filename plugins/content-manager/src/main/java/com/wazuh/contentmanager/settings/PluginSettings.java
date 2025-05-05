@@ -19,10 +19,8 @@ package com.wazuh.contentmanager.settings;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.opensearch.cluster.service.ClusterService;
-import org.opensearch.common.settings.SecureSetting;
 import org.opensearch.common.settings.Setting;
 import org.opensearch.common.settings.Settings;
-import org.opensearch.core.common.settings.SecureString;
 
 import com.wazuh.contentmanager.utils.ClusterInfoHelper;
 import reactor.util.annotation.NonNull;
@@ -57,18 +55,8 @@ public class PluginSettings {
                     Setting.Property.NodeScope,
                     Setting.Property.Filtered);
 
-    /** Command Manager authentication user. */
-    public static final Setting<SecureString> COMMAND_MANAGER_USERNAME =
-            SecureSetting.secureString("command_manager.auth.username", null);
-
-    /** Command Manager authentication password. */
-    public static final Setting<SecureString> COMMAND_MANAGER_PASSWORD =
-            SecureSetting.secureString("command_manager.auth.password", null);
-
     private final String ctiBaseUrl;
     private final ClusterService clusterService;
-    private final SecureString authUsername;
-    private final SecureString authPassword;
 
     /**
      * Private default constructor
@@ -78,9 +66,6 @@ public class PluginSettings {
     private PluginSettings(@NonNull final Settings settings, ClusterService clusterService) {
         this.ctiBaseUrl = CTI_API_URL.get(settings);
         this.clusterService = clusterService;
-
-        this.authUsername = COMMAND_MANAGER_USERNAME.get(settings);
-        this.authPassword = COMMAND_MANAGER_PASSWORD.get(settings);
 
         log.debug("Settings.loaded: {}", this.toString());
     }
@@ -130,23 +115,5 @@ public class PluginSettings {
      */
     public String getClusterBaseUrl() {
         return ClusterInfoHelper.getClusterBaseUrl(this.clusterService);
-    }
-
-    /**
-     * Getter method for the Command Manager authentication username.
-     *
-     * @return a string with the Content Manager authentication username.
-     */
-    public String getAuthUsername() {
-        return this.authUsername.toString();
-    }
-
-    /**
-     * Getter method for the Command Manager authentication password.
-     *
-     * @return a string with the Content Manager authentication password.
-     */
-    public String getAuthPassword() {
-        return this.authPassword.toString();
     }
 }

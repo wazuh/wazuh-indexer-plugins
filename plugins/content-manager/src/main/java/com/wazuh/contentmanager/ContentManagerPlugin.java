@@ -95,10 +95,7 @@ public class ContentManagerPlugin extends Plugin
 
     @Override
     public List<Setting<?>> getSettings() {
-        return List.of(
-                PluginSettings.CTI_API_URL,
-                PluginSettings.COMMAND_MANAGER_USERNAME,
-                PluginSettings.COMMAND_MANAGER_PASSWORD);
+        return List.of(PluginSettings.CTI_API_URL);
     }
 
     @Override
