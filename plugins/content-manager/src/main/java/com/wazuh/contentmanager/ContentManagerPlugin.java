@@ -45,6 +45,7 @@ import com.wazuh.contentmanager.utils.SnapshotHelper;
 /** Main class of the Content Manager Plugin */
 public class ContentManagerPlugin extends Plugin implements ClusterPlugin {
     private static final Logger log = LogManager.getLogger(ContentManagerPlugin.class);
+    private ContextIndex contextIndex;
     private ContentIndex contentIndex;
     private SnapshotHelper snapshotHelper;
     private ThreadPool threadPool;
@@ -64,7 +65,7 @@ public class ContentManagerPlugin extends Plugin implements ClusterPlugin {
             Supplier<RepositoriesService> repositoriesServiceSupplier) {
         PluginSettings.getInstance(environment.settings(), clusterService);
         this.threadPool = threadPool;
-        ContextIndex contextIndex = new ContextIndex(client);
+        this.contextIndex = new ContextIndex(client);
         this.contentIndex = new ContentIndex(client);
         this.snapshotHelper = new SnapshotHelper(environment, contextIndex, this.contentIndex);
 
@@ -78,8 +79,9 @@ public class ContentManagerPlugin extends Plugin implements ClusterPlugin {
      */
     @Override
     public void onNodeStarted(DiscoveryNode localNode) {
+        this.contextIndex.createIndex();
         if (this.contentIndex.exists()) {
-            threadPool
+            this.threadPool
                     .generic()
                     .execute(
                             () -> {
