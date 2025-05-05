@@ -20,6 +20,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.opensearch.client.Client;
 
+/** Runnable class for the Content Updater job. */
 public class ContentUpdaterRunnable implements Runnable {
     private static final Logger log = LogManager.getLogger(ContentUpdaterRunnable.class);
     private final Client client;
@@ -34,5 +35,7 @@ public class ContentUpdaterRunnable implements Runnable {
     }
 
     @Override
-    public void run() {}
+    public void run() {
+        log.info("Hello from ContentUpdaterRunnable!");
+    }
 }
