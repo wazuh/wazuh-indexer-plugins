@@ -56,20 +56,27 @@ public class PluginSettings {
     /** Base Wazuh CTI URL */
     public static final String CTI_URL = "https://cti.wazuh.com";
 
-    /** Content Manager CTI API setting field key */
-    private static final String CONTENT_MANAGER_API_CTI = "content-manager.api.cti";
-
-    /** Content Manager CTI API consumer id/name */
-    public static final String CONSUMER_ID = "vd_4.8.0";
-
-    /** Content Manager CTI API context id/name */
-    public static final String CONTEXT_ID = "vd_1.0.0";
-
-    /** Read the CTI API URL from configuration file */
+    /** The CTI API URL from the configuration file */
     public static final Setting<String> CTI_API_URL =
             Setting.simpleString(
-                    CONTENT_MANAGER_API_CTI,
+                    "content_manager.api.cti",
                     CTI_URL + "/api/v1",
+                    Setting.Property.NodeScope,
+                    Setting.Property.Filtered);
+
+    /** Content Manager CTI API consumer id/name */
+    public static final Setting<String> CONSUMER_ID =
+            Setting.simpleString(
+                    "content_manager.cti.consumer",
+                    "vd_4.8.0",
+                    Setting.Property.NodeScope,
+                    Setting.Property.Filtered);
+
+    /** Content Manager CTI API context id/name */
+    public static final Setting<String> CONTEXT_ID =
+            Setting.simpleString(
+                    "content_manager.cti.context",
+                    "vd_1.0.0",
                     Setting.Property.NodeScope,
                     Setting.Property.Filtered);
 
@@ -83,7 +90,10 @@ public class PluginSettings {
                     Setting.Property.NodeScope,
                     Setting.Property.Filtered);
 
-    /** The sleep duration for the CTI client in seconds. */
+    /**
+     * This attribute helps calculate the delay before retrying the request to the CTI client in
+     * seconds.
+     */
     public static final Setting<Integer> CTI_CLIENT_SLEEP_TIME =
             Setting.intSetting(
                     "content_manager.cti.client.sleep_time",
@@ -98,52 +108,55 @@ public class PluginSettings {
             Setting.intSetting(
                     "content_manager.http.client.timeout",
                     DEFAULT_HTTP_CLIENT_TIMEOUT,
-                    30,
+                    10,
                     50,
                     Setting.Property.NodeScope,
                     Setting.Property.Filtered);
 
-    /** The maximum number of documents to return from a content */
-    public static final Setting<Integer> CONTENT_INDEX_MAX_DOCUMENTS =
+    /**
+     * The maximum number of elements that are included in a bulk request during the initialization
+     * from a snapshot.
+     */
+    public static final Setting<Integer> MAX_ITEMS_PER_BULK =
             Setting.intSetting(
-                    "content_manager.content_index.max_documents",
+                    "content_manager.max_items_per_bulk",
+                    25,
+                    10,
                     25,
                     Setting.Property.NodeScope,
                     Setting.Property.Filtered);
 
-    /** The maximum number of concurrent petitions allowed to the content index. */
-    public static final Setting<Integer> CONTENT_INDEX_MAX_CONCURRENT_PETITIONS =
+    /**
+     * The maximum number of co-existing bulk operations during the initialization from a snapshot.
+     */
+    public static final Setting<Integer> MAX_CONCURRENT_BULKS =
             Setting.intSetting(
-                    "content_manager.content_index.max_concurrent_petitions",
+                    "content_manager.max_concurrent_bulks",
+                    5,
+                    1,
                     5,
                     Setting.Property.NodeScope,
                     Setting.Property.Filtered);
 
-    /** The timeout duration for 'get' operations on the content index in seconds. */
-    public static final Setting<Long> CONTENT_INDEX_TIMEOUT =
+    /**
+     * The timeout duration for 'get' operations on the content index and context index, in seconds.
+     */
+    public static final Setting<Long> CLIENT_TIMEOUT =
             Setting.longSetting(
-                    "content_manager.content_index.timeout",
+                    "content_manager.client.timeout",
                     10,
                     Setting.Property.NodeScope,
                     Setting.Property.Filtered);
 
-    /** The timeout duration for 'get' operations on the context index in seconds. */
-    public static final Setting<Long> CONTEXT_INDEX_TIMEOUT =
+    /** The maximum number of changes to be fetched and applied during the update of the content. */
+    public static final Setting<Long> MAX_CHANGES =
             Setting.longSetting(
-                    "content_manager.context_index.timeout",
-                    10,
-                    Setting.Property.NodeScope,
-                    Setting.Property.Filtered);
-
-    /** The maximum size of a chunk for the content updater. */
-    public static final Setting<Long> CHUNK_MAX_SIZE =
-            Setting.longSetting(
-                    "content_manager.chunk.max_size",
+                    "content_manager.max_changes",
                     1000,
                     Setting.Property.NodeScope,
                     Setting.Property.Filtered);
 
-    /** Content Manager Settings. Maximum number of documents to be returned by query. */
+    /** Maximum number of documents processed per indexing job. */
     public static final Setting<Integer> JOB_MAX_DOCS =
             Setting.intSetting(
                     "content_manager.job.max_docs",
@@ -153,7 +166,7 @@ public class PluginSettings {
                     Setting.Property.NodeScope,
                     Setting.Property.Filtered);
 
-    /** Job execution interval in minutes. */
+    /** Interval in minutes between each scheduled job execution. */
     public static final Setting<Integer> JOB_SCHEDULE =
             Setting.intSetting(
                     "content_manager.job.schedule",
@@ -164,15 +177,16 @@ public class PluginSettings {
                     Setting.Property.Filtered);
 
     private final String ctiBaseUrl;
+    private final String consumerId;
+    private final String contextId;
     private final ClusterService clusterService;
     private final Integer ctiClientMaxAttempts;
     private final Integer ctiClientSleepTime;
     private final Integer httpClientTimeout;
-    private final Integer contentIndexMaximumDocuments;
-    private final Integer contentIndexMaximumConcurrentPetitions;
-    private final Long contentIndexTimeout;
-    private final Long contextIndexTimeout;
-    private final Long chunkMaxSize;
+    private final Integer maximumItemsPerBulk;
+    private final Integer maximumConcurrentBulks;
+    private final Long clientTimeout;
+    private final Long maximumChanges;
     private final Integer jobMaximumDocuments;
     private final Integer jobSchedule;
 
@@ -183,16 +197,16 @@ public class PluginSettings {
      */
     private PluginSettings(@NonNull final Settings settings, ClusterService clusterService) {
         this.ctiBaseUrl = CTI_API_URL.get(settings);
+        this.consumerId = CONSUMER_ID.get(settings);
+        this.contextId = CONTEXT_ID.get(settings);
         this.clusterService = clusterService;
         this.ctiClientMaxAttempts = CTI_CLIENT_MAX_ATTEMPTS.get(settings);
         this.ctiClientSleepTime = CTI_CLIENT_SLEEP_TIME.get(settings);
         this.httpClientTimeout = HTTP_CLIENT_TIMEOUT.get(settings);
-        this.contentIndexMaximumDocuments = CONTENT_INDEX_MAX_DOCUMENTS.get(settings);
-        this.contentIndexMaximumConcurrentPetitions =
-                CONTENT_INDEX_MAX_CONCURRENT_PETITIONS.get(settings);
-        this.contentIndexTimeout = CONTENT_INDEX_TIMEOUT.get(settings);
-        this.contextIndexTimeout = CONTEXT_INDEX_TIMEOUT.get(settings);
-        this.chunkMaxSize = CHUNK_MAX_SIZE.get(settings);
+        this.maximumItemsPerBulk = MAX_ITEMS_PER_BULK.get(settings);
+        this.maximumConcurrentBulks = MAX_CONCURRENT_BULKS.get(settings);
+        this.clientTimeout = CLIENT_TIMEOUT.get(settings);
+        this.maximumChanges = MAX_CHANGES.get(settings);
         this.jobMaximumDocuments = JOB_MAX_DOCS.get(settings);
         this.jobSchedule = JOB_SCHEDULE.get(settings);
 
@@ -238,6 +252,24 @@ public class PluginSettings {
     }
 
     /**
+     * Retrieves the consumer ID.
+     *
+     * @return a string representing the consumer ID.
+     */
+    public String getConsumerId() {
+        return consumerId;
+    }
+
+    /**
+     * Retrieves the context ID.
+     *
+     * @return a String representing the context ID.
+     */
+    public String getContextId() {
+        return contextId;
+    }
+
+    /**
      * Getter method for the Command Manager API URL
      *
      * @return a string with the Content Manager full URL
@@ -246,12 +278,18 @@ public class PluginSettings {
         return ClusterInfoHelper.getClusterBaseUrl(this.clusterService);
     }
 
+    /**
+     * Retrieves the maximum number of retry attempts allowed for the CTI client.
+     *
+     * @return an Integer representing the maximum number of retry attempts.
+     */
     public Integer getCtiClientMaxAttempts() {
         return ctiClientMaxAttempts;
     }
 
     /**
-     * Retrieves the sleep time used by the CTI client.
+     * Retrieves the wait time used by the CTI client after receiving a 'too many requests' response.
+     * This attribute helps calculate the delay before retrying the request.
      *
      * @return an Integer representing the duration of the sleep time for the CTI client.
      */
@@ -262,7 +300,7 @@ public class PluginSettings {
     /**
      * Retrieves the timeout value for the HTTP client.
      *
-     * @return an Integer representing the HTTP client timeout in milliseconds.
+     * @return an Integer representing the HTTP client timeout in seconds.
      */
     public Integer getHttpClientTimeout() {
         return httpClientTimeout;
@@ -273,8 +311,8 @@ public class PluginSettings {
      *
      * @return an Integer representing the maximum number of documents allowed for content indexing.
      */
-    public Integer getContentIndexMaximumDocuments() {
-        return contentIndexMaximumDocuments;
+    public Integer getMaxItemsPerBulk() {
+        return maximumItemsPerBulk;
     }
 
     /**
@@ -282,35 +320,27 @@ public class PluginSettings {
      *
      * @return an Integer representing the maximum number of concurrent petitions.
      */
-    public Integer getContentIndexMaximumConcurrentPetitions() {
-        return contentIndexMaximumConcurrentPetitions;
+    public Integer getMaximumConcurrentBulks() {
+        return maximumConcurrentBulks;
     }
 
     /**
-     * Retrieves the timeout value for content indexing operations.
+     * Retrieves the timeout value for content and context indexing operations.
      *
-     * @return a Long representing the timeout duration for content indexing, in milliseconds.
+     * @return a Long representing the timeout duration in seconds.
      */
-    public Long getContentIndexTimeout() {
-        return contentIndexTimeout;
+    public Long getClientTimeout() {
+        return clientTimeout;
     }
 
     /**
-     * Retrieves the timeout value for context indexing operations.
+     * Retrieves the maximum number of changes to be fetched and applied during the update of the
+     * content.
      *
-     * @return a Long representing the timeout duration for context indexing, in milliseconds.
+     * @return a Long representing the maximum number of changes.
      */
-    public Long getContextIndexTimeout() {
-        return contextIndexTimeout;
-    }
-
-    /**
-     * Retrieves the maximum size of a chunk.
-     *
-     * @return a Long representing the maximum size of a chunk.
-     */
-    public Long getChunkMaxSize() {
-        return chunkMaxSize;
+    public Long getMaximumChanges() {
+        return maximumChanges;
     }
 
     /**

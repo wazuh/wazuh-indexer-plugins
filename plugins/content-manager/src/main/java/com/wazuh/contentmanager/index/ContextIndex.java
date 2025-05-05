@@ -48,6 +48,7 @@ public class ContextIndex {
 
     private final Client client;
     private ConsumerInfo consumerInfo;
+    private final PluginSettings pluginSettings = PluginSettings.getInstance();
 
     /**
      * Constructor.
@@ -78,7 +79,7 @@ public class ContextIndex {
 
             return this.client
                     .index(indexRequest)
-                    .get(PluginSettings.getInstance().getContextIndexTimeout(), TimeUnit.SECONDS);
+                    .get(pluginSettings.getClientTimeout(), TimeUnit.SECONDS);
         } catch (IOException e) {
             log.error("Failed to create JSON content builder: {}", e.getMessage());
         } catch (InterruptedException | ExecutionException | TimeoutException e) {
@@ -131,8 +132,7 @@ public class ContextIndex {
         if (this.consumerInfo == null) {
             try {
                 GetResponse getResponse =
-                        this.get(context)
-                                .get(PluginSettings.getInstance().getContextIndexTimeout(), TimeUnit.SECONDS);
+                        this.get(context).get(pluginSettings.getClientTimeout(), TimeUnit.SECONDS);
                 log.info("Received search response for {}", context);
 
                 Map<String, Object> source =
@@ -165,7 +165,8 @@ public class ContextIndex {
      * @return The long value of the offset.
      */
     public long getOffset() {
-        return this.getConsumer(PluginSettings.CONTEXT_ID, PluginSettings.CONSUMER_ID).getOffset();
+        return this.getConsumer(pluginSettings.getContextId(), pluginSettings.getConsumerId())
+                .getOffset();
     }
 
     /**
@@ -174,7 +175,8 @@ public class ContextIndex {
      * @return The long value of the offset.
      */
     public long getLastOffset() {
-        return this.getConsumer(PluginSettings.CONTEXT_ID, PluginSettings.CONSUMER_ID).getLastOffset();
+        return this.getConsumer(pluginSettings.getContextId(), pluginSettings.getConsumerId())
+                .getLastOffset();
     }
 
     /**
@@ -183,7 +185,7 @@ public class ContextIndex {
      * @return a String with the last snapshot link.
      */
     public String getLastSnapshotLink() {
-        return this.getConsumer(PluginSettings.CONTEXT_ID, PluginSettings.CONSUMER_ID)
+        return this.getConsumer(pluginSettings.getContextId(), pluginSettings.getConsumerId())
                 .getLastSnapshotLink();
     }
 
@@ -205,7 +207,11 @@ public class ContextIndex {
     public void setOffset(Long offset, Long lastOffset) {
         this.index(
                 new ConsumerInfo(
-                        PluginSettings.CONSUMER_ID, PluginSettings.CONTEXT_ID, offset, lastOffset, null));
+                        pluginSettings.getConsumerId(),
+                        pluginSettings.getContextId(),
+                        offset,
+                        lastOffset,
+                        null));
         log.info("Updated context index with new offset {}", offset);
     }
 }

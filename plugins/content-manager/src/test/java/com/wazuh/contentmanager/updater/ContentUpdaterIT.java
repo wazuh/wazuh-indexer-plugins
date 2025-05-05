@@ -58,6 +58,7 @@ public class ContentUpdaterIT extends OpenSearchIntegTestCase {
     ContextIndex contextIndex;
     ContentIndex contentIndex;
     CTIClient ctiClient;
+    PluginSettings pluginSettings = PluginSettings.getInstance();
 
     @Before
     public void setup() throws Exception {
@@ -83,7 +84,11 @@ public class ContentUpdaterIT extends OpenSearchIntegTestCase {
         ContentChanges contentChanges = new ContentChanges(List.of(createOffset));
         ConsumerInfo testConsumer =
                 new ConsumerInfo(
-                        PluginSettings.CONSUMER_ID, PluginSettings.CONTEXT_ID, offsetId, offsetId, null);
+                        pluginSettings.getConsumerId(),
+                        pluginSettings.getContextId(),
+                        offsetId,
+                        offsetId,
+                        null);
         // Mock
         when(this.ctiClient.getChanges(this.initialOffset, 1, false)).thenReturn(contentChanges);
         when(this.contextIndex.getConsumer(anyString(), anyString())).thenReturn(testConsumer);
@@ -94,7 +99,8 @@ public class ContentUpdaterIT extends OpenSearchIntegTestCase {
         this.client.admin().indices().refresh(request).actionGet();
 
         ConsumerInfo updatedConsumer =
-                this.contextIndex.getConsumer(PluginSettings.CONTEXT_ID, PluginSettings.CONSUMER_ID);
+                this.contextIndex.getConsumer(
+                        pluginSettings.getContextId(), pluginSettings.getConsumerId());
         // Assert
         assertTrue(updated);
         assertNotNull(updatedConsumer);
@@ -110,7 +116,11 @@ public class ContentUpdaterIT extends OpenSearchIntegTestCase {
         ContentChanges contentChanges = new ContentChanges(List.of(createOffset, updateOffset));
         ConsumerInfo testConsumer =
                 new ConsumerInfo(
-                        PluginSettings.CONSUMER_ID, PluginSettings.CONTEXT_ID, offsetId, offsetId, null);
+                        pluginSettings.getConsumerId(),
+                        pluginSettings.getContextId(),
+                        offsetId,
+                        offsetId,
+                        null);
         // Mock
         when(this.ctiClient.getChanges(this.initialOffset, offsetId, false)).thenReturn(contentChanges);
         when(this.contextIndex.getConsumer(anyString(), anyString())).thenReturn(testConsumer);
@@ -121,7 +131,8 @@ public class ContentUpdaterIT extends OpenSearchIntegTestCase {
         this.client.admin().indices().refresh(request).actionGet();
 
         ConsumerInfo updatedConsumer =
-                this.contextIndex.getConsumer(PluginSettings.CONTEXT_ID, PluginSettings.CONSUMER_ID);
+                this.contextIndex.getConsumer(
+                        pluginSettings.getContextId(), pluginSettings.getConsumerId());
         // Assert
         assertTrue(updated);
         assertNotNull(updatedConsumer);
@@ -143,7 +154,8 @@ public class ContentUpdaterIT extends OpenSearchIntegTestCase {
         Offset deleteOffset = this.getOffset(offsetId, OperationType.DELETE);
         ContentChanges contentChanges = new ContentChanges(List.of(createOffset, deleteOffset));
         ConsumerInfo testConsumer =
-                new ConsumerInfo(PluginSettings.CONSUMER_ID, PluginSettings.CONTEXT_ID, 0L, offsetId, null);
+                new ConsumerInfo(
+                        pluginSettings.getConsumerId(), pluginSettings.getContextId(), 0L, offsetId, null);
         // Mock
         when(this.ctiClient.getChanges(this.initialOffset, offsetId, false)).thenReturn(contentChanges);
         when(this.contextIndex.getConsumer(anyString(), anyString())).thenReturn(testConsumer);
@@ -154,11 +166,12 @@ public class ContentUpdaterIT extends OpenSearchIntegTestCase {
         this.client.admin().indices().refresh(request).actionGet();
 
         ConsumerInfo updatedConsumer =
-                this.contextIndex.getConsumer(PluginSettings.CONTEXT_ID, PluginSettings.CONSUMER_ID);
+                this.contextIndex.getConsumer(
+                        pluginSettings.getContextId(), pluginSettings.getConsumerId());
         GetResponse getContent =
                 this.contentIndex
                         .get(this.testResource)
-                        .get(PluginSettings.getInstance().getContentIndexTimeout(), TimeUnit.SECONDS);
+                        .get(pluginSettings.getContentIndexTimeout(), TimeUnit.SECONDS);
         // Assert
         assertTrue(updated);
         assertNotNull(updatedConsumer);
@@ -184,7 +197,7 @@ public class ContentUpdaterIT extends OpenSearchIntegTestCase {
             payload.put("indicators", List.of("192.168.1.1", "example.com"));
         }
         return new Offset(
-                PluginSettings.CONTEXT_ID, id, this.testResource, type, 1L, operations, payload);
+                pluginSettings.getContextId(), id, this.testResource, type, 1L, operations, payload);
     }
 
     /**
@@ -201,10 +214,14 @@ public class ContentUpdaterIT extends OpenSearchIntegTestCase {
         // Create a ConsumerInfo document manually in the test index
         ConsumerInfo info =
                 new ConsumerInfo(
-                        PluginSettings.CONSUMER_ID, PluginSettings.CONTEXT_ID, offset, lastOffset, null);
+                        pluginSettings.getConsumerId(),
+                        pluginSettings.getContextId(),
+                        offset,
+                        lastOffset,
+                        null);
         client
                 .prepareIndex(ContextIndex.INDEX_NAME)
-                .setId(PluginSettings.CONTEXT_ID)
+                .setId(pluginSettings.getContextId())
                 .setSource(info.toXContent(XContentFactory.jsonBuilder(), ToXContent.EMPTY_PARAMS))
                 .setRefreshPolicy(WriteRequest.RefreshPolicy.IMMEDIATE)
                 .get();

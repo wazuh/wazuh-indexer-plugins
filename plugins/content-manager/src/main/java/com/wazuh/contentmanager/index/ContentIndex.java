@@ -63,8 +63,8 @@ public class ContentIndex {
     public static final String INDEX_NAME = "wazuh-cve";
 
     private final Client client;
-    private final Semaphore semaphore =
-            new Semaphore(PluginSettings.getInstance().getContentIndexMaximumConcurrentPetitions());
+    private final PluginSettings pluginSettings = PluginSettings.getInstance();
+    private final Semaphore semaphore = new Semaphore(pluginSettings.getMaximumConcurrentBulks());
 
     /**
      * Constructor for the ContentIndex class.
@@ -240,8 +240,8 @@ public class ContentIndex {
 
     /**
      * Initializes the index from a local snapshot. The snapshot file (in NDJSON format) is split in
-     * chunks of {@link PluginSettings#CONTENT_INDEX_MAX_DOCUMENTS} elements. These are bulk indexed
-     * using {@link ContentIndex#index(List)}.
+     * chunks of {@link PluginSettings#MAX_ITEMS_PER_BULK} elements. These are bulk indexed using
+     * {@link ContentIndex#index(List)}.
      *
      * @param path path to the CTI snapshot JSON file to be indexed.
      */
@@ -268,7 +268,7 @@ public class ContentIndex {
                 }
 
                 // Index items (MAX_DOCUMENTS reached)
-                if (lineCount == PluginSettings.getInstance().getContentIndexMaximumDocuments()) {
+                if (lineCount == pluginSettings.getMaxItemsPerBulk()) {
                     this.semaphore.acquire();
                     this.index(items);
                     lineCount = 0;
@@ -300,8 +300,7 @@ public class ContentIndex {
     public JsonObject getById(String resourceId)
             throws InterruptedException, ExecutionException, TimeoutException, IllegalArgumentException {
         GetResponse response =
-                this.get(resourceId)
-                        .get(PluginSettings.getInstance().getContentIndexTimeout(), TimeUnit.SECONDS);
+                this.get(resourceId).get(pluginSettings.getClientTimeout(), TimeUnit.SECONDS);
         if (response.isExists()) {
             return JsonParser.parseString(response.getSourceAsString()).getAsJsonObject();
         }

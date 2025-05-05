@@ -88,7 +88,7 @@ public class ContentUpdater {
         log.info("New updates available from offset {} to {}", currentOffset, lastOffset);
         while (currentOffset < lastOffset) {
             long nextOffset =
-                    Math.min(currentOffset + PluginSettings.getInstance().getChunkMaxSize(), lastOffset);
+                    Math.min(currentOffset + PluginSettings.getInstance().getMaximumChanges(), lastOffset);
             ContentChanges changes = this.getChanges(currentOffset, nextOffset);
             log.debug("Fetched offsets from {} to {}", currentOffset, nextOffset);
 
