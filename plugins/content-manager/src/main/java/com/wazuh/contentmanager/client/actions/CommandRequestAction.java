@@ -23,13 +23,29 @@ import org.opensearch.core.common.io.stream.StreamOutput;
 
 import java.io.IOException;
 
+/**
+ * CommandRequestAction is a class that represents a request to post a command to the Command
+ * Manager Plugin. It extends the ActionRequest class and provides methods for serialization and
+ * validation.
+ */
 public class CommandRequestAction extends ActionRequest {
     private final String jsonBody;
 
+    /**
+     * Constructor for CommandRequestAction.
+     *
+     * @param jsonBody the JSON body of the command request
+     */
     public CommandRequestAction(String jsonBody) {
         this.jsonBody = jsonBody;
     }
 
+    /**
+     * Constructor for CommandRequestAction that reads from a StreamInput.
+     *
+     * @param in the StreamInput to read from
+     * @throws IOException if an I/O error occurs
+     */
     public CommandRequestAction(StreamInput in) throws IOException {
         super(in);
         this.jsonBody = in.readString();
@@ -40,10 +56,21 @@ public class CommandRequestAction extends ActionRequest {
         return null;
     }
 
+    /**
+     * Returns the JSON body of the command request.
+     *
+     * @return the JSON body of the command request
+     */
     public String getJsonBody() {
         return jsonBody;
     }
 
+    /**
+     * Writes the command request to a StreamOutput.
+     *
+     * @param out the StreamOutput to write to
+     * @throws IOException if an I/O error occurs
+     */
     @Override
     public void writeTo(StreamOutput out) throws IOException {
         out.writeString(jsonBody);

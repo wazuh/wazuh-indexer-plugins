@@ -22,22 +22,49 @@ import org.opensearch.core.common.io.stream.StreamOutput;
 
 import java.io.IOException;
 
+/**
+ * CommandResponseAction is a class that represents the response from the Command Manager Plugin
+ * after posting a command. It extends the ActionResponse class and provides methods for
+ * serialization.
+ */
 public class CommandResponseAction extends ActionResponse {
     private final String message;
 
+    /**
+     * Constructor for CommandResponseAction.
+     *
+     * @param message the message from the command response
+     */
     public CommandResponseAction(String message) {
         this.message = message;
     }
 
+    /**
+     * Constructor for CommandResponseAction that reads from a StreamInput.
+     *
+     * @param in the StreamInput to read from
+     * @throws IOException if an I/O error occurs
+     */
     public CommandResponseAction(StreamInput in) throws IOException {
         super(in);
         this.message = in.readString();
     }
 
+    /**
+     * Returns the message from the command response.
+     *
+     * @return the message from the command response
+     */
     public String getMessage() {
         return message;
     }
 
+    /*
+     * Writes the message to the StreamOutput.
+     *
+     * @param out the StreamOutput to write to
+     * @throws IOException if an I/O error occurs
+     */
     @Override
     public void writeTo(StreamOutput out) throws IOException {
         out.writeString(message);

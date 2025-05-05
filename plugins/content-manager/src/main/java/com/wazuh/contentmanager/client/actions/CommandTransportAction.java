@@ -23,14 +23,32 @@ import org.opensearch.core.action.ActionListener;
 import org.opensearch.tasks.Task;
 import org.opensearch.transport.TransportService;
 
+/**
+ * CommandTransportAction is a class that handles the transport action for posting commands to the
+ * Command Manager Plugin. It extends the HandledTransportAction class and provides methods for
+ * executing the action.
+ */
 public class CommandTransportAction
         extends HandledTransportAction<CommandRequestAction, CommandResponseAction> {
 
+    /**
+     * Constructor for CommandTransportAction.
+     *
+     * @param transportService the TransportService to use
+     * @param actionFilters the ActionFilters to use
+     */
     @Inject
     public CommandTransportAction(TransportService transportService, ActionFilters actionFilters) {
         super(CommandActionType.NAME, transportService, actionFilters, CommandRequestAction::new);
     }
 
+    /**
+     * Executes the transport action for posting commands to the Command Manager Plugin.
+     *
+     * @param task the task associated with the action
+     * @param request the CommandRequestAction to execute
+     * @param listener the ActionListener to notify when the action is complete
+     */
     @Override
     protected void doExecute(
             Task task, CommandRequestAction request, ActionListener<CommandResponseAction> listener) {
