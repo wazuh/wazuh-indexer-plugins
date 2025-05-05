@@ -175,7 +175,7 @@ public class CTIClientTests extends OpenSearchIntegTestCase {
      * @throws IOException
      */
     @AwaitsFix(bugUrl = "")
-    public void testGetCatalog_SuccessfulRequest() throws IOException {
+    public void testGetConsumerInfo_SuccessfulRequest() throws IOException {
         // Arrange
         SimpleHttpResponse response = new SimpleHttpResponse(HttpStatus.SC_SUCCESS, "OK");
         response.setBody(
@@ -194,7 +194,7 @@ public class CTIClientTests extends OpenSearchIntegTestCase {
         // spotless:on
 
         // Act
-        ConsumerInfo consumerInfo = this.spyCtiClient.getCatalog();
+        ConsumerInfo consumerInfo = this.spyCtiClient.getConsumerInfo();
 
         // Assert
         verify(this.spyCtiClient, times(1))
@@ -203,15 +203,15 @@ public class CTIClientTests extends OpenSearchIntegTestCase {
     }
 
     /**
-     * Test that {@link CTIClient#getCatalog()} throws {@link HttpHostConnectException} on no
+     * Test that {@link CTIClient#getConsumerInfo()} throws {@link HttpHostConnectException} on no
      * response.
      */
-    public void testGetCatalog_ThrowException() {
+    public void testGetConsumerInfo_ThrowException() {
         // Arrange
         doReturn(null).when(this.spyCtiClient).sendRequest(any(), any(), any(), any(), any(), anyInt());
 
         // Act & Assert
-        assertThrows(HttpHostConnectException.class, () -> this.spyCtiClient.getCatalog());
+        assertThrows(HttpHostConnectException.class, () -> this.spyCtiClient.getConsumerInfo());
     }
 
     /** */

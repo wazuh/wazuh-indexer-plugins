@@ -42,7 +42,7 @@ public class ConsumerInfo implements ToXContentObject {
     private final String name;
     private long offset;
     private long lastOffset;
-    private final String lastSnapshotLink;
+    private String lastSnapshotLink;
 
     /**
      * Constructor.
@@ -57,18 +57,18 @@ public class ConsumerInfo implements ToXContentObject {
             String name, String context, long offset, long lastOffset, String lastSnapshotLink) {
         this.name = name;
         this.context = context;
-        this.offset = offset;
-        this.lastOffset = lastOffset;
+        this.setOffset(offset);
+        this.setLastOffset(lastOffset);
         this.lastSnapshotLink = lastSnapshotLink;
     }
 
     /**
-     * Parses a Catalog CTI API reply from an XContentParser
+     * Parses the consumer's information within an XContentParser (reply from the CTI API).
      *
-     * @param parser the incoming parser
-     * @return a fully parsed ConsumerInfo object
-     * @throws IOException rethrown from parse()
-     * @throws IllegalArgumentException rethrown from parse()
+     * @param parser the incoming parser.
+     * @return a fully parsed ConsumerInfo object.
+     * @throws IOException rethrown from parse().
+     * @throws IllegalArgumentException rethrown from parse().
      */
     public static ConsumerInfo parse(XContentParser parser)
             throws IOException, IllegalArgumentException {
@@ -134,7 +134,7 @@ public class ConsumerInfo implements ToXContentObject {
     }
 
     /**
-     * Get this consumer's context name.
+     * {@link ConsumerInfo#context} getter.
      *
      * @return the consumer's context name.
      */
@@ -143,7 +143,9 @@ public class ConsumerInfo implements ToXContentObject {
     }
 
     /**
-     * @return
+     * {@link ConsumerInfo#name} getter.
+     *
+     * @return the consumer's name.
      */
     public String getName() {
         return this.name;
@@ -176,11 +178,52 @@ public class ConsumerInfo implements ToXContentObject {
         return this.lastSnapshotLink;
     }
 
-    public void setOffset(long offset) {
+    /**
+     * {@link ConsumerInfo#offset} setter.
+     *
+     * @param offset new value (positive).
+     * @throws IllegalArgumentException when {@code offset < 0}.
+     */
+    public void setOffset(long offset) throws IllegalArgumentException {
+        if (offset < 0) {
+            throw new IllegalArgumentException("Offset can't be negative");
+        }
         this.offset = offset;
     }
 
-    public void setLastOffset(long offset) {
+    /**
+     * {@link ConsumerInfo#lastOffset} setter.
+     *
+     * @param offset new value (positive).
+     * @throws IllegalArgumentException when {@code offset < 0}.
+     */
+    public void setLastOffset(long offset) throws IllegalArgumentException {
+        if (offset < 0) {
+            throw new IllegalArgumentException("Offset can't be negative");
+        }
         this.lastOffset = offset;
+    }
+
+    public void setLastSnapshotLink(String url) {
+        this.lastSnapshotLink = url;
+    }
+
+    @Override
+    public String toString() {
+        return "ConsumerInfo{"
+                + "context='"
+                + context
+                + '\''
+                + ", name='"
+                + name
+                + '\''
+                + ", offset="
+                + offset
+                + ", lastOffset="
+                + lastOffset
+                + ", lastSnapshotLink='"
+                + lastSnapshotLink
+                + '\''
+                + '}';
     }
 }

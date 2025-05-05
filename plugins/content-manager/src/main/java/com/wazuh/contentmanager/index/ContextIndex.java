@@ -36,7 +36,6 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
 import com.wazuh.contentmanager.model.ctiapi.ConsumerInfo;
-import com.wazuh.contentmanager.settings.PluginSettings;
 
 /** Class to manage the Context index. */
 public class ContextIndex {
@@ -58,52 +57,7 @@ public class ContextIndex {
      */
     public ContextIndex(Client client) {
         this.client = client;
-        this.consumerInfo =
-                new ConsumerInfo(PluginSettings.CONSUMER_ID, PluginSettings.CONTEXT_ID, 0, 0, null);
     }
-
-    //    /**
-    //     * offset: 0, last_offset: 0
-    //     */
-    //    public void init() {
-    //        IndexRequest indexRequest =
-    //            new IndexRequest()
-    //                .index(ContextIndex.INDEX_NAME)
-    //                .source(
-    //                    new ConsumerInfo(PluginSettings.CONSUMER_ID, PluginSettings.CONTEXT_ID, 0,
-    // 0, null))
-    //                .id(consumerInfo.getContext());
-    //
-    //        this.client.index(indexRequest, new ActionListener<>() {
-    //            @Override
-    //            public void onResponse(IndexResponse indexResponse) {
-    //                log.info("Context consumer [{}-{}] successfully initialized",
-    // PluginSettings.CONSUMER_ID, PluginSettings.CONTEXT_ID);
-    //            }
-    //
-    //            @Override
-    //            public void onFailure(Exception e) {
-    //                log.error("Failed to initialize context consumer [{}-{}] due to {}",
-    // PluginSettings.CONSUMER_ID, PluginSettings.CONTEXT_ID, e.getMessage());
-    //            }
-    //        });
-    //    }
-    //
-    //    /**
-    //     * event: scheduled_update, offset: unchanged, last_offset: response.last_offset
-    //     * @param offset
-    //     */
-    //    public void setLastOffset(long offset) {
-    //
-    //    }
-    //
-    //    /**
-    //     * event: content_update, offset: last_indexed_item.offset, last_offset: unchanged
-    //     * @param offset
-    //     */
-    //    public void setOffset(long offset) {
-    //
-    //    }
 
     /**
      * Index CTI API consumer information.
@@ -138,44 +92,15 @@ public class ContextIndex {
         return false;
     }
 
-    //    /**
-    //     * Get a context by ID (name).
-    //     *
-    //     * @param contextName ID of the context to be retrieved.
-    //     * @return A completable future holding the response of the query.
-    //     */
-    //    public CompletableFuture<GetResponse> get(@NonNull String contextName) {
-    //        GetRequest request = new GetRequest(ContextIndex.INDEX_NAME, contextName);
-    //        CompletableFuture<GetResponse> future = new CompletableFuture<>();
-    //
-    //        this.client.get(
-    //                request,
-    //                new ActionListener<>() {
-    //                    @Override
-    //                    public void onResponse(GetResponse getResponse) {
-    //                        log.info("Retrieved CTI Catalog Context {} from index", contextName);
-    //                        future.complete(getResponse);
-    //                    }
-    //
-    //                    @Override
-    //                    public void onFailure(Exception e) {
-    //                        log.error("Failed to retrieve CTI Catalog Context {}, Exception: {}",
-    // contextName, e);
-    //                        future.completeExceptionally(e);
-    //                    }
-    //                });
-    //        return future;
-    //    }
-
     /**
-     * Get a consumer of a context by their IDs.
+     * Searches for the given consumer within a context.
      *
      * @param context ID (name) of the context.
      * @param consumer ID (name) of the consumer.
      * @return the required consumer as an instance of {@link ConsumerInfo}, or null.
      */
     @SuppressWarnings("unchecked")
-    public ConsumerInfo getConsumer(String context, String consumer) {
+    public ConsumerInfo get(String context, String consumer) {
         try {
             GetResponse getResponse =
                     this.client
@@ -188,49 +113,18 @@ public class ContextIndex {
                         String.format(
                                 Locale.ROOT, "Consumer [%s] not found in context [%s]", consumer, context));
             }
-            log.info("Found [{}][{}] context consumer in the [{}] index", context, consumer, INDEX_NAME);
 
             long offset = ContextIndex.asLong(source.get(ConsumerInfo.OFFSET));
             long lastOffset = ContextIndex.asLong(source.get(ConsumerInfo.LAST_OFFSET));
             String snapshot = (String) source.get(ConsumerInfo.LAST_SNAPSHOT_LINK);
             this.consumerInfo = new ConsumerInfo(consumer, context, offset, lastOffset, snapshot);
+            log.info("Fetched consumer from [{}] index: {}", INDEX_NAME, this.consumerInfo);
         } catch (InterruptedException | ExecutionException | TimeoutException e) {
-            log.error(
-                    "Failed to retrieve context [{}], consumer [{}]: {}", context, consumer, e.getMessage());
+            log.error("Failed to fetch consumer [{}][{}]: {}", context, consumer, e.getMessage());
         }
 
         return this.consumerInfo;
     }
-
-    //    /**
-    //     * Returns the current offset from the context index.
-    //     *
-    //     * @return The long value of the offset.
-    //     */
-    //    public long getOffset() {
-    //        return this.getConsumer(PluginSettings.CONTEXT_ID,
-    // PluginSettings.CONSUMER_ID).getOffset();
-    //    }
-
-    //    /**
-    //     * Returns the current offset from the context index.
-    //     *
-    //     * @return The long value of the offset.
-    //     */
-    //    public long getLastOffset() {
-    //        return this.getConsumer(PluginSettings.CONTEXT_ID,
-    // PluginSettings.CONSUMER_ID).getLastOffset();
-    //    }
-
-    //    /**
-    //     * Returns the last snapshot link from the context index.
-    //     *
-    //     * @return a String with the last snapshot link.
-    //     */
-    //    public String getLastSnapshotLink() {
-    //        return this.getConsumer(PluginSettings.CONTEXT_ID, PluginSettings.CONSUMER_ID)
-    //                .getLastSnapshotLink();
-    //    }
 
     /**
      * Utility method to parse an object value to primitive long.
@@ -241,36 +135,4 @@ public class ContextIndex {
     private static long asLong(Object o) {
         return o instanceof Number ? ((Number) o).longValue() : Long.parseLong(o.toString());
     }
-
-    //    /**
-    //     * Sets the context index current and last offset.
-    //     *
-    //     * <p>ContextIndex.setOffset(offset).
-    //     */
-    //    public void setOffset(Long offset, Long lastOffset) {
-    //        this.index(
-    //                new ConsumerInfo(
-    //                        PluginSettings.CONSUMER_ID, PluginSettings.CONTEXT_ID, offset,
-    // lastOffset, null));
-    //        log.info("Updated context index with new offset {} and last offset {}", offset,
-    // lastOffset);
-    //    }
-
-    //    /**
-    //     * Sets the context index current offset, maintaining the same last offset value.
-    //     *
-    //     * <p>ContextIndex.setOffset(offset).
-    //     *
-    //     * @param offset Long value of the new offset.
-    //     */
-    //    public void setOffset(Long offset) {
-    //        this.index(
-    //                new ConsumerInfo(
-    //                        PluginSettings.CONSUMER_ID,
-    //                        PluginSettings.CONTEXT_ID,
-    //                        offset,
-    //                        this.getLastOffset(),
-    //                        null));
-    //        log.info("Updated context index with new offset {}", offset);
-    //    }
 }

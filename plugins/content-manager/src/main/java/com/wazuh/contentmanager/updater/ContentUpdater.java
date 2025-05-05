@@ -80,7 +80,7 @@ public class ContentUpdater {
      */
     public boolean update() throws ContentUpdateException {
         ConsumerInfo consumerInfo =
-                this.contextIndex.getConsumer(PluginSettings.CONTEXT_ID, PluginSettings.CONSUMER_ID);
+                this.contextIndex.get(PluginSettings.CONTEXT_ID, PluginSettings.CONSUMER_ID);
         long currentOffset = consumerInfo.getOffset();
         long lastOffset = consumerInfo.getLastOffset();
 
@@ -148,11 +148,14 @@ public class ContentUpdater {
         }
     }
 
-    /** Posts a new command to the Command Manager informing about the new changes. */
+    /**
+     * Posts a new command to the Command Manager informing about the new changes. TODO duplicated of
+     * {@code SnapshotHelper#postUpdateCommand()}
+     */
     @VisibleForTesting
     protected void postUpdateCommand() {
         ConsumerInfo consumerInfo =
-                this.contextIndex.getConsumer(PluginSettings.CONTEXT_ID, PluginSettings.CONSUMER_ID);
+                this.contextIndex.get(PluginSettings.CONTEXT_ID, PluginSettings.CONSUMER_ID);
         Privileged.doPrivilegedRequest(
                 () -> {
                     CommandManagerClient.getInstance()

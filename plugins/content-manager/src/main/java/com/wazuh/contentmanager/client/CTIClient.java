@@ -48,17 +48,15 @@ import com.wazuh.contentmanager.utils.XContentUtils;
  * query parameters.
  */
 public class CTIClient extends HttpClient {
-
     private static final Logger log = LogManager.getLogger(CTIClient.class);
 
     static final String CONSUMER_INFO_ENDPOINT =
             "/catalog/contexts/" + PluginSettings.CONTEXT_ID + "/consumers/" + PluginSettings.CONSUMER_ID;
     private static final String CONSUMER_CHANGES_ENDPOINT = CONSUMER_INFO_ENDPOINT + "/changes";
-
-    private static CTIClient INSTANCE;
-
     static final int MAX_ATTEMPTS = 3;
     private static final int SLEEP_TIME = 60;
+
+    private static CTIClient INSTANCE;
 
     /** Enum representing the query parameters used in CTI API requests. */
     public enum QueryParameters {
@@ -152,7 +150,7 @@ public class CTIClient extends HttpClient {
      * @throws HttpHostConnectException server unreachable.
      * @throws IOException error parsing response.
      */
-    public ConsumerInfo getCatalog() throws HttpHostConnectException, IOException {
+    public ConsumerInfo getConsumerInfo() throws HttpHostConnectException, IOException {
         // spotless:off
         SimpleHttpResponse response = this.sendRequest(
             Method.GET,
@@ -164,7 +162,7 @@ public class CTIClient extends HttpClient {
         );
         // spotless:on
         if (response == null) {
-            throw new HttpHostConnectException("No response from CTI API");
+            throw new HttpHostConnectException("No reply to " + CONSUMER_INFO_ENDPOINT);
         }
         log.debug("CTI API replied with status: [{}]", response.getCode());
         return ConsumerInfo.parse(XContentUtils.createJSONParser(response.getBodyBytes()));

@@ -77,8 +77,8 @@ public class SnapshotHelperTests extends OpenSearchTestCase {
         IndexResponse response = mock(IndexResponse.class, "SuccessfulResponse");
 
         // Mocks
-        doReturn(consumerInfo).when(this.ctiClient).getCatalog();
-        doReturn(this.consumerInfo).when(this.contextIndex).getConsumer(anyString(), anyString());
+        doReturn(consumerInfo).when(this.ctiClient).getConsumerInfo();
+        doReturn(this.consumerInfo).when(this.contextIndex).get(anyString(), anyString());
         doReturn(true).when(this.contextIndex).index(consumerInfo);
         doReturn(DocWriteResponse.Result.CREATED).when(response).getResult();
 
@@ -99,8 +99,8 @@ public class SnapshotHelperTests extends OpenSearchTestCase {
         IndexResponse response = mock(IndexResponse.class, "FailedResponse");
 
         // Mocks
-        doReturn(consumerInfo).when(this.ctiClient).getCatalog();
-        doReturn(this.consumerInfo).when(this.contextIndex).getConsumer(anyString(), anyString());
+        doReturn(consumerInfo).when(this.ctiClient).getConsumerInfo();
+        doReturn(this.consumerInfo).when(this.contextIndex).get(anyString(), anyString());
         doReturn(false).when(this.contextIndex).index(consumerInfo);
         doReturn(DocWriteResponse.Result.NOT_FOUND).when(response).getResult();
 
@@ -114,7 +114,7 @@ public class SnapshotHelperTests extends OpenSearchTestCase {
      * @throws IOException rethrown from unzip()
      */
     public void testSuccessfulIndexSnapshot() throws IOException {
-        doReturn(this.consumerInfo).when(this.contextIndex).getConsumer(anyString(), anyString());
+        doReturn(this.consumerInfo).when(this.contextIndex).get(anyString(), anyString());
         Path snapshotZip = mock(Path.class);
         doReturn("http://example.com/file.zip").when(this.consumerInfo).getLastSnapshotLink();
         doReturn(snapshotZip).when(this.ctiClient).download(anyString(), any(Environment.class));

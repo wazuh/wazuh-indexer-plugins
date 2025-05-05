@@ -55,7 +55,7 @@ public class ContentUpdaterTests extends OpenSearchIntegTestCase {
     /** Test Fetch and apply no new updates */
     public void testUpdateNoChanges() {
         // Mock current and latest offset.
-        doReturn(this.consumerInfo).when(this.contextIndex).getConsumer(anyString(), anyString());
+        doReturn(this.consumerInfo).when(this.contextIndex).get(anyString(), anyString());
         // Act
         this.updater.update();
         // Assert applyChangesToContextIndex is not called.
@@ -76,7 +76,7 @@ public class ContentUpdaterTests extends OpenSearchIntegTestCase {
         doNothing().when(this.updater).postUpdateCommand();
         // Mock ContentIndex.patch
         doReturn(true).when(this.updater).applyChanges(any());
-        doReturn(this.consumerInfo).when(this.contextIndex).getConsumer(anyString(), anyString());
+        doReturn(this.consumerInfo).when(this.contextIndex).get(anyString(), anyString());
         // Act
         doNothing().when(this.consumerInfo).setOffset(anyLong());
         doNothing().when(this.consumerInfo).setLastOffset(anyLong());
@@ -95,7 +95,7 @@ public class ContentUpdaterTests extends OpenSearchIntegTestCase {
         doReturn(null).when(this.updater).getChanges(anyLong(), anyLong());
         doNothing().when(this.consumerInfo).setOffset(anyLong());
         doNothing().when(this.consumerInfo).setLastOffset(anyLong());
-        doReturn(this.consumerInfo).when(this.contextIndex).getConsumer(anyString(), anyString());
+        doReturn(this.consumerInfo).when(this.contextIndex).get(anyString(), anyString());
         // Act
         boolean updated = this.updater.update();
         // Assert
@@ -116,7 +116,7 @@ public class ContentUpdaterTests extends OpenSearchIntegTestCase {
         doReturn(false).when(this.updater).applyChanges(any());
         doNothing().when(this.consumerInfo).setOffset(anyLong());
         doNothing().when(this.consumerInfo).setLastOffset(anyLong());
-        doReturn(this.consumerInfo).when(this.contextIndex).getConsumer(anyString(), anyString());
+        doReturn(this.consumerInfo).when(this.contextIndex).get(anyString(), anyString());
         // Act
         boolean updated = this.updater.update();
         // Assert

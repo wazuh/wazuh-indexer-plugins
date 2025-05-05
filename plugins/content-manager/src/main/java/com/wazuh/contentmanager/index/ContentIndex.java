@@ -56,16 +56,18 @@ import com.wazuh.contentmanager.model.ctiapi.PatchOperation;
 import com.wazuh.contentmanager.utils.JsonPatch;
 import com.wazuh.contentmanager.utils.XContentUtils;
 
-/** Manages operations for the Wazuh CVE content index. */
+/** Manages operations for a content index. */
 public class ContentIndex {
     private static final String JSON_NAME_KEY = "name";
     private static final String JSON_OFFSET_KEY = "offset";
     private static final Logger log = LogManager.getLogger(ContentIndex.class);
     private static final int MAX_DOCUMENTS = 25;
     private static final int MAX_CONCURRENT_PETITIONS = 5;
-    // The name of the index
+
+    /** Content index name. */
     public static final String INDEX_NAME = "wazuh-cve";
-    // The timeout for the get operation in seconds
+
+    /** The timeout for the get operation in seconds */
     public static final Long TIMEOUT = 10L;
 
     private final Client client;

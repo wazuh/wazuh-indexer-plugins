@@ -82,7 +82,7 @@ public class SnapshotHelper {
      */
     protected void indexSnapshot() {
         ConsumerInfo consumerInfo =
-                this.contextIndex.getConsumer(PluginSettings.CONTEXT_ID, PluginSettings.CONSUMER_ID);
+                this.contextIndex.get(PluginSettings.CONTEXT_ID, PluginSettings.CONSUMER_ID);
         if (consumerInfo.getOffset() == 0) {
             log.info("Initializing [{}] index from a snapshot", ContentIndex.INDEX_NAME);
             Privileged.doPrivilegedRequest(
@@ -140,10 +140,13 @@ public class SnapshotHelper {
                         Locale.ROOT, "%s_%s_*.json", PluginSettings.CONTEXT_ID, PluginSettings.CONSUMER_ID));
     }
 
-    /** Posts a command to the command manager API on a successful snapshot operation */
+    /**
+     * Posts a command to the command manager API on a successful snapshot operation. TODO duplicated
+     * of {@code ContentUpdater#postUpdateCommand()}
+     */
     protected void postUpdateCommand() {
         ConsumerInfo current =
-                this.contextIndex.getConsumer(PluginSettings.CONTEXT_ID, PluginSettings.CONSUMER_ID);
+                this.contextIndex.get(PluginSettings.CONTEXT_ID, PluginSettings.CONSUMER_ID);
         Privileged.doPrivilegedRequest(
                 () -> {
                     CommandManagerClient.getInstance()
@@ -159,24 +162,45 @@ public class SnapshotHelper {
      */
     protected void initConsumer() throws IOException {
         ConsumerInfo current =
-                this.contextIndex.getConsumer(PluginSettings.CONTEXT_ID, PluginSettings.CONSUMER_ID);
-        ConsumerInfo latest = this.ctiClient.getCatalog();
+                this.contextIndex.get(PluginSettings.CONTEXT_ID, PluginSettings.CONSUMER_ID);
+        ConsumerInfo latest = this.ctiClient.getConsumerInfo();
+        log.info("Current consumer info: {}", current);
+        log.info("Latest consumer info: {}", latest);
 
-        if (current.getOffset() == 0) {
-            log.info("Initializing consumer [{}] to offset [{}]", latest.getName(), latest.getOffset());
+        // testy test test
+        //        current = new ConsumerInfo(latest);
+        //        current.setOffset(1899747);
+        //        this.contextIndex.index(current);
+        // testy test test
+
+        // Consumer is not yet initialized. Init to latest.
+        if (current == null || current.getOffset() == 0) {
+            log.info("Initializing consumer: {}", latest);
             if (this.contextIndex.index(latest)) {
-                log.info("Successfully initialized consumer [{}]", latest.getContext());
+                log.info(
+                        "Successfully initialized consumer [{}][{}]", latest.getContext(), latest.getName());
             } else {
-                log.error("Failed to initialize consumer [{}]", latest.getContext());
-                throw new IOException("Failed to initialize consumer [" + latest.getContext() + "]");
+                throw new IOException(
+                        String.format(
+                                Locale.ROOT,
+                                "Failed to initialize consumer [%s][%s]",
+                                latest.getContext(),
+                                latest.getName()));
             }
-        } else if (current.getOffset() == latest.getOffset()) {
+        }
+        // Consumer is initialized and up-to-date.
+        else if (current.getOffset() == latest.getLastOffset()) {
             log.info(
                     "Consumer is up-to-date (offset {} == {}). Skipping...",
                     current.getOffset(),
-                    latest.getOffset());
-        } else {
+                    latest.getLastOffset());
+        }
+        // Consumer is initialized but out-of-date.
+        else {
             log.info("Consumer already initialized (offset {} != 0). Skipping...", current.getOffset());
+            //            current.setLastOffset(latest.getLastOffset());
+            //            current.setLastSnapshotLink(latest.getLastSnapshotLink());
+            //            this.contextIndex.index(current);
         }
     }
 
