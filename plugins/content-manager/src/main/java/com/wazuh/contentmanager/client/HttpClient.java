@@ -68,6 +68,7 @@ public class HttpClient {
      * @param apiUri The base URI for API requests.
      */
     protected HttpClient(@NonNull URI apiUri) {
+        log.debug("Client initialized pointing at [{}]", apiUri);
         this.apiUri = apiUri;
         startHttpAsyncClient();
     }
