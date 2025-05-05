@@ -16,95 +16,54 @@
  */
 package com.wazuh.contentmanager.client;
 
-import org.apache.hc.client5.http.async.methods.SimpleHttpResponse;
-import org.apache.hc.core5.http.*;
-import org.apache.hc.core5.http.message.BasicHeader;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.opensearch.client.Client;
+import org.opensearch.core.action.ActionListener;
 
-import java.net.URI;
-import java.nio.charset.StandardCharsets;
-import java.util.Base64;
+import com.wazuh.contentmanager.client.actions.CommandActionType;
+import com.wazuh.contentmanager.client.actions.CommandRequestAction;
+import com.wazuh.contentmanager.client.actions.CommandResponseAction;
 
-import com.wazuh.contentmanager.settings.PluginSettings;
-
-/**
- * CommandManagerClient is a singleton class responsible for managing HTTP communication with the
- * Command Manager API.
- */
-public class CommandManagerClient extends HttpClient {
+public class CommandManagerClient {
     private static final Logger log = LogManager.getLogger(CommandManagerClient.class);
-
     private static CommandManagerClient INSTANCE;
 
-    /** Base Content Manager Plugin API endpoint. */
-    public static final String BASE_COMMAND_MANAGER_URI = "/_plugins/_command_manager";
+    private final Client client;
 
-    /** Endpoint to post new commands. */
-    public static final String POST_COMMAND_ENDPOINT = "/commands";
-
-    /** Private constructor to initialize the CommandManagerClient with the base API URI. */
-    private CommandManagerClient() {
-        super(URI.create(PluginSettings.getInstance().getClusterBaseUrl() + BASE_COMMAND_MANAGER_URI));
+    private CommandManagerClient(Client client) {
+        this.client = client;
     }
 
-    /**
-     * Returns the singleton instance of CommandManagerClient. Uses double-checked locking to ensure
-     * thread safety.
-     *
-     * @return The singleton instance of CommandManagerClient.
-     */
-    public static synchronized CommandManagerClient getInstance() {
+    public static synchronized CommandManagerClient getInstance(Client client) {
         if (INSTANCE == null) {
-            INSTANCE = new CommandManagerClient();
+            INSTANCE = new CommandManagerClient(client);
         }
         return INSTANCE;
     }
 
-    /**
-     * Sends a POST request to execute a command via the Command Manager API.
-     *
-     * @param requestBody The JSON request body containing the command details.
-     */
-    public void postCommand(String requestBody) {
-        String username = PluginSettings.getInstance().getAuthUsername();
-        String password = PluginSettings.getInstance().getAuthPassword();
-        String auth = username + ":" + password;
-        String encodedAuth = Base64.getEncoder().encodeToString(auth.getBytes(StandardCharsets.UTF_8));
-        // Build headers
-        Header authentication = new BasicHeader(HttpHeaders.AUTHORIZATION, "Basic " + encodedAuth);
-        Header contentType = new BasicHeader(HttpHeaders.CONTENT_TYPE, ContentType.APPLICATION_JSON);
-        // Send post request to command manager API.
-        SimpleHttpResponse response =
-                this.sendRequest(
-                        Method.POST, POST_COMMAND_ENDPOINT, requestBody, null, authentication, contentType);
-
-        this.handlePostResponse(response);
+    public static synchronized CommandManagerClient getInstance() {
+        if (INSTANCE == null) {
+            throw new IllegalStateException("Command Manager client have not been initialized.");
+        }
+        return INSTANCE;
     }
 
-    /**
-     * Handles the response of the POST request to the Command Manager endpoint.
-     *
-     * @param response The response from the POST request
-     */
-    private void handlePostResponse(SimpleHttpResponse response) {
-        if (response == null) {
-            log.error("No reply from server");
-        } else {
-            switch (response.getCode()) {
-                case HttpStatus.SC_OK:
-                    log.info("Received OK response: {}", response.getBodyText());
-                    break;
-                case HttpStatus.SC_CLIENT_ERROR:
-                    log.error("Client error: {}", response.getBodyText());
-                    break;
-                case HttpStatus.SC_SERVER_ERROR:
-                    log.error("Server error: {}", response.getBodyText());
-                    break;
-                default:
-                    log.warn("Unexpected response code: {}", response.getCode());
-                    break;
-            }
-        }
+    public void postCommand(String requestBody) {
+        CommandRequestAction request = new CommandRequestAction(requestBody);
+        client.execute(
+                CommandActionType.INSTANCE,
+                request,
+                new ActionListener<>() {
+                    @Override
+                    public void onResponse(CommandResponseAction response) {
+                        log.info("Command successfully posted: {}", response.getMessage());
+                    }
+
+                    @Override
+                    public void onFailure(Exception e) {
+                        log.error("Failed to post command", e);
+                    }
+                });
     }
 }

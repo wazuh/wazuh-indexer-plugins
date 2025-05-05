@@ -39,6 +39,7 @@ import java.util.concurrent.TimeoutException;
 
 import com.wazuh.contentmanager.ContentManagerPlugin;
 import com.wazuh.contentmanager.client.CTIClient;
+import com.wazuh.contentmanager.client.CommandManagerClient;
 import com.wazuh.contentmanager.index.ContentIndex;
 import com.wazuh.contentmanager.index.ContextIndex;
 import com.wazuh.contentmanager.model.ctiapi.*;
@@ -64,6 +65,7 @@ public class ContentUpdaterIT extends OpenSearchIntegTestCase {
     public void setup() throws Exception {
         this.client = client();
         this.ctiClient = mock(CTIClient.class);
+        CommandManagerClient.getInstance(this.client);
         this.contextIndex = spy(new ContextIndex(client));
         this.contentIndex = new ContentIndex(client);
         this.updater = new ContentUpdater(this.ctiClient, this.contextIndex, this.contentIndex);
