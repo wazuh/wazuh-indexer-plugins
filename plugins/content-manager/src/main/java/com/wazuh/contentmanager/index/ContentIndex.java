@@ -51,6 +51,7 @@ import java.util.concurrent.TimeoutException;
 import com.wazuh.contentmanager.model.ctiapi.ContentChanges;
 import com.wazuh.contentmanager.model.ctiapi.Offset;
 import com.wazuh.contentmanager.model.ctiapi.PatchOperation;
+import com.wazuh.contentmanager.settings.PluginSettings;
 import com.wazuh.contentmanager.util.JsonPatch;
 import com.wazuh.contentmanager.util.XContentUtils;
 
@@ -58,15 +59,12 @@ import com.wazuh.contentmanager.util.XContentUtils;
 public class ContentIndex {
     private static final String JSON_NAME_KEY = "name";
     private static final Logger log = LogManager.getLogger(ContentIndex.class);
-    private static final int MAX_DOCUMENTS = 25;
-    private static final int MAX_CONCURRENT_PETITIONS = 5;
     // The name of the index
     public static final String INDEX_NAME = "wazuh-cve";
-    // The timeout for the get operation in seconds
-    public static final Long TIMEOUT = 10L;
 
     private final Client client;
-    private final Semaphore semaphore = new Semaphore(MAX_CONCURRENT_PETITIONS);
+    private final Semaphore semaphore =
+            new Semaphore(PluginSettings.getInstance().getContentIndexMaximumConcurrentPetitions());
 
     /**
      * Constructor for the ContentIndex class.
@@ -242,8 +240,8 @@ public class ContentIndex {
 
     /**
      * Initializes the index from a local snapshot. The snapshot file (in NDJSON format) is split in
-     * chunks of {@link ContentIndex#MAX_DOCUMENTS} elements. These are bulk indexed using {@link
-     * ContentIndex#index(List)}.
+     * chunks of {@link PluginSettings#CONTENT_INDEX_MAX_DOCUMENTS} elements. These are bulk indexed
+     * using {@link ContentIndex#index(List)}.
      *
      * @param path path to the CTI snapshot JSON file to be indexed.
      */
@@ -270,7 +268,7 @@ public class ContentIndex {
                 }
 
                 // Index items (MAX_DOCUMENTS reached)
-                if (lineCount == MAX_DOCUMENTS) {
+                if (lineCount == PluginSettings.getInstance().getContentIndexMaximumDocuments()) {
                     this.semaphore.acquire();
                     this.index(items);
                     lineCount = 0;
@@ -301,7 +299,9 @@ public class ContentIndex {
      */
     public JsonObject getById(String resourceId)
             throws InterruptedException, ExecutionException, TimeoutException, IllegalArgumentException {
-        GetResponse response = this.get(resourceId).get(TIMEOUT, TimeUnit.SECONDS);
+        GetResponse response =
+                this.get(resourceId)
+                        .get(PluginSettings.getInstance().getContentIndexTimeout(), TimeUnit.SECONDS);
         if (response.isExists()) {
             return JsonParser.parseString(response.getSourceAsString()).getAsJsonObject();
         }

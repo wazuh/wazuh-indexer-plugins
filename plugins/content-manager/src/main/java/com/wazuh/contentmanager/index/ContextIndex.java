@@ -46,9 +46,6 @@ public class ContextIndex {
     /** The name of the Contexts index */
     public static final String INDEX_NAME = "wazuh-context";
 
-    /** Timeout of indexing operations */
-    private static final long TIMEOUT = 10L;
-
     private final Client client;
     private ConsumerInfo consumerInfo;
 
@@ -79,7 +76,9 @@ public class ContextIndex {
             // Set this to null so that future get() operation needs to read from the index
             this.consumerInfo = null;
 
-            return this.client.index(indexRequest).get(TIMEOUT, TimeUnit.SECONDS);
+            return this.client
+                    .index(indexRequest)
+                    .get(PluginSettings.getInstance().getContextIndexTimeout(), TimeUnit.SECONDS);
         } catch (IOException e) {
             log.error("Failed to create JSON content builder: {}", e.getMessage());
         } catch (InterruptedException | ExecutionException | TimeoutException e) {
@@ -131,7 +130,9 @@ public class ContextIndex {
     public ConsumerInfo getConsumer(String context, String consumer) {
         if (this.consumerInfo == null) {
             try {
-                GetResponse getResponse = this.get(context).get(ContextIndex.TIMEOUT, TimeUnit.SECONDS);
+                GetResponse getResponse =
+                        this.get(context)
+                                .get(PluginSettings.getInstance().getContextIndexTimeout(), TimeUnit.SECONDS);
                 log.info("Received search response for {}", context);
 
                 Map<String, Object> source =

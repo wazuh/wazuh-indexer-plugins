@@ -25,12 +25,12 @@ import com.wazuh.contentmanager.index.ContentIndex;
 import com.wazuh.contentmanager.index.ContextIndex;
 import com.wazuh.contentmanager.model.commandmanager.Command;
 import com.wazuh.contentmanager.model.ctiapi.ContentChanges;
+import com.wazuh.contentmanager.settings.PluginSettings;
 import com.wazuh.contentmanager.utils.Privileged;
 import com.wazuh.contentmanager.utils.VisibleForTesting;
 
 /** Class responsible for managing content updates by fetching and applying changes in chunks. */
 public class ContentUpdater {
-    private static final int CHUNK_MAX_SIZE = 1000;
     private static final Logger log = LogManager.getLogger(ContentUpdater.class);
     private final ContextIndex contextIndex;
     private final ContentIndex contentIndex;
@@ -67,7 +67,7 @@ public class ContentUpdater {
      * from the CTI API. The content needs an update when the "offset" and the "lastOffset" values are
      * different. In that case, the update process tries to bring the content up to date by querying
      * the CTI API for a list of changes to apply to the content. These changes are applied
-     * sequentially. A maximum of {@link ContentUpdater#CHUNK_MAX_SIZE} changes are applied on each
+     * sequentially. A maximum of {@link PluginSettings#CHUNK_MAX_SIZE} changes are applied on each
      * iteration. When the update is completed, the value of "offset" is updated and equal to
      * "lastOffset" {@link ContextIndex#setOffset(Long, Long)}, and a command is generated for the
      * Command Manager {@link ContentUpdater#postUpdateCommand()}. If the update fails, the "offset"
@@ -87,7 +87,8 @@ public class ContentUpdater {
 
         log.info("New updates available from offset {} to {}", currentOffset, lastOffset);
         while (currentOffset < lastOffset) {
-            long nextOffset = Math.min(currentOffset + ContentUpdater.CHUNK_MAX_SIZE, lastOffset);
+            long nextOffset =
+                    Math.min(currentOffset + PluginSettings.getInstance().getChunkMaxSize(), lastOffset);
             ContentChanges changes = this.getChanges(currentOffset, nextOffset);
             log.debug("Fetched offsets from {} to {}", currentOffset, nextOffset);
 

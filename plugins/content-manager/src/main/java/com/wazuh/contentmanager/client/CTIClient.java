@@ -57,9 +57,6 @@ public class CTIClient extends HttpClient {
 
     private static CTIClient INSTANCE;
 
-    private static final int MAX_ATTEMPTS = 3;
-    private static final int SLEEP_TIME = 60;
-
     /** Enum representing the query parameters used in CTI API requests. */
     public enum QueryParameters {
         /** The starting offset parameter TO_OFFSET - FROM_OFFSET must be >1001 */
@@ -124,7 +121,12 @@ public class CTIClient extends HttpClient {
                 CTIClient.contextQueryParameters(fromOffset, toOffset, withEmpties);
         SimpleHttpResponse response =
                 this.sendRequest(
-                        Method.GET, CONSUMER_CHANGES_ENDPOINT, null, params, null, CTIClient.MAX_ATTEMPTS);
+                        Method.GET,
+                        CONSUMER_CHANGES_ENDPOINT,
+                        null,
+                        params,
+                        null,
+                        PluginSettings.getInstance().getCtiClientMaxAttempts());
 
         // Fail fast
         if (response == null) {
@@ -159,7 +161,7 @@ public class CTIClient extends HttpClient {
                 null,
                 null,
                 null,
-                CTIClient.MAX_ATTEMPTS
+                PluginSettings.getInstance().getCtiClientMaxAttempts()
             );
             // spotless:on
             if (response == null) {
@@ -228,13 +230,14 @@ public class CTIClient extends HttpClient {
                 }
             }
 
-            int currentAttempt = CTIClient.MAX_ATTEMPTS - attemptsLeft + 1;
+            int currentAttempt =
+                    PluginSettings.getInstance().getCtiClientMaxAttempts() - attemptsLeft + 1;
             log.debug(
                     "Sending {} request to [{}]. Attempt {}/{}.",
                     method,
                     endpoint,
                     currentAttempt,
-                    MAX_ATTEMPTS);
+                    PluginSettings.getInstance().getCtiClientMaxAttempts());
             // WARN Changing this to sendRequest makes the test fail.
             response = this.doHttpClientSendRequest(method, endpoint, body, params, header);
             if (response == null) {
@@ -242,7 +245,7 @@ public class CTIClient extends HttpClient {
             }
 
             // Calculate timeout
-            int timeout = currentAttempt * CTIClient.SLEEP_TIME;
+            int timeout = currentAttempt * PluginSettings.getInstance().getCtiClientSleepTime();
             int statusCode = response.getCode();
             switch (statusCode) {
                 case 200:

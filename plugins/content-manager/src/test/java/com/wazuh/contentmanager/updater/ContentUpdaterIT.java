@@ -45,7 +45,6 @@ import com.wazuh.contentmanager.model.ctiapi.*;
 import com.wazuh.contentmanager.model.ctiapi.OperationType;
 import com.wazuh.contentmanager.settings.PluginSettings;
 
-import static com.wazuh.contentmanager.index.ContentIndex.TIMEOUT;
 import static org.mockito.Mockito.*;
 
 @ThreadLeakScope(ThreadLeakScope.Scope.NONE)
@@ -76,9 +75,7 @@ public class ContentUpdaterIT extends OpenSearchIntegTestCase {
         return Collections.singletonList(ContentManagerPlugin.class);
     }
 
-    /**
-     * Tests whether a Create-type patch is correctly applied to the wazuh-cve index
-     */
+    /** Tests whether a Create-type patch is correctly applied to the wazuh-cve index */
     public void testUpdate_ContentChangesTypeCreate() {
         // Arrange
         long offsetId = 1L;
@@ -104,10 +101,8 @@ public class ContentUpdaterIT extends OpenSearchIntegTestCase {
         assertEquals(offsetId, updatedConsumer.getLastOffset());
     }
 
-    /**
-     * Tests whether an update-type patch is correctly applied to the wazuh-cve index
-     */
-    public void testUpdate_ContentChangesTypeUpdate(){
+    /** Tests whether an update-type patch is correctly applied to the wazuh-cve index */
+    public void testUpdate_ContentChangesTypeUpdate() {
         // Arrange
         long offsetId = 2L;
         Offset createOffset = this.getOffset(offsetId - 1, OperationType.CREATE);
@@ -161,7 +156,9 @@ public class ContentUpdaterIT extends OpenSearchIntegTestCase {
         ConsumerInfo updatedConsumer =
                 this.contextIndex.getConsumer(PluginSettings.CONTEXT_ID, PluginSettings.CONSUMER_ID);
         GetResponse getContent =
-                this.contentIndex.get(this.testResource).get(TIMEOUT, TimeUnit.SECONDS);
+                this.contentIndex
+                        .get(this.testResource)
+                        .get(PluginSettings.getInstance().getContentIndexTimeout(), TimeUnit.SECONDS);
         // Assert
         assertTrue(updated);
         assertNotNull(updatedConsumer);
