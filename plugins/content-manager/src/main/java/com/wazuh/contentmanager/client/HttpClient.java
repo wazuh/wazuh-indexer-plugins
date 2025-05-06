@@ -32,6 +32,8 @@ import org.apache.hc.core5.http.Method;
 import org.apache.hc.core5.ssl.SSLContextBuilder;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.opensearch.common.SuppressForbidden;
+import org.opensearch.common.io.PathUtils;
 
 import javax.net.ssl.SSLContext;
 
@@ -45,6 +47,8 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
+import com.wazuh.contentmanager.settings.PluginSettings;
+import com.wazuh.contentmanager.utils.PemHelper;
 import com.wazuh.contentmanager.utils.http.HttpResponseCallback;
 import reactor.util.annotation.NonNull;
 
@@ -61,6 +65,8 @@ public class HttpClient {
     protected static CloseableHttpAsyncClient httpClient;
     // Base URI for API requests
     protected final URI apiUri;
+    //
+    protected final Boolean TLSEnabled;
 
     /**
      * Constructs an HttpClient instance with the specified API URI.
@@ -68,6 +74,17 @@ public class HttpClient {
      * @param apiUri The base URI for API requests.
      */
     protected HttpClient(@NonNull URI apiUri) {
+        this(apiUri, false);
+    }
+
+    /**
+     * Constructs an HttpClient instance with the specified API URI.
+     *
+     * @param apiUri The base URI for API requests.
+     * @param TLSEnabled
+     */
+    protected HttpClient(@NonNull URI apiUri, Boolean TLSEnabled) {
+        this.TLSEnabled = TLSEnabled;
         this.apiUri = apiUri;
         startHttpAsyncClient();
     }
@@ -78,15 +95,26 @@ public class HttpClient {
      *
      * @throws RuntimeException error initializing the HttpClient.
      */
-    private static void startHttpAsyncClient() throws RuntimeException {
+    @SuppressForbidden(reason = "Paths")
+    private void startHttpAsyncClient() throws RuntimeException {
         synchronized (LOCK) {
             if (httpClient == null) {
                 try {
-                    SSLContext sslContext =
-                            SSLContextBuilder.create()
-                                    .loadTrustMaterial(null, (chains, authType) -> true)
-                                    .build();
+                    SSLContext sslContext;
+                    if (this.TLSEnabled) {
+                        String certPath = PluginSettings.getInstance().getCertPath();
+                        String keyPath = PluginSettings.getInstance().getKeyPath();
+                        String caPath = PluginSettings.getInstance().getCaPath();
 
+                        sslContext =
+                                PemHelper.createSSLContext(
+                                        PathUtils.get(certPath), PathUtils.get(keyPath), PathUtils.get(caPath));
+                    } else {
+                        sslContext =
+                                SSLContextBuilder.create()
+                                        .loadTrustMaterial(null, (chains, authType) -> true)
+                                        .build();
+                    }
                     httpClient =
                             HttpAsyncClients.custom()
                                     .setConnectionManager(
@@ -99,6 +127,8 @@ public class HttpClient {
                 } catch (NoSuchAlgorithmException | KeyStoreException | KeyManagementException e) {
                     log.error("Error initializing HTTP client: {}", e.getMessage());
                     throw new RuntimeException("Failed to initialize HttpClient", e);
+                } catch (Exception e) {
+                    throw new RuntimeException(e);
                 }
             }
         }

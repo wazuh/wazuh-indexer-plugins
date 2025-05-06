@@ -65,10 +65,18 @@ public class PluginSettings {
     public static final Setting<SecureString> COMMAND_MANAGER_PASSWORD =
             SecureSetting.secureString("command_manager.auth.password", null);
 
+    // TLS settings
+    private static final String TLS_CERT_SETTING = "plugins.security.ssl.http.pemcert_filepath";
+    private static final String TLS_KEY_SETTING = "plugins.security.ssl.http.pemkey_filepath";
+    private static final String TLS_CA_SETTING = "plugins.security.ssl.http.pemtrustedcas_filepath";
+
     private final String ctiBaseUrl;
     private final ClusterService clusterService;
     private final SecureString authUsername;
     private final SecureString authPassword;
+    private final String certPath;
+    private final String keyPath;
+    private final String caPath;
 
     /**
      * Private default constructor
@@ -81,6 +89,10 @@ public class PluginSettings {
 
         this.authUsername = COMMAND_MANAGER_USERNAME.get(settings);
         this.authPassword = COMMAND_MANAGER_PASSWORD.get(settings);
+
+        this.certPath = settings.get(TLS_CERT_SETTING, "");
+        this.keyPath = settings.get(TLS_KEY_SETTING, "");
+        this.caPath = settings.get(TLS_CA_SETTING, "");
 
         log.debug("Settings.loaded: {}", this.toString());
     }
@@ -148,5 +160,17 @@ public class PluginSettings {
      */
     public String getAuthPassword() {
         return this.authPassword.toString();
+    }
+
+    public String getCertPath() {
+        return this.certPath;
+    }
+
+    public String getKeyPath() {
+        return this.keyPath;
+    }
+
+    public String getCaPath() {
+        return this.caPath;
     }
 }
