@@ -101,6 +101,7 @@ public class ContextIndex {
     public CompletableFuture<GetResponse> get(String contextName) {
         GetRequest getRequest = new GetRequest(ContextIndex.INDEX_NAME, contextName);
         CompletableFuture<GetResponse> future = new CompletableFuture<>();
+        this.client.get(getRequest);
 
         this.client.get(
                 getRequest,
@@ -152,6 +153,7 @@ public class ContextIndex {
                         context,
                         consumer,
                         e.getMessage());
+                this.consumerInfo = new ConsumerInfo(consumer, context, 0L, 0L, "");
             }
         }
 

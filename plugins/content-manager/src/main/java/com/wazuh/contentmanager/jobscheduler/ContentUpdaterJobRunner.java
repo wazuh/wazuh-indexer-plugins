@@ -19,11 +19,16 @@ package com.wazuh.contentmanager.jobscheduler;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.opensearch.client.Client;
+import org.opensearch.env.Environment;
 import org.opensearch.jobscheduler.spi.JobExecutionContext;
 import org.opensearch.jobscheduler.spi.ScheduledJobParameter;
 import org.opensearch.jobscheduler.spi.ScheduledJobRunner;
 import org.opensearch.threadpool.ThreadPool;
 
+import com.wazuh.contentmanager.index.ContentIndex;
+import com.wazuh.contentmanager.index.ContextIndex;
+
+/** Class to run the Content Updater job. */
 public class ContentUpdaterJobRunner implements ScheduledJobRunner {
     private static final Logger log = LogManager.getLogger(ContentUpdaterJobRunner.class);
 
@@ -32,6 +37,9 @@ public class ContentUpdaterJobRunner implements ScheduledJobRunner {
 
     private Client client;
     private ThreadPool threadPool;
+    private Environment environment;
+    private ContentIndex contentIndex;
+    private ContextIndex contextIndex;
 
     /** Private default constructor. */
     private ContentUpdaterJobRunner() {}
@@ -53,21 +61,34 @@ public class ContentUpdaterJobRunner implements ScheduledJobRunner {
      *
      * @param client OpenSearch's client.
      * @param threadPool OpenSearch's thread pool.
+     * @param environment OpenSearch's environment.
+     * @param contextIndex Handles context and consumer related metadata.
+     * @param contentIndex Handles indexed content.
      * @return the singleton instance.
      */
-    public static ContentUpdaterJobRunner getInstance(Client client, ThreadPool threadPool) {
+    public static ContentUpdaterJobRunner getInstance(
+            Client client,
+            ThreadPool threadPool,
+            Environment environment,
+            ContextIndex contextIndex,
+            ContentIndex contentIndex) {
         if (ContentUpdaterJobRunner.INSTANCE == null) {
             INSTANCE = new ContentUpdaterJobRunner();
         }
         INSTANCE.setClient(client);
         INSTANCE.setThreadPool(threadPool);
+        INSTANCE.setContextIndex(contextIndex);
+        INSTANCE.setContentIndex(contentIndex);
+        INSTANCE.setEnvironment(environment);
         return INSTANCE;
     }
 
     @Override
     public void runJob(
             ScheduledJobParameter scheduledJobParameter, JobExecutionContext jobExecutionContext) {
-        ContentUpdaterRunnable jobRunnable = new ContentUpdaterRunnable(this.client);
+        ContentUpdaterRunnable jobRunnable =
+                new ContentUpdaterRunnable(
+                        this.client, this.threadPool, this.environment, this.contextIndex, this.contentIndex);
         this.threadPool.generic().submit(jobRunnable);
     }
 
@@ -87,5 +108,32 @@ public class ContentUpdaterJobRunner implements ScheduledJobRunner {
      */
     public void setThreadPool(ThreadPool threadPool) {
         this.threadPool = threadPool;
+    }
+
+    /**
+     * Sets the context index.
+     *
+     * @param contextIndex Handles context and consumer related metadata.
+     */
+    public void setContextIndex(ContextIndex contextIndex) {
+        this.contextIndex = contextIndex;
+    }
+
+    /**
+     * Sets the environment.
+     *
+     * @param environment OpenSearch's environment.
+     */
+    public void setEnvironment(Environment environment) {
+        this.environment = environment;
+    }
+
+    /**
+     * Sets the content index.
+     *
+     * @param contentIndex Handles indexed content.
+     */
+    public void setContentIndex(ContentIndex contentIndex) {
+        this.contentIndex = contentIndex;
     }
 }

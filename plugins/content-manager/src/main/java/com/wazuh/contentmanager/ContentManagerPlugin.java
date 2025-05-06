@@ -16,7 +16,10 @@
  */
 package com.wazuh.contentmanager;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.opensearch.action.index.IndexRequest;
+import org.opensearch.action.index.IndexResponse;
 import org.opensearch.action.support.WriteRequest;
 import org.opensearch.client.Client;
 import org.opensearch.cluster.metadata.IndexNameExpressionResolver;
@@ -60,6 +63,9 @@ import com.wazuh.contentmanager.utils.SnapshotHelper;
 /** Main class of the Content Manager Plugin */
 public class ContentManagerPlugin extends Plugin
         implements ClusterPlugin, ActionPlugin, JobSchedulerExtension {
+
+    private static final Logger log = LogManager.getLogger(ContentManagerPlugin.class);
+
     /** Scheduled jobs index name. */
     public static final String JOB_INDEX = ".content_updater_jobs";
 
@@ -93,7 +99,8 @@ public class ContentManagerPlugin extends Plugin
         this.clusterService = clusterService;
         this.threadPool = threadPool;
         this.client = client;
-        ContentUpdaterJobRunner.getInstance(client, threadPool);
+        ContentUpdaterJobRunner.getInstance(
+                client, threadPool, environment, this.contextIndex, contentIndex);
 
         return Collections.emptyList();
     }
@@ -109,21 +116,25 @@ public class ContentManagerPlugin extends Plugin
                 new SnapshotHelper(this.threadPool, this.environment, this.contextIndex, this.contentIndex);
         this.clusterService.addListener(snapshotHelper);
 
+        try {
+            log.info(
+                    "Scheduled content update job with status: [{}]", scheduleContentUpdateJob().getResult());
+        } catch (IOException e) {
+            log.error("Failed scheduling content update job: {}", e.getMessage());
+        }
+    }
+
+    private IndexResponse scheduleContentUpdateJob() throws IOException {
         IntervalSchedule schedule = new IntervalSchedule(Instant.now(), 1, ChronoUnit.MINUTES);
         ContentUpdaterJobParameter jobParameter =
                 new ContentUpdaterJobParameter("update_content", schedule);
-        IndexRequest indexRequest = null;
-        try {
-            indexRequest =
-                    new IndexRequest()
-                            .index(JOB_INDEX)
-                            .id(JOB_ID)
-                            .source(jobParameter.toXContent(JsonXContent.contentBuilder(), null))
-                            .setRefreshPolicy(WriteRequest.RefreshPolicy.IMMEDIATE);
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
-        this.client.index(indexRequest).actionGet(5, TimeUnit.SECONDS);
+        IndexRequest indexRequest =
+                new IndexRequest()
+                        .index(JOB_INDEX)
+                        .id(JOB_ID)
+                        .source(jobParameter.toXContent(JsonXContent.contentBuilder(), null))
+                        .setRefreshPolicy(WriteRequest.RefreshPolicy.IMMEDIATE);
+        return this.client.index(indexRequest).actionGet(5, TimeUnit.SECONDS);
     }
 
     /**
