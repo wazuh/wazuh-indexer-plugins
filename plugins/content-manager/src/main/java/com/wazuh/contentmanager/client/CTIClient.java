@@ -18,6 +18,10 @@ package com.wazuh.contentmanager.client;
 
 import org.apache.hc.client5.http.HttpHostConnectException;
 import org.apache.hc.client5.http.async.methods.*;
+import org.apache.hc.client5.http.classic.methods.HttpGet;
+import org.apache.hc.client5.http.impl.classic.CloseableHttpClient;
+import org.apache.hc.client5.http.impl.classic.CloseableHttpResponse;
+import org.apache.hc.client5.http.impl.classic.HttpClients;
 import org.apache.hc.core5.http.*;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -290,6 +294,50 @@ public class CTIClient extends HttpClient {
 
         log.error("All attempts exhausted for the request to CTI API.");
         return response; // Return null if all attempts fail
+    }
+
+    /**
+     * Downloads a file from the specified URI and saves it to the temporary directory.
+     *
+     * @param URI URI to download the file from.
+     * @param environment Environment to resolve the file path.
+     * @return The path to the downloaded file.
+     */
+    public Path streamingDownload(String URI, Environment environment) {
+        try (CloseableHttpClient client = HttpClients.createDefault()) {
+            HttpGet request = new HttpGet(URI);
+
+            try (CloseableHttpResponse response = client.execute(request)) {
+                HttpEntity entity = response.getEntity();
+                if (entity != null) {
+                    URI uri = new URI(URI);
+                    String filename = uri.getPath().substring(uri.getPath().lastIndexOf('/') + 1);
+                    Path path = environment.tmpFile().resolve(filename);
+                    // Write to disk
+                    InputStream input = entity.getContent();
+                    try (OutputStream out =
+                            new BufferedOutputStream(
+                                    Files.newOutputStream(
+                                            path,
+                                            StandardOpenOption.CREATE,
+                                            StandardOpenOption.WRITE,
+                                            StandardOpenOption.TRUNCATE_EXISTING))) {
+
+                        int bytesRead;
+                        byte[] buffer = new byte[1024];
+                        while ((bytesRead = input.read(buffer)) != -1) {
+                            out.write(buffer, 0, bytesRead);
+                        }
+                    }
+                    return path;
+                }
+            } catch (IOException | URISyntaxException e) {
+                throw new RuntimeException(e);
+            }
+            return null;
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     /***

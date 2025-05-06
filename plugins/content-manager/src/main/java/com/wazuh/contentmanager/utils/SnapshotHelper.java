@@ -89,7 +89,7 @@ public class SnapshotHelper {
                     () -> {
                         // Download snapshot.
                         Path snapshotZip =
-                                this.ctiClient.download(this.contextIndex.getLastSnapshotLink(), this.environment);
+                                this.ctiClient.streamingDownload(this.contextIndex.getLastSnapshotLink(), this.environment);
                         Path outputDir = this.environment.tmpFile();
 
                         try (DirectoryStream<Path> stream = this.getStream(outputDir)) {
