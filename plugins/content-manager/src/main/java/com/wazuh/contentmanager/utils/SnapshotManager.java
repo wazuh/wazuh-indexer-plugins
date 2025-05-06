@@ -34,8 +34,8 @@ import com.wazuh.contentmanager.model.cti.ConsumerInfo;
 import com.wazuh.contentmanager.settings.PluginSettings;
 
 /** Helper class to handle indexing of snapshots */
-public class SnapshotHelper {
-    private static final Logger log = LogManager.getLogger(SnapshotHelper.class);
+public class SnapshotManager {
+    private static final Logger log = LogManager.getLogger(SnapshotManager.class);
     private final CTIClient ctiClient;
     private CommandManagerClient commandClient;
     private final Environment environment;
@@ -50,7 +50,7 @@ public class SnapshotHelper {
      * @param contextIndex Handles context and consumer related metadata.
      * @param contentIndex Handles indexed content.
      */
-    public SnapshotHelper(
+    public SnapshotManager(
             Environment environment,
             ContextIndex contextIndex,
             ContentIndex contentIndex,
@@ -70,7 +70,7 @@ public class SnapshotHelper {
      * @param contextIndex Handles context and consumer related metadata.
      * @param contentIndex Handles indexed content.
      */
-    protected SnapshotHelper(
+    protected SnapshotManager(
             CTIClient ctiClient,
             CommandManagerClient client,
             Environment environment,
@@ -200,6 +200,8 @@ public class SnapshotHelper {
     /** Trigger method for content initialization */
     public void initialize() {
         try {
+            // The Command Manager client needs the cluster to be up (depends on PluginSettings),
+            // so we initialize it here once the node is up and ready.
             this.commandClient = this.privileged.doPrivilegedRequest(CommandManagerClient::getInstance);
             ConsumerInfo consumerInfo = this.initConsumer();
             this.indexSnapshot(consumerInfo);

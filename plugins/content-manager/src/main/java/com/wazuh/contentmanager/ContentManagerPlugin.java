@@ -41,14 +41,14 @@ import com.wazuh.contentmanager.index.ContentIndex;
 import com.wazuh.contentmanager.index.ContextIndex;
 import com.wazuh.contentmanager.settings.PluginSettings;
 import com.wazuh.contentmanager.utils.Privileged;
-import com.wazuh.contentmanager.utils.SnapshotHelper;
+import com.wazuh.contentmanager.utils.SnapshotManager;
 
 /** Main class of the Content Manager Plugin */
 public class ContentManagerPlugin extends Plugin implements ClusterPlugin {
     private static final Logger log = LogManager.getLogger(ContentManagerPlugin.class);
     private ContextIndex contextIndex;
     private ContentIndex contentIndex;
-    private SnapshotHelper snapshotHelper;
+    private SnapshotManager snapshotManager;
     private ThreadPool threadPool;
     private ClusterService clusterService;
 
@@ -69,8 +69,8 @@ public class ContentManagerPlugin extends Plugin implements ClusterPlugin {
         this.threadPool = threadPool;
         this.contextIndex = new ContextIndex(client);
         this.contentIndex = new ContentIndex(client);
-        this.snapshotHelper =
-                new SnapshotHelper(environment, contextIndex, this.contentIndex, new Privileged());
+        this.snapshotManager =
+                new SnapshotManager(environment, contextIndex, this.contentIndex, new Privileged());
         this.clusterService = clusterService;
         return Collections.emptyList();
     }
@@ -106,7 +106,7 @@ public class ContentManagerPlugin extends Plugin implements ClusterPlugin {
                                             () -> {
                                                 this.contextIndex.createIndex();
                                                 if (this.contentIndex.exists()) {
-                                                    this.snapshotHelper.initialize();
+                                                    this.snapshotManager.initialize();
                                                 }
                                             });
                         } catch (Exception e) {

@@ -38,14 +38,14 @@ import org.mockito.Mockito;
 import static org.mockito.Mockito.*;
 
 /** Class to handle unzip tests */
-public class SnapshotHelperTests extends OpenSearchTestCase {
+public class SnapshotManagerTests extends OpenSearchTestCase {
     private ContextIndex contextIndex;
     private ContentIndex contentIndex;
     private CommandManagerClient commandClient;
     private CTIClient ctiClient;
     private Privileged privilegedSpy;
     private ConsumerInfo consumerInfo;
-    private SnapshotHelper snapshotHelper;
+    private SnapshotManager snapshotManager;
     private Environment environment;
 
     @Before
@@ -64,9 +64,9 @@ public class SnapshotHelperTests extends OpenSearchTestCase {
         this.contextIndex = mock(ContextIndex.class);
         this.contentIndex = mock(ContentIndex.class);
         this.privilegedSpy = Mockito.spy(Privileged.class);
-        this.snapshotHelper =
+        this.snapshotManager =
                 Mockito.spy(
-                        new SnapshotHelper(
+                        new SnapshotManager(
                                 this.ctiClient,
                                 this.commandClient,
                                 this.environment,
@@ -95,7 +95,7 @@ public class SnapshotHelperTests extends OpenSearchTestCase {
         doReturn(DocWriteResponse.Result.CREATED).when(response).getResult();
 
         // Act &6 Assert
-        this.snapshotHelper.initConsumer();
+        this.snapshotManager.initConsumer();
         verify(this.contextIndex).index(any(ConsumerInfo.class));
     }
 
@@ -117,7 +117,7 @@ public class SnapshotHelperTests extends OpenSearchTestCase {
         doReturn(DocWriteResponse.Result.NOT_FOUND).when(response).getResult();
 
         // Act && Assert
-        assertThrows(IOException.class, () -> this.snapshotHelper.initConsumer());
+        assertThrows(IOException.class, () -> this.snapshotManager.initConsumer());
     }
 
     /**
@@ -137,9 +137,9 @@ public class SnapshotHelperTests extends OpenSearchTestCase {
         Iterator<Path> iterator = mock(Iterator.class);
         doReturn(iterator).when(stream).iterator();
         doReturn(jsonPath).when(iterator).next();
-        doReturn(stream).when(this.snapshotHelper).getStream(any(Path.class));
-        doNothing().when(this.snapshotHelper).unzip(any(Path.class), any(Path.class));
-        this.snapshotHelper.indexSnapshot(this.consumerInfo);
+        doReturn(stream).when(this.snapshotManager).getStream(any(Path.class));
+        doNothing().when(this.snapshotManager).unzip(any(Path.class), any(Path.class));
+        this.snapshotManager.indexSnapshot(this.consumerInfo);
         verify(this.contentIndex).fromSnapshot(anyString());
     }
 }
