@@ -35,7 +35,6 @@ import org.opensearch.threadpool.ThreadPool;
 import org.opensearch.watcher.ResourceWatcherService;
 
 import java.util.*;
-import java.util.concurrent.ExecutorService;
 import java.util.function.Supplier;
 
 import com.wazuh.contentmanager.index.ContentIndex;
@@ -94,19 +93,19 @@ public class ContentManagerPlugin extends Plugin implements ClusterPlugin {
         this.clusterService.addListener(
                 event -> {
                     if (event.indicesCreated().contains(ContentIndex.INDEX_NAME)) {
-                        try (ExecutorService ex = this.threadPool.generic()) {
-                            ex.execute(
-                                    () -> {
-                                        this.contextIndex.createIndex();
-                                        if (this.contentIndex.exists()) {
-                                            try {
-                                                this.snapshotHelper.initialize();
-                                            } catch (Exception e) {
-                                                // Log or handle exception
-                                                log.error("Error initializing snapshot helper: {}", e.getMessage(), e);
-                                            }
-                                        }
-                                    });
+                        try {
+                            this.threadPool
+                                    .generic()
+                                    .execute(
+                                            () -> {
+                                                this.contextIndex.createIndex();
+                                                if (this.contentIndex.exists()) {
+                                                    this.snapshotHelper.initialize();
+                                                }
+                                            });
+                        } catch (Exception e) {
+                            // Log or handle exception
+                            log.error("Error initializing snapshot helper: {}", e.getMessage(), e);
                         }
                     }
                 });
