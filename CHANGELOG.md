@@ -22,6 +22,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Implement content update using Json Patch operations [(#362)](https://github.com/wazuh/wazuh-indexer-plugins/pull/362)
 - Implement CTI API client rate limit and enhanced response handling [(#363)](https://github.com/wazuh/wazuh-indexer-plugins/pull/363)
 - Add custom action to list modified plugins [(#388)](https://github.com/wazuh/wazuh-indexer-plugins/pull/388)
+- Add settings to Content Manager PluginSettings [#395](https://github.com/wazuh/wazuh-indexer-plugins/pull/395)
 
 ### Dependencies
 

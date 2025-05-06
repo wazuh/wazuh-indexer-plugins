@@ -67,7 +67,7 @@ public class ContentUpdater {
      * from the CTI API. The content needs an update when the "offset" and the "lastOffset" values are
      * different. In that case, the update process tries to bring the content up to date by querying
      * the CTI API for a list of changes to apply to the content. These changes are applied
-     * sequentially. A maximum of {@link PluginSettings#CHUNK_MAX_SIZE} changes are applied on each
+     * sequentially. A maximum of {@link PluginSettings#MAX_CHANGES} changes are applied on each
      * iteration. When the update is completed, the value of "offset" is updated and equal to
      * "lastOffset" {@link ContextIndex#setOffset(Long, Long)}, and a command is generated for the
      * Command Manager {@link ContentUpdater#postUpdateCommand()}. If the update fails, the "offset"
