@@ -16,6 +16,9 @@
  */
 package com.wazuh.contentmanager.updater;
 
+import org.opensearch.cluster.service.ClusterService;
+import org.opensearch.common.settings.Settings;
+import org.opensearch.env.Environment;
 import org.opensearch.test.OpenSearchIntegTestCase;
 import org.junit.Before;
 
@@ -29,6 +32,9 @@ import com.wazuh.contentmanager.model.ctiapi.ContentChanges;
 import com.wazuh.contentmanager.model.ctiapi.Offset;
 import com.wazuh.contentmanager.model.ctiapi.OperationType;
 import com.wazuh.contentmanager.model.ctiapi.PatchOperation;
+import com.wazuh.contentmanager.settings.PluginSettings;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
 import org.mockito.Mockito;
 
 import static org.mockito.Mockito.*;
@@ -39,6 +45,10 @@ public class ContentUpdaterTests extends OpenSearchIntegTestCase {
     private ContentUpdater contentUpdaterSpy;
     private ContextIndex contextIndex;
 
+    @Mock private Environment mockEnvironment;
+    @Mock private ClusterService mockClusterService;
+    @InjectMocks private PluginSettings pluginSettings;
+
     /**
      * Set up the tests
      *
@@ -47,6 +57,11 @@ public class ContentUpdaterTests extends OpenSearchIntegTestCase {
     @Before
     public void setup() throws Exception {
         super.setUp();
+        Settings settings = Settings.builder().put("content_manager.max_changes", 1000).build();
+        mockEnvironment = mock(Environment.class);
+        when(mockEnvironment.settings()).thenReturn(settings);
+        pluginSettings = PluginSettings.getInstance(mockEnvironment.settings(), mockClusterService);
+
         this.contextIndex = mock(ContextIndex.class);
         ContentUpdater contentUpdater =
                 new ContentUpdater(mock(CTIClient.class), this.contextIndex, mock(ContentIndex.class));

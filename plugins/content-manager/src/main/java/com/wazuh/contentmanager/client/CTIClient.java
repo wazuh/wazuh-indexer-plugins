@@ -51,13 +51,12 @@ public class CTIClient extends HttpClient {
 
     private static final Logger log = LogManager.getLogger(CTIClient.class);
 
-    private static final String CONSUMER_INFO_ENDPOINT =
-            "/catalog/contexts/" + PluginSettings.CONTEXT_ID + "/consumers/" + PluginSettings.CONSUMER_ID;
-    private static final String CONSUMER_CHANGES_ENDPOINT = CONSUMER_INFO_ENDPOINT + "/changes";
+    private final String CONSUMER_INFO_ENDPOINT;
+    private final String CONSUMER_CHANGES_ENDPOINT;
 
     private static CTIClient INSTANCE;
 
-    private static PluginSettings pluginSettings = PluginSettings.getInstance();
+    private final PluginSettings pluginSettings;
 
     /** Enum representing the query parameters used in CTI API requests. */
     public enum QueryParameters {
@@ -86,7 +85,15 @@ public class CTIClient extends HttpClient {
 
     /** Public constructor method */
     public CTIClient() {
-        super(URI.create(pluginSettings.getCtiBaseUrl()));
+        super(URI.create(PluginSettings.getInstance().getCtiBaseUrl()));
+
+        this.pluginSettings = PluginSettings.getInstance();
+        this.CONSUMER_INFO_ENDPOINT =
+                "/catalog/contexts/"
+                        + this.pluginSettings.getContextId()
+                        + "/consumers/"
+                        + this.pluginSettings.getConsumerId();
+        this.CONSUMER_CHANGES_ENDPOINT = this.CONSUMER_INFO_ENDPOINT + "/changes";
     }
 
     /**
@@ -105,9 +112,17 @@ public class CTIClient extends HttpClient {
      * This constructor is only used on tests.
      *
      * @param CTIBaseURL base URL of the CTI API (mocked).
+     * @param pluginSettings plugin settings (mocked).
      */
-    CTIClient(String CTIBaseURL) {
+    CTIClient(String CTIBaseURL, PluginSettings pluginSettings) {
         super(URI.create(CTIBaseURL));
+        this.pluginSettings = pluginSettings;
+        this.CONSUMER_INFO_ENDPOINT =
+                "/catalog/contexts/"
+                        + this.pluginSettings.getContextId()
+                        + "/consumers/"
+                        + this.pluginSettings.getConsumerId();
+        this.CONSUMER_CHANGES_ENDPOINT = this.CONSUMER_INFO_ENDPOINT + "/changes";
     }
 
     /**

@@ -21,6 +21,9 @@ import org.apache.hc.core5.http.ContentType;
 import org.apache.hc.core5.http.Header;
 import org.apache.hc.core5.http.HttpStatus;
 import org.apache.hc.core5.http.Method;
+import org.opensearch.cluster.service.ClusterService;
+import org.opensearch.common.settings.Settings;
+import org.opensearch.env.Environment;
 import org.opensearch.test.OpenSearchIntegTestCase;
 import org.junit.After;
 import org.junit.Before;
@@ -31,6 +34,9 @@ import java.util.Map;
 
 import com.wazuh.contentmanager.model.ctiapi.ConsumerInfo;
 import com.wazuh.contentmanager.model.ctiapi.ContentChanges;
+import com.wazuh.contentmanager.settings.PluginSettings;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
 
 import static org.mockito.Mockito.*;
 
@@ -41,11 +47,27 @@ public class CTIClientTests extends OpenSearchIntegTestCase {
     private CTIClient ctiClient;
     private CTIClient spyCtiClient;
 
+    @Mock private Environment mockEnvironment;
+    @Mock private ClusterService mockClusterService;
+    @InjectMocks private PluginSettings pluginSettings;
+
     @Before
     @Override
     public void setUp() throws Exception {
         super.setUp(); // Ensure OpenSearch test setup runs
-        this.ctiClient = new CTIClient("www.test.com");
+        Settings settings =
+                Settings.builder()
+                        .put("content_manager.cti.client.max_attempts", 3)
+                        .put("content_manager.cti.client.sleep_time", 60)
+                        .put("content_manager.cti.context", "vd_1.0.0")
+                        .put("content_manager.cti.consumer", "https://cti.wazuh.com/TEST/api/v1")
+                        .build();
+
+        this.mockEnvironment = mock(Environment.class);
+        when(this.mockEnvironment.settings()).thenReturn(settings);
+        this.pluginSettings =
+                PluginSettings.getInstance(this.mockEnvironment.settings(), this.mockClusterService);
+        this.ctiClient = new CTIClient("www.test.com", pluginSettings);
         this.spyCtiClient = spy(this.ctiClient);
     }
 

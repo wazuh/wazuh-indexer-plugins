@@ -66,8 +66,8 @@ public class ContentIndex {
     public static final String INDEX_NAME = "wazuh-cve";
 
     private final Client client;
-    private final PluginSettings pluginSettings = PluginSettings.getInstance();
-    private final Semaphore semaphore = new Semaphore(pluginSettings.getMaximumConcurrentBulks());
+    private final PluginSettings pluginSettings;
+    private final Semaphore semaphore;
 
     /**
      * Constructor for the ContentIndex class.
@@ -75,6 +75,20 @@ public class ContentIndex {
      * @param client the OpenSearch Client to interact with the cluster
      */
     public ContentIndex(Client client) {
+        this.pluginSettings = PluginSettings.getInstance();
+        this.semaphore = new Semaphore(pluginSettings.getMaximumConcurrentBulks());
+        this.client = client;
+    }
+
+    /**
+     * This constructor is only used on tests.
+     *
+     * @param client @Client (mocked).
+     * @param pluginSettings @PluginSettings (mocked).
+     */
+    public ContentIndex(Client client, PluginSettings pluginSettings) {
+        this.pluginSettings = pluginSettings;
+        this.semaphore = new Semaphore(pluginSettings.getMaximumConcurrentBulks());
         this.client = client;
     }
 

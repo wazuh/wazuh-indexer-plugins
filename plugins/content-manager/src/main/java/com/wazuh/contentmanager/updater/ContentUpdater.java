@@ -35,6 +35,7 @@ public class ContentUpdater {
     private final ContextIndex contextIndex;
     private final ContentIndex contentIndex;
     private final CTIClient ctiClient;
+    private final PluginSettings pluginSettings;
 
     /** Exception thrown by the Content Updater in case of errors. */
     public static class ContentUpdateException extends RuntimeException {
@@ -60,6 +61,25 @@ public class ContentUpdater {
         this.contextIndex = contextIndex;
         this.contentIndex = contentIndex;
         this.ctiClient = ctiClient;
+        this.pluginSettings = PluginSettings.getInstance();
+    }
+
+    /**
+     * This constructor is only used on tests.
+     *
+     * @param ctiClient mocked @CTIClient.
+     * @param contentIndex mocked @ContentIndex.
+     * @param pluginSettings mocked @PluginSettings.
+     */
+    public ContentUpdater(
+            CTIClient ctiClient,
+            ContextIndex contextIndex,
+            ContentIndex contentIndex,
+            PluginSettings pluginSettings) {
+        this.contextIndex = contextIndex;
+        this.contentIndex = contentIndex;
+        this.ctiClient = ctiClient;
+        this.pluginSettings = pluginSettings;
     }
 
     /**
@@ -88,7 +108,7 @@ public class ContentUpdater {
         log.info("New updates available from offset {} to {}", currentOffset, lastOffset);
         while (currentOffset < lastOffset) {
             long nextOffset =
-                    Math.min(currentOffset + PluginSettings.getInstance().getMaximumChanges(), lastOffset);
+                    Math.min(currentOffset + this.pluginSettings.getMaximumChanges(), lastOffset);
             ContentChanges changes = this.getChanges(currentOffset, nextOffset);
             log.debug("Fetched offsets from {} to {}", currentOffset, nextOffset);
 
