@@ -14,7 +14,7 @@ Most of our plugins allow you to configure various settings through the `opensea
 
 2. **Job Schedule**
    - **Key**: `setup.job.schedule`
-   - **Type**: Integerw
+   - **Type**: Integer
    - **Default**: `1`
    - **Minimum**: `1`
    - **Maximum**: `10`

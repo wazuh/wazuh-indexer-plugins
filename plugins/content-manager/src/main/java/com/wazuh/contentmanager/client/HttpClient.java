@@ -154,7 +154,7 @@ public class HttpClient {
                             SimpleResponseConsumer.create(),
                             new HttpResponseCallback(
                                     request, "Failed to execute outgoing " + method + " request"))
-                    .get(PluginSettings.getInstance().getHttpClientTimeout(), TimeUnit.SECONDS);
+                    .get(PluginSettings.getInstance().getClientTimeout(), TimeUnit.SECONDS);
         } catch (InterruptedException | ExecutionException | TimeoutException e) {
             log.error("HTTP {} request failed: {}", method, e.getMessage());
             Thread.currentThread().interrupt();

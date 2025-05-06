@@ -96,7 +96,6 @@ public class ContentManagerPlugin extends Plugin implements ClusterPlugin {
 
     @Override
     public List<Setting<?>> getSettings() {
-
         return Arrays.asList(
                 PluginSettings.CONSUMER_ID,
                 PluginSettings.CONTEXT_ID,
@@ -104,7 +103,6 @@ public class ContentManagerPlugin extends Plugin implements ClusterPlugin {
                 PluginSettings.CTI_API_URL,
                 PluginSettings.CTI_CLIENT_MAX_ATTEMPTS,
                 PluginSettings.CTI_CLIENT_SLEEP_TIME,
-                PluginSettings.HTTP_CLIENT_TIMEOUT,
                 PluginSettings.JOB_MAX_DOCS,
                 PluginSettings.JOB_SCHEDULE,
                 PluginSettings.MAX_CHANGES,

@@ -25,33 +25,19 @@ import org.opensearch.common.settings.Settings;
 import com.wazuh.contentmanager.utils.ClusterInfoHelper;
 import reactor.util.annotation.NonNull;
 
-/**
- * This class encapsulates configuration settings and constants for the Content Manager plugin. It
- * uses a singleton pattern to ensure a single instance is initialized and used throughout the
- * application. The settings are typically pulled from a configuration file and provide important
- * parameters such as API endpoints, timeouts, and execution settings.
- *
- * <p>Key responsibilities of this class include: - Managing plugin-wide settings for API URLs,
- * maximum attempts, timeouts, document limits, and more. - Providing initialized configuration
- * settings to other components. - Ensuring the settings are properly loaded and accessible via a
- * singleton instance.
- */
+/** This class encapsulates configuration settings and constants for the Content Manager plugin. */
 public class PluginSettings {
     private static final Logger log = LogManager.getLogger(PluginSettings.class);
 
-    // Settings default values
+    /** Settings default values */
     private static final Integer DEFAULT_CTI_MAX_ATTEMPTS = 3;
-    private static final Integer DEFAULT_CTI_SLEEP_TIME = 60;
-    private static final Integer DEFAULT_HTTP_CLIENT_TIMEOUT = 10;
 
+    private static final Integer DEFAULT_CTI_SLEEP_TIME = 60;
     private static final Integer DEFAULT_MAX_DOCS = 1000;
     private static final Integer DEFAULT_JOB_SCHEDULE = 1;
 
     /** Singleton instance. */
     private static PluginSettings INSTANCE;
-
-    /** Content Manager Plugin API path. */
-    public static final String API_BASE_URI = "/_plugins/_content_manager";
 
     /** Base Wazuh CTI URL */
     public static final String CTI_URL = "https://cti.wazuh.com";
@@ -103,16 +89,6 @@ public class PluginSettings {
                     Setting.Property.NodeScope,
                     Setting.Property.Filtered);
 
-    /** The timeout duration for the HTTP client in seconds. */
-    public static final Setting<Integer> HTTP_CLIENT_TIMEOUT =
-            Setting.intSetting(
-                    "content_manager.http.client.timeout",
-                    DEFAULT_HTTP_CLIENT_TIMEOUT,
-                    10,
-                    50,
-                    Setting.Property.NodeScope,
-                    Setting.Property.Filtered);
-
     /**
      * The maximum number of elements that are included in a bulk request during the initialization
      * from a snapshot.
@@ -145,6 +121,8 @@ public class PluginSettings {
             Setting.longSetting(
                     "content_manager.client.timeout",
                     10,
+                    10,
+                    50,
                     Setting.Property.NodeScope,
                     Setting.Property.Filtered);
 
@@ -182,7 +160,6 @@ public class PluginSettings {
     private final ClusterService clusterService;
     private final Integer ctiClientMaxAttempts;
     private final Integer ctiClientSleepTime;
-    private final Integer httpClientTimeout;
     private final Integer maximumItemsPerBulk;
     private final Integer maximumConcurrentBulks;
     private final Long clientTimeout;
@@ -202,7 +179,6 @@ public class PluginSettings {
         this.clusterService = clusterService;
         this.ctiClientMaxAttempts = CTI_CLIENT_MAX_ATTEMPTS.get(settings);
         this.ctiClientSleepTime = CTI_CLIENT_SLEEP_TIME.get(settings);
-        this.httpClientTimeout = HTTP_CLIENT_TIMEOUT.get(settings);
         this.maximumItemsPerBulk = MAX_ITEMS_PER_BULK.get(settings);
         this.maximumConcurrentBulks = MAX_CONCURRENT_BULKS.get(settings);
         this.clientTimeout = CLIENT_TIMEOUT.get(settings);
@@ -295,15 +271,6 @@ public class PluginSettings {
      */
     public Integer getCtiClientSleepTime() {
         return ctiClientSleepTime;
-    }
-
-    /**
-     * Retrieves the timeout value for the HTTP client.
-     *
-     * @return an Integer representing the HTTP client timeout in seconds.
-     */
-    public Integer getHttpClientTimeout() {
-        return httpClientTimeout;
     }
 
     /**
