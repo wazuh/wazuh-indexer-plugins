@@ -90,9 +90,9 @@ public class PluginSettings {
         this.authUsername = COMMAND_MANAGER_USERNAME.get(settings);
         this.authPassword = COMMAND_MANAGER_PASSWORD.get(settings);
 
-        this.certPath = settings.get(TLS_CERT_SETTING, "");
-        this.keyPath = settings.get(TLS_KEY_SETTING, "");
-        this.caPath = settings.get(TLS_CA_SETTING, "");
+        this.certPath = settings.get(TLS_CERT_SETTING, "pem/indexer.pem");
+        this.keyPath = settings.get(TLS_KEY_SETTING, "pem/indexer-key.pem");
+        this.caPath = settings.get(TLS_CA_SETTING, "pem/root-ca.pem");
 
         log.debug("Settings.loaded: {}", this.toString());
     }

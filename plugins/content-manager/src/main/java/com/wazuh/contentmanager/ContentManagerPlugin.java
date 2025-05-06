@@ -37,8 +37,10 @@ import org.opensearch.watcher.ResourceWatcherService;
 import java.util.*;
 import java.util.function.Supplier;
 
+import com.wazuh.contentmanager.client.CommandManagerClient;
 import com.wazuh.contentmanager.index.ContentIndex;
 import com.wazuh.contentmanager.index.ContextIndex;
+import com.wazuh.contentmanager.model.commandmanager.Command;
 import com.wazuh.contentmanager.settings.PluginSettings;
 import com.wazuh.contentmanager.utils.SnapshotHelper;
 
@@ -81,6 +83,7 @@ public class ContentManagerPlugin extends Plugin
      */
     @Override
     public void onNodeStarted(DiscoveryNode localNode) {
+        CommandManagerClient.getInstance().postCommand(Command.create("0"));
         SnapshotHelper snapshotHelper =
                 new SnapshotHelper(this.threadPool, this.environment, this.contextIndex, this.contentIndex);
         this.clusterService.addListener(snapshotHelper);

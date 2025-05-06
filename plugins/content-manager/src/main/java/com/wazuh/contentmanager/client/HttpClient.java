@@ -95,7 +95,7 @@ public class HttpClient {
      *
      * @throws RuntimeException error initializing the HttpClient.
      */
-    @SuppressForbidden(reason = "The required pems paths cannot be read from environment")
+    @SuppressForbidden(reason = "The required pem paths cannot be read from environment")
     private void startHttpAsyncClient() throws RuntimeException {
         synchronized (LOCK) {
             if (httpClient == null) {
@@ -106,6 +106,9 @@ public class HttpClient {
                         String keyPath = PluginSettings.getInstance().getKeyPath();
                         String caPath = PluginSettings.getInstance().getCaPath();
 
+                        if (certPath.isEmpty() || keyPath.isEmpty() || caPath.isEmpty()) {
+                            throw new IllegalArgumentException("Empty certificates paths.");
+                        }
                         sslContext =
                                 PemHelper.createSSLContext(
                                         PathUtils.get(certPath), PathUtils.get(keyPath), PathUtils.get(caPath));

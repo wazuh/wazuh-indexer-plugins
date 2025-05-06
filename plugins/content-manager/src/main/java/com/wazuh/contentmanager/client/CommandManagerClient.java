@@ -23,8 +23,6 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import java.net.URI;
-import java.nio.charset.StandardCharsets;
-import java.util.Base64;
 
 import com.wazuh.contentmanager.settings.PluginSettings;
 
@@ -69,17 +67,11 @@ public class CommandManagerClient extends HttpClient {
      * @param requestBody The JSON request body containing the command details.
      */
     public void postCommand(String requestBody) {
-        String username = PluginSettings.getInstance().getAuthUsername();
-        String password = PluginSettings.getInstance().getAuthPassword();
-        String auth = username + ":" + password;
-        String encodedAuth = Base64.getEncoder().encodeToString(auth.getBytes(StandardCharsets.UTF_8));
         // Build headers
-        Header authentication = new BasicHeader(HttpHeaders.AUTHORIZATION, "Basic " + encodedAuth);
         Header contentType = new BasicHeader(HttpHeaders.CONTENT_TYPE, ContentType.APPLICATION_JSON);
         // Send post request to command manager API.
         SimpleHttpResponse response =
-                this.sendRequest(
-                        Method.POST, POST_COMMAND_ENDPOINT, requestBody, null, authentication, contentType);
+                this.sendRequest(Method.POST, POST_COMMAND_ENDPOINT, requestBody, null, contentType);
 
         this.handlePostResponse(response);
     }
