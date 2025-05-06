@@ -35,6 +35,7 @@ import org.opensearch.threadpool.ThreadPool;
 import org.opensearch.watcher.ResourceWatcherService;
 
 import java.util.*;
+import java.util.concurrent.ExecutorService;
 import java.util.function.Supplier;
 
 import com.wazuh.contentmanager.index.ContentIndex;
@@ -49,6 +50,7 @@ public class ContentManagerPlugin extends Plugin implements ClusterPlugin {
     private ContentIndex contentIndex;
     private SnapshotHelper snapshotHelper;
     private ThreadPool threadPool;
+    private ClusterService clusterService;
 
     @Override
     public Collection<Object> createComponents(
@@ -68,31 +70,46 @@ public class ContentManagerPlugin extends Plugin implements ClusterPlugin {
         this.contextIndex = new ContextIndex(client);
         this.contentIndex = new ContentIndex(client);
         this.snapshotHelper = new SnapshotHelper(environment, contextIndex, this.contentIndex);
-
+        this.clusterService = clusterService;
         return Collections.emptyList();
     }
 
     /**
-     * Call the CTI API on startup and get the latest consumer information into an index
+     * Initialize. The initialization consists of:
+     *
+     * <pre>
+     *     1. fetching the latest consumer's information from the CTI API.
+     *     2. initialize from a snapshot if the local consumer does not exist, or its offset is 0.
+     * </pre>
+     *
+     * The initialization requires the existence of the {@link ContentIndex#INDEX_NAME} index. For
+     * this reason, we use a ClusterStateListener to listen for the creation of this index by the
+     * "setup" plugin, to then proceed with the initialization.
      *
      * @param localNode local Node info
      */
     @Override
     public void onNodeStarted(DiscoveryNode localNode) {
-        this.contextIndex.createIndex();
-        if (this.contentIndex.exists()) {
-            this.threadPool
-                    .generic()
-                    .execute(
-                            () -> {
-                                try {
-                                    this.snapshotHelper.initialize();
-                                } catch (Exception e) {
-                                    // Log or handle exception
-                                    log.error("Error initializing snapshot helper: {}", e.getMessage(), e);
-                                }
-                            });
-        }
+        //
+        this.clusterService.addListener(
+                event -> {
+                    if (event.indicesCreated().contains(ContentIndex.INDEX_NAME)) {
+                        try (ExecutorService ex = this.threadPool.generic()) {
+                            ex.execute(
+                                    () -> {
+                                        this.contextIndex.createIndex();
+                                        if (this.contentIndex.exists()) {
+                                            try {
+                                                this.snapshotHelper.initialize();
+                                            } catch (Exception e) {
+                                                // Log or handle exception
+                                                log.error("Error initializing snapshot helper: {}", e.getMessage(), e);
+                                            }
+                                        }
+                                    });
+                        }
+                    }
+                });
     }
 
     @Override
