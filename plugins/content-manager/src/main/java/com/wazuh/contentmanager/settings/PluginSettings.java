@@ -131,6 +131,8 @@ public class PluginSettings {
             Setting.longSetting(
                     "content_manager.max_changes",
                     1000,
+                    10,
+                    1000,
                     Setting.Property.NodeScope,
                     Setting.Property.Filtered);
 
