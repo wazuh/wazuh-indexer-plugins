@@ -14,7 +14,7 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-package com.wazuh.contentmanager.model.ctiapi;
+package com.wazuh.contentmanager.model.cti;
 
 import org.opensearch.core.common.ParsingException;
 import org.opensearch.core.xcontent.ToXContentObject;
@@ -88,7 +88,7 @@ public class ContentChanges implements ToXContentObject {
     @Override
     public XContentBuilder toXContent(XContentBuilder builder, Params params) throws IOException {
         builder.startObject();
-        builder.startArray(JSON_DATA_KEY);
+        builder.startArray(ContentChanges.JSON_DATA_KEY);
         // For each Offset in the data field, add them to an XContentBuilder array
         for (Offset change : this.changes) {
             change.toXContent(builder, ToXContentObject.EMPTY_PARAMS);

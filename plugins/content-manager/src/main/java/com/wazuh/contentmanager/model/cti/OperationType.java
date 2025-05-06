@@ -14,7 +14,7 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-package com.wazuh.contentmanager.model.ctiapi;
+package com.wazuh.contentmanager.model.cti;
 
 /**
  * This enumeration represents the types of supported operations of the Content Manager plugin from

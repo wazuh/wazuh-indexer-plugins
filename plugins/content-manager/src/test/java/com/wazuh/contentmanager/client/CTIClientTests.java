@@ -30,8 +30,8 @@ import java.io.IOException;
 import java.util.Collections;
 import java.util.Map;
 
-import com.wazuh.contentmanager.model.ctiapi.ConsumerInfo;
-import com.wazuh.contentmanager.model.ctiapi.ContentChanges;
+import com.wazuh.contentmanager.model.cti.ConsumerInfo;
+import com.wazuh.contentmanager.model.cti.ContentChanges;
 
 import static org.mockito.Mockito.*;
 

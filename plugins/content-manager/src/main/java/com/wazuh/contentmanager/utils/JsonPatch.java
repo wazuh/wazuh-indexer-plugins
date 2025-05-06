@@ -21,7 +21,7 @@ import com.google.gson.JsonObject;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import com.wazuh.contentmanager.model.ctiapi.PatchOperation;
+import com.wazuh.contentmanager.model.cti.PatchOperation;
 
 /**
  * Utility class for applying JSON Patch operations to JSON documents.

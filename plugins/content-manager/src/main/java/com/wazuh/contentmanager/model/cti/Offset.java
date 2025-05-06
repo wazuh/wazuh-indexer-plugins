@@ -14,7 +14,7 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-package com.wazuh.contentmanager.model.ctiapi;
+package com.wazuh.contentmanager.model.cti;
 
 import org.opensearch.core.xcontent.ToXContentObject;
 import org.opensearch.core.xcontent.XContentBuilder;
@@ -41,10 +41,10 @@ public class Offset implements ToXContentObject {
     private static final String OPERATIONS = "operations";
     private static final String PAYLOAD = "payload";
     private final String context;
-    private final Long offset;
+    private final long offset;
     private final String resource;
     private final OperationType type;
-    private final Long version;
+    private final long version;
     private final List<PatchOperation> operations;
     private final Map<String, Object> payload;
 
@@ -85,10 +85,10 @@ public class Offset implements ToXContentObject {
      */
     public static Offset parse(XContentParser parser) throws IOException {
         String context = null;
-        Long offset = null;
+        long offset = 0;
         String resource = null;
         OperationType type = null;
-        Long version = null;
+        long version = 0;
         List<PatchOperation> operations = new ArrayList<>();
         Map<String, Object> payload = new HashMap<>();
 
@@ -265,5 +265,9 @@ public class Offset implements ToXContentObject {
         builder.endArray();
         builder.field(PAYLOAD, this.payload);
         return builder.endObject();
+    }
+
+    public long getOffset() {
+        return this.offset;
     }
 }

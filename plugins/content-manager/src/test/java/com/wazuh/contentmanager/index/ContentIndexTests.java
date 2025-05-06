@@ -24,10 +24,10 @@ import org.junit.Before;
 
 import java.util.List;
 
-import com.wazuh.contentmanager.model.ctiapi.ContentChanges;
-import com.wazuh.contentmanager.model.ctiapi.Offset;
-import com.wazuh.contentmanager.model.ctiapi.OperationType;
-import com.wazuh.contentmanager.model.ctiapi.PatchOperation;
+import com.wazuh.contentmanager.model.cti.ContentChanges;
+import com.wazuh.contentmanager.model.cti.Offset;
+import com.wazuh.contentmanager.model.cti.OperationType;
+import com.wazuh.contentmanager.model.cti.PatchOperation;
 import org.mockito.Mockito;
 
 import static org.mockito.ArgumentMatchers.any;

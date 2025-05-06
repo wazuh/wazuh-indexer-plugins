@@ -19,15 +19,11 @@ package com.wazuh.contentmanager.index;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.opensearch.action.DocWriteResponse;
-import org.opensearch.action.admin.cluster.health.ClusterHealthResponse;
-import org.opensearch.action.admin.indices.exists.indices.IndicesExistsRequest;
-import org.opensearch.action.admin.indices.exists.indices.IndicesExistsResponse;
 import org.opensearch.action.get.GetRequest;
 import org.opensearch.action.get.GetResponse;
 import org.opensearch.action.index.IndexRequest;
 import org.opensearch.action.index.IndexResponse;
 import org.opensearch.client.Client;
-import org.opensearch.cluster.health.ClusterHealthStatus;
 import org.opensearch.common.xcontent.XContentFactory;
 import org.opensearch.core.xcontent.ToXContent;
 
@@ -39,8 +35,9 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
-import com.wazuh.contentmanager.model.ctiapi.ConsumerInfo;
+import com.wazuh.contentmanager.model.cti.ConsumerInfo;
 import com.wazuh.contentmanager.settings.PluginSettings;
+import com.wazuh.contentmanager.utils.ClusterInfo;
 
 /** Class to manage the Context index. */
 public class ContextIndex {
@@ -49,10 +46,12 @@ public class ContextIndex {
     /** The name of the Contexts index */
     public static final String INDEX_NAME = "wazuh-context";
 
-    /** Timeout of indexing operations */
-    private static final long TIMEOUT = 10L;
-
     private final Client client;
+
+    /**
+     * This instance of ConsumerInfo comprehends the internal state of this class. The ContextIndex
+     * class is responsible for maintaining its internal state update at all times.
+     */
     private ConsumerInfo consumerInfo;
 
     /**
@@ -79,10 +78,11 @@ public class ContextIndex {
                                     consumerInfo.toXContent(XContentFactory.jsonBuilder(), ToXContent.EMPTY_PARAMS))
                             .id(consumerInfo.getContext());
 
-            IndexResponse indexResponse = this.client.index(indexRequest).get(TIMEOUT, TimeUnit.SECONDS);
+            IndexResponse indexResponse =
+                    this.client.index(indexRequest).get(PluginSettings.TIMEOUT, TimeUnit.SECONDS);
             if (indexResponse.getResult() == DocWriteResponse.Result.CREATED
                     || indexResponse.getResult() == DocWriteResponse.Result.UPDATED) {
-                // Update consumer info.
+                // Update consumer info (internal state).
                 this.consumerInfo = consumerInfo;
                 return true;
             }
@@ -98,19 +98,6 @@ public class ContextIndex {
     }
 
     /**
-     * TODO Might not be needed
-     *
-     * @param client
-     * @param index
-     * @return
-     */
-    static boolean indexStatusCheck(Client client, String index) {
-        ClusterHealthResponse response =
-                client.admin().cluster().prepareHealth().setIndices(index).setWaitForYellowStatus().get();
-        return response.getStatus() != ClusterHealthStatus.RED;
-    }
-
-    /**
      * Searches for the given consumer within a context.
      *
      * @param context ID (name) of the context.
@@ -119,14 +106,15 @@ public class ContextIndex {
      */
     @SuppressWarnings("unchecked")
     public ConsumerInfo get(String context, String consumer) {
-        if (!indexStatusCheck(this.client, INDEX_NAME)) {
+        // Avoid faulty requests if the cluster is unstable.
+        if (!ClusterInfo.indexStatusCheck(this.client, ContextIndex.INDEX_NAME)) {
             throw new RuntimeException("Index not ready");
         }
         try {
             GetResponse getResponse =
                     this.client
                             .get(new GetRequest(ContextIndex.INDEX_NAME, context).preference("_local"))
-                            .get(ContextIndex.TIMEOUT, TimeUnit.SECONDS);
+                            .get(PluginSettings.TIMEOUT, TimeUnit.SECONDS);
 
             Map<String, Object> source = (Map<String, Object>) getResponse.getSourceAsMap().get(consumer);
             if (source == null) {
@@ -135,15 +123,18 @@ public class ContextIndex {
                                 Locale.ROOT, "Consumer [%s] not found in context [%s]", consumer, context));
             }
 
+            // Update consumer info (internal state)
             long offset = ContextIndex.asLong(source.get(ConsumerInfo.OFFSET));
             long lastOffset = ContextIndex.asLong(source.get(ConsumerInfo.LAST_OFFSET));
             String snapshot = (String) source.get(ConsumerInfo.LAST_SNAPSHOT_LINK);
             this.consumerInfo = new ConsumerInfo(consumer, context, offset, lastOffset, snapshot);
-            log.info("Fetched consumer from [{}] index: {}", INDEX_NAME, this.consumerInfo);
+            log.info(
+                    "Fetched consumer from the [{}] index: {}", ContextIndex.INDEX_NAME, this.consumerInfo);
         } catch (InterruptedException | ExecutionException | TimeoutException e) {
             log.error("Failed to fetch consumer [{}][{}]: {}", context, consumer, e.getMessage());
         }
 
+        // May be null if the request fails and was not initialized on previously.
         return this.consumerInfo;
     }
 
@@ -158,30 +149,22 @@ public class ContextIndex {
     }
 
     /**
-     * Checks if the index exists.
+     * Checks whether the {@link ContextIndex#INDEX_NAME} index exists.
      *
+     * @see ClusterInfo#indexExists(Client, String)
      * @return true if the index exists, false otherwise.
      */
     public boolean exists() {
-        IndicesExistsRequest request = new IndicesExistsRequest(INDEX_NAME);
-        IndicesExistsResponse response = this.client.admin().indices().exists(request).actionGet();
-        return response.isExists();
+        return ClusterInfo.indexExists(this.client, ContextIndex.INDEX_NAME);
     }
 
-    /** Creates the {@link ContextIndex#INDEX_NAME} index. */
+    /** Creates the {@link ContextIndex#INDEX_NAME} index, if it does not exist. */
     public void createIndex() {
-        if (!exists()) {
+        if (!this.exists()) {
             boolean result =
                     this.index(
                             new ConsumerInfo(PluginSettings.CONSUMER_ID, PluginSettings.CONTEXT_ID, 0, 0, null));
             log.info("Index initialized: {}", result);
-            //            CreateIndexRequest request = new CreateIndexRequest(INDEX_NAME);
-            //            CreateIndexResponse createIndexResponse =
-            //                this.client.admin().indices().create(request).actionGet();
-            //            log.info(
-            //                "Index created successfully: {} {}",
-            //                createIndexResponse.index(),
-            //                createIndexResponse.isAcknowledged());
         }
     }
 }

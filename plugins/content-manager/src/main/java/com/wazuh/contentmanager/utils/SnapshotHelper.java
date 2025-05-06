@@ -30,17 +30,18 @@ import com.wazuh.contentmanager.client.CTIClient;
 import com.wazuh.contentmanager.client.CommandManagerClient;
 import com.wazuh.contentmanager.index.ContentIndex;
 import com.wazuh.contentmanager.index.ContextIndex;
-import com.wazuh.contentmanager.model.commandmanager.Command;
-import com.wazuh.contentmanager.model.ctiapi.ConsumerInfo;
+import com.wazuh.contentmanager.model.cti.ConsumerInfo;
 import com.wazuh.contentmanager.settings.PluginSettings;
 
 /** Helper class to handle indexing of snapshots */
 public class SnapshotHelper {
     private static final Logger log = LogManager.getLogger(SnapshotHelper.class);
     private final CTIClient ctiClient;
+    private CommandManagerClient commandClient;
     private final Environment environment;
     private final ContextIndex contextIndex;
     private final ContentIndex contentIndex;
+    private final Privileged privileged;
 
     /**
      * Constructor.
@@ -50,15 +51,19 @@ public class SnapshotHelper {
      * @param contentIndex Handles indexed content.
      */
     public SnapshotHelper(
-            Environment environment, ContextIndex contextIndex, ContentIndex contentIndex) {
+            Environment environment,
+            ContextIndex contextIndex,
+            ContentIndex contentIndex,
+            Privileged privileged) {
         this.environment = environment;
         this.contextIndex = contextIndex;
         this.contentIndex = contentIndex;
-        this.ctiClient = Privileged.doPrivilegedRequest(CTIClient::getInstance);
+        this.privileged = privileged;
+        this.ctiClient = privileged.doPrivilegedRequest(CTIClient::getInstance);
     }
 
     /**
-     * Alternate constructor that allows injecting CTIClient for test purposes.
+     * Alternate constructor that allows injecting CTIClient for test purposes. Dependency injection.
      *
      * @param ctiClient Instance of CTIClient.
      * @param environment Needed for snapshot file handling.
@@ -67,25 +72,27 @@ public class SnapshotHelper {
      */
     protected SnapshotHelper(
             CTIClient ctiClient,
+            CommandManagerClient client,
             Environment environment,
             ContextIndex contextIndex,
-            ContentIndex contentIndex) {
+            ContentIndex contentIndex,
+            Privileged privileged) {
         this.ctiClient = ctiClient;
+        this.commandClient = client;
         this.environment = environment;
         this.contextIndex = contextIndex;
         this.contentIndex = contentIndex;
+        this.privileged = privileged;
     }
 
     /**
      * Initializes the content if {@code offset == 0}. This method downloads, decompresses and indexes
      * a CTI snapshot.
      */
-    protected void indexSnapshot() {
-        ConsumerInfo consumerInfo =
-                this.contextIndex.get(PluginSettings.CONTEXT_ID, PluginSettings.CONSUMER_ID);
+    protected void indexSnapshot(ConsumerInfo consumerInfo) {
         if (consumerInfo.getOffset() == 0) {
             log.info("Initializing [{}] index from a snapshot", ContentIndex.INDEX_NAME);
-            Privileged.doPrivilegedRequest(
+            this.privileged.doPrivilegedRequest(
                     () -> {
                         // Download snapshot.
                         Path snapshotZip =
@@ -101,9 +108,8 @@ public class SnapshotHelper {
                             // Update the offset.
                             consumerInfo.setOffset(offset);
                             this.contextIndex.index(consumerInfo);
-                            //                            this.contextIndex.setOffset(offset);
                             // Send command.
-                            this.postUpdateCommand();
+                            privileged.postUpdateCommand(this.commandClient, consumerInfo);
                             // Remove snapshot.
                             Files.deleteIfExists(snapshotZip);
                             Files.deleteIfExists(snapshotJson);
@@ -141,26 +147,11 @@ public class SnapshotHelper {
     }
 
     /**
-     * Posts a command to the command manager API on a successful snapshot operation. TODO duplicated
-     * of {@code ContentUpdater#postUpdateCommand()}
-     */
-    protected void postUpdateCommand() {
-        ConsumerInfo current =
-                this.contextIndex.get(PluginSettings.CONTEXT_ID, PluginSettings.CONSUMER_ID);
-        Privileged.doPrivilegedRequest(
-                () -> {
-                    CommandManagerClient.getInstance()
-                            .postCommand(Command.create(String.valueOf(current.getLastOffset())));
-                    return null;
-                });
-    }
-
-    /**
      * Updates the context index with data from the CTI API
      *
      * @throws IOException thrown when indexing failed
      */
-    protected void initConsumer() throws IOException {
+    protected ConsumerInfo initConsumer() throws IOException {
         ConsumerInfo current =
                 this.contextIndex.get(PluginSettings.CONTEXT_ID, PluginSettings.CONSUMER_ID);
         ConsumerInfo latest = this.ctiClient.getConsumerInfo();
@@ -173,7 +164,7 @@ public class SnapshotHelper {
         //        this.contextIndex.index(current);
         // testy test test
 
-        // Consumer is not yet initialized. Init to latest.
+        // Consumer is not yet initialized. Initialize to latest.
         if (current == null || current.getOffset() == 0) {
             log.info("Initializing consumer: {}", latest);
             if (this.contextIndex.index(latest)) {
@@ -187,6 +178,7 @@ public class SnapshotHelper {
                                 latest.getContext(),
                                 latest.getName()));
             }
+            current = latest;
         }
         // Consumer is initialized and up-to-date.
         else if (current.getOffset() == latest.getLastOffset()) {
@@ -198,17 +190,19 @@ public class SnapshotHelper {
         // Consumer is initialized but out-of-date.
         else {
             log.info("Consumer already initialized (offset {} != 0). Skipping...", current.getOffset());
-            //            current.setLastOffset(latest.getLastOffset());
-            //            current.setLastSnapshotLink(latest.getLastSnapshotLink());
-            //            this.contextIndex.index(current);
+            current.setLastOffset(latest.getLastOffset());
+            current.setLastSnapshotLink(latest.getLastSnapshotLink());
+            this.contextIndex.index(current);
         }
+        return current;
     }
 
     /** Trigger method for content initialization */
     public void initialize() {
         try {
-            this.initConsumer();
-            this.indexSnapshot();
+            this.commandClient = this.privileged.doPrivilegedRequest(CommandManagerClient::getInstance);
+            ConsumerInfo consumerInfo = this.initConsumer();
+            this.indexSnapshot(consumerInfo);
         } catch (IOException e) {
             log.error("Failed to initialize: {}", e.getMessage());
         }

@@ -35,8 +35,8 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.*;
 
-import com.wazuh.contentmanager.model.ctiapi.ConsumerInfo;
-import com.wazuh.contentmanager.model.ctiapi.ContentChanges;
+import com.wazuh.contentmanager.model.cti.ConsumerInfo;
+import com.wazuh.contentmanager.model.cti.ContentChanges;
 import com.wazuh.contentmanager.settings.PluginSettings;
 import com.wazuh.contentmanager.utils.XContentUtils;
 

@@ -14,7 +14,7 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-package com.wazuh.contentmanager.model.ctiapi;
+package com.wazuh.contentmanager.model.cti;
 
 import org.opensearch.core.xcontent.ToXContentObject;
 import org.opensearch.core.xcontent.XContentBuilder;
@@ -126,9 +126,9 @@ public class ConsumerInfo implements ToXContentObject {
     public XContentBuilder toXContent(XContentBuilder builder, Params params) throws IOException {
         builder.startObject();
         builder.startObject(this.name);
-        builder.field(LAST_OFFSET, this.lastOffset);
-        builder.field(LAST_SNAPSHOT_LINK, this.lastSnapshotLink);
-        builder.field(OFFSET, this.offset);
+        builder.field(ConsumerInfo.LAST_OFFSET, this.lastOffset);
+        builder.field(ConsumerInfo.LAST_SNAPSHOT_LINK, this.lastSnapshotLink);
+        builder.field(ConsumerInfo.OFFSET, this.offset);
         builder.endObject();
         return builder.endObject();
     }
@@ -204,6 +204,11 @@ public class ConsumerInfo implements ToXContentObject {
         this.lastOffset = offset;
     }
 
+    /**
+     * {@link ConsumerInfo#lastSnapshotLink} setter.
+     *
+     * @param url new value (URL).
+     */
     public void setLastSnapshotLink(String url) {
         this.lastSnapshotLink = url;
     }

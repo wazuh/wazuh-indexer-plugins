@@ -40,6 +40,7 @@ import java.util.function.Supplier;
 import com.wazuh.contentmanager.index.ContentIndex;
 import com.wazuh.contentmanager.index.ContextIndex;
 import com.wazuh.contentmanager.settings.PluginSettings;
+import com.wazuh.contentmanager.utils.Privileged;
 import com.wazuh.contentmanager.utils.SnapshotHelper;
 
 /** Main class of the Content Manager Plugin */
@@ -68,7 +69,8 @@ public class ContentManagerPlugin extends Plugin implements ClusterPlugin {
         this.threadPool = threadPool;
         this.contextIndex = new ContextIndex(client);
         this.contentIndex = new ContentIndex(client);
-        this.snapshotHelper = new SnapshotHelper(environment, contextIndex, this.contentIndex);
+        this.snapshotHelper =
+                new SnapshotHelper(environment, contextIndex, this.contentIndex, new Privileged());
         this.clusterService = clusterService;
         return Collections.emptyList();
     }
@@ -89,10 +91,14 @@ public class ContentManagerPlugin extends Plugin implements ClusterPlugin {
      */
     @Override
     public void onNodeStarted(DiscoveryNode localNode) {
-        //
+        // TODO restrict initialization from snapshots to master nodes only
         this.clusterService.addListener(
                 event -> {
-                    if (event.indicesCreated().contains(ContentIndex.INDEX_NAME)) {
+                    if (event
+                            .indicesCreated()
+                            .contains(
+                                    ContentIndex
+                                            .INDEX_NAME)) { // TODO does not init if offset = 0 (no indexCreated event)
                         try {
                             this.threadPool
                                     .generic()

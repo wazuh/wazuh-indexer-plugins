@@ -22,7 +22,7 @@ import org.opensearch.test.OpenSearchTestCase;
 import org.junit.After;
 import org.junit.Before;
 
-import com.wazuh.contentmanager.model.ctiapi.PatchOperation;
+import com.wazuh.contentmanager.model.cti.PatchOperation;
 
 @OpenSearchIntegTestCase.ClusterScope(scope = OpenSearchIntegTestCase.Scope.SUITE)
 public class JsonPatchTests extends OpenSearchTestCase {

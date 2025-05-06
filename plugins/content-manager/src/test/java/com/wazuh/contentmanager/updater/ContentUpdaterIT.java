@@ -40,14 +40,15 @@ import java.util.concurrent.TimeoutException;
 
 import com.wazuh.contentmanager.ContentManagerPlugin;
 import com.wazuh.contentmanager.client.CTIClient;
+import com.wazuh.contentmanager.client.CommandManagerClient;
 import com.wazuh.contentmanager.index.ContentIndex;
 import com.wazuh.contentmanager.index.ContextIndex;
-import com.wazuh.contentmanager.model.ctiapi.*;
-import com.wazuh.contentmanager.model.ctiapi.OperationType;
+import com.wazuh.contentmanager.model.cti.*;
+import com.wazuh.contentmanager.model.cti.OperationType;
 import com.wazuh.contentmanager.settings.PluginSettings;
+import com.wazuh.contentmanager.utils.Privileged;
 import org.mockito.Mockito;
 
-import static com.wazuh.contentmanager.index.ContentIndex.TIMEOUT;
 import static org.mockito.Mockito.*;
 
 @ThreadLeakScope(ThreadLeakScope.Scope.NONE)
@@ -58,16 +59,26 @@ public class ContentUpdaterIT extends OpenSearchIntegTestCase {
     private ContentUpdater updater;
     private ContextIndex contextIndex;
     private ContentIndex contentIndex;
+    private CommandManagerClient commandClient;
     private CTIClient ctiClient;
+    private Privileged privilegedSpy;
 
     @Before
     public void setup() throws Exception {
         this.client = client();
         this.ctiClient = mock(CTIClient.class);
+        this.commandClient = mock(CommandManagerClient.class);
         this.contextIndex = spy(new ContextIndex(client));
         this.contentIndex = new ContentIndex(client);
+        this.privilegedSpy = Mockito.spy(Privileged.class);
         this.updater =
-                Mockito.spy(new ContentUpdater(this.ctiClient, this.contextIndex, this.contentIndex));
+                Mockito.spy(
+                        new ContentUpdater(
+                                this.ctiClient,
+                                this.commandClient,
+                                this.contextIndex,
+                                this.contentIndex,
+                                this.privilegedSpy));
 
         this.prepareInitialCVEInfo(0);
         this.prepareInitialConsumerInfo();
@@ -101,13 +112,15 @@ public class ContentUpdaterIT extends OpenSearchIntegTestCase {
         when(this.contextIndex.get(PluginSettings.CONTEXT_ID, PluginSettings.CONSUMER_ID))
                 .thenReturn(testConsumer);
         // Mock postUpdateCommand method.
-        doNothing().when(this.updater).postUpdateCommand();
+        doNothing()
+                .when(this.privilegedSpy)
+                .postUpdateCommand(any(CommandManagerClient.class), any(ConsumerInfo.class));
         // Act
         boolean updated = this.updater.update();
 
         // Ensure the index is refreshed.
         RefreshRequest request = new RefreshRequest(ContentIndex.INDEX_NAME);
-        this.client.admin().indices().refresh(request).get(TIMEOUT, TimeUnit.SECONDS);
+        this.client.admin().indices().refresh(request).get(PluginSettings.TIMEOUT, TimeUnit.SECONDS);
 
         ConsumerInfo updatedConsumer =
                 this.contextIndex.get(PluginSettings.CONTEXT_ID, PluginSettings.CONSUMER_ID);
@@ -144,13 +157,15 @@ public class ContentUpdaterIT extends OpenSearchIntegTestCase {
         when(this.contextIndex.get(PluginSettings.CONTEXT_ID, PluginSettings.CONSUMER_ID))
                 .thenReturn(testConsumer);
         // Mock postUpdateCommand method.
-        doNothing().when(this.updater).postUpdateCommand();
+        doNothing()
+                .when(this.privilegedSpy)
+                .postUpdateCommand(any(CommandManagerClient.class), any(ConsumerInfo.class));
         // Act
         boolean updated = this.updater.update();
 
         // Ensure the index is refreshed.
         RefreshRequest request = new RefreshRequest(ContentIndex.INDEX_NAME);
-        this.client.admin().indices().refresh(request).get(TIMEOUT, TimeUnit.SECONDS);
+        this.client.admin().indices().refresh(request).get(PluginSettings.TIMEOUT, TimeUnit.SECONDS);
 
         ConsumerInfo updatedConsumer =
                 this.contextIndex.get(PluginSettings.CONTEXT_ID, PluginSettings.CONSUMER_ID);
@@ -187,18 +202,20 @@ public class ContentUpdaterIT extends OpenSearchIntegTestCase {
         when(this.contextIndex.get(PluginSettings.CONTEXT_ID, PluginSettings.CONSUMER_ID))
                 .thenReturn(testConsumer);
         // Mock postUpdateCommand method.
-        doNothing().when(this.updater).postUpdateCommand();
-
+        doNothing()
+                .when(this.privilegedSpy)
+                .postUpdateCommand(any(CommandManagerClient.class), any(ConsumerInfo.class));
         // Act
         boolean updated = this.updater.update();
 
         // Ensure the index is refreshed.
         RefreshRequest request = new RefreshRequest(ContentIndex.INDEX_NAME);
-        this.client.admin().indices().refresh(request).get(TIMEOUT, TimeUnit.SECONDS);
+        this.client.admin().indices().refresh(request).get(PluginSettings.TIMEOUT, TimeUnit.SECONDS);
 
         ConsumerInfo updatedConsumer =
                 this.contextIndex.get(PluginSettings.CONTEXT_ID, PluginSettings.CONSUMER_ID);
-        GetResponse getContent = this.contentIndex.get(this.resourceId).get(TIMEOUT, TimeUnit.SECONDS);
+        GetResponse getContent =
+                this.contentIndex.get(this.resourceId).get(PluginSettings.TIMEOUT, TimeUnit.SECONDS);
         // Assert
         assertTrue(updated);
         assertNotNull(updatedConsumer);
