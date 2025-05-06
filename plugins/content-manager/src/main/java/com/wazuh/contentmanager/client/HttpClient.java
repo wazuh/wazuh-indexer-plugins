@@ -95,7 +95,7 @@ public class HttpClient {
      *
      * @throws RuntimeException error initializing the HttpClient.
      */
-    @SuppressForbidden(reason = "Paths")
+    @SuppressForbidden(reason = "The required pems paths cannot be read from environment")
     private void startHttpAsyncClient() throws RuntimeException {
         synchronized (LOCK) {
             if (httpClient == null) {
