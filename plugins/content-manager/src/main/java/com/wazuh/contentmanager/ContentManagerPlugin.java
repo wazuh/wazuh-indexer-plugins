@@ -16,13 +16,11 @@
  */
 package com.wazuh.contentmanager;
 
-import org.opensearch.action.ActionRequest;
 import org.opensearch.client.Client;
 import org.opensearch.cluster.metadata.IndexNameExpressionResolver;
 import org.opensearch.cluster.node.DiscoveryNode;
 import org.opensearch.cluster.service.ClusterService;
 import org.opensearch.common.settings.*;
-import org.opensearch.core.action.ActionResponse;
 import org.opensearch.core.common.io.stream.NamedWriteableRegistry;
 import org.opensearch.core.xcontent.NamedXContentRegistry;
 import org.opensearch.env.Environment;
@@ -40,8 +38,6 @@ import java.util.*;
 import java.util.function.Supplier;
 
 import com.wazuh.contentmanager.client.CommandManagerClient;
-import com.wazuh.contentmanager.client.actions.CommandActionType;
-import com.wazuh.contentmanager.client.actions.CommandTransportAction;
 import com.wazuh.contentmanager.index.ContentIndex;
 import com.wazuh.contentmanager.index.ContextIndex;
 import com.wazuh.contentmanager.settings.PluginSettings;
@@ -96,11 +92,6 @@ public class ContentManagerPlugin extends Plugin
     @Override
     public List<Setting<?>> getSettings() {
         return List.of(PluginSettings.CTI_API_URL);
-    }
-
-    @Override
-    public List<ActionHandler<? extends ActionRequest, ? extends ActionResponse>> getActions() {
-        return List.of(new ActionHandler<>(CommandActionType.INSTANCE, CommandTransportAction.class));
     }
 
     @Override

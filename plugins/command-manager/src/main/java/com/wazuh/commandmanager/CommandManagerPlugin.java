@@ -18,6 +18,7 @@ package com.wazuh.commandmanager;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.opensearch.action.ActionRequest;
 import org.opensearch.action.index.IndexResponse;
 import org.opensearch.client.Client;
 import org.opensearch.cluster.metadata.IndexNameExpressionResolver;
@@ -25,6 +26,7 @@ import org.opensearch.cluster.node.DiscoveryNodes;
 import org.opensearch.cluster.service.ClusterService;
 import org.opensearch.common.UUIDs;
 import org.opensearch.common.settings.*;
+import org.opensearch.core.action.ActionResponse;
 import org.opensearch.core.common.io.stream.NamedWriteableRegistry;
 import org.opensearch.core.xcontent.NamedXContentRegistry;
 import org.opensearch.core.xcontent.XContentParser;
@@ -59,6 +61,8 @@ import com.wazuh.commandmanager.jobscheduler.CommandManagerJobRunner;
 import com.wazuh.commandmanager.jobscheduler.JobDocument;
 import com.wazuh.commandmanager.rest.RestPostCommandAction;
 import com.wazuh.commandmanager.settings.PluginSettings;
+import com.wazuh.commandmanager.transport.CommandActionType;
+import com.wazuh.commandmanager.transport.CommandTransportAction;
 
 /**
  * The Command Manager plugin exposes an HTTP API with a single endpoint to receive raw commands
@@ -225,6 +229,11 @@ public class CommandManagerPlugin extends Plugin
         }
         XContentParserUtils.throwUnknownToken(parser.currentToken(), parser.getTokenLocation());
         return null;
+    }
+
+    @Override
+    public List<ActionHandler<? extends ActionRequest, ? extends ActionResponse>> getActions() {
+        return List.of(new ActionHandler<>(CommandActionType.INSTANCE, CommandTransportAction.class));
     }
 
     @Override

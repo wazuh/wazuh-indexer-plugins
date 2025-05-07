@@ -22,6 +22,7 @@ import org.opensearch.action.bulk.BulkRequest;
 import org.opensearch.action.index.IndexRequest;
 import org.opensearch.client.Client;
 import org.opensearch.cluster.service.ClusterService;
+import org.opensearch.common.inject.Inject;
 import org.opensearch.common.util.concurrent.ThreadContext;
 import org.opensearch.common.xcontent.XContentFactory;
 import org.opensearch.core.rest.RestStatus;
@@ -54,6 +55,7 @@ public class CommandIndex implements IndexingOperationListener {
      * @param clusterService OpenSearch cluster service.
      * @param threadPool An OpenSearch ThreadPool.
      */
+    @Inject
     public CommandIndex(Client client, ClusterService clusterService, ThreadPool threadPool) {
         this.client = client;
         this.clusterService = clusterService;
