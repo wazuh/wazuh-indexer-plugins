@@ -170,7 +170,7 @@ public class Command implements ToXContentObject {
      * @throws IOException error parsing request content
      * @throws IllegalArgumentException missing arguments
      */
-    public static List<Command> parseToArray(XContentParser parser)
+    public static List<Command> parseArray(XContentParser parser)
             throws IOException, IllegalArgumentException {
         List<Command> commands = new ArrayList<>();
         while (parser.nextToken() != XContentParser.Token.END_ARRAY) {
@@ -202,14 +202,14 @@ public class Command implements ToXContentObject {
      * @return a list of Command objects parsed from the request content.
      * @throws IOException if an error occurs while parsing the request content.
      */
-    public static List<Command> parse(RestRequest request) throws IOException {
+    public static List<Command> parseArray(RestRequest request) throws IOException {
         // Request parsing
         XContentParser parser = request.contentParser();
         List<Command> commands = new ArrayList<>();
         ensureExpectedToken(XContentParser.Token.START_OBJECT, parser.nextToken(), parser);
         parser.nextToken();
         if (parser.nextToken() == XContentParser.Token.START_ARRAY) {
-            commands = Command.parseToArray(parser);
+            commands = Command.parseArray(parser);
         } else {
             log.error("Token does not match {}", parser.currentToken());
         }

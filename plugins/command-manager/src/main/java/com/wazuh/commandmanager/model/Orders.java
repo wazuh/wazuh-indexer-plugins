@@ -18,7 +18,8 @@ package com.wazuh.commandmanager.model;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.opensearch.client.node.NodeClient;
+import org.opensearch.client.Client;
+import org.opensearch.client.support.AbstractClient;
 import org.opensearch.core.xcontent.ToXContentObject;
 import org.opensearch.core.xcontent.XContentBuilder;
 import org.opensearch.search.SearchHit;
@@ -90,7 +91,7 @@ public class Orders implements ToXContentObject {
      * @return an Orders object containing the generated orders.
      */
     @SuppressWarnings("unchecked")
-    public static Orders fromCommands(NodeClient client, List<Command> commands) {
+    public static Orders fromCommands(Client client, List<Command> commands) {
         Orders orders = new Orders();
 
         for (Command command : commands) {
@@ -111,7 +112,11 @@ public class Orders implements ToXContentObject {
             if (requiresExpansion) {
                 log.info("Searching for agents using field {} with value {}", queryField, target.getId());
                 SearchHits hits =
-                        Search.syncSearch(client, PluginSettings.getAgentsIndex(), queryField, target.getId());
+                        Search.syncSearch(
+                                (AbstractClient) client,
+                                PluginSettings.getAgentsIndex(),
+                                queryField,
+                                target.getId());
                 if (hits != null) {
                     for (SearchHit hit : hits) {
                         final Map<String, Object> agentMap =

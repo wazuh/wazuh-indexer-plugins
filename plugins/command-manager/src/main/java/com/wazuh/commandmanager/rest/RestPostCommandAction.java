@@ -97,7 +97,7 @@ public class RestPostCommandAction extends BaseRestHandler {
                         new BytesRestResponse(RestStatus.BAD_REQUEST, "Body content is required"));
             };
         }
-        List<Command> commands = Command.parse(request);
+        List<Command> commands = Command.parseArray(request);
         // Validate commands are not empty
         if (commands.isEmpty()) {
             return channel -> {
