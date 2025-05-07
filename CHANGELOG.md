@@ -24,6 +24,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Add custom action to list modified plugins [(#388)](https://github.com/wazuh/wazuh-indexer-plugins/pull/388)
 
 ### Dependencies
+- 
 
 ### Changed
 - Content Manager tier 1 final wrap up [#373](https://github.com/wazuh/wazuh-indexer-plugins/pull/373)
@@ -39,8 +40,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Simplify snapshot initialization process [(#390)](https://github.com/wazuh/wazuh-indexer-plugins/pull/390)
 
 ### Deprecated
+- 
 
 ### Removed
+- 
 
 ### Fixed
 - Fix missing stateless inventory fields on the `alerts` template [(#342)](https://github.com/wazuh/wazuh-indexer-plugins/pull/342)
@@ -49,7 +52,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Fix mentions of `host.ip` and `host.os.full` in agents index template [(#330)](https://github.com/wazuh/wazuh-indexer-plugins/pull/330)
 - Fix workflow to build plugins on push [(#384)](https://github.com/wazuh/wazuh-indexer-plugins/pull/384)
 - Fix flaky integration tests [(#391)](https://github.com/wazuh/wazuh-indexer-plugins/pull/391)
+- Fix overwrite of content offset on each start [(#401)](https://github.com/wazuh/wazuh-indexer-plugins/pull/401)
 
 ### Security
+- 
 
 [Unreleased 5.0.x]: https://github.com/wazuh/wazuh-indexer-plugins/compare/main...main
