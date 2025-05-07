@@ -56,6 +56,7 @@ import com.wazuh.contentmanager.model.ctiapi.PatchOperation;
 import com.wazuh.contentmanager.settings.PluginSettings;
 import com.wazuh.contentmanager.util.JsonPatch;
 import com.wazuh.contentmanager.util.XContentUtils;
+import com.wazuh.contentmanager.utils.VisibleForTesting;
 
 /** Manages operations for the Wazuh CVE content index. */
 public class ContentIndex {
@@ -86,6 +87,7 @@ public class ContentIndex {
      * @param client @Client (mocked).
      * @param pluginSettings @PluginSettings (mocked).
      */
+    @VisibleForTesting
     public ContentIndex(Client client, PluginSettings pluginSettings) {
         this.pluginSettings = pluginSettings;
         this.semaphore = new Semaphore(pluginSettings.getMaximumConcurrentBulks());

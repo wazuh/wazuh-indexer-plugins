@@ -90,15 +90,7 @@ Most of our plugins allow you to configure various settings through the `opensea
    - **Maximum**: `100`
    - **Description**: This attribute helps calculate the delay before retrying the request to the CTI client in seconds.
 
-6. **HTTP Client Timeout (Seconds)**
-   - **Key**: `content_manager.http.client.timeout`
-   - **Type**: Integer
-   - **Default**: `10`
-   - **Minimum**: `10`
-   - **Maximum**: `50`
-   - **Description**: The timeout duration for the HTTP client in seconds.
-
-7. **Maximum Items per Bulk Request**
+6. **Maximum Items per Bulk Request**
    - **Key**: `content_manager.max_items_per_bulk`
    - **Type**: Integer
    - **Default**: `25`
@@ -106,7 +98,7 @@ Most of our plugins allow you to configure various settings through the `opensea
    - **Maximum**: `25`
    - **Description**: The maximum number of elements that are included in a bulk request during the initialization from a snapshot.
 
-8. **Maximum Co-Existing Bulk Operations**
+7. **Maximum Co-Existing Bulk Operations**
    - **Key**: `content_manager.max_concurrent_bulks`
    - **Type**: Integer
    - **Default**: `5`
@@ -114,19 +106,23 @@ Most of our plugins allow you to configure various settings through the `opensea
    - **Maximum**: `5`
    - **Description**: The maximum number of co-existing bulk operations during the initialization from a snapshot.
 
-9. **Client Timeout (Seconds) for Indexing**
+8. **Client Timeout (Seconds) for Indexing**
    - **Key**: `content_manager.client.timeout`
    - **Type**: Long
    - **Default**: `10`
+   - **Minimum**: `10`
+   - **Maximum**: `50`
    - **Description**: The timeout duration for 'get' operations on the content index and context index, in seconds. .
 
-10. **Maximum Changes to Fetch and Apply**
+9. **Maximum Changes to Fetch and Apply**
     - **Key**: `content_manager.max_changes`
     - **Type**: Long
     - **Default**: `1000`
+    - **Minimum**: `10`
+    - **Maximum**: `1000`
     - **Description**: The maximum number of changes to be fetched and applied during the update of the content.
 
-11. **Maximum Number of Documents per Job**
+10. **Maximum Number of Documents per Job**
     - **Key**: `content_manager.job.max_docs`
     - **Type**: Integer
     - **Default**: `1000`
@@ -134,7 +130,7 @@ Most of our plugins allow you to configure various settings through the `opensea
     - **Maximum**: `100000`
     - **Description**: Maximum number of documents processed per indexing job.
 
-12. **Job Schedule Interval (Minutes)**
+11. **Job Schedule Interval (Minutes)**
     - **Key**: `content_manager.job.schedule`
     - **Type**: Integer
     - **Default**: `1`

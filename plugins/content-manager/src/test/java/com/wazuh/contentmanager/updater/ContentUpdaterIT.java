@@ -22,8 +22,11 @@ import org.opensearch.action.admin.indices.refresh.RefreshRequest;
 import org.opensearch.action.get.GetResponse;
 import org.opensearch.action.support.WriteRequest;
 import org.opensearch.client.Client;
+import org.opensearch.cluster.service.ClusterService;
+import org.opensearch.common.settings.Settings;
 import org.opensearch.common.xcontent.XContentFactory;
 import org.opensearch.core.xcontent.ToXContent;
+import org.opensearch.env.Environment;
 import org.opensearch.plugins.Plugin;
 import org.opensearch.test.OpenSearchIntegTestCase;
 import org.junit.Before;
@@ -45,6 +48,8 @@ import com.wazuh.contentmanager.index.ContextIndex;
 import com.wazuh.contentmanager.model.ctiapi.*;
 import com.wazuh.contentmanager.model.ctiapi.OperationType;
 import com.wazuh.contentmanager.settings.PluginSettings;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
 import org.mockito.Mockito;
 
 import static org.mockito.Mockito.*;
@@ -58,7 +63,10 @@ public class ContentUpdaterIT extends OpenSearchIntegTestCase {
     private ContextIndex contextIndex;
     private ContentIndex contentIndex;
     private CTIClient ctiClient;
-    private final PluginSettings pluginSettings = PluginSettings.getInstance();
+
+    @Mock private Environment mockEnvironment;
+    @Mock private ClusterService mockClusterService;
+    @InjectMocks private PluginSettings pluginSettings;
 
     @Before
     public void setup() throws Exception {
@@ -66,8 +74,17 @@ public class ContentUpdaterIT extends OpenSearchIntegTestCase {
         this.ctiClient = mock(CTIClient.class);
         this.contextIndex = spy(new ContextIndex(client));
         this.contentIndex = new ContentIndex(client);
+
+        Settings settings = Settings.builder().put("content_manager.max_changes", 1000).build();
+        this.mockEnvironment = mock(Environment.class);
+        when(this.mockEnvironment.settings()).thenReturn(settings);
+        this.pluginSettings =
+                PluginSettings.getInstance(this.mockEnvironment.settings(), this.mockClusterService);
+
         this.updater =
-                Mockito.spy(new ContentUpdater(this.ctiClient, this.contextIndex, this.contentIndex));
+                Mockito.spy(
+                        new ContentUpdater(
+                                this.ctiClient, this.contextIndex, this.contentIndex, this.pluginSettings));
 
         this.prepareInitialCVEInfo(0);
         this.prepareInitialConsumerInfo();

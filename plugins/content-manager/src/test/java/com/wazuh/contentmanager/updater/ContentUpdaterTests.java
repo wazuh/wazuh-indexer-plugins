@@ -58,13 +58,18 @@ public class ContentUpdaterTests extends OpenSearchIntegTestCase {
     public void setup() throws Exception {
         super.setUp();
         Settings settings = Settings.builder().put("content_manager.max_changes", 1000).build();
-        mockEnvironment = mock(Environment.class);
-        when(mockEnvironment.settings()).thenReturn(settings);
-        pluginSettings = PluginSettings.getInstance(mockEnvironment.settings(), mockClusterService);
+        this.mockEnvironment = mock(Environment.class);
+        when(this.mockEnvironment.settings()).thenReturn(settings);
+        this.pluginSettings =
+                PluginSettings.getInstance(this.mockEnvironment.settings(), this.mockClusterService);
 
         this.contextIndex = mock(ContextIndex.class);
         ContentUpdater contentUpdater =
-                new ContentUpdater(mock(CTIClient.class), this.contextIndex, mock(ContentIndex.class));
+                new ContentUpdater(
+                        mock(CTIClient.class),
+                        this.contextIndex,
+                        mock(ContentIndex.class),
+                        this.pluginSettings);
         this.contentUpdaterSpy = Mockito.spy(contentUpdater);
     }
 

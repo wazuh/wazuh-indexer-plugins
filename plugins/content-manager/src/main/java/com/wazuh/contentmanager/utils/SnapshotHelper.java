@@ -67,6 +67,7 @@ public class SnapshotHelper {
      * @param contextIndex Handles context and consumer related metadata.
      * @param contentIndex Handles indexed content.
      */
+    @VisibleForTesting
     protected SnapshotHelper(
             CTIClient ctiClient,
             Environment environment,

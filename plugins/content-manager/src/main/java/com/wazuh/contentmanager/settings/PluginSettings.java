@@ -33,6 +33,10 @@ public class PluginSettings {
     private static final Integer DEFAULT_CTI_MAX_ATTEMPTS = 3;
 
     private static final Integer DEFAULT_CTI_SLEEP_TIME = 60;
+    private static final Integer DEFAULT_MAX_ITEMS_PER_BULK = 25;
+    private static final Integer DEFAULT_MAX_CONCURRENT_BULKS = 5;
+    private static final Integer DEFAULT_CLIENT_TIMEOUT = 10;
+    private static final Integer DEFAULT_MAX_CHANGES = 1000;
     private static final Integer DEFAULT_MAX_DOCS = 1000;
     private static final Integer DEFAULT_JOB_SCHEDULE = 1;
 
@@ -96,7 +100,7 @@ public class PluginSettings {
     public static final Setting<Integer> MAX_ITEMS_PER_BULK =
             Setting.intSetting(
                     "content_manager.max_items_per_bulk",
-                    25,
+                    DEFAULT_MAX_ITEMS_PER_BULK,
                     10,
                     25,
                     Setting.Property.NodeScope,
@@ -108,7 +112,7 @@ public class PluginSettings {
     public static final Setting<Integer> MAX_CONCURRENT_BULKS =
             Setting.intSetting(
                     "content_manager.max_concurrent_bulks",
-                    5,
+                    DEFAULT_MAX_CONCURRENT_BULKS,
                     1,
                     5,
                     Setting.Property.NodeScope,
@@ -120,7 +124,7 @@ public class PluginSettings {
     public static final Setting<Long> CLIENT_TIMEOUT =
             Setting.longSetting(
                     "content_manager.client.timeout",
-                    10,
+                    DEFAULT_CLIENT_TIMEOUT,
                     10,
                     50,
                     Setting.Property.NodeScope,
@@ -130,7 +134,7 @@ public class PluginSettings {
     public static final Setting<Long> MAX_CHANGES =
             Setting.longSetting(
                     "content_manager.max_changes",
-                    1000,
+                    DEFAULT_MAX_CHANGES,
                     10,
                     1000,
                     Setting.Property.NodeScope,

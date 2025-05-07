@@ -71,6 +71,7 @@ public class ContentUpdater {
      * @param contentIndex mocked @ContentIndex.
      * @param pluginSettings mocked @PluginSettings.
      */
+    @VisibleForTesting
     public ContentUpdater(
             CTIClient ctiClient,
             ContextIndex contextIndex,

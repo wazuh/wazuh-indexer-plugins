@@ -39,6 +39,7 @@ import com.wazuh.contentmanager.model.ctiapi.ConsumerInfo;
 import com.wazuh.contentmanager.model.ctiapi.ContentChanges;
 import com.wazuh.contentmanager.settings.PluginSettings;
 import com.wazuh.contentmanager.util.XContentUtils;
+import com.wazuh.contentmanager.utils.VisibleForTesting;
 
 /**
  * CTIClient is a singleton class responsible for interacting with the Cyber Threat Intelligence
@@ -114,6 +115,7 @@ public class CTIClient extends HttpClient {
      * @param CTIBaseURL base URL of the CTI API (mocked).
      * @param pluginSettings plugin settings (mocked).
      */
+    @VisibleForTesting
     CTIClient(String CTIBaseURL, PluginSettings pluginSettings) {
         super(URI.create(CTIBaseURL));
         this.pluginSettings = pluginSettings;

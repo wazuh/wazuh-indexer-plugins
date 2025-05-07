@@ -49,7 +49,7 @@ public class ContextIndex {
 
     private final Client client;
     private ConsumerInfo consumerInfo;
-    private final PluginSettings pluginSettings = PluginSettings.getInstance();
+    private final PluginSettings pluginSettings;
 
     /**
      * Constructor.
@@ -58,6 +58,7 @@ public class ContextIndex {
      */
     public ContextIndex(Client client) {
         this.client = client;
+        this.pluginSettings = PluginSettings.getInstance();
     }
 
     /**
