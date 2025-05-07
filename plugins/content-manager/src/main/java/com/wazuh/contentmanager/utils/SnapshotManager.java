@@ -25,6 +25,7 @@ import java.nio.file.DirectoryStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Locale;
+import java.util.concurrent.Semaphore;
 
 import com.wazuh.contentmanager.client.CTIClient;
 import com.wazuh.contentmanager.client.CommandManagerClient;
@@ -42,6 +43,7 @@ public class SnapshotManager {
     private final ContextIndex contextIndex;
     private final ContentIndex contentIndex;
     private final Privileged privileged;
+    private final Semaphore semaphore = new Semaphore(1);
 
     /**
      * Constructor.
@@ -200,12 +202,14 @@ public class SnapshotManager {
     /** Trigger method for content initialization */
     public void initialize() {
         try {
+            this.semaphore.acquire();
             // The Command Manager client needs the cluster to be up (depends on PluginSettings),
             // so we initialize it here once the node is up and ready.
             this.commandClient = this.privileged.doPrivilegedRequest(CommandManagerClient::getInstance);
             ConsumerInfo consumerInfo = this.initConsumer();
             this.indexSnapshot(consumerInfo);
-        } catch (IOException e) {
+            semaphore.release();
+        } catch (IOException | InterruptedException e) {
             log.error("Failed to initialize: {}", e.getMessage());
         }
     }

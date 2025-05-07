@@ -67,12 +67,37 @@ public class ContentManagerPlugin extends Plugin implements ClusterPlugin {
             Supplier<RepositoriesService> repositoriesServiceSupplier) {
         PluginSettings.getInstance(environment.settings(), clusterService);
         this.threadPool = threadPool;
+        this.clusterService = clusterService;
         this.contextIndex = new ContextIndex(client);
         this.contentIndex = new ContentIndex(client);
         this.snapshotManager =
                 new SnapshotManager(environment, contextIndex, this.contentIndex, new Privileged());
-        this.clusterService = clusterService;
         return Collections.emptyList();
+    }
+
+    /**
+     * The initialization requires the existence of the {@link ContentIndex#INDEX_NAME} index. For
+     * this reason, we use a ClusterStateListener to listen for the creation of this index by the
+     * "setup" plugin, to then proceed with the initialization.
+     *
+     * @param localNode local Node info
+     */
+    @Override
+    public void onNodeStarted(DiscoveryNode localNode) {
+        // Only cluster managers are responsible for the initialization.
+        if (localNode.isClusterManagerNode()) {
+            if (this.clusterService.state().routingTable().hasIndex(ContentIndex.INDEX_NAME)) {
+                this.start();
+            }
+
+            // To be removed once we include the Job Scheduler.
+            this.clusterService.addListener(
+                    event -> {
+                        if (event.indicesCreated().contains(ContentIndex.INDEX_NAME)) {
+                            this.start();
+                        }
+                    });
+        }
     }
 
     /**
@@ -82,39 +107,20 @@ public class ContentManagerPlugin extends Plugin implements ClusterPlugin {
      *     1. fetching the latest consumer's information from the CTI API.
      *     2. initialize from a snapshot if the local consumer does not exist, or its offset is 0.
      * </pre>
-     *
-     * The initialization requires the existence of the {@link ContentIndex#INDEX_NAME} index. For
-     * this reason, we use a ClusterStateListener to listen for the creation of this index by the
-     * "setup" plugin, to then proceed with the initialization.
-     *
-     * @param localNode local Node info
      */
-    @Override
-    public void onNodeStarted(DiscoveryNode localNode) {
-        // TODO restrict initialization from snapshots to master nodes only
-        this.clusterService.addListener(
-                event -> {
-                    if (event
-                            .indicesCreated()
-                            .contains(
-                                    ContentIndex
-                                            .INDEX_NAME)) { // TODO does not init if offset = 0 (no indexCreated event)
-                        try {
-                            this.threadPool
-                                    .generic()
-                                    .execute(
-                                            () -> {
-                                                this.contextIndex.createIndex();
-                                                if (this.contentIndex.exists()) {
-                                                    this.snapshotManager.initialize();
-                                                }
-                                            });
-                        } catch (Exception e) {
-                            // Log or handle exception
-                            log.error("Error initializing snapshot helper: {}", e.getMessage(), e);
-                        }
-                    }
-                });
+    private void start() {
+        try {
+            this.threadPool
+                    .generic()
+                    .execute(
+                            () -> {
+                                this.contextIndex.createIndex();
+                                this.snapshotManager.initialize();
+                            });
+        } catch (Exception e) {
+            // Log or handle exception
+            log.error("Error initializing snapshot helper: {}", e.getMessage(), e);
+        }
     }
 
     @Override
