@@ -69,13 +69,15 @@ public class CTIClientTests extends OpenSearchIntegTestCase {
         // Arrange
         SimpleHttpResponse mockResponse = new SimpleHttpResponse(HttpStatus.SC_SUCCESS, "OK");
 
+        // spotless:off
         when(this.spyCtiClient.doHttpClientSendRequest(
-                        Method.GET,
-                        "/catalog/contexts/vd_1.0.0/consumers/vd_4.8.0/changes",
-                        null,
-                        Collections.emptyMap(),
-                        null))
-                .thenReturn(mockResponse);
+            any(Method.class),
+            anyString(),
+            any(),
+            anyMap(),
+            any()))
+        .thenReturn(mockResponse);
+        // spotless:on
 
         // Act
         SimpleHttpResponse response;
@@ -108,13 +110,15 @@ public class CTIClientTests extends OpenSearchIntegTestCase {
         SimpleHttpResponse mockResponse =
                 new SimpleHttpResponse(HttpStatus.SC_BAD_REQUEST, "Bad Request");
 
+        // spotless:off
         when(this.spyCtiClient.doHttpClientSendRequest(
-                        Method.GET,
-                        "/catalog/contexts/vd_1.0.0/consumers/vd_4.8.0/changes",
-                        null,
-                        Collections.emptyMap(),
-                        null))
-                .thenReturn(mockResponse);
+            any(Method.class),
+            anyString(),
+            any(),
+            anyMap(),
+            any()))
+        .thenReturn(mockResponse);
+        // spotless:on
 
         SimpleHttpResponse response;
         response =
@@ -139,13 +143,15 @@ public class CTIClientTests extends OpenSearchIntegTestCase {
         mockResponse429.setHeader("Retry-After", "1"); // Timeout para el cooldown
 
         // Mock that sendRequest returns 429 three times.
+        // spotless:off
         when(this.spyCtiClient.doHttpClientSendRequest(
-                        Method.GET,
-                        "/catalog/contexts/vd_1.0.0/consumers/vd_4.8.0/changes",
-                        null,
-                        Collections.emptyMap(),
-                        null))
-                .thenReturn(mockResponse429);
+            any(Method.class),
+            anyString(),
+            any(),
+            anyMap(),
+            any()))
+        .thenReturn(mockResponse429);
+        // spotless:on
 
         // Act
         SimpleHttpResponse response =
@@ -174,32 +180,31 @@ public class CTIClientTests extends OpenSearchIntegTestCase {
     /**
      * @throws IOException
      */
-    @AwaitsFix(bugUrl = "")
     public void testGetConsumerInfo_SuccessfulRequest() throws IOException {
         // Arrange
         SimpleHttpResponse response = new SimpleHttpResponse(HttpStatus.SC_SUCCESS, "OK");
         response.setBody(
-                "{\"data\":[{\"offset\":1761037,\"type\":\"update\",\"version\":19,\"context\":\"vd_1.0.0\",\"resource\":\"CVE-2019-0605\",\"operations\":[{\"op\":\"add\",\"path\":\"/containers/cna/x_remediations/windows/0/anyOf/133\",\"value\":\"KB5058922\"},{\"op\":\"add\",\"path\":\"/containers/cna/x_remediations/windows/5/anyOf/140\",\"value\":\"KB5058921\"}]}]}",
+                "{\"data\":{\"id\":4,\"name\":\"vd_4.8.0\",\"context\":\"vd_1.0.0\",\"operations\":null,\"inserted_at\":\"2023-11-23T19:34:18.698495Z\",\"updated_at\":\"2025-03-31T15:17:32.839974Z\",\"changes_url\":\"cti.wazuh.com/api/v1/catalog/contexts/vd_1.0.0/consumers/vd_4.8.0/changes\",\"last_offset\":1675416,\"last_snapshot_at\":\"2025-03-31T10:24:21.822354Z\",\"last_snapshot_link\":\"https://cti.wazuh.com/store/contexts/vd_1.0.0/consumers/vd_4.8.0/1672583_1743416661.zip\",\"last_snapshot_offset\":1672583,\"paths_filter\":null}}",
                 ContentType.APPLICATION_JSON);
 
         // spotless:off
-        when(this.spyCtiClient.sendRequest(
-            Method.GET,
-            CTIClient.CONSUMER_INFO_ENDPOINT,
-            null,
-            null,
-            null,
-            CTIClient.MAX_ATTEMPTS))
-        .thenReturn(response);
+        when(this.spyCtiClient.doHttpClientSendRequest(
+            any(Method.class),
+            anyString(),
+            any(),
+            any(),
+            any()
+        )).thenReturn(response);
         // spotless:on
 
         // Act
         ConsumerInfo consumerInfo = this.spyCtiClient.getConsumerInfo();
 
         // Assert
+        assertNotNull(consumerInfo);
         verify(this.spyCtiClient, times(1))
                 .sendRequest(any(Method.class), anyString(), isNull(), isNull(), isNull(), anyInt());
-        assertEquals(1761037, consumerInfo.getOffset());
+        assertEquals(1675416, consumerInfo.getLastOffset());
     }
 
     /**
@@ -207,8 +212,15 @@ public class CTIClientTests extends OpenSearchIntegTestCase {
      * response.
      */
     public void testGetConsumerInfo_ThrowException() {
-        // Arrange
-        doReturn(null).when(this.spyCtiClient).sendRequest(any(), any(), any(), any(), any(), anyInt());
+        // spotless:off
+        when(this.spyCtiClient.sendRequest(
+            any(Method.class),
+            anyString(),
+            anyString(),
+            anyMap(),
+            any(Header.class)))
+        .thenReturn(null);
+        // spotless:on
 
         // Act & Assert
         assertThrows(HttpHostConnectException.class, () -> this.spyCtiClient.getConsumerInfo());
@@ -219,12 +231,18 @@ public class CTIClientTests extends OpenSearchIntegTestCase {
         // Arrange
         SimpleHttpResponse response = new SimpleHttpResponse(HttpStatus.SC_SUCCESS, "OK");
         response.setBody(
-                "{\"data\":[{\"offset\":1761037,\"type\":\"update\",\"version\":19,\"context\":\"vd_1.0.0\",\"resource\":\"CVE-2019-0605\",\"operations\":[{\"op\":\"add\",\"path\":\"/containers/cna/x_remediations/windows/0/anyOf/133\",\"value\":\"KB5058922\"},{\"op\":\"add\",\"path\":\"/containers/cna/x_remediations/windows/5/anyOf/140\",\"value\":\"KB5058921\"}]}]}",
+                "{\"data\":{\"id\":4,\"name\":\"vd_4.8.0\",\"context\":\"vd_1.0.0\",\"operations\":null,\"inserted_at\":\"2023-11-23T19:34:18.698495Z\",\"updated_at\":\"2025-03-31T15:17:32.839974Z\",\"changes_url\":\"cti.wazuh.com/api/v1/catalog/contexts/vd_1.0.0/consumers/vd_4.8.0/changes\",\"last_offset\":1675416,\"last_snapshot_at\":\"2025-03-31T10:24:21.822354Z\",\"last_snapshot_link\":\"https://cti.wazuh.com/store/contexts/vd_1.0.0/consumers/vd_4.8.0/1672583_1743416661.zip\",\"last_snapshot_offset\":1672583,\"paths_filter\":null}}",
                 ContentType.APPLICATION_JSON);
 
+        // spotless:off
         when(this.spyCtiClient.sendRequest(
-                        any(Method.class), anyString(), anyString(), anyMap(), any(Header.class), anyInt()))
-                .thenReturn(response);
+            any(Method.class),
+            anyString(),
+            anyString(),
+            anyMap(),
+            any(Header.class)))
+        .thenReturn(response);
+        // spotless:on
 
         // Act
         ContentChanges changes = this.spyCtiClient.getChanges(0, 200, true);
@@ -236,9 +254,15 @@ public class CTIClientTests extends OpenSearchIntegTestCase {
 
     /** */
     public void testGetChanges_NullResponse() {
+        // spotless:off
         when(this.spyCtiClient.sendRequest(
-                        any(Method.class), anyString(), anyString(), anyMap(), any(Header.class)))
-                .thenReturn(null);
+            any(Method.class),
+            anyString(),
+            anyString(),
+            anyMap(),
+            any(Header.class)))
+        .thenReturn(null);
+        // spotless:on
 
         ContentChanges changes = this.spyCtiClient.getChanges(0, 100, true);
         assertNull(changes);
