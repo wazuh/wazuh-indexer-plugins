@@ -30,8 +30,10 @@ public class PluginSettings {
     private static final Logger log = LogManager.getLogger(PluginSettings.class);
 
     /** Settings default values */
-    private static final Integer DEFAULT_CTI_MAX_ATTEMPTS = 3;
+    private static final String DEFAULT_CONSUMER_ID = "vd_4.8.0";
 
+    private static final String DEFAULT_CONTEXT_ID = "vd_1.0.0";
+    private static final Integer DEFAULT_CTI_MAX_ATTEMPTS = 3;
     private static final Integer DEFAULT_CTI_SLEEP_TIME = 60;
     private static final Integer DEFAULT_MAX_ITEMS_PER_BULK = 25;
     private static final Integer DEFAULT_MAX_CONCURRENT_BULKS = 5;
@@ -49,7 +51,7 @@ public class PluginSettings {
     /** The CTI API URL from the configuration file */
     public static final Setting<String> CTI_API_URL =
             Setting.simpleString(
-                    "content_manager.api.cti",
+                    "content_manager.cti.api",
                     CTI_URL + "/api/v1",
                     Setting.Property.NodeScope,
                     Setting.Property.Filtered);
@@ -58,7 +60,7 @@ public class PluginSettings {
     public static final Setting<String> CONSUMER_ID =
             Setting.simpleString(
                     "content_manager.cti.consumer",
-                    "vd_4.8.0",
+                    DEFAULT_CONSUMER_ID,
                     Setting.Property.NodeScope,
                     Setting.Property.Filtered);
 
@@ -66,7 +68,7 @@ public class PluginSettings {
     public static final Setting<String> CONTEXT_ID =
             Setting.simpleString(
                     "content_manager.cti.context",
-                    "vd_1.0.0",
+                    DEFAULT_CONTEXT_ID,
                     Setting.Property.NodeScope,
                     Setting.Property.Filtered);
 
@@ -81,8 +83,10 @@ public class PluginSettings {
                     Setting.Property.Filtered);
 
     /**
-     * This attribute helps calculate the delay before retrying the request to the CTI client in
-     * seconds.
+     * Specifies the initial wait time in seconds for the first retry to the CTI API after receiving a
+     * 'Too Many Requests' response or other retry conditions. This value also serves as the base for
+     * calculating increased wait times for subsequent retries, helping to manage request rates and
+     * prevent server overload.
      */
     public static final Setting<Integer> CTI_CLIENT_SLEEP_TIME =
             Setting.intSetting(
@@ -118,9 +122,7 @@ public class PluginSettings {
                     Setting.Property.NodeScope,
                     Setting.Property.Filtered);
 
-    /**
-     * The timeout duration for 'get' operations on the content index and context index, in seconds.
-     */
+    /** The timeout duration for operations on the content index and context index, in seconds. */
     public static final Setting<Long> CLIENT_TIMEOUT =
             Setting.longSetting(
                     "content_manager.client.timeout",
@@ -180,8 +182,25 @@ public class PluginSettings {
      */
     private PluginSettings(@NonNull final Settings settings, ClusterService clusterService) {
         this.ctiBaseUrl = CTI_API_URL.get(settings);
-        this.consumerId = CONSUMER_ID.get(settings);
-        this.contextId = CONTEXT_ID.get(settings);
+
+        if (validateConsumerId(CONSUMER_ID.get(settings))) {
+            this.consumerId = CONSUMER_ID.get(settings);
+        } else {
+            this.consumerId = DEFAULT_CONSUMER_ID;
+            log.error(
+                    "Setting [content_manager.cti.consumer] must follow the patter 'vd_{Number}.{Number}.{Number}'. Falling back to the default value [{}]",
+                    DEFAULT_CONSUMER_ID);
+        }
+
+        if (validateContextId(CONTEXT_ID.get(settings))) {
+            this.contextId = CONTEXT_ID.get(settings);
+        } else {
+            this.contextId = DEFAULT_CONTEXT_ID;
+            log.error(
+                    "Setting [content_manager.cti.context] must follow the patter 'vd_{Number}.{Number}.{Number}'. Falling back to the default value [{}]",
+                    DEFAULT_CONTEXT_ID);
+        }
+
         this.clusterService = clusterService;
         this.ctiClientMaxAttempts = CTI_CLIENT_MAX_ATTEMPTS.get(settings);
         this.ctiClientSleepTime = CTI_CLIENT_SLEEP_TIME.get(settings);
@@ -191,7 +210,6 @@ public class PluginSettings {
         this.maximumChanges = MAX_CHANGES.get(settings);
         this.jobMaximumDocuments = JOB_MAX_DOCS.get(settings);
         this.jobSchedule = JOB_SCHEDULE.get(settings);
-
         log.debug("Settings.loaded: {}", this.toString());
     }
 
@@ -333,5 +351,71 @@ public class PluginSettings {
      */
     public Integer getJobSchedule() {
         return jobSchedule;
+    }
+
+    /**
+     * Validates the given consumer ID against a predefined format. The consumer ID should match the
+     * pattern "vd_<1-2 digits>.<1-2 digits>.<1-2 digits>".
+     *
+     * @param consumerId the consumer ID to validate
+     * @return true if the consumer ID matches the expected format, false otherwise
+     */
+    public Boolean validateConsumerId(String consumerId) {
+        String regex = "vd_\\d{1,2}\\.\\d{1,2}\\.\\d{1,2}";
+
+        // Ensure the context id have the correct format
+        return consumerId.matches(regex);
+    }
+
+    /**
+     * Validates the given context ID against a predefined format. The context ID should match the
+     * pattern "vd_<1-2 digits>.<1-2 digits>.<1-2 digits>".
+     *
+     * @param contextId the context ID to validate
+     * @return true if the context ID matches the expected format, false otherwise
+     */
+    public Boolean validateContextId(String contextId) {
+        String regex = "vd_\\d{1,2}\\.\\d{1,2}\\.\\d{1,2}";
+
+        // Ensure the context id have the correct format
+        return contextId.matches(regex);
+    }
+
+    @Override
+    public String toString() {
+        return "{"
+                + "ctiBaseUrl='"
+                + ctiBaseUrl
+                + "', "
+                + "consumerId='"
+                + consumerId
+                + "', "
+                + "contextId='"
+                + contextId
+                + "', "
+                + "ctiClientMaxAttempts="
+                + ctiClientMaxAttempts
+                + ", "
+                + "ctiClientSleepTime="
+                + ctiClientSleepTime
+                + ", "
+                + "maximumItemsPerBulk="
+                + maximumItemsPerBulk
+                + ", "
+                + "maximumConcurrentBulks="
+                + maximumConcurrentBulks
+                + ", "
+                + "clientTimeout="
+                + clientTimeout
+                + ", "
+                + "maximumChanges="
+                + maximumChanges
+                + ", "
+                + "jobMaximumDocuments="
+                + jobMaximumDocuments
+                + ", "
+                + "jobSchedule="
+                + jobSchedule
+                + "}";
     }
 }

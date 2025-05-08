@@ -57,7 +57,7 @@ Most of our plugins allow you to configure various settings through the `opensea
 ## Content Manager plugin configuration
 
 1. **CTI API URL**
-   - **Key**: `content_manager.api.cti`
+   - **Key**: `content_manager.cti.api`
    - **Type**: String
    - **Default**: `https://cti.wazuh.com/api/v1`
    - **Description**: URL of the CTI API, used for communicating with the threat intelligence service.
@@ -88,7 +88,7 @@ Most of our plugins allow you to configure various settings through the `opensea
    - **Default**: `60`
    - **Minimum**: `20`
    - **Maximum**: `100`
-   - **Description**: This attribute helps calculate the delay before retrying the request to the CTI client in seconds.
+   - **Description**: Specifies the initial wait time in seconds for the first retry to the CTI API after receiving a 'Too Many Requests' response or other retry conditions. This value also serves as the base for calculating increased wait times for subsequent retries, helping to manage request rates and prevent server overload.
 
 6. **Maximum Items per Bulk Request**
    - **Key**: `content_manager.max_items_per_bulk`
@@ -112,9 +112,9 @@ Most of our plugins allow you to configure various settings through the `opensea
    - **Default**: `10`
    - **Minimum**: `10`
    - **Maximum**: `50`
-   - **Description**: The timeout duration for 'get' operations on the content index and context index, in seconds. .
+   - **Description**: The timeout duration for operations on the content index and context index, in seconds.
 
-9. **Maximum Changes to Fetch and Apply**
+9. **Maximum number of changes to apply on each content update iteration**
     - **Key**: `content_manager.max_changes`
     - **Type**: Long
     - **Default**: `1000`

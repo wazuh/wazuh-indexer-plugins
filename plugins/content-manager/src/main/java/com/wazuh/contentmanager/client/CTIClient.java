@@ -84,7 +84,16 @@ public class CTIClient extends HttpClient {
         }
     }
 
-    /** Public constructor method */
+    /**
+     * Initializes a new instance of the {@code CTIClient} class.
+     *
+     * <p>This constructor creates the CTIClient object by setting up API endpoints using
+     * configuration values from the {@link PluginSettings} singleton instance. The endpoints include:
+     * - Consumer information endpoint - Consumer changes endpoint
+     *
+     * <p>The base URI for requests is derived from the CTI base URL provided via {@link
+     * PluginSettings}. The constructed endpoints are validated to ensure they form valid URIs.
+     */
     public CTIClient() {
         super(URI.create(PluginSettings.getInstance().getCtiBaseUrl()));
 
@@ -94,7 +103,14 @@ public class CTIClient extends HttpClient {
                         + this.pluginSettings.getContextId()
                         + "/consumers/"
                         + this.pluginSettings.getConsumerId();
-        this.CONSUMER_CHANGES_ENDPOINT = this.CONSUMER_INFO_ENDPOINT + "/changes";
+
+        // In order to validate the URI created
+        try {
+            URI.create(this.CONSUMER_INFO_ENDPOINT + "/changes");
+            this.CONSUMER_CHANGES_ENDPOINT = this.CONSUMER_INFO_ENDPOINT + "/changes";
+        } catch (IllegalArgumentException e) {
+            log.error("Invalid URI for CTI API Changes endpoint: {}", e.getMessage());
+        }
     }
 
     /**
