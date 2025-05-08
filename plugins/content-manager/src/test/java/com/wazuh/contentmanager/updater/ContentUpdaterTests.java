@@ -23,6 +23,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import com.wazuh.contentmanager.client.CTIClient;
+import com.wazuh.contentmanager.client.CommandManagerClient;
 import com.wazuh.contentmanager.index.ContentIndex;
 import com.wazuh.contentmanager.index.ContextIndex;
 import com.wazuh.contentmanager.model.ctiapi.ContentChanges;
@@ -49,7 +50,11 @@ public class ContentUpdaterTests extends OpenSearchIntegTestCase {
         super.setUp();
         this.contextIndex = mock(ContextIndex.class);
         ContentUpdater contentUpdater =
-                new ContentUpdater(mock(CTIClient.class), this.contextIndex, mock(ContentIndex.class));
+                new ContentUpdater(
+                        mock(CTIClient.class),
+                        this.contextIndex,
+                        mock(ContentIndex.class),
+                        mock(CommandManagerClient.class));
         this.contentUpdaterSpy = Mockito.spy(contentUpdater);
     }
 

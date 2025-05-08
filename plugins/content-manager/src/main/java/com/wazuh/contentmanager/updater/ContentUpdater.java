@@ -35,6 +35,7 @@ public class ContentUpdater {
     private final ContextIndex contextIndex;
     private final ContentIndex contentIndex;
     private final CTIClient ctiClient;
+    private final CommandManagerClient commandManagerClient;
 
     /** Exception thrown by the Content Updater in case of errors. */
     public static class ContentUpdateException extends RuntimeException {
@@ -56,10 +57,15 @@ public class ContentUpdater {
      * @param contextIndex An object that handles context and consumer information
      * @param contentIndex An object that handles content index interactions
      */
-    public ContentUpdater(CTIClient ctiClient, ContextIndex contextIndex, ContentIndex contentIndex) {
+    public ContentUpdater(
+            CTIClient ctiClient,
+            ContextIndex contextIndex,
+            ContentIndex contentIndex,
+            CommandManagerClient commandManagerClient) {
         this.contextIndex = contextIndex;
         this.contentIndex = contentIndex;
         this.ctiClient = ctiClient;
+        this.commandManagerClient = commandManagerClient;
     }
 
     /**
@@ -146,8 +152,8 @@ public class ContentUpdater {
     protected void postUpdateCommand() {
         Privileged.doPrivilegedRequest(
                 () -> {
-                    CommandManagerClient.getInstance()
-                            .postCommand(Command.create(String.valueOf(this.contextIndex.getOffset())));
+                    this.commandManagerClient.postCommand(
+                            Command.create(String.valueOf(this.contextIndex.getOffset())));
                     return null;
                 });
     }

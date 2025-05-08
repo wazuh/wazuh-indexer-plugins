@@ -60,15 +60,18 @@ public class ContentUpdaterIT extends OpenSearchIntegTestCase {
     ContextIndex contextIndex;
     ContentIndex contentIndex;
     CTIClient ctiClient;
+    CommandManagerClient commandManagerClient;
 
     @Before
     public void setup() throws Exception {
         this.client = client();
         this.ctiClient = mock(CTIClient.class);
-        CommandManagerClient.getInstance(this.client);
+        this.commandManagerClient = mock(CommandManagerClient.class);
         this.contextIndex = spy(new ContextIndex(client));
         this.contentIndex = new ContentIndex(client);
-        this.updater = new ContentUpdater(this.ctiClient, this.contextIndex, this.contentIndex);
+        this.updater =
+                new ContentUpdater(
+                        this.ctiClient, this.contextIndex, this.contentIndex, this.commandManagerClient);
         prepareInitialCVEInfo(client, this.initialOffset);
         prepareInitialConsumerInfo(client, this.initialOffset, this.lastOffset);
     }
@@ -150,6 +153,7 @@ public class ContentUpdaterIT extends OpenSearchIntegTestCase {
         // Mock
         when(this.ctiClient.getChanges(this.initialOffset, offsetId, false)).thenReturn(contentChanges);
         when(this.contextIndex.getConsumer(anyString(), anyString())).thenReturn(testConsumer);
+        doNothing().when(this.commandManagerClient).postCommand(anyString());
         // Act
         boolean updated = this.updater.update();
 

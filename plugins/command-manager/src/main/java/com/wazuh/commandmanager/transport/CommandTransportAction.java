@@ -16,6 +16,8 @@
  */
 package com.wazuh.commandmanager.transport;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.opensearch.action.support.ActionFilters;
 import org.opensearch.action.support.HandledTransportAction;
 import org.opensearch.client.Client;
@@ -41,6 +43,7 @@ import com.wazuh.commandmanager.model.Orders;
  */
 public class CommandTransportAction
         extends HandledTransportAction<CommandRequestAction, CommandResponseAction> {
+    private static final Logger log = LogManager.getLogger(CommandTransportAction.class);
     private final Client client;
     private final CommandIndex commandIndex;
 
@@ -74,6 +77,7 @@ public class CommandTransportAction
     protected void doExecute(
             Task task, CommandRequestAction request, ActionListener<CommandResponseAction> listener) {
         String jsonBody = request.getJsonBody();
+        log.info("Transport Action request received: {}", jsonBody);
         try {
             List<Command> commands =
                     Command.parseArray(
