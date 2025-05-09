@@ -22,7 +22,7 @@ import org.opensearch.cluster.service.ClusterService;
 import org.opensearch.common.settings.Setting;
 import org.opensearch.common.settings.Settings;
 
-import com.wazuh.contentmanager.utils.ClusterInfoHelper;
+import com.wazuh.contentmanager.utils.ClusterInfo;
 import reactor.util.annotation.NonNull;
 
 /** This class encapsulates configuration settings and constants for the Content Manager plugin. */
@@ -275,7 +275,7 @@ public class PluginSettings {
      * @return a string with the Content Manager full URL
      */
     public String getClusterBaseUrl() {
-        return ClusterInfoHelper.getClusterBaseUrl(this.clusterService);
+        return ClusterInfo.getClusterBaseUrl(this.clusterService);
     }
 
     /**

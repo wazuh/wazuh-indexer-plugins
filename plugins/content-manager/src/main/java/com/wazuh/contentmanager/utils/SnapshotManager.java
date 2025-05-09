@@ -18,8 +18,6 @@ package com.wazuh.contentmanager.utils;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.opensearch.action.DocWriteResponse;
-import org.opensearch.action.index.IndexResponse;
 import org.opensearch.env.Environment;
 
 import java.io.IOException;
@@ -27,22 +25,26 @@ import java.nio.file.DirectoryStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Locale;
+import java.util.concurrent.Semaphore;
 
 import com.wazuh.contentmanager.client.CTIClient;
 import com.wazuh.contentmanager.client.CommandManagerClient;
 import com.wazuh.contentmanager.index.ContentIndex;
 import com.wazuh.contentmanager.index.ContextIndex;
-import com.wazuh.contentmanager.model.commandmanager.Command;
-import com.wazuh.contentmanager.model.ctiapi.ConsumerInfo;
+import com.wazuh.contentmanager.model.cti.ConsumerInfo;
 import com.wazuh.contentmanager.settings.PluginSettings;
 
 /** Helper class to handle indexing of snapshots */
-public class SnapshotHelper {
-    private static final Logger log = LogManager.getLogger(SnapshotHelper.class);
+public class SnapshotManager {
+    private static final Logger log = LogManager.getLogger(SnapshotManager.class);
     private final CTIClient ctiClient;
+    private CommandManagerClient commandClient;
     private final Environment environment;
     private final ContextIndex contextIndex;
     private final ContentIndex contentIndex;
+    private final Privileged privileged;
+    private final Semaphore semaphore = new Semaphore(1);
+    private final PluginSettings pluginSettings;
 
     /**
      * Constructor.
@@ -51,16 +53,21 @@ public class SnapshotHelper {
      * @param contextIndex Handles context and consumer related metadata.
      * @param contentIndex Handles indexed content.
      */
-    public SnapshotHelper(
-            Environment environment, ContextIndex contextIndex, ContentIndex contentIndex) {
+    public SnapshotManager(
+            Environment environment,
+            ContextIndex contextIndex,
+            ContentIndex contentIndex,
+            Privileged privileged) {
         this.environment = environment;
         this.contextIndex = contextIndex;
         this.contentIndex = contentIndex;
-        this.ctiClient = Privileged.doPrivilegedRequest(CTIClient::getInstance);
+        this.privileged = privileged;
+        this.ctiClient = privileged.doPrivilegedRequest(CTIClient::getInstance);
+        this.pluginSettings = PluginSettings.getInstance();
     }
 
     /**
-     * Alternate constructor that allows injecting CTIClient for test purposes.
+     * Alternate constructor that allows injecting CTIClient for test purposes. Dependency injection.
      *
      * @param ctiClient Instance of CTIClient.
      * @param environment Needed for snapshot file handling.
@@ -68,29 +75,35 @@ public class SnapshotHelper {
      * @param contentIndex Handles indexed content.
      */
     @VisibleForTesting
-    protected SnapshotHelper(
+    protected SnapshotManager(
             CTIClient ctiClient,
+            CommandManagerClient client,
             Environment environment,
             ContextIndex contextIndex,
-            ContentIndex contentIndex) {
+            ContentIndex contentIndex,
+            Privileged privileged,
+            PluginSettings pluginSettings) {
         this.ctiClient = ctiClient;
+        this.commandClient = client;
         this.environment = environment;
         this.contextIndex = contextIndex;
         this.contentIndex = contentIndex;
+        this.privileged = privileged;
+        this.pluginSettings = pluginSettings;
     }
 
     /**
      * Initializes the content if {@code offset == 0}. This method downloads, decompresses and indexes
      * a CTI snapshot.
      */
-    protected void indexSnapshot() {
-        if (this.contextIndex.getOffset() == 0) {
+    protected void indexSnapshot(ConsumerInfo consumerInfo) {
+        if (consumerInfo.getOffset() == 0) {
             log.info("Initializing [{}] index from a snapshot", ContentIndex.INDEX_NAME);
-            Privileged.doPrivilegedRequest(
+            this.privileged.doPrivilegedRequest(
                     () -> {
                         // Download snapshot.
                         Path snapshotZip =
-                                this.ctiClient.download(this.contextIndex.getLastSnapshotLink(), this.environment);
+                                this.ctiClient.download(consumerInfo.getLastSnapshotLink(), this.environment);
                         Path outputDir = this.environment.tmpFile();
 
                         try (DirectoryStream<Path> stream = this.getStream(outputDir)) {
@@ -100,9 +113,10 @@ public class SnapshotHelper {
                             // Index snapshot.
                             long offset = this.contentIndex.fromSnapshot(snapshotJson.toString());
                             // Update the offset.
-                            this.contextIndex.setOffset(offset);
+                            consumerInfo.setOffset(offset);
+                            this.contextIndex.index(consumerInfo);
                             // Send command.
-                            this.postUpdateCommand();
+                            privileged.postUpdateCommand(this.commandClient, consumerInfo);
                             // Remove snapshot.
                             Files.deleteIfExists(snapshotZip);
                             Files.deleteIfExists(snapshotJson);
@@ -136,17 +150,10 @@ public class SnapshotHelper {
         return Files.newDirectoryStream(
                 outputDir,
                 String.format(
-                        Locale.ROOT, "%s_%s_*.json", PluginSettings.CONTEXT_ID, PluginSettings.CONSUMER_ID));
-    }
-
-    /** Posts a command to the command manager API on a successful snapshot operation */
-    protected void postUpdateCommand() {
-        Privileged.doPrivilegedRequest(
-                () -> {
-                    CommandManagerClient.getInstance()
-                            .postCommand(Command.create(String.valueOf(this.contextIndex.getLastOffset())));
-                    return null;
-                });
+                        Locale.ROOT,
+                        "%s_%s_*.json",
+                        this.pluginSettings.getContextId(),
+                        this.pluginSettings.getConsumerId()));
     }
 
     /**
@@ -154,32 +161,58 @@ public class SnapshotHelper {
      *
      * @throws IOException thrown when indexing failed
      */
-    protected void updateContextIndex() throws IOException {
-        ConsumerInfo consumerInfo = this.ctiClient.getCatalog();
+    protected ConsumerInfo initConsumer() throws IOException {
+        ConsumerInfo current =
+                this.contextIndex.get(
+                        this.pluginSettings.getContextId(), this.pluginSettings.getConsumerId());
+        ConsumerInfo latest = this.ctiClient.getConsumerInfo();
+        log.debug("Current consumer info: {}", current);
+        log.debug("Latest consumer info: {}", latest);
 
-        if (consumerInfo == null) {
-            throw new IOException("Consumer Information is null. Skipping indexing");
+        // Consumer is not yet initialized. Initialize to latest.
+        if (current == null || current.getOffset() == 0) {
+            log.debug("Initializing consumer: {}", latest);
+            if (this.contextIndex.index(latest)) {
+                log.info(
+                        "Successfully initialized consumer [{}][{}]", latest.getContext(), latest.getName());
+            } else {
+                throw new IOException(
+                        String.format(
+                                Locale.ROOT,
+                                "Failed to initialize consumer [%s][%s]",
+                                latest.getContext(),
+                                latest.getName()));
+            }
+            current = latest;
         }
-        IndexResponse response = this.contextIndex.index(consumerInfo);
-
-        if (response.getResult().equals(DocWriteResponse.Result.CREATED)
-                || response.getResult().equals(DocWriteResponse.Result.UPDATED)) {
-            log.info("Successfully initialized consumer [{}]", consumerInfo.getContext());
-        } else {
-            throw new IOException(
-                    String.format(
-                            Locale.ROOT,
-                            "Consumer indexing operation returned with unexpected result [%s]",
-                            response.getResult()));
+        // Consumer is initialized and up-to-date.
+        else if (current.getOffset() == latest.getLastOffset()) {
+            log.info(
+                    "Consumer is up-to-date (offset {} == {}). Skipping...",
+                    current.getOffset(),
+                    latest.getLastOffset());
         }
+        // Consumer is initialized but out-of-date.
+        else {
+            log.info("Consumer already initialized (offset {} != 0). Skipping...", current.getOffset());
+            current.setLastOffset(latest.getLastOffset());
+            current.setLastSnapshotLink(latest.getLastSnapshotLink());
+            this.contextIndex.index(current);
+        }
+        return current;
     }
 
     /** Trigger method for content initialization */
     public void initialize() {
         try {
-            this.updateContextIndex();
-            this.indexSnapshot();
-        } catch (IOException e) {
+            this.semaphore.acquire();
+            // The Command Manager client needs the cluster to be up (depends on PluginSettings),
+            // so we initialize it here once the node is up and ready.
+            this.commandClient = this.privileged.doPrivilegedRequest(CommandManagerClient::getInstance);
+            ConsumerInfo consumerInfo = this.initConsumer();
+            this.indexSnapshot(consumerInfo);
+            semaphore.release();
+        } catch (IOException | InterruptedException e) {
             log.error("Failed to initialize: {}", e.getMessage());
         }
     }

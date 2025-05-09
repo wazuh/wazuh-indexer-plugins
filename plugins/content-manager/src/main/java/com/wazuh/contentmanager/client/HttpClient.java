@@ -58,7 +58,7 @@ public class HttpClient {
 
     private static final Object LOCK = new Object();
 
-    /** Singleton instance of the HTTP client */
+    /** Singleton instance of the HTTP client. */
     protected static CloseableHttpAsyncClient httpClient;
 
     /** Base URI for API requests */

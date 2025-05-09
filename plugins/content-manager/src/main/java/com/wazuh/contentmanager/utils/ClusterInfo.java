@@ -16,8 +16,11 @@
  */
 package com.wazuh.contentmanager.utils;
 
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
+import org.opensearch.action.admin.cluster.health.ClusterHealthResponse;
+import org.opensearch.action.admin.indices.exists.indices.IndicesExistsRequest;
+import org.opensearch.action.admin.indices.exists.indices.IndicesExistsResponse;
+import org.opensearch.client.Client;
+import org.opensearch.cluster.health.ClusterHealthStatus;
 import org.opensearch.cluster.service.ClusterService;
 import org.opensearch.common.settings.Settings;
 
@@ -27,9 +30,7 @@ import java.util.Locale;
  * ClusterInfoHelper provides utility methods for retrieving cluster-related information, such as
  * security settings and the cluster base URL.
  */
-public class ClusterInfoHelper {
-    private static final Logger log = LogManager.getLogger(ClusterInfoHelper.class);
-
+public class ClusterInfo {
     /**
      * Checks if the OpenSearch cluster is using HTTPS for communication.
      *
@@ -51,7 +52,7 @@ public class ClusterInfoHelper {
      * @return The cluster base URL in the format "http(s)://[IP]:[PORT]".
      */
     public static String getClusterBaseUrl(ClusterService clusterService) {
-        String protocol = ClusterInfoHelper.isHttpsEnabled(clusterService) ? "https" : "http";
+        String protocol = ClusterInfo.isHttpsEnabled(clusterService) ? "https" : "http";
         String host = "127.0.0.1";
         String port = "9200";
         if (clusterService.state().nodes().getClusterManagerNode() != null) {
@@ -59,5 +60,31 @@ public class ClusterInfoHelper {
             port = clusterService.getSettings().get("http.port", port);
         }
         return String.format(Locale.ROOT, "%s://%s:%s", protocol, host, port);
+    }
+
+    /**
+     * Checks if a given index is ready for operations.
+     *
+     * @param client OpenSearch client.
+     * @param index index name to check.
+     * @return true if the index is ready, false otherwise.
+     */
+    public static boolean indexStatusCheck(Client client, String index) {
+        ClusterHealthResponse response =
+                client.admin().cluster().prepareHealth().setIndices(index).setWaitForYellowStatus().get();
+        return response.getStatus() != ClusterHealthStatus.RED;
+    }
+
+    /**
+     * Checks whether the given index exists.
+     *
+     * @param client OpenSearch client.
+     * @param index index name to check its existence for.
+     * @return true if the index exists, false otherwise.
+     */
+    public static boolean indexExists(Client client, String index) {
+        IndicesExistsRequest request = new IndicesExistsRequest(index);
+        IndicesExistsResponse response = client.admin().indices().exists(request).actionGet();
+        return response.isExists();
     }
 }
