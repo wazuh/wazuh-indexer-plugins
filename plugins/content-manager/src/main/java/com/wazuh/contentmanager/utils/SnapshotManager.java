@@ -157,18 +157,12 @@ public class SnapshotManager {
         ConsumerInfo current =
                 this.contextIndex.get(PluginSettings.CONTEXT_ID, PluginSettings.CONSUMER_ID);
         ConsumerInfo latest = this.ctiClient.getConsumerInfo();
-        log.info("Current consumer info: {}", current);
-        log.info("Latest consumer info: {}", latest);
-
-        // testy test test
-        //        current = new ConsumerInfo(latest);
-        //        current.setOffset(1899747);
-        //        this.contextIndex.index(current);
-        // testy test test
+        log.debug("Current consumer info: {}", current);
+        log.debug("Latest consumer info: {}", latest);
 
         // Consumer is not yet initialized. Initialize to latest.
         if (current == null || current.getOffset() == 0) {
-            log.info("Initializing consumer: {}", latest);
+            log.debug("Initializing consumer: {}", latest);
             if (this.contextIndex.index(latest)) {
                 log.info(
                         "Successfully initialized consumer [{}][{}]", latest.getContext(), latest.getName());

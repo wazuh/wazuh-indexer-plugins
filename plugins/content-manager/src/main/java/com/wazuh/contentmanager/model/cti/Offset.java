@@ -22,10 +22,7 @@ import org.opensearch.core.xcontent.XContentParser;
 import org.opensearch.core.xcontent.XContentParserUtils;
 
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 /**
  * ToXContentObject model to parse and build CTI API changes.
@@ -107,7 +104,8 @@ public class Offset implements ToXContentObject {
                         resource = parser.text();
                         break;
                     case TYPE:
-                        type = OperationType.valueOf(parser.text());
+                        String opType = parser.text().trim().toUpperCase(Locale.ROOT);
+                        type = OperationType.valueOf(opType);
                         break;
                     case VERSION:
                         version = parser.longValue();
@@ -241,6 +239,15 @@ public class Offset implements ToXContentObject {
     }
 
     /**
+     * {@link Offset#offset} getter.
+     *
+     * @return the number identifier of the change.
+     */
+    public long getOffset() {
+        return this.offset;
+    }
+
+    /**
      * Outputs an XContentBuilder object ready to be printed or manipulated
      *
      * @param builder the received builder object
@@ -265,9 +272,5 @@ public class Offset implements ToXContentObject {
         builder.endArray();
         builder.field(PAYLOAD, this.payload);
         return builder.endObject();
-    }
-
-    public long getOffset() {
-        return this.offset;
     }
 }

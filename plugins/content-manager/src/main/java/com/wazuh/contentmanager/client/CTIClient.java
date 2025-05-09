@@ -31,14 +31,14 @@ import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
 import java.time.Duration;
 import java.time.ZonedDateTime;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.*;
 
 import com.wazuh.contentmanager.model.cti.ConsumerInfo;
 import com.wazuh.contentmanager.model.cti.ContentChanges;
 import com.wazuh.contentmanager.settings.PluginSettings;
 import com.wazuh.contentmanager.utils.XContentUtils;
+import reactor.util.annotation.NonNull;
 
 /**
  * CTIClient is a singleton class responsible for interacting with the Cyber Threat Intelligence
@@ -127,19 +127,19 @@ public class CTIClient extends HttpClient {
         // Fail fast
         if (response == null) {
             log.error("No response from CTI API Changes endpoint");
-            return null;
+            return new ContentChanges();
         }
-        if (response.getCode() != HttpStatus.SC_OK) {
+        if (!Arrays.asList(HttpStatus.SC_OK, HttpStatus.SC_SUCCESS).contains(response.getCode())) {
             log.error("CTI API Changes endpoint returned an error: {}", response.getBody());
-            return null;
+            return new ContentChanges();
         }
 
         log.debug("CTI API Changes endpoint replied with status: [{}]", response.getCode());
         try {
             return ContentChanges.parse(XContentUtils.createJSONParser(response.getBodyBytes()));
         } catch (IOException | IllegalArgumentException e) {
-            log.error("Failed to fetch changes information", e);
-            return null;
+            log.error("Failed to fetch changes information due to: {}", e.getMessage());
+            return new ContentChanges();
         }
     }
 
@@ -200,13 +200,15 @@ public class CTIClient extends HttpClient {
      * @return SimpleHttpResponse or null.
      */
     protected SimpleHttpResponse sendRequest(
-            Method method,
-            String endpoint,
+            @NonNull Method method,
+            @NonNull String endpoint,
             String body,
             Map<String, String> params,
             Header header,
             int attemptsLeft) {
-
+        // TODO used to debug the failing test "testGetChanges_SuccessfulRequest".
+        // log.error("sendRequest {} {} {} {} {} {}", method, endpoint, body, params, header,
+        // attemptsLeft);
         ZonedDateTime cooldown = null;
         SimpleHttpResponse response = null;
         while (attemptsLeft > 0) {

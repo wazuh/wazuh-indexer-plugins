@@ -71,7 +71,7 @@ public class ContentManagerPlugin extends Plugin implements ClusterPlugin {
         this.contextIndex = new ContextIndex(client);
         this.contentIndex = new ContentIndex(client);
         this.snapshotManager =
-                new SnapshotManager(environment, contextIndex, this.contentIndex, new Privileged());
+                new SnapshotManager(environment, this.contextIndex, this.contentIndex, new Privileged());
         return Collections.emptyList();
     }
 

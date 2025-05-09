@@ -30,15 +30,20 @@ import java.util.List;
 public class ContentChanges implements ToXContentObject {
 
     private static final String JSON_DATA_KEY = "data";
-    private final List<Offset> changes;
+    private final ArrayList<Offset> changes;
+
+    /** Constructor. */
+    public ContentChanges() {
+        this.changes = new ArrayList<>();
+    }
 
     /**
-     * Constructor method.
+     * Constructor.
      *
      * @param changes a List of Offset objects, each containing a JSON patch.
      */
     public ContentChanges(List<Offset> changes) {
-        this.changes = changes;
+        this.changes = new ArrayList<>(changes);
     }
 
     /**
@@ -46,7 +51,7 @@ public class ContentChanges implements ToXContentObject {
      *
      * @return A list of Offset objects
      */
-    public List<Offset> getChangesList() {
+    public ArrayList<Offset> getChangesList() {
         return this.changes;
     }
 

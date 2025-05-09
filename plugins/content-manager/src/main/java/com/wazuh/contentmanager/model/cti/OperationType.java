@@ -32,5 +32,5 @@ package com.wazuh.contentmanager.model.cti;
 public enum OperationType {
     CREATE,
     UPDATE,
-    DELETE;
+    DELETE
 }

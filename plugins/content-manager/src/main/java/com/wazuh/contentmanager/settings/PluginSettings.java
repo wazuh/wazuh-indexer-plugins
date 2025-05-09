@@ -32,9 +32,6 @@ public class PluginSettings {
     /** Singleton instance. */
     private static PluginSettings INSTANCE;
 
-    /** Content Manager Plugin API path. */
-    public static final String API_BASE_URI = "/_plugins/_content_manager";
-
     /** Base Wazuh CTI URL */
     public static final String CTI_URL = "https://cti.wazuh.com";
 
