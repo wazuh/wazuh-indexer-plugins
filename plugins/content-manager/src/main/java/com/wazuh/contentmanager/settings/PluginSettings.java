@@ -355,12 +355,12 @@ public class PluginSettings {
 
     /**
      * Validates the given consumer ID against a predefined format. The consumer ID should match the
-     * pattern "vd_<1-2 digits>.<1-2 digits>.<1-2 digits>".
+     * pattern {@code vd_<1-2 digits>.<1-2 digits>.<1-2 digits>}.
      *
      * @param consumerId the consumer ID to validate
      * @return true if the consumer ID matches the expected format, false otherwise
      */
-    public Boolean validateConsumerId(String consumerId) {
+    public static Boolean validateConsumerId(String consumerId) {
         String regex = "vd_\\d{1,2}\\.\\d{1,2}\\.\\d{1,2}";
 
         // Ensure the context id have the correct format
@@ -369,12 +369,12 @@ public class PluginSettings {
 
     /**
      * Validates the given context ID against a predefined format. The context ID should match the
-     * pattern "vd_<1-2 digits>.<1-2 digits>.<1-2 digits>".
+     * pattern {@code vd_<1-2 digits>.<1-2 digits>.<1-2 digits>}.
      *
      * @param contextId the context ID to validate
      * @return true if the context ID matches the expected format, false otherwise
      */
-    public Boolean validateContextId(String contextId) {
+    public static Boolean validateContextId(String contextId) {
         String regex = "vd_\\d{1,2}\\.\\d{1,2}\\.\\d{1,2}";
 
         // Ensure the context id have the correct format
