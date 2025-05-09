@@ -45,6 +45,7 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
+import com.wazuh.contentmanager.settings.PluginSettings;
 import com.wazuh.contentmanager.utils.http.HttpResponseCallback;
 import reactor.util.annotation.NonNull;
 
@@ -55,13 +56,12 @@ import reactor.util.annotation.NonNull;
 public class HttpClient {
     private static final Logger log = LogManager.getLogger(HttpClient.class);
 
-    private static final int TIMEOUT = 10;
     private static final Object LOCK = new Object();
 
     /** Singleton instance of the HTTP client. */
     protected static CloseableHttpAsyncClient httpClient;
 
-    /** Base URI for API requests. */
+    /** Base URI for API requests */
     protected final URI apiUri;
 
     /**
@@ -156,7 +156,7 @@ public class HttpClient {
                             SimpleResponseConsumer.create(),
                             new HttpResponseCallback(
                                     request, "Failed to execute outgoing " + method + " request"))
-                    .get(TIMEOUT, TimeUnit.SECONDS);
+                    .get(PluginSettings.getInstance().getClientTimeout(), TimeUnit.SECONDS);
         } catch (InterruptedException | ExecutionException | TimeoutException e) {
             log.error("HTTP {} request failed: {}", method, e.getMessage());
             Thread.currentThread().interrupt();

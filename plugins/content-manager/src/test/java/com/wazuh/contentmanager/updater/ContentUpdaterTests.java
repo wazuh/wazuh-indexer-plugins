@@ -16,6 +16,9 @@
  */
 package com.wazuh.contentmanager.updater;
 
+import org.opensearch.cluster.service.ClusterService;
+import org.opensearch.common.settings.Settings;
+import org.opensearch.env.Environment;
 import org.opensearch.test.OpenSearchIntegTestCase;
 import org.junit.Before;
 
@@ -27,7 +30,10 @@ import com.wazuh.contentmanager.client.CommandManagerClient;
 import com.wazuh.contentmanager.index.ContentIndex;
 import com.wazuh.contentmanager.index.ContextIndex;
 import com.wazuh.contentmanager.model.cti.*;
+import com.wazuh.contentmanager.settings.PluginSettings;
 import com.wazuh.contentmanager.utils.Privileged;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
 import org.mockito.Mockito;
 
 import static org.mockito.Mockito.*;
@@ -43,6 +49,10 @@ public class ContentUpdaterTests extends OpenSearchIntegTestCase {
     private ConsumerInfo consumerInfo;
     private ContentUpdater updater;
 
+    @Mock private Environment mockEnvironment;
+    @Mock private ClusterService mockClusterService;
+    @InjectMocks private PluginSettings pluginSettings;
+
     /**
      * Set up the tests
      *
@@ -53,6 +63,13 @@ public class ContentUpdaterTests extends OpenSearchIntegTestCase {
         super.setUp();
         this.ctiClient = mock(CTIClient.class);
         this.commandClient = mock(CommandManagerClient.class);
+
+        Settings settings = Settings.builder().put("content_manager.max_changes", 1000).build();
+        this.mockEnvironment = mock(Environment.class);
+        when(this.mockEnvironment.settings()).thenReturn(settings);
+        this.pluginSettings =
+                PluginSettings.getInstance(this.mockEnvironment.settings(), this.mockClusterService);
+
         this.contextIndex = mock(ContextIndex.class);
         this.contentIndex = mock(ContentIndex.class);
         this.privilegedSpy = Mockito.spy(Privileged.class);
@@ -63,7 +80,8 @@ public class ContentUpdaterTests extends OpenSearchIntegTestCase {
                                 this.commandClient,
                                 this.contextIndex,
                                 this.contentIndex,
-                                this.privilegedSpy));
+                                this.privilegedSpy,
+                                this.pluginSettings));
         this.consumerInfo = mock(ConsumerInfo.class);
     }
 

@@ -37,6 +37,7 @@ import java.util.concurrent.*;
 import com.wazuh.contentmanager.model.cti.ConsumerInfo;
 import com.wazuh.contentmanager.model.cti.ContentChanges;
 import com.wazuh.contentmanager.settings.PluginSettings;
+import com.wazuh.contentmanager.utils.VisibleForTesting;
 import com.wazuh.contentmanager.utils.XContentUtils;
 import reactor.util.annotation.NonNull;
 
@@ -50,13 +51,12 @@ import reactor.util.annotation.NonNull;
 public class CTIClient extends HttpClient {
     private static final Logger log = LogManager.getLogger(CTIClient.class);
 
-    static final String CONSUMER_INFO_ENDPOINT =
-            "/catalog/contexts/" + PluginSettings.CONTEXT_ID + "/consumers/" + PluginSettings.CONSUMER_ID;
-    private static final String CONSUMER_CHANGES_ENDPOINT = CONSUMER_INFO_ENDPOINT + "/changes";
-    static final int MAX_ATTEMPTS = 3;
-    private static final int SLEEP_TIME = 60;
+    private final String CONSUMER_INFO_ENDPOINT;
+    private final String CONSUMER_CHANGES_ENDPOINT;
 
     private static CTIClient INSTANCE;
+
+    private final PluginSettings pluginSettings;
 
     /** Enum representing the query parameters used in CTI API requests. */
     public enum QueryParameters {
@@ -83,9 +83,33 @@ public class CTIClient extends HttpClient {
         }
     }
 
-    /** Public constructor method */
+    /**
+     * Initializes a new instance of the {@code CTIClient} class.
+     *
+     * <p>This constructor creates the CTIClient object by setting up API endpoints using
+     * configuration values from the {@link PluginSettings} singleton instance. The endpoints include:
+     * - Consumer information endpoint - Consumer changes endpoint
+     *
+     * <p>The base URI for requests is derived from the CTI base URL provided via {@link
+     * PluginSettings}. The constructed endpoints are validated to ensure they form valid URIs.
+     */
     public CTIClient() {
         super(URI.create(PluginSettings.getInstance().getCtiBaseUrl()));
+
+        this.pluginSettings = PluginSettings.getInstance();
+        this.CONSUMER_INFO_ENDPOINT =
+                "/catalog/contexts/"
+                        + this.pluginSettings.getContextId()
+                        + "/consumers/"
+                        + this.pluginSettings.getConsumerId();
+
+        // In order to validate the URI created
+        try {
+            URI.create(this.CONSUMER_INFO_ENDPOINT + "/changes");
+        } catch (IllegalArgumentException e) {
+            log.error("Invalid URI for CTI API Changes endpoint: {}", e.getMessage());
+        }
+        this.CONSUMER_CHANGES_ENDPOINT = this.CONSUMER_INFO_ENDPOINT + "/changes";
     }
 
     /**
@@ -104,9 +128,18 @@ public class CTIClient extends HttpClient {
      * This constructor is only used on tests.
      *
      * @param CTIBaseURL base URL of the CTI API (mocked).
+     * @param pluginSettings plugin settings (mocked).
      */
-    CTIClient(String CTIBaseURL) {
+    @VisibleForTesting
+    CTIClient(String CTIBaseURL, PluginSettings pluginSettings) {
         super(URI.create(CTIBaseURL));
+        this.pluginSettings = pluginSettings;
+        this.CONSUMER_INFO_ENDPOINT =
+                "/catalog/contexts/"
+                        + this.pluginSettings.getContextId()
+                        + "/consumers/"
+                        + this.pluginSettings.getConsumerId();
+        this.CONSUMER_CHANGES_ENDPOINT = this.CONSUMER_INFO_ENDPOINT + "/changes";
     }
 
     /**
@@ -122,7 +155,12 @@ public class CTIClient extends HttpClient {
                 CTIClient.contextQueryParameters(fromOffset, toOffset, withEmpties);
         SimpleHttpResponse response =
                 this.sendRequest(
-                        Method.GET, CONSUMER_CHANGES_ENDPOINT, null, params, null, CTIClient.MAX_ATTEMPTS);
+                        Method.GET,
+                        CONSUMER_CHANGES_ENDPOINT,
+                        null,
+                        params,
+                        null,
+                        pluginSettings.getCtiClientMaxAttempts());
 
         // Fail fast
         if (response == null) {
@@ -158,7 +196,7 @@ public class CTIClient extends HttpClient {
             null,
             null,
             null,
-            CTIClient.MAX_ATTEMPTS
+            pluginSettings.getCtiClientMaxAttempts()
         );
         // spotless:on
         if (response == null) {
@@ -224,13 +262,13 @@ public class CTIClient extends HttpClient {
                 }
             }
 
-            int currentAttempt = CTIClient.MAX_ATTEMPTS - attemptsLeft + 1;
+            int currentAttempt = pluginSettings.getCtiClientMaxAttempts() - attemptsLeft + 1;
             log.debug(
                     "Sending {} request to [{}]. Attempt {}/{}.",
                     method,
                     endpoint,
                     currentAttempt,
-                    MAX_ATTEMPTS);
+                    pluginSettings.getCtiClientMaxAttempts());
             // WARN Changing this to sendRequest makes the test fail.
             response = this.doHttpClientSendRequest(method, endpoint, body, params, header);
             if (response == null) {
@@ -238,7 +276,7 @@ public class CTIClient extends HttpClient {
             }
 
             // Calculate timeout
-            int timeout = currentAttempt * CTIClient.SLEEP_TIME;
+            int timeout = currentAttempt * pluginSettings.getCtiClientSleepTime();
             int statusCode = response.getCode();
             switch (statusCode) {
                 case 200:

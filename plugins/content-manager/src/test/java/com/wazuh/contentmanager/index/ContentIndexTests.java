@@ -19,6 +19,9 @@ package com.wazuh.contentmanager.index;
 import com.google.gson.JsonObject;
 import org.opensearch.action.get.GetResponse;
 import org.opensearch.client.Client;
+import org.opensearch.cluster.service.ClusterService;
+import org.opensearch.common.settings.Settings;
+import org.opensearch.env.Environment;
 import org.opensearch.test.OpenSearchIntegTestCase;
 import org.junit.Before;
 
@@ -28,6 +31,9 @@ import com.wazuh.contentmanager.model.cti.ContentChanges;
 import com.wazuh.contentmanager.model.cti.Offset;
 import com.wazuh.contentmanager.model.cti.OperationType;
 import com.wazuh.contentmanager.model.cti.PatchOperation;
+import com.wazuh.contentmanager.settings.PluginSettings;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
 import org.mockito.Mockito;
 
 import static org.mockito.ArgumentMatchers.any;
@@ -42,6 +48,10 @@ import static org.mockito.Mockito.when;
 public class ContentIndexTests extends OpenSearchIntegTestCase {
     private ContentIndex contentUpdaterSpy;
 
+    @Mock private Environment mockEnvironment;
+    @Mock private ClusterService mockClusterService;
+    @InjectMocks private PluginSettings pluginSettings;
+
     /**
      * Set up the tests
      *
@@ -50,8 +60,21 @@ public class ContentIndexTests extends OpenSearchIntegTestCase {
     @Before
     public void setup() throws Exception {
         super.setUp();
+
+        Settings settings =
+                Settings.builder()
+                        .put("content_manager.max_concurrent_bulks", 5)
+                        .put("content_manager.max_items_per_bulk", 25)
+                        .put("content_manager.client.timeout", "10")
+                        .build();
+
+        this.mockEnvironment = mock(Environment.class);
+        when(this.mockEnvironment.settings()).thenReturn(settings);
+        this.pluginSettings =
+                PluginSettings.getInstance(this.mockEnvironment.settings(), this.mockClusterService);
+
         Client client = mock(Client.class);
-        ContentIndex contentIndex = new ContentIndex(client);
+        ContentIndex contentIndex = new ContentIndex(client, this.pluginSettings);
         this.contentUpdaterSpy = Mockito.spy(contentIndex);
     }
 

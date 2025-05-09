@@ -44,6 +44,7 @@ public class SnapshotManager {
     private final ContentIndex contentIndex;
     private final Privileged privileged;
     private final Semaphore semaphore = new Semaphore(1);
+    private final PluginSettings pluginSettings;
 
     /**
      * Constructor.
@@ -62,6 +63,7 @@ public class SnapshotManager {
         this.contentIndex = contentIndex;
         this.privileged = privileged;
         this.ctiClient = privileged.doPrivilegedRequest(CTIClient::getInstance);
+        this.pluginSettings = PluginSettings.getInstance();
     }
 
     /**
@@ -72,19 +74,22 @@ public class SnapshotManager {
      * @param contextIndex Handles context and consumer related metadata.
      * @param contentIndex Handles indexed content.
      */
+    @VisibleForTesting
     protected SnapshotManager(
             CTIClient ctiClient,
             CommandManagerClient client,
             Environment environment,
             ContextIndex contextIndex,
             ContentIndex contentIndex,
-            Privileged privileged) {
+            Privileged privileged,
+            PluginSettings pluginSettings) {
         this.ctiClient = ctiClient;
         this.commandClient = client;
         this.environment = environment;
         this.contextIndex = contextIndex;
         this.contentIndex = contentIndex;
         this.privileged = privileged;
+        this.pluginSettings = pluginSettings;
     }
 
     /**
@@ -145,7 +150,10 @@ public class SnapshotManager {
         return Files.newDirectoryStream(
                 outputDir,
                 String.format(
-                        Locale.ROOT, "%s_%s_*.json", PluginSettings.CONTEXT_ID, PluginSettings.CONSUMER_ID));
+                        Locale.ROOT,
+                        "%s_%s_*.json",
+                        this.pluginSettings.getContextId(),
+                        this.pluginSettings.getConsumerId()));
     }
 
     /**
@@ -155,7 +163,8 @@ public class SnapshotManager {
      */
     protected ConsumerInfo initConsumer() throws IOException {
         ConsumerInfo current =
-                this.contextIndex.get(PluginSettings.CONTEXT_ID, PluginSettings.CONSUMER_ID);
+                this.contextIndex.get(
+                        this.pluginSettings.getContextId(), this.pluginSettings.getConsumerId());
         ConsumerInfo latest = this.ctiClient.getConsumerInfo();
         log.debug("Current consumer info: {}", current);
         log.debug("Latest consumer info: {}", latest);
