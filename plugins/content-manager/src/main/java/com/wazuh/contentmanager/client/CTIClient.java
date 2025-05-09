@@ -107,10 +107,10 @@ public class CTIClient extends HttpClient {
         // In order to validate the URI created
         try {
             URI.create(this.CONSUMER_INFO_ENDPOINT + "/changes");
-            this.CONSUMER_CHANGES_ENDPOINT = this.CONSUMER_INFO_ENDPOINT + "/changes";
         } catch (IllegalArgumentException e) {
             log.error("Invalid URI for CTI API Changes endpoint: {}", e.getMessage());
         }
+        this.CONSUMER_CHANGES_ENDPOINT = this.CONSUMER_INFO_ENDPOINT + "/changes";
     }
 
     /**
