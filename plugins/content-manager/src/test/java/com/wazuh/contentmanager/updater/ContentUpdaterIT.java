@@ -79,7 +79,13 @@ public class ContentUpdaterIT extends OpenSearchIntegTestCase {
         this.contextIndex = spy(new ContextIndex(client));
         this.contentIndex = new ContentIndex(client);
         this.commandClient = mock(CommandManagerClient.class);
-        Settings settings = Settings.builder().put("content_manager.max_changes", 1000).build();
+        Settings settings =
+                Settings.builder()
+                        .put("content_manager.max_changes", 1000)
+                        .put("content_manager.cti.client.sleep_time", 60)
+                        .put("content_manager.cti.context", "vd_1.0.0")
+                        .put("content_manager.cti.consumer", "https://cti.wazuh.com/TEST/api/v1")
+                        .build();
         this.mockEnvironment = mock(Environment.class);
         when(this.mockEnvironment.settings()).thenReturn(settings);
         this.pluginSettings =
