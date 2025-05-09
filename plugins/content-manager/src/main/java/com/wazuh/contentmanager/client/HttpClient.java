@@ -57,9 +57,11 @@ public class HttpClient {
 
     private static final int TIMEOUT = 10;
     private static final Object LOCK = new Object();
-    // Singleton instance of the HTTP client
+
+    /** Singleton instance of the HTTP client. */
     protected static CloseableHttpAsyncClient httpClient;
-    // Base URI for API requests
+
+    /** Base URI for API requests. */
     protected final URI apiUri;
 
     /**

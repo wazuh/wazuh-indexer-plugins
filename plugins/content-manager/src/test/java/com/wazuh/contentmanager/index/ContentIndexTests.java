@@ -24,10 +24,10 @@ import org.junit.Before;
 
 import java.util.List;
 
-import com.wazuh.contentmanager.model.ctiapi.ContentChanges;
-import com.wazuh.contentmanager.model.ctiapi.Offset;
-import com.wazuh.contentmanager.model.ctiapi.OperationType;
-import com.wazuh.contentmanager.model.ctiapi.PatchOperation;
+import com.wazuh.contentmanager.model.cti.ContentChanges;
+import com.wazuh.contentmanager.model.cti.Offset;
+import com.wazuh.contentmanager.model.cti.OperationType;
+import com.wazuh.contentmanager.model.cti.PatchOperation;
 import org.mockito.Mockito;
 
 import static org.mockito.ArgumentMatchers.any;
@@ -55,7 +55,7 @@ public class ContentIndexTests extends OpenSearchIntegTestCase {
         this.contentUpdaterSpy = Mockito.spy(contentIndex);
     }
 
-    /** Test the {@code ContentIndex#patch} method with an Offset with Create content type. */
+    /** Test the {@link ContentIndex#patch} method with an Offset with Create content type. */
     public void testPatchCreate() {
         // Mock
         doNothing().when(this.contentUpdaterSpy).index((Offset) any());
@@ -67,7 +67,7 @@ public class ContentIndexTests extends OpenSearchIntegTestCase {
         verify(this.contentUpdaterSpy, times(1)).patch(any());
     }
 
-    /** Test the {@code ContentIndex#patch} method with an Offset with Update content type. */
+    /** Test the {@link ContentIndex#patch} method with an Offset with Update content type. */
     public void testPatchUpdate() throws Exception {
         // Mock a GetResponse that returns a valid existing document
         GetResponse mockResponse = mock(GetResponse.class);
@@ -94,7 +94,7 @@ public class ContentIndexTests extends OpenSearchIntegTestCase {
         verify(this.contentUpdaterSpy, times(1)).index((Offset) any());
     }
 
-    /** Test the {@code ContentIndex#patch} method with an Offset with Delete content type. */
+    /** Test the {@link ContentIndex#patch} method with an Offset with Delete content type. */
     public void testPatchDelete() {
         // Mock a GetResponse that returns a valid existing document
         GetResponse mockResponse = mock(GetResponse.class);
