@@ -73,10 +73,9 @@ public class PatchOperation implements ToXContentObject {
         String path = null;
         String from = null;
         String value = null;
-
         // Make sure we are at the start
         XContentParserUtils.ensureExpectedToken(
-                XContentParser.Token.START_OBJECT, parser.nextToken(), parser);
+                XContentParser.Token.START_OBJECT, parser.currentToken(), parser);
         // Iterate over the object and add each Offset object to changes array
         while (parser.nextToken() != XContentParser.Token.END_OBJECT) {
             String fieldName = parser.currentName(); // Get key
