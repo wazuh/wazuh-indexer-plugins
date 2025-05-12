@@ -63,6 +63,7 @@ allprojects {
     version = "${wazuh_version}" + ".${revision}"
     targetCompatibility = JavaVersion.VERSION_11
     sourceCompatibility = JavaVersion.VERSION_11
+
 }
 
 opensearchplugin {
@@ -83,12 +84,14 @@ dependencies {
     implementation "org.apache.httpcomponents.core5:httpcore5:5.3.1"
     implementation "org.apache.logging.log4j:log4j-slf4j-impl:2.23.1"
     implementation "org.slf4j:slf4j-api:2.0.16"
+    implementation 'com.google.code.gson:gson:2.8.9'
 
     // ZipArchive dependencies used for integration tests
     zipArchive group: 'org.opensearch.plugin', name: 'opensearch-job-scheduler', version: "${opensearch_build}"
     // Uncomment this line to load the command-manager plugin from the local Maven repository.
     // Keep it commented to allow GitHub Workflows to run the tests.
     // zipArchive group: 'com.wazuh', name:'wazuh-indexer-command-manager', version: "${wazuh_version}.${revision}"
+    implementation project(':wazuh-indexer-command-manager')
 }
 
 // No need to validate license headers since spotless checks and applies it
@@ -115,10 +118,6 @@ repositories {
 
 test {
     include '**/*Tests.class'
-}
-
-dependencies {
-    implementation 'com.google.code.gson:gson:2.8.9'
 }
 
 task integTest(type: RestIntegTestTask) {

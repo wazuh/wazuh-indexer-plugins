@@ -21,9 +21,9 @@ import org.apache.logging.log4j.Logger;
 import org.opensearch.client.Client;
 import org.opensearch.core.action.ActionListener;
 
+import com.wazuh.commandmanager.transport.CommandRequestAction;
+import com.wazuh.commandmanager.transport.CommandResponseAction;
 import com.wazuh.contentmanager.client.actions.CommandActionType;
-import com.wazuh.contentmanager.client.actions.CommandRequestAction;
-import com.wazuh.contentmanager.client.actions.CommandResponseAction;
 
 /**
  * CommandManagerClient is a singleton class that provides a client for posting commands to the
@@ -76,6 +76,26 @@ public class CommandManagerClient {
      * @param requestBody the command request body
      */
     public void postCommand(String requestBody) {
+        //        CommandRequestAction request = new CommandRequestAction(json);
+        //
+        //        transportService.sendRequest(
+        //            // target node — you may loop over all nodes or select by criteria
+        //            transportService.getLocalNode(),
+        //            CommandActionType.NAME,
+        //            request,
+        //            new ActionListenerResponseHandler<>(
+        //                ActionListener.wrap(
+        //                    response -> {
+        //                        // handle success
+        //                    },
+        //                    exception -> {
+        //                        // handle failure
+        //                    }
+        //                ),
+        //                CommandResponseAction::new
+        //            )
+        //        );
+        log.info("Posting command: {}", requestBody);
         CommandRequestAction request = new CommandRequestAction(requestBody);
         client.execute(
                 CommandActionType.INSTANCE,

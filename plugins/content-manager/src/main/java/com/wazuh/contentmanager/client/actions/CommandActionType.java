@@ -18,6 +18,8 @@ package com.wazuh.contentmanager.client.actions;
 
 import org.opensearch.action.ActionType;
 
+import com.wazuh.commandmanager.transport.CommandResponseAction;
+
 /**
  * CommandActionType is a class that defines the action type for posting commands to the Command
  * Manager Plugin. It extends the ActionType class and provides a static instance for easy access.
