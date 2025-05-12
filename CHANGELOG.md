@@ -39,6 +39,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Improve ECS documentation II [(#350)](https://github.com/wazuh/wazuh-indexer-plugins/pull/350)
 - Index RBAC information on startup [(#356)](https://github.com/wazuh/wazuh-indexer-plugins/pull/356)
 - Change snapshot download directory to Java's tmp folder [(#382)](https://github.com/wazuh/wazuh-indexer-plugins/pull/382)
+- Upgrade to Opensearch 2.19.2 [(#399)](https://github.com/wazuh/wazuh-indexer-plugins/pull/399)
 - Simplify snapshot initialization process [(#390)](https://github.com/wazuh/wazuh-indexer-plugins/pull/390)
 
 ### Deprecated
