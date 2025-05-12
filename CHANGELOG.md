@@ -55,6 +55,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Fix workflow to build plugins on push [(#384)](https://github.com/wazuh/wazuh-indexer-plugins/pull/384)
 - Fix flaky integration tests [(#391)](https://github.com/wazuh/wazuh-indexer-plugins/pull/391)
 - Fix overwrite of content offset on each start [(#401)](https://github.com/wazuh/wazuh-indexer-plugins/pull/401)
+- Fix PatchOperation parse [(#411)](https://github.com/wazuh/wazuh-indexer-plugins/pull/411)
 
 ### Security
 - 
