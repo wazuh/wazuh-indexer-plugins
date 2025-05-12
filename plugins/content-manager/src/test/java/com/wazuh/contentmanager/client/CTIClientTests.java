@@ -308,7 +308,6 @@ public class CTIClientTests extends OpenSearchIntegTestCase {
      *     - The {@link CTIClient#sendRequest(Method, String, String, Map, Header, int)} is invoked exactly 1 time.
      * </pre>
      */
-    @AwaitsFix(bugUrl = "https://github.com/wazuh/wazuh-indexer-plugins/issues/409")
     public void testGetChanges_SuccessfulRequest() {
         // Arrange
         SimpleHttpResponse response = new SimpleHttpResponse(HttpStatus.SC_SUCCESS, "OK");
