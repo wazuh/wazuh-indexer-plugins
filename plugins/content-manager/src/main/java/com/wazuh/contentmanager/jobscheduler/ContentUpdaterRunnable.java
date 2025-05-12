@@ -27,6 +27,7 @@ import com.wazuh.contentmanager.index.ContentIndex;
 import com.wazuh.contentmanager.index.ContextIndex;
 import com.wazuh.contentmanager.model.ctiapi.ConsumerInfo;
 import com.wazuh.contentmanager.updater.ContentUpdater;
+import com.wazuh.contentmanager.utils.Privileged;
 import com.wazuh.contentmanager.utils.SnapshotHelper;
 
 /** Runnable class for the Content Updater job. */
@@ -62,13 +63,13 @@ public class ContentUpdaterRunnable implements Runnable {
 
     @Override
     public void run() {
-        CTIClient ctiClient = CTIClient.getInstance();
+        CTIClient ctiClient = Privileged.doPrivilegedRequest(CTIClient::getInstance);
         ConsumerInfo newConsumerInfo = ctiClient.getCatalog();
 
         if (this.contextIndex.getOffset() == 0L) {
             SnapshotHelper snapshotHelper =
-                    new SnapshotHelper(threadPool, environment, contextIndex, contentIndex);
-            snapshotHelper.initialize();
+                    new SnapshotHelper(threadPool, environment, ctiClient, contextIndex, contentIndex);
+            snapshotHelper.initialize(newConsumerInfo);
         } else if (this.contextIndex.getOffset() == newConsumerInfo.getLastOffset()) {
             log.info("No new content to index.");
             return;

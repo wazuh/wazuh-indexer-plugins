@@ -57,19 +57,21 @@ public class SnapshotHelper implements ClusterStateListener {
      *
      * @param threadPool Used to launch the snapshot index task in its own thread
      * @param environment Needed for snapshot file handling.
+     * @param ctiClient Instance of CTIClient.
      * @param contextIndex Handles context and consumer related metadata.
      * @param contentIndex Handles indexed content.
      */
     public SnapshotHelper(
             ThreadPool threadPool,
             Environment environment,
+            CTIClient ctiClient,
             ContextIndex contextIndex,
             ContentIndex contentIndex) {
         this.threadPool = threadPool;
         this.environment = environment;
         this.contextIndex = contextIndex;
         this.contentIndex = contentIndex;
-        this.ctiClient = Privileged.doPrivilegedRequest(CTIClient::getInstance);
+        this.ctiClient = ctiClient;
     }
 
     /**
@@ -95,13 +97,14 @@ public class SnapshotHelper implements ClusterStateListener {
      * Initializes the content if {@code offset == 0}. This method downloads, decompresses and indexes
      * a CTI snapshot.
      */
-    protected void indexSnapshot() {
+    public void indexSnapshot() {
         if (this.contextIndex.getOffset() == 0) {
             Privileged.doPrivilegedRequest(
                     () -> {
                         // Download
                         Path snapshotZip =
-                                this.ctiClient.streamingDownload(this.contextIndex.getLastSnapshotLink(), this.environment);
+                                this.ctiClient.streamingDownload(
+                                        this.contextIndex.getLastSnapshotLink(), this.environment);
                         Path outputDir = this.environment.tmpFile();
 
                         try (DirectoryStream<Path> stream = this.getStream(outputDir)) {
@@ -160,8 +163,7 @@ public class SnapshotHelper implements ClusterStateListener {
      *
      * @throws IOException thrown when indexing failed
      */
-    protected void updateContextIndex() throws IOException {
-        ConsumerInfo consumerInfo = this.ctiClient.getCatalog();
+    public void updateContextIndex(ConsumerInfo consumerInfo) throws IOException {
 
         if (consumerInfo == null) {
             throw new IOException("Consumer Information is null. Skipping indexing");
@@ -180,10 +182,37 @@ public class SnapshotHelper implements ClusterStateListener {
         }
     }
 
-    /** Trigger method for a CVE index initialization from a snapshot */
+    /**
+     * Updates the context index with data from the CTI API
+     *
+     * @throws IOException thrown when indexing failed
+     */
+    public void updateContextIndex() throws IOException {
+        this.updateContextIndex(this.getCatalog());
+    }
+
+    /**
+     * Returns the ConsumerInfo Catalog
+     *
+     * @return ConsumerInfo object containing the catalog information
+     */
+    public ConsumerInfo getCatalog() {
+        return this.ctiClient.getCatalog();
+    }
+
+    /** Initializes the content index with data from the CTI API */
     public void initialize() {
+        this.initialize(this.getCatalog());
+    }
+
+    /**
+     * Trigger method for a CVE index initialization from a snapshot
+     *
+     * @param consumerInfo The consumer information to be used for the initialization
+     */
+    public void initialize(ConsumerInfo consumerInfo) {
         try {
-            this.updateContextIndex();
+            this.updateContextIndex(consumerInfo);
             this.indexSnapshot();
         } catch (IOException e) {
             log.error("Failed to initialize CVE Index from snapshot: {}", e.getMessage());

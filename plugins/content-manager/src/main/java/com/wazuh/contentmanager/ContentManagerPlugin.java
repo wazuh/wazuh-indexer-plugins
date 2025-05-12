@@ -58,7 +58,6 @@ import com.wazuh.contentmanager.index.ContextIndex;
 import com.wazuh.contentmanager.jobscheduler.ContentUpdaterJobParameter;
 import com.wazuh.contentmanager.jobscheduler.ContentUpdaterJobRunner;
 import com.wazuh.contentmanager.settings.PluginSettings;
-import com.wazuh.contentmanager.utils.SnapshotHelper;
 
 /** Main class of the Content Manager Plugin */
 public class ContentManagerPlugin extends Plugin
@@ -112,10 +111,6 @@ public class ContentManagerPlugin extends Plugin
      */
     @Override
     public void onNodeStarted(DiscoveryNode localNode) {
-        SnapshotHelper snapshotHelper =
-                new SnapshotHelper(this.threadPool, this.environment, this.contextIndex, this.contentIndex);
-        this.clusterService.addListener(snapshotHelper);
-
         try {
             log.info(
                     "Scheduled content update job with status: [{}]", scheduleContentUpdateJob().getResult());
