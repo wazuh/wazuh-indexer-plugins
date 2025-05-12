@@ -140,6 +140,13 @@ integTest {
 
 testClusters.integTest {
   testDistribution = "ARCHIVE"
+  if (System.getProperty("cluster.debug") != null) {
+    def debugPort = 5005
+    nodes.forEach { node ->
+      node.jvmArgs("-agentlib:jdwp=transport=dt_socket,server=y,suspend=y,address=*:${debugPort}")
+      debugPort += 1
+    }
+  }
   // Installs all registered zipArchive dependencies on integTest cluster nodes
   configurations.zipArchive.asFileTree.each {
     plugin(provider(new Callable<RegularFile>(){
