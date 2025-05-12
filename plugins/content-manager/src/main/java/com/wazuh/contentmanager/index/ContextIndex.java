@@ -82,7 +82,9 @@ public class ContextIndex {
                             .id(consumerInfo.getContext());
 
             IndexResponse indexResponse =
-                    this.client.index(indexRequest).get(pluginSettings.getClientTimeout(), TimeUnit.SECONDS);
+                    this.client
+                            .index(indexRequest)
+                            .get(this.pluginSettings.getClientTimeout(), TimeUnit.SECONDS);
             if (indexResponse.getResult() == DocWriteResponse.Result.CREATED
                     || indexResponse.getResult() == DocWriteResponse.Result.UPDATED) {
                 // Update consumer info (internal state).
@@ -117,7 +119,7 @@ public class ContextIndex {
             GetResponse getResponse =
                     this.client
                             .get(new GetRequest(ContextIndex.INDEX_NAME, context).preference("_local"))
-                            .get(pluginSettings.getClientTimeout(), TimeUnit.SECONDS);
+                            .get(this.pluginSettings.getClientTimeout(), TimeUnit.SECONDS);
 
             Map<String, Object> source = (Map<String, Object>) getResponse.getSourceAsMap().get(consumer);
             if (source == null) {
@@ -167,7 +169,11 @@ public class ContextIndex {
             boolean result =
                     this.index(
                             new ConsumerInfo(
-                                    pluginSettings.getConsumerId(), pluginSettings.getContextId(), 0, 0, null));
+                                    this.pluginSettings.getConsumerId(),
+                                    this.pluginSettings.getContextId(),
+                                    0,
+                                    0,
+                                    null));
             log.info("Index initialized: {}", result);
         }
     }

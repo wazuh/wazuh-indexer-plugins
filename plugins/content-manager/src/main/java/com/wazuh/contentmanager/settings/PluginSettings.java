@@ -33,14 +33,14 @@ public class PluginSettings {
     private static final String DEFAULT_CONSUMER_ID = "vd_4.8.0";
 
     private static final String DEFAULT_CONTEXT_ID = "vd_1.0.0";
-    private static final Integer DEFAULT_CTI_MAX_ATTEMPTS = 3;
-    private static final Integer DEFAULT_CTI_SLEEP_TIME = 60;
-    private static final Integer DEFAULT_MAX_ITEMS_PER_BULK = 25;
-    private static final Integer DEFAULT_MAX_CONCURRENT_BULKS = 5;
-    private static final Integer DEFAULT_CLIENT_TIMEOUT = 10;
-    private static final Integer DEFAULT_MAX_CHANGES = 1000;
-    private static final Integer DEFAULT_MAX_DOCS = 1000;
-    private static final Integer DEFAULT_JOB_SCHEDULE = 1;
+    private static final int DEFAULT_CTI_MAX_ATTEMPTS = 3;
+    private static final int DEFAULT_CTI_SLEEP_TIME = 60;
+    private static final int DEFAULT_MAX_ITEMS_PER_BULK = 25;
+    private static final int DEFAULT_MAX_CONCURRENT_BULKS = 5;
+    private static final int DEFAULT_CLIENT_TIMEOUT = 10;
+    private static final int DEFAULT_MAX_CHANGES = 1000;
+    private static final int DEFAULT_MAX_DOCS = 1000;
+    private static final int DEFAULT_JOB_SCHEDULE = 1;
 
     /** Singleton instance. */
     private static PluginSettings INSTANCE;
@@ -166,14 +166,14 @@ public class PluginSettings {
     private final String consumerId;
     private final String contextId;
     private final ClusterService clusterService;
-    private final Integer ctiClientMaxAttempts;
-    private final Integer ctiClientSleepTime;
-    private final Integer maximumItemsPerBulk;
-    private final Integer maximumConcurrentBulks;
-    private final Long clientTimeout;
-    private final Long maximumChanges;
-    private final Integer jobMaximumDocuments;
-    private final Integer jobSchedule;
+    private final int ctiClientMaxAttempts;
+    private final int ctiClientSleepTime;
+    private final int maximumItemsPerBulk;
+    private final int maximumConcurrentBulks;
+    private final long clientTimeout;
+    private final long maximumChanges;
+    private final int jobMaximumDocuments;
+    private final int jobSchedule;
 
     /**
      * Private default constructor
@@ -257,7 +257,7 @@ public class PluginSettings {
      * @return a string representing the consumer ID.
      */
     public String getConsumerId() {
-        return consumerId;
+        return this.consumerId;
     }
 
     /**
@@ -266,7 +266,7 @@ public class PluginSettings {
      * @return a String representing the context ID.
      */
     public String getContextId() {
-        return contextId;
+        return this.contextId;
     }
 
     /**
@@ -284,7 +284,7 @@ public class PluginSettings {
      * @return an Integer representing the maximum number of retry attempts.
      */
     public Integer getCtiClientMaxAttempts() {
-        return ctiClientMaxAttempts;
+        return this.ctiClientMaxAttempts;
     }
 
     /**
@@ -294,7 +294,7 @@ public class PluginSettings {
      * @return an Integer representing the duration of the sleep time for the CTI client.
      */
     public Integer getCtiClientSleepTime() {
-        return ctiClientSleepTime;
+        return this.ctiClientSleepTime;
     }
 
     /**
@@ -303,7 +303,7 @@ public class PluginSettings {
      * @return an Integer representing the maximum number of documents allowed for content indexing.
      */
     public Integer getMaxItemsPerBulk() {
-        return maximumItemsPerBulk;
+        return this.maximumItemsPerBulk;
     }
 
     /**
@@ -312,7 +312,7 @@ public class PluginSettings {
      * @return an Integer representing the maximum number of concurrent petitions.
      */
     public Integer getMaximumConcurrentBulks() {
-        return maximumConcurrentBulks;
+        return this.maximumConcurrentBulks;
     }
 
     /**
@@ -321,7 +321,7 @@ public class PluginSettings {
      * @return a Long representing the timeout duration in seconds.
      */
     public Long getClientTimeout() {
-        return clientTimeout;
+        return this.clientTimeout;
     }
 
     /**
@@ -331,7 +331,7 @@ public class PluginSettings {
      * @return a Long representing the maximum number of changes.
      */
     public Long getMaximumChanges() {
-        return maximumChanges;
+        return this.maximumChanges;
     }
 
     /**
@@ -341,7 +341,7 @@ public class PluginSettings {
      *     single job.
      */
     public Integer getJobMaximumDocuments() {
-        return jobMaximumDocuments;
+        return this.jobMaximumDocuments;
     }
 
     /**
@@ -350,7 +350,7 @@ public class PluginSettings {
      * @return an Integer representing the job execution interval in minutes
      */
     public Integer getJobSchedule() {
-        return jobSchedule;
+        return this.jobSchedule;
     }
 
     /**
@@ -385,37 +385,37 @@ public class PluginSettings {
     public String toString() {
         return "{"
                 + "ctiBaseUrl='"
-                + ctiBaseUrl
+                + this.ctiBaseUrl
                 + "', "
                 + "consumerId='"
-                + consumerId
+                + this.consumerId
                 + "', "
                 + "contextId='"
-                + contextId
+                + this.contextId
                 + "', "
                 + "ctiClientMaxAttempts="
-                + ctiClientMaxAttempts
+                + this.ctiClientMaxAttempts
                 + ", "
                 + "ctiClientSleepTime="
-                + ctiClientSleepTime
+                + this.ctiClientSleepTime
                 + ", "
                 + "maximumItemsPerBulk="
-                + maximumItemsPerBulk
+                + this.maximumItemsPerBulk
                 + ", "
                 + "maximumConcurrentBulks="
-                + maximumConcurrentBulks
+                + this.maximumConcurrentBulks
                 + ", "
                 + "clientTimeout="
-                + clientTimeout
+                + this.clientTimeout
                 + ", "
                 + "maximumChanges="
-                + maximumChanges
+                + this.maximumChanges
                 + ", "
                 + "jobMaximumDocuments="
-                + jobMaximumDocuments
+                + this.jobMaximumDocuments
                 + ", "
                 + "jobSchedule="
-                + jobSchedule
+                + this.jobSchedule
                 + "}";
     }
 }

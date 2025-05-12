@@ -156,11 +156,11 @@ public class CTIClient extends HttpClient {
         SimpleHttpResponse response =
                 this.sendRequest(
                         Method.GET,
-                        CONSUMER_CHANGES_ENDPOINT,
+                        this.CONSUMER_CHANGES_ENDPOINT,
                         null,
                         params,
                         null,
-                        pluginSettings.getCtiClientMaxAttempts());
+                        this.pluginSettings.getCtiClientMaxAttempts());
 
         // Fail fast
         if (response == null) {
@@ -192,15 +192,15 @@ public class CTIClient extends HttpClient {
         // spotless:off
         SimpleHttpResponse response = this.sendRequest(
             Method.GET,
-            CONSUMER_INFO_ENDPOINT,
+            this.CONSUMER_INFO_ENDPOINT,
             null,
             null,
             null,
-            pluginSettings.getCtiClientMaxAttempts()
+            this.pluginSettings.getCtiClientMaxAttempts()
         );
         // spotless:on
         if (response == null) {
-            throw new HttpHostConnectException("No reply to " + CONSUMER_INFO_ENDPOINT);
+            throw new HttpHostConnectException("No reply to " + this.CONSUMER_INFO_ENDPOINT);
         }
         log.debug("CTI API replied with status: [{}]", response.getCode());
         return ConsumerInfo.parse(XContentUtils.createJSONParser(response.getBodyBytes()));
@@ -262,13 +262,13 @@ public class CTIClient extends HttpClient {
                 }
             }
 
-            int currentAttempt = pluginSettings.getCtiClientMaxAttempts() - attemptsLeft + 1;
+            int currentAttempt = this.pluginSettings.getCtiClientMaxAttempts() - attemptsLeft + 1;
             log.debug(
                     "Sending {} request to [{}]. Attempt {}/{}.",
                     method,
                     endpoint,
                     currentAttempt,
-                    pluginSettings.getCtiClientMaxAttempts());
+                    this.pluginSettings.getCtiClientMaxAttempts());
             // WARN Changing this to sendRequest makes the test fail.
             response = this.doHttpClientSendRequest(method, endpoint, body, params, header);
             if (response == null) {
@@ -276,7 +276,7 @@ public class CTIClient extends HttpClient {
             }
 
             // Calculate timeout
-            int timeout = currentAttempt * pluginSettings.getCtiClientSleepTime();
+            int timeout = currentAttempt * this.pluginSettings.getCtiClientSleepTime();
             int statusCode = response.getCode();
             switch (statusCode) {
                 case 200:

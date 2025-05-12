@@ -70,7 +70,7 @@ public class CTIClientTests extends OpenSearchIntegTestCase {
         when(this.mockEnvironment.settings()).thenReturn(settings);
         this.pluginSettings =
                 PluginSettings.getInstance(this.mockEnvironment.settings(), this.mockClusterService);
-        this.ctiClient = new CTIClient("www.test.com", pluginSettings);
+        this.ctiClient = new CTIClient("www.test.com", this.pluginSettings);
         this.spyCtiClient = spy(this.ctiClient);
     }
 

@@ -288,7 +288,7 @@ public class ContentIndex {
                 }
 
                 // Index items (MAX_DOCUMENTS reached)
-                if (lineCount == pluginSettings.getMaxItemsPerBulk()) {
+                if (lineCount == this.pluginSettings.getMaxItemsPerBulk()) {
                     this.semaphore.acquire();
                     this.index(items);
                     lineCount = 0;
@@ -328,7 +328,7 @@ public class ContentIndex {
     public JsonObject getById(String resourceId)
             throws InterruptedException, ExecutionException, TimeoutException, IllegalArgumentException {
         GetResponse response =
-                this.get(resourceId).get(pluginSettings.getClientTimeout(), TimeUnit.SECONDS);
+                this.get(resourceId).get(this.pluginSettings.getClientTimeout(), TimeUnit.SECONDS);
         if (response.isExists()) {
             return JsonParser.parseString(response.getSourceAsString()).getAsJsonObject();
         }
