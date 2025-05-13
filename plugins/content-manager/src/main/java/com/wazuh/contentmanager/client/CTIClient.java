@@ -329,7 +329,7 @@ public class CTIClient extends HttpClient {
                     }
                 }
             }
-            log.info("Snapshot download completed. Saved to [{}]", path);
+            log.info("Snapshot downloaded to {}", path);
             return path;
         } catch (URISyntaxException e) {
             log.error("Failed to download snapshot. Invalid URL provided: {}", e.getMessage());
