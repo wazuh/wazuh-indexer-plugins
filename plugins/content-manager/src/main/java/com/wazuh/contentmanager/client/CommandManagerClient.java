@@ -21,9 +21,9 @@ import org.apache.logging.log4j.Logger;
 import org.opensearch.client.Client;
 import org.opensearch.core.action.ActionListener;
 
+import com.wazuh.commandmanager.transport.CommandActionType;
 import com.wazuh.commandmanager.transport.CommandRequestAction;
 import com.wazuh.commandmanager.transport.CommandResponseAction;
-import com.wazuh.contentmanager.client.actions.CommandActionType;
 
 /**
  * CommandManagerClient is a singleton class that provides a client for posting commands to the

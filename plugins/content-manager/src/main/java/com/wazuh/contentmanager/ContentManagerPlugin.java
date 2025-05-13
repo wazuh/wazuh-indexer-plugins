@@ -92,9 +92,8 @@ public class ContentManagerPlugin extends Plugin
      */
     @Override
     public void onNodeStarted(DiscoveryNode localNode) {
-        String is_dev = System.getenv("IS_DEV");
-        log.info("Environment var: {}", is_dev);
-        if (is_dev != null) {
+        log.info("Test mode: {}", PluginSettings.getInstance().getTest_mode());
+        if (PluginSettings.getInstance().getTest_mode()) {
             log.info("Dev environment detected, posting test command.");
             this.commandManagerClient.postCommand(Command.create("0"));
         }
@@ -105,7 +104,7 @@ public class ContentManagerPlugin extends Plugin
 
     @Override
     public List<Setting<?>> getSettings() {
-        return List.of(PluginSettings.CTI_API_URL);
+        return List.of(PluginSettings.CTI_API_URL, PluginSettings.TEST_MODE);
     }
 
     @Override

@@ -55,8 +55,12 @@ public class PluginSettings {
                     Setting.Property.NodeScope,
                     Setting.Property.Filtered);
 
+    public static final Setting<Boolean> TEST_MODE =
+            Setting.boolSetting(
+                    "wazuh-test-mode", false, Setting.Property.NodeScope, Setting.Property.Dynamic);
     private final String ctiBaseUrl;
     private final ClusterService clusterService;
+    private final Boolean test_mode;
 
     /**
      * Private default constructor
@@ -66,6 +70,7 @@ public class PluginSettings {
     private PluginSettings(@NonNull final Settings settings, ClusterService clusterService) {
         this.ctiBaseUrl = CTI_API_URL.get(settings);
         this.clusterService = clusterService;
+        this.test_mode = TEST_MODE.get(settings);
 
         log.debug("Settings.loaded: {}", this.toString());
     }
@@ -115,5 +120,9 @@ public class PluginSettings {
      */
     public String getClusterBaseUrl() {
         return ClusterInfoHelper.getClusterBaseUrl(this.clusterService);
+    }
+
+    public Boolean getTest_mode() {
+        return this.test_mode;
     }
 }
