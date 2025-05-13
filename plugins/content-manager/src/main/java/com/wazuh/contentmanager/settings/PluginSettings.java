@@ -67,8 +67,8 @@ public class PluginSettings {
 
     private final String ctiBaseUrl;
     private final ClusterService clusterService;
-    private final SecureString authUsername;
-    private final SecureString authPassword;
+    private final SecureString username;
+    private final SecureString password;
 
     /**
      * Private default constructor
@@ -79,8 +79,8 @@ public class PluginSettings {
         this.ctiBaseUrl = CTI_API_URL.get(settings);
         this.clusterService = clusterService;
 
-        this.authUsername = COMMAND_MANAGER_USERNAME.get(settings);
-        this.authPassword = COMMAND_MANAGER_PASSWORD.get(settings);
+        this.username = COMMAND_MANAGER_USERNAME.get(settings);
+        this.password = COMMAND_MANAGER_PASSWORD.get(settings);
 
         log.debug("Settings loaded: {}", this.toString());
     }
@@ -138,7 +138,7 @@ public class PluginSettings {
      * @return a string with the Content Manager authentication username.
      */
     public String getAuthUsername() {
-        return this.authUsername.toString();
+        return this.username.toString();
     }
 
     /**
@@ -147,6 +147,6 @@ public class PluginSettings {
      * @return a string with the Content Manager authentication password.
      */
     public String getAuthPassword() {
-        return this.authPassword.toString();
+        return this.password.toString();
     }
 }

@@ -62,23 +62,33 @@ public class CommandManagerClient extends HttpClient {
     }
 
     /**
+     * Builds a base64 encoded string representation of username:password.
+     *
+     * @return base 64 encoded string for basic authentication.
+     */
+    public String getEncodedAuth() {
+        String username = PluginSettings.getInstance().getAuthUsername();
+        String password = PluginSettings.getInstance().getAuthPassword();
+        String auth = username + ":" + password;
+        return Base64.getEncoder().encodeToString(auth.getBytes(StandardCharsets.UTF_8));
+    }
+
+    /**
      * Sends a POST request to execute a command via the Command Manager API.
      *
      * @param requestBody The JSON request body containing the command details.
      */
     public void post(String requestBody) {
-        String username = PluginSettings.getInstance().getAuthUsername();
-        String password = PluginSettings.getInstance().getAuthPassword();
-        String auth = username + ":" + password;
-        String encodedAuth = Base64.getEncoder().encodeToString(auth.getBytes(StandardCharsets.UTF_8));
-        // Build headers
-        Header authentication = new BasicHeader(HttpHeaders.AUTHORIZATION, "Basic " + encodedAuth);
-        Header contentType = new BasicHeader(HttpHeaders.CONTENT_TYPE, ContentType.APPLICATION_JSON);
-        // Send post request to command manager API.
-        SimpleHttpResponse response =
-                this.sendRequest(
-                        Method.POST, POST_COMMAND_ENDPOINT, requestBody, null, authentication, contentType);
-
+        // spotless:off
+        SimpleHttpResponse response = this.sendRequest(
+            Method.POST,
+            CommandManagerClient.POST_COMMAND_ENDPOINT,
+            requestBody,
+            null,
+            new BasicHeader(HttpHeaders.AUTHORIZATION, "Basic " + this.getEncodedAuth()),
+            new BasicHeader(HttpHeaders.CONTENT_TYPE, ContentType.APPLICATION_JSON)
+        );
+        // spotless:on
         this.handlePostResponse(response);
     }
 

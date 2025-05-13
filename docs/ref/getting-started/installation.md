@@ -191,7 +191,8 @@ Edit the `/etc/wazuh-indexer/opensearch.yml` configuration file and replace the 
 
   f. Create a keystore to securely store authentication credentials and add the default _username_ and _password_ to the secrets keystore:
   > The default values for the user and password are `admin:admin`.
-  ```shellsession
+  ```bash
+  /usr/share/wazuh-indexer/bin/opensearch-keystore create
   echo '<USERNAME>' | /usr/share/wazuh-indexer/bin/opensearch-keystore add indexer.username
   echo '<PASSWORD>' | /usr/share/wazuh-indexer/bin/opensearch-keystore add indexer.password
   sudo chown wazuh-indexer:wazuh-indexer /etc/wazuh-indexer/opensearch.keystore

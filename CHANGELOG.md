@@ -56,7 +56,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Fix flaky integration tests [(#391)](https://github.com/wazuh/wazuh-indexer-plugins/pull/391)
 - Fix overwrite of content offset on each start [(#401)](https://github.com/wazuh/wazuh-indexer-plugins/pull/401)
 - Fix PatchOperation parse [(#411)](https://github.com/wazuh/wazuh-indexer-plugins/pull/411)
-- Fix unauthorized request to the Command Manager API [(#)](https://github.com/wazuh/wazuh-indexer-plugins/pull/394)
+- Fix unauthorized request to the Command Manager API [(#394)](https://github.com/wazuh/wazuh-indexer-plugins/pull/394)
 
 ### Security
 -

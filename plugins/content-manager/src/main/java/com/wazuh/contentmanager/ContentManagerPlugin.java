@@ -27,10 +27,8 @@ import org.opensearch.core.common.io.stream.NamedWriteableRegistry;
 import org.opensearch.core.xcontent.NamedXContentRegistry;
 import org.opensearch.env.Environment;
 import org.opensearch.env.NodeEnvironment;
-import org.opensearch.plugins.ActionPlugin;
 import org.opensearch.plugins.ClusterPlugin;
 import org.opensearch.plugins.Plugin;
-import org.opensearch.plugins.ReloadablePlugin;
 import org.opensearch.repositories.RepositoriesService;
 import org.opensearch.script.ScriptService;
 import org.opensearch.threadpool.ThreadPool;
@@ -46,8 +44,7 @@ import com.wazuh.contentmanager.utils.Privileged;
 import com.wazuh.contentmanager.utils.SnapshotManager;
 
 /** Main class of the Content Manager Plugin */
-public class ContentManagerPlugin extends Plugin
-        implements ClusterPlugin, ActionPlugin, ReloadablePlugin {
+public class ContentManagerPlugin extends Plugin implements ClusterPlugin {
     private static final Logger log = LogManager.getLogger(ContentManagerPlugin.class);
     private ContextIndex contextIndex;
     private ContentIndex contentIndex;
@@ -133,7 +130,4 @@ public class ContentManagerPlugin extends Plugin
                 PluginSettings.COMMAND_MANAGER_USERNAME,
                 PluginSettings.COMMAND_MANAGER_PASSWORD);
     }
-
-    @Override
-    public void reload(Settings settings) throws Exception {}
 }
