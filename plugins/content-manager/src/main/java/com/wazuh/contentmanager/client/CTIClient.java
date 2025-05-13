@@ -20,6 +20,7 @@ import org.apache.hc.client5.http.HttpHostConnectException;
 import org.apache.hc.client5.http.async.methods.*;
 import org.apache.hc.client5.http.classic.methods.HttpGet;
 import org.apache.hc.client5.http.impl.classic.CloseableHttpClient;
+import org.apache.hc.client5.http.impl.classic.CloseableHttpResponse;
 import org.apache.hc.client5.http.impl.classic.HttpClients;
 import org.apache.hc.core5.http.*;
 import org.apache.logging.log4j.LogManager;
@@ -308,30 +309,27 @@ public class CTIClient extends HttpClient {
 
             // Download
             log.info("Starting snapshot download from [{}]", uri);
-            client.execute(
-                    request,
-                    response -> {
-                        if (response.getEntity() == null) {
-                            log.error("No reply from the server");
-                            return new SimpleHttpResponse(HttpStatus.SC_SERVER_ERROR);
-                        }
-
-                        InputStream input = response.getEntity().getContent();
-                        OutputStream out =
-                                new BufferedOutputStream(
-                                        Files.newOutputStream(
-                                                path,
-                                                StandardOpenOption.CREATE,
-                                                StandardOpenOption.WRITE,
-                                                StandardOpenOption.TRUNCATE_EXISTING));
+            try (CloseableHttpResponse response = client.execute(request)) {
+                if (response.getEntity() != null) {
+                    // Write to disk
+                    InputStream input = response.getEntity().getContent();
+                    try (OutputStream out =
+                            new BufferedOutputStream(
+                                    Files.newOutputStream(
+                                            path,
+                                            StandardOpenOption.CREATE,
+                                            StandardOpenOption.WRITE,
+                                            StandardOpenOption.TRUNCATE_EXISTING))) {
 
                         int bytesRead;
                         byte[] buffer = new byte[1024];
                         while ((bytesRead = input.read(buffer)) != -1) {
                             out.write(buffer, 0, bytesRead);
                         }
-                        return new SimpleHttpResponse(HttpStatus.SC_CREATED);
-                    });
+                    }
+                }
+            }
+            log.info("Snapshot download completed. Saved to [{}]", path);
             return path;
         } catch (URISyntaxException e) {
             log.error("Failed to download snapshot. Invalid URL provided: {}", e.getMessage());
