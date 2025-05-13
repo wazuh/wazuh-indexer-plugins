@@ -25,7 +25,7 @@ paths:
                     - action:
                         name: restart
                         args: {}
-                        version: "5.0.0"
+                        version: "6.0.0"
                       source: "Users/Services"
                       user: "Management API"
                       timeout: 100
@@ -39,7 +39,7 @@ paths:
                     - action:
                         name: fetch-config
                         args: {}
-                        version: "5.0.0"
+                        version: "6.0.0"
                       source: "Users/Services"
                       user: "Management API"
                       timeout: 100
@@ -56,7 +56,7 @@ paths:
                           groups:
                             - "group_1"
                             - "group_2"
-                        version: "5.0.0"
+                        version: "6.0.0"
                       source: "Users/Services"
                       user: "Management API"
                       timeout: 100
@@ -72,7 +72,7 @@ paths:
                         args:
                           index: "content-index"
                           offset: "1111"
-                        version: "5.0.0"
+                        version: "6.0.0"
                       source: "Content Manager"
                       timeout: 100
                       target:
@@ -88,7 +88,7 @@ paths:
                           index:
                             - "index-a"   # Optional: You can specify multiple indices
                             - "index-b"
-                        version: "5.0.0"
+                        version: "6.0.0"
                       source: "Users/Services"
                       timeout: 100
                       target:
@@ -155,4 +155,4 @@ components:
                 - "group_2"
         version:
           type: string
-          example: "5.0.0"
+          example: "6.0.0"
