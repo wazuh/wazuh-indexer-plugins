@@ -189,6 +189,13 @@ Edit the `/etc/wazuh-indexer/opensearch.yml` configuration file and replace the 
   - "CN=node-3,OU=Wazuh,O=Wazuh,L=California,C=US"
   ```
 
+  f. Create a keystore to securely store authentication credentials and add the default _username_ and _password_ to the secrets keystore:
+  > The default values for the user and password are `admin:admin`.
+  ```shellsession
+  echo '<USERNAME>' | /usr/share/wazuh-indexer/bin/opensearch-keystore add indexer.username
+  echo '<PASSWORD>' | /usr/share/wazuh-indexer/bin/opensearch-keystore add indexer.password
+  sudo chown wazuh-indexer:wazuh-indexer /etc/wazuh-indexer/opensearch.keystore
+  ```
 ### Deploying certificates
 
 > **Note**: Make sure that a copy of the `nazuh-certificates.tar` file, created during the initial configuration step, is placed in your working directory.

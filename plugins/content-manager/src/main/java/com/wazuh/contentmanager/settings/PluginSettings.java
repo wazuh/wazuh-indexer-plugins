@@ -25,7 +25,6 @@ import org.opensearch.common.settings.Settings;
 import org.opensearch.core.common.settings.SecureString;
 
 import com.wazuh.contentmanager.utils.ClusterInfo;
-
 import reactor.util.annotation.NonNull;
 
 /** Singleton class to manage the plugin's settings. */
@@ -57,11 +56,11 @@ public class PluginSettings {
 
     /** Command Manager authentication user. */
     public static final Setting<SecureString> COMMAND_MANAGER_USERNAME =
-            SecureSetting.secureString("command_manager.auth.username", null);
+            SecureSetting.secureString("indexer.username", null);
 
     /** Command Manager authentication password. */
     public static final Setting<SecureString> COMMAND_MANAGER_PASSWORD =
-            SecureSetting.secureString("command_manager.auth.password", null);
+            SecureSetting.secureString("indexer.password", null);
 
     /** Timeout of indexing operations */
     public static final long TIMEOUT = 10L;
