@@ -25,12 +25,14 @@ import org.opensearch.action.index.IndexRequest;
 import org.opensearch.action.index.IndexResponse;
 import org.opensearch.client.Client;
 import org.opensearch.common.xcontent.XContentFactory;
+import org.opensearch.core.action.ActionListener;
 import org.opensearch.core.xcontent.ToXContent;
 
 import java.io.IOException;
 import java.util.Locale;
 import java.util.Map;
 import java.util.NoSuchElementException;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
@@ -145,27 +147,12 @@ public class ContextIndex {
                             .get(new GetRequest(ContextIndex.INDEX_NAME, context).preference("_local"))
                             .get(PluginSettings.TIMEOUT, TimeUnit.SECONDS);
 
-                Map<String, Object> source =
-                        (Map<String, Object>) getResponse.getSourceAsMap().get(consumer);
-                if (source == null) {
-                    throw new NoSuchElementException(
-                            String.format(
-                                    Locale.ROOT, "Consumer [%s] not found in context [%s]", consumer, context));
-                }
-
-                long offset = ContextIndex.asLong(source.get(ConsumerInfo.OFFSET));
-                long lastOffset = ContextIndex.asLong(source.get(ConsumerInfo.LAST_OFFSET));
-                String snapshot = (String) source.get(ConsumerInfo.LAST_SNAPSHOT_LINK);
-                this.consumerInfo = new ConsumerInfo(consumer, context, offset, lastOffset, snapshot);
-            } catch (InterruptedException | ExecutionException | TimeoutException e) {
-                log.error(
-                        "Failed to retrieve context [{}], consumer [{}]: {}",
-                        context,
-                        consumer,
-                        e.getMessage());
-                this.consumerInfo = new ConsumerInfo(consumer, context, 0L, 0L, "");
+            Map<String, Object> source = (Map<String, Object>) getResponse.getSourceAsMap().get(consumer);
+            if (source == null) {
+                throw new NoSuchElementException(
+                        String.format(
+                                Locale.ROOT, "Consumer [%s] not found in context [%s]", consumer, context));
             }
-
             // Update consumer info (internal state)
             long offset = ContextIndex.asLong(source.get(ConsumerInfo.OFFSET));
             long lastOffset = ContextIndex.asLong(source.get(ConsumerInfo.LAST_OFFSET));
@@ -175,6 +162,7 @@ public class ContextIndex {
                     "Fetched consumer from the [{}] index: {}", ContextIndex.INDEX_NAME, this.consumerInfo);
         } catch (InterruptedException | ExecutionException | TimeoutException e) {
             log.error("Failed to fetch consumer [{}][{}]: {}", context, consumer, e.getMessage());
+            this.consumerInfo = new ConsumerInfo(consumer, context, 0L, 0L, "");
         }
 
         // May be null if the request fails and was not initialized on previously.

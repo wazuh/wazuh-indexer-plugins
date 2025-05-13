@@ -16,30 +16,29 @@
  */
 package com.wazuh.contentmanager.jobscheduler;
 
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
-import org.opensearch.client.Client;
 import org.opensearch.env.Environment;
 import org.opensearch.jobscheduler.spi.JobExecutionContext;
 import org.opensearch.jobscheduler.spi.ScheduledJobParameter;
 import org.opensearch.jobscheduler.spi.ScheduledJobRunner;
 import org.opensearch.threadpool.ThreadPool;
 
+import com.wazuh.contentmanager.client.CTIClient;
 import com.wazuh.contentmanager.index.ContentIndex;
 import com.wazuh.contentmanager.index.ContextIndex;
+import com.wazuh.contentmanager.utils.Privileged;
 
 /** Class to run the Content Updater job. */
 public class ContentUpdaterJobRunner implements ScheduledJobRunner {
-    private static final Logger log = LogManager.getLogger(ContentUpdaterJobRunner.class);
 
     /** Singleton instance. */
     private static ContentUpdaterJobRunner INSTANCE;
 
-    private Client client;
+    private CTIClient client;
     private ThreadPool threadPool;
     private Environment environment;
     private ContentIndex contentIndex;
     private ContextIndex contextIndex;
+    private Privileged privileged;
 
     /** Private default constructor. */
     private ContentUpdaterJobRunner() {}
@@ -64,17 +63,20 @@ public class ContentUpdaterJobRunner implements ScheduledJobRunner {
      * @param environment OpenSearch's environment.
      * @param contextIndex Handles context and consumer related metadata.
      * @param contentIndex Handles indexed content.
+     * @param privileged Handles privileged operations.
      * @return the singleton instance.
      */
     public static ContentUpdaterJobRunner getInstance(
-            Client client,
+            CTIClient client,
             ThreadPool threadPool,
             Environment environment,
             ContextIndex contextIndex,
-            ContentIndex contentIndex) {
+            ContentIndex contentIndex,
+            Privileged privileged) {
         if (ContentUpdaterJobRunner.INSTANCE == null) {
             INSTANCE = new ContentUpdaterJobRunner();
         }
+        INSTANCE.setPrivileged(privileged);
         INSTANCE.setClient(client);
         INSTANCE.setThreadPool(threadPool);
         INSTANCE.setContextIndex(contextIndex);
@@ -88,8 +90,22 @@ public class ContentUpdaterJobRunner implements ScheduledJobRunner {
             ScheduledJobParameter scheduledJobParameter, JobExecutionContext jobExecutionContext) {
         ContentUpdaterRunnable jobRunnable =
                 new ContentUpdaterRunnable(
-                        this.client, this.threadPool, this.environment, this.contextIndex, this.contentIndex);
+                        this.threadPool,
+                        this.environment,
+                        this.contextIndex,
+                        this.contentIndex,
+                        this.client,
+                        this.privileged);
         this.threadPool.generic().submit(jobRunnable);
+    }
+
+    /**
+     * Sets the privileged object
+     *
+     * @param privileged Handles privileged operations.
+     */
+    public void setPrivileged(Privileged privileged) {
+        this.privileged = privileged;
     }
 
     /**
@@ -97,7 +113,7 @@ public class ContentUpdaterJobRunner implements ScheduledJobRunner {
      *
      * @param client OpenSearch's client.
      */
-    public void setClient(Client client) {
+    public void setClient(CTIClient client) {
         this.client = client;
     }
 

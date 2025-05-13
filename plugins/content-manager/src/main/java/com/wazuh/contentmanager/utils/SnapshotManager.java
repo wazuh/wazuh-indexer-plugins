@@ -51,6 +51,7 @@ public class SnapshotManager {
      * @param environment Needed for snapshot file handling.
      * @param contextIndex Handles context and consumer related metadata.
      * @param contentIndex Handles indexed content.
+     * @param privileged Handles privileged actions.
      */
     public SnapshotManager(
             Environment environment,
@@ -98,7 +99,8 @@ public class SnapshotManager {
                     () -> {
                         // Download snapshot.
                         Path snapshotZip =
-                                this.ctiClient.download(consumerInfo.getLastSnapshotLink(), this.environment);
+                                this.ctiClient.streamingDownload(
+                                        consumerInfo.getLastSnapshotLink(), this.environment);
                         Path outputDir = this.environment.tmpFile();
 
                         try (DirectoryStream<Path> stream = this.getStream(outputDir)) {
@@ -153,10 +155,9 @@ public class SnapshotManager {
      *
      * @throws IOException thrown when indexing failed
      */
-    protected ConsumerInfo initConsumer() throws IOException {
+    protected ConsumerInfo initConsumer(ConsumerInfo latest) throws IOException {
         ConsumerInfo current =
                 this.contextIndex.get(PluginSettings.CONTEXT_ID, PluginSettings.CONSUMER_ID);
-        ConsumerInfo latest = this.ctiClient.getConsumerInfo();
         log.debug("Current consumer info: {}", current);
         log.debug("Latest consumer info: {}", latest);
 
@@ -193,15 +194,38 @@ public class SnapshotManager {
         return current;
     }
 
+    /**
+     * Updates the context index with data from the CTI API
+     *
+     * @throws IOException thrown when indexing failed
+     */
+    protected ConsumerInfo initConsumer() throws IOException {
+        return this.initConsumer(this.ctiClient.getConsumerInfo());
+    }
+
     /** Trigger method for content initialization */
     public void initialize() {
+        ConsumerInfo consumerInfo = null;
+        try {
+            consumerInfo = this.initConsumer();
+        } catch (IOException e) {
+            log.error("Failed to initialize: {}", e.getMessage());
+        }
+        this.initialize(consumerInfo);
+    }
+
+    /**
+     * Trigger method for content initialization
+     *
+     * @param consumerInfo ConsumerInfo object to be used for initialization
+     */
+    public void initialize(ConsumerInfo consumerInfo) {
         try {
             this.semaphore.acquire();
             // The Command Manager client needs the cluster to be up (depends on PluginSettings),
             // so we initialize it here once the node is up and ready.
             this.commandClient = this.privileged.doPrivilegedRequest(CommandManagerClient::getInstance);
-            ConsumerInfo consumerInfo = this.initConsumer();
-            this.indexSnapshot(consumerInfo);
+            this.indexSnapshot(this.initConsumer(consumerInfo));
             semaphore.release();
         } catch (IOException | InterruptedException e) {
             log.error("Failed to initialize: {}", e.getMessage());
