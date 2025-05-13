@@ -296,50 +296,6 @@ public class CTIClient extends HttpClient {
         return response; // Return null if all attempts fail
     }
 
-    /**
-     * Downloads a file from the specified URI and saves it to the temporary directory.
-     *
-     * @param URI URI to download the file from.
-     * @param environment Environment to resolve the file path.
-     * @return The path to the downloaded file.
-     */
-    public Path streamingDownload(String URI, Environment environment) {
-        try (CloseableHttpClient client = HttpClients.createDefault()) {
-            HttpGet request = new HttpGet(URI);
-
-            try (CloseableHttpResponse response = client.execute(request)) {
-                HttpEntity entity = response.getEntity();
-                if (entity != null) {
-                    URI uri = new URI(URI);
-                    String filename = uri.getPath().substring(uri.getPath().lastIndexOf('/') + 1);
-                    Path path = environment.tmpFile().resolve(filename);
-                    // Write to disk
-                    InputStream input = entity.getContent();
-                    try (OutputStream out =
-                            new BufferedOutputStream(
-                                    Files.newOutputStream(
-                                            path,
-                                            StandardOpenOption.CREATE,
-                                            StandardOpenOption.WRITE,
-                                            StandardOpenOption.TRUNCATE_EXISTING))) {
-
-                        int bytesRead;
-                        byte[] buffer = new byte[1024];
-                        while ((bytesRead = input.read(buffer)) != -1) {
-                            out.write(buffer, 0, bytesRead);
-                        }
-                    }
-                    return path;
-                }
-            } catch (IOException | URISyntaxException e) {
-                throw new RuntimeException(e);
-            }
-            return null;
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
-    }
-
     /***
      * Downloads the CTI snapshot.
      *
@@ -348,43 +304,41 @@ public class CTIClient extends HttpClient {
      * @return The downloaded file's name
      */
     public Path download(String snapshotURI, Environment env) {
-        try {
-            // Setup
-            URI uri = new URI(snapshotURI);
-            String filename = uri.getPath().substring(uri.getPath().lastIndexOf('/') + 1);
-            Path path = env.tmpFile().resolve(filename);
-            // Download
-            log.info("Starting snapshot download from [{}]", uri);
-            SimpleHttpRequest request = SimpleHttpRequest.create(Method.GET, uri);
-            SimpleHttpResponse response = CTIClient.httpClient.execute(request, null).get();
+        try (CloseableHttpClient client = HttpClients.createDefault()) {
+            HttpGet request = new HttpGet(snapshotURI);
+            CloseableHttpResponse response = client.execute(request);
+            HttpEntity entity = response.getEntity();
+            if (entity != null) {
+                URI uri = new URI(snapshotURI);
+                String filename = uri.getPath().substring(uri.getPath().lastIndexOf('/') + 1);
+                Path path = env.tmpFile().resolve(filename);
+                log.info("Starting snapshot download from [{}]", uri);
 
-            // Write to disk
-            InputStream input = new ByteArrayInputStream(response.getBodyBytes());
-            try (OutputStream out =
-                    new BufferedOutputStream(
-                            Files.newOutputStream(
-                                    path,
-                                    StandardOpenOption.CREATE,
-                                    StandardOpenOption.WRITE,
-                                    StandardOpenOption.TRUNCATE_EXISTING))) {
+                // Write to disk
+                InputStream input = entity.getContent();
+                OutputStream out =
+                        new BufferedOutputStream(
+                                Files.newOutputStream(
+                                        path,
+                                        StandardOpenOption.CREATE,
+                                        StandardOpenOption.WRITE,
+                                        StandardOpenOption.TRUNCATE_EXISTING));
 
                 int bytesRead;
                 byte[] buffer = new byte[1024];
                 while ((bytesRead = input.read(buffer)) != -1) {
                     out.write(buffer, 0, bytesRead);
                 }
-            } catch (IOException | NullPointerException e) {
-                log.error("Failed to write snapshot {}", e.getMessage());
+                return path;
             }
-            log.info("Snapshot downloaded to {}", path);
-            return path;
+            return null;
         } catch (URISyntaxException e) {
             log.error("Failed to download snapshot. Invalid URL provided: {}", e.getMessage());
-        } catch (ExecutionException e) {
+        } catch (IOException e) {
             log.error("Snapshot download failed: {}", e.getMessage());
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt(); // Restore the interrupted status
-            log.error("Snapshot download was interrupted: {}", e.getMessage());
+        } catch (IllegalArgumentException e) {
+            log.error("Invalid URL: {}", e.getMessage());
+            ;
         }
         return null;
     }
