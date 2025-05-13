@@ -20,7 +20,6 @@ import org.apache.hc.client5.http.HttpHostConnectException;
 import org.apache.hc.client5.http.async.methods.*;
 import org.apache.hc.client5.http.classic.methods.HttpGet;
 import org.apache.hc.client5.http.impl.classic.CloseableHttpClient;
-import org.apache.hc.client5.http.impl.classic.CloseableHttpResponse;
 import org.apache.hc.client5.http.impl.classic.HttpClients;
 import org.apache.hc.core5.http.*;
 import org.apache.logging.log4j.LogManager;
@@ -301,40 +300,43 @@ public class CTIClient extends HttpClient {
      */
     public Path download(String snapshotURI, Environment env) {
         try (CloseableHttpClient client = HttpClients.createDefault()) {
-            HttpGet request = new HttpGet(snapshotURI);
-            CloseableHttpResponse response = client.execute(request);
-            HttpEntity entity = response.getEntity();
-            if (entity != null) {
-                URI uri = new URI(snapshotURI);
-                String filename = uri.getPath().substring(uri.getPath().lastIndexOf('/') + 1);
-                Path path = env.tmpFile().resolve(filename);
-                log.info("Starting snapshot download from [{}]", uri);
+            // Setup
+            final URI uri = new URI(snapshotURI);
+            final HttpGet request = new HttpGet(uri);
+            final String filename = uri.getPath().substring(uri.getPath().lastIndexOf('/') + 1);
+            final Path path = env.tmpFile().resolve(filename);
 
-                // Write to disk
-                InputStream input = entity.getContent();
-                OutputStream out =
-                        new BufferedOutputStream(
-                                Files.newOutputStream(
-                                        path,
-                                        StandardOpenOption.CREATE,
-                                        StandardOpenOption.WRITE,
-                                        StandardOpenOption.TRUNCATE_EXISTING));
+            // Download
+            log.info("Starting snapshot download from [{}]", uri);
+            client.execute(
+                    request,
+                    response -> {
+                        if (response.getEntity() == null) {
+                            log.error("No reply from the server");
+                            return new SimpleHttpResponse(HttpStatus.SC_SERVER_ERROR);
+                        }
 
-                int bytesRead;
-                byte[] buffer = new byte[1024];
-                while ((bytesRead = input.read(buffer)) != -1) {
-                    out.write(buffer, 0, bytesRead);
-                }
-                return path;
-            }
-            return null;
+                        InputStream input = response.getEntity().getContent();
+                        OutputStream out =
+                                new BufferedOutputStream(
+                                        Files.newOutputStream(
+                                                path,
+                                                StandardOpenOption.CREATE,
+                                                StandardOpenOption.WRITE,
+                                                StandardOpenOption.TRUNCATE_EXISTING));
+
+                        int bytesRead;
+                        byte[] buffer = new byte[1024];
+                        while ((bytesRead = input.read(buffer)) != -1) {
+                            out.write(buffer, 0, bytesRead);
+                        }
+                        return new SimpleHttpResponse(HttpStatus.SC_CREATED);
+                    });
+            return path;
         } catch (URISyntaxException e) {
             log.error("Failed to download snapshot. Invalid URL provided: {}", e.getMessage());
         } catch (IOException e) {
             log.error("Snapshot download failed: {}", e.getMessage());
-        } catch (IllegalArgumentException e) {
-            log.error("Invalid URL: {}", e.getMessage());
-            ;
         }
         return null;
     }
