@@ -16,6 +16,8 @@
  */
 package com.wazuh.contentmanager;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.opensearch.client.Client;
 import org.opensearch.cluster.metadata.IndexNameExpressionResolver;
 import org.opensearch.cluster.node.DiscoveryNode;
@@ -40,16 +42,18 @@ import java.util.function.Supplier;
 import com.wazuh.contentmanager.index.ContentIndex;
 import com.wazuh.contentmanager.index.ContextIndex;
 import com.wazuh.contentmanager.settings.PluginSettings;
-import com.wazuh.contentmanager.utils.SnapshotHelper;
+import com.wazuh.contentmanager.utils.Privileged;
+import com.wazuh.contentmanager.utils.SnapshotManager;
 
 /** Main class of the Content Manager Plugin */
 public class ContentManagerPlugin extends Plugin
         implements ClusterPlugin, ActionPlugin, ReloadablePlugin {
+    private static final Logger log = LogManager.getLogger(ContentManagerPlugin.class);
     private ContextIndex contextIndex;
     private ContentIndex contentIndex;
-    private Environment environment;
-    private ClusterService clusterService;
+    private SnapshotManager snapshotManager;
     private ThreadPool threadPool;
+    private ClusterService clusterService;
 
     @Override
     public Collection<Object> createComponents(
@@ -65,25 +69,61 @@ public class ContentManagerPlugin extends Plugin
             IndexNameExpressionResolver indexNameExpressionResolver,
             Supplier<RepositoriesService> repositoriesServiceSupplier) {
         PluginSettings.getInstance(environment.settings(), clusterService);
+        this.threadPool = threadPool;
+        this.clusterService = clusterService;
         this.contextIndex = new ContextIndex(client);
         this.contentIndex = new ContentIndex(client);
-        this.environment = environment;
-        this.clusterService = clusterService;
-        this.threadPool = threadPool;
-
+        this.snapshotManager =
+                new SnapshotManager(environment, this.contextIndex, this.contentIndex, new Privileged());
         return Collections.emptyList();
     }
 
     /**
-     * Call the CTI API on startup and get the latest consumer information into an index
+     * The initialization requires the existence of the {@link ContentIndex#INDEX_NAME} index. For
+     * this reason, we use a ClusterStateListener to listen for the creation of this index by the
+     * "setup" plugin, to then proceed with the initialization.
      *
      * @param localNode local Node info
      */
     @Override
     public void onNodeStarted(DiscoveryNode localNode) {
-        SnapshotHelper snapshotHelper =
-                new SnapshotHelper(this.threadPool, this.environment, this.contextIndex, this.contentIndex);
-        this.clusterService.addListener(snapshotHelper);
+        // Only cluster managers are responsible for the initialization.
+        if (localNode.isClusterManagerNode()) {
+            if (this.clusterService.state().routingTable().hasIndex(ContentIndex.INDEX_NAME)) {
+                this.start();
+            }
+
+            // To be removed once we include the Job Scheduler.
+            this.clusterService.addListener(
+                    event -> {
+                        if (event.indicesCreated().contains(ContentIndex.INDEX_NAME)) {
+                            this.start();
+                        }
+                    });
+        }
+    }
+
+    /**
+     * Initialize. The initialization consists of:
+     *
+     * <pre>
+     *     1. fetching the latest consumer's information from the CTI API.
+     *     2. initialize from a snapshot if the local consumer does not exist, or its offset is 0.
+     * </pre>
+     */
+    private void start() {
+        try {
+            this.threadPool
+                    .generic()
+                    .execute(
+                            () -> {
+                                this.contextIndex.createIndex();
+                                this.snapshotManager.initialize();
+                            });
+        } catch (Exception e) {
+            // Log or handle exception
+            log.error("Error initializing snapshot helper: {}", e.getMessage(), e);
+        }
     }
 
     @Override

@@ -48,25 +48,27 @@ import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
-import com.wazuh.contentmanager.model.ctiapi.ContentChanges;
-import com.wazuh.contentmanager.model.ctiapi.Offset;
-import com.wazuh.contentmanager.model.ctiapi.PatchOperation;
-import com.wazuh.contentmanager.util.JsonPatch;
-import com.wazuh.contentmanager.util.XContentUtils;
+import com.wazuh.contentmanager.model.cti.ContentChanges;
+import com.wazuh.contentmanager.model.cti.Offset;
+import com.wazuh.contentmanager.model.cti.PatchOperation;
+import com.wazuh.contentmanager.settings.PluginSettings;
+import com.wazuh.contentmanager.utils.ClusterInfo;
+import com.wazuh.contentmanager.utils.JsonPatch;
+import com.wazuh.contentmanager.utils.XContentUtils;
 
-/** Manages operations for the Wazuh CVE content index. */
+/** Manages operations for a content index. */
 public class ContentIndex {
     private static final String JSON_NAME_KEY = "name";
+    private static final String JSON_OFFSET_KEY = "offset";
     private static final Logger log = LogManager.getLogger(ContentIndex.class);
     private static final int MAX_DOCUMENTS = 25;
     private static final int MAX_CONCURRENT_PETITIONS = 5;
-    // The name of the index
+
+    /** Content index name. */
     public static final String INDEX_NAME = "wazuh-cve";
-    // The timeout for the get operation in seconds
-    public static final Long TIMEOUT = 10L;
 
     private final Client client;
-    private final Semaphore semaphore = new Semaphore(MAX_CONCURRENT_PETITIONS);
+    private final Semaphore semaphore = new Semaphore(ContentIndex.MAX_CONCURRENT_PETITIONS);
 
     /**
      * Constructor for the ContentIndex class.
@@ -86,7 +88,7 @@ public class ContentIndex {
         try {
             IndexRequest indexRequest =
                     new IndexRequest()
-                            .index(INDEX_NAME)
+                            .index(ContentIndex.INDEX_NAME)
                             .source(document.toXContent(XContentFactory.jsonBuilder(), ToXContent.EMPTY_PARAMS))
                             .id(document.getResource());
             this.client.index(
@@ -117,11 +119,11 @@ public class ContentIndex {
      * @param documents list of JSON documents to be indexed.
      */
     public void index(List<JsonObject> documents) {
-        BulkRequest bulkRequest = new BulkRequest(INDEX_NAME);
+        BulkRequest bulkRequest = new BulkRequest(ContentIndex.INDEX_NAME);
         for (JsonObject document : documents) {
             bulkRequest.add(
                     new IndexRequest()
-                            .id(document.get(JSON_NAME_KEY).getAsString())
+                            .id(document.get(ContentIndex.JSON_NAME_KEY).getAsString())
                             .source(document.toString(), XContentType.JSON));
         }
 
@@ -160,7 +162,7 @@ public class ContentIndex {
         for (Offset change : changes.getChangesList()) {
             String id = change.getResource();
             try {
-                log.info("Processing change: {}", change);
+                log.info("Processing change: {}", change.getOffset());
                 switch (change.getType()) {
                     case CREATE:
                         log.debug("Creating new resource with ID [{}]", id);
@@ -226,7 +228,7 @@ public class ContentIndex {
      */
     public void delete(String id) {
         this.client.delete(
-                new DeleteRequest(INDEX_NAME, id),
+                new DeleteRequest(ContentIndex.INDEX_NAME, id),
                 new ActionListener<>() {
                     @Override
                     public void onResponse(DeleteResponse response) {
@@ -246,8 +248,9 @@ public class ContentIndex {
      * ContentIndex#index(List)}.
      *
      * @param path path to the CTI snapshot JSON file to be indexed.
+     * @return offset number of the last indexed resource of the snapshot. 0 on error.
      */
-    public void fromSnapshot(String path) {
+    public long fromSnapshot(String path) {
         long startTime = System.currentTimeMillis();
 
         String line;
@@ -261,7 +264,7 @@ public class ContentIndex {
                 // Not every line in the snapshot is a CVE. We filter out the
                 // content by the "name" field of the current JSON object, if
                 // it starts with "CVE-". Any other case is skipped.
-                String name = json.get(JSON_NAME_KEY).getAsString();
+                String name = json.get(ContentIndex.JSON_NAME_KEY).getAsString();
                 if (name.startsWith("CVE-")) {
                     items.add(json);
                     lineCount++;
@@ -270,7 +273,7 @@ public class ContentIndex {
                 }
 
                 // Index items (MAX_DOCUMENTS reached)
-                if (lineCount == MAX_DOCUMENTS) {
+                if (lineCount == ContentIndex.MAX_DOCUMENTS) {
                     this.semaphore.acquire();
                     this.index(items);
                     lineCount = 0;
@@ -282,11 +285,19 @@ public class ContentIndex {
                 this.semaphore.acquire();
                 this.index(items);
             }
+        } catch (InterruptedException e) {
+            items.clear();
+            log.error("Processing snapshot file interrupted {}", e.getMessage());
         } catch (Exception e) {
-            log.error("Error processing snapshot file {}", e.getMessage());
+            items.clear();
+            log.error("Generic exception indexing the snapshot: {}", e.getMessage());
         }
         long estimatedTime = System.currentTimeMillis() - startTime;
         log.info("Snapshot indexing finished successfully in {} ms", estimatedTime);
+
+        return items.isEmpty()
+                ? 0
+                : items.get(items.size() - 1).get(ContentIndex.JSON_OFFSET_KEY).getAsLong();
     }
 
     /**
@@ -301,16 +312,25 @@ public class ContentIndex {
      */
     public JsonObject getById(String resourceId)
             throws InterruptedException, ExecutionException, TimeoutException, IllegalArgumentException {
-        GetResponse response = this.get(resourceId).get(TIMEOUT, TimeUnit.SECONDS);
+        GetResponse response = this.get(resourceId).get(PluginSettings.TIMEOUT, TimeUnit.SECONDS);
         if (response.isExists()) {
             return JsonParser.parseString(response.getSourceAsString()).getAsJsonObject();
         }
-        // else
         throw new IllegalArgumentException(
                 String.format(
                         Locale.ROOT,
                         "Document with ID [%s] not found in the [%s] index",
                         resourceId,
-                        INDEX_NAME));
+                        ContentIndex.INDEX_NAME));
+    }
+
+    /**
+     * Checks whether the {@link ContentIndex#INDEX_NAME} index exists.
+     *
+     * @see ClusterInfo#indexExists(Client, String)
+     * @return true if the index exists, false otherwise.
+     */
+    public boolean exists() {
+        return ClusterInfo.indexExists(this.client, ContentIndex.INDEX_NAME);
     }
 }

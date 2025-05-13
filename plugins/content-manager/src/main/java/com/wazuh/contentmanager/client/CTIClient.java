@@ -31,14 +31,14 @@ import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
 import java.time.Duration;
 import java.time.ZonedDateTime;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.*;
 
-import com.wazuh.contentmanager.model.ctiapi.ConsumerInfo;
-import com.wazuh.contentmanager.model.ctiapi.ContentChanges;
+import com.wazuh.contentmanager.model.cti.ConsumerInfo;
+import com.wazuh.contentmanager.model.cti.ContentChanges;
 import com.wazuh.contentmanager.settings.PluginSettings;
-import com.wazuh.contentmanager.util.XContentUtils;
+import com.wazuh.contentmanager.utils.XContentUtils;
+import reactor.util.annotation.NonNull;
 
 /**
  * CTIClient is a singleton class responsible for interacting with the Cyber Threat Intelligence
@@ -48,17 +48,15 @@ import com.wazuh.contentmanager.util.XContentUtils;
  * query parameters.
  */
 public class CTIClient extends HttpClient {
-
     private static final Logger log = LogManager.getLogger(CTIClient.class);
 
-    private static final String CONSUMER_INFO_ENDPOINT =
+    static final String CONSUMER_INFO_ENDPOINT =
             "/catalog/contexts/" + PluginSettings.CONTEXT_ID + "/consumers/" + PluginSettings.CONSUMER_ID;
     private static final String CONSUMER_CHANGES_ENDPOINT = CONSUMER_INFO_ENDPOINT + "/changes";
+    static final int MAX_ATTEMPTS = 3;
+    private static final int SLEEP_TIME = 60;
 
     private static CTIClient INSTANCE;
-
-    private static final int MAX_ATTEMPTS = 3;
-    private static final int SLEEP_TIME = 60;
 
     /** Enum representing the query parameters used in CTI API requests. */
     public enum QueryParameters {
@@ -129,19 +127,19 @@ public class CTIClient extends HttpClient {
         // Fail fast
         if (response == null) {
             log.error("No response from CTI API Changes endpoint");
-            return null;
+            return new ContentChanges();
         }
-        if (response.getCode() != HttpStatus.SC_OK) {
+        if (!Arrays.asList(HttpStatus.SC_OK, HttpStatus.SC_SUCCESS).contains(response.getCode())) {
             log.error("CTI API Changes endpoint returned an error: {}", response.getBody());
-            return null;
+            return new ContentChanges();
         }
 
         log.debug("CTI API Changes endpoint replied with status: [{}]", response.getCode());
         try {
             return ContentChanges.parse(XContentUtils.createJSONParser(response.getBodyBytes()));
         } catch (IOException | IllegalArgumentException e) {
-            log.error("Failed to fetch changes information", e);
-            return null;
+            log.error("Failed to fetch changes information due to: {}", e.getMessage());
+            return new ContentChanges();
         }
     }
 
@@ -149,29 +147,25 @@ public class CTIClient extends HttpClient {
      * Fetches the entire CTI catalog from the API.
      *
      * @return A {@link ConsumerInfo} object containing the catalog information.
+     * @throws HttpHostConnectException server unreachable.
+     * @throws IOException error parsing response.
      */
-    public ConsumerInfo getCatalog() {
-        try {
-            // spotless:off
-            SimpleHttpResponse response = this.sendRequest(
-                Method.GET,
-                CONSUMER_INFO_ENDPOINT,
-                null,
-                null,
-                null,
-                CTIClient.MAX_ATTEMPTS
-            );
-            // spotless:on
-            if (response == null) {
-                throw new HttpHostConnectException("No response from CTI API");
-            }
-            log.debug("CTI API replied with status: [{}]", response.getCode());
-
-            return ConsumerInfo.parse(XContentUtils.createJSONParser(response.getBodyBytes()));
-        } catch (IOException | IllegalArgumentException e) {
-            log.error("Unable to fetch catalog information: {}", e.getMessage());
-            return null;
+    public ConsumerInfo getConsumerInfo() throws HttpHostConnectException, IOException {
+        // spotless:off
+        SimpleHttpResponse response = this.sendRequest(
+            Method.GET,
+            CONSUMER_INFO_ENDPOINT,
+            null,
+            null,
+            null,
+            CTIClient.MAX_ATTEMPTS
+        );
+        // spotless:on
+        if (response == null) {
+            throw new HttpHostConnectException("No reply to " + CONSUMER_INFO_ENDPOINT);
         }
+        log.debug("CTI API replied with status: [{}]", response.getCode());
+        return ConsumerInfo.parse(XContentUtils.createJSONParser(response.getBodyBytes()));
     }
 
     /**
@@ -206,13 +200,15 @@ public class CTIClient extends HttpClient {
      * @return SimpleHttpResponse or null.
      */
     protected SimpleHttpResponse sendRequest(
-            Method method,
-            String endpoint,
+            @NonNull Method method,
+            @NonNull String endpoint,
             String body,
             Map<String, String> params,
             Header header,
             int attemptsLeft) {
-
+        // TODO used to debug the failing test "testGetChanges_SuccessfulRequest".
+        // log.error("sendRequest {} {} {} {} {} {}", method, endpoint, body, params, header,
+        // attemptsLeft);
         ZonedDateTime cooldown = null;
         SimpleHttpResponse response = null;
         while (attemptsLeft > 0) {

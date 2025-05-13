@@ -55,10 +55,10 @@ public class CommandManagerClient extends HttpClient {
      * @return The singleton instance of CommandManagerClient.
      */
     public static synchronized CommandManagerClient getInstance() {
-        if (INSTANCE == null) {
-            INSTANCE = new CommandManagerClient();
+        if (CommandManagerClient.INSTANCE == null) {
+            CommandManagerClient.INSTANCE = new CommandManagerClient();
         }
-        return INSTANCE;
+        return CommandManagerClient.INSTANCE;
     }
 
     /**
@@ -66,7 +66,7 @@ public class CommandManagerClient extends HttpClient {
      *
      * @param requestBody The JSON request body containing the command details.
      */
-    public void postCommand(String requestBody) {
+    public void post(String requestBody) {
         String username = PluginSettings.getInstance().getAuthUsername();
         String password = PluginSettings.getInstance().getAuthPassword();
         String auth = username + ":" + password;

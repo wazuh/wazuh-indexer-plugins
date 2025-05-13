@@ -14,7 +14,7 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-package com.wazuh.contentmanager.model.ctiapi;
+package com.wazuh.contentmanager.model.cti;
 
 import org.opensearch.core.common.ParsingException;
 import org.opensearch.core.xcontent.ToXContentObject;
@@ -30,15 +30,20 @@ import java.util.List;
 public class ContentChanges implements ToXContentObject {
 
     private static final String JSON_DATA_KEY = "data";
-    private final List<Offset> changes;
+    private final ArrayList<Offset> changes;
+
+    /** Constructor. */
+    public ContentChanges() {
+        this.changes = new ArrayList<>();
+    }
 
     /**
-     * Constructor method.
+     * Constructor.
      *
      * @param changes a List of Offset objects, each containing a JSON patch.
      */
     public ContentChanges(List<Offset> changes) {
-        this.changes = changes;
+        this.changes = new ArrayList<>(changes);
     }
 
     /**
@@ -46,7 +51,7 @@ public class ContentChanges implements ToXContentObject {
      *
      * @return A list of Offset objects
      */
-    public List<Offset> getChangesList() {
+    public ArrayList<Offset> getChangesList() {
         return this.changes;
     }
 
@@ -88,7 +93,7 @@ public class ContentChanges implements ToXContentObject {
     @Override
     public XContentBuilder toXContent(XContentBuilder builder, Params params) throws IOException {
         builder.startObject();
-        builder.startArray(JSON_DATA_KEY);
+        builder.startArray(ContentChanges.JSON_DATA_KEY);
         // For each Offset in the data field, add them to an XContentBuilder array
         for (Offset change : this.changes) {
             change.toXContent(builder, ToXContentObject.EMPTY_PARAMS);

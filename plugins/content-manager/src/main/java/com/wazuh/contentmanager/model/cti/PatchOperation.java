@@ -14,7 +14,7 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-package com.wazuh.contentmanager.model.ctiapi;
+package com.wazuh.contentmanager.model.cti;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -73,10 +73,9 @@ public class PatchOperation implements ToXContentObject {
         String path = null;
         String from = null;
         String value = null;
-
         // Make sure we are at the start
         XContentParserUtils.ensureExpectedToken(
-                XContentParser.Token.START_OBJECT, parser.nextToken(), parser);
+                XContentParser.Token.START_OBJECT, parser.currentToken(), parser);
         // Iterate over the object and add each Offset object to changes array
         while (parser.nextToken() != XContentParser.Token.END_OBJECT) {
             String fieldName = parser.currentName(); // Get key
