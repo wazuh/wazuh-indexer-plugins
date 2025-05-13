@@ -19,7 +19,6 @@ package com.wazuh.contentmanager.jobscheduler;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.opensearch.env.Environment;
-import org.opensearch.threadpool.ThreadPool;
 
 import com.wazuh.contentmanager.client.CTIClient;
 import com.wazuh.contentmanager.client.CommandManagerClient;
@@ -35,7 +34,6 @@ import com.wazuh.contentmanager.utils.SnapshotManager;
 public class ContentUpdaterRunnable implements Runnable {
     private static final Logger log = LogManager.getLogger(ContentUpdaterRunnable.class);
     private final Privileged privileged;
-    private final ThreadPool threadPool;
     private final Environment environment;
     private final ContextIndex contextIndex;
     private final ContentIndex contentIndex;
@@ -45,21 +43,18 @@ public class ContentUpdaterRunnable implements Runnable {
     /**
      * Default constructor.
      *
-     * @param threadPool ThreadPool to run the job.
-     * @param environment Environment to run the job.
+     * @param environment  Environment to run the job.
      * @param contextIndex ContextIndex to run the job.
      * @param contentIndex ContentIndex to run the job.
-     * @param ctiClient CTIClient to interact with the CTI API.
-     * @param privileged Privileged to run the job.
+     * @param ctiClient    CTIClient to interact with the CTI API.
+     * @param privileged   Privileged to run the job.
      */
     public ContentUpdaterRunnable(
-            ThreadPool threadPool,
             Environment environment,
             ContextIndex contextIndex,
             ContentIndex contentIndex,
             CTIClient ctiClient,
             Privileged privileged) {
-        this.threadPool = threadPool;
         this.environment = environment;
         this.contextIndex = contextIndex;
         this.contentIndex = contentIndex;
@@ -84,7 +79,6 @@ public class ContentUpdaterRunnable implements Runnable {
             snapshotManager.initialize(newConsumerInfo);
         } else if (current.getOffset() == newConsumerInfo.getLastOffset()) {
             log.info("No new content to index.");
-            return;
         } else if (current.getOffset() < newConsumerInfo.getLastOffset()) {
             ContentUpdater contentUpdater =
                     new ContentUpdater(
