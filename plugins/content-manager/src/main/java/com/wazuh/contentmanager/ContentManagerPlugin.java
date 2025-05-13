@@ -73,8 +73,7 @@ public class ContentManagerPlugin extends Plugin
 
     private ContextIndex contextIndex;
     private ContentIndex contentIndex;
-    private Environment environment;
-    private ClusterService clusterService;
+    private SnapshotManager snapshotManager;
     private ThreadPool threadPool;
     private Client client;
 
@@ -92,6 +91,8 @@ public class ContentManagerPlugin extends Plugin
             IndexNameExpressionResolver indexNameExpressionResolver,
             Supplier<RepositoriesService> repositoriesServiceSupplier) {
         PluginSettings.getInstance(environment.settings(), clusterService);
+        this.threadPool = threadPool;
+        this.clusterService = clusterService;
         this.contextIndex = new ContextIndex(client);
         this.contentIndex = new ContentIndex(client);
         this.environment = environment;
@@ -100,12 +101,16 @@ public class ContentManagerPlugin extends Plugin
         this.client = client;
         ContentUpdaterJobRunner.getInstance(
                 client, threadPool, environment, this.contextIndex, contentIndex);
+        this.snapshotManager =
+                new SnapshotManager(environment, this.contextIndex, this.contentIndex, new Privileged());
 
         return Collections.emptyList();
     }
 
     /**
-     * Call the CTI API on startup and get the latest consumer information into an index
+     * The initialization requires the existence of the {@link ContentIndex#INDEX_NAME} index. For
+     * this reason, we use a ClusterStateListener to listen for the creation of this index by the
+     * "setup" plugin, to then proceed with the initialization.
      *
      * @param localNode local Node info
      */
@@ -116,6 +121,44 @@ public class ContentManagerPlugin extends Plugin
                     "Scheduled content update job with status: [{}]", scheduleContentUpdateJob().getResult());
         } catch (IOException e) {
             log.error("Failed scheduling content update job: {}", e.getMessage());
+        }
+        // Only cluster managers are responsible for the initialization.
+        if (localNode.isClusterManagerNode()) {
+            if (this.clusterService.state().routingTable().hasIndex(ContentIndex.INDEX_NAME)) {
+                this.start();
+            }
+
+            // To be removed once we include the Job Scheduler.
+            this.clusterService.addListener(
+                    event -> {
+                        if (event.indicesCreated().contains(ContentIndex.INDEX_NAME)) {
+                            this.start();
+                        }
+                    });
+        }
+    }
+
+    /**
+     * Initialize. The initialization consists of:
+     *
+     * <pre>
+     *     1. fetching the latest consumer's information from the CTI API.
+     *     2. initialize from a snapshot if the local consumer does not exist, or its offset is 0.
+     * </pre>
+     */
+    private void start() {
+        try {
+            this.threadPool
+                    .generic()
+                    .execute(
+                            () -> {
+                                this.contextIndex.createIndex();
+                                this.snapshotManager.initialize();
+                            });
+        } catch (Exception e) {
+            // Log or handle exception
+            log.error("Error initializing snapshot helper: {}", e.getMessage(), e);
+
         }
     }
 

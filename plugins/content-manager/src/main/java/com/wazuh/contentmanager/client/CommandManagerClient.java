@@ -53,10 +53,10 @@ public class CommandManagerClient extends HttpClient {
      * @return The singleton instance of CommandManagerClient.
      */
     public static synchronized CommandManagerClient getInstance() {
-        if (INSTANCE == null) {
-            INSTANCE = new CommandManagerClient();
+        if (CommandManagerClient.INSTANCE == null) {
+            CommandManagerClient.INSTANCE = new CommandManagerClient();
         }
-        return INSTANCE;
+        return CommandManagerClient.INSTANCE;
     }
 
     /**
@@ -64,10 +64,13 @@ public class CommandManagerClient extends HttpClient {
      *
      * @param requestBody The JSON request body containing the command details.
      */
-    public void postCommand(String requestBody) {
+    public void post(String requestBody) {
         Header header = new BasicHeader(HttpHeaders.CONTENT_TYPE, ContentType.APPLICATION_JSON);
+        // spotless: off
         SimpleHttpResponse response =
-                this.sendRequest(Method.POST, POST_COMMAND_ENDPOINT, requestBody, null, header);
+                this.sendRequest(
+                        Method.POST, CommandManagerClient.POST_COMMAND_ENDPOINT, requestBody, null, header);
+        // spotless: on
         this.handlePostResponse(response);
     }
 

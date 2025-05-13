@@ -4,7 +4,7 @@ import java.util.concurrent.Callable
 
 buildscript {
     ext {
-        opensearch_version = System.getProperty("opensearch.version", "2.19.1-SNAPSHOT")
+        opensearch_version = System.getProperty("opensearch.version", "2.19.2-SNAPSHOT")
         opensearch_build = opensearch_version.replace("-SNAPSHOT","") + ".0"
         job_scheduler_version = System.getProperty("job_scheduler.version", opensearch_build)
         wazuh_version = System.getProperty("version", "5.0.0")
@@ -80,9 +80,9 @@ configurations {
 }
 
 dependencies {
-    implementation "org.apache.httpcomponents.client5:httpclient5:5.4"
-    implementation "org.apache.httpcomponents.core5:httpcore5-h2:5.3.1"
-    implementation "org.apache.httpcomponents.core5:httpcore5:5.3.1"
+    implementation "org.apache.httpcomponents.client5:httpclient5:5.4.4"
+    implementation "org.apache.httpcomponents.core5:httpcore5-h2:5.3.4"
+    implementation "org.apache.httpcomponents.core5:httpcore5:5.3.4"
     implementation "org.apache.logging.log4j:log4j-slf4j-impl:2.23.1"
     implementation "org.slf4j:slf4j-api:2.0.16"
 

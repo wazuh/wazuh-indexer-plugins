@@ -22,7 +22,7 @@ import org.opensearch.cluster.service.ClusterService;
 import org.opensearch.common.settings.Setting;
 import org.opensearch.common.settings.Settings;
 
-import com.wazuh.contentmanager.utils.ClusterInfoHelper;
+import com.wazuh.contentmanager.utils.ClusterInfo;
 import reactor.util.annotation.NonNull;
 
 /** Singleton class to manage the plugin's settings. */
@@ -31,9 +31,6 @@ public class PluginSettings {
 
     /** Singleton instance. */
     private static PluginSettings INSTANCE;
-
-    /** Content Manager Plugin API path. */
-    public static final String API_BASE_URI = "/_plugins/_content_manager";
 
     /** Base Wazuh CTI URL */
     public static final String CTI_URL = "https://cti.wazuh.com";
@@ -55,6 +52,9 @@ public class PluginSettings {
                     Setting.Property.NodeScope,
                     Setting.Property.Filtered);
 
+    /** Timeout of indexing operations */
+    public static final long TIMEOUT = 10L;
+
     private final String ctiBaseUrl;
     private final ClusterService clusterService;
 
@@ -67,7 +67,7 @@ public class PluginSettings {
         this.ctiBaseUrl = CTI_API_URL.get(settings);
         this.clusterService = clusterService;
 
-        log.debug("Settings.loaded: {}", this.toString());
+        log.debug("Settings loaded: {}", this.toString());
     }
 
     /**
@@ -114,6 +114,6 @@ public class PluginSettings {
      * @return a string with the Content Manager full URL
      */
     public String getClusterBaseUrl() {
-        return ClusterInfoHelper.getClusterBaseUrl(this.clusterService);
+        return ClusterInfo.getClusterBaseUrl(this.clusterService);
     }
 }
