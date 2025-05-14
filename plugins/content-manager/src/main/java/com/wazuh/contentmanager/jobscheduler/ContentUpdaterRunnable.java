@@ -20,6 +20,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.opensearch.env.Environment;
 
+import java.io.IOException;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import com.wazuh.contentmanager.client.CTIClient;
@@ -33,8 +34,9 @@ import com.wazuh.contentmanager.utils.Privileged;
 import com.wazuh.contentmanager.utils.SnapshotManager;
 
 /** Runnable class for the Content Updater job. */
-public class ContentUpdaterRunnable implements Runnable {
+public final class ContentUpdaterRunnable implements Runnable {
     private static final Logger log = LogManager.getLogger(ContentUpdaterRunnable.class);
+    private static ContentUpdaterRunnable INSTANCE;
     private final Privileged privileged;
     private final Environment environment;
     private final ContextIndex contextIndex;
@@ -52,7 +54,7 @@ public class ContentUpdaterRunnable implements Runnable {
      * @param ctiClient CTIClient to interact with the CTI API.
      * @param privileged Privileged to run the job.
      */
-    public ContentUpdaterRunnable(
+    private ContentUpdaterRunnable(
             Environment environment,
             ContextIndex contextIndex,
             ContentIndex contentIndex,
@@ -69,18 +71,43 @@ public class ContentUpdaterRunnable implements Runnable {
                 this.privileged.doPrivilegedRequest(CommandManagerClient::getInstance);
     }
 
+    /**
+     * Singleton instance access method.
+     *
+     * @param environment the environment to pass to SnapshotManager
+     * @param contextIndex handles the context and consumer related metadata
+     * @param contentIndex handles the indexed content
+     * @param ctiClient the CTIClient to interact with the CTI API
+     * @param privileged handles privileged operations
+     * @return the singleton instance
+     */
+    public static ContentUpdaterRunnable getInstance(
+            Environment environment,
+            ContextIndex contextIndex,
+            ContentIndex contentIndex,
+            CTIClient ctiClient,
+            Privileged privileged) {
+        if (INSTANCE == null) {
+            return new ContentUpdaterRunnable(
+                    environment, contextIndex, contentIndex, ctiClient, privileged);
+        }
+        return INSTANCE;
+    }
+
     @Override
     public void run() {
         if (!this.isRunning.compareAndSet(false, true)) {
             log.warn("Content Updater job is already running.");
             return;
         }
-        ConsumerInfo newConsumerInfo = privileged.getConsumerInfo(this.ctiClient);
+        ConsumerInfo latest = privileged.getConsumerInfo(this.ctiClient);
+        long lastOffset = latest.getLastOffset();
 
         try {
             ConsumerInfo current =
                     this.contextIndex.get(PluginSettings.CONTEXT_ID, PluginSettings.CONSUMER_ID);
-            if (current.getOffset() == 0L) {
+            long currentOffset = current.getOffset();
+            if (currentOffset == 0L) {
                 SnapshotManager snapshotManager =
                         new SnapshotManager(
                                 this.environment,
@@ -88,10 +115,8 @@ public class ContentUpdaterRunnable implements Runnable {
                                 this.contentIndex,
                                 this.privileged,
                                 this.ctiClient);
-                snapshotManager.initialize(newConsumerInfo);
-            } else if (current.getOffset() == newConsumerInfo.getLastOffset()) {
-                log.info("No new content to index.");
-            } else if (current.getOffset() < newConsumerInfo.getLastOffset()) {
+                snapshotManager.initialize(latest);
+            } else if (currentOffset < lastOffset) {
                 ContentUpdater contentUpdater =
                         new ContentUpdater(
                                 this.ctiClient,
@@ -99,8 +124,13 @@ public class ContentUpdaterRunnable implements Runnable {
                                 this.contextIndex,
                                 this.contentIndex,
                                 this.privileged);
-                contentUpdater.update();
+                contentUpdater.update(currentOffset, lastOffset);
+            } else if (currentOffset == lastOffset) {
+                log.info(
+                        "Consumer is up-to-date (offset {} == {}). Skipping...", currentOffset, lastOffset);
             }
+        } catch (IOException e) {
+            log.error("Failed to run Content Updater job: {}", e.getMessage());
         } finally {
             this.isRunning.set(false);
         }

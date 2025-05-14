@@ -25,7 +25,6 @@ import java.nio.file.DirectoryStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Locale;
-import java.util.concurrent.Semaphore;
 
 import com.wazuh.contentmanager.client.CTIClient;
 import com.wazuh.contentmanager.client.CommandManagerClient;
@@ -43,7 +42,6 @@ public class SnapshotManager {
     private final ContextIndex contextIndex;
     private final ContentIndex contentIndex;
     private final Privileged privileged;
-    private final Semaphore semaphore = new Semaphore(1);
 
     /**
      * Constructor.
@@ -52,7 +50,7 @@ public class SnapshotManager {
      * @param contextIndex Handles context and consumer related metadata.
      * @param contentIndex Handles indexed content.
      * @param privileged Handles privileged actions.
-     * @param ctiClient
+     * @param ctiClient Instance of CTIClient.
      */
     public SnapshotManager(
             Environment environment,
@@ -95,36 +93,34 @@ public class SnapshotManager {
      * a CTI snapshot.
      */
     protected void indexSnapshot(ConsumerInfo consumerInfo) {
-        if (consumerInfo.getOffset() == 0) {
-            log.info("Initializing [{}] index from a snapshot", ContentIndex.INDEX_NAME);
-            this.privileged.doPrivilegedRequest(
-                    () -> {
-                        // Download snapshot.
-                        Path snapshotZip =
-                                this.ctiClient.streamingDownload(
-                                        consumerInfo.getLastSnapshotLink(), this.environment);
-                        Path outputDir = this.environment.tmpFile();
+        log.info("Initializing [{}] index from a snapshot", ContentIndex.INDEX_NAME);
+        this.privileged.doPrivilegedRequest(
+                () -> {
+                    // Download snapshot.
+                    Path snapshotZip =
+                            this.privileged.streamingDownload(
+                                    this.ctiClient, consumerInfo.getLastSnapshotLink(), this.environment);
+                    Path outputDir = this.environment.tmpFile();
 
-                        try (DirectoryStream<Path> stream = this.getStream(outputDir)) {
-                            // Unzip snapshot.
-                            this.unzip(snapshotZip, outputDir);
-                            Path snapshotJson = stream.iterator().next();
-                            // Index snapshot.
-                            long offset = this.contentIndex.fromSnapshot(snapshotJson.toString());
-                            // Update the offset.
-                            consumerInfo.setOffset(offset);
-                            this.contextIndex.index(consumerInfo);
-                            // Send command.
-                            privileged.postUpdateCommand(this.commandClient, consumerInfo);
-                            // Remove snapshot.
-                            Files.deleteIfExists(snapshotZip);
-                            Files.deleteIfExists(snapshotJson);
-                        } catch (IOException | NullPointerException e) {
-                            log.error("Failed to index snapshot: {}", e.getMessage());
-                        }
-                        return null;
-                    });
-        }
+                    try (DirectoryStream<Path> stream = this.getStream(outputDir)) {
+                        // Unzip snapshot.
+                        this.unzip(snapshotZip, outputDir);
+                        Path snapshotJson = stream.iterator().next();
+                        // Index snapshot.
+                        long offset = this.contentIndex.fromSnapshot(snapshotJson.toString());
+                        // Update the offset.
+                        consumerInfo.setOffset(offset);
+                        this.contextIndex.index(consumerInfo);
+                        // Send command.
+                        privileged.postUpdateCommand(this.commandClient, consumerInfo);
+                        // Remove snapshot.
+                        Files.deleteIfExists(snapshotZip);
+                        Files.deleteIfExists(snapshotJson);
+                    } catch (IOException | NullPointerException e) {
+                        log.error("Failed to index snapshot: {}", e.getMessage());
+                    }
+                    return null;
+                });
     }
 
     /**
@@ -157,79 +153,36 @@ public class SnapshotManager {
      *
      * @throws IOException thrown when indexing failed
      */
-    protected ConsumerInfo initConsumer(ConsumerInfo latest) throws IOException {
-        ConsumerInfo current =
-                this.contextIndex.get(PluginSettings.CONTEXT_ID, PluginSettings.CONSUMER_ID);
-        log.debug("Current consumer info: {}", current);
+    protected void initConsumer(ConsumerInfo latest) throws IOException {
         log.debug("Latest consumer info: {}", latest);
 
         // Consumer is not yet initialized. Initialize to latest.
-        if (current == null || current.getOffset() == 0) {
-            log.debug("Initializing consumer: {}", latest);
-            if (this.contextIndex.index(latest)) {
-                log.info(
-                        "Successfully initialized consumer [{}][{}]", latest.getContext(), latest.getName());
-            } else {
-                throw new IOException(
-                        String.format(
-                                Locale.ROOT,
-                                "Failed to initialize consumer [%s][%s]",
-                                latest.getContext(),
-                                latest.getName()));
-            }
-            current = latest;
+        log.debug("Initializing consumer: {}", latest);
+        if (this.contextIndex.index(latest)) {
+            log.info("Successfully initialized consumer [{}][{}]", latest.getContext(), latest.getName());
+        } else {
+            throw new IOException(
+                    String.format(
+                            Locale.ROOT,
+                            "Failed to initialize consumer [%s][%s]",
+                            latest.getContext(),
+                            latest.getName()));
         }
-        // Consumer is initialized and up-to-date.
-        else if (current.getOffset() == latest.getLastOffset()) {
-            log.info(
-                    "Consumer is up-to-date (offset {} == {}). Skipping...",
-                    current.getOffset(),
-                    latest.getLastOffset());
-        }
-        // Consumer is initialized but out-of-date.
-        else {
-            log.info("Consumer already initialized (offset {} != 0). Skipping...", current.getOffset());
-            current.setLastOffset(latest.getLastOffset());
-            current.setLastSnapshotLink(latest.getLastSnapshotLink());
-            this.contextIndex.index(current);
-        }
-        return current;
-    }
-
-    /**
-     * Updates the context index with data from the CTI API
-     *
-     * @throws IOException thrown when indexing failed
-     */
-    protected ConsumerInfo initConsumer() throws IOException {
-        return this.initConsumer(this.ctiClient.getConsumerInfo());
-    }
-
-    /** Trigger method for content initialization */
-    public void initialize() {
-        ConsumerInfo consumerInfo = null;
-        try {
-            consumerInfo = this.initConsumer();
-        } catch (IOException e) {
-            log.error("Failed to initialize: {}", e.getMessage());
-        }
-        this.initialize(consumerInfo);
     }
 
     /**
      * Trigger method for content initialization
      *
-     * @param consumerInfo ConsumerInfo object to be used for initialization
+     * @param latest ConsumerInfo object to be used for initialization
      */
-    public void initialize(ConsumerInfo consumerInfo) {
+    public void initialize(ConsumerInfo latest) {
         try {
-            this.semaphore.acquire();
             // The Command Manager client needs the cluster to be up (depends on PluginSettings),
             // so we initialize it here once the node is up and ready.
             this.commandClient = this.privileged.doPrivilegedRequest(CommandManagerClient::getInstance);
-            this.indexSnapshot(this.initConsumer(consumerInfo));
-            semaphore.release();
-        } catch (IOException | InterruptedException e) {
+            this.initConsumer(latest);
+            this.indexSnapshot(latest);
+        } catch (IOException e) {
             log.error("Failed to initialize: {}", e.getMessage());
         }
     }

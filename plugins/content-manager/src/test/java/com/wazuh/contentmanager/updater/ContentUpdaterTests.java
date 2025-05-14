@@ -27,6 +27,7 @@ import com.wazuh.contentmanager.client.CommandManagerClient;
 import com.wazuh.contentmanager.index.ContentIndex;
 import com.wazuh.contentmanager.index.ContextIndex;
 import com.wazuh.contentmanager.model.cti.*;
+import com.wazuh.contentmanager.settings.PluginSettings;
 import com.wazuh.contentmanager.utils.Privileged;
 import org.mockito.Mockito;
 
@@ -72,7 +73,8 @@ public class ContentUpdaterTests extends OpenSearchIntegTestCase {
         // Mock current and latest offset.
         doReturn(this.consumerInfo).when(this.contextIndex).get(anyString(), anyString());
         // Act
-        this.updater.update();
+        this.updater.update(
+                this.contextIndex.get(PluginSettings.CONTEXT_ID, PluginSettings.CONSUMER_ID));
         // Assert applyChangesToContextIndex is not called.
         verify(this.updater, never()).applyChanges(any());
     }
@@ -93,7 +95,8 @@ public class ContentUpdaterTests extends OpenSearchIntegTestCase {
         // Act
         doNothing().when(this.consumerInfo).setOffset(anyLong());
         doNothing().when(this.consumerInfo).setLastOffset(anyLong());
-        this.updater.update();
+        this.updater.update(
+                this.contextIndex.get(PluginSettings.CONTEXT_ID, PluginSettings.CONSUMER_ID));
         // Assert applyChangesToContextIndex is called 4 times (one each 1000 starting from 0).
         verify(this.updater, times(4)).applyChanges(any());
     }
@@ -110,7 +113,9 @@ public class ContentUpdaterTests extends OpenSearchIntegTestCase {
         doNothing().when(this.consumerInfo).setLastOffset(anyLong());
         doReturn(this.consumerInfo).when(this.contextIndex).get(anyString(), anyString());
         // Act
-        boolean updated = this.updater.update();
+        boolean updated =
+                this.updater.update(
+                        this.contextIndex.get(PluginSettings.CONTEXT_ID, PluginSettings.CONSUMER_ID));
         // Assert
         assertFalse(updated);
     }
@@ -131,7 +136,9 @@ public class ContentUpdaterTests extends OpenSearchIntegTestCase {
         doNothing().when(this.consumerInfo).setLastOffset(anyLong());
         doReturn(this.consumerInfo).when(this.contextIndex).get(anyString(), anyString());
         // Act
-        boolean updated = this.updater.update();
+        boolean updated =
+                this.updater.update(
+                        this.contextIndex.get(PluginSettings.CONTEXT_ID, PluginSettings.CONSUMER_ID));
         // Assert
         assertFalse(updated);
         verify(this.consumerInfo, times(1)).setOffset(0L);

@@ -19,13 +19,14 @@ package com.wazuh.contentmanager.updater;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import java.io.IOException;
+
 import com.wazuh.contentmanager.client.CTIClient;
 import com.wazuh.contentmanager.client.CommandManagerClient;
 import com.wazuh.contentmanager.index.ContentIndex;
 import com.wazuh.contentmanager.index.ContextIndex;
 import com.wazuh.contentmanager.model.cti.ConsumerInfo;
 import com.wazuh.contentmanager.model.cti.ContentChanges;
-import com.wazuh.contentmanager.settings.PluginSettings;
 import com.wazuh.contentmanager.utils.Privileged;
 import com.wazuh.contentmanager.utils.VisibleForTesting;
 
@@ -56,8 +57,10 @@ public class ContentUpdater {
      * Constructor. Mainly used for testing purposes. Dependency injection.
      *
      * @param ctiClient the CTIClient to interact with the CTI API.
+     * @param client the CommandManagerClient to interact with the command manager API.
      * @param contextIndex An object that handles context and consumer information.
      * @param contentIndex An object that handles content index interactions.
+     * @param privileged An object that handles privileged actions.
      */
     public ContentUpdater(
             CTIClient ctiClient,
@@ -83,19 +86,15 @@ public class ContentUpdater {
      * Command Manager {@link Privileged#postUpdateCommand(CommandManagerClient, ConsumerInfo)}. If
      * the update fails, the "offset" is set to 0 to force a recovery from a snapshot.
      *
+     * @param current
+     * @param lastOffset
      * @return true if the updates were successfully applied, false otherwise.
      * @throws ContentUpdateException If there was an error fetching the changes.
      */
-    public boolean update() throws ContentUpdateException {
-        ConsumerInfo consumerInfo =
-                this.contextIndex.get(PluginSettings.CONTEXT_ID, PluginSettings.CONSUMER_ID);
-        long currentOffset = consumerInfo.getOffset();
-        long lastOffset = consumerInfo.getLastOffset();
-
-        if (lastOffset == currentOffset) {
-            log.info("No updates available. Current offset ({}) is up to date.", currentOffset);
-            return true;
-        }
+    public boolean update(ConsumerInfo current, Long lastOffset)
+            throws ContentUpdateException, IOException {
+        long currentOffset = current.getOffset();
+        ConsumerInfo consumerInfo = new ConsumerInfo(current);
 
         log.info("New updates available from offset {} to {}", currentOffset, lastOffset);
         while (currentOffset < lastOffset) {

@@ -74,6 +74,7 @@ public class ContentManagerPlugin extends Plugin
     public static final String JOB_ID = "content_updater_job";
 
     private Client client;
+    private ContextIndex contextIndex;
 
     @Override
     public Collection<Object> createComponents(
@@ -92,12 +93,13 @@ public class ContentManagerPlugin extends Plugin
         PluginSettings.getInstance(environment.settings(), clusterService);
 
         this.client = client;
+        this.contextIndex = new ContextIndex(client);
         Privileged privileged = new Privileged();
         ContentUpdaterJobRunner.getInstance(
                 privileged.doPrivilegedRequest(CTIClient::getInstance),
                 threadPool,
                 environment,
-                new ContextIndex(client),
+                this.contextIndex,
                 new ContentIndex(client),
                 privileged);
 
@@ -113,6 +115,9 @@ public class ContentManagerPlugin extends Plugin
      */
     @Override
     public void onNodeStarted(DiscoveryNode localNode) {
+        if (localNode.isClusterManagerNode()) {
+            this.contextIndex.createIndex();
+        }
         try {
             log.info(
                     "Scheduled content update job with status: [{}]", scheduleContentUpdateJob().getResult());

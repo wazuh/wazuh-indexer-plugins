@@ -89,7 +89,7 @@ public class ContentUpdaterJobRunner implements ScheduledJobRunner {
     public void runJob(
             ScheduledJobParameter scheduledJobParameter, JobExecutionContext jobExecutionContext) {
         ContentUpdaterRunnable jobRunnable =
-                new ContentUpdaterRunnable(
+                ContentUpdaterRunnable.getInstance(
                         this.environment, this.contextIndex, this.contentIndex, this.client, this.privileged);
         this.threadPool.generic().submit(jobRunnable);
     }

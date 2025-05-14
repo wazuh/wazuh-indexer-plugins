@@ -134,12 +134,17 @@ public class ContextIndex {
      * @param context ID (name) of the context.
      * @param consumer ID (name) of the consumer.
      * @return the required consumer as an instance of {@link ConsumerInfo}, or null.
+     * @throws IOException if the index is not available.
      */
     @SuppressWarnings("unchecked")
-    public ConsumerInfo get(String context, String consumer) {
+    public ConsumerInfo get(String context, String consumer) throws IOException {
         // Avoid faulty requests if the cluster is unstable.
         if (!ClusterInfo.indexStatusCheck(this.client, ContextIndex.INDEX_NAME)) {
-            throw new RuntimeException("Index not ready");
+            throw new IOException(
+                    String.format(
+                            Locale.ROOT,
+                            "The index [%s] is not available. Please check the cluster status.",
+                            ContextIndex.INDEX_NAME));
         }
         try {
             GetResponse getResponse =

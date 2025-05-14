@@ -18,8 +18,10 @@ package com.wazuh.contentmanager.utils;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.opensearch.env.Environment;
 
 import java.io.IOException;
+import java.nio.file.Path;
 import java.security.AccessController;
 
 import com.wazuh.contentmanager.client.CTIClient;
@@ -80,5 +82,9 @@ public class Privileged {
                         return null;
                     }
                 });
+    }
+
+    public Path streamingDownload(CTIClient client, String URI, Environment environment) {
+        return this.doPrivilegedRequest(() -> client.streamingDownload(URI, environment));
     }
 }

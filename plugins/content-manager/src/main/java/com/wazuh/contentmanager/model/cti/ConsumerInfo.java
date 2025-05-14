@@ -63,6 +63,18 @@ public class ConsumerInfo implements ToXContentObject {
     }
 
     /**
+     * Copy constructor.
+     * @param consumerInfo the ConsumerInfo object to copy
+     */
+    public ConsumerInfo(ConsumerInfo consumerInfo) {
+        this.name = consumerInfo.getName();
+        this.context = consumerInfo.getContext();
+        this.offset = consumerInfo.getOffset();
+        this.lastOffset = consumerInfo.getLastOffset();
+        this.lastSnapshotLink = consumerInfo.getLastSnapshotLink();
+    }
+
+    /**
      * Parses the consumer's information within an XContentParser (reply from the CTI API).
      *
      * @param parser the incoming parser.
