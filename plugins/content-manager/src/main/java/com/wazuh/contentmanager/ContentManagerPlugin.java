@@ -125,9 +125,19 @@ public class ContentManagerPlugin extends Plugin implements ClusterPlugin {
 
     @Override
     public List<Setting<?>> getSettings() {
-        return List.of(
-                PluginSettings.CTI_API_URL,
+        return Arrays.asList(
                 PluginSettings.INDEXER_USERNAME,
-                PluginSettings.INDEXER_PASSWORD);
+                PluginSettings.INDEXER_PASSWORD,
+                PluginSettings.CONSUMER_ID,
+                PluginSettings.CONTEXT_ID,
+                PluginSettings.CLIENT_TIMEOUT,
+                PluginSettings.CTI_API_URL,
+                PluginSettings.CTI_CLIENT_MAX_ATTEMPTS,
+                PluginSettings.CTI_CLIENT_SLEEP_TIME,
+                PluginSettings.JOB_MAX_DOCS,
+                PluginSettings.JOB_SCHEDULE,
+                PluginSettings.MAX_CHANGES,
+                PluginSettings.MAX_CONCURRENT_BULKS,
+                PluginSettings.MAX_ITEMS_PER_BULK);
     }
 }

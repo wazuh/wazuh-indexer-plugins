@@ -54,6 +54,7 @@ import com.wazuh.contentmanager.model.cti.PatchOperation;
 import com.wazuh.contentmanager.settings.PluginSettings;
 import com.wazuh.contentmanager.utils.ClusterInfo;
 import com.wazuh.contentmanager.utils.JsonPatch;
+import com.wazuh.contentmanager.utils.VisibleForTesting;
 import com.wazuh.contentmanager.utils.XContentUtils;
 
 /** Manages operations for a content index. */
@@ -61,14 +62,13 @@ public class ContentIndex {
     private static final String JSON_NAME_KEY = "name";
     private static final String JSON_OFFSET_KEY = "offset";
     private static final Logger log = LogManager.getLogger(ContentIndex.class);
-    private static final int MAX_DOCUMENTS = 25;
-    private static final int MAX_CONCURRENT_PETITIONS = 5;
 
     /** Content index name. */
     public static final String INDEX_NAME = "wazuh-cve";
 
     private final Client client;
-    private final Semaphore semaphore = new Semaphore(ContentIndex.MAX_CONCURRENT_PETITIONS);
+    private final PluginSettings pluginSettings;
+    private final Semaphore semaphore;
 
     /**
      * Constructor for the ContentIndex class.
@@ -76,6 +76,21 @@ public class ContentIndex {
      * @param client the OpenSearch Client to interact with the cluster
      */
     public ContentIndex(Client client) {
+        this.pluginSettings = PluginSettings.getInstance();
+        this.semaphore = new Semaphore(pluginSettings.getMaximumConcurrentBulks());
+        this.client = client;
+    }
+
+    /**
+     * This constructor is only used on tests.
+     *
+     * @param client @Client (mocked).
+     * @param pluginSettings @PluginSettings (mocked).
+     */
+    @VisibleForTesting
+    public ContentIndex(Client client, PluginSettings pluginSettings) {
+        this.pluginSettings = pluginSettings;
+        this.semaphore = new Semaphore(pluginSettings.getMaximumConcurrentBulks());
         this.client = client;
     }
 
@@ -244,8 +259,8 @@ public class ContentIndex {
 
     /**
      * Initializes the index from a local snapshot. The snapshot file (in NDJSON format) is split in
-     * chunks of {@link ContentIndex#MAX_DOCUMENTS} elements. These are bulk indexed using {@link
-     * ContentIndex#index(List)}.
+     * chunks of {@link PluginSettings#MAX_ITEMS_PER_BULK} elements. These are bulk indexed using
+     * {@link ContentIndex#index(List)}.
      *
      * @param path path to the CTI snapshot JSON file to be indexed.
      * @return offset number of the last indexed resource of the snapshot. 0 on error.
@@ -273,7 +288,7 @@ public class ContentIndex {
                 }
 
                 // Index items (MAX_DOCUMENTS reached)
-                if (lineCount == ContentIndex.MAX_DOCUMENTS) {
+                if (lineCount == this.pluginSettings.getMaxItemsPerBulk()) {
                     this.semaphore.acquire();
                     this.index(items);
                     lineCount = 0;
@@ -312,7 +327,8 @@ public class ContentIndex {
      */
     public JsonObject getById(String resourceId)
             throws InterruptedException, ExecutionException, TimeoutException, IllegalArgumentException {
-        GetResponse response = this.get(resourceId).get(PluginSettings.TIMEOUT, TimeUnit.SECONDS);
+        GetResponse response =
+                this.get(resourceId).get(this.pluginSettings.getClientTimeout(), TimeUnit.SECONDS);
         if (response.isExists()) {
             return JsonParser.parseString(response.getSourceAsString()).getAsJsonObject();
         }
