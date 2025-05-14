@@ -54,6 +54,8 @@ public class ContextIndex {
      */
     private ConsumerInfo consumerInfo;
 
+    private final PluginSettings pluginSettings;
+
     /**
      * Constructor.
      *
@@ -61,6 +63,7 @@ public class ContextIndex {
      */
     public ContextIndex(Client client) {
         this.client = client;
+        this.pluginSettings = PluginSettings.getInstance();
     }
 
     /**
@@ -79,7 +82,9 @@ public class ContextIndex {
                             .id(consumerInfo.getContext());
 
             IndexResponse indexResponse =
-                    this.client.index(indexRequest).get(PluginSettings.TIMEOUT, TimeUnit.SECONDS);
+                    this.client
+                            .index(indexRequest)
+                            .get(this.pluginSettings.getClientTimeout(), TimeUnit.SECONDS);
             if (indexResponse.getResult() == DocWriteResponse.Result.CREATED
                     || indexResponse.getResult() == DocWriteResponse.Result.UPDATED) {
                 // Update consumer info (internal state).
@@ -114,7 +119,7 @@ public class ContextIndex {
             GetResponse getResponse =
                     this.client
                             .get(new GetRequest(ContextIndex.INDEX_NAME, context).preference("_local"))
-                            .get(PluginSettings.TIMEOUT, TimeUnit.SECONDS);
+                            .get(this.pluginSettings.getClientTimeout(), TimeUnit.SECONDS);
 
             Map<String, Object> source = (Map<String, Object>) getResponse.getSourceAsMap().get(consumer);
             if (source == null) {
@@ -163,7 +168,12 @@ public class ContextIndex {
         if (!this.exists()) {
             boolean result =
                     this.index(
-                            new ConsumerInfo(PluginSettings.CONSUMER_ID, PluginSettings.CONTEXT_ID, 0, 0, null));
+                            new ConsumerInfo(
+                                    this.pluginSettings.getConsumerId(),
+                                    this.pluginSettings.getContextId(),
+                                    0,
+                                    0,
+                                    null));
             log.info("Index initialized: {}", result);
         }
     }
