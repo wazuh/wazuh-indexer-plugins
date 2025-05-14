@@ -62,8 +62,8 @@ publishing {
 allprojects {
     group = "${projectPath}"
     version = "${wazuh_version}" + ".${revision}"
-    targetCompatibility = JavaVersion.VERSION_11
-    sourceCompatibility = JavaVersion.VERSION_11
+    targetCompatibility = JavaVersion.VERSION_21
+    sourceCompatibility = JavaVersion.VERSION_21
 }
 
 opensearchplugin {
@@ -84,7 +84,7 @@ configurations {
 }
 
 dependencies {
-    implementation "org.apache.logging.log4j:log4j-slf4j-impl:${versions.log4j}"
+//    implementation "org.apache.logging.log4j:log4j-slf4j-impl:${versions.log4j}"
 
     // Job Scheduler stuff
     zipArchive group: 'org.opensearch.plugin', name: 'opensearch-job-scheduler', version: "${opensearch_build}"

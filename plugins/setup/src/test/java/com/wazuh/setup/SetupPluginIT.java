@@ -18,8 +18,8 @@ package com.wazuh.setup;
 
 import com.carrotsearch.randomizedtesting.annotations.ThreadLeakScope;
 
-import org.apache.http.ParseException;
-import org.apache.http.util.EntityUtils;
+import org.apache.hc.core5.http.ParseException;
+import org.apache.hc.core5.http.io.entity.EntityUtils;
 import org.opensearch.action.admin.cluster.health.ClusterHealthRequest;
 import org.opensearch.action.admin.cluster.health.ClusterHealthResponse;
 import org.opensearch.action.admin.cluster.node.info.NodeInfo;
