@@ -136,6 +136,9 @@ integTest {
 }
 
 testClusters.integTest {
+    // add customized keystore
+    keystore 'indexer.username', 'admin'
+    keystore 'indexer.password', 'admin'
     // Installs all registered zipArchive dependencies on integTest cluster nodes
     configurations.zipArchive.asFileTree.each {
       plugin(provider(new Callable<RegularFile>(){

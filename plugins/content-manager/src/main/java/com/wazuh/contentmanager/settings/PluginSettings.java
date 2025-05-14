@@ -19,8 +19,10 @@ package com.wazuh.contentmanager.settings;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.opensearch.cluster.service.ClusterService;
+import org.opensearch.common.settings.SecureSetting;
 import org.opensearch.common.settings.Setting;
 import org.opensearch.common.settings.Settings;
+import org.opensearch.core.common.settings.SecureString;
 
 import com.wazuh.contentmanager.utils.ClusterInfo;
 import reactor.util.annotation.NonNull;
@@ -122,7 +124,7 @@ public class PluginSettings {
                     Setting.Property.NodeScope,
                     Setting.Property.Filtered);
 
-    /** The timeout duration for operations on the content index and context index, in seconds. */
+    /** Timeout of indexing operations */
     public static final Setting<Long> CLIENT_TIMEOUT =
             Setting.longSetting(
                     "content_manager.client.timeout",
@@ -141,6 +143,14 @@ public class PluginSettings {
                     1000,
                     Setting.Property.NodeScope,
                     Setting.Property.Filtered);
+
+    /** Command Manager authentication user. */
+    public static final Setting<SecureString> INDEXER_USERNAME =
+            SecureSetting.secureString("indexer.username", null);
+
+    /** Command Manager authentication password. */
+    public static final Setting<SecureString> INDEXER_PASSWORD =
+            SecureSetting.secureString("indexer.password", null);
 
     /** Maximum number of documents processed per indexing job. */
     public static final Setting<Integer> JOB_MAX_DOCS =
@@ -166,6 +176,10 @@ public class PluginSettings {
     private final String consumerId;
     private final String contextId;
     private final ClusterService clusterService;
+
+    private final SecureString username;
+    private final SecureString password;
+
     private final int ctiClientMaxAttempts;
     private final int ctiClientSleepTime;
     private final int maximumItemsPerBulk;
@@ -182,6 +196,8 @@ public class PluginSettings {
      */
     private PluginSettings(@NonNull final Settings settings, ClusterService clusterService) {
         this.ctiBaseUrl = CTI_API_URL.get(settings);
+        this.username = INDEXER_USERNAME.get(settings);
+        this.password = INDEXER_PASSWORD.get(settings);
 
         if (validateConsumerId(CONSUMER_ID.get(settings))) {
             this.consumerId = CONSUMER_ID.get(settings);
@@ -279,6 +295,24 @@ public class PluginSettings {
     }
 
     /**
+     * Indexer's username getter.
+     *
+     * @return a string with the Indexer's authentication username.
+     */
+    public String getUsername() {
+        return this.username.toString();
+    }
+
+    /**
+     * Indexer's password getter.
+     *
+     * @return a string with the Indexer's authentication password.
+     */
+    public String getPassword() {
+        return this.password.toString();
+    }
+
+    /*
      * Retrieves the maximum number of retry attempts allowed for the CTI client.
      *
      * @return an Integer representing the maximum number of retry attempts.

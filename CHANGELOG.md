@@ -25,7 +25,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Expose settings for the Content Manager plugin [#395](https://github.com/wazuh/wazuh-indexer-plugins/pull/395)
 
 ### Dependencies
-- 
+-
 
 ### Changed
 - Update http components to latest versions [#403](https://github.com/wazuh/wazuh-indexer-plugins/pull/403)
@@ -44,10 +44,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Refactor snapshot download [(#413)](https://github.com/wazuh/wazuh-indexer-plugins/pull/413)
 
 ### Deprecated
-- 
+-
 
 ### Removed
-- 
+-
 
 ### Fixed
 - Fix missing stateless inventory fields on the `alerts` template [(#342)](https://github.com/wazuh/wazuh-indexer-plugins/pull/342)
@@ -58,8 +58,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Fix flaky integration tests [(#391)](https://github.com/wazuh/wazuh-indexer-plugins/pull/391)
 - Fix overwrite of content offset on each start [(#401)](https://github.com/wazuh/wazuh-indexer-plugins/pull/401)
 - Fix PatchOperation parse [(#411)](https://github.com/wazuh/wazuh-indexer-plugins/pull/411)
+- Fix unauthorized request to the Command Manager API [(#394)](https://github.com/wazuh/wazuh-indexer-plugins/pull/394)
 
 ### Security
-- 
+-
 
 [Unreleased 6.0.x]: https://github.com/wazuh/wazuh-indexer-plugins/compare/6.0.0...6.0.0
