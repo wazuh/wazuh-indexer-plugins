@@ -67,4 +67,4 @@ The Command Manager generates a unique ID for each of the order received. This I
 - The plugin exposes a Rest API with a single endpoint that listens for POST requests.
 - The plugin extends the Job Scheduler plugin via its SPI. The job periodically looks for past due orders in “pending” state and changes their state to "failed".
 
-The [Command Manager plugin](https://github.com/wazuh/wazuh-indexer/issues/349) appears for the first time in Wazuh 5.0.0.
+The [Command Manager plugin](https://github.com/wazuh/wazuh-indexer/issues/349) appears for the first time in Wazuh 6.0.0.

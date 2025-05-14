@@ -54,7 +54,7 @@ The command takes no arguments (`action.args`). Any provided argument is ignored
       "action": {
         "name": "fetch-config",
         "args": {},
-        "version": "5.0.0"
+        "version": "6.0.0"
       },
       "source": "Users/Services",
       "user": "Management API",
@@ -88,7 +88,7 @@ The command takes the `groups` argument, an array of strings depicting the **ful
             "group_2"
           ]
         },
-        "version": "5.0.0"
+        "version": "6.0.0"
       },
       "source": "Users/Services",
       "user": "Management API",
@@ -120,7 +120,7 @@ The command takes the `index` and `offset` arguments, strings depicting the inde
           "index": "content-index",
           "offset": "1111"
         },
-        "version": "5.0.0"
+        "version": "6.0.0"
       },
       "source": "Content Manager",
       "timeout": 100,
@@ -152,7 +152,7 @@ The command accepts an optional `index` argument, which must be an array of stri
         "args": {
           "index": ["index-a", "index-b"], // Optional
         },
-        "version": "5.0.0"
+        "version": "6.0.0"
       },
       "source": "Users/Services",
       "timeout": 100,
@@ -176,7 +176,7 @@ Commands can be targeted to a group of agents, too. This is achieved by setting 
       "action": {
         "name": "fetch-config",
         "args": {},
-        "version": "5.0.0"
+        "version": "6.0.0"
       },
       "source": "Users/Services",
       "user": "Management API",
@@ -205,7 +205,7 @@ The command is processed by the Command Manager and expanded. We refer to expans
       "action": {
         "name": "fetch-config",
         "args": {},
-        "version": "5.0.0"
+        "version": "6.0.0"
       },
       "timeout": 100,
       "status": "pending"
@@ -222,7 +222,7 @@ The command is processed by the Command Manager and expanded. We refer to expans
       "action": {
         "name": "fetch-config",
         "args": {},
-        "version": "5.0.0"
+        "version": "6.0.0"
       },
       "timeout": 100,
       "status": "pending"
@@ -239,7 +239,7 @@ The command is processed by the Command Manager and expanded. We refer to expans
       "action": {
         "name": "fetch-config",
         "args": {},
-        "version": "5.0.0"
+        "version": "6.0.0"
       },
       "timeout": 100,
       "status": "pending"
@@ -297,7 +297,7 @@ GET wazuh-commands/_search
                   "group_2"
                 ]
               },
-              "version": "5.0.0"
+              "version": "6.0.0"
             },
             "timeout": 100,
             "status": "pending",

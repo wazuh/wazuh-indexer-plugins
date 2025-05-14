@@ -6,7 +6,7 @@ buildscript {
         opensearch_no_snapshot = opensearch_version.replace("-SNAPSHOT","")
         opensearch_build = opensearch_no_snapshot + ".0"
         job_scheduler_version = System.getProperty("job_scheduler.version", opensearch_build)
-        wazuh_version = System.getProperty("version", "5.0.0")
+        wazuh_version = System.getProperty("version", "6.0.0")
         revision = System.getProperty("revision", "0")
     }
 
