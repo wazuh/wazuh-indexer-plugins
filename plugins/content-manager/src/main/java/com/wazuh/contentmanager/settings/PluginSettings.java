@@ -33,6 +33,7 @@ public class PluginSettings {
 
     /** Settings default values */
     private static final String DEFAULT_CONSUMER_ID = "vd_4.8.0";
+
     private static final String DEFAULT_CONTEXT_ID = "vd_1.0.0";
     private static final int DEFAULT_CTI_MAX_ATTEMPTS = 3;
     private static final int DEFAULT_CTI_SLEEP_TIME = 60;
@@ -310,7 +311,8 @@ public class PluginSettings {
     public String getPassword() {
         return this.password.toString();
     }
-  
+
+    /*
      * Retrieves the maximum number of retry attempts allowed for the CTI client.
      *
      * @return an Integer representing the maximum number of retry attempts.
