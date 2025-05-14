@@ -133,18 +133,18 @@ public class PluginSettings {
     }
 
     /**
-     * Getter method for the Command Manager authentication username.
+     * Indexer's username getter.
      *
-     * @return a string with the Content Manager authentication username.
+     * @return a string with the Indexer's authentication username.
      */
     public String getUsername() {
         return this.username.toString();
     }
 
     /**
-     * Getter method for the Command Manager authentication password.
+     * Indexer's password getter.
      *
-     * @return a string with the Content Manager authentication password.
+     * @return a string with the Indexer's authentication password.
      */
     public String getPassword() {
         return this.password.toString();
