@@ -1,6 +1,6 @@
 # Content Manager
 
-The Content Manager is a plugin for Wazuh 5.0 responsible for the management of the Wazuh Catalog within the Indexer. The **catalog** is structured into **contexts**. Each context contains a collection of **resources**. Each **change** made to these resources generates a new **offset**. A **consumer** is a customized view of a context, and it's used to consume the catalog within the CTI API.
+The Content Manager is a plugin for Wazuh 6.0 responsible for the management of the Wazuh Catalog within the Indexer. The **catalog** is structured into **contexts**. Each context contains a collection of **resources**. Each **change** made to these resources generates a new **offset**. A **consumer** is a customized view of a context, and it's used to consume the catalog within the CTI API.
 
 The Content Manager manages multiple Contexts, having a single Consumer each. These are preconfigured in the plugin by default, and not configurable.
 
