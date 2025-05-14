@@ -7,6 +7,9 @@
 
 rootProject.name = "wazuh-indexer-plugins"
 
+include(":wazuh-indexer-common")
+project(":wazuh-indexer-common").projectDir = "plugins/common/" as File
+
 include(":wazuh-indexer-setup")
 project(":wazuh-indexer-setup").projectDir = "plugins/setup/" as File
 
