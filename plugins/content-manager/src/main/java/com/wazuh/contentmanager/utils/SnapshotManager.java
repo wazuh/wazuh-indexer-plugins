@@ -52,17 +52,19 @@ public class SnapshotManager {
      * @param contextIndex Handles context and consumer related metadata.
      * @param contentIndex Handles indexed content.
      * @param privileged Handles privileged actions.
+     * @param ctiClient
      */
     public SnapshotManager(
             Environment environment,
             ContextIndex contextIndex,
             ContentIndex contentIndex,
-            Privileged privileged) {
+            Privileged privileged,
+            CTIClient ctiClient) {
         this.environment = environment;
         this.contextIndex = contextIndex;
         this.contentIndex = contentIndex;
         this.privileged = privileged;
-        this.ctiClient = privileged.doPrivilegedRequest(CTIClient::getInstance);
+        this.ctiClient = ctiClient;
     }
 
     /**

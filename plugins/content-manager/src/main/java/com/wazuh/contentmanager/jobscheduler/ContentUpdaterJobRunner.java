@@ -90,11 +90,7 @@ public class ContentUpdaterJobRunner implements ScheduledJobRunner {
             ScheduledJobParameter scheduledJobParameter, JobExecutionContext jobExecutionContext) {
         ContentUpdaterRunnable jobRunnable =
                 new ContentUpdaterRunnable(
-                    this.environment,
-                        this.contextIndex,
-                        this.contentIndex,
-                        this.client,
-                        this.privileged);
+                        this.environment, this.contextIndex, this.contentIndex, this.client, this.privileged);
         this.threadPool.generic().submit(jobRunnable);
     }
 

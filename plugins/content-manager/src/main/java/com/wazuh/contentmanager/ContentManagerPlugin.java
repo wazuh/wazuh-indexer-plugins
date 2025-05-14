@@ -60,7 +60,6 @@ import com.wazuh.contentmanager.jobscheduler.ContentUpdaterJobParameter;
 import com.wazuh.contentmanager.jobscheduler.ContentUpdaterJobRunner;
 import com.wazuh.contentmanager.settings.PluginSettings;
 import com.wazuh.contentmanager.utils.Privileged;
-import com.wazuh.contentmanager.utils.SnapshotManager;
 
 /** Main class of the Content Manager Plugin */
 public class ContentManagerPlugin extends Plugin
@@ -74,12 +73,7 @@ public class ContentManagerPlugin extends Plugin
     /** Scheduled job ID. */
     public static final String JOB_ID = "content_updater_job";
 
-    private ContextIndex contextIndex;
-    private SnapshotManager snapshotManager;
-    private ThreadPool threadPool;
     private Client client;
-    private ClusterService clusterService;
-    private Privileged privileged;
 
     @Override
     public Collection<Object> createComponents(
@@ -94,23 +88,18 @@ public class ContentManagerPlugin extends Plugin
             NamedWriteableRegistry namedWriteableRegistry,
             IndexNameExpressionResolver indexNameExpressionResolver,
             Supplier<RepositoriesService> repositoriesServiceSupplier) {
+
         PluginSettings.getInstance(environment.settings(), clusterService);
-        this.clusterService = clusterService;
-        this.threadPool = threadPool;
-        this.contextIndex = new ContextIndex(client);
-        ContentIndex contentIndex = new ContentIndex(client);
-        this.threadPool = threadPool;
+
         this.client = client;
-        privileged = new Privileged();
+        Privileged privileged = new Privileged();
         ContentUpdaterJobRunner.getInstance(
-                CTIClient.getInstance(),
+                privileged.doPrivilegedRequest(CTIClient::getInstance),
                 threadPool,
                 environment,
-                this.contextIndex,
-                contentIndex,
-                this.privileged);
-        this.snapshotManager =
-                new SnapshotManager(environment, this.contextIndex, contentIndex, this.privileged);
+                new ContextIndex(client),
+                new ContentIndex(client),
+                privileged);
 
         return Collections.emptyList();
     }
@@ -129,43 +118,6 @@ public class ContentManagerPlugin extends Plugin
                     "Scheduled content update job with status: [{}]", scheduleContentUpdateJob().getResult());
         } catch (IOException e) {
             log.error("Failed scheduling content update job: {}", e.getMessage());
-        }
-        //// Only cluster managers are responsible for the initialization.
-        if (localNode.isClusterManagerNode()) {
-            if (this.clusterService.state().routingTable().hasIndex(ContentIndex.INDEX_NAME)) {
-                this.start();
-            }
-
-            // To be removed once we include the Job Scheduler.
-            this.clusterService.addListener(
-                    event -> {
-                        if (event.indicesCreated().contains(ContentIndex.INDEX_NAME)) {
-                            this.start();
-                        }
-                    });
-        }
-    }
-
-    /**
-     * Initialize. The initialization consists of:
-     *
-     * <pre>
-     *     1. fetching the latest consumer's information from the CTI API.
-     *     2. initialize from a snapshot if the local consumer does not exist, or its offset is 0.
-     * </pre>
-     */
-    private void start() {
-        try {
-            this.threadPool
-                    .generic()
-                    .execute(
-                            () -> {
-                                this.contextIndex.createIndex();
-                                this.snapshotManager.initialize();
-                            });
-        } catch (Exception e) {
-            // Log or handle exception
-            log.error("Error initializing snapshot helper: {}", e.getMessage(), e);
         }
     }
 

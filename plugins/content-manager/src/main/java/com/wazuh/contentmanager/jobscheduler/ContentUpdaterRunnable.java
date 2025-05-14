@@ -20,6 +20,8 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.opensearch.env.Environment;
 
+import java.util.concurrent.atomic.AtomicBoolean;
+
 import com.wazuh.contentmanager.client.CTIClient;
 import com.wazuh.contentmanager.client.CommandManagerClient;
 import com.wazuh.contentmanager.index.ContentIndex;
@@ -39,15 +41,16 @@ public class ContentUpdaterRunnable implements Runnable {
     private final ContentIndex contentIndex;
     private final CTIClient ctiClient;
     private final CommandManagerClient commandManagerClient;
+    private final AtomicBoolean isRunning = new AtomicBoolean(false);
 
     /**
      * Default constructor.
      *
-     * @param environment  Environment to run the job.
+     * @param environment Environment to run the job.
      * @param contextIndex ContextIndex to run the job.
      * @param contentIndex ContentIndex to run the job.
-     * @param ctiClient    CTIClient to interact with the CTI API.
-     * @param privileged   Privileged to run the job.
+     * @param ctiClient CTIClient to interact with the CTI API.
+     * @param privileged Privileged to run the job.
      */
     public ContentUpdaterRunnable(
             Environment environment,
@@ -68,26 +71,38 @@ public class ContentUpdaterRunnable implements Runnable {
 
     @Override
     public void run() {
+        if (!this.isRunning.compareAndSet(false, true)) {
+            log.warn("Content Updater job is already running.");
+            return;
+        }
         ConsumerInfo newConsumerInfo = privileged.getConsumerInfo(this.ctiClient);
 
-        ConsumerInfo current =
-                this.contextIndex.get(PluginSettings.CONTEXT_ID, PluginSettings.CONSUMER_ID);
-        if (current.getOffset() == 0L) {
-            SnapshotManager snapshotManager =
-                    new SnapshotManager(
-                            this.environment, this.contextIndex, this.contentIndex, this.privileged);
-            snapshotManager.initialize(newConsumerInfo);
-        } else if (current.getOffset() == newConsumerInfo.getLastOffset()) {
-            log.info("No new content to index.");
-        } else if (current.getOffset() < newConsumerInfo.getLastOffset()) {
-            ContentUpdater contentUpdater =
-                    new ContentUpdater(
-                            this.ctiClient,
-                            this.commandManagerClient,
-                            this.contextIndex,
-                            this.contentIndex,
-                            this.privileged);
-            contentUpdater.update();
+        try {
+            ConsumerInfo current =
+                    this.contextIndex.get(PluginSettings.CONTEXT_ID, PluginSettings.CONSUMER_ID);
+            if (current.getOffset() == 0L) {
+                SnapshotManager snapshotManager =
+                        new SnapshotManager(
+                                this.environment,
+                                this.contextIndex,
+                                this.contentIndex,
+                                this.privileged,
+                                this.ctiClient);
+                snapshotManager.initialize(newConsumerInfo);
+            } else if (current.getOffset() == newConsumerInfo.getLastOffset()) {
+                log.info("No new content to index.");
+            } else if (current.getOffset() < newConsumerInfo.getLastOffset()) {
+                ContentUpdater contentUpdater =
+                        new ContentUpdater(
+                                this.ctiClient,
+                                this.commandManagerClient,
+                                this.contextIndex,
+                                this.contentIndex,
+                                this.privileged);
+                contentUpdater.update();
+            }
+        } finally {
+            this.isRunning.set(false);
         }
     }
 }
