@@ -67,8 +67,8 @@ public class CommandManagerClient extends HttpClient {
      * @return base 64 encoded string for basic authentication.
      */
     public String getEncodedAuth() {
-        String username = PluginSettings.getInstance().getAuthUsername();
-        String password = PluginSettings.getInstance().getAuthPassword();
+        String username = PluginSettings.getInstance().getUsername();
+        String password = PluginSettings.getInstance().getPassword();
         String auth = username + ":" + password;
         return Base64.getEncoder().encodeToString(auth.getBytes(StandardCharsets.UTF_8));
     }

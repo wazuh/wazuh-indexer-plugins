@@ -127,7 +127,7 @@ public class ContentManagerPlugin extends Plugin implements ClusterPlugin {
     public List<Setting<?>> getSettings() {
         return List.of(
                 PluginSettings.CTI_API_URL,
-                PluginSettings.COMMAND_MANAGER_USERNAME,
-                PluginSettings.COMMAND_MANAGER_PASSWORD);
+                PluginSettings.INDEXER_USERNAME,
+                PluginSettings.INDEXER_PASSWORD);
     }
 }

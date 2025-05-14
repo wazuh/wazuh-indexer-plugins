@@ -55,11 +55,11 @@ public class PluginSettings {
                     Setting.Property.Filtered);
 
     /** Command Manager authentication user. */
-    public static final Setting<SecureString> COMMAND_MANAGER_USERNAME =
+    public static final Setting<SecureString> INDEXER_USERNAME =
             SecureSetting.secureString("indexer.username", null);
 
     /** Command Manager authentication password. */
-    public static final Setting<SecureString> COMMAND_MANAGER_PASSWORD =
+    public static final Setting<SecureString> INDEXER_PASSWORD =
             SecureSetting.secureString("indexer.password", null);
 
     /** Timeout of indexing operations */
@@ -79,8 +79,8 @@ public class PluginSettings {
         this.ctiBaseUrl = CTI_API_URL.get(settings);
         this.clusterService = clusterService;
 
-        this.username = COMMAND_MANAGER_USERNAME.get(settings);
-        this.password = COMMAND_MANAGER_PASSWORD.get(settings);
+        this.username = INDEXER_USERNAME.get(settings);
+        this.password = INDEXER_PASSWORD.get(settings);
 
         log.debug("Settings loaded: {}", this.toString());
     }
@@ -137,7 +137,7 @@ public class PluginSettings {
      *
      * @return a string with the Content Manager authentication username.
      */
-    public String getAuthUsername() {
+    public String getUsername() {
         return this.username.toString();
     }
 
@@ -146,7 +146,7 @@ public class PluginSettings {
      *
      * @return a string with the Content Manager authentication password.
      */
-    public String getAuthPassword() {
+    public String getPassword() {
         return this.password.toString();
     }
 }
