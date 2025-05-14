@@ -18,8 +18,8 @@ package com.wazuh.commandmanager;
 
 import com.carrotsearch.randomizedtesting.annotations.ThreadLeakScope;
 
-import org.apache.http.ParseException;
-import org.apache.http.util.EntityUtils;
+import org.apache.hc.core5.http.ParseException;
+import org.apache.hc.core5.http.io.entity.EntityUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.opensearch.client.Request;

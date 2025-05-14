@@ -21,7 +21,7 @@ import com.carrotsearch.randomizedtesting.annotations.ThreadLeakScope;
 import org.opensearch.action.admin.indices.refresh.RefreshRequest;
 import org.opensearch.action.get.GetResponse;
 import org.opensearch.action.support.WriteRequest;
-import org.opensearch.client.Client;
+import org.opensearch.transport.client.Client;
 import org.opensearch.common.xcontent.XContentFactory;
 import org.opensearch.core.xcontent.ToXContent;
 import org.opensearch.plugins.Plugin;

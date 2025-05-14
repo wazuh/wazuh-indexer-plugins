@@ -18,7 +18,7 @@ package com.wazuh.contentmanager.index;
 
 import com.google.gson.JsonObject;
 import org.opensearch.action.get.GetResponse;
-import org.opensearch.client.Client;
+import org.opensearch.transport.client.Client;
 import org.opensearch.test.OpenSearchIntegTestCase;
 import org.junit.Before;
 
