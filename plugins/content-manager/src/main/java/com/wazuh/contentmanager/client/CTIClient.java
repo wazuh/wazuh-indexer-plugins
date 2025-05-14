@@ -18,6 +18,10 @@ package com.wazuh.contentmanager.client;
 
 import org.apache.hc.client5.http.HttpHostConnectException;
 import org.apache.hc.client5.http.async.methods.*;
+import org.apache.hc.client5.http.classic.methods.HttpGet;
+import org.apache.hc.client5.http.impl.classic.CloseableHttpClient;
+import org.apache.hc.client5.http.impl.classic.CloseableHttpResponse;
+import org.apache.hc.client5.http.impl.classic.HttpClients;
 import org.apache.hc.core5.http.*;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -296,43 +300,41 @@ public class CTIClient extends HttpClient {
      * @return The downloaded file's name
      */
     public Path download(String snapshotURI, Environment env) {
-        try {
+        try (CloseableHttpClient client = HttpClients.createDefault()) {
             // Setup
-            URI uri = new URI(snapshotURI);
-            String filename = uri.getPath().substring(uri.getPath().lastIndexOf('/') + 1);
-            Path path = env.tmpFile().resolve(filename);
+            final URI uri = new URI(snapshotURI);
+            final HttpGet request = new HttpGet(uri);
+            final String filename = uri.getPath().substring(uri.getPath().lastIndexOf('/') + 1);
+            final Path path = env.tmpFile().resolve(filename);
+
             // Download
             log.info("Starting snapshot download from [{}]", uri);
-            SimpleHttpRequest request = SimpleHttpRequest.create(Method.GET, uri);
-            SimpleHttpResponse response = CTIClient.httpClient.execute(request, null).get();
+            try (CloseableHttpResponse response = client.execute(request)) {
+                if (response.getEntity() != null) {
+                    // Write to disk
+                    InputStream input = response.getEntity().getContent();
+                    try (OutputStream out =
+                            new BufferedOutputStream(
+                                    Files.newOutputStream(
+                                            path,
+                                            StandardOpenOption.CREATE,
+                                            StandardOpenOption.WRITE,
+                                            StandardOpenOption.TRUNCATE_EXISTING))) {
 
-            // Write to disk
-            InputStream input = new ByteArrayInputStream(response.getBodyBytes());
-            try (OutputStream out =
-                    new BufferedOutputStream(
-                            Files.newOutputStream(
-                                    path,
-                                    StandardOpenOption.CREATE,
-                                    StandardOpenOption.WRITE,
-                                    StandardOpenOption.TRUNCATE_EXISTING))) {
-
-                int bytesRead;
-                byte[] buffer = new byte[1024];
-                while ((bytesRead = input.read(buffer)) != -1) {
-                    out.write(buffer, 0, bytesRead);
+                        int bytesRead;
+                        byte[] buffer = new byte[1024];
+                        while ((bytesRead = input.read(buffer)) != -1) {
+                            out.write(buffer, 0, bytesRead);
+                        }
+                    }
                 }
-            } catch (IOException | NullPointerException e) {
-                log.error("Failed to write snapshot {}", e.getMessage());
             }
             log.info("Snapshot downloaded to {}", path);
             return path;
         } catch (URISyntaxException e) {
             log.error("Failed to download snapshot. Invalid URL provided: {}", e.getMessage());
-        } catch (ExecutionException e) {
+        } catch (IOException e) {
             log.error("Snapshot download failed: {}", e.getMessage());
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt(); // Restore the interrupted status
-            log.error("Snapshot download was interrupted: {}", e.getMessage());
         }
         return null;
     }
