@@ -64,6 +64,7 @@ public class ConsumerInfo implements ToXContentObject {
 
     /**
      * Copy constructor.
+     *
      * @param consumerInfo the ConsumerInfo object to copy
      */
     public ConsumerInfo(ConsumerInfo consumerInfo) {

@@ -88,14 +88,15 @@ public final class ContentUpdaterRunnable implements Runnable {
             CTIClient ctiClient,
             Privileged privileged) {
         if (INSTANCE == null) {
-            INSTANCE = new ContentUpdaterRunnable(
-                    environment, contextIndex, contentIndex, ctiClient, privileged);
+            INSTANCE =
+                    new ContentUpdaterRunnable(
+                            environment, contextIndex, contentIndex, ctiClient, privileged);
         }
         return INSTANCE;
     }
 
     @Override
-    public synchronized void run() {
+    public void run() {
         if (!this.isRunning.compareAndSet(false, true)) {
             log.warn("Content Updater job is already running.");
             return;

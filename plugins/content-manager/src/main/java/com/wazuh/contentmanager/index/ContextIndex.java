@@ -76,6 +76,7 @@ public class ContextIndex {
             IndexRequest indexRequest =
                     new IndexRequest()
                             .index(ContextIndex.INDEX_NAME)
+                            .create(true)
                             .source(
                                     consumerInfo.toXContent(XContentFactory.jsonBuilder(), ToXContent.EMPTY_PARAMS))
                             .id(consumerInfo.getContext());
