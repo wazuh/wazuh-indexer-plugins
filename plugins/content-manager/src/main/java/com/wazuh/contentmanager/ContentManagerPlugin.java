@@ -75,6 +75,7 @@ public class ContentManagerPlugin extends Plugin
 
     private Client client;
     private ContextIndex contextIndex;
+    private ContentIndex contentIndex;
 
     @Override
     public Collection<Object> createComponents(
@@ -94,13 +95,14 @@ public class ContentManagerPlugin extends Plugin
 
         this.client = client;
         this.contextIndex = new ContextIndex(client);
+        this.contentIndex = new ContentIndex(client);
         Privileged privileged = new Privileged();
         ContentUpdaterJobRunner.getInstance(
                 privileged.doPrivilegedRequest(CTIClient::getInstance),
                 threadPool,
                 environment,
                 this.contextIndex,
-                new ContentIndex(client),
+                contentIndex,
                 privileged);
 
         return Collections.emptyList();
@@ -115,8 +117,9 @@ public class ContentManagerPlugin extends Plugin
      */
     @Override
     public void onNodeStarted(DiscoveryNode localNode) {
-        if (localNode.isClusterManagerNode()) {
+        if (System.getenv("IS_DEV").equals("true") && localNode.isClusterManagerNode()) {
             this.contextIndex.createIndex();
+            this.contentIndex.createIndex();
         }
         try {
             log.info(

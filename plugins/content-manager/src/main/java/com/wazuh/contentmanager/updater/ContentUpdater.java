@@ -82,7 +82,7 @@ public class ContentUpdater {
      * the CTI API for a list of changes to apply to the content. These changes are applied
      * sequentially. A maximum of {@link ContentUpdater#CHUNK_MAX_SIZE} changes are applied on each
      * iteration. When the update is completed, the value of "offset" is updated and equal to
-     * "lastOffset" {@link ContextIndex#index(ConsumerInfo)}, and a command is generated for the
+     * "lastOffset" {@link ContextIndex#index(ConsumerInfo, boolean)}, and a command is generated for the
      * Command Manager {@link Privileged#postUpdateCommand(CommandManagerClient, ConsumerInfo)}. If
      * the update fails, the "offset" is set to 0 to force a recovery from a snapshot.
      *
@@ -90,10 +90,9 @@ public class ContentUpdater {
      * @param lastOffset The last offset number.
      * @return true if the updates were successfully applied, false otherwise.
      * @throws ContentUpdateException If there was an error fetching the changes.
-     * @throws IOException If there was an error applying the changes.
      */
     public boolean update(ConsumerInfo current, Long lastOffset)
-            throws ContentUpdateException, IOException {
+            throws ContentUpdateException {
         long currentOffset = current.getOffset();
         ConsumerInfo consumerInfo = new ConsumerInfo(current);
 

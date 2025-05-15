@@ -65,18 +65,29 @@ public class ContextIndex {
         this.client = client;
     }
 
+
+    /**
+     * Index CTI API consumer information.
+     * @param consumerInfo Model containing information parsed from the CTI API.
+     * @return true if the index was created or updated, false otherwise.
+     */
+    public boolean index(ConsumerInfo consumerInfo) {
+        return index(consumerInfo, false);
+    }
+
     /**
      * Index CTI API consumer information.
      *
      * @param consumerInfo Model containing information parsed from the CTI API.
+     * @param createIndex true if the index should be created if it does not exist, false otherwise.
      * @return the IndexResponse from the indexing operation, or null.
      */
-    public boolean index(ConsumerInfo consumerInfo) {
+    public boolean index(ConsumerInfo consumerInfo, boolean createIndex) {
         try {
             IndexRequest indexRequest =
                     new IndexRequest()
                             .index(ContextIndex.INDEX_NAME)
-                            .create(true)
+                            .create(createIndex)
                             .source(
                                     consumerInfo.toXContent(XContentFactory.jsonBuilder(), ToXContent.EMPTY_PARAMS))
                             .id(consumerInfo.getContext());
@@ -200,7 +211,7 @@ public class ContextIndex {
         if (!this.exists()) {
             boolean result =
                     this.index(
-                            new ConsumerInfo(PluginSettings.CONSUMER_ID, PluginSettings.CONTEXT_ID, 0, 0, null));
+                            new ConsumerInfo(PluginSettings.CONSUMER_ID, PluginSettings.CONTEXT_ID, 0, 0, null), true);
             log.info("Index initialized: {}", result);
         }
     }

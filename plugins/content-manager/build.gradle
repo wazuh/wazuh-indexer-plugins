@@ -164,6 +164,7 @@ testClusters.integTest {
       debugPort += 1
     }
   }
+  environment "IS_DEV", System.getenv("IS_DEV")
 }
 
 run {
