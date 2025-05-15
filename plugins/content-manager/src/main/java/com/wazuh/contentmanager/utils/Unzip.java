@@ -33,30 +33,29 @@ public class Unzip {
     private static final Logger log = LogManager.getLogger(Unzip.class);
 
     /**
-     * Unzips a ZIP filePath's content to the specified folder.
+     * Unzips an archive to the specified folder.
      *
-     * @param filePath ZIP filePath to decompress.
-     * @param destinationPath extraction destination folder.
+     * @param source path of the file to unzip.
+     * @param destination folder to extract to.
      * @throws IOException rethrown from getNextEntry()
      */
-    public static void unzip(@NonNull Path filePath, @NonNull Path destinationPath)
-            throws IOException {
-        if (!Files.exists(filePath)) {
-            throw new FileNotFoundException("ZIP filePath does not exist: " + filePath);
+    public static void unzip(@NonNull Path source, @NonNull Path destination) throws IOException {
+        if (!Files.exists(source)) {
+            throw new FileNotFoundException("ZIP [{}] does not exist", source);
         }
 
-        try (ZipInputStream zipInputStream = new ZipInputStream(Files.newInputStream(filePath))) {
+        try (ZipInputStream zipInputStream = new ZipInputStream(Files.newInputStream(source))) {
             ZipEntry zipEntry;
             while ((zipEntry = zipInputStream.getNextEntry()) != null) {
-                Path destinationFile = destinationPath.resolve(zipEntry.getName()).normalize();
-                if (!destinationFile.startsWith(destinationPath)) {
+                Path destinationFile = destination.resolve(zipEntry.getName()).normalize();
+                if (!destinationFile.startsWith(destination)) {
                     throw new IOException("Bad zip entry: " + zipEntry.getName());
                 }
                 extract(zipInputStream, destinationFile);
                 zipInputStream.closeEntry();
             }
         }
-        log.info("[{}] filePath unzipped to [{}]", filePath.toString(), destinationPath.toString());
+        log.info("[{}] unzipped to [{}]", source.toString(), destination.toString());
     }
 
     /**

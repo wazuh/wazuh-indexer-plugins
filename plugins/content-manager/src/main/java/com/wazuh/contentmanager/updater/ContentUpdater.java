@@ -122,7 +122,11 @@ public class ContentUpdater {
             return true;
         }
 
-        log.info("New updates available from offset {} to {}", currentOffset, lastOffset);
+        log.info(
+                "Updating [{}] from offset [{}] to [{}]",
+                ContentIndex.INDEX_NAME,
+                currentOffset,
+                lastOffset);
         while (currentOffset < lastOffset) {
             long nextOffset =
                     Math.min(currentOffset + this.pluginSettings.getMaximumChanges(), lastOffset);
@@ -148,8 +152,10 @@ public class ContentUpdater {
         }
 
         // Update consumer info.
+        consumerInfo.setLastOffset(currentOffset);
         this.contextIndex.index(consumerInfo);
         this.privileged.postUpdateCommand(this.commandClient, consumerInfo);
+        log.info("[{}] updated to offset [{}]", ContentIndex.INDEX_NAME, consumerInfo.getOffset());
         return true;
     }
 
