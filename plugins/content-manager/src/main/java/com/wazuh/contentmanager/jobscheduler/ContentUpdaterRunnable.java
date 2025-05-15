@@ -88,20 +88,20 @@ public final class ContentUpdaterRunnable implements Runnable {
             CTIClient ctiClient,
             Privileged privileged) {
         if (INSTANCE == null) {
-            return new ContentUpdaterRunnable(
+            INSTANCE = new ContentUpdaterRunnable(
                     environment, contextIndex, contentIndex, ctiClient, privileged);
         }
         return INSTANCE;
     }
 
     @Override
-    public void run() {
+    public synchronized void run() {
         if (!this.isRunning.compareAndSet(false, true)) {
             log.warn("Content Updater job is already running.");
             return;
         }
         ConsumerInfo latest = privileged.getConsumerInfo(this.ctiClient);
-        long lastOffset = latest.getLastOffset();
+        long latestOffset = latest.getLastOffset();
 
         try {
             ConsumerInfo current =
@@ -116,7 +116,7 @@ public final class ContentUpdaterRunnable implements Runnable {
                                 this.privileged,
                                 this.ctiClient);
                 snapshotManager.initialize(latest);
-            } else if (currentOffset < lastOffset) {
+            } else if (currentOffset < latestOffset) {
                 ContentUpdater contentUpdater =
                         new ContentUpdater(
                                 this.ctiClient,
@@ -124,10 +124,10 @@ public final class ContentUpdaterRunnable implements Runnable {
                                 this.contextIndex,
                                 this.contentIndex,
                                 this.privileged);
-                contentUpdater.update(currentOffset, lastOffset);
-            } else if (currentOffset == lastOffset) {
+                contentUpdater.update(current, latestOffset);
+            } else if (currentOffset == latestOffset) {
                 log.info(
-                        "Consumer is up-to-date (offset {} == {}). Skipping...", currentOffset, lastOffset);
+                        "Consumer is up-to-date (offset {} == {}). Skipping...", currentOffset, latestOffset);
             }
         } catch (IOException e) {
             log.error("Failed to run Content Updater job: {}", e.getMessage());

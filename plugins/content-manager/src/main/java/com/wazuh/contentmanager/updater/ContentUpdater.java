@@ -86,10 +86,11 @@ public class ContentUpdater {
      * Command Manager {@link Privileged#postUpdateCommand(CommandManagerClient, ConsumerInfo)}. If
      * the update fails, the "offset" is set to 0 to force a recovery from a snapshot.
      *
-     * @param current
-     * @param lastOffset
+     * @param current The current consumer information.
+     * @param lastOffset The last offset number.
      * @return true if the updates were successfully applied, false otherwise.
      * @throws ContentUpdateException If there was an error fetching the changes.
+     * @throws IOException If there was an error applying the changes.
      */
     public boolean update(ConsumerInfo current, Long lastOffset)
             throws ContentUpdateException, IOException {
