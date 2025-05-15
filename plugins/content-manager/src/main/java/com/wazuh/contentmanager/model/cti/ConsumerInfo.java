@@ -14,7 +14,7 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-package com.wazuh.contentmanager.model.ctiapi;
+package com.wazuh.contentmanager.model.cti;
 
 import org.opensearch.core.xcontent.ToXContentObject;
 import org.opensearch.core.xcontent.XContentBuilder;
@@ -40,12 +40,12 @@ public class ConsumerInfo implements ToXContentObject {
     private static final String OPERATIONS = "operations";
     private final String context;
     private final String name;
-    private final long offset;
-    private final long lastOffset;
-    private final String lastSnapshotLink;
+    private long offset;
+    private long lastOffset;
+    private String lastSnapshotLink;
 
     /**
-     * Constructor method
+     * Constructor.
      *
      * @param name Name of the consumer
      * @param context Name of the context
@@ -57,18 +57,18 @@ public class ConsumerInfo implements ToXContentObject {
             String name, String context, long offset, long lastOffset, String lastSnapshotLink) {
         this.name = name;
         this.context = context;
-        this.offset = offset;
-        this.lastOffset = lastOffset;
+        this.setOffset(offset);
+        this.setLastOffset(lastOffset);
         this.lastSnapshotLink = lastSnapshotLink;
     }
 
     /**
-     * Parses a Catalog CTI API reply from an XContentParser
+     * Parses the consumer's information within an XContentParser (reply from the CTI API).
      *
-     * @param parser the incoming parser
-     * @return a fully parsed ConsumerInfo object
-     * @throws IOException rethrown from parse()
-     * @throws IllegalArgumentException rethrown from parse()
+     * @param parser the incoming parser.
+     * @return a fully parsed ConsumerInfo object.
+     * @throws IOException rethrown from parse().
+     * @throws IllegalArgumentException rethrown from parse().
      */
     public static ConsumerInfo parse(XContentParser parser)
             throws IOException, IllegalArgumentException {
@@ -126,20 +126,29 @@ public class ConsumerInfo implements ToXContentObject {
     public XContentBuilder toXContent(XContentBuilder builder, Params params) throws IOException {
         builder.startObject();
         builder.startObject(this.name);
-        builder.field(LAST_OFFSET, this.lastOffset);
-        builder.field(LAST_SNAPSHOT_LINK, this.lastSnapshotLink);
-        builder.field(OFFSET, this.offset);
+        builder.field(ConsumerInfo.LAST_OFFSET, this.lastOffset);
+        builder.field(ConsumerInfo.LAST_SNAPSHOT_LINK, this.lastSnapshotLink);
+        builder.field(ConsumerInfo.OFFSET, this.offset);
         builder.endObject();
         return builder.endObject();
     }
 
     /**
-     * Get this consumer's context name.
+     * {@link ConsumerInfo#context} getter.
      *
      * @return the consumer's context name.
      */
     public String getContext() {
         return this.context;
+    }
+
+    /**
+     * {@link ConsumerInfo#name} getter.
+     *
+     * @return the consumer's name.
+     */
+    public String getName() {
+        return this.name;
     }
 
     /**
@@ -167,5 +176,59 @@ public class ConsumerInfo implements ToXContentObject {
      */
     public String getLastSnapshotLink() {
         return this.lastSnapshotLink;
+    }
+
+    /**
+     * {@link ConsumerInfo#offset} setter.
+     *
+     * @param offset new value (positive).
+     * @throws IllegalArgumentException when {@code offset < 0}.
+     */
+    public void setOffset(long offset) throws IllegalArgumentException {
+        if (offset < 0) {
+            throw new IllegalArgumentException("Offset can't be negative");
+        }
+        this.offset = offset;
+    }
+
+    /**
+     * {@link ConsumerInfo#lastOffset} setter.
+     *
+     * @param offset new value (positive).
+     * @throws IllegalArgumentException when {@code offset < 0}.
+     */
+    public void setLastOffset(long offset) throws IllegalArgumentException {
+        if (offset < 0) {
+            throw new IllegalArgumentException("Offset can't be negative");
+        }
+        this.lastOffset = offset;
+    }
+
+    /**
+     * {@link ConsumerInfo#lastSnapshotLink} setter.
+     *
+     * @param url new value (URL).
+     */
+    public void setLastSnapshotLink(String url) {
+        this.lastSnapshotLink = url;
+    }
+
+    @Override
+    public String toString() {
+        return "ConsumerInfo{"
+                + "context='"
+                + context
+                + '\''
+                + ", name='"
+                + name
+                + '\''
+                + ", offset="
+                + offset
+                + ", lastOffset="
+                + lastOffset
+                + ", lastSnapshotLink='"
+                + lastSnapshotLink
+                + '\''
+                + '}';
     }
 }

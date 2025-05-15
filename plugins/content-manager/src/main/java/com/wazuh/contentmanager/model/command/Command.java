@@ -14,7 +14,7 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-package com.wazuh.contentmanager.model.commandmanager;
+package com.wazuh.contentmanager.model.command;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -46,7 +46,7 @@ public class Command {
                     .field("index", "content-index")
                     .field("offset", offset)
                     .endObject()
-                    .field("version", "5.0.0") // Dynamic version
+                    .field("version", "6.0.0") // Dynamic version
                     .endObject()
                     .field("source", "Content Manager")
                     .field("timeout", 100)

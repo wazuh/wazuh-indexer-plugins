@@ -14,7 +14,7 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-package com.wazuh.contentmanager.model.ctiapi;
+package com.wazuh.contentmanager.model.cti;
 
 import org.opensearch.core.xcontent.ToXContentObject;
 import org.opensearch.core.xcontent.XContentBuilder;
@@ -22,10 +22,7 @@ import org.opensearch.core.xcontent.XContentParser;
 import org.opensearch.core.xcontent.XContentParserUtils;
 
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 /**
  * ToXContentObject model to parse and build CTI API changes.
@@ -41,10 +38,10 @@ public class Offset implements ToXContentObject {
     private static final String OPERATIONS = "operations";
     private static final String PAYLOAD = "payload";
     private final String context;
-    private final Long offset;
+    private final long offset;
     private final String resource;
     private final OperationType type;
-    private final Long version;
+    private final long version;
     private final List<PatchOperation> operations;
     private final Map<String, Object> payload;
 
@@ -85,10 +82,10 @@ public class Offset implements ToXContentObject {
      */
     public static Offset parse(XContentParser parser) throws IOException {
         String context = null;
-        Long offset = null;
+        long offset = 0;
         String resource = null;
         OperationType type = null;
-        Long version = null;
+        long version = 0;
         List<PatchOperation> operations = new ArrayList<>();
         Map<String, Object> payload = new HashMap<>();
 
@@ -107,7 +104,8 @@ public class Offset implements ToXContentObject {
                         resource = parser.text();
                         break;
                     case TYPE:
-                        type = OperationType.valueOf(parser.text());
+                        String opType = parser.text().trim().toUpperCase(Locale.ROOT);
+                        type = OperationType.valueOf(opType);
                         break;
                     case VERSION:
                         version = parser.longValue();
@@ -238,6 +236,15 @@ public class Offset implements ToXContentObject {
      */
     public List<PatchOperation> getOperations() {
         return this.operations;
+    }
+
+    /**
+     * {@link Offset#offset} getter.
+     *
+     * @return the number identifier of the change.
+     */
+    public long getOffset() {
+        return this.offset;
     }
 
     /**

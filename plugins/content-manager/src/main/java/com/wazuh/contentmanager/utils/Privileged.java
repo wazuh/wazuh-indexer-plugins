@@ -18,6 +18,12 @@ package com.wazuh.contentmanager.utils;
 
 import java.security.AccessController;
 
+import com.wazuh.contentmanager.client.CTIClient;
+import com.wazuh.contentmanager.client.CommandManagerClient;
+import com.wazuh.contentmanager.model.command.Command;
+import com.wazuh.contentmanager.model.cti.ConsumerInfo;
+import com.wazuh.contentmanager.model.cti.ContentChanges;
+
 /** Privileged utility class for executing privileged HTTP requests. */
 public class Privileged {
 
@@ -28,7 +34,27 @@ public class Privileged {
      * @param <T> A privileged action that performs the HTTP request.
      * @return The return value resulting from the request execution.
      */
-    public static <T> T doPrivilegedRequest(java.security.PrivilegedAction<T> request) {
+    public <T> T doPrivilegedRequest(java.security.PrivilegedAction<T> request) {
         return AccessController.doPrivileged(request);
+    }
+
+    /** Posts a command to the command manager API on a successful snapshot operation. */
+    public void postUpdateCommand(CommandManagerClient client, ConsumerInfo current) {
+        this.doPrivilegedRequest(
+                () -> {
+                    client.post(Command.create(String.valueOf(current.getLastOffset())));
+                    return null;
+                });
+    }
+
+    /**
+     * Fetches the context changes between a given offset range from the CTI API.
+     *
+     * @param fromOffset Starting offset (inclusive).
+     * @param toOffset Ending offset (exclusive).
+     * @return ContextChanges object containing the changes.
+     */
+    public ContentChanges getChanges(CTIClient client, long fromOffset, long toOffset) {
+        return this.doPrivilegedRequest(() -> client.getChanges(fromOffset, toOffset, false));
     }
 }

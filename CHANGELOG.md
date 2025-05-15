@@ -4,7 +4,7 @@ All notable changes to this project are documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html). See the [CONTRIBUTING guide](./CONTRIBUTING.md#Changelog) for instructions on how to add changelog entries.
 
-## [Unreleased 5.0.x]
+## [Unreleased 6.0.x]
 
 ### Added
 - Add RBAC index templates with its corresponding event generator [(#303)](https://github.com/wazuh/wazuh-indexer-plugins/pull/303)
@@ -24,12 +24,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Add custom action to list modified plugins [(#388)](https://github.com/wazuh/wazuh-indexer-plugins/pull/388)
 
 ### Dependencies
+- 
 
 ### Changed
+- Update http components to latest versions [#403](https://github.com/wazuh/wazuh-indexer-plugins/pull/403)
 - Content Manager tier 1 final wrap up [#373](https://github.com/wazuh/wazuh-indexer-plugins/pull/373)
 - Refactor Content Manager's code and fix Catalog info indexing [(#317)](https://github.com/wazuh/wazuh-indexer-plugins/pull/317)
 - Improved mdbook installation instructions [#332](https://github.com/wazuh/wazuh-indexer-plugins/pull/332)
-- Third-party integrations maintenance [(#299)](https://github.com/wazuh/wazuh-indexer-plugins/pull/299) [(#374)](https://github.com/wazuh/wazuh-indexer-plugins/pull/374)
+- Third-party integrations maintenance [(#299)](https://github.com/wazuh/wazuh-indexer-plugins/pull/299) [(#374)](https://github.com/wazuh/wazuh-indexer-plugins/pull/374) [(#398)](https://github.com/wazuh/wazuh-indexer-plugins/pull/398)
 - Upgrade to Opensearch 2.19.1 [(#304)](https://github.com/wazuh/wazuh-indexer-plugins/pull/304)
 - Add cross-account support for Security Lake integration [(#322)](https://github.com/wazuh/wazuh-indexer-plugins/pull/322)
 - Improve ECS documentation I [(#328)](https://github.com/wazuh/wazuh-indexer-plugins/pull/328)
@@ -37,10 +39,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Index RBAC information on startup [(#356)](https://github.com/wazuh/wazuh-indexer-plugins/pull/356)
 - Change snapshot download directory to Java's tmp folder [(#382)](https://github.com/wazuh/wazuh-indexer-plugins/pull/382)
 - Refactor CommandManagerClient to perform requests internally [(#393)](https://github.com/wazuh/wazuh-indexer-plugins/pull/394)
+- Upgrade to Opensearch 2.19.2 [(#399)](https://github.com/wazuh/wazuh-indexer-plugins/pull/399)
+- Simplify snapshot initialization process [(#390)](https://github.com/wazuh/wazuh-indexer-plugins/pull/390)
 
 ### Deprecated
+- 
 
 ### Removed
+- 
 
 ### Fixed
 - Fix missing stateless inventory fields on the `alerts` template [(#342)](https://github.com/wazuh/wazuh-indexer-plugins/pull/342)
@@ -49,7 +55,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Fix mentions of `host.ip` and `host.os.full` in agents index template [(#330)](https://github.com/wazuh/wazuh-indexer-plugins/pull/330)
 - Fix workflow to build plugins on push [(#384)](https://github.com/wazuh/wazuh-indexer-plugins/pull/384)
 - Fix flaky integration tests [(#391)](https://github.com/wazuh/wazuh-indexer-plugins/pull/391)
+- Fix overwrite of content offset on each start [(#401)](https://github.com/wazuh/wazuh-indexer-plugins/pull/401)
+- Fix PatchOperation parse [(#411)](https://github.com/wazuh/wazuh-indexer-plugins/pull/411)
 
 ### Security
+- 
 
-[Unreleased 5.0.x]: https://github.com/wazuh/wazuh-indexer-plugins/compare/main...main
+[Unreleased 6.0.x]: https://github.com/wazuh/wazuh-indexer-plugins/compare/6.0.0...6.0.0

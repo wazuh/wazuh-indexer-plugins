@@ -23,8 +23,9 @@ import com.wazuh.contentmanager.client.CTIClient;
 import com.wazuh.contentmanager.client.CommandManagerClient;
 import com.wazuh.contentmanager.index.ContentIndex;
 import com.wazuh.contentmanager.index.ContextIndex;
-import com.wazuh.contentmanager.model.commandmanager.Command;
-import com.wazuh.contentmanager.model.ctiapi.ContentChanges;
+import com.wazuh.contentmanager.model.cti.ConsumerInfo;
+import com.wazuh.contentmanager.model.cti.ContentChanges;
+import com.wazuh.contentmanager.settings.PluginSettings;
 import com.wazuh.contentmanager.utils.Privileged;
 import com.wazuh.contentmanager.utils.VisibleForTesting;
 
@@ -34,8 +35,9 @@ public class ContentUpdater {
     private static final Logger log = LogManager.getLogger(ContentUpdater.class);
     private final ContextIndex contextIndex;
     private final ContentIndex contentIndex;
+    private final CommandManagerClient commandClient;
     private final CTIClient ctiClient;
-    private final CommandManagerClient commandManagerClient;
+    private final Privileged privileged;
 
     /** Exception thrown by the Content Updater in case of errors. */
     public static class ContentUpdateException extends RuntimeException {
@@ -51,21 +53,23 @@ public class ContentUpdater {
     }
 
     /**
-     * Constructor. Mainly used for testing purposes.
+     * Constructor. Mainly used for testing purposes. Dependency injection.
      *
-     * @param ctiClient the CTIClient to interact with the CTI API
-     * @param contextIndex An object that handles context and consumer information
-     * @param contentIndex An object that handles content index interactions
+     * @param ctiClient the CTIClient to interact with the CTI API.
+     * @param contextIndex An object that handles context and consumer information.
+     * @param contentIndex An object that handles content index interactions.
      */
     public ContentUpdater(
             CTIClient ctiClient,
             ContextIndex contextIndex,
             ContentIndex contentIndex,
-            CommandManagerClient commandManagerClient) {
+            CommandManagerClient client,
+            Privileged privileged) {
         this.contextIndex = contextIndex;
         this.contentIndex = contentIndex;
+        this.commandClient = client;
         this.ctiClient = ctiClient;
-        this.commandManagerClient = commandManagerClient;
+        this.privileged = privileged;
     }
 
     /**
@@ -75,16 +79,18 @@ public class ContentUpdater {
      * the CTI API for a list of changes to apply to the content. These changes are applied
      * sequentially. A maximum of {@link ContentUpdater#CHUNK_MAX_SIZE} changes are applied on each
      * iteration. When the update is completed, the value of "offset" is updated and equal to
-     * "lastOffset" {@link ContextIndex#setOffset(Long, Long)}, and a command is generated for the
-     * Command Manager {@link ContentUpdater#postUpdateCommand()}. If the update fails, the "offset"
-     * is set to 0 to force a recovery from a snapshot.
+     * "lastOffset" {@link ContextIndex#index(ConsumerInfo)}, and a command is generated for the
+     * Command Manager {@link Privileged#postUpdateCommand(CommandManagerClient, ConsumerInfo)}. If
+     * the update fails, the "offset" is set to 0 to force a recovery from a snapshot.
      *
      * @return true if the updates were successfully applied, false otherwise.
      * @throws ContentUpdateException If there was an error fetching the changes.
      */
     public boolean update() throws ContentUpdateException {
-        long currentOffset = this.contextIndex.getOffset();
-        long lastOffset = this.contextIndex.getLastOffset();
+        ConsumerInfo consumerInfo =
+                this.contextIndex.get(PluginSettings.CONTEXT_ID, PluginSettings.CONSUMER_ID);
+        long currentOffset = consumerInfo.getOffset();
+        long lastOffset = consumerInfo.getLastOffset();
 
         if (lastOffset == currentOffset) {
             log.info("No updates available. Current offset ({}) is up to date.", currentOffset);
@@ -94,17 +100,20 @@ public class ContentUpdater {
         log.info("New updates available from offset {} to {}", currentOffset, lastOffset);
         while (currentOffset < lastOffset) {
             long nextOffset = Math.min(currentOffset + ContentUpdater.CHUNK_MAX_SIZE, lastOffset);
-            ContentChanges changes = this.getChanges(currentOffset, nextOffset);
+            ContentChanges changes =
+                    this.privileged.getChanges(this.ctiClient, currentOffset, nextOffset);
             log.debug("Fetched offsets from {} to {}", currentOffset, nextOffset);
 
             if (changes == null) {
                 log.error("Unable to fetch changes for offsets {} to {}", currentOffset, nextOffset);
-                this.contextIndex.setOffset(0L, 0L);
+                consumerInfo.setOffset(0);
+                consumerInfo.setLastOffset(0);
                 return false;
             }
 
             if (!this.applyChanges(changes)) {
-                this.contextIndex.setOffset(0L, 0L);
+                consumerInfo.setOffset(0);
+                consumerInfo.setLastOffset(0);
                 return false;
             }
 
@@ -112,22 +121,10 @@ public class ContentUpdater {
             log.debug("Update current offset to {}", currentOffset);
         }
 
-        this.contextIndex.setOffset(currentOffset, lastOffset);
-        this.postUpdateCommand();
+        // Update consumer info.
+        this.contextIndex.index(consumerInfo);
+        this.privileged.postUpdateCommand(this.commandClient, consumerInfo);
         return true;
-    }
-
-    /**
-     * Fetches the context changes between a given offset range from the CTI API.
-     *
-     * @param fromOffset Starting offset (inclusive).
-     * @param toOffset Ending offset (exclusive).
-     * @return ContextChanges object containing the changes.
-     */
-    @VisibleForTesting
-    protected ContentChanges getChanges(long fromOffset, long toOffset) {
-        return Privileged.doPrivilegedRequest(
-                () -> this.ctiClient.getChanges(fromOffset, toOffset, false));
     }
 
     /**
@@ -145,16 +142,5 @@ public class ContentUpdater {
             log.error("Failed to apply changes to content index", e);
             return false;
         }
-    }
-
-    /** Posts a new command to the Command Manager informing about the new changes. */
-    @VisibleForTesting
-    protected void postUpdateCommand() {
-        Privileged.doPrivilegedRequest(
-                () -> {
-                    this.commandManagerClient.postCommand(
-                            Command.create(String.valueOf(this.contextIndex.getOffset())));
-                    return null;
-                });
     }
 }

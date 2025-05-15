@@ -51,10 +51,10 @@ public class CommandManagerClient {
      * @return the singleton instance of CommandManagerClient
      */
     public static synchronized CommandManagerClient getInstance(Client client) {
-        if (INSTANCE == null) {
-            INSTANCE = new CommandManagerClient(client);
+        if (CommandManagerClient.INSTANCE == null) {
+            CommandManagerClient.INSTANCE = new CommandManagerClient(client);
         }
-        return INSTANCE;
+        return CommandManagerClient.INSTANCE;
     }
 
     /**
@@ -69,13 +69,12 @@ public class CommandManagerClient {
         }
         return INSTANCE;
     }
-
     /**
      * Posts a command to the Command Manager Plugin.
      *
      * @param requestBody the command request body
      */
-    public void postCommand(String requestBody) {
+    public void post(String requestBody) {
         //        CommandRequestAction request = new CommandRequestAction(json);
         //
         //        transportService.sendRequest(
