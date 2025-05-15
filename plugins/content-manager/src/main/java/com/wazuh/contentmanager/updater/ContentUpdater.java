@@ -122,11 +122,7 @@ public class ContentUpdater {
             return true;
         }
 
-        log.info(
-                "Updating [{}] from offset [{}] to [{}]",
-                ContentIndex.INDEX_NAME,
-                currentOffset,
-                lastOffset);
+        log.info("Updating [{}]", ContentIndex.INDEX_NAME);
         while (currentOffset < lastOffset) {
             long nextOffset =
                     Math.min(currentOffset + this.pluginSettings.getMaximumChanges(), lastOffset);

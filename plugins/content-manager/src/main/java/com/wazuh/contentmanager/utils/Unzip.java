@@ -41,7 +41,7 @@ public class Unzip {
      */
     public static void unzip(@NonNull Path source, @NonNull Path destination) throws IOException {
         if (!Files.exists(source)) {
-            throw new FileNotFoundException("ZIP [{}] does not exist", source);
+            throw new FileNotFoundException("ZIP does not exist: " + source);
         }
 
         try (ZipInputStream zipInputStream = new ZipInputStream(Files.newInputStream(source))) {
