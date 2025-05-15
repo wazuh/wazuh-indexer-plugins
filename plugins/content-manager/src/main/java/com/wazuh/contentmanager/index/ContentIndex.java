@@ -18,10 +18,9 @@ package com.wazuh.contentmanager.index;
 
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
-import com.wazuh.contentmanager.model.cti.ConsumerInfo;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.opensearch.action.DocWriteResponse;
+import org.opensearch.action.admin.indices.create.CreateIndexRequest;
 import org.opensearch.action.bulk.BulkRequest;
 import org.opensearch.action.bulk.BulkResponse;
 import org.opensearch.action.delete.DeleteRequest;
@@ -329,8 +328,7 @@ public class ContentIndex {
     /** Creates the {@link ContentIndex#INDEX_NAME} index, if it does not exist. */
     public void createIndex() {
         if (!this.exists()) {
-            DocWriteResponse.Result result = this.client.prepareIndex(INDEX_NAME).setCreate(true).get().getResult();
-            log.info("Index initialized: {}", result);
+            client.admin().indices().create(new CreateIndexRequest(INDEX_NAME)).actionGet();
         }
     }
 

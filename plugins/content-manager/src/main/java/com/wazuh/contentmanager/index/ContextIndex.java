@@ -65,9 +65,9 @@ public class ContextIndex {
         this.client = client;
     }
 
-
     /**
      * Index CTI API consumer information.
+     *
      * @param consumerInfo Model containing information parsed from the CTI API.
      * @return true if the index was created or updated, false otherwise.
      */
@@ -211,7 +211,8 @@ public class ContextIndex {
         if (!this.exists()) {
             boolean result =
                     this.index(
-                            new ConsumerInfo(PluginSettings.CONSUMER_ID, PluginSettings.CONTEXT_ID, 0, 0, null), true);
+                            new ConsumerInfo(PluginSettings.CONSUMER_ID, PluginSettings.CONTEXT_ID, 0, 0, null),
+                            true);
             log.info("Index initialized: {}", result);
         }
     }
