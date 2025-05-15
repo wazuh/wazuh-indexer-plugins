@@ -95,7 +95,7 @@ public class SnapshotManagerTests extends OpenSearchTestCase {
         doReturn(DocWriteResponse.Result.CREATED).when(response).getResult();
 
         // Act &6 Assert
-        this.snapshotManager.initConsumer();
+        this.snapshotManager.initConsumer(consumerInfo);
         verify(this.contextIndex).index(any(ConsumerInfo.class));
     }
 
@@ -117,7 +117,7 @@ public class SnapshotManagerTests extends OpenSearchTestCase {
         doReturn(DocWriteResponse.Result.NOT_FOUND).when(response).getResult();
 
         // Act && Assert
-        assertThrows(IOException.class, () -> this.snapshotManager.initConsumer());
+        assertThrows(IOException.class, () -> this.snapshotManager.initConsumer(consumerInfo));
     }
 
     /**

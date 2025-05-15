@@ -136,6 +136,7 @@ integTest {
     if (System.getProperty("test.debug") != null) {
         jvmArgs '-agentlib:jdwp=transport=dt_socket,server=y,suspend=y,address=*:5005'
     }
+    environment "IS_DEV", System.getenv("IS_DEV") ?: "false"
 }
 
 testClusters.integTest {

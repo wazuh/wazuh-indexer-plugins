@@ -94,33 +94,29 @@ public class SnapshotManager {
      */
     protected void indexSnapshot(ConsumerInfo consumerInfo) {
         log.info("Initializing [{}] index from a snapshot", ContentIndex.INDEX_NAME);
-        this.privileged.doPrivilegedRequest(
-                () -> {
-                    // Download snapshot.
-                    Path snapshotZip =
-                            this.privileged.streamingDownload(
-                                    this.ctiClient, consumerInfo.getLastSnapshotLink(), this.environment);
-                    Path outputDir = this.environment.tmpFile();
+        // Download snapshot.
+        Path snapshotZip =
+                this.privileged.streamingDownload(
+                        this.ctiClient, consumerInfo.getLastSnapshotLink(), this.environment);
+        Path outputDir = this.environment.tmpFile();
 
-                    try (DirectoryStream<Path> stream = this.getStream(outputDir)) {
-                        // Unzip snapshot.
-                        this.unzip(snapshotZip, outputDir);
-                        Path snapshotJson = stream.iterator().next();
-                        // Index snapshot.
-                        long offset = this.contentIndex.fromSnapshot(snapshotJson.toString());
-                        // Update the offset.
-                        consumerInfo.setOffset(offset);
-                        this.contextIndex.index(consumerInfo);
-                        // Send command.
-                        privileged.postUpdateCommand(this.commandClient, consumerInfo);
-                        // Remove snapshot.
-                        Files.deleteIfExists(snapshotZip);
-                        Files.deleteIfExists(snapshotJson);
-                    } catch (IOException | NullPointerException e) {
-                        log.error("Failed to index snapshot: {}", e.getMessage());
-                    }
-                    return null;
-                });
+        try (DirectoryStream<Path> stream = this.getStream(outputDir)) {
+            // Unzip snapshot.
+            this.unzip(snapshotZip, outputDir);
+            Path snapshotJson = stream.iterator().next();
+            // Index snapshot.
+            long offset = this.contentIndex.fromSnapshot(snapshotJson.toString());
+            // Update the offset.
+            consumerInfo.setOffset(offset);
+            this.contextIndex.index(consumerInfo);
+            // Send command.
+            privileged.postUpdateCommand(this.commandClient, consumerInfo);
+            // Remove snapshot.
+            Files.deleteIfExists(snapshotZip);
+            Files.deleteIfExists(snapshotJson);
+        } catch (IOException | NullPointerException e) {
+            log.error("Failed to index snapshot: {}", e);
+        }
     }
 
     /**
@@ -130,7 +126,7 @@ public class SnapshotManager {
      * @param outputDir The output directory to extract files to
      * @throws IOException Risen from unzip()
      */
-    protected void unzip(Path snapshotZip, Path outputDir) throws IOException {
+    public void unzip(Path snapshotZip, Path outputDir) throws IOException {
         Unzip.unzip(snapshotZip, outputDir);
     }
 
@@ -181,7 +177,11 @@ public class SnapshotManager {
             // so we initialize it here once the node is up and ready.
             this.commandClient = this.privileged.doPrivilegedRequest(CommandManagerClient::getInstance);
             this.initConsumer(latest);
-            this.indexSnapshot(latest);
+            this.privileged.doPrivilegedRequest(
+                    () -> {
+                        this.indexSnapshot(latest);
+                        return null;
+                    });
         } catch (IOException e) {
             log.error("Failed to initialize: {}", e.getMessage());
         }
