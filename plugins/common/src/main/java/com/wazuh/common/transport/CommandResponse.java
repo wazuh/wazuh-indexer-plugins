@@ -14,7 +14,7 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-package com.wazuh.commandmanager.transport;
+package com.wazuh.common.transport;
 
 import org.opensearch.core.action.ActionResponse;
 import org.opensearch.core.common.io.stream.StreamInput;
@@ -23,29 +23,28 @@ import org.opensearch.core.common.io.stream.StreamOutput;
 import java.io.IOException;
 
 /**
- * CommandResponseAction is a class that represents the response from the Command Manager Plugin
- * after posting a command. It extends the ActionResponse class and provides methods for
- * serialization.
+ * CommandResponse is a class that represents the response from the Command Manager Plugin after
+ * posting a command. It extends the ActionResponse class and provides methods for serialization.
  */
 public class CommandResponse extends ActionResponse {
     private final String message;
 
     /**
-     * Constructor for CommandResponseAction.
+     * Constructor for CommandResponse.
      *
      * @param message the message from the command response
      */
-    public CommandResponseAction(String message) {
+    public CommandResponse(String message) {
         this.message = message;
     }
 
     /**
-     * Constructor for CommandResponseAction that reads from a StreamInput.
+     * Constructor for CommandResponse that reads from a StreamInput.
      *
      * @param in the StreamInput to read from
      * @throws IOException if an I/O error occurs
      */
-    public CommandResponseAction(StreamInput in) throws IOException {
+    public CommandResponse(StreamInput in) throws IOException {
         super(in);
         this.message = in.readString();
     }

@@ -1,43 +1,67 @@
 buildscript {
   ext {
-    wazuh_version = System.getProperty("version", "5.0.0")
+    opensearch_version = System.getProperty("opensearch.version", "2.19.2-SNAPSHOT")
+    wazuh_version = System.getProperty("version", "6.0.0")
     revision = System.getProperty("revision", "0")
   }
 
   repositories {
     mavenLocal()
     mavenCentral()
+    maven { url "https://aws.oss.sonatype.org/content/repositories/snapshots" }
   }
 }
 
-plugins {
-  id 'java'
-  id 'idea'
-  id 'eclipse'
-}
+apply plugin: 'java'
+apply plugin: 'idea'
+apply plugin: 'eclipse'
 
-group = 'com.wazuh'
-version = "${wazuh_version}.${revision}"
-sourceCompatibility = JavaVersion.VERSION_11
-targetCompatibility = JavaVersion.VERSION_11
+allprojects {
+  group = 'com.wazuh'
+  version = "${wazuh_version}.${revision}"
+  targetCompatibility = JavaVersion.VERSION_11
+  sourceCompatibility = JavaVersion.VERSION_11
+}
 
 repositories {
   mavenLocal()
   mavenCentral()
+  maven { url "https://aws.oss.sonatype.org/content/repositories/snapshots" }
 }
 
 dependencies {
-  implementation "org.apache.httpcomponents.client5:httpclient5:5.4"
-  implementation "org.apache.httpcomponents.core5:httpcore5-h2:5.3.1"
-  implementation "org.apache.httpcomponents.core5:httpcore5:5.3.1"
-  implementation "org.apache.logging.log4j:log4j-slf4j-impl:2.23.1"
-  implementation "org.slf4j:slf4j-api:2.0.16"
-  implementation "com.google.code.gson:gson:2.8.9"
+  implementation 'org.apache.httpcomponents.client5:httpclient5:5.4.4'
+  implementation "org.apache.httpcomponents.core5:httpcore5-h2:5.3.4"
+  implementation "org.apache.httpcomponents.core5:httpcore5:5.3.4"
+  implementation 'com.google.code.gson:gson:2.8.9'
 
-  // Reference to another internal project if needed
-  implementation project(':wazuh-indexer-command-manager')
+  // ✅ Logging setup compatible with OpenSearch
+  implementation "org.slf4j:slf4j-api:1.7.36"
+  implementation "org.apache.logging.log4j:log4j-slf4j-impl:2.17.2"
+
+  implementation "org.opensearch:opensearch:${opensearch_version}"
+
+  // ✅ Optional constraints to enforce versions even if transitive deps drift
+  constraints {
+    implementation("org.slf4j:slf4j-api:1.7.36") {
+      because("OpenSearch uses SLF4J 1.7.x")
+    }
+    implementation("org.apache.logging.log4j:log4j-api:2.17.2") {
+      because("Compatible with SLF4J 1.7 binding")
+    }
+    implementation("org.apache.logging.log4j:log4j-core:2.17.2") {
+      because("Ensure consistent Log4j version")
+    }
+  }
+}
+
+configurations.all {
+  resolutionStrategy {
+    // ✅ Enforce OpenSearch-compatible SLF4J version globally
+    force 'org.slf4j:slf4j-api:1.7.36'
+  }
 }
 
 test {
-  useJUnitPlatform() // Optional, if using JUnit 5
+  useJUnitPlatform()
 }

@@ -74,11 +74,11 @@ public class ContentUpdaterIT extends OpenSearchIntegTestCase {
         this.updater =
                 Mockito.spy(
                         new ContentUpdater(
-                                                        this.ctiClient,
-                            this.contextIndex,
-                            this.contentIndex,
-                            this.commandClient,
-                            this.privilegedSpy));
+                                this.ctiClient,
+                                this.contextIndex,
+                                this.contentIndex,
+                                this.commandClient,
+                                this.privilegedSpy));
 
         this.prepareInitialCVEInfo(0);
         this.prepareInitialConsumerInfo();

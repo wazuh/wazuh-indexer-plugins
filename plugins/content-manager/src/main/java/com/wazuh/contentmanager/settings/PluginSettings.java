@@ -23,7 +23,6 @@ import org.opensearch.common.settings.Setting;
 import org.opensearch.common.settings.Settings;
 
 import com.wazuh.contentmanager.utils.ClusterInfo;
-
 import reactor.util.annotation.NonNull;
 
 /** Singleton class to manage the plugin's settings. */
@@ -56,6 +55,7 @@ public class PluginSettings {
     public static final Setting<Boolean> TEST_MODE =
             Setting.boolSetting(
                     "wazuh-test-mode", false, Setting.Property.NodeScope, Setting.Property.Dynamic);
+
     /** Timeout of indexing operations */
     public static final long TIMEOUT = 10L;
 

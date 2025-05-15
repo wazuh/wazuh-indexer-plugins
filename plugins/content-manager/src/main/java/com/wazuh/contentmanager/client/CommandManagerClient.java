@@ -21,9 +21,9 @@ import org.apache.logging.log4j.Logger;
 import org.opensearch.client.Client;
 import org.opensearch.core.action.ActionListener;
 
-import com.wazuh.commandmanager.transport.CommandActionType;
-import com.wazuh.commandmanager.transport.CommandRequestAction;
-import com.wazuh.commandmanager.transport.CommandResponseAction;
+import com.wazuh.common.transport.CommandRequest;
+import com.wazuh.common.transport.CommandRequestAction;
+import com.wazuh.common.transport.CommandResponse;
 
 /**
  * CommandManagerClient is a singleton class that provides a client for posting commands to the
@@ -69,18 +69,19 @@ public class CommandManagerClient {
         }
         return INSTANCE;
     }
+
     /**
      * Posts a command to the Command Manager Plugin.
      *
      * @param requestBody the command request body
      */
     public void post(String requestBody) {
-        //        CommandRequestAction request = new CommandRequestAction(json);
+        //        CommandRequest request = new CommandRequest(json);
         //
         //        transportService.sendRequest(
         //            // target node — you may loop over all nodes or select by criteria
         //            transportService.getLocalNode(),
-        //            CommandActionType.NAME,
+        //            Command.NAME,
         //            request,
         //            new ActionListenerResponseHandler<>(
         //                ActionListener.wrap(
@@ -91,17 +92,17 @@ public class CommandManagerClient {
         //                        // handle failure
         //                    }
         //                ),
-        //                CommandResponseAction::new
+        //                CommandResponse::new
         //            )
         //        );
         log.info("Posting command: {}", requestBody);
-        CommandRequestAction request = new CommandRequestAction(requestBody);
+        CommandRequest request = new CommandRequest(requestBody);
         client.execute(
-                CommandActionType.INSTANCE,
+                CommandRequestAction.INSTANCE,
                 request,
                 new ActionListener<>() {
                     @Override
-                    public void onResponse(CommandResponseAction response) {
+                    public void onResponse(CommandResponse response) {
                         log.info("Command successfully posted: {}", response.getMessage());
                     }
 
