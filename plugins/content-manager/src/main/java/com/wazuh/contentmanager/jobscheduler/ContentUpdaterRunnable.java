@@ -106,7 +106,9 @@ public final class ContentUpdaterRunnable implements Runnable {
 
         try {
             ConsumerInfo current =
-                    this.contextIndex.get(PluginSettings.CONTEXT_ID, PluginSettings.CONSUMER_ID);
+                    this.contextIndex.get(
+                            PluginSettings.getInstance().getContextId(),
+                            PluginSettings.getInstance().getConsumerId());
             long currentOffset = current.getOffset();
             if (currentOffset == 0L) {
                 SnapshotManager snapshotManager =

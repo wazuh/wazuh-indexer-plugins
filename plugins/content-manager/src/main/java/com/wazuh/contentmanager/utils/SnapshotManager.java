@@ -42,6 +42,7 @@ public class SnapshotManager {
     private final ContextIndex contextIndex;
     private final ContentIndex contentIndex;
     private final Privileged privileged;
+    private final PluginSettings pluginSettings;
 
     /**
      * Constructor.
