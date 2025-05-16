@@ -312,7 +312,7 @@ public class CTIClientTests extends OpenSearchIntegTestCase {
         // Arrange
         SimpleHttpResponse response = new SimpleHttpResponse(HttpStatus.SC_SUCCESS, "OK");
         response.setBody(
-                "{\"data\":[{\"offset\":1761037,\"type\":\"update\",\"version\":19,\"context\":\"vd_1.0.0\",\"resource\":\"CVE-2019-0605\",\"operations\":[{\"op\":\"replace\",\"path\":\"/containers/cna/x_remediations/windows/0/anyOf/133\",\"value\":\"KB5058922\"},{\"op\":\"replace\",\"path\":\"/containers/cna/x_remediations/windows/5/anyOf/140\",\"value\":\"KB5058921\"}]}]}",
+                "{\"data\":[{\"offset\":1761037,\"type\":\"update\",\"version\":19,\"context\":\"vd_1.0.0\",\"resource\":\"CVE-2019-0605\",\"operations\":[{\"op\":\"replace\",\"path\":\"/containers/cna/x_remediations/windows/0/anyOf/133\",\"value\":\"KB5058922\"},{\"op\":\"replace\",\"path\":\"/containers/cna/x_remediations/windows/5/anyOf/140\",\"value\":\"KB5058921\"},{\"op\":\"add\",\"path\":\"/containers/adp/0/descriptions/1\",\"value\":{\"lang\":\"en\",\"value\":\"OpenStack Ironic fails to restrict paths used for file:// image URLs\"}},{\"op\":\"remove\",\"path\":\"/containers/adp/0/affected/0/platforms\"},{\"op\":\"add\",\"path\":\"/containers/adp/0/affected/0/versions\",\"value\":[{\"status\":\"affected\",\"version\":\"0\",\"lessThan\":\"24.1.3\",\"versionType\":\"custom\"},{\"status\":\"affected\",\"version\":\"25.0.0\",\"lessThan\":\"26.1.1\",\"versionType\":\"custom\"},{\"status\":\"affected\",\"version\":\"0\",\"lessThan\":\"29.0.1\",\"versionType\":\"custom\"},{\"status\":\"affected\",\"version\":\"27.0.0\",\"lessThan\":\"29.0.1\",\"versionType\":\"custom\"}]}]}]}",
                 ContentType.APPLICATION_JSON);
 
         // spotless:off
@@ -335,7 +335,7 @@ public class CTIClientTests extends OpenSearchIntegTestCase {
         assertEquals(1761037, change.getOffset());
         assertEquals(OperationType.UPDATE, change.getType());
         assertEquals("CVE-2019-0605", change.getResource());
-        assertEquals(2, change.getOperations().size());
+        assertEquals(5, change.getOperations().size());
         verify(this.spyCtiClient, times(1))
                 .sendRequest(any(Method.class), anyString(), isNull(), anyMap(), isNull(), anyInt());
     }
