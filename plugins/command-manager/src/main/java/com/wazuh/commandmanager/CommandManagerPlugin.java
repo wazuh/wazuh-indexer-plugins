@@ -16,6 +16,7 @@
  */
 package com.wazuh.commandmanager;
 
+import com.wazuh.commandmanager.spi.CommandManagerExtension;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.opensearch.action.ActionRequest;
@@ -38,6 +39,7 @@ import org.opensearch.jobscheduler.spi.ScheduledJobParser;
 import org.opensearch.jobscheduler.spi.ScheduledJobRunner;
 import org.opensearch.jobscheduler.spi.schedule.ScheduleParser;
 import org.opensearch.plugins.ActionPlugin;
+import org.opensearch.plugins.ExtensiblePlugin;
 import org.opensearch.plugins.Plugin;
 import org.opensearch.plugins.ReloadablePlugin;
 import org.opensearch.repositories.RepositoriesService;
@@ -74,7 +76,7 @@ import com.wazuh.commandmanager.transport.CommandTransportAction;
  * <p>The Command Manager plugin is also a JobScheduler extension plugin.
  */
 public class CommandManagerPlugin extends Plugin
-        implements ActionPlugin, JobSchedulerExtension, ReloadablePlugin {
+        implements ActionPlugin, JobSchedulerExtension, ReloadablePlugin, ExtensiblePlugin {
     public static final String COMMAND_DOCUMENT_PARENT_OBJECT_NAME = "command";
 
     private static final Logger log = LogManager.getLogger(CommandManagerPlugin.class);
@@ -109,7 +111,7 @@ public class CommandManagerPlugin extends Plugin
                 .setIndexRepository(this.commandIndex);
         this.scheduleCommandJob(client, clusterService, threadPool);
 
-        return Collections.emptyList();
+        return List.of(this.commandIndex);
     }
 
     /**
@@ -239,5 +241,13 @@ public class CommandManagerPlugin extends Plugin
     @Override
     public void reload(Settings settings) {
         // TODO
+    }
+
+    @Override
+    public void loadExtensions(ExtensionLoader loader) {
+        for (CommandManagerExtension extension : loader.loadExtensions(CommandManagerExtension.class)) {
+            String name = extension.getName();
+            log.info("Loaded command manager extension: {}", name);
+        }
     }
 }
