@@ -92,7 +92,7 @@ public class ContentUpdaterTests extends OpenSearchIntegTestCase {
         doReturn(this.consumerInfo).when(this.contextIndex).get(anyString(), anyString());
         // Act
         this.updater.update(
-                this.contextIndex.get(PluginSettings.CONTEXT_ID, PluginSettings.CONSUMER_ID), 0L);
+                this.contextIndex.get(this.pluginSettings.getContextId(), this.pluginSettings.getConsumerId()), 0L);
         // Assert applyChangesToContextIndex is not called.
         verify(this.updater, never()).applyChanges(any());
     }
@@ -114,7 +114,7 @@ public class ContentUpdaterTests extends OpenSearchIntegTestCase {
         doNothing().when(this.consumerInfo).setOffset(anyLong());
         doNothing().when(this.consumerInfo).setLastOffset(anyLong());
         this.updater.update(
-                this.contextIndex.get(PluginSettings.CONTEXT_ID, PluginSettings.CONSUMER_ID),
+                this.contextIndex.get(this.pluginSettings.getContextId(), this.pluginSettings.getConsumerId()),
                 offsetsAmount);
         // Assert applyChangesToContextIndex is called 4 times (one each 1000 starting from 0).
         verify(this.updater, times(4)).applyChanges(any());
@@ -134,7 +134,7 @@ public class ContentUpdaterTests extends OpenSearchIntegTestCase {
         // Act
         boolean updated =
                 this.updater.update(
-                        this.contextIndex.get(PluginSettings.CONTEXT_ID, PluginSettings.CONSUMER_ID),
+                        this.contextIndex.get(this.pluginSettings.getContextId(), this.pluginSettings.getConsumerId()),
                         offsetsAmount);
         // Assert
         assertFalse(updated);
@@ -158,7 +158,7 @@ public class ContentUpdaterTests extends OpenSearchIntegTestCase {
         // Act
         boolean updated =
                 this.updater.update(
-                        this.contextIndex.get(PluginSettings.CONTEXT_ID, PluginSettings.CONSUMER_ID),
+                        this.contextIndex.get(this.pluginSettings.getContextId(), this.pluginSettings.getConsumerId()),
                         offsetsAmount);
         // Assert
         assertFalse(updated);
