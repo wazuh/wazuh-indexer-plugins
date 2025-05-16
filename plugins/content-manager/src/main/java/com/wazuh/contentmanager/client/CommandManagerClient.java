@@ -23,6 +23,8 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import java.net.URI;
+import java.nio.charset.StandardCharsets;
+import java.util.Base64;
 
 import com.wazuh.contentmanager.settings.PluginSettings;
 
@@ -60,17 +62,33 @@ public class CommandManagerClient extends HttpClient {
     }
 
     /**
+     * Builds a base64 encoded string representation of username:password.
+     *
+     * @return base 64 encoded string for basic authentication.
+     */
+    public String getEncodedAuth() {
+        String username = PluginSettings.getInstance().getUsername();
+        String password = PluginSettings.getInstance().getPassword();
+        String auth = username + ":" + password;
+        return Base64.getEncoder().encodeToString(auth.getBytes(StandardCharsets.UTF_8));
+    }
+
+    /**
      * Sends a POST request to execute a command via the Command Manager API.
      *
      * @param requestBody The JSON request body containing the command details.
      */
     public void post(String requestBody) {
-        Header header = new BasicHeader(HttpHeaders.CONTENT_TYPE, ContentType.APPLICATION_JSON);
-        // spotless: off
-        SimpleHttpResponse response =
-                this.sendRequest(
-                        Method.POST, CommandManagerClient.POST_COMMAND_ENDPOINT, requestBody, null, header);
-        // spotless: on
+        // spotless:off
+        SimpleHttpResponse response = this.sendRequest(
+            Method.POST,
+            CommandManagerClient.POST_COMMAND_ENDPOINT,
+            requestBody,
+            null,
+            new BasicHeader(HttpHeaders.AUTHORIZATION, "Basic " + this.getEncodedAuth()),
+            new BasicHeader(HttpHeaders.CONTENT_TYPE, ContentType.APPLICATION_JSON)
+        );
+        // spotless:on
         this.handlePostResponse(response);
     }
 

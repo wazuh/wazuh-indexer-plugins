@@ -19,8 +19,8 @@ Install and configure the Wazuh indexer as a single-node or multi-node cluster, 
 1. Download the `wazuh-certs-tool.sh` script and the `config.yml` configuration file. This creates the certificates that encrypt communications between the Wazuh central components.
 
     ```bash
-    curl -sO https://packages-dev.wazuh.com/5.0/wazuh-certs-tool.sh
-    curl -sO https://packages-dev.wazuh.com/5.0/config.yml
+    curl -sO https://packages-dev.wazuh.com/6.0/wazuh-certs-tool.sh
+    curl -sO https://packages-dev.wazuh.com/6.0/config.yml
     ```
 
 1. Edit `./config.yml` and replace the node names and IP values with the corresponding names and IP addresses. You need to do this for all Wazuh server, Wazuh indexer, and Wazuh dashboard nodes. Add as many node fields as needed.
@@ -189,6 +189,14 @@ Edit the `/etc/wazuh-indexer/opensearch.yml` configuration file and replace the 
   - "CN=node-3,OU=Wazuh,O=Wazuh,L=California,C=US"
   ```
 
+  f. Create a keystore to securely store authentication credentials and add the default _username_ and _password_ to the secrets keystore:
+  > The default values for the user and password are `admin:admin`.
+  ```bash
+  /usr/share/wazuh-indexer/bin/opensearch-keystore create
+  echo '<USERNAME>' | /usr/share/wazuh-indexer/bin/opensearch-keystore add indexer.username
+  echo '<PASSWORD>' | /usr/share/wazuh-indexer/bin/opensearch-keystore add indexer.password
+  sudo chown wazuh-indexer:wazuh-indexer /etc/wazuh-indexer/opensearch.keystore
+  ```
 ### Deploying certificates
 
 > **Note**: Make sure that a copy of the `nazuh-certificates.tar` file, created during the initial configuration step, is placed in your working directory.

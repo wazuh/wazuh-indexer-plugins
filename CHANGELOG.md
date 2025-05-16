@@ -4,7 +4,7 @@ All notable changes to this project are documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html). See the [CONTRIBUTING guide](./CONTRIBUTING.md#Changelog) for instructions on how to add changelog entries.
 
-## [Unreleased 5.0.x]
+## [Unreleased 6.0.x]
 
 ### Added
 - Add RBAC index templates with its corresponding event generator [(#303)](https://github.com/wazuh/wazuh-indexer-plugins/pull/303)
@@ -23,9 +23,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Implement CTI API client rate limit and enhanced response handling [(#363)](https://github.com/wazuh/wazuh-indexer-plugins/pull/363)
 - Implement Content Updater JobScheduler [(#387)](https://github.com/wazuh/wazuh-indexer-plugins/pull/387)
 - Add custom action to list modified plugins [(#388)](https://github.com/wazuh/wazuh-indexer-plugins/pull/388)
+- Expose settings for the Content Manager plugin [#395](https://github.com/wazuh/wazuh-indexer-plugins/pull/395)
 
 ### Dependencies
-- 
+-
 
 ### Changed
 - Update http components to latest versions [#403](https://github.com/wazuh/wazuh-indexer-plugins/pull/403)
@@ -41,12 +42,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Change snapshot download directory to Java's tmp folder [(#382)](https://github.com/wazuh/wazuh-indexer-plugins/pull/382)
 - Upgrade to Opensearch 2.19.2 [(#399)](https://github.com/wazuh/wazuh-indexer-plugins/pull/399)
 - Simplify snapshot initialization process [(#390)](https://github.com/wazuh/wazuh-indexer-plugins/pull/390)
+- Refactor snapshot download [(#413)](https://github.com/wazuh/wazuh-indexer-plugins/pull/413)
 
 ### Deprecated
-- 
+-
 
 ### Removed
-- 
+-
 
 ### Fixed
 - Fix missing stateless inventory fields on the `alerts` template [(#342)](https://github.com/wazuh/wazuh-indexer-plugins/pull/342)
@@ -57,8 +59,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Fix flaky integration tests [(#391)](https://github.com/wazuh/wazuh-indexer-plugins/pull/391)
 - Fix overwrite of content offset on each start [(#401)](https://github.com/wazuh/wazuh-indexer-plugins/pull/401)
 - Fix PatchOperation parse [(#411)](https://github.com/wazuh/wazuh-indexer-plugins/pull/411)
+- Fix unauthorized request to the Command Manager API [(#394)](https://github.com/wazuh/wazuh-indexer-plugins/pull/394)
 
 ### Security
-- 
+-
 
-[Unreleased 5.0.x]: https://github.com/wazuh/wazuh-indexer-plugins/compare/main...main
+[Unreleased 6.0.x]: https://github.com/wazuh/wazuh-indexer-plugins/compare/6.0.0...6.0.0

@@ -18,6 +18,7 @@ package com.wazuh.contentmanager.utils;
 
 import org.opensearch.action.DocWriteResponse;
 import org.opensearch.action.index.IndexResponse;
+import org.opensearch.cluster.service.ClusterService;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.env.Environment;
 import org.opensearch.test.OpenSearchTestCase;
@@ -33,6 +34,9 @@ import com.wazuh.contentmanager.client.CommandManagerClient;
 import com.wazuh.contentmanager.index.ContentIndex;
 import com.wazuh.contentmanager.index.ContextIndex;
 import com.wazuh.contentmanager.model.cti.ConsumerInfo;
+import com.wazuh.contentmanager.settings.PluginSettings;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
 import org.mockito.Mockito;
 
 import static org.mockito.Mockito.*;
@@ -46,7 +50,10 @@ public class SnapshotManagerTests extends OpenSearchTestCase {
     private Privileged privilegedSpy;
     private ConsumerInfo consumerInfo;
     private SnapshotManager snapshotManager;
-    private Environment environment;
+
+    @Mock private Environment mockEnvironment;
+    @Mock private ClusterService mockClusterService;
+    @InjectMocks private PluginSettings pluginSettings;
 
     @Before
     public void setUp() throws Exception {
@@ -56,8 +63,12 @@ public class SnapshotManagerTests extends OpenSearchTestCase {
                 Settings.builder()
                         .put("path.home", envDir.toString()) // Required by OpenSearch
                         .putList("path.repo", envDir.toString())
+                        .put("content_manager.max_changes", 1000)
                         .build();
-        this.environment = spy(new Environment(settings, envDir));
+        this.mockEnvironment = spy(new Environment(settings, envDir));
+        when(this.mockEnvironment.settings()).thenReturn(settings);
+        this.pluginSettings =
+                PluginSettings.getInstance(this.mockEnvironment.settings(), this.mockClusterService);
 
         this.ctiClient = mock(CTIClient.class);
         this.commandClient = mock(CommandManagerClient.class);
@@ -69,10 +80,11 @@ public class SnapshotManagerTests extends OpenSearchTestCase {
                         new SnapshotManager(
                                 this.ctiClient,
                                 this.commandClient,
-                                this.environment,
+                                this.mockEnvironment,
                                 this.contextIndex,
                                 this.contentIndex,
-                                this.privilegedSpy));
+                                this.privilegedSpy,
+                                this.pluginSettings));
 
         this.consumerInfo = mock(ConsumerInfo.class);
     }
@@ -131,7 +143,7 @@ public class SnapshotManagerTests extends OpenSearchTestCase {
         doReturn("http://example.com/file.zip").when(this.consumerInfo).getLastSnapshotLink();
         doReturn(snapshotZip).when(this.privilegedSpy).streamingDownload(any(CTIClient.class), anyString(), any(Environment.class));
         Path outputDir = mock(Path.class);
-        doReturn(outputDir).when(this.environment).tmpFile();
+        doReturn(outputDir).when(this.mockEnvironment).tmpFile();
         DirectoryStream<Path> stream = mock(DirectoryStream.class);
         Path jsonPath = mock(Path.class);
         Iterator<Path> iterator = mock(Iterator.class);

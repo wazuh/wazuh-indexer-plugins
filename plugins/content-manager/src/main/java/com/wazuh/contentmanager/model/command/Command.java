@@ -42,7 +42,7 @@ public class Command {
                     .field("index", "content-index")
                     .field("offset", offset)
                     .endObject()
-                    .field("version", "5.0.0") // Dynamic version
+                    .field("version", "6.0.0") // Dynamic version
                     .endObject()
                     .field("source", "Content Manager")
                     .field("timeout", 100)

@@ -28,6 +28,8 @@ jobs:
       - name: Detect modified plugins
         id: detect_changes
         uses: ./.github/actions/5_codeanalysis_detect_modified_plugins
+        with:
+          base_branch: ${{ github.event.repository.default_branch }}
 
   call-build-workflow:
     needs: modified-plugins

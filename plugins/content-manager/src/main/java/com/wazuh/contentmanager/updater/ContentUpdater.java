@@ -30,13 +30,13 @@ import com.wazuh.contentmanager.utils.VisibleForTesting;
 
 /** Class responsible for managing content updates by fetching and applying changes in chunks. */
 public class ContentUpdater {
-    private static final int CHUNK_MAX_SIZE = 1000;
     private static final Logger log = LogManager.getLogger(ContentUpdater.class);
     private final ContextIndex contextIndex;
     private final ContentIndex contentIndex;
     private final CommandManagerClient commandClient;
     private final CTIClient ctiClient;
     private final Privileged privileged;
+    private final PluginSettings pluginSettings;
 
     /** Exception thrown by the Content Updater in case of errors. */
     public static class ContentUpdateException extends RuntimeException {
@@ -70,6 +70,30 @@ public class ContentUpdater {
         this.contentIndex = contentIndex;
         this.commandClient = client;
         this.ctiClient = ctiClient;
+        this.pluginSettings = PluginSettings.getInstance();
+        this.privileged = privileged;
+    }
+
+    /**
+     * This constructor is only used on tests.
+     *
+     * @param ctiClient mocked @CTIClient.
+     * @param contentIndex mocked @ContentIndex.
+     * @param pluginSettings mocked @PluginSettings.
+     */
+    @VisibleForTesting
+    public ContentUpdater(
+            CTIClient ctiClient,
+            CommandManagerClient client,
+            ContextIndex contextIndex,
+            ContentIndex contentIndex,
+            Privileged privileged,
+            PluginSettings pluginSettings) {
+        this.contextIndex = contextIndex;
+        this.contentIndex = contentIndex;
+        this.commandClient = client;
+        this.ctiClient = ctiClient;
+        this.pluginSettings = pluginSettings;
         this.privileged = privileged;
     }
 
@@ -78,7 +102,7 @@ public class ContentUpdater {
      * from the CTI API. The content needs an update when the "offset" and the "lastOffset" values are
      * different. In that case, the update process tries to bring the content up to date by querying
      * the CTI API for a list of changes to apply to the content. These changes are applied
-     * sequentially. A maximum of {@link ContentUpdater#CHUNK_MAX_SIZE} changes are applied on each
+     * sequentially. A maximum of {@link PluginSettings#MAX_CHANGES} changes are applied on each
      * iteration. When the update is completed, the value of "offset" is updated and equal to
      * "lastOffset" {@link ContextIndex#index(ConsumerInfo, boolean)}, and a command is generated for
      * the Command Manager {@link Privileged#postUpdateCommand(CommandManagerClient, ConsumerInfo)}.
@@ -95,7 +119,8 @@ public class ContentUpdater {
 
         log.info("New updates available from offset {} to {}", currentOffset, lastOffset);
         while (currentOffset < lastOffset) {
-            long nextOffset = Math.min(currentOffset + ContentUpdater.CHUNK_MAX_SIZE, lastOffset);
+            long nextOffset =
+                    Math.min(currentOffset + this.pluginSettings.getMaximumChanges(), lastOffset);
             ContentChanges changes =
                     this.privileged.getChanges(this.ctiClient, currentOffset, nextOffset);
             log.debug("Fetched offsets from {} to {}", currentOffset, nextOffset);

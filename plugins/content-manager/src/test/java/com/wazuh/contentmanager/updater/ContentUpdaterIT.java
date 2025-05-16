@@ -22,8 +22,11 @@ import org.opensearch.action.admin.indices.refresh.RefreshRequest;
 import org.opensearch.action.get.GetResponse;
 import org.opensearch.action.support.WriteRequest;
 import org.opensearch.client.Client;
+import org.opensearch.cluster.service.ClusterService;
+import org.opensearch.common.settings.Settings;
 import org.opensearch.common.xcontent.XContentFactory;
 import org.opensearch.core.xcontent.ToXContent;
+import org.opensearch.env.Environment;
 import org.opensearch.plugins.Plugin;
 import org.opensearch.test.OpenSearchIntegTestCase;
 import org.junit.Before;
@@ -47,6 +50,8 @@ import com.wazuh.contentmanager.model.cti.*;
 import com.wazuh.contentmanager.model.cti.OperationType;
 import com.wazuh.contentmanager.settings.PluginSettings;
 import com.wazuh.contentmanager.utils.Privileged;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
 import org.mockito.Mockito;
 
 import static org.mockito.Mockito.*;
@@ -63,6 +68,10 @@ public class ContentUpdaterIT extends OpenSearchIntegTestCase {
     private CTIClient ctiClient;
     private Privileged privilegedSpy;
 
+    @Mock private Environment mockEnvironment;
+    @Mock private ClusterService mockClusterService;
+    @InjectMocks private PluginSettings pluginSettings;
+
     /**
      * Sets up the test environment.
      *
@@ -75,6 +84,19 @@ public class ContentUpdaterIT extends OpenSearchIntegTestCase {
         CommandManagerClient commandClient = mock(CommandManagerClient.class);
         this.contextIndex = spy(new ContextIndex(client));
         this.contentIndex = new ContentIndex(client);
+        this.commandClient = mock(CommandManagerClient.class);
+        Settings settings =
+                Settings.builder()
+                        .put("content_manager.max_changes", 1000)
+                        .put("content_manager.cti.client.sleep_time", 60)
+                        .put("content_manager.cti.context", "vd_1.0.0")
+                        .put("content_manager.cti.consumer", "https://cti.wazuh.com/TEST/api/v1")
+                        .build();
+        this.mockEnvironment = mock(Environment.class);
+        when(this.mockEnvironment.settings()).thenReturn(settings);
+        this.pluginSettings =
+                PluginSettings.getInstance(this.mockEnvironment.settings(), this.mockClusterService);
+
         this.privilegedSpy = Mockito.spy(Privileged.class);
         this.updater =
                 Mockito.spy(
@@ -83,7 +105,8 @@ public class ContentUpdaterIT extends OpenSearchIntegTestCase {
                                 commandClient,
                                 this.contextIndex,
                                 this.contentIndex,
-                                this.privilegedSpy));
+                                this.privilegedSpy,
+                                this.pluginSettings));
 
         this.prepareInitialCVEInfo(0);
         this.prepareInitialConsumerInfo();
@@ -115,7 +138,8 @@ public class ContentUpdaterIT extends OpenSearchIntegTestCase {
         ConsumerInfo testConsumer = this.buildTestConsumer(1);
         // Mock
         when(this.ctiClient.getChanges(0, 1, false)).thenReturn(contentChanges);
-        when(this.contextIndex.get(PluginSettings.CONTEXT_ID, PluginSettings.CONSUMER_ID))
+        when(this.contextIndex.get(
+                        this.pluginSettings.getContextId(), this.pluginSettings.getConsumerId()))
                 .thenReturn(testConsumer);
         // Mock postUpdateCommand method.
         doNothing()
@@ -128,10 +152,15 @@ public class ContentUpdaterIT extends OpenSearchIntegTestCase {
 
         // Ensure the index is refreshed.
         RefreshRequest request = new RefreshRequest(ContentIndex.INDEX_NAME);
-        this.client.admin().indices().refresh(request).get(PluginSettings.TIMEOUT, TimeUnit.SECONDS);
+        this.client
+                .admin()
+                .indices()
+                .refresh(request)
+                .get(this.pluginSettings.getClientTimeout(), TimeUnit.SECONDS);
 
         ConsumerInfo updatedConsumer =
-                this.contextIndex.get(PluginSettings.CONTEXT_ID, PluginSettings.CONSUMER_ID);
+                this.contextIndex.get(
+                        this.pluginSettings.getContextId(), this.pluginSettings.getConsumerId());
         // Assert
         assertTrue(updated);
         assertNotNull(updatedConsumer);
@@ -163,7 +192,8 @@ public class ContentUpdaterIT extends OpenSearchIntegTestCase {
         ConsumerInfo testConsumer = this.buildTestConsumer(2);
         // Mock
         when(this.ctiClient.getChanges(0, 2, false)).thenReturn(contentChanges);
-        when(this.contextIndex.get(PluginSettings.CONTEXT_ID, PluginSettings.CONSUMER_ID))
+        when(this.contextIndex.get(
+                        this.pluginSettings.getContextId(), this.pluginSettings.getConsumerId()))
                 .thenReturn(testConsumer);
         // Mock postUpdateCommand method.
         doNothing()
@@ -176,10 +206,15 @@ public class ContentUpdaterIT extends OpenSearchIntegTestCase {
 
         // Ensure the index is refreshed.
         RefreshRequest request = new RefreshRequest(ContentIndex.INDEX_NAME);
-        this.client.admin().indices().refresh(request).get(PluginSettings.TIMEOUT, TimeUnit.SECONDS);
+        this.client
+                .admin()
+                .indices()
+                .refresh(request)
+                .get(this.pluginSettings.getClientTimeout(), TimeUnit.SECONDS);
 
         ConsumerInfo updatedConsumer =
-                this.contextIndex.get(PluginSettings.CONTEXT_ID, PluginSettings.CONSUMER_ID);
+                this.contextIndex.get(
+                        this.pluginSettings.getContextId(), this.pluginSettings.getConsumerId());
         // Assert
         assertTrue(updated);
         assertNotNull(updatedConsumer);
@@ -211,7 +246,8 @@ public class ContentUpdaterIT extends OpenSearchIntegTestCase {
         ConsumerInfo testConsumer = this.buildTestConsumer(2);
         // Mock
         when(this.ctiClient.getChanges(0, 2, false)).thenReturn(contentChanges);
-        when(this.contextIndex.get(PluginSettings.CONTEXT_ID, PluginSettings.CONSUMER_ID))
+        when(this.contextIndex.get(
+                        this.pluginSettings.getContextId(), this.pluginSettings.getConsumerId()))
                 .thenReturn(testConsumer);
         // Mock postUpdateCommand method.
         doNothing()
@@ -224,12 +260,19 @@ public class ContentUpdaterIT extends OpenSearchIntegTestCase {
 
         // Ensure the index is refreshed.
         RefreshRequest request = new RefreshRequest(ContentIndex.INDEX_NAME);
-        this.client.admin().indices().refresh(request).get(PluginSettings.TIMEOUT, TimeUnit.SECONDS);
+        this.client
+                .admin()
+                .indices()
+                .refresh(request)
+                .get(this.pluginSettings.getClientTimeout(), TimeUnit.SECONDS);
 
         ConsumerInfo updatedConsumer =
-                this.contextIndex.get(PluginSettings.CONTEXT_ID, PluginSettings.CONSUMER_ID);
+                this.contextIndex.get(
+                        this.pluginSettings.getContextId(), this.pluginSettings.getConsumerId());
         GetResponse getContent =
-                this.contentIndex.get(this.resourceId).get(PluginSettings.TIMEOUT, TimeUnit.SECONDS);
+                this.contentIndex
+                        .get(this.resourceId)
+                        .get(this.pluginSettings.getClientTimeout(), TimeUnit.SECONDS);
         // Assert
         assertTrue(updated);
         assertNotNull(updatedConsumer);
@@ -255,7 +298,7 @@ public class ContentUpdaterIT extends OpenSearchIntegTestCase {
             payload.put("indicators", List.of("192.168.1.1", "example.com"));
         }
         return new Offset(
-                PluginSettings.CONTEXT_ID, id, this.resourceId, type, 1L, operations, payload);
+                this.pluginSettings.getContextId(), id, this.resourceId, type, 1L, operations, payload);
     }
 
     /**
@@ -266,7 +309,11 @@ public class ContentUpdaterIT extends OpenSearchIntegTestCase {
      */
     private ConsumerInfo buildTestConsumer(long lastOffset) {
         return new ConsumerInfo(
-                PluginSettings.CONSUMER_ID, PluginSettings.CONTEXT_ID, 0, lastOffset, null);
+                this.pluginSettings.getConsumerId(),
+                this.pluginSettings.getContextId(),
+                0,
+                lastOffset,
+                null);
     }
 
     /**
@@ -279,7 +326,7 @@ public class ContentUpdaterIT extends OpenSearchIntegTestCase {
         ConsumerInfo info = this.buildTestConsumer(0);
         this.client
                 .prepareIndex(ContextIndex.INDEX_NAME)
-                .setId(PluginSettings.CONTEXT_ID)
+                .setId(this.pluginSettings.getContextId())
                 .setSource(info.toXContent(XContentFactory.jsonBuilder(), ToXContent.EMPTY_PARAMS))
                 .setRefreshPolicy(WriteRequest.RefreshPolicy.IMMEDIATE)
                 .get();
