@@ -6,6 +6,7 @@ buildscript {
     ext {
         opensearch_version = System.getProperty("opensearch.version", "2.19.2-SNAPSHOT")
         opensearch_build = opensearch_version.replace("-SNAPSHOT","") + ".0"
+      job_scheduler_version = System.getProperty("job_scheduler.version", opensearch_build)
         wazuh_version = System.getProperty("version", "6.0.0")
         revision = System.getProperty("revision", "0")
     }
@@ -70,16 +71,22 @@ opensearchplugin {
     name pluginName
     description pluginDescription
     classname "${projectPath}.${pathToPlugin}.${pluginClassName}"
+    extendedPlugins = ['wazuh-indexer-command-manager']
     licenseFile rootProject.file('LICENSE.txt')
     noticeFile rootProject.file('NOTICE.txt')
 }
 
 configurations {
   zipArchive
+  opensearchPlugin
 }
 
 dependencies {
-  implementation(project(':wazuh-indexer-common')) {
+  // Job Scheduler stuff
+  zipArchive group: 'org.opensearch.plugin', name: 'opensearch-job-scheduler', version: "${opensearch_build}"
+  // implementation "org.opensearch:opensearch:${opensearch_version}"
+  compileOnly "org.opensearch:opensearch-job-scheduler-spi:${job_scheduler_version}"
+  implementation(project(':wazuh-indexer-command-manager')) {
     // Prevent logging conflicts by ignoring older logging APIs from common
     exclude group: 'org.apache.logging.log4j', module: 'log4j-slf4j-impl'
     exclude group: 'org.slf4j', module: 'slf4j-api'
@@ -106,7 +113,7 @@ dependencies {
     }
   }
 
-  zipArchive group: 'org.opensearch.plugin', name: 'opensearch-job-scheduler', version: "${opensearch_build}"
+  zipArchive group: 'com.wazuh', name: 'wazuh-indexer-command-manager', version: "6.0.0.0"
 }
 
 configurations.all {
@@ -144,7 +151,7 @@ repositories {
 test {
     include '**/*Tests.class'
 }
-
+.0
 task integTest(type: RestIntegTestTask) {
     description = "Run tests against a cluster"
     testClassesDirs = sourceSets.test.output.classesDirs
@@ -159,8 +166,22 @@ integTest {
     }
 }
 
+
 testClusters.integTest {
     // Installs all registered zipArchive dependencies on integTest cluster nodes
+  configurations.opensearchPlugin.asFileTree.each {
+    plugin(provider(new Callable<RegularFile>(){
+      @Override
+      RegularFile call() throws Exception {
+        return new RegularFile() {
+          @Override
+          File getAsFile() {
+            return it
+          }
+        }
+      }
+    }))
+  }
     configurations.zipArchive.asFileTree.each {
       plugin(provider(new Callable<RegularFile>(){
         @Override
