@@ -53,6 +53,31 @@ public final class ContentUpdaterRunnable implements Runnable {
      * @param contentIndex ContentIndex to run the job.
      * @param ctiClient CTIClient to interact with the CTI API.
      * @param privileged Privileged to run the job.
+     * @param commandManagerClient CommandManagerClient to interact with the command manager API.
+     */
+    private ContentUpdaterRunnable(
+            Environment environment,
+            ContextIndex contextIndex,
+            ContentIndex contentIndex,
+            CTIClient ctiClient,
+            Privileged privileged,
+            CommandManagerClient commandManagerClient) {
+        this.environment = environment;
+        this.contextIndex = contextIndex;
+        this.contentIndex = contentIndex;
+        this.ctiClient = ctiClient;
+        this.privileged = privileged;
+        this.commandManagerClient = commandManagerClient;
+    }
+
+    /**
+     * Default constructor.
+     *
+     * @param environment Environment to run the job.
+     * @param contextIndex ContextIndex to run the job.
+     * @param contentIndex ContentIndex to run the job.
+     * @param ctiClient CTIClient to interact with the CTI API.
+     * @param privileged Privileged to run the job.
      */
     private ContentUpdaterRunnable(
             Environment environment,
@@ -91,6 +116,44 @@ public final class ContentUpdaterRunnable implements Runnable {
             INSTANCE =
                     new ContentUpdaterRunnable(
                             environment, contextIndex, contentIndex, ctiClient, privileged);
+        }
+        return INSTANCE;
+    }
+
+    /**
+     * Singleton instance access method.
+     *
+     * @param environment the environment to pass to SnapshotManager
+     * @param contextIndex handles the context and consumer related metadata
+     * @param contentIndex handles the indexed content
+     * @param ctiClient the CTIClient to interact with the CTI API
+     * @param privileged handles privileged operations
+     * @param commandManagerClient the CommandManagerClient to interact with the command manager API
+     * @return the singleton instance
+     */
+    public static ContentUpdaterRunnable getInstance(
+            Environment environment,
+            ContextIndex contextIndex,
+            ContentIndex contentIndex,
+            CTIClient ctiClient,
+            Privileged privileged,
+            CommandManagerClient commandManagerClient) {
+        if (INSTANCE == null) {
+            INSTANCE =
+                    new ContentUpdaterRunnable(
+                            environment, contextIndex, contentIndex, ctiClient, privileged, commandManagerClient);
+        }
+        return INSTANCE;
+    }
+
+    /**
+     * Singleton instance access method.
+     *
+     * @return the singleton instance
+     */
+    public static ContentUpdaterRunnable getInstance() {
+        if (INSTANCE == null) {
+            throw new IllegalStateException("ContentUpdaterRunnable is not initialized.");
         }
         return INSTANCE;
     }

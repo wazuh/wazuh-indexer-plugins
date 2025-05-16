@@ -148,7 +148,10 @@ public class ContentUpdaterIT extends OpenSearchIntegTestCase {
         // Act
         boolean updated =
                 this.updater.update(
-                        this.contextIndex.get(PluginSettings.getInstance().getContextId(), PluginSettings.getInstance().getConsumerId()), 0L);
+                        this.contextIndex.get(
+                                PluginSettings.getInstance().getContextId(),
+                                PluginSettings.getInstance().getConsumerId()),
+                        0L);
 
         // Ensure the index is refreshed.
         RefreshRequest request = new RefreshRequest(ContentIndex.INDEX_NAME);
@@ -202,7 +205,9 @@ public class ContentUpdaterIT extends OpenSearchIntegTestCase {
         // Act
         boolean updated =
                 this.updater.update(
-                        this.contextIndex.get(this.pluginSettings.getContextId(), this.pluginSettings.getConsumerId()), 0L);
+                        this.contextIndex.get(
+                                this.pluginSettings.getContextId(), this.pluginSettings.getConsumerId()),
+                        0L);
 
         // Ensure the index is refreshed.
         RefreshRequest request = new RefreshRequest(ContentIndex.INDEX_NAME);
@@ -256,7 +261,9 @@ public class ContentUpdaterIT extends OpenSearchIntegTestCase {
         // Act
         boolean updated =
                 this.updater.update(
-                        this.contextIndex.get(this.pluginSettings.getContextId(), this.pluginSettings.getConsumerId()), 2L);
+                        this.contextIndex.get(
+                                this.pluginSettings.getContextId(), this.pluginSettings.getConsumerId()),
+                        2L);
 
         // Ensure the index is refreshed.
         RefreshRequest request = new RefreshRequest(ContentIndex.INDEX_NAME);

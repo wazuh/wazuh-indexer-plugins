@@ -69,6 +69,17 @@ public class ContextIndex {
     }
 
     /**
+     * Constructor that allows to inject pluginSettings
+     *
+     * @param client OpenSearch client used for indexing and search operations.
+     * @param pluginSettings Plugin settings used for configuration.
+     */
+    public ContextIndex(Client client, PluginSettings pluginSettings) {
+        this.client = client;
+        this.pluginSettings = pluginSettings;
+    }
+
+    /**
      * Index CTI API consumer information.
      *
      * @param consumerInfo Model containing information parsed from the CTI API.
