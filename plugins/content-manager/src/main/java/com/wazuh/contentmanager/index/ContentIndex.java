@@ -20,6 +20,7 @@ import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.opensearch.action.admin.indices.create.CreateIndexRequest;
 import org.opensearch.action.bulk.BulkRequest;
 import org.opensearch.action.bulk.BulkResponse;
 import org.opensearch.action.delete.DeleteRequest;
@@ -338,6 +339,13 @@ public class ContentIndex {
                         "Document with ID [%s] not found in the [%s] index",
                         resourceId,
                         ContentIndex.INDEX_NAME));
+    }
+
+    /** Creates the {@link ContentIndex#INDEX_NAME} index, if it does not exist. */
+    public void createIndex() {
+        if (!this.exists()) {
+            client.admin().indices().create(new CreateIndexRequest(INDEX_NAME)).actionGet();
+        }
     }
 
     /**

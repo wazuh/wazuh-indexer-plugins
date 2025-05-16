@@ -25,12 +25,14 @@ import org.opensearch.action.index.IndexRequest;
 import org.opensearch.action.index.IndexResponse;
 import org.opensearch.client.Client;
 import org.opensearch.common.xcontent.XContentFactory;
+import org.opensearch.core.action.ActionListener;
 import org.opensearch.core.xcontent.ToXContent;
 
 import java.io.IOException;
 import java.util.Locale;
 import java.util.Map;
 import java.util.NoSuchElementException;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
@@ -70,13 +72,25 @@ public class ContextIndex {
      * Index CTI API consumer information.
      *
      * @param consumerInfo Model containing information parsed from the CTI API.
-     * @return the IndexResponse from the indexing operation, or null.
+     * @return true if the index was created or updated, false otherwise.
      */
     public boolean index(ConsumerInfo consumerInfo) {
+        return index(consumerInfo, false);
+    }
+
+    /**
+     * Index CTI API consumer information.
+     *
+     * @param consumerInfo Model containing information parsed from the CTI API.
+     * @param createIndex true if the index should be created if it does not exist, false otherwise.
+     * @return the IndexResponse from the indexing operation, or null.
+     */
+    public boolean index(ConsumerInfo consumerInfo, boolean createIndex) {
         try {
             IndexRequest indexRequest =
                     new IndexRequest()
                             .index(ContextIndex.INDEX_NAME)
+                            .create(createIndex)
                             .source(
                                     consumerInfo.toXContent(XContentFactory.jsonBuilder(), ToXContent.EMPTY_PARAMS))
                             .id(consumerInfo.getContext());
@@ -103,17 +117,51 @@ public class ContextIndex {
     }
 
     /**
-     * Searches for the given consumer within a context.
+     * Get a context by ID (name).
+     *
+     * @param contextName ID of the context to be retrieved.
+     * @return A completable future holding the response of the query.
+     */
+    public CompletableFuture<GetResponse> get(String contextName) {
+        GetRequest getRequest = new GetRequest(ContextIndex.INDEX_NAME, contextName);
+        CompletableFuture<GetResponse> future = new CompletableFuture<>();
+        this.client.get(getRequest);
+
+        this.client.get(
+                getRequest,
+                new ActionListener<>() {
+                    @Override
+                    public void onResponse(GetResponse getResponse) {
+                        log.info("Retrieved CTI Catalog Context {} from index", contextName);
+                        future.complete(getResponse);
+                    }
+
+                    @Override
+                    public void onFailure(Exception e) {
+                        log.error("Failed to retrieve CTI Catalog Context {}, Exception: {}", contextName, e);
+                        future.completeExceptionally(e);
+                    }
+                });
+        return future;
+    }
+
+    /**
+     * Get a consumer of a context by their IDs.
      *
      * @param context ID (name) of the context.
      * @param consumer ID (name) of the consumer.
      * @return the required consumer as an instance of {@link ConsumerInfo}, or null.
+     * @throws IOException if the index is not available.
      */
     @SuppressWarnings("unchecked")
-    public ConsumerInfo get(String context, String consumer) {
+    public ConsumerInfo get(String context, String consumer) throws IOException {
         // Avoid faulty requests if the cluster is unstable.
         if (!ClusterInfo.indexStatusCheck(this.client, ContextIndex.INDEX_NAME)) {
-            throw new RuntimeException("Index not ready");
+            throw new IOException(
+                    String.format(
+                            Locale.ROOT,
+                            "The index [%s] is not available. Please check the cluster status.",
+                            ContextIndex.INDEX_NAME));
         }
         try {
             GetResponse getResponse =
@@ -127,7 +175,6 @@ public class ContextIndex {
                         String.format(
                                 Locale.ROOT, "Consumer [%s] not found in context [%s]", consumer, context));
             }
-
             // Update consumer info (internal state)
             long offset = ContextIndex.asLong(source.get(ConsumerInfo.OFFSET));
             long lastOffset = ContextIndex.asLong(source.get(ConsumerInfo.LAST_OFFSET));
@@ -137,6 +184,7 @@ public class ContextIndex {
                     "Fetched consumer from the [{}] index: {}", ContextIndex.INDEX_NAME, this.consumerInfo);
         } catch (InterruptedException | ExecutionException | TimeoutException e) {
             log.error("Failed to fetch consumer [{}][{}]: {}", context, consumer, e.getMessage());
+            this.consumerInfo = new ConsumerInfo(consumer, context, 0L, 0L, "");
         }
 
         // May be null if the request fails and was not initialized on previously.

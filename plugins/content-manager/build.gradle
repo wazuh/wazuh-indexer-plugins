@@ -6,6 +6,7 @@ buildscript {
     ext {
         opensearch_version = System.getProperty("opensearch.version", "2.19.2-SNAPSHOT")
         opensearch_build = opensearch_version.replace("-SNAPSHOT","") + ".0"
+        job_scheduler_version = System.getProperty("job_scheduler.version", opensearch_build)
         wazuh_version = System.getProperty("version", "6.0.0")
         revision = System.getProperty("revision", "0")
     }
@@ -26,7 +27,7 @@ apply plugin: 'java'
 apply plugin: 'idea'
 apply plugin: 'eclipse'
 apply plugin: 'opensearch.opensearchplugin'
-apply plugin: 'opensearch.yaml-rest-test'
+apply plugin: 'opensearch.rest-test'
 apply plugin: 'opensearch.pluginzip'
 
 def pluginName = 'wazuh-indexer-content-manager'
@@ -69,6 +70,7 @@ opensearchplugin {
     name pluginName
     description pluginDescription
     classname "${projectPath}.${pathToPlugin}.${pluginClassName}"
+    extendedPlugins = ['opensearch-job-scheduler']
     licenseFile rootProject.file('LICENSE.txt')
     noticeFile rootProject.file('NOTICE.txt')
 }
@@ -89,6 +91,7 @@ dependencies {
     // Uncomment this line to load the command-manager plugin from the local Maven repository.
     // Keep it commented to allow GitHub Workflows to run the tests.
     // zipArchive group: 'com.wazuh', name:'wazuh-indexer-command-manager', version: "${wazuh_version}.${revision}"
+    compileOnly "org.opensearch:opensearch-job-scheduler-spi:${job_scheduler_version}"
 }
 
 // No need to validate license headers since spotless checks and applies it
@@ -121,41 +124,44 @@ dependencies {
     implementation 'com.google.code.gson:gson:2.8.9'
 }
 
-task integTest(type: RestIntegTestTask) {
-    description = "Run tests against a cluster"
-    testClassesDirs = sourceSets.test.output.classesDirs
-    classpath = sourceSets.test.runtimeClasspath
-}
-tasks.named("check").configure { dependsOn(integTest) }
-
 integTest {
     // The --debug-jvm command-line option makes the cluster debuggable; this makes the tests debuggable
     if (System.getProperty("test.debug") != null) {
         jvmArgs '-agentlib:jdwp=transport=dt_socket,server=y,suspend=y,address=*:5005'
     }
+    environment "IS_DEV", System.getenv("IS_DEV") ?: "false"
 }
 
 testClusters.integTest {
-    // add customized keystore
-    keystore 'indexer.username', 'admin'
-    keystore 'indexer.password', 'admin'
-    // Installs all registered zipArchive dependencies on integTest cluster nodes
-    configurations.zipArchive.asFileTree.each {
-      plugin(provider(new Callable<RegularFile>(){
-        @Override
-        RegularFile call() throws Exception {
-          return new RegularFile() {
-            @Override
-            File getAsFile() {
-              return it
-            }
+  testDistribution = "ARCHIVE"
+  // add customized keystore
+  keystore 'indexer.username', 'admin'
+  keystore 'indexer.password', 'admin'
+  // Installs all registered zipArchive dependencies on integTest cluster nodes
+  configurations.zipArchive.asFileTree.each {
+    plugin(provider(new Callable<RegularFile>(){
+      @Override
+      RegularFile call() throws Exception {
+        return new RegularFile() {
+          @Override
+          File getAsFile() {
+            return it
           }
         }
-      }))
+      }
+    }))
+  }
+  // This installs our plugin into the testClusters
+  plugin(project.tasks.bundlePlugin.archiveFile)
+  if (System.getProperty("cluster.debug") != null) {
+    def debugPort = 5005
+    nodes.forEach { node ->
+      node.jvmArgs("-agentlib:jdwp=transport=dt_socket,server=y,suspend=y,address=*:${debugPort}")
+      println "Debugging ${node.name} on port ${debugPort} — waiting for debugger to attach..."
+      debugPort += 1
     }
-    testDistribution = "ARCHIVE"
-    // This installs our plugin into the testClusters
-    plugin(project.tasks.bundlePlugin.archiveFile)
+  }
+  environment "IS_DEV", System.getenv("IS_DEV") ?: "false"
 }
 
 run {

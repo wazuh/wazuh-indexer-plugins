@@ -56,6 +56,7 @@ import org.mockito.Mockito;
 
 import static org.mockito.Mockito.*;
 
+/** Integration test for the {@link ContentUpdater} class. */
 @ThreadLeakScope(ThreadLeakScope.Scope.NONE)
 @OpenSearchIntegTestCase.ClusterScope(scope = OpenSearchIntegTestCase.Scope.SUITE)
 public class ContentUpdaterIT extends OpenSearchIntegTestCase {
@@ -64,14 +65,19 @@ public class ContentUpdaterIT extends OpenSearchIntegTestCase {
     private ContentUpdater updater;
     private ContextIndex contextIndex;
     private ContentIndex contentIndex;
-    private CommandManagerClient commandClient;
     private CTIClient ctiClient;
     private Privileged privilegedSpy;
 
     @Mock private Environment mockEnvironment;
     @Mock private ClusterService mockClusterService;
     @InjectMocks private PluginSettings pluginSettings;
+    private CommandManagerClient commandClient;
 
+    /**
+     * Sets up the test environment.
+     *
+     * @throws Exception if an error occurs during setup.
+     */
     @Before
     public void setup() throws Exception {
         this.client = client();
@@ -121,9 +127,10 @@ public class ContentUpdaterIT extends OpenSearchIntegTestCase {
      * @throws InterruptedException thrown by {@link ContentIndex#get(String)}
      * @throws ExecutionException thrown by {@link ContentIndex#get(String)}
      * @throws TimeoutException thrown by {@link ContentIndex#get(String)}
+     * @throws IOException thrown by {@link ContentIndex#get(String)}
      */
     public void testUpdate_ContentChangesTypeCreate()
-            throws ExecutionException, InterruptedException, TimeoutException {
+            throws ExecutionException, InterruptedException, TimeoutException, IOException {
         // Fixtures
         // List of changes to apply (offset 1 == create)
         ContentChanges contentChanges =
@@ -139,7 +146,9 @@ public class ContentUpdaterIT extends OpenSearchIntegTestCase {
                 .when(this.privilegedSpy)
                 .postUpdateCommand(any(CommandManagerClient.class), any(ConsumerInfo.class));
         // Act
-        boolean updated = this.updater.update();
+        boolean updated =
+                this.updater.update(
+                        this.contextIndex.get(PluginSettings.getInstance().getContextId(), PluginSettings.getInstance().getConsumerId()), 0L);
 
         // Ensure the index is refreshed.
         RefreshRequest request = new RefreshRequest(ContentIndex.INDEX_NAME);
@@ -169,9 +178,10 @@ public class ContentUpdaterIT extends OpenSearchIntegTestCase {
      * @throws InterruptedException thrown by {@link ContentIndex#get(String)}
      * @throws ExecutionException thrown by {@link ContentIndex#get(String)}
      * @throws TimeoutException thrown by {@link ContentIndex#get(String)}
+     * @throws IOException thrown by {@link ContentIndex#get(String)}
      */
     public void testUpdate_ContentChangesTypeUpdate()
-            throws ExecutionException, InterruptedException, TimeoutException {
+            throws ExecutionException, InterruptedException, TimeoutException, IOException {
         // Fixtures
         // List of changes to apply (offset 1 == create, offset 2 == update)
         ContentChanges contentChanges =
@@ -190,7 +200,9 @@ public class ContentUpdaterIT extends OpenSearchIntegTestCase {
                 .when(this.privilegedSpy)
                 .postUpdateCommand(any(CommandManagerClient.class), any(ConsumerInfo.class));
         // Act
-        boolean updated = this.updater.update();
+        boolean updated =
+                this.updater.update(
+                        this.contextIndex.get(this.pluginSettings.getContextId(), this.pluginSettings.getConsumerId()), 0L);
 
         // Ensure the index is refreshed.
         RefreshRequest request = new RefreshRequest(ContentIndex.INDEX_NAME);
@@ -221,9 +233,10 @@ public class ContentUpdaterIT extends OpenSearchIntegTestCase {
      * @throws InterruptedException thrown by {@link ContentIndex#get(String)}
      * @throws ExecutionException thrown by {@link ContentIndex#get(String)}
      * @throws TimeoutException thrown by {@link ContentIndex#get(String)}
+     * @throws IOException thrown by {@link ContentIndex#get(String)}
      */
     public void testUpdate_ContentChangesTypeDelete()
-            throws InterruptedException, ExecutionException, TimeoutException {
+            throws InterruptedException, ExecutionException, TimeoutException, IOException {
         // Fixtures
         ContentChanges contentChanges =
                 new ContentChanges(
@@ -241,7 +254,9 @@ public class ContentUpdaterIT extends OpenSearchIntegTestCase {
                 .when(this.privilegedSpy)
                 .postUpdateCommand(any(CommandManagerClient.class), any(ConsumerInfo.class));
         // Act
-        boolean updated = this.updater.update();
+        boolean updated =
+                this.updater.update(
+                        this.contextIndex.get(this.pluginSettings.getContextId(), this.pluginSettings.getConsumerId()), 2L);
 
         // Ensure the index is refreshed.
         RefreshRequest request = new RefreshRequest(ContentIndex.INDEX_NAME);
