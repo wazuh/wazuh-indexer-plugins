@@ -79,8 +79,9 @@ public class Offset implements ToXContentObject {
      * @param parser The XContentParser parser holding the data.
      * @return A new Offset instance.
      * @throws IOException if an I/O error occurs during parsing.
+     * @throws IllegalArgumentException unexpected token found during parsing.
      */
-    public static Offset parse(XContentParser parser) throws IOException {
+    public static Offset parse(XContentParser parser) throws IOException, IllegalArgumentException {
         String context = null;
         long offset = 0;
         String resource = null;
@@ -137,7 +138,7 @@ public class Offset implements ToXContentObject {
      * @return
      * @throws IOException
      */
-    private static Map<String, Object> parseObject(XContentParser parser) throws IOException {
+    public static Map<String, Object> parseObject(XContentParser parser) throws IOException {
         Map<String, Object> result = new HashMap<>();
 
         while (parser.nextToken() != XContentParser.Token.END_OBJECT) {

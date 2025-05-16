@@ -24,6 +24,7 @@ import org.opensearch.core.xcontent.XContentParser;
 import org.opensearch.core.xcontent.XContentParserUtils;
 
 import java.io.IOException;
+import java.util.HashMap;
 
 /**
  * Class representing a JSON Patch operation.
@@ -40,7 +41,7 @@ public class PatchOperation implements ToXContentObject {
     private final String op;
     private final String path;
     private final String from;
-    private final String value;
+    private final Object value;
 
     private static final Logger log = LogManager.getLogger(PatchOperation.class);
 
@@ -52,7 +53,7 @@ public class PatchOperation implements ToXContentObject {
      * @param from Source path for move operations.
      * @param value Value to be added or replaced.
      */
-    public PatchOperation(String op, String path, String from, String value) {
+    public PatchOperation(String op, String path, String from, Object value) {
         this.op = op;
         this.path = path;
         this.from = from;
@@ -72,7 +73,7 @@ public class PatchOperation implements ToXContentObject {
         String op = null;
         String path = null;
         String from = null;
-        String value = null;
+        Object value = null;
         // Make sure we are at the start
         XContentParserUtils.ensureExpectedToken(
                 XContentParser.Token.START_OBJECT, parser.currentToken(), parser);
@@ -87,12 +88,28 @@ public class PatchOperation implements ToXContentObject {
                 case PATH:
                     path = parser.text();
                     break;
+                // "from" is only used for "copy" and "move" operations,
+                // which are currently un-supported.
                 case FROM:
                     from = parser.text();
                     break;
                 case VALUE:
-                    value = parser.text();
-                    break;
+                    // value can be anything.
+                    switch (parser.currentToken()) {
+                        case START_OBJECT:
+                            parser.nextToken();
+                            value = parser.objectBytes();
+                            value = Offset.parseObject(parser);
+                            break;
+                        case START_ARRAY:
+                            break;
+                        case VALUE_STRING:
+                            value = parser.text();
+                            break;
+                        default:
+                            parser.skipChildren();
+                            break;
+                    }
                 default:
                     log.error("Unknown field [{}] parsing a JSON Patch operation", fieldName);
                     break;

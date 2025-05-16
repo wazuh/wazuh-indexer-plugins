@@ -165,22 +165,20 @@ public class CTIClient extends HttpClient {
                         params,
                         null,
                         this.pluginSettings.getCtiClientMaxAttempts());
-
         // Fail fast
         if (response == null) {
-            log.error("No response from CTI API Changes endpoint");
+            log.error("No reply from [{}]", this.CONSUMER_CHANGES_ENDPOINT);
             return new ContentChanges();
         }
         if (!Arrays.asList(HttpStatus.SC_OK, HttpStatus.SC_SUCCESS).contains(response.getCode())) {
-            log.error("CTI API Changes endpoint returned an error: {}", response.getBody());
+            log.error("Request to [{}] failed: {}", this.CONSUMER_CHANGES_ENDPOINT, response.getBody());
             return new ContentChanges();
         }
-
-        log.debug("CTI API Changes endpoint replied with status: [{}]", response.getCode());
+        log.debug("[{}] replied with status [{}]", this.CONSUMER_CHANGES_ENDPOINT, response.getCode());
         try {
             return ContentChanges.parse(XContentUtils.createJSONParser(response.getBodyBytes()));
         } catch (IOException | IllegalArgumentException e) {
-            log.error("Failed to fetch changes information due to: {}", e.getMessage());
+            log.error("Failed to parse changes: {}", e.getMessage());
             return new ContentChanges();
         }
     }
@@ -204,9 +202,9 @@ public class CTIClient extends HttpClient {
         );
         // spotless:on
         if (response == null) {
-            throw new HttpHostConnectException("No reply to " + this.CONSUMER_INFO_ENDPOINT);
+            throw new HttpHostConnectException("No reply from [" + this.CONSUMER_INFO_ENDPOINT + "]");
         }
-        log.debug("CTI API replied with status: [{}]", response.getCode());
+        log.debug("[{}] replied with status [{}]", this.CONSUMER_INFO_ENDPOINT, response.getCode());
         return ConsumerInfo.parse(XContentUtils.createJSONParser(response.getBodyBytes()));
     }
 
@@ -248,9 +246,6 @@ public class CTIClient extends HttpClient {
             Map<String, String> params,
             Header header,
             int attemptsLeft) {
-        // TODO used to debug the failing test "testGetChanges_SuccessfulRequest".
-        // log.error("sendRequest {} {} {} {} {} {}", method, endpoint, body, params, header,
-        // attemptsLeft);
         ZonedDateTime cooldown = null;
         SimpleHttpResponse response = null;
         while (attemptsLeft > 0) {
@@ -284,7 +279,8 @@ public class CTIClient extends HttpClient {
             int statusCode = response.getCode();
             switch (statusCode) {
                 case 200:
-                    log.info("Operation succeeded: status code {} - {}", statusCode, response.getBodyText());
+                    log.info("Operation succeeded: status code {}", statusCode);
+                    log.debug("Response body: {}", response.getBodyText());
                     return response;
 
                 case 400:
@@ -367,7 +363,7 @@ public class CTIClient extends HttpClient {
                     }
                 }
             }
-            log.info("Snapshot downloaded to {}", path);
+            log.info("Snapshot downloaded to [{}]", path);
             return path;
         } catch (URISyntaxException e) {
             log.error("Failed to download snapshot. Invalid URL provided: {}", e.getMessage());

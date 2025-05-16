@@ -33,6 +33,7 @@ import com.wazuh.contentmanager.index.ContentIndex;
 import com.wazuh.contentmanager.index.ContextIndex;
 import com.wazuh.contentmanager.model.cti.ConsumerInfo;
 import com.wazuh.contentmanager.settings.PluginSettings;
+import com.wazuh.contentmanager.updater.ContentUpdater;
 
 /** Helper class to handle indexing of snapshots */
 public class SnapshotManager {
@@ -198,6 +199,15 @@ public class SnapshotManager {
             current.setLastOffset(latest.getLastOffset());
             current.setLastSnapshotLink(latest.getLastSnapshotLink());
             this.contextIndex.index(current);
+            // Start content update.
+            ContentUpdater updater =
+                    new ContentUpdater(
+                            this.ctiClient,
+                            this.commandClient,
+                            this.contextIndex,
+                            this.contentIndex,
+                            this.privileged);
+            updater.update();
         }
         return current;
     }
