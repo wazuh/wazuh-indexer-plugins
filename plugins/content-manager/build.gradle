@@ -140,6 +140,7 @@ integTest {
 }
 
 testClusters.integTest {
+  testDistribution = "ARCHIVE"
   // add customized keystore
   keystore 'indexer.username', 'admin'
   keystore 'indexer.password', 'admin'
