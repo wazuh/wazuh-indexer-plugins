@@ -18,8 +18,8 @@ fi
 export ARTIFACT_NAME
 
 # Define environment variables with default values if not provided
-read -rp "Enter current node name (default: 'node-1'): " NODE_NAME
-export NODE_NAME=${NODE_NAME:-"node-1"}
+read -rp "Enter current node name (default: 'indexer-1'): " NODE_NAME
+export NODE_NAME=${NODE_NAME:-"indexer-1"}
 
 IP_ADDRESS=$(ip addr show eth1 2>/dev/null | grep 'inet ' | awk '{print $2}' | cut -d/ -f1)
 if [ -z "$IP_ADDRESS" ]; then
@@ -31,8 +31,8 @@ export NODE_IP=${NODE_IP:-$IP_ADDRESS}
 export CERTS_PATH=${CERTS_PATH:-"/home/vagrant/wazuh-certificates.tar"}
 
 # Optional variables for Node 2
-read -rp 'Enter secondary Node name (optional): ' NODE_2
-read -rp 'Enter IP of secondary Node (optional): ' IP_NODE_2
+read -rp "Enter secondary Node name (optional): " NODE_2
+read -rp "Enter IP of secondary Node (optional): " IP_NODE_2
 
 # Logging function with timestamps
 log() {

@@ -65,16 +65,16 @@ cp $CONFIG_FILE $BACKUP_FILE
 
 # Replace values in the config file
 echo "Updating configuration..."
-sed -i "s/node\.name: \"node-1\"/node.name: \"${CURRENT_NODE}\"/" $CONFIG_FILE
+sed -i "s/node\.name: \"indexer-1\"/node.name: \"${CURRENT_NODE}\"/" $CONFIG_FILE
 
 if [ -n "$SECOND_NODE" ]; then
     sed -i "s/#discovery\.seed_hosts:/discovery.seed_hosts:\n  - \"${CURRENT_NODE_IP}\"\n  - \"${SECOND_NODE_IP}\"/" $CONFIG_FILE
     sed -i "/cluster\.initial_master_nodes:/!b;n;c- ${CURRENT_NODE}\n- ${SECOND_NODE}" $CONFIG_FILE
-    sed -i ':a;N;$!ba;s/plugins\.security\.nodes_dn:\n- "CN=node-1,OU=Wazuh,O=Wazuh,L=California,C=US"/plugins.security.nodes_dn:\n- "CN='"${CURRENT_NODE}"',OU=Wazuh,O=Wazuh,L=California,C=US"\n- "CN='"${SECOND_NODE}"',OU=Wazuh,O=Wazuh,L=California,C=US"/' $CONFIG_FILE
+    sed -i ':a;N;$!ba;s/plugins\.security\.nodes_dn:\n- "CN=indexer-1,OU=Wazuh,O=Wazuh,L=California,C=US"/plugins.security.nodes_dn:\n- "CN='"${CURRENT_NODE}"',OU=Wazuh,O=Wazuh,L=California,C=US"\n- "CN='"${SECOND_NODE}"',OU=Wazuh,O=Wazuh,L=California,C=US"/' $CONFIG_FILE
 else
     sed -i "s/#discovery\.seed_hosts:/discovery.seed_hosts:\n  - \"${CURRENT_NODE_IP}\"/" $CONFIG_FILE
     sed -i "/cluster\.initial_master_nodes:/!b;n;c- ${CURRENT_NODE}" $CONFIG_FILE
-    sed -i ':a;N;$!ba;s/plugins\.security\.nodes_dn:\n- "CN=node-1,OU=Wazuh,O=Wazuh,L=California,C=US"/plugins.security.nodes_dn:\n- "CN='"${CURRENT_NODE}"',OU=Wazuh,O=Wazuh,L=California,C=US"/' $CONFIG_FILE
+    sed -i ':a;N;$!ba;s/plugins\.security\.nodes_dn:\n- "CN=indexer-1,OU=Wazuh,O=Wazuh,L=California,C=US"/plugins.security.nodes_dn:\n- "CN='"${CURRENT_NODE}"',OU=Wazuh,O=Wazuh,L=California,C=US"/' $CONFIG_FILE
 fi
 
 # shellcheck disable=SC2181
@@ -102,8 +102,8 @@ fi
 
 # Move and set permissions for certificates
 echo "Moving and setting permissions for certificates..."
-mv -n "$CERT_DIR/$CURRENT_NODE.pem" "$CERT_DIR/indexer.pem"
-mv -n "$CERT_DIR/$CURRENT_NODE-key.pem" "$CERT_DIR/indexer-key.pem"
+mv -n "$CERT_DIR/$CURRENT_NODE.pem" "$CERT_DIR/indexer-1.pem"
+mv -n "$CERT_DIR/$CURRENT_NODE-key.pem" "$CERT_DIR/indexer-1-key.pem"
 chmod 500 "$CERT_DIR"
 chmod 400 "$CERT_DIR"/*
 chown -R wazuh-indexer:wazuh-indexer "$CERT_DIR"
