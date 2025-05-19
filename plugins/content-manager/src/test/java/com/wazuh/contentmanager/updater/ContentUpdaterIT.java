@@ -46,7 +46,6 @@ import com.wazuh.contentmanager.client.CommandManagerClient;
 import com.wazuh.contentmanager.index.ContentIndex;
 import com.wazuh.contentmanager.index.ContextIndex;
 import com.wazuh.contentmanager.model.cti.*;
-import com.wazuh.contentmanager.model.cti.OperationType;
 import com.wazuh.contentmanager.settings.PluginSettings;
 import com.wazuh.contentmanager.utils.Privileged;
 import org.mockito.InjectMocks;
@@ -125,11 +124,10 @@ public class ContentUpdaterIT extends OpenSearchIntegTestCase {
             throws ExecutionException, InterruptedException, TimeoutException {
         // Fixtures
         // List of changes to apply (offset 1 == create)
-        ContentChanges contentChanges =
-                new ContentChanges(List.of(this.buildOffset(1, OperationType.CREATE)));
+        Changes changes = new Changes(List.of(this.buildOffset(1, Offset.Type.CREATE)));
         ConsumerInfo testConsumer = this.buildTestConsumer(1);
         // Mock
-        when(this.ctiClient.getChanges(0, 1, false)).thenReturn(contentChanges);
+        when(this.ctiClient.getChanges(0, 1, false)).thenReturn(changes);
         when(this.contextIndex.get(
                         this.pluginSettings.getContextId(), this.pluginSettings.getConsumerId()))
                 .thenReturn(testConsumer);
@@ -173,14 +171,13 @@ public class ContentUpdaterIT extends OpenSearchIntegTestCase {
             throws ExecutionException, InterruptedException, TimeoutException {
         // Fixtures
         // List of changes to apply (offset 1 == create, offset 2 == update)
-        ContentChanges contentChanges =
-                new ContentChanges(
+        Changes changes =
+                new Changes(
                         List.of(
-                                this.buildOffset(1, OperationType.CREATE),
-                                this.buildOffset(2, OperationType.UPDATE)));
+                                this.buildOffset(1, Offset.Type.CREATE), this.buildOffset(2, Offset.Type.UPDATE)));
         ConsumerInfo testConsumer = this.buildTestConsumer(2);
         // Mock
-        when(this.ctiClient.getChanges(0, 2, false)).thenReturn(contentChanges);
+        when(this.ctiClient.getChanges(0, 2, false)).thenReturn(changes);
         when(this.contextIndex.get(
                         this.pluginSettings.getContextId(), this.pluginSettings.getConsumerId()))
                 .thenReturn(testConsumer);
@@ -224,14 +221,13 @@ public class ContentUpdaterIT extends OpenSearchIntegTestCase {
     public void testUpdate_ContentChangesTypeDelete()
             throws InterruptedException, ExecutionException, TimeoutException {
         // Fixtures
-        ContentChanges contentChanges =
-                new ContentChanges(
+        Changes changes =
+                new Changes(
                         List.of(
-                                this.buildOffset(1, OperationType.CREATE),
-                                this.buildOffset(2, OperationType.DELETE)));
+                                this.buildOffset(1, Offset.Type.CREATE), this.buildOffset(2, Offset.Type.DELETE)));
         ConsumerInfo testConsumer = this.buildTestConsumer(2);
         // Mock
-        when(this.ctiClient.getChanges(0, 2, false)).thenReturn(contentChanges);
+        when(this.ctiClient.getChanges(0, 2, false)).thenReturn(changes);
         when(this.contextIndex.get(
                         this.pluginSettings.getContextId(), this.pluginSettings.getConsumerId()))
                 .thenReturn(testConsumer);
@@ -267,12 +263,12 @@ public class ContentUpdaterIT extends OpenSearchIntegTestCase {
      * @param type The content type (CREATE, UPDATE, DELETE).
      * @return An Offset object with the specified ID and content type.
      */
-    private Offset buildOffset(long id, OperationType type) {
-        List<PatchOperation> operations = null;
+    private Offset buildOffset(long id, Offset.Type type) {
+        List<Operation> operations = null;
         Map<String, Object> payload = null;
-        if (type == OperationType.UPDATE) {
-            operations = List.of(new PatchOperation("add", "/newField", null, "test"));
-        } else if (type == OperationType.CREATE) {
+        if (type == Offset.Type.UPDATE) {
+            operations = List.of(new Operation("add", "/newField", null, "test"));
+        } else if (type == Offset.Type.CREATE) {
             payload = new HashMap<>();
             payload.put("name", "Dummy Threat");
             payload.put("indicators", List.of("192.168.1.1", "example.com"));
@@ -320,7 +316,7 @@ public class ContentUpdaterIT extends OpenSearchIntegTestCase {
      */
     public void prepareInitialCVEInfo(long offset) throws IOException {
         // Create a ConsumerInfo document manually in the test index
-        Offset mOffset = this.buildOffset(offset, OperationType.CREATE);
+        Offset mOffset = this.buildOffset(offset, Offset.Type.CREATE);
         this.client
                 .prepareIndex(ContentIndex.INDEX_NAME)
                 .setId(this.resourceId)

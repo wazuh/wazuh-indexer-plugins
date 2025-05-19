@@ -23,8 +23,8 @@ import com.wazuh.contentmanager.client.CTIClient;
 import com.wazuh.contentmanager.client.CommandManagerClient;
 import com.wazuh.contentmanager.index.ContentIndex;
 import com.wazuh.contentmanager.index.ContextIndex;
+import com.wazuh.contentmanager.model.cti.Changes;
 import com.wazuh.contentmanager.model.cti.ConsumerInfo;
-import com.wazuh.contentmanager.model.cti.ContentChanges;
 import com.wazuh.contentmanager.settings.PluginSettings;
 import com.wazuh.contentmanager.utils.Privileged;
 import com.wazuh.contentmanager.utils.VisibleForTesting;
@@ -126,8 +126,7 @@ public class ContentUpdater {
         while (currentOffset < lastOffset) {
             long nextOffset =
                     Math.min(currentOffset + this.pluginSettings.getMaximumChanges(), lastOffset);
-            ContentChanges changes =
-                    this.privileged.getChanges(this.ctiClient, currentOffset, nextOffset);
+            Changes changes = this.privileged.getChanges(this.ctiClient, currentOffset, nextOffset);
             log.debug("Fetched offsets from {} to {}", currentOffset, nextOffset);
 
             // Update halted. Save current state and exit.
@@ -165,7 +164,7 @@ public class ContentUpdater {
      * @return true if the changes were successfully applied, false otherwise.
      */
     @VisibleForTesting
-    protected boolean applyChanges(ContentChanges changes) {
+    protected boolean applyChanges(Changes changes) {
         try {
             this.contentIndex.patch(changes);
             return true;

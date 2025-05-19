@@ -36,10 +36,9 @@ import java.nio.file.StandardOpenOption;
 import java.time.Duration;
 import java.time.ZonedDateTime;
 import java.util.*;
-import java.util.concurrent.*;
 
+import com.wazuh.contentmanager.model.cti.Changes;
 import com.wazuh.contentmanager.model.cti.ConsumerInfo;
-import com.wazuh.contentmanager.model.cti.ContentChanges;
 import com.wazuh.contentmanager.settings.PluginSettings;
 import com.wazuh.contentmanager.utils.VisibleForTesting;
 import com.wazuh.contentmanager.utils.XContentUtils;
@@ -152,9 +151,9 @@ public class CTIClient extends HttpClient {
      * @param fromOffset The starting offset (inclusive) for fetching changes.
      * @param toOffset The ending offset (exclusive) for fetching changes.
      * @param withEmpties A flag indicating whether to include empty values (Optional).
-     * @return {@link ContentChanges} instance with the current changes.
+     * @return {@link Changes} instance with the current changes.
      */
-    public ContentChanges getChanges(long fromOffset, long toOffset, boolean withEmpties) {
+    public Changes getChanges(long fromOffset, long toOffset, boolean withEmpties) {
         Map<String, String> params =
                 CTIClient.contextQueryParameters(fromOffset, toOffset, withEmpties);
         SimpleHttpResponse response =
@@ -168,18 +167,18 @@ public class CTIClient extends HttpClient {
         // Fail fast
         if (response == null) {
             log.error("No reply from [{}]", this.CONSUMER_CHANGES_ENDPOINT);
-            return new ContentChanges();
+            return new Changes();
         }
         if (!Arrays.asList(HttpStatus.SC_OK, HttpStatus.SC_SUCCESS).contains(response.getCode())) {
             log.error("Request to [{}] failed: {}", this.CONSUMER_CHANGES_ENDPOINT, response.getBody());
-            return new ContentChanges();
+            return new Changes();
         }
         log.debug("[{}] replied with status [{}]", this.CONSUMER_CHANGES_ENDPOINT, response.getCode());
         try {
-            return ContentChanges.parse(XContentUtils.createJSONParser(response.getBodyBytes()));
+            return Changes.parse(XContentUtils.createJSONParser(response.getBodyBytes()));
         } catch (IOException | IllegalArgumentException e) {
             log.error("Failed to parse changes: {}", e.getMessage());
-            return new ContentChanges();
+            return new Changes();
         }
     }
 

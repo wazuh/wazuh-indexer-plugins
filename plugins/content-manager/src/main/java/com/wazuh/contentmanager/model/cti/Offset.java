@@ -40,10 +40,20 @@ public class Offset implements ToXContentObject {
     private final String context;
     private final long offset;
     private final String resource;
-    private final OperationType type;
+    private final Offset.Type type;
     private final long version;
-    private final List<PatchOperation> operations;
+    private final List<Operation> operations;
     private final Map<String, Object> payload;
+
+    /**
+     * Type of change represented by the offset. Possible values are defined in <a
+     * href="https://github.com/wazuh/cti/blob/main/docs/ref/catalog.md#fetching-consumer-changes">catalog.md</a>.
+     */
+    public enum Type {
+        CREATE,
+        UPDATE,
+        DELETE
+    }
 
     /**
      * Constructor.
@@ -60,9 +70,9 @@ public class Offset implements ToXContentObject {
             String context,
             Long offset,
             String resource,
-            OperationType type,
+            Offset.Type type,
             Long version,
-            List<PatchOperation> operations,
+            List<Operation> operations,
             Map<String, Object> payload) {
         this.context = context;
         this.offset = offset;
@@ -85,9 +95,9 @@ public class Offset implements ToXContentObject {
         String context = null;
         long offset = 0;
         String resource = null;
-        OperationType type = null;
+        Offset.Type type = null;
         long version = 0;
-        List<PatchOperation> operations = new ArrayList<>();
+        List<Operation> operations = new ArrayList<>();
         Map<String, Object> payload = new HashMap<>();
 
         while (parser.nextToken() != XContentParser.Token.END_OBJECT) {
@@ -106,7 +116,7 @@ public class Offset implements ToXContentObject {
                         break;
                     case TYPE:
                         String opType = parser.text().trim().toUpperCase(Locale.ROOT);
-                        type = OperationType.valueOf(opType);
+                        type = Offset.Type.valueOf(opType);
                         break;
                     case VERSION:
                         version = parser.longValue();
@@ -115,7 +125,7 @@ public class Offset implements ToXContentObject {
                         XContentParserUtils.ensureExpectedToken(
                                 XContentParser.Token.START_ARRAY, parser.currentToken(), parser);
                         while (parser.nextToken() != XContentParser.Token.END_ARRAY) {
-                            operations.add(PatchOperation.parse(parser));
+                            operations.add(Operation.parse(parser));
                         }
                         break;
                     case PAYLOAD:
@@ -226,7 +236,7 @@ public class Offset implements ToXContentObject {
      *
      * @return the type as a String
      */
-    public OperationType getType() {
+    public Offset.Type getType() {
         return this.type;
     }
 
@@ -235,7 +245,7 @@ public class Offset implements ToXContentObject {
      *
      * @return the operations as a List of JsonPatch
      */
-    public List<PatchOperation> getOperations() {
+    public List<Operation> getOperations() {
         return this.operations;
     }
 
@@ -266,7 +276,7 @@ public class Offset implements ToXContentObject {
         builder.field(VERSION, this.version);
         builder.startArray(OPERATIONS);
         if (this.operations != null) {
-            for (PatchOperation operation : this.operations) {
+            for (Operation operation : this.operations) {
                 operation.toXContent(builder, ToXContentObject.EMPTY_PARAMS);
             }
         }

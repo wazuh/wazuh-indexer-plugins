@@ -21,7 +21,7 @@ import com.google.gson.JsonObject;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import com.wazuh.contentmanager.model.cti.PatchOperation;
+import com.wazuh.contentmanager.model.cti.Operation;
 
 /**
  * Utility class for applying JSON Patch operations to JSON documents.
@@ -39,14 +39,11 @@ public class JsonPatch {
      * @param operation The JSON Patch operation.
      */
     public static void applyOperation(JsonObject document, JsonObject operation) {
-        String op = operation.get(PatchOperation.OP).getAsString();
-        String path = operation.get(PatchOperation.PATH).getAsString();
-        JsonElement value =
-                operation.has(PatchOperation.VALUE) ? operation.get(PatchOperation.VALUE) : null;
+        String op = operation.get(Operation.OP).getAsString();
+        String path = operation.get(Operation.PATH).getAsString();
+        JsonElement value = operation.has(Operation.VALUE) ? operation.get(Operation.VALUE) : null;
         String from =
-                operation.has(PatchOperation.FROM)
-                        ? operation.get(PatchOperation.FROM).getAsString()
-                        : null;
+                operation.has(Operation.FROM) ? operation.get(Operation.FROM).getAsString() : null;
 
         switch (op) {
             case "add":

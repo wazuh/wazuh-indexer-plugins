@@ -47,9 +47,9 @@ import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
-import com.wazuh.contentmanager.model.cti.ContentChanges;
+import com.wazuh.contentmanager.model.cti.Changes;
 import com.wazuh.contentmanager.model.cti.Offset;
-import com.wazuh.contentmanager.model.cti.PatchOperation;
+import com.wazuh.contentmanager.model.cti.Operation;
 import com.wazuh.contentmanager.settings.PluginSettings;
 import com.wazuh.contentmanager.utils.JsonPatch;
 import com.wazuh.contentmanager.utils.XContentUtils;
@@ -262,8 +262,8 @@ public class ContentIndex {
      *
      * @param changes content changes to apply.
      */
-    public void patch(ContentChanges changes) {
-        ArrayList<Offset> offsets = changes.getChangesList();
+    public void patch(Changes changes) {
+        ArrayList<Offset> offsets = changes.get();
         if (offsets.isEmpty()) {
             log.info("No changes to apply");
             return;
@@ -288,7 +288,7 @@ public class ContentIndex {
                     case UPDATE:
                         log.debug("Updating resource with ID [{}]", id);
                         JsonObject content = this.getById(id);
-                        for (PatchOperation op : change.getOperations()) {
+                        for (Operation op : change.getOperations()) {
                             JsonPatch.applyOperation(content, XContentUtils.xContentObjectToJson(op));
                         }
                         try (XContentParser parser = XContentUtils.createJSONParser(content)) {

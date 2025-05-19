@@ -27,10 +27,9 @@ import org.junit.Before;
 
 import java.util.List;
 
-import com.wazuh.contentmanager.model.cti.ContentChanges;
+import com.wazuh.contentmanager.model.cti.Changes;
 import com.wazuh.contentmanager.model.cti.Offset;
-import com.wazuh.contentmanager.model.cti.OperationType;
-import com.wazuh.contentmanager.model.cti.PatchOperation;
+import com.wazuh.contentmanager.model.cti.Operation;
 import com.wazuh.contentmanager.settings.PluginSettings;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
@@ -83,9 +82,9 @@ public class ContentIndexTests extends OpenSearchIntegTestCase {
         // Mock
         doNothing().when(this.contentUpdaterSpy).index((Offset) any());
         // Arrange
-        Offset offset = new Offset("test", 1L, "test", OperationType.CREATE, 1L, null, null);
+        Offset offset = new Offset("test", 1L, "test", Offset.Type.CREATE, 1L, null, null);
         // Act
-        this.contentUpdaterSpy.patch(new ContentChanges(List.of(offset)));
+        this.contentUpdaterSpy.patch(new Changes(List.of(offset)));
         // Assert
         verify(this.contentUpdaterSpy, times(1)).patch(any());
     }
@@ -107,12 +106,12 @@ public class ContentIndexTests extends OpenSearchIntegTestCase {
                         "test",
                         1L,
                         "test",
-                        OperationType.UPDATE,
+                        Offset.Type.UPDATE,
                         1L,
-                        List.of(new PatchOperation("replace", "/field", null, "new_value")),
+                        List.of(new Operation("replace", "/field", null, "new_value")),
                         null);
         // Act
-        this.contentUpdaterSpy.patch(new ContentChanges(List.of(offset)));
+        this.contentUpdaterSpy.patch(new Changes(List.of(offset)));
         // Assert
         verify(this.contentUpdaterSpy, times(1)).index((Offset) any());
     }
@@ -125,9 +124,9 @@ public class ContentIndexTests extends OpenSearchIntegTestCase {
         // Mock this.delete() to avoid actual client call
         doNothing().when(this.contentUpdaterSpy).delete(any());
         // Arrange
-        Offset offset = new Offset("test", 1L, "test", OperationType.DELETE, 1L, null, null);
+        Offset offset = new Offset("test", 1L, "test", Offset.Type.DELETE, 1L, null, null);
         // Act
-        this.contentUpdaterSpy.patch(new ContentChanges(List.of(offset)));
+        this.contentUpdaterSpy.patch(new Changes(List.of(offset)));
         // Assert
         verify(this.contentUpdaterSpy, times(1)).delete(any());
     }

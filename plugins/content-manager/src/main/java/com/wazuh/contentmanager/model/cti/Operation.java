@@ -32,17 +32,31 @@ import java.io.IOException;
  * format. It is used to define operations that can be applied to a JSON document, such as adding,
  * removing, or replacing elements.
  */
-public class PatchOperation implements ToXContentObject {
+public class Operation implements ToXContentObject {
     public static final String OP = "op";
     public static final String PATH = "path";
     public static final String FROM = "from";
     public static final String VALUE = "value";
-    private final String op;
+    private final String op; // TODO replace with OperationType
     private final String path;
     private final String from;
     private final Object value;
 
-    private static final Logger log = LogManager.getLogger(PatchOperation.class);
+    private static final Logger log = LogManager.getLogger(Operation.class);
+
+    /**
+     * This enumeration represents the types of supported operations of the Content Manager plugin
+     * from the JSON Patch operations set. Check the <a
+     * href="https://datatracker.ietf.org/doc/html/rfc6902#page-4">RFC 6902</a>.
+     */
+    public enum Type {
+        TEST,
+        REMOVE,
+        ADD,
+        REPLACE,
+        MOVE,
+        COPY
+    }
 
     /**
      * Constructor.
@@ -52,7 +66,7 @@ public class PatchOperation implements ToXContentObject {
      * @param from Source path for move operations.
      * @param value Value to be added or replaced.
      */
-    public PatchOperation(String op, String path, String from, Object value) {
+    public Operation(String op, String path, String from, Object value) {
         this.op = op;
         this.path = path;
         this.from = from;
@@ -67,7 +81,7 @@ public class PatchOperation implements ToXContentObject {
      * @throws IllegalArgumentException if the JSON object is invalid.
      * @throws IOException if an I/O error occurs during parsing.
      */
-    public static PatchOperation parse(XContentParser parser)
+    public static Operation parse(XContentParser parser)
             throws IllegalArgumentException, IOException {
         String op = null;
         String path = null;
@@ -114,7 +128,7 @@ public class PatchOperation implements ToXContentObject {
             }
         }
 
-        return new PatchOperation(op, path, from, value);
+        return new Operation(op, path, from, value);
     }
 
     /**
