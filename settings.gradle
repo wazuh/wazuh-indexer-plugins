@@ -13,6 +13,9 @@ project(":wazuh-indexer-common").projectDir = "plugins/common/" as File
 include(":wazuh-indexer-setup")
 project(":wazuh-indexer-setup").projectDir = "plugins/setup/" as File
 
+include ":wazuh-indexer-command-manager-spi"
+project(":wazuh-indexer-command-manager-spi").projectDir = "plugins/command-manager/spi/" as File
+
 include(":wazuh-indexer-command-manager")
 project(":wazuh-indexer-command-manager").projectDir = "plugins/command-manager/" as File
 
