@@ -269,13 +269,11 @@ public class ContentIndex {
             return;
         }
 
-        Offset first = changes.getFirst();
-        Offset last = changes.getLast();
         log.info(
                 "Patching [{}] from offset [{}] to [{}]",
                 ContentIndex.INDEX_NAME,
-                first.getOffset(),
-                last.getOffset());
+                changes.getFirst().getOffset(),
+                changes.getLast().getOffset());
         for (Offset change : offsets) {
             String id = change.getResource();
             try {
