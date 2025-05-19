@@ -84,6 +84,14 @@ public class Privileged {
                 });
     }
 
+    /**
+     * Downloads a file from the CTI API.
+     *
+     * @param client CTIClient instance to interact with the CTI API.
+     * @param URI URI of the file to be downloaded.
+     * @param environment Environment instance for file system operations.
+     * @return Path to the downloaded file.
+     */
     public Path streamingDownload(CTIClient client, String URI, Environment environment) {
         return this.doPrivilegedRequest(() -> client.streamingDownload(URI, environment));
     }

@@ -37,7 +37,7 @@ import com.wazuh.contentmanager.settings.PluginSettings;
 public class SnapshotManager {
     private static final Logger log = LogManager.getLogger(SnapshotManager.class);
     private final CTIClient ctiClient;
-    private CommandManagerClient commandClient;
+    private CommandManagerClient commandManagerClient;
     private final Environment environment;
     private final ContextIndex contextIndex;
     private final ContentIndex contentIndex;
@@ -70,27 +70,54 @@ public class SnapshotManager {
     /**
      * Alternate constructor that allows injecting CTIClient for test purposes. Dependency injection.
      *
-     * @param ctiClient Instance of CTIClient.
      * @param environment Needed for snapshot file handling.
      * @param contextIndex Handles context and consumer related metadata.
      * @param contentIndex Handles indexed content.
+     * @param ctiClient Instance of CTIClient.
      */
     @VisibleForTesting
     protected SnapshotManager(
-            CTIClient ctiClient,
-            CommandManagerClient client,
             Environment environment,
             ContextIndex contextIndex,
             ContentIndex contentIndex,
             Privileged privileged,
-            PluginSettings pluginSettings) {
+            CTIClient ctiClient,
+            PluginSettings pluginSettings,
+            CommandManagerClient commandManagerClient) {
         this.ctiClient = ctiClient;
-        this.commandClient = client;
+        this.commandManagerClient = commandManagerClient;
         this.environment = environment;
         this.contextIndex = contextIndex;
         this.contentIndex = contentIndex;
         this.privileged = privileged;
         this.pluginSettings = pluginSettings;
+    }
+
+    /**
+     * Alternate constructor that allows injecting CommandManagerClient for test purposes. Dependency
+     * injection.
+     *
+     * @param environment Needed for snapshot file handling.
+     * @param contextIndex Handles context and consumer related metadata.
+     * @param contentIndex Handles indexed content.
+     * @param privileged Handles privileged actions.
+     * @param ctiClient Instance of CTIClient.
+     * @param commandManagerClient Instance of CommandManagerClient.
+     */
+    public SnapshotManager(
+            Environment environment,
+            ContextIndex contextIndex,
+            ContentIndex contentIndex,
+            Privileged privileged,
+            CTIClient ctiClient,
+            CommandManagerClient commandManagerClient) {
+        this.ctiClient = ctiClient;
+        this.commandManagerClient = commandManagerClient;
+        this.environment = environment;
+        this.contextIndex = contextIndex;
+        this.contentIndex = contentIndex;
+        this.privileged = privileged;
+        this.pluginSettings = PluginSettings.getInstance();
     }
 
     /**
@@ -115,7 +142,7 @@ public class SnapshotManager {
             consumerInfo.setOffset(offset);
             this.contextIndex.index(consumerInfo);
             // Send command.
-            privileged.postUpdateCommand(this.commandClient, consumerInfo);
+            privileged.postUpdateCommand(this.commandManagerClient, consumerInfo);
             // Remove snapshot.
             Files.deleteIfExists(snapshotZip);
             Files.deleteIfExists(snapshotJson);
@@ -181,9 +208,6 @@ public class SnapshotManager {
      */
     public void initialize(ConsumerInfo latest) {
         try {
-            // The Command Manager client needs the cluster to be up (depends on PluginSettings),
-            // so we initialize it here once the node is up and ready.
-            this.commandClient = this.privileged.doPrivilegedRequest(CommandManagerClient::getInstance);
             this.initConsumer(latest);
             this.privileged.doPrivilegedRequest(
                     () -> {

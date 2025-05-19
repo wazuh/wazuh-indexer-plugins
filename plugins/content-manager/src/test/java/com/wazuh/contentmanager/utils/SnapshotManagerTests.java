@@ -78,13 +78,13 @@ public class SnapshotManagerTests extends OpenSearchTestCase {
         this.snapshotManager =
                 Mockito.spy(
                         new SnapshotManager(
-                                this.ctiClient,
-                                this.commandClient,
                                 this.mockEnvironment,
                                 this.contextIndex,
                                 this.contentIndex,
                                 this.privilegedSpy,
-                                this.pluginSettings));
+                                this.ctiClient,
+                                this.pluginSettings,
+                                this.commandClient));
 
         this.consumerInfo = mock(ConsumerInfo.class);
     }

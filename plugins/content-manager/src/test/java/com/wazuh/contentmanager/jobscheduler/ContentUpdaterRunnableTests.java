@@ -23,14 +23,18 @@ import org.opensearch.env.Environment;
 import org.opensearch.test.OpenSearchTestCase;
 import org.junit.Before;
 
+import java.io.IOException;
 import java.nio.file.Path;
 
 import com.wazuh.contentmanager.client.CTIClient;
 import com.wazuh.contentmanager.client.CommandManagerClient;
 import com.wazuh.contentmanager.index.ContentIndex;
 import com.wazuh.contentmanager.index.ContextIndex;
+import com.wazuh.contentmanager.model.cti.ConsumerInfo;
+import com.wazuh.contentmanager.model.cti.ContentChanges;
 import com.wazuh.contentmanager.settings.PluginSettings;
 import com.wazuh.contentmanager.utils.Privileged;
+import com.wazuh.contentmanager.utils.SnapshotManager;
 
 import static org.mockito.Mockito.*;
 
@@ -47,6 +51,7 @@ public class ContentUpdaterRunnableTests extends OpenSearchTestCase {
     private PluginSettings pluginSettings;
     private ClusterService clusterService;
     private CommandManagerClient commandManagerClient;
+    private SnapshotManager snapshotManager;
 
     /**
      * Set up the test environment.
@@ -66,6 +71,8 @@ public class ContentUpdaterRunnableTests extends OpenSearchTestCase {
                         .put("content_manager.max_items_per_bulk", 25)
                         .put("content_manager.client.timeout", "10")
                         .put("plugins.security.ssl.http.enabled", false)
+                        .put("content_manager.cti.context", "test-context")
+                        .put("content_manager.cti.consumer", "test-consumer")
                         .build();
         this.environment = spy(new Environment(settings, envDir));
         when(this.environment.settings()).thenReturn(settings);
@@ -78,6 +85,7 @@ public class ContentUpdaterRunnableTests extends OpenSearchTestCase {
         this.ctiClient = mock(CTIClient.class);
         this.privileged = spy(new Privileged());
         this.commandManagerClient = mock(CommandManagerClient.class);
+        this.snapshotManager = mock(SnapshotManager.class);
 
         this.runnable =
                 ContentUpdaterRunnable.getInstance(
@@ -86,7 +94,20 @@ public class ContentUpdaterRunnableTests extends OpenSearchTestCase {
                         this.contentIndex,
                         this.ctiClient,
                         this.privileged,
-                        this.commandManagerClient);
+                        this.commandManagerClient,
+                        this.snapshotManager);
+    }
+
+    /** Reset the singleton instance of ContentUpdaterRunnable for testing purposes. */
+    private void resetSingleton() {
+        try {
+            java.lang.reflect.Field instance = ContentUpdaterRunnable.class.getDeclaredField("INSTANCE");
+            instance.setAccessible(true);
+            instance.set(null, null);
+        } catch (Exception e) {
+            logger.error("Error resetting singleton: {}", e.getMessage());
+            assert (false);
+        }
     }
 
     /** Test the getInstance method. */
@@ -94,7 +115,89 @@ public class ContentUpdaterRunnableTests extends OpenSearchTestCase {
         assert (this.runnable.equals(ContentUpdaterRunnable.getInstance()));
     }
 
-    public void testIsRunningTrue() {
+    /**
+     * Test a scenario where the run method is called and the offsets are equal.
+     *
+     * @throws IOException If an error occurs while running the test.
+     */
+    public void testRun_skipsWhenAlreadyUpToDate() throws IOException {
+        resetSingleton();
 
+        ConsumerInfo currentConsumerInfo =
+                new ConsumerInfo(
+                        PluginSettings.getInstance().getConsumerId(),
+                        PluginSettings.getInstance().getContextId(),
+                        10L,
+                        0L,
+                        null);
+
+        ConsumerInfo latestConsumerInfo =
+                new ConsumerInfo(
+                        PluginSettings.getInstance().getConsumerId(),
+                        PluginSettings.getInstance().getContextId(),
+                        0L,
+                        10L,
+                        null);
+
+        doReturn(latestConsumerInfo).when(this.privileged).getConsumerInfo(this.ctiClient);
+        doReturn(currentConsumerInfo).when(this.contextIndex).get(anyString(), anyString());
+
+        ContentUpdaterRunnable instance =
+                ContentUpdaterRunnable.getInstance(
+                        this.environment,
+                        this.contextIndex,
+                        this.contentIndex,
+                        this.ctiClient,
+                        this.privileged,
+                        this.commandManagerClient,
+                        this.snapshotManager);
+        instance.run();
+
+        // Since offsets are equal, no update or snapshot should be triggered.
+        verify(this.contentIndex, never()).fromSnapshot(anyString());
+        verify(this.contentIndex, never()).patch(any(ContentChanges.class));
+    }
+
+    /**
+     * Test a scenario where the run method is called and the offsets are different.
+     *
+     * @throws IOException If an error occurs while running the test.
+     */
+    public void testRun_triggersSnapshotOnOffsetZero() throws IOException {
+        resetSingleton();
+
+        ConsumerInfo currentConsumerInfo =
+                new ConsumerInfo(
+                        PluginSettings.getInstance().getConsumerId(),
+                        PluginSettings.getInstance().getContextId(),
+                        0L,
+                        0L,
+                        null);
+
+        ConsumerInfo latestConsumerInfo =
+                new ConsumerInfo(
+                        PluginSettings.getInstance().getConsumerId(),
+                        PluginSettings.getInstance().getContextId(),
+                        0L,
+                        20L,
+                        null);
+
+        doReturn(latestConsumerInfo).when(this.privileged).getConsumerInfo(this.ctiClient);
+        doReturn(currentConsumerInfo).when(this.contextIndex).get(anyString(), anyString());
+
+        doReturn(true).when(this.contextIndex).index(any(ConsumerInfo.class), anyBoolean());
+
+        ContentUpdaterRunnable instance =
+                ContentUpdaterRunnable.getInstance(
+                        this.environment,
+                        this.contextIndex,
+                        this.contentIndex,
+                        this.ctiClient,
+                        this.privileged,
+                        this.commandManagerClient,
+                        this.snapshotManager);
+        instance.run();
+
+        verify(this.snapshotManager).initialize(latestConsumerInfo);
     }
 }

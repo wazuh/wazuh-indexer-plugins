@@ -44,6 +44,7 @@ public final class ContentUpdaterRunnable implements Runnable {
     private final CTIClient ctiClient;
     private final CommandManagerClient commandManagerClient;
     private final AtomicBoolean isRunning = new AtomicBoolean(false);
+    private final SnapshotManager snapshotManager;
 
     /**
      * Default constructor.
@@ -54,6 +55,7 @@ public final class ContentUpdaterRunnable implements Runnable {
      * @param ctiClient CTIClient to interact with the CTI API.
      * @param privileged Privileged to run the job.
      * @param commandManagerClient CommandManagerClient to interact with the command manager API.
+     * @param snapshotManager SnapshotManager to handle snapshot indexing.
      */
     private ContentUpdaterRunnable(
             Environment environment,
@@ -61,13 +63,15 @@ public final class ContentUpdaterRunnable implements Runnable {
             ContentIndex contentIndex,
             CTIClient ctiClient,
             Privileged privileged,
-            CommandManagerClient commandManagerClient) {
+            CommandManagerClient commandManagerClient,
+            SnapshotManager snapshotManager) {
         this.environment = environment;
         this.contextIndex = contextIndex;
         this.contentIndex = contentIndex;
         this.ctiClient = ctiClient;
         this.privileged = privileged;
         this.commandManagerClient = commandManagerClient;
+        this.snapshotManager = snapshotManager;
     }
 
     /**
@@ -94,6 +98,14 @@ public final class ContentUpdaterRunnable implements Runnable {
         // so we initialize it here once the node is up and ready.
         this.commandManagerClient =
                 this.privileged.doPrivilegedRequest(CommandManagerClient::getInstance);
+        snapshotManager =
+                new SnapshotManager(
+                        this.environment,
+                        this.contextIndex,
+                        this.contentIndex,
+                        this.privileged,
+                        this.ctiClient,
+                        this.commandManagerClient);
     }
 
     /**
@@ -129,6 +141,7 @@ public final class ContentUpdaterRunnable implements Runnable {
      * @param ctiClient the CTIClient to interact with the CTI API
      * @param privileged handles privileged operations
      * @param commandManagerClient the CommandManagerClient to interact with the command manager API
+     * @param snapshotManager
      * @return the singleton instance
      */
     public static ContentUpdaterRunnable getInstance(
@@ -137,11 +150,18 @@ public final class ContentUpdaterRunnable implements Runnable {
             ContentIndex contentIndex,
             CTIClient ctiClient,
             Privileged privileged,
-            CommandManagerClient commandManagerClient) {
+            CommandManagerClient commandManagerClient,
+            SnapshotManager snapshotManager) {
         if (INSTANCE == null) {
             INSTANCE =
                     new ContentUpdaterRunnable(
-                            environment, contextIndex, contentIndex, ctiClient, privileged, commandManagerClient);
+                            environment,
+                            contextIndex,
+                            contentIndex,
+                            ctiClient,
+                            privileged,
+                            commandManagerClient,
+                            snapshotManager);
         }
         return INSTANCE;
     }
@@ -174,14 +194,7 @@ public final class ContentUpdaterRunnable implements Runnable {
                             PluginSettings.getInstance().getConsumerId());
             long currentOffset = current.getOffset();
             if (currentOffset == 0L) {
-                SnapshotManager snapshotManager =
-                        new SnapshotManager(
-                                this.environment,
-                                this.contextIndex,
-                                this.contentIndex,
-                                this.privileged,
-                                this.ctiClient);
-                snapshotManager.initialize(latest);
+                this.snapshotManager.initialize(latest);
             } else if (currentOffset < latestOffset) {
                 ContentUpdater contentUpdater =
                         new ContentUpdater(
