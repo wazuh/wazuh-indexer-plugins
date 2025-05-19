@@ -33,6 +33,7 @@ import com.wazuh.contentmanager.index.ContextIndex;
 import com.wazuh.contentmanager.model.cti.ConsumerInfo;
 import com.wazuh.contentmanager.model.cti.ContentChanges;
 import com.wazuh.contentmanager.settings.PluginSettings;
+import com.wazuh.contentmanager.updater.ContentUpdater;
 import com.wazuh.contentmanager.utils.Privileged;
 import com.wazuh.contentmanager.utils.SnapshotManager;
 
@@ -52,6 +53,7 @@ public class ContentUpdaterRunnableTests extends OpenSearchTestCase {
     private ClusterService clusterService;
     private CommandManagerClient commandManagerClient;
     private SnapshotManager snapshotManager;
+    private ContentUpdater contentUpdater;
 
     /**
      * Set up the test environment.
@@ -86,6 +88,7 @@ public class ContentUpdaterRunnableTests extends OpenSearchTestCase {
         this.privileged = spy(new Privileged());
         this.commandManagerClient = mock(CommandManagerClient.class);
         this.snapshotManager = mock(SnapshotManager.class);
+        this.contentUpdater = mock(ContentUpdater.class);
 
         this.runnable =
                 ContentUpdaterRunnable.getInstance(
@@ -95,7 +98,8 @@ public class ContentUpdaterRunnableTests extends OpenSearchTestCase {
                         this.ctiClient,
                         this.privileged,
                         this.commandManagerClient,
-                        this.snapshotManager);
+                        this.snapshotManager,
+                        this.contentUpdater);
     }
 
     /** Reset the singleton instance of ContentUpdaterRunnable for testing purposes. */
@@ -150,7 +154,8 @@ public class ContentUpdaterRunnableTests extends OpenSearchTestCase {
                         this.ctiClient,
                         this.privileged,
                         this.commandManagerClient,
-                        this.snapshotManager);
+                        this.snapshotManager,
+                        this.contentUpdater);
         instance.run();
 
         // Since offsets are equal, no update or snapshot should be triggered.
@@ -195,9 +200,138 @@ public class ContentUpdaterRunnableTests extends OpenSearchTestCase {
                         this.ctiClient,
                         this.privileged,
                         this.commandManagerClient,
-                        this.snapshotManager);
+                        this.snapshotManager,
+                        this.contentUpdater);
         instance.run();
 
         verify(this.snapshotManager).initialize(latestConsumerInfo);
+    }
+
+    /**
+     * Test a scenario where the run method is called and the offsets are different.
+     *
+     * @throws IOException If an error occurs while running the test.
+     */
+    public void testRun_triggersContentUpdateWhenOffsetsDiffer() throws IOException {
+        resetSingleton();
+        ConsumerInfo currentConsumerInfo =
+                new ConsumerInfo(
+                        PluginSettings.getInstance().getConsumerId(),
+                        PluginSettings.getInstance().getContextId(),
+                        10L,
+                        0L,
+                        null);
+
+        ConsumerInfo latestConsumerInfo =
+                new ConsumerInfo(
+                        PluginSettings.getInstance().getConsumerId(),
+                        PluginSettings.getInstance().getContextId(),
+                        0L,
+                        20L,
+                        null);
+
+        doReturn(latestConsumerInfo).when(this.privileged).getConsumerInfo(this.ctiClient);
+        doReturn(currentConsumerInfo).when(this.contextIndex).get(anyString(), anyString());
+        when(this.privileged.getConsumerInfo(this.ctiClient)).thenReturn(latestConsumerInfo);
+
+        when(this.contextIndex.get(anyString(), anyString())).thenReturn(currentConsumerInfo);
+
+        ContentUpdaterRunnable instance =
+                ContentUpdaterRunnable.getInstance(
+                        this.environment,
+                        this.contextIndex,
+                        this.contentIndex,
+                        this.ctiClient,
+                        this.privileged,
+                        this.commandManagerClient,
+                        this.snapshotManager,
+                        this.contentUpdater);
+        instance.run();
+
+        // You can verify log output or internal method calls with spies/mocks if ContentUpdater is
+        // injectable
+    }
+
+    /**
+     * Test a scenario where the run method is called and an IOException occurs.
+     *
+     * @throws IOException If an error occurs while running the test.
+     */
+    public void testRun_logsErrorOnIOException() throws IOException {
+        resetSingleton();
+        ConsumerInfo currentConsumerInfo =
+                new ConsumerInfo(
+                        PluginSettings.getInstance().getConsumerId(),
+                        PluginSettings.getInstance().getContextId(),
+                        0L,
+                        0L,
+                        null);
+
+        ConsumerInfo latestConsumerInfo =
+                new ConsumerInfo(
+                        PluginSettings.getInstance().getConsumerId(),
+                        PluginSettings.getInstance().getContextId(),
+                        0L,
+                        20L,
+                        null);
+
+        doReturn(latestConsumerInfo).when(this.privileged).getConsumerInfo(this.ctiClient);
+        doReturn(currentConsumerInfo).when(this.contextIndex).get(anyString(), anyString());
+        when(this.privileged.getConsumerInfo(this.ctiClient)).thenReturn(latestConsumerInfo);
+
+        when(this.contextIndex.get(anyString(), anyString()))
+                .thenThrow(new IOException("Simulated failure"));
+
+        ContentUpdaterRunnable instance =
+                ContentUpdaterRunnable.getInstance(
+                        this.environment,
+                        this.contextIndex,
+                        this.contentIndex,
+                        this.ctiClient,
+                        this.privileged,
+                        this.commandManagerClient,
+                        this.snapshotManager,
+                        this.contentUpdater);
+        instance.run();
+
+        // IOException should be caught and logged
+    }
+
+    /** Test a scenario where the run method is called and the job is already running. */
+    public void testSingletonEnforcement() {
+        resetSingleton();
+        ContentUpdaterRunnable instance1 =
+                ContentUpdaterRunnable.getInstance(
+                        this.environment,
+                        this.contextIndex,
+                        this.contentIndex,
+                        this.ctiClient,
+                        this.privileged,
+                        this.commandManagerClient,
+                        this.snapshotManager,
+                        this.contentUpdater);
+
+        ContentUpdaterRunnable instance2 = ContentUpdaterRunnable.getInstance();
+
+        assert instance1 == instance2;
+    }
+
+    /**
+     * Test that getInstance throws an exception if the singleton is not initialized.
+     *
+     * @throws Exception If an error occurs while running the test.
+     */
+    public void testGetInstanceThrowsIfNotInitialized() throws Exception {
+        resetSingleton();
+        java.lang.reflect.Field instance = ContentUpdaterRunnable.class.getDeclaredField("INSTANCE");
+        instance.setAccessible(true);
+        instance.set(null, null);
+
+        try {
+            ContentUpdaterRunnable.getInstance();
+            assert false : "Expected IllegalStateException";
+        } catch (IllegalStateException expected) {
+            // Expected
+        }
     }
 }

@@ -45,6 +45,7 @@ public final class ContentUpdaterRunnable implements Runnable {
     private final CommandManagerClient commandManagerClient;
     private final AtomicBoolean isRunning = new AtomicBoolean(false);
     private final SnapshotManager snapshotManager;
+    private final ContentUpdater contentUpdater;
 
     /**
      * Default constructor.
@@ -64,7 +65,8 @@ public final class ContentUpdaterRunnable implements Runnable {
             CTIClient ctiClient,
             Privileged privileged,
             CommandManagerClient commandManagerClient,
-            SnapshotManager snapshotManager) {
+            SnapshotManager snapshotManager,
+            ContentUpdater contentUpdater) {
         this.environment = environment;
         this.contextIndex = contextIndex;
         this.contentIndex = contentIndex;
@@ -72,6 +74,7 @@ public final class ContentUpdaterRunnable implements Runnable {
         this.privileged = privileged;
         this.commandManagerClient = commandManagerClient;
         this.snapshotManager = snapshotManager;
+        this.contentUpdater = contentUpdater;
     }
 
     /**
@@ -106,6 +109,13 @@ public final class ContentUpdaterRunnable implements Runnable {
                         this.privileged,
                         this.ctiClient,
                         this.commandManagerClient);
+        contentUpdater =
+                new ContentUpdater(
+                        this.ctiClient,
+                        this.commandManagerClient,
+                        this.contextIndex,
+                        this.contentIndex,
+                        this.privileged);
     }
 
     /**
@@ -151,7 +161,8 @@ public final class ContentUpdaterRunnable implements Runnable {
             CTIClient ctiClient,
             Privileged privileged,
             CommandManagerClient commandManagerClient,
-            SnapshotManager snapshotManager) {
+            SnapshotManager snapshotManager,
+            ContentUpdater contentUpdater) {
         if (INSTANCE == null) {
             INSTANCE =
                     new ContentUpdaterRunnable(
@@ -161,7 +172,8 @@ public final class ContentUpdaterRunnable implements Runnable {
                             ctiClient,
                             privileged,
                             commandManagerClient,
-                            snapshotManager);
+                            snapshotManager,
+                            contentUpdater);
         }
         return INSTANCE;
     }
@@ -196,14 +208,7 @@ public final class ContentUpdaterRunnable implements Runnable {
             if (currentOffset == 0L) {
                 this.snapshotManager.initialize(latest);
             } else if (currentOffset < latestOffset) {
-                ContentUpdater contentUpdater =
-                        new ContentUpdater(
-                                this.ctiClient,
-                                this.commandManagerClient,
-                                this.contextIndex,
-                                this.contentIndex,
-                                this.privileged);
-                contentUpdater.update(current, latestOffset);
+                this.contentUpdater.update(current, latestOffset);
             } else if (currentOffset == latestOffset) {
                 log.info(
                         "Consumer is up-to-date (offset {} == {}). Skipping...", currentOffset, latestOffset);
