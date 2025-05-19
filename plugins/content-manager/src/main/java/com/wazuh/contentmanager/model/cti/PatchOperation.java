@@ -24,7 +24,6 @@ import org.opensearch.core.xcontent.XContentParser;
 import org.opensearch.core.xcontent.XContentParserUtils;
 
 import java.io.IOException;
-import java.util.HashMap;
 
 /**
  * Class representing a JSON Patch operation.
@@ -88,8 +87,8 @@ public class PatchOperation implements ToXContentObject {
                 case PATH:
                     path = parser.text();
                     break;
-                // "from" is only used for "copy" and "move" operations,
-                // which are currently un-supported.
+                    // "from" is only used for "copy" and "move" operations,
+                    // which are currently un-supported.
                 case FROM:
                     from = parser.text();
                     break;
@@ -97,11 +96,10 @@ public class PatchOperation implements ToXContentObject {
                     // value can be anything.
                     switch (parser.currentToken()) {
                         case START_OBJECT:
-                            parser.nextToken();
-                            value = parser.objectBytes();
-                            value = Offset.parseObject(parser);
+                            value = parser.map();
                             break;
                         case START_ARRAY:
+                            value = parser.list();
                             break;
                         case VALUE_STRING:
                             value = parser.text();

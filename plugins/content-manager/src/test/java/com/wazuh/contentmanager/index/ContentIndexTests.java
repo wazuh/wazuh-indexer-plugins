@@ -79,7 +79,7 @@ public class ContentIndexTests extends OpenSearchIntegTestCase {
     }
 
     /** Test the {@link ContentIndex#patch} method with an Offset with Create content type. */
-    public void testPatchCreate() {
+    public void testPatchCreate() throws Exception {
         // Mock
         doNothing().when(this.contentUpdaterSpy).index((Offset) any());
         // Arrange

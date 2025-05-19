@@ -130,16 +130,19 @@ public class ContentUpdater {
                     this.privileged.getChanges(this.ctiClient, currentOffset, nextOffset);
             log.debug("Fetched offsets from {} to {}", currentOffset, nextOffset);
 
+            // Update halted. Save current state and exit.
             if (changes == null) {
-                log.error("Unable to fetch changes for offsets {} to {}", currentOffset, nextOffset);
-                consumerInfo.setOffset(0);
-                consumerInfo.setLastOffset(0);
+                log.error("Updated interrupted on offset [{}]", currentOffset);
+                consumerInfo.setOffset(currentOffset);
+                this.contextIndex.index(consumerInfo);
                 return false;
             }
-
+            // Update failed. Force initialization from a snapshot.
             if (!this.applyChanges(changes)) {
+                log.error("Updated finally failed on offset [{}]", currentOffset);
                 consumerInfo.setOffset(0);
                 consumerInfo.setLastOffset(0);
+                this.contextIndex.index(consumerInfo);
                 return false;
             }
 
@@ -167,7 +170,6 @@ public class ContentUpdater {
             this.contentIndex.patch(changes);
             return true;
         } catch (RuntimeException e) {
-            log.error("Failed to apply changes to content index", e);
             return false;
         }
     }

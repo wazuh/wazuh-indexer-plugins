@@ -19,7 +19,6 @@ package com.wazuh.contentmanager.updater;
 import com.carrotsearch.randomizedtesting.annotations.ThreadLeakScope;
 
 import org.opensearch.action.admin.indices.refresh.RefreshRequest;
-import org.opensearch.action.get.GetResponse;
 import org.opensearch.action.support.WriteRequest;
 import org.opensearch.client.Client;
 import org.opensearch.cluster.service.ClusterService;
@@ -118,9 +117,9 @@ public class ContentUpdaterIT extends OpenSearchIntegTestCase {
      * <p>The test tries to add new content to the {@link ContentIndex#INDEX_NAME} index, which is
      * initially empty (offset 0). The new content consists on a single element, with offset 1.
      *
-     * @throws InterruptedException thrown by {@link ContentIndex#get(String)}
-     * @throws ExecutionException thrown by {@link ContentIndex#get(String)}
-     * @throws TimeoutException thrown by {@link ContentIndex#get(String)}
+     * @throws InterruptedException thrown by {@link ContentIndex#getById(String)}
+     * @throws ExecutionException thrown by {@link ContentIndex#getById(String)}
+     * @throws TimeoutException thrown by {@link ContentIndex#getById(String)}
      */
     public void testUpdate_ContentChangesTypeCreate()
             throws ExecutionException, InterruptedException, TimeoutException {
@@ -166,9 +165,9 @@ public class ContentUpdaterIT extends OpenSearchIntegTestCase {
      * on the CTI API, which is 2 (mocked response). The list of changes is [offset 1: create, offset
      * 2: update]. The updated element is first created and then updated.
      *
-     * @throws InterruptedException thrown by {@link ContentIndex#get(String)}
-     * @throws ExecutionException thrown by {@link ContentIndex#get(String)}
-     * @throws TimeoutException thrown by {@link ContentIndex#get(String)}
+     * @throws InterruptedException thrown by {@link ContentIndex#getById(String)}
+     * @throws ExecutionException thrown by {@link ContentIndex#getById(String)}
+     * @throws TimeoutException thrown by {@link ContentIndex#getById(String)}
      */
     public void testUpdate_ContentChangesTypeUpdate()
             throws ExecutionException, InterruptedException, TimeoutException {
@@ -218,9 +217,9 @@ public class ContentUpdaterIT extends OpenSearchIntegTestCase {
      * of changes is [offset 1: create, offset 2: delete]. The test finally ensures the element was
      * deleted.
      *
-     * @throws InterruptedException thrown by {@link ContentIndex#get(String)}
-     * @throws ExecutionException thrown by {@link ContentIndex#get(String)}
-     * @throws TimeoutException thrown by {@link ContentIndex#get(String)}
+     * @throws InterruptedException thrown by {@link ContentIndex#getById(String)}
+     * @throws ExecutionException thrown by {@link ContentIndex#getById(String)}
+     * @throws TimeoutException thrown by {@link ContentIndex#getById(String)}
      */
     public void testUpdate_ContentChangesTypeDelete()
             throws InterruptedException, ExecutionException, TimeoutException {
@@ -254,15 +253,11 @@ public class ContentUpdaterIT extends OpenSearchIntegTestCase {
         ConsumerInfo updatedConsumer =
                 this.contextIndex.get(
                         this.pluginSettings.getContextId(), this.pluginSettings.getConsumerId());
-        GetResponse getContent =
-                this.contentIndex
-                        .get(this.resourceId)
-                        .get(this.pluginSettings.getClientTimeout(), TimeUnit.SECONDS);
         // Assert
         assertTrue(updated);
         assertNotNull(updatedConsumer);
         assertEquals(2, updatedConsumer.getLastOffset());
-        assertFalse(getContent.isExists());
+        assertThrows(IllegalArgumentException.class, () -> this.contentIndex.getById(this.resourceId));
     }
 
     /**

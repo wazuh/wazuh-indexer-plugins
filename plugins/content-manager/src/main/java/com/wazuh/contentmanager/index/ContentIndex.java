@@ -27,13 +27,13 @@ import org.opensearch.action.delete.DeleteResponse;
 import org.opensearch.action.get.GetRequest;
 import org.opensearch.action.get.GetResponse;
 import org.opensearch.action.index.IndexRequest;
-import org.opensearch.action.index.IndexResponse;
 import org.opensearch.client.Client;
 import org.opensearch.common.xcontent.XContentFactory;
 import org.opensearch.common.xcontent.XContentType;
 import org.opensearch.core.action.ActionListener;
 import org.opensearch.core.xcontent.ToXContent;
 import org.opensearch.core.xcontent.XContentParser;
+import org.opensearch.index.mapper.StrictDynamicMappingException;
 
 import java.io.BufferedReader;
 import java.io.FileReader;
@@ -42,7 +42,6 @@ import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
-import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
@@ -52,9 +51,7 @@ import com.wazuh.contentmanager.model.cti.ContentChanges;
 import com.wazuh.contentmanager.model.cti.Offset;
 import com.wazuh.contentmanager.model.cti.PatchOperation;
 import com.wazuh.contentmanager.settings.PluginSettings;
-import com.wazuh.contentmanager.utils.ClusterInfo;
 import com.wazuh.contentmanager.utils.JsonPatch;
-import com.wazuh.contentmanager.utils.VisibleForTesting;
 import com.wazuh.contentmanager.utils.XContentUtils;
 
 /** Manages operations for a content index. */
@@ -87,7 +84,6 @@ public class ContentIndex {
      * @param client @Client (mocked).
      * @param pluginSettings @PluginSettings (mocked).
      */
-    @VisibleForTesting
     public ContentIndex(Client client, PluginSettings pluginSettings) {
         this.pluginSettings = pluginSettings;
         this.semaphore = new Semaphore(pluginSettings.getMaximumConcurrentBulks());
@@ -95,37 +91,56 @@ public class ContentIndex {
     }
 
     /**
+     * Searches for an element in the {@link ContentIndex#INDEX_NAME} by its ID.
+     *
+     * @param resourceId the ID of the element to retrieve.
+     * @return the element as a JsonObject instance, or null.
+     * @throws InterruptedException if the operation is interrupted.
+     * @throws ExecutionException if an error occurs during execution.
+     * @throws TimeoutException if the operation times out.
+     * @throws IllegalArgumentException if the content is not found.
+     */
+    public JsonObject getById(String resourceId)
+            throws InterruptedException, ExecutionException, TimeoutException, IllegalArgumentException {
+        GetResponse response =
+                this.client
+                        .get(new GetRequest(ContentIndex.INDEX_NAME, resourceId))
+                        .get(this.pluginSettings.getClientTimeout(), TimeUnit.SECONDS);
+        if (response.isExists()) {
+            return JsonParser.parseString(response.getSourceAsString()).getAsJsonObject();
+        }
+        throw new IllegalArgumentException(
+                String.format(
+                        Locale.ROOT,
+                        "Document with ID [%s] not found in the [%s] index",
+                        resourceId,
+                        ContentIndex.INDEX_NAME));
+    }
+
+    /**
      * Indexes a single Offset document.
      *
-     * @param document the Offset document to be indexed.
+     * @param document {@link Offset} document to index.
+     * @throws StrictDynamicMappingException index operation failed because the document does not
+     *     match the index mappings.
+     * @throws ExecutionException index operation failed to execute.
+     * @throws InterruptedException index operation was interrupted.
+     * @throws TimeoutException index operation timed out.
+     * @throws IOException operation failed caused by the creation of the JSON builder by the
+     *     XContentFactory.
      */
-    public void index(Offset document) {
-        try {
-            IndexRequest indexRequest =
-                    new IndexRequest()
-                            .index(ContentIndex.INDEX_NAME)
-                            .source(document.toXContent(XContentFactory.jsonBuilder(), ToXContent.EMPTY_PARAMS))
-                            .id(document.getResource());
-            this.client.index(
-                    indexRequest,
-                    new ActionListener<>() {
-                        @Override
-                        public void onResponse(IndexResponse indexResponse) {
-                            log.info("Indexed CTI Catalog Content {} to index", document.getResource());
-                        }
-
-                        @Override
-                        public void onFailure(Exception e) {
-                            log.error(
-                                    "Failed to index CTI Catalog Content {}: {}",
-                                    document.getResource(),
-                                    e.getMessage(),
-                                    e);
-                        }
-                    });
-        } catch (IOException e) {
-            log.error("Failed to create JSON content builder: {}", e.getMessage(), e);
-        }
+    public void index(Offset document)
+            throws StrictDynamicMappingException,
+                    ExecutionException,
+                    InterruptedException,
+                    TimeoutException,
+                    IOException {
+        IndexRequest indexRequest =
+                new IndexRequest()
+                        .index(ContentIndex.INDEX_NAME)
+                        .source(document.toXContent(XContentFactory.jsonBuilder(), ToXContent.EMPTY_PARAMS))
+                        .id(document.getResource());
+        this.client.index(indexRequest).get(this.pluginSettings.getClientTimeout(), TimeUnit.SECONDS);
     }
 
     /**
@@ -161,79 +176,6 @@ public class ContentIndex {
                         log.error("Bulk index operation failed: {}", e.getMessage(), e);
                     }
                 });
-    }
-
-    /**
-     * Applies a set of changes (create, update, delete) to the content index.
-     *
-     * @param changes content changes to apply.
-     */
-    public void patch(ContentChanges changes) {
-        if (changes.getChangesList().isEmpty()) {
-            log.info("No changes to apply");
-            return;
-        }
-
-        for (Offset change : changes.getChangesList()) {
-            String id = change.getResource();
-            try {
-                log.info("Processing change: {}", change.getOffset());
-                switch (change.getType()) {
-                    case CREATE:
-                        log.debug("Creating new resource with ID [{}]", id);
-                        this.index(change);
-                        break;
-                    case UPDATE:
-                        log.debug("Updating resource with ID [{}]", id);
-                        JsonObject content = this.getById(id);
-                        for (PatchOperation op : change.getOperations()) {
-                            JsonPatch.applyOperation(content, XContentUtils.xContentObjectToJson(op));
-                        }
-                        try (XContentParser parser = XContentUtils.createJSONParser(content)) {
-                            this.index(Offset.parse(parser));
-                        }
-                        break;
-                    case DELETE:
-                        log.debug("Deleting resource with ID [{}]", id);
-                        this.delete(id);
-                        break;
-                    default:
-                        throw new IllegalArgumentException("Unknown change type: " + change.getType());
-                }
-            } catch (InterruptedException e) {
-                Thread.currentThread().interrupt();
-                throw new RuntimeException("Interrupted while patching", e);
-            } catch (Exception e) {
-                log.error("Failed to apply patch to {}: {}", id, e.getMessage(), e);
-                throw new RuntimeException("Failed to apply patch operation", e);
-            }
-        }
-    }
-
-    /**
-     * Retrieves a document from the index.
-     *
-     * @param id ID of the document to retrieve.
-     * @return CompletableFuture containing the GetResponse.
-     */
-    public CompletableFuture<GetResponse> get(String id) {
-        CompletableFuture<GetResponse> future = new CompletableFuture<>();
-        this.client.get(
-                new GetRequest(INDEX_NAME, id),
-                new ActionListener<>() {
-                    @Override
-                    public void onResponse(GetResponse response) {
-                        log.info("Retrieved CTI Catalog Content {} from index", id);
-                        future.complete(response);
-                    }
-
-                    @Override
-                    public void onFailure(Exception e) {
-                        log.error("Failed to retrieve CTI Catalog Content {}: {}", id, e.getMessage(), e);
-                        future.completeExceptionally(e);
-                    }
-                });
-        return future;
     }
 
     /**
@@ -316,37 +258,57 @@ public class ContentIndex {
     }
 
     /**
-     * Searches for an element in the {@link ContentIndex#INDEX_NAME} by its ID.
+     * Applies a set of changes (create, update, delete) to the content index.
      *
-     * @param resourceId the ID of the element to retrieve.
-     * @return the element as a JsonObject instance.
-     * @throws InterruptedException if the operation is interrupted.
-     * @throws ExecutionException if an error occurs during execution.
-     * @throws TimeoutException if the operation times out.
-     * @throws IllegalArgumentException if the content is not found.
+     * @param changes content changes to apply.
      */
-    public JsonObject getById(String resourceId)
-            throws InterruptedException, ExecutionException, TimeoutException, IllegalArgumentException {
-        GetResponse response =
-                this.get(resourceId).get(this.pluginSettings.getClientTimeout(), TimeUnit.SECONDS);
-        if (response.isExists()) {
-            return JsonParser.parseString(response.getSourceAsString()).getAsJsonObject();
+    public void patch(ContentChanges changes) {
+        ArrayList<Offset> offsets = changes.getChangesList();
+        if (offsets.isEmpty()) {
+            log.info("No changes to apply");
+            return;
         }
-        throw new IllegalArgumentException(
-                String.format(
-                        Locale.ROOT,
-                        "Document with ID [%s] not found in the [%s] index",
-                        resourceId,
-                        ContentIndex.INDEX_NAME));
-    }
 
-    /**
-     * Checks whether the {@link ContentIndex#INDEX_NAME} index exists.
-     *
-     * @see ClusterInfo#indexExists(Client, String)
-     * @return true if the index exists, false otherwise.
-     */
-    public boolean exists() {
-        return ClusterInfo.indexExists(this.client, ContentIndex.INDEX_NAME);
+        Offset first = offsets.get(0);
+        Offset last = offsets.get(offsets.size() - 1);
+        log.info(
+                "Patching [{}] from offset [{}] to [{}]",
+                ContentIndex.INDEX_NAME,
+                first.getOffset(),
+                last.getOffset());
+        for (Offset change : offsets) {
+            String id = change.getResource();
+            try {
+                log.debug("Processing offset [{}]", change.getOffset());
+                switch (change.getType()) {
+                    case CREATE:
+                        log.debug("Creating new resource with ID [{}]", id);
+                        this.index(change);
+                        break;
+                    case UPDATE:
+                        log.debug("Updating resource with ID [{}]", id);
+                        JsonObject content = this.getById(id);
+                        for (PatchOperation op : change.getOperations()) {
+                            JsonPatch.applyOperation(content, XContentUtils.xContentObjectToJson(op));
+                        }
+                        try (XContentParser parser = XContentUtils.createJSONParser(content)) {
+                            this.index(Offset.parse(parser));
+                        }
+                        break;
+                    case DELETE:
+                        log.debug("Deleting resource with ID [{}]", id);
+                        this.delete(id);
+                        break;
+                    default:
+                        throw new IllegalArgumentException("Unknown change type: " + change.getType());
+                }
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                throw new RuntimeException("Interrupted while patching", e);
+            } catch (Exception e) {
+                log.error("Failed to patch [{}] due to {}", id, e.getMessage());
+                throw new RuntimeException("Patch operation failed", e);
+            }
+        }
     }
 }
