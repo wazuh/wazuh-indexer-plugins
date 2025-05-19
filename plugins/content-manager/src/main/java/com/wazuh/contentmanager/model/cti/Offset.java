@@ -148,7 +148,7 @@ public class Offset implements ToXContentObject {
      * @return
      * @throws IOException
      */
-    public static Map<String, Object> parseObject(XContentParser parser) throws IOException {
+    private static Map<String, Object> parseObject(XContentParser parser) throws IOException {
         Map<String, Object> result = new HashMap<>();
 
         while (parser.nextToken() != XContentParser.Token.END_OBJECT) {

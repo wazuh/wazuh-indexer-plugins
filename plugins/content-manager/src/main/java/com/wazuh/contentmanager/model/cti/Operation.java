@@ -37,7 +37,7 @@ public class Operation implements ToXContentObject {
     public static final String PATH = "path";
     public static final String FROM = "from";
     public static final String VALUE = "value";
-    private final String op; // TODO replace with OperationType
+    private final String op; // TODO replace with Operation.Type
     private final String path;
     private final String from;
     private final Object value;
@@ -122,8 +122,10 @@ public class Operation implements ToXContentObject {
                             parser.skipChildren();
                             break;
                     }
+                    break;
                 default:
                     log.error("Unknown field [{}] parsing a JSON Patch operation", fieldName);
+                    parser.skipChildren();
                     break;
             }
         }

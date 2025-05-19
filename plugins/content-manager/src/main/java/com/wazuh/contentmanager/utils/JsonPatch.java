@@ -45,6 +45,7 @@ public class JsonPatch {
         String from =
                 operation.has(Operation.FROM) ? operation.get(Operation.FROM).getAsString() : null;
 
+        // TODO replace with Operation.Type
         switch (op) {
             case "add":
                 JsonPatch.addOperation(document, path, value);
@@ -66,6 +67,7 @@ public class JsonPatch {
                 break;
             default:
                 log.warn("Unsupported JSON Patch operation: {}", op);
+                break;
         }
     }
 

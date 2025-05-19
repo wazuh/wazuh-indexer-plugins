@@ -269,8 +269,8 @@ public class ContentIndex {
             return;
         }
 
-        Offset first = offsets.get(0);
-        Offset last = offsets.get(offsets.size() - 1);
+        Offset first = changes.getFirst();
+        Offset last = changes.getLast();
         log.info(
                 "Patching [{}] from offset [{}] to [{}]",
                 ContentIndex.INDEX_NAME,

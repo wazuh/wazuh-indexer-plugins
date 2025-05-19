@@ -55,6 +55,24 @@ public class Changes implements ToXContentObject {
     }
 
     /**
+     * Get first element of the changes list.
+     *
+     * @return first {@link Offset} element in the list, or null.
+     */
+    public Offset getFirst() {
+        return !this.list.isEmpty() ? this.list.get(0) : null;
+    }
+
+    /**
+     * Get last element of the changes list.
+     *
+     * @return last {@link Offset} element in the list, or null.
+     */
+    public Offset getLast() {
+        return !this.list.isEmpty() ? this.list.get(this.list.size() - 1) : null;
+    }
+
+    /**
      * Parses the data[] object from the CTI API changes response body.
      *
      * @param parser The received parser object.

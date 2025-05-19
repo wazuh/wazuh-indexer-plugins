@@ -330,7 +330,7 @@ public class CTIClientTests extends OpenSearchIntegTestCase {
         // Assert
         assertNotNull(changes);
         assertNotEquals(0, changes.get().size());
-        Offset change = changes.get().get(0);
+        Offset change = changes.getFirst();
         assertEquals(1761037, change.getOffset());
         assertEquals(Offset.Type.UPDATE, change.getType());
         assertEquals("CVE-2019-0605", change.getResource());
