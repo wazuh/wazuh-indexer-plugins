@@ -18,4 +18,5 @@ package com.wazuh.contentmanager.jobscheduler;
 
 import org.opensearch.test.OpenSearchTestCase;
 
+/** Class for the Content Updater job runner tests. */
 public class ContentUpdaterJobRunnerTests extends OpenSearchTestCase {}

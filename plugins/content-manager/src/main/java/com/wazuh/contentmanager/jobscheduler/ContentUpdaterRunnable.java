@@ -151,7 +151,8 @@ public final class ContentUpdaterRunnable implements Runnable {
      * @param ctiClient the CTIClient to interact with the CTI API
      * @param privileged handles privileged operations
      * @param commandManagerClient the CommandManagerClient to interact with the command manager API
-     * @param snapshotManager
+     * @param snapshotManager the SnapshotManager to handle snapshot indexing
+     * @param contentUpdater the ContentUpdater to handle content updates
      * @return the singleton instance
      */
     public static ContentUpdaterRunnable getInstance(

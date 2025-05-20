@@ -49,7 +49,6 @@ public class ContentUpdaterRunnableTests extends OpenSearchTestCase {
     private ContentIndex contentIndex;
     private CTIClient ctiClient;
     private Privileged privileged;
-    private ContentUpdaterRunnable runnable;
     private CommandManagerClient commandManagerClient;
     private SnapshotManager snapshotManager;
     private ContentUpdater contentUpdater;
@@ -88,17 +87,6 @@ public class ContentUpdaterRunnableTests extends OpenSearchTestCase {
         this.commandManagerClient = mock(CommandManagerClient.class);
         this.snapshotManager = mock(SnapshotManager.class);
         this.contentUpdater = mock(ContentUpdater.class);
-
-        this.runnable =
-                ContentUpdaterRunnable.getInstance(
-                        this.environment,
-                        this.contextIndex,
-                        this.contentIndex,
-                        this.ctiClient,
-                        this.privileged,
-                        this.commandManagerClient,
-                        this.snapshotManager,
-                        this.contentUpdater);
     }
 
     /** Reset the singleton instance of ContentUpdaterRunnable for testing purposes. */

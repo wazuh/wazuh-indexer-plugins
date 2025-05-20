@@ -147,7 +147,7 @@ public class SnapshotManager {
             Files.deleteIfExists(snapshotZip);
             Files.deleteIfExists(snapshotJson);
         } catch (IOException | NullPointerException e) {
-            log.error("Failed to index snapshot: {}", e);
+            log.error("Failed to index snapshot: {}", e.getMessage());
         }
     }
 

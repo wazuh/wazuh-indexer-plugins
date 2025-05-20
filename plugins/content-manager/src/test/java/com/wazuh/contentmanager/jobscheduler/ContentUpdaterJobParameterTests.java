@@ -37,6 +37,7 @@ public class ContentUpdaterJobParameterTests extends OpenSearchTestCase {
     String name;
     Schedule schedule;
 
+    /** Test setup method. */
     @Before
     public void setup() {
         this.instant = Instant.now();
@@ -81,7 +82,11 @@ public class ContentUpdaterJobParameterTests extends OpenSearchTestCase {
         assertNotNull(jobParameter.getEnabledTime());
     }
 
-    /** Test the toXContent method */
+    /**
+     * Test the toXContent method
+     *
+     * @throws IOException if an I/O error occurs
+     */
     public void testToXContent() throws IOException {
         ContentUpdaterJobParameter jobParameter =
                 new ContentUpdaterJobParameter(this.name, this.schedule);

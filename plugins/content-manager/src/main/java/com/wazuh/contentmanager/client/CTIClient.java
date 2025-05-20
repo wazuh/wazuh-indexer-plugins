@@ -430,7 +430,7 @@ public class CTIClient extends HttpClient {
      *
      * @param method the HTTP method to use (e.g. GET, POST, PUT, etc.)
      * @param endpoint the URL of the endpoint to send the request to
-     * @param body the request body, or null if no body is required
+     * @param body the request body, or null if body isn't required
      * @param params a map of query parameters to include in the request, or null if no parameters are
      *     required
      * @param header the request header, or null if no header is required

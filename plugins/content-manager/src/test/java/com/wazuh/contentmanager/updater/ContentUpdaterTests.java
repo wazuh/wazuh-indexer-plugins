@@ -86,7 +86,11 @@ public class ContentUpdaterTests extends OpenSearchIntegTestCase {
         this.consumerInfo = mock(ConsumerInfo.class);
     }
 
-    /** Test Fetch and apply no new updates */
+    /**
+     * Test Fetch and apply no new updates
+     *
+     * @throws IOException risen from contextIndex.get()
+     */
     public void testUpdateNoChanges() throws IOException {
         // Mock current and latest offset.
         doReturn(this.consumerInfo).when(this.contextIndex).get(anyString(), anyString());
@@ -99,7 +103,11 @@ public class ContentUpdaterTests extends OpenSearchIntegTestCase {
         verify(this.updater, never()).applyChanges(any());
     }
 
-    /** Test fetch and apply new updates */
+    /**
+     * Test fetch and apply new updates
+     *
+     * @throws IOException risen from contextIndex.get()
+     */
     public void testUpdateNewChanges() throws IOException {
         long offsetsAmount = 3999L;
         // Mock current and latest offset.
@@ -123,7 +131,11 @@ public class ContentUpdaterTests extends OpenSearchIntegTestCase {
         verify(this.updater, times(4)).applyChanges(any());
     }
 
-    /** Test error fetching changes */
+    /**
+     * Test error fetching changes
+     *
+     * @throws IOException risen from contextIndex.get()
+     */
     public void testUpdateErrorFetchingChanges() throws IOException {
         long offsetsAmount = 3999L;
         // Mock current and latest offset.
@@ -144,7 +156,11 @@ public class ContentUpdaterTests extends OpenSearchIntegTestCase {
         assertFalse(updated);
     }
 
-    /** Test error on applyChangesToContextIndex method (method return false) */
+    /**
+     * Test error on applyChangesToContextIndex method (method return false)
+     *
+     * @throws IOException risen from contextIndex.get()
+     */
     public void testUpdateErrorOnPatchContextIndex() throws IOException {
         long offsetsAmount = 3999L;
         // Mock current and latest offset.
