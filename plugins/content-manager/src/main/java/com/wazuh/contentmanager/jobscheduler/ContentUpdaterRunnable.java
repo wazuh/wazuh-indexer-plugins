@@ -102,7 +102,7 @@ public final class ContentUpdaterRunnable implements Runnable {
         // The Command Manager client needs the cluster to be up (depends on PluginSettings),
         // so we initialize it here once the node is up and ready.
         this.commandManagerClient = commandManagerClient;
-        snapshotManager =
+        this.snapshotManager =
                 new SnapshotManager(
                         this.environment,
                         this.contextIndex,
@@ -110,7 +110,7 @@ public final class ContentUpdaterRunnable implements Runnable {
                         this.privileged,
                         this.ctiClient,
                         this.commandManagerClient);
-        contentUpdater =
+        this.contentUpdater =
                 new ContentUpdater(
                         this.ctiClient,
                         this.commandManagerClient,
@@ -197,7 +197,7 @@ public final class ContentUpdaterRunnable implements Runnable {
     @Override
     public void run() {
         if (!this.isRunning.compareAndSet(false, true)) {
-            log.warn("Content Updater job is already running.");
+            log.debug("Content Updater job is already running.");
             return;
         }
         ConsumerInfo latest = privileged.getConsumerInfo(this.ctiClient);

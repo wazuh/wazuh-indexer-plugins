@@ -117,6 +117,7 @@ public class ContentManagerPlugin extends Plugin
      */
     @Override
     public void onNodeStarted(DiscoveryNode localNode) {
+        // @TODO do we want an IS_DEV variable?
         if (System.getenv("IS_DEV").equals("true") && localNode.isClusterManagerNode()) {
             this.contextIndex.createIndex();
             this.contentIndex.createIndex();
