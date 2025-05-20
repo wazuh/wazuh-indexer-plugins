@@ -27,8 +27,8 @@ import java.security.AccessController;
 import com.wazuh.contentmanager.client.CTIClient;
 import com.wazuh.contentmanager.client.CommandManagerClient;
 import com.wazuh.contentmanager.model.command.Command;
+import com.wazuh.contentmanager.model.cti.Changes;
 import com.wazuh.contentmanager.model.cti.ConsumerInfo;
-import com.wazuh.contentmanager.model.cti.ContentChanges;
 
 /** Privileged utility class for executing privileged HTTP requests. */
 public class Privileged {
@@ -68,7 +68,7 @@ public class Privileged {
      * @param toOffset Ending offset (exclusive).
      * @return ContextChanges object containing the changes.
      */
-    public ContentChanges getChanges(CTIClient client, long fromOffset, long toOffset) {
+    public Changes getChanges(CTIClient client, long fromOffset, long toOffset) {
         return this.doPrivilegedRequest(() -> client.getChanges(fromOffset, toOffset, false));
     }
 

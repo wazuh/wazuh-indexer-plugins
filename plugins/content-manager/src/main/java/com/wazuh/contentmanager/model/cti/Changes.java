@@ -27,23 +27,22 @@ import java.util.ArrayList;
 import java.util.List;
 
 /** ToXContentObject model to parse and build CTI API changes query replies. */
-public class ContentChanges implements ToXContentObject {
-
+public class Changes implements ToXContentObject {
     private static final String JSON_DATA_KEY = "data";
-    private final ArrayList<Offset> changes;
+    private final ArrayList<Offset> list;
 
     /** Constructor. */
-    public ContentChanges() {
-        this.changes = new ArrayList<>();
+    public Changes() {
+        this.list = new ArrayList<>();
     }
 
     /**
      * Constructor.
      *
-     * @param changes a List of Offset objects, each containing a JSON patch.
+     * @param list a List of Offset objects, each containing a JSON patch.
      */
-    public ContentChanges(List<Offset> changes) {
-        this.changes = new ArrayList<>(changes);
+    public Changes(List<Offset> list) {
+        this.list = new ArrayList<>(list);
     }
 
     /**
@@ -51,8 +50,26 @@ public class ContentChanges implements ToXContentObject {
      *
      * @return A list of Offset objects
      */
-    public ArrayList<Offset> getChangesList() {
-        return this.changes;
+    public ArrayList<Offset> get() {
+        return this.list;
+    }
+
+    /**
+     * Get first element of the changes list.
+     *
+     * @return first {@link Offset} element in the list, or null.
+     */
+    public Offset getFirst() {
+        return !this.list.isEmpty() ? this.list.get(0) : null;
+    }
+
+    /**
+     * Get last element of the changes list.
+     *
+     * @return last {@link Offset} element in the list, or null.
+     */
+    public Offset getLast() {
+        return !this.list.isEmpty() ? this.list.get(this.list.size() - 1) : null;
     }
 
     /**
@@ -64,7 +81,7 @@ public class ContentChanges implements ToXContentObject {
      * @throws IllegalArgumentException rethrown from the inner parse() methods.
      * @throws ParsingException rethrown from ensureExpectedToken().
      */
-    public static ContentChanges parse(XContentParser parser)
+    public static Changes parse(XContentParser parser)
             throws IOException, IllegalArgumentException, ParsingException {
         List<Offset> changes = new ArrayList<>();
         // Make sure we are at the start
@@ -79,7 +96,7 @@ public class ContentChanges implements ToXContentObject {
         while (parser.nextToken() != XContentParser.Token.END_ARRAY) {
             changes.add(Offset.parse(parser));
         }
-        return new ContentChanges(changes);
+        return new Changes(changes);
     }
 
     /**
@@ -93,9 +110,9 @@ public class ContentChanges implements ToXContentObject {
     @Override
     public XContentBuilder toXContent(XContentBuilder builder, Params params) throws IOException {
         builder.startObject();
-        builder.startArray(ContentChanges.JSON_DATA_KEY);
+        builder.startArray(Changes.JSON_DATA_KEY);
         // For each Offset in the data field, add them to an XContentBuilder array
-        for (Offset change : this.changes) {
+        for (Offset change : this.list) {
             change.toXContent(builder, ToXContentObject.EMPTY_PARAMS);
         }
         builder.endArray();
