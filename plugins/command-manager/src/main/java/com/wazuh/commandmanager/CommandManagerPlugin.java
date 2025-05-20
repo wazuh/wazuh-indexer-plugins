@@ -76,7 +76,7 @@ import com.wazuh.commandmanager.transport.CommandTransportAction;
  * <p>The Command Manager plugin is also a JobScheduler extension plugin.
  */
 public class CommandManagerPlugin extends Plugin
-        implements ActionPlugin, JobSchedulerExtension, ReloadablePlugin, ExtensiblePlugin {
+        implements ActionPlugin, JobSchedulerExtension, ReloadablePlugin, ExtensiblePlugin, CommandManagerExtension {
     public static final String COMMAND_DOCUMENT_PARENT_OBJECT_NAME = "command";
 
     private static final Logger log = LogManager.getLogger(CommandManagerPlugin.class);
@@ -249,5 +249,10 @@ public class CommandManagerPlugin extends Plugin
             String name = extension.getName();
             log.info("Loaded command manager extension: {}", name);
         }
+    }
+
+    @Override
+    public String getName() {
+        return "PEPITO";
     }
 }

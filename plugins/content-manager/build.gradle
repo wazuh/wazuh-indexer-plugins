@@ -1,26 +1,31 @@
 import org.opensearch.gradle.test.RestIntegTestTask
+import com.github.jengelman.gradle.plugins.shadow.ShadowPlugin
 
 import java.util.concurrent.Callable
 
 buildscript {
-    ext {
-        opensearch_version = System.getProperty("opensearch.version", "2.19.2-SNAPSHOT")
-        opensearch_build = opensearch_version.replace("-SNAPSHOT","") + ".0"
-      job_scheduler_version = System.getProperty("job_scheduler.version", opensearch_build)
-        wazuh_version = System.getProperty("version", "6.0.0")
-        revision = System.getProperty("revision", "0")
-    }
+  ext {
+    opensearch_version = System.getProperty("opensearch.version", "2.19.2-SNAPSHOT")
+    opensearch_build = opensearch_version.replace("-SNAPSHOT","") + ".0"
+    wazuh_version = System.getProperty("version", "6.0.0")
+    revision = System.getProperty("revision", "0")
+  }
 
-    repositories {
-        mavenLocal()
-        maven { url "https://aws.oss.sonatype.org/content/repositories/snapshots" }
-        mavenCentral()
-        maven { url "https://plugins.gradle.org/m2/" }
-    }
+  repositories {
+    mavenLocal()
+    maven { url "https://aws.oss.sonatype.org/content/repositories/snapshots" }
+    mavenCentral()
+    maven { url "https://plugins.gradle.org/m2/" }
+  }
 
-    dependencies {
-        classpath "org.opensearch.gradle:build-tools:${opensearch_version}"
-    }
+  dependencies {
+    classpath "org.opensearch.gradle:build-tools:${opensearch_version}"
+  }
+}
+plugins {
+  id "de.undercouch.download" version "5.6.0"
+  id 'com.netflix.nebula.ospackage' version "11.11.1"
+  id "com.diffplug.spotless" version "6.25.0"
 }
 
 apply plugin: 'java'
@@ -37,92 +42,90 @@ def pathToPlugin = 'contentmanager'
 def pluginClassName = 'ContentManagerPlugin'
 
 publishing {
-    publications {
-        pluginZip(MavenPublication) { publication ->
-            pom {
-                name = pluginName
-                description = pluginDescription
-                licenses {
-                    license {
-                        name = "GNU Affero General Public License (AGPL) version 3.0"
-                        url = "http://www.gnu.org/licenses/agpl-3.0.txt"
-                    }
-                }
-                developers {
-                    developer {
-                        name = "Wazuh"
-                        url = "https://wazuh.com"
-                    }
-                }
-            }
-        }
+  publications {
+    pluginZip(MavenPublication) { publication ->
+      pom {
+        name = pluginName
+        description = pluginDescription
+      }
     }
+  }
 }
 
 allprojects {
-    group = "${projectPath}"
-    version = "${wazuh_version}" + ".${revision}"
-    targetCompatibility = JavaVersion.VERSION_11
-    sourceCompatibility = JavaVersion.VERSION_11
+  project.ext.licenseName = 'The Apache Software License, Version 2.0'
+  project.ext.licenseUrl = 'http://www.apache.org/licenses/LICENSE-2.0.txt'
+  group = "${projectPath}"
+  version = "${wazuh_version}" + ".${revision}"
+  targetCompatibility = JavaVersion.VERSION_11
+  sourceCompatibility = JavaVersion.VERSION_11
 
+  plugins.withType(ShadowPlugin).whenPluginAdded {
+    publishing {
+      repositories {
+        maven {
+          name = 'staging'
+          url = "${rootProject.buildDir}/local-staging-repo"
+        }
+      }
+      publications {
+        // add license information to generated poms
+        all {
+          pom {
+            name = "wazuh-indexer-content-manager"
+            description = "Wazuh Indexer's Content Manager plugin"
+          }
+          pom.withXml { XmlProvider xml ->
+            Node node = xml.asNode()
+            node.appendNode('inceptionYear', '2025')
+
+            Node license = node.appendNode('licenses').appendNode('license')
+            license.appendNode('name', project.licenseName)
+            license.appendNode('url', project.licenseUrl)
+
+            Node developer = node.appendNode('developers').appendNode('developer')
+            developer.appendNode('name', 'OpenSearch')
+            developer.appendNode('url', 'https://github.com/opensearch-project/job-scheduler')
+          }
+        }
+      }
+    }
+  }
 }
 
 opensearchplugin {
-    name pluginName
-    description pluginDescription
-    classname "${projectPath}.${pathToPlugin}.${pluginClassName}"
-    extendedPlugins = ['wazuh-indexer-command-manager']
-    licenseFile rootProject.file('LICENSE.txt')
-    noticeFile rootProject.file('NOTICE.txt')
+  name pluginName
+  description pluginDescription
+  classname "${projectPath}.${pathToPlugin}.${pluginClassName}"
+  licenseFile rootProject.file('LICENSE.txt')
+  noticeFile rootProject.file('NOTICE.txt')
+  extendedPlugins = [':wazuh-indexer-command-manager-spi']
 }
 
 configurations {
   zipArchive
-  opensearchPlugin
 }
 
 dependencies {
-  // Job Scheduler stuff
-  zipArchive group: 'org.opensearch.plugin', name: 'opensearch-job-scheduler', version: "${opensearch_build}"
-  // implementation "org.opensearch:opensearch:${opensearch_version}"
-  compileOnly "org.opensearch:opensearch-job-scheduler-spi:${job_scheduler_version}"
-  implementation(project(':wazuh-indexer-command-manager')) {
-    // Prevent logging conflicts by ignoring older logging APIs from common
-    exclude group: 'org.apache.logging.log4j', module: 'log4j-slf4j-impl'
-    exclude group: 'org.slf4j', module: 'slf4j-api'
-    exclude group: 'org.apache.logging.log4j', module: 'log4j-api'
-    exclude group: 'org.apache.logging.log4j', module: 'log4j-core'
-  }
+  implementation project(path: ":wazuh-indexer-command-manager-spi", configuration: 'shadow')
 
+
+//  implementation project(path: ":wazuh-indexer-command-manager-spi", configuration: 'shadow')
   implementation "org.apache.httpcomponents.client5:httpclient5:5.4.4"
   implementation "org.apache.httpcomponents.core5:httpcore5-h2:5.3.4"
   implementation "org.apache.httpcomponents.core5:httpcore5:5.3.4"
   implementation "org.apache.logging.log4j:log4j-slf4j-impl:2.23.1"
   implementation "org.slf4j:slf4j-api:2.0.16"
-  implementation 'com.google.code.gson:gson:2.8.9'
 
-  constraints {
-    implementation("org.slf4j:slf4j-api:2.0.16") {
-      because("Ensure modern SLF4J version compatibility")
-    }
-    implementation("org.apache.logging.log4j:log4j-api:2.23.1") {
-      because("Ensure consistent Log4j version")
-    }
-    implementation("org.apache.logging.log4j:log4j-core:2.23.1") {
-      because("Ensure consistent Log4j version")
-    }
-  }
+  // ZipArchive dependencies used for integration tests
+  zipArchive group: 'org.opensearch.plugin', name: 'opensearch-job-scheduler', version: "${opensearch_build}"
+//  zipArchive project(path: ":wazuh-indexer-command-manager-spi", configuration: "zip")
 
-  zipArchive group: 'com.wazuh', name: 'wazuh-indexer-command-manager', version: "6.0.0.0"
-}
+  // Uncomment this line to load the command-manager plugin from the local Maven repository.
+  // Keep it commented to allow GitHub Workflows to run the tests.
+//   zipArchive group: 'com.wazuh', name:'wazuh-indexer-command-manager-spi', version: "6.0.0.0"
+  zipArchive project(path: ":wazuh-indexer-command-manager-spi", configuration: 'zipArchive')
 
-configurations.all {
-  resolutionStrategy {
-    force 'org.apache.logging.log4j:log4j-api:2.23.1'
-    force 'org.apache.logging.log4j:log4j-core:2.23.1'
-    force 'org.apache.logging.log4j:log4j-slf4j-impl:2.23.1'
-    force 'org.slf4j:slf4j-api:2.0.16'
-  }
 }
 
 
@@ -142,34 +145,37 @@ thirdPartyAudit.enabled = false
 dependencyLicenses.enabled = false
 
 repositories {
-    mavenLocal()
-    maven { url "https://aws.oss.sonatype.org/content/repositories/snapshots" }
-    mavenCentral()
-    maven { url "https://plugins.gradle.org/m2/" }
+  mavenLocal()
+  maven { url "https://aws.oss.sonatype.org/content/repositories/snapshots" }
+  mavenCentral()
+  maven { url "https://plugins.gradle.org/m2/" }
 }
 
 test {
-    include '**/*Tests.class'
+  include '**/*Tests.class'
 }
-.0
+
+dependencies {
+  implementation 'com.google.code.gson:gson:2.8.9'
+}
+
 task integTest(type: RestIntegTestTask) {
-    description = "Run tests against a cluster"
-    testClassesDirs = sourceSets.test.output.classesDirs
-    classpath = sourceSets.test.runtimeClasspath
+  description = "Run tests against a cluster"
+  testClassesDirs = sourceSets.test.output.classesDirs
+  classpath = sourceSets.test.runtimeClasspath
 }
 tasks.named("check").configure { dependsOn(integTest) }
 
 integTest {
-    // The --debug-jvm command-line option makes the cluster debuggable; this makes the tests debuggable
-    if (System.getProperty("test.debug") != null) {
-        jvmArgs '-agentlib:jdwp=transport=dt_socket,server=y,suspend=y,address=*:5005'
-    }
+  // The --debug-jvm command-line option makes the cluster debuggable; this makes the tests debuggable
+  if (System.getProperty("test.debug") != null) {
+    jvmArgs '-agentlib:jdwp=transport=dt_socket,server=y,suspend=y,address=*:5005'
+  }
 }
 
-
 testClusters.integTest {
-    // Installs all registered zipArchive dependencies on integTest cluster nodes
-  configurations.opensearchPlugin.asFileTree.each {
+  // Installs all registered zipArchive dependencies on integTest cluster nodes
+  configurations.zipArchive.asFileTree.each {
     plugin(provider(new Callable<RegularFile>(){
       @Override
       RegularFile call() throws Exception {
@@ -182,36 +188,22 @@ testClusters.integTest {
       }
     }))
   }
-    configurations.zipArchive.asFileTree.each {
-      plugin(provider(new Callable<RegularFile>(){
-        @Override
-        RegularFile call() throws Exception {
-          return new RegularFile() {
-            @Override
-            File getAsFile() {
-              return it
-            }
-          }
-        }
-      }))
-    }
-    testDistribution = "ARCHIVE"
-    // This installs our plugin into the testClusters
-    plugin(project.tasks.bundlePlugin.archiveFile)
+  testDistribution = "ARCHIVE"
+  // This installs our plugin into the testClusters
+  plugin(project.tasks.bundlePlugin.archiveFile)
 }
 
 run {
-    useCluster testClusters.integTest
+  useCluster testClusters.integTest
 }
 
 // updateVersion: Task to auto update version to the next development iteration
 task updateVersion {
-    onlyIf { System.getProperty('newVersion') }
-    doLast {
-        ext.newVersion = System.getProperty('newVersion')
-        println "Setting version to ${newVersion}."
-        // String tokenization to support -SNAPSHOT
-        ant.replaceregexp(file: 'build.gradle', match: '"opensearch.version", "\\d.*"', replace: '"opensearch.version", "' + newVersion.tokenize('-')[0] + '-SNAPSHOT"', flags: 'g', byline: true)
-    }
+  onlyIf { System.getProperty('newVersion') }
+  doLast {
+    ext.newVersion = System.getProperty('newVersion')
+    println "Setting version to ${newVersion}."
+    // String tokenization to support -SNAPSHOT
+    ant.replaceregexp(file: 'build.gradle', match: '"opensearch.version", "\\d.*"', replace: '"opensearch.version", "' + newVersion.tokenize('-')[0] + '-SNAPSHOT"', flags: 'g', byline: true)
+  }
 }
-

@@ -11,11 +11,30 @@ plugins {
   id 'maven-publish'
   id 'signing'
   id "org.gradle.test-retry" version "1.6.2"
+  id 'java-library'
 }
 
 apply plugin: 'opensearch.java'
 apply plugin: 'opensearch.testclusters'
 apply plugin: 'opensearch.java-rest-test'
+apply plugin: 'com.github.johnrengelman.shadow'
+apply plugin: 'opensearch.pluginzip'
+
+
+shadowJar {
+  archiveClassifier.set('all')
+}
+
+//task zipArchive(type: Zip) {
+//  from(jar)
+//  archiveClassifier.set("bundle")
+//  destinationDirectory.set(file("$buildDir/distributions"))
+//}
+
+artifacts {
+  archives shadowJar
+//  zipArchive zipArchive
+}
 
 repositories {
   mavenLocal()
@@ -35,7 +54,7 @@ dependencies {
   // slf4j is the runtime dependency of cron-utils
   // if cron-utils version gets bumped, pls check the slf4j version cron-utils depending on
   //  and bump if needed
-  runtimeOnly "org.slf4j:slf4j-api:${slf4j_version_of_cronutils}"
+  compileOnly "org.slf4j:slf4j-api:${slf4j_version_of_cronutils}"
 
   testImplementation "org.opensearch.test:framework:${opensearch_version}"
   testImplementation "org.apache.logging.log4j:log4j-core:${versions.log4j}"
@@ -80,6 +99,21 @@ testClusters.javaRestTest {
   testDistribution = 'INTEG_TEST'
 }
 
+//configurations {
+//  zipArchive
+//}
+
+afterEvaluate {
+  if (tasks.findByName('bundlePlugin')) {
+    artifacts {
+      zipArchive tasks.bundlePlugin
+    }
+  } else {
+    logger.warn("Task 'bundlePlugin' not found. Skipping zipArchive artifact declaration.")
+  }
+}
+
+
 task sourcesJar(type: Jar) {
   archiveClassifier.set 'sources'
   from sourceSets.main.allJava
@@ -113,15 +147,11 @@ publishing {
       artifact javadocJar
 
       pom {
-        name = "OpenSearch Job Scheduler SPI"
+        name = "wazuh-indexer-command-manager-spi"
         packaging = "jar"
         url = "https://github.com/opensearch-project/job-scheduler"
         description = "OpenSearch Job Scheduler"
-        scm {
-          connection = "scm:git@github.com:opensearch-project/job-scheduler.git"
-          developerConnection = "scm:git@github.com:opensearch-project/job-scheduler.git"
-          url = "git@github.com:opensearch-project/job-scheduler.git"
-        }
+        groupId = "com.wazuh"
         licenses {
           license {
             name = "The Apache License, Version 2.0"

@@ -17,6 +17,6 @@
 
 rootProject.name = 'wazuh-indexer-content-manager'
 
-include ':wazuh-indexer-command-manager'
+include ':wazuh-indexer-command-manager-spi'
 
-project(':wazuh-indexer-command-manager').projectDir = file('../command-manager')
+project(':wazuh-indexer-command-manager-spi').projectDir = file('../command-manager/spi')
