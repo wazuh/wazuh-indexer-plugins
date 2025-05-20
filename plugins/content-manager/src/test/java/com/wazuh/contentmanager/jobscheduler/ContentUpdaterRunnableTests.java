@@ -32,8 +32,8 @@ import com.wazuh.contentmanager.client.CTIClient;
 import com.wazuh.contentmanager.client.CommandManagerClient;
 import com.wazuh.contentmanager.index.ContentIndex;
 import com.wazuh.contentmanager.index.ContextIndex;
+import com.wazuh.contentmanager.model.cti.Changes;
 import com.wazuh.contentmanager.model.cti.ConsumerInfo;
-import com.wazuh.contentmanager.model.cti.ContentChanges;
 import com.wazuh.contentmanager.settings.PluginSettings;
 import com.wazuh.contentmanager.updater.ContentUpdater;
 import com.wazuh.contentmanager.utils.Privileged;
@@ -143,7 +143,7 @@ public class ContentUpdaterRunnableTests extends OpenSearchTestCase {
 
         // Since offsets are equal, no update or snapshot should be triggered.
         verify(this.contentIndex, never()).fromSnapshot(anyString());
-        verify(this.contentIndex, never()).patch(any(ContentChanges.class));
+        verify(this.contentIndex, never()).patch(any(Changes.class));
     }
 
     /**
