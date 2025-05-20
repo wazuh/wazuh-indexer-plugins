@@ -90,9 +90,42 @@ public final class ContentUpdaterJobRunner implements ScheduledJobRunner {
         return INSTANCE;
     }
 
+    /**
+     * Singleton instance access method with parameters.
+     *
+     * @param client OpenSearch's client.
+     * @param threadPool OpenSearch's thread pool.
+     * @param environment OpenSearch's environment.
+     * @param contextIndex Handles context and consumer related metadata.
+     * @param contentIndex Handles indexed content.
+     * @param privileged Handles privileged operations.
+     * @return the singleton instance.
+     */
+    public static ContentUpdaterJobRunner getInstance(
+            CTIClient client,
+            ThreadPool threadPool,
+            Environment environment,
+            ContextIndex contextIndex,
+            ContentIndex contentIndex,
+            Privileged privileged) {
+        if (ContentUpdaterJobRunner.INSTANCE == null) {
+            INSTANCE = new ContentUpdaterJobRunner();
+        }
+        INSTANCE.setPrivileged(privileged);
+        INSTANCE.setClient(client);
+        INSTANCE.setThreadPool(threadPool);
+        INSTANCE.setContextIndex(contextIndex);
+        INSTANCE.setContentIndex(contentIndex);
+        INSTANCE.setEnvironment(environment);
+        return INSTANCE;
+    }
+
     @Override
     public void runJob(
             ScheduledJobParameter scheduledJobParameter, JobExecutionContext jobExecutionContext) {
+        if (this.commandManagerClient == null) {
+            this.commandManagerClient = privileged.doPrivilegedRequest(CommandManagerClient::getInstance);
+        }
         ContentUpdaterRunnable jobRunnable =
                 ContentUpdaterRunnable.getInstance(
                         this.environment,

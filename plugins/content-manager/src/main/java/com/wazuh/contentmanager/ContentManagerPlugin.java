@@ -54,7 +54,6 @@ import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
 
 import com.wazuh.contentmanager.client.CTIClient;
-import com.wazuh.contentmanager.client.CommandManagerClient;
 import com.wazuh.contentmanager.index.ContentIndex;
 import com.wazuh.contentmanager.index.ContextIndex;
 import com.wazuh.contentmanager.jobscheduler.ContentUpdaterJobParameter;
@@ -98,16 +97,13 @@ public class ContentManagerPlugin extends Plugin
         this.contextIndex = new ContextIndex(client);
         this.contentIndex = new ContentIndex(client);
         Privileged privileged = new Privileged();
-        CommandManagerClient commandManagerClient =
-                privileged.doPrivilegedRequest(CommandManagerClient::getInstance);
         ContentUpdaterJobRunner.getInstance(
                 privileged.doPrivilegedRequest(CTIClient::getInstance),
                 threadPool,
                 environment,
                 this.contextIndex,
                 contentIndex,
-                privileged,
-                commandManagerClient);
+                privileged);
 
         return Collections.emptyList();
     }
