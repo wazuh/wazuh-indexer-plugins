@@ -23,8 +23,8 @@ import com.wazuh.contentmanager.client.CTIClient;
 import com.wazuh.contentmanager.client.CommandManagerClient;
 import com.wazuh.contentmanager.index.ContentIndex;
 import com.wazuh.contentmanager.index.ContextIndex;
+import com.wazuh.contentmanager.model.cti.Changes;
 import com.wazuh.contentmanager.model.cti.ConsumerInfo;
-import com.wazuh.contentmanager.model.cti.ContentChanges;
 import com.wazuh.contentmanager.settings.PluginSettings;
 import com.wazuh.contentmanager.utils.Privileged;
 import com.wazuh.contentmanager.utils.VisibleForTesting;
@@ -122,24 +122,26 @@ public class ContentUpdater {
             return true;
         }
 
-        log.info("New updates available from offset {} to {}", currentOffset, lastOffset);
+        log.info("Updating [{}]", ContentIndex.INDEX_NAME);
         while (currentOffset < lastOffset) {
             long nextOffset =
                     Math.min(currentOffset + this.pluginSettings.getMaximumChanges(), lastOffset);
-            ContentChanges changes =
-                    this.privileged.getChanges(this.ctiClient, currentOffset, nextOffset);
+            Changes changes = this.privileged.getChanges(this.ctiClient, currentOffset, nextOffset);
             log.debug("Fetched offsets from {} to {}", currentOffset, nextOffset);
 
+            // Update halted. Save current state and exit.
             if (changes == null) {
-                log.error("Unable to fetch changes for offsets {} to {}", currentOffset, nextOffset);
-                consumerInfo.setOffset(0);
-                consumerInfo.setLastOffset(0);
+                log.error("Updated interrupted on offset [{}]", currentOffset);
+                consumerInfo.setOffset(currentOffset);
+                this.contextIndex.index(consumerInfo);
                 return false;
             }
-
+            // Update failed. Force initialization from a snapshot.
             if (!this.applyChanges(changes)) {
+                log.error("Updated finally failed on offset [{}]", currentOffset);
                 consumerInfo.setOffset(0);
                 consumerInfo.setLastOffset(0);
+                this.contextIndex.index(consumerInfo);
                 return false;
             }
 
@@ -148,8 +150,10 @@ public class ContentUpdater {
         }
 
         // Update consumer info.
+        consumerInfo.setLastOffset(currentOffset);
         this.contextIndex.index(consumerInfo);
         this.privileged.postUpdateCommand(this.commandClient, consumerInfo);
+        log.info("[{}] updated to offset [{}]", ContentIndex.INDEX_NAME, consumerInfo.getOffset());
         return true;
     }
 
@@ -160,12 +164,11 @@ public class ContentUpdater {
      * @return true if the changes were successfully applied, false otherwise.
      */
     @VisibleForTesting
-    protected boolean applyChanges(ContentChanges changes) {
+    protected boolean applyChanges(Changes changes) {
         try {
             this.contentIndex.patch(changes);
             return true;
         } catch (RuntimeException e) {
-            log.error("Failed to apply changes to content index", e);
             return false;
         }
     }

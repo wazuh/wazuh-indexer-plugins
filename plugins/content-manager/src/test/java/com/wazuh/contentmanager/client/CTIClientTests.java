@@ -33,10 +33,9 @@ import java.io.IOException;
 import java.util.Collections;
 import java.util.Map;
 
+import com.wazuh.contentmanager.model.cti.Changes;
 import com.wazuh.contentmanager.model.cti.ConsumerInfo;
-import com.wazuh.contentmanager.model.cti.ContentChanges;
 import com.wazuh.contentmanager.model.cti.Offset;
-import com.wazuh.contentmanager.model.cti.OperationType;
 import com.wazuh.contentmanager.settings.PluginSettings;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
@@ -304,7 +303,7 @@ public class CTIClientTests extends OpenSearchIntegTestCase {
      * <pre>
      *     - The list of changes is not null.
      *     - The list of changes is not empty.
-     *     - The {@link ContentChanges} instance matches the response's data.
+     *     - The {@link Changes} instance matches the response's data.
      *     - The {@link CTIClient#sendRequest(Method, String, String, Map, Header, int)} is invoked exactly 1 time.
      * </pre>
      */
@@ -312,7 +311,7 @@ public class CTIClientTests extends OpenSearchIntegTestCase {
         // Arrange
         SimpleHttpResponse response = new SimpleHttpResponse(HttpStatus.SC_SUCCESS, "OK");
         response.setBody(
-                "{\"data\":[{\"offset\":1761037,\"type\":\"update\",\"version\":19,\"context\":\"vd_1.0.0\",\"resource\":\"CVE-2019-0605\",\"operations\":[{\"op\":\"replace\",\"path\":\"/containers/cna/x_remediations/windows/0/anyOf/133\",\"value\":\"KB5058922\"},{\"op\":\"replace\",\"path\":\"/containers/cna/x_remediations/windows/5/anyOf/140\",\"value\":\"KB5058921\"}]}]}",
+                "{\"data\":[{\"offset\":1761037,\"type\":\"update\",\"version\":19,\"context\":\"vd_1.0.0\",\"resource\":\"CVE-2019-0605\",\"operations\":[{\"op\":\"replace\",\"path\":\"/containers/cna/x_remediations/windows/0/anyOf/133\",\"value\":\"KB5058922\"},{\"op\":\"replace\",\"path\":\"/containers/cna/x_remediations/windows/5/anyOf/140\",\"value\":\"KB5058921\"},{\"op\":\"add\",\"path\":\"/containers/adp/0/descriptions/1\",\"value\":{\"lang\":\"en\",\"value\":\"OpenStack Ironic fails to restrict paths used for file:// image URLs\"}},{\"op\":\"remove\",\"path\":\"/containers/adp/0/affected/0/platforms\"},{\"op\":\"add\",\"path\":\"/containers/adp/0/affected/0/versions\",\"value\":[{\"status\":\"affected\",\"version\":\"0\",\"lessThan\":\"24.1.3\",\"versionType\":\"custom\"},{\"status\":\"affected\",\"version\":\"25.0.0\",\"lessThan\":\"26.1.1\",\"versionType\":\"custom\"},{\"status\":\"affected\",\"version\":\"0\",\"lessThan\":\"29.0.1\",\"versionType\":\"custom\"},{\"status\":\"affected\",\"version\":\"27.0.0\",\"lessThan\":\"29.0.1\",\"versionType\":\"custom\"}]}]}]}",
                 ContentType.APPLICATION_JSON);
 
         // spotless:off
@@ -326,16 +325,16 @@ public class CTIClientTests extends OpenSearchIntegTestCase {
         // spotless:on
 
         // Act
-        ContentChanges changes = this.spyCtiClient.getChanges(0, 200, true);
+        Changes changes = this.spyCtiClient.getChanges(0, 200, true);
 
         // Assert
         assertNotNull(changes);
-        assertNotEquals(0, changes.getChangesList().size());
-        Offset change = changes.getChangesList().get(0);
+        assertNotEquals(0, changes.get().size());
+        Offset change = changes.getFirst();
         assertEquals(1761037, change.getOffset());
-        assertEquals(OperationType.UPDATE, change.getType());
+        assertEquals(Offset.Type.UPDATE, change.getType());
         assertEquals("CVE-2019-0605", change.getResource());
-        assertEquals(2, change.getOperations().size());
+        assertEquals(5, change.getOperations().size());
         verify(this.spyCtiClient, times(1))
                 .sendRequest(any(Method.class), anyString(), isNull(), anyMap(), isNull(), anyInt());
     }
@@ -361,10 +360,9 @@ public class CTIClientTests extends OpenSearchIntegTestCase {
         .thenReturn(null);
         // spotless:on
 
-        ContentChanges changes = this.spyCtiClient.getChanges(0, 100, true);
+        Changes changes = this.spyCtiClient.getChanges(0, 100, true);
         assertNotNull(changes);
-        assertEquals(
-                new ContentChanges().getChangesList().isEmpty(), changes.getChangesList().isEmpty());
+        assertEquals(new Changes().get().isEmpty(), changes.get().isEmpty());
         verify(this.spyCtiClient, times(1))
                 .sendRequest(any(Method.class), anyString(), isNull(), anyMap(), isNull(), anyInt());
     }
