@@ -85,13 +85,15 @@ public final class ContentUpdaterRunnable implements Runnable {
      * @param contentIndex ContentIndex to run the job.
      * @param ctiClient CTIClient to interact with the CTI API.
      * @param privileged Privileged to run the job.
+     * @param commandManagerClient CommandManagerClient to interact with the command manager API.
      */
     private ContentUpdaterRunnable(
             Environment environment,
             ContextIndex contextIndex,
             ContentIndex contentIndex,
             CTIClient ctiClient,
-            Privileged privileged) {
+            Privileged privileged,
+            CommandManagerClient commandManagerClient) {
         this.environment = environment;
         this.contextIndex = contextIndex;
         this.contentIndex = contentIndex;
@@ -99,8 +101,7 @@ public final class ContentUpdaterRunnable implements Runnable {
         this.privileged = privileged;
         // The Command Manager client needs the cluster to be up (depends on PluginSettings),
         // so we initialize it here once the node is up and ready.
-        this.commandManagerClient =
-                this.privileged.doPrivilegedRequest(CommandManagerClient::getInstance);
+        this.commandManagerClient = commandManagerClient;
         snapshotManager =
                 new SnapshotManager(
                         this.environment,
@@ -126,6 +127,7 @@ public final class ContentUpdaterRunnable implements Runnable {
      * @param contentIndex handles the indexed content
      * @param ctiClient the CTIClient to interact with the CTI API
      * @param privileged handles privileged operations
+     * @param commandManagerClient the CommandManagerClient to interact with the command manager API
      * @return the singleton instance
      */
     public static ContentUpdaterRunnable getInstance(
@@ -133,11 +135,12 @@ public final class ContentUpdaterRunnable implements Runnable {
             ContextIndex contextIndex,
             ContentIndex contentIndex,
             CTIClient ctiClient,
-            Privileged privileged) {
+            Privileged privileged,
+            CommandManagerClient commandManagerClient) {
         if (INSTANCE == null) {
             INSTANCE =
                     new ContentUpdaterRunnable(
-                            environment, contextIndex, contentIndex, ctiClient, privileged);
+                            environment, contextIndex, contentIndex, ctiClient, privileged, commandManagerClient);
         }
         return INSTANCE;
     }

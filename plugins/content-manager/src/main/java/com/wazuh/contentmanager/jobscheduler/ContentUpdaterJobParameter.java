@@ -64,7 +64,6 @@ public class ContentUpdaterJobParameter implements ScheduledJobParameter {
     public ContentUpdaterJobParameter(String name, Schedule schedule) {
         this.name = name;
         this.schedule = schedule;
-        //
         Instant now = Instant.now();
         this.isEnabled = true;
         this.enabledTime = now;

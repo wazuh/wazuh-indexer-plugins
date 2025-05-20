@@ -23,12 +23,13 @@ import org.opensearch.jobscheduler.spi.ScheduledJobRunner;
 import org.opensearch.threadpool.ThreadPool;
 
 import com.wazuh.contentmanager.client.CTIClient;
+import com.wazuh.contentmanager.client.CommandManagerClient;
 import com.wazuh.contentmanager.index.ContentIndex;
 import com.wazuh.contentmanager.index.ContextIndex;
 import com.wazuh.contentmanager.utils.Privileged;
 
 /** Class to run the Content Updater job. */
-public class ContentUpdaterJobRunner implements ScheduledJobRunner {
+public final class ContentUpdaterJobRunner implements ScheduledJobRunner {
 
     /** Singleton instance. */
     private static ContentUpdaterJobRunner INSTANCE;
@@ -39,6 +40,7 @@ public class ContentUpdaterJobRunner implements ScheduledJobRunner {
     private ContentIndex contentIndex;
     private ContextIndex contextIndex;
     private Privileged privileged;
+    private CommandManagerClient commandManagerClient;
 
     /** Private default constructor. */
     private ContentUpdaterJobRunner() {}
@@ -64,6 +66,7 @@ public class ContentUpdaterJobRunner implements ScheduledJobRunner {
      * @param contextIndex Handles context and consumer related metadata.
      * @param contentIndex Handles indexed content.
      * @param privileged Handles privileged operations.
+     * @param commandManagerClient CommandManagerClient to interact with the command manager API.
      * @return the singleton instance.
      */
     public static ContentUpdaterJobRunner getInstance(
@@ -72,7 +75,8 @@ public class ContentUpdaterJobRunner implements ScheduledJobRunner {
             Environment environment,
             ContextIndex contextIndex,
             ContentIndex contentIndex,
-            Privileged privileged) {
+            Privileged privileged,
+            CommandManagerClient commandManagerClient) {
         if (ContentUpdaterJobRunner.INSTANCE == null) {
             INSTANCE = new ContentUpdaterJobRunner();
         }
@@ -82,6 +86,7 @@ public class ContentUpdaterJobRunner implements ScheduledJobRunner {
         INSTANCE.setContextIndex(contextIndex);
         INSTANCE.setContentIndex(contentIndex);
         INSTANCE.setEnvironment(environment);
+        INSTANCE.setCommandManagerClient(commandManagerClient);
         return INSTANCE;
     }
 
@@ -90,7 +95,12 @@ public class ContentUpdaterJobRunner implements ScheduledJobRunner {
             ScheduledJobParameter scheduledJobParameter, JobExecutionContext jobExecutionContext) {
         ContentUpdaterRunnable jobRunnable =
                 ContentUpdaterRunnable.getInstance(
-                        this.environment, this.contextIndex, this.contentIndex, this.client, this.privileged);
+                        this.environment,
+                        this.contextIndex,
+                        this.contentIndex,
+                        this.client,
+                        this.privileged,
+                        this.commandManagerClient);
         this.threadPool.generic().submit(jobRunnable);
     }
 
@@ -146,5 +156,14 @@ public class ContentUpdaterJobRunner implements ScheduledJobRunner {
      */
     public void setContentIndex(ContentIndex contentIndex) {
         this.contentIndex = contentIndex;
+    }
+
+    /**
+     * Sets the command manager client.
+     *
+     * @param commandManagerClient CommandManagerClient to interact with the command manager API.
+     */
+    public void setCommandManagerClient(CommandManagerClient commandManagerClient) {
+        this.commandManagerClient = commandManagerClient;
     }
 }
