@@ -46,17 +46,27 @@ publishing {
     publications {
         pluginZip(MavenPublication) { publication ->
             pom {
-                name = pluginName
-                description = pluginDescription
-                groupId = projectPath
+              name = pluginName
+              description = pluginDescription
+              groupId = projectPath
+              licenses {
+                license {
+                  name = "GNU Affero General Public License (AGPL) version 3.0"
+                  url = "http://www.gnu.org/licenses/agpl-3.0.txt"
+                }
+              }
+              developers {
+                developer {
+                  name = "Wazuh"
+                  url = "https://wazuh.com"
+                }
+              }
             }
         }
     }
 }
 
 allprojects {
-  project.ext.licenseName = 'The Apache Software License, Version 2.0'
-  project.ext.licenseUrl = 'http://www.apache.org/licenses/LICENSE-2.0.txt'
   group = "${projectPath}"
   version = "${wazuh_version}" + ".${revision}"
   targetCompatibility = JavaVersion.VERSION_11
@@ -68,27 +78,6 @@ allprojects {
         maven {
           name = 'staging'
           url = "${rootProject.buildDir}/local-staging-repo"
-        }
-      }
-      publications {
-        // add license information to generated poms
-        all {
-          pom {
-            name = "wazuh-indexer-command-manager"
-            description = "Wazuh Indexer's Command Manager plugin"
-          }
-          pom.withXml { XmlProvider xml ->
-            Node node = xml.asNode()
-            node.appendNode('inceptionYear', '2025')
-
-            Node license = node.appendNode('licenses').appendNode('license')
-            license.appendNode('name', project.licenseName)
-            license.appendNode('url', project.licenseUrl)
-
-            Node developer = node.appendNode('developers').appendNode('developer')
-            developer.appendNode('name', 'OpenSearch')
-            developer.appendNode('url', 'https://github.com/opensearch-project/job-scheduler')
-          }
         }
       }
     }

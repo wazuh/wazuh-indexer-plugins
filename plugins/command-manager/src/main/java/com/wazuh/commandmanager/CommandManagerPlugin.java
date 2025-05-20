@@ -16,7 +16,6 @@
  */
 package com.wazuh.commandmanager;
 
-import com.wazuh.commandmanager.spi.CommandManagerExtension;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.opensearch.action.ActionRequest;
@@ -63,6 +62,7 @@ import com.wazuh.commandmanager.jobscheduler.CommandManagerJobRunner;
 import com.wazuh.commandmanager.jobscheduler.JobDocument;
 import com.wazuh.commandmanager.rest.RestPostCommandAction;
 import com.wazuh.commandmanager.settings.PluginSettings;
+import com.wazuh.commandmanager.spi.CommandManagerExtension;
 import com.wazuh.commandmanager.transport.CommandActionType;
 import com.wazuh.commandmanager.transport.CommandTransportAction;
 
@@ -76,7 +76,11 @@ import com.wazuh.commandmanager.transport.CommandTransportAction;
  * <p>The Command Manager plugin is also a JobScheduler extension plugin.
  */
 public class CommandManagerPlugin extends Plugin
-        implements ActionPlugin, JobSchedulerExtension, ReloadablePlugin, ExtensiblePlugin, CommandManagerExtension {
+        implements ActionPlugin,
+                JobSchedulerExtension,
+                ReloadablePlugin,
+                ExtensiblePlugin,
+                CommandManagerExtension {
     public static final String COMMAND_DOCUMENT_PARENT_OBJECT_NAME = "command";
 
     private static final Logger log = LogManager.getLogger(CommandManagerPlugin.class);

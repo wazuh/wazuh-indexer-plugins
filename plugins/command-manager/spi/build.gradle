@@ -3,37 +3,23 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import com.github.jengelman.gradle.plugins.shadow.ShadowBasePlugin
-import org.opensearch.gradle.test.RestIntegTestTask
-
 plugins {
   id 'com.github.johnrengelman.shadow'
   id 'maven-publish'
   id 'signing'
-  id "org.gradle.test-retry" version "1.6.2"
   id 'java-library'
 }
 
 apply plugin: 'opensearch.java'
-apply plugin: 'opensearch.testclusters'
-apply plugin: 'opensearch.java-rest-test'
 apply plugin: 'com.github.johnrengelman.shadow'
-apply plugin: 'opensearch.pluginzip'
-
 
 shadowJar {
   archiveClassifier.set('all')
+  archiveClassifier = null
 }
-
-//task zipArchive(type: Zip) {
-//  from(jar)
-//  archiveClassifier.set("bundle")
-//  destinationDirectory.set(file("$buildDir/distributions"))
-//}
 
 artifacts {
   archives shadowJar
-//  zipArchive zipArchive
 }
 
 repositories {
@@ -48,71 +34,18 @@ ext {
   noticeFile = rootProject.file('NOTICE')
 }
 
-def slf4j_version_of_cronutils = "2.0.17"
+def slf4j_version = "2.0.17"
 dependencies {
   compileOnly "org.opensearch:opensearch:${opensearch_version}"
-  // slf4j is the runtime dependency of cron-utils
-  // if cron-utils version gets bumped, pls check the slf4j version cron-utils depending on
-  //  and bump if needed
-  compileOnly "org.slf4j:slf4j-api:${slf4j_version_of_cronutils}"
-
-  testImplementation "org.opensearch.test:framework:${opensearch_version}"
   testImplementation "org.apache.logging.log4j:log4j-core:${versions.log4j}"
 }
 
 configurations.all {
   if (it.state != Configuration.State.UNRESOLVED) return
   resolutionStrategy {
-    force "org.slf4j:slf4j-api:${slf4j_version_of_cronutils}"
+    force "org.slf4j:slf4j-api:${slf4j_version}"
   }
 }
-
-shadowJar {
-  archiveClassifier = null
-}
-
-test {
-  retry {
-    failOnPassedAfterRetry = false
-    maxRetries = 5
-  }
-  doFirst {
-    // reverse operation of https://github.com/elastic/elasticsearch/blob/7.6/buildSrc/src/main/groovy/org/elasticsearch/gradle/BuildPlugin.groovy#L736-L743
-    // to fix the classpath for unit tests
-    test.classpath -= project.files(project.tasks.named('shadowJar'))
-    test.classpath -= project.configurations.getByName(ShadowBasePlugin.CONFIGURATION_NAME)
-    test.classpath += project.extensions.getByType(SourceSetContainer).getByName(SourceSet.MAIN_SOURCE_SET_NAME).runtimeClasspath
-  }
-  // add "-Dtests.security.manager=false" to VM options if you want to run integ tests in IntelliJ
-  systemProperty 'tests.security.manager', 'false'
-}
-
-task integTest(type: RestIntegTestTask) {
-  description 'Run integ test with opensearch test framework'
-  group 'verification'
-  systemProperty 'tests.security.manager', 'false'
-  dependsOn test
-}
-check.dependsOn integTest
-
-testClusters.javaRestTest {
-  testDistribution = 'INTEG_TEST'
-}
-
-//configurations {
-//  zipArchive
-//}
-
-afterEvaluate {
-  if (tasks.findByName('bundlePlugin')) {
-    artifacts {
-      zipArchive tasks.bundlePlugin
-    }
-  } else {
-    logger.warn("Task 'bundlePlugin' not found. Skipping zipArchive artifact declaration.")
-  }
-}
-
 
 task sourcesJar(type: Jar) {
   archiveClassifier.set 'sources'
@@ -131,26 +64,16 @@ publishing {
       name = 'staging'
       url = "${rootProject.buildDir}/local-staging-repo"
     }
-    maven {
-      name = "Snapshots" //  optional target repository name
-      url = "https://aws.oss.sonatype.org/content/repositories/snapshots"
-      credentials {
-        username "$System.env.SONATYPE_USERNAME"
-        password "$System.env.SONATYPE_PASSWORD"
-      }
-    }
   }
   publications {
     shadow(MavenPublication) { publication ->
       project.shadow.component(publication)
       artifact sourcesJar
       artifact javadocJar
-
       pom {
         name = "wazuh-indexer-command-manager-spi"
         packaging = "jar"
-        url = "https://github.com/opensearch-project/job-scheduler"
-        description = "OpenSearch Job Scheduler"
+        description = "Wazuh Indexer Command Manager SPI"
         groupId = "com.wazuh"
         licenses {
           license {
@@ -158,17 +81,10 @@ publishing {
             url = "http://www.apache.org/licenses/LICENSE-2.0.txt"
           }
         }
-        developers {
-          developer {
-            name = "OpenSearch"
-            url = "https://github.com/opensearch-project/job-scheduler"
-          }
-        }
       }
     }
   }
 
-  // TODO - enabled debug logging for the time being, remove this eventually
   gradle.startParameter.setShowStacktrace(ShowStacktrace.ALWAYS)
   gradle.startParameter.setLogLevel(LogLevel.DEBUG)
 }

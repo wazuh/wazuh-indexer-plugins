@@ -14,7 +14,26 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
-plugins { id "com.diffplug.spotless" version "6.25.0" }
+
+buildscript {
+  ext {
+    opensearch_version = System.getProperty("opensearch.version", "2.19.2-SNAPSHOT")
+  }
+
+  repositories {
+    mavenCentral()
+    maven { url "https://aws.oss.sonatype.org/content/repositories/snapshots" }
+  }
+
+  dependencies {
+    classpath "org.opensearch.gradle:build-tools:${opensearch_version}"
+  }
+}
+
+plugins {
+  id "com.diffplug.spotless" version "6.25.0"
+  id "com.github.johnrengelman.shadow" version "8.1.1" apply false
+}
 repositories { mavenCentral() }
 
 apply plugin: 'java'

@@ -16,7 +16,6 @@
  */
 package com.wazuh.contentmanager;
 
-import com.wazuh.commandmanager.spi.CommandManagerExtension;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.opensearch.client.Client;
@@ -42,6 +41,7 @@ import org.opensearch.watcher.ResourceWatcherService;
 import java.util.*;
 import java.util.function.Supplier;
 
+import com.wazuh.commandmanager.spi.CommandManagerExtension;
 import com.wazuh.contentmanager.client.CommandManagerClient;
 import com.wazuh.contentmanager.index.ContentIndex;
 import com.wazuh.contentmanager.index.ContextIndex;
@@ -52,7 +52,11 @@ import com.wazuh.contentmanager.utils.SnapshotManager;
 
 /** Main class of the Content Manager Plugin */
 public class ContentManagerPlugin extends Plugin
-        implements ClusterPlugin, ActionPlugin, ReloadablePlugin, NetworkPlugin, CommandManagerExtension {
+        implements ClusterPlugin,
+                ActionPlugin,
+                ReloadablePlugin,
+                NetworkPlugin,
+                CommandManagerExtension {
     private static final Logger log = LogManager.getLogger(ContentManagerPlugin.class);
     private ContextIndex contextIndex;
     private ContentIndex contentIndex;

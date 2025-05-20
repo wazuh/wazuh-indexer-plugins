@@ -22,11 +22,6 @@ buildscript {
     classpath "org.opensearch.gradle:build-tools:${opensearch_version}"
   }
 }
-plugins {
-  id "de.undercouch.download" version "5.6.0"
-  id 'com.netflix.nebula.ospackage' version "11.11.1"
-  id "com.diffplug.spotless" version "6.25.0"
-}
 
 apply plugin: 'java'
 apply plugin: 'idea'
@@ -47,14 +42,24 @@ publishing {
       pom {
         name = pluginName
         description = pluginDescription
+        licenses {
+          license {
+            name = "GNU Affero General Public License (AGPL) version 3.0"
+            url = "http://www.gnu.org/licenses/agpl-3.0.txt"
+          }
+        }
+        developers {
+          developer {
+            name = "Wazuh"
+            url = "https://wazuh.com"
+          }
+        }
       }
     }
   }
 }
 
 allprojects {
-  project.ext.licenseName = 'The Apache Software License, Version 2.0'
-  project.ext.licenseUrl = 'http://www.apache.org/licenses/LICENSE-2.0.txt'
   group = "${projectPath}"
   version = "${wazuh_version}" + ".${revision}"
   targetCompatibility = JavaVersion.VERSION_11
@@ -68,27 +73,6 @@ allprojects {
           url = "${rootProject.buildDir}/local-staging-repo"
         }
       }
-      publications {
-        // add license information to generated poms
-        all {
-          pom {
-            name = "wazuh-indexer-content-manager"
-            description = "Wazuh Indexer's Content Manager plugin"
-          }
-          pom.withXml { XmlProvider xml ->
-            Node node = xml.asNode()
-            node.appendNode('inceptionYear', '2025')
-
-            Node license = node.appendNode('licenses').appendNode('license')
-            license.appendNode('name', project.licenseName)
-            license.appendNode('url', project.licenseUrl)
-
-            Node developer = node.appendNode('developers').appendNode('developer')
-            developer.appendNode('name', 'OpenSearch')
-            developer.appendNode('url', 'https://github.com/opensearch-project/job-scheduler')
-          }
-        }
-      }
     }
   }
 }
@@ -99,7 +83,6 @@ opensearchplugin {
   classname "${projectPath}.${pathToPlugin}.${pluginClassName}"
   licenseFile rootProject.file('LICENSE.txt')
   noticeFile rootProject.file('NOTICE.txt')
-//  extendedPlugins = [':wazuh-indexer-command-manager-spi']
 }
 
 configurations {
@@ -117,10 +100,6 @@ dependencies {
 
   // ZipArchive dependencies used for integration tests
   zipArchive group: 'org.opensearch.plugin', name: 'opensearch-job-scheduler', version: "${opensearch_build}"
-
-  // Uncomment this line to load the command-manager plugin from the local Maven repository.
-  // Keep it commented to allow GitHub Workflows to run the tests.
-
 }
 
 

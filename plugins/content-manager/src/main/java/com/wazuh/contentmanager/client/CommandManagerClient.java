@@ -19,11 +19,10 @@ package com.wazuh.contentmanager.client;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.opensearch.client.Client;
-import org.opensearch.core.action.ActionListener;
 
-//import com.wazuh.common.transport.CommandRequest;
-//import com.wazuh.common.transport.CommandRequestAction;
-//import com.wazuh.common.transport.CommandResponse;
+// import com.wazuh.common.transport.CommandRequest;
+// import com.wazuh.common.transport.CommandRequestAction;
+// import com.wazuh.common.transport.CommandResponse;
 
 /**
  * CommandManagerClient is a singleton class that provides a client for posting commands to the
@@ -75,43 +74,42 @@ public class CommandManagerClient {
      *
      * @param requestBody the command request body
      */
-    public void post(String requestBody) {
+    public void post(String requestBody) {}
 
-    }
-        //        CommandRequest request = new CommandRequest(json);
-        //
-        //        transportService.sendRequest(
-        //            // target node — you may loop over all nodes or select by criteria
-        //            transportService.getLocalNode(),
-        //            Command.NAME,
-        //            request,
-        //            new ActionListenerResponseHandler<>(
-        //                ActionListener.wrap(
-        //                    response -> {
-        //                        // handle success
-        //                    },
-        //                    exception -> {
-        //                        // handle failure
-        //                    }
-        //                ),
-        //                CommandResponse::new
-        //            )
-        //        );
-//        log.info("Posting command: {}", requestBody);
-//        CommandRequest request = new CommandRequest(requestBody);
-//        client.execute(
-//                CommandRequestAction.INSTANCE,
-//                request,
-//                new ActionListener<>() {
-//                    @Override
-//                    public void onResponse(CommandResponse response) {
-//                        log.info("Command successfully posted: {}", response.getMessage());
-//                    }
-//
-//                    @Override
-//                    public void onFailure(Exception e) {
-//                        log.error("Failed to post command", e);
-//                    }
-//                });
-//    }
+    //        CommandRequest request = new CommandRequest(json);
+    //
+    //        transportService.sendRequest(
+    //            // target node — you may loop over all nodes or select by criteria
+    //            transportService.getLocalNode(),
+    //            Command.NAME,
+    //            request,
+    //            new ActionListenerResponseHandler<>(
+    //                ActionListener.wrap(
+    //                    response -> {
+    //                        // handle success
+    //                    },
+    //                    exception -> {
+    //                        // handle failure
+    //                    }
+    //                ),
+    //                CommandResponse::new
+    //            )
+    //        );
+    //        log.info("Posting command: {}", requestBody);
+    //        CommandRequest request = new CommandRequest(requestBody);
+    //        client.execute(
+    //                CommandRequestAction.INSTANCE,
+    //                request,
+    //                new ActionListener<>() {
+    //                    @Override
+    //                    public void onResponse(CommandResponse response) {
+    //                        log.info("Command successfully posted: {}", response.getMessage());
+    //                    }
+    //
+    //                    @Override
+    //                    public void onFailure(Exception e) {
+    //                        log.error("Failed to post command", e);
+    //                    }
+    //                });
+    //    }
 }
