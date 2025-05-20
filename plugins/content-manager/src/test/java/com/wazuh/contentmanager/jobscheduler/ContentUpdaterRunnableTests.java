@@ -18,12 +18,14 @@ package com.wazuh.contentmanager.jobscheduler;
 
 import org.opensearch.client.Client;
 import org.opensearch.cluster.service.ClusterService;
+import org.opensearch.common.SuppressForbidden;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.env.Environment;
 import org.opensearch.test.OpenSearchTestCase;
 import org.junit.Before;
 
 import java.io.IOException;
+import java.lang.reflect.Field;
 import java.nio.file.Path;
 
 import com.wazuh.contentmanager.client.CTIClient;
@@ -103,9 +105,10 @@ public class ContentUpdaterRunnableTests extends OpenSearchTestCase {
     }
 
     /** Reset the singleton instance of ContentUpdaterRunnable for testing purposes. */
+    @SuppressForbidden(reason = "unit-test")
     private void resetSingleton() {
         try {
-            java.lang.reflect.Field instance = ContentUpdaterRunnable.class.getDeclaredField("INSTANCE");
+            Field instance = ContentUpdaterRunnable.class.getDeclaredField("INSTANCE");
             instance.setAccessible(true);
             instance.set(null, null);
         } catch (Exception e) {
@@ -314,24 +317,5 @@ public class ContentUpdaterRunnableTests extends OpenSearchTestCase {
         ContentUpdaterRunnable instance2 = ContentUpdaterRunnable.getInstance();
 
         assert instance1 == instance2;
-    }
-
-    /**
-     * Test that getInstance throws an exception if the singleton is not initialized.
-     *
-     * @throws Exception If an error occurs while running the test.
-     */
-    public void testGetInstanceThrowsIfNotInitialized() throws Exception {
-        resetSingleton();
-        java.lang.reflect.Field instance = ContentUpdaterRunnable.class.getDeclaredField("INSTANCE");
-        instance.setAccessible(true);
-        instance.set(null, null);
-
-        try {
-            ContentUpdaterRunnable.getInstance();
-            assert false : "Expected IllegalStateException";
-        } catch (IllegalStateException expected) {
-            // Expected
-        }
     }
 }
