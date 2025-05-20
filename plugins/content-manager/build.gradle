@@ -99,7 +99,7 @@ opensearchplugin {
   classname "${projectPath}.${pathToPlugin}.${pluginClassName}"
   licenseFile rootProject.file('LICENSE.txt')
   noticeFile rootProject.file('NOTICE.txt')
-  extendedPlugins = [':wazuh-indexer-command-manager-spi']
+//  extendedPlugins = [':wazuh-indexer-command-manager-spi']
 }
 
 configurations {
@@ -107,10 +107,8 @@ configurations {
 }
 
 dependencies {
-  implementation project(path: ":wazuh-indexer-command-manager-spi", configuration: 'shadow')
+  implementation 'com.wazuh:wazuh-indexer-command-manager-spi:6.0.0.0'
 
-
-//  implementation project(path: ":wazuh-indexer-command-manager-spi", configuration: 'shadow')
   implementation "org.apache.httpcomponents.client5:httpclient5:5.4.4"
   implementation "org.apache.httpcomponents.core5:httpcore5-h2:5.3.4"
   implementation "org.apache.httpcomponents.core5:httpcore5:5.3.4"
@@ -119,12 +117,9 @@ dependencies {
 
   // ZipArchive dependencies used for integration tests
   zipArchive group: 'org.opensearch.plugin', name: 'opensearch-job-scheduler', version: "${opensearch_build}"
-//  zipArchive project(path: ":wazuh-indexer-command-manager-spi", configuration: "zip")
 
   // Uncomment this line to load the command-manager plugin from the local Maven repository.
   // Keep it commented to allow GitHub Workflows to run the tests.
-//   zipArchive group: 'com.wazuh', name:'wazuh-indexer-command-manager-spi', version: "6.0.0.0"
-  zipArchive project(path: ":wazuh-indexer-command-manager-spi", configuration: 'zipArchive')
 
 }
 

@@ -16,6 +16,7 @@
  */
 package com.wazuh.contentmanager;
 
+import com.wazuh.commandmanager.spi.CommandManagerExtension;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.opensearch.client.Client;
@@ -51,7 +52,7 @@ import com.wazuh.contentmanager.utils.SnapshotManager;
 
 /** Main class of the Content Manager Plugin */
 public class ContentManagerPlugin extends Plugin
-        implements ClusterPlugin, ActionPlugin, ReloadablePlugin, NetworkPlugin {
+        implements ClusterPlugin, ActionPlugin, ReloadablePlugin, NetworkPlugin, CommandManagerExtension {
     private static final Logger log = LogManager.getLogger(ContentManagerPlugin.class);
     private ContextIndex contextIndex;
     private ContentIndex contentIndex;
@@ -167,8 +168,8 @@ public class ContentManagerPlugin extends Plugin
                 });
     }
 
-//    @Override
-//    public String getName() {
-//        return "PEPITO";
-//    }
+    @Override
+    public String getName() {
+        return "PEPITO";
+    }
 }
