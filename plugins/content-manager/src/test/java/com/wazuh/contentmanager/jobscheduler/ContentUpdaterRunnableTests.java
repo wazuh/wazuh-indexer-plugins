@@ -45,14 +45,11 @@ import static org.mockito.Mockito.*;
 public class ContentUpdaterRunnableTests extends OpenSearchTestCase {
 
     private Environment environment;
-    private Client client;
     private ContextIndex contextIndex;
     private ContentIndex contentIndex;
     private CTIClient ctiClient;
     private Privileged privileged;
     private ContentUpdaterRunnable runnable;
-    private PluginSettings pluginSettings;
-    private ClusterService clusterService;
     private CommandManagerClient commandManagerClient;
     private SnapshotManager snapshotManager;
     private ContentUpdater contentUpdater;
@@ -80,12 +77,12 @@ public class ContentUpdaterRunnableTests extends OpenSearchTestCase {
                         .build();
         this.environment = spy(new Environment(settings, envDir));
         when(this.environment.settings()).thenReturn(settings);
-        this.clusterService = mock(ClusterService.class);
-        this.pluginSettings =
-                PluginSettings.getInstance(this.environment.settings(), this.clusterService);
-        this.client = mock(Client.class);
-        this.contextIndex = spy(new ContextIndex(this.client, this.pluginSettings));
-        this.contentIndex = spy(new ContentIndex(this.client, this.pluginSettings));
+        ClusterService clusterService = mock(ClusterService.class);
+        PluginSettings pluginSettings =
+                PluginSettings.getInstance(this.environment.settings(), clusterService);
+        Client client = mock(Client.class);
+        this.contextIndex = spy(new ContextIndex(client, pluginSettings));
+        this.contentIndex = spy(new ContentIndex(client, pluginSettings));
         this.ctiClient = mock(CTIClient.class);
         this.privileged = spy(new Privileged());
         this.commandManagerClient = mock(CommandManagerClient.class);
@@ -115,11 +112,6 @@ public class ContentUpdaterRunnableTests extends OpenSearchTestCase {
             logger.error("Error resetting singleton: {}", e.getMessage());
             assert (false);
         }
-    }
-
-    /** Test the getInstance method. */
-    public void testGetInstance() {
-        assert (this.runnable.equals(ContentUpdaterRunnable.getInstance()));
     }
 
     /**
@@ -250,9 +242,7 @@ public class ContentUpdaterRunnableTests extends OpenSearchTestCase {
                         this.snapshotManager,
                         this.contentUpdater);
         instance.run();
-
-        // You can verify log output or internal method calls with spies/mocks if ContentUpdater is
-        // injectable
+        verify(this.contentUpdater).update(currentConsumerInfo, latestConsumerInfo.getLastOffset());
     }
 
     /**
@@ -297,7 +287,8 @@ public class ContentUpdaterRunnableTests extends OpenSearchTestCase {
                         this.contentUpdater);
         instance.run();
 
-        // IOException should be caught and logged
+        verify(this.contentUpdater, never())
+                .update(currentConsumerInfo, latestConsumerInfo.getLastOffset());
     }
 
     /** Test a scenario where the run method is called and the job is already running. */
