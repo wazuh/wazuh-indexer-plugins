@@ -20,6 +20,7 @@ import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.opensearch.OpenSearchTimeoutException;
 import org.opensearch.action.bulk.BulkRequest;
 import org.opensearch.action.bulk.BulkResponse;
 import org.opensearch.action.delete.DeleteRequest;
@@ -53,6 +54,10 @@ import com.wazuh.contentmanager.model.cti.Operation;
 import com.wazuh.contentmanager.settings.PluginSettings;
 import com.wazuh.contentmanager.utils.JsonPatch;
 import com.wazuh.contentmanager.utils.XContentUtils;
+import org.opensearch.index.query.QueryBuilders;
+import org.opensearch.index.reindex.BulkByScrollResponse;
+import org.opensearch.index.reindex.DeleteByQueryAction;
+import org.opensearch.index.reindex.DeleteByQueryRequestBuilder;
 
 /** Manages operations for a content index. */
 public class ContentIndex {
@@ -309,4 +314,23 @@ public class ContentIndex {
             }
         }
     }
+    /**
+     * Clears all documents from the {@link ContentIndex#INDEX_NAME} index.
+     */
+    public void clear() {
+        try {
+            DeleteByQueryRequestBuilder deleteByQuery =
+                    new DeleteByQueryRequestBuilder(this.client, DeleteByQueryAction.INSTANCE);
+            deleteByQuery
+                    .source(INDEX_NAME)
+                    .filter(QueryBuilders.matchAllQuery());
+
+            BulkByScrollResponse response = deleteByQuery.get();
+            log.debug("Delete query removed {} documents", response.getDeleted());
+        } catch (OpenSearchTimeoutException e) {
+            log.error("Delete query timed out: {}", e.getMessage());
+        }
+    }
+
+
 }

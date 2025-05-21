@@ -98,6 +98,9 @@ public class SnapshotManager {
      * a CTI snapshot.
      */
     protected void indexSnapshot(ConsumerInfo consumerInfo) {
+        // Clears the content of the index
+        this.contentIndex.clear();
+
         if (consumerInfo.getOffset() == 0) {
             log.info("Initializing [{}] index from a snapshot", ContentIndex.INDEX_NAME);
             this.privileged.doPrivilegedRequest(
