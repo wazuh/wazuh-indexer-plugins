@@ -100,6 +100,8 @@ public class SnapshotManager {
     protected void indexSnapshot(ConsumerInfo consumerInfo) {
         if (consumerInfo.getOffset() == 0) {
             log.info("Initializing [{}] index from a snapshot", ContentIndex.INDEX_NAME);
+            // Clears the content of the index
+            this.contentIndex.clear();
             this.privileged.doPrivilegedRequest(
                     () -> {
                         // Download snapshot.

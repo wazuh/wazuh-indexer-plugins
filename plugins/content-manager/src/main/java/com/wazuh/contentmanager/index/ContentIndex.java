@@ -20,6 +20,7 @@ import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.opensearch.OpenSearchTimeoutException;
 import org.opensearch.action.bulk.BulkRequest;
 import org.opensearch.action.bulk.BulkResponse;
 import org.opensearch.action.delete.DeleteRequest;
@@ -34,6 +35,10 @@ import org.opensearch.core.action.ActionListener;
 import org.opensearch.core.xcontent.ToXContent;
 import org.opensearch.core.xcontent.XContentParser;
 import org.opensearch.index.mapper.StrictDynamicMappingException;
+import org.opensearch.index.query.QueryBuilders;
+import org.opensearch.index.reindex.BulkByScrollResponse;
+import org.opensearch.index.reindex.DeleteByQueryAction;
+import org.opensearch.index.reindex.DeleteByQueryRequestBuilder;
 
 import java.io.BufferedReader;
 import java.io.FileReader;
@@ -307,6 +312,21 @@ public class ContentIndex {
                 log.error("Failed to patch [{}] due to {}", id, e.getMessage());
                 throw new RuntimeException("Patch operation failed", e);
             }
+        }
+    }
+
+    /** Clears all documents from the {@link ContentIndex#INDEX_NAME} index. */
+    public void clear() {
+        try {
+            DeleteByQueryRequestBuilder deleteByQuery =
+                    new DeleteByQueryRequestBuilder(this.client, DeleteByQueryAction.INSTANCE);
+            deleteByQuery.source(ContentIndex.INDEX_NAME).filter(QueryBuilders.matchAllQuery());
+
+            BulkByScrollResponse response = deleteByQuery.get();
+            log.debug(
+                    "[{}] wiped. {} documents were removed", ContentIndex.INDEX_NAME, response.getDeleted());
+        } catch (OpenSearchTimeoutException e) {
+            log.error("[{}] delete query timed out: {}", ContentIndex.INDEX_NAME, e.getMessage());
         }
     }
 }
