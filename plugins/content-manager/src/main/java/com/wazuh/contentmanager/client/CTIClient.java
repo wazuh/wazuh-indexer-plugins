@@ -369,53 +369,6 @@ public class CTIClient extends HttpClient {
         }
     }
 
-    /***
-     * Downloads the CTI snapshot.
-     *
-     * @param snapshotURI URI to the file to download.
-     * @param env environment. Required to resolve files' paths.
-     * @return The downloaded file's name
-     */
-    public Path download(String snapshotURI, Environment env) {
-        try (CloseableHttpClient client = HttpClients.createDefault()) {
-            // Setup
-            final URI uri = new URI(snapshotURI);
-            final HttpGet request = new HttpGet(uri);
-            final String filename = uri.getPath().substring(uri.getPath().lastIndexOf('/') + 1);
-            final Path path = env.tmpFile().resolve(filename);
-
-            // Download
-            log.info("Starting snapshot download from [{}]", uri);
-            try (CloseableHttpResponse response = client.execute(request)) {
-                if (response.getEntity() != null) {
-                    // Write to disk
-                    InputStream input = response.getEntity().getContent();
-                    try (OutputStream out =
-                            new BufferedOutputStream(
-                                    Files.newOutputStream(
-                                            path,
-                                            StandardOpenOption.CREATE,
-                                            StandardOpenOption.WRITE,
-                                            StandardOpenOption.TRUNCATE_EXISTING))) {
-
-                        int bytesRead;
-                        byte[] buffer = new byte[1024];
-                        while ((bytesRead = input.read(buffer)) != -1) {
-                            out.write(buffer, 0, bytesRead);
-                        }
-                    }
-                }
-            }
-            log.info("Snapshot downloaded to [{}]", path);
-            return path;
-        } catch (URISyntaxException e) {
-            log.error("Failed to download snapshot. Invalid URL provided: {}", e.getMessage());
-        } catch (IOException e) {
-            log.error("Snapshot download failed: {}", e.getMessage());
-        }
-        return null;
-    }
-
     /**
      * Sends an HTTP request to the specified endpoint using the provided method, body, parameters,
      * and header.
