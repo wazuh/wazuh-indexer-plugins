@@ -6,7 +6,7 @@
 # compatible open source license.
 
 # Download the Wazuh certs tool
-curl -sO https://packages.wazuh.com/4.9/wazuh-certs-tool.sh
+curl -sO https://packages.wazuh.com/4.12/wazuh-certs-tool.sh
 
 # Make the script executable
 chmod +x ./wazuh-certs-tool.sh
