@@ -325,27 +325,25 @@ public class CTIClient extends HttpClient {
         return response; // Return null if all attempts fail
     }
 
-    /***
-     * Downloads the CTI snapshot.
+    /**
+     * Downloads a file from the specified URI and saves it to the temporary directory.
      *
-     * @param snapshotURI URI to the file to download.
-     * @param env environment. Required to resolve files' paths.
-     * @return The downloaded file's name
+     * @param URI URI to download the file from.
+     * @param environment Environment to resolve the file path.
+     * @return The path to the downloaded file.
      */
-    public Path download(String snapshotURI, Environment env) {
+    public Path streamingDownload(String URI, Environment environment) {
         try (CloseableHttpClient client = HttpClients.createDefault()) {
-            // Setup
-            final URI uri = new URI(snapshotURI);
-            final HttpGet request = new HttpGet(uri);
-            final String filename = uri.getPath().substring(uri.getPath().lastIndexOf('/') + 1);
-            final Path path = env.tmpFile().resolve(filename);
+            HttpGet request = new HttpGet(URI);
 
-            // Download
-            log.info("Starting snapshot download from [{}]", uri);
             try (CloseableHttpResponse response = client.execute(request)) {
-                if (response.getEntity() != null) {
+                HttpEntity entity = response.getEntity();
+                if (entity != null) {
+                    URI uri = new URI(URI);
+                    String filename = uri.getPath().substring(uri.getPath().lastIndexOf('/') + 1);
+                    Path path = environment.tmpFile().resolve(filename);
                     // Write to disk
-                    InputStream input = response.getEntity().getContent();
+                    InputStream input = entity.getContent();
                     try (OutputStream out =
                             new BufferedOutputStream(
                                     Files.newOutputStream(
@@ -360,16 +358,15 @@ public class CTIClient extends HttpClient {
                             out.write(buffer, 0, bytesRead);
                         }
                     }
+                    return path;
                 }
+            } catch (IOException | URISyntaxException e) {
+                throw new RuntimeException(e);
             }
-            log.info("Snapshot downloaded to [{}]", path);
-            return path;
-        } catch (URISyntaxException e) {
-            log.error("Failed to download snapshot. Invalid URL provided: {}", e.getMessage());
+            return null;
         } catch (IOException e) {
-            log.error("Snapshot download failed: {}", e.getMessage());
+            throw new RuntimeException(e);
         }
-        return null;
     }
 
     /**
@@ -381,7 +378,7 @@ public class CTIClient extends HttpClient {
      *
      * @param method the HTTP method to use (e.g. GET, POST, PUT, etc.)
      * @param endpoint the URL of the endpoint to send the request to
-     * @param body the request body, or null if no body is required
+     * @param body the request body, or null if body isn't required
      * @param params a map of query parameters to include in the request, or null if no parameters are
      *     required
      * @param header the request header, or null if no header is required

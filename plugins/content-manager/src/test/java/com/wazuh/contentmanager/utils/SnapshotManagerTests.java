@@ -78,13 +78,13 @@ public class SnapshotManagerTests extends OpenSearchTestCase {
         this.snapshotManager =
                 Mockito.spy(
                         new SnapshotManager(
-                                this.ctiClient,
-                                this.commandClient,
                                 this.mockEnvironment,
                                 this.contextIndex,
                                 this.contentIndex,
                                 this.privilegedSpy,
-                                this.pluginSettings));
+                                this.ctiClient,
+                                this.pluginSettings,
+                                this.commandClient));
 
         this.consumerInfo = mock(ConsumerInfo.class);
     }
@@ -107,7 +107,7 @@ public class SnapshotManagerTests extends OpenSearchTestCase {
         doReturn(DocWriteResponse.Result.CREATED).when(response).getResult();
 
         // Act &6 Assert
-        this.snapshotManager.initConsumer();
+        this.snapshotManager.initConsumer(consumerInfo);
         verify(this.contextIndex).index(any(ConsumerInfo.class));
     }
 
@@ -129,7 +129,7 @@ public class SnapshotManagerTests extends OpenSearchTestCase {
         doReturn(DocWriteResponse.Result.NOT_FOUND).when(response).getResult();
 
         // Act && Assert
-        assertThrows(IOException.class, () -> this.snapshotManager.initConsumer());
+        assertThrows(IOException.class, () -> this.snapshotManager.initConsumer(consumerInfo));
     }
 
     /**
@@ -141,7 +141,9 @@ public class SnapshotManagerTests extends OpenSearchTestCase {
         doReturn(this.consumerInfo).when(this.contextIndex).get(anyString(), anyString());
         Path snapshotZip = mock(Path.class);
         doReturn("http://example.com/file.zip").when(this.consumerInfo).getLastSnapshotLink();
-        doReturn(snapshotZip).when(this.ctiClient).download(anyString(), any(Environment.class));
+        doReturn(snapshotZip)
+                .when(this.privilegedSpy)
+                .streamingDownload(any(CTIClient.class), anyString(), any(Environment.class));
         Path outputDir = mock(Path.class);
         doReturn(outputDir).when(this.mockEnvironment).tmpFile();
         DirectoryStream<Path> stream = mock(DirectoryStream.class);

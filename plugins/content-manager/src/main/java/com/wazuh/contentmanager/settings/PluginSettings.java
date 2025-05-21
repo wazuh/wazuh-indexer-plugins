@@ -312,7 +312,7 @@ public class PluginSettings {
         return this.password.toString();
     }
 
-    /*
+    /**
      * Retrieves the maximum number of retry attempts allowed for the CTI client.
      *
      * @return an Integer representing the maximum number of retry attempts.

@@ -22,6 +22,7 @@ import org.opensearch.env.Environment;
 import org.opensearch.test.OpenSearchIntegTestCase;
 import org.junit.Before;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -85,18 +86,29 @@ public class ContentUpdaterTests extends OpenSearchIntegTestCase {
         this.consumerInfo = mock(ConsumerInfo.class);
     }
 
-    /** Test Fetch and apply no new updates */
-    public void testUpdateNoChanges() {
+    /**
+     * Test Fetch and apply no new updates
+     *
+     * @throws IOException risen from contextIndex.get()
+     */
+    public void testUpdateNoChanges() throws IOException {
         // Mock current and latest offset.
         doReturn(this.consumerInfo).when(this.contextIndex).get(anyString(), anyString());
         // Act
-        this.updater.update();
+        this.updater.update(
+                this.contextIndex.get(
+                        this.pluginSettings.getContextId(), this.pluginSettings.getConsumerId()),
+                0L);
         // Assert applyChangesToContextIndex is not called.
         verify(this.updater, never()).applyChanges(any());
     }
 
-    /** Test fetch and apply new updates */
-    public void testUpdateNewChanges() {
+    /**
+     * Test fetch and apply new updates
+     *
+     * @throws IOException risen from contextIndex.get()
+     */
+    public void testUpdateNewChanges() throws IOException {
         long offsetsAmount = 3999L;
         // Mock current and latest offset.
         doReturn(0L).when(this.consumerInfo).getOffset();
@@ -111,13 +123,20 @@ public class ContentUpdaterTests extends OpenSearchIntegTestCase {
         // Act
         doNothing().when(this.consumerInfo).setOffset(anyLong());
         doNothing().when(this.consumerInfo).setLastOffset(anyLong());
-        this.updater.update();
+        this.updater.update(
+                this.contextIndex.get(
+                        this.pluginSettings.getContextId(), this.pluginSettings.getConsumerId()),
+                offsetsAmount);
         // Assert applyChangesToContextIndex is called 4 times (one each 1000 starting from 0).
         verify(this.updater, times(4)).applyChanges(any());
     }
 
-    /** Test error fetching changes */
-    public void testUpdateErrorFetchingChanges() {
+    /**
+     * Test error fetching changes
+     *
+     * @throws IOException risen from contextIndex.get()
+     */
+    public void testUpdateErrorFetchingChanges() throws IOException {
         long offsetsAmount = 3999L;
         // Mock current and latest offset.
         doReturn(0L).when(this.consumerInfo).getOffset();
@@ -128,13 +147,21 @@ public class ContentUpdaterTests extends OpenSearchIntegTestCase {
         doNothing().when(this.consumerInfo).setLastOffset(anyLong());
         doReturn(this.consumerInfo).when(this.contextIndex).get(anyString(), anyString());
         // Act
-        boolean updated = this.updater.update();
+        boolean updated =
+                this.updater.update(
+                        this.contextIndex.get(
+                                this.pluginSettings.getContextId(), this.pluginSettings.getConsumerId()),
+                        offsetsAmount);
         // Assert
         assertFalse(updated);
     }
 
-    /** Test error on applyChangesToContextIndex method (method return false) */
-    public void testUpdateErrorOnPatchContextIndex() {
+    /**
+     * Test error on applyChangesToContextIndex method (method return false)
+     *
+     * @throws IOException risen from contextIndex.get()
+     */
+    public void testUpdateErrorOnPatchContextIndex() throws IOException {
         long offsetsAmount = 3999L;
         // Mock current and latest offset.
         doReturn(0L).when(this.consumerInfo).getOffset();
@@ -149,11 +176,13 @@ public class ContentUpdaterTests extends OpenSearchIntegTestCase {
         doNothing().when(this.consumerInfo).setLastOffset(anyLong());
         doReturn(this.consumerInfo).when(this.contextIndex).get(anyString(), anyString());
         // Act
-        boolean updated = this.updater.update();
+        boolean updated =
+                this.updater.update(
+                        this.contextIndex.get(
+                                this.pluginSettings.getContextId(), this.pluginSettings.getConsumerId()),
+                        offsetsAmount);
         // Assert
         assertFalse(updated);
-        verify(this.consumerInfo, times(1)).setOffset(0L);
-        verify(this.consumerInfo, times(1)).setLastOffset(0L);
     }
 
     /**

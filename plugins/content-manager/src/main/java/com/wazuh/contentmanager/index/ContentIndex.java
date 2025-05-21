@@ -20,6 +20,7 @@ import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.opensearch.action.admin.indices.create.CreateIndexRequest;
 import org.opensearch.action.bulk.BulkRequest;
 import org.opensearch.action.bulk.BulkResponse;
 import org.opensearch.action.delete.DeleteRequest;
@@ -51,6 +52,7 @@ import com.wazuh.contentmanager.model.cti.Changes;
 import com.wazuh.contentmanager.model.cti.Offset;
 import com.wazuh.contentmanager.model.cti.Operation;
 import com.wazuh.contentmanager.settings.PluginSettings;
+import com.wazuh.contentmanager.utils.ClusterInfo;
 import com.wazuh.contentmanager.utils.JsonPatch;
 import com.wazuh.contentmanager.utils.XContentUtils;
 
@@ -308,5 +310,22 @@ public class ContentIndex {
                 throw new RuntimeException("Patch operation failed", e);
             }
         }
+    }
+
+    /** Creates the {@link ContentIndex#INDEX_NAME} index, if it does not exist. */
+    public void createIndex() {
+        if (!this.exists()) {
+            client.admin().indices().create(new CreateIndexRequest(INDEX_NAME)).actionGet();
+        }
+    }
+
+    /**
+     * Checks whether the {@link ContentIndex#INDEX_NAME} index exists.
+     *
+     * @see ClusterInfo#indexExists(Client, String)
+     * @return true if the index exists, false otherwise.
+     */
+    public boolean exists() {
+        return ClusterInfo.indexExists(this.client, ContentIndex.INDEX_NAME);
     }
 }
