@@ -103,6 +103,7 @@ configurations {
 
 dependencies {
     implementation project(path: ":wazuh-indexer-command-manager-spi", configuration: 'shadow')
+    // compileOnly project(":wazuh-indexer-command-manager-spi") // TODO: We should use this instead `implementation`
     implementation "org.apache.logging.log4j:log4j-slf4j-impl:${versions.log4j}"
 
     // Job Scheduler stuff

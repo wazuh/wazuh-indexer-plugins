@@ -14,7 +14,7 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-package com.wazuh.commandmanager.transport;
+package com.wazuh.commandmanager.spi;
 
 import org.opensearch.action.ActionRequest;
 import org.opensearch.action.ActionRequestValidationException;
@@ -24,29 +24,28 @@ import org.opensearch.core.common.io.stream.StreamOutput;
 import java.io.IOException;
 
 /**
- * CommandRequestAction is a class that represents a request to post a command to the Command
- * Manager Plugin. It extends the ActionRequest class and provides methods for serialization and
- * validation.
+ * CommandRequest is a class that represents a request to post a command to the Command Manager
+ * Plugin. It extends the ActionRequest class and provides methods for serialization and validation.
  */
-public class CommandRequestAction extends ActionRequest {
+public class CommandRequest extends ActionRequest {
     private final String jsonBody;
 
     /**
-     * Constructor for CommandRequestAction.
+     * Constructor for CommandRequest.
      *
      * @param jsonBody the JSON body of the command request
      */
-    public CommandRequestAction(String jsonBody) {
+    public CommandRequest(String jsonBody) {
         this.jsonBody = jsonBody;
     }
 
     /**
-     * Constructor for CommandRequestAction that reads from a StreamInput.
+     * Constructor for CommandRequest that reads from a StreamInput.
      *
      * @param in the StreamInput to read from
      * @throws IOException if an I/O error occurs
      */
-    public CommandRequestAction(StreamInput in) throws IOException {
+    public CommandRequest(StreamInput in) throws IOException {
         super(in);
         this.jsonBody = in.readString();
     }

@@ -16,6 +16,7 @@
  */
 package com.wazuh.commandmanager;
 
+import com.wazuh.commandmanager.spi.CommandRequestAction;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.opensearch.action.ActionRequest;
@@ -63,8 +64,8 @@ import com.wazuh.commandmanager.jobscheduler.JobDocument;
 import com.wazuh.commandmanager.rest.RestPostCommandAction;
 import com.wazuh.commandmanager.settings.PluginSettings;
 import com.wazuh.commandmanager.spi.CommandManagerExtension;
-import com.wazuh.commandmanager.transport.CommandActionType;
 import com.wazuh.commandmanager.transport.CommandTransportAction;
+
 
 /**
  * The Command Manager plugin exposes an HTTP API with a single endpoint to receive raw commands
@@ -239,7 +240,7 @@ public class CommandManagerPlugin extends Plugin
 
     @Override
     public List<ActionHandler<? extends ActionRequest, ? extends ActionResponse>> getActions() {
-        return List.of(new ActionHandler<>(CommandActionType.INSTANCE, CommandTransportAction.class));
+        return List.of(new ActionHandler<>(CommandRequestAction.INSTANCE, CommandTransportAction.class));
     }
 
     @Override

@@ -90,7 +90,8 @@ configurations {
 }
 
 dependencies {
-  implementation 'com.wazuh:wazuh-indexer-command-manager-spi:6.0.0.0'
+  implementation project(path: ":wazuh-indexer-command-manager-spi", configuration: 'shadow')
+  // compileOnly project(":wazuh-indexer-command-manager-spi") // TODO: We should use this instead `implementation`
 
   implementation "org.apache.httpcomponents.client5:httpclient5:5.4.4"
   implementation "org.apache.httpcomponents.core5:httpcore5-h2:5.3.4"

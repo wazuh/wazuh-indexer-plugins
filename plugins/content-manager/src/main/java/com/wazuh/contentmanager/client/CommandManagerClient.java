@@ -16,9 +16,13 @@
  */
 package com.wazuh.contentmanager.client;
 
+import com.wazuh.commandmanager.spi.CommandRequestAction;
+import com.wazuh.commandmanager.spi.CommandRequest;
+import com.wazuh.commandmanager.spi.CommandResponse;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.opensearch.client.Client;
+import org.opensearch.core.action.ActionListener;
 
 // import com.wazuh.common.transport.CommandRequest;
 // import com.wazuh.common.transport.CommandRequestAction;
@@ -74,7 +78,7 @@ public class CommandManagerClient {
      *
      * @param requestBody the command request body
      */
-    public void post(String requestBody) {}
+    public void post(String requestBody) {
 
     //        CommandRequest request = new CommandRequest(json);
     //
@@ -95,21 +99,21 @@ public class CommandManagerClient {
     //                CommandResponse::new
     //            )
     //        );
-    //        log.info("Posting command: {}", requestBody);
-    //        CommandRequest request = new CommandRequest(requestBody);
-    //        client.execute(
-    //                CommandRequestAction.INSTANCE,
-    //                request,
-    //                new ActionListener<>() {
-    //                    @Override
-    //                    public void onResponse(CommandResponse response) {
-    //                        log.info("Command successfully posted: {}", response.getMessage());
-    //                    }
-    //
-    //                    @Override
-    //                    public void onFailure(Exception e) {
-    //                        log.error("Failed to post command", e);
-    //                    }
-    //                });
-    //    }
+            log.info("Posting command: {}", requestBody);
+            CommandRequest request = new CommandRequest(requestBody);
+            client.execute(
+                    CommandRequestAction.INSTANCE,
+                    request,
+                    new ActionListener<>() {
+                        @Override
+                        public void onResponse(CommandResponse response) {
+                            log.info("Command successfully posted: {}", response.getMessage());
+                        }
+
+                        @Override
+                        public void onFailure(Exception e) {
+                            log.error("Failed to post command", e);
+                        }
+                    });
+        }
 }

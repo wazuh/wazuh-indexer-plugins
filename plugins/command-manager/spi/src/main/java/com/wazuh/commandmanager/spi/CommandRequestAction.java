@@ -14,23 +14,15 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-package com.wazuh.commandmanager.transport;
+package com.wazuh.commandmanager.spi;
 
 import org.opensearch.action.ActionType;
 
-/**
- * CommandActionType is a class that defines the action type for posting commands to the Command
- * Manager Plugin. It extends the ActionType class and provides a static instance for easy access.
- */
-public class CommandActionType extends ActionType<CommandResponseAction> {
-    /** The name/endpoint of the action. */
-    public static final String NAME = "cluster:command_manager/post_command";
+public class CommandRequestAction extends ActionType<CommandResponse> {
+    public static final String NAME = "cluster:admin/wazuh/command/send";
+    public static final CommandRequestAction INSTANCE = new CommandRequestAction();
 
-    /** The action type for the command response. */
-    public static final CommandActionType INSTANCE = new CommandActionType();
-
-    /** Constructor for CommandActionType. */
-    private CommandActionType() {
-        super(NAME, CommandResponseAction::new);
+    private CommandRequestAction() {
+        super(NAME, CommandResponse::new);
     }
 }

@@ -35,6 +35,9 @@ import java.util.List;
 import com.wazuh.commandmanager.index.CommandIndex;
 import com.wazuh.commandmanager.model.Command;
 import com.wazuh.commandmanager.model.Orders;
+import com.wazuh.commandmanager.spi.CommandRequest;
+import com.wazuh.commandmanager.spi.CommandResponse;
+import com.wazuh.commandmanager.spi.CommandRequestAction;
 
 /**
  * CommandTransportAction is a class that handles the transport action for posting commands to the
@@ -42,7 +45,7 @@ import com.wazuh.commandmanager.model.Orders;
  * executing the action.
  */
 public class CommandTransportAction
-        extends HandledTransportAction<CommandRequestAction, CommandResponseAction> {
+        extends HandledTransportAction<CommandRequest, CommandResponse> {
     private static final Logger log = LogManager.getLogger(CommandTransportAction.class);
     private final Client client;
     private final CommandIndex commandIndex;
@@ -61,7 +64,7 @@ public class CommandTransportAction
             ActionFilters actionFilters,
             Client client,
             CommandIndex commandIndex) {
-        super(CommandActionType.NAME, transportService, actionFilters, CommandRequestAction::new);
+        super(CommandRequestAction.NAME, transportService, actionFilters, CommandRequest::new);
         this.client = client;
         this.commandIndex = commandIndex;
     }
@@ -70,12 +73,12 @@ public class CommandTransportAction
      * Executes the transport action for posting commands to the Command Manager Plugin.
      *
      * @param task the task associated with the action
-     * @param request the CommandRequestAction to execute
+     * @param request the CommandRequest to execute
      * @param listener the ActionListener to notify when the action is complete
      */
     @Override
     protected void doExecute(
-            Task task, CommandRequestAction request, ActionListener<CommandResponseAction> listener) {
+            Task task, CommandRequest request, ActionListener<CommandResponse> listener) {
         String jsonBody = request.getJsonBody();
         log.info("Transport Action request received: {}", jsonBody);
         try {
@@ -96,7 +99,7 @@ public class CommandTransportAction
                     .asyncBulkCreate(orders.get())
                     .thenAccept(
                             status -> {
-                                listener.onResponse(new CommandResponseAction("Command received: " + jsonBody));
+                                listener.onResponse(new CommandResponse("Command received: " + jsonBody));
                             })
                     .exceptionally(
                             e -> {
