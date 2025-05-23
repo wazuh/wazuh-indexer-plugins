@@ -42,7 +42,7 @@ public class Privileged {
     public void postUpdateCommand(CommandManagerClient client, ConsumerInfo current) {
         this.doPrivilegedRequest(
                 () -> {
-                    client.post(Command.create(String.valueOf(current.getLastOffset())));
+                    client.post(Command.create(String.valueOf(current.getOffset())));
                     return null;
                 });
     }

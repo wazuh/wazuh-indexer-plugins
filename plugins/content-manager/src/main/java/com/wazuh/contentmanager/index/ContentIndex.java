@@ -86,8 +86,8 @@ public class ContentIndex {
     /**
      * This constructor is only used on tests.
      *
-     * @param client @Client (mocked).
-     * @param pluginSettings @PluginSettings (mocked).
+     * @param client Client (mocked).
+     * @param pluginSettings PluginSettings (mocked).
      */
     public ContentIndex(Client client, PluginSettings pluginSettings) {
         this.pluginSettings = pluginSettings;
