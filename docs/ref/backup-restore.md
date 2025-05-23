@@ -39,7 +39,6 @@ rsync -aREz \
 /etc/wazuh-indexer/opensearch.yml \
 /etc/wazuh-indexer/opensearch.keystore \
 /etc/wazuh-indexer/opensearch-observability/ \
-/etc/wazuh-indexer/opensearch-reports-scheduler/ \
 /etc/wazuh-indexer/opensearch-security/ \
 /usr/lib/sysctl.d/wazuh-indexer.conf $bkp_folder
 ```
@@ -99,8 +98,6 @@ Perform the following steps to restore the Wazuh indexer files on the new server
     chown wazuh-indexer:wazuh-indexer /etc/wazuh-indexer/opensearch.keystore
     sudo cp -r etc/wazuh-indexer/opensearch-observability/* /etc/wazuh-indexer/opensearch-observability/
     chown -R wazuh-indexer:wazuh-indexer /etc/wazuh-indexer/opensearch-observability/
-    sudo cp -r etc/wazuh-indexer/opensearch-reports-scheduler/* /etc/wazuh-indexer/opensearch-reports-scheduler/
-    chown -R wazuh-indexer:wazuh-indexer /etc/wazuh-indexer/opensearch-reports-scheduler/
     sudo cp usr/lib/sysctl.d/wazuh-indexer.conf /usr/lib/sysctl.d/wazuh-indexer.conf
     ```
 

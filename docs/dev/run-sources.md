@@ -47,7 +47,7 @@ Use `-Dtests.opensearch.` to pass additional settings to the running instance. F
 
 ## Artifact dependencies between plugins
 
-Some plugins may need other plugins to work properly, such as any plugin extending the Job Scheduler plugin or the Content Manager sending HTTP requests to the Command Manager plugin's API.
+Some plugins may need other plugins to work properly, such as the Content Manager sending HTTP requests to the Command Manager plugin's API.
 
 Under these cases, the Gradle project of the plugin can be modified to include these other plugins as dependencies, so it forms up a development environment with all these plugins installed.
 

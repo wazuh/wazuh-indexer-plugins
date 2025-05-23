@@ -2,20 +2,6 @@
 
 The Wazuh Common Schema is a derivation of the [Elastic Common Schema](https://www.elastic.co/guide/en/ecs/current/ecs-field-reference.html) (ECS) providing a common data schema for the different central components of Wazuh.
 
-- [agent](agent/docs/README.md)
-- [alerts](alerts/docs/README.md)
-- [command](command/docs/README.md)
-- [states-fim](states-fim/docs/README.md)
-- [states-inventory-hardware](states-inventory-hardware/docs/README.md)
-- [states-inventory-hotfixes](states-inventory-hotfixes/docs/README.md)
-- [states-inventory-networks](states-inventory-networks/docs/README.md)
-- [states-inventory-packages](states-inventory-packages/docs/README.md)
-- [states-inventory-ports](states-inventory-ports/docs/README.md)
-- [states-inventory-processes](states-inventory-processes/docs/README.md)
-- [states-inventory-system](states-inventory-system/docs/README.md)
-- [states-sca](states-sca/docs/README.md)
-- [states-vulnerabilities](states-vulnerabilities/docs/README.md)
-- [users](users/docs/README.md)
 
 ## References
 
