@@ -16,7 +16,6 @@
  */
 package com.wazuh.setup;
 
-import com.wazuh.setup.settings.PluginSettings;
 import org.opensearch.action.admin.indices.create.CreateIndexRequest;
 import org.opensearch.action.admin.indices.create.CreateIndexResponse;
 import org.opensearch.action.admin.indices.template.put.PutIndexTemplateRequest;
@@ -37,6 +36,7 @@ import org.junit.After;
 import org.junit.Before;
 
 import com.wazuh.setup.index.WazuhIndices;
+import com.wazuh.setup.settings.PluginSettings;
 
 import static org.opensearch.test.ClusterServiceUtils.createClusterService;
 import static org.mockito.Mockito.*;
@@ -55,16 +55,12 @@ public class SetupPluginTests extends OpenSearchTestCase {
         try {
             super.setUp();
             Environment mockEnvironment = mock(Environment.class);
-            Settings settings =
-                Settings.builder()
-                    .put("command_manager.client.timeout", 20)
-                    .build();
+            Settings settings = Settings.builder().put("setup.client.timeout", 20).build();
 
             when(mockEnvironment.settings()).thenReturn(settings);
 
             PluginSettings pluginSettings = PluginSettings.getInstance(mockEnvironment.settings());
             super.setUp();
-
 
             this.threadPool = new TestThreadPool("WazuhIndexerSetupPluginServiceTests");
             this.clusterService = spy(createClusterService(threadPool));

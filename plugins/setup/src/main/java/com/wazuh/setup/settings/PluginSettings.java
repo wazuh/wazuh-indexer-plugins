@@ -50,7 +50,6 @@ public class PluginSettings {
         log.debug("Settings loaded: {}", this.toString());
     }
 
-
     /**
      * Singleton instance accessor. Initializes the settings
      *
@@ -85,8 +84,6 @@ public class PluginSettings {
 
     @Override
     public String toString() {
-        return "PluginSettings{" +
-            "timeout=" + timeout +
-            '}';
+        return "PluginSettings{" + "timeout=" + timeout + '}';
     }
 }

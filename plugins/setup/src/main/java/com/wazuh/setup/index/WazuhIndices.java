@@ -16,7 +16,6 @@
  */
 package com.wazuh.setup.index;
 
-import com.wazuh.setup.settings.PluginSettings;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.opensearch.ResourceAlreadyExistsException;
@@ -30,6 +29,7 @@ import org.opensearch.cluster.service.ClusterService;
 import java.io.IOException;
 import java.util.*;
 
+import com.wazuh.setup.settings.PluginSettings;
 import com.wazuh.setup.utils.IndexTemplateUtils;
 
 /**
@@ -38,6 +38,7 @@ import com.wazuh.setup.utils.IndexTemplateUtils;
 public class WazuhIndices {
     private static final Logger log = LogManager.getLogger(WazuhIndices.class);
     private final int timeout;
+
     /**
      * | Key | value | | ------------------- | ---------- | | Index template name | [index name, ] |
      * Map where the key is the index template name, and the value is a list of index names
@@ -76,7 +77,11 @@ public class WazuhIndices {
                             .patterns((List<String>) template.get("index_patterns"));
 
             AcknowledgedResponse createIndexTemplateResponse =
-                    this.client.admin().indices().putTemplate(putIndexTemplateRequest).actionGet(this.timeout);
+                    this.client
+                            .admin()
+                            .indices()
+                            .putTemplate(putIndexTemplateRequest)
+                            .actionGet(this.timeout);
 
             log.info(
                     "Index template created successfully: {} {}",

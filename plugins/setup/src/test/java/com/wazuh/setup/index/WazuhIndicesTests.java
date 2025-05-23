@@ -16,30 +16,10 @@
  */
 package com.wazuh.setup.index;
 
-import org.opensearch.action.admin.indices.create.CreateIndexRequest;
-import org.opensearch.action.admin.indices.create.CreateIndexResponse;
-import org.opensearch.action.admin.indices.template.put.PutIndexTemplateRequest;
-import org.opensearch.action.support.master.AcknowledgedResponse;
-import org.opensearch.client.AdminClient;
-import org.opensearch.client.Client;
-import org.opensearch.client.IndicesAdminClient;
-import org.opensearch.cluster.ClusterState;
-import org.opensearch.cluster.routing.RoutingTable;
-import org.opensearch.cluster.service.ClusterService;
 import org.opensearch.test.OpenSearchTestCase;
-import org.junit.Before;
 
-import java.io.IOException;
-import java.util.HashMap;
-import java.util.Map;
-
-import com.wazuh.setup.utils.IndexTemplateUtils;
 import org.mockito.*;
 
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 
-public class WazuhIndicesTests extends OpenSearchTestCase {
-
-}
+public class WazuhIndicesTests extends OpenSearchTestCase {}
