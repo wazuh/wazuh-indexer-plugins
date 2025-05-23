@@ -26,7 +26,9 @@ import org.opensearch.client.IndicesAdminClient;
 import org.opensearch.cluster.ClusterState;
 import org.opensearch.cluster.routing.RoutingTable;
 import org.opensearch.cluster.service.ClusterService;
+import org.opensearch.common.settings.Settings;
 import org.opensearch.core.action.ActionListener;
+import org.opensearch.env.Environment;
 import org.opensearch.test.OpenSearchTestCase;
 import org.opensearch.threadpool.TestThreadPool;
 import org.opensearch.threadpool.ThreadPool;
@@ -34,6 +36,7 @@ import org.junit.After;
 import org.junit.Before;
 
 import com.wazuh.setup.index.WazuhIndices;
+import com.wazuh.setup.settings.PluginSettings;
 
 import static org.opensearch.test.ClusterServiceUtils.createClusterService;
 import static org.mockito.Mockito.*;
@@ -51,11 +54,19 @@ public class SetupPluginTests extends OpenSearchTestCase {
     public void setUp() throws Exception {
         try {
             super.setUp();
+            Environment mockEnvironment = mock(Environment.class);
+            Settings settings = Settings.builder().put("setup.client.timeout", 20).build();
+
+            when(mockEnvironment.settings()).thenReturn(settings);
+
+            PluginSettings pluginSettings = PluginSettings.getInstance(mockEnvironment.settings());
+            super.setUp();
 
             this.threadPool = new TestThreadPool("WazuhIndexerSetupPluginServiceTests");
             this.clusterService = spy(createClusterService(threadPool));
             this.mockClient = mock(Client.class);
-            this.wazuhIndices = new WazuhIndices(mockClient, clusterService);
+
+            this.wazuhIndices = new WazuhIndices(mockClient, clusterService, pluginSettings);
         } catch (Exception e) {
             fail(e.toString());
         }

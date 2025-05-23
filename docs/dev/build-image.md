@@ -35,9 +35,9 @@ The Docker image is built from a wazuh-indexer tarball (tar.gz), which must be p
 
 ```bash
 docker build \
-   --build-arg="VERSION=6.0.0" \
-   --build-arg="INDEXER_TAR_NAME=wazuh-indexer_6.0.0-0_linux-x64.tar.gz" \
-   --tag=wazuh-indexer:6.0.0-0 \
+   --build-arg="VERSION=<version>" \
+   --build-arg="INDEXER_TAR_NAME=wazuh-indexer_<version>-<revision>_linux-x64.tar.gz" \
+   --tag=wazuh-indexer:<version>-<revision> \
    --progress=plain \
    --no-cache .
 ```
@@ -45,7 +45,7 @@ docker build \
 Then, start a container with:
 
 ```bash
-docker run -p 9200:9200 -it --rm wazuh-indexer:6.0.0-0
+docker run -p 9200:9200 -it --rm wazuh-indexer:<version>-<revision>
 ```
 
 The `build-and-push-docker-image.sh` script automates the process to build and push Wazuh Indexer Docker images to our repository in quay.io. The script takes several parameters. Use the `-h` option to display them.

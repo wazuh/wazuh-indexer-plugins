@@ -29,6 +29,7 @@ import org.opensearch.cluster.service.ClusterService;
 import java.io.IOException;
 import java.util.*;
 
+import com.wazuh.setup.settings.PluginSettings;
 import com.wazuh.setup.utils.IndexTemplateUtils;
 
 /**
@@ -36,6 +37,7 @@ import com.wazuh.setup.utils.IndexTemplateUtils;
  */
 public class WazuhIndices {
     private static final Logger log = LogManager.getLogger(WazuhIndices.class);
+    private final int timeout;
 
     /**
      * | Key | value | | ------------------- | ---------- | | Index template name | [index name, ] |
@@ -52,30 +54,10 @@ public class WazuhIndices {
      * @param client Client
      * @param clusterService ClusterService
      */
-    public WazuhIndices(Client client, ClusterService clusterService) {
+    public WazuhIndices(Client client, ClusterService clusterService, PluginSettings pluginSettings) {
         this.client = client;
         this.clusterService = clusterService;
-
-        // Create Index Templates - Indices map
-        this.indexTemplates.put("index-template-agent", List.of("wazuh-agents"));
-        this.indexTemplates.put("index-template-alerts", List.of("wazuh-alerts-5.x-0001"));
-        this.indexTemplates.put("index-template-commands", List.of("wazuh-commands"));
-        this.indexTemplates.put("index-template-scheduled-commands", List.of(".scheduled-commands"));
-        this.indexTemplates.put("index-template-fim", List.of("wazuh-states-fim"));
-        this.indexTemplates.put("index-template-hardware", List.of("wazuh-states-inventory-hardware"));
-        this.indexTemplates.put("index-template-hotfixes", List.of("wazuh-states-inventory-hotfixes"));
-        this.indexTemplates.put("index-template-networks", List.of("wazuh-states-inventory-networks"));
-        this.indexTemplates.put("index-template-packages", List.of("wazuh-states-inventory-packages"));
-        this.indexTemplates.put("index-template-ports", List.of("wazuh-states-inventory-ports"));
-        this.indexTemplates.put(
-                "index-template-processes", List.of("wazuh-states-inventory-processes"));
-        this.indexTemplates.put("index-template-system", List.of("wazuh-states-inventory-system"));
-        this.indexTemplates.put(
-                "index-template-vulnerabilities", List.of("wazuh-states-vulnerabilities"));
-        this.indexTemplates.put(
-                "index-template-users", List.of("wazuh-internal-users", "wazuh-custom-users"));
-        this.indexTemplates.put("index-template-cve", List.of("wazuh-cve"));
-        this.indexTemplates.put("index-template-sca", List.of("wazuh-states-sca"));
+        this.timeout = pluginSettings.getTimeout();
     }
 
     /**
@@ -95,7 +77,11 @@ public class WazuhIndices {
                             .patterns((List<String>) template.get("index_patterns"));
 
             AcknowledgedResponse createIndexTemplateResponse =
-                    this.client.admin().indices().putTemplate(putIndexTemplateRequest).actionGet();
+                    this.client
+                            .admin()
+                            .indices()
+                            .putTemplate(putIndexTemplateRequest)
+                            .actionGet(this.timeout);
 
             log.info(
                     "Index template created successfully: {} {}",
@@ -119,7 +105,7 @@ public class WazuhIndices {
             if (!indexExists(indexName)) {
                 CreateIndexRequest request = new CreateIndexRequest(indexName);
                 CreateIndexResponse createIndexResponse =
-                        this.client.admin().indices().create(request).actionGet();
+                        this.client.admin().indices().create(request).actionGet(this.timeout);
                 log.info(
                         "Index created successfully: {} {}",
                         createIndexResponse.index(),

@@ -44,24 +44,3 @@ Use `-Dtests.opensearch.` to pass additional settings to the running instance. F
 ```bash
 ./gradlew run -Dtests.opensearch.http.host=0.0.0.0
 ```
-
-## Artifact dependencies between plugins
-
-Some plugins may need other plugins to work properly, such as any plugin extending the Job Scheduler plugin or the Content Manager sending HTTP requests to the Command Manager plugin's API.
-
-Under these cases, the Gradle project of the plugin can be modified to include these other plugins as dependencies, so it forms up a development environment with all these plugins installed.
-
-All our Gradle projects are already configured to not require manual steps, but in the case of the Content Manager plugin. Unlike OpenSearch, we do not publish our Zip archives of our plugins to a Maven repository. As a result, any dependency between Wazuh Indexer plugins need some manual steps to build and publish the dependency plugins to the local Maven repository (`~/.m2` by default) before starting up the dependant plugin project.
-
-These are the steps required to start the Content Manager plugin development environment together with the Command Manager plugin.
-
-1. Build and publish a Zip archive of the Command Manager.
-    ```bash
-    ./gradlew :wazuh-indexer-command-manager:build
-    ./gradlew :wazuh-indexer-command-manager:publishToMavenLocal
-    ```
-2. In the Content Manager's `build.gradle` file, uncomment this line:
-    ```groovy
-    zipArchive group: 'com.wazuh', name:'wazuh-indexer-command-manager', version: "${wazuh_version}.${revision}"
-    ```
-3. Start the Content Manager plugin by running `./gradlew run`.
