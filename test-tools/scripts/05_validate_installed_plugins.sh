@@ -57,7 +57,7 @@ if [ -z "$CLUSTER_IP" ] || [ -z "$USER" ] || [ -z "$PASSWORD" ] || [ ${#NODES[@]
 fi
 
 # Check the installed plugins on each node
-REQUIRED_PLUGINS=("wazuh-indexer-command-manager" "wazuh-indexer-setup")
+REQUIRED_PLUGINS=("wazuh-indexer-setup")
 ALL_MISSING_PLUGINS=()
 
 echo "Checking installed plugins on Wazuh indexer nodes..."
