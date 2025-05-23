@@ -28,7 +28,7 @@ public class PluginSettings {
     private static final Logger log = LogManager.getLogger(PluginSettings.class);
 
     // Settings default values
-    private static final Integer DEFAULT_CLIENT_TIMEOUT = 30;
+    private static final int DEFAULT_CLIENT_TIMEOUT = 30;
 
     // Client class methods' timeout in seconds
     public static final Setting<Integer> CLIENT_TIMEOUT =
@@ -40,7 +40,7 @@ public class PluginSettings {
                     Setting.Property.NodeScope,
                     Setting.Property.Filtered);
 
-    private final Integer timeout;
+    private final int timeout;
 
     private static PluginSettings instance;
 
@@ -78,7 +78,7 @@ public class PluginSettings {
     /**
      * @return the timeout value
      */
-    public Integer getTimeout() {
+    public int getTimeout() {
         return this.timeout;
     }
 
