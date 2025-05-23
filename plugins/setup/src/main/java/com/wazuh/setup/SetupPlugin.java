@@ -63,10 +63,8 @@ public class SetupPlugin extends Plugin implements ClusterPlugin {
             NamedWriteableRegistry namedWriteableRegistry,
             IndexNameExpressionResolver indexNameExpressionResolver,
             Supplier<RepositoriesService> repositoriesServiceSupplier) {
-        // PluginSettings.getInstance(environment.settings());
-        this.indices =
-                new WazuhIndices(
-                        client, clusterService, PluginSettings.getInstance(environment.settings()));
+        PluginSettings settings = PluginSettings.getInstance(environment.settings());
+        this.indices = new WazuhIndices(client, clusterService, settings);
 
         return List.of(this.indices);
     }
@@ -78,8 +76,6 @@ public class SetupPlugin extends Plugin implements ClusterPlugin {
 
     @Override
     public List<Setting<?>> getSettings() {
-        return List.of(
-                // Register API settings
-                PluginSettings.CLIENT_TIMEOUT);
+        return List.of(PluginSettings.CLIENT_TIMEOUT);
     }
 }
