@@ -49,8 +49,7 @@ while [[ "$#" -gt 0 ]]; do
 done
 
 # List of expected items
-EXPECTED_TEMPLATES=("index-template-agent" "index-template-alerts" "index-template-fim" "index-template-packages"
-    "index-template-processes" "index-template-system" "index-template-vulnerabilities")
+EXPECTED_TEMPLATES=("")
 
 # Fetch the templates
 echo "Fetching templates from Wazuh indexer cluster..."
