@@ -16,6 +16,7 @@
  */
 package com.wazuh.setup.index;
 
+import com.wazuh.setup.settings.PluginSettings;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.opensearch.ResourceAlreadyExistsException;
@@ -36,7 +37,7 @@ import com.wazuh.setup.utils.IndexTemplateUtils;
  */
 public class WazuhIndices {
     private static final Logger log = LogManager.getLogger(WazuhIndices.class);
-
+    private final int timeout;
     /**
      * | Key | value | | ------------------- | ---------- | | Index template name | [index name, ] |
      * Map where the key is the index template name, and the value is a list of index names
@@ -52,12 +53,10 @@ public class WazuhIndices {
      * @param client Client
      * @param clusterService ClusterService
      */
-    public WazuhIndices(Client client, ClusterService clusterService) {
+    public WazuhIndices(Client client, ClusterService clusterService, PluginSettings pluginSettings) {
         this.client = client;
         this.clusterService = clusterService;
-
-        // Create Index Templates - Indices map
-
+        this.timeout = pluginSettings.getTimeout();
     }
 
     /**
@@ -77,7 +76,7 @@ public class WazuhIndices {
                             .patterns((List<String>) template.get("index_patterns"));
 
             AcknowledgedResponse createIndexTemplateResponse =
-                    this.client.admin().indices().putTemplate(putIndexTemplateRequest).actionGet();
+                    this.client.admin().indices().putTemplate(putIndexTemplateRequest).actionGet(this.timeout);
 
             log.info(
                     "Index template created successfully: {} {}",
@@ -101,7 +100,7 @@ public class WazuhIndices {
             if (!indexExists(indexName)) {
                 CreateIndexRequest request = new CreateIndexRequest(indexName);
                 CreateIndexResponse createIndexResponse =
-                        this.client.admin().indices().create(request).actionGet();
+                        this.client.admin().indices().create(request).actionGet(this.timeout);
                 log.info(
                         "Index created successfully: {} {}",
                         createIndexResponse.index(),

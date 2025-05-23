@@ -4,7 +4,7 @@ The `wazuh-indexer-setup` plugin is a module composing the Wazuh Indexer respons
 
  The Wazuh Indexer Setup Plugin in responsible for:
 - Create the index templates, to define the mappings and settings of the indices.
-- Create the initial indices. We distinguish between **stateful**, **stateless**, and **rbac** indices. Stateful indices are unique and its data is update over time (agents' inventory), stateless indices are rotated and static (alerts), and RBAC indices store access control and authorization information for managing users, roles, and permissions.
+- Create the initial indices. We distinguish between **stateful** and **stateless** indices. Stateful indices are unique and its data is update over time (agents' inventory), stateless indices are rotated and static (alerts).
 - For stateless indices, it creates the indices aliases and lifecycle policies for rollover.
 
 **Key Features:**
