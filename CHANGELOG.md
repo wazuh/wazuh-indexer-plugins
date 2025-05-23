@@ -44,7 +44,6 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Upgrade to Opensearch 2.19.2 [(#399)](https://github.com/wazuh/wazuh-indexer-plugins/pull/399)
 - Simplify snapshot initialization process [(#390)](https://github.com/wazuh/wazuh-indexer-plugins/pull/390)
 - Refactor snapshot download [(#413)](https://github.com/wazuh/wazuh-indexer-plugins/pull/413)
-- Modify offset and command index fields [(#441)](https://github.com/wazuh/wazuh-indexer-plugins/pull/441)
 
 ### Deprecated
 -
@@ -63,6 +62,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Fix PatchOperation parse [(#411)](https://github.com/wazuh/wazuh-indexer-plugins/pull/411)
 - Fix unauthorized request to the Command Manager API [(#394)](https://github.com/wazuh/wazuh-indexer-plugins/pull/394)
 - Fix Vagrant test environment certificates [(#424)](https://github.com/wazuh/wazuh-indexer-plugins/pull/424)
+- Fix arguments for the Content Manager's `update` command [(#441)](https://github.com/wazuh/wazuh-indexer-plugins/pull/441)
 
 ### Security
 -
