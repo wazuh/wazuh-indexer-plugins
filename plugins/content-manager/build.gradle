@@ -5,7 +5,7 @@ import java.util.concurrent.Callable
 
 buildscript {
   ext {
-    opensearch_version = System.getProperty("opensearch.version", "2.19.2-SNAPSHOT")
+    opensearch_version = System.getProperty("opensearch.version", "2.19.1-SNAPSHOT")
     opensearch_build = opensearch_version.replace("-SNAPSHOT","") + ".0"
     wazuh_version = System.getProperty("version", "6.0.0")
     revision = System.getProperty("revision", "0")
@@ -90,8 +90,11 @@ configurations {
 }
 
 dependencies {
-  implementation project(path: ":wazuh-indexer-command-manager-spi", configuration: 'shadow')
-  // compileOnly project(":wazuh-indexer-command-manager-spi") // TODO: We should use this instead `implementation`
+//  implementation project(path: ":wazuh-indexer-command-manager-spi", configuration: 'shadow')
+//   compileOnly project(":wazuh-indexer-command-manager-spi") // TODO: We should use this instead `implementation`
+//  compileOnly "com.wazuh:wazuh-indexer-command-manager-spi:${wazuh_version}.${revision}"
+
+  compileOnly "com.wazuh:wazuh-indexer-command-manager-spi:6.0.0.0"
 
   implementation "org.apache.httpcomponents.client5:httpclient5:5.4.4"
   implementation "org.apache.httpcomponents.core5:httpcore5-h2:5.3.4"
@@ -101,6 +104,8 @@ dependencies {
 
   // ZipArchive dependencies used for integration tests
   zipArchive group: 'org.opensearch.plugin', name: 'opensearch-job-scheduler', version: "${opensearch_build}"
+//  zipArchive group: 'com.wazuh', name: 'wazuh-indexer-command-manager', version: "${wazuh_version}.${revision}"
+  zipArchive "com.wazuh:wazuh-indexer-command-manager:6.0.0.0@zip"
 }
 
 

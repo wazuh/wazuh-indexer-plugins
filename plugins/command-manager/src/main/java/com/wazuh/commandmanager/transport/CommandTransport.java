@@ -16,10 +16,12 @@
  */
 package com.wazuh.commandmanager.transport;
 
+import com.wazuh.commandmanager.spi.CommandTransportAction;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.opensearch.action.support.ActionFilters;
 import org.opensearch.action.support.HandledTransportAction;
+import org.opensearch.action.support.master.AcknowledgedResponse;
 import org.opensearch.client.Client;
 import org.opensearch.common.inject.Inject;
 import org.opensearch.common.xcontent.XContentType;
@@ -36,17 +38,15 @@ import com.wazuh.commandmanager.index.CommandIndex;
 import com.wazuh.commandmanager.model.Command;
 import com.wazuh.commandmanager.model.Orders;
 import com.wazuh.commandmanager.spi.CommandRequest;
-import com.wazuh.commandmanager.spi.CommandResponse;
-import com.wazuh.commandmanager.spi.CommandRequestAction;
 
 /**
  * CommandTransportAction is a class that handles the transport action for posting commands to the
  * Command Manager Plugin. It extends the HandledTransportAction class and provides methods for
  * executing the action.
  */
-public class CommandTransportAction
-        extends HandledTransportAction<CommandRequest, CommandResponse> {
-    private static final Logger log = LogManager.getLogger(CommandTransportAction.class);
+public class CommandTransport
+        extends HandledTransportAction<CommandRequest, AcknowledgedResponse> {
+    private static final Logger log = LogManager.getLogger(CommandTransport.class);
     private final Client client;
     private final CommandIndex commandIndex;
 
@@ -59,12 +59,12 @@ public class CommandTransportAction
      * @param commandIndex
      */
     @Inject
-    public CommandTransportAction(
+    public CommandTransport(
             TransportService transportService,
             ActionFilters actionFilters,
             Client client,
             CommandIndex commandIndex) {
-        super(CommandRequestAction.NAME, transportService, actionFilters, CommandRequest::new);
+        super(CommandTransportAction.ACTION_TYPE.name(), transportService, actionFilters, CommandRequest::new);
         this.client = client;
         this.commandIndex = commandIndex;
     }
@@ -78,7 +78,7 @@ public class CommandTransportAction
      */
     @Override
     protected void doExecute(
-            Task task, CommandRequest request, ActionListener<CommandResponse> listener) {
+            Task task, CommandRequest request, ActionListener<AcknowledgedResponse> listener) {
         String jsonBody = request.getJsonBody();
         log.info("Transport Action request received: {}", jsonBody);
         try {
@@ -99,7 +99,7 @@ public class CommandTransportAction
                     .asyncBulkCreate(orders.get())
                     .thenAccept(
                             status -> {
-                                listener.onResponse(new CommandResponse("Command received: " + jsonBody));
+                                listener.onResponse(new AcknowledgedResponse(true));
                             })
                     .exceptionally(
                             e -> {

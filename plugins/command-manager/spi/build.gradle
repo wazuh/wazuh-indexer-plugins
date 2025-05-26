@@ -10,8 +10,10 @@ plugins {
   id 'java-library'
 }
 
+group = "com.wazuh"
+version = "6.0.0.0"
 apply plugin: 'opensearch.java'
-apply plugin: 'com.github.johnrengelman.shadow'
+//apply plugin: 'com.github.johnrengelman.shadow'
 
 shadowJar {
   archiveClassifier.set('all')
@@ -92,6 +94,7 @@ publishing {
       }
     }
   }
+
 
   gradle.startParameter.setShowStacktrace(ShowStacktrace.ALWAYS)
   gradle.startParameter.setLogLevel(LogLevel.DEBUG)

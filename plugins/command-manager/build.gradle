@@ -3,7 +3,7 @@ import com.github.jengelman.gradle.plugins.shadow.ShadowPlugin
 
 buildscript {
     ext {
-        opensearch_version = System.getProperty("opensearch.version", "2.19.2-SNAPSHOT")
+        opensearch_version = System.getProperty("opensearch.version", "2.19.1-SNAPSHOT")
         opensearch_no_snapshot = opensearch_version.replace("-SNAPSHOT","")
         opensearch_build = opensearch_no_snapshot + ".0"
         job_scheduler_version = System.getProperty("job_scheduler.version", opensearch_build)
@@ -102,7 +102,7 @@ configurations {
 }
 
 dependencies {
-    implementation project(path: ":wazuh-indexer-command-manager-spi", configuration: 'shadow')
+    implementation project(path: ":wazuh-indexer-command-manager-spi")
     // compileOnly project(":wazuh-indexer-command-manager-spi") // TODO: We should use this instead `implementation`
     implementation "org.apache.logging.log4j:log4j-slf4j-impl:${versions.log4j}"
 
@@ -189,4 +189,13 @@ task updateVersion {
          // String tokenization to support -SNAPSHOT
         ant.replaceregexp(file: 'build.gradle', match: '"opensearch.version", "\\d.*"', replace: '"opensearch.version", "' + newVersion.tokenize('-')[0] + '-SNAPSHOT"', flags: 'g', byline: true)
     }
+}
+
+tasks.named('bundlePlugin').configure {
+  dependsOn(":wazuh-indexer-command-manager-spi:jar")
+  from({
+    project(":wazuh-indexer-command-manager-spi").tasks.named("jar").get().archiveFile.get().asFile
+  }) {
+    into "lib"
+  }
 }
