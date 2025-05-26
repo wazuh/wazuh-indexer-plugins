@@ -125,12 +125,16 @@ public class SnapshotManager {
      * a CTI snapshot.
      */
     protected void indexSnapshot(ConsumerInfo consumerInfo) {
-        log.info("Initializing [{}] index from a snapshot", ContentIndex.INDEX_NAME);
-        // Download snapshot.
-        Path snapshotZip =
-                this.privileged.streamingDownload(
-                        this.ctiClient, consumerInfo.getLastSnapshotLink(), this.environment);
-        Path outputDir = this.environment.tmpFile();
+        if (consumerInfo.getOffset() == 0) {
+            log.info("Initializing [{}] index from a snapshot", ContentIndex.INDEX_NAME);
+            // Clears the content of the index
+            this.contentIndex.clear();
+            this.privileged.doPrivilegedRequest(
+                    () -> {
+                        // Download snapshot.
+                        Path snapshotZip =
+                                this.ctiClient.download(consumerInfo.getLastSnapshotLink(), this.environment);
+                        Path outputDir = this.environment.tmpFile();
 
         try (DirectoryStream<Path> stream = this.getStream(outputDir)) {
             // Unzip snapshot.

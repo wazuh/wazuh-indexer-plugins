@@ -25,6 +25,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Add custom action to list modified plugins [(#388)](https://github.com/wazuh/wazuh-indexer-plugins/pull/388)
 - Expose settings for the Content Manager plugin [(#395)](https://github.com/wazuh/wazuh-indexer-plugins/pull/395)
 - Add content update to to the Content Manager init process [(#421)](https://github.com/wazuh/wazuh-indexer-plugins/pull/421)
+- Clean wazuh-cve index on re-initialization [(#431)](https://github.com/wazuh/wazuh-indexer-plugins/pull/431)
 
 ### Dependencies
 -
@@ -44,6 +45,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Upgrade to Opensearch 2.19.2 [(#399)](https://github.com/wazuh/wazuh-indexer-plugins/pull/399)
 - Simplify snapshot initialization process [(#390)](https://github.com/wazuh/wazuh-indexer-plugins/pull/390)
 - Refactor snapshot download [(#413)](https://github.com/wazuh/wazuh-indexer-plugins/pull/413)
+- Replace dependabot's directories keys with wildcard [(#445)](https://github.com/wazuh/wazuh-indexer-plugins/pull/445)
 
 ### Deprecated
 -
@@ -61,6 +63,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Fix overwrite of content offset on each start [(#401)](https://github.com/wazuh/wazuh-indexer-plugins/pull/401)
 - Fix PatchOperation parse [(#411)](https://github.com/wazuh/wazuh-indexer-plugins/pull/411)
 - Fix unauthorized request to the Command Manager API [(#394)](https://github.com/wazuh/wazuh-indexer-plugins/pull/394)
+- Fix Vagrant test environment certificates [(#424)](https://github.com/wazuh/wazuh-indexer-plugins/pull/424)
+- Fix arguments for the Content Manager's `update` command [(#441)](https://github.com/wazuh/wazuh-indexer-plugins/pull/441)
 
 ### Security
 -

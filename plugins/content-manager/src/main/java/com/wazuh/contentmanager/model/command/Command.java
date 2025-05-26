@@ -21,6 +21,8 @@ import org.opensearch.core.xcontent.XContentBuilder;
 
 import java.io.IOException;
 
+import com.wazuh.contentmanager.index.ContentIndex;
+
 /** This class represents the model of the posted command to the Command Manager API. */
 public class Command {
 
@@ -39,7 +41,7 @@ public class Command {
                     .startObject("action")
                     .field("name", "update")
                     .startObject("args")
-                    .field("index", "content-index")
+                    .field("index", ContentIndex.INDEX_NAME)
                     .field("offset", offset)
                     .endObject()
                     .field("version", "6.0.0") // Dynamic version
