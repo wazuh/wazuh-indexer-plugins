@@ -3,7 +3,7 @@ import java.util.concurrent.Callable
 
 buildscript {
     ext {
-        opensearch_version = System.getProperty("opensearch.version", "2.19.2-SNAPSHOT")
+        opensearch_version = System.getProperty("opensearch.version", "3.0.0-SNAPSHOT")
         opensearch_build = opensearch_version.replace("-SNAPSHOT","") + ".0"
         wazuh_version = System.getProperty("version", "5.0.0")
         revision = System.getProperty("revision", "0")
@@ -28,6 +28,7 @@ apply plugin: 'opensearch.opensearchplugin'
 apply plugin: 'opensearch.testclusters'
 apply plugin: 'opensearch.java-rest-test'
 apply plugin: 'opensearch.pluginzip'
+apply plugin: 'opensearch.java-agent'
 
 def pluginName = 'wazuh-indexer-setup'
 def pluginDescription = 'Wazuh Indexer setup plugin'
@@ -61,8 +62,8 @@ publishing {
 allprojects {
     group = "${projectPath}"
     version = "${wazuh_version}" + ".${revision}"
-    targetCompatibility = JavaVersion.VERSION_11
-    sourceCompatibility = JavaVersion.VERSION_11
+    targetCompatibility = JavaVersion.VERSION_21
+    sourceCompatibility = JavaVersion.VERSION_21
 }
 
 opensearchplugin {
