@@ -23,8 +23,8 @@ import org.opensearch.action.admin.indices.create.CreateIndexRequest;
 import org.opensearch.action.admin.indices.create.CreateIndexResponse;
 import org.opensearch.action.admin.indices.template.put.PutIndexTemplateRequest;
 import org.opensearch.action.support.clustermanager.AcknowledgedResponse;
-import org.opensearch.transport.client.Client;
 import org.opensearch.cluster.service.ClusterService;
+import org.opensearch.transport.client.Client;
 
 import java.io.IOException;
 import java.util.*;
@@ -52,12 +52,15 @@ public class WazuhIndices {
      * Constructor
      *
      * @param client Client
-     * @param clusterService ClusterService
+     * @param clusterService object containing the cluster service
+     * @param pluginSettings object containing the plugin settings
      */
     public WazuhIndices(Client client, ClusterService clusterService, PluginSettings pluginSettings) {
         this.client = client;
         this.clusterService = clusterService;
         this.timeout = pluginSettings.getTimeout();
+
+        this.indexTemplates.put("wazuh-template", List.of("wazuh-alerts-*", "wazuh-archives-*"));
     }
 
     /**
