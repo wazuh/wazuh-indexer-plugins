@@ -60,7 +60,9 @@ public class WazuhIndices {
         this.clusterService = clusterService;
         this.timeout = pluginSettings.getTimeout();
 
-        this.indexTemplates.put("wazuh-template", List.of("wazuh-alerts-*", "wazuh-archives-*"));
+        this.indexTemplates.put("alerts", List.of("wazuh-alerts-*", "wazuh-archives-*"));
+        this.indexTemplates.put("monitoring", List.of("wazuh-monitoring-*"));
+        this.indexTemplates.put("statistics", List.of("wazuh-statistics-*"));
     }
 
     /**
@@ -96,7 +98,7 @@ public class WazuhIndices {
 
                                 @Override
                                 public void onFailure(Exception e) {
-                                    log.error("Error creating index template {}: {}", templateName, e.getMessage());
+                                    log.error("Error creating index template [{}]: {}", templateName, e.getMessage());
                                 }
                             });
 
@@ -129,7 +131,7 @@ public class WazuhIndices {
 
                                 @Override
                                 public void onFailure(Exception e) {
-                                    log.info("Index {} already exists. Skipping.", indexName);
+                                    log.info("Error creating index [{}]: {}", indexName, e.getMessage());
                                 }
                             });
         }
