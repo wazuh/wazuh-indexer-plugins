@@ -21,6 +21,7 @@ import org.opensearch.client.Client;
 import org.opensearch.cluster.service.ClusterService;
 import org.opensearch.common.SuppressForbidden;
 import org.opensearch.common.settings.Settings;
+import org.opensearch.core.rest.RestStatus;
 import org.opensearch.env.Environment;
 import org.opensearch.test.OpenSearchTestCase;
 import org.junit.Before;
@@ -262,7 +263,8 @@ public class ContentUpdaterRunnableTests extends OpenSearchTestCase {
         when(this.privileged.getConsumerInfo(this.ctiClient)).thenReturn(latestConsumerInfo);
 
         when(this.contextIndex.get(anyString(), anyString()))
-                .thenThrow(new IOException("Simulated failure"));
+                .thenThrow(
+                        new OpenSearchStatusException("Simulated failure", RestStatus.SERVICE_UNAVAILABLE));
 
         ContentUpdaterRunnable instance =
                 ContentUpdaterRunnable.getInstance(

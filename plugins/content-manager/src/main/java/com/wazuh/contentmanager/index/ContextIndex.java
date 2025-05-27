@@ -163,7 +163,7 @@ public class ContextIndex {
      * @param context ID (name) of the context.
      * @param consumer ID (name) of the consumer.
      * @return the required consumer as an instance of {@link ConsumerInfo}, or null.
-     * @throws IOException if the index is not available.
+     * @throws OpenSearchStatusException if the index is not available.
      */
     @SuppressWarnings("unchecked")
     public ConsumerInfo get(String context, String consumer) throws OpenSearchStatusException {

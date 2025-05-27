@@ -141,9 +141,7 @@ public class SnapshotManagerTests extends OpenSearchTestCase {
         doReturn(this.consumerInfo).when(this.contextIndex).get(anyString(), anyString());
         Path snapshotZip = mock(Path.class);
         doReturn("http://example.com/file.zip").when(this.consumerInfo).getLastSnapshotLink();
-        doReturn(snapshotZip)
-                .when(this.privilegedSpy)
-                .download(any(CTIClient.class), anyString(), any(Environment.class));
+        doReturn(snapshotZip).when(this.ctiClient).download(anyString(), any(Environment.class));
         Path outputDir = mock(Path.class);
         doReturn(outputDir).when(this.mockEnvironment).tmpFile();
         DirectoryStream<Path> stream = mock(DirectoryStream.class);
