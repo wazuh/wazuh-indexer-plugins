@@ -20,8 +20,8 @@ import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.opensearch.action.admin.indices.create.CreateIndexRequest;
 import org.opensearch.OpenSearchTimeoutException;
+import org.opensearch.action.admin.indices.create.CreateIndexRequest;
 import org.opensearch.action.bulk.BulkRequest;
 import org.opensearch.action.bulk.BulkResponse;
 import org.opensearch.action.delete.DeleteRequest;
@@ -333,7 +333,6 @@ public class ContentIndex {
     public boolean exists() {
         return ClusterInfo.indexExists(this.client, ContentIndex.INDEX_NAME);
     }
-
 
     /** Clears all documents from the {@link ContentIndex#INDEX_NAME} index. */
     public void clear() {

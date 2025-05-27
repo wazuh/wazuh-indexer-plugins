@@ -85,7 +85,7 @@ public class UnzipTests extends OpenSearchTestCase {
     }
 
     /** Test NullPointerException */
-    public void testNullPointerException() throws IOException {
+    public void testNullPointerException() {
         assertThrows(
                 NullPointerException.class, () -> Unzip.unzip(null, this.tempDestinationDirectory));
     }

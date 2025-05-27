@@ -21,7 +21,6 @@ import org.apache.logging.log4j.Logger;
 import org.opensearch.env.Environment;
 
 import java.io.IOException;
-import java.nio.file.Path;
 import java.security.AccessController;
 
 import com.wazuh.contentmanager.client.CTIClient;
@@ -96,9 +95,8 @@ public class Privileged {
      * @param client CTIClient instance to interact with the CTI API.
      * @param URI URI of the file to be downloaded.
      * @param environment Environment instance for file system operations.
-     * @return Path to the downloaded file.
      */
-    public Path streamingDownload(CTIClient client, String URI, Environment environment) {
-        return this.doPrivilegedRequest(() -> client.streamingDownload(URI, environment));
+    public void streamingDownload(CTIClient client, String URI, Environment environment) {
+        this.doPrivilegedRequest(() -> client.streamingDownload(URI, environment));
     }
 }

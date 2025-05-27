@@ -37,35 +37,12 @@ import com.wazuh.contentmanager.settings.PluginSettings;
 public class SnapshotManager {
     private static final Logger log = LogManager.getLogger(SnapshotManager.class);
     private final CTIClient ctiClient;
-    private CommandManagerClient commandManagerClient;
+    private final CommandManagerClient commandManagerClient;
     private final Environment environment;
     private final ContextIndex contextIndex;
     private final ContentIndex contentIndex;
     private final Privileged privileged;
     private final PluginSettings pluginSettings;
-
-    /**
-     * Constructor.
-     *
-     * @param environment Needed for snapshot file handling.
-     * @param contextIndex Handles context and consumer related metadata.
-     * @param contentIndex Handles indexed content.
-     * @param privileged Handles privileged actions.
-     * @param ctiClient Instance of CTIClient.
-     */
-    public SnapshotManager(
-            Environment environment,
-            ContextIndex contextIndex,
-            ContentIndex contentIndex,
-            Privileged privileged,
-            CTIClient ctiClient) {
-        this.environment = environment;
-        this.contextIndex = contextIndex;
-        this.contentIndex = contentIndex;
-        this.privileged = privileged;
-        this.ctiClient = ctiClient;
-        this.pluginSettings = PluginSettings.getInstance();
-    }
 
     /**
      * Alternate constructor that allows injecting CTIClient for test purposes. Dependency injection.
@@ -133,25 +110,29 @@ public class SnapshotManager {
                     () -> {
                         // Download snapshot.
                         Path snapshotZip =
-                                this.ctiClient.download(consumerInfo.getLastSnapshotLink(), this.environment);
+                                this.ctiClient.streamingDownload(
+                                        consumerInfo.getLastSnapshotLink(), this.environment);
                         Path outputDir = this.environment.tmpFile();
 
-        try (DirectoryStream<Path> stream = this.getStream(outputDir)) {
-            // Unzip snapshot.
-            this.unzip(snapshotZip, outputDir);
-            Path snapshotJson = stream.iterator().next();
-            // Index snapshot.
-            long offset = this.contentIndex.fromSnapshot(snapshotJson.toString());
-            // Update the offset.
-            consumerInfo.setOffset(offset);
-            this.contextIndex.index(consumerInfo);
-            // Send command.
-            privileged.postUpdateCommand(this.commandManagerClient, consumerInfo);
-            // Remove snapshot.
-            Files.deleteIfExists(snapshotZip);
-            Files.deleteIfExists(snapshotJson);
-        } catch (IOException | NullPointerException e) {
-            log.error("Failed to index snapshot: {}", e.getMessage());
+                        try (DirectoryStream<Path> stream = this.getStream(outputDir)) {
+                            // Unzip snapshot.
+                            this.unzip(snapshotZip, outputDir);
+                            Path snapshotJson = stream.iterator().next();
+                            // Index snapshot.
+                            long offset = this.contentIndex.fromSnapshot(snapshotJson.toString());
+                            // Update the offset.
+                            consumerInfo.setOffset(offset);
+                            this.contextIndex.index(consumerInfo);
+                            // Send command.
+                            privileged.postUpdateCommand(this.commandManagerClient, consumerInfo);
+                            // Remove snapshot.
+                            Files.deleteIfExists(snapshotZip);
+                            Files.deleteIfExists(snapshotJson);
+                        } catch (IOException | NullPointerException e) {
+                            log.error("Failed to index snapshot: {}", e.getMessage());
+                        }
+                        return null;
+                    });
         }
     }
 

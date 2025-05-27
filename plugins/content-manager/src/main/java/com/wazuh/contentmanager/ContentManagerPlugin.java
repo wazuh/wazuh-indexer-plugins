@@ -38,7 +38,6 @@ import org.opensearch.jobscheduler.spi.ScheduledJobParser;
 import org.opensearch.jobscheduler.spi.ScheduledJobRunner;
 import org.opensearch.jobscheduler.spi.schedule.IntervalSchedule;
 import org.opensearch.jobscheduler.spi.schedule.ScheduleParser;
-import org.opensearch.plugins.ActionPlugin;
 import org.opensearch.plugins.ClusterPlugin;
 import org.opensearch.plugins.Plugin;
 import org.opensearch.repositories.RepositoriesService;
@@ -62,8 +61,7 @@ import com.wazuh.contentmanager.settings.PluginSettings;
 import com.wazuh.contentmanager.utils.Privileged;
 
 /** Main class of the Content Manager Plugin */
-public class ContentManagerPlugin extends Plugin
-        implements ClusterPlugin, ActionPlugin, JobSchedulerExtension {
+public class ContentManagerPlugin extends Plugin implements ClusterPlugin, JobSchedulerExtension {
 
     private static final Logger log = LogManager.getLogger(ContentManagerPlugin.class);
 
