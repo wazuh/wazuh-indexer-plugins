@@ -68,7 +68,22 @@ detect_modified_modules() {
     echo "Updated ECS modules: ${updated_modules[*]}"
 
     # Mapping section
-    module_to_file=()
+    module_to_file=(
+        # [agent]="index-template-agent.json"
+        # [archives]="index-template-archives.json"
+        [states-fim-files]="index-template-fim-files.json"
+        [states-fim-files-registries]="index-template-fim-registries.json"
+        [states-inventory-hardware]="index-template-hardware.json"
+        [states-inventory-hotfixes]="index-template-hotfixes.json"
+        [states-inventory-interfaces]="index-template-interfaces.json"
+        [states-inventory-networks]="index-template-networks.json"
+        [states-inventory-packages]="index-template-packages.json"
+        [states-inventory-ports]="index-template-ports.json"
+        [states-inventory-processes]="index-template-processes.json"
+        [states-inventory-protocols]="index-template-protocols.json"
+        [states-inventory-system]="index-template-system.json"
+        [states-vulnerabilities]="index-template-vulnerabilities.json"
+    )
 
     relevant_modules=()
     for ecs_module in "${updated_modules[@]}"; do

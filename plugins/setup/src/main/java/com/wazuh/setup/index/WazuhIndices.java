@@ -58,6 +58,26 @@ public class WazuhIndices {
         this.client = client;
         this.clusterService = clusterService;
         this.timeout = pluginSettings.getTimeout();
+
+        // Create Index Templates - Indices map
+        // this.indexTemplates.put("index-template-alerts", List.of("wazuh-alerts-5.x-0001"));
+        this.indexTemplates.put("index-template-fim-files", List.of("wazuh-states-fim-files"));
+        this.indexTemplates.put(
+                "index-template-fim-registries", List.of("wazuh-states-fim-registries"));
+        this.indexTemplates.put("index-template-hardware", List.of("wazuh-states-inventory-hardware"));
+        this.indexTemplates.put("index-template-hotfixes", List.of("wazuh-states-inventory-hotfixes"));
+        this.indexTemplates.put(
+                "index-template-interfaces", List.of("wazuh-states-inventory-interfaces"));
+        this.indexTemplates.put("index-template-networks", List.of("wazuh-states-inventory-networks"));
+        this.indexTemplates.put("index-template-packages", List.of("wazuh-states-inventory-packages"));
+        this.indexTemplates.put("index-template-ports", List.of("wazuh-states-inventory-ports"));
+        this.indexTemplates.put(
+                "index-template-processes", List.of("wazuh-states-inventory-processes"));
+        this.indexTemplates.put(
+                "index-template-protocols", List.of("wazuh-states-inventory-protocols"));
+        this.indexTemplates.put("index-template-system", List.of("wazuh-states-inventory-system"));
+        this.indexTemplates.put(
+                "index-template-vulnerabilities", List.of("wazuh-states-vulnerabilities"));
     }
 
     /**
