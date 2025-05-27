@@ -96,7 +96,7 @@ public class Privileged {
      * @param URI URI of the file to be downloaded.
      * @param environment Environment instance for file system operations.
      */
-    public void streamingDownload(CTIClient client, String URI, Environment environment) {
-        this.doPrivilegedRequest(() -> client.streamingDownload(URI, environment));
+    public void download(CTIClient client, String URI, Environment environment) {
+        this.doPrivilegedRequest(() -> client.download(URI, environment));
     }
 }

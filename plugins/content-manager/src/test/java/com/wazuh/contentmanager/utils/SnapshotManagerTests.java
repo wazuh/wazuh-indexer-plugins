@@ -143,7 +143,7 @@ public class SnapshotManagerTests extends OpenSearchTestCase {
         doReturn("http://example.com/file.zip").when(this.consumerInfo).getLastSnapshotLink();
         doReturn(snapshotZip)
                 .when(this.privilegedSpy)
-                .streamingDownload(any(CTIClient.class), anyString(), any(Environment.class));
+                .download(any(CTIClient.class), anyString(), any(Environment.class));
         Path outputDir = mock(Path.class);
         doReturn(outputDir).when(this.mockEnvironment).tmpFile();
         DirectoryStream<Path> stream = mock(DirectoryStream.class);

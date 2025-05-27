@@ -332,7 +332,7 @@ public class CTIClient extends HttpClient {
      * @param environment Environment to resolve the file path.
      * @return The path to the downloaded file.
      */
-    public Path streamingDownload(String URI, Environment environment) {
+    public Path download(String URI, Environment environment) {
         try (CloseableHttpClient client = HttpClients.createDefault()) {
             HttpGet request = new HttpGet(URI);
 
