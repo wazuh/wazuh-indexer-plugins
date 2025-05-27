@@ -174,30 +174,6 @@ public class ContentUpdaterJobParameter implements ScheduledJobParameter {
     }
 
     @Override
-    public boolean equals(Object o) {
-        if (this == o) return true;
-        if (!(o instanceof ContentUpdaterJobParameter)) return false;
-
-        ContentUpdaterJobParameter that = (ContentUpdaterJobParameter) o;
-
-        if (isEnabled != that.isEnabled) return false;
-        if (!name.equals(that.name)) return false;
-        if (!schedule.equals(that.schedule)) return false;
-        if (!lastUpdateTime.equals(that.lastUpdateTime)) return false;
-        return enabledTime.equals(that.enabledTime);
-    }
-
-    @Override
-    public int hashCode() {
-        int result = name.hashCode();
-        result = 31 * result + schedule.hashCode();
-        result = 31 * result + lastUpdateTime.hashCode();
-        result = 31 * result + enabledTime.hashCode();
-        result = 31 * result + (isEnabled ? 1 : 0);
-        return result;
-    }
-
-    @Override
     public String toString() {
         return "ContentUpdaterJobParameter{"
                 + "name=\""

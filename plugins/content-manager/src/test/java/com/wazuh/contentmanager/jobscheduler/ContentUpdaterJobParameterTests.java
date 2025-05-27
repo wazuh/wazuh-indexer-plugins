@@ -102,34 +102,6 @@ public class ContentUpdaterJobParameterTests extends OpenSearchTestCase {
         assertTrue(json.contains("\"enabled\":true"));
     }
 
-    /** Test the equals method */
-    public void testEquals() {
-        ContentUpdaterJobParameter jobParameter1 =
-                new ContentUpdaterJobParameter(this.name, this.schedule);
-        jobParameter1.setLastUpdateTime(this.instant);
-        jobParameter1.setEnabledTime(this.instant);
-        ContentUpdaterJobParameter jobParameter2 =
-                new ContentUpdaterJobParameter(this.name, this.schedule);
-        jobParameter2.setLastUpdateTime(this.instant);
-        jobParameter2.setEnabledTime(this.instant);
-
-        assertEquals(jobParameter1, jobParameter2);
-    }
-
-    /** Test the hashCode method */
-    public void testHashCode() {
-        ContentUpdaterJobParameter jobParameter1 =
-                new ContentUpdaterJobParameter(this.name, this.schedule);
-        jobParameter1.setLastUpdateTime(this.instant);
-        jobParameter1.setEnabledTime(this.instant);
-        ContentUpdaterJobParameter jobParameter2 =
-                new ContentUpdaterJobParameter(this.name, this.schedule);
-        jobParameter2.setLastUpdateTime(this.instant);
-        jobParameter2.setEnabledTime(this.instant);
-
-        assertEquals(jobParameter1.hashCode(), jobParameter2.hashCode());
-    }
-
     /** Test the toString method */
     public void testToString() {
         ContentUpdaterJobParameter jobParameter =
