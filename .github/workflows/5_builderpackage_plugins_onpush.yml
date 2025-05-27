@@ -19,14 +19,12 @@ concurrency:
 jobs:
   modified-plugins:
     runs-on: ubuntu-24.04
+    env:
+        base_branch: ${{ github.event.pull_request.base.ref }}
     outputs:
       projects: ${{ steps.detect_changes.outputs.projects }}
     steps:
       - uses: actions/checkout@v4
-
-      - name: Get base branch
-        run: echo "base_branch=$(echo ${{ github.event.pull_request.base.ref }})" >> $GITHUB_ENV
-        if: github.event_name == 'pull_request'
       - name: Set base branch for push events
         run: echo "base_branch=$(bash scripts/product_version.sh)" >> $GITHUB_ENV
         if: github.event_name == 'push'
@@ -36,7 +34,7 @@ jobs:
         id: detect_changes
         uses: ./.github/actions/5_codeanalysis_detect_modified_plugins
         with:
-          base_branch: ${ env.base_branch } 
+          base_branch: ${{ env.base_branch }} 
 
   call-build-workflow:
     needs: modified-plugins
