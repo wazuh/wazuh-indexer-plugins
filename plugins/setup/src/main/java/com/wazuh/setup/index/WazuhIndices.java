@@ -18,12 +18,12 @@ package com.wazuh.setup.index;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.opensearch.ResourceAlreadyExistsException;
 import org.opensearch.action.admin.indices.create.CreateIndexRequest;
 import org.opensearch.action.admin.indices.create.CreateIndexResponse;
 import org.opensearch.action.admin.indices.template.put.PutIndexTemplateRequest;
 import org.opensearch.action.support.clustermanager.AcknowledgedResponse;
 import org.opensearch.cluster.service.ClusterService;
+import org.opensearch.core.action.ActionListener;
 import org.opensearch.transport.client.Client;
 
 import java.io.IOException;
@@ -68,6 +68,7 @@ public class WazuhIndices {
      *
      * @param templateName: The name if the index template to load
      */
+    @SuppressWarnings("unchecked")
     public void putTemplate(String templateName) {
         try {
             Map<String, Object> template = IndexTemplateUtils.fromFile(templateName + ".json");
@@ -79,22 +80,28 @@ public class WazuhIndices {
                             .name(templateName)
                             .patterns((List<String>) template.get("index_patterns"));
 
-            AcknowledgedResponse createIndexTemplateResponse =
-                    this.client
-                            .admin()
-                            .indices()
-                            .putTemplate(putIndexTemplateRequest)
-                            .actionGet(this.timeout);
+            this.client
+                    .admin()
+                    .indices()
+                    .putTemplate(
+                            putIndexTemplateRequest,
+                            new ActionListener<>() {
+                                @Override
+                                public void onResponse(AcknowledgedResponse acknowledgedResponse) {
+                                    log.info(
+                                            "Index template created successfully: {} {}",
+                                            templateName,
+                                            acknowledgedResponse.isAcknowledged());
+                                }
 
-            log.info(
-                    "Index template created successfully: {} {}",
-                    templateName,
-                    createIndexTemplateResponse.isAcknowledged());
+                                @Override
+                                public void onFailure(Exception e) {
+                                    log.error("Error creating index template {}: {}", templateName, e.getMessage());
+                                }
+                            });
 
         } catch (IOException e) {
             log.error("Error reading index template from filesystem {}", templateName);
-        } catch (ResourceAlreadyExistsException e) {
-            log.info("Index template {} already exists. Skipping.", templateName);
         }
     }
 
@@ -104,18 +111,27 @@ public class WazuhIndices {
      * @param indexName Name of the index to be created
      */
     public void putIndex(String indexName) {
-        try {
-            if (!indexExists(indexName)) {
-                CreateIndexRequest request = new CreateIndexRequest(indexName);
-                CreateIndexResponse createIndexResponse =
-                        this.client.admin().indices().create(request).actionGet(this.timeout);
-                log.info(
-                        "Index created successfully: {} {}",
-                        createIndexResponse.index(),
-                        createIndexResponse.isAcknowledged());
-            }
-        } catch (ResourceAlreadyExistsException e) {
-            log.info("Index {} already exists. Skipping.", indexName);
+        if (!indexExists(indexName)) {
+            CreateIndexRequest request = new CreateIndexRequest(indexName);
+            this.client
+                    .admin()
+                    .indices()
+                    .create(
+                            request,
+                            new ActionListener<>() {
+                                @Override
+                                public void onResponse(CreateIndexResponse createIndexResponse) {
+                                    log.info(
+                                            "Index created successfully: {} {}",
+                                            createIndexResponse.index(),
+                                            createIndexResponse.isAcknowledged());
+                                }
+
+                                @Override
+                                public void onFailure(Exception e) {
+                                    log.info("Index {} already exists. Skipping.", indexName);
+                                }
+                            });
         }
     }
 
