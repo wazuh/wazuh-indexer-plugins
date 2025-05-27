@@ -18,9 +18,9 @@ package com.wazuh.contentmanager.jobscheduler;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.opensearch.OpenSearchStatusException;
 import org.opensearch.env.Environment;
 
-import java.io.IOException;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import com.wazuh.contentmanager.client.CTIClient;
@@ -217,7 +217,7 @@ public final class ContentUpdaterRunnable implements Runnable {
                 log.info(
                         "Consumer is up-to-date (offset {} == {}). Skipping...", currentOffset, latestOffset);
             }
-        } catch (IOException e) {
+        } catch (OpenSearchStatusException e) {
             log.error("Failed to run Content Updater job: {}", e.getMessage());
         } finally {
             this.isRunning.set(false);

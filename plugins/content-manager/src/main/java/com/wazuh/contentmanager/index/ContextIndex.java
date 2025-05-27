@@ -18,6 +18,7 @@ package com.wazuh.contentmanager.index;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.opensearch.OpenSearchStatusException;
 import org.opensearch.action.DocWriteResponse;
 import org.opensearch.action.get.GetRequest;
 import org.opensearch.action.get.GetResponse;
@@ -26,6 +27,7 @@ import org.opensearch.action.index.IndexResponse;
 import org.opensearch.client.Client;
 import org.opensearch.common.xcontent.XContentFactory;
 import org.opensearch.core.action.ActionListener;
+import org.opensearch.core.rest.RestStatus;
 import org.opensearch.core.xcontent.ToXContent;
 
 import java.io.IOException;
@@ -164,14 +166,15 @@ public class ContextIndex {
      * @throws IOException if the index is not available.
      */
     @SuppressWarnings("unchecked")
-    public ConsumerInfo get(String context, String consumer) throws IOException {
+    public ConsumerInfo get(String context, String consumer) throws OpenSearchStatusException {
         // Avoid faulty requests if the cluster is unstable.
         if (!ClusterInfo.indexStatusCheck(this.client, ContextIndex.INDEX_NAME)) {
-            throw new IOException(
+            throw new OpenSearchStatusException(
                     String.format(
                             Locale.ROOT,
                             "The index [%s] is not available. Please check the cluster status.",
-                            ContextIndex.INDEX_NAME));
+                            ContextIndex.INDEX_NAME),
+                    RestStatus.SERVICE_UNAVAILABLE);
         }
         try {
             GetResponse getResponse =

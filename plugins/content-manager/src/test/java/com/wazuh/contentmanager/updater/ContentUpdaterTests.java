@@ -16,6 +16,7 @@
  */
 package com.wazuh.contentmanager.updater;
 
+import org.opensearch.OpenSearchStatusException;
 import org.opensearch.cluster.service.ClusterService;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.env.Environment;
@@ -91,7 +92,7 @@ public class ContentUpdaterTests extends OpenSearchIntegTestCase {
      *
      * @throws IOException risen from contextIndex.get()
      */
-    public void testUpdateNoChanges() throws IOException {
+    public void testUpdateNoChanges() throws OpenSearchStatusException {
         // Mock current and latest offset.
         doReturn(this.consumerInfo).when(this.contextIndex).get(anyString(), anyString());
         // Act
@@ -108,7 +109,7 @@ public class ContentUpdaterTests extends OpenSearchIntegTestCase {
      *
      * @throws IOException risen from contextIndex.get()
      */
-    public void testUpdateNewChanges() throws IOException {
+    public void testUpdateNewChanges() throws OpenSearchStatusException {
         long offsetsAmount = 3999L;
         // Mock current and latest offset.
         doReturn(0L).when(this.consumerInfo).getOffset();
@@ -136,7 +137,7 @@ public class ContentUpdaterTests extends OpenSearchIntegTestCase {
      *
      * @throws IOException risen from contextIndex.get()
      */
-    public void testUpdateErrorFetchingChanges() throws IOException {
+    public void testUpdateErrorFetchingChanges() throws OpenSearchStatusException {
         long offsetsAmount = 3999L;
         // Mock current and latest offset.
         doReturn(0L).when(this.consumerInfo).getOffset();
@@ -161,7 +162,7 @@ public class ContentUpdaterTests extends OpenSearchIntegTestCase {
      *
      * @throws IOException risen from contextIndex.get()
      */
-    public void testUpdateErrorOnPatchContextIndex() throws IOException {
+    public void testUpdateErrorOnPatchContextIndex() throws OpenSearchStatusException {
         long offsetsAmount = 3999L;
         // Mock current and latest offset.
         doReturn(0L).when(this.consumerInfo).getOffset();

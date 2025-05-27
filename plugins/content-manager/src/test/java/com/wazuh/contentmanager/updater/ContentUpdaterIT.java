@@ -18,6 +18,7 @@ package com.wazuh.contentmanager.updater;
 
 import com.carrotsearch.randomizedtesting.annotations.ThreadLeakScope;
 
+import org.opensearch.OpenSearchStatusException;
 import org.opensearch.action.admin.indices.refresh.RefreshRequest;
 import org.opensearch.action.support.WriteRequest;
 import org.opensearch.client.Client;
@@ -128,7 +129,7 @@ public class ContentUpdaterIT extends OpenSearchIntegTestCase {
      * @throws IOException thrown by {@link ContentIndex#get(String)}
      */
     public void testUpdate_ContentChangesTypeCreate()
-            throws ExecutionException, InterruptedException, TimeoutException, IOException {
+            throws ExecutionException, InterruptedException, TimeoutException, OpenSearchStatusException {
         // Fixtures
         // List of changes to apply (offset 1 == create)
         Changes changes = new Changes(List.of(this.buildOffset(1, Offset.Type.CREATE)));
@@ -181,7 +182,7 @@ public class ContentUpdaterIT extends OpenSearchIntegTestCase {
      * @throws IOException thrown by {@link ContentIndex#get(String)}
      */
     public void testUpdate_ContentChangesTypeUpdate()
-            throws ExecutionException, InterruptedException, TimeoutException, IOException {
+            throws ExecutionException, InterruptedException, TimeoutException, OpenSearchStatusException {
         // Fixtures
         // List of changes to apply (offset 1 == create, offset 2 == update)
         Changes changes =
@@ -237,7 +238,7 @@ public class ContentUpdaterIT extends OpenSearchIntegTestCase {
      * @throws IOException thrown by {@link ContentIndex#get(String)}
      */
     public void testUpdate_ContentChangesTypeDelete()
-            throws InterruptedException, ExecutionException, TimeoutException, IOException {
+            throws InterruptedException, ExecutionException, TimeoutException, OpenSearchStatusException {
         // Fixtures
         Changes changes =
                 new Changes(

@@ -16,6 +16,7 @@
  */
 package com.wazuh.contentmanager.jobscheduler;
 
+import org.opensearch.OpenSearchStatusException;
 import org.opensearch.client.Client;
 import org.opensearch.cluster.service.ClusterService;
 import org.opensearch.common.SuppressForbidden;
@@ -107,7 +108,7 @@ public class ContentUpdaterRunnableTests extends OpenSearchTestCase {
      *
      * @throws IOException If an error occurs while running the test.
      */
-    public void testRun_skipsWhenAlreadyUpToDate() throws IOException {
+    public void testRun_skipsWhenAlreadyUpToDate() throws OpenSearchStatusException {
         resetSingleton();
 
         ConsumerInfo currentConsumerInfo =
@@ -151,7 +152,7 @@ public class ContentUpdaterRunnableTests extends OpenSearchTestCase {
      *
      * @throws IOException If an error occurs while running the test.
      */
-    public void testRun_triggersSnapshotOnOffsetZero() throws IOException {
+    public void testRun_triggersSnapshotOnOffsetZero() throws OpenSearchStatusException {
         resetSingleton();
 
         ConsumerInfo currentConsumerInfo =
@@ -195,7 +196,7 @@ public class ContentUpdaterRunnableTests extends OpenSearchTestCase {
      *
      * @throws IOException If an error occurs while running the test.
      */
-    public void testRun_triggersContentUpdateWhenOffsetsDiffer() throws IOException {
+    public void testRun_triggersContentUpdateWhenOffsetsDiffer() throws OpenSearchStatusException {
         resetSingleton();
         ConsumerInfo currentConsumerInfo =
                 new ConsumerInfo(
@@ -238,7 +239,7 @@ public class ContentUpdaterRunnableTests extends OpenSearchTestCase {
      *
      * @throws IOException If an error occurs while running the test.
      */
-    public void testRun_logsErrorOnIOException() throws IOException {
+    public void testRun_logsErrorOnIOException() throws OpenSearchStatusException {
         resetSingleton();
         ConsumerInfo currentConsumerInfo =
                 new ConsumerInfo(
