@@ -35,7 +35,7 @@ graph TD
 
 Issue: [https://github.com/wazuh/wazuh-indexer-plugins/issues/69](https://github.com/wazuh/wazuh-indexer-plugins/issues/69)
 
-The Command Manager API is described formally in OpenAPI format. Check it out [here](https://github.com/wazuh/wazuh-indexer-plugins/blob/main/plugins/command-manager/openapi.yml).
+The Command Manager API is described formally in OpenAPI format. Check it out [here](https://github.com/wazuh/wazuh-indexer-plugins/blob/6.0.0/plugins/command-manager/openapi.yml).
 
 > **Important**: The `action.name` attribute must always be provided before `action.args` in the JSON. Otherwise, the command is rejected. This is necessary for proper validation of the arguments, which depends on the command type, defined by `action.name`.
 
