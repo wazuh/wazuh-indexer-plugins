@@ -26,7 +26,6 @@ import org.opensearch.action.index.IndexRequest;
 import org.opensearch.action.index.IndexResponse;
 import org.opensearch.client.Client;
 import org.opensearch.common.xcontent.XContentFactory;
-import org.opensearch.core.action.ActionListener;
 import org.opensearch.core.rest.RestStatus;
 import org.opensearch.core.xcontent.ToXContent;
 
@@ -34,7 +33,6 @@ import java.io.IOException;
 import java.util.Locale;
 import java.util.Map;
 import java.util.NoSuchElementException;
-import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
@@ -126,35 +124,6 @@ public class ContextIndex {
                     e.getMessage());
         }
         return false;
-    }
-
-    /**
-     * Get a context by ID (name).
-     *
-     * @param contextName ID of the context to be retrieved.
-     * @return A completable future holding the response of the query.
-     */
-    public CompletableFuture<GetResponse> get(String contextName) {
-        GetRequest getRequest = new GetRequest(ContextIndex.INDEX_NAME, contextName);
-        CompletableFuture<GetResponse> future = new CompletableFuture<>();
-        this.client.get(getRequest);
-
-        this.client.get(
-                getRequest,
-                new ActionListener<>() {
-                    @Override
-                    public void onResponse(GetResponse getResponse) {
-                        log.info("Retrieved CTI Catalog Context {} from index", contextName);
-                        future.complete(getResponse);
-                    }
-
-                    @Override
-                    public void onFailure(Exception e) {
-                        log.error("Failed to retrieve CTI Catalog Context {}, Exception: {}", contextName, e);
-                        future.completeExceptionally(e);
-                    }
-                });
-        return future;
     }
 
     /**
