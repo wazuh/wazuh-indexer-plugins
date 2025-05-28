@@ -144,7 +144,7 @@ commit_and_push_changes() {
     echo "Copying ECS templates and csv definitions to the plugins repository..."
     for ecs_module in "${relevant_modules[@]}"; do
         target_file=${module_to_file[$ecs_module]}
-        documentation_dir=$"$CURRENT_PATH/ecs/$ecs_module/$DOCUMENTATION_PATH/"
+        documentation_dir="$CURRENT_PATH/ecs/$ecs_module/$DOCUMENTATION_PATH/"
         if [[ -z "$target_file" ]]; then
             continue
         fi
