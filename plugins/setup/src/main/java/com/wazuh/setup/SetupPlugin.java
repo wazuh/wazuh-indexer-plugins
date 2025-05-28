@@ -19,7 +19,6 @@ package com.wazuh.setup;
 import org.opensearch.cluster.metadata.IndexNameExpressionResolver;
 import org.opensearch.cluster.node.DiscoveryNode;
 import org.opensearch.cluster.service.ClusterService;
-import org.opensearch.common.settings.Setting;
 import org.opensearch.core.common.io.stream.NamedWriteableRegistry;
 import org.opensearch.core.xcontent.NamedXContentRegistry;
 import org.opensearch.env.Environment;
@@ -37,7 +36,6 @@ import java.util.List;
 import java.util.function.Supplier;
 
 import com.wazuh.setup.index.WazuhIndices;
-import com.wazuh.setup.settings.PluginSettings;
 
 /**
  * Main class of the Indexer Setup plugin. This plugin is responsible for the creation of the index
@@ -63,8 +61,7 @@ public class SetupPlugin extends Plugin implements ClusterPlugin {
             NamedWriteableRegistry namedWriteableRegistry,
             IndexNameExpressionResolver indexNameExpressionResolver,
             Supplier<RepositoriesService> repositoriesServiceSupplier) {
-        PluginSettings settings = PluginSettings.getInstance(environment.settings());
-        this.indices = new WazuhIndices(client, clusterService, settings);
+        this.indices = new WazuhIndices(client, clusterService);
 
         return List.of(this.indices);
     }
@@ -72,10 +69,5 @@ public class SetupPlugin extends Plugin implements ClusterPlugin {
     @Override
     public void onNodeStarted(DiscoveryNode localNode) {
         this.indices.initialize();
-    }
-
-    @Override
-    public List<Setting<?>> getSettings() {
-        return List.of(PluginSettings.CLIENT_TIMEOUT);
     }
 }

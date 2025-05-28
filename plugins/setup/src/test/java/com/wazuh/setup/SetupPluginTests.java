@@ -36,7 +36,6 @@ import org.junit.After;
 import org.junit.Before;
 
 import com.wazuh.setup.index.WazuhIndices;
-import com.wazuh.setup.settings.PluginSettings;
 
 import static org.opensearch.test.ClusterServiceUtils.createClusterService;
 import static org.mockito.Mockito.*;
@@ -59,14 +58,13 @@ public class SetupPluginTests extends OpenSearchTestCase {
 
             when(mockEnvironment.settings()).thenReturn(settings);
 
-            PluginSettings pluginSettings = PluginSettings.getInstance(mockEnvironment.settings());
             super.setUp();
 
             this.threadPool = new TestThreadPool("WazuhIndexerSetupPluginServiceTests");
             this.clusterService = spy(createClusterService(threadPool));
             this.mockClient = mock(Client.class);
 
-            this.wazuhIndices = new WazuhIndices(mockClient, clusterService, pluginSettings);
+            this.wazuhIndices = new WazuhIndices(mockClient, clusterService);
         } catch (Exception e) {
             fail(e.toString());
         }

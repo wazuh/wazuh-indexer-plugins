@@ -18,11 +18,12 @@ package com.wazuh.setup.index;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.opensearch.ResourceAlreadyExistsException;
 import org.opensearch.action.admin.indices.create.CreateIndexRequest;
 import org.opensearch.action.admin.indices.create.CreateIndexResponse;
 import org.opensearch.action.admin.indices.template.put.PutIndexTemplateRequest;
+import org.opensearch.action.support.clustermanager.AcknowledgedResponse;
 import org.opensearch.cluster.service.ClusterService;
-import org.opensearch.core.action.ActionListener;
 import org.opensearch.transport.client.Client;
 
 import java.io.IOException;
@@ -30,7 +31,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import com.wazuh.setup.settings.PluginSettings;
 import com.wazuh.setup.utils.IndexTemplateUtils;
 
 /**
@@ -38,7 +38,6 @@ import com.wazuh.setup.utils.IndexTemplateUtils;
  */
 public class WazuhIndices {
     private static final Logger log = LogManager.getLogger(WazuhIndices.class);
-    private final int timeout;
 
     /**
      * | Key | value | | ------------------- | ---------- | | Index template name | [index name, ] |
@@ -54,12 +53,10 @@ public class WazuhIndices {
      *
      * @param client Client
      * @param clusterService object containing the cluster service
-     * @param pluginSettings object containing the plugin settings
      */
-    public WazuhIndices(Client client, ClusterService clusterService, PluginSettings pluginSettings) {
+    public WazuhIndices(Client client, ClusterService clusterService) {
         this.client = client;
         this.clusterService = clusterService;
-        this.timeout = pluginSettings.getTimeout();
 
         // Create Index Templates - Indices map
         this.indexTemplates.put(
@@ -102,10 +99,18 @@ public class WazuhIndices {
                             .name(templateName)
                             .patterns((List<String>) template.get("index_patterns"));
 
-            this.client.admin().indices().putTemplate(putIndexTemplateRequest).actionGet();
+            AcknowledgedResponse createIndexTemplateResponse =
+                    this.client.admin().indices().putTemplate(putIndexTemplateRequest).actionGet();
+
+            log.info(
+                    "Index template created successfully: {} {}",
+                    templateName,
+                    createIndexTemplateResponse.isAcknowledged());
 
         } catch (IOException e) {
             log.error("Error reading index template from filesystem {}", templateName);
+        } catch (ResourceAlreadyExistsException e) {
+            log.info("Index template {} already exists. Skipping.", templateName);
         }
     }
 
@@ -115,27 +120,18 @@ public class WazuhIndices {
      * @param indexName Name of the index to be created
      */
     public void putIndex(String indexName) {
-        if (!indexExists(indexName)) {
-            CreateIndexRequest request = new CreateIndexRequest(indexName);
-            this.client
-                    .admin()
-                    .indices()
-                    .create(
-                            request,
-                            new ActionListener<>() {
-                                @Override
-                                public void onResponse(CreateIndexResponse createIndexResponse) {
-                                    log.info(
-                                            "Index created successfully: {} {}",
-                                            createIndexResponse.index(),
-                                            createIndexResponse.isAcknowledged());
-                                }
-
-                                @Override
-                                public void onFailure(Exception e) {
-                                    log.info("Error creating index [{}]: {}", indexName, e.getMessage());
-                                }
-                            });
+        try {
+            if (!indexExists(indexName)) {
+                CreateIndexRequest request = new CreateIndexRequest(indexName);
+                CreateIndexResponse createIndexResponse =
+                        this.client.admin().indices().create(request).actionGet();
+                log.info(
+                        "Index created successfully: {} {}",
+                        createIndexResponse.index(),
+                        createIndexResponse.isAcknowledged());
+            }
+        } catch (ResourceAlreadyExistsException e) {
+            log.info("Index {} already exists. Skipping.", indexName);
         }
     }
 
