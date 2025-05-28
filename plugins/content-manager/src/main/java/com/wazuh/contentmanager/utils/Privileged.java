@@ -18,7 +18,6 @@ package com.wazuh.contentmanager.utils;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.opensearch.env.Environment;
 
 import java.io.IOException;
 import java.security.AccessController;
@@ -90,16 +89,5 @@ public class Privileged {
                         return null;
                     }
                 });
-    }
-
-    /**
-     * Downloads a file from the CTI API.
-     *
-     * @param client CTIClient instance to interact with the CTI API.
-     * @param URI URI of the file to be downloaded.
-     * @param environment Environment instance for file system operations.
-     */
-    public void download(CTIClient client, String URI, Environment environment) {
-        this.doPrivilegedRequest(() -> client.download(URI, environment));
     }
 }
