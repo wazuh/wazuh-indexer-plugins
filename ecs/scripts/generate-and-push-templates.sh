@@ -68,7 +68,20 @@ detect_modified_modules() {
     echo "Updated ECS modules: ${updated_modules[*]}"
 
     # Mapping section
-    module_to_file=()
+    module_to_file=(
+        [states-fim-files]="index-template-fim-files.json"
+        [states-fim-registries]="index-template-fim-registries.json"
+        [states-inventory-hardware]="index-template-hardware.json"
+        [states-inventory-hotfixes]="index-template-hotfixes.json"
+        [states-inventory-interfaces]="index-template-interfaces.json"
+        [states-inventory-networks]="index-template-networks.json"
+        [states-inventory-packages]="index-template-packages.json"
+        [states-inventory-ports]="index-template-ports.json"
+        [states-inventory-processes]="index-template-processes.json"
+        [states-inventory-protocols]="index-template-protocols.json"
+        [states-inventory-system]="index-template-system.json"
+        [states-vulnerabilities]="index-template-vulnerabilities.json"
+    )
 
     relevant_modules=()
     for ecs_module in "${updated_modules[@]}"; do
@@ -131,6 +144,7 @@ commit_and_push_changes() {
     echo "Copying ECS templates and csv definitions to the plugins repository..."
     for ecs_module in "${relevant_modules[@]}"; do
         target_file=${module_to_file[$ecs_module]}
+        documentation_dir="$CURRENT_PATH/ecs/$ecs_module/$DOCUMENTATION_PATH/"
         if [[ -z "$target_file" ]]; then
             continue
         fi
@@ -145,8 +159,9 @@ commit_and_push_changes() {
         fi
         cp "$CURRENT_PATH/ecs/$ecs_module/$MAPPINGS_SUBPATH" "$TEMPLATES_PATH/$target_file"
         # Copy the csv to the plugins repository
-        echo "  - Copy the updated csv definitions for module '$ecs_module' to '$CURRENT_PATH/ecs/$ecs_module/$DOCUMENTATION_PATH'"
-        cp "$CURRENT_PATH/ecs/$ecs_module/$CSV_SUBPATH" "$CURRENT_PATH/ecs/$ecs_module/$DOCUMENTATION_PATH/"
+        mkdir -p "$documentation_dir"
+        echo "  - Copy the updated csv definitions for module '$ecs_module' to '$documentation_dir'"
+        cp "$CURRENT_PATH/ecs/$ecs_module/$CSV_SUBPATH" "$documentation_dir"
     done
 
     git status --short

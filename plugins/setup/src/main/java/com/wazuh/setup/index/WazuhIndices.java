@@ -23,13 +23,14 @@ import org.opensearch.action.admin.indices.create.CreateIndexRequest;
 import org.opensearch.action.admin.indices.create.CreateIndexResponse;
 import org.opensearch.action.admin.indices.template.put.PutIndexTemplateRequest;
 import org.opensearch.action.support.clustermanager.AcknowledgedResponse;
-import org.opensearch.transport.client.Client;
 import org.opensearch.cluster.service.ClusterService;
+import org.opensearch.transport.client.Client;
 
 import java.io.IOException;
-import java.util.*;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
-import com.wazuh.setup.settings.PluginSettings;
 import com.wazuh.setup.utils.IndexTemplateUtils;
 
 /**
@@ -37,7 +38,6 @@ import com.wazuh.setup.utils.IndexTemplateUtils;
  */
 public class WazuhIndices {
     private static final Logger log = LogManager.getLogger(WazuhIndices.class);
-    private final int timeout;
 
     /**
      * | Key | value | | ------------------- | ---------- | | Index template name | [index name, ] |
@@ -52,12 +52,34 @@ public class WazuhIndices {
      * Constructor
      *
      * @param client Client
-     * @param clusterService ClusterService
+     * @param clusterService object containing the cluster service
      */
-    public WazuhIndices(Client client, ClusterService clusterService, PluginSettings pluginSettings) {
+    public WazuhIndices(Client client, ClusterService clusterService) {
         this.client = client;
         this.clusterService = clusterService;
-        this.timeout = pluginSettings.getTimeout();
+
+        // Create Index Templates - Indices map
+        this.indexTemplates.put(
+                "index-template-alerts", List.of("wazuh-alerts-5.x-0001", "wazuh-archives-5.x-0001"));
+        this.indexTemplates.put("index-template-fim-files", List.of("wazuh-states-fim-files"));
+        this.indexTemplates.put("index-template-monitoring", List.of("wazuh-monitoring"));
+        this.indexTemplates.put("index-template-statistics", List.of("wazuh-statistics"));
+        this.indexTemplates.put(
+                "index-template-fim-registries", List.of("wazuh-states-fim-registries"));
+        this.indexTemplates.put("index-template-hardware", List.of("wazuh-states-inventory-hardware"));
+        this.indexTemplates.put("index-template-hotfixes", List.of("wazuh-states-inventory-hotfixes"));
+        this.indexTemplates.put(
+                "index-template-interfaces", List.of("wazuh-states-inventory-interfaces"));
+        this.indexTemplates.put("index-template-networks", List.of("wazuh-states-inventory-networks"));
+        this.indexTemplates.put("index-template-packages", List.of("wazuh-states-inventory-packages"));
+        this.indexTemplates.put("index-template-ports", List.of("wazuh-states-inventory-ports"));
+        this.indexTemplates.put(
+                "index-template-processes", List.of("wazuh-states-inventory-processes"));
+        this.indexTemplates.put(
+                "index-template-protocols", List.of("wazuh-states-inventory-protocols"));
+        this.indexTemplates.put("index-template-system", List.of("wazuh-states-inventory-system"));
+        this.indexTemplates.put(
+                "index-template-vulnerabilities", List.of("wazuh-states-vulnerabilities"));
     }
 
     /**
@@ -65,6 +87,7 @@ public class WazuhIndices {
      *
      * @param templateName: The name if the index template to load
      */
+    @SuppressWarnings("unchecked")
     public void putTemplate(String templateName) {
         try {
             Map<String, Object> template = IndexTemplateUtils.fromFile(templateName + ".json");
@@ -77,11 +100,7 @@ public class WazuhIndices {
                             .patterns((List<String>) template.get("index_patterns"));
 
             AcknowledgedResponse createIndexTemplateResponse =
-                    this.client
-                            .admin()
-                            .indices()
-                            .putTemplate(putIndexTemplateRequest)
-                            .actionGet(this.timeout);
+                    this.client.admin().indices().putTemplate(putIndexTemplateRequest).actionGet();
 
             log.info(
                     "Index template created successfully: {} {}",
@@ -105,7 +124,7 @@ public class WazuhIndices {
             if (!indexExists(indexName)) {
                 CreateIndexRequest request = new CreateIndexRequest(indexName);
                 CreateIndexResponse createIndexResponse =
-                        this.client.admin().indices().create(request).actionGet(this.timeout);
+                        this.client.admin().indices().create(request).actionGet();
                 log.info(
                         "Index created successfully: {} {}",
                         createIndexResponse.index(),

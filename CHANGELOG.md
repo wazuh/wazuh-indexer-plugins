@@ -7,25 +7,25 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 ## [Unreleased 5.0.x]
 
 ### Added
-- 
+- Create index and index templates for 5.0.0 [(#452)](https://github.com/wazuh/wazuh-indexer-plugins/pull/452)
 
 ### Dependencies
-- 
+-
 
 ### Changed
 - Replace dependabot's directories keys with wildcard [(#443)](https://github.com/wazuh/wazuh-indexer-plugins/pull/443)
 - Adapt setup plugin for 5.x [(#450)](https://github.com/wazuh/wazuh-indexer-plugins/pull/450)
 
 ### Deprecated
-- 
+-
 
 ### Removed
 - Delete files not needed for `5.0.0` [(#439)](https://github.com/wazuh/wazuh-indexer-plugins/pull/439)
 
 ### Fixed
-- 
+-
 
 ### Security
-- 
+-
 
 [Unreleased 5.0.x]: https://github.com/wazuh/wazuh-indexer-plugins/compare/main...main
