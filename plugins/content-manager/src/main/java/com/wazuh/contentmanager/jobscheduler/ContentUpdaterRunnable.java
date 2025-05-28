@@ -16,11 +16,13 @@
  */
 package com.wazuh.contentmanager.jobscheduler;
 
+import org.apache.hc.client5.http.HttpHostConnectException;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.opensearch.OpenSearchStatusException;
 import org.opensearch.env.Environment;
 
+import java.io.IOException;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import com.wazuh.contentmanager.client.CTIClient;
@@ -86,10 +88,10 @@ public final class ContentUpdaterRunnable implements Runnable {
                             this.contentIndex,
                             this.privileged);
         }
-        ConsumerInfo latest = privileged.getConsumerInfo(this.ctiClient);
-        long latestOffset = latest.getLastOffset();
 
         try {
+            ConsumerInfo latest = this.ctiClient.getConsumerInfo();
+            long latestOffset = latest.getLastOffset();
             ConsumerInfo current =
                     this.contextIndex.get(
                             PluginSettings.getInstance().getContextId(),
@@ -105,6 +107,10 @@ public final class ContentUpdaterRunnable implements Runnable {
             }
         } catch (OpenSearchStatusException e) {
             log.error("Failed to run Content Updater job: {}", e.getMessage());
+        } catch (HttpHostConnectException e) {
+            log.error("Failed to retrieve Context information: {}", e.getMessage());
+        } catch (IOException e) {
+            log.error("Failed to parse Context information: {}", e.getMessage());
         } finally {
             this.isRunning.set(false);
         }

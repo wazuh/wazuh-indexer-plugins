@@ -19,7 +19,6 @@ package com.wazuh.contentmanager.utils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import java.io.IOException;
 import java.security.AccessController;
 
 import com.wazuh.contentmanager.client.CTIClient;
@@ -71,23 +70,5 @@ public class Privileged {
      */
     public Changes getChanges(CTIClient client, long fromOffset, long toOffset) {
         return this.doPrivilegedRequest(() -> client.getChanges(fromOffset, toOffset, false));
-    }
-
-    /**
-     * Fetches the consumer information from the CTI API.
-     *
-     * @param client CTIClient instance to interact with the CTI API.
-     * @return ConsumerInfo object containing the consumer information.
-     */
-    public ConsumerInfo getConsumerInfo(CTIClient client) {
-        return this.doPrivilegedRequest(
-                () -> {
-                    try {
-                        return client.getConsumerInfo();
-                    } catch (IOException e) {
-                        log.error("Error while fetching consumer information from CTI API: {}", e.getMessage());
-                        return null;
-                    }
-                });
     }
 }

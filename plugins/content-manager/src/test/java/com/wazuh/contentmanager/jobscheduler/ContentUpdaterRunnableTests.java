@@ -108,8 +108,9 @@ public class ContentUpdaterRunnableTests extends OpenSearchTestCase {
      * Test a scenario where the run method is called and the offsets are equal.
      *
      * @throws IOException If an error occurs while running the test.
+     * @throws OpenSearchStatusException If an error occurs while running the test.
      */
-    public void testRun_skipsWhenAlreadyUpToDate() throws OpenSearchStatusException {
+    public void testRun_skipsWhenAlreadyUpToDate() throws OpenSearchStatusException, IOException {
         resetSingleton();
 
         ConsumerInfo currentConsumerInfo =
@@ -128,7 +129,7 @@ public class ContentUpdaterRunnableTests extends OpenSearchTestCase {
                         10L,
                         null);
 
-        doReturn(latestConsumerInfo).when(this.privileged).getConsumerInfo(this.ctiClient);
+        doReturn(latestConsumerInfo).when(this.ctiClient).getConsumerInfo();
         doReturn(currentConsumerInfo).when(this.contextIndex).get(anyString(), anyString());
 
         ContentUpdaterRunnable instance =
@@ -152,8 +153,9 @@ public class ContentUpdaterRunnableTests extends OpenSearchTestCase {
      * Test a scenario where the run method is called and the offsets are different.
      *
      * @throws IOException If an error occurs while running the test.
+     * @throws OpenSearchStatusException If an error occurs while running the test.
      */
-    public void testRun_triggersSnapshotOnOffsetZero() throws OpenSearchStatusException {
+    public void testRun_triggersSnapshotOnOffsetZero() throws OpenSearchStatusException, IOException {
         resetSingleton();
 
         ConsumerInfo currentConsumerInfo =
@@ -172,7 +174,7 @@ public class ContentUpdaterRunnableTests extends OpenSearchTestCase {
                         20L,
                         null);
 
-        doReturn(latestConsumerInfo).when(this.privileged).getConsumerInfo(this.ctiClient);
+        doReturn(latestConsumerInfo).when(this.ctiClient).getConsumerInfo();
         doReturn(currentConsumerInfo).when(this.contextIndex).get(anyString(), anyString());
 
         doReturn(true).when(this.contextIndex).index(any(ConsumerInfo.class), anyBoolean());
@@ -196,8 +198,10 @@ public class ContentUpdaterRunnableTests extends OpenSearchTestCase {
      * Test a scenario where the run method is called and the offsets are different.
      *
      * @throws IOException If an error occurs while running the test.
+     * @throws OpenSearchStatusException If an error occurs while running the test.
      */
-    public void testRun_triggersContentUpdateWhenOffsetsDiffer() throws OpenSearchStatusException {
+    public void testRun_triggersContentUpdateWhenOffsetsDiffer()
+            throws OpenSearchStatusException, IOException {
         resetSingleton();
         ConsumerInfo currentConsumerInfo =
                 new ConsumerInfo(
@@ -215,9 +219,9 @@ public class ContentUpdaterRunnableTests extends OpenSearchTestCase {
                         20L,
                         null);
 
-        doReturn(latestConsumerInfo).when(this.privileged).getConsumerInfo(this.ctiClient);
+        doReturn(latestConsumerInfo).when(this.ctiClient).getConsumerInfo();
         doReturn(currentConsumerInfo).when(this.contextIndex).get(anyString(), anyString());
-        when(this.privileged.getConsumerInfo(this.ctiClient)).thenReturn(latestConsumerInfo);
+        when(this.ctiClient.getConsumerInfo()).thenReturn(latestConsumerInfo);
 
         when(this.contextIndex.get(anyString(), anyString())).thenReturn(currentConsumerInfo);
 
@@ -239,8 +243,9 @@ public class ContentUpdaterRunnableTests extends OpenSearchTestCase {
      * Test a scenario where the run method is called and an IOException occurs.
      *
      * @throws IOException If an error occurs while running the test.
+     * @throws OpenSearchStatusException If an error occurs while running the test.
      */
-    public void testRun_logsErrorOnIOException() throws OpenSearchStatusException {
+    public void testRun_logsErrorOnIOException() throws OpenSearchStatusException, IOException {
         resetSingleton();
         ConsumerInfo currentConsumerInfo =
                 new ConsumerInfo(
@@ -258,9 +263,9 @@ public class ContentUpdaterRunnableTests extends OpenSearchTestCase {
                         20L,
                         null);
 
-        doReturn(latestConsumerInfo).when(this.privileged).getConsumerInfo(this.ctiClient);
+        doReturn(latestConsumerInfo).when(this.ctiClient).getConsumerInfo();
         doReturn(currentConsumerInfo).when(this.contextIndex).get(anyString(), anyString());
-        when(this.privileged.getConsumerInfo(this.ctiClient)).thenReturn(latestConsumerInfo);
+        when(this.ctiClient.getConsumerInfo()).thenReturn(latestConsumerInfo);
 
         when(this.contextIndex.get(anyString(), anyString()))
                 .thenThrow(
