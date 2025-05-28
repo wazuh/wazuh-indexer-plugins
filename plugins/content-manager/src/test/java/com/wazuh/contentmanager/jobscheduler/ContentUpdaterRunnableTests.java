@@ -17,13 +17,13 @@
 package com.wazuh.contentmanager.jobscheduler;
 
 import org.opensearch.OpenSearchStatusException;
-import org.opensearch.client.Client;
 import org.opensearch.cluster.service.ClusterService;
 import org.opensearch.common.SuppressForbidden;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.core.rest.RestStatus;
 import org.opensearch.env.Environment;
 import org.opensearch.test.OpenSearchTestCase;
+import org.opensearch.transport.client.Client;
 import org.junit.Before;
 
 import java.io.IOException;

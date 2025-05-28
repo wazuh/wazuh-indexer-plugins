@@ -341,7 +341,7 @@ public class CTIClient extends HttpClient {
                 if (entity != null) {
                     URI uri = new URI(URI);
                     String filename = uri.getPath().substring(uri.getPath().lastIndexOf('/') + 1);
-                    Path path = environment.tmpFile().resolve(filename);
+                    Path path = environment.tmpDir().resolve(filename);
                     // Write to disk
                     InputStream input = entity.getContent();
                     try (OutputStream out =
