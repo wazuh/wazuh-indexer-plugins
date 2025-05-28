@@ -4,7 +4,7 @@ import java.util.concurrent.Callable
 
 buildscript {
     ext {
-        opensearch_version = System.getProperty("opensearch.version", "2.19.2-SNAPSHOT")
+        opensearch_version = System.getProperty("opensearch.version", "3.0.0-SNAPSHOT")
         opensearch_build = opensearch_version.replace("-SNAPSHOT","") + ".0"
         wazuh_version = System.getProperty("version", "6.0.0")
         revision = System.getProperty("revision", "0")
@@ -28,6 +28,7 @@ apply plugin: 'eclipse'
 apply plugin: 'opensearch.opensearchplugin'
 apply plugin: 'opensearch.yaml-rest-test'
 apply plugin: 'opensearch.pluginzip'
+apply plugin: 'opensearch.java-agent'
 
 def pluginName = 'wazuh-indexer-content-manager'
 def pluginDescription = 'Wazuh Indexer content manager plugin'
@@ -61,8 +62,8 @@ publishing {
 allprojects {
     group = "${projectPath}"
     version = "${wazuh_version}" + ".${revision}"
-    targetCompatibility = JavaVersion.VERSION_11
-    sourceCompatibility = JavaVersion.VERSION_11
+    targetCompatibility = JavaVersion.VERSION_21
+    sourceCompatibility = JavaVersion.VERSION_21
 }
 
 opensearchplugin {
@@ -82,7 +83,7 @@ dependencies {
     implementation "org.apache.httpcomponents.core5:httpcore5-h2:5.3.4"
     implementation "org.apache.httpcomponents.core5:httpcore5:5.3.4"
     implementation "org.apache.logging.log4j:log4j-slf4j-impl:2.23.1"
-    implementation "org.slf4j:slf4j-api:2.0.16"
+    implementation "org.slf4j:slf4j-api:1.7.36"
 
     // ZipArchive dependencies used for integration tests
     zipArchive group: 'org.opensearch.plugin', name: 'opensearch-job-scheduler', version: "${opensearch_build}"

@@ -338,7 +338,7 @@ public class CTIClient extends HttpClient {
             final URI uri = new URI(snapshotURI);
             final HttpGet request = new HttpGet(uri);
             final String filename = uri.getPath().substring(uri.getPath().lastIndexOf('/') + 1);
-            final Path path = env.tmpFile().resolve(filename);
+            final Path path = env.tmpDir().resolve(filename);
 
             // Download
             log.info("Starting snapshot download from [{}]", uri);

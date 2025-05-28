@@ -34,6 +34,7 @@ public class Privileged {
      * @param <T> A privileged action that performs the HTTP request.
      * @return The return value resulting from the request execution.
      */
+    @SuppressWarnings("removal")
     public <T> T doPrivilegedRequest(java.security.PrivilegedAction<T> request) {
         return AccessController.doPrivileged(request);
     }
