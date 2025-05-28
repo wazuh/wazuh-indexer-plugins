@@ -16,11 +16,6 @@
  */
 package com.wazuh.setup.index;
 
-import java.io.IOException;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.opensearch.action.admin.indices.create.CreateIndexRequest;
@@ -30,6 +25,11 @@ import org.opensearch.action.support.clustermanager.AcknowledgedResponse;
 import org.opensearch.cluster.service.ClusterService;
 import org.opensearch.core.action.ActionListener;
 import org.opensearch.transport.client.Client;
+
+import java.io.IOException;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 import com.wazuh.setup.settings.PluginSettings;
 import com.wazuh.setup.utils.IndexTemplateUtils;
@@ -63,7 +63,8 @@ public class WazuhIndices {
         this.timeout = pluginSettings.getTimeout();
 
         // Create Index Templates - Indices map
-        this.indexTemplates.put("index-template-alerts", List.of("wazuh-alerts-5.x-0001", "wazuh-archives-5.x-0001"));
+        this.indexTemplates.put(
+                "index-template-alerts", List.of("wazuh-alerts-5.x-0001", "wazuh-archives-5.x-0001"));
         this.indexTemplates.put("index-template-fim-files", List.of("wazuh-states-fim-files"));
         this.indexTemplates.put(
                 "index-template-fim-registries", List.of("wazuh-states-fim-registries"));
