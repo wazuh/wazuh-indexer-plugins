@@ -34,6 +34,9 @@ public class Privileged {
 
     private static final Logger log = LogManager.getLogger(Privileged.class);
 
+    /** Default constructor for Privileged class. */
+    public Privileged() {}
+
     /**
      * Executes an HTTP request with elevated privileges.
      *

@@ -34,7 +34,7 @@ public final class ContentUpdaterJobRunner implements ScheduledJobRunner {
     /** Singleton instance. */
     private static ContentUpdaterJobRunner INSTANCE;
 
-    private CTIClient client;
+    private CTIClient ctiClient;
     private ThreadPool threadPool;
     private Environment environment;
     private ContentIndex contentIndex;
@@ -42,7 +42,7 @@ public final class ContentUpdaterJobRunner implements ScheduledJobRunner {
     private Privileged privileged;
     private CommandManagerClient commandManagerClient;
 
-    /** Private default constructor. */
+    /** Private default constructor for ContentUpdaterJobRunner. */
     private ContentUpdaterJobRunner() {}
 
     /**
@@ -57,146 +57,99 @@ public final class ContentUpdaterJobRunner implements ScheduledJobRunner {
         return INSTANCE;
     }
 
-    /**
-     * Singleton instance access method with parameters.
-     *
-     * @param client OpenSearch's client.
-     * @param threadPool OpenSearch's thread pool.
-     * @param environment OpenSearch's environment.
-     * @param contextIndex Handles context and consumer related metadata.
-     * @param contentIndex Handles indexed content.
-     * @param privileged Handles privileged operations.
-     * @param commandManagerClient CommandManagerClient to interact with the command manager API.
-     * @return the singleton instance.
-     */
-    public static ContentUpdaterJobRunner getInstance(
-            CTIClient client,
-            ThreadPool threadPool,
-            Environment environment,
-            ContextIndex contextIndex,
-            ContentIndex contentIndex,
-            Privileged privileged,
-            CommandManagerClient commandManagerClient) {
-        if (ContentUpdaterJobRunner.INSTANCE == null) {
-            INSTANCE = new ContentUpdaterJobRunner();
-        }
-        INSTANCE.setPrivileged(privileged);
-        INSTANCE.setClient(client);
-        INSTANCE.setThreadPool(threadPool);
-        INSTANCE.setContextIndex(contextIndex);
-        INSTANCE.setContentIndex(contentIndex);
-        INSTANCE.setEnvironment(environment);
-        INSTANCE.setCommandManagerClient(commandManagerClient);
-        return INSTANCE;
-    }
-
-    /**
-     * Singleton instance access method with parameters.
-     *
-     * @param client OpenSearch's client.
-     * @param threadPool OpenSearch's thread pool.
-     * @param environment OpenSearch's environment.
-     * @param contextIndex Handles context and consumer related metadata.
-     * @param contentIndex Handles indexed content.
-     * @param privileged Handles privileged operations.
-     * @return the singleton instance.
-     */
-    public static ContentUpdaterJobRunner getInstance(
-            CTIClient client,
-            ThreadPool threadPool,
-            Environment environment,
-            ContextIndex contextIndex,
-            ContentIndex contentIndex,
-            Privileged privileged) {
-        if (ContentUpdaterJobRunner.INSTANCE == null) {
-            INSTANCE = new ContentUpdaterJobRunner();
-        }
-        INSTANCE.setPrivileged(privileged);
-        INSTANCE.setClient(client);
-        INSTANCE.setThreadPool(threadPool);
-        INSTANCE.setContextIndex(contextIndex);
-        INSTANCE.setContentIndex(contentIndex);
-        INSTANCE.setEnvironment(environment);
-        return INSTANCE;
-    }
-
     @Override
     public void runJob(
             ScheduledJobParameter scheduledJobParameter, JobExecutionContext jobExecutionContext) {
         if (this.commandManagerClient == null) {
-            this.commandManagerClient = privileged.doPrivilegedRequest(CommandManagerClient::getInstance);
+            this.commandManagerClient =
+                    this.privileged.doPrivilegedRequest(CommandManagerClient::getInstance);
         }
         ContentUpdaterRunnable jobRunnable =
                 ContentUpdaterRunnable.getInstance(
                         this.environment,
                         this.contextIndex,
                         this.contentIndex,
-                        this.client,
+                        this.ctiClient,
                         this.privileged,
                         this.commandManagerClient);
         this.threadPool.generic().submit(jobRunnable);
     }
 
     /**
-     * Sets the privileged object
+     * Sets the CTI client.
      *
-     * @param privileged Handles privileged operations.
+     * @param ctiClient CTIClient to interact with the CTI API.
+     * @return the ContentUpdaterJobRunner instance.
      */
-    public void setPrivileged(Privileged privileged) {
-        this.privileged = privileged;
-    }
-
-    /**
-     * Sets the client.
-     *
-     * @param client OpenSearch's client.
-     */
-    public void setClient(CTIClient client) {
-        this.client = client;
+    public ContentUpdaterJobRunner setCtiClient(CTIClient ctiClient) {
+        this.ctiClient = ctiClient;
+        return this;
     }
 
     /**
      * Sets the thread pool.
      *
      * @param threadPool OpenSearch's thread pool.
+     * @return the ContentUpdaterJobRunner instance.
      */
-    public void setThreadPool(ThreadPool threadPool) {
+    public ContentUpdaterJobRunner setThreadPool(ThreadPool threadPool) {
         this.threadPool = threadPool;
-    }
-
-    /**
-     * Sets the context index.
-     *
-     * @param contextIndex Handles context and consumer related metadata.
-     */
-    public void setContextIndex(ContextIndex contextIndex) {
-        this.contextIndex = contextIndex;
+        return this;
     }
 
     /**
      * Sets the environment.
      *
      * @param environment OpenSearch's environment.
+     * @return the ContentUpdaterJobRunner instance.
      */
-    public void setEnvironment(Environment environment) {
+    public ContentUpdaterJobRunner setEnvironment(Environment environment) {
         this.environment = environment;
+        return this;
+    }
+
+    /**
+     * Sets the context index.
+     *
+     * @param contextIndex Handles context and consumer related metadata.
+     * @return the ContentUpdaterJobRunner instance.
+     */
+    public ContentUpdaterJobRunner setContextIndex(ContextIndex contextIndex) {
+        this.contextIndex = contextIndex;
+        return this;
     }
 
     /**
      * Sets the content index.
      *
      * @param contentIndex Handles indexed content.
+     * @return the ContentUpdaterJobRunner instance.
      */
-    public void setContentIndex(ContentIndex contentIndex) {
+    public ContentUpdaterJobRunner setContentIndex(ContentIndex contentIndex) {
         this.contentIndex = contentIndex;
+        return this;
+    }
+
+    /**
+     * Sets the privileged object.
+     *
+     * @param privileged Handles privileged operations.
+     * @return the ContentUpdaterJobRunner instance.
+     */
+    public ContentUpdaterJobRunner setPrivileged(Privileged privileged) {
+        this.privileged = privileged;
+        return this;
     }
 
     /**
      * Sets the command manager client.
      *
      * @param commandManagerClient CommandManagerClient to interact with the command manager API.
+     * @return the ContentUpdaterJobRunner instance.
      */
-    public void setCommandManagerClient(CommandManagerClient commandManagerClient) {
+    public ContentUpdaterJobRunner setCommandManagerClient(
+            CommandManagerClient commandManagerClient) {
         this.commandManagerClient = commandManagerClient;
+        return this;
     }
 }

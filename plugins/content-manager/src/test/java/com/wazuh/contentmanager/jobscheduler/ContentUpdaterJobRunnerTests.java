@@ -86,14 +86,14 @@ public class ContentUpdaterJobRunnerTests extends OpenSearchTestCase {
     /** Test the singleton instance of ContentUpdaterJobRunner. */
     public void testSingletonInstance() {
         ContentUpdaterJobRunner instance1 =
-                ContentUpdaterJobRunner.getInstance(
-                        this.client,
-                        this.threadPool,
-                        this.environment,
-                        this.contextIndex,
-                        this.contentIndex,
-                        this.privileged,
-                        this.commandManagerClient);
+                ContentUpdaterJobRunner.getInstance()
+                        .setCtiClient(this.client)
+                        .setThreadPool(this.threadPool)
+                        .setEnvironment(this.environment)
+                        .setContextIndex(this.contextIndex)
+                        .setContentIndex(this.contentIndex)
+                        .setPrivileged(this.privileged)
+                        .setCommandManagerClient(this.commandManagerClient);
         ContentUpdaterJobRunner instance2 = ContentUpdaterJobRunner.getInstance();
         assertSame(instance1, instance2);
     }
@@ -101,7 +101,7 @@ public class ContentUpdaterJobRunnerTests extends OpenSearchTestCase {
     /** Test the constructor of ContentUpdaterJobRunner. */
     public void testSetters() {
         ContentUpdaterJobRunner runner = ContentUpdaterJobRunner.getInstance();
-        runner.setClient(this.client);
+        runner.setCtiClient(this.client);
         runner.setThreadPool(this.threadPool);
         runner.setEnvironment(this.environment);
         runner.setContentIndex(this.contentIndex);
@@ -112,14 +112,14 @@ public class ContentUpdaterJobRunnerTests extends OpenSearchTestCase {
     /** Test the runJob method of ContentUpdaterJobRunner. */
     public void testRunJobSubmitsRunnable() {
         ContentUpdaterJobRunner runner =
-                ContentUpdaterJobRunner.getInstance(
-                        this.client,
-                        this.threadPool,
-                        this.environment,
-                        this.contextIndex,
-                        this.contentIndex,
-                        this.privileged,
-                        this.commandManagerClient);
+                ContentUpdaterJobRunner.getInstance()
+                        .setCtiClient(this.client)
+                        .setThreadPool(this.threadPool)
+                        .setEnvironment(this.environment)
+                        .setContextIndex(this.contextIndex)
+                        .setContentIndex(this.contentIndex)
+                        .setPrivileged(this.privileged)
+                        .setCommandManagerClient(this.commandManagerClient);
 
         ScheduledJobParameter jobParam = mock(ScheduledJobParameter.class);
         JobExecutionContext jobContext = mock(JobExecutionContext.class);

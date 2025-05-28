@@ -74,6 +74,10 @@ public class ContentManagerPlugin extends Plugin implements ClusterPlugin, JobSc
     private Client client;
     private ContextIndex contextIndex;
     private ContentIndex contentIndex;
+    private CTIClient ctiClient;
+    private ThreadPool threadPool;
+    private Environment environment;
+    private Privileged privileged;
 
     @Override
     public Collection<Object> createComponents(
@@ -94,14 +98,18 @@ public class ContentManagerPlugin extends Plugin implements ClusterPlugin, JobSc
         this.client = client;
         this.contextIndex = new ContextIndex(client);
         this.contentIndex = new ContentIndex(client);
-        Privileged privileged = new Privileged();
-        ContentUpdaterJobRunner.getInstance(
-                privileged.doPrivilegedRequest(CTIClient::getInstance),
-                threadPool,
-                environment,
-                this.contextIndex,
-                contentIndex,
-                privileged);
+        this.privileged = new Privileged();
+        this.ctiClient = this.privileged.doPrivilegedRequest(CTIClient::getInstance);
+        this.threadPool = threadPool;
+        this.environment = environment;
+
+        ContentUpdaterJobRunner.getInstance()
+                .setCtiClient(this.ctiClient)
+                .setThreadPool(this.threadPool)
+                .setEnvironment(this.environment)
+                .setContextIndex(this.contextIndex)
+                .setContentIndex(this.contentIndex)
+                .setPrivileged(this.privileged);
 
         return Collections.emptyList();
     }
