@@ -66,6 +66,8 @@ public class WazuhIndices {
         this.indexTemplates.put(
                 "index-template-alerts", List.of("wazuh-alerts-5.x-0001", "wazuh-archives-5.x-0001"));
         this.indexTemplates.put("index-template-fim-files", List.of("wazuh-states-fim-files"));
+        this.indexTemplates.put("index-template-monitoring", List.of("wazuh-monitoring"));
+        this.indexTemplates.put("index-template-statistics", List.of("wazuh-statistics"));
         this.indexTemplates.put(
                 "index-template-fim-registries", List.of("wazuh-states-fim-registries"));
         this.indexTemplates.put("index-template-hardware", List.of("wazuh-states-inventory-hardware"));
