@@ -2,7 +2,7 @@ import java.util.concurrent.Callable
 
 buildscript {
     ext {
-        opensearch_version = System.getProperty("opensearch.version", "2.19.2-SNAPSHOT")
+        opensearch_version = System.getProperty("opensearch.version", "3.0.0-SNAPSHOT")
         opensearch_no_snapshot = opensearch_version.replace("-SNAPSHOT","")
         opensearch_build = opensearch_no_snapshot + ".0"
         job_scheduler_version = System.getProperty("job_scheduler.version", opensearch_build)
@@ -28,6 +28,7 @@ apply plugin: 'eclipse'
 apply plugin: 'opensearch.opensearchplugin'
 apply plugin: 'opensearch.rest-test'
 apply plugin: 'opensearch.pluginzip'
+apply plugin: 'opensearch.java-agent'
 
 def pluginName = 'wazuh-indexer-command-manager'
 def pluginDescription = 'The Command Manager plugin handles and distributes commands across your Wazuh environment.'
@@ -62,8 +63,8 @@ publishing {
 allprojects {
     group = "${projectPath}"
     version = "${wazuh_version}" + ".${revision}"
-    targetCompatibility = JavaVersion.VERSION_11
-    sourceCompatibility = JavaVersion.VERSION_11
+    targetCompatibility = JavaVersion.VERSION_21
+    sourceCompatibility = JavaVersion.VERSION_21
 }
 
 opensearchplugin {
@@ -84,7 +85,7 @@ configurations {
 }
 
 dependencies {
-    implementation "org.apache.logging.log4j:log4j-slf4j-impl:${versions.log4j}"
+    //implementation "org.apache.logging.log4j:log4j-slf4j-impl:${versions.log4j}"
 
     // Job Scheduler stuff
     zipArchive group: 'org.opensearch.plugin', name: 'opensearch-job-scheduler', version: "${opensearch_build}"
