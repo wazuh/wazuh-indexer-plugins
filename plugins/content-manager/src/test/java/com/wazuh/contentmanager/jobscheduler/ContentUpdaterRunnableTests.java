@@ -132,15 +132,15 @@ public class ContentUpdaterRunnableTests extends OpenSearchTestCase {
         doReturn(currentConsumerInfo).when(this.contextIndex).get(anyString(), anyString());
 
         ContentUpdaterRunnable instance =
-                ContentUpdaterRunnable.getInstance(
-                        this.environment,
-                        this.contextIndex,
-                        this.contentIndex,
-                        this.ctiClient,
-                        this.privileged,
-                        this.commandManagerClient,
-                        this.snapshotManager,
-                        this.contentUpdater);
+                ContentUpdaterRunnable.getInstance()
+                        .setEnvironment(this.environment)
+                        .setContextIndex(this.contextIndex)
+                        .setContentIndex(this.contentIndex)
+                        .setCtiClient(this.ctiClient)
+                        .setPrivileged(this.privileged)
+                        .setCommandManagerClient(this.commandManagerClient)
+                        .setSnapshotManager(this.snapshotManager)
+                        .setContentUpdater(this.contentUpdater);
         instance.run();
 
         // Since offsets are equal, no update or snapshot should be triggered.
@@ -178,15 +178,15 @@ public class ContentUpdaterRunnableTests extends OpenSearchTestCase {
         doReturn(true).when(this.contextIndex).index(any(ConsumerInfo.class), anyBoolean());
 
         ContentUpdaterRunnable instance =
-                ContentUpdaterRunnable.getInstance(
-                        this.environment,
-                        this.contextIndex,
-                        this.contentIndex,
-                        this.ctiClient,
-                        this.privileged,
-                        this.commandManagerClient,
-                        this.snapshotManager,
-                        this.contentUpdater);
+                ContentUpdaterRunnable.getInstance()
+                        .setEnvironment(this.environment)
+                        .setContextIndex(this.contextIndex)
+                        .setContentIndex(this.contentIndex)
+                        .setCtiClient(this.ctiClient)
+                        .setPrivileged(this.privileged)
+                        .setCommandManagerClient(this.commandManagerClient)
+                        .setSnapshotManager(this.snapshotManager)
+                        .setContentUpdater(this.contentUpdater);
         instance.run();
 
         verify(this.snapshotManager).initialize(latestConsumerInfo);
@@ -222,15 +222,15 @@ public class ContentUpdaterRunnableTests extends OpenSearchTestCase {
         when(this.contextIndex.get(anyString(), anyString())).thenReturn(currentConsumerInfo);
 
         ContentUpdaterRunnable instance =
-                ContentUpdaterRunnable.getInstance(
-                        this.environment,
-                        this.contextIndex,
-                        this.contentIndex,
-                        this.ctiClient,
-                        this.privileged,
-                        this.commandManagerClient,
-                        this.snapshotManager,
-                        this.contentUpdater);
+                ContentUpdaterRunnable.getInstance()
+                        .setEnvironment(this.environment)
+                        .setContextIndex(this.contextIndex)
+                        .setContentIndex(this.contentIndex)
+                        .setCtiClient(this.ctiClient)
+                        .setPrivileged(this.privileged)
+                        .setCommandManagerClient(this.commandManagerClient)
+                        .setSnapshotManager(this.snapshotManager)
+                        .setContentUpdater(this.contentUpdater);
         instance.run();
         verify(this.contentUpdater).update(currentConsumerInfo, latestConsumerInfo.getLastOffset());
     }
@@ -267,15 +267,15 @@ public class ContentUpdaterRunnableTests extends OpenSearchTestCase {
                         new OpenSearchStatusException("Simulated failure", RestStatus.SERVICE_UNAVAILABLE));
 
         ContentUpdaterRunnable instance =
-                ContentUpdaterRunnable.getInstance(
-                        this.environment,
-                        this.contextIndex,
-                        this.contentIndex,
-                        this.ctiClient,
-                        this.privileged,
-                        this.commandManagerClient,
-                        this.snapshotManager,
-                        this.contentUpdater);
+                ContentUpdaterRunnable.getInstance()
+                        .setEnvironment(this.environment)
+                        .setContextIndex(this.contextIndex)
+                        .setContentIndex(this.contentIndex)
+                        .setCtiClient(this.ctiClient)
+                        .setPrivileged(this.privileged)
+                        .setCommandManagerClient(this.commandManagerClient)
+                        .setSnapshotManager(this.snapshotManager)
+                        .setContentUpdater(this.contentUpdater);
         instance.run();
 
         verify(this.contentUpdater, never())
@@ -286,15 +286,15 @@ public class ContentUpdaterRunnableTests extends OpenSearchTestCase {
     public void testSingletonEnforcement() {
         resetSingleton();
         ContentUpdaterRunnable instance1 =
-                ContentUpdaterRunnable.getInstance(
-                        this.environment,
-                        this.contextIndex,
-                        this.contentIndex,
-                        this.ctiClient,
-                        this.privileged,
-                        this.commandManagerClient,
-                        this.snapshotManager,
-                        this.contentUpdater);
+                ContentUpdaterRunnable.getInstance()
+                        .setEnvironment(this.environment)
+                        .setContextIndex(this.contextIndex)
+                        .setContentIndex(this.contentIndex)
+                        .setCtiClient(this.ctiClient)
+                        .setPrivileged(this.privileged)
+                        .setCommandManagerClient(this.commandManagerClient)
+                        .setSnapshotManager(this.snapshotManager)
+                        .setContentUpdater(this.contentUpdater);
 
         ContentUpdaterRunnable instance2 = ContentUpdaterRunnable.getInstance();
 

@@ -37,150 +37,17 @@ import com.wazuh.contentmanager.utils.SnapshotManager;
 public final class ContentUpdaterRunnable implements Runnable {
     private static final Logger log = LogManager.getLogger(ContentUpdaterRunnable.class);
     private static ContentUpdaterRunnable INSTANCE;
-    private final Privileged privileged;
-    private final Environment environment;
-    private final ContextIndex contextIndex;
-    private final ContentIndex contentIndex;
-    private final CTIClient ctiClient;
-    private final CommandManagerClient commandManagerClient;
-    private final AtomicBoolean isRunning = new AtomicBoolean(false);
-    private final SnapshotManager snapshotManager;
-    private final ContentUpdater contentUpdater;
+    private Privileged privileged;
+    private Environment environment;
+    private ContextIndex contextIndex;
+    private ContentIndex contentIndex;
+    private CTIClient ctiClient;
+    private CommandManagerClient commandManagerClient;
+    private AtomicBoolean isRunning = new AtomicBoolean(false);
+    private SnapshotManager snapshotManager;
+    private ContentUpdater contentUpdater;
 
-    /**
-     * Default constructor.
-     *
-     * @param environment Environment to run the job.
-     * @param contextIndex ContextIndex to run the job.
-     * @param contentIndex ContentIndex to run the job.
-     * @param ctiClient CTIClient to interact with the CTI API.
-     * @param privileged Privileged to run the job.
-     * @param commandManagerClient CommandManagerClient to interact with the command manager API.
-     * @param snapshotManager SnapshotManager to handle snapshot indexing.
-     */
-    private ContentUpdaterRunnable(
-            Environment environment,
-            ContextIndex contextIndex,
-            ContentIndex contentIndex,
-            CTIClient ctiClient,
-            Privileged privileged,
-            CommandManagerClient commandManagerClient,
-            SnapshotManager snapshotManager,
-            ContentUpdater contentUpdater) {
-        this.environment = environment;
-        this.contextIndex = contextIndex;
-        this.contentIndex = contentIndex;
-        this.ctiClient = ctiClient;
-        this.privileged = privileged;
-        this.commandManagerClient = commandManagerClient;
-        this.snapshotManager = snapshotManager;
-        this.contentUpdater = contentUpdater;
-    }
-
-    /**
-     * Default constructor.
-     *
-     * @param environment Environment to run the job.
-     * @param contextIndex ContextIndex to run the job.
-     * @param contentIndex ContentIndex to run the job.
-     * @param ctiClient CTIClient to interact with the CTI API.
-     * @param privileged Privileged to run the job.
-     * @param commandManagerClient CommandManagerClient to interact with the command manager API.
-     */
-    private ContentUpdaterRunnable(
-            Environment environment,
-            ContextIndex contextIndex,
-            ContentIndex contentIndex,
-            CTIClient ctiClient,
-            Privileged privileged,
-            CommandManagerClient commandManagerClient) {
-        this.environment = environment;
-        this.contextIndex = contextIndex;
-        this.contentIndex = contentIndex;
-        this.ctiClient = ctiClient;
-        this.privileged = privileged;
-        // The Command Manager client needs the cluster to be up (depends on PluginSettings),
-        // so we initialize it here once the node is up and ready.
-        this.commandManagerClient = commandManagerClient;
-        this.snapshotManager =
-                new SnapshotManager(
-                        this.environment,
-                        this.contextIndex,
-                        this.contentIndex,
-                        this.privileged,
-                        this.ctiClient,
-                        this.commandManagerClient);
-        this.contentUpdater =
-                new ContentUpdater(
-                        this.ctiClient,
-                        this.commandManagerClient,
-                        this.contextIndex,
-                        this.contentIndex,
-                        this.privileged);
-    }
-
-    /**
-     * Singleton instance access method.
-     *
-     * @param environment the environment to pass to SnapshotManager
-     * @param contextIndex handles the context and consumer related metadata
-     * @param contentIndex handles the indexed content
-     * @param ctiClient the CTIClient to interact with the CTI API
-     * @param privileged handles privileged operations
-     * @param commandManagerClient the CommandManagerClient to interact with the command manager API
-     * @return the singleton instance
-     */
-    public static ContentUpdaterRunnable getInstance(
-            Environment environment,
-            ContextIndex contextIndex,
-            ContentIndex contentIndex,
-            CTIClient ctiClient,
-            Privileged privileged,
-            CommandManagerClient commandManagerClient) {
-        if (INSTANCE == null) {
-            INSTANCE =
-                    new ContentUpdaterRunnable(
-                            environment, contextIndex, contentIndex, ctiClient, privileged, commandManagerClient);
-        }
-        return INSTANCE;
-    }
-
-    /**
-     * Singleton instance access method.
-     *
-     * @param environment the environment to pass to SnapshotManager
-     * @param contextIndex handles the context and consumer related metadata
-     * @param contentIndex handles the indexed content
-     * @param ctiClient the CTIClient to interact with the CTI API
-     * @param privileged handles privileged operations
-     * @param commandManagerClient the CommandManagerClient to interact with the command manager API
-     * @param snapshotManager the SnapshotManager to handle snapshot indexing
-     * @param contentUpdater the ContentUpdater to handle content updates
-     * @return the singleton instance
-     */
-    public static ContentUpdaterRunnable getInstance(
-            Environment environment,
-            ContextIndex contextIndex,
-            ContentIndex contentIndex,
-            CTIClient ctiClient,
-            Privileged privileged,
-            CommandManagerClient commandManagerClient,
-            SnapshotManager snapshotManager,
-            ContentUpdater contentUpdater) {
-        if (INSTANCE == null) {
-            INSTANCE =
-                    new ContentUpdaterRunnable(
-                            environment,
-                            contextIndex,
-                            contentIndex,
-                            ctiClient,
-                            privileged,
-                            commandManagerClient,
-                            snapshotManager,
-                            contentUpdater);
-        }
-        return INSTANCE;
-    }
+    private ContentUpdaterRunnable() {}
 
     /**
      * Singleton instance access method.
@@ -189,7 +56,7 @@ public final class ContentUpdaterRunnable implements Runnable {
      */
     public static ContentUpdaterRunnable getInstance() {
         if (INSTANCE == null) {
-            throw new IllegalStateException("ContentUpdaterRunnable is not initialized.");
+            INSTANCE = new ContentUpdaterRunnable();
         }
         return INSTANCE;
     }
@@ -199,6 +66,25 @@ public final class ContentUpdaterRunnable implements Runnable {
         if (!this.isRunning.compareAndSet(false, true)) {
             log.debug("Content Updater job is already running.");
             return;
+        }
+        if (this.snapshotManager == null) {
+            this.snapshotManager =
+                    new SnapshotManager(
+                            this.environment,
+                            this.contextIndex,
+                            this.contentIndex,
+                            this.privileged,
+                            this.ctiClient,
+                            this.commandManagerClient);
+        }
+        if (this.contentUpdater == null) {
+            this.contentUpdater =
+                    new ContentUpdater(
+                            this.ctiClient,
+                            this.commandManagerClient,
+                            this.contextIndex,
+                            this.contentIndex,
+                            this.privileged);
         }
         ConsumerInfo latest = privileged.getConsumerInfo(this.ctiClient);
         long latestOffset = latest.getLastOffset();
@@ -222,5 +108,95 @@ public final class ContentUpdaterRunnable implements Runnable {
         } finally {
             this.isRunning.set(false);
         }
+    }
+
+    /**
+     * Sets the privileged object for this runnable.
+     *
+     * @param privileged the privileged object to set
+     */
+    public ContentUpdaterRunnable setPrivileged(Privileged privileged) {
+        this.privileged = privileged;
+        return this;
+    }
+
+    /**
+     * Sets the environment for this runnable.
+     *
+     * @param environment the environment to set
+     */
+    public ContentUpdaterRunnable setEnvironment(Environment environment) {
+        this.environment = environment;
+        return this;
+    }
+
+    /**
+     * Sets the context index for this runnable.
+     *
+     * @param contextIndex the context index to set
+     */
+    public ContentUpdaterRunnable setContextIndex(ContextIndex contextIndex) {
+        this.contextIndex = contextIndex;
+        return this;
+    }
+
+    /**
+     * Sets the content index for this runnable.
+     *
+     * @param contentIndex the content index to set
+     */
+    public ContentUpdaterRunnable setContentIndex(ContentIndex contentIndex) {
+        this.contentIndex = contentIndex;
+        return this;
+    }
+
+    /**
+     * Sets the CTI client for this runnable.
+     *
+     * @param ctiClient the CTI client to set
+     */
+    public ContentUpdaterRunnable setCtiClient(CTIClient ctiClient) {
+        this.ctiClient = ctiClient;
+        return this;
+    }
+
+    /**
+     * Sets the Command Manager client for this runnable.
+     *
+     * @param commandManagerClient the Command Manager client to set
+     */
+    public ContentUpdaterRunnable setCommandManagerClient(CommandManagerClient commandManagerClient) {
+        this.commandManagerClient = commandManagerClient;
+        return this;
+    }
+
+    /**
+     * Sets the running state of this runnable.
+     *
+     * @param isRunning the AtomicBoolean to set
+     */
+    public ContentUpdaterRunnable setIsRunning(AtomicBoolean isRunning) {
+        this.isRunning = isRunning;
+        return this;
+    }
+
+    /**
+     * Sets the SnapshotManager for this runnable.
+     *
+     * @param snapshotManager the SnapshotManager to set
+     */
+    public ContentUpdaterRunnable setSnapshotManager(SnapshotManager snapshotManager) {
+        this.snapshotManager = snapshotManager;
+        return this;
+    }
+
+    /**
+     * Sets the ContentUpdater for this runnable.
+     *
+     * @param contentUpdater the ContentUpdater to set
+     */
+    public ContentUpdaterRunnable setContentUpdater(ContentUpdater contentUpdater) {
+        this.contentUpdater = contentUpdater;
+        return this;
     }
 }

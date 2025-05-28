@@ -65,13 +65,13 @@ public final class ContentUpdaterJobRunner implements ScheduledJobRunner {
                     this.privileged.doPrivilegedRequest(CommandManagerClient::getInstance);
         }
         ContentUpdaterRunnable jobRunnable =
-                ContentUpdaterRunnable.getInstance(
-                        this.environment,
-                        this.contextIndex,
-                        this.contentIndex,
-                        this.ctiClient,
-                        this.privileged,
-                        this.commandManagerClient);
+                ContentUpdaterRunnable.getInstance()
+                        .setEnvironment(this.environment)
+                        .setContextIndex(this.contextIndex)
+                        .setContentIndex(this.contentIndex)
+                        .setCtiClient(this.ctiClient)
+                        .setPrivileged(this.privileged)
+                        .setCommandManagerClient(this.commandManagerClient);
         this.threadPool.generic().submit(jobRunnable);
     }
 
