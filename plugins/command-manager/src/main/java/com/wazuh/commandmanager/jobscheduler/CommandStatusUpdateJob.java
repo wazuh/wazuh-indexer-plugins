@@ -19,13 +19,13 @@ package com.wazuh.commandmanager.jobscheduler;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.opensearch.OpenSearchTimeoutException;
-import org.opensearch.transport.client.Client;
 import org.opensearch.index.query.QueryBuilders;
 import org.opensearch.index.reindex.BulkByScrollResponse;
 import org.opensearch.index.reindex.UpdateByQueryAction;
 import org.opensearch.index.reindex.UpdateByQueryRequestBuilder;
 import org.opensearch.script.Script;
 import org.opensearch.script.ScriptType;
+import org.opensearch.transport.client.Client;
 
 import java.util.Collections;
 import java.util.Locale;

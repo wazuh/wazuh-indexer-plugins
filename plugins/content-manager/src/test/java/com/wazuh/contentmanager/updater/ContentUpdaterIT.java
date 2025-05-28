@@ -21,7 +21,6 @@ import com.carrotsearch.randomizedtesting.annotations.ThreadLeakScope;
 import org.opensearch.OpenSearchStatusException;
 import org.opensearch.action.admin.indices.refresh.RefreshRequest;
 import org.opensearch.action.support.WriteRequest;
-import org.opensearch.transport.client.Client;
 import org.opensearch.cluster.service.ClusterService;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.common.xcontent.XContentFactory;
@@ -29,6 +28,7 @@ import org.opensearch.core.xcontent.ToXContent;
 import org.opensearch.env.Environment;
 import org.opensearch.plugins.Plugin;
 import org.opensearch.test.OpenSearchIntegTestCase;
+import org.opensearch.transport.client.Client;
 import org.junit.Before;
 
 import java.io.IOException;
