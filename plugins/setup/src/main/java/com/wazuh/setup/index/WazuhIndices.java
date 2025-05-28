@@ -21,7 +21,6 @@ import org.apache.logging.log4j.Logger;
 import org.opensearch.action.admin.indices.create.CreateIndexRequest;
 import org.opensearch.action.admin.indices.create.CreateIndexResponse;
 import org.opensearch.action.admin.indices.template.put.PutIndexTemplateRequest;
-import org.opensearch.action.support.clustermanager.AcknowledgedResponse;
 import org.opensearch.cluster.service.ClusterService;
 import org.opensearch.core.action.ActionListener;
 import org.opensearch.transport.client.Client;
@@ -103,25 +102,7 @@ public class WazuhIndices {
                             .name(templateName)
                             .patterns((List<String>) template.get("index_patterns"));
 
-            this.client
-                    .admin()
-                    .indices()
-                    .putTemplate(
-                            putIndexTemplateRequest,
-                            new ActionListener<>() {
-                                @Override
-                                public void onResponse(AcknowledgedResponse acknowledgedResponse) {
-                                    log.info(
-                                            "Index template created successfully: {} {}",
-                                            templateName,
-                                            acknowledgedResponse.isAcknowledged());
-                                }
-
-                                @Override
-                                public void onFailure(Exception e) {
-                                    log.error("Error creating index template [{}]: {}", templateName, e.getMessage());
-                                }
-                            });
+            this.client.admin().indices().putTemplate(putIndexTemplateRequest).actionGet();
 
         } catch (IOException e) {
             log.error("Error reading index template from filesystem {}", templateName);

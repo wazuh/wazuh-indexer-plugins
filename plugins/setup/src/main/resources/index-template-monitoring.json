@@ -1,16 +1,20 @@
 {
-  "order": 0,
+  "order": 1,
   "index_patterns": [
-    "wazuh-monitoring-*"
+    "wazuh-monitoring*"
   ],
   "settings": {
-    "index.refresh_interval": "5s"
+    "index": {
+      "number_of_replicas": "0",
+      "number_of_shards": "1",
+      "refresh_interval": "5s"
+    }
   },
   "mappings": {
     "properties": {
       "timestamp": {
         "type": "date",
-        "format": "dateOptionalTime"
+        "format": "date"
       },
       "status": {
         "type": "keyword"
