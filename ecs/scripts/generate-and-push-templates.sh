@@ -144,6 +144,7 @@ commit_and_push_changes() {
     echo "Copying ECS templates and csv definitions to the plugins repository..."
     for ecs_module in "${relevant_modules[@]}"; do
         target_file=${module_to_file[$ecs_module]}
+        documentation_dir=$"CURRENT_PATH/ecs/$ecs_module/$DOCUMENTATION_PATH/"
         if [[ -z "$target_file" ]]; then
             continue
         fi
@@ -158,8 +159,9 @@ commit_and_push_changes() {
         fi
         cp "$CURRENT_PATH/ecs/$ecs_module/$MAPPINGS_SUBPATH" "$TEMPLATES_PATH/$target_file"
         # Copy the csv to the plugins repository
-        echo "  - Copy the updated csv definitions for module '$ecs_module' to '$CURRENT_PATH/ecs/$ecs_module/$DOCUMENTATION_PATH'"
-        cp "$CURRENT_PATH/ecs/$ecs_module/$CSV_SUBPATH" "$CURRENT_PATH/ecs/$ecs_module/$DOCUMENTATION_PATH/"
+        mkdir -p "$documentation_dir"
+        echo "  - Copy the updated csv definitions for module '$ecs_module' to '$documentation_dir'"
+        cp "$CURRENT_PATH/ecs/$ecs_module/$CSV_SUBPATH" "$documentation_dir"
     done
 
     git status --short
