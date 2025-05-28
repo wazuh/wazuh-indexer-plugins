@@ -63,8 +63,7 @@ public class WazuhIndices {
         this.timeout = pluginSettings.getTimeout();
 
         // Create Index Templates - Indices map
-        // this.indexTemplates.put("index-template-alerts", List.of("wazuh-alerts-5.x-0001"));
-        this.indexTemplates.put("alerts", List.of("wazuh-alerts-*", "wazuh-archives-*"));
+        this.indexTemplates.put("index-template-alerts", List.of("wazuh-alerts-5.x-0001", "wazuh-archives-5.x-0001"));
         this.indexTemplates.put("index-template-fim-files", List.of("wazuh-states-fim-files"));
         this.indexTemplates.put(
                 "index-template-fim-registries", List.of("wazuh-states-fim-registries"));
