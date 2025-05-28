@@ -42,37 +42,10 @@ public class SnapshotManager {
     private final ContextIndex contextIndex;
     private final ContentIndex contentIndex;
     private final Privileged privileged;
-    private final PluginSettings pluginSettings;
+    private PluginSettings pluginSettings;
 
     /**
-     * Alternate constructor that allows injecting CTIClient for test purposes. Dependency injection.
-     *
-     * @param environment Needed for snapshot file handling.
-     * @param contextIndex Handles context and consumer related metadata.
-     * @param contentIndex Handles indexed content.
-     * @param ctiClient Instance of CTIClient.
-     */
-    @VisibleForTesting
-    protected SnapshotManager(
-            Environment environment,
-            ContextIndex contextIndex,
-            ContentIndex contentIndex,
-            Privileged privileged,
-            CTIClient ctiClient,
-            PluginSettings pluginSettings,
-            CommandManagerClient commandManagerClient) {
-        this.ctiClient = ctiClient;
-        this.commandManagerClient = commandManagerClient;
-        this.environment = environment;
-        this.contextIndex = contextIndex;
-        this.contentIndex = contentIndex;
-        this.privileged = privileged;
-        this.pluginSettings = pluginSettings;
-    }
-
-    /**
-     * Alternate constructor that allows injecting CommandManagerClient for test purposes. Dependency
-     * injection.
+     * Constructor for SnapshotManager.
      *
      * @param environment Needed for snapshot file handling.
      * @param contextIndex Handles context and consumer related metadata.
@@ -94,7 +67,6 @@ public class SnapshotManager {
         this.contextIndex = contextIndex;
         this.contentIndex = contentIndex;
         this.privileged = privileged;
-        this.pluginSettings = PluginSettings.getInstance();
     }
 
     /**
@@ -201,5 +173,16 @@ public class SnapshotManager {
         } catch (IOException e) {
             log.error("Failed to initialize: {}", e.getMessage());
         }
+    }
+
+    /**
+     * Sets the plugin settings.
+     *
+     * @param pluginSettings PluginSettings instance containing the settings for the plugin.
+     * @return the SnapshotManager instance.
+     */
+    public SnapshotManager setPluginSettings(PluginSettings pluginSettings) {
+        this.pluginSettings = pluginSettings;
+        return this;
     }
 }

@@ -72,12 +72,13 @@ public final class ContentUpdaterRunnable implements Runnable {
         if (this.snapshotManager == null) {
             this.snapshotManager =
                     new SnapshotManager(
-                            this.environment,
-                            this.contextIndex,
-                            this.contentIndex,
-                            this.privileged,
-                            this.ctiClient,
-                            this.commandManagerClient);
+                                    this.environment,
+                                    this.contextIndex,
+                                    this.contentIndex,
+                                    this.privileged,
+                                    this.ctiClient,
+                                    this.commandManagerClient)
+                            .setPluginSettings(PluginSettings.getInstance());
         }
         if (this.contentUpdater == null) {
             this.contentUpdater =
@@ -120,6 +121,7 @@ public final class ContentUpdaterRunnable implements Runnable {
      * Sets the privileged object for this runnable.
      *
      * @param privileged the privileged object to set
+     * @return the ContentUpdaterRunnable instance
      */
     public ContentUpdaterRunnable setPrivileged(Privileged privileged) {
         this.privileged = privileged;
@@ -130,6 +132,7 @@ public final class ContentUpdaterRunnable implements Runnable {
      * Sets the environment for this runnable.
      *
      * @param environment the environment to set
+     * @return the ContentUpdaterRunnable instance
      */
     public ContentUpdaterRunnable setEnvironment(Environment environment) {
         this.environment = environment;
@@ -140,6 +143,7 @@ public final class ContentUpdaterRunnable implements Runnable {
      * Sets the context index for this runnable.
      *
      * @param contextIndex the context index to set
+     * @return the ContentUpdaterRunnable instance
      */
     public ContentUpdaterRunnable setContextIndex(ContextIndex contextIndex) {
         this.contextIndex = contextIndex;
@@ -150,6 +154,7 @@ public final class ContentUpdaterRunnable implements Runnable {
      * Sets the content index for this runnable.
      *
      * @param contentIndex the content index to set
+     * @return the ContentUpdaterRunnable instance
      */
     public ContentUpdaterRunnable setContentIndex(ContentIndex contentIndex) {
         this.contentIndex = contentIndex;
@@ -160,6 +165,7 @@ public final class ContentUpdaterRunnable implements Runnable {
      * Sets the CTI client for this runnable.
      *
      * @param ctiClient the CTI client to set
+     * @return the ContentUpdaterRunnable instance
      */
     public ContentUpdaterRunnable setCtiClient(CTIClient ctiClient) {
         this.ctiClient = ctiClient;
@@ -170,6 +176,7 @@ public final class ContentUpdaterRunnable implements Runnable {
      * Sets the Command Manager client for this runnable.
      *
      * @param commandManagerClient the Command Manager client to set
+     * @return the ContentUpdaterRunnable instance
      */
     public ContentUpdaterRunnable setCommandManagerClient(CommandManagerClient commandManagerClient) {
         this.commandManagerClient = commandManagerClient;
@@ -180,6 +187,7 @@ public final class ContentUpdaterRunnable implements Runnable {
      * Sets the running state of this runnable.
      *
      * @param isRunning the AtomicBoolean to set
+     * @return the ContentUpdaterRunnable instance
      */
     public ContentUpdaterRunnable setIsRunning(AtomicBoolean isRunning) {
         this.isRunning = isRunning;
@@ -190,6 +198,7 @@ public final class ContentUpdaterRunnable implements Runnable {
      * Sets the SnapshotManager for this runnable.
      *
      * @param snapshotManager the SnapshotManager to set
+     * @return the ContentUpdaterRunnable instance
      */
     public ContentUpdaterRunnable setSnapshotManager(SnapshotManager snapshotManager) {
         this.snapshotManager = snapshotManager;
@@ -200,6 +209,7 @@ public final class ContentUpdaterRunnable implements Runnable {
      * Sets the ContentUpdater for this runnable.
      *
      * @param contentUpdater the ContentUpdater to set
+     * @return the ContentUpdaterRunnable instance
      */
     public ContentUpdaterRunnable setContentUpdater(ContentUpdater contentUpdater) {
         this.contentUpdater = contentUpdater;
