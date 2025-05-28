@@ -69,10 +69,8 @@ detect_modified_modules() {
 
     # Mapping section
     module_to_file=(
-        # [agent]="index-template-agent.json"
-        # [archives]="index-template-archives.json"
         [states-fim-files]="index-template-fim-files.json"
-        [states-fim-files-registries]="index-template-fim-registries.json"
+        [states-fim-registries]="index-template-fim-registries.json"
         [states-inventory-hardware]="index-template-hardware.json"
         [states-inventory-hotfixes]="index-template-hotfixes.json"
         [states-inventory-interfaces]="index-template-interfaces.json"
