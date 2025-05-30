@@ -16,6 +16,7 @@
  */
 package com.wazuh.setup;
 
+import java.util.Map;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.opensearch.action.index.IndexRequest;
@@ -28,6 +29,10 @@ import org.opensearch.core.common.io.stream.NamedWriteableRegistry;
 import org.opensearch.core.xcontent.NamedXContentRegistry;
 import org.opensearch.env.Environment;
 import org.opensearch.env.NodeEnvironment;
+import org.opensearch.indexmanagement.spi.IndexManagementExtension;
+import org.opensearch.indexmanagement.spi.indexstatemanagement.ActionParser;
+import org.opensearch.indexmanagement.spi.indexstatemanagement.IndexMetadataService;
+import org.opensearch.indexmanagement.spi.indexstatemanagement.StatusChecker;
 import org.opensearch.plugins.ClusterPlugin;
 import org.opensearch.plugins.Plugin;
 import org.opensearch.repositories.RepositoriesService;
@@ -47,7 +52,7 @@ import com.wazuh.setup.index.WazuhIndices;
  * Main class of the Indexer Setup plugin. This plugin is responsible for the creation of the index
  * templates and indices required by Wazuh to work properly.
  */
-public class SetupPlugin extends Plugin implements ClusterPlugin {
+public class SetupPlugin extends Plugin implements ClusterPlugin, IndexManagementExtension {
 
     private static final Logger log = LogManager.getLogger(SetupPlugin.class);
 
@@ -117,5 +122,30 @@ public class SetupPlugin extends Plugin implements ClusterPlugin {
                         log.error("not created");
                     }
                 });
+    }
+
+    @Override
+    public String getExtensionName() {
+        return "";
+    }
+
+    @Override
+    public List<ActionParser> getISMActionParsers() {
+        return List.of();
+    }
+
+    @Override
+    public StatusChecker statusChecker() {
+        return null;
+    }
+
+    @Override
+    public Map<String, IndexMetadataService> getIndexMetadataService() {
+        return Map.of();
+    }
+
+    @Override
+    public String overrideClusterStateIndexUuidSetting() {
+        return "";
     }
 }
