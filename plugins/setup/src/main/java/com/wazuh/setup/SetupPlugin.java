@@ -16,9 +16,14 @@
  */
 package com.wazuh.setup;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+import org.opensearch.action.index.IndexRequest;
+import org.opensearch.action.index.IndexResponse;
 import org.opensearch.cluster.metadata.IndexNameExpressionResolver;
 import org.opensearch.cluster.node.DiscoveryNode;
 import org.opensearch.cluster.service.ClusterService;
+import org.opensearch.core.action.ActionListener;
 import org.opensearch.core.common.io.stream.NamedWriteableRegistry;
 import org.opensearch.core.xcontent.NamedXContentRegistry;
 import org.opensearch.env.Environment;
@@ -44,7 +49,9 @@ import com.wazuh.setup.index.WazuhIndices;
  */
 public class SetupPlugin extends Plugin implements ClusterPlugin {
 
-    //private static final CountDownLatch onNodeStartedLatch = new CountDownLatch(1);
+    private static final Logger log = LogManager.getLogger(SetupPlugin.class);
+
+    // private static final CountDownLatch onNodeStartedLatch = new CountDownLatch(1);
     private WazuhIndices indices;
     private PolicyIndex policyIndex;
     private Client client;
@@ -66,11 +73,11 @@ public class SetupPlugin extends Plugin implements ClusterPlugin {
             IndexNameExpressionResolver indexNameExpressionResolver,
             Supplier<RepositoriesService> repositoriesServiceSupplier) {
         this.indices = new WazuhIndices(client, clusterService);
-        this.policyIndex = new PolicyIndex(client, clusterService, threadPool);
+        this.policyIndex = new PolicyIndex(client, clusterService);
         return List.of(this.indices);
     }
 
-    ///**
+    /// **
     // * Mostly meant for integration test cases. Will wait for the onNodeStarted() method to be
     // * executed until the timeout
     // *
@@ -78,36 +85,37 @@ public class SetupPlugin extends Plugin implements ClusterPlugin {
     // * @param unit Unit of the timeout
     // * @return boolean representing the status
     // */
-    //public boolean waitUntilNodeStarted(long timeout, TimeUnit unit)
+    // public boolean waitUntilNodeStarted(long timeout, TimeUnit unit)
     //        throws InterruptedException {
     //    // if (!onNodeStartedLatch.await(timeout, unit)) {
     //    //    throw new IllegalStateException("Setup plugin node startup logic did not complete in
     //    // time");
     //    // }
     //    return onNodeStartedLatch.await(timeout, unit);
-    //}
+    // }
 
     @Override
     public void onNodeStarted(DiscoveryNode localNode) {
         this.indices.initialize();
         this.policyIndex.putISMTemplate();
-        //testIndex();
+        // testIndex();
         // this.policyIndex.indexPolicy();
-        //onNodeStartedLatch.countDown();
+        // onNodeStartedLatch.countDown();
     }
 
     private void testIndex() {
         this.client.index(
-            new IndexRequest().index("test").id("1").source("{\"field\":\"value\"}"), new ActionListener<>() {
-                @Override
-                public void onResponse(IndexResponse indexResponse) {
-                    log.info("created");
-                }
+                new IndexRequest().index("test").id("1").source("{\"field\":\"value\"}"),
+                new ActionListener<>() {
+                    @Override
+                    public void onResponse(IndexResponse indexResponse) {
+                        log.info("created");
+                    }
 
-                @Override
-                public void onFailure(Exception e) {
-                    log.error("not created");
-                }
-            });
+                    @Override
+                    public void onFailure(Exception e) {
+                        log.error("not created");
+                    }
+                });
     }
 }

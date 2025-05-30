@@ -25,7 +25,6 @@ import org.opensearch.action.admin.indices.template.put.PutIndexTemplateRequest;
 import org.opensearch.action.support.clustermanager.AcknowledgedResponse;
 import org.opensearch.cluster.service.ClusterService;
 import org.opensearch.transport.client.Client;
-import org.opensearch.core.action.ActionListener;
 
 import java.io.IOException;
 import java.util.HashMap;
@@ -39,6 +38,8 @@ import com.wazuh.setup.utils.IndexTemplateUtils;
  */
 public class WazuhIndices {
     private static final Logger log = LogManager.getLogger(WazuhIndices.class);
+    private static final String ISM_TEMPLATE_NAME = "opendistro-ism-config";
+    private static final String ISM_INDEX = ".opendistro-ism-config";
 
     /**
      * | Key | value | | ------------------- | ---------- | | Index template name | [index name, ] |
@@ -81,8 +82,8 @@ public class WazuhIndices {
         this.indexTemplates.put("index-template-system", List.of("wazuh-states-inventory-system"));
         this.indexTemplates.put(
                 "index-template-vulnerabilities", List.of("wazuh-states-vulnerabilities"));
-        this.indexTemplates.put("test-template", "test-index-0000");
-        this.indexTemplates.put(ISM_TEMPLATE_NAME, ISM_INDEX);
+        this.indexTemplates.put("test-template", List.of("test-index-0000"));
+        this.indexTemplates.put(ISM_TEMPLATE_NAME, List.of(ISM_INDEX));
     }
 
     /**
@@ -124,9 +125,9 @@ public class WazuhIndices {
      */
     public void putIndex(String indexName) {
         try {
-        if ( indexName.equals(ISM_INDEX)) {
-           return;
-        }
+            if (indexName.equals(ISM_INDEX)) {
+                return;
+            }
             if (!indexExists(indexName)) {
                 CreateIndexRequest request = new CreateIndexRequest(indexName);
                 CreateIndexResponse createIndexResponse =
@@ -159,11 +160,11 @@ public class WazuhIndices {
         this.indexTemplates.forEach(
                 (template, indices) -> {
                     if ("test-index-0000".equals(indices)) {
-                       //this.ismIndex(indices);
+                        // this.ismIndex(indices);
                         log.info("skipping creation of test-index-0000");
                     } else {
-                       this.putTemplate(template);
-                       indices.forEach(this::putIndex);
+                        this.putTemplate(template);
+                        indices.forEach(this::putIndex);
                     }
                 });
     }
