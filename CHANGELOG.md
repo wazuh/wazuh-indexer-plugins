@@ -23,7 +23,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Delete files not needed for `5.0.0` [(#439)](https://github.com/wazuh/wazuh-indexer-plugins/pull/439)
 
 ### Fixed
--
+- Update ECS folder structure to match the defined on `6.0.0` [(#473)](https://github.com/wazuh/wazuh-indexer-plugins/pull/473)
 
 ### Security
 -
