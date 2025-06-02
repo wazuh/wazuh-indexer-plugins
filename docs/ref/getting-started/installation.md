@@ -42,7 +42,7 @@ Install and configure the Wazuh indexer as a single-node or multi-node cluster, 
       server:
         - name: wazuh-1
           ip: "<wazuh-manager-ip>"
-        #  node_type: master
+        #  node_type: cluster_manager
         #- name: wazuh-2
         #  ip: "<wazuh-manager-ip>"
         #  node_type: worker
@@ -162,16 +162,16 @@ Edit the `/etc/wazuh-indexer/opensearch.yml` configuration file and replace the 
 
   b. **`node.name`**: Name of the Wazuh indexer node as defined in the `config.yml` file. For example, `node-1`.
 
-  c. **`cluster.initial_master_nodes`**: List of the names of the master-eligible nodes. These names are defined in the `config.yml` file. Uncomment the `node-2` and `config.yml` and `node-3`lines, change the names, or add more lines, according to your onfig.yml`definitions.
+  c. **`cluster.initial_cluster_manager_nodes`**: List of the names of the cluster_manager-eligible nodes. These names are defined in the `config.yml` file. Uncomment the `node-2` and `config.yml` and `node-3`lines, change the names, or add more lines, according to your onfig.yml`definitions.
 
   ```yml
-  cluster.initial_master_nodes:
+  cluster.initial_cluster_manager_nodes:
   - "node-1"
   - "node-2"
   - "node-3"
   ```
 
-  d. **`discovery.seed_hosts`**: List of the addresses of the master-eligible nodes. Each element can be either an IP address or a hostname. You may leave this setting commented if you are configuring the Wazuh indexer as a single node. For multi-node configurations, uncomment this setting and set the IP addresses of each master-eligible node.
+  d. **`discovery.seed_hosts`**: List of the addresses of the cluster_manager-eligible nodes. Each element can be either an IP address or a hostname. You may leave this setting commented if you are configuring the Wazuh indexer as a single node. For multi-node configurations, uncomment this setting and set the IP addresses of each cluster_manager-eligible node.
 
   ```yml
   discovery.seed_hosts:
