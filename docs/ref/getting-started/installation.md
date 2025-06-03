@@ -162,10 +162,10 @@ Edit the `/etc/wazuh-indexer/opensearch.yml` configuration file and replace the 
 
   b. **`node.name`**: Name of the Wazuh indexer node as defined in the `config.yml` file. For example, `node-1`.
 
-  c. **`cluster.initial_master_nodes`**: List of the names of the master-eligible nodes. These names are defined in the `config.yml` file. Uncomment the `node-2` and `config.yml` and `node-3`lines, change the names, or add more lines, according to your onfig.yml`definitions.
+  c. **`cluster.initial_cluster_manager_nodes`**: List of the names of the master-eligible nodes. These names are defined in the `config.yml` file. Uncomment the `node-2` and `config.yml` and `node-3`lines, change the names, or add more lines, according to your onfig.yml`definitions.
 
   ```yml
-  cluster.initial_master_nodes:
+  cluster.initial_cluster_manager_nodes:
   - "node-1"
   - "node-2"
   - "node-3"
