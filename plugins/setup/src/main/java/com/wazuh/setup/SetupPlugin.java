@@ -32,6 +32,7 @@ import org.opensearch.env.NodeEnvironment;
 import org.opensearch.indexmanagement.spi.IndexManagementExtension;
 import org.opensearch.indexmanagement.spi.indexstatemanagement.ActionParser;
 import org.opensearch.indexmanagement.spi.indexstatemanagement.IndexMetadataService;
+import org.opensearch.indexmanagement.spi.indexstatemanagement.Status;
 import org.opensearch.indexmanagement.spi.indexstatemanagement.StatusChecker;
 import org.opensearch.plugins.ClusterPlugin;
 import org.opensearch.plugins.Plugin;
@@ -56,7 +57,6 @@ public class SetupPlugin extends Plugin implements ClusterPlugin, IndexManagemen
 
     private static final Logger log = LogManager.getLogger(SetupPlugin.class);
 
-    // private static final CountDownLatch onNodeStartedLatch = new CountDownLatch(1);
     private WazuhIndices indices;
     private PolicyIndex policyIndex;
     private Client client;
@@ -81,23 +81,6 @@ public class SetupPlugin extends Plugin implements ClusterPlugin, IndexManagemen
         this.policyIndex = new PolicyIndex(client, clusterService);
         return List.of(this.indices);
     }
-
-    /// **
-    // * Mostly meant for integration test cases. Will wait for the onNodeStarted() method to be
-    // * executed until the timeout
-    // *
-    // * @param timeout Time to wait
-    // * @param unit Unit of the timeout
-    // * @return boolean representing the status
-    // */
-    // public boolean waitUntilNodeStarted(long timeout, TimeUnit unit)
-    //        throws InterruptedException {
-    //    // if (!onNodeStartedLatch.await(timeout, unit)) {
-    //    //    throw new IllegalStateException("Setup plugin node startup logic did not complete in
-    //    // time");
-    //    // }
-    //    return onNodeStartedLatch.await(timeout, unit);
-    // }
 
     @Override
     public void onNodeStarted(DiscoveryNode localNode) {
@@ -126,7 +109,7 @@ public class SetupPlugin extends Plugin implements ClusterPlugin, IndexManagemen
 
     @Override
     public String getExtensionName() {
-        return "";
+        return "wazuh-indexer-setup-plugin";
     }
 
     @Override
@@ -136,7 +119,7 @@ public class SetupPlugin extends Plugin implements ClusterPlugin, IndexManagemen
 
     @Override
     public StatusChecker statusChecker() {
-        return null;
+        return clusterState -> Status.ENABLED;
     }
 
     @Override
@@ -148,4 +131,6 @@ public class SetupPlugin extends Plugin implements ClusterPlugin, IndexManagemen
     public String overrideClusterStateIndexUuidSetting() {
         return "";
     }
+
+
 }
