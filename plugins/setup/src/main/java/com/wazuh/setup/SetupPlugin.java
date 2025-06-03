@@ -16,6 +16,9 @@
  */
 package com.wazuh.setup;
 
+import java.io.InputStream;
+import java.net.URLClassLoader;
+import java.util.Arrays;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.opensearch.action.index.IndexRequest;
@@ -80,6 +83,9 @@ public class SetupPlugin extends Plugin implements ClusterPlugin {
     public void onNodeStarted(DiscoveryNode localNode) {
         this.indices.initialize();
         this.policyIndex.putISMTemplate();
+
+        ClassLoader classLoader = Thread.currentThread().getContextClassLoader();
+        InputStream inputStream = ClassLoader.getSystemClassLoader().getResourceAsStream("mappings/opendistro-ism-config.json");
         // testIndex();
         // this.policyIndex.indexPolicy();
         // onNodeStartedLatch.countDown();
