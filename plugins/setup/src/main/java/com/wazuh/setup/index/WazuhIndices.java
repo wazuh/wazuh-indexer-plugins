@@ -82,7 +82,6 @@ public class WazuhIndices {
         this.indexTemplates.put("index-template-system", List.of("wazuh-states-inventory-system"));
         this.indexTemplates.put(
                 "index-template-vulnerabilities", List.of("wazuh-states-vulnerabilities"));
-        this.indexTemplates.put("test-template", List.of("test-index-0000"));
         this.indexTemplates.put(ISM_TEMPLATE_NAME, List.of(ISM_INDEX));
     }
 

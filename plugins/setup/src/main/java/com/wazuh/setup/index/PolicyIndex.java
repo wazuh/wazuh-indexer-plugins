@@ -50,7 +50,7 @@ public class PolicyIndex {
 
     private final Client client;
     private final ClusterService clusterService;
-    public static final String POLICY_ID = "wazuh_rollover_policy";
+    public static final String POLICY_ID = "wazuh-alerts-rollover-policy";
 
     public final String ISM_INDEX = ".opendistro-ism-config";
     public final String ISM_TEMPLATE_NAME = "opendistro-ism-config";

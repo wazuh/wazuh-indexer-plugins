@@ -1,7 +1,7 @@
 {
   "policy": {
-    "policy_id": "wazuh_rollover_policy",
-    "description": "Example rollover policy.",
+    "policy_id": "wazuh-alerts-rollover-policy",
+    "description": "Wazuh alerts and archives rollover policy.",
     "last_updated_time": 1577990934044,
     "schema_version": 21,
     "error_notification": null,
@@ -28,9 +28,9 @@
     "ism_template": [
       {
         "index_patterns": [
-          "test-index-*"
+          "wazuh-alerts-*", "wazuh-archives-*"
         ],
-        "priority": 100,
+        "priority": 50,
         "last_updated_time": 1577990934044
       }
     ],
