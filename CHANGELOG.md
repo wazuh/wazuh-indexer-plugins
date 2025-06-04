@@ -22,6 +22,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ### Removed
 - Delete files not needed for `5.0.0` [(#439)](https://github.com/wazuh/wazuh-indexer-plugins/pull/439)
+- Remove extra fields from CSV documentation [(#479)](https://github.com/wazuh/wazuh-indexer-plugins/pull/479)
 
 ### Fixed
 -
