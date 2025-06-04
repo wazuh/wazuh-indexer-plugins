@@ -6,7 +6,10 @@ The fields are based on https://github.com/wazuh/wazuh/issues/27898
 
 Based on ECS:
 
-- [File Fields](https://www.elastic.co/guide/en/ecs/current/ecs-file.html).
+- [Agent Fields](https://www.elastic.co/guide/en/ecs/current/ecs-agent.html).
+- [Observer Fields](https://www.elastic.co/guide/en/ecs/current/ecs-observer.html).
+- [Interface Fields](https://www.elastic.co/guide/en/ecs/current/ecs-interface.html).
+- [Network Fields](https://www.elastic.co/guide/en/ecs/current/ecs-network.html).
 
 The detail of the fields can be found in csv file [States inventory networks Fields](fields.csv).
 
