@@ -45,7 +45,7 @@ public enum Indices {
         this.alias = alias;
     }
 
-    public String getIndex() {
+    public String getIndexName() {
         return index;
     }
 
