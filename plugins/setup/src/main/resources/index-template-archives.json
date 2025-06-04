@@ -6,7 +6,7 @@
   "settings": {
     "plugins.index_state_management.rollover_alias": "wazuh-archives",
     "index.refresh_interval": "5s",
-    "index.number_of_shards": "3",
+    "index.number_of_shards": "1",
     "index.number_of_replicas": "0",
     "index.auto_expand_replicas": "0-1",
     "index.mapping.total_fields.limit": 10000,

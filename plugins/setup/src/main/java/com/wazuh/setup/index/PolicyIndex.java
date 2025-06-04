@@ -122,22 +122,16 @@ public class PolicyIndex {
         }
     }
 
-    /** Indexes an array of documents asynchronously. */
+    /**
+     * Indexes the Wazuh rollover policy into the .opendistro-ism-config index.
+     * If the index does not exist, it will create it.
+     */
     public void indexPolicy() {
-
-        // assert !iSMIndexExists();
-        // if( iSMIndexExists()) {
-        //    log.info("Pepitoooou");
-        //    return;
-        // }
-
         IndexRequest indexRequest =
                 new IndexRequest(ISM_INDEX)
                         .index(ISM_INDEX)
                         .id(POLICY_ID)
                         .source(POLICY, MediaTypeRegistry.JSON);
-
-        // .create(true);
 
         PlainActionFuture<IndexResponse> future = new PlainActionFuture<>();
         client.index(indexRequest, future);
@@ -151,6 +145,8 @@ public class PolicyIndex {
         assert response != null;
         log.info("Successfully indexed Wazuh Rollover Policy: {}", response.getResult());
     }
+
+
 
     /** Puts the .opendistro-ism-config template into the cluster and creates the index */
     public void putISMTemplate() {

@@ -16,17 +16,11 @@
  */
 package com.wazuh.setup;
 
-import java.io.InputStream;
-import java.net.URLClassLoader;
-import java.util.Arrays;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.opensearch.action.index.IndexRequest;
-import org.opensearch.action.index.IndexResponse;
 import org.opensearch.cluster.metadata.IndexNameExpressionResolver;
 import org.opensearch.cluster.node.DiscoveryNode;
 import org.opensearch.cluster.service.ClusterService;
-import org.opensearch.core.action.ActionListener;
 import org.opensearch.core.common.io.stream.NamedWriteableRegistry;
 import org.opensearch.core.xcontent.NamedXContentRegistry;
 import org.opensearch.env.Environment;
@@ -83,27 +77,9 @@ public class SetupPlugin extends Plugin implements ClusterPlugin {
     public void onNodeStarted(DiscoveryNode localNode) {
         this.indices.initialize();
         this.policyIndex.putISMTemplate();
+        this.policyIndex.indexPolicy();
 
-        ClassLoader classLoader = Thread.currentThread().getContextClassLoader();
-        InputStream inputStream = ClassLoader.getSystemClassLoader().getResourceAsStream("mappings/opendistro-ism-config.json");
         // testIndex();
-        // this.policyIndex.indexPolicy();
         // onNodeStartedLatch.countDown();
-    }
-
-    private void testIndex() {
-        this.client.index(
-                new IndexRequest().index("test").id("1").source("{\"field\":\"value\"}"),
-                new ActionListener<>() {
-                    @Override
-                    public void onResponse(IndexResponse indexResponse) {
-                        log.info("created");
-                    }
-
-                    @Override
-                    public void onFailure(Exception e) {
-                        log.error("not created");
-                    }
-                });
     }
 }
