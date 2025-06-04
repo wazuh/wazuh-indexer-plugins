@@ -7,7 +7,6 @@ The fields are based on https://github.com/wazuh/wazuh/issues/27898
 Based on ECS:
 
 - [Agent Fields](https://www.elastic.co/guide/en/ecs/current/ecs-agent.html).
-- [Package Fields](https://www.elastic.co/guide/en/ecs/current/ecs-package.html).
 
 The detail of the fields can be found in csv file [States inventory hotfixes Fields](fields.csv).
 

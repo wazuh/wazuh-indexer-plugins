@@ -8,7 +8,6 @@ Based on ECS:
 
 - [Agent Fields](https://www.elastic.co/guide/en/ecs/current/ecs-agent.html).
 - [Host Fields](https://www.elastic.co/guide/en/ecs/current/ecs-host.html).
-- [Observer Fields](https://www.elastic.co/guide/en/ecs/current/ecs-observer.html).
 
 The detail of the fields can be found in csv file [States inventory hardware Fields](fields.csv).
 

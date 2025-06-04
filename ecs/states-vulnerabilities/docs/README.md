@@ -9,6 +9,7 @@ Based on ECS:
 - [Agent Fields](https://www.elastic.co/guide/en/ecs/current/ecs-agent.html).
 - [Package Fields](https://www.elastic.co/guide/en/ecs/current/ecs-package.html).
 - [Host Fields](https://www.elastic.co/guide/en/ecs/current/ecs-host.html).
+- [Operating System Fields](https://www.elastic.co/guide/en/ecs/current/ecs-os.html).
 - [Vulnerability Fields](https://www.elastic.co/guide/en/ecs/current/ecs-vulnerability.html).
 
 The detail of the fields can be found in csv file [States vulnerabilities Fields](fields.csv).
