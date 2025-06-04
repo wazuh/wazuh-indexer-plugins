@@ -64,7 +64,7 @@ public class SetupPluginTests extends OpenSearchTestCase {
             this.clusterService = spy(createClusterService(threadPool));
             this.mockClient = mock(Client.class);
 
-            this.wazuhIndices = new WazuhIndices(mockClient, clusterService);
+            this.wazuhIndices = new WazuhIndices(mockClient);
         } catch (Exception e) {
             fail(e.toString());
         }
@@ -171,7 +171,7 @@ public class SetupPluginTests extends OpenSearchTestCase {
         }
     }
 
-    /** Tests the iSMIndexExists() method */
+    /** Tests the ismIndexExists() method */
     public void testIndexExists() {
         ClusterState mockClusterState = mock(ClusterState.class);
         RoutingTable mockRoutingTable = mock(RoutingTable.class);

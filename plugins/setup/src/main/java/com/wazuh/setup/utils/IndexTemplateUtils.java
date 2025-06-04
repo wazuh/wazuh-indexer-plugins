@@ -33,6 +33,7 @@ import java.io.InputStream;
 import java.util.List;
 import java.util.Map;
 
+import com.wazuh.setup.SetupPlugin;
 import reactor.util.annotation.NonNull;
 
 /** Util functions to parse and manage index templates files. */
@@ -109,7 +110,6 @@ public class IndexTemplateUtils {
      */
     public static void putIndexTemplate(Client client, String templateName) {
         try {
-            // @throws IOException
             Map<String, Object> template = IndexTemplateUtils.fromFile(templateName + ".json");
 
             PutIndexTemplateRequest putIndexTemplateRequest =
@@ -120,7 +120,11 @@ public class IndexTemplateUtils {
                             .patterns((List<String>) template.get("index_patterns"));
 
             AcknowledgedResponse acknowledgedResponse =
-                    client.admin().indices().putTemplate(putIndexTemplateRequest).actionGet();
+                    client
+                            .admin()
+                            .indices()
+                            .putTemplate(putIndexTemplateRequest)
+                            .actionGet(SetupPlugin.TIMEOUT);
             if (acknowledgedResponse.isAcknowledged()) {
                 log.info("Index template [{}] created successfully", templateName);
             }

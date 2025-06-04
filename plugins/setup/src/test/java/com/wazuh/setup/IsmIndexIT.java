@@ -25,14 +25,14 @@ import org.opensearch.test.OpenSearchIntegTestCase;
 /** Test indexing policies */
 @ThreadLeakScope(ThreadLeakScope.Scope.NONE)
 @OpenSearchIntegTestCase.ClusterScope(scope = OpenSearchIntegTestCase.Scope.SUITE)
-public class ISMIndexIT extends OpenSearchIntegTestCase {
+public class IsmIndexIT extends OpenSearchIntegTestCase {
 
     // @Override
     // protected Collection<Class<? extends Plugin>> nodePlugins() {
     //    return Collections.singletonList(SetupPlugin.class);
     // }
 
-    private static final Logger log = LogManager.getLogger(ISMIndexIT.class);
+    private static final Logger log = LogManager.getLogger(IsmIndexIT.class);
 
     /// ** Creates an index */
     // private void putTestIndex() {
@@ -53,7 +53,7 @@ public class ISMIndexIT extends OpenSearchIntegTestCase {
     //    }
     //    assert response != null;
     //    assertTrue(response.isAcknowledged());
-    //    assertTrue(iSMIndexExists(TEST_INDEX));
+    //    assertTrue(ismIndexExists(TEST_INDEX));
     // }
 
     /// ** Test that alias points to the newly created index */

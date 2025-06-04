@@ -16,6 +16,7 @@
  */
 package com.wazuh.setup.index;
 
+/** Enum representing the index templates used by Wazuh. */
 public enum IndexTemplate {
     ALERTS("index-template-alerts.json"),
     ARCHIVES("index-template-archives.json"),
@@ -24,7 +25,6 @@ public enum IndexTemplate {
     HARDWARE("index-template-hardware.json"),
     HOTFIXES("index-template-hotfixes.json"),
     INTERFACES("index-template-interfaces.json"),
-    ISM("opendistro-ism-config.json"),
     MONITORING("index-template-monitoring.json"),
     NETWORKS("index-template-networks.json"),
     PACKAGES("index-template-packages.json"),

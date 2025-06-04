@@ -24,7 +24,10 @@ import org.opensearch.action.admin.indices.create.CreateIndexRequest;
 import org.opensearch.action.admin.indices.create.CreateIndexResponse;
 import org.opensearch.action.admin.indices.template.put.PutIndexTemplateRequest;
 import org.opensearch.action.support.clustermanager.AcknowledgedResponse;
-import org.opensearch.cluster.service.ClusterService;
+import org.opensearch.cluster.ClusterChangedEvent;
+import org.opensearch.cluster.ClusterState;
+import org.opensearch.cluster.ClusterStateListener;
+import org.opensearch.core.action.ActionListener;
 import org.opensearch.transport.client.Client;
 
 import java.io.IOException;
@@ -36,23 +39,19 @@ import com.wazuh.setup.utils.IndexTemplateUtils;
 /**
  * This class contains the logic to create the index templates and the indices required by Wazuh.
  */
-public class WazuhIndices {
+public class WazuhIndices implements ClusterStateListener {
     private static final Logger log = LogManager.getLogger(WazuhIndices.class);
-    private static final String ISM_TEMPLATE_NAME = "opendistro-ism-config";
-    private static final String ISM_INDEX = ".opendistro-ism-config";
 
     private final Client client;
-    private final ClusterService clusterService;
+    private ClusterState clusterState;
 
     /**
      * Constructor
      *
      * @param client Client
-     * @param clusterService object containing the cluster service
      */
-    public WazuhIndices(Client client, ClusterService clusterService) {
+    public WazuhIndices(Client client) {
         this.client = client;
-        this.clusterService = clusterService;
     }
 
     /**
@@ -69,16 +68,28 @@ public class WazuhIndices {
                     new PutIndexTemplateRequest()
                             .mapping(IndexTemplateUtils.get(template, "mappings"))
                             .settings(IndexTemplateUtils.get(template, "settings"))
-                            .name(templateName)
+                            .name(templateName.replace(".json", ""))
                             .patterns((List<String>) template.get("index_patterns"));
 
-            AcknowledgedResponse createIndexTemplateResponse =
-                    this.client.admin().indices().putTemplate(putIndexTemplateRequest).actionGet();
+            this.client
+                    .admin()
+                    .indices()
+                    .putTemplate(
+                            putIndexTemplateRequest,
+                            new ActionListener<>() {
+                                @Override
+                                public void onResponse(AcknowledgedResponse acknowledgedResponse) {
+                                    log.info(
+                                            "Index template created successfully: {} {}",
+                                            templateName,
+                                            acknowledgedResponse.isAcknowledged());
+                                }
 
-            log.info(
-                    "Index template created successfully: {} {}",
-                    templateName,
-                    createIndexTemplateResponse.isAcknowledged());
+                                @Override
+                                public void onFailure(Exception e) {
+                                    log.info("Error creating index template {}: {}", templateName, e.getMessage());
+                                }
+                            });
 
         } catch (IOException e) {
             log.error("Error reading index template from filesystem {}", templateName);
@@ -92,25 +103,36 @@ public class WazuhIndices {
      *
      * @param index the index to create
      */
-    public void putIndex(Indices index) {
+    public void putIndex(Index index) {
         try {
-            if (index.getIndex().equals(ISM_INDEX)) {
-                return;
-            }
-            if (!indexExists(index.getIndex())) {
-                CreateIndexRequest request = new CreateIndexRequest(index.getIndex());
+            if (!indexExists(index.getIndexName())) {
+                CreateIndexRequest request = new CreateIndexRequest(index.getIndexName());
                 if (index.getAlias().isPresent()) {
                     request.alias(new Alias(index.getAlias().get()).writeIndex(true));
                 }
-                CreateIndexResponse createIndexResponse =
-                        this.client.admin().indices().create(request).actionGet();
-                log.info(
-                        "Index created successfully: {} {}",
-                        createIndexResponse.index(),
-                        createIndexResponse.isAcknowledged());
+                this.client
+                        .admin()
+                        .indices()
+                        .create(
+                                request,
+                                new ActionListener<CreateIndexResponse>() {
+                                    @Override
+                                    public void onResponse(CreateIndexResponse createIndexResponse) {
+                                        log.info(
+                                                "Index created successfully: {} {}",
+                                                index.getIndexName(),
+                                                createIndexResponse.isAcknowledged());
+                                    }
+
+                                    @Override
+                                    public void onFailure(Exception e) {
+                                        log.error(
+                                                "Failed to create index {}: {}", index.getIndexName(), e.getMessage());
+                                    }
+                                });
             }
         } catch (ResourceAlreadyExistsException e) {
-            log.error("Index {} already exists. Skipping.", index.getIndex());
+            log.error("Index {} already exists. Skipping.", index.getIndexName());
         }
     }
 
@@ -121,18 +143,36 @@ public class WazuhIndices {
      * @return true if the index exists on the cluster, false otherwise
      */
     public boolean indexExists(String indexName) {
-        return this.clusterService.state().getRoutingTable().hasIndex(indexName);
+        return this.clusterState.getRoutingTable().hasIndex(indexName);
     }
 
+    /**
+     * Initializes the Wazuh indices by creating the necessary index templates and indices. This
+     * method should be called when the plugin is started.
+     */
     public void initialize() {
         // 1. Read index templates from files
         // 2. Upsert index template
         // 3. Create index
+        IsmIndex ismIndex = new IsmIndex(this.client, this.clusterState);
+        ismIndex.indexPolicy();
         for (IndexTemplate value : IndexTemplate.values()) {
             this.putTemplate(value.getTemplateName());
         }
-        for (Indices value : Indices.values()) {
+        for (Index value : Index.values()) {
             this.putIndex(value);
         }
+    }
+
+    @Override
+    public void clusterChanged(ClusterChangedEvent event) {
+        setState(event.state());
+        if (event.localNodeClusterManager()) {
+            this.initialize();
+        }
+    }
+
+    private void setState(ClusterState clusterState) {
+        this.clusterState = clusterState;
     }
 }

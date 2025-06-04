@@ -16,11 +16,10 @@
  */
 package com.wazuh.setup;
 
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
 import org.opensearch.cluster.metadata.IndexNameExpressionResolver;
 import org.opensearch.cluster.node.DiscoveryNode;
 import org.opensearch.cluster.service.ClusterService;
+import org.opensearch.common.unit.TimeValue;
 import org.opensearch.core.common.io.stream.NamedWriteableRegistry;
 import org.opensearch.core.xcontent.NamedXContentRegistry;
 import org.opensearch.env.Environment;
@@ -35,9 +34,9 @@ import org.opensearch.watcher.ResourceWatcherService;
 
 import java.util.Collection;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
 
-import com.wazuh.setup.index.PolicyIndex;
 import com.wazuh.setup.index.WazuhIndices;
 
 /**
@@ -46,11 +45,11 @@ import com.wazuh.setup.index.WazuhIndices;
  */
 public class SetupPlugin extends Plugin implements ClusterPlugin {
 
-    private static final Logger log = LogManager.getLogger(SetupPlugin.class);
+    public static final String POLICY_ID = "wazuh-alerts-rollover-policy";
+    public static final TimeValue TIMEOUT = new TimeValue(5L, TimeUnit.SECONDS);
 
     private WazuhIndices indices;
-    private PolicyIndex policyIndex;
-    private Client client;
+    private ClusterService clusterService;
 
     /** Default constructor */
     public SetupPlugin() {}
@@ -68,18 +67,13 @@ public class SetupPlugin extends Plugin implements ClusterPlugin {
             NamedWriteableRegistry namedWriteableRegistry,
             IndexNameExpressionResolver indexNameExpressionResolver,
             Supplier<RepositoriesService> repositoriesServiceSupplier) {
-        this.indices = new WazuhIndices(client, clusterService);
-        this.policyIndex = new PolicyIndex(client, clusterService);
+        this.clusterService = clusterService;
+        this.indices = new WazuhIndices(client);
         return List.of(this.indices);
     }
 
     @Override
     public void onNodeStarted(DiscoveryNode localNode) {
-        this.indices.initialize();
-        this.policyIndex.putISMTemplate();
-        this.policyIndex.indexPolicy();
-
-        // testIndex();
-        // onNodeStartedLatch.countDown();
+        this.clusterService.addListener(this.indices);
     }
 }

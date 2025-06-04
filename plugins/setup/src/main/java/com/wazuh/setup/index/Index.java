@@ -18,7 +18,11 @@ package com.wazuh.setup.index;
 
 import java.util.Optional;
 
-public enum Indices {
+/**
+ * Enum representing the indices used by Wazuh. Each enum constant contains the index name and an
+ * optional alias.
+ */
+public enum Index {
     ALERTS("wazuh-alerts-5.x-0001", "wazuh-alerts"),
     ARCHIVES("wazuh-archives-5.x-0001", "wazuh-archives"),
     FILES("wazuh-states-fim-files", null),
@@ -26,7 +30,6 @@ public enum Indices {
     HARDWARE("wazuh-states-inventory-hardware", null),
     HOTFIXES("wazuh-states-inventory-hotfixes", null),
     INTERFACES("wazuh-states-inventory-interfaces", null),
-    ISM(".opendistro-ism-config", null),
     MONITORING("wazuh-monitoring", null),
     NETWORKS("wazuh-states-inventory-networks", null),
     PACKAGES("wazuh-states-inventory-packages", null),
@@ -40,7 +43,7 @@ public enum Indices {
     private final String index;
     private final String alias;
 
-    Indices(String index, String alias) {
+    Index(String index, String alias) {
         this.index = index;
         this.alias = alias;
     }

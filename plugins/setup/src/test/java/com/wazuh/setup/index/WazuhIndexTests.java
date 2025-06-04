@@ -22,4 +22,4 @@ import org.mockito.*;
 
 import static org.mockito.Mockito.*;
 
-public class WazuhIndicesTests extends OpenSearchTestCase {}
+public class WazuhIndexTests extends OpenSearchTestCase {}
