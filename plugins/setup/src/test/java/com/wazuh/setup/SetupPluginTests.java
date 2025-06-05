@@ -47,6 +47,7 @@ public class SetupPluginTests extends OpenSearchTestCase {
     private WazuhIndices wazuhIndices;
     private ThreadPool threadPool;
     private Client mockClient;
+    private RoutingTable routingTable;
 
     /** Creates the necessary mocks and spies */
     @Before
@@ -63,8 +64,9 @@ public class SetupPluginTests extends OpenSearchTestCase {
             this.threadPool = new TestThreadPool("WazuhIndexerSetupPluginServiceTests");
             this.clusterService = spy(createClusterService(threadPool));
             this.mockClient = mock(Client.class);
+            this.routingTable = mock(RoutingTable.class);
 
-            this.wazuhIndices = new WazuhIndices(mockClient);
+            this.wazuhIndices = new WazuhIndices(mockClient, this.routingTable);
         } catch (Exception e) {
             fail(e.toString());
         }

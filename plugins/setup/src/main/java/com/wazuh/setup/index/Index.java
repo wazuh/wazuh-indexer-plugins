@@ -23,29 +23,35 @@ import java.util.Optional;
  * optional alias.
  */
 public enum Index {
-    ALERTS("wazuh-alerts-5.x-0001", "wazuh-alerts"),
-    ARCHIVES("wazuh-archives-5.x-0001", "wazuh-archives"),
-    FILES("wazuh-states-fim-files", null),
-    REGISTRIES("wazuh-states-fim-registries", null),
-    HARDWARE("wazuh-states-inventory-hardware", null),
-    HOTFIXES("wazuh-states-inventory-hotfixes", null),
-    INTERFACES("wazuh-states-inventory-interfaces", null),
-    MONITORING("wazuh-monitoring", null),
-    NETWORKS("wazuh-states-inventory-networks", null),
-    PACKAGES("wazuh-states-inventory-packages", null),
-    PORTS("wazuh-states-inventory-ports", null),
-    PROCESSES("wazuh-states-inventory-processes", null),
-    PROTOCOLS("wazuh-states-inventory-protocols", null),
-    STATISTICS("wazuh-statistics", null),
-    SYSTEM("wazuh-states-inventory-system", null),
-    VULNERABILITIES("wazuh-states-vulnerabilities", null);
+    ALERTS("wazuh-alerts-5.x-0001", "index-template-alerts.json", "wazuh-alerts"),
+    ARCHIVES("wazuh-archives-5.x-0001", "index-template-archives.json", "wazuh-archives"),
+    FILES("wazuh-states-fim-files", "index-template-fim-files.json", null),
+    REGISTRIES("wazuh-states-fim-registries", "index-template-fim-registries.json", null),
+    HARDWARE("wazuh-states-inventory-hardware", "index-template-hardware.json", null),
+    HOTFIXES("wazuh-states-inventory-hotfixes", "index-template-hotfixes.json", null),
+    INTERFACES("wazuh-states-inventory-interfaces", "index-template-interfaces.json", null),
+    MONITORING("wazuh-monitoring", "index-template-monitoring.json", null),
+    NETWORKS("wazuh-states-inventory-networks", "index-template-networks.json", null),
+    PACKAGES("wazuh-states-inventory-packages", "index-template-packages.json", null),
+    PORTS("wazuh-states-inventory-ports", "index-template-ports.json", null),
+    PROCESSES("wazuh-states-inventory-processes", "index-template-processes.json", null),
+    PROTOCOLS("wazuh-states-inventory-protocols", "index-template-protocols.json", null),
+    STATISTICS("wazuh-statistics", "index-template-statistics.json", null),
+    SYSTEM("wazuh-states-inventory-system", "index-template-system.json", null),
+    VULNERABILITIES("wazuh-states-vulnerabilities", "index-template-vulnerabilities.json", null);
 
     private final String index;
+    private final String template;
     private final String alias;
 
-    Index(String index, String alias) {
+    Index(String index, String template, String alias) {
         this.index = index;
+        this.template = template;
         this.alias = alias;
+    }
+
+    public String getTemplate() {
+        return template;
     }
 
     public String getIndexName() {

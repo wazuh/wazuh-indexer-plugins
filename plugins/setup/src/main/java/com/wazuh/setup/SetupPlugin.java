@@ -33,7 +33,7 @@ import org.opensearch.transport.client.Client;
 import org.opensearch.watcher.ResourceWatcherService;
 
 import java.util.Collection;
-import java.util.List;
+import java.util.Collections;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
 
@@ -48,7 +48,7 @@ public class SetupPlugin extends Plugin implements ClusterPlugin {
     public static final String POLICY_ID = "wazuh-alerts-rollover-policy";
     public static final TimeValue TIMEOUT = new TimeValue(5L, TimeUnit.SECONDS);
 
-    private WazuhIndices indices;
+    private Client client;
     private ClusterService clusterService;
 
     /** Default constructor */
@@ -67,13 +67,17 @@ public class SetupPlugin extends Plugin implements ClusterPlugin {
             NamedWriteableRegistry namedWriteableRegistry,
             IndexNameExpressionResolver indexNameExpressionResolver,
             Supplier<RepositoriesService> repositoriesServiceSupplier) {
+        this.client = client;
         this.clusterService = clusterService;
-        this.indices = new WazuhIndices(client);
-        return List.of(this.indices);
+        return Collections.emptyList();
     }
 
     @Override
     public void onNodeStarted(DiscoveryNode localNode) {
-        this.clusterService.addListener(this.indices);
+        if (localNode.isClusterManagerNode()) {
+            WazuhIndices indices =
+                    new WazuhIndices(this.client, this.clusterService.state().getRoutingTable());
+            indices.initialize();
+        }
     }
 }

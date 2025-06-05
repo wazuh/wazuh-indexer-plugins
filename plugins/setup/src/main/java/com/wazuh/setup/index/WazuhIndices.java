@@ -21,80 +21,66 @@ import org.apache.logging.log4j.Logger;
 import org.opensearch.ResourceAlreadyExistsException;
 import org.opensearch.action.admin.indices.alias.Alias;
 import org.opensearch.action.admin.indices.create.CreateIndexRequest;
-import org.opensearch.action.admin.indices.create.CreateIndexResponse;
 import org.opensearch.action.admin.indices.template.put.PutIndexTemplateRequest;
-import org.opensearch.action.support.clustermanager.AcknowledgedResponse;
-import org.opensearch.cluster.ClusterChangedEvent;
-import org.opensearch.cluster.ClusterState;
-import org.opensearch.cluster.ClusterStateListener;
-import org.opensearch.core.action.ActionListener;
+import org.opensearch.cluster.routing.RoutingTable;
 import org.opensearch.transport.client.Client;
 
 import java.io.IOException;
 import java.util.List;
 import java.util.Map;
 
+import com.wazuh.setup.SetupPlugin;
 import com.wazuh.setup.utils.IndexTemplateUtils;
 
 /**
  * This class contains the logic to create the index templates and the indices required by Wazuh.
  */
-public class WazuhIndices implements ClusterStateListener {
+public class WazuhIndices {
     private static final Logger log = LogManager.getLogger(WazuhIndices.class);
 
     private final Client client;
-    private ClusterState clusterState;
+    private final RoutingTable routingTable;
 
     /**
      * Constructor
      *
      * @param client Client
+     * @param routingTable RoutingTable object
      */
-    public WazuhIndices(Client client) {
+    public WazuhIndices(Client client, RoutingTable routingTable) {
         this.client = client;
+        this.routingTable = routingTable;
     }
 
     /**
      * Inserts an index template
      *
-     * @param templateName: The name if the index template to load
+     * @param index: The Index object to load
      */
     @SuppressWarnings("unchecked")
-    public void putTemplate(String templateName) {
+    private void putTemplate(Index index) {
         try {
-            Map<String, Object> template = IndexTemplateUtils.fromFile(templateName);
+            Map<String, Object> template = IndexTemplateUtils.fromFile(index.getTemplate());
 
             PutIndexTemplateRequest putIndexTemplateRequest =
                     new PutIndexTemplateRequest()
                             .mapping(IndexTemplateUtils.get(template, "mappings"))
                             .settings(IndexTemplateUtils.get(template, "settings"))
-                            .name(templateName.replace(".json", ""))
+                            .name(index.getTemplate().replace(".json", ""))
                             .patterns((List<String>) template.get("index_patterns"));
 
             this.client
                     .admin()
                     .indices()
-                    .putTemplate(
-                            putIndexTemplateRequest,
-                            new ActionListener<>() {
-                                @Override
-                                public void onResponse(AcknowledgedResponse acknowledgedResponse) {
-                                    log.info(
-                                            "Index template created successfully: {} {}",
-                                            templateName,
-                                            acknowledgedResponse.isAcknowledged());
-                                }
-
-                                @Override
-                                public void onFailure(Exception e) {
-                                    log.info("Error creating index template {}: {}", templateName, e.getMessage());
-                                }
-                            });
-
+                    .putTemplate(putIndexTemplateRequest)
+                    .actionGet(SetupPlugin.TIMEOUT);
+            log.info("Index template {} created successfully", index.getTemplate());
+        } catch (NullPointerException e) {
+            log.error("Error reading template file {}.", index.getTemplate());
         } catch (IOException e) {
-            log.error("Error reading index template from filesystem {}", templateName);
+            log.error("Error reading index template from filesystem {}", index.getTemplate());
         } catch (ResourceAlreadyExistsException e) {
-            log.info("Index template {} already exists. Skipping.", templateName);
+            log.info("Index template {} already exists. Skipping.", index.getTemplate());
         }
     }
 
@@ -103,37 +89,22 @@ public class WazuhIndices implements ClusterStateListener {
      *
      * @param index the index to create
      */
-    public void putIndex(Index index) {
-        try {
-            if (!indexExists(index.getIndexName())) {
-                CreateIndexRequest request = new CreateIndexRequest(index.getIndexName());
-                if (index.getAlias().isPresent()) {
-                    request.alias(new Alias(index.getAlias().get()).writeIndex(true));
-                }
-                this.client
-                        .admin()
-                        .indices()
-                        .create(
-                                request,
-                                new ActionListener<CreateIndexResponse>() {
-                                    @Override
-                                    public void onResponse(CreateIndexResponse createIndexResponse) {
-                                        log.info(
-                                                "Index created successfully: {} {}",
-                                                index.getIndexName(),
-                                                createIndexResponse.isAcknowledged());
-                                    }
-
-                                    @Override
-                                    public void onFailure(Exception e) {
-                                        log.error(
-                                                "Failed to create index {}: {}", index.getIndexName(), e.getMessage());
-                                    }
-                                });
-            }
-        } catch (ResourceAlreadyExistsException e) {
+    private void putIndex(Index index) {
+        if (indexExists(index.getIndexName())) {
             log.error("Index {} already exists. Skipping.", index.getIndexName());
+            return;
         }
+        CreateIndexRequest request = new CreateIndexRequest(index.getIndexName());
+        if (index.getAlias().isPresent()) {
+            request.alias(new Alias(index.getAlias().get()).writeIndex(true));
+        }
+        this.client.admin().indices().create(request).actionGet(SetupPlugin.TIMEOUT);
+        log.info("Index {} created successfully", index.getIndexName());
+    }
+
+    public void initIndex(Index index) {
+        putTemplate(index);
+        putIndex(index);
     }
 
     /**
@@ -143,7 +114,7 @@ public class WazuhIndices implements ClusterStateListener {
      * @return true if the index exists on the cluster, false otherwise
      */
     public boolean indexExists(String indexName) {
-        return this.clusterState.getRoutingTable().hasIndex(indexName);
+        return this.routingTable.hasIndex(indexName);
     }
 
     /**
@@ -154,25 +125,10 @@ public class WazuhIndices implements ClusterStateListener {
         // 1. Read index templates from files
         // 2. Upsert index template
         // 3. Create index
-        IsmIndex ismIndex = new IsmIndex(this.client, this.clusterState);
+        IsmIndex ismIndex = new IsmIndex(this.client, this.routingTable);
         ismIndex.indexPolicy();
-        for (IndexTemplate value : IndexTemplate.values()) {
-            this.putTemplate(value.getTemplateName());
-        }
         for (Index value : Index.values()) {
-            this.putIndex(value);
+            this.initIndex(value);
         }
-    }
-
-    @Override
-    public void clusterChanged(ClusterChangedEvent event) {
-        setState(event.state());
-        if (event.localNodeClusterManager()) {
-            this.initialize();
-        }
-    }
-
-    private void setState(ClusterState clusterState) {
-        this.clusterState = clusterState;
     }
 }
