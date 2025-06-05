@@ -31,25 +31,32 @@ import com.wazuh.setup.SetupPlugin;
 import com.wazuh.setup.utils.IndexTemplateUtils;
 
 /** Class to manage the Command Manager index and index template. */
-public class IsmIndex {
+public final class IsmIndexInitializer implements IndexInitializer {
 
-    private static final Logger log = LogManager.getLogger(IsmIndex.class);
+    private static final Logger log = LogManager.getLogger(IsmIndexInitializer.class);
 
-    private final Client client;
-    private final RoutingTable routingTable;
+    private Client client;
+    private RoutingTable routingTable;
     public static Map<String, Object> POLICY;
-    public static final String ISM_INDEX = ".opendistro-ism-config";
-    public static final String ISM_TEMPLATE = "opendistro-ism-config.json";
+    private static IsmIndexInitializer INSTANCE;
 
-    /**
-     * Default constructor
-     *
-     * @param client OpenSearch client.
-     * @param routingTable OpenSearch cluster routing table.
-     */
-    public IsmIndex(Client client, RoutingTable routingTable) {
+    private IsmIndexInitializer() {}
+
+    public static IsmIndexInitializer getInstance() {
+        if (IsmIndexInitializer.INSTANCE == null) {
+            INSTANCE = new IsmIndexInitializer();
+        }
+        return INSTANCE;
+    }
+
+    public IsmIndexInitializer setClient(Client client) {
         this.client = client;
+        return this;
+    }
+
+    public IsmIndexInitializer setRoutingTable(RoutingTable routingTable) {
         this.routingTable = routingTable;
+        return this;
     }
 
     /**
@@ -57,16 +64,17 @@ public class IsmIndex {
      *
      * @return whether the internal Command Manager's index exists.
      */
-    public boolean ismIndexExists() {
-        return this.routingTable.hasIndex(ISM_INDEX);
+    public boolean ismIndexExists(Index index) {
+        return this.routingTable.hasIndex(index.getIndexName());
     }
 
     /**
      * Indexes the Wazuh rollover policy into the .opendistro-ism-config index. If the index does not
      * exist, it will create it.
      */
-    public void indexPolicy() {
-        this.createIsmIndex();
+    @Override
+    public void initIndex(Index index) {
+        this.createIsmIndex(index);
 
         try {
             POLICY = IndexTemplateUtils.fromFile(SetupPlugin.POLICY_ID + ".json");
@@ -76,34 +84,34 @@ public class IsmIndex {
         }
 
         IndexRequest indexRequest =
-                new IndexRequest(ISM_INDEX)
-                        .index(ISM_INDEX)
+                new IndexRequest(index.getIndexName())
+                        .index(index.getIndexName())
                         .id(SetupPlugin.POLICY_ID)
                         .source(POLICY, MediaTypeRegistry.JSON);
 
         client.index(indexRequest).actionGet(SetupPlugin.TIMEOUT);
-        log.info("Indexed Wazuh rollover policy into {} index", ISM_INDEX);
+        log.info("Indexed Wazuh rollover policy into {} index", index.getIndexName());
     }
 
     /** Puts the .opendistro-ism-config template into the cluster and creates the index */
-    public void createIsmIndex() {
-        if (ismIndexExists()) {
-            log.info("{} Index exists, skipping", ISM_INDEX);
+    public void createIsmIndex(Index index) {
+        if (ismIndexExists(index)) {
+            log.info("{} Index exists, skipping", index.getIndexName());
             return;
         }
         Map<String, Object> template;
-        log.info("Attempting to create {} index", ISM_INDEX);
+        log.info("Attempting to create {} index", index.getIndexName());
         try {
-            template = IndexTemplateUtils.fromFile(ISM_TEMPLATE);
+            template = IndexTemplateUtils.fromFile(index.getTemplate());
             client
                     .admin()
                     .indices()
                     .create(
-                            new CreateIndexRequest(ISM_INDEX)
+                            new CreateIndexRequest(index.getIndexName())
                                     .mapping(IndexTemplateUtils.get(template, "mappings"))
                                     .settings(IndexTemplateUtils.get(template, "settings")))
                     .actionGet(SetupPlugin.TIMEOUT);
-            log.info("Successfully created {} index", ISM_INDEX);
+            log.info("Successfully created {} index", index.getIndexName());
         } catch (IOException e) {
             log.error("Failed loading ISM index template from file: {}", e.getMessage());
         }

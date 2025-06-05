@@ -2,7 +2,7 @@
 
 ## Design
 
-The plugin implements the [ClusterPlugin](https://github.com/opensearch-project/OpenSearch/blob/2.13.0/server/src/main/java/org/opensearch/plugins/ClusterPlugin.java) interface in order to be able to hook into the node’s lifecycle overriding the `onNodeStarted()` method. The logic for the creation of the index templates and the indices is encapsulated in the `WazuhIndices` class. The `onNodeStarted()` method invokes the `WazuhIndices::initialize()` method, which handles everything.
+The plugin implements the [ClusterPlugin](https://github.com/opensearch-project/OpenSearch/blob/2.13.0/server/src/main/java/org/opensearch/plugins/ClusterPlugin.java) interface in order to be able to hook into the node’s lifecycle overriding the `onNodeStarted()` method. The logic for the creation of the index templates and the index is encapsulated in the `WazuhIndices` class. The `onNodeStarted()` method invokes the `WazuhIndices::initialize()` method, which handles everything.
 
 By design, the plugin will overwrite any existing index template under the same name.
 
@@ -16,7 +16,7 @@ The plugin is documented using JavaDoc. You can compile the documentation using 
 
 ## Indices
 
-Refer to the [docs](https://github.com/wazuh/wazuh-indexer-plugins/tree/main/ecs) for complete definitions of the indices. The indices inherit the settings and mappings defined in the [index templates](https://github.com/wazuh/wazuh-indexer-plugins/tree/main/plugins/setup/src/main/resources).
+Refer to the [docs](https://github.com/wazuh/wazuh-indexer-plugins/tree/main/ecs) for complete definitions of the index. The index inherit the settings and mappings defined in the [index templates](https://github.com/wazuh/wazuh-indexer-plugins/tree/main/plugins/setup/src/main/resources).
 
 ## Sequence diagram
 
@@ -38,7 +38,7 @@ sequenceDiagram
     SetupPlugin->>WazuhIndices: initialize()
 
 
-    Note over SetupPlugin,WazuhIndices: Create index templates and indices
+    Note over SetupPlugin,WazuhIndices: Create index templates and index
     loop i..n templates
         WazuhIndices-)Client: templateExists(i)
         Client--)WazuhIndices: response
@@ -47,7 +47,7 @@ sequenceDiagram
             Client--)WazuhIndices: response
         end
     end
-    loop i..n indices
+    loop i..n index
         WazuhIndices-)Client: indexExists(i)
         Client--)WazuhIndices: response
         alt index i does not exist
@@ -71,7 +71,7 @@ classDiagram
     WazuhIndices"1"-->Client
     <<service>> Client
 
-    SetupPlugin : -WazuhIndices indices
+    SetupPlugin : -WazuhIndices index
     SetupPlugin : +createComponents()
     SetupPlugin : +onNodeStarted()
 

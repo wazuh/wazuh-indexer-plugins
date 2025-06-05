@@ -60,7 +60,7 @@ The diagram below illustrates the process of converting Wazuh Security Events to
 ## Prerequisites
 
 1. Amazon Security Lake is enabled.
-2. At least one up and running `wazuh-indexer` instance with populated `wazuh-alerts-4.x-*` indices.
+2. At least one up and running `wazuh-indexer` instance with populated `wazuh-alerts-4.x-*` index.
 3. A Logstash instance.
 4. An S3 bucket to store raw events.
 5. An AWS Lambda function, using the Python 3.12 runtime.

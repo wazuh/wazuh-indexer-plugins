@@ -8,7 +8,7 @@ An **index** is a collection of documents that are related to each other. The do
 
 ![indexer shards](https://documentation.wazuh.com/current/_images/wazuh-indexer1.png)
 
-The Wazuh indexer stores the data collected by the Wazuh agents in separate indices. Each index contains documents with specific inventory information. In this section, you can find a description of the information in each index.
+The Wazuh indexer stores the data collected by the Wazuh agents in separate index. Each index contains documents with specific inventory information. In this section, you can find a description of the information in each index.
 
 | Index | Description |
 |-------|-------------|

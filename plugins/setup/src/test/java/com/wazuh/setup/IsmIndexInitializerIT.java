@@ -25,14 +25,14 @@ import org.opensearch.test.OpenSearchIntegTestCase;
 /** Test indexing policies */
 @ThreadLeakScope(ThreadLeakScope.Scope.NONE)
 @OpenSearchIntegTestCase.ClusterScope(scope = OpenSearchIntegTestCase.Scope.SUITE)
-public class IsmIndexIT extends OpenSearchIntegTestCase {
+public class IsmIndexInitializerIT extends OpenSearchIntegTestCase {
 
     // @Override
     // protected Collection<Class<? extends Plugin>> nodePlugins() {
     //    return Collections.singletonList(SetupPlugin.class);
     // }
 
-    private static final Logger log = LogManager.getLogger(IsmIndexIT.class);
+    private static final Logger log = LogManager.getLogger(IsmIndexInitializerIT.class);
 
     /// ** Creates an index */
     // private void putTestIndex() {

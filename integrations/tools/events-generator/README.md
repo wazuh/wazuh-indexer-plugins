@@ -1,6 +1,6 @@
 ### Events generator tool
 
-This python tool provides functionality to generate and index sample events for Wazuh's indices.
+This python tool provides functionality to generate and index sample events for Wazuh's index.
 
 #### Getting started
 
@@ -16,11 +16,11 @@ Start the events' generator with `./run.py` or `python run.py`. The program take
 arguments, as it's configured with default values that will work in most cases during development.
 To know more about its capabilities and arguments, display the help menu with `-h`.
 
-As for now, this tool generates events for the `wazuh-alerts-4.x-*` and `wazuh-archives-4.x-*` indices.
+As for now, this tool generates events for the `wazuh-alerts-4.x-*` and `wazuh-archives-4.x-*` index.
 You may also need to create an **index pattern** in _dashboards_ in order to perform
 queries to the index from the UI. To do that, go to Dashboards Management > Index Patterns > Create index pattern > wazuh-alerts-4.x-* > timestamp as Time field
 
-Newer indices, like `wazuh-states-vulnerabilities`, are ECS compliant and use a dedicated events' generator.
+Newer index, like `wazuh-states-vulnerabilities`, are ECS compliant and use a dedicated events' generator.
 You can find it in the [ecs](../../../ecs/) folder.
 
 
@@ -46,7 +46,7 @@ INFO:event_generator:Event created
 docker build -t wazuh/indexer-events-generator:latest .
 ```
 
-Run with: 
+Run with:
 ```console
 docker run -it --name=wazuh-indexer-events-generator --rm wazuh/indexer-events-generator python run.py -h
 ```

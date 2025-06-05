@@ -11,7 +11,7 @@ The Wazuh Common Schema is a derivation of the [Elastic Common Schema](https://w
 
 ## Mappings generator
 
-There are scripts to generate the mappings for the Wazuh indices.
+There are scripts to generate the mappings for the Wazuh index.
 
 ### Requirements
 

@@ -23,31 +23,66 @@ import java.util.Optional;
  * optional alias.
  */
 public enum Index {
-    ALERTS("wazuh-alerts-5.x-0001", "index-template-alerts.json", "wazuh-alerts"),
-    ARCHIVES("wazuh-archives-5.x-0001", "index-template-archives.json", "wazuh-archives"),
-    FILES("wazuh-states-fim-files", "index-template-fim-files.json", null),
-    REGISTRIES("wazuh-states-fim-registries", "index-template-fim-registries.json", null),
-    HARDWARE("wazuh-states-inventory-hardware", "index-template-hardware.json", null),
-    HOTFIXES("wazuh-states-inventory-hotfixes", "index-template-hotfixes.json", null),
-    INTERFACES("wazuh-states-inventory-interfaces", "index-template-interfaces.json", null),
-    MONITORING("wazuh-monitoring", "index-template-monitoring.json", null),
-    NETWORKS("wazuh-states-inventory-networks", "index-template-networks.json", null),
-    PACKAGES("wazuh-states-inventory-packages", "index-template-packages.json", null),
-    PORTS("wazuh-states-inventory-ports", "index-template-ports.json", null),
-    PROCESSES("wazuh-states-inventory-processes", "index-template-processes.json", null),
-    PROTOCOLS("wazuh-states-inventory-protocols", "index-template-protocols.json", null),
-    STATISTICS("wazuh-statistics", "index-template-statistics.json", null),
-    SYSTEM("wazuh-states-inventory-system", "index-template-system.json", null),
-    VULNERABILITIES("wazuh-states-vulnerabilities", "index-template-vulnerabilities.json", null);
+    ALERTS("wazuh-alerts-5.x-0001", "index-template-alerts.json", "wazuh-alerts", Initializers.WAZUH),
+    ARCHIVES(
+            "wazuh-archives-5.x-0001",
+            "index-template-archives.json",
+            "wazuh-archives",
+            Initializers.WAZUH),
+    FILES("wazuh-states-fim-files", "index-template-fim-files.json", null, Initializers.WAZUH),
+    REGISTRIES(
+            "wazuh-states-fim-registries",
+            "index-template-fim-registries.json",
+            null,
+            Initializers.WAZUH),
+    HARDWARE(
+            "wazuh-states-inventory-hardware", "index-template-hardware.json", null, Initializers.WAZUH),
+    HOTFIXES(
+            "wazuh-states-inventory-hotfixes", "index-template-hotfixes.json", null, Initializers.WAZUH),
+    INTERFACES(
+            "wazuh-states-inventory-interfaces",
+            "index-template-interfaces.json",
+            null,
+            Initializers.WAZUH),
+    ISM(
+            ".opendistro-ism-config",
+            "opendistro-ism-config.json",
+            null,
+            Initializers.ISM),
+    MONITORING("wazuh-monitoring", "index-template-monitoring.json", null, Initializers.WAZUH),
+    NETWORKS(
+            "wazuh-states-inventory-networks", "index-template-networks.json", null, Initializers.WAZUH),
+    PACKAGES(
+            "wazuh-states-inventory-packages", "index-template-packages.json", null, Initializers.WAZUH),
+    PORTS("wazuh-states-inventory-ports", "index-template-ports.json", null, Initializers.WAZUH),
+    PROCESSES(
+            "wazuh-states-inventory-processes",
+            "index-template-processes.json",
+            null,
+            Initializers.WAZUH),
+    PROTOCOLS(
+            "wazuh-states-inventory-protocols",
+            "index-template-protocols.json",
+            null,
+            Initializers.WAZUH),
+    STATISTICS("wazuh-statistics", "index-template-statistics.json", null, Initializers.WAZUH),
+    SYSTEM("wazuh-states-inventory-system", "index-template-system.json", null, Initializers.WAZUH),
+    VULNERABILITIES(
+            "wazuh-states-vulnerabilities",
+            "index-template-vulnerabilities.json",
+            null,
+            Initializers.WAZUH);
 
     private final String index;
     private final String template;
     private final String alias;
+    private final IndexInitializer indexInitializer;
 
-    Index(String index, String template, String alias) {
+    Index(String index, String template, String alias, IndexInitializer indexInitializer) {
         this.index = index;
         this.template = template;
         this.alias = alias;
+        this.indexInitializer = indexInitializer;
     }
 
     public String getTemplate() {
@@ -60,5 +95,14 @@ public enum Index {
 
     public Optional<String> getAlias() {
         return Optional.ofNullable(alias);
+    }
+
+    public void initIndex() {
+        this.indexInitializer.initIndex(this);
+    }
+
+    private static class Initializers {
+        private static final WazuhIndexInitializer WAZUH = WazuhIndexInitializer.getInstance();
+        private static final IsmIndexInitializer ISM = IsmIndexInitializer.getInstance();
     }
 }

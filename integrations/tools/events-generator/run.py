@@ -1,6 +1,6 @@
 #!/usr/bin/python3
 
-# Events generator tool for Wazuh's indices.
+# Events generator tool for Wazuh's index.
 # Chooses a random element from <index>/alerts.json to index
 # Required. Destination of the events. Default: indexer.
 #  -c: Number of elements to push. Use 0 to run indefinitely. Default: 0
@@ -122,7 +122,7 @@ def date_now() -> str:
 
 def parse_args():
     parser = argparse.ArgumentParser(
-        description="Events generator tool for Wazuh's indices. Indexes a random element from <index>/alerts.json",
+        description="Events generator tool for Wazuh's index. Indexes a random element from <index>/alerts.json",
     )
     parser.add_argument(
         '-i', '--index',
