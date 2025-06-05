@@ -75,6 +75,7 @@ generate_mappings() {
 
   local in_file="$out_dir/generated/elasticsearch/legacy/template.json"
   local out_file="$out_dir/generated/elasticsearch/legacy/template-tmp.json"
+  local csv_file="$out_dir/generated/csv/fields.csv"
 
   # Delete the "tags" field from the index template
   echo "Deleting the \"tags\" field from the index template"
@@ -85,6 +86,16 @@ generate_mappings() {
   echo "Removing multi-fields from the index template"
   remove_multi_fields "$in_file" "$out_file"
   mv "$out_file" "$in_file"
+
+  # Delete the "@timestamp" field from the index template
+  echo "Deleting the \"@timestamp\" field from the index template"
+  jq 'del(.mappings.properties."@timestamp")' "$in_file" > "$out_file"
+  mv "$out_file" "$in_file"
+
+  # Delete the "@timestamp" and "tags" fields from the csv file
+  echo "Deleting the \"@timestamp\" and \"tags\" fields from the CSV file"
+  sed -i '/@timestamp/d; /tags/d' "$csv_file"
+
 
   # Transform legacy index template for OpenSearch compatibility
   jq '{
