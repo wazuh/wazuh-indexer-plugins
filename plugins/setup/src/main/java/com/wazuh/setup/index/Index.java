@@ -22,8 +22,8 @@ import org.opensearch.transport.client.Client;
 import java.util.Optional;
 
 /**
- * Enum representing the indices used by Wazuh. Each enum constant corresponds to a specific index,
- * its template, an optional alias and the initializer responsible for managing that index.
+ * Enum representing the indices used by Wazuh. Each enum constant corresponds to a specific index name,
+ * its template file, an optional alias and the initializer responsible for managing that index.
  */
 public enum Index {
     ISM(".opendistro-ism-config", "opendistro-ism-config.json", null, Initializers.ISM),
