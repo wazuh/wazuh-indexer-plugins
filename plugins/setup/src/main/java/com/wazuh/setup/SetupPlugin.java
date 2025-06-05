@@ -18,6 +18,7 @@ package com.wazuh.setup;
 
 import org.opensearch.cluster.metadata.IndexNameExpressionResolver;
 import org.opensearch.cluster.node.DiscoveryNode;
+import org.opensearch.cluster.routing.RoutingTable;
 import org.opensearch.cluster.service.ClusterService;
 import org.opensearch.common.unit.TimeValue;
 import org.opensearch.core.common.io.stream.NamedWriteableRegistry;
@@ -37,7 +38,7 @@ import java.util.Collections;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
 
-import com.wazuh.setup.index.WazuhIndices;
+import com.wazuh.setup.index.Index;
 
 /**
  * Main class of the Indexer Setup plugin. This plugin is responsible for the creation of the index
@@ -45,7 +46,7 @@ import com.wazuh.setup.index.WazuhIndices;
  */
 public class SetupPlugin extends Plugin implements ClusterPlugin {
 
-    public static final String POLICY_ID = "wazuh-alerts-rollover-policy";
+    public static final String WAZUH_ALERTS_ROLLOVER_POLICY_ID = "wazuh-alerts-rollover-policy";
     public static final TimeValue TIMEOUT = new TimeValue(5L, TimeUnit.SECONDS);
 
     private Client client;
@@ -75,9 +76,12 @@ public class SetupPlugin extends Plugin implements ClusterPlugin {
     @Override
     public void onNodeStarted(DiscoveryNode localNode) {
         if (localNode.isClusterManagerNode()) {
-            WazuhIndices indices =
-                    new WazuhIndices(this.client, this.clusterService.state().getRoutingTable());
-            indices.initialize();
+            RoutingTable routingTable = this.clusterService.state().getRoutingTable();
+            Index.Initializers.setup(this.client, routingTable);
+
+            for (Index value : Index.values()) {
+                value.initIndex();
+            }
         }
     }
 }

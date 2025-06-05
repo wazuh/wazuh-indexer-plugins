@@ -35,8 +35,6 @@ import org.opensearch.transport.client.IndicesAdminClient;
 import org.junit.After;
 import org.junit.Before;
 
-import com.wazuh.setup.index.WazuhIndices;
-
 import static org.opensearch.test.ClusterServiceUtils.createClusterService;
 import static org.mockito.Mockito.*;
 

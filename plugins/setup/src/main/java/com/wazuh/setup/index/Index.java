@@ -16,12 +16,11 @@
  */
 package com.wazuh.setup.index;
 
+import org.opensearch.cluster.routing.RoutingTable;
+import org.opensearch.transport.client.Client;
+
 import java.util.Optional;
 
-/**
- * Enum representing the indices used by Wazuh. Each enum constant contains the index name and an
- * optional alias.
- */
 public enum Index {
     ALERTS("wazuh-alerts-5.x-0001", "index-template-alerts.json", "wazuh-alerts", Initializers.WAZUH),
     ARCHIVES(
@@ -44,11 +43,7 @@ public enum Index {
             "index-template-interfaces.json",
             null,
             Initializers.WAZUH),
-    ISM(
-            ".opendistro-ism-config",
-            "opendistro-ism-config.json",
-            null,
-            Initializers.ISM),
+    ISM(".opendistro-ism-config", "opendistro-ism-config.json", null, Initializers.ISM),
     MONITORING("wazuh-monitoring", "index-template-monitoring.json", null, Initializers.WAZUH),
     NETWORKS(
             "wazuh-states-inventory-networks", "index-template-networks.json", null, Initializers.WAZUH),
@@ -101,8 +96,21 @@ public enum Index {
         this.indexInitializer.initIndex(this);
     }
 
-    private static class Initializers {
-        private static final WazuhIndexInitializer WAZUH = WazuhIndexInitializer.getInstance();
-        private static final IsmIndexInitializer ISM = IsmIndexInitializer.getInstance();
+    public static class Initializers {
+        private static WazuhIndicesInitializer WAZUH;
+        private static IsmIndexInitializer ISM;
+
+        public static void setup(Client client, RoutingTable routingTable) {
+            ISM = IsmIndexInitializer.getInstance().setClient(client).setRoutingTable(routingTable);
+            WAZUH = WazuhIndicesInitializer.getInstance().setClient(client).setRoutingTable(routingTable);
+        }
+
+        public static void setWazuhIndexInitializer(WazuhIndicesInitializer initializer) {
+            WAZUH = initializer;
+        }
+
+        public static void setIsmIndexInitializer(IsmIndexInitializer initializer) {
+            ISM = initializer;
+        }
     }
 }

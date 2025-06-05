@@ -37,7 +37,6 @@ public final class IsmIndexInitializer implements IndexInitializer {
 
     private Client client;
     private RoutingTable routingTable;
-    public static Map<String, Object> POLICY;
     private static IsmIndexInitializer INSTANCE;
 
     private IsmIndexInitializer() {}
@@ -76,8 +75,9 @@ public final class IsmIndexInitializer implements IndexInitializer {
     public void initIndex(Index index) {
         this.createIsmIndex(index);
 
+        Map<String, Object> template;
         try {
-            POLICY = IndexTemplateUtils.fromFile(SetupPlugin.POLICY_ID + ".json");
+            template = IndexTemplateUtils.fromFile(SetupPlugin.WAZUH_ALERTS_ROLLOVER_POLICY_ID + ".json");
         } catch (IOException e) {
             log.error("Failed to load the Wazuh rollover policy from file: {}", e.getMessage());
             return;
@@ -86,8 +86,8 @@ public final class IsmIndexInitializer implements IndexInitializer {
         IndexRequest indexRequest =
                 new IndexRequest(index.getIndexName())
                         .index(index.getIndexName())
-                        .id(SetupPlugin.POLICY_ID)
-                        .source(POLICY, MediaTypeRegistry.JSON);
+                        .id(SetupPlugin.WAZUH_ALERTS_ROLLOVER_POLICY_ID)
+                        .source(template, MediaTypeRegistry.JSON);
 
         client.index(indexRequest).actionGet(SetupPlugin.TIMEOUT);
         log.info("Indexed Wazuh rollover policy into {} index", index.getIndexName());

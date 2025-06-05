@@ -32,28 +32,28 @@ import java.util.Map;
 import com.wazuh.setup.SetupPlugin;
 import com.wazuh.setup.utils.IndexTemplateUtils;
 
-public final class WazuhIndexInitializer implements IndexInitializer {
+public final class WazuhIndicesInitializer implements IndexInitializer {
 
-    private static final Logger log = LogManager.getLogger(WazuhIndexInitializer.class);
+    private static final Logger log = LogManager.getLogger(WazuhIndicesInitializer.class);
     private Client client;
     private RoutingTable routingTable;
-    private static WazuhIndexInitializer INSTANCE;
+    private static WazuhIndicesInitializer INSTANCE;
 
-    private WazuhIndexInitializer() {}
+    private WazuhIndicesInitializer() {}
 
-    public static WazuhIndexInitializer getInstance() {
-        if (WazuhIndexInitializer.INSTANCE == null) {
-            INSTANCE = new WazuhIndexInitializer();
+    public static WazuhIndicesInitializer getInstance() {
+        if (WazuhIndicesInitializer.INSTANCE == null) {
+            INSTANCE = new WazuhIndicesInitializer();
         }
         return INSTANCE;
     }
 
-    public WazuhIndexInitializer setClient(Client client) {
+    public WazuhIndicesInitializer setClient(Client client) {
         this.client = client;
         return this;
     }
 
-    public WazuhIndexInitializer setRoutingTable(RoutingTable routingTable) {
+    public WazuhIndicesInitializer setRoutingTable(RoutingTable routingTable) {
         this.routingTable = routingTable;
         return this;
     }
