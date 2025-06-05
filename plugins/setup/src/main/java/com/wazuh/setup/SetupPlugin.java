@@ -75,10 +75,13 @@ public class SetupPlugin extends Plugin implements ClusterPlugin {
 
     @Override
     public void onNodeStarted(DiscoveryNode localNode) {
+        // Initialize the indices only if this node is the cluster manager node.
         if (localNode.isClusterManagerNode()) {
             RoutingTable routingTable = this.clusterService.state().getRoutingTable();
+            // Set up the client and routing table for index initializers
             Index.Initializers.setup(this.client, routingTable);
 
+            // Initialize all indices
             for (Index value : Index.values()) {
                 value.initIndex();
             }

@@ -16,7 +16,16 @@
  */
 package com.wazuh.setup.index;
 
+/**
+ * Interface for initializing indices in Wazuh. Implementations should provide the logic to create
+ * and configure indices.
+ */
 public interface IndexInitializer {
 
+    /**
+     * Initializes the index with the provided configuration.
+     *
+     * @param index The index to be initialized.
+     */
     public void initIndex(Index index);
 }

@@ -32,6 +32,7 @@ import java.util.Map;
 import com.wazuh.setup.SetupPlugin;
 import com.wazuh.setup.utils.IndexTemplateUtils;
 
+/** Class to manage Wazuh indices and index templates. */
 public final class WazuhIndicesInitializer implements IndexInitializer {
 
     private static final Logger log = LogManager.getLogger(WazuhIndicesInitializer.class);
@@ -41,6 +42,11 @@ public final class WazuhIndicesInitializer implements IndexInitializer {
 
     private WazuhIndicesInitializer() {}
 
+    /**
+     * Default Singleton instance access method.
+     *
+     * @return the singleton instance.
+     */
     public static WazuhIndicesInitializer getInstance() {
         if (WazuhIndicesInitializer.INSTANCE == null) {
             INSTANCE = new WazuhIndicesInitializer();
@@ -48,11 +54,23 @@ public final class WazuhIndicesInitializer implements IndexInitializer {
         return INSTANCE;
     }
 
+    /**
+     * Sets the OpenSearch client.
+     *
+     * @param client OpenSearch client.
+     * @return this instance for method chaining.
+     */
     public WazuhIndicesInitializer setClient(Client client) {
         this.client = client;
         return this;
     }
 
+    /**
+     * Sets the routing table.
+     *
+     * @param routingTable OpenSearch routing table.
+     * @return this instance for method chaining.
+     */
     public WazuhIndicesInitializer setRoutingTable(RoutingTable routingTable) {
         this.routingTable = routingTable;
         return this;
@@ -108,6 +126,11 @@ public final class WazuhIndicesInitializer implements IndexInitializer {
         log.info("Index {} created successfully", index.getIndexName());
     }
 
+    /**
+     * Initializes the index by creating the index template and the index itself.
+     *
+     * @param index the index to initialize
+     */
     @Override
     public void initIndex(Index index) {
         putTemplate(index);

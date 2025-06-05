@@ -21,7 +21,12 @@ import org.opensearch.transport.client.Client;
 
 import java.util.Optional;
 
+/**
+ * Enum representing the indices used by Wazuh. Each enum constant corresponds to a specific index,
+ * its template, an optional alias and the initializer responsible for managing that index.
+ */
 public enum Index {
+    ISM(".opendistro-ism-config", "opendistro-ism-config.json", null, Initializers.ISM),
     ALERTS("wazuh-alerts-5.x-0001", "index-template-alerts.json", "wazuh-alerts", Initializers.WAZUH),
     ARCHIVES(
             "wazuh-archives-5.x-0001",
@@ -43,7 +48,6 @@ public enum Index {
             "index-template-interfaces.json",
             null,
             Initializers.WAZUH),
-    ISM(".opendistro-ism-config", "opendistro-ism-config.json", null, Initializers.ISM),
     MONITORING("wazuh-monitoring", "index-template-monitoring.json", null, Initializers.WAZUH),
     NETWORKS(
             "wazuh-states-inventory-networks", "index-template-networks.json", null, Initializers.WAZUH),
@@ -80,35 +84,69 @@ public enum Index {
         this.indexInitializer = indexInitializer;
     }
 
+    /**
+     * Returns the index template file name.
+     *
+     * @return the index template file name
+     */
     public String getTemplate() {
         return template;
     }
 
+    /**
+     * Returns the index name.
+     *
+     * @return the index name
+     */
     public String getIndexName() {
         return index;
     }
 
+    /**
+     * Returns the alias for the index, if it exists.
+     *
+     * @return an Optional containing the alias if it exists, or an empty Optional if it does not
+     */
     public Optional<String> getAlias() {
         return Optional.ofNullable(alias);
     }
 
+    /** Runs the initIndex() method of the index initializer. */
     public void initIndex() {
         this.indexInitializer.initIndex(this);
     }
 
+    /** Static subclass to setup the index initializers. */
     public static class Initializers {
         private static WazuhIndicesInitializer WAZUH;
         private static IsmIndexInitializer ISM;
 
+        /**
+         * Sets up the index initializers with the provided client and routing table. This method should
+         * be called before initializing any indices.
+         *
+         * @param client the OpenSearch client
+         * @param routingTable the routing table of the cluster
+         */
         public static void setup(Client client, RoutingTable routingTable) {
             ISM = IsmIndexInitializer.getInstance().setClient(client).setRoutingTable(routingTable);
             WAZUH = WazuhIndicesInitializer.getInstance().setClient(client).setRoutingTable(routingTable);
         }
 
+        /**
+         * Public method to set the Wazuh index initializer in unit tests
+         *
+         * @param initializer the Wazuh indices initializer to set
+         */
         public static void setWazuhIndexInitializer(WazuhIndicesInitializer initializer) {
             WAZUH = initializer;
         }
 
+        /**
+         * Public method to set the ISM index initializer in unit tests
+         *
+         * @param initializer the ISM index initializer to set
+         */
         public static void setIsmIndexInitializer(IsmIndexInitializer initializer) {
             ISM = initializer;
         }

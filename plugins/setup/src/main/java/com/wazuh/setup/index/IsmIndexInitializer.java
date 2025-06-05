@@ -41,6 +41,11 @@ public final class IsmIndexInitializer implements IndexInitializer {
 
     private IsmIndexInitializer() {}
 
+    /**
+     * Default Singleton instance access method.
+     *
+     * @return the singleton instance.
+     */
     public static IsmIndexInitializer getInstance() {
         if (IsmIndexInitializer.INSTANCE == null) {
             INSTANCE = new IsmIndexInitializer();
@@ -48,11 +53,23 @@ public final class IsmIndexInitializer implements IndexInitializer {
         return INSTANCE;
     }
 
+    /**
+     * Sets the OpenSearch client.
+     *
+     * @param client OpenSearch client.
+     * @return this instance for method chaining.
+     */
     public IsmIndexInitializer setClient(Client client) {
         this.client = client;
         return this;
     }
 
+    /**
+     * Sets the routing table.
+     *
+     * @param routingTable OpenSearch routing table.
+     * @return this instance for method chaining.
+     */
     public IsmIndexInitializer setRoutingTable(RoutingTable routingTable) {
         this.routingTable = routingTable;
         return this;
@@ -61,6 +78,7 @@ public final class IsmIndexInitializer implements IndexInitializer {
     /**
      * Checks if the command index exists.
      *
+     * @param index the index to check.
      * @return whether the internal Command Manager's index exists.
      */
     public boolean ismIndexExists(Index index) {
@@ -68,8 +86,10 @@ public final class IsmIndexInitializer implements IndexInitializer {
     }
 
     /**
-     * Indexes the Wazuh rollover policy into the .opendistro-ism-config index. If the index does not
-     * exist, it will create it.
+     * Creates the .opendistro-ism-config along with its mappings and settings and indexes the Wazuh
+     * rollover policy.
+     *
+     * @param index the index to initialize.
      */
     @Override
     public void initIndex(Index index) {
@@ -93,7 +113,11 @@ public final class IsmIndexInitializer implements IndexInitializer {
         log.info("Indexed Wazuh rollover policy into {} index", index.getIndexName());
     }
 
-    /** Puts the .opendistro-ism-config template into the cluster and creates the index */
+    /**
+     * Puts the .opendistro-ism-config template into the cluster and creates the index
+     *
+     * @param index the index to create
+     */
     public void createIsmIndex(Index index) {
         if (ismIndexExists(index)) {
             log.info("{} Index exists, skipping", index.getIndexName());
