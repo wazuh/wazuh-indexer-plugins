@@ -126,7 +126,7 @@ public class IndexTemplateUtils {
                             .putTemplate(putIndexTemplateRequest)
                             .actionGet(SetupPlugin.TIMEOUT);
             if (acknowledgedResponse.isAcknowledged()) {
-                log.info("Index template [{}] created successfully", templateName);
+                log.info("IndexStrategySelector template [{}] created successfully", templateName);
             }
 
         } catch (IOException e) {

@@ -48,7 +48,6 @@ import static org.hamcrest.Matchers.containsString;
 @OpenSearchIntegTestCase.ClusterScope(scope = OpenSearchIntegTestCase.Scope.SUITE)
 public class SetupPluginIT extends OpenSearchIntegTestCase {
 
-    private static final Logger log = LogManager.getLogger(SetupPluginIT.class);
     public static final String TEST_INDEX = "test-index-0000";
     public static final String TEST_ALIAS = "test-alias";
     public static final String TEST_TEMPLATE = "test-template";
@@ -110,7 +109,6 @@ public class SetupPluginIT extends OpenSearchIntegTestCase {
     }
 
     /** Test that the ISM index was created */
-    @Test
     public void testISMIndexCreated() throws Exception {
         ensureGreen();
         assertBusy(() -> assertTrue(indexExists("test")));

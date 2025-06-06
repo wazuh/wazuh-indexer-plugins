@@ -23,9 +23,9 @@ package com.wazuh.setup.index;
 public interface IndexInitializer {
 
     /**
-     * Initializes the index with the provided configuration.
+     * Initializes the indexStrategySelector with the provided configuration.
      *
-     * @param index The index to be initialized.
+     * @param indexStrategySelector The indexStrategySelector to be initialized.
      */
-    public void initIndex(Index index);
+    public void initIndex(IndexStrategySelector indexStrategySelector);
 }

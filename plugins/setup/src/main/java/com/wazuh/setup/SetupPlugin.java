@@ -38,7 +38,7 @@ import java.util.Collections;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
 
-import com.wazuh.setup.index.Index;
+import com.wazuh.setup.index.IndexStrategySelector;
 
 /**
  * Main class of the Indexer Setup plugin. This plugin is responsible for the creation of the index
@@ -79,10 +79,10 @@ public class SetupPlugin extends Plugin implements ClusterPlugin {
         if (localNode.isClusterManagerNode()) {
             RoutingTable routingTable = this.clusterService.state().getRoutingTable();
             // Set up the client and routing table for index initializers
-            Index.Initializers.setup(this.client, routingTable);
+            IndexStrategySelector.Initializers.setup(this.client, routingTable);
 
             // Initialize all indices
-            for (Index value : Index.values()) {
+            for (IndexStrategySelector value : IndexStrategySelector.values()) {
                 value.initIndex();
             }
         }

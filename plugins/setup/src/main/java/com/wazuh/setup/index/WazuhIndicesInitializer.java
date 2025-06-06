@@ -77,20 +77,21 @@ public final class WazuhIndicesInitializer implements IndexInitializer {
     }
 
     /**
-     * Inserts an index template
+     * Inserts an indexStrategySelector template
      *
-     * @param index: The Index object to load
+     * @param indexStrategySelector: The IndexStrategySelector object to load
      */
     @SuppressWarnings("unchecked")
-    private void putTemplate(Index index) {
+    private void putTemplate(IndexStrategySelector indexStrategySelector) {
         try {
-            Map<String, Object> template = IndexTemplateUtils.fromFile(index.getTemplate());
+            Map<String, Object> template =
+                    IndexTemplateUtils.fromFile(indexStrategySelector.getTemplate());
 
             PutIndexTemplateRequest putIndexTemplateRequest =
                     new PutIndexTemplateRequest()
                             .mapping(IndexTemplateUtils.get(template, "mappings"))
                             .settings(IndexTemplateUtils.get(template, "settings"))
-                            .name(index.getTemplate().replace(".json", ""))
+                            .name(indexStrategySelector.getTemplate().replace(".json", ""))
                             .patterns((List<String>) template.get("index_patterns"));
 
             this.client
@@ -98,43 +99,52 @@ public final class WazuhIndicesInitializer implements IndexInitializer {
                     .indices()
                     .putTemplate(putIndexTemplateRequest)
                     .actionGet(SetupPlugin.TIMEOUT);
-            log.info("Index template {} created successfully", index.getTemplate());
+            log.info(
+                    "IndexStrategySelector template {} created successfully",
+                    indexStrategySelector.getTemplate());
         } catch (NullPointerException e) {
-            log.error("Error reading template file {}.", index.getTemplate());
+            log.error("Error reading template file {}.", indexStrategySelector.getTemplate());
         } catch (IOException e) {
-            log.error("Error reading index template from filesystem {}", index.getTemplate());
+            log.error(
+                    "Error reading indexStrategySelector template from filesystem {}",
+                    indexStrategySelector.getTemplate());
         } catch (ResourceAlreadyExistsException e) {
-            log.info("Index template {} already exists. Skipping.", index.getTemplate());
+            log.info(
+                    "IndexStrategySelector template {} already exists. Skipping.",
+                    indexStrategySelector.getTemplate());
         }
     }
 
     /**
-     * Creates an index
+     * Creates an indexStrategySelector
      *
-     * @param index the index to create
+     * @param indexStrategySelector the indexStrategySelector to create
      */
-    private void putIndex(Index index) {
-        if (indexExists(index.getIndexName())) {
-            log.error("Index {} already exists. Skipping.", index.getIndexName());
+    private void putIndex(IndexStrategySelector indexStrategySelector) {
+        if (indexExists(indexStrategySelector.getIndexName())) {
+            log.error(
+                    "IndexStrategySelector {} already exists. Skipping.",
+                    indexStrategySelector.getIndexName());
             return;
         }
-        CreateIndexRequest request = new CreateIndexRequest(index.getIndexName());
-        if (index.getAlias().isPresent()) {
-            request.alias(new Alias(index.getAlias().get()).writeIndex(true));
+        CreateIndexRequest request = new CreateIndexRequest(indexStrategySelector.getIndexName());
+        if (indexStrategySelector.getAlias().isPresent()) {
+            request.alias(new Alias(indexStrategySelector.getAlias().get()).writeIndex(true));
         }
         this.client.admin().indices().create(request).actionGet(SetupPlugin.TIMEOUT);
-        log.info("Index {} created successfully", index.getIndexName());
+        log.info("IndexStrategySelector {} created successfully", indexStrategySelector.getIndexName());
     }
 
     /**
-     * Initializes the index by creating the index template and the index itself.
+     * Initializes the indexStrategySelector by creating the indexStrategySelector template and the
+     * indexStrategySelector itself.
      *
-     * @param index the index to initialize
+     * @param indexStrategySelector the indexStrategySelector to initialize
      */
     @Override
-    public void initIndex(Index index) {
-        putTemplate(index);
-        putIndex(index);
+    public void initIndex(IndexStrategySelector indexStrategySelector) {
+        putTemplate(indexStrategySelector);
+        putIndex(indexStrategySelector);
     }
 
     /**

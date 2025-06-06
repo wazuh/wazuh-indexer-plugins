@@ -22,10 +22,11 @@ import org.opensearch.transport.client.Client;
 import java.util.Optional;
 
 /**
- * Enum representing the indices used by Wazuh. Each enum constant corresponds to a specific index name,
- * its template file, an optional alias and the initializer responsible for managing that index.
+ * Enum representing the indices used by Wazuh. Each enum constant corresponds to a specific index
+ * name, its template file, an optional alias and the initializer responsible for managing that
+ * index.
  */
-public enum Index {
+public enum IndexStrategySelector {
     ISM(".opendistro-ism-config", "opendistro-ism-config.json", null, Initializers.ISM),
     ALERTS("wazuh-alerts-5.x-0001", "index-template-alerts.json", "wazuh-alerts", Initializers.WAZUH),
     ARCHIVES(
@@ -77,7 +78,8 @@ public enum Index {
     private final String alias;
     private final IndexInitializer indexInitializer;
 
-    Index(String index, String template, String alias, IndexInitializer indexInitializer) {
+    IndexStrategySelector(
+            String index, String template, String alias, IndexInitializer indexInitializer) {
         this.index = index;
         this.template = template;
         this.alias = alias;
