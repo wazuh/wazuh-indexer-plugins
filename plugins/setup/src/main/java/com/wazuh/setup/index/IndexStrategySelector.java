@@ -134,23 +134,5 @@ public enum IndexStrategySelector {
             ISM = IsmIndexInitializer.getInstance().setClient(client).setRoutingTable(routingTable);
             WAZUH = WazuhIndicesInitializer.getInstance().setClient(client).setRoutingTable(routingTable);
         }
-
-        /**
-         * Public method to set the Wazuh index initializer in unit tests
-         *
-         * @param initializer the Wazuh indices initializer to set
-         */
-        public static void setWazuhIndexInitializer(WazuhIndicesInitializer initializer) {
-            WAZUH = initializer;
-        }
-
-        /**
-         * Public method to set the ISM index initializer in unit tests
-         *
-         * @param initializer the ISM index initializer to set
-         */
-        public static void setIsmIndexInitializer(IsmIndexInitializer initializer) {
-            ISM = initializer;
-        }
     }
 }

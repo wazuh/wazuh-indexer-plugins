@@ -78,11 +78,11 @@ public final class IsmIndexInitializer implements IndexInitializer {
     /**
      * Checks if the command indexStrategySelector exists.
      *
-     * @param indexStrategySelector the indexStrategySelector to check.
+     * @param indexName the name of the index to check.
      * @return whether the internal Command Manager's indexStrategySelector exists.
      */
-    public boolean ismIndexExists(IndexStrategySelector indexStrategySelector) {
-        return this.routingTable.hasIndex(indexStrategySelector.getIndexName());
+    public boolean ismIndexExists(String indexName) {
+        return this.routingTable.hasIndex(indexName);
     }
 
     /**
@@ -121,7 +121,7 @@ public final class IsmIndexInitializer implements IndexInitializer {
      * @param indexStrategySelector the indexStrategySelector to create
      */
     public void createIsmIndex(IndexStrategySelector indexStrategySelector) {
-        if (ismIndexExists(indexStrategySelector)) {
+        if (ismIndexExists(indexStrategySelector.getIndexName())) {
             log.info("{} IndexStrategySelector exists, skipping", indexStrategySelector.getIndexName());
             return;
         }
