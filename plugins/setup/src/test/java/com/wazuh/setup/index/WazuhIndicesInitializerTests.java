@@ -27,10 +27,8 @@ import org.opensearch.transport.client.Client;
 import org.opensearch.transport.client.IndicesAdminClient;
 
 import java.io.IOException;
-import java.lang.reflect.Field;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 
 import com.wazuh.setup.utils.IndexUtils;
 import org.mockito.ArgumentCaptor;
@@ -63,10 +61,10 @@ public class WazuhIndicesInitializerTests extends OpenSearchTestCase {
         this.routingTable = mock(RoutingTable.class);
         this.indexUtils = mock(IndexUtils.class);
 
-        mockAdminClient = mock(AdminClient.class);
-        mockIndicesClient = mock(IndicesAdminClient.class);
-        doReturn(mockAdminClient).when(this.client).admin();
-        doReturn(mockIndicesClient).when(mockAdminClient).indices();
+        this.mockAdminClient = mock(AdminClient.class);
+        this.mockIndicesClient = mock(IndicesAdminClient.class);
+        doReturn(this.mockAdminClient).when(this.client).admin();
+        doReturn(this.mockIndicesClient).when(this.mockAdminClient).indices();
 
         this.wazuhIndicesInitializer =
                 WazuhIndicesInitializer.getInstance()
@@ -121,7 +119,7 @@ public class WazuhIndicesInitializerTests extends OpenSearchTestCase {
                 .when(this.mockIndicesClient)
                 .create(any(CreateIndexRequest.class));
 
-        wazuhIndicesInitializer.initIndex(IndexStrategySelector.ALERTS);
+        this.wazuhIndicesInitializer.initIndex(IndexStrategySelector.ALERTS);
         verify(this.mockIndicesClient).putTemplate(any(PutIndexTemplateRequest.class));
     }
 
@@ -131,11 +129,11 @@ public class WazuhIndicesInitializerTests extends OpenSearchTestCase {
      * @throws Exception if an error occurs during the test
      */
     public void testPutTemplateHandlesNullPointerException() throws Exception {
-        doReturn(mock(ActionFuture.class)).when(mockIndicesClient).create(any());
+        doReturn(mock(ActionFuture.class)).when(this.mockIndicesClient).create(any());
         doThrow(NullPointerException.class)
-                .when(indexUtils)
+                .when(this.indexUtils)
                 .fromFile(IndexStrategySelector.ALERTS.getTemplateFileName());
-        wazuhIndicesInitializer.initIndex(IndexStrategySelector.ALERTS);
+        this.wazuhIndicesInitializer.initIndex(IndexStrategySelector.ALERTS);
     }
 
     /**
@@ -147,7 +145,7 @@ public class WazuhIndicesInitializerTests extends OpenSearchTestCase {
         doThrow(IOException.class)
                 .when(this.indexUtils)
                 .fromFile(IndexStrategySelector.ALERTS.getTemplateFileName());
-        doReturn(mock(ActionFuture.class)).when(mockIndicesClient).create(any());
+        doReturn(mock(ActionFuture.class)).when(this.mockIndicesClient).create(any());
         this.wazuhIndicesInitializer.initIndex(IndexStrategySelector.ALERTS);
     }
 
@@ -166,21 +164,21 @@ public class WazuhIndicesInitializerTests extends OpenSearchTestCase {
         doReturn(template).when(this.indexUtils).fromFile(anyString());
         doReturn(template.get("mappings")).when(this.indexUtils).get(template, "mappings");
         doReturn(template.get("settings")).when(this.indexUtils).get(template, "settings");
-        doReturn(mock(ActionFuture.class)).when(mockIndicesClient).create(any());
+        doReturn(mock(ActionFuture.class)).when(this.mockIndicesClient).create(any());
         this.wazuhIndicesInitializer.initIndex(IndexStrategySelector.ALERTS);
     }
 
     /** Skips index creation if it already exists. */
     public void testPutIndexSkipsIfExists() {
         doReturn(true).when(this.routingTable).hasIndex(IndexStrategySelector.ALERTS.getIndexName());
-        wazuhIndicesInitializer.initIndex(IndexStrategySelector.ALERTS);
-        verify(mockIndicesClient, never()).create(any(CreateIndexRequest.class));
+        this.wazuhIndicesInitializer.initIndex(IndexStrategySelector.ALERTS);
+        verify(this.mockIndicesClient, never()).create(any(CreateIndexRequest.class));
     }
 
     /** Creates index if it does not exist. */
     public void testPutIndexCreatesIfNotExists() {
         doReturn(false).when(this.routingTable).hasIndex(IndexStrategySelector.ALERTS.getIndexName());
-        doReturn(mock(ActionFuture.class)).when(mockIndicesClient).create(any());
+        doReturn(mock(ActionFuture.class)).when(this.mockIndicesClient).create(any());
         this.wazuhIndicesInitializer.initIndex(IndexStrategySelector.ALERTS);
         verify(this.mockIndicesClient).create(any(CreateIndexRequest.class));
     }
@@ -205,14 +203,13 @@ public class WazuhIndicesInitializerTests extends OpenSearchTestCase {
         doReturn(Map.of()).when(mockUtils).get(anyMap(), eq("settings"));
 
         doReturn(mock(ActionFuture.class))
-                .when(mockIndicesClient)
+                .when(this.mockIndicesClient)
                 .create(any(CreateIndexRequest.class));
 
         this.wazuhIndicesInitializer.initIndex(selector);
 
         ArgumentCaptor<CreateIndexRequest> captor = ArgumentCaptor.forClass(CreateIndexRequest.class);
-        verify(mockIndicesClient).create(captor.capture());
+        verify(this.mockIndicesClient).create(captor.capture());
         assertEquals("wazuh-alerts", captor.getValue().aliases().iterator().next().name());
     }
-
 }

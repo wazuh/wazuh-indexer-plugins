@@ -28,7 +28,9 @@ import org.opensearch.transport.client.Client;
 import org.opensearch.transport.client.IndicesAdminClient;
 
 import java.io.IOException;
+import java.util.Map;
 
+import com.wazuh.setup.SetupPlugin;
 import com.wazuh.setup.utils.IndexUtils;
 
 import static org.mockito.ArgumentMatchers.any;
@@ -36,15 +38,19 @@ import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 
+/** Tests for the IsmIndexInitializer class. */
 public class IsmIndexInitializerTests extends OpenSearchTestCase {
 
     private Client client;
     private RoutingTable routingTable;
     private IsmIndexInitializer ismIndexInitializer;
     private IndexUtils indexUtils;
+    private AdminClient mockAdminClient;
+    private IndicesAdminClient mockIndicesClient;
 
     @Override
     public void setUp() throws Exception {
@@ -52,6 +58,12 @@ public class IsmIndexInitializerTests extends OpenSearchTestCase {
         this.client = mock(Client.class);
         this.routingTable = mock(RoutingTable.class);
         this.indexUtils = mock(IndexUtils.class);
+
+        this.mockAdminClient = mock(AdminClient.class);
+        this.mockIndicesClient = mock(IndicesAdminClient.class);
+        doReturn(this.mockAdminClient).when(this.client).admin();
+        doReturn(this.mockIndicesClient).when(this.mockAdminClient).indices();
+
         this.ismIndexInitializer =
                 IsmIndexInitializer.getInstance()
                         .setClient(this.client)
@@ -76,6 +88,20 @@ public class IsmIndexInitializerTests extends OpenSearchTestCase {
         assert this.ismIndexInitializer.ismIndexExists(IndexStrategySelector.ISM.getIndexName());
     }
 
+    /**
+     * Test createIsmIndex skips creation if index already exists.
+     *
+     * @throws IOException if an error occurs while reading the policy file
+     */
+    public void testCreateIsmIndexAlreadyExists() {
+        doReturn(true).when(this.routingTable).hasIndex(IndexStrategySelector.ISM.getIndexName());
+
+        doReturn(mock(ActionFuture.class)).when(this.client).index(any());
+        this.ismIndexInitializer.initIndex(IndexStrategySelector.ISM);
+
+        verify(this.mockIndicesClient, never()).create(any());
+    }
+
     /** That index is created on initialization */
     public void testInitIndexCreatesIsmIndex() {
         AdminClient adminClient = mock(AdminClient.class);
@@ -90,6 +116,39 @@ public class IsmIndexInitializerTests extends OpenSearchTestCase {
         doReturn(indexResponseActionFuture).when(this.client).index(any(IndexRequest.class));
         this.ismIndexInitializer.initIndex(IndexStrategySelector.ISM);
         verify(indicesAdminClient, times(1)).create(any(CreateIndexRequest.class));
+    }
+
+    /**
+     * Test indexPolicy loads rollover policy from file and indexes it.
+     *
+     * @throws IOException if an error occurs while reading the policy file
+     */
+    public void testIndexPolicySuccess() throws IOException {
+        Map<String, Object> mockPolicy = Map.of("policy", "details");
+
+        doReturn(mockPolicy)
+                .when(this.indexUtils)
+                .fromFile(SetupPlugin.WAZUH_ALERTS_ROLLOVER_POLICY_ID + ".json");
+
+        doReturn(mock(ActionFuture.class)).when(this.mockIndicesClient).create(any());
+        doReturn(mock(ActionFuture.class)).when(this.client).index(any(IndexRequest.class));
+
+        this.ismIndexInitializer.initIndex(IndexStrategySelector.ISM);
+
+        verify(this.client).index(any(IndexRequest.class));
+    }
+
+    /** Test indexPolicy handles IOException while loading policy. */
+    public void testIndexPolicyIOException() throws IOException {
+        doThrow(new IOException("File error"))
+                .when(this.indexUtils)
+                .fromFile(SetupPlugin.WAZUH_ALERTS_ROLLOVER_POLICY_ID + ".json");
+
+        doReturn(mock(ActionFuture.class)).when(this.mockIndicesClient).create(any());
+
+        this.ismIndexInitializer.initIndex(IndexStrategySelector.ISM);
+
+        verify(this.client, never()).index(any());
     }
 
     /**
