@@ -9,6 +9,9 @@ jobs:
   run-ecs-generator:
     if: github.repository == 'wazuh/wazuh-indexer-plugins'
     runs-on: ubuntu-24.04
+    permissions:
+      actions: read
+      contents: write
     env:
       output_folder: /tmp/ecs-templates
 
