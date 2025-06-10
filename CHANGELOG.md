@@ -31,6 +31,6 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Improve ECS folder structure [(#473)](https://github.com/wazuh/wazuh-indexer-plugins/pull/473)
 
 ### Security
--
+- Reduce risk of GITHUB_TOKEN exposure [(#484)](https://github.com/wazuh/wazuh-indexer-plugins/pull/484)
 
 [Unreleased 5.0.x]: https://github.com/wazuh/wazuh-indexer-plugins/compare/main...main
