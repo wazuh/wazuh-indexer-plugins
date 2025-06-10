@@ -16,8 +16,6 @@
  */
 package com.wazuh.setup.utils;
 
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
 import org.opensearch.common.xcontent.json.JsonXContent;
 import org.opensearch.core.xcontent.DeprecationHandler;
 import org.opensearch.core.xcontent.NamedXContentRegistry;
@@ -31,7 +29,6 @@ import reactor.util.annotation.NonNull;
 
 /** Util functions to parse and manage index templates files. */
 public class IndexUtils {
-    private static final Logger log = LogManager.getLogger(IndexUtils.class);
 
     /** Default constructor */
     public IndexUtils() {}

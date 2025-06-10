@@ -49,8 +49,8 @@ public class IsmIndexInitializerTests extends OpenSearchTestCase {
     private RoutingTable routingTable;
     private IsmIndexInitializer ismIndexInitializer;
     private IndexUtils indexUtils;
-    private AdminClient mockAdminClient;
-    private IndicesAdminClient mockIndicesClient;
+    private AdminClient adminClient;
+    private IndicesAdminClient indicesAdminClient;
 
     @Override
     public void setUp() throws Exception {
@@ -59,10 +59,10 @@ public class IsmIndexInitializerTests extends OpenSearchTestCase {
         this.routingTable = mock(RoutingTable.class);
         this.indexUtils = mock(IndexUtils.class);
 
-        this.mockAdminClient = mock(AdminClient.class);
-        this.mockIndicesClient = mock(IndicesAdminClient.class);
-        doReturn(this.mockAdminClient).when(this.client).admin();
-        doReturn(this.mockIndicesClient).when(this.mockAdminClient).indices();
+        this.adminClient = mock(AdminClient.class);
+        this.indicesAdminClient = mock(IndicesAdminClient.class);
+        doReturn(this.adminClient).when(this.client).admin();
+        doReturn(this.indicesAdminClient).when(this.adminClient).indices();
 
         this.ismIndexInitializer =
                 IsmIndexInitializer.getInstance()
@@ -88,18 +88,14 @@ public class IsmIndexInitializerTests extends OpenSearchTestCase {
         assert this.ismIndexInitializer.ismIndexExists(IndexStrategySelector.ISM.getIndexName());
     }
 
-    /**
-     * Test createIsmIndex skips creation if index already exists.
-     *
-     * @throws IOException if an error occurs while reading the policy file
-     */
+    /** Test createIsmIndex skips creation if index already exists. */
     public void testCreateIsmIndexAlreadyExists() {
         doReturn(true).when(this.routingTable).hasIndex(IndexStrategySelector.ISM.getIndexName());
 
         doReturn(mock(ActionFuture.class)).when(this.client).index(any());
         this.ismIndexInitializer.initIndex(IndexStrategySelector.ISM);
 
-        verify(this.mockIndicesClient, never()).create(any());
+        verify(this.indicesAdminClient, never()).create(any());
     }
 
     /** That index is created on initialization */
@@ -130,7 +126,7 @@ public class IsmIndexInitializerTests extends OpenSearchTestCase {
                 .when(this.indexUtils)
                 .fromFile(SetupPlugin.WAZUH_ALERTS_ROLLOVER_POLICY_ID + ".json");
 
-        doReturn(mock(ActionFuture.class)).when(this.mockIndicesClient).create(any());
+        doReturn(mock(ActionFuture.class)).when(this.indicesAdminClient).create(any());
         doReturn(mock(ActionFuture.class)).when(this.client).index(any(IndexRequest.class));
 
         this.ismIndexInitializer.initIndex(IndexStrategySelector.ISM);
@@ -138,13 +134,17 @@ public class IsmIndexInitializerTests extends OpenSearchTestCase {
         verify(this.client).index(any(IndexRequest.class));
     }
 
-    /** Test indexPolicy handles IOException while loading policy. */
+    /**
+     * Test indexPolicy handles IOException while loading policy.
+     *
+     * @throws IOException if an error occurs while reading the policy file
+     */
     public void testIndexPolicyIOException() throws IOException {
         doThrow(new IOException("File error"))
                 .when(this.indexUtils)
                 .fromFile(SetupPlugin.WAZUH_ALERTS_ROLLOVER_POLICY_ID + ".json");
 
-        doReturn(mock(ActionFuture.class)).when(this.mockIndicesClient).create(any());
+        doReturn(mock(ActionFuture.class)).when(this.indicesAdminClient).create(any());
 
         this.ismIndexInitializer.initIndex(IndexStrategySelector.ISM);
 

@@ -58,7 +58,8 @@ public class IndexStrategySelectorTests extends OpenSearchTestCase {
         IndexStrategySelector.Initializers.setup(this.client, routingTable);
     }
 
-    public void testInitIndices() throws NoSuchFieldException, IllegalAccessException {
+    /** Tests the initialization of indices for each strategy in IndexStrategySelector. */
+    public void testInitIndices() {
         for (IndexStrategySelector strategy : IndexStrategySelector.values()) {
             strategy.initIndex();
             verify(this.client, times(1)).index(any(IndexRequest.class));

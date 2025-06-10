@@ -120,7 +120,7 @@ public enum IndexStrategySelector {
         this.indexInitializer.initIndex(this);
     }
 
-    /** Static subclass to setup the index initializers. */
+    /** Static subclass to set up the index initializers. */
     public static class Initializers {
         private static WazuhIndicesInitializer WAZUH;
         private static IsmIndexInitializer ISM;

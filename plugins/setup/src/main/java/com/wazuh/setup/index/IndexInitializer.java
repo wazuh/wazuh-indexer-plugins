@@ -27,5 +27,5 @@ public interface IndexInitializer {
      *
      * @param indexStrategySelector The indexStrategySelector to be initialized.
      */
-    public void initIndex(IndexStrategySelector indexStrategySelector);
+    void initIndex(IndexStrategySelector indexStrategySelector);
 }
