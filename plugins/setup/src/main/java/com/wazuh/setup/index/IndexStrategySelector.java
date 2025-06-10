@@ -21,6 +21,8 @@ import org.opensearch.transport.client.Client;
 
 import java.util.Optional;
 
+import com.wazuh.setup.utils.IndexUtils;
+
 /**
  * Enum representing the indices used by Wazuh. Each enum constant corresponds to a specific index
  * name, its template file, an optional alias and the initializer responsible for managing that
@@ -91,7 +93,7 @@ public enum IndexStrategySelector {
      *
      * @return the index template file name
      */
-    public String getTemplate() {
+    public String getTemplateFileName() {
         return template;
     }
 
@@ -131,8 +133,17 @@ public enum IndexStrategySelector {
          * @param routingTable the routing table of the cluster
          */
         public static void setup(Client client, RoutingTable routingTable) {
-            ISM = IsmIndexInitializer.getInstance().setClient(client).setRoutingTable(routingTable);
-            WAZUH = WazuhIndicesInitializer.getInstance().setClient(client).setRoutingTable(routingTable);
+            IndexUtils indexUtils = new IndexUtils();
+            ISM =
+                    IsmIndexInitializer.getInstance()
+                            .setClient(client)
+                            .setRoutingTable(routingTable)
+                            .setIndexUtils(indexUtils);
+            WAZUH =
+                    WazuhIndicesInitializer.getInstance()
+                            .setClient(client)
+                            .setRoutingTable(routingTable)
+                            .setIndexUtils(indexUtils);
         }
     }
 }

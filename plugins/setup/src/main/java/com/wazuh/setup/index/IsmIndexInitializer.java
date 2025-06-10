@@ -28,7 +28,7 @@ import java.io.IOException;
 import java.util.Map;
 
 import com.wazuh.setup.SetupPlugin;
-import com.wazuh.setup.utils.IndexTemplateUtils;
+import com.wazuh.setup.utils.IndexUtils;
 
 /** Class to manage the Command Manager index and index template. */
 public final class IsmIndexInitializer implements IndexInitializer {
@@ -38,6 +38,7 @@ public final class IsmIndexInitializer implements IndexInitializer {
     private Client client;
     private RoutingTable routingTable;
     private static IsmIndexInitializer INSTANCE;
+    private IndexUtils indexUtils;
 
     private IsmIndexInitializer() {}
 
@@ -76,6 +77,17 @@ public final class IsmIndexInitializer implements IndexInitializer {
     }
 
     /**
+     * Sets the IndexUtils instance.
+     *
+     * @param indexUtils the IndexUtils instance to set.
+     * @return this instance for method chaining.
+     */
+    public IsmIndexInitializer setIndexUtils(IndexUtils indexUtils) {
+        this.indexUtils = indexUtils;
+        return this;
+    }
+
+    /**
      * Checks if the command indexStrategySelector exists.
      *
      * @param indexName the name of the index to check.
@@ -94,25 +106,27 @@ public final class IsmIndexInitializer implements IndexInitializer {
     @Override
     public void initIndex(IndexStrategySelector indexStrategySelector) {
         this.createIsmIndex(indexStrategySelector);
+        this.indexPolicy(indexStrategySelector);
+    }
 
-        Map<String, Object> template;
+    private void indexPolicy(IndexStrategySelector indexStrategySelector) {
         try {
-            template = IndexTemplateUtils.fromFile(SetupPlugin.WAZUH_ALERTS_ROLLOVER_POLICY_ID + ".json");
+            Map<String, Object> policy;
+            policy = this.indexUtils.fromFile(SetupPlugin.WAZUH_ALERTS_ROLLOVER_POLICY_ID + ".json");
+
+            IndexRequest indexRequest =
+                    new IndexRequest(indexStrategySelector.getIndexName())
+                            .index(indexStrategySelector.getIndexName())
+                            .id(SetupPlugin.WAZUH_ALERTS_ROLLOVER_POLICY_ID)
+                            .source(policy, MediaTypeRegistry.JSON);
+
+            client.index(indexRequest).actionGet(SetupPlugin.TIMEOUT);
+            log.info(
+                    "Indexed Wazuh rollover policy into {} indexStrategySelector",
+                    indexStrategySelector.getIndexName());
         } catch (IOException e) {
             log.error("Failed to load the Wazuh rollover policy from file: {}", e.getMessage());
-            return;
         }
-
-        IndexRequest indexRequest =
-                new IndexRequest(indexStrategySelector.getIndexName())
-                        .index(indexStrategySelector.getIndexName())
-                        .id(SetupPlugin.WAZUH_ALERTS_ROLLOVER_POLICY_ID)
-                        .source(template, MediaTypeRegistry.JSON);
-
-        client.index(indexRequest).actionGet(SetupPlugin.TIMEOUT);
-        log.info(
-                "Indexed Wazuh rollover policy into {} indexStrategySelector",
-                indexStrategySelector.getIndexName());
     }
 
     /**
@@ -120,7 +134,7 @@ public final class IsmIndexInitializer implements IndexInitializer {
      *
      * @param indexStrategySelector the indexStrategySelector to create
      */
-    public void createIsmIndex(IndexStrategySelector indexStrategySelector) {
+    private void createIsmIndex(IndexStrategySelector indexStrategySelector) {
         if (ismIndexExists(indexStrategySelector.getIndexName())) {
             log.info("{} IndexStrategySelector exists, skipping", indexStrategySelector.getIndexName());
             return;
@@ -128,14 +142,14 @@ public final class IsmIndexInitializer implements IndexInitializer {
         Map<String, Object> template;
         log.info("Attempting to create {} indexStrategySelector", indexStrategySelector.getIndexName());
         try {
-            template = IndexTemplateUtils.fromFile(indexStrategySelector.getTemplate());
+            template = this.indexUtils.fromFile(indexStrategySelector.getTemplateFileName());
             client
                     .admin()
                     .indices()
                     .create(
                             new CreateIndexRequest(indexStrategySelector.getIndexName())
-                                    .mapping(IndexTemplateUtils.get(template, "mappings"))
-                                    .settings(IndexTemplateUtils.get(template, "settings")))
+                                    .mapping(this.indexUtils.get(template, "mappings"))
+                                    .settings(this.indexUtils.get(template, "settings")))
                     .actionGet(SetupPlugin.TIMEOUT);
             log.info(
                     "Successfully created {} indexStrategySelector", indexStrategySelector.getIndexName());

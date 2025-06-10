@@ -16,10 +16,6 @@
  */
 package com.wazuh.setup.index;
 
-import org.apache.logging.log4j.core.config.Order;
-import org.junit.BeforeClass;
-import org.junit.FixMethodOrder;
-import org.junit.runners.MethodSorters;
 import org.opensearch.action.admin.indices.create.CreateIndexRequest;
 import org.opensearch.action.admin.indices.create.CreateIndexResponse;
 import org.opensearch.action.index.IndexRequest;
@@ -30,8 +26,6 @@ import org.opensearch.test.OpenSearchTestCase;
 import org.opensearch.transport.client.AdminClient;
 import org.opensearch.transport.client.Client;
 import org.opensearch.transport.client.IndicesAdminClient;
-
-import java.lang.reflect.Field;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doReturn;
@@ -56,8 +50,8 @@ public class IndexStrategySelectorTests extends OpenSearchTestCase {
         ActionFuture<CreateIndexResponse> createIndexResponseActionFuture = mock(ActionFuture.class);
 
         doReturn(createIndexResponseActionFuture)
-            .when(indicesAdminClient)
-            .create(any(CreateIndexRequest.class));
+                .when(indicesAdminClient)
+                .create(any(CreateIndexRequest.class));
         ActionFuture<IndexResponse> indexResponseActionFuture = mock(ActionFuture.class);
         doReturn(indexResponseActionFuture).when(this.client).index(any(IndexRequest.class));
 

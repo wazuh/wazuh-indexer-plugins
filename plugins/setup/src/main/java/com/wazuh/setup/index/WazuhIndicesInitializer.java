@@ -30,7 +30,7 @@ import java.util.List;
 import java.util.Map;
 
 import com.wazuh.setup.SetupPlugin;
-import com.wazuh.setup.utils.IndexTemplateUtils;
+import com.wazuh.setup.utils.IndexUtils;
 
 /** Class to manage Wazuh indices and index templates. */
 public final class WazuhIndicesInitializer implements IndexInitializer {
@@ -38,6 +38,7 @@ public final class WazuhIndicesInitializer implements IndexInitializer {
     private static final Logger log = LogManager.getLogger(WazuhIndicesInitializer.class);
     private Client client;
     private RoutingTable routingTable;
+    private IndexUtils indexUtils;
     private static WazuhIndicesInitializer INSTANCE;
 
     private WazuhIndicesInitializer() {}
@@ -76,6 +77,11 @@ public final class WazuhIndicesInitializer implements IndexInitializer {
         return this;
     }
 
+    public WazuhIndicesInitializer setIndexUtils(IndexUtils indexUtils) {
+        this.indexUtils = indexUtils;
+        return this;
+    }
+
     /**
      * Inserts an indexStrategySelector template
      *
@@ -85,13 +91,13 @@ public final class WazuhIndicesInitializer implements IndexInitializer {
     private void putTemplate(IndexStrategySelector indexStrategySelector) {
         try {
             Map<String, Object> template =
-                    IndexTemplateUtils.fromFile(indexStrategySelector.getTemplate());
+                    this.indexUtils.fromFile(indexStrategySelector.getTemplateFileName());
 
             PutIndexTemplateRequest putIndexTemplateRequest =
                     new PutIndexTemplateRequest()
-                            .mapping(IndexTemplateUtils.get(template, "mappings"))
-                            .settings(IndexTemplateUtils.get(template, "settings"))
-                            .name(indexStrategySelector.getTemplate().replace(".json", ""))
+                            .mapping(this.indexUtils.get(template, "mappings"))
+                            .settings(this.indexUtils.get(template, "settings"))
+                            .name(indexStrategySelector.getTemplateFileName().replace(".json", ""))
                             .patterns((List<String>) template.get("index_patterns"));
 
             this.client
@@ -101,17 +107,17 @@ public final class WazuhIndicesInitializer implements IndexInitializer {
                     .actionGet(SetupPlugin.TIMEOUT);
             log.info(
                     "IndexStrategySelector template {} created successfully",
-                    indexStrategySelector.getTemplate());
+                    indexStrategySelector.getTemplateFileName());
         } catch (NullPointerException e) {
-            log.error("Error reading template file {}.", indexStrategySelector.getTemplate());
+            log.error("Error reading template file {}.", indexStrategySelector.getTemplateFileName());
         } catch (IOException e) {
             log.error(
                     "Error reading indexStrategySelector template from filesystem {}",
-                    indexStrategySelector.getTemplate());
+                    indexStrategySelector.getTemplateFileName());
         } catch (ResourceAlreadyExistsException e) {
             log.info(
                     "IndexStrategySelector template {} already exists. Skipping.",
-                    indexStrategySelector.getTemplate());
+                    indexStrategySelector.getTemplateFileName());
         }
     }
 
