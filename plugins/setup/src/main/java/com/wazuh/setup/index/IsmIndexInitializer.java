@@ -18,6 +18,7 @@ package com.wazuh.setup.index;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.opensearch.ResourceAlreadyExistsException;
 import org.opensearch.action.admin.indices.create.CreateIndexRequest;
 import org.opensearch.action.index.IndexRequest;
 import org.opensearch.cluster.routing.RoutingTable;
@@ -124,6 +125,8 @@ public final class IsmIndexInitializer implements IndexInitializer {
             log.info("Indexed Wazuh rollover policy into {} index", indexStrategySelector.getIndexName());
         } catch (IOException e) {
             log.error("Failed to load the Wazuh rollover policy from file: {}", e.getMessage());
+        } catch (ResourceAlreadyExistsException e) {
+            log.error("Policy already exists, skipping creation: {}", e.getMessage());
         }
     }
 
@@ -152,6 +155,8 @@ public final class IsmIndexInitializer implements IndexInitializer {
             log.info("Successfully created {} index", indexStrategySelector.getIndexName());
         } catch (IOException e) {
             log.error("Failed loading ISM index from file: {}", e.getMessage());
+        } catch (ResourceAlreadyExistsException e) {
+            log.error("Index already exists, skipping creation: {}", e.getMessage());
         }
     }
 }
