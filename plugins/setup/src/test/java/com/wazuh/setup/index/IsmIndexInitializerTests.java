@@ -16,7 +16,6 @@
  */
 package com.wazuh.setup.index;
 
-import java.io.IOException;
 import org.opensearch.action.admin.indices.create.CreateIndexRequest;
 import org.opensearch.action.admin.indices.create.CreateIndexResponse;
 import org.opensearch.action.index.IndexRequest;
@@ -27,6 +26,8 @@ import org.opensearch.test.OpenSearchTestCase;
 import org.opensearch.transport.client.AdminClient;
 import org.opensearch.transport.client.Client;
 import org.opensearch.transport.client.IndicesAdminClient;
+
+import java.io.IOException;
 
 import com.wazuh.setup.utils.IndexUtils;
 
@@ -58,16 +59,12 @@ public class IsmIndexInitializerTests extends OpenSearchTestCase {
                         .setIndexUtils(this.indexUtils);
     }
 
-    /**
-     * Test the singleton instance of IsmIndexInitializer.
-     */
+    /** Test the singleton instance of IsmIndexInitializer. */
     public void testGetInstance() {
         assert IsmIndexInitializer.getInstance().equals(this.ismIndexInitializer);
     }
 
-    /**
-     * Test the check for index existence.
-     */
+    /** Test the check for index existence. */
     public void testIsmIndexExists() {
 
         // Test when the index does not exist
@@ -79,10 +76,7 @@ public class IsmIndexInitializerTests extends OpenSearchTestCase {
         assert this.ismIndexInitializer.ismIndexExists(IndexStrategySelector.ISM.getIndexName());
     }
 
-
-    /**
-     * That index is created on initialization
-     */
+    /** That index is created on initialization */
     public void testInitIndexCreatesIsmIndex() {
         AdminClient adminClient = mock(AdminClient.class);
         doReturn(adminClient).when(this.client).admin();
@@ -100,6 +94,7 @@ public class IsmIndexInitializerTests extends OpenSearchTestCase {
 
     /**
      * Test that no action is taken if the template or policy files don't exist
+     *
      * @throws IOException if an error occurs while reading the files
      */
     public void testInitIndexException() throws IOException {

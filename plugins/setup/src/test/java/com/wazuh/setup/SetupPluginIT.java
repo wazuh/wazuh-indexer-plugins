@@ -18,6 +18,7 @@ package com.wazuh.setup;
 
 import com.carrotsearch.randomizedtesting.annotations.ThreadLeakScope;
 
+import com.wazuh.setup.index.IndexStrategySelector;
 import org.apache.hc.core5.http.ParseException;
 import org.apache.hc.core5.http.io.entity.EntityUtils;
 import org.opensearch.action.admin.cluster.health.ClusterHealthRequest;
@@ -47,11 +48,6 @@ import static org.hamcrest.Matchers.containsString;
 @ThreadLeakScope(ThreadLeakScope.Scope.SUITE)
 @OpenSearchIntegTestCase.ClusterScope(scope = OpenSearchIntegTestCase.Scope.SUITE)
 public class SetupPluginIT extends OpenSearchIntegTestCase {
-
-    public static final String TEST_INDEX = "test-index-0000";
-    public static final String TEST_ALIAS = "test-alias";
-    public static final String TEST_TEMPLATE = "test-template";
-    public static final String ISM_INDEX = ".opendistro-ism-config";
 
     @Override
     protected Collection<Class<? extends Plugin>> nodePlugins() {
@@ -108,9 +104,4 @@ public class SetupPluginIT extends OpenSearchIntegTestCase {
                         .anyMatch(pluginInfo -> pluginInfo.getName().equals("opensearch-index-management")));
     }
 
-    /** Test that the ISM index was created */
-    public void testISMIndexCreated() throws Exception {
-        ensureGreen();
-        assertBusy(() -> assertTrue(indexExists("test")));
-    }
 }
