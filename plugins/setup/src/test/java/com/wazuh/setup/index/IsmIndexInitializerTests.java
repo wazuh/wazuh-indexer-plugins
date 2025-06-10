@@ -52,7 +52,7 @@ public class IsmIndexInitializerTests extends OpenSearchTestCase {
         this.client = mock(Client.class);
         this.routingTable = mock(RoutingTable.class);
         this.indexUtils = mock(IndexUtils.class);
-        ismIndexInitializer =
+        this.ismIndexInitializer =
                 IsmIndexInitializer.getInstance()
                         .setClient(this.client)
                         .setRoutingTable(this.routingTable)

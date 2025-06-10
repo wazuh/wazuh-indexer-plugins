@@ -18,7 +18,6 @@ package com.wazuh.setup;
 
 import com.carrotsearch.randomizedtesting.annotations.ThreadLeakScope;
 
-import com.wazuh.setup.index.IndexStrategySelector;
 import org.apache.hc.core5.http.ParseException;
 import org.apache.hc.core5.http.io.entity.EntityUtils;
 import org.opensearch.action.admin.cluster.health.ClusterHealthRequest;
@@ -103,5 +102,4 @@ public class SetupPluginIT extends OpenSearchIntegTestCase {
                 pluginInfos.stream()
                         .anyMatch(pluginInfo -> pluginInfo.getName().equals("opensearch-index-management")));
     }
-
 }

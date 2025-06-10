@@ -88,10 +88,10 @@ public final class IsmIndexInitializer implements IndexInitializer {
     }
 
     /**
-     * Checks if the command indexStrategySelector exists.
+     * Checks if the command index exists.
      *
      * @param indexName the name of the index to check.
-     * @return whether the internal Command Manager's indexStrategySelector exists.
+     * @return whether the internal Command Manager's index exists.
      */
     public boolean ismIndexExists(String indexName) {
         return this.routingTable.hasIndex(indexName);
@@ -101,7 +101,7 @@ public final class IsmIndexInitializer implements IndexInitializer {
      * Creates the .opendistro-ism-config along with its mappings and settings and indexes the Wazuh
      * rollover policy.
      *
-     * @param indexStrategySelector the indexStrategySelector to initialize.
+     * @param indexStrategySelector the index to initialize.
      */
     @Override
     public void initIndex(IndexStrategySelector indexStrategySelector) {
@@ -121,26 +121,24 @@ public final class IsmIndexInitializer implements IndexInitializer {
                             .source(policy, MediaTypeRegistry.JSON);
 
             client.index(indexRequest).actionGet(SetupPlugin.TIMEOUT);
-            log.info(
-                    "Indexed Wazuh rollover policy into {} indexStrategySelector",
-                    indexStrategySelector.getIndexName());
+            log.info("Indexed Wazuh rollover policy into {} index", indexStrategySelector.getIndexName());
         } catch (IOException e) {
             log.error("Failed to load the Wazuh rollover policy from file: {}", e.getMessage());
         }
     }
 
     /**
-     * Puts the .opendistro-ism-config template into the cluster and creates the indexStrategySelector
+     * Puts the .opendistro-ism-config template into the cluster and creates the index
      *
      * @param indexStrategySelector the indexStrategySelector to create
      */
     private void createIsmIndex(IndexStrategySelector indexStrategySelector) {
         if (ismIndexExists(indexStrategySelector.getIndexName())) {
-            log.info("{} IndexStrategySelector exists, skipping", indexStrategySelector.getIndexName());
+            log.info("{} index exists, skipping", indexStrategySelector.getIndexName());
             return;
         }
         Map<String, Object> template;
-        log.info("Attempting to create {} indexStrategySelector", indexStrategySelector.getIndexName());
+        log.info("Attempting to create {} index", indexStrategySelector.getIndexName());
         try {
             template = this.indexUtils.fromFile(indexStrategySelector.getTemplateFileName());
             client
@@ -151,10 +149,9 @@ public final class IsmIndexInitializer implements IndexInitializer {
                                     .mapping(this.indexUtils.get(template, "mappings"))
                                     .settings(this.indexUtils.get(template, "settings")))
                     .actionGet(SetupPlugin.TIMEOUT);
-            log.info(
-                    "Successfully created {} indexStrategySelector", indexStrategySelector.getIndexName());
+            log.info("Successfully created {} index", indexStrategySelector.getIndexName());
         } catch (IOException e) {
-            log.error("Failed loading ISM indexStrategySelector template from file: {}", e.getMessage());
+            log.error("Failed loading ISM index from file: {}", e.getMessage());
         }
     }
 }

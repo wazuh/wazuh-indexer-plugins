@@ -77,6 +77,12 @@ public final class WazuhIndicesInitializer implements IndexInitializer {
         return this;
     }
 
+    /**
+     * Sets the IndexUtils instance.
+     *
+     * @param indexUtils IndexUtils instance.
+     * @return this instance for method chaining.
+     */
     public WazuhIndicesInitializer setIndexUtils(IndexUtils indexUtils) {
         this.indexUtils = indexUtils;
         return this;
@@ -138,7 +144,7 @@ public final class WazuhIndicesInitializer implements IndexInitializer {
             request.alias(new Alias(indexStrategySelector.getAlias().get()).writeIndex(true));
         }
         this.client.admin().indices().create(request).actionGet(SetupPlugin.TIMEOUT);
-        log.info("IndexStrategySelector {} created successfully", indexStrategySelector.getIndexName());
+        log.info("Index {} created successfully", indexStrategySelector.getIndexName());
     }
 
     /**
