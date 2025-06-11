@@ -22,7 +22,6 @@ import org.opensearch.ResourceAlreadyExistsException;
 import org.opensearch.action.admin.indices.alias.Alias;
 import org.opensearch.action.admin.indices.create.CreateIndexRequest;
 import org.opensearch.action.admin.indices.template.put.PutIndexTemplateRequest;
-import org.opensearch.cluster.routing.RoutingTable;
 import org.opensearch.cluster.service.ClusterService;
 import org.opensearch.transport.client.Client;
 
@@ -135,9 +134,7 @@ public final class WazuhIndicesInitializer implements IndexInitializer {
      */
     private void putIndex(IndexStrategySelector indexStrategySelector) {
         if (indexExists(indexStrategySelector.getIndexName())) {
-            log.info(
-                    "Index {} already exists. Skipping.",
-                    indexStrategySelector.getIndexName());
+            log.info("Index {} already exists. Skipping.", indexStrategySelector.getIndexName());
             return;
         }
         CreateIndexRequest request = new CreateIndexRequest(indexStrategySelector.getIndexName());

@@ -136,7 +136,7 @@ public final class IsmIndexInitializer implements IndexInitializer {
      * @param indexStrategySelector the indexStrategySelector to create
      */
     private void createIsmIndex(IndexStrategySelector indexStrategySelector) {
-        if (ismIndexExists(indexStrategySelector.getIndexName())) {
+        if (this.ismIndexExists(indexStrategySelector.getIndexName())) {
             log.info("{} index exists, skipping", indexStrategySelector.getIndexName());
             return;
         }

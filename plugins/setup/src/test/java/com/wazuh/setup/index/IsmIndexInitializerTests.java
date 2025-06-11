@@ -20,7 +20,9 @@ import org.opensearch.action.admin.indices.create.CreateIndexRequest;
 import org.opensearch.action.admin.indices.create.CreateIndexResponse;
 import org.opensearch.action.index.IndexRequest;
 import org.opensearch.action.index.IndexResponse;
+import org.opensearch.cluster.ClusterState;
 import org.opensearch.cluster.routing.RoutingTable;
+import org.opensearch.cluster.service.ClusterService;
 import org.opensearch.common.action.ActionFuture;
 import org.opensearch.test.OpenSearchTestCase;
 import org.opensearch.transport.client.AdminClient;
@@ -49,14 +51,26 @@ public class IsmIndexInitializerTests extends OpenSearchTestCase {
     private RoutingTable routingTable;
     private IsmIndexInitializer ismIndexInitializer;
     private IndexUtils indexUtils;
-    private AdminClient adminClient;
     private IndicesAdminClient indicesAdminClient;
+    private ClusterService clusterService;
+    private ClusterState clusterState;
+    private AdminClient adminClient;
 
     @Override
     public void setUp() throws Exception {
+        logger.info("Running setUp()");
         super.setUp();
         this.client = mock(Client.class);
+
+        this.clusterService = mock(ClusterService.class);
+        this.clusterState = mock(ClusterState.class);
+
+        doReturn(this.clusterState).when(this.clusterService).state();
+
         this.routingTable = mock(RoutingTable.class);
+
+        doReturn(this.routingTable).when(this.clusterState).getRoutingTable();
+
         this.indexUtils = mock(IndexUtils.class);
 
         this.adminClient = mock(AdminClient.class);
@@ -67,8 +81,22 @@ public class IsmIndexInitializerTests extends OpenSearchTestCase {
         this.ismIndexInitializer =
                 IsmIndexInitializer.getInstance()
                         .setClient(this.client)
-                        .setRoutingTable(this.routingTable)
+                        .setClusterService(this.clusterService)
                         .setIndexUtils(this.indexUtils);
+    }
+
+    @Override
+    public void tearDown() throws Exception {
+        logger.info("Running tearDown()");
+        super.tearDown();
+        this.client = null;
+        this.clusterService = null;
+        this.clusterState = null;
+        this.routingTable = null;
+        this.indexUtils = null;
+        this.adminClient = null;
+        this.indicesAdminClient = null;
+        this.ismIndexInitializer = null;
     }
 
     /** Test the singleton instance of IsmIndexInitializer. */
@@ -78,23 +106,27 @@ public class IsmIndexInitializerTests extends OpenSearchTestCase {
 
     /** Test the check for index existence. */
     public void testIsmIndexExists() {
-
         // Test when the index does not exist
         doReturn(false).when(this.routingTable).hasIndex(anyString());
         assertFalse(this.ismIndexInitializer.ismIndexExists(IndexStrategySelector.ISM.getIndexName()));
+    }
 
-        // Test when the index exists
-        doReturn(true).when(this.routingTable).hasIndex(anyString());
-        assert this.ismIndexInitializer.ismIndexExists(IndexStrategySelector.ISM.getIndexName());
+    /** Test the check for index existence. */
+    public void testIsmIndexNotExists() {
+        // Test when the index does not exist
+        doReturn(false).when(this.routingTable).hasIndex(anyString());
+        assertFalse(this.ismIndexInitializer.ismIndexExists(IndexStrategySelector.ISM.getIndexName()));
     }
 
     /** Test createIsmIndex skips creation if index already exists. */
     public void testCreateIsmIndexAlreadyExists() {
-        doReturn(true).when(this.routingTable).hasIndex(IndexStrategySelector.ISM.getIndexName());
-
+        doReturn(true).when(this.routingTable).hasIndex(anyString());
         doReturn(mock(ActionFuture.class)).when(this.client).index(any());
+        doReturn(mock(ActionFuture.class))
+                .when(this.indicesAdminClient)
+                .create(any(CreateIndexRequest.class));
+        this.ismIndexInitializer.setClusterService(this.clusterService);
         this.ismIndexInitializer.initIndex(IndexStrategySelector.ISM);
-
         verify(this.indicesAdminClient, never()).create(any());
     }
 

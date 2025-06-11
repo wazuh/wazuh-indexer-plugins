@@ -20,7 +20,9 @@ import org.opensearch.action.admin.indices.create.CreateIndexRequest;
 import org.opensearch.action.admin.indices.create.CreateIndexResponse;
 import org.opensearch.action.index.IndexRequest;
 import org.opensearch.action.index.IndexResponse;
+import org.opensearch.cluster.ClusterState;
 import org.opensearch.cluster.routing.RoutingTable;
+import org.opensearch.cluster.service.ClusterService;
 import org.opensearch.common.action.ActionFuture;
 import org.opensearch.test.OpenSearchTestCase;
 import org.opensearch.transport.client.AdminClient;
@@ -43,11 +45,20 @@ public class IndexStrategySelectorTests extends OpenSearchTestCase {
         super.setUp();
         RoutingTable routingTable = mock(RoutingTable.class);
         this.client = mock(Client.class);
+
         AdminClient adminClient = mock(AdminClient.class);
         doReturn(adminClient).when(this.client).admin();
         IndicesAdminClient indicesAdminClient = mock(IndicesAdminClient.class);
         doReturn(indicesAdminClient).when(adminClient).indices();
         ActionFuture<CreateIndexResponse> createIndexResponseActionFuture = mock(ActionFuture.class);
+
+        ClusterService clusterService = mock(ClusterService.class);
+        ClusterState clusterState = mock(ClusterState.class);
+        doReturn(clusterState).when(clusterService).state();
+        doReturn(routingTable).when(clusterState).getRoutingTable();
+
+        routingTable = mock(RoutingTable.class);
+        doReturn(routingTable).when(clusterState).getRoutingTable();
 
         doReturn(createIndexResponseActionFuture)
                 .when(indicesAdminClient)
@@ -55,7 +66,7 @@ public class IndexStrategySelectorTests extends OpenSearchTestCase {
         ActionFuture<IndexResponse> indexResponseActionFuture = mock(ActionFuture.class);
         doReturn(indexResponseActionFuture).when(this.client).index(any(IndexRequest.class));
 
-        IndexStrategySelector.Initializers.setup(this.client, routingTable);
+        IndexStrategySelector.Initializers.setup(this.client, clusterService);
     }
 
     /** Tests the initialization of indices for each strategy in IndexStrategySelector. */
