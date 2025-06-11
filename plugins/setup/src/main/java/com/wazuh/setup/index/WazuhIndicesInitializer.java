@@ -23,6 +23,7 @@ import org.opensearch.action.admin.indices.alias.Alias;
 import org.opensearch.action.admin.indices.create.CreateIndexRequest;
 import org.opensearch.action.admin.indices.template.put.PutIndexTemplateRequest;
 import org.opensearch.cluster.routing.RoutingTable;
+import org.opensearch.cluster.service.ClusterService;
 import org.opensearch.transport.client.Client;
 
 import java.io.IOException;
@@ -37,7 +38,7 @@ public final class WazuhIndicesInitializer implements IndexInitializer {
 
     private static final Logger log = LogManager.getLogger(WazuhIndicesInitializer.class);
     private Client client;
-    private RoutingTable routingTable;
+    private ClusterService clusterService;
     private IndexUtils indexUtils;
     private static WazuhIndicesInitializer INSTANCE;
 
@@ -69,11 +70,11 @@ public final class WazuhIndicesInitializer implements IndexInitializer {
     /**
      * Sets the routing table.
      *
-     * @param routingTable OpenSearch routing table.
+     * @param clusterService OpenSearch routing table.
      * @return this instance for method chaining.
      */
-    public WazuhIndicesInitializer setRoutingTable(RoutingTable routingTable) {
-        this.routingTable = routingTable;
+    public WazuhIndicesInitializer setClusterService(ClusterService clusterService) {
+        this.clusterService = clusterService;
         return this;
     }
 
@@ -122,7 +123,7 @@ public final class WazuhIndicesInitializer implements IndexInitializer {
                     indexStrategySelector.getTemplateFileName());
         } catch (ResourceAlreadyExistsException e) {
             log.info(
-                    "IndexStrategySelector template {} already exists. Skipping.",
+                    "Index template {} already exists. Skipping.",
                     indexStrategySelector.getTemplateFileName());
         }
     }
@@ -134,8 +135,8 @@ public final class WazuhIndicesInitializer implements IndexInitializer {
      */
     private void putIndex(IndexStrategySelector indexStrategySelector) {
         if (indexExists(indexStrategySelector.getIndexName())) {
-            log.error(
-                    "IndexStrategySelector {} already exists. Skipping.",
+            log.info(
+                    "Index {} already exists. Skipping.",
                     indexStrategySelector.getIndexName());
             return;
         }
@@ -166,6 +167,6 @@ public final class WazuhIndicesInitializer implements IndexInitializer {
      * @return true if the index exists on the cluster, false otherwise
      */
     public boolean indexExists(String indexName) {
-        return this.routingTable.hasIndex(indexName);
+        return this.clusterService.state().getRoutingTable().hasIndex(indexName);
     }
 }

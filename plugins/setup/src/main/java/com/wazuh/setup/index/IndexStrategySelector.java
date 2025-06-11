@@ -16,7 +16,7 @@
  */
 package com.wazuh.setup.index;
 
-import org.opensearch.cluster.routing.RoutingTable;
+import org.opensearch.cluster.service.ClusterService;
 import org.opensearch.transport.client.Client;
 
 import java.util.Optional;
@@ -126,23 +126,23 @@ public enum IndexStrategySelector {
         private static IsmIndexInitializer ISM;
 
         /**
-         * Sets up the index initializers with the provided client and routing table. This method should
-         * be called before initializing any indices.
+         * Sets up the index initializers with the provided client and routing table. This method
+         * should be called before initializing any indices.
          *
-         * @param client the OpenSearch client
-         * @param routingTable the routing table of the cluster
+         * @param client         the OpenSearch client
+         * @param clusterService the routing table of the cluster
          */
-        public static void setup(Client client, RoutingTable routingTable) {
+        public static void setup(Client client, ClusterService clusterService) {
             IndexUtils indexUtils = new IndexUtils();
             ISM =
                     IsmIndexInitializer.getInstance()
                             .setClient(client)
-                            .setRoutingTable(routingTable)
+                            .setClusterService(clusterService)
                             .setIndexUtils(indexUtils);
             WAZUH =
                     WazuhIndicesInitializer.getInstance()
                             .setClient(client)
-                            .setRoutingTable(routingTable)
+                            .setClusterService(clusterService)
                             .setIndexUtils(indexUtils);
         }
     }

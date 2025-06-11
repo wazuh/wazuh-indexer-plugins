@@ -21,7 +21,7 @@ import org.apache.logging.log4j.Logger;
 import org.opensearch.ResourceAlreadyExistsException;
 import org.opensearch.action.admin.indices.create.CreateIndexRequest;
 import org.opensearch.action.index.IndexRequest;
-import org.opensearch.cluster.routing.RoutingTable;
+import org.opensearch.cluster.service.ClusterService;
 import org.opensearch.core.xcontent.MediaTypeRegistry;
 import org.opensearch.transport.client.Client;
 
@@ -37,7 +37,7 @@ public final class IsmIndexInitializer implements IndexInitializer {
     private static final Logger log = LogManager.getLogger(IsmIndexInitializer.class);
 
     private Client client;
-    private RoutingTable routingTable;
+    private ClusterService clusterService;
     private static IsmIndexInitializer INSTANCE;
     private IndexUtils indexUtils;
 
@@ -67,13 +67,13 @@ public final class IsmIndexInitializer implements IndexInitializer {
     }
 
     /**
-     * Sets the routing table.
+     * Sets the ClusterService.
      *
-     * @param routingTable OpenSearch routing table.
+     * @param clusterService OpenSearch routing table.
      * @return this instance for method chaining.
      */
-    public IsmIndexInitializer setRoutingTable(RoutingTable routingTable) {
-        this.routingTable = routingTable;
+    public IsmIndexInitializer setClusterService(ClusterService clusterService) {
+        this.clusterService = clusterService;
         return this;
     }
 
@@ -95,7 +95,7 @@ public final class IsmIndexInitializer implements IndexInitializer {
      * @return whether the internal Command Manager's index exists.
      */
     public boolean ismIndexExists(String indexName) {
-        return this.routingTable.hasIndex(indexName);
+        return this.clusterService.state().getRoutingTable().hasIndex(indexName);
     }
 
     /**
@@ -144,7 +144,7 @@ public final class IsmIndexInitializer implements IndexInitializer {
         log.info("Attempting to create {} index", indexStrategySelector.getIndexName());
         try {
             template = this.indexUtils.fromFile(indexStrategySelector.getTemplateFileName());
-            client
+            this.client
                     .admin()
                     .indices()
                     .create(
