@@ -1,6 +1,5 @@
 network.host: "0.0.0.0"
 node.name: "opensearch"
-compatibility.override_main_response_version: true
 plugins.security.ssl.http.pemcert_filepath: /usr/share/opensearch/config/certs/opensearch.pem
 plugins.security.ssl.http.pemkey_filepath: /usr/share/opensearch/config/certs/opensearch.key
 plugins.security.ssl.http.pemtrustedcas_filepath: /usr/share/opensearch/config/certs/root-ca.pem

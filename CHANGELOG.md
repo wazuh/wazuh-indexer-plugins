@@ -8,6 +8,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ### Added
 - Create index and index templates for 5.0.0 [(#452)](https://github.com/wazuh/wazuh-indexer-plugins/pull/452)
+- Add scripts to extract the product versions [(#483)](https://github.com/wazuh/wazuh-indexer-plugins/pull/483)
+
 
 ### Dependencies
 -
@@ -15,6 +17,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 ### Changed
 - Replace dependabot's directories keys with wildcard [(#443)](https://github.com/wazuh/wazuh-indexer-plugins/pull/443)
 - Adapt setup plugin for 5.x [(#450)](https://github.com/wazuh/wazuh-indexer-plugins/pull/450)
+- Third-party integrations maintenance [(#478)](https://github.com/wazuh/wazuh-indexer-plugins/pull/478)
 - Replace and remove deprecated settings [(#476)](https://github.com/wazuh/wazuh-indexer-plugins/pull/476)
 - Load an ISM policy from setup plugin [(#471)](https://github.com/wazuh/wazuh-indexer-plugins/pull/471)
 
@@ -29,6 +32,6 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Improve ECS folder structure [(#473)](https://github.com/wazuh/wazuh-indexer-plugins/pull/473)
 
 ### Security
--
+- Reduce risk of GITHUB_TOKEN exposure [(#484)](https://github.com/wazuh/wazuh-indexer-plugins/pull/484)
 
 [Unreleased 5.0.x]: https://github.com/wazuh/wazuh-indexer-plugins/compare/main...main
