@@ -2,7 +2,7 @@
 name: vulnerability_detector
 fields:
   base:
-    fields: 
+    fields:
       tags: []
   agent:
     fields: "*"
@@ -11,7 +11,7 @@ fields:
   host:
     fields:
       os:
-        fields: 
+        fields:
           full: ""
           kernel: ""
           name: ""
