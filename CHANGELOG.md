@@ -69,6 +69,6 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Fix arguments for the Content Manager's `update` command [(#441)](https://github.com/wazuh/wazuh-indexer-plugins/pull/441)
 
 ### Security
--
+- Reduce risk of GITHUB_TOKEN exposure[(#485)](https://github.com/wazuh/wazuh-indexer-plugins/pull/485)
 
 [Unreleased 6.0.x]: https://github.com/wazuh/wazuh-indexer-plugins/compare/6.0.0...6.0.0
