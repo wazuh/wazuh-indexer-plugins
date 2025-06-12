@@ -1,6 +1,4 @@
 ECS_Version,Indexed,Field_Set,Field,Type,Level,Normalization,Example,Description
-8.11.0,true,base,@timestamp,date,core,,2016-05-23T08:05:34.853Z,Date/time when the event originated.
-8.11.0,true,base,tags,keyword,core,array,"[""production"", ""env2""]",List of keywords used to tag each event.
 8.11.0,true,agent,agent.host.architecture,keyword,core,,x86_64,Operating system architecture.
 8.11.0,true,agent,agent.host.ip,ip,core,array,,Host ip addresses.
 8.11.0,true,agent,agent.id,keyword,core,,8a4f500d,Unique identifier of this agent.
@@ -14,7 +12,6 @@ ECS_Version,Indexed,Field_Set,Field,Type,Level,Normalization,Example,Description
 8.11.0,true,interface,interface.state,keyword,custom,,,State of the network interface.
 8.11.0,true,network,network.transport,keyword,core,,tcp,Protocol Name corresponding to the field `iana_number`.
 8.11.0,true,process,process.name,keyword,extended,,ssh,Process name.
-8.11.0,true,process,process.name.text,keyword,extended,,ssh,Process name.
 8.11.0,true,process,process.pid,long,core,,4242,Process id.
 8.11.0,true,source,source.ip,ip,core,,,IP address of the source.
 8.11.0,true,source,source.port,long,core,,,Port of the source.
