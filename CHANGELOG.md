@@ -31,8 +31,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ### Fixed
 - Improve ECS folder structure [(#473)](https://github.com/wazuh/wazuh-indexer-plugins/pull/473)
+- Fix permissions for job 'call-build-workflow' [(#492)](https://github.com/wazuh/wazuh-indexer-plugins/pull/492)
 
 ### Security
 - Reduce risk of GITHUB_TOKEN exposure [(#484)](https://github.com/wazuh/wazuh-indexer-plugins/pull/484)
+- Bump requests in /integrations/amazon-security-lake/tests [(#491)](https://github.com/wazuh/wazuh-indexer-plugins/pull/491)
 
-[Unreleased 5.0.x]: https://github.com/wazuh/wazuh-indexer-plugins/compare/main...main
+[Unreleased 5.0.x]: https://github.com/wazuh/wazuh-indexer-plugins/compare/205f222d0d246129917fa211766e1735aae13ed7...main

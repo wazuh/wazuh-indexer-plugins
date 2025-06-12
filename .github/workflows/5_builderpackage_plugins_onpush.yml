@@ -32,6 +32,8 @@ jobs:
           base_branch: ${{ github.event.repository.default_branch }}
 
   call-build-workflow:
+    permissions:
+      actions: read
     needs: modified-plugins
     strategy:
       matrix:
