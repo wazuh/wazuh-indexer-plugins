@@ -21,6 +21,7 @@ import com.google.gson.JsonParser;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.opensearch.OpenSearchTimeoutException;
+import org.opensearch.action.admin.indices.create.CreateIndexRequest;
 import org.opensearch.action.bulk.BulkRequest;
 import org.opensearch.action.bulk.BulkResponse;
 import org.opensearch.action.delete.DeleteRequest;
@@ -28,7 +29,6 @@ import org.opensearch.action.delete.DeleteResponse;
 import org.opensearch.action.get.GetRequest;
 import org.opensearch.action.get.GetResponse;
 import org.opensearch.action.index.IndexRequest;
-import org.opensearch.transport.client.Client;
 import org.opensearch.common.xcontent.XContentFactory;
 import org.opensearch.common.xcontent.XContentType;
 import org.opensearch.core.action.ActionListener;
@@ -39,6 +39,7 @@ import org.opensearch.index.query.QueryBuilders;
 import org.opensearch.index.reindex.BulkByScrollResponse;
 import org.opensearch.index.reindex.DeleteByQueryAction;
 import org.opensearch.index.reindex.DeleteByQueryRequestBuilder;
+import org.opensearch.transport.client.Client;
 
 import java.io.BufferedReader;
 import java.io.FileReader;
@@ -56,6 +57,7 @@ import com.wazuh.contentmanager.model.cti.Changes;
 import com.wazuh.contentmanager.model.cti.Offset;
 import com.wazuh.contentmanager.model.cti.Operation;
 import com.wazuh.contentmanager.settings.PluginSettings;
+import com.wazuh.contentmanager.utils.ClusterInfo;
 import com.wazuh.contentmanager.utils.JsonPatch;
 import com.wazuh.contentmanager.utils.XContentUtils;
 
@@ -313,6 +315,23 @@ public class ContentIndex {
                 throw new RuntimeException("Patch operation failed", e);
             }
         }
+    }
+
+    /** Creates the {@link ContentIndex#INDEX_NAME} index, if it does not exist. */
+    public void createIndex() {
+        if (!this.exists()) {
+            client.admin().indices().create(new CreateIndexRequest(INDEX_NAME)).actionGet();
+        }
+    }
+
+    /**
+     * Checks whether the {@link ContentIndex#INDEX_NAME} index exists.
+     *
+     * @see ClusterInfo#indexExists(Client, String)
+     * @return true if the index exists, false otherwise.
+     */
+    public boolean exists() {
+        return ClusterInfo.indexExists(this.client, ContentIndex.INDEX_NAME);
     }
 
     /** Clears all documents from the {@link ContentIndex#INDEX_NAME} index. */

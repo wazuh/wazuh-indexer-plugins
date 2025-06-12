@@ -25,7 +25,6 @@ import java.nio.file.DirectoryStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Locale;
-import java.util.concurrent.Semaphore;
 
 import com.wazuh.contentmanager.client.CTIClient;
 import com.wazuh.contentmanager.client.CommandManagerClient;
@@ -33,64 +32,41 @@ import com.wazuh.contentmanager.index.ContentIndex;
 import com.wazuh.contentmanager.index.ContextIndex;
 import com.wazuh.contentmanager.model.cti.ConsumerInfo;
 import com.wazuh.contentmanager.settings.PluginSettings;
-import com.wazuh.contentmanager.updater.ContentUpdater;
 
 /** Helper class to handle indexing of snapshots */
 public class SnapshotManager {
     private static final Logger log = LogManager.getLogger(SnapshotManager.class);
     private final CTIClient ctiClient;
-    private CommandManagerClient commandClient;
+    private final CommandManagerClient commandManagerClient;
     private final Environment environment;
     private final ContextIndex contextIndex;
     private final ContentIndex contentIndex;
     private final Privileged privileged;
-    private final Semaphore semaphore = new Semaphore(1);
-    private final PluginSettings pluginSettings;
+    private PluginSettings pluginSettings;
 
     /**
-     * Constructor.
+     * Constructor for SnapshotManager.
      *
      * @param environment Needed for snapshot file handling.
      * @param contextIndex Handles context and consumer related metadata.
      * @param contentIndex Handles indexed content.
+     * @param privileged Handles privileged actions.
+     * @param ctiClient Instance of CTIClient.
+     * @param commandManagerClient Instance of CommandManagerClient.
      */
     public SnapshotManager(
             Environment environment,
             ContextIndex contextIndex,
             ContentIndex contentIndex,
-            Privileged privileged) {
-        this.environment = environment;
-        this.contextIndex = contextIndex;
-        this.contentIndex = contentIndex;
-        this.privileged = privileged;
-        this.ctiClient = privileged.doPrivilegedRequest(CTIClient::getInstance);
-        this.pluginSettings = PluginSettings.getInstance();
-    }
-
-    /**
-     * Alternate constructor that allows injecting CTIClient for test purposes. Dependency injection.
-     *
-     * @param ctiClient Instance of CTIClient.
-     * @param environment Needed for snapshot file handling.
-     * @param contextIndex Handles context and consumer related metadata.
-     * @param contentIndex Handles indexed content.
-     */
-    @VisibleForTesting
-    protected SnapshotManager(
-            CTIClient ctiClient,
-            CommandManagerClient client,
-            Environment environment,
-            ContextIndex contextIndex,
-            ContentIndex contentIndex,
             Privileged privileged,
-            PluginSettings pluginSettings) {
+            CTIClient ctiClient,
+            CommandManagerClient commandManagerClient) {
         this.ctiClient = ctiClient;
-        this.commandClient = client;
+        this.commandManagerClient = commandManagerClient;
         this.environment = environment;
         this.contextIndex = contextIndex;
         this.contentIndex = contentIndex;
         this.privileged = privileged;
-        this.pluginSettings = pluginSettings;
     }
 
     /**
@@ -119,7 +95,7 @@ public class SnapshotManager {
                             consumerInfo.setOffset(offset);
                             this.contextIndex.index(consumerInfo);
                             // Send command.
-                            privileged.postUpdateCommand(this.commandClient, consumerInfo);
+                            privileged.postUpdateCommand(this.commandManagerClient, consumerInfo);
                             // Remove snapshot.
                             Files.deleteIfExists(snapshotZip);
                             Files.deleteIfExists(snapshotJson);
@@ -138,7 +114,7 @@ public class SnapshotManager {
      * @param outputDir The output directory to extract files to
      * @throws IOException Risen from unzip()
      */
-    protected void unzip(Path snapshotZip, Path outputDir) throws IOException {
+    public void unzip(Path snapshotZip, Path outputDir) throws IOException {
         Unzip.unzip(snapshotZip, outputDir);
     }
 
@@ -164,68 +140,49 @@ public class SnapshotManager {
      *
      * @throws IOException thrown when indexing failed
      */
-    protected ConsumerInfo initConsumer() throws IOException {
-        ConsumerInfo current =
-                this.contextIndex.get(
-                        this.pluginSettings.getContextId(), this.pluginSettings.getConsumerId());
-        ConsumerInfo latest = this.ctiClient.getConsumerInfo();
-        log.debug("Current consumer info: {}", current);
+    protected void initConsumer(ConsumerInfo latest) throws IOException {
         log.debug("Latest consumer info: {}", latest);
 
         // Consumer is not yet initialized. Initialize to latest.
-        if (current == null || current.getOffset() == 0) {
-            log.debug("Initializing consumer: {}", latest);
-            if (this.contextIndex.index(latest)) {
-                log.info(
-                        "Successfully initialized consumer [{}][{}]", latest.getContext(), latest.getName());
-            } else {
-                throw new IOException(
-                        String.format(
-                                Locale.ROOT,
-                                "Failed to initialize consumer [%s][%s]",
-                                latest.getContext(),
-                                latest.getName()));
-            }
-            current = latest;
+        log.debug("Initializing consumer: {}", latest);
+        if (this.contextIndex.index(latest)) {
+            log.info("Successfully initialized consumer [{}][{}]", latest.getContext(), latest.getName());
+        } else {
+            throw new IOException(
+                    String.format(
+                            Locale.ROOT,
+                            "Failed to initialize consumer [%s][%s]",
+                            latest.getContext(),
+                            latest.getName()));
         }
-        // Consumer is initialized and up-to-date.
-        else if (current.getOffset() == latest.getLastOffset()) {
-            log.info(
-                    "Consumer is up-to-date (offset {} == {}). Skipping...",
-                    current.getOffset(),
-                    latest.getLastOffset());
-        }
-        // Consumer is initialized but out-of-date.
-        else {
-            log.info("Consumer already initialized (offset {} != 0). Skipping...", current.getOffset());
-            current.setLastOffset(latest.getLastOffset());
-            current.setLastSnapshotLink(latest.getLastSnapshotLink());
-            this.contextIndex.index(current);
-            // Start content update.
-            ContentUpdater updater =
-                    new ContentUpdater(
-                            this.ctiClient,
-                            this.commandClient,
-                            this.contextIndex,
-                            this.contentIndex,
-                            this.privileged);
-            updater.update();
-        }
-        return current;
     }
 
-    /** Trigger method for content initialization */
-    public void initialize() {
+    /**
+     * Trigger method for content initialization
+     *
+     * @param latest ConsumerInfo object to be used for initialization
+     */
+    public void initialize(ConsumerInfo latest) {
         try {
-            this.semaphore.acquire();
-            // The Command Manager client needs the cluster to be up (depends on PluginSettings),
-            // so we initialize it here once the node is up and ready.
-            this.commandClient = this.privileged.doPrivilegedRequest(CommandManagerClient::getInstance);
-            ConsumerInfo consumerInfo = this.initConsumer();
-            this.indexSnapshot(consumerInfo);
-            semaphore.release();
-        } catch (IOException | InterruptedException e) {
+            this.initConsumer(latest);
+            this.privileged.doPrivilegedRequest(
+                    () -> {
+                        this.indexSnapshot(latest);
+                        return null;
+                    });
+        } catch (IOException e) {
             log.error("Failed to initialize: {}", e.getMessage());
         }
+    }
+
+    /**
+     * Sets the plugin settings.
+     *
+     * @param pluginSettings PluginSettings instance containing the settings for the plugin.
+     * @return the SnapshotManager instance.
+     */
+    public SnapshotManager setPluginSettings(PluginSettings pluginSettings) {
+        this.pluginSettings = pluginSettings;
+        return this;
     }
 }
