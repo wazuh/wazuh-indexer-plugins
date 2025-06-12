@@ -1,6 +1,4 @@
 ECS_Version,Indexed,Field_Set,Field,Type,Level,Normalization,Example,Description
-8.11.0,true,base,@timestamp,date,core,,2016-05-23T08:05:34.853Z,Date/time when the event originated.
-8.11.0,true,base,tags,keyword,core,array,"[""production"", ""env2""]",List of keywords used to tag each event.
 8.11.0,true,agent,agent.host.architecture,keyword,core,,x86_64,Operating system architecture.
 8.11.0,true,agent,agent.host.ip,ip,core,array,,Host ip addresses.
 8.11.0,true,agent,agent.id,keyword,core,,8a4f500d,Unique identifier of this agent.
