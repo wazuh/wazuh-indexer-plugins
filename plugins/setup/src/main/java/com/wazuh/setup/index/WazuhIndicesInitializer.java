@@ -93,7 +93,6 @@ public final class WazuhIndicesInitializer implements IndexInitializer {
      *
      * @param indexStrategySelector: The IndexStrategySelector object to load
      */
-    @SuppressWarnings("unchecked")
     private void putTemplate(IndexStrategySelector indexStrategySelector) {
         try {
             Map<String, Object> template =
