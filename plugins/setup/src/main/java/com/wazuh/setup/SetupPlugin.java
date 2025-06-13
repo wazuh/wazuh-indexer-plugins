@@ -76,7 +76,7 @@ public class SetupPlugin extends Plugin implements ClusterPlugin {
     public void onNodeStarted(DiscoveryNode localNode) {
         // Initialize the indices only if this node is the cluster manager node.
         if (localNode.isClusterManagerNode()) {
-            // Set up the client and routing table for index initializers
+            // Set up the client and clusterService for index initializers
             IndexStrategySelector.Initializers.setup(this.client, this.clusterService);
 
             // Initialize all indices

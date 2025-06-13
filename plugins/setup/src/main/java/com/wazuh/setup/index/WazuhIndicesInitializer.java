@@ -67,9 +67,9 @@ public final class WazuhIndicesInitializer implements IndexInitializer {
     }
 
     /**
-     * Sets the routing table.
+     * Sets the ClusterService object.
      *
-     * @param clusterService OpenSearch routing table.
+     * @param clusterService OpenSearch ClusterService.
      * @return this instance for method chaining.
      */
     public WazuhIndicesInitializer setClusterService(ClusterService clusterService) {

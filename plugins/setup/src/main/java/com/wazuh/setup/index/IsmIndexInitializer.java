@@ -69,7 +69,7 @@ public final class IsmIndexInitializer implements IndexInitializer {
     /**
      * Sets the ClusterService.
      *
-     * @param clusterService OpenSearch routing table.
+     * @param clusterService OpenSearch ClusterService.
      * @return this instance for method chaining.
      */
     public IsmIndexInitializer setClusterService(ClusterService clusterService) {

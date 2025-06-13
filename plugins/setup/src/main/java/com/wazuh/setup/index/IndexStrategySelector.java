@@ -126,11 +126,11 @@ public enum IndexStrategySelector {
         private static IsmIndexInitializer ISM;
 
         /**
-         * Sets up the index initializers with the provided client and routing table. This method should
+         * Sets up the index initializers with the provided client and ClusterService. This method should
          * be called before initializing any indices.
          *
          * @param client the OpenSearch client
-         * @param clusterService the routing table of the cluster
+         * @param clusterService the ClusterService for accessing cluster state
          */
         public static void setup(Client client, ClusterService clusterService) {
             IndexUtils indexUtils = new IndexUtils();
