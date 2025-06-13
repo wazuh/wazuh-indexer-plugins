@@ -110,6 +110,11 @@ public final class IsmIndexInitializer implements IndexInitializer {
         this.indexPolicy(indexStrategySelector);
     }
 
+    /**
+     * Indexes the Wazuh rollover policy into the specified index.
+     *
+     * @param indexStrategySelector the indexStrategySelector to use for indexing.
+     */
     private void indexPolicy(IndexStrategySelector indexStrategySelector) {
         try {
             Map<String, Object> policy;
