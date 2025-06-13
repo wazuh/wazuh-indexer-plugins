@@ -71,8 +71,26 @@ opensearchplugin {
     name pluginName
     description pluginDescription
     classname "${projectPath}.${pathToPlugin}.${pluginClassName}"
+    extendedPlugins = ['opensearch-index-management']
     licenseFile rootProject.file('LICENSE.txt')
     noticeFile rootProject.file('NOTICE.txt')
+}
+
+configurations {
+    zipArchive
+}
+
+dependencies {
+    implementation "org.apache.logging.log4j:log4j-slf4j-impl:2.23.1"
+    implementation "org.slf4j:slf4j-api:1.7.36"
+    //implementation "org.apache.logging.log4j:log4j-slf4j-impl:${versions.log4j}"
+
+    // Job Scheduler stuff
+    zipArchive group: 'org.opensearch.plugin', name: 'opensearch-job-scheduler', version: opensearch_build
+    zipArchive group: 'org.opensearch.plugin', name: 'opensearch-index-management', version: opensearch_build
+    // implementation "org.opensearch:opensearch:${opensearch_version}"
+    compileOnly "org.opensearch:opensearch-job-scheduler-spi:${opensearch_build}"
+
 }
 
 // No need to validate license headers since spotless checks and applies it
@@ -98,6 +116,22 @@ test {
     include '**/*Tests.class'
 }
 
+def getPlugin(pluginName) {
+    provider(new Callable<RegularFile>() {
+        @Override
+        RegularFile call() throws Exception {
+            return new RegularFile() {
+                @Override
+                File getAsFile() {
+                    return configurations.zipArchive.asFileTree.matching {
+                        include String.format("**/%s*", pluginName)
+                    }.singleFile
+                }
+            }
+        }
+    })
+}
+
 task integTest(type: RestIntegTestTask) {
   description = "Run tests against a cluster"
   testClassesDirs = sourceSets.test.output.classesDirs
@@ -112,12 +146,21 @@ integTest {
     }
 }
 
-testClusters.integTest {
-    testDistribution = "ARCHIVE"
 
+testClusters.integTest {
+    plugin(getPlugin("opensearch-job-scheduler"))
+    plugin(getPlugin("opensearch-index-management"))
+
+    testDistribution = "ARCHIVE"
     // This installs our plugin into the testClusters
     plugin(project.tasks.bundlePlugin.archiveFile)
+
+    // The --debug-jvm command-line option makes the cluster debuggable; this makes the tests debuggable
+    if (System.getProperty("cluster.debug") != null) {
+        jvmArgs '-agentlib:jdwp=transport=dt_socket,server=y,suspend=y,address=*:5005'
+    }
 }
+
 
 run {
     useCluster testClusters.integTest

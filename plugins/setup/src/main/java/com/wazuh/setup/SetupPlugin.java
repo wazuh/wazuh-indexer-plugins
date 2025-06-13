@@ -19,6 +19,7 @@ package com.wazuh.setup;
 import org.opensearch.cluster.metadata.IndexNameExpressionResolver;
 import org.opensearch.cluster.node.DiscoveryNode;
 import org.opensearch.cluster.service.ClusterService;
+import org.opensearch.common.unit.TimeValue;
 import org.opensearch.core.common.io.stream.NamedWriteableRegistry;
 import org.opensearch.core.xcontent.NamedXContentRegistry;
 import org.opensearch.env.Environment;
@@ -32,10 +33,11 @@ import org.opensearch.transport.client.Client;
 import org.opensearch.watcher.ResourceWatcherService;
 
 import java.util.Collection;
-import java.util.List;
+import java.util.Collections;
+import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
 
-import com.wazuh.setup.index.WazuhIndices;
+import com.wazuh.setup.index.IndexStrategySelector;
 
 /**
  * Main class of the Indexer Setup plugin. This plugin is responsible for the creation of the index
@@ -43,7 +45,11 @@ import com.wazuh.setup.index.WazuhIndices;
  */
 public class SetupPlugin extends Plugin implements ClusterPlugin {
 
-    private WazuhIndices indices;
+    public static final String WAZUH_ALERTS_ROLLOVER_POLICY_ID = "wazuh-alerts-rollover-policy";
+    public static final TimeValue TIMEOUT = new TimeValue(5L, TimeUnit.SECONDS);
+
+    private Client client;
+    private ClusterService clusterService;
 
     /** Default constructor */
     public SetupPlugin() {}
@@ -61,13 +67,22 @@ public class SetupPlugin extends Plugin implements ClusterPlugin {
             NamedWriteableRegistry namedWriteableRegistry,
             IndexNameExpressionResolver indexNameExpressionResolver,
             Supplier<RepositoriesService> repositoriesServiceSupplier) {
-        this.indices = new WazuhIndices(client, clusterService);
-
-        return List.of(this.indices);
+        this.client = client;
+        this.clusterService = clusterService;
+        return Collections.emptyList();
     }
 
     @Override
     public void onNodeStarted(DiscoveryNode localNode) {
-        this.indices.initialize();
+        // Initialize the indices only if this node is the cluster manager node.
+        if (localNode.isClusterManagerNode()) {
+            // Set up the client and clusterService for index initializers
+            IndexStrategySelector.Initializers.setup(this.client, this.clusterService);
+
+            // Initialize all indices
+            for (IndexStrategySelector value : IndexStrategySelector.values()) {
+                value.initIndex();
+            }
+        }
     }
 }
