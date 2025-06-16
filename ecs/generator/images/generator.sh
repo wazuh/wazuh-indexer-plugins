@@ -39,7 +39,10 @@ remove_multi_fields() {
     .mappings.properties.host.properties.os.properties.name.fields,
     .mappings.properties.process.properties.command_line.fields,
     .mappings.properties.process.properties.name.fields,
-    .mappings.properties.vulnerability.properties.description.fields
+    .mappings.properties.vulnerability.properties.description.fields,
+    .mappings.properties.file.properties.path.fields,
+    .mappings.properties.user.properties.name.fields,
+    .mappings.properties.user.properties.full_name.fields
   )' "$in_file" > "$out_file"
 }
 
@@ -70,8 +73,8 @@ generate_mappings() {
   find "$out_dir" -type f -exec sed -i 's/wildcard/keyword/g' {} \;
   find "$out_dir" -type f -exec sed -i 's/match_only_text/keyword/g' {} \;
   find "$out_dir" -type f -exec sed -i 's/flattened/flat_object/g' {} \;
-  find "$out_dir" -type f -exec sed -i 's/scaled_float/float/g' {} \;
-  find "$out_dir" -type f -exec sed -i '/scaling_factor/d' {} \;
+#   find "$out_dir" -type f -exec sed -i 's/scaled_float/float/g' {} \;
+#   find "$out_dir" -type f -exec sed -i '/scaling_factor/d' {} \;
 
   local in_file="$out_dir/generated/elasticsearch/legacy/template.json"
   local out_file="$out_dir/generated/elasticsearch/legacy/template-tmp.json"
@@ -95,7 +98,6 @@ generate_mappings() {
   # Delete the "@timestamp" and "tags" fields from the csv file
   echo "Deleting the \"@timestamp\" and \"tags\" fields from the CSV file"
   sed -i '/@timestamp/d; /tags/d' "$csv_file"
-
 
   # Transform legacy index template for OpenSearch compatibility
   jq '{

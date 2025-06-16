@@ -71,6 +71,7 @@ detect_modified_modules() {
     module_to_file=(
         [states-fim-files]="index-template-fim-files.json"
         [states-fim-registries]="index-template-fim-registries.json"
+        [states-inventory-groups]="index-template-groups.json"
         [states-inventory-hardware]="index-template-hardware.json"
         [states-inventory-hotfixes]="index-template-hotfixes.json"
         [states-inventory-interfaces]="index-template-interfaces.json"
@@ -80,6 +81,7 @@ detect_modified_modules() {
         [states-inventory-processes]="index-template-processes.json"
         [states-inventory-protocols]="index-template-protocols.json"
         [states-inventory-system]="index-template-system.json"
+        [states-inventory-users]="index-template-users.json"
         [states-vulnerabilities]="index-template-vulnerabilities.json"
     )
 
