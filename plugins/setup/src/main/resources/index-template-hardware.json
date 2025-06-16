@@ -6,9 +6,6 @@
     "date_detection": false,
     "dynamic": "strict",
     "properties": {
-      "@timestamp": {
-        "type": "date"
-      },
       "agent": {
         "properties": {
           "host": {
@@ -41,7 +38,7 @@
           "cpu": {
             "properties": {
               "cores": {
-                "type": "long"
+                "type": "short"
               },
               "name": {
                 "ignore_above": 1024,
@@ -50,8 +47,7 @@
               "speed": {
                 "type": "long"
               }
-            },
-            "type": "object"
+            }
           },
           "memory": {
             "properties": {
@@ -61,11 +57,14 @@
               "total": {
                 "type": "long"
               },
+              "usage": {
+                "scaling_factor": 100,
+                "type": "scaled_float"
+              },
               "used": {
                 "type": "long"
               }
-            },
-            "type": "object"
+            }
           },
           "serial_number": {
             "ignore_above": 1024,
@@ -106,7 +105,16 @@
       "number_of_replicas": "0",
       "number_of_shards": "1",
       "query.default_field": [
-        "host.serial_number"
+        "agent.host.architecture",
+        "agent.host.ip",
+        "agent.id",
+        "agent.name",
+        "agent.version",
+        "agent.host.ip",
+        "host.serial_number",
+        "wazuh.cluster.name",
+        "wazuh.cluster.node",
+        "wazuh.schema.version"
       ],
       "refresh_interval": "5s"
     }
