@@ -74,8 +74,8 @@ public enum IndexStrategySelector {
             "index-template-vulnerabilities.json",
             null,
             Initializers.WAZUH),
-    USERS("wazuh-states-users", "index-template-users.json", null, Initializers.WAZUH),
-    GROUPS("wazuh-states-groups", "index-template-groups.json", null, Initializers.WAZUH);
+    USERS("wazuh-states-inventory-users", "index-template-users.json", null, Initializers.WAZUH),
+    GROUPS("wazuh-states-inventory-groups", "index-template-groups.json", null, Initializers.WAZUH);
 
     private final String index;
     private final String template;
