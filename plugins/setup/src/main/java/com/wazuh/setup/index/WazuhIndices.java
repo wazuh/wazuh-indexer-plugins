@@ -59,27 +59,77 @@ public class WazuhIndices {
         this.clusterService = clusterService;
 
         // Create Index Templates - Indices map
+        // spotless:off
         this.indexTemplates.put(
-                "index-template-alerts", List.of("wazuh-alerts-5.x-0001", "wazuh-archives-5.x-0001"));
-        this.indexTemplates.put("index-template-fim-files", List.of("wazuh-states-fim-files"));
-        this.indexTemplates.put("index-template-monitoring", List.of("wazuh-monitoring"));
-        this.indexTemplates.put("index-template-statistics", List.of("wazuh-statistics"));
+            "index-template-alerts",
+            List.of("wazuh-alerts-5.x-0001", "wazuh-archives-5.x-0001")
+        );
         this.indexTemplates.put(
-                "index-template-fim-registries", List.of("wazuh-states-fim-registries"));
-        this.indexTemplates.put("index-template-hardware", List.of("wazuh-states-inventory-hardware"));
-        this.indexTemplates.put("index-template-hotfixes", List.of("wazuh-states-inventory-hotfixes"));
+            "index-template-fim-files",
+            List.of("wazuh-states-fim-files")
+        );
         this.indexTemplates.put(
-                "index-template-interfaces", List.of("wazuh-states-inventory-interfaces"));
-        this.indexTemplates.put("index-template-networks", List.of("wazuh-states-inventory-networks"));
-        this.indexTemplates.put("index-template-packages", List.of("wazuh-states-inventory-packages"));
-        this.indexTemplates.put("index-template-ports", List.of("wazuh-states-inventory-ports"));
+            "index-template-fim-registries",
+            List.of("wazuh-states-fim-registries")
+        );
         this.indexTemplates.put(
-                "index-template-processes", List.of("wazuh-states-inventory-processes"));
+            "index-template-groups",
+            List.of("wazuh-states-inventory-groups")
+        );
         this.indexTemplates.put(
-                "index-template-protocols", List.of("wazuh-states-inventory-protocols"));
-        this.indexTemplates.put("index-template-system", List.of("wazuh-states-inventory-system"));
+            "index-template-hardware",
+            List.of("wazuh-states-inventory-hardware")
+        );
         this.indexTemplates.put(
-                "index-template-vulnerabilities", List.of("wazuh-states-vulnerabilities"));
+            "index-template-hotfixes",
+            List.of("wazuh-states-inventory-hotfixes")
+        );
+        this.indexTemplates.put(
+            "index-template-interfaces",
+            List.of("wazuh-states-inventory-interfaces")
+        );
+        this.indexTemplates.put(
+            "index-template-monitoring",
+            List.of("wazuh-monitoring")
+        );
+        this.indexTemplates.put(
+            "index-template-networks",
+            List.of("wazuh-states-inventory-networks")
+        );
+        this.indexTemplates.put(
+            "index-template-packages",
+            List.of("wazuh-states-inventory-packages")
+        );
+        this.indexTemplates.put(
+            "index-template-ports",
+            List.of("wazuh-states-inventory-ports")
+        );
+        this.indexTemplates.put(
+            "index-template-processes",
+            List.of("wazuh-states-inventory-processes")
+        );
+        this.indexTemplates.put(
+            "index-template-protocols",
+            List.of("wazuh-states-inventory-protocols")
+        );
+
+        this.indexTemplates.put(
+            "index-template-statistics",
+            List.of("wazuh-statistics")
+        );
+        this.indexTemplates.put(
+            "index-template-system",
+            List.of("wazuh-states-inventory-system")
+        );
+        this.indexTemplates.put(
+            "index-template-users",
+            List.of("wazuh-states-inventory-users")
+        );
+        this.indexTemplates.put(
+            "index-template-vulnerabilities",
+            List.of("wazuh-states-vulnerabilities")
+        );
+        // spotless:on
     }
 
     /**
