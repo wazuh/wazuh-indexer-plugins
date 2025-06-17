@@ -21,15 +21,12 @@ import org.apache.logging.log4j.Logger;
 import org.opensearch.ResourceAlreadyExistsException;
 import org.opensearch.action.admin.indices.create.CreateIndexRequest;
 import org.opensearch.action.index.IndexRequest;
-import org.opensearch.cluster.service.ClusterService;
 import org.opensearch.core.xcontent.MediaTypeRegistry;
-import org.opensearch.transport.client.Client;
 
 import java.io.IOException;
 import java.util.Map;
 
 import com.wazuh.setup.SetupPlugin;
-import com.wazuh.setup.utils.IndexUtils;
 
 /** Class to manage the Command Manager index and index template. */
 public class IndexStateManagement extends Index {
@@ -38,11 +35,9 @@ public class IndexStateManagement extends Index {
     private static final String INDEX = ".opendistro-ism-config";
     private static final String TEMPLATE = "opendistro-ism-config.json";
 
-
     private IndexStateManagement() {
-       super(INDEX, TEMPLATE);
+        super(INDEX, TEMPLATE);
     }
-
 
     private void indexPolicy(String policy) {
         try {

@@ -18,30 +18,20 @@ package com.wazuh.setup.index;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.opensearch.ResourceAlreadyExistsException;
 import org.opensearch.action.admin.indices.alias.Alias;
 import org.opensearch.action.admin.indices.create.CreateIndexRequest;
-import org.opensearch.action.admin.indices.template.put.PutIndexTemplateRequest;
-import org.opensearch.cluster.service.ClusterService;
-import org.opensearch.transport.client.Client;
-
-import java.io.IOException;
-import java.util.List;
-import java.util.Map;
 
 import com.wazuh.setup.SetupPlugin;
-import com.wazuh.setup.utils.IndexUtils;
 
 /** Class to manage Wazuh indices and index templates. */
 public class StreamIndex extends WazuhIndex {
 
     private static final Logger log = LogManager.getLogger(StreamIndex.class);
-    private String alias;
+    private final String alias;
 
-    private StreamIndex(String index, String template, String  alias) {
+    private StreamIndex(String index, String template, String alias) {
         this.alias = alias;
     }
-
 
     @Override
     public void createIndex(String index) {
@@ -49,7 +39,8 @@ public class StreamIndex extends WazuhIndex {
             log.info("Index {} already exists. Skipping.", index);
             return;
         }
-        CreateIndexRequest request = new CreateIndexRequest(index).alias(new Alias(this.alias).writeIndex(true));
+        CreateIndexRequest request =
+                new CreateIndexRequest(index).alias(new Alias(this.alias).writeIndex(true));
         this.client.admin().indices().create(request).actionGet(SetupPlugin.TIMEOUT);
         log.info("Index {} created successfully", index);
     }
