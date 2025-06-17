@@ -16,8 +16,20 @@
  */
 package com.wazuh.setup.index;
 
+/**
+ * Class to represent a Stateful index. Stateful indices represent the most recent information of a
+ * subject (active vulnerabilities, installed packages, open ports, ...). These indices are
+ * different of Stream indices as they do not contain timestamps. The information is not based on
+ * time, as they always represent the most recent state.
+ */
 public class StateIndex extends WazuhIndex {
 
+    /**
+     * Constructor.
+     *
+     * @param index index name.
+     * @param template index template name.
+     */
     public StateIndex(String index, String template) {
         super(index, template);
     }

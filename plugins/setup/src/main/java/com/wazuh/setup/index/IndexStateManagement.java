@@ -29,7 +29,10 @@ import java.util.Map;
 
 import com.wazuh.setup.SetupPlugin;
 
-/** Class to manage the Command Manager index and index template. */
+/**
+ * Initializes the Index State Management internal index <code>.opendistro-ism-config</code>.
+ * Creates ISM policies. Extends {@link Index}.
+ */
 public final class IndexStateManagement extends Index {
     private static final Logger log = LogManager.getLogger(IndexStateManagement.class);
 
@@ -38,18 +41,33 @@ public final class IndexStateManagement extends Index {
 
     private final List<String> policies;
 
+    /**
+     * Constructor.
+     *
+     * @param index index name.
+     * @param template index template name.
+     */
     public IndexStateManagement(String index, String template) {
         super(index, template);
         this.policies = new ArrayList<>();
 
-        // add ISM policies to be created
+        // Add ISM policies to be created
         this.policies.add(ALERTS_ROLLOVER_POLICY);
     }
 
+    /**
+     * Creates every ISM policy added to {@link #policies} by passing it to {@link
+     * #indexPolicy(String)}.
+     */
     private void createPolicies() {
         this.policies.forEach(this::indexPolicy);
     }
 
+    /**
+     * Indexes the given ISM policy to the ISM internal index.
+     *
+     * @param policy policy name to create.
+     */
     private void indexPolicy(String policy) {
         try {
             Map<String, Object> policyFile;

@@ -16,8 +16,15 @@
  */
 package com.wazuh.setup.index;
 
+/** Abstract class to represent an index used by the Wazuh product. */
 public abstract class WazuhIndex extends Index {
 
+    /**
+     * Constructor.
+     *
+     * @param index index name.
+     * @param template index template name.
+     */
     WazuhIndex(String index, String template) {
         super(index, template);
     }

@@ -25,16 +25,34 @@ import org.opensearch.action.admin.indices.create.CreateIndexResponse;
 
 import com.wazuh.setup.SetupPlugin;
 
+/**
+ * Class to represent a Stream index. Stream indices contain time-based events of any kind (alerts,
+ * statistics, logs...).
+ */
 public class StreamIndex extends WazuhIndex {
     private static final Logger log = LogManager.getLogger(StreamIndex.class);
 
     private final String alias;
 
+    /**
+     * Constructor.
+     *
+     * @param index index name.
+     * @param template index template name.
+     * @param alias index alias name for advanced management such as automatic rollover.
+     */
     public StreamIndex(String index, String template, String alias) {
         super(index, template);
         this.alias = alias;
     }
 
+    /**
+     * Overrides {@link Index#createIndex(String)} to include the {@link #alias} to the index creation
+     * request.
+     *
+     * @param index Name of the index to create.
+     * @see Alias
+     */
     @Override
     public void createIndex(String index) {
         try {

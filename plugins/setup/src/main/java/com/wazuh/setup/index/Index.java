@@ -33,16 +33,30 @@ import java.util.Map;
 import com.wazuh.setup.SetupPlugin;
 import com.wazuh.setup.utils.IndexUtils;
 
+/**
+ * Abstract class with the required logic to create indices. In our context, an index always require
+ * an index template describing the index schema (mappings) and settings.
+ *
+ * @see IndexInitializer
+ */
 public abstract class Index implements IndexInitializer {
     private static final Logger log = LogManager.getLogger(Index.class);
 
+    // Dependencies.
     Client client;
     ClusterService clusterService;
     IndexUtils indexUtils;
 
+    // Properties.
     String index;
     String template;
 
+    /**
+     * Constructor.
+     *
+     * @param index index name.
+     * @param template index template name.
+     */
     Index(String index, String template) {
         this.index = index;
         this.template = template;
@@ -76,15 +90,20 @@ public abstract class Index implements IndexInitializer {
     }
 
     /**
-     * Returns whether the index exists
+     * Returns whether the index exists.
      *
-     * @param indexName the name of the index to check
-     * @return true if the index exists on the cluster, false otherwise
+     * @param indexName the name of the index to check.
+     * @return true if the index exists on the cluster, false otherwise.
      */
     public boolean indexExists(String indexName) {
         return this.clusterService.state().getRoutingTable().hasIndex(indexName);
     }
 
+    /**
+     * Creates an index.
+     *
+     * @param index Name of the index to create.
+     */
     public void createIndex(String index) {
         try {
             if (!this.indexExists(index)) {
@@ -101,6 +120,11 @@ public abstract class Index implements IndexInitializer {
         }
     }
 
+    /**
+     * Creates an index template.
+     *
+     * @param template name of the index template to create.
+     */
     public void createTemplate(String template) {
         try {
             Map<String, Object> templateFile = this.indexUtils.fromFile(template + ".json");
@@ -131,6 +155,10 @@ public abstract class Index implements IndexInitializer {
         }
     }
 
+    /**
+     * Initializes the index. Usually implies invoking {@link #createTemplate(String)} and {@link
+     * #createIndex(String)}, in that order.
+     */
     public void initialize() {
         this.createTemplate(this.template);
         this.createIndex(this.index);

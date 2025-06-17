@@ -16,8 +16,21 @@
  */
 package com.wazuh.setup.index;
 
+/**
+ * Public interface for index creation. Any class creating indices must implement this interface.
+ */
 public interface IndexInitializer {
+    /**
+     * Creates an index.
+     *
+     * @param index Name of the index to create.
+     */
     void createIndex(String index);
 
+    /**
+     * Creates an index template.
+     *
+     * @param template name of the index template to create.
+     */
     void createTemplate(String template);
 }
