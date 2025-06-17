@@ -39,7 +39,7 @@ public class IndexStateManagement extends Index {
         super(INDEX, TEMPLATE);
     }
 
-    private void indexPolicy(String policy) {
+    private void indexPolicy(String policyName) {
         try {
             Map<String, Object> policy;
             policy = this.indexUtils.fromFile(SetupPlugin.WAZUH_ALERTS_ROLLOVER_POLICY_ID + ".json");
