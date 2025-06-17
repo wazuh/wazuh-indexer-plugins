@@ -16,8 +16,9 @@
  */
 package com.wazuh.setup.index;
 
-public interface IndexInitializer {
-    void createIndex(String index);
+public abstract class WazuhIndex extends Index {
 
-    void createTemplate(String template);
+    WazuhIndex(String index, String template) {
+        super(index, template);
+    }
 }
