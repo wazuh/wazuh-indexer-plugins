@@ -44,12 +44,12 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 
-/** Tests for the IsmIndexInitializer class. */
-public class IsmIndexInitializerTests extends OpenSearchTestCase {
+/** Tests for the IndexStateManagement class. */
+public class IndexStateManagementTests extends OpenSearchTestCase {
 
     private Client client;
     private RoutingTable routingTable;
-    private IsmIndexInitializer ismIndexInitializer;
+    private IndexStateManagement indexStateManagement;
     private IndexUtils indexUtils;
     private IndicesAdminClient indicesAdminClient;
     private ClusterService clusterService;
@@ -78,8 +78,8 @@ public class IsmIndexInitializerTests extends OpenSearchTestCase {
         doReturn(this.adminClient).when(this.client).admin();
         doReturn(this.indicesAdminClient).when(this.adminClient).indices();
 
-        this.ismIndexInitializer =
-                IsmIndexInitializer.getInstance()
+        this.indexStateManagement =
+                IndexStateManagement.getInstance()
                         .setClient(this.client)
                         .setClusterService(this.clusterService)
                         .setIndexUtils(this.indexUtils);
@@ -96,26 +96,26 @@ public class IsmIndexInitializerTests extends OpenSearchTestCase {
         this.indexUtils = null;
         this.adminClient = null;
         this.indicesAdminClient = null;
-        this.ismIndexInitializer = null;
+        this.indexStateManagement = null;
     }
 
-    /** Test the singleton instance of IsmIndexInitializer. */
+    /** Test the singleton instance of IndexStateManagement. */
     public void testGetInstance() {
-        assert IsmIndexInitializer.getInstance().equals(this.ismIndexInitializer);
+        assert IndexStateManagement.getInstance().equals(this.indexStateManagement);
     }
 
     /** Test the check for index existence. */
     public void testIsmIndexExists() {
         // Test when the index does not exist
         doReturn(false).when(this.routingTable).hasIndex(anyString());
-        assertFalse(this.ismIndexInitializer.ismIndexExists(IndexStrategySelector.ISM.getIndexName()));
+        assertFalse(this.indexStateManagement.ismIndexExists(IndexStrategySelector.ISM.getIndexName()));
     }
 
     /** Test the check for index existence. */
     public void testIsmIndexNotExists() {
         // Test when the index does not exist
         doReturn(false).when(this.routingTable).hasIndex(anyString());
-        assertFalse(this.ismIndexInitializer.ismIndexExists(IndexStrategySelector.ISM.getIndexName()));
+        assertFalse(this.indexStateManagement.ismIndexExists(IndexStrategySelector.ISM.getIndexName()));
     }
 
     /** Test createIsmIndex skips creation if index already exists. */
@@ -125,13 +125,13 @@ public class IsmIndexInitializerTests extends OpenSearchTestCase {
         doReturn(mock(ActionFuture.class))
                 .when(this.indicesAdminClient)
                 .create(any(CreateIndexRequest.class));
-        this.ismIndexInitializer.setClusterService(this.clusterService);
-        this.ismIndexInitializer.initIndex(IndexStrategySelector.ISM);
+        this.indexStateManagement.setClusterService(this.clusterService);
+        this.indexStateManagement.initialize(IndexStrategySelector.ISM);
         verify(this.indicesAdminClient, never()).create(any());
     }
 
     /** That index is created on initialization */
-    public void testInitIndexCreatesIsmIndex() {
+    public void testInitialize() {
         AdminClient adminClient = mock(AdminClient.class);
         doReturn(adminClient).when(this.client).admin();
         IndicesAdminClient indicesAdminClient = mock(IndicesAdminClient.class);
@@ -142,7 +142,7 @@ public class IsmIndexInitializerTests extends OpenSearchTestCase {
                 .create(any(CreateIndexRequest.class));
         ActionFuture<IndexResponse> indexResponseActionFuture = mock(ActionFuture.class);
         doReturn(indexResponseActionFuture).when(this.client).index(any(IndexRequest.class));
-        this.ismIndexInitializer.initIndex(IndexStrategySelector.ISM);
+        this.indexStateManagement.initialize(IndexStrategySelector.ISM);
         verify(indicesAdminClient, times(1)).create(any(CreateIndexRequest.class));
     }
 
@@ -161,7 +161,7 @@ public class IsmIndexInitializerTests extends OpenSearchTestCase {
         doReturn(mock(ActionFuture.class)).when(this.indicesAdminClient).create(any());
         doReturn(mock(ActionFuture.class)).when(this.client).index(any(IndexRequest.class));
 
-        this.ismIndexInitializer.initIndex(IndexStrategySelector.ISM);
+        this.indexStateManagement.initialize(IndexStrategySelector.ISM);
 
         verify(this.client).index(any(IndexRequest.class));
     }
@@ -178,7 +178,7 @@ public class IsmIndexInitializerTests extends OpenSearchTestCase {
 
         doReturn(mock(ActionFuture.class)).when(this.indicesAdminClient).create(any());
 
-        this.ismIndexInitializer.initIndex(IndexStrategySelector.ISM);
+        this.indexStateManagement.initialize(IndexStrategySelector.ISM);
 
         verify(this.client, never()).index(any());
     }
@@ -188,7 +188,7 @@ public class IsmIndexInitializerTests extends OpenSearchTestCase {
      *
      * @throws IOException if an error occurs while reading the files
      */
-    public void testInitIndexException() throws IOException {
+    public void testInitializeException() throws IOException {
         AdminClient adminClient = mock(AdminClient.class);
         doReturn(adminClient).when(this.client).admin();
         IndicesAdminClient indicesAdminClient = mock(IndicesAdminClient.class);
@@ -201,7 +201,7 @@ public class IsmIndexInitializerTests extends OpenSearchTestCase {
         doReturn(indexResponseActionFuture).when(this.client).index(any(IndexRequest.class));
 
         doThrow(new IOException("Error creating index")).when(indexUtils).fromFile(anyString());
-        this.ismIndexInitializer.initIndex(IndexStrategySelector.ISM);
+        this.indexStateManagement.initialize(IndexStrategySelector.ISM);
         verify(indicesAdminClient, times(0)).create(any(CreateIndexRequest.class));
         verify(this.client, times(0)).index(any(IndexRequest.class));
     }

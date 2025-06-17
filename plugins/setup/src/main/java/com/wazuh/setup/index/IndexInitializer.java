@@ -16,16 +16,9 @@
  */
 package com.wazuh.setup.index;
 
-/**
- * Interface for initializing indices in Wazuh. Implementations should provide the logic to create
- * and configure indices.
- */
 public interface IndexInitializer {
 
-    /**
-     * Initializes the indexStrategySelector with the provided configuration.
-     *
-     * @param indexStrategySelector The indexStrategySelector to be initialized.
-     */
-    void initIndex(IndexStrategySelector indexStrategySelector);
+    void createIndex(String index);
+
+    void createTemplate(String index);
 }

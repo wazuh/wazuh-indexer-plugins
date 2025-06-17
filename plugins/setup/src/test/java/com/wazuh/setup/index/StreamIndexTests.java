@@ -45,12 +45,12 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 
-/** Unit tests for {@link WazuhIndicesInitializer} using {@link OpenSearchTestCase}. */
-public class WazuhIndicesInitializerTests extends OpenSearchTestCase {
+/** Unit tests for {@link StreamIndex} using {@link OpenSearchTestCase}. */
+public class StreamIndexTests extends OpenSearchTestCase {
 
     private RoutingTable routingTable;
     private IndexUtils indexUtils;
-    private WazuhIndicesInitializer wazuhIndicesInitializer;
+    private StreamIndex streamIndex;
     private IndicesAdminClient indicesAdminClient;
 
     @Override
@@ -71,8 +71,8 @@ public class WazuhIndicesInitializerTests extends OpenSearchTestCase {
         doReturn(adminClient).when(client).admin();
         doReturn(this.indicesAdminClient).when(adminClient).indices();
 
-        this.wazuhIndicesInitializer =
-                WazuhIndicesInitializer.getInstance()
+        this.streamIndex =
+                StreamIndex.getInstance()
                         .setClient(client)
                         .setClusterService(clusterService)
                         .setIndexUtils(this.indexUtils);
@@ -80,8 +80,8 @@ public class WazuhIndicesInitializerTests extends OpenSearchTestCase {
 
     /** Ensures getInstance() returns a singleton. */
     public void testGetInstanceReturnsSameObject() {
-        WazuhIndicesInitializer instance1 = WazuhIndicesInitializer.getInstance();
-        WazuhIndicesInitializer instance2 = WazuhIndicesInitializer.getInstance();
+        StreamIndex instance1 = StreamIndex.getInstance();
+        StreamIndex instance2 = StreamIndex.getInstance();
         assertSame(instance1, instance2);
     }
 
@@ -91,15 +91,15 @@ public class WazuhIndicesInitializerTests extends OpenSearchTestCase {
     /** indexExists() returns false when the index does not exist. */
     public void testIndexExistsReturnsFalse() {
         doReturn(false).when(this.routingTable).hasIndex("test-index");
-        assert (!wazuhIndicesInitializer.indexExists("test-index"));
+        assert (!streamIndex.indexExists("test-index"));
     }
 
     /**
-     * Tests successful template creation during initIndex().
+     * Tests successful template creation during initialize().
      *
      * @throws Exception if an error occurs during the test
      */
-    public void testPutTemplateCreatesSuccessfully() throws Exception {
+    public void testCreateTemplateCreatesSuccessfully() throws Exception {
 
         Map<String, Object> template =
                 Map.of(
@@ -115,7 +115,7 @@ public class WazuhIndicesInitializerTests extends OpenSearchTestCase {
                 .when(this.indicesAdminClient)
                 .create(any(CreateIndexRequest.class));
 
-        this.wazuhIndicesInitializer.initIndex(IndexStrategySelector.ALERTS);
+        this.streamIndex.initialize(IndexStrategySelector.ALERTS);
         verify(this.indicesAdminClient).putTemplate(any(PutIndexTemplateRequest.class));
     }
 
@@ -124,12 +124,12 @@ public class WazuhIndicesInitializerTests extends OpenSearchTestCase {
      *
      * @throws Exception if an error occurs during the test
      */
-    public void testPutTemplateHandlesNullPointerException() throws Exception {
+    public void testCreateTemplateHandlesNullPointerException() throws Exception {
         doReturn(mock(ActionFuture.class)).when(this.indicesAdminClient).create(any());
         doThrow(NullPointerException.class)
                 .when(this.indexUtils)
                 .fromFile(IndexStrategySelector.ALERTS.getTemplateFileName());
-        this.wazuhIndicesInitializer.initIndex(IndexStrategySelector.ALERTS);
+        this.streamIndex.initialize(IndexStrategySelector.ALERTS);
     }
 
     /**
@@ -137,12 +137,12 @@ public class WazuhIndicesInitializerTests extends OpenSearchTestCase {
      *
      * @throws Exception if an error occurs during the test
      */
-    public void testPutTemplateHandlesIOException() throws Exception {
+    public void testCreateTemplateHandlesIOException() throws Exception {
         doThrow(IOException.class)
                 .when(this.indexUtils)
                 .fromFile(IndexStrategySelector.ALERTS.getTemplateFileName());
         doReturn(mock(ActionFuture.class)).when(this.indicesAdminClient).create(any());
-        this.wazuhIndicesInitializer.initIndex(IndexStrategySelector.ALERTS);
+        this.streamIndex.initialize(IndexStrategySelector.ALERTS);
     }
 
     /**
@@ -150,7 +150,7 @@ public class WazuhIndicesInitializerTests extends OpenSearchTestCase {
      *
      * @throws Exception if an error occurs during the test
      */
-    public void testPutTemplateHandlesAlreadyExists() throws Exception {
+    public void testCreateTemplateHandlesAlreadyExists() throws Exception {
         doThrow(ResourceAlreadyExistsException.class).when(this.indicesAdminClient).putTemplate(any());
         Map<String, Object> template =
                 Map.of(
@@ -161,21 +161,21 @@ public class WazuhIndicesInitializerTests extends OpenSearchTestCase {
         doReturn(template.get("mappings")).when(this.indexUtils).get(template, "mappings");
         doReturn(template.get("settings")).when(this.indexUtils).get(template, "settings");
         doReturn(mock(ActionFuture.class)).when(this.indicesAdminClient).create(any());
-        this.wazuhIndicesInitializer.initIndex(IndexStrategySelector.ALERTS);
+        this.streamIndex.initialize(IndexStrategySelector.ALERTS);
     }
 
     /** Skips index creation if it already exists. */
-    public void testPutIndexSkipsIfExists() {
+    public void testCreateIndexSkipsIfExists() {
         doReturn(true).when(this.routingTable).hasIndex(IndexStrategySelector.ALERTS.getIndexName());
-        this.wazuhIndicesInitializer.initIndex(IndexStrategySelector.ALERTS);
+        this.streamIndex.initialize(IndexStrategySelector.ALERTS);
         verify(this.indicesAdminClient, never()).create(any(CreateIndexRequest.class));
     }
 
     /** Creates index if it does not exist. */
-    public void testPutIndexCreatesIfNotExists() {
+    public void testCreateIndexCreatesIfNotExists() {
         doReturn(false).when(this.routingTable).hasIndex(IndexStrategySelector.ALERTS.getIndexName());
         doReturn(mock(ActionFuture.class)).when(this.indicesAdminClient).create(any());
-        this.wazuhIndicesInitializer.initIndex(IndexStrategySelector.ALERTS);
+        this.streamIndex.initialize(IndexStrategySelector.ALERTS);
         verify(this.indicesAdminClient).create(any(CreateIndexRequest.class));
     }
 
@@ -184,7 +184,7 @@ public class WazuhIndicesInitializerTests extends OpenSearchTestCase {
      *
      * @throws Exception if an error occurs during the test
      */
-    public void testPutIndexWithAlias() throws Exception {
+    public void testCreateIndexWithAlias() throws Exception {
 
         doReturn(false).when(this.routingTable).hasIndex("alias-index");
 
@@ -200,7 +200,7 @@ public class WazuhIndicesInitializerTests extends OpenSearchTestCase {
                 .when(this.indicesAdminClient)
                 .create(any(CreateIndexRequest.class));
 
-        this.wazuhIndicesInitializer.initIndex(selector);
+        this.streamIndex.initialize(selector);
 
         ArgumentCaptor<CreateIndexRequest> captor = ArgumentCaptor.forClass(CreateIndexRequest.class);
         verify(this.indicesAdminClient).create(captor.capture());

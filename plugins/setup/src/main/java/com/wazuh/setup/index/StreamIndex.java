@@ -1,0 +1,77 @@
+/*
+ * Copyright (C) 2024, Wazuh Inc.
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as
+ * published by the Free Software Foundation, either version 3 of the
+ * License, or (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
+package com.wazuh.setup.index;
+
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+import org.opensearch.ResourceAlreadyExistsException;
+import org.opensearch.action.admin.indices.alias.Alias;
+import org.opensearch.action.admin.indices.create.CreateIndexRequest;
+import org.opensearch.action.admin.indices.template.put.PutIndexTemplateRequest;
+import org.opensearch.cluster.service.ClusterService;
+import org.opensearch.transport.client.Client;
+
+import java.io.IOException;
+import java.util.List;
+import java.util.Map;
+
+import com.wazuh.setup.SetupPlugin;
+import com.wazuh.setup.utils.IndexUtils;
+
+/** Class to manage Wazuh indices and index templates. */
+public class StreamIndex extends WazuhIndex {
+
+    private static final Logger log = LogManager.getLogger(StreamIndex.class);
+    private String alias;
+
+    private StreamIndex(String index, String template, String  alias) {
+        this.alias = alias;
+    }
+
+
+    @Override
+    public void createIndex(String index) {
+        if (indexExists(index)) {
+            log.info("Index {} already exists. Skipping.", index);
+            return;
+        }
+        CreateIndexRequest request = new CreateIndexRequest(index).alias(new Alias(this.alias).writeIndex(true));
+        this.client.admin().indices().create(request).actionGet(SetupPlugin.TIMEOUT);
+        log.info("Index {} created successfully", index);
+    }
+
+    /**
+     * Initializes the indexStrategySelector by creating the indexStrategySelector template and the
+     * indexStrategySelector itself.
+     *
+     * @param indexStrategySelector the indexStrategySelector to initialize
+     */
+    public void initialize() {
+        createTemplate();
+        createIndex();
+    }
+
+    /**
+     * Returns whether the index exists
+     *
+     * @param indexName the name of the index to check
+     * @return true if the index exists on the cluster, false otherwise
+     */
+    public boolean indexExists(String indexName) {
+        return this.clusterService.state().getRoutingTable().hasIndex(indexName);
+    }
+}

@@ -117,15 +117,15 @@ public enum IndexStrategySelector {
         return Optional.ofNullable(alias);
     }
 
-    /** Runs the initIndex() method of the index initializer. */
+    /** Runs the initialize() method of the index initializer. */
     public void initIndex() {
-        this.indexInitializer.initIndex(this);
+        this.indexInitializer.createIndex(this);
     }
 
     /** Static subclass to set up the index initializers. */
     public static class Initializers {
-        private static WazuhIndicesInitializer WAZUH;
-        private static IsmIndexInitializer ISM;
+        private static StreamIndex WAZUH;
+        private static IndexStateManagement ISM;
 
         /**
          * Sets up the index initializers with the provided client and ClusterService. This method
@@ -137,12 +137,12 @@ public enum IndexStrategySelector {
         public static void setup(Client client, ClusterService clusterService) {
             IndexUtils indexUtils = new IndexUtils();
             ISM =
-                    IsmIndexInitializer.getInstance()
+                    IndexStateManagement.getInstance()
                             .setClient(client)
                             .setClusterService(clusterService)
                             .setIndexUtils(indexUtils);
             WAZUH =
-                    WazuhIndicesInitializer.getInstance()
+                    StreamIndex.getInstance()
                             .setClient(client)
                             .setClusterService(clusterService)
                             .setIndexUtils(indexUtils);
