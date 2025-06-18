@@ -19,6 +19,8 @@ package com.wazuh.setup.index;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.opensearch.ResourceAlreadyExistsException;
+import org.opensearch.action.admin.indices.create.CreateIndexRequest;
+import org.opensearch.action.admin.indices.create.CreateIndexResponse;
 import org.opensearch.action.index.IndexRequest;
 import org.opensearch.core.xcontent.MediaTypeRegistry;
 
@@ -81,16 +83,48 @@ public final class IndexStateManagement extends Index {
             client.index(indexRequest).actionGet(SetupPlugin.TIMEOUT);
             log.info("ISM policy [{}] created", policy);
         } catch (IOException e) {
-            log.error("Failed to load the Wazuh rollover policy from file: {}", e.getMessage());
+            log.error("Failed to load the ISM policy from file: {}", e.getMessage());
         } catch (ResourceAlreadyExistsException e) {
             log.error("Policy already exists, skipping creation: {}", e.getMessage());
+        }
+    }
+
+    /**
+     * Creates an index.
+     *
+     * @param index Name of the index to create.
+     */
+    @Override
+    public void createIndex(String index) {
+        try {
+            if (!this.indexExists(index)) {
+                // For some reason the index template is not applied to the ISM internal index
+                // ".opendistro-ism-config", so we explicitly set the index mappings and settings
+                // as part of the CreateIndexRequest.
+                Map<String, Object> templateFile = this.indexUtils.fromFile(this.template + ".json");
+
+                CreateIndexRequest request =
+                        new CreateIndexRequest(index)
+                                .mapping(this.indexUtils.get(templateFile, "mappings"))
+                                .settings(this.indexUtils.get(templateFile, "settings"));
+                CreateIndexResponse createIndexResponse =
+                        this.client.admin().indices().create(request).actionGet(SetupPlugin.TIMEOUT);
+                log.info(
+                        "Index created successfully: {} {}",
+                        createIndexResponse.index(),
+                        createIndexResponse.isAcknowledged());
+            }
+        } catch (IOException e) {
+            log.error("Error reading index template from filesystem {}", this.template);
+        } catch (ResourceAlreadyExistsException e) {
+            log.info("Index {} already exists. Skipping.", index);
         }
     }
 
     /** Overrides the parent method to also create the ISM policies after the index creation. */
     @Override
     public void initialize() {
-        super.initialize();
+        this.createIndex(this.index);
         this.createPolicies();
     }
 }

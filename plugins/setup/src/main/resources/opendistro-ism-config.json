@@ -133,7 +133,7 @@
             }
           },
           "default_state": {
-            "type": "text"
+            "type": "keyword"
           },
           "states": {
             "type": "nested",
