@@ -17,20 +17,20 @@
 package com.wazuh.setup.index;
 
 /**
- * Public interface for index creation. Any class creating indices must implement this interface.
+ * Class to represent a Stateful index. Stateful indices represent the most recent information of a
+ * subject (active vulnerabilities, installed packages, open ports, ...). These indices are
+ * different of Stream indices as they do not contain timestamps. The information is not based on
+ * time, as they always represent the most recent state.
  */
-public interface IndexInitializer {
-    /**
-     * Creates an index.
-     *
-     * @param index Name of the index to create.
-     */
-    void createIndex(String index);
+public class StateIndex extends WazuhIndex {
 
     /**
-     * Creates an index template.
+     * Constructor.
      *
-     * @param template name of the index template to create.
+     * @param index index name.
+     * @param template index template name.
      */
-    void createTemplate(String template);
+    public StateIndex(String index, String template) {
+        super(index, template);
+    }
 }

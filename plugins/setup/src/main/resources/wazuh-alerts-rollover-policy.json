@@ -19,8 +19,7 @@
             "rollover": {
               "min_doc_count": 200000000,
               "min_index_age": "7d",
-              "min_primary_shard_size": "25gb",
-              "copy_alias": false
+              "min_primary_shard_size": "25gb"
             }
           }
         ],
