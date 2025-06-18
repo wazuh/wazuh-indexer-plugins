@@ -35,7 +35,7 @@ import com.wazuh.setup.SetupPlugin;
  * Initializes the Index State Management internal index <code>.opendistro-ism-config</code>.
  * Creates ISM policies. Extends {@link Index}.
  */
-public final class IndexStateManagement extends Index {
+public class IndexStateManagement extends Index {
     private static final Logger log = LogManager.getLogger(IndexStateManagement.class);
 
     // ISM policies names (filename without extension)
