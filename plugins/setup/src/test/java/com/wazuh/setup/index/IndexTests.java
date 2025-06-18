@@ -16,7 +16,6 @@
  */
 package com.wazuh.setup.index;
 
-import com.wazuh.setup.SetupPlugin;
 import org.opensearch.ResourceAlreadyExistsException;
 import org.opensearch.action.admin.indices.create.CreateIndexRequest;
 import org.opensearch.action.admin.indices.create.CreateIndexResponse;
@@ -37,6 +36,7 @@ import java.io.IOException;
 import java.util.List;
 import java.util.Map;
 
+import com.wazuh.setup.SetupPlugin;
 import com.wazuh.setup.utils.IndexUtils;
 
 import static org.mockito.Mockito.*;
@@ -86,9 +86,7 @@ public class IndexTests extends OpenSearchTestCase {
         doReturn("test-index").when(response).index();
         ActionFuture actionFuture = mock(ActionFuture.class);
         doReturn(response).when(actionFuture).actionGet(SetupPlugin.TIMEOUT);
-        doReturn(actionFuture)
-                .when(indicesAdminClient)
-                .create(any(CreateIndexRequest.class));
+        doReturn(actionFuture).when(indicesAdminClient).create(any(CreateIndexRequest.class));
 
         index.createIndex("test-index");
 
@@ -118,9 +116,7 @@ public class IndexTests extends OpenSearchTestCase {
         AcknowledgedResponse ackResponse = mock(AcknowledgedResponse.class);
         ActionFuture actionFuture = mock(ActionFuture.class);
         doReturn(ackResponse).when(actionFuture).actionGet(SetupPlugin.TIMEOUT);
-        doReturn(actionFuture)
-                .when(indicesAdminClient)
-                .putTemplate(any(PutIndexTemplateRequest.class));
+        doReturn(actionFuture).when(indicesAdminClient).putTemplate(any(PutIndexTemplateRequest.class));
         index.createTemplate("test-template");
 
         verify(indicesAdminClient).putTemplate(any(PutIndexTemplateRequest.class));
