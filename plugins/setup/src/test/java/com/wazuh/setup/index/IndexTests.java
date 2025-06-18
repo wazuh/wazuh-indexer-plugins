@@ -22,7 +22,6 @@ import org.opensearch.action.admin.indices.create.CreateIndexResponse;
 import org.opensearch.action.admin.indices.template.put.PutIndexTemplateRequest;
 import org.opensearch.action.support.clustermanager.AcknowledgedResponse;
 import org.opensearch.cluster.ClusterState;
-import org.opensearch.cluster.routing.IndexRoutingTable;
 import org.opensearch.cluster.routing.RoutingTable;
 import org.opensearch.cluster.service.ClusterService;
 import org.opensearch.common.action.ActionFuture;
@@ -41,29 +40,24 @@ import com.wazuh.setup.utils.IndexUtils;
 
 import static org.mockito.Mockito.*;
 
+/** Unit tests for the {@link Index} class. */
 public class IndexTests extends OpenSearchTestCase {
 
     private Index index;
-    private Client client;
-    private AdminClient adminClient;
     private IndicesAdminClient indicesAdminClient;
-    private ClusterService clusterService;
     private RoutingTable routingTable;
-    private ClusterState clusterState;
-    private IndexRoutingTable indexRoutingTable;
     private IndexUtils indexUtils;
 
     @Override
     public void setUp() throws Exception {
         super.setUp();
 
-        client = mock(Client.class);
-        adminClient = mock(AdminClient.class);
+        Client client = mock(Client.class);
+        AdminClient adminClient = mock(AdminClient.class);
         indicesAdminClient = mock(IndicesAdminClient.class);
-        clusterService = mock(ClusterService.class);
+        ClusterService clusterService = mock(ClusterService.class);
         routingTable = mock(RoutingTable.class);
-        clusterState = mock(ClusterState.class);
-        indexRoutingTable = mock(IndexRoutingTable.class);
+        ClusterState clusterState = mock(ClusterState.class);
         indexUtils = mock(IndexUtils.class);
 
         // Concrete implementation of abstract class
@@ -102,7 +96,11 @@ public class IndexTests extends OpenSearchTestCase {
         verify(indicesAdminClient, never()).create(any());
     }
 
-    /** Verifies that template creation is successful when valid data is returned from file. */
+    /**
+     * Verifies that template creation is successful when valid data is returned from file.
+     *
+     * @throws IOException if there is an error reading the template file
+     */
     public void testCreateTemplateSuccess() throws IOException {
         Map<String, Object> templateMap =
                 Map.of(
@@ -122,7 +120,11 @@ public class IndexTests extends OpenSearchTestCase {
         verify(indicesAdminClient).putTemplate(any(PutIndexTemplateRequest.class));
     }
 
-    /** Verifies that IOException while reading template file is caught and logged. */
+    /**
+     * Verifies that IOException while reading template file is caught and logged.
+     *
+     * @throws IOException if there is an error reading the template file
+     */
     public void testCreateTemplateIOException() throws IOException {
         doThrow(new IOException("test")).when(indexUtils).fromFile("test-template.json");
 
@@ -131,7 +133,11 @@ public class IndexTests extends OpenSearchTestCase {
         // Expect error to be logged but not thrown
     }
 
-    /** Verifies that ResourceAlreadyExistsException while creating template is caught and logged. */
+    /**
+     * Verifies that ResourceAlreadyExistsException while creating template is caught and logged.
+     *
+     * @throws IOException if there is an error reading the template file
+     */
     public void testCreateTemplateAlreadyExists() throws IOException {
         Map<String, Object> templateMap =
                 Map.of(
@@ -152,7 +158,7 @@ public class IndexTests extends OpenSearchTestCase {
     }
 
     /** Verifies that initialize() invokes both createTemplate and createIndex in order. */
-    public void testInitializeInvokesTemplateAndIndex() throws IOException {
+    public void testInitializeInvokesTemplateAndIndex() {
         Index spyIndex = spy(index);
 
         doNothing().when(spyIndex).createTemplate("test-template");

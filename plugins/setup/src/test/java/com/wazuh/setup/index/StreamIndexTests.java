@@ -38,23 +38,19 @@ import static org.mockito.Mockito.*;
 public class StreamIndexTests extends OpenSearchTestCase {
 
     private StreamIndex streamIndex;
-    private Client client;
-    private AdminClient adminClient;
     private IndicesAdminClient indicesAdminClient;
-    private ClusterService clusterService;
     private RoutingTable routingTable;
-    private ClusterState clusterState;
 
     @Override
     public void setUp() throws Exception {
         super.setUp();
 
-        client = mock(Client.class);
-        adminClient = mock(AdminClient.class);
+        Client client = mock(Client.class);
+        AdminClient adminClient = mock(AdminClient.class);
         indicesAdminClient = mock(IndicesAdminClient.class);
-        clusterService = mock(ClusterService.class);
+        ClusterService clusterService = mock(ClusterService.class);
         routingTable = mock(RoutingTable.class);
-        clusterState = mock(ClusterState.class);
+        ClusterState clusterState = mock(ClusterState.class);
 
         streamIndex = new StreamIndex("stream-index", "stream-template", "stream-alias");
         streamIndex.setClient(client);
@@ -89,7 +85,7 @@ public class StreamIndexTests extends OpenSearchTestCase {
                                     return req.index().equals("stream-index")
                                             && alias != null
                                             && "stream-alias".equals(alias.name())
-                                            && alias.writeIndex() == true;
+                                            && Boolean.TRUE.equals(alias.writeIndex());
                                 }));
     }
 

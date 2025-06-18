@@ -41,7 +41,6 @@ public class IndexStateManagementTests extends OpenSearchTestCase {
 
     private IndexStateManagement ismIndex;
     private Client client;
-    private AdminClient adminClient;
     private IndicesAdminClient indicesAdminClient;
     private IndexUtils indexUtils;
 
@@ -50,7 +49,7 @@ public class IndexStateManagementTests extends OpenSearchTestCase {
         super.setUp();
 
         client = mock(Client.class);
-        adminClient = mock(AdminClient.class);
+        AdminClient adminClient = mock(AdminClient.class);
         indicesAdminClient = mock(IndicesAdminClient.class);
         indexUtils = mock(IndexUtils.class);
 
@@ -65,6 +64,8 @@ public class IndexStateManagementTests extends OpenSearchTestCase {
     /**
      * Verifies that {@link IndexStateManagement#initialize()} creates the index and indexes ISM
      * policies when the index does not already exist.
+     *
+     * @throws IOException if an error occurs while reading the policy file
      */
     public void testInitialize_CreatesIndexAndPolicies() throws IOException {
         Map<String, Object> template = new HashMap<>();
@@ -99,7 +100,7 @@ public class IndexStateManagementTests extends OpenSearchTestCase {
      * Verifies that if the index already exists, {@link IndexStateManagement#initialize()} skips
      * index creation.
      */
-    public void testIndexAlreadyExists_SkipsCreation() throws IOException {
+    public void testIndexAlreadyExists_SkipsCreation() {
         doReturn(true).when(ismIndex).indexExists(".opendistro-ism-config");
 
         doReturn(mock(ActionFuture.class)).when(client).index(any(IndexRequest.class));
@@ -112,6 +113,8 @@ public class IndexStateManagementTests extends OpenSearchTestCase {
     /**
      * Verifies that if the ISM policy file is missing or cannot be loaded, {@link
      * IndexStateManagement#initialize()} handles the {@link IOException} without throwing it.
+     *
+     * @throws IOException if there is an error reading the policy file
      */
     public void testPolicyFileMissing_LogsError() throws IOException {
         doReturn(true).when(ismIndex).indexExists(".opendistro-ism-config");
@@ -128,6 +131,8 @@ public class IndexStateManagementTests extends OpenSearchTestCase {
      * Verifies that if the ISM policy already exists in the index, {@link
      * IndexStateManagement#initialize()} handles the {@link ResourceAlreadyExistsException}
      * gracefully without failing.
+     *
+     * @throws IOException if there is an error reading the policy file
      */
     public void testPolicyAlreadyExists_LogsInfo() throws IOException {
         doReturn(true).when(ismIndex).indexExists(".opendistro-ism-config");
