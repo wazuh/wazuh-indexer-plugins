@@ -37,7 +37,7 @@ import java.time.Duration;
 import java.time.ZonedDateTime;
 import java.util.*;
 
-import com.wazuh.contentmanager.model.cti.Changes;
+import com.wazuh.contentmanager.model.cti.Offsets;
 import com.wazuh.contentmanager.model.cti.ConsumerInfo;
 import com.wazuh.contentmanager.settings.PluginSettings;
 import com.wazuh.contentmanager.utils.VisibleForTesting;
@@ -151,9 +151,9 @@ public class CTIClient extends HttpClient {
      * @param fromOffset The starting offset (inclusive) for fetching changes.
      * @param toOffset The ending offset (exclusive) for fetching changes.
      * @param withEmpties A flag indicating whether to include empty values (Optional).
-     * @return {@link Changes} instance with the current changes.
+     * @return {@link Offsets} instance with the current changes.
      */
-    public Changes getChanges(long fromOffset, long toOffset, boolean withEmpties) {
+    public Offsets getChanges(long fromOffset, long toOffset, boolean withEmpties) {
         Map<String, String> params =
                 CTIClient.contextQueryParameters(fromOffset, toOffset, withEmpties);
         SimpleHttpResponse response =
@@ -167,18 +167,18 @@ public class CTIClient extends HttpClient {
         // Fail fast
         if (response == null) {
             log.error("No reply from [{}]", this.CONSUMER_CHANGES_ENDPOINT);
-            return new Changes();
+            return new Offsets();
         }
         if (!Arrays.asList(HttpStatus.SC_OK, HttpStatus.SC_SUCCESS).contains(response.getCode())) {
             log.error("Request to [{}] failed: {}", this.CONSUMER_CHANGES_ENDPOINT, response.getBody());
-            return new Changes();
+            return new Offsets();
         }
         log.debug("[{}] replied with status [{}]", this.CONSUMER_CHANGES_ENDPOINT, response.getCode());
         try {
-            return Changes.parse(XContentUtils.createJSONParser(response.getBodyBytes()));
+            return Offsets.parse(XContentUtils.createJSONParser(response.getBodyBytes()));
         } catch (IOException | IllegalArgumentException e) {
             log.error("Failed to parse changes: {}", e.getMessage());
-            return new Changes();
+            return new Offsets();
         }
     }
 

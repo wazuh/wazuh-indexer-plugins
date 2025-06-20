@@ -23,7 +23,7 @@ import com.wazuh.contentmanager.client.CTIClient;
 import com.wazuh.contentmanager.client.CommandManagerClient;
 import com.wazuh.contentmanager.index.ContentIndex;
 import com.wazuh.contentmanager.index.ContextIndex;
-import com.wazuh.contentmanager.model.cti.Changes;
+import com.wazuh.contentmanager.model.cti.Offsets;
 import com.wazuh.contentmanager.model.cti.ConsumerInfo;
 import com.wazuh.contentmanager.settings.PluginSettings;
 import com.wazuh.contentmanager.utils.Privileged;
@@ -126,18 +126,18 @@ public class ContentUpdater {
         while (currentOffset < lastOffset) {
             long nextOffset =
                     Math.min(currentOffset + this.pluginSettings.getMaximumChanges(), lastOffset);
-            Changes changes = this.privileged.getChanges(this.ctiClient, currentOffset, nextOffset);
+            Offsets offsets = this.privileged.getChanges(this.ctiClient, currentOffset, nextOffset);
             log.debug("Fetched offsets from {} to {}", currentOffset, nextOffset);
 
             // Update halted. Save current state and exit.
-            if (changes == null) {
+            if (offsets == null) {
                 log.error("Updated interrupted on offset [{}]", currentOffset);
                 consumerInfo.setOffset(currentOffset);
                 this.contextIndex.index(consumerInfo);
                 return false;
             }
             // Update failed. Force initialization from a snapshot.
-            if (!this.applyChanges(changes)) {
+            if (!this.applyChanges(offsets)) {
                 log.error("Updated finally failed on offset [{}]", currentOffset);
                 consumerInfo.setOffset(0);
                 consumerInfo.setLastOffset(0);
@@ -160,13 +160,13 @@ public class ContentUpdater {
     /**
      * Applies the fetched changes to the indexed content.
      *
-     * @param changes Detected content changes.
+     * @param offsets Detected content changes.
      * @return true if the changes were successfully applied, false otherwise.
      */
     @VisibleForTesting
-    protected boolean applyChanges(Changes changes) {
+    protected boolean applyChanges(Offsets offsets) {
         try {
-            this.contentIndex.patch(changes);
+            this.contentIndex.patch(offsets);
             return true;
         } catch (RuntimeException e) {
             return false;

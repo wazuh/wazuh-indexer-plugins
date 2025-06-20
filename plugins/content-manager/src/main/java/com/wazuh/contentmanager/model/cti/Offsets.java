@@ -26,13 +26,16 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
-/** ToXContentObject model to parse and build CTI API changes query replies. */
-public class Changes implements ToXContentObject {
+/**
+ * This class is responsible for managing an ArrayList of Offset elements, which represent the changes to be
+ * applied in an update process
+ */
+public class Offsets implements ToXContentObject {
     private static final String JSON_DATA_KEY = "data";
     private final ArrayList<Offset> list;
 
     /** Constructor. */
-    public Changes() {
+    public Offsets() {
         this.list = new ArrayList<>();
     }
 
@@ -41,7 +44,7 @@ public class Changes implements ToXContentObject {
      *
      * @param list a List of Offset objects, each containing a JSON patch.
      */
-    public Changes(List<Offset> list) {
+    public Offsets(List<Offset> list) {
         this.list = new ArrayList<>(list);
     }
 
@@ -81,7 +84,7 @@ public class Changes implements ToXContentObject {
      * @throws IllegalArgumentException rethrown from the inner parse() methods.
      * @throws ParsingException rethrown from ensureExpectedToken().
      */
-    public static Changes parse(XContentParser parser)
+    public static Offsets parse(XContentParser parser)
             throws IOException, IllegalArgumentException, ParsingException {
         List<Offset> changes = new ArrayList<>();
         // Make sure we are at the start
@@ -96,7 +99,7 @@ public class Changes implements ToXContentObject {
         while (parser.nextToken() != XContentParser.Token.END_ARRAY) {
             changes.add(Offset.parse(parser));
         }
-        return new Changes(changes);
+        return new Offsets(changes);
     }
 
     /**
@@ -110,7 +113,7 @@ public class Changes implements ToXContentObject {
     @Override
     public XContentBuilder toXContent(XContentBuilder builder, Params params) throws IOException {
         builder.startObject();
-        builder.startArray(Changes.JSON_DATA_KEY);
+        builder.startArray(Offsets.JSON_DATA_KEY);
         // For each Offset in the data field, add them to an XContentBuilder array
         for (Offset change : this.list) {
             change.toXContent(builder, ToXContentObject.EMPTY_PARAMS);

@@ -39,30 +39,29 @@ public class JsonPatch {
      * @param operation The JSON Patch operation.
      */
     public static void applyOperation(JsonObject document, JsonObject operation) {
-        String op = operation.get(Operation.OP).getAsString();
+        Operation.Type op = Operation.Type.valueOf(operation.get(Operation.OP).getAsString());
         String path = operation.get(Operation.PATH).getAsString();
         JsonElement value = operation.has(Operation.VALUE) ? operation.get(Operation.VALUE) : null;
         String from =
                 operation.has(Operation.FROM) ? operation.get(Operation.FROM).getAsString() : null;
 
-        // TODO replace with Operation.Type
         switch (op) {
-            case "add":
+            case ADD:
                 JsonPatch.addOperation(document, path, value);
                 break;
-            case "remove":
+            case REMOVE:
                 JsonPatch.removeOperation(document, path);
                 break;
-            case "replace":
+            case REPLACE:
                 JsonPatch.replaceOperation(document, path, value);
                 break;
-            case "move":
+            case MOVE:
                 JsonPatch.moveOperation(document, from, path);
                 break;
-            case "copy":
+            case COPY:
                 JsonPatch.copyOperation(document, from, path);
                 break;
-            case "test":
+            case TEST:
                 JsonPatch.testOperation(document, path, value);
                 break;
             default:

@@ -162,7 +162,7 @@ public class ContentUpdaterTests extends OpenSearchIntegTestCase {
      * @param size of the generated changes list
      * @return A ContextChanges object
      */
-    public Changes generateContextChanges(int size) {
+    public Offsets generateContextChanges(int size) {
         List<Offset> offsets = new ArrayList<>();
         for (int i = 0; i < size; i++) {
             offsets.add(
@@ -172,9 +172,10 @@ public class ContentUpdaterTests extends OpenSearchIntegTestCase {
                             "resource",
                             Offset.Type.UPDATE,
                             0L,
-                            List.of(new Operation(Operation.OP, Operation.PATH, Operation.FROM, Operation.VALUE)),
+                            // The value of Operation.Type is just a stub value since it is not relevant in this test
+                            List.of(new Operation(Operation.Type.TEST, Operation.PATH, Operation.FROM, Operation.VALUE)),
                             null));
         }
-        return new Changes(offsets);
+        return new Offsets(offsets);
     }
 }

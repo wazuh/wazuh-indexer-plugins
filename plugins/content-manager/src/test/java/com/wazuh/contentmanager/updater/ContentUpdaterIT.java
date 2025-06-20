@@ -124,10 +124,10 @@ public class ContentUpdaterIT extends OpenSearchIntegTestCase {
             throws ExecutionException, InterruptedException, TimeoutException {
         // Fixtures
         // List of changes to apply (offset 1 == create)
-        Changes changes = new Changes(List.of(this.buildOffset(1, Offset.Type.CREATE)));
+        Offsets offsets = new Offsets(List.of(this.buildOffset(1, Offset.Type.CREATE)));
         ConsumerInfo testConsumer = this.buildTestConsumer(1);
         // Mock
-        when(this.ctiClient.getChanges(0, 1, false)).thenReturn(changes);
+        when(this.ctiClient.getChanges(0, 1, false)).thenReturn(offsets);
         when(this.contextIndex.get(
                         this.pluginSettings.getContextId(), this.pluginSettings.getConsumerId()))
                 .thenReturn(testConsumer);
@@ -171,13 +171,13 @@ public class ContentUpdaterIT extends OpenSearchIntegTestCase {
             throws ExecutionException, InterruptedException, TimeoutException {
         // Fixtures
         // List of changes to apply (offset 1 == create, offset 2 == update)
-        Changes changes =
-                new Changes(
+        Offsets offsets =
+                new Offsets(
                         List.of(
                                 this.buildOffset(1, Offset.Type.CREATE), this.buildOffset(2, Offset.Type.UPDATE)));
         ConsumerInfo testConsumer = this.buildTestConsumer(2);
         // Mock
-        when(this.ctiClient.getChanges(0, 2, false)).thenReturn(changes);
+        when(this.ctiClient.getChanges(0, 2, false)).thenReturn(offsets);
         when(this.contextIndex.get(
                         this.pluginSettings.getContextId(), this.pluginSettings.getConsumerId()))
                 .thenReturn(testConsumer);
@@ -221,13 +221,13 @@ public class ContentUpdaterIT extends OpenSearchIntegTestCase {
     public void testUpdate_ContentChangesTypeDelete()
             throws InterruptedException, ExecutionException, TimeoutException {
         // Fixtures
-        Changes changes =
-                new Changes(
+        Offsets offsets =
+                new Offsets(
                         List.of(
                                 this.buildOffset(1, Offset.Type.CREATE), this.buildOffset(2, Offset.Type.DELETE)));
         ConsumerInfo testConsumer = this.buildTestConsumer(2);
         // Mock
-        when(this.ctiClient.getChanges(0, 2, false)).thenReturn(changes);
+        when(this.ctiClient.getChanges(0, 2, false)).thenReturn(offsets);
         when(this.contextIndex.get(
                         this.pluginSettings.getContextId(), this.pluginSettings.getConsumerId()))
                 .thenReturn(testConsumer);
@@ -267,7 +267,7 @@ public class ContentUpdaterIT extends OpenSearchIntegTestCase {
         List<Operation> operations = null;
         Map<String, Object> payload = null;
         if (type == Offset.Type.UPDATE) {
-            operations = List.of(new Operation("add", "/newField", null, "test"));
+            operations = List.of(new Operation(Operation.Type.ADD, "/newField", null, "test"));
         } else if (type == Offset.Type.CREATE) {
             payload = new HashMap<>();
             payload.put("name", "Dummy Threat");

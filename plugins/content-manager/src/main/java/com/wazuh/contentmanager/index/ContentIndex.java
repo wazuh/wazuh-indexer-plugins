@@ -52,7 +52,7 @@ import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
-import com.wazuh.contentmanager.model.cti.Changes;
+import com.wazuh.contentmanager.model.cti.Offsets;
 import com.wazuh.contentmanager.model.cti.Offset;
 import com.wazuh.contentmanager.model.cti.Operation;
 import com.wazuh.contentmanager.settings.PluginSettings;
@@ -267,7 +267,7 @@ public class ContentIndex {
      *
      * @param changes content changes to apply.
      */
-    public void patch(Changes changes) {
+    public void patch(Offsets changes) {
         ArrayList<Offset> offsets = changes.get();
         if (offsets.isEmpty()) {
             log.info("No changes to apply");
@@ -279,31 +279,57 @@ public class ContentIndex {
                 ContentIndex.INDEX_NAME,
                 changes.getFirst().getOffset(),
                 changes.getLast().getOffset());
-        for (Offset change : offsets) {
-            String id = change.getResource();
+        for (Offset offset : offsets) {
+            // This id is the CVE number of each document which identifies it
+            String id = offset.getResource();
             try {
-                log.debug("Processing offset [{}]", change.getOffset());
-                switch (change.getType()) {
+                log.debug("Processing offset [{}]", offset.getOffset());
+                switch (offset.getType()) {
                     case CREATE:
+                        /**
+                         * In the case of a CREATE type change, it is needed to extract the payload value which
+                         * will be indexed, and index it in the same way as it is indexed it in the fromSnapshot process,
+                         * right now it's indexing an Offset element that has fields that are not needed and because
+                         * of that it fails to index them, a possible solution is to implement it using the other index
+                         * method or create a new index method where it does extract the needed info from an Offset element
+                         * and index it.
+                         */
+                        // TODO: Index the payload value, version, name and offset value, not an Offset element
                         log.debug("Creating new resource with ID [{}]", id);
-                        this.index(change);
+                        this.index(offset);
                         break;
                     case UPDATE:
+                        /**
+                         * In the case of an UPDATE type change, the current way to proceed is to get the document,
+                         * apply all the changes to it and reindex it
+                         *
+                         * This process is failing because once it is done applying all the operations, instead of
+                         * indexing the document, it is converting it to an Offset document (Wrong type with extra fields)
+                         * and then it tries to index it
+                         */
                         log.debug("Updating resource with ID [{}]", id);
-                        JsonObject content = this.getById(id);
-                        for (Operation op : change.getOperations()) {
-                            JsonPatch.applyOperation(content, XContentUtils.xContentObjectToJson(op));
+                        JsonObject document = this.getById(id);
+                        for (Operation op : offset.getOperations()) {
+                            // Applies all the operations
+                            // TODO: Check that the operations are being correctly applied
+                            JsonPatch.applyOperation(document, XContentUtils.xContentObjectToJson(op));
                         }
-                        try (XContentParser parser = XContentUtils.createJSONParser(content)) {
+                        // Convert it to an Offset element and index it (Not needed, reason why it fails)
+                        // TODO: Index the content of the document with the changes applied instead of this
+                        try (XContentParser parser = XContentUtils.createJSONParser(document)) {
                             this.index(Offset.parse(parser));
                         }
                         break;
                     case DELETE:
+                        /**
+                         * In the case of a DELETE type change, the id of the element to delete is obtained
+                         * and this element is deleted
+                         */
                         log.debug("Deleting resource with ID [{}]", id);
                         this.delete(id);
                         break;
                     default:
-                        throw new IllegalArgumentException("Unknown change type: " + change.getType());
+                        throw new IllegalArgumentException("Unknown change type: " + offset.getType());
                 }
             } catch (InterruptedException e) {
                 Thread.currentThread().interrupt();
