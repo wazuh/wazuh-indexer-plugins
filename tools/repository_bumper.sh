@@ -8,7 +8,6 @@
 # It takes three arguments:
 # 1. The new version to set (e.g., 4.5.0)
 # 2. The new stage to set (alpha, beta, rc, stable)
-# 3. The date to set in the changelog (e.g., 'Mon Jan 02 2025')
 #
 
 set -euo pipefail
@@ -20,7 +19,6 @@ function usage() {
     echo "Usage: $0 <version> <stage> <date>"
     echo "  version:  The new version to set in VERSION.json (e.g., 4.5.0)"
     echo "  stage:    The new stage to set in VERSION.json (alpha, beta, rc, stable)"
-    echo "  date:     The date to set in the changelog (e.g., '2025-04-13')"
     exit 1
 }
 
@@ -81,7 +79,6 @@ function navigate_to_project_root() {
 function validate_inputs() {
     local version="$1"
     local stage="$2"
-    local date="$3"
 
     if ! [[ $version =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
         log "Error: Invalid version format '$version'."
@@ -94,30 +91,8 @@ function validate_inputs() {
         log "Error: Invalid stage format '$stage'."
         exit 1
     fi
-
-    if ! [[ $date =~ ^[0-9]{4}-[0-9]{2}-[0-9]{2}$ ]]; then
-        log "Error: Invalid date format $date."
-        exit 1
-    fi
 }
 
-# ====
-# Changes the date format to the format used in the changelog files
-# ====
-function normalize_date() {
-    local input_date="$1"
-    local normalized=""
-
-    if date --version >/dev/null 2>&1; then
-        # GNU date (Linux)
-        normalized=$(LC_TIME=en_US.UTF-8 date -d "$input_date" +"%a %b %d %Y")
-    else
-        # BSD date (macOS)
-        normalized=$(LC_TIME=en_US.UTF-8 date -jf "%Y-%m-%d" "$input_date" +"%a %b %d %Y")
-    fi
-
-    echo "$normalized"
-}
 
 # ====
 # Check if jq is installed
@@ -156,22 +131,20 @@ function update_version_file() {
 # Main logic
 # ====
 function main() {
-    if [ "$#" -ne 3 ]; then
-        log "Error: Invalid number of arguments. Expected 3, got $#."
+    if [ "$#" -ne 2 ]; then
+        log "Error: Invalid number of arguments. Expected 2, got $#."
         usage
     fi
 
     local version="$1"
     local stage="$2"
-    local date="$3"
 
     init_logging
     log "Starting update for VERSION.json with version=$version, stage=$stage"
 
     navigate_to_project_root
     check_jq_installed
-    validate_inputs "$version" "$stage" "$date"
-    date=$(normalize_date "$date")
+    validate_inputs "$version" "$stage"
     update_version_file "$version" "$stage"
 
     log "Update complete."
