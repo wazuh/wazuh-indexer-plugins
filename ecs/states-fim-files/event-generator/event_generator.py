@@ -88,7 +88,9 @@ def inject_events(data, ip, port, username, password, index, protocol):
 
     try:
         for event_data in data:
+            print(f"Injecting event: {event_data}")
             response = session.post(url, json=event_data, headers=headers)
+            logging.info(f"Response: {response.status_code} - {response.text}")
             if response.status_code != 201:
                 logging.error(f"Error: {response.status_code}")
                 logging.error(response.text)
@@ -147,7 +149,7 @@ def main():
         index = input(f"Enter the index name (default: '{INDEX_NAME}'): ") or INDEX_NAME
         username = input(f"Username (default: '{USERNAME}'): ") or USERNAME
         password = input(f"Password (default: '{PASSWORD}'): ") or PASSWORD
-        inject_events(ip, port, index, username, password, data, args.protocol)
+        inject_events(data, ip, port, username, password, index, args.protocol)
 
 
 if __name__ == "__main__":

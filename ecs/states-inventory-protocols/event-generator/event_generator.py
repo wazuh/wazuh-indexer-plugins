@@ -32,7 +32,6 @@ def generate_random_data(number):
         event_data = {
             "agent": generate_random_agent(),
             "network": generate_random_network(),
-            "interface": generate_random_interface(),
             "wazuh": generate_random_wazuh(),
         }
         data.append(event_data)
@@ -145,7 +144,7 @@ def main():
         index = input(f"Enter the index name (default: '{INDEX_NAME}'): ") or INDEX_NAME
         username = input(f"Username (default: '{USERNAME}'): ") or USERNAME
         password = input(f"Password (default: '{PASSWORD}'): ") or PASSWORD
-        inject_events(ip, port, index, username, password, data, args.protocol)
+        inject_events(data, ip, port, username, password, index, args.protocol)
 
 
 if __name__ == "__main__":
