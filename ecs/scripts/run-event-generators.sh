@@ -1,6 +1,5 @@
 #!/bin/bash
 
-# set -x
 set -euo pipefail
 shopt -s nullglob
 
@@ -149,7 +148,7 @@ main() {
     for dir in "${state_dirs[@]}"; do
         [[ -d "$dir" ]] || continue
         local index_name
-        index_name="wazuh-"$(basename "$dir")
+        index_name="wazuh-$(basename "$dir")"
 
         generate_events "$dir" "$index_name"
         fetch_last_event "$index_name"
