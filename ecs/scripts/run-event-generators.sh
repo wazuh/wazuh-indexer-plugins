@@ -7,12 +7,12 @@ shopt -s nullglob
 BASE_DIR="ecs"
 GENERATED_DATA_FILE="generatedData.json"
 SLEEP_TIME="${SLEEP_TIME:-6}"
-USER="${USER:-admin}"
+USERNAME="${USERNAME:-admin}"
 PASSWORD="${PASSWORD:-admin}"
 MAX_RETRIES=5
 IP="127.0.0.1"
 PROTOCOL="http"
-PORT="9200"
+PORT="${PORT:-9200}"
 
 # === Logging Helpers ===
 log()    { echo -e "\n\033[1;34m[INFO]\033[0m $*"; }
@@ -22,7 +22,7 @@ error()  { echo -e "\n\033[1;31m[ERROR]\033[0m $*" >&2; }
 # === Usage ===
 usage() {
     echo "Usage: $0 [--ip <ip>] [--protocol <http|https>]"
-    echo "Defaults: --ip 127.0.0.1, --protocol http"
+    echo "Defaults: --ip 127.0.0.1, --port 9200, --protocol http"
     exit 1
 }
 
@@ -32,6 +32,10 @@ parse_args() {
         case "$1" in
             --ip)
                 IP="$2"
+                shift 2
+                ;;
+            --port)
+                PORT="$2"
                 shift 2
                 ;;
             --protocol)
@@ -95,7 +99,7 @@ y
 $IP
 $PORT
 $index_name
-$USER
+$USERNAME
 $PASSWORD
 EOF
 }
@@ -111,7 +115,7 @@ fetch_last_event() {
 
     local attempt result
     for attempt in $(seq 1 "$MAX_RETRIES"); do
-        if result=$(curl -sku "$USER:$PASSWORD" -s "$PROTOCOL://$IP:$PORT/${index_name}/_search" \
+        if result=$(curl -sku "$USERNAME:$PASSWORD" -s "$PROTOCOL://$IP:$PORT/${index_name}/_search" \
             -H 'Content-Type: application/json' \
             -d '{"query": {"match_all": {} }, "size":1 }'); then
             echo "$result" | jq '.hits.hits[0]._source'
