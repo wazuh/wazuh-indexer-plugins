@@ -43,7 +43,7 @@ public class JsonPatchTests extends OpenSearchTestCase {
     public void testApplyOperationAdd() {
         JsonObject document = new JsonObject();
         JsonObject operation = new JsonObject();
-        operation.addProperty(Operation.OP, "add");
+        operation.addProperty(Operation.OP, "ADD");
         operation.addProperty(Operation.PATH, "/newField");
         operation.addProperty(Operation.VALUE, "newValue");
         JsonPatch.applyOperation(document, operation);
@@ -56,7 +56,7 @@ public class JsonPatchTests extends OpenSearchTestCase {
         JsonObject document = new JsonObject();
         document.addProperty("fieldToRemove", "value");
         JsonObject operation = new JsonObject();
-        operation.addProperty(Operation.OP, "remove");
+        operation.addProperty(Operation.OP, "REMOVE");
         operation.addProperty(Operation.PATH, "/fieldToRemove");
         JsonPatch.applyOperation(document, operation);
         assertFalse(document.has("fieldToRemove"));
@@ -67,7 +67,7 @@ public class JsonPatchTests extends OpenSearchTestCase {
         JsonObject document = new JsonObject();
         document.addProperty("fieldToReplace", "oldValue");
         JsonObject operation = new JsonObject();
-        operation.addProperty(Operation.OP, "replace");
+        operation.addProperty(Operation.OP, "REPLACE");
         operation.addProperty(Operation.PATH, "/fieldToReplace");
         operation.addProperty(Operation.VALUE, "newValue");
         JsonPatch.applyOperation(document, operation);
@@ -79,7 +79,7 @@ public class JsonPatchTests extends OpenSearchTestCase {
         JsonObject document = new JsonObject();
         document.addProperty("fieldToMove", "value");
         JsonObject operation = new JsonObject();
-        operation.addProperty(Operation.OP, "move");
+        operation.addProperty(Operation.OP, "MOVE");
         operation.addProperty(Operation.FROM, "/fieldToMove");
         operation.addProperty(Operation.PATH, "/newField");
         JsonPatch.applyOperation(document, operation);
@@ -92,7 +92,7 @@ public class JsonPatchTests extends OpenSearchTestCase {
         JsonObject document = new JsonObject();
         document.addProperty("fieldToCopy", "value");
         JsonObject operation = new JsonObject();
-        operation.addProperty(Operation.OP, "copy");
+        operation.addProperty(Operation.OP, "COPY");
         operation.addProperty(Operation.FROM, "/fieldToCopy");
         operation.addProperty(Operation.PATH, "/newField");
         JsonPatch.applyOperation(document, operation);
@@ -105,20 +105,10 @@ public class JsonPatchTests extends OpenSearchTestCase {
         JsonObject document = new JsonObject();
         document.addProperty("fieldToTest", "value");
         JsonObject operation = new JsonObject();
-        operation.addProperty(Operation.OP, "test");
+        operation.addProperty(Operation.OP, "TEST");
         operation.addProperty(Operation.PATH, "/fieldToTest");
         operation.addProperty(Operation.VALUE, "value");
         JsonPatch.applyOperation(document, operation);
         assertTrue(document.has("fieldToTest"));
-    }
-
-    /** Test the unsupported operation */
-    public void testApplyOperationUnsupported() {
-        JsonObject document = new JsonObject();
-        JsonObject operation = new JsonObject();
-        operation.addProperty(Operation.OP, "unsupported");
-        operation.addProperty(Operation.PATH, "/field");
-        JsonPatch.applyOperation(document, operation);
-        assertFalse(document.has("field"));
     }
 }

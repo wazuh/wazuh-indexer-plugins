@@ -30,7 +30,7 @@ jobs:
         id: detect_changes
         uses: ./.github/actions/5_codeanalysis_detect_modified_plugins
         with:
-          base_branch: ${{ github.event.repository.default_branch }}
+          base_branch: '6.0.0'
         
       # Run tests for affected projects
       - name: Run tests for affected projects
