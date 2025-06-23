@@ -273,8 +273,7 @@ public class ContentUpdaterIT extends OpenSearchIntegTestCase {
             payload.put("name", "Dummy Threat");
             payload.put("indicators", List.of("192.168.1.1", "example.com"));
         }
-        return new Offset(
-                this.pluginSettings.getContextId(), id, this.resourceId, type, 1L, operations, payload);
+        return new Offset(id, this.resourceId, type, 1L, operations, payload);
     }
 
     /**

@@ -167,7 +167,6 @@ public class ContentUpdaterTests extends OpenSearchIntegTestCase {
         for (int i = 0; i < size; i++) {
             offsets.add(
                     new Offset(
-                            "context",
                             (long) i,
                             "resource",
                             Offset.Type.UPDATE,

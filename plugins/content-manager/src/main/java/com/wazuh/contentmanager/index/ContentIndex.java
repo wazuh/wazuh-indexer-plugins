@@ -44,9 +44,7 @@ import java.io.BufferedReader;
 import java.io.FileReader;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Locale;
+import java.util.*;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
@@ -287,14 +285,9 @@ public class ContentIndex {
                 switch (offset.getType()) {
                     case CREATE:
                         /**
-                         * In the case of a CREATE type change, it is needed to extract the payload value which
-                         * will be indexed, and index it in the same way as it is indexed it in the fromSnapshot process,
-                         * right now it's indexing an Offset element that has fields that are not needed and because
-                         * of that it fails to index them, a possible solution is to implement it using the other index
-                         * method or create a new index method where it does extract the needed info from an Offset element
-                         * and index it.
+                         * In the case of a CREATE type change, using toXContent from Offset the fields wanted are
+                         * extracted and then indexed
                          */
-                        // TODO: Index the payload value, version, name and offset value, not an Offset element
                         log.debug("Creating new resource with ID [{}]", id);
                         this.index(offset);
                         break;
@@ -302,20 +295,14 @@ public class ContentIndex {
                         /**
                          * In the case of an UPDATE type change, the current way to proceed is to get the document,
                          * apply all the changes to it and reindex it
-                         *
-                         * This process is failing because once it is done applying all the operations, instead of
-                         * indexing the document, it is converting it to an Offset document (Wrong type with extra fields)
-                         * and then it tries to index it
                          */
                         log.debug("Updating resource with ID [{}]", id);
                         JsonObject document = this.getById(id);
                         for (Operation op : offset.getOperations()) {
                             // Applies all the operations
-                            // TODO: Check that the operations are being correctly applied
                             JsonPatch.applyOperation(document, XContentUtils.xContentObjectToJson(op));
                         }
-                        // Convert it to an Offset element and index it (Not needed, reason why it fails)
-                        // TODO: Index the content of the document with the changes applied instead of this
+                        // Convert it to an Offset element and index it
                         try (XContentParser parser = XContentUtils.createJSONParser(document)) {
                             this.index(Offset.parse(parser));
                         }

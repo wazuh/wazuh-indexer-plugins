@@ -30,20 +30,21 @@ import java.util.*;
  * <p>This class represents an offset in the context of a content change operation.
  */
 public class Offset implements ToXContentObject {
-    private static final String CONTEXT = "context";
     private static final String OFFSET = "offset";
     private static final String RESOURCE = "resource";
     private static final String TYPE = "type";
     private static final String VERSION = "version";
     private static final String OPERATIONS = "operations";
     private static final String PAYLOAD = "payload";
-    private final String context;
+    private static final String NAME = "name";
+    private static final String INSERTED_AT = "inserted_at";
     private final long offset;
     private final String resource;
     private final Offset.Type type;
     private final long version;
     private final List<Operation> operations;
     private final Map<String, Object> payload;
+    private final String inserted_at;
 
     /**
      * Type of change represented by the offset. Possible values are defined in <a
@@ -58,7 +59,6 @@ public class Offset implements ToXContentObject {
     /**
      * Constructor.
      *
-     * @param context Name of the context
      * @param offset Offset number of the record
      * @param resource Name of the resource
      * @param type OperationType of operation to be performed
@@ -67,21 +67,38 @@ public class Offset implements ToXContentObject {
      * @param payload JSON Patch payload data
      */
     public Offset(
-            String context,
             Long offset,
             String resource,
             Offset.Type type,
             Long version,
             List<Operation> operations,
             Map<String, Object> payload) {
-        this.context = context;
         this.offset = offset;
         this.resource = resource;
         this.type = type;
         this.version = version;
         this.operations = operations;
         this.payload = payload;
+        this.inserted_at = null;
     }
+
+    public Offset(
+        Long offset,
+        String resource,
+        Offset.Type type,
+        Long version,
+        List<Operation> operations,
+        Map<String, Object> payload,
+        String inserted_at) {
+        this.offset = offset;
+        this.resource = resource;
+        this.type = type;
+        this.version = version;
+        this.operations = operations;
+        this.payload = payload;
+        this.inserted_at = inserted_at;
+    }
+
 
     /**
      * Builds an Offset instance from the content of an XContentParser.
@@ -92,11 +109,11 @@ public class Offset implements ToXContentObject {
      * @throws IllegalArgumentException unexpected token found during parsing.
      */
     public static Offset parse(XContentParser parser) throws IOException, IllegalArgumentException {
-        String context = null;
         long offset = 0;
         String resource = null;
         Offset.Type type = null;
         long version = 0;
+        String inserted_at = null;
         List<Operation> operations = new ArrayList<>();
         Map<String, Object> payload = new HashMap<>();
 
@@ -105,9 +122,6 @@ public class Offset implements ToXContentObject {
                 String fieldName = parser.currentName();
                 parser.nextToken();
                 switch (fieldName) {
-                    case CONTEXT:
-                        context = parser.text();
-                        break;
                     case OFFSET:
                         offset = parser.longValue();
                         break;
@@ -133,6 +147,9 @@ public class Offset implements ToXContentObject {
                                 XContentParser.Token.START_OBJECT, parser.currentToken(), parser);
                         payload = Offset.parseObject(parser);
                         break;
+                    case INSERTED_AT:
+                        inserted_at = parser.text();
+                        break;
                     default:
                         parser.skipChildren();
                         break;
@@ -140,7 +157,10 @@ public class Offset implements ToXContentObject {
             }
         }
 
-        return new Offset(context, offset, resource, type, version, operations, payload);
+        if(inserted_at != null){
+            return new Offset( offset, resource, type, version, operations, payload, inserted_at);
+        }
+        return new Offset( offset, resource, type, version, operations, payload);
     }
 
     /**
@@ -269,19 +289,13 @@ public class Offset implements ToXContentObject {
     @Override
     public XContentBuilder toXContent(XContentBuilder builder, Params params) throws IOException {
         builder.startObject();
-        builder.field(CONTEXT, this.context);
         builder.field(OFFSET, this.offset);
-        builder.field(RESOURCE, this.resource);
-        builder.field(TYPE, this.type);
+        builder.field(NAME, this.resource);
         builder.field(VERSION, this.version);
-        builder.startArray(OPERATIONS);
-        if (this.operations != null) {
-            for (Operation operation : this.operations) {
-                operation.toXContent(builder, ToXContentObject.EMPTY_PARAMS);
-            }
-        }
-        builder.endArray();
         builder.field(PAYLOAD, this.payload);
+        if(this.inserted_at != null){
+            builder.field(INSERTED_AT, this.inserted_at);
+        }
         return builder.endObject();
     }
 }
