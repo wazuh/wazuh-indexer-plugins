@@ -134,7 +134,7 @@ clean_generated_data() {
     fi
 }
 
-# === Main Logic ===
+# === Main Function ===
 main() {
     parse_args "$@"
     navigate_to_project_root
