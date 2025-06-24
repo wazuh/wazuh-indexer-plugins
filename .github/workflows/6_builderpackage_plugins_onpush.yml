@@ -32,7 +32,7 @@ jobs:
       # Step to find which project folder contains modified files
       - name: Detect modified plugins
         id: detect_changes
-        uses: ./.github/actions/5_codeanalysis_detect_modified_plugins
+        uses: ./.github/actions/6_codeanalysis_detect_modified_plugins
         with:
           base_branch: ${{ env.base_branch }} 
 
@@ -43,7 +43,7 @@ jobs:
     strategy:
       matrix:
         project: ${{ fromJSON(needs.modified-plugins.outputs.projects) }}
-    uses: ./.github/workflows/5_builderpackage_plugins.yml
+    uses: ./.github/workflows/6_builderpackage_plugins.yml
     secrets: inherit
     with:
       id: ${{ github.ref }}
