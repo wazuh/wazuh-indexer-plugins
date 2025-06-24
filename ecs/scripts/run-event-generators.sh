@@ -21,8 +21,8 @@ error()  { echo -e "\n\033[1;31m[ERROR]\033[0m $*" >&2; }
 
 # === Usage ===
 usage() {
-    echo "Usage: $0 [--ip <ip>] [--protocol <http|https>]"
-    echo "Defaults: --ip 127.0.0.1, --port 9200, --protocol http"
+    echo "Usage: $0 [--ip <ip>] [--protocol <http|https>] [--amount <n>]"
+    echo "Defaults: --ip 127.0.0.1, --port 9200, --protocol http -a 100"
     exit 1
 }
 
@@ -41,6 +41,15 @@ parse_args() {
             --protocol)
                 PROTOCOL="$2"
                 shift 2
+                ;;
+            --amount)
+                if [[ "$2" =~ ^[0-9]+$ ]]; then
+                    NUMBER_OF_EVENTS="$2"
+                    shift 2
+                else
+                    error "Invalid value for --amount: $2. Must be a positive integer."
+                    usage
+                fi
                 ;;
             -h|--help)
                 usage
@@ -94,7 +103,7 @@ generate_events() {
     log "Generating events for index: $dir"
 
     python3 "$dir/event-generator/event_generator.py" --protocol "$PROTOCOL" <<EOF
-1
+$NUMBER_OF_EVENTS
 y
 $IP
 $PORT
