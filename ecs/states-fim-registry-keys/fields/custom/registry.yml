@@ -1,0 +1,42 @@
+---
+- name: registry
+  title: Registry
+  description: >
+    Fields related to Windows Registry operations.
+  fields:
+    - name: architecture
+      type: keyword
+      level: custom
+      description: >
+        Architecture associated with the entity
+    - name: gid
+      type: keyword
+      level: custom
+      description: >
+        Group ID associated with the entity
+    - name: group
+      type: keyword
+      level: custom
+      description: >
+        Name of the group that owns the entity
+    - name: mtime
+      type: date
+      level: custom
+      description: >
+        Last modified timestamp of the entity
+    - name: owner
+      type: keyword
+      level: custom
+      description: >
+        Name of the owner of the entity (user)
+    - name: permissions
+      type: keyword
+      level: custom
+      description: >
+        Permissions associated with the entity (e.g., read, write, execute)
+    - name: uid
+      type: keyword
+      level: custom
+      description: >
+        User ID associated with the entity
+

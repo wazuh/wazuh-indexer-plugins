@@ -14,10 +14,14 @@ fields:
       id: {}
       name: {}
       version: {}
+  checksum:
+    fields:
+      hash:
+        fields:
+          sha1: {}
   event:
     fields:
       action: {}
-      category: {}
   registry:
     fields:
       architecture: {}
@@ -29,15 +33,10 @@ fields:
               md5: {}
               sha1: {}
               sha256: {}
-      gid: {}
-      group: {}
       hive: {}
       key: {}
-      mtime: {}
-      owner: {}
       path: {}
       size: {}
-      uid: {}
       value: {}
   wazuh:
     fields: "*"
