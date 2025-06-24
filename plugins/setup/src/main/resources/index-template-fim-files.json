@@ -88,6 +88,18 @@
           "uid": {
             "ignore_above": 1024,
             "type": "keyword"
+          },
+          "attributes": {
+            "ignore_above": 1024,
+            "type": "keyword"
+          },
+          "device": {
+            "ignore_above": 1024,
+            "type": "keyword"
+          },
+          "permissions": {
+            "ignore_above": 1024,
+            "type": "keyword" 
           }
         }
       },
@@ -114,6 +126,19 @@
             }
           }
         }
+      },
+      "checksum": {
+        "properties": {
+          "hash": {
+            "properties": {
+              "sha1": {
+                "ignore_above": 1024,
+                "type": "keyword"
+              }
+            }
+          }
+        }
+        
       }
     }
   },
@@ -141,9 +166,13 @@
         "file.path.fields.text",
         "file.size",
         "file.uid",
+        "file.attributes",
+        "file.device",
+        "file.permissions",
         "wazuh.cluster.name",
         "wazuh.cluster.node",
-        "wazuh.schema.version"
+        "wazuh.schema.version",
+        "checksum.hash.sha1"
       ],
       "refresh_interval": "5s"
     }

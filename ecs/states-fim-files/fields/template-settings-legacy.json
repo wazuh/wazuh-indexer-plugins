@@ -25,9 +25,13 @@
         "file.path.fields.text",
         "file.size",
         "file.uid",
+        "file.attributes",
+        "file.device",
+        "file.permissions",
         "wazuh.cluster.name",
         "wazuh.cluster.node",
-        "wazuh.schema.version"
+        "wazuh.schema.version",
+        "checksum.hash.sha1"
       ]
     }
   }

@@ -29,5 +29,13 @@ fields:
       path: {}
       size: {}
       uid: {}
+      attributes: {}
+      device: {}
+      permissions: {}
   wazuh:
     fields: "*"
+  checksum:
+    fields:
+      hash:
+        fields:
+          sha1: {}

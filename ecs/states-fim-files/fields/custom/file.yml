@@ -1,0 +1,9 @@
+---
+- name: file
+  fields:
+    - name: permissions
+      type: keyword
+      level: custom
+      description: >
+        Permissions related to the file.
+  
