@@ -74,24 +74,24 @@ public class SetupPlugin extends Plugin implements ClusterPlugin {
         // ISM index
         this.indices.add(new IndexStateManagement(".opendistro-ism-config", "opendistro-ism-config"));
         // Stream indices
-        this.indices.add(new StreamIndex("wazuh-alerts-5.x-0001", "index-template-alerts", "wazuh-alerts"));
-        this.indices.add(new StreamIndex("wazuh-archives-5.x-0001", "index-template-archives", "wazuh-archives"));
+        this.indices.add(new StreamIndex("wazuh-alerts-5.x-000001", "index-template-alerts", "wazuh-alerts"));
+        this.indices.add(new StreamIndex("wazuh-archives-5.x-000001", "index-template-archives", "wazuh-archives"));
         // State indices
         this.indices.add(new StateIndex("wazuh-states-fim-files", "index-template-fim-files"));
-        this.indices.add(new StateIndex("wazuh-monitoring", "index-template-monitoring"));
-        this.indices.add(new StateIndex("wazuh-statistics", "index-template-statistics"));
-        this.indices.add(new StateIndex("wazuh-states-fim-files", "index-template-fim-files"));
-        this.indices.add(new StateIndex("wazuh-states-fim-files", "index-template-fim-files"));
         this.indices.add(new StateIndex("wazuh-states-fim-registries", "index-template-fim-registries"));
+        this.indices.add(new StateIndex("wazuh-states-inventory-groups", "index-template-groups"));
         this.indices.add(new StateIndex("wazuh-states-inventory-hardware", "index-template-hardware"));
         this.indices.add(new StateIndex("wazuh-states-inventory-hotfixes", "index-template-hotfixes"));
         this.indices.add(new StateIndex("wazuh-states-inventory-interfaces", "index-template-interfaces"));
+        this.indices.add(new StateIndex("wazuh-monitoring", "index-template-monitoring"));
         this.indices.add(new StateIndex("wazuh-states-inventory-networks", "index-template-networks"));
         this.indices.add(new StateIndex("wazuh-states-inventory-packages", "index-template-packages"));
         this.indices.add(new StateIndex("wazuh-states-inventory-ports", "index-template-ports"));
         this.indices.add(new StateIndex("wazuh-states-inventory-processes", "index-template-processes"));
         this.indices.add(new StateIndex("wazuh-states-inventory-protocols", "index-template-protocols"));
+        this.indices.add(new StateIndex("wazuh-statistics", "index-template-statistics"));
         this.indices.add(new StateIndex("wazuh-states-inventory-system", "index-template-system"));
+        this.indices.add(new StateIndex("wazuh-states-inventory-users", "index-template-users"));
         this.indices.add(new StateIndex("wazuh-states-vulnerabilities", "index-template-vulnerabilities"));
         // spotless:on
 
