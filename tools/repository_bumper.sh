@@ -16,7 +16,7 @@ set -euo pipefail
 # Print usage instructions
 # ====
 function usage() {
-    echo "Usage: $0 <version> <stage> <date>"
+    echo "Usage: $0 <version> <stage>"
     echo "  version:  The new version to set in VERSION.json (e.g., 4.5.0)"
     echo "  stage:    The new stage to set in VERSION.json (alpha, beta, rc, stable)"
     exit 1
@@ -74,7 +74,6 @@ function navigate_to_project_root() {
 # Arguments:
 #   $1 - version
 #   $2 - stage
-#   $3 - date
 # ====
 function validate_inputs() {
     local version="$1"
