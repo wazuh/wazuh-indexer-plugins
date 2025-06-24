@@ -1,4 +1,4 @@
-## `wazuh-states-fim-registries` index data model
+## `wazuh-states-fim-registry-values` index data model
 
 ### Fields summary
 
