@@ -280,50 +280,55 @@ public class ContentIndex {
         for (Offset offset : offsets) {
             // This id is the CVE number of each document which identifies it
             String id = offset.getResource();
-            try {
-                log.debug("Processing offset [{}]", offset.getOffset());
-                switch (offset.getType()) {
-                    case CREATE:
-                        /**
-                         * In the case of a CREATE type change, using toXContent from Offset the fields wanted are
-                         * extracted and then indexed
-                         */
-                        log.debug("Creating new resource with ID [{}]", id);
-                        this.index(offset);
-                        break;
-                    case UPDATE:
-                        /**
-                         * In the case of an UPDATE type change, the current way to proceed is to get the document,
-                         * apply all the changes to it and reindex it
-                         */
-                        log.debug("Updating resource with ID [{}]", id);
-                        JsonObject document = this.getById(id);
-                        for (Operation op : offset.getOperations()) {
-                            // Applies all the operations
-                            JsonPatch.applyOperation(document, XContentUtils.xContentObjectToJson(op));
-                        }
-                        // Convert it to an Offset element and index it
-                        try (XContentParser parser = XContentUtils.createJSONParser(document)) {
-                            this.index(Offset.parse(parser));
-                        }
-                        break;
-                    case DELETE:
-                        /**
-                         * In the case of a DELETE type change, the id of the element to delete is obtained
-                         * and this element is deleted
-                         */
-                        log.debug("Deleting resource with ID [{}]", id);
-                        this.delete(id);
-                        break;
-                    default:
-                        throw new IllegalArgumentException("Unknown change type: " + offset.getType());
+            if (id.startsWith("CVE-")) {
+                try {
+                    log.debug("Processing offset [{}]", offset.getOffset());
+                    switch (offset.getType()) {
+                        case CREATE:
+                            /**
+                             * In the case of a CREATE type change, using toXContent from Offset the fields wanted are
+                             * extracted and then indexed
+                             */
+                            log.debug("Creating new resource with ID [{}]", id);
+                            this.index(offset);
+                            break;
+                        case UPDATE:
+                            /**
+                             * In the case of an UPDATE type change, the current way to proceed is to get the document,
+                             * apply all the changes to it and reindex it
+                             */
+                            log.debug("Updating resource with ID [{}]", id);
+                            JsonObject document = this.getById(id);
+                            for (Operation op : offset.getOperations()) {
+                                // Applies all the operations
+                                JsonPatch.applyOperation(document, XContentUtils.xContentObjectToJson(op));
+                            }
+                            // Convert it to an Offset element and index it
+                            try (XContentParser parser = XContentUtils.createJSONParser(document)) {
+                                this.index(Offset.parse(parser));
+                            }
+                            break;
+                        case DELETE:
+                            /**
+                             * In the case of a DELETE type change, the id of the element to delete is obtained
+                             * and this element is deleted
+                             */
+                            log.debug("Deleting resource with ID [{}]", id);
+                            this.delete(id);
+                            break;
+                        default:
+                            throw new IllegalArgumentException("Unknown change type: " + offset.getType());
+                    }
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                    throw new RuntimeException("Interrupted while patching", e);
+                } catch (Exception e) {
+                    log.error("Failed to patch [{}] due to {}", id, e.getMessage());
+                    throw new RuntimeException("Patch operation failed", e);
                 }
-            } catch (InterruptedException e) {
-                Thread.currentThread().interrupt();
-                throw new RuntimeException("Interrupted while patching", e);
-            } catch (Exception e) {
-                log.error("Failed to patch [{}] due to {}", id, e.getMessage());
-                throw new RuntimeException("Patch operation failed", e);
+            }
+            else {
+                log.debug("Skipping non CVE element [{}]", id);
             }
         }
     }

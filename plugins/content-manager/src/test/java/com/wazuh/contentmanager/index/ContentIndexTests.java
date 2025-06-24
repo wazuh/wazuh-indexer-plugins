@@ -82,7 +82,7 @@ public class ContentIndexTests extends OpenSearchIntegTestCase {
         // Mock
         doNothing().when(this.contentUpdaterSpy).index((Offset) any());
         // Arrange
-        Offset offset = new Offset(1L, "test", Offset.Type.CREATE, 1L, null, null, null);
+        Offset offset = new Offset(1L, "CVE-test", Offset.Type.CREATE, 1L, null, null, null);
         // Act
         this.contentUpdaterSpy.patch(new Offsets(List.of(offset)));
         // Assert
@@ -104,7 +104,7 @@ public class ContentIndexTests extends OpenSearchIntegTestCase {
         Offset offset =
                 new Offset(
                         1L,
-                        "test",
+                        "CVE-test",
                         Offset.Type.UPDATE,
                         1L,
                         List.of(new Operation(Operation.Type.REPLACE, "/field", null, "new_value")),
@@ -124,7 +124,7 @@ public class ContentIndexTests extends OpenSearchIntegTestCase {
         // Mock this.delete() to avoid actual client call
         doNothing().when(this.contentUpdaterSpy).delete(any());
         // Arrange
-        Offset offset = new Offset( 1L, "test", Offset.Type.DELETE, 1L, null, null, null);
+        Offset offset = new Offset( 1L, "CVE-test", Offset.Type.DELETE, 1L, null, null, null);
         // Act
         this.contentUpdaterSpy.patch(new Offsets(List.of(offset)));
         // Assert

@@ -146,11 +146,10 @@ public class ContentUpdater {
             }
 
             currentOffset = nextOffset;
-            log.debug("Update current offset to {}", currentOffset);
         }
 
         // Update consumer info.
-        consumerInfo.setLastOffset(currentOffset);
+        consumerInfo.setOffset(currentOffset);
         this.contextIndex.index(consumerInfo);
         this.privileged.postUpdateCommand(this.commandClient, consumerInfo);
         log.info("[{}] updated to offset [{}]", ContentIndex.INDEX_NAME, consumerInfo.getOffset());
