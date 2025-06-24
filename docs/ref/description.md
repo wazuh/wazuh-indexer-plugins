@@ -12,4 +12,20 @@ The Wazuh indexer stores the data collected by the Wazuh agents in separate indi
 
 | Index | Description |
 |-------|-------------|
+| wazuh-alerts-5.x-0001      |             |
+| wazuh-archives-5.x-0001      |             |
+| wazuh-monitoring      |             |
+| wazuh-states-fim-files      |             |
+| wazuh-states-fim-registries      |             |
+| wazuh-states-inventory-hardware      |             |
+| wazuh-states-inventory-hotfixes      |             |
+| wazuh-states-inventory-interfaces      |             |
+| wazuh-states-inventory-networks      |             |
+| wazuh-states-inventory-packages      |             |
+| wazuh-states-inventory-ports      |             |
+| wazuh-states-inventory-processes      |             |
+| wazuh-states-inventory-protocols      |             |
+| wazuh-states-inventory-system      |             |
+| wazuh-states-vulnerabilities      |             |
+| wazuh-statistics      |             |
 |       |             |

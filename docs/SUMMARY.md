@@ -30,6 +30,8 @@
   - [Setup](ref/modules/setup/README.md)
     - [Architecture](ref/modules/setup/architecture.md)
     - [API Reference]()
+    - [Install plugin](ref/modules/setup/install.md)
+    - [Uninstall plugin](ref/modules/setup/uninstall.md)
 - [Upgrade](ref/upgrade.md)
 - [Uninstall](ref/uninstall.md)
 - [Back Up and Restore](ref/backup-restore.md)
