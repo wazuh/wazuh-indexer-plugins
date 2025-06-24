@@ -65,23 +65,8 @@ public class Offset implements ToXContentObject {
      * @param version Version Number
      * @param operations JSON Patch payload data
      * @param payload JSON Patch payload data
+     * @param inserted_at Value of the Date where the document was inserted
      */
-    public Offset(
-            Long offset,
-            String resource,
-            Offset.Type type,
-            Long version,
-            List<Operation> operations,
-            Map<String, Object> payload) {
-        this.offset = offset;
-        this.resource = resource;
-        this.type = type;
-        this.version = version;
-        this.operations = operations;
-        this.payload = payload;
-        this.inserted_at = null;
-    }
-
     public Offset(
         Long offset,
         String resource,
@@ -157,10 +142,7 @@ public class Offset implements ToXContentObject {
             }
         }
 
-        if(inserted_at != null){
-            return new Offset( offset, resource, type, version, operations, payload, inserted_at);
-        }
-        return new Offset( offset, resource, type, version, operations, payload);
+        return new Offset( offset, resource, type, version, operations, payload, inserted_at);
     }
 
     /**
@@ -277,6 +259,13 @@ public class Offset implements ToXContentObject {
     public long getOffset() {
         return this.offset;
     }
+
+    /**
+     * {@link Offset#inserted_at} getter.
+     *
+     * @return the string with the date.
+     */
+    public String getInserted_at() { return  this.inserted_at; }
 
     /**
      * Outputs an XContentBuilder object ready to be printed or manipulated

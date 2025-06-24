@@ -153,6 +153,7 @@ public class ContentUpdaterIT extends OpenSearchIntegTestCase {
         assertTrue(updated);
         assertNotNull(updatedConsumer);
         assertEquals(1, updatedConsumer.getLastOffset());
+        assertEquals("2024-02-29T23:17:36.191970Z", offsets.getFirst().getInserted_at());
     }
 
     /**
@@ -272,8 +273,10 @@ public class ContentUpdaterIT extends OpenSearchIntegTestCase {
             payload = new HashMap<>();
             payload.put("name", "Dummy Threat");
             payload.put("indicators", List.of("192.168.1.1", "example.com"));
+            // To test the new field inserted_at in the case of a Type.CREATE Offset, it will be created with it
+            return new Offset(id, this.resourceId, type, 1L, operations, payload, "2024-02-29T23:17:36.191970Z");
         }
-        return new Offset(id, this.resourceId, type, 1L, operations, payload);
+        return new Offset(id, this.resourceId, type, 1L, operations, payload, null);
     }
 
     /**
