@@ -37,6 +37,8 @@ jobs:
           base_branch: ${{ env.base_branch }} 
 
   call-build-workflow:
+    permissions:
+      actions: read
     needs: modified-plugins
     strategy:
       matrix:
