@@ -1,0 +1,11 @@
+---
+- name: checksum
+  title: Checksum
+  description: >
+    Checksum custom fields
+  fields:
+    - name: hash.sha1
+      type: keyword
+      level: custom
+      description: >
+        SHA1 hash of the file

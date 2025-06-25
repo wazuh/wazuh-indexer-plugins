@@ -40,7 +40,8 @@ def generate_random_agent():
         'type': random.choice(['filebeat', 'windows', 'linux', 'macos']),
         'version': f'v{random.randint(0, 9)}-stable',
         'groups': [f'group{random.randint(0, 99)}', f'group{random.randint(0, 99)}'],
-        'host': generate_random_host(False)
+        'host': generate_random_host(False),
+        'checksum': generate_random_checksum()
     }
     return agent
 
@@ -163,6 +164,13 @@ def generate_random_data(number):
         }
         data.append(event_data)
     return data
+
+def generate_random_checksum():
+    return {
+        "hash": {
+            "sha1": f"{random.randint(0, 9999)}",
+        }
+    }
 
 def inject_events(protocol, ip, port, index, username, password, data):
     url = f'{protocol}://{ip}:{port}/{index}/_doc'

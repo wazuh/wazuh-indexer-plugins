@@ -11,6 +11,7 @@
         "agent.groups",
         "check.name",
         "check.id",
+        "checksum.hash.sha1",
         "host.name",
         "host.os.type",
         "host.os.version",

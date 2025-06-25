@@ -1,10 +1,8 @@
 ECS_Version,Indexed,Field_Set,Field,Type,Level,Normalization,Example,Description
-8.11.0,true,base,@timestamp,date,core,,2016-05-23T08:05:34.853Z,Date/time when the event originated.
-8.11.0,true,base,tags,keyword,core,array,"[""production"", ""env2""]",List of keywords used to tag each event.
 8.11.0,true,agent,agent.groups,keyword,custom,array,"[""group1"", ""group2""]",List of groups the agent belongs to.
 8.11.0,true,agent,agent.host.architecture,keyword,core,,x86_64,Operating system architecture.
 8.11.0,true,agent,agent.host.boot.id,keyword,extended,,88a1f0ed-5ae5-41ee-af6b-41921c311872,Linux boot uuid taken from /proc/sys/kernel/random/boot_id
-8.11.0,true,agent,agent.host.cpu.usage,float,extended,,,"Percent CPU used, between 0 and 1."
+8.11.0,true,agent,agent.host.cpu.usage,scaled_float,extended,,,"Percent CPU used, between 0 and 1."
 8.11.0,true,agent,agent.host.disk.read.bytes,long,extended,,,The number of bytes read by all disks.
 8.11.0,true,agent,agent.host.disk.write.bytes,long,extended,,,The number of bytes written on all disks.
 8.11.0,true,agent,agent.host.domain,keyword,extended,,CONTOSO,Name of the directory the group is a member of.
@@ -55,9 +53,10 @@ ECS_Version,Indexed,Field_Set,Field,Type,Level,Normalization,Example,Description
 8.11.0,true,check,check.remediation,keyword,custom,,"""To establish the recommended configuration, set the following registry value to 24 or more password(s):""",Actions to take to remediate the check.
 8.11.0,true,check,check.result,keyword,custom,,failed,Result of the check.
 8.11.0,true,check,check.rules,keyword,custom,array,"""[\""c:net.exe accounts -> n:Maximum password age \(days\):\s+(\d+) compare > 0\"","" > ""\""c:net.exe accounts -> n:Length of password history maintained:\s+(\d+) compare >= 24\""]""",Rules to be evaluated.
+8.11.0,true,checksum,checksum.hash.sha1,keyword,custom,,,SHA1 hash of the file
 8.11.0,true,host,host.architecture,keyword,core,,x86_64,Operating system architecture.
 8.11.0,true,host,host.boot.id,keyword,extended,,88a1f0ed-5ae5-41ee-af6b-41921c311872,Linux boot uuid taken from /proc/sys/kernel/random/boot_id
-8.11.0,true,host,host.cpu.usage,float,extended,,,"Percent CPU used, between 0 and 1."
+8.11.0,true,host,host.cpu.usage,scaled_float,extended,,,"Percent CPU used, between 0 and 1."
 8.11.0,true,host,host.disk.read.bytes,long,extended,,,The number of bytes read by all disks.
 8.11.0,true,host,host.disk.write.bytes,long,extended,,,The number of bytes written on all disks.
 8.11.0,true,host,host.domain,keyword,extended,,CONTOSO,Name of the directory the group is a member of.

@@ -16,6 +16,11 @@ fields:
         fields: "*"
   check:
     fields: "*"
+  checksum:
+    fields:
+      hash:
+        fields:
+          sha1: {}
   host:
     fields: "*"
   policy:
