@@ -11,6 +11,7 @@
 - [Build from Sources](dev/build-sources.md)
 - [Run from Sources](dev/run-sources.md)
 - [Run Tests](dev/run-tests.md)
+- [Setup Plugin information](dev/modules/setup/information.md)
 
 # Reference Manual
 
