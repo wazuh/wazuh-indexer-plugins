@@ -171,8 +171,11 @@ public class ContentUpdaterTests extends OpenSearchIntegTestCase {
                             "resource",
                             Offset.Type.UPDATE,
                             0L,
-                            // The value of Operation.Type is just a stub value since it is not relevant in this test
-                            List.of(new Operation(Operation.Type.TEST, Operation.PATH, Operation.FROM, Operation.VALUE)),
+                            // The value of Operation.Type is just a stub value since it is not relevant in this
+                            // test
+                            List.of(
+                                    new Operation(
+                                            Operation.Type.TEST, Operation.PATH, Operation.FROM, Operation.VALUE)),
                             null,
                             null));
         }

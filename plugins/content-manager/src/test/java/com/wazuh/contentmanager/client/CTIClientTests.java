@@ -33,9 +33,9 @@ import java.io.IOException;
 import java.util.Collections;
 import java.util.Map;
 
-import com.wazuh.contentmanager.model.cti.Offsets;
 import com.wazuh.contentmanager.model.cti.ConsumerInfo;
 import com.wazuh.contentmanager.model.cti.Offset;
+import com.wazuh.contentmanager.model.cti.Offsets;
 import com.wazuh.contentmanager.settings.PluginSettings;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;

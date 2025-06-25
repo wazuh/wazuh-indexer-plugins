@@ -37,8 +37,8 @@ import java.time.Duration;
 import java.time.ZonedDateTime;
 import java.util.*;
 
-import com.wazuh.contentmanager.model.cti.Offsets;
 import com.wazuh.contentmanager.model.cti.ConsumerInfo;
+import com.wazuh.contentmanager.model.cti.Offsets;
 import com.wazuh.contentmanager.settings.PluginSettings;
 import com.wazuh.contentmanager.utils.VisibleForTesting;
 import com.wazuh.contentmanager.utils.XContentUtils;

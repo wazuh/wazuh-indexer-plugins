@@ -68,13 +68,13 @@ public class Offset implements ToXContentObject {
      * @param inserted_at Value of the Date where the document was inserted
      */
     public Offset(
-        Long offset,
-        String resource,
-        Offset.Type type,
-        Long version,
-        List<Operation> operations,
-        Map<String, Object> payload,
-        String inserted_at) {
+            Long offset,
+            String resource,
+            Offset.Type type,
+            Long version,
+            List<Operation> operations,
+            Map<String, Object> payload,
+            String inserted_at) {
         this.offset = offset;
         this.resource = resource;
         this.type = type;
@@ -83,7 +83,6 @@ public class Offset implements ToXContentObject {
         this.payload = payload;
         this.inserted_at = inserted_at;
     }
-
 
     /**
      * Builds an Offset instance from the content of an XContentParser.
@@ -142,7 +141,7 @@ public class Offset implements ToXContentObject {
             }
         }
 
-        return new Offset( offset, resource, type, version, operations, payload, inserted_at);
+        return new Offset(offset, resource, type, version, operations, payload, inserted_at);
     }
 
     /**
@@ -265,7 +264,9 @@ public class Offset implements ToXContentObject {
      *
      * @return the string with the date.
      */
-    public String getInserted_at() { return  this.inserted_at; }
+    public String getInserted_at() {
+        return this.inserted_at;
+    }
 
     /**
      * Outputs an XContentBuilder object ready to be printed or manipulated
@@ -282,7 +283,7 @@ public class Offset implements ToXContentObject {
         builder.field(NAME, this.resource);
         builder.field(VERSION, this.version);
         builder.field(PAYLOAD, this.payload);
-        if(this.inserted_at != null){
+        if (this.inserted_at != null) {
             builder.field(INSERTED_AT, this.inserted_at);
         }
         return builder.endObject();

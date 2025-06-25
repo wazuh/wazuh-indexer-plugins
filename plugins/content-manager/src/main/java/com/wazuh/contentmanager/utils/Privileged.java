@@ -21,8 +21,8 @@ import java.security.AccessController;
 import com.wazuh.contentmanager.client.CTIClient;
 import com.wazuh.contentmanager.client.CommandManagerClient;
 import com.wazuh.contentmanager.model.command.Command;
-import com.wazuh.contentmanager.model.cti.Offsets;
 import com.wazuh.contentmanager.model.cti.ConsumerInfo;
+import com.wazuh.contentmanager.model.cti.Offsets;
 
 /** Privileged utility class for executing privileged HTTP requests. */
 public class Privileged {

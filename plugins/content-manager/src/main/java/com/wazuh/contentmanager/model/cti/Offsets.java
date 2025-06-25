@@ -27,8 +27,8 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * This class is responsible for managing an ArrayList of Offset elements, which represent the changes to be
- * applied in an update process
+ * This class is responsible for managing an ArrayList of Offset elements, which represent the
+ * changes to be applied in an update process
  */
 public class Offsets implements ToXContentObject {
     private static final String JSON_DATA_KEY = "data";
