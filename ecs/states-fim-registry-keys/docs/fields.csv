@@ -4,7 +4,7 @@ ECS_Version,Indexed,Field_Set,Field,Type,Level,Normalization,Example,Description
 8.11.0,true,agent,agent.id,keyword,core,,8a4f500d,Unique identifier of this agent.
 8.11.0,true,agent,agent.name,keyword,core,,foo,Custom name of the agent.
 8.11.0,true,agent,agent.version,keyword,core,,6.0.0-rc2,Version of the agent.
-8.11.0,true,checksum,checksum.hash.sha1,keyword,custom,,,SHA1 hash of the registry key.
+8.11.0,true,checksum,checksum.hash.sha1,keyword,custom,,,SHA1 hash of the registry key
 8.11.0,true,registry,registry.architecture,keyword,custom,,,Architecture associated with the entity
 8.11.0,true,registry,registry.gid,keyword,custom,,,Group ID associated with the entity
 8.11.0,true,registry,registry.group,keyword,custom,,,Name of the group that owns the entity

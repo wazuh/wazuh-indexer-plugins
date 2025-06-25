@@ -4,7 +4,7 @@ ECS_Version,Indexed,Field_Set,Field,Type,Level,Normalization,Example,Description
 8.11.0,true,agent,agent.id,keyword,core,,8a4f500d,Unique identifier of this agent.
 8.11.0,true,agent,agent.name,keyword,core,,foo,Custom name of the agent.
 8.11.0,true,agent,agent.version,keyword,core,,6.0.0-rc2,Version of the agent.
-8.11.0,true,checksum,checksum.hash.sha1,keyword,custom,,,SHA1 hash of the file.
+8.11.0,true,checksum,checksum.hash.sha1,keyword,custom,,,SHA1 hash of the file
 8.11.0,true,file,file.attributes,keyword,extended,array,"[""readonly"", ""system""]",Array of file attributes.
 8.11.0,true,file,file.device,keyword,extended,,sda,Device that is the source of the file.
 8.11.0,true,file,file.gid,keyword,extended,,1001,Primary group ID (GID) of the file.
@@ -16,6 +16,7 @@ ECS_Version,Indexed,Field_Set,Field,Type,Level,Normalization,Example,Description
 8.11.0,true,file,file.mtime,date,extended,,,Last time the file content was modified.
 8.11.0,true,file,file.owner,keyword,extended,,alice,File owner's username.
 8.11.0,true,file,file.path,keyword,extended,,/home/alice/example.png,"Full path to the file, including the file name."
+8.11.0,true,file,file.path.text,keyword,extended,,/home/alice/example.png,"Full path to the file, including the file name."
 8.11.0,true,file,file.permissions,keyword,custom,,,List of permissions related to the file.
 8.11.0,true,file,file.size,long,extended,,16384,File size in bytes.
 8.11.0,true,file,file.uid,keyword,extended,,1001,The user ID (UID) or security identifier (SID) of the file owner.
