@@ -1,0 +1,5 @@
+[2025-06-25 14:28:52] Logging initialized. Log file: /home/runner/work/wazuh-indexer-plugins/wazuh-indexer-plugins/tools/repository_bumper_2025-06-25_14-28-52-578.log
+[2025-06-25 14:28:52] Starting update for VERSION.json with version=7.0.0, stage=alpha1
+[2025-06-25 14:28:52] Moved to repository root: /home/runner/work/wazuh-indexer-plugins/wazuh-indexer-plugins
+[2025-06-25 14:28:52] Updated VERSION.json with version=7.0.0 and stage=alpha1
+[2025-06-25 14:28:52] Update complete.
