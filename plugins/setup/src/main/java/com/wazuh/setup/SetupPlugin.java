@@ -93,6 +93,7 @@ public class SetupPlugin extends Plugin implements ClusterPlugin {
         this.indices.add(new StateIndex("wazuh-states-inventory-system", "index-template-system"));
         this.indices.add(new StateIndex("wazuh-states-inventory-users", "index-template-users"));
         this.indices.add(new StateIndex("wazuh-states-vulnerabilities", "index-template-vulnerabilities"));
+        this.indices.add(new StateIndex("wazuh-sca", "index-template-sca"));
         // spotless:on
 
         // Inject dependencies
