@@ -68,6 +68,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Fix unauthorized request to the Command Manager API [(#394)](https://github.com/wazuh/wazuh-indexer-plugins/pull/394)
 - Fix Vagrant test environment certificates [(#424)](https://github.com/wazuh/wazuh-indexer-plugins/pull/424)
 - Fix arguments for the Content Manager's `update` command [(#441)](https://github.com/wazuh/wazuh-indexer-plugins/pull/441)
+- Fix `6_builderpackage_plugins_onpush.yml` [(#508)](https://github.com/wazuh/wazuh-indexer-plugins/pull/508)
 
 ### Security
 - Reduce risk of GITHUB_TOKEN exposure[(#485)](https://github.com/wazuh/wazuh-indexer-plugins/pull/485)
