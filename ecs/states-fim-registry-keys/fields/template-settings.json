@@ -15,7 +15,6 @@
           "agent.name",
           "agent.version",
           "checksum.hash.sha1",
-          "event.action",
           "registry.architecture",
           "registry.gid",
           "registry.group",

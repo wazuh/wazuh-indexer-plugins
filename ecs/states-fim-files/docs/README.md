@@ -3,6 +3,7 @@
 ### Fields summary
 
 The fields are based on https://github.com/wazuh/wazuh/issues/27898
+Some fields have been modified on https://github.com/wazuh/wazuh-indexer-plugins/issues/506
 
 Based on ECS:
 
@@ -35,3 +36,8 @@ The detail of the fields can be found in csv file [States FIM files Fields](fiel
 | timestamp      | long   | Timestamp when the event was generated.                                   | timestamp               |        |
 | uid            | string | User ID associated with the entity.                                       | file.uid                |        |
 | user_name      | string | Name of the owner of the entity (user).                                   | file.owner              |        |
+| hash_sha1      | string | SHA1 hash of the file.                                                    | checksum.hash.sha1      | TRUE   |
+| attributes     | string | List of attributes related to the file.                                   | file.attributes         |        |
+| device         | string | Device that is the source of the file.                                    | file.device             |        |
+| permissions    | string | List of permissions related to the file.                                  | file.permissions        | TRUE   |
+ 

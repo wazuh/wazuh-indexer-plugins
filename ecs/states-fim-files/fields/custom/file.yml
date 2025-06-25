@@ -5,5 +5,5 @@
       type: keyword
       level: custom
       description: >
-        Permissions related to the file.
+        List of permissions related to the file.
   

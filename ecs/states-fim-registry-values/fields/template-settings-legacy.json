@@ -14,7 +14,6 @@
         "agent.name",
         "agent.version",
         "checksum.hash.sha1",
-        "event.action",
         "registry.architecture",
         "registry.data.hash.md5",
         "registry.data.hash.sha1",

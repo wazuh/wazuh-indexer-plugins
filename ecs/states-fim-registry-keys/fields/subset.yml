@@ -19,9 +19,6 @@ fields:
       hash:
         fields:
           sha1: {}
-  event:
-    fields:
-      action: {}
   registry:
     fields:
       architecture: {}

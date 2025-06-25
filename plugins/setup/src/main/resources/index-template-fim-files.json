@@ -51,6 +51,14 @@
       },
       "file": {
         "properties": {
+          "attributes": {
+            "ignore_above": 1024,
+            "type": "keyword"
+          },
+          "device": {
+            "ignore_above": 1024,
+            "type": "keyword"
+          },
           "gid": {
             "ignore_above": 1024,
             "type": "keyword"
@@ -95,24 +103,16 @@
             "ignore_above": 1024,
             "type": "keyword"
           },
+          "permissions": {
+            "ignore_above": 1024,
+            "type": "keyword" 
+          },
           "size": {
             "type": "long"
           },
           "uid": {
             "ignore_above": 1024,
             "type": "keyword"
-          },
-          "attributes": {
-            "ignore_above": 1024,
-            "type": "keyword"
-          },
-          "device": {
-            "ignore_above": 1024,
-            "type": "keyword"
-          },
-          "permissions": {
-            "ignore_above": 1024,
-            "type": "keyword" 
           }
         }
       },

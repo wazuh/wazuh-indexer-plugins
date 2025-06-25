@@ -33,6 +33,7 @@ def generate_random_data(number):
             "agent": generate_random_agent(),
             "file": generate_random_file(),
             "wazuh": generate_random_wazuh(),
+            "checksum": generate_random_checksum(),
         }
         data.append(event_data)
     return data
@@ -76,6 +77,25 @@ def generate_random_file():
         "path": "/path/to/file",
         "size": random.randint(1000, 1000000),
         "uid": f"uid{random.randint(0, 1000)}",
+        "attributes": ",".join(
+            random.sample(
+                ["hidden", "read_only", "system", "archive", "temporary"],
+                random.randint(1, 5)
+            )
+        ),
+        "device": random.choice(["sda", "sdb", "sdc"]),
+        "permissions": [
+            "".join(random.choice(["r", "w", "-"]) for _ in range(9))
+        ],
+
+        
+    }
+
+def generate_random_checksum():
+    return {
+        "hash": {
+            "sha1": f"{random.randint(0, 9999)}",
+        }
     }
 
 

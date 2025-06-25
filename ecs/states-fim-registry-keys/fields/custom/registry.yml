@@ -33,7 +33,7 @@
       type: keyword
       level: custom
       description: >
-        Permissions associated with the entity (e.g., read, write, execute)
+        Permissions associated with the registry key.
     - name: uid
       type: keyword
       level: custom
