@@ -82,7 +82,7 @@ jobs:
           stage=${{ env.STAGE }}
 
           # Check if version and stage are provided
-          if [[ -n "${version}" && -n "${stage}" ]]; then
+          if [[ -n "$version" && -n "$stage" ]]; then
             issue_number=$(echo "${{ inputs.issue-link }}" | awk -F'/' '{print $NF}')
             BRANCH_NAME="enhancement/wqa${issue_number}-bump-${{ github.ref_name }}"
 
