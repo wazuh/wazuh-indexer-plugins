@@ -23,10 +23,10 @@ import org.apache.logging.log4j.core.LogEvent;
 import org.apache.logging.log4j.core.Logger;
 import org.opensearch.action.index.IndexRequest;
 import org.opensearch.action.index.IndexResponse;
-import org.opensearch.transport.client.Client;
 import org.opensearch.core.action.ActionListener;
 import org.opensearch.core.xcontent.MediaTypeRegistry;
 import org.opensearch.test.OpenSearchTestCase;
+import org.opensearch.transport.client.Client;
 import org.junit.Before;
 
 import java.io.IOException;

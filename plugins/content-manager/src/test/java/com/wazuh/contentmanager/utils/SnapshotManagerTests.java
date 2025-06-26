@@ -78,13 +78,13 @@ public class SnapshotManagerTests extends OpenSearchTestCase {
         this.snapshotManager =
                 Mockito.spy(
                         new SnapshotManager(
-                                this.ctiClient,
-                                this.commandClient,
-                                this.mockEnvironment,
-                                this.contextIndex,
-                                this.contentIndex,
-                                this.privilegedSpy,
-                                this.pluginSettings));
+                                        this.mockEnvironment,
+                                        this.contextIndex,
+                                        this.contentIndex,
+                                        this.privilegedSpy,
+                                        this.ctiClient,
+                                        this.commandClient)
+                                .setPluginSettings(this.pluginSettings));
 
         this.consumerInfo = mock(ConsumerInfo.class);
     }
@@ -107,7 +107,7 @@ public class SnapshotManagerTests extends OpenSearchTestCase {
         doReturn(DocWriteResponse.Result.CREATED).when(response).getResult();
 
         // Act &6 Assert
-        this.snapshotManager.initConsumer();
+        this.snapshotManager.initConsumer(consumerInfo);
         verify(this.contextIndex).index(any(ConsumerInfo.class));
     }
 
@@ -129,7 +129,7 @@ public class SnapshotManagerTests extends OpenSearchTestCase {
         doReturn(DocWriteResponse.Result.NOT_FOUND).when(response).getResult();
 
         // Act && Assert
-        assertThrows(IOException.class, () -> this.snapshotManager.initConsumer());
+        assertThrows(IOException.class, () -> this.snapshotManager.initConsumer(consumerInfo));
     }
 
     /**

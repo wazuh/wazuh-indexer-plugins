@@ -18,14 +18,16 @@ package com.wazuh.contentmanager.index;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.opensearch.OpenSearchStatusException;
 import org.opensearch.action.DocWriteResponse;
 import org.opensearch.action.get.GetRequest;
 import org.opensearch.action.get.GetResponse;
 import org.opensearch.action.index.IndexRequest;
 import org.opensearch.action.index.IndexResponse;
-import org.opensearch.transport.client.Client;
 import org.opensearch.common.xcontent.XContentFactory;
+import org.opensearch.core.rest.RestStatus;
 import org.opensearch.core.xcontent.ToXContent;
+import org.opensearch.transport.client.Client;
 
 import java.io.IOException;
 import java.util.Locale;
@@ -67,12 +69,34 @@ public class ContextIndex {
     }
 
     /**
+     * Constructor that allows to inject pluginSettings
+     *
+     * @param client OpenSearch client used for indexing and search operations.
+     * @param pluginSettings Plugin settings used for configuration.
+     */
+    public ContextIndex(Client client, PluginSettings pluginSettings) {
+        this.client = client;
+        this.pluginSettings = pluginSettings;
+    }
+
+    /**
      * Index CTI API consumer information.
      *
      * @param consumerInfo Model containing information parsed from the CTI API.
-     * @return the IndexResponse from the indexing operation, or null.
+     * @return true if the index was created or updated, false otherwise.
      */
     public boolean index(ConsumerInfo consumerInfo) {
+        return index(consumerInfo, false);
+    }
+
+    /**
+     * Index CTI API consumer information.
+     *
+     * @param consumerInfo Model containing information parsed from the CTI API.
+     * @param createIndex true if the index should be created if it does not exist, false otherwise.
+     * @return the IndexResponse from the indexing operation, or null.
+     */
+    public boolean index(ConsumerInfo consumerInfo, boolean createIndex) {
         try {
             IndexRequest indexRequest =
                     new IndexRequest()
@@ -103,17 +127,23 @@ public class ContextIndex {
     }
 
     /**
-     * Searches for the given consumer within a context.
+     * Get a consumer of a context by their IDs.
      *
      * @param context ID (name) of the context.
      * @param consumer ID (name) of the consumer.
      * @return the required consumer as an instance of {@link ConsumerInfo}, or null.
+     * @throws OpenSearchStatusException if the index is not available.
      */
     @SuppressWarnings("unchecked")
-    public ConsumerInfo get(String context, String consumer) {
+    public ConsumerInfo get(String context, String consumer) throws OpenSearchStatusException {
         // Avoid faulty requests if the cluster is unstable.
         if (!ClusterInfo.indexStatusCheck(this.client, ContextIndex.INDEX_NAME)) {
-            throw new RuntimeException("Index not ready");
+            throw new OpenSearchStatusException(
+                    String.format(
+                            Locale.ROOT,
+                            "The index [%s] is not available. Please check the cluster status.",
+                            ContextIndex.INDEX_NAME),
+                    RestStatus.SERVICE_UNAVAILABLE);
         }
         try {
             GetResponse getResponse =
@@ -127,7 +157,6 @@ public class ContextIndex {
                         String.format(
                                 Locale.ROOT, "Consumer [%s] not found in context [%s]", consumer, context));
             }
-
             // Update consumer info (internal state)
             long offset = ContextIndex.asLong(source.get(ConsumerInfo.OFFSET));
             long lastOffset = ContextIndex.asLong(source.get(ConsumerInfo.LAST_OFFSET));
@@ -137,6 +166,7 @@ public class ContextIndex {
                     "Fetched consumer from the [{}] index: {}", ContextIndex.INDEX_NAME, this.consumerInfo);
         } catch (InterruptedException | ExecutionException | TimeoutException e) {
             log.error("Failed to fetch consumer [{}][{}]: {}", context, consumer, e.getMessage());
+            this.consumerInfo = new ConsumerInfo(consumer, context, 0L, 0L, "");
         }
 
         // May be null if the request fails and was not initialized on previously.

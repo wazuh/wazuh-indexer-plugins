@@ -18,11 +18,11 @@ package com.wazuh.contentmanager.index;
 
 import com.google.gson.JsonObject;
 import org.opensearch.action.get.GetResponse;
-import org.opensearch.transport.client.Client;
 import org.opensearch.cluster.service.ClusterService;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.env.Environment;
 import org.opensearch.test.OpenSearchIntegTestCase;
+import org.opensearch.transport.client.Client;
 import org.junit.Before;
 
 import java.util.List;

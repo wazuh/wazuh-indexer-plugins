@@ -16,6 +16,9 @@
  */
 package com.wazuh.contentmanager.utils;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 import java.security.AccessController;
 
 import com.wazuh.contentmanager.client.CTIClient;
@@ -26,6 +29,11 @@ import com.wazuh.contentmanager.model.cti.ConsumerInfo;
 
 /** Privileged utility class for executing privileged HTTP requests. */
 public class Privileged {
+
+    private static final Logger log = LogManager.getLogger(Privileged.class);
+
+    /** Default constructor for Privileged class. */
+    public Privileged() {}
 
     /**
      * Executes an HTTP request with elevated privileges.
@@ -39,7 +47,12 @@ public class Privileged {
         return AccessController.doPrivileged(request);
     }
 
-    /** Posts a command to the command manager API on a successful snapshot operation. */
+    /**
+     * Posts a command to the command manager API on a successful snapshot operation.
+     *
+     * @param client CommandManagerClient instance to interact with the command manager API.
+     * @param current ConsumerInfo object containing the current consumer information.
+     */
     public void postUpdateCommand(CommandManagerClient client, ConsumerInfo current) {
         this.doPrivilegedRequest(
                 () -> {
@@ -51,6 +64,7 @@ public class Privileged {
     /**
      * Fetches the context changes between a given offset range from the CTI API.
      *
+     * @param client CTIClient instance to interact with the CTI API.
      * @param fromOffset Starting offset (inclusive).
      * @param toOffset Ending offset (exclusive).
      * @return ContextChanges object containing the changes.

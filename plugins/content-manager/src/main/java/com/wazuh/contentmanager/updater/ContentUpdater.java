@@ -56,8 +56,10 @@ public class ContentUpdater {
      * Constructor. Mainly used for testing purposes. Dependency injection.
      *
      * @param ctiClient the CTIClient to interact with the CTI API.
+     * @param client the CommandManagerClient to interact with the command manager API.
      * @param contextIndex An object that handles context and consumer information.
      * @param contentIndex An object that handles content index interactions.
+     * @param privileged An object that handles privileged actions.
      */
     public ContentUpdater(
             CTIClient ctiClient,
@@ -103,24 +105,18 @@ public class ContentUpdater {
      * the CTI API for a list of changes to apply to the content. These changes are applied
      * sequentially. A maximum of {@link PluginSettings#MAX_CHANGES} changes are applied on each
      * iteration. When the update is completed, the value of "offset" is updated and equal to
-     * "lastOffset" {@link ContextIndex#index(ConsumerInfo)}, and a command is generated for the
-     * Command Manager {@link Privileged#postUpdateCommand(CommandManagerClient, ConsumerInfo)}. If
-     * the update fails, the "offset" is set to 0 to force a recovery from a snapshot.
+     * "lastOffset" {@link ContextIndex#index(ConsumerInfo, boolean)}, and a command is generated for
+     * the Command Manager {@link Privileged#postUpdateCommand(CommandManagerClient, ConsumerInfo)}.
+     * If the update fails, the "offset" is set to 0 to force a recovery from a snapshot.
      *
+     * @param current The current consumer information.
+     * @param lastOffset The last offset number.
      * @return true if the updates were successfully applied, false otherwise.
      * @throws ContentUpdateException If there was an error fetching the changes.
      */
-    public boolean update() throws ContentUpdateException {
-        ConsumerInfo consumerInfo =
-                this.contextIndex.get(
-                        this.pluginSettings.getContextId(), this.pluginSettings.getConsumerId());
-        long currentOffset = consumerInfo.getOffset();
-        long lastOffset = consumerInfo.getLastOffset();
-
-        if (lastOffset == currentOffset) {
-            log.info("No updates available. Current offset ({}) is up to date.", currentOffset);
-            return true;
-        }
+    public boolean update(ConsumerInfo current, Long lastOffset) throws ContentUpdateException {
+        long currentOffset = current.getOffset();
+        ConsumerInfo consumerInfo = new ConsumerInfo(current);
 
         log.info("Updating [{}]", ContentIndex.INDEX_NAME);
         while (currentOffset < lastOffset) {

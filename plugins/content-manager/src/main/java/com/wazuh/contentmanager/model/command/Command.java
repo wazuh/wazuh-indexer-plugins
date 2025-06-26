@@ -16,8 +16,6 @@
  */
 package com.wazuh.contentmanager.model.command;
 
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
 import org.opensearch.common.xcontent.XContentFactory;
 import org.opensearch.core.xcontent.XContentBuilder;
 
@@ -27,8 +25,6 @@ import com.wazuh.contentmanager.index.ContentIndex;
 
 /** This class represents the model of the posted command to the Command Manager API. */
 public class Command {
-    /** Constructs the JSON request body for the command. */
-    private static final Logger log = LogManager.getLogger(Command.class);
 
     /**
      * Generates a CTI Command for the Command Manager API
