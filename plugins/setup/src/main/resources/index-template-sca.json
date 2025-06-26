@@ -6,9 +6,6 @@
     "date_detection": false,
     "dynamic": "strict",
     "properties": {
-      "@timestamp": {
-        "type": "date"
-      },
       "agent": {
         "properties": {
           "groups": {
@@ -32,7 +29,8 @@
               "cpu": {
                 "properties": {
                   "usage": {
-                    "type": "float"
+                    "scaling_factor": 1000,
+                    "type": "scaled_float"
                   }
                 }
               },
@@ -288,7 +286,8 @@
           "cpu": {
             "properties": {
               "usage": {
-                "type": "float"
+                "scaling_factor": 1000,
+                "type": "scaled_float"
               }
             }
           },
@@ -494,6 +493,30 @@
           "references": {
             "ignore_above": 1024,
             "type": "keyword"
+          }
+        }
+      },
+      "wazuh": {
+        "properties": {
+          "cluster": {
+            "properties": {
+              "name": {
+                "ignore_above": 1024,
+                "type": "keyword"
+              },
+              "node": {
+                "ignore_above": 1024,
+                "type": "keyword"
+              }
+            }
+          },
+          "schema": {
+            "properties": {
+              "version": {
+                "ignore_above": 1024,
+                "type": "keyword"
+              }
+            }
           }
         }
       }

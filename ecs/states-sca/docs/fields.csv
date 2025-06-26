@@ -53,7 +53,7 @@ ECS_Version,Indexed,Field_Set,Field,Type,Level,Normalization,Example,Description
 8.11.0,true,check,check.remediation,keyword,custom,,"""To establish the recommended configuration, set the following registry value to 24 or more password(s):""",Actions to take to remediate the check.
 8.11.0,true,check,check.result,keyword,custom,,failed,Result of the check.
 8.11.0,true,check,check.rules,keyword,custom,array,"""[\""c:net.exe accounts -> n:Maximum password age \(days\):\s+(\d+) compare > 0\"","" > ""\""c:net.exe accounts -> n:Length of password history maintained:\s+(\d+) compare >= 24\""]""",Rules to be evaluated.
-8.11.0,true,checksum,checksum.hash.sha1,keyword,custom,,,SHA1 hash of the file
+8.11.0,true,checksum,checksum.hash.sha1,keyword,custom,,,SHA1 hash of the file.
 8.11.0,true,host,host.architecture,keyword,core,,x86_64,Operating system architecture.
 8.11.0,true,host,host.boot.id,keyword,extended,,88a1f0ed-5ae5-41ee-af6b-41921c311872,Linux boot uuid taken from /proc/sys/kernel/random/boot_id
 8.11.0,true,host,host.cpu.usage,scaled_float,extended,,,"Percent CPU used, between 0 and 1."
@@ -103,3 +103,6 @@ ECS_Version,Indexed,Field_Set,Field,Type,Level,Normalization,Example,Description
 8.11.0,true,policy,policy.id,keyword,custom,,cis_win11_enterprise_21H2,The ID of the SCA policy.
 8.11.0,true,policy,policy.name,keyword,custom,,CIS Microsoft Windows 11 Enterprise Benchmark v1.0.0,The name of the SCA policy.
 8.11.0,true,policy,policy.references,keyword,custom,array,"[""https://www.cisecurity.org/cis-benchmarks/""]",References for the policy.
+8.11.0,true,wazuh,wazuh.cluster.name,keyword,custom,,,Wazuh cluster name.
+8.11.0,true,wazuh,wazuh.cluster.node,keyword,custom,,,Wazuh cluster node name.
+8.11.0,true,wazuh,wazuh.schema.version,keyword,custom,,,Wazuh schema version.
