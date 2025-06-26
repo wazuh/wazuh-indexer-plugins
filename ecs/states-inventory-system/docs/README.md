@@ -42,4 +42,4 @@ The detail of the fields can be found in csv file [States inventory system Field
 | cluster_node       | string  | Wazuh cluster node                                                                | wazuh.cluster.node           | TRUE   |
 | schema_version     | string  | Wazuh schema version                                                              | wazuh.schema.version         | TRUE   |
 |                    | string  | Which commercial OS family (one of: linux, macos, unix, windows, ios or android). | host.os.type                 | FALSE  |
-| hash.sha1          | keyword | SHA1 hash                                                                         | checksum.hash.sha1           | TRUE   |
+| hash.sha1          | keyword | SHA1 hash used as checksum of the data collected by the agent.                    | checksum.hash.sha1           | TRUE   |

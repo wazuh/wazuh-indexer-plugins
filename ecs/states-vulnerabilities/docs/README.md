@@ -70,4 +70,4 @@ The detail of the fields can be found in csv file [States vulnerabilities Fields
 | wazuh.cluster.name                | keyword | Wazuh cluster name.                                                                                                 | wazuh.cluster.name                | TRUE   |
 | wazuh.cluster.node                | keyword | Wazuh cluster node name.                                                                                            | wazuh.cluster.node                | TRUE   |
 | wazuh.schema.version              | keyword | Wazuh schema version.                                                                                               | wazuh.schema.version              | TRUE   |
-| hash.sha1                         | keyword | SHA1 hash                                                                                                           | checksum.hash.sha1                | TRUE   |
+| hash.sha1                         | keyword | SHA1 hash used as checksum of the data collected by the agent.                                                      | checksum.hash.sha1                | TRUE   |

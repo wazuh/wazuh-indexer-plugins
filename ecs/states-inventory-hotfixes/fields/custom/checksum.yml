@@ -2,4 +2,10 @@
 - name: checksum
   title: Checksum
   description: >
-    Checksum custom fields.
+    Checksum custom fields
+  fields:
+    - name: hash.sha1
+      type: keyword
+      level: custom
+      description: >
+        SHA1 hash used as checksum of the data collected by the agent.
