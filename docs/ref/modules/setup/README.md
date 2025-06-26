@@ -7,4 +7,3 @@ The Wazuh Indexer Setup Plugin is responsible for:
 - Creating the initial indices. We distinguish between **stateful** and **stateless** indices. Stateful indices are unique and its data is update over time (agents' inventory), stateless indices are rotated and static (alerts).
 - Establishing rollover and alias configuration for stream indices.
 - Managing Role-Based Access Control (RBAC), ensuring required users exist with minimal necessary permissions.
-- Blocking ingestion and indexing operations until it confirms that all initialization tasks are complete and successful. This includes rejecting API requests during the unready state.
