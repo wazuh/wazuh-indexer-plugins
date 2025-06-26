@@ -15,10 +15,7 @@ fields:
           architecture: {}
           ip: {}
   checksum:
-    fields:
-      hash:
-        fields:
-          sha1: {}
+    fields: "*"
   interface:
     fields:
       name: {}

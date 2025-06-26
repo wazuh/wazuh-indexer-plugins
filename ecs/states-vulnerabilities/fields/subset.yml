@@ -7,10 +7,7 @@ fields:
   agent:
     fields: "*"
   checksum:
-    fields:
-      hash:
-        fields:
-          sha1: {}
+    fields: "*"
   package:
     fields: "*"
   host:
