@@ -69,6 +69,7 @@ detect_modified_modules() {
 
     # Mapping section
     module_to_file=(
+        [alerts]="index-template-alerts.json"
         [states-fim-files]="index-template-fim-files.json"
         [states-fim-registries]="index-template-fim-registries.json"
         [states-inventory-groups]="index-template-groups.json"

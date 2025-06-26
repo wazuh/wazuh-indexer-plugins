@@ -25,4 +25,6 @@ fields:
     fields: "*"
   policy:
     fields: "*"
+  wazuh:
+    fields: "*"
 
