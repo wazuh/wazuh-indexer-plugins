@@ -11,7 +11,8 @@
 - [Build from Sources](dev/build-sources.md)
 - [Run from Sources](dev/run-sources.md)
 - [Run Tests](dev/run-tests.md)
-- [Setup Plugin information](dev/modules/setup/information.md)
+- [Plugins]()
+  - [Setup](dev/plugins/setup.md)
 
 # Reference Manual
 
@@ -31,8 +32,8 @@
   - [Setup](ref/modules/setup/README.md)
     - [Architecture](ref/modules/setup/architecture.md)
     - [API Reference]()
-    - [Install plugin](ref/modules/setup/install.md)
-    - [Uninstall plugin](ref/modules/setup/uninstall.md)
+    - [Installation](ref/modules/setup/install.md)
+    - [Uninstall](ref/modules/setup/uninstall.md)
 - [Upgrade](ref/upgrade.md)
 - [Uninstall](ref/uninstall.md)
 - [Back Up and Restore](ref/backup-restore.md)
