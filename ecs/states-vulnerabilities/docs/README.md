@@ -4,6 +4,8 @@
 
 The fields are based on https://github.com/wazuh/wazuh/issues/27898
 
+> Updated based on https://github.com/wazuh/wazuh/issues/29840#issuecomment-2937251736
+
 Based on ECS:
 
 - [Agent Fields](https://www.elastic.co/guide/en/ecs/current/ecs-agent.html).
@@ -68,3 +70,4 @@ The detail of the fields can be found in csv file [States vulnerabilities Fields
 | wazuh.cluster.name                | keyword | Wazuh cluster name.                                                                                                 | wazuh.cluster.name                | TRUE   |
 | wazuh.cluster.node                | keyword | Wazuh cluster node name.                                                                                            | wazuh.cluster.node                | TRUE   |
 | wazuh.schema.version              | keyword | Wazuh schema version.                                                                                               | wazuh.schema.version              | TRUE   |
+| hash.sha1                         | keyword | SHA1 hash                                                                                                           | checksum.hash.sha1                | TRUE   |

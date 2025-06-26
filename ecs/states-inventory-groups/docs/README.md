@@ -4,6 +4,8 @@
 
 The fields are based on https://github.com/wazuh/wazuh-indexer/issues/889#issuecomment-2923017753
 
+> Updated based on https://github.com/wazuh/wazuh/issues/29840#issuecomment-2937251736
+
 Based on ECS:
 
 - [Group Fields](https://www.elastic.co/guide/en/ecs/current/ecs-group.html).
