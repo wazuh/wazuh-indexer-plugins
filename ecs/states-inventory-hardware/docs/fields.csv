@@ -4,7 +4,7 @@ ECS_Version,Indexed,Field_Set,Field,Type,Level,Normalization,Example,Description
 8.11.0,true,agent,agent.id,keyword,core,,8a4f500d,Unique identifier of this agent.
 8.11.0,true,agent,agent.name,keyword,core,,foo,Custom name of the agent.
 8.11.0,true,agent,agent.version,keyword,core,,6.0.0-rc2,Version of the agent.
-8.11.0,true,checksum,checksum.hash.sha1,keyword,extended,,,SHA1 hash.
+8.11.0,true,checksum,checksum.hash.sha1,keyword,custom,,,SHA1 hash used as checksum of the data collected by the agent.
 8.11.0,true,host,host.cpu.cores,short,custom,,8,Number of CPU cores.
 8.11.0,true,host,host.cpu.name,keyword,custom,,Intel(R) Core(TM) i7-9700K CPU @ 3.60GHz,Name/model of the CPU.
 8.11.0,true,host,host.cpu.speed,long,custom,,3600,CPU clock speed in MHz.

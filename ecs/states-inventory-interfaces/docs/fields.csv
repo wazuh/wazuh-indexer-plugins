@@ -4,7 +4,7 @@ ECS_Version,Indexed,Field_Set,Field,Type,Level,Normalization,Example,Description
 8.11.0,true,agent,agent.id,keyword,core,,8a4f500d,Unique identifier of this agent.
 8.11.0,true,agent,agent.name,keyword,core,,foo,Custom name of the agent.
 8.11.0,true,agent,agent.version,keyword,core,,6.0.0-rc2,Version of the agent.
-8.11.0,true,checksum,checksum.hash.sha1,keyword,extended,,,SHA1 hash.
+8.11.0,true,checksum,checksum.hash.sha1,keyword,custom,,,SHA1 hash used as checksum of the data collected by the agent.
 8.11.0,true,host,host.mac,keyword,core,array,"[""00-00-5E-00-53-23"", ""00-00-5E-00-53-24""]",Host MAC addresses.
 8.11.0,true,host,host.network.egress.bytes,long,extended,,,The number of bytes sent on all network interfaces.
 8.11.0,true,host,host.network.egress.drops,long,custom,,,Number of dropped transmitted packets.

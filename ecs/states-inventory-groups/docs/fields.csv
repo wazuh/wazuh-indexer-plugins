@@ -4,7 +4,7 @@ ECS_Version,Indexed,Field_Set,Field,Type,Level,Normalization,Example,Description
 8.11.0,true,agent,agent.id,keyword,core,,8a4f500d,Unique identifier of this agent.
 8.11.0,true,agent,agent.name,keyword,core,,foo,Custom name of the agent.
 8.11.0,true,agent,agent.version,keyword,core,,6.0.0-rc2,Version of the agent.
-8.11.0,true,checksum,checksum.hash.sha1,keyword,extended,,,SHA1 hash.
+8.11.0,true,checksum,checksum.hash.sha1,keyword,custom,,,SHA1 hash used as checksum of the data collected by the agent.
 8.11.0,true,group,group.description,keyword,custom,,,Description of the group.
 8.11.0,true,group,group.id,unsigned_long,custom,,,Unsigned int64 group ID.
 8.11.0,true,group,group.id_signed,long,custom,,,A signed int64 version of the group's ID.
