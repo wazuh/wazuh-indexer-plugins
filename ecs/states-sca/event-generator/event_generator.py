@@ -41,7 +41,8 @@ def generate_random_agent():
         'version': f'v{random.randint(0, 9)}-stable',
         'groups': [f'group{random.randint(0, 99)}', f'group{random.randint(0, 99)}'],
         'host': generate_random_host(False),
-        'checksum': generate_random_checksum()
+        'checksum': generate_random_checksum(),
+        'wazuh': generate_random_wazuh()
     }
     return agent
 
@@ -170,6 +171,15 @@ def generate_random_checksum():
         "hash": {
             "sha1": f"{random.randint(0, 9999)}",
         }
+    }
+
+def generate_random_wazuh():
+    return {
+        "cluster": {
+            "name": f"wazuh-cluster-{random.randint(0, 10)}",
+            "node": f"wazuh-cluster-node-{random.randint(0, 10)}",
+        },
+        "schema": {"version": "1.7.0"},
     }
 
 def inject_events(protocol, ip, port, index, username, password, data):

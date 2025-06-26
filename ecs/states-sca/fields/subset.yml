@@ -4,7 +4,6 @@ fields:
   base:
     fields:
       tags: []
-      "@timestamp": {}
   agent:
     fields:
       groups: {}
