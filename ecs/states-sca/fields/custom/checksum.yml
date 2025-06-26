@@ -8,4 +8,4 @@
       type: keyword
       level: custom
       description: >
-        SHA1 hash of the file
+        SHA1 hash of the file.

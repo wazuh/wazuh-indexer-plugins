@@ -41,8 +41,6 @@ def generate_random_agent():
         'version': f'v{random.randint(0, 9)}-stable',
         'groups': [f'group{random.randint(0, 99)}', f'group{random.randint(0, 99)}'],
         'host': generate_random_host(False),
-        'checksum': generate_random_checksum(),
-        'wazuh': generate_random_wazuh()
     }
     return agent
 
@@ -161,7 +159,9 @@ def generate_random_data(number):
             'agent': generate_random_agent(),
             'host': generate_random_host(),
             'policy': generate_random_policy(),
-            'check': generate_random_check()
+            'check': generate_random_check(),
+            'checksum': generate_random_checksum(),
+            'wazuh': generate_random_wazuh()
         }
         data.append(event_data)
     return data

@@ -17,7 +17,10 @@
         "host.os.version",
         "policy.id",
         "policy.name",
-        "policy.file"
+        "policy.file",
+        "wazuh.cluster.name",
+        "wazuh.cluster.node",
+        "wazuh.schema.version"
       ]
     }
   }
