@@ -25,6 +25,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Expose settings for the Content Manager plugin [(#395)](https://github.com/wazuh/wazuh-indexer-plugins/pull/395)
 - Add content update to to the Content Manager init process [(#421)](https://github.com/wazuh/wazuh-indexer-plugins/pull/421)
 - Clean wazuh-cve index on re-initialization [(#431)](https://github.com/wazuh/wazuh-indexer-plugins/pull/431)
+- Add repository bumper [(#501)](https://github.com/wazuh/wazuh-indexer-plugins/pull/501)
 
 ### Dependencies
 -
