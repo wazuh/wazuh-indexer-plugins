@@ -27,5 +27,4 @@ The Wazuh indexer stores the data collected by the Wazuh agents in separate indi
 | wazuh-states-inventory-system    | Operating system information, hostname and architecture.                                       |
 | wazuh-states-vulnerabilities     | Active vulnerabilities on the endpoint and its details.                                        |
 | wazuh‑archives                   | Stores all events (archive data) received by the [Wazuh server](https://documentation.wazuh.com/current/getting-started/components/wazuh-server.html), whether they trip a rule.                                                            |
-| wazuh-cve                        | Stores information about Common Vulnerabilities and Exposures (CVEs) and their details.        |
 | wazuh-statistics                 | Stores Wazuh server usage-related information every 5 minutes by default. The Wazuh dashboard creates them by running requests to the Wazuh manager API. |

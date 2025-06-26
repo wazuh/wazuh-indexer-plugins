@@ -27,7 +27,7 @@
   - [Environment variables]()
   - [Command line options]()
   - [Configuration files](ref/getting-started/config-files.md)
-- [Modules]()
+- [Modules](ref/modules/README.md)
   - [Setup](ref/modules/setup/README.md)
     - [Architecture](ref/modules/setup/architecture.md)
     - [API Reference]()
