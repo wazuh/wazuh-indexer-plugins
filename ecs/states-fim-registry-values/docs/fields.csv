@@ -4,7 +4,7 @@ ECS_Version,Indexed,Field_Set,Field,Type,Level,Normalization,Example,Description
 8.11.0,true,agent,agent.id,keyword,core,,8a4f500d,Unique identifier of this agent.
 8.11.0,true,agent,agent.name,keyword,core,,foo,Custom name of the agent.
 8.11.0,true,agent,agent.version,keyword,core,,6.0.0-rc2,Version of the agent.
-8.11.0,true,checksum,checksum.hash.sha1,keyword,custom,,,SHA1 hash of the registry value
+8.11.0,true,checksum,checksum.hash.sha1,keyword,custom,,,SHA1 hash used as checksum of the data collected by the agent.
 8.11.0,true,registry,registry.architecture,keyword,custom,,,Architecture associated with the entity
 8.11.0,true,registry,registry.data.hash.md5,keyword,custom,,,MD5 hash of the file or registry value content
 8.11.0,true,registry,registry.data.hash.sha1,keyword,custom,,,SHA-1 hash of the file or registry value content
