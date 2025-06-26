@@ -5,6 +5,7 @@ ECS_Version,Indexed,Field_Set,Field,Type,Level,Normalization,Example,Description
 8.11.0,true,agent,agent.name,keyword,core,,foo,Custom name of the agent.
 8.11.0,true,agent,agent.type,keyword,core,,filebeat,Type of the agent.
 8.11.0,true,agent,agent.version,keyword,core,,6.0.0-rc2,Version of the agent.
+8.11.0,true,checksum,checksum.hash.sha1,keyword,extended,,,SHA1 hash.
 8.11.0,true,host,host.os.full,keyword,extended,,Mac OS Mojave,"Operating system name, including the version or code name."
 8.11.0,true,host,host.os.full.text,keyword,extended,,Mac OS Mojave,"Operating system name, including the version or code name."
 8.11.0,true,host,host.os.kernel,keyword,extended,,4.4.0-112-generic,Operating system kernel version as a raw string.
