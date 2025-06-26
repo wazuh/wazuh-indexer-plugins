@@ -32,6 +32,7 @@ def generate_random_user():
 
     return {
         "agent": generate_random_agent(),
+        "checksum": generate_random_checksum(),
         "user": {
             "id": random.randint(1000, 9999),
             "name": ''.join(random.choices(string.ascii_lowercase, k=6)),
@@ -88,6 +89,14 @@ def generate_random_agent():
         "name": f"Agent{random.randint(0, 99)}",
         "version": f"v{random.randint(0, 9)}-stable",
         "host": generate_random_host(),
+    }
+
+
+def generate_random_checksum():
+    return {
+        'hash': {
+            'sha1': ''.join(random.choices("ABCDEF0123456789", k=40)),
+        }
     }
 
 

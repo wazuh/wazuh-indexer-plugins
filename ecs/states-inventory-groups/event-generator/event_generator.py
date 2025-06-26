@@ -27,6 +27,7 @@ urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 def generate_random_group():
     return {
         "agent": generate_random_agent(),
+        "checksum": generate_random_checksum(),
         "group": {
             "id": str(random.randint(1000, 9999)),
             "id_signed": random.randint(-9999, -1000),
@@ -54,6 +55,14 @@ def generate_random_agent():
         "name": f"Agent{random.randint(0, 99)}",
         "version": f"v{random.randint(0, 9)}-stable",
         "host": generate_random_host(),
+    }
+
+
+def generate_random_checksum():
+    return {
+        'hash': {
+            'sha1': ''.join(random.choices("ABCDEF0123456789", k=40)),
+        }
     }
 
 
