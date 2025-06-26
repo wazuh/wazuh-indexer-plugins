@@ -1,0 +1,5 @@
+---
+- name: checksum
+  title: Checksum
+  description: >
+    Checksum custom fields.

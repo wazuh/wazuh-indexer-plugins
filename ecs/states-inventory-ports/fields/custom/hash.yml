@@ -1,0 +1,5 @@
+- name: hash
+  reusable:
+    top_level: true
+    expected:
+      - { at: checksum, as: hash }

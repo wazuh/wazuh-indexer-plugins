@@ -6,6 +6,11 @@ fields:
       tags: []
   agent:
     fields: "*"
+  checksum:
+    fields:
+      hash:
+        fields:
+          sha1: {}
   package:
     fields: "*"
   host:
