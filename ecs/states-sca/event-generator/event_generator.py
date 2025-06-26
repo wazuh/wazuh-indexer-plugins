@@ -26,13 +26,6 @@ logging.basicConfig(filename=LOG_FILE, level=logging.INFO)
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
 
-def generate_random_date():
-    start_date = datetime.datetime.now()
-    end_date = start_date - datetime.timedelta(days=10)
-    random_date = start_date + (end_date - start_date) * random.random()
-    return random_date.strftime(DATE_FORMAT)
-
-
 def generate_random_agent():
     agent = {
         'id': f'agent{random.randint(0, 99)}',
@@ -155,7 +148,6 @@ def generate_random_data(number):
     data = []
     for _ in range(number):
         event_data = {
-            '@timestamp': generate_random_date(),
             'agent': generate_random_agent(),
             'host': generate_random_host(),
             'policy': generate_random_policy(),
