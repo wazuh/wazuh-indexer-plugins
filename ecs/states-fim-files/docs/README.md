@@ -2,8 +2,9 @@
 
 ### Fields summary
 
-The fields are based on https://github.com/wazuh/wazuh/issues/27898
-Some fields have been modified on https://github.com/wazuh/wazuh-indexer-plugins/issues/506
+The fields are based on:
+- [Global Queries](https://github.com/wazuh/wazuh/issues/27898) (included in 4.13.0).
+- [States Persistence](https://github.com/wazuh/wazuh/issues/29840#issuecomment-2914305496) (included in 5.0.0)
 
 Based on ECS:
 
@@ -38,6 +39,6 @@ The detail of the fields can be found in csv file [States FIM files Fields](fiel
 | user_name      | string | Name of the owner of the entity (user).                                   | file.owner              |        |
 | hash_sha1      | string | SHA1 hash of the file.                                                    | checksum.hash.sha1      | TRUE   |
 | attributes     | string | List of attributes related to the file.                                   | file.attributes         |        |
-| device         | string | Device that is the source of the file.                                    | file.device             |        |
-| permissions    | string | List of permissions related to the file.                                  | file.permissions        | TRUE   |
+| dev            | string | Device that is the source of the file.                                    | file.device             |        |
+| perm           | string | List of permissions related to the file.                                  | file.permissions        | TRUE   |
  
