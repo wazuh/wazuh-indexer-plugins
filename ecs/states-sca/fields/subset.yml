@@ -6,21 +6,16 @@ fields:
       tags: []
   agent:
     fields:
-      groups: {}
       id: {}
       name: {}
-      type: {}
       version: {}
       host:
-        fields: "*"
+        fields:
+          ip: {}
+          architecture: {}
   check:
     fields: "*"
-  checksum:
-    fields:
-      hash:
-        fields:
-          sha1: {}
-  host:
+  checksum: 
     fields: "*"
   policy:
     fields: "*"
