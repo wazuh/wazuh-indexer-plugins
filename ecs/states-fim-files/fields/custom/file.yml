@@ -6,4 +6,7 @@
       level: custom
       description: >
         List of permissions related to the file.
+      normalize:
+        - array
+
   

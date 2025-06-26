@@ -86,7 +86,6 @@ def generate_random_registry():
         "owner": f"owner{random.randint(0, 1000)}",
         "path": "/path/to/file",
         "uid": f"uid{random.randint(0, 1000)}",
-        # Permisions es un array de permisos, no es un objeto con otros objetos dentro
         "permissions": [
             random.sample(["read", "write", "execute", "delete", "change_permissions", "take_ownership"], random.randint(1,6))
         ],

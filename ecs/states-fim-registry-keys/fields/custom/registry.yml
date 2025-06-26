@@ -34,6 +34,8 @@
       level: custom
       description: >
         Permissions associated with the registry key.
+      normalize:
+        - array
     - name: uid
       type: keyword
       level: custom

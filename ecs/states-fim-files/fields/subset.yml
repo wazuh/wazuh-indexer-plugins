@@ -15,10 +15,7 @@ fields:
       name: {}
       version: {}
   checksum:
-    fields:
-      hash:
-        fields:
-          sha1: {}
+    fields: "*"
   file:
     fields:
       attributes: {}
