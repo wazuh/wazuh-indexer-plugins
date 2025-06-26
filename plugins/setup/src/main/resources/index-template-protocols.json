@@ -6,9 +6,6 @@
     "date_detection": false,
     "dynamic": "strict",
     "properties": {
-      "@timestamp": {
-        "type": "date"
-      },
       "agent": {
         "properties": {
           "host": {
@@ -31,6 +28,14 @@
             "type": "keyword"
           },
           "version": {
+            "ignore_above": 1024,
+            "type": "keyword"
+          }
+        }
+      },
+      "interface": {
+        "properties": {
+          "name": {
             "ignore_above": 1024,
             "type": "keyword"
           }
@@ -86,9 +91,16 @@
       "number_of_replicas": "0",
       "number_of_shards": "1",
       "query.default_field": [
-        "agent.id",
+        "agent.host.architecture",
         "agent.host.ip",
-        "interface.name"
+        "agent.id",
+        "agent.name",
+        "agent.version",
+        "network.type",
+        "interface.name",
+        "wazuh.cluster.name",
+        "wazuh.cluster.node",
+        "wazuh.schema.version"
       ],
       "refresh_interval": "5s"
     }

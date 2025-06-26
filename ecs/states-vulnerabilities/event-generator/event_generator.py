@@ -10,6 +10,7 @@
 #
 # This is an ad-hoc script for the vulnerability module. Extend to support other modules.
 
+import argparse
 import datetime
 import random
 import json
@@ -21,6 +22,12 @@ import logging
 LOG_FILE = "generate_data.log"
 GENERATED_DATA_FILE = "generatedData.json"
 DATE_FORMAT = "%Y-%m-%dT%H:%M:%S.%fZ"
+# Default values
+INDEX_NAME = "wazuh-states-vulnerabilities"
+USERNAME = "admin"
+PASSWORD = "admin"
+IP = "127.0.0.1"
+PORT = "9200"
 
 # Configure logging
 logging.basicConfig(filename=LOG_FILE, level=logging.INFO)
@@ -246,7 +253,7 @@ def generate_random_host():
     host = {
         "os": {
             "full": f"{family} {version}",
-            "kernel": f"{version}kernel{random.randint(0, 99)}",
+            "kernel": f"{random.randint(0, 9)}.{random.randint(0, 9)}.{random.randint(0, 9)}",
             "name": f"{family} {version}",
             "platform": family,
             "type": random.choice(
@@ -368,8 +375,8 @@ def generate_random_data(number):
     return data
 
 
-def inject_events(ip, port, index, username, password, data):
-    url = f"https://{ip}:{port}/{index}/_doc"
+def inject_events(data, ip, port, username, password, index, protocol):
+    url = f"{protocol}://{ip}:{port}/{index}/_doc"
     session = requests.Session()
     session.auth = (username, password)
     session.verify = False
@@ -388,6 +395,17 @@ def inject_events(ip, port, index, username, password, data):
 
 
 def main():
+    parser = argparse.ArgumentParser(
+        description="Generate and optionally inject documents into a Wazuh Indexer cluster."
+    )
+    parser.add_argument(
+        "--protocol",
+        choices=['http', 'https'],
+        default='https',
+        help="Specify the protocol to use: http or https. Default is 'https'."
+    )
+    args = parser.parse_args()
+
     try:
         number = int(input("How many events do you want to generate? ").strip() or 50)
     except ValueError:
@@ -410,14 +428,12 @@ def main():
         .lower()
     )
     if inject == "y":
-        ip = input("Enter the IP of your Indexer: ").strip() or "localhost"
-        port = input("Enter the port of your Indexer: ").strip() or 9200
-        index = (
-            input("Enter the index name: ").strip() or "wazuh-states-vulnerability-test"
-        )
-        username = input("Username: ").strip() or "admin"
-        password = input("Password: ").strip()
-        inject_events(ip, port, index, username, password, data)
+        ip = input(f"Enter the IP of your Indexer (default: '{IP}'): ") or IP
+        port = input(f"Enter the port of your Indexer (default: '{PORT}'): ") or PORT
+        index = input(f"Enter the index name (default: '{INDEX_NAME}'): ") or INDEX_NAME
+        username = input(f"Username (default: '{USERNAME}'): ") or USERNAME
+        password = input(f"Password (default: '{PASSWORD}'): ") or PASSWORD
+        inject_events(data, ip, port, username, password, index, args.protocol)
 
 
 if __name__ == "__main__":

@@ -1,10 +1,10 @@
 {
   "order": 0,
   "index_patterns": [
-    "wazuh-alerts-5.x-*"
+    "wazuh-archives-5.x-*"
   ],
   "settings": {
-    "plugins.index_state_management.rollover_alias": "wazuh-alerts",
+    "plugins.index_state_management.rollover_alias": "wazuh-archives",
     "index.refresh_interval": "5s",
     "index.number_of_shards": "1",
     "index.number_of_replicas": "0",

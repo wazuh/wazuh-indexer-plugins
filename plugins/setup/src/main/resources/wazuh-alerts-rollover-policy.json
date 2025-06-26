@@ -1,0 +1,51 @@
+{
+  "policy": {
+    "policy_id": "wazuh-alerts-rollover-policy",
+    "description": "Wazuh alerts and archives rollover policy.",
+    "last_updated_time": 1577990934044,
+    "schema_version": 21,
+    "error_notification": null,
+    "default_state": "rollover",
+    "states": [
+      {
+        "name": "rollover",
+        "actions": [
+          {
+            "retry": {
+              "count": 3,
+              "backoff": "exponential",
+              "delay": "1m"
+            },
+            "rollover": {
+              "min_doc_count": 200000000,
+              "min_index_age": "7d",
+              "min_primary_shard_size": "25gb"
+            }
+          }
+        ],
+        "transitions": []
+      }
+    ],
+    "ism_template": [
+      {
+        "index_patterns": [
+          "wazuh-alerts-*", "wazuh-archives-*"
+        ],
+        "priority": 50,
+        "last_updated_time": 1577990934044
+      }
+    ],
+    "user": {
+      "name": "admin",
+      "backend_roles": [
+        "admin"
+      ],
+      "roles": [
+        "own_index",
+        "all_access"
+      ],
+      "custom_attribute_names": [],
+      "user_requested_tenant": null
+    }
+  }
+}

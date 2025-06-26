@@ -16,10 +16,21 @@
  */
 package com.wazuh.setup.index;
 
-import org.opensearch.test.OpenSearchTestCase;
+/**
+ * Public interface for index creation. Any class creating indices must implement this interface.
+ */
+public interface IndexInitializer {
+    /**
+     * Creates an index.
+     *
+     * @param index Name of the index to create.
+     */
+    void createIndex(String index);
 
-import org.mockito.*;
-
-import static org.mockito.Mockito.*;
-
-public class WazuhIndicesTests extends OpenSearchTestCase {}
+    /**
+     * Creates an index template.
+     *
+     * @param template name of the index template to create.
+     */
+    void createTemplate(String template);
+}

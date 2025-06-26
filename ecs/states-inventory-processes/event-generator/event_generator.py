@@ -1,5 +1,6 @@
 #!/bin/python3
 
+import argparse
 import datetime
 import json
 import logging
@@ -102,8 +103,8 @@ def generate_random_wazuh():
     }
 
 
-def inject_events(ip, port, index, username, password, data):
-    url = f"https://{ip}:{port}/{index}/_doc"
+def inject_events(data, ip, port, username, password, index, protocol):
+    url = f"{protocol}://{ip}:{port}/{index}/_doc"
     session = requests.Session()
     session.auth = (username, password)
     session.verify = False
@@ -122,6 +123,17 @@ def inject_events(ip, port, index, username, password, data):
 
 
 def main():
+    parser = argparse.ArgumentParser(
+        description="Generate and optionally inject documents into a Wazuh Indexer cluster."
+    )
+    parser.add_argument(
+        "--protocol",
+        choices=['http', 'https'],
+        default='https',
+        help="Specify the protocol to use: http or https. Default is 'https'."
+    )
+    args = parser.parse_args()
+
     try:
         number = int(input("How many events do you want to generate? "))
     except ValueError:
@@ -149,7 +161,7 @@ def main():
         index = input(f"Enter the index name (default: '{INDEX_NAME}'): ") or INDEX_NAME
         username = input(f"Username (default: '{USERNAME}'): ") or USERNAME
         password = input(f"Password (default: '{PASSWORD}'): ") or PASSWORD
-        inject_events(ip, port, index, username, password, data)
+        inject_events(data, ip, port, username, password, index, args.protocol)
 
 
 if __name__ == "__main__":

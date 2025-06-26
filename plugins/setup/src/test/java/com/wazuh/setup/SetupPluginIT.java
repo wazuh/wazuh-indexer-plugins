@@ -37,23 +37,31 @@ import org.junit.Assert;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.List;
 import java.util.function.Function;
-import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import static org.hamcrest.Matchers.containsString;
 
-@ThreadLeakScope(ThreadLeakScope.Scope.NONE)
+/**
+ * Integration tests for the SetupPlugin. This class checks if the plugin is installed and verifies
+ * the presence of required plugins.
+ */
+@ThreadLeakScope(ThreadLeakScope.Scope.SUITE)
 @OpenSearchIntegTestCase.ClusterScope(scope = OpenSearchIntegTestCase.Scope.SUITE)
 public class SetupPluginIT extends OpenSearchIntegTestCase {
 
     @Override
     protected Collection<Class<? extends Plugin>> nodePlugins() {
-        return Collections.singletonList(SetupPlugin.class);
+        return List.of(SetupPlugin.class);
     }
 
+    /**
+     * Test to verify that the Wazuh Indexer Setup plugin is installed.
+     *
+     * @throws IOException Thrown if there is an issue with the HTTP request.
+     * @throws ParseException Thrown if there is an issue parsing the response.
+     */
     public void testPluginInstalled() throws IOException, ParseException {
         Response response = getRestClient().performRequest(new Request("GET", "/_cat/plugins"));
         String body = EntityUtils.toString(response.getEntity(), StandardCharsets.UTF_8);
@@ -62,6 +70,7 @@ public class SetupPluginIT extends OpenSearchIntegTestCase {
         assertThat(body, containsString("wazuh-indexer-setup"));
     }
 
+    /** Test to verify that the Wazuh Indexer Setup plugin is installed and the cluster is healthy. */
     public void testPluginsAreInstalled() {
         ClusterHealthRequest request = new ClusterHealthRequest();
         ClusterHealthResponse response =
@@ -77,9 +86,31 @@ public class SetupPluginIT extends OpenSearchIntegTestCase {
                         .flatMap(
                                 (Function<NodeInfo, Stream<PluginInfo>>)
                                         nodeInfo -> nodeInfo.getInfo(PluginsAndModules.class).getPluginInfos().stream())
-                        .collect(Collectors.toList());
+                        .toList();
         Assert.assertTrue(
                 pluginInfos.stream()
                         .anyMatch(pluginInfo -> pluginInfo.getName().equals("wazuh-indexer-setup")));
+    }
+
+    /** Test to verify that the ISM plugin is installed and the cluster is healthy. */
+    public void testISMPluginInstalled() {
+        ClusterHealthRequest request = new ClusterHealthRequest();
+        ClusterHealthResponse response =
+                OpenSearchIntegTestCase.client().admin().cluster().health(request).actionGet();
+        Assert.assertEquals(ClusterHealthStatus.GREEN, response.getStatus());
+
+        NodesInfoRequest nodesInfoRequest = new NodesInfoRequest();
+        nodesInfoRequest.addMetric(NodesInfoRequest.Metric.PLUGINS.metricName());
+        NodesInfoResponse nodesInfoResponse =
+                OpenSearchIntegTestCase.client().admin().cluster().nodesInfo(nodesInfoRequest).actionGet();
+        List<PluginInfo> pluginInfos =
+                nodesInfoResponse.getNodes().stream()
+                        .flatMap(
+                                (Function<NodeInfo, Stream<PluginInfo>>)
+                                        nodeInfo -> nodeInfo.getInfo(PluginsAndModules.class).getPluginInfos().stream())
+                        .toList();
+        Assert.assertTrue(
+                pluginInfos.stream()
+                        .anyMatch(pluginInfo -> pluginInfo.getName().equals("opensearch-index-management")));
     }
 }
