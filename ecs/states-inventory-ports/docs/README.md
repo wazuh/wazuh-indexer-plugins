@@ -40,4 +40,4 @@ The detail of the fields can be found in csv file [States inventory ports Fields
 | cluster_name   | string  | Wazuh cluster name                                             | wazuh.cluster.name         | TRUE   |
 | cluster_node   | string  | Wazuh cluster node                                             | wazuh.cluster.node         | TRUE   |
 | schema_version | string  | Wazuh schema version                                           | wazuh.schema.version       | TRUE   |
-| hash.sha1      | keyword | SHA1 hash used as checksum of the data collected by the agent. | checksum.hash.sha1         | TRUE   |
+| checksum       | keyword | SHA1 hash used as checksum of the data collected by the agent. | checksum.hash.sha1         | TRUE   |

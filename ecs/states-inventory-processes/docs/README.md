@@ -34,4 +34,4 @@ The detail of the fields can be found in csv file [States inventory processes Fi
 | schema_version | string  | Wazuh schema version                                           | wazuh.schema.version | TRUE   |
 |                | date    | The time the process started                                   | process.start        | FALSE  |
 |                | long    | Length of the process.args array.                              | process.args_count   | FALSE  |
-| hash.sha1      | keyword | SHA1 hash used as checksum of the data collected by the agent. | checksum.hash.sha1   | TRUE   |
+| checksum       | keyword | SHA1 hash used as checksum of the data collected by the agent. | checksum.hash.sha1   | TRUE   |
