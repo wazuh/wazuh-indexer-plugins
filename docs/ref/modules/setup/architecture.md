@@ -66,21 +66,58 @@ sequenceDiagram
 title: Wazuh Indexer setup plugin
 ---
 classDiagram
-    direction LR
-    SetupPlugin"1"-->WazuhIndices
-    WazuhIndices"1"-->Client
-    <<service>> Client
+    %% Classes
+    class IndexInitializer
+    <<interface>> IndexInitializer
+    class Index
+    <<abstract>> Index
+    class IndexStateManagement
+    class WazuhIndex
+    <<abstract>> WazuhIndex
+    class StateIndex
+    class StreamIndex
 
-    SetupPlugin : -WazuhIndices indices
-    SetupPlugin : +createComponents()
-    SetupPlugin : +onNodeStarted()
+    %% Relations
+    IndexInitializer <|-- Index : implements
+    Index <|-- IndexStateManagement
+    Index <|-- WazuhIndex
+    WazuhIndex <|-- StateIndex
+    WazuhIndex <|-- StreamIndex
 
-    WazuhIndices : -Client client
-    WazuhIndices : -ClusterService clusterService
-    WazuhIndices : +WazuhIndices(Client client, ClusterService clusterService)
-    WazuhIndices : +putTemplate(String template) void
-    WazuhIndices : +putIndex(String index) void
-    WazuhIndices : +indexExists(String index) bool
-    WazuhIndices : +templateExists(String template) bool
-    WazuhIndices : +initialize() void
+    %% Schemas
+    class IndexInitializer {
+        +createIndex(String index) void
+        +createTemplate(String template) void
+    }
+    class Index {
+        Client client
+        ClusterService clusterService
+        IndexUtils utils
+        String index
+        String template
+        +Index(String index, String template)
+        +setClient(Client client) IndexInitializer
+        +setClusterService(ClusterService clusterService) IndexInitializer
+        +setIndexUtils(IndexUtils utils) IndexInitializer
+        +indexExists(String indexName) bool
+        +initialize() void
+        +createIndex(String index) void
+        +createTemplate(String template) void
+        %% initialize() podría reemplazarse por createIndex() y createTemplate()
+    }
+    class IndexStateManagement {
+        -List~String~ policies
+        +initialize() void
+        -createPolicies() void
+        -indexPolicy(String policy) void
+    }
+    class WazuhIndex {
+    }
+    class StreamIndex {
+        -String alias
+        +StreamIndex(String index, String template, String alias)
+        +createIndex(String index)
+    }
+    class StateIndex {
+    }
 ```
