@@ -1,14 +1,11 @@
 {
   "index_patterns": [
-    "wazuh-states-fim-registries*"
+    "wazuh-states-sca*"
   ],
   "mappings": {
     "date_detection": false,
     "dynamic": "strict",
     "properties": {
-      "@timestamp": {
-        "type": "date"
-      },
       "agent": {
         "properties": {
           "host": {
@@ -36,83 +33,85 @@
           }
         }
       },
-      "event": {
+      "check": {
         "properties": {
-          "action": {
+          "compliance": {
             "ignore_above": 1024,
             "type": "keyword"
           },
-          "category": {
+          "condition": {
+            "ignore_above": 1024,
+            "type": "keyword"
+          },
+          "description": {
+            "ignore_above": 1024,
+            "type": "keyword"
+          },
+          "id": {
+            "ignore_above": 1024,
+            "type": "keyword"
+          },
+          "name": {
+            "ignore_above": 1024,
+            "type": "keyword"
+          },
+          "rationale": {
+            "ignore_above": 1024,
+            "type": "keyword"
+          },
+          "reason": {
+            "ignore_above": 1024,
+            "type": "keyword"
+          },
+          "references": {
+            "ignore_above": 1024,
+            "type": "keyword"
+          },
+          "remediation": {
+            "ignore_above": 1024,
+            "type": "keyword"
+          },
+          "result": {
+            "ignore_above": 1024,
+            "type": "keyword"
+          },
+          "rules": {
             "ignore_above": 1024,
             "type": "keyword"
           }
         }
       },
-      "registry": {
+      "checksum": {
         "properties": {
-          "architecture": {
-            "ignore_above": 1024,
-            "type": "keyword"
-          },
-          "data": {
+          "hash": {
             "properties": {
-              "hash": {
-                "properties": {
-                  "md5": {
-                    "ignore_above": 1024,
-                    "type": "keyword"
-                  },
-                  "sha1": {
-                    "ignore_above": 1024,
-                    "type": "keyword"
-                  },
-                  "sha256": {
-                    "ignore_above": 1024,
-                    "type": "keyword"
-                  }
-                }
-              },
-              "type": {
+              "sha1": {
                 "ignore_above": 1024,
                 "type": "keyword"
               }
             }
-          },
-          "gid": {
+          }
+        }
+      },
+      "policy": {
+        "properties": {
+          "description": {
             "ignore_above": 1024,
             "type": "keyword"
           },
-          "group": {
+          "file": {
             "ignore_above": 1024,
             "type": "keyword"
           },
-          "hive": {
+          "id": {
             "ignore_above": 1024,
             "type": "keyword"
           },
-          "key": {
+          "name": {
             "ignore_above": 1024,
             "type": "keyword"
           },
-          "mtime": {
-            "type": "date"
-          },
-          "owner": {
-            "ignore_above": 1024,
-            "type": "keyword"
-          },
-          "path": {
-            "ignore_above": 1024,
-            "type": "keyword"
-          },
-          "size": {
-            "type": "long"
-          },
-          "uid": {
-            "ignore_above": 1024,
-            "type": "keyword"
-          },
-          "value": {
+          "references": {
             "ignore_above": 1024,
             "type": "keyword"
           }
@@ -147,32 +146,20 @@
   "order": 1,
   "settings": {
     "index": {
-      "auto_expand_replicas": "0-1",
       "number_of_replicas": "0",
       "number_of_shards": "1",
       "query.default_field": [
-        "agent.host.architecture",
-        "agent.host.ip",
         "agent.id",
-        "agent.name",
-        "agent.version",
-        "event.action",
-        "event.category",
-        "registry.architecture",
-        "registry.data.hash.md5",
-        "registry.data.hash.sha1",
-        "registry.data.hash.sha256",
-        "registry.data.type",
-        "registry.gid",
-        "registry.group",
-        "registry.hive",
-        "registry.key",
-        "registry.mtime",
-        "registry.owner",
-        "registry.path",
-        "registry.size",
-        "registry.uid",
-        "registry.value",
+        "agent.groups",
+        "check.name",
+        "check.id",
+        "checksum.hash.sha1",
+        "host.name",
+        "host.os.type",
+        "host.os.version",
+        "policy.id",
+        "policy.name",
+        "policy.file",
         "wazuh.cluster.name",
         "wazuh.cluster.node",
         "wazuh.schema.version"
