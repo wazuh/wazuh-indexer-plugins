@@ -73,7 +73,6 @@ def generate_random_data(number):
     for _ in range(number):
         event_data = {
             'agent': generate_random_agent(),
-            'host': generate_random_host(),
             'policy': generate_random_policy(),
             'check': generate_random_check(),
             'checksum': generate_random_checksum(),
