@@ -1,0 +1,29 @@
+{
+  "index_patterns": ["wazuh-states-sca*"],
+  "priority": 1,
+  "template": {
+    "settings": {
+      "index": {
+        "number_of_shards": "1",
+        "number_of_replicas": "0",
+        "refresh_interval": "5s",
+        "query.default_field": [
+          "agent.id",
+          "agent.groups",
+          "check.name",
+          "check.id",
+          "checksum.hash.sha1",
+          "host.name",
+          "host.os.type",
+          "host.os.version",
+          "policy.id",
+          "policy.name",
+          "policy.file",
+          "wazuh.cluster.name",
+          "wazuh.cluster.node",
+          "wazuh.schema.version"
+        ]
+      }
+    }
+  }
+}

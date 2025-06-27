@@ -70,7 +70,8 @@ detect_modified_modules() {
     # Mapping section
     module_to_file=(
         [states-fim-files]="index-template-fim-files.json"
-        [states-fim-registries]="index-template-fim-registries.json"
+        [states-fim-registry-keys]="index-template-fim-registry-keys.json"
+        [states-fim-registry-values]="index-template-fim-registry-values.json"
         [states-inventory-groups]="index-template-groups.json"
         [states-inventory-hardware]="index-template-hardware.json"
         [states-inventory-hotfixes]="index-template-hotfixes.json"
@@ -82,6 +83,7 @@ detect_modified_modules() {
         [states-inventory-protocols]="index-template-protocols.json"
         [states-inventory-system]="index-template-system.json"
         [states-inventory-users]="index-template-users.json"
+        [states-sca]="index-template-sca.json"
         [states-vulnerabilities]="index-template-vulnerabilities.json"
     )
 

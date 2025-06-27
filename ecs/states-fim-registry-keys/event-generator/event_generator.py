@@ -13,7 +13,7 @@ LOG_FILE = "generate_data.log"
 GENERATED_DATA_FILE = "generatedData.json"
 DATE_FORMAT = "%Y-%m-%dT%H:%M:%S.%fZ"
 # Default values
-INDEX_NAME = "wazuh-states-fim-files"
+INDEX_NAME = "wazuh-states-fim-registry-keys"
 USERNAME = "admin"
 PASSWORD = "admin"
 IP = "127.0.0.1"
@@ -31,7 +31,7 @@ def generate_random_data(number):
     for _ in range(number):
         event_data = {
             "agent": generate_random_agent(),
-            "file": generate_random_file(),
+            "registry": generate_random_registry(),
             "wazuh": generate_random_wazuh(),
             "checksum": generate_random_checksum(),
         }
@@ -44,6 +44,15 @@ def generate_random_date():
     end_date = start_date - datetime.timedelta(days=10)
     random_date = start_date + (end_date - start_date) * random.random()
     return random_date.strftime(DATE_FORMAT)
+
+
+def generate_random_unix_timestamp():
+    start_time = datetime.datetime(2000, 1, 1)
+    end_time = datetime.datetime.now()
+    random_time = start_time + datetime.timedelta(
+        seconds=random.randint(0, int((end_time - start_time).total_seconds()))
+    )
+    return int(random_time.timestamp())
 
 
 def generate_random_agent():
@@ -62,33 +71,25 @@ def generate_random_host():
     }
 
 
-def generate_random_file():
+def generate_random_data_stream():
+    data_stream = {"type": random.choice(["Scheduled", "Realtime"])}
+    return data_stream
+
+def generate_random_registry():
     return {
+        "architecture": random.choice(["x86", "amd64"]),
         "gid": f"gid{random.randint(0, 1000)}",
         "group": f"group{random.randint(0, 1000)}",
-        "hash": {
-            "md5": f"{random.randint(0, 9999)}",
-            "sha1": f"{random.randint(0, 9999)}",
-            "sha256": f"{random.randint(0, 9999)}",
-        },
-        "inode": f"inode{random.randint(0, 1000)}",
-        "mtime": generate_random_date(),
+        "hive": "HKLM",
+        "key": r"SOFTWARE\Microsoft\Windows NT\CurrentVersion\Image File Execution Options\winword.exe",
+        "mtime": generate_random_unix_timestamp(),
         "owner": f"owner{random.randint(0, 1000)}",
         "path": "/path/to/file",
-        "size": random.randint(1000, 1000000),
         "uid": f"uid{random.randint(0, 1000)}",
-        "attributes": ",".join(
-            random.sample(
-                ["hidden", "read_only", "system", "archive", "temporary"],
-                random.randint(1, 5)
-            )
-        ),
-        "device": random.choice(["sda", "sdb", "sdc"]),
         "permissions": [
-            "".join(random.choice(["r", "w", "-"]) for _ in range(9))
+            random.sample(["read", "write", "execute", "delete", "change_permissions", "take_ownership"], random.randint(1,6))
         ],
 
-        
     }
 
 def generate_random_checksum():
@@ -97,7 +98,6 @@ def generate_random_checksum():
             "sha1": f"{random.randint(0, 9999)}",
         }
     }
-
 
 def inject_events(data, ip, port, username, password, index, protocol):
     url = f"{protocol}://{ip}:{port}/{index}/_doc"

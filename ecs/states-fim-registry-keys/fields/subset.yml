@@ -1,5 +1,5 @@
 ---
-name: wazuh-states-fim-registries
+name: wazuh-states-fim-registry-keys
 fields:
   base:
     fields:
@@ -14,21 +14,11 @@ fields:
       id: {}
       name: {}
       version: {}
-  event:
-    fields:
-      action: {}
-      category: {}
+  checksum:
+    fields: "*"
   registry:
     fields:
       architecture: {}
-      data:
-        fields:
-          type: {}
-          hash:
-            fields:
-              md5: {}
-              sha1: {}
-              sha256: {}
       gid: {}
       group: {}
       hive: {}
@@ -36,8 +26,8 @@ fields:
       mtime: {}
       owner: {}
       path: {}
-      size: {}
+      permissions: {}
       uid: {}
-      value: {}
   wazuh:
     fields: "*"
+
