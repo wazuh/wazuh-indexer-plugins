@@ -1,6 +1,6 @@
 {
   "index_patterns": [
-    "wazuh-states-fim-files*"
+    "wazuh-states-fim-registry-keys*"
   ],
   "mappings": {
     "date_detection": false,
@@ -45,13 +45,9 @@
           }
         }
       },
-      "file": {
+      "registry": {
         "properties": {
-          "attributes": {
-            "ignore_above": 1024,
-            "type": "keyword"
-          },
-          "device": {
+          "architecture": {
             "ignore_above": 1024,
             "type": "keyword"
           },
@@ -63,23 +59,11 @@
             "ignore_above": 1024,
             "type": "keyword"
           },
-          "hash": {
-            "properties": {
-              "md5": {
-                "ignore_above": 1024,
-                "type": "keyword"
-              },
-              "sha1": {
-                "ignore_above": 1024,
-                "type": "keyword"
-              },
-              "sha256": {
-                "ignore_above": 1024,
-                "type": "keyword"
-              }
-            }
+          "hive": {
+            "ignore_above": 1024,
+            "type": "keyword"
           },
-          "inode": {
+          "key": {
             "ignore_above": 1024,
             "type": "keyword"
           },
@@ -97,9 +81,6 @@
           "permissions": {
             "ignore_above": 1024,
             "type": "keyword"
-          },
-          "size": {
-            "type": "long"
           },
           "uid": {
             "ignore_above": 1024,
@@ -146,21 +127,16 @@
         "agent.name",
         "agent.version",
         "checksum.hash.sha1",
-        "file.attributes",
-        "file.device",
-        "file.gid",
-        "file.group",
-        "file.hash.md5",
-        "file.hash.sha1",
-        "file.hash.sha256",
-        "file.inode",
-        "file.mtime",
-        "file.owner",
-        "file.path",
-        "file.path.fields.text",
-        "file.permissions",
-        "file.size",
-        "file.uid",
+        "registry.architecture",
+        "registry.gid",
+        "registry.group",
+        "registry.hive",
+        "registry.key",
+        "registry.mtime",
+        "registry.owner",
+        "registry.path",
+        "registry.permissions",
+        "registry.uid",
         "wazuh.cluster.name",
         "wazuh.cluster.node",
         "wazuh.schema.version"

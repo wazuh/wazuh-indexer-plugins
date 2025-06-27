@@ -13,6 +13,7 @@ MAX_RETRIES=5
 IP="127.0.0.1"
 PROTOCOL="http"
 PORT="${PORT:-9200}"
+NUMBER_OF_EVENTS="100"
 
 # === Logging Helpers ===
 log()    { echo -e "\n\033[1;34m[INFO]\033[0m $*"; }
@@ -22,7 +23,7 @@ error()  { echo -e "\n\033[1;31m[ERROR]\033[0m $*" >&2; }
 # === Usage ===
 usage() {
     echo "Usage: $0 [--ip <ip>] [--protocol <http|https>] [--amount <n>]"
-    echo "Defaults: --ip 127.0.0.1, --port 9200, --protocol http -a 100"
+    echo "Defaults: --ip 127.0.0.1, --port 9200, --protocol http --amount 100"
     exit 1
 }
 

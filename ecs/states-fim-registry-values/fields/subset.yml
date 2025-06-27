@@ -1,5 +1,5 @@
 ---
-name: wazuh-states-fim-files
+name: wazuh-states-fim-registry-values
 fields:
   base:
     fields:
@@ -16,23 +16,21 @@ fields:
       version: {}
   checksum:
     fields: "*"
-  file:
+  registry:
     fields:
-      attributes: {}
-      device: {}
-      gid: {}
-      group: {}
-      hash:
+      architecture: {}
+      data:
         fields:
-          md5: {}
-          sha1: {}
-          sha256: {}
-      inode: {}
-      mtime: {}
-      owner: {}
+          type: {}
+          hash:
+            fields:
+              md5: {}
+              sha1: {}
+              sha256: {}
+      hive: {}
+      key: {}
       path: {}
-      permissions: {}
       size: {}
-      uid: {}
+      value: {}
   wazuh:
     fields: "*"

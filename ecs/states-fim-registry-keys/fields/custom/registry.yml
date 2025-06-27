@@ -19,21 +19,6 @@
       level: custom
       description: >
         Name of the group that owns the entity
-    - name: data.hash.md5
-      type: keyword
-      level: custom
-      description: >
-        MD5 hash of the file or registry value content
-    - name: data.hash.sha1
-      type: keyword
-      level: custom
-      description: >
-        SHA-1 hash of the file or registry value content
-    - name: data.hash.sha256
-      type: keyword
-      level: custom
-      description: >
-        SHA-256 hash of the file or registry value content
     - name: mtime
       type: date
       level: custom
@@ -44,11 +29,13 @@
       level: custom
       description: >
         Name of the owner of the entity (user)
-    - name: size
-      type: long
+    - name: permissions
+      type: keyword
       level: custom
       description: >
-        Size of the file or registry value (in bytes)
+        Permissions associated with the registry key.
+      normalize:
+        - array
     - name: uid
       type: keyword
       level: custom

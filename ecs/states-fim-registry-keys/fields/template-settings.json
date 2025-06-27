@@ -1,5 +1,5 @@
 {
-  "index_patterns": ["wazuh-states-fim-registries*"],
+  "index_patterns": ["wazuh-states-fim-registry-keys*"],
   "priority": 1,
   "template": {
     "settings": {
@@ -14,13 +14,8 @@
           "agent.id",
           "agent.name",
           "agent.version",
-          "event.action",
-          "event.category",
+          "checksum.hash.sha1",
           "registry.architecture",
-          "registry.data.hash.md5",
-          "registry.data.hash.sha1",
-          "registry.data.hash.sha256",
-          "registry.data.type",
           "registry.gid",
           "registry.group",
           "registry.hive",
@@ -28,9 +23,8 @@
           "registry.mtime",
           "registry.owner",
           "registry.path",
-          "registry.size",
+          "registry.permissions",
           "registry.uid",
-          "registry.value",
           "wazuh.cluster.name",
           "wazuh.cluster.node",
           "wazuh.schema.version"
