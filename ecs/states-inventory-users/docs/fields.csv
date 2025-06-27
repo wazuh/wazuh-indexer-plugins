@@ -4,6 +4,7 @@ ECS_Version,Indexed,Field_Set,Field,Type,Level,Normalization,Example,Description
 8.11.0,true,agent,agent.id,keyword,core,,8a4f500d,Unique identifier of this agent.
 8.11.0,true,agent,agent.name,keyword,core,,foo,Custom name of the agent.
 8.11.0,true,agent,agent.version,keyword,core,,6.0.0-rc2,Version of the agent.
+8.11.0,true,checksum,checksum.hash.sha1,keyword,custom,,,SHA1 hash used as checksum of the data collected by the agent.
 8.11.0,true,host,host.ip,ip,core,array,,Host ip addresses.
 8.11.0,true,login,login.status,boolean,custom,,,Whether the login was successful or the user is currently logged in.
 8.11.0,true,login,login.tty,keyword,custom,,,"Terminal associated with the login session (e.g., pts/1)."

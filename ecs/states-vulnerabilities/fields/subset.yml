@@ -6,6 +6,8 @@ fields:
       tags: []
   agent:
     fields: "*"
+  checksum:
+    fields: "*"
   package:
     fields: "*"
   host:
