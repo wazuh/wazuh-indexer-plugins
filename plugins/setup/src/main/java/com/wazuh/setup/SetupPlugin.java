@@ -78,7 +78,8 @@ public class SetupPlugin extends Plugin implements ClusterPlugin {
         this.indices.add(new StreamIndex("wazuh-archives-5.x-000001", "index-template-archives", "wazuh-archives"));
         // State indices
         this.indices.add(new StateIndex("wazuh-states-fim-files", "index-template-fim-files"));
-        this.indices.add(new StateIndex("wazuh-states-fim-registries", "index-template-fim-registries"));
+        this.indices.add(new StateIndex("wazuh-states-fim-registry-keys", "index-template-fim-registry-keys"));
+        this.indices.add(new StateIndex("wazuh-states-fim-registry-values", "index-template-fim-registry-values"));
         this.indices.add(new StateIndex("wazuh-states-inventory-groups", "index-template-groups"));
         this.indices.add(new StateIndex("wazuh-states-inventory-hardware", "index-template-hardware"));
         this.indices.add(new StateIndex("wazuh-states-inventory-hotfixes", "index-template-hotfixes"));

@@ -13,7 +13,7 @@ LOG_FILE = "generate_data.log"
 GENERATED_DATA_FILE = "generatedData.json"
 DATE_FORMAT = "%Y-%m-%dT%H:%M:%S.%fZ"
 # Default values
-INDEX_NAME = "wazuh-states-fim-registries"
+INDEX_NAME = "wazuh-states-fim-registry-values"
 USERNAME = "admin"
 PASSWORD = "admin"
 IP = "127.0.0.1"
@@ -31,9 +31,9 @@ def generate_random_data(number):
     for _ in range(number):
         event_data = {
             "agent": generate_random_agent(),
-            "event": generate_random_event(),
             "registry": generate_random_registry(),
             "wazuh": generate_random_wazuh(),
+            "checksum": generate_random_checksum(),
         }
         data.append(event_data)
     return data
@@ -75,13 +75,6 @@ def generate_random_data_stream():
     data_stream = {"type": random.choice(["Scheduled", "Realtime"])}
     return data_stream
 
-
-def generate_random_event():
-    return {
-        "category": random.choice(["registy_value", "registry_key", "file"]),
-    }
-
-
 def generate_random_registry():
     return {
         "architecture": random.choice(["x86", "amd64"]),
@@ -93,16 +86,18 @@ def generate_random_registry():
             },
             "type": random.choice(["REG_SZ", "REG_DWORD"]),
         },
-        "gid": f"gid{random.randint(0, 1000)}",
-        "group": f"group{random.randint(0, 1000)}",
         "hive": "HKLM",
         "key": r"SOFTWARE\Microsoft\Windows NT\CurrentVersion\Image File Execution Options\winword.exe",
-        "mtime": generate_random_unix_timestamp(),
-        "owner": f"owner{random.randint(0, 1000)}",
         "path": "/path/to/file",
         "size": random.randint(1000, 1000000),
-        "uid": f"uid{random.randint(0, 1000)}",
         "value": f"registry_value{random.randint(0, 1000)}",
+    }
+
+def generate_random_checksum():
+    return {
+        "hash": {
+            "sha1": f"{random.randint(0, 9999)}",
+        }
     }
 
 
