@@ -2,7 +2,6 @@
 
 The Wazuh Common Schema is a derivation of the [Elastic Common Schema](https://www.elastic.co/guide/en/ecs/current/ecs-field-reference.html) (ECS) providing a common data schema for the different central components of Wazuh.
 
-
 ## References
 
 - [ECS repository](https://github.com/elastic/ecs)

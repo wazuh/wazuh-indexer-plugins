@@ -1,0 +1,40 @@
+---
+- name: policy
+  title: SCA policies
+  description: >
+    Custom fields for SCA policies.
+  type: group
+  group: 2
+  fields:
+    - name: id
+      type: keyword
+      level: custom
+      description: The ID of the SCA policy.
+      example: "cis_win11_enterprise_21H2"
+    - name: name
+      type: keyword
+      level: custom
+      description: The name of the SCA policy.
+      example: "CIS Microsoft Windows 11 Enterprise Benchmark v1.0.0"
+    - name: file
+      type: keyword
+      level: custom
+      description: The file name of the SCA policy.
+      example: "cis_win11_enterprise.yml"
+    - name: description
+      type: keyword
+      level: custom
+      description: Extended description of the policy.
+      example: >
+        "The CIS Microsoft Windows 11 Enterprise Benchmark v1.0.0 is a comprehensive security configuration guide that provides prescriptive guidance for establishing a secure baseline configuration for Microsoft Windows 11 Enterprise."
+    - name: references
+      type: keyword
+      level: custom
+      short: References for the policy.
+      description: >
+        References for the policy. This can include links to documentation, articles, or other resources that provide additional information about the policy, such as Common Configuration Enumeration (CCE).
+
+        Note: this field should contain an array of values.
+      normalize:
+        - array
+      example: '["https://www.cisecurity.org/cis-benchmarks/"]'
