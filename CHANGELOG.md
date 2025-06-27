@@ -11,6 +11,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Add ISM rollover policy for stateless indices [(#471)](https://github.com/wazuh/wazuh-indexer-plugins/pull/471)
 - Add scripts to extract the product versions [(#483)](https://github.com/wazuh/wazuh-indexer-plugins/pull/483)
 - Add SCA index to 5.0.0 [(#516)](https://github.com/wazuh/wazuh-indexer-plugins/pull/516)
+- Add repository bumper [(#500)](https://github.com/wazuh/wazuh-indexer-plugins/pull/500)
+
 
 ### Dependencies
 -
