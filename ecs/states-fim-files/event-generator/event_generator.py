@@ -88,7 +88,6 @@ def inject_events(data, ip, port, username, password, index, protocol):
 
     try:
         for event_data in data:
-            print(f"Injecting event: {event_data}")
             response = session.post(url, json=event_data, headers=headers)
             logging.info(f"Response: {response.status_code} - {response.text}")
             if response.status_code != 201:
