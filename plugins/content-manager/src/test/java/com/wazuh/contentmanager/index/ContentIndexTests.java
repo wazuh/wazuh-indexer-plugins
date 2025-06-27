@@ -18,17 +18,17 @@ package com.wazuh.contentmanager.index;
 
 import com.google.gson.JsonObject;
 import org.opensearch.action.get.GetResponse;
-import org.opensearch.transport.client.Client;
 import org.opensearch.cluster.service.ClusterService;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.env.Environment;
 import org.opensearch.test.OpenSearchIntegTestCase;
+import org.opensearch.transport.client.Client;
 import org.junit.Before;
 
 import java.util.List;
 
-import com.wazuh.contentmanager.model.cti.Changes;
 import com.wazuh.contentmanager.model.cti.Offset;
+import com.wazuh.contentmanager.model.cti.Offsets;
 import com.wazuh.contentmanager.model.cti.Operation;
 import com.wazuh.contentmanager.settings.PluginSettings;
 import org.mockito.InjectMocks;
@@ -82,9 +82,9 @@ public class ContentIndexTests extends OpenSearchIntegTestCase {
         // Mock
         doNothing().when(this.contentUpdaterSpy).index((Offset) any());
         // Arrange
-        Offset offset = new Offset("test", 1L, "test", Offset.Type.CREATE, 1L, null, null);
+        Offset offset = new Offset(1L, "CVE-test", Offset.Type.CREATE, 1L, null, null, null);
         // Act
-        this.contentUpdaterSpy.patch(new Changes(List.of(offset)));
+        this.contentUpdaterSpy.patch(new Offsets(List.of(offset)));
         // Assert
         verify(this.contentUpdaterSpy, times(1)).patch(any());
     }
@@ -103,15 +103,15 @@ public class ContentIndexTests extends OpenSearchIntegTestCase {
         // Arrange
         Offset offset =
                 new Offset(
-                        "test",
                         1L,
-                        "test",
+                        "CVE-test",
                         Offset.Type.UPDATE,
                         1L,
-                        List.of(new Operation("replace", "/field", null, "new_value")),
+                        List.of(new Operation(Operation.Type.REPLACE, "/field", null, "new_value")),
+                        null,
                         null);
         // Act
-        this.contentUpdaterSpy.patch(new Changes(List.of(offset)));
+        this.contentUpdaterSpy.patch(new Offsets(List.of(offset)));
         // Assert
         verify(this.contentUpdaterSpy, times(1)).index((Offset) any());
     }
@@ -124,9 +124,9 @@ public class ContentIndexTests extends OpenSearchIntegTestCase {
         // Mock this.delete() to avoid actual client call
         doNothing().when(this.contentUpdaterSpy).delete(any());
         // Arrange
-        Offset offset = new Offset("test", 1L, "test", Offset.Type.DELETE, 1L, null, null);
+        Offset offset = new Offset(1L, "CVE-test", Offset.Type.DELETE, 1L, null, null, null);
         // Act
-        this.contentUpdaterSpy.patch(new Changes(List.of(offset)));
+        this.contentUpdaterSpy.patch(new Offsets(List.of(offset)));
         // Assert
         verify(this.contentUpdaterSpy, times(1)).delete(any());
     }

@@ -20,7 +20,6 @@ import com.carrotsearch.randomizedtesting.annotations.ThreadLeakScope;
 
 import org.opensearch.action.admin.indices.refresh.RefreshRequest;
 import org.opensearch.action.support.WriteRequest;
-import org.opensearch.transport.client.Client;
 import org.opensearch.cluster.service.ClusterService;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.common.xcontent.XContentFactory;
@@ -28,6 +27,7 @@ import org.opensearch.core.xcontent.ToXContent;
 import org.opensearch.env.Environment;
 import org.opensearch.plugins.Plugin;
 import org.opensearch.test.OpenSearchIntegTestCase;
+import org.opensearch.transport.client.Client;
 import org.junit.Before;
 
 import java.io.IOException;
@@ -124,10 +124,10 @@ public class ContentUpdaterIT extends OpenSearchIntegTestCase {
             throws ExecutionException, InterruptedException, TimeoutException {
         // Fixtures
         // List of changes to apply (offset 1 == create)
-        Changes changes = new Changes(List.of(this.buildOffset(1, Offset.Type.CREATE)));
+        Offsets offsets = new Offsets(List.of(this.buildOffset(1, Offset.Type.CREATE)));
         ConsumerInfo testConsumer = this.buildTestConsumer(1);
         // Mock
-        when(this.ctiClient.getChanges(0, 1, false)).thenReturn(changes);
+        when(this.ctiClient.getChanges(0, 1, false)).thenReturn(offsets);
         when(this.contextIndex.get(
                         this.pluginSettings.getContextId(), this.pluginSettings.getConsumerId()))
                 .thenReturn(testConsumer);
@@ -153,6 +153,7 @@ public class ContentUpdaterIT extends OpenSearchIntegTestCase {
         assertTrue(updated);
         assertNotNull(updatedConsumer);
         assertEquals(1, updatedConsumer.getLastOffset());
+        assertEquals("2024-02-29T23:17:36.191970Z", offsets.getFirst().getInserted_at());
     }
 
     /**
@@ -171,13 +172,13 @@ public class ContentUpdaterIT extends OpenSearchIntegTestCase {
             throws ExecutionException, InterruptedException, TimeoutException {
         // Fixtures
         // List of changes to apply (offset 1 == create, offset 2 == update)
-        Changes changes =
-                new Changes(
+        Offsets offsets =
+                new Offsets(
                         List.of(
                                 this.buildOffset(1, Offset.Type.CREATE), this.buildOffset(2, Offset.Type.UPDATE)));
         ConsumerInfo testConsumer = this.buildTestConsumer(2);
         // Mock
-        when(this.ctiClient.getChanges(0, 2, false)).thenReturn(changes);
+        when(this.ctiClient.getChanges(0, 2, false)).thenReturn(offsets);
         when(this.contextIndex.get(
                         this.pluginSettings.getContextId(), this.pluginSettings.getConsumerId()))
                 .thenReturn(testConsumer);
@@ -221,13 +222,13 @@ public class ContentUpdaterIT extends OpenSearchIntegTestCase {
     public void testUpdate_ContentChangesTypeDelete()
             throws InterruptedException, ExecutionException, TimeoutException {
         // Fixtures
-        Changes changes =
-                new Changes(
+        Offsets offsets =
+                new Offsets(
                         List.of(
                                 this.buildOffset(1, Offset.Type.CREATE), this.buildOffset(2, Offset.Type.DELETE)));
         ConsumerInfo testConsumer = this.buildTestConsumer(2);
         // Mock
-        when(this.ctiClient.getChanges(0, 2, false)).thenReturn(changes);
+        when(this.ctiClient.getChanges(0, 2, false)).thenReturn(offsets);
         when(this.contextIndex.get(
                         this.pluginSettings.getContextId(), this.pluginSettings.getConsumerId()))
                 .thenReturn(testConsumer);
@@ -267,14 +268,17 @@ public class ContentUpdaterIT extends OpenSearchIntegTestCase {
         List<Operation> operations = null;
         Map<String, Object> payload = null;
         if (type == Offset.Type.UPDATE) {
-            operations = List.of(new Operation("add", "/newField", null, "test"));
+            operations = List.of(new Operation(Operation.Type.ADD, "/newField", null, "test"));
         } else if (type == Offset.Type.CREATE) {
             payload = new HashMap<>();
             payload.put("name", "Dummy Threat");
             payload.put("indicators", List.of("192.168.1.1", "example.com"));
+            // To test the new field inserted_at in the case of a Type.CREATE Offset, it will be created
+            // with it
+            return new Offset(
+                    id, this.resourceId, type, 1L, operations, payload, "2024-02-29T23:17:36.191970Z");
         }
-        return new Offset(
-                this.pluginSettings.getContextId(), id, this.resourceId, type, 1L, operations, payload);
+        return new Offset(id, this.resourceId, type, 1L, operations, payload, null);
     }
 
     /**

@@ -28,7 +28,6 @@ import org.opensearch.action.delete.DeleteResponse;
 import org.opensearch.action.get.GetRequest;
 import org.opensearch.action.get.GetResponse;
 import org.opensearch.action.index.IndexRequest;
-import org.opensearch.transport.client.Client;
 import org.opensearch.common.xcontent.XContentFactory;
 import org.opensearch.common.xcontent.XContentType;
 import org.opensearch.core.action.ActionListener;
@@ -39,21 +38,20 @@ import org.opensearch.index.query.QueryBuilders;
 import org.opensearch.index.reindex.BulkByScrollResponse;
 import org.opensearch.index.reindex.DeleteByQueryAction;
 import org.opensearch.index.reindex.DeleteByQueryRequestBuilder;
+import org.opensearch.transport.client.Client;
 
 import java.io.BufferedReader;
 import java.io.FileReader;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Locale;
+import java.util.*;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
-import com.wazuh.contentmanager.model.cti.Changes;
 import com.wazuh.contentmanager.model.cti.Offset;
+import com.wazuh.contentmanager.model.cti.Offsets;
 import com.wazuh.contentmanager.model.cti.Operation;
 import com.wazuh.contentmanager.settings.PluginSettings;
 import com.wazuh.contentmanager.utils.JsonPatch;
@@ -267,7 +265,7 @@ public class ContentIndex {
      *
      * @param changes content changes to apply.
      */
-    public void patch(Changes changes) {
+    public void patch(Offsets changes) {
         ArrayList<Offset> offsets = changes.get();
         if (offsets.isEmpty()) {
             log.info("No changes to apply");
@@ -279,38 +277,57 @@ public class ContentIndex {
                 ContentIndex.INDEX_NAME,
                 changes.getFirst().getOffset(),
                 changes.getLast().getOffset());
-        for (Offset change : offsets) {
-            String id = change.getResource();
-            try {
-                log.debug("Processing offset [{}]", change.getOffset());
-                switch (change.getType()) {
-                    case CREATE:
-                        log.debug("Creating new resource with ID [{}]", id);
-                        this.index(change);
-                        break;
-                    case UPDATE:
-                        log.debug("Updating resource with ID [{}]", id);
-                        JsonObject content = this.getById(id);
-                        for (Operation op : change.getOperations()) {
-                            JsonPatch.applyOperation(content, XContentUtils.xContentObjectToJson(op));
-                        }
-                        try (XContentParser parser = XContentUtils.createJSONParser(content)) {
-                            this.index(Offset.parse(parser));
-                        }
-                        break;
-                    case DELETE:
-                        log.debug("Deleting resource with ID [{}]", id);
-                        this.delete(id);
-                        break;
-                    default:
-                        throw new IllegalArgumentException("Unknown change type: " + change.getType());
+        for (Offset offset : offsets) {
+            // This id is the CVE number of each document which identifies it
+            String id = offset.getResource();
+            if (id.startsWith("CVE-")) {
+                try {
+                    log.debug("Processing offset [{}]", offset.getOffset());
+                    switch (offset.getType()) {
+                        case CREATE:
+                            /**
+                             * In the case of a CREATE type change, using toXContent from Offset the fields wanted
+                             * are extracted and then indexed
+                             */
+                            log.debug("Creating new resource with ID [{}]", id);
+                            this.index(offset);
+                            break;
+                        case UPDATE:
+                            /**
+                             * In the case of an UPDATE type change, the current way to proceed is to get the
+                             * document, apply all the changes to it and reindex it
+                             */
+                            log.debug("Updating resource with ID [{}]", id);
+                            JsonObject document = this.getById(id);
+                            for (Operation op : offset.getOperations()) {
+                                // Applies all the operations
+                                JsonPatch.applyOperation(document, XContentUtils.xContentObjectToJson(op));
+                            }
+                            // Convert it to an Offset element and index it
+                            try (XContentParser parser = XContentUtils.createJSONParser(document)) {
+                                this.index(Offset.parse(parser));
+                            }
+                            break;
+                        case DELETE:
+                            /**
+                             * In the case of a DELETE type change, the id of the element to delete is obtained
+                             * and this element is deleted
+                             */
+                            log.debug("Deleting resource with ID [{}]", id);
+                            this.delete(id);
+                            break;
+                        default:
+                            throw new IllegalArgumentException("Unknown change type: " + offset.getType());
+                    }
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                    throw new RuntimeException("Interrupted while patching", e);
+                } catch (Exception e) {
+                    log.error("Failed to patch [{}] due to {}", id, e.getMessage());
+                    throw new RuntimeException("Patch operation failed", e);
                 }
-            } catch (InterruptedException e) {
-                Thread.currentThread().interrupt();
-                throw new RuntimeException("Interrupted while patching", e);
-            } catch (Exception e) {
-                log.error("Failed to patch [{}] due to {}", id, e.getMessage());
-                throw new RuntimeException("Patch operation failed", e);
+            } else {
+                log.debug("Skipping non CVE element [{}]", id);
             }
         }
     }

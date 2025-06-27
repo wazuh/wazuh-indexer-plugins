@@ -18,11 +18,11 @@ package com.wazuh.commandmanager.jobscheduler;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.opensearch.transport.client.Client;
 import org.opensearch.jobscheduler.spi.JobExecutionContext;
 import org.opensearch.jobscheduler.spi.ScheduledJobParameter;
 import org.opensearch.jobscheduler.spi.ScheduledJobRunner;
 import org.opensearch.threadpool.ThreadPool;
+import org.opensearch.transport.client.Client;
 
 import com.wazuh.commandmanager.index.CommandIndex;
 import com.wazuh.commandmanager.settings.PluginSettings;

@@ -24,6 +24,7 @@ import org.opensearch.core.xcontent.XContentParser;
 import org.opensearch.core.xcontent.XContentParserUtils;
 
 import java.io.IOException;
+import java.util.Locale;
 
 /**
  * Class representing a JSON Patch operation.
@@ -37,7 +38,7 @@ public class Operation implements ToXContentObject {
     public static final String PATH = "path";
     public static final String FROM = "from";
     public static final String VALUE = "value";
-    private final String op; // TODO replace with Operation.Type
+    private final Operation.Type op;
     private final String path;
     private final String from;
     private final Object value;
@@ -66,7 +67,7 @@ public class Operation implements ToXContentObject {
      * @param from Source path for move operations.
      * @param value Value to be added or replaced.
      */
-    public Operation(String op, String path, String from, Object value) {
+    public Operation(Type op, String path, String from, Object value) {
         this.op = op;
         this.path = path;
         this.from = from;
@@ -83,7 +84,7 @@ public class Operation implements ToXContentObject {
      */
     public static Operation parse(XContentParser parser)
             throws IllegalArgumentException, IOException {
-        String op = null;
+        Type op = null;
         String path = null;
         String from = null;
         Object value = null;
@@ -96,7 +97,8 @@ public class Operation implements ToXContentObject {
             parser.nextToken(); // Move to value
             switch (fieldName) {
                 case OP:
-                    op = parser.text();
+                    String opType = parser.text().trim().toUpperCase(Locale.ROOT);
+                    op = Type.valueOf(opType);
                     break;
                 case PATH:
                     path = parser.text();
