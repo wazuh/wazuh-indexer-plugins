@@ -15,10 +15,9 @@ fields:
           architecture: {}
   check:
     fields: "*"
-  checksum: 
+  checksum:
     fields: "*"
   policy:
     fields: "*"
   wazuh:
     fields: "*"
-
