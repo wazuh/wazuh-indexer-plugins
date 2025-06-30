@@ -2,21 +2,74 @@
 
 ## Design
 
-The plugin implements the [ClusterPlugin](https://github.com/opensearch-project/OpenSearch/blob/2.13.0/server/src/main/java/org/opensearch/plugins/ClusterPlugin.java) interface in order to be able to hook into the node’s lifecycle overriding the `onNodeStarted()` method. The logic for the creation of the index templates and the indices is encapsulated in the `WazuhIndices` class. The `onNodeStarted()` method invokes the `WazuhIndices::initialize()` method, which handles everything.
+The plugin implements the [ClusterPlugin](https://github.com/opensearch-project/OpenSearch/blob/3.1.0/server/src/main/java/org/opensearch/plugins/ClusterPlugin.java) interface in order to be able to hook into the node’s lifecycle overriding the `onNodeStarted()` method.
+
+The `SetupPlugin` class holds the list of indices to create. The logic for the creation of the index templates and the indices is encapsulated in the `Index` abstract class. Each subclass can override this logic if necessary. The `SetupPlugin::onNodeStarted()` method invokes the `Index::initialize()` method, effectively creating every index in the list.
 
 By design, the plugin will overwrite any existing index template under the same name.
 
-## JavaDoc
+## Class diagram
 
-The plugin is documented using JavaDoc. You can compile the documentation using the Gradle task for that purpose. The generated JavaDoc is in the **build/docs** folder.
+```mermaid
+---
+title: Wazuh Indexer setup plugin
+---
+classDiagram
+    %% Classes
+    class IndexInitializer
+    <<interface>> IndexInitializer
+    class Index
+    <<abstract>> Index
+    class IndexStateManagement
+    class WazuhIndex
+    <<abstract>> WazuhIndex
+    class StateIndex
+    class StreamIndex
 
-```bash
-./gradlew javadoc
+    %% Relations
+    IndexInitializer <|-- Index : implements
+    Index <|-- IndexStateManagement
+    Index <|-- WazuhIndex
+    WazuhIndex <|-- StateIndex
+    WazuhIndex <|-- StreamIndex
+
+    %% Schemas
+    class IndexInitializer {
+        +createIndex(String index) void
+        +createTemplate(String template) void
+    }
+    class Index {
+        Client client
+        ClusterService clusterService
+        IndexUtils utils
+        String index
+        String template
+        +Index(String index, String template)
+        +setClient(Client client) IndexInitializer
+        +setClusterService(ClusterService clusterService) IndexInitializer
+        +setIndexUtils(IndexUtils utils) IndexInitializer
+        +indexExists(String indexName) bool
+        +initialize() void
+        +createIndex(String index) void
+        +createTemplate(String template) void
+        %% initialize() podría reemplazarse por createIndex() y createTemplate()
+    }
+    class IndexStateManagement {
+        -List~String~ policies
+        +initialize() void
+        -createPolicies() void
+        -indexPolicy(String policy) void
+    }
+    class WazuhIndex {
+    }
+    class StreamIndex {
+        -String alias
+        +StreamIndex(String index, String template, String alias)
+        +createIndex(String index)
+    }
+    class StateIndex {
+    }
 ```
-
-## Indices
-
-Refer to the [docs](https://github.com/wazuh/wazuh-indexer-plugins/tree/main/ecs) for complete definitions of the indices. The indices inherit the settings and mappings defined in the [index templates](https://github.com/wazuh/wazuh-indexer-plugins/tree/main/plugins/setup/src/main/resources).
 
 ## Sequence diagram
 
@@ -27,60 +80,40 @@ Refer to the [docs](https://github.com/wazuh/wazuh-indexer-plugins/tree/main/ecs
 sequenceDiagram
     actor Node
     participant SetupPlugin
-    participant WazuhIndices
+    participant Index
     participant Client
     Node->>SetupPlugin: plugin.onNodeStarted()
     activate SetupPlugin
     Note over Node,SetupPlugin: Invoked on Node::start()
 
-
-    activate WazuhIndices
-    SetupPlugin->>WazuhIndices: initialize()
-
-
-    Note over SetupPlugin,WazuhIndices: Create index templates and indices
-    loop i..n templates
-        WazuhIndices-)Client: templateExists(i)
-        Client--)WazuhIndices: response
-        alt template i does not exist
-            WazuhIndices-)Client: putTemplate(i)
-            Client--)WazuhIndices: response
-        end
-    end
+    activate Index
     loop i..n indices
-        WazuhIndices-)Client: indexExists(i)
-        Client--)WazuhIndices: response
+        SetupPlugin->>Index: i.initialize()
+
+
+        Index-)Client: createTemplate(i)
+        Client--)Index: response
+
+        Index-)Client: indexExists(i)
+        Client--)Index: response
         alt index i does not exist
-            WazuhIndices-)Client: putIndex(i)
-            Client--)WazuhIndices: response
+            Index-)Client: createIndex(i)
+            Client--)Index: response
         end
     end
-    deactivate WazuhIndices
+
+    deactivate Index
     deactivate SetupPlugin
 ```
 
-## Class diagram
+## Wazuh Common Schema
 
-```mermaid
----
-title: Wazuh Indexer setup plugin
----
-classDiagram
-    direction LR
-    SetupPlugin"1"-->WazuhIndices
-    WazuhIndices"1"-->Client
-    <<service>> Client
+Refer to the [docs](https://github.com/wazuh/wazuh-indexer-plugins/tree/main/ecs) for complete definitions of the indices. The indices inherit the settings and mappings defined in the [index templates](https://github.com/wazuh/wazuh-indexer-plugins/tree/main/plugins/setup/src/main/resources).
 
-    SetupPlugin : -WazuhIndices indices
-    SetupPlugin : +createComponents()
-    SetupPlugin : +onNodeStarted()
+## JavaDoc
 
-    WazuhIndices : -Client client
-    WazuhIndices : -ClusterService clusterService
-    WazuhIndices : +WazuhIndices(Client client, ClusterService clusterService)
-    WazuhIndices : +putTemplate(String template) void
-    WazuhIndices : +putIndex(String index) void
-    WazuhIndices : +indexExists(String index) bool
-    WazuhIndices : +templateExists(String template) bool
-    WazuhIndices : +initialize() void
+The plugin is documented using JavaDoc. You can compile the documentation using the Gradle task for that purpose. The generated JavaDoc is in the **build/docs** folder.
+
+```bash
+./gradlew javadoc
 ```
