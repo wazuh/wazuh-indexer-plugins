@@ -27,7 +27,7 @@
 - [Configuration]()
   - [Environment variables]()
   - [Command line options]()
-  - [Configuration files](ref/getting-started/config-files.md)
+  - [Configuration files]()
 - [Modules]()
   - [Setup](ref/modules/setup/index.md)
     - [Architecture](ref/modules/setup/architecture.md)
