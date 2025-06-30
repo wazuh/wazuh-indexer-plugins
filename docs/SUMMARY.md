@@ -29,7 +29,7 @@
   - [Command line options]()
   - [Configuration files](ref/getting-started/config-files.md)
 - [Modules]()
-  - [Setup](ref/modules/setup/README.md)
+  - [Setup](ref/modules/setup/index.md)
     - [Architecture](ref/modules/setup/architecture.md)
     - [API Reference]()
 - [Upgrade](ref/upgrade.md)
