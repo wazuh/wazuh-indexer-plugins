@@ -4,7 +4,7 @@ The `wazuh-indexer-setup` plugin is a module composing the Wazuh Indexer respons
 
 The Wazuh Indexer Setup Plugin in responsible for:
 - Create the index templates, to define the mappings and settings of the indices.
-- Create the initial indices. We distinguish between **stateful** and **stateless** indices. Stateful indices are unique and its data is update over time (agents' inventory), stateless indices are rotated and static (alerts).
+- Create the initial indices. We distinguish between **stateful** and **stateless** indices. Stateful indices are unique, and its data is update over time (agents' inventory), stateless indices are rotated and static (alerts).
 - For stateless indices, it creates the indices aliases and lifecycle policies for rollover.
 
 ## Indices
@@ -34,7 +34,7 @@ The following table lists the indices created by this plugin.
 
 ## Install
 
-The `wazuh-indexer-setup` plugin is part of the official Wazuh Indexer packages and is installed by default. However, to manually install the plugin follow the next steps.
+The `wazuh-indexer-setup` plugin is part of the official Wazuh Indexer packages and is installed by default. However, to manually install the plugin, follow the next steps.
 
 > **Note:** You need to use the `wazuh-indexer` or `root` user to run these commands.
 
