@@ -11,6 +11,8 @@
 - [Build from Sources](dev/build-sources.md)
 - [Run from Sources](dev/run-sources.md)
 - [Run Tests](dev/run-tests.md)
+- [Plugins]()
+  - [Setup](dev/plugins/setup.md)
 
 # Reference Manual
 
@@ -27,7 +29,7 @@
   - [Command line options]()
   - [Configuration files](ref/getting-started/config-files.md)
 - [Modules]()
-  - [Setup](ref/modules/setup/README.md)
+  - [Setup](ref/modules/setup/index.md)
     - [Architecture](ref/modules/setup/architecture.md)
     - [API Reference]()
 - [Upgrade](ref/upgrade.md)

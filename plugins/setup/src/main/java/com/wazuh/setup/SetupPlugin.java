@@ -77,6 +77,7 @@ public class SetupPlugin extends Plugin implements ClusterPlugin {
         this.indices.add(new StreamIndex("wazuh-alerts-5.x-000001", "index-template-alerts", "wazuh-alerts"));
         this.indices.add(new StreamIndex("wazuh-archives-5.x-000001", "index-template-archives", "wazuh-archives"));
         // State indices
+        this.indices.add(new StateIndex("wazuh-states-sca", "index-template-sca"));
         this.indices.add(new StateIndex("wazuh-states-fim-files", "index-template-fim-files"));
         this.indices.add(new StateIndex("wazuh-states-fim-registry-keys", "index-template-fim-registry-keys"));
         this.indices.add(new StateIndex("wazuh-states-fim-registry-values", "index-template-fim-registry-values"));
@@ -90,11 +91,10 @@ public class SetupPlugin extends Plugin implements ClusterPlugin {
         this.indices.add(new StateIndex("wazuh-states-inventory-ports", "index-template-ports"));
         this.indices.add(new StateIndex("wazuh-states-inventory-processes", "index-template-processes"));
         this.indices.add(new StateIndex("wazuh-states-inventory-protocols", "index-template-protocols"));
-        this.indices.add(new StateIndex("wazuh-statistics", "index-template-statistics"));
         this.indices.add(new StateIndex("wazuh-states-inventory-system", "index-template-system"));
         this.indices.add(new StateIndex("wazuh-states-inventory-users", "index-template-users"));
         this.indices.add(new StateIndex("wazuh-states-vulnerabilities", "index-template-vulnerabilities"));
-        this.indices.add(new StateIndex("wazuh-states-sca", "index-template-sca"));
+        this.indices.add(new StateIndex("wazuh-statistics", "index-template-statistics"));
         // spotless:on
 
         // Inject dependencies

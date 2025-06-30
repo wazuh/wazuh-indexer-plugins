@@ -14,4 +14,4 @@ For 5.0.0 and above, we support the operating system versions and architectures 
 
 ## OpenSearch
 
-Currently, Wazuh indexer is using version `2.19.2` of OpenSearch.
+Currently, Wazuh indexer is using version `3.0.0` of OpenSearch.
