@@ -51,7 +51,7 @@ import com.wazuh.setup.utils.IndexUtils;
  */
 public class SetupPlugin extends Plugin implements ClusterPlugin {
 
-    public static final TimeValue TIMEOUT = new TimeValue(5L, TimeUnit.SECONDS);
+    public static final TimeValue TIMEOUT = new TimeValue(30L, TimeUnit.SECONDS);
     private final List<Index> indices = new ArrayList<>();
 
     /** Default constructor */
