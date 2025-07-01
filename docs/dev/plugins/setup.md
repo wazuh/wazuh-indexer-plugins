@@ -143,6 +143,82 @@ public IndexStateManagement(String index, String template) {
 }
 ```
 
+## Creating a New Internal User and its Roles
+
+_The following steps requires to have the [Wazuh Indexer repository](https://github.com/wazuh/wazuh-indexer) cloned_
+
+### 1. Add a New Internal User
+
+Edit the `internal_users.wazuh.yml` file located at: `distribution/src/config/security/` from the Wazuh Indexer repository,
+adding a new user entry with the following structure:
+```yaml
+new-user:
+  # The hash can be generated using the OpenSearch tool `plugins/opensearch-security/tools/hash.sh -p <new-password>`
+  hash: "<HASHED-PASSWORD>"
+  reserved: false
+  backend_roles: []
+  description: "New user description"
+```
+
+### 2. Add a New Role
+
+Edit the `roles.wazuh.yml` file located at: `distribution/src/config/security/` from the Wazuh Indexer repository, add as
+many roles as needed following this structure:
+
+_You can see more possible actions for `cluster_permissions`, `index_permissions` on the [Default action groups documentation](https://docs.opensearch.org/docs/latest/security/access-control/default-action-groups/)_
+
+```yaml
+role-read:
+   cluster_permissions: []
+   index_permissions:
+     - index_patterns:
+         - "wazuh-*"
+       dls: ""
+       fls: []
+       masked_fields: []
+       allowed_actions:
+         - "read"
+   tenant_permissions: []
+   static: true
+
+role-write:
+   cluster_permissions: []
+   index_permissions:
+     - index_patterns:
+         - "wazuh-*"
+       dls: ""
+       fls: []
+       masked_fields: []
+       allowed_actions:
+         - "index"
+   tenant_permissions: []
+   static: true
+```
+
+### 3. Add the Role Mapping
+
+Edit the `roles_mapping.wazuh.yml` file located at: `distribution/src/config/security/` from the Wazuh Indexer repository,
+adding the new role mapping, note that the mapping name must match the role name:
+```yaml
+role-read:
+   reserved: true
+   hidden: false
+   backend_roles: [ ]
+   hosts: [ ]
+   users:
+     - "new-user"
+   and_backend_roles: [ ]
+
+role-write:
+   reserved: true
+   hidden: false
+   backend_roles: [ ]
+   hosts: [ ]
+   users:
+     - "new-user"
+   and_backend_roles: [ ]
+```
+
 ## 📌 Additional Notes
 Always follow existing naming conventions to maintain consistency.
 
