@@ -135,6 +135,7 @@ public class IndexStateManagement extends Index {
 
     /**
      * Overrides the parent method to also create the ISM policies after the index creation.
+     *
      * @return true if the index and the policies are correctly created, and false otherwise.
      */
     @Override

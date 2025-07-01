@@ -164,6 +164,7 @@ public abstract class Index implements IndexInitializer {
     /**
      * Initializes the index. Usually implies invoking {@link #createTemplate(String)} and {@link
      * #createIndex(String)}, in that order.
+     *
      * @return true if the index and the template are correctly created, and false otherwise.
      */
     public boolean initialize() {
