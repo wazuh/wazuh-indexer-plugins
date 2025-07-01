@@ -222,12 +222,14 @@ public class ContentManagerPlugin extends Plugin implements ClusterPlugin, JobSc
     }
 
     private Instant parseInstantValue(XContentParser parser) throws IOException {
-        if (XContentParser.Token.VALUE_NULL.equals(parser.currentToken())) {
-            return null;
-        }
-        if (parser.currentToken().isValue()) {
-            return Instant.ofEpochMilli(parser.longValue());
-        }
+       XContentParser.Token token = parser.currentToken();
+       if (token == XContentParser.Token.VALUE_NULL) {
+           return null;
+       }
+  
+       if (token == XContentParser.Token.VALUE_NUMBER) {
+           return Instant.ofEpochMilli(parser.longValue());
+       }
         XContentParserUtils.throwUnknownToken(parser.currentToken(), parser.getTokenLocation());
         return null;
     }
