@@ -161,8 +161,8 @@ public class IndexTests extends OpenSearchTestCase {
     public void testInitializeInvokesTemplateAndIndex() {
         Index spyIndex = spy(index);
 
-        doNothing().when(spyIndex).createTemplate("test-template");
-        doNothing().when(spyIndex).createIndex("test-index");
+        doReturn(true).when(spyIndex).createTemplate("test-template");
+        doReturn(true).when(spyIndex).createIndex("test-index");
 
         spyIndex.initialize();
 

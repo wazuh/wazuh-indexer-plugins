@@ -128,6 +128,7 @@ public class SetupPlugin extends Plugin implements ClusterPlugin {
             // A block is acquired. If the indices have been initialized correctly, the block is released;
             // otherwise, the block remains held.
             this.setBlock(true);
+            log.info("Performing index verification process");
             if (!initializationResult.containsValue(false)) {
                 this.setBlock(false);
             }
@@ -147,8 +148,16 @@ public class SetupPlugin extends Plugin implements ClusterPlugin {
      */
     public void setBlock(boolean mode) {
         ClusterUpdateSettingsRequest request = new ClusterUpdateSettingsRequest();
-        request.persistentSettings(
-                Settings.builder().put("cluster.blocks.read_only_allow_delete", mode).build());
+        if (mode) {
+            request.persistentSettings(
+                    Settings.builder().put("cluster.blocks.read_only_allow_delete", true).build());
+        } else {
+            // To deactivate the block is necessary to use putNull method instead of changing the block to
+            // false,
+            // this is because if we only change the block to false in it leaves some extra metadata
+            request.persistentSettings(
+                    Settings.builder().putNull("cluster.blocks.read_only_allow_delete").build());
+        }
 
         this.client
                 .admin()
