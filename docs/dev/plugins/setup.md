@@ -143,6 +143,12 @@ public IndexStateManagement(String index, String template) {
 }
 ```
 
+## 🔒 Block ingestion mechanism
+
+The Setup plugin features a locking mechanism that ensures, in the event of encountering an error during the index creation process, the cluster remains in a read-only state. This safeguard is crucial for maintaining the integrity of the stored data and preserving its format. 
+
+By preventing any write operations when issues arise, the system avoids potential data corruption or inconsistency. This mechanism enhances the overall reliability and stability of the environment, ensuring that data integrity is always prioritized.
+
 ## 📌 Additional Notes
 Always follow existing naming conventions to maintain consistency.
 

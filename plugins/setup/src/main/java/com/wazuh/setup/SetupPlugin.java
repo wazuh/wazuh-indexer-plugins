@@ -168,7 +168,11 @@ public class SetupPlugin extends Plugin implements ClusterPlugin {
 
                             @Override
                             public void onResponse(ClusterUpdateSettingsResponse response) {
-                                log.info("Read only and allow delete block {}: {}", mode, response);
+                                if (mode) {
+                                    log.info("Read only and allow delete block enabled: {}", response);
+                                } else {
+                                    log.info("Read only and allow delete block disabled: {}", response);
+                                }
                             }
 
                             @Override
