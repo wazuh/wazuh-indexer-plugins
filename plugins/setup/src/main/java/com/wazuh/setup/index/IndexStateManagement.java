@@ -61,16 +61,22 @@ public class IndexStateManagement extends Index {
      * Creates every ISM policy added to {@link #policies} by passing it to {@link
      * #indexPolicy(String)}.
      */
-    private void createPolicies() {
-        this.policies.forEach(this::indexPolicy);
+    private boolean createPolicies() {
+        for (String policy : this.policies) {
+            if (!indexPolicy(policy)) {
+                return false;
+            }
+        }
+        return true;
     }
 
     /**
      * Indexes the given ISM policy to the ISM internal index.
      *
      * @param policy policy name to create.
+     * @return true if the policy was correctly indexed or already existed, and false otherwise.
      */
-    private void indexPolicy(String policy) {
+    private boolean indexPolicy(String policy) {
         try {
             Map<String, Object> policyFile;
             policyFile = this.indexUtils.fromFile(ALERTS_ROLLOVER_POLICY + ".json");
@@ -84,18 +90,21 @@ public class IndexStateManagement extends Index {
             log.info("ISM policy [{}] created", policy);
         } catch (IOException e) {
             log.error("Failed to load the ISM policy from file: {}", e.getMessage());
+            return false;
         } catch (ResourceAlreadyExistsException e) {
             log.error("Policy already exists, skipping creation: {}", e.getMessage());
         }
+        return true;
     }
 
     /**
      * Creates an index.
      *
      * @param index Name of the index to create.
+     * @return true if the index was correctly created or already existed, and false otherwise.
      */
     @Override
-    public void createIndex(String index) {
+    public boolean createIndex(String index) {
         try {
             if (!this.indexExists(index)) {
                 // For some reason the index template is not applied to the ISM internal index
@@ -114,17 +123,25 @@ public class IndexStateManagement extends Index {
                         createIndexResponse.index(),
                         createIndexResponse.isAcknowledged());
             }
+
         } catch (IOException e) {
             log.error("Error reading index template from filesystem {}", this.template);
+            return false;
         } catch (ResourceAlreadyExistsException e) {
             log.info("Index {} already exists. Skipping.", index);
         }
+        return true;
     }
 
-    /** Overrides the parent method to also create the ISM policies after the index creation. */
+    /**
+     * Overrides the parent method to also create the ISM policies after the index creation.
+     * @return true if the index and the policies are correctly created, and false otherwise.
+     */
     @Override
-    public void initialize() {
-        this.createIndex(this.index);
-        this.createPolicies();
+    public boolean initialize() {
+        boolean indexCreated = this.createIndex(this.index);
+        boolean policiesCreated = this.createPolicies();
+
+        return indexCreated && policiesCreated;
     }
 }

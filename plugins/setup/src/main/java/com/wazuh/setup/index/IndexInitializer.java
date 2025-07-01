@@ -24,13 +24,15 @@ public interface IndexInitializer {
      * Creates an index.
      *
      * @param index Name of the index to create.
+     * @return true if it was correctly created, false otherwise.
      */
-    void createIndex(String index);
+    boolean createIndex(String index);
 
     /**
      * Creates an index template.
      *
      * @param template name of the index template to create.
+     * @return true if it was correctly created, false otherwise.
      */
-    void createTemplate(String template);
+    boolean createTemplate(String template);
 }

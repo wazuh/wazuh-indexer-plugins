@@ -54,7 +54,7 @@ public class StreamIndex extends WazuhIndex {
      * @see Alias
      */
     @Override
-    public void createIndex(String index) {
+    public boolean createIndex(String index) {
         try {
             if (!this.indexExists(index)) {
                 CreateIndexRequest request =
@@ -65,9 +65,11 @@ public class StreamIndex extends WazuhIndex {
                         "Index created successfully: {} {}",
                         createIndexResponse.index(),
                         createIndexResponse.isAcknowledged());
+                return createIndexResponse.isAcknowledged();
             }
         } catch (ResourceAlreadyExistsException e) {
             log.info("Index {} already exists. Skipping.", index);
         }
+        return true;
     }
 }

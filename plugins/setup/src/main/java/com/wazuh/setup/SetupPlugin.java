@@ -16,10 +16,21 @@
  */
 package com.wazuh.setup;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+import org.opensearch.action.admin.cluster.settings.ClusterUpdateSettingsRequest;
+import org.opensearch.action.admin.cluster.settings.ClusterUpdateSettingsResponse;
+import org.opensearch.action.admin.indices.readonly.AddIndexBlockRequest;
+import org.opensearch.action.admin.indices.readonly.AddIndexBlockResponse;
+import org.opensearch.action.admin.indices.settings.put.UpdateSettingsRequest;
+import org.opensearch.action.support.clustermanager.AcknowledgedResponse;
+import org.opensearch.cluster.metadata.IndexMetadata;
 import org.opensearch.cluster.metadata.IndexNameExpressionResolver;
 import org.opensearch.cluster.node.DiscoveryNode;
 import org.opensearch.cluster.service.ClusterService;
+import org.opensearch.common.settings.Settings;
 import org.opensearch.common.unit.TimeValue;
+import org.opensearch.core.action.ActionListener;
 import org.opensearch.core.common.io.stream.NamedWriteableRegistry;
 import org.opensearch.core.xcontent.NamedXContentRegistry;
 import org.opensearch.env.Environment;
@@ -32,12 +43,10 @@ import org.opensearch.threadpool.ThreadPool;
 import org.opensearch.transport.client.Client;
 import org.opensearch.watcher.ResourceWatcherService;
 
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.List;
+import java.util.*;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
+import java.util.stream.Collectors;
 
 import com.wazuh.setup.index.Index;
 import com.wazuh.setup.index.IndexStateManagement;
@@ -51,8 +60,10 @@ import com.wazuh.setup.utils.IndexUtils;
  */
 public class SetupPlugin extends Plugin implements ClusterPlugin {
 
+    private static final Logger log = LogManager.getLogger(SetupPlugin.class);
     public static final TimeValue TIMEOUT = new TimeValue(5L, TimeUnit.SECONDS);
     private final List<Index> indices = new ArrayList<>();
+    private Client client;
 
     /** Default constructor */
     public SetupPlugin() {}
@@ -106,6 +117,7 @@ public class SetupPlugin extends Plugin implements ClusterPlugin {
                     index.setIndexUtils(utils);
                 });
 
+        this.client = client;
         return Collections.emptyList();
     }
 
@@ -113,7 +125,48 @@ public class SetupPlugin extends Plugin implements ClusterPlugin {
     public void onNodeStarted(DiscoveryNode localNode) {
         // Initialize the indices only if this node is the cluster manager node.
         if (localNode.isClusterManagerNode()) {
-            this.indices.forEach(Index::initialize);
+            Map<String, Boolean> initializationResult = new HashMap<>();
+            this.indices.forEach(index -> {initializationResult.put(index.getIndex(), index.initialize());});
+
+            // A block is acquired. If the indices have been initialized correctly, the block is released;
+            // otherwise, the block remains held.
+            this.setBlock(true);
+            if(!initializationResult.containsValue(false)){
+                this.setBlock(false);
+            }
         }
     }
+    /**
+     * Sets the read-only and allow-delete block mode on the Wazuh-indexer cluster.
+     *
+     * <p>This method updates the cluster configuration to enable or disable read-only
+     * and delete permissions across all nodes, depending on the value of {@code mode}.
+     * When {@code mode} is {@code true}, it activates the read-only and allow-delete block.
+     * When {@code mode} is {@code false}, it deactivates the block.
+     *
+     * @param mode {@code true} to enable read-only and allow-delete block, {@code false}
+     *             to disable it.
+     */
+    public void setBlock(boolean mode) {
+        ClusterUpdateSettingsRequest request = new  ClusterUpdateSettingsRequest();
+        request.persistentSettings(
+            Settings.builder()
+                .put("cluster.blocks.read_only_allow_delete", mode)
+                .build()
+        );
+
+        this.client.admin().cluster().updateSettings(request, new ActionListener<>() {
+
+            @Override
+            public void onResponse(ClusterUpdateSettingsResponse response) {
+                log.info("Read only and allow delete block {}: {}", mode, response);
+            }
+
+            @Override
+            public void onFailure(Exception e) {
+                log.error("Failed to add read only and allow block", e);
+            }
+        });
+    }
+
 }

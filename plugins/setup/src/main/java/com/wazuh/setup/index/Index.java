@@ -103,8 +103,9 @@ public abstract class Index implements IndexInitializer {
      * Creates an index.
      *
      * @param index Name of the index to create.
+     * @return true if the index was correctly created or already existed, and false otherwise.
      */
-    public void createIndex(String index) {
+    public boolean createIndex(String index) {
         try {
             if (!this.indexExists(index)) {
                 CreateIndexRequest request = new CreateIndexRequest(index);
@@ -114,18 +115,22 @@ public abstract class Index implements IndexInitializer {
                         "Index created successfully: {} {}",
                         createIndexResponse.index(),
                         createIndexResponse.isAcknowledged());
+                return true;
             }
         } catch (ResourceAlreadyExistsException e) {
             log.info("Index {} already exists. Skipping.", index);
+            return true;
         }
+        return false;
     }
 
     /**
      * Creates an index template.
      *
      * @param template name of the index template to create.
+     * @return true if the template was correctly created or already existed, and false otherwise.
      */
-    public void createTemplate(String template) {
+    public boolean createTemplate(String template) {
         try {
             Map<String, Object> templateFile = this.indexUtils.fromFile(template + ".json");
 
@@ -147,20 +152,33 @@ public abstract class Index implements IndexInitializer {
                     "Index template created successfully: {} {}",
                     template,
                     createIndexTemplateResponse.isAcknowledged());
-
         } catch (IOException e) {
             log.error("Error reading index template from filesystem {}", template);
+            return false;
         } catch (ResourceAlreadyExistsException e) {
             log.info("Index template {} already exists. Skipping.", template);
         }
+        return true;
     }
 
     /**
      * Initializes the index. Usually implies invoking {@link #createTemplate(String)} and {@link
      * #createIndex(String)}, in that order.
+     * @return true if the index and the template are correctly created, and false otherwise.
      */
-    public void initialize() {
-        this.createTemplate(this.template);
-        this.createIndex(this.index);
+    public boolean initialize() {
+        boolean templateCreated = this.createTemplate(this.template);
+        boolean indexCreated = this.createIndex(this.index);
+
+        return templateCreated && indexCreated;
+    }
+
+    /**
+     * Retrieves the current value of the index.
+     *
+     * @return the index as a {@link String}
+     */
+    public String getIndex() {
+        return index;
     }
 }
