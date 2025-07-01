@@ -55,6 +55,14 @@ def generate_random_agent():
     return agent
 
 
+def generate_random_checksum():
+    return {
+        'hash': {
+            'sha1': ''.join(random.choices("ABCDEF0123456789", k=40)),
+        }
+    }
+
+
 def generate_random_event():
     event = {
         "action": random.choice(
@@ -366,6 +374,7 @@ def generate_random_data(number):
     for _ in range(number):
         event_data = {
             "agent": generate_random_agent(),
+            "checksum": generate_random_checksum(),
             "host": generate_random_host(),
             "package": generate_random_package(),
             "vulnerability": generate_random_vulnerability(),

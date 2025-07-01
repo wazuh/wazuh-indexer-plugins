@@ -23,6 +23,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Third-party integrations maintenance [(#478)](https://github.com/wazuh/wazuh-indexer-plugins/pull/478)
 - Replace and remove deprecated settings [(#476)](https://github.com/wazuh/wazuh-indexer-plugins/pull/476)
 - Migrate WCS changes from 4.x [(#488)](https://github.com/wazuh/wazuh-indexer-plugins/pull/488)
+- Implement checksum fields into stateful ECS mappings [(#519)](https://github.com/wazuh/wazuh-indexer-plugins/pull/519)
 - FIM indices rework [(#509)](https://github.com/wazuh/wazuh-indexer-plugins/pull/509)
 
 ### Deprecated
@@ -31,6 +32,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 ### Removed
 - Delete files not needed for `5.0.0` [(#439)](https://github.com/wazuh/wazuh-indexer-plugins/pull/439)
 - Remove extra fields from CSV documentation [(#479)](https://github.com/wazuh/wazuh-indexer-plugins/pull/479)
+- Remove outdated documentation [(#532)](https://github.com/wazuh/wazuh-indexer-plugins/pull/532)
 
 ### Fixed
 - Improve ECS folder structure [(#473)](https://github.com/wazuh/wazuh-indexer-plugins/pull/473)

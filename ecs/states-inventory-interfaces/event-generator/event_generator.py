@@ -31,6 +31,7 @@ def generate_random_data(number):
     for _ in range(number):
         event_data = {
             "agent": generate_random_agent(),
+            "checksum": generate_random_checksum(),
             "host": generate_random_host(True),
             "interface": generate_random_interface(),
             "wazuh": generate_random_wazuh(),
@@ -52,6 +53,14 @@ def generate_random_agent():
         "name": f"Agent{random.randint(0, 99)}",
         "version": f"v{random.randint(0, 9)}-stable",
         "host": generate_random_host(False),
+    }
+
+
+def generate_random_checksum():
+    return {
+        'hash': {
+            'sha1': ''.join(random.choices("ABCDEF0123456789", k=40)),
+        }
     }
 
 

@@ -14,6 +14,8 @@ fields:
       id: {}
       name: {}
       version: {}
+  checksum:
+    fields: "*"
   package:
     fields:
       hotfix:
