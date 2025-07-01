@@ -13,6 +13,7 @@
 - [Run Tests](dev/run-tests.md)
 - [Plugins]()
   - [Setup](dev/plugins/setup.md)
+  - [Security](dev/plugins/security.md)
 
 # Reference Manual
 
@@ -24,10 +25,10 @@
   - [Requirements](ref/getting-started/requirements.md)
   - [Packages](ref/getting-started/packages.md)
   - [Installation](ref/getting-started/installation.md)
-- [Configuration]()
+- [Configuration](ref/configuration/README.md)
   - [Environment variables]()
   - [Command line options]()
-  - [Configuration files]()
+  - [Configuration files](ref/configuration/configuration-files.md)
 - [Modules]()
   - [Setup](ref/modules/setup/index.md)
     - [Architecture](ref/modules/setup/architecture.md)

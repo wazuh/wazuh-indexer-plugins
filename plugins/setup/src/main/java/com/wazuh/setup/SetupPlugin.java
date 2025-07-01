@@ -117,6 +117,3 @@ public class SetupPlugin extends Plugin implements ClusterPlugin {
         }
     }
 }
-// TODO Metemos un plugin nuevo security con esta doc
-// TODO metemos la configuracion configuration files en configuracion
-// TODO Security add new user o algo asi metemos el como agregar usuario
