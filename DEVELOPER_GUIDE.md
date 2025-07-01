@@ -16,27 +16,23 @@ Fork this repository on GitHub, and clone locally with `git clone`. Plugins's co
 
 ### Install Prerequisites
 
-#### JDK 11
+#### JDK 21
 
-OpenSearch builds using Java 11 at a minimum, using the Adoptium distribution. This means you must have a JDK 11 installed with the environment variable `JAVA_HOME` referencing the path to Java home for your JDK 11 installation, e.g. `JAVA_HOME=/usr/lib/jvm/jdk-11`. This is configured in `build.gradle`.
+OpenSearch builds using Java 21 at a minimum, using the Adoptium distribution. This means you must have a JDK 21 installed with the environment variable `JAVA_HOME` referencing the path to Java home for your JDK 21 installation, e.g. `JAVA_HOME=/usr/lib/jvm/jdk-21`. This is configured in `build.gradle`.
 
 ```
 allprojects {
-  targetCompatibility = JavaVersion.VERSION_11
-  sourceCompatibility = JavaVersion.VERSION_11
+  targetCompatibility = JavaVersion.VERSION_21
+  sourceCompatibility = JavaVersion.VERSION_21
 }
 ```
 
-Download Java 11 from [here](https://adoptium.net/releases.html?variant=openjdk11).
-
-#### JDK 14
-
-To run the full suite of tests, download and install [JDK 14](https://jdk.java.net/archive/) and set `JAVA11_HOME`, and `JAVA14_HOME`.
+Download Java 21 from [here](https://www.oracle.com/java/technologies/javase/jdk21-archive-downloads.html).
 
 ### Setup
 
 1. Clone the repository (see [Forking and Cloning](#forking-and-cloning))
-2. Make sure `JAVA_HOME` is pointing to a Java 11 JDK (see [Install Prerequisites](#install-prerequisites))
+2. Make sure `JAVA_HOME` is pointing to a Java 21 JDK (see [Install Prerequisites](#install-prerequisites))
 3. Launch Intellij IDEA, Choose Import Project and select the settings.gradle file in the root of this package.
 
 ### Build
