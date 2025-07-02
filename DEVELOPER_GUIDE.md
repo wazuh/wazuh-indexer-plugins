@@ -1,8 +1,7 @@
 - [Developer Guide](#developer-guide)
   - [Forking and Cloning](#forking-and-cloning)
   - [Install Prerequisites](#install-prerequisites)
-    - [JDK 11](#jdk-11)
-    - [JDK 14](#jdk-14)
+    - [JDK 21](#jdk-21)
   - [Setup](#setup)
   - [Build](#build)
     - [Building from the command line](#building-from-the-command-line)
@@ -19,15 +18,7 @@ Fork this repository on GitHub, and clone locally with `git clone`. Plugins's co
 #### JDK 21
 
 OpenSearch builds using Java 21 at a minimum, using the Adoptium distribution. This means you must have a JDK 21 installed with the environment variable `JAVA_HOME` referencing the path to Java home for your JDK 21 installation, e.g. `JAVA_HOME=/usr/lib/jvm/jdk-21`. This is configured in `build.gradle`.
-
-```
-allprojects {
-  targetCompatibility = JavaVersion.VERSION_21
-  sourceCompatibility = JavaVersion.VERSION_21
-}
-```
-
-Download Java 21 from [here](https://www.oracle.com/java/technologies/javase/jdk21-archive-downloads.html).
+Download Java 21 from [here](https://adoptium.net/es/temurin/releases).
 
 ### Setup
 
