@@ -29,9 +29,11 @@ import org.opensearch.action.admin.cluster.node.info.PluginsAndModules;
 import org.opensearch.client.Request;
 import org.opensearch.client.Response;
 import org.opensearch.cluster.health.ClusterHealthStatus;
+import org.opensearch.common.settings.Settings;
 import org.opensearch.plugins.Plugin;
 import org.opensearch.plugins.PluginInfo;
 import org.opensearch.test.OpenSearchIntegTestCase;
+import org.junit.After;
 import org.junit.Assert;
 
 import java.io.IOException;
@@ -41,6 +43,7 @@ import java.util.List;
 import java.util.function.Function;
 import java.util.stream.Stream;
 
+import static org.opensearch.test.hamcrest.OpenSearchAssertions.assertAcked;
 import static org.hamcrest.Matchers.containsString;
 
 /**
@@ -112,5 +115,18 @@ public class SetupPluginIT extends OpenSearchIntegTestCase {
         Assert.assertTrue(
                 pluginInfos.stream()
                         .anyMatch(pluginInfo -> pluginInfo.getName().equals("opensearch-index-management")));
+    }
+
+    @After
+    // This method is used by OpenSearch to make sure the test does not leave any metadata and breaks
+    // the execution
+    public void cleanup() {
+        assertAcked(
+                client()
+                        .admin()
+                        .cluster()
+                        .prepareUpdateSettings()
+                        .setPersistentSettings(
+                                Settings.builder().putNull("cluster.blocks.read_only_allow_delete")));
     }
 }

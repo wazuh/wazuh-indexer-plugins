@@ -148,16 +148,8 @@ public class SetupPlugin extends Plugin implements ClusterPlugin {
      */
     public void setBlock(boolean mode) {
         ClusterUpdateSettingsRequest request = new ClusterUpdateSettingsRequest();
-        if (mode) {
-            request.persistentSettings(
-                    Settings.builder().put("cluster.blocks.read_only_allow_delete", true).build());
-        } else {
-            // To deactivate the block is necessary to use putNull method instead of changing the block to
-            // false,
-            // this is because if we only change the block to false in it leaves some extra metadata
-            request.persistentSettings(
-                    Settings.builder().putNull("cluster.blocks.read_only_allow_delete").build());
-        }
+        request.persistentSettings(
+                Settings.builder().put("cluster.blocks.read_only_allow_delete", mode).build());
 
         this.client
                 .admin()
