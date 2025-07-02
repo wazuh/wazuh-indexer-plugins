@@ -25,7 +25,7 @@
   - [Requirements](ref/getting-started/requirements.md)
   - [Packages](ref/getting-started/packages.md)
   - [Installation](ref/getting-started/installation.md)
-- [Configuration](ref/configuration/README.md)
+- [Configuration]()
   - [Environment variables]()
   - [Command line options]()
   - [Configuration files](ref/configuration/configuration-files.md)
