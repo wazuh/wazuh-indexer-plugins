@@ -35,8 +35,8 @@ classDiagram
 
     %% Schemas
     class IndexInitializer {
-        +createIndex(String index) void
-        +createTemplate(String template) void
+        +createIndex(String index) bool
+        +createTemplate(String template) bool
     }
     class Index {
         Client client
@@ -49,23 +49,23 @@ classDiagram
         +setClusterService(ClusterService clusterService) IndexInitializer
         +setIndexUtils(IndexUtils utils) IndexInitializer
         +indexExists(String indexName) bool
-        +initialize() void
-        +createIndex(String index) void
-        +createTemplate(String template) void
+        +initialize() bool 
+        +createIndex(String index) bool 
+        +createTemplate(String template) bool
         %% initialize() podría reemplazarse por createIndex() y createTemplate()
     }
     class IndexStateManagement {
         -List~String~ policies
-        +initialize() void
-        -createPolicies() void
-        -indexPolicy(String policy) void
+        +initialize() bool 
+        -createPolicies() bool 
+        -indexPolicy(String policy) bool 
     }
     class WazuhIndex {
     }
     class StreamIndex {
         -String alias
         +StreamIndex(String index, String template, String alias)
-        +createIndex(String index)
+        +createIndex(String index) bool
     }
     class StateIndex {
     }
@@ -77,6 +77,9 @@ classDiagram
 
 
 ```mermaid
+---
+title: Wazuh Indexer setup plugin
+---
 sequenceDiagram
     actor Node
     participant SetupPlugin
@@ -84,6 +87,8 @@ sequenceDiagram
     participant Client
     Node->>SetupPlugin: plugin.onNodeStarted()
     activate SetupPlugin
+
+
     Note over Node,SetupPlugin: Invoked on Node::start()
 
     activate Index
@@ -100,9 +105,17 @@ sequenceDiagram
             Index-)Client: createIndex(i)
             Client--)Index: response
         end
+
+        Index--)SetupPlugin: response[i]
+    end
+    
+    deactivate Index
+
+    SetupPlugin->>Client:  cluster.blocks.read_only: true
+    alt indices.all(initialized)
+        SetupPlugin->>Client:  cluster.blocks.read_only: false
     end
 
-    deactivate Index
     deactivate SetupPlugin
 ```
 
