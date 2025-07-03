@@ -8,7 +8,7 @@ Wazuh Indexer uses the OpenSearch Security Plugin to manage access control and s
 
 Wazuh defines internal users and roles for the different Wazuh components to handle index management.
 
-These default users and roles definitions are stored in the `internal_users.yml`, `roles.yml`, and `roles_mapping.yml` files on the `/etc/wazuh-indexer/opensearch-security/1 directory.
+These default users and roles definitions are stored in the `internal_users.yml`, `roles.yml`, and `roles_mapping.yml` files on the `/etc/wazuh-indexer/opensearch-security/` directory.
 > Find more info about the configurations files in the [Configuration Files](/ref/configuration/configuration-files.md) section.
 
 ### Users
