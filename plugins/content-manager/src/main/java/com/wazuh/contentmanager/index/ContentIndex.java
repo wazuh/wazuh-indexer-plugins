@@ -326,6 +326,7 @@ public class ContentIndex {
 
     /**
      * Checks whether the {@link ContentIndex#INDEX_NAME} index exists.
+     * This is a wrapper meant for unit testing.
      *
      * @see ClusterInfo#indexExists(Client, String)
      * @return true if the index exists, false otherwise.

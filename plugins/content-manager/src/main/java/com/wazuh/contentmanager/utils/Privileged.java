@@ -30,8 +30,6 @@ import com.wazuh.contentmanager.model.cti.ConsumerInfo;
 /** Privileged utility class for executing privileged HTTP requests. */
 public class Privileged {
 
-    private static final Logger log = LogManager.getLogger(Privileged.class);
-
     /** Default constructor for Privileged class. */
     public Privileged() {}
 
