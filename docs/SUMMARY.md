@@ -37,6 +37,8 @@
 - [Uninstall](ref/uninstall.md)
 - [Back Up and Restore](ref/backup-restore.md)
 - [Security]()
+  - [Access Control](ref/security/access-control.md)
+  - [Defining Users and Roles](ref/security/defining-users-and-roles.md)
 - [Performance]()
 - [Glossary]()
 
