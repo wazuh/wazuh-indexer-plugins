@@ -151,6 +151,7 @@ public abstract class Index implements IndexInitializer {
                     "Index template created successfully: {} {}",
                     template,
                     createIndexTemplateResponse.isAcknowledged());
+            return createIndexTemplateResponse.isAcknowledged();
         } catch (IOException e) {
             log.error("Error reading index template from filesystem {}", template);
             return false;
