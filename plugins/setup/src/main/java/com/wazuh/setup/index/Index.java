@@ -115,13 +115,12 @@ public abstract class Index implements IndexInitializer {
                         "Index created successfully: {} {}",
                         createIndexResponse.index(),
                         createIndexResponse.isAcknowledged());
-                return true;
+                return createIndexResponse.isAcknowledged();
             }
         } catch (ResourceAlreadyExistsException e) {
             log.info("Index {} already exists. Skipping.", index);
-            return true;
         }
-        return false;
+        return true;
     }
 
     /**
@@ -180,6 +179,6 @@ public abstract class Index implements IndexInitializer {
      * @return the index as a {@link String}
      */
     public String getIndex() {
-        return index;
+        return this.index;
     }
 }

@@ -122,7 +122,7 @@ public class SetupPluginIT extends OpenSearchIntegTestCase {
     // the execution
     public void cleanup() {
         assertAcked(
-                client()
+                OpenSearchIntegTestCase.client()
                         .admin()
                         .cluster()
                         .prepareUpdateSettings()

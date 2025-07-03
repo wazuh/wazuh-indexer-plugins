@@ -122,6 +122,8 @@ public class IndexStateManagement extends Index {
                         "Index created successfully: {} {}",
                         createIndexResponse.index(),
                         createIndexResponse.isAcknowledged());
+
+                return createIndexResponse.isAcknowledged();
             }
 
         } catch (IOException e) {
