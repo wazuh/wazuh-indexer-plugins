@@ -13,6 +13,7 @@
 - [Run Tests](dev/run-tests.md)
 - [Plugins]()
   - [Setup](dev/plugins/setup.md)
+  - [Security](dev/plugins/security.md)
 
 # Reference Manual
 
@@ -27,7 +28,7 @@
 - [Configuration]()
   - [Environment variables]()
   - [Command line options]()
-  - [Configuration files]()
+  - [Configuration files](ref/configuration/configuration-files.md)
 - [Modules]()
   - [Setup](ref/modules/setup/index.md)
     - [Architecture](ref/modules/setup/architecture.md)
@@ -36,6 +37,8 @@
 - [Uninstall](ref/uninstall.md)
 - [Back Up and Restore](ref/backup-restore.md)
 - [Security]()
+  - [Access Control](ref/security/access-control.md)
+  - [Defining Users and Roles](ref/security/defining-users-and-roles.md)
 - [Performance]()
 - [Glossary]()
 
