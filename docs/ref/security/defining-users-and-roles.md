@@ -2,6 +2,12 @@
 
 You can create and manage users and roles through the Wazuh Dashboard UI.
 
+<div class="warning">
+
+Default users and roles cannot be modified. Instead, duplicate them and modify the duplicates.
+
+</div>
+
 ## Creating a New User, Role, and Role Mapping via the Wazuh Dashboard
 
 > **Prerequisites**
