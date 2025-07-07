@@ -116,8 +116,17 @@ public class IndexStateManagement extends Index {
             }
         } catch (IOException e) {
             log.error("Error reading index template from filesystem {}", this.template);
-        } catch (ResourceAlreadyExistsException e) {
-            log.info("Index {} already exists. Skipping.", index);
+        } catch (
+                Exception
+                        e) { // TimeoutException may be raised by actionGet(), but we cannot catch that one.
+            // Exit condition. Re-attempt to create the index also failed. Original exception is rethrown.
+            if (!this.retry_index_creation) {
+                log.error("Initialization of index [{}] finally failed. The node will shut down.", index);
+                throw e;
+            }
+            log.warn("Operation to create the index [{}] timed out. Retrying...", index);
+            this.retry_index_creation = false;
+            this.createIndex(index);
         }
     }
 

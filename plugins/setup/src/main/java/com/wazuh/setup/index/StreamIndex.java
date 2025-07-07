@@ -18,7 +18,6 @@ package com.wazuh.setup.index;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.opensearch.ResourceAlreadyExistsException;
 import org.opensearch.action.admin.indices.alias.Alias;
 import org.opensearch.action.admin.indices.create.CreateIndexRequest;
 import org.opensearch.action.admin.indices.create.CreateIndexResponse;
@@ -66,8 +65,17 @@ public class StreamIndex extends WazuhIndex {
                         createIndexResponse.index(),
                         createIndexResponse.isAcknowledged());
             }
-        } catch (ResourceAlreadyExistsException e) {
-            log.info("Index {} already exists. Skipping.", index);
+        } catch (
+                Exception
+                        e) { // TimeoutException may be raised by actionGet(), but we cannot catch that one.
+            // Exit condition. Re-attempt to create the index also failed. Original exception is rethrown.
+            if (!this.retry_index_creation) {
+                log.error("Initialization of index [{}] finally failed. The node will shut down.", index);
+                throw e;
+            }
+            log.warn("Operation to create the index [{}] timed out. Retrying...", index);
+            this.retry_index_creation = false;
+            this.createIndex(index);
         }
     }
 }
