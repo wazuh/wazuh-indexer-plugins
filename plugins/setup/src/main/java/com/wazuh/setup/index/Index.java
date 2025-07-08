@@ -30,7 +30,7 @@ import java.io.IOException;
 import java.util.List;
 import java.util.Map;
 
-import com.wazuh.setup.SetupPlugin;
+import com.wazuh.setup.settings.PluginSettings;
 import com.wazuh.setup.utils.IndexUtils;
 
 /**
@@ -51,6 +51,9 @@ public abstract class Index implements IndexInitializer {
     String index;
     String template;
 
+    boolean retry_index_creation;
+    boolean retry_template_creation;
+
     /**
      * Constructor.
      *
@@ -60,6 +63,9 @@ public abstract class Index implements IndexInitializer {
     Index(String index, String template) {
         this.index = index;
         this.template = template;
+
+        this.retry_index_creation = true;
+        this.retry_template_creation = true;
     }
 
     /**
@@ -109,7 +115,11 @@ public abstract class Index implements IndexInitializer {
             if (!this.indexExists(index)) {
                 CreateIndexRequest request = new CreateIndexRequest(index);
                 CreateIndexResponse createIndexResponse =
-                        this.client.admin().indices().create(request).actionGet(SetupPlugin.TIMEOUT);
+                        this.client
+                                .admin()
+                                .indices()
+                                .create(request)
+                                .actionGet(PluginSettings.getTimeout(this.clusterService.getSettings()));
                 log.info(
                         "Index created successfully: {} {}",
                         createIndexResponse.index(),
@@ -117,6 +127,18 @@ public abstract class Index implements IndexInitializer {
             }
         } catch (ResourceAlreadyExistsException e) {
             log.info("Index {} already exists. Skipping.", index);
+        } catch (
+                Exception
+                        e) { // TimeoutException may be raised by actionGet(), but we cannot catch that one.
+            // Exit condition. Re-attempt to create the index also failed. Original exception is rethrown.
+            if (!this.retry_index_creation) {
+                log.error("Initialization of index [{}] finally failed. The node will shut down.", index);
+                throw e;
+            }
+            log.warn("Operation to create the index [{}] timed out. Retrying...", index);
+            this.retry_index_creation = false;
+            this.indexUtils.sleep(PluginSettings.getBackoff(this.clusterService.getSettings()));
+            this.createIndex(index);
         }
     }
 
@@ -141,7 +163,7 @@ public abstract class Index implements IndexInitializer {
                             .admin()
                             .indices()
                             .putTemplate(putIndexTemplateRequest)
-                            .actionGet(SetupPlugin.TIMEOUT);
+                            .actionGet(PluginSettings.getTimeout(this.clusterService.getSettings()));
 
             log.info(
                     "Index template created successfully: {} {}",
@@ -152,6 +174,21 @@ public abstract class Index implements IndexInitializer {
             log.error("Error reading index template from filesystem {}", template);
         } catch (ResourceAlreadyExistsException e) {
             log.info("Index template {} already exists. Skipping.", template);
+        } catch (
+                Exception
+                        e) { // TimeoutException may be raised by actionGet(), but we cannot catch that one.
+            // Exit condition. Re-attempt to create the index template also failed. Original exception is
+            // rethrown.
+            if (!this.retry_template_creation) {
+                log.error(
+                        "Initialization of index template [{}] finally failed. The node will shut down.",
+                        template);
+                throw e;
+            }
+            log.warn("Operation to create the index template [{}] timed out. Retrying...", template);
+            this.retry_template_creation = false;
+            this.indexUtils.sleep(PluginSettings.getBackoff(this.clusterService.getSettings()));
+            this.createTemplate(template);
         }
     }
 

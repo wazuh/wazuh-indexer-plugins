@@ -23,7 +23,7 @@ import org.opensearch.action.admin.indices.alias.Alias;
 import org.opensearch.action.admin.indices.create.CreateIndexRequest;
 import org.opensearch.action.admin.indices.create.CreateIndexResponse;
 
-import com.wazuh.setup.SetupPlugin;
+import com.wazuh.setup.settings.PluginSettings;
 
 /**
  * Class to represent a Stream index. Stream indices contain time-based events of any kind (alerts,
@@ -60,7 +60,11 @@ public class StreamIndex extends WazuhIndex {
                 CreateIndexRequest request =
                         new CreateIndexRequest(index).alias(new Alias(this.alias).writeIndex(true));
                 CreateIndexResponse createIndexResponse =
-                        this.client.admin().indices().create(request).actionGet(SetupPlugin.TIMEOUT);
+                        this.client
+                                .admin()
+                                .indices()
+                                .create(request)
+                                .actionGet(PluginSettings.getTimeout(this.clusterService.getSettings()));
                 log.info(
                         "Index created successfully: {} {}",
                         createIndexResponse.index(),
@@ -68,6 +72,18 @@ public class StreamIndex extends WazuhIndex {
             }
         } catch (ResourceAlreadyExistsException e) {
             log.info("Index {} already exists. Skipping.", index);
+        } catch (
+                Exception
+                        e) { // TimeoutException may be raised by actionGet(), but we cannot catch that one.
+            // Exit condition. Re-attempt to create the index also failed. Original exception is rethrown.
+            if (!this.retry_index_creation) {
+                log.error("Initialization of index [{}] finally failed. The node will shut down.", index);
+                throw e;
+            }
+            log.warn("Operation to create the index [{}] timed out. Retrying...", index);
+            this.retry_index_creation = false;
+            this.indexUtils.sleep(PluginSettings.getBackoff(this.clusterService.getSettings()));
+            this.createIndex(index);
         }
     }
 }

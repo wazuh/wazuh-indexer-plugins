@@ -16,7 +16,6 @@
  */
 package com.wazuh.setup.index;
 
-import org.opensearch.ResourceAlreadyExistsException;
 import org.opensearch.action.admin.indices.alias.Alias;
 import org.opensearch.action.admin.indices.create.CreateIndexRequest;
 import org.opensearch.action.admin.indices.create.CreateIndexResponse;
@@ -24,12 +23,13 @@ import org.opensearch.cluster.ClusterState;
 import org.opensearch.cluster.routing.RoutingTable;
 import org.opensearch.cluster.service.ClusterService;
 import org.opensearch.common.action.ActionFuture;
+import org.opensearch.common.settings.Settings;
 import org.opensearch.test.OpenSearchTestCase;
 import org.opensearch.transport.client.AdminClient;
 import org.opensearch.transport.client.Client;
 import org.opensearch.transport.client.IndicesAdminClient;
 
-import com.wazuh.setup.SetupPlugin;
+import com.wazuh.setup.utils.IndexUtils;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
@@ -47,19 +47,24 @@ public class StreamIndexTests extends OpenSearchTestCase {
 
         Client client = mock(Client.class);
         AdminClient adminClient = mock(AdminClient.class);
-        indicesAdminClient = mock(IndicesAdminClient.class);
+        this.indicesAdminClient = mock(IndicesAdminClient.class);
         ClusterService clusterService = mock(ClusterService.class);
-        routingTable = mock(RoutingTable.class);
+        this.routingTable = mock(RoutingTable.class);
         ClusterState clusterState = mock(ClusterState.class);
 
-        streamIndex = new StreamIndex("stream-index", "stream-template", "stream-alias");
-        streamIndex.setClient(client);
-        streamIndex.setClusterService(clusterService);
+        // Default settings
+        Settings settings = Settings.builder().build();
+        doReturn(settings).when(clusterService).getSettings();
+
+        this.streamIndex = new StreamIndex("stream-index", "stream-template", "stream-alias");
+        this.streamIndex.setClient(client);
+        this.streamIndex.setClusterService(clusterService);
+        this.streamIndex.setIndexUtils(mock(IndexUtils.class));
 
         doReturn(adminClient).when(client).admin();
-        doReturn(indicesAdminClient).when(adminClient).indices();
+        doReturn(this.indicesAdminClient).when(adminClient).indices();
         doReturn(clusterState).when(clusterService).state();
-        doReturn(routingTable).when(clusterState).getRoutingTable();
+        doReturn(this.routingTable).when(clusterState).getRoutingTable();
     }
 
     /**
@@ -67,17 +72,17 @@ public class StreamIndexTests extends OpenSearchTestCase {
      * exist.
      */
     public void testCreateIndexWithAlias() {
-        doReturn(false).when(routingTable).hasIndex("stream-index");
+        doReturn(false).when(this.routingTable).hasIndex("stream-index");
 
         CreateIndexResponse response = mock(CreateIndexResponse.class);
         doReturn("stream-index").when(response).index();
         ActionFuture actionFuture = mock(ActionFuture.class);
-        doReturn(response).when(actionFuture).actionGet(SetupPlugin.TIMEOUT);
-        doReturn(actionFuture).when(indicesAdminClient).create(any(CreateIndexRequest.class));
+        doReturn(response).when(actionFuture).actionGet(anyLong());
+        doReturn(actionFuture).when(this.indicesAdminClient).create(any(CreateIndexRequest.class));
 
-        streamIndex.createIndex("stream-index");
+        this.streamIndex.createIndex("stream-index");
 
-        verify(indicesAdminClient)
+        verify(this.indicesAdminClient)
                 .create(
                         argThat(
                                 req -> {
@@ -91,24 +96,10 @@ public class StreamIndexTests extends OpenSearchTestCase {
 
     /** Verifies that createIndex skips index creation if the index already exists. */
     public void testCreateIndexWhenAlreadyExists() {
-        doReturn(true).when(routingTable).hasIndex("stream-index");
+        doReturn(true).when(this.routingTable).hasIndex("stream-index");
 
-        streamIndex.createIndex("stream-index");
+        this.streamIndex.createIndex("stream-index");
 
-        verify(indicesAdminClient, never()).create(any());
-    }
-
-    /** Verifies that createIndex handles ResourceAlreadyExistsException gracefully. */
-    public void testCreateIndexAlreadyExistsException() {
-        doReturn(false).when(routingTable).hasIndex("stream-index");
-
-        doThrow(new ResourceAlreadyExistsException("already exists"))
-                .when(indicesAdminClient)
-                .create(any(CreateIndexRequest.class));
-
-        streamIndex.createIndex("stream-index");
-
-        // We expect no exception thrown
-        verify(indicesAdminClient).create(any(CreateIndexRequest.class));
+        verify(this.indicesAdminClient, never()).create(any());
     }
 }

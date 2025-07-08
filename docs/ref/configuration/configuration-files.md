@@ -1,5 +1,32 @@
 # Configuration Files
 
+## Initialization plugin settings
+
+#### Timeout for the OpenSearch client
+- **Key**: `plugins.setup.timeout`
+- **Type**: Integer
+- **Default**: `30`
+- **Minimum**: `5`
+- **Maximum**: `120`
+- **Description**: Timeout in seconds for index and search operations.
+
+#### Backoff (delay) for the retry mechanism
+- **Key**: `plugins.setup.backoff`
+- **Type**: Integer
+- **Default**: `15`
+- **Minimum**: `5`
+- **Maximum**: `60`
+- **Description**: Delay in seconds for the retry mechanism involving initialization tasks.
+
+### Example
+
+Below, there is an example of custom values for these settings within the `opensearch.yml` file:
+
+```yaml
+plugins.setup.timeout: 60
+plugins.setup.backoff: 30
+```
+
 ## Security - Access Control
 
 Wazuh Indexer uses the [OpenSearch Security plugin](https://docs.opensearch.org/docs/latest/security/) to manage access control and security features.
