@@ -25,6 +25,9 @@ import java.util.concurrent.TimeUnit;
 /** Settings class for this plugin. */
 public class PluginSettings {
 
+    /** Default constructor. */
+    public PluginSettings() {}
+
     /** Default timeout in seconds for operations involving the OpenSearch client. */
     public static final int DEFAULT_TIMEOUT = 30;
 
