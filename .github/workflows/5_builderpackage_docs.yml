@@ -6,8 +6,8 @@ on:
   workflow_dispatch:
   push:
     branches:
-      # - main
-      - 6.0.0
+      - main
+      #- 6.0.0
     paths:
       - "docs/**"
 
