@@ -34,7 +34,6 @@ import java.io.IOException;
 import java.util.List;
 import java.util.Map;
 
-import com.wazuh.setup.SetupPlugin;
 import com.wazuh.setup.utils.IndexUtils;
 
 import static org.mockito.Mockito.*;
@@ -59,6 +58,10 @@ public class IndexTests extends OpenSearchTestCase {
         ClusterState clusterState = mock(ClusterState.class);
         this.indexUtils = mock(IndexUtils.class);
 
+        // Default settings
+        Settings settings = Settings.builder().build();
+        doReturn(settings).when(clusterService).getSettings();
+
         // Concrete implementation of abstract class
         this.index = new Index("test-index", "test-template") {};
         this.index.setClient(client);
@@ -78,7 +81,7 @@ public class IndexTests extends OpenSearchTestCase {
         CreateIndexResponse response = mock(CreateIndexResponse.class);
         doReturn("test-index").when(response).index();
         ActionFuture actionFuture = mock(ActionFuture.class);
-        doReturn(response).when(actionFuture).actionGet(SetupPlugin.TIMEOUT);
+        doReturn(response).when(actionFuture).actionGet(anyLong());
         doReturn(actionFuture).when(this.indicesAdminClient).create(any(CreateIndexRequest.class));
 
         this.index.createIndex("test-index");
@@ -112,7 +115,7 @@ public class IndexTests extends OpenSearchTestCase {
 
         AcknowledgedResponse ackResponse = mock(AcknowledgedResponse.class);
         ActionFuture actionFuture = mock(ActionFuture.class);
-        doReturn(ackResponse).when(actionFuture).actionGet(SetupPlugin.TIMEOUT);
+        doReturn(ackResponse).when(actionFuture).actionGet(anyLong());
         doReturn(actionFuture)
                 .when(this.indicesAdminClient)
                 .putTemplate(any(PutIndexTemplateRequest.class));

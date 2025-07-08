@@ -76,4 +76,17 @@ public class IndexUtils {
     public Map<String, Object> get(Map<String, Object> map, String key) {
         return (Map<String, Object>) map.get(key);
     }
+
+    /**
+     * Utility method to wrap up the call to {@link Thread#sleep(long)} on a try-catch block.
+     *
+     * @param millis sleep interval in milliseconds.
+     */
+    public void sleep(long millis) {
+        try {
+            Thread.sleep(millis);
+        } catch (InterruptedException ex) {
+            throw new RuntimeException(ex);
+        }
+    }
 }

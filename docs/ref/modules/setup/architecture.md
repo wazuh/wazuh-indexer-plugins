@@ -8,6 +8,12 @@ The `SetupPlugin` class holds the list of indices to create. The logic for the c
 
 By design, the plugin will overwrite any existing index template under the same name.
 
+### Retry mechanism
+
+The plugin features a retry mechanism to handle transient faults. In case of a temporal failure (timeouts or similar) during the initialization of the indices, the task is retried after a given amount of time (backoff). If two consecutive faults occur during the initialization of the same index, the initialization process is halted, and the node is shut down. Proper logging is in place to notify administrators before the shutdown occurs.
+
+The backoff time is configurable. Head to [Configuration Files](/ref/configuration/configuration-files.md#initialization-plugin-settings) for more information.
+
 ## Class diagram
 
 ```mermaid

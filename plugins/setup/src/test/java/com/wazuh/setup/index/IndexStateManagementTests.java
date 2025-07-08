@@ -20,6 +20,7 @@ import org.opensearch.ResourceAlreadyExistsException;
 import org.opensearch.action.admin.indices.create.CreateIndexRequest;
 import org.opensearch.action.admin.indices.create.CreateIndexResponse;
 import org.opensearch.action.index.IndexRequest;
+import org.opensearch.cluster.service.ClusterService;
 import org.opensearch.common.action.ActionFuture;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.test.OpenSearchTestCase;
@@ -31,7 +32,6 @@ import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 
-import com.wazuh.setup.SetupPlugin;
 import com.wazuh.setup.utils.IndexUtils;
 
 import static org.mockito.Mockito.*;
@@ -53,12 +53,18 @@ public class IndexStateManagementTests extends OpenSearchTestCase {
         this.indicesAdminClient = mock(IndicesAdminClient.class);
         this.indexUtils = mock(IndexUtils.class);
 
+        // Default settings
+        ClusterService clusterService = mock(ClusterService.class);
+        Settings settings = Settings.builder().build();
+        doReturn(settings).when(clusterService).getSettings();
+
         doReturn(adminClient).when(this.client).admin();
         doReturn(this.indicesAdminClient).when(adminClient).indices();
 
         this.ismIndex = spy(new IndexStateManagement(".opendistro-ism-config", "ism-template"));
         this.ismIndex.setClient(this.client);
         this.ismIndex.setIndexUtils(this.indexUtils);
+        this.ismIndex.setClusterService(clusterService);
     }
 
     /**
@@ -88,7 +94,7 @@ public class IndexStateManagementTests extends OpenSearchTestCase {
 
         doReturn(actionFuture).when(this.client).index(any(IndexRequest.class));
 
-        doReturn(createResponse).when(actionFuture).actionGet(SetupPlugin.TIMEOUT);
+        doReturn(createResponse).when(actionFuture).actionGet(anyLong());
 
         this.ismIndex.initialize();
 

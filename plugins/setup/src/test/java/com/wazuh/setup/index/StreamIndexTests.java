@@ -23,12 +23,13 @@ import org.opensearch.cluster.ClusterState;
 import org.opensearch.cluster.routing.RoutingTable;
 import org.opensearch.cluster.service.ClusterService;
 import org.opensearch.common.action.ActionFuture;
+import org.opensearch.common.settings.Settings;
 import org.opensearch.test.OpenSearchTestCase;
 import org.opensearch.transport.client.AdminClient;
 import org.opensearch.transport.client.Client;
 import org.opensearch.transport.client.IndicesAdminClient;
 
-import com.wazuh.setup.SetupPlugin;
+import com.wazuh.setup.utils.IndexUtils;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
@@ -51,9 +52,14 @@ public class StreamIndexTests extends OpenSearchTestCase {
         this.routingTable = mock(RoutingTable.class);
         ClusterState clusterState = mock(ClusterState.class);
 
+        // Default settings
+        Settings settings = Settings.builder().build();
+        doReturn(settings).when(clusterService).getSettings();
+
         this.streamIndex = new StreamIndex("stream-index", "stream-template", "stream-alias");
         this.streamIndex.setClient(client);
         this.streamIndex.setClusterService(clusterService);
+        this.streamIndex.setIndexUtils(mock(IndexUtils.class));
 
         doReturn(adminClient).when(client).admin();
         doReturn(this.indicesAdminClient).when(adminClient).indices();
@@ -71,7 +77,7 @@ public class StreamIndexTests extends OpenSearchTestCase {
         CreateIndexResponse response = mock(CreateIndexResponse.class);
         doReturn("stream-index").when(response).index();
         ActionFuture actionFuture = mock(ActionFuture.class);
-        doReturn(response).when(actionFuture).actionGet(SetupPlugin.TIMEOUT);
+        doReturn(response).when(actionFuture).actionGet(anyLong());
         doReturn(actionFuture).when(this.indicesAdminClient).create(any(CreateIndexRequest.class));
 
         this.streamIndex.createIndex("stream-index");

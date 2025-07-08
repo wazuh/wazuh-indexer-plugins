@@ -29,7 +29,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
-import com.wazuh.setup.SetupPlugin;
+import com.wazuh.setup.settings.PluginSettings;
 
 /**
  * Initializes the Index State Management internal index <code>.opendistro-ism-config</code>.
@@ -80,12 +80,26 @@ public class IndexStateManagement extends Index {
                             .id(ALERTS_ROLLOVER_POLICY)
                             .source(policyFile, MediaTypeRegistry.JSON);
 
-            client.index(indexRequest).actionGet(SetupPlugin.TIMEOUT);
+            this.client
+                    .index(indexRequest)
+                    .actionGet(PluginSettings.getTimeout(this.clusterService.getSettings()));
             log.info("ISM policy [{}] created", policy);
         } catch (IOException e) {
             log.error("Failed to load the ISM policy from file: {}", e.getMessage());
         } catch (ResourceAlreadyExistsException e) {
             log.error("Policy already exists, skipping creation: {}", e.getMessage());
+        } catch (
+                Exception
+                        e) { // TimeoutException may be raised by actionGet(), but we cannot catch that one.
+            // Exit condition. Re-attempt to create the index also failed. Original exception is rethrown.
+            if (!this.retry_index_creation) {
+                log.error("Initialization of policy [{}] finally failed. The node will shut down.", policy);
+                throw e;
+            }
+            log.warn("Operation to create the policy [{}] timed out. Retrying...", policy);
+            this.retry_index_creation = false;
+            this.indexUtils.sleep(PluginSettings.getBackoff(this.clusterService.getSettings()));
+            this.indexPolicy(policy);
         }
     }
 
@@ -108,7 +122,11 @@ public class IndexStateManagement extends Index {
                                 .mapping(this.indexUtils.get(templateFile, "mappings"))
                                 .settings(this.indexUtils.get(templateFile, "settings"));
                 CreateIndexResponse createIndexResponse =
-                        this.client.admin().indices().create(request).actionGet(SetupPlugin.TIMEOUT);
+                        this.client
+                                .admin()
+                                .indices()
+                                .create(request)
+                                .actionGet(PluginSettings.getTimeout(this.clusterService.getSettings()));
                 log.info(
                         "Index created successfully: {} {}",
                         createIndexResponse.index(),
@@ -126,6 +144,7 @@ public class IndexStateManagement extends Index {
             }
             log.warn("Operation to create the index [{}] timed out. Retrying...", index);
             this.retry_index_creation = false;
+            this.indexUtils.sleep(PluginSettings.getBackoff(this.clusterService.getSettings()));
             this.createIndex(index);
         }
     }
@@ -134,6 +153,7 @@ public class IndexStateManagement extends Index {
     @Override
     public void initialize() {
         this.createIndex(this.index);
+        this.retry_index_creation = true; // Re-used variable to retry initialization of ISM policies.
         this.createPolicies();
     }
 }

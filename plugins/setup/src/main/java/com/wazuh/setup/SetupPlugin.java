@@ -19,7 +19,6 @@ package com.wazuh.setup;
 import org.opensearch.cluster.metadata.IndexNameExpressionResolver;
 import org.opensearch.cluster.node.DiscoveryNode;
 import org.opensearch.cluster.service.ClusterService;
-import org.opensearch.common.unit.TimeValue;
 import org.opensearch.core.common.io.stream.NamedWriteableRegistry;
 import org.opensearch.core.xcontent.NamedXContentRegistry;
 import org.opensearch.env.Environment;
@@ -36,7 +35,6 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
-import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
 
 import com.wazuh.setup.index.Index;
@@ -51,7 +49,6 @@ import com.wazuh.setup.utils.IndexUtils;
  */
 public class SetupPlugin extends Plugin implements ClusterPlugin {
 
-    public static final TimeValue TIMEOUT = new TimeValue(30L, TimeUnit.SECONDS);
     private final List<Index> indices = new ArrayList<>();
 
     /** Default constructor */
