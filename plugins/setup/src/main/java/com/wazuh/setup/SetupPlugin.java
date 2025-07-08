@@ -19,6 +19,7 @@ package com.wazuh.setup;
 import org.opensearch.cluster.metadata.IndexNameExpressionResolver;
 import org.opensearch.cluster.node.DiscoveryNode;
 import org.opensearch.cluster.service.ClusterService;
+import org.opensearch.common.settings.Setting;
 import org.opensearch.core.common.io.stream.NamedWriteableRegistry;
 import org.opensearch.core.xcontent.NamedXContentRegistry;
 import org.opensearch.env.Environment;
@@ -41,6 +42,7 @@ import com.wazuh.setup.index.Index;
 import com.wazuh.setup.index.IndexStateManagement;
 import com.wazuh.setup.index.StateIndex;
 import com.wazuh.setup.index.StreamIndex;
+import com.wazuh.setup.settings.PluginSettings;
 import com.wazuh.setup.utils.IndexUtils;
 
 /**
@@ -112,5 +114,10 @@ public class SetupPlugin extends Plugin implements ClusterPlugin {
         if (localNode.isClusterManagerNode()) {
             this.indices.forEach(Index::initialize);
         }
+    }
+
+    @Override
+    public List<Setting<?>> getSettings() {
+        return List.of(PluginSettings.TIMEOUT, PluginSettings.BACKOFF);
     }
 }
