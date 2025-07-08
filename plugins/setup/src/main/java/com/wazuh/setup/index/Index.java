@@ -172,12 +172,12 @@ public abstract class Index implements IndexInitializer {
             if (!this.retry_template_creation) {
                 log.error(
                         "Initialization of index template [{}] finally failed. The node will shut down.",
-                        index);
+                        template);
                 throw e;
             }
-            log.warn("Operation to create the index template [{}] timed out. Retrying...", index);
+            log.warn("Operation to create the index template [{}] timed out. Retrying...", template);
             this.retry_template_creation = false;
-            this.createTemplate(index);
+            this.createTemplate(template);
         }
     }
 
