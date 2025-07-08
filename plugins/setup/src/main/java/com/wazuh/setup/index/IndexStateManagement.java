@@ -134,6 +134,8 @@ public class IndexStateManagement extends Index {
             }
         } catch (IOException e) {
             log.error("Error reading index template from filesystem {}", this.template);
+        } catch (ResourceAlreadyExistsException e) {
+            log.info("Index {} already exists. Skipping.", index);
         } catch (
                 Exception
                         e) { // TimeoutException may be raised by actionGet(), but we cannot catch that one.

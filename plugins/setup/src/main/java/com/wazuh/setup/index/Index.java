@@ -18,6 +18,7 @@ package com.wazuh.setup.index;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.opensearch.ResourceAlreadyExistsException;
 import org.opensearch.action.admin.indices.create.CreateIndexRequest;
 import org.opensearch.action.admin.indices.create.CreateIndexResponse;
 import org.opensearch.action.admin.indices.template.put.PutIndexTemplateRequest;
@@ -124,6 +125,8 @@ public abstract class Index implements IndexInitializer {
                         createIndexResponse.index(),
                         createIndexResponse.isAcknowledged());
             }
+        } catch (ResourceAlreadyExistsException e) {
+            log.info("Index {} already exists. Skipping.", index);
         } catch (
                 Exception
                         e) { // TimeoutException may be raised by actionGet(), but we cannot catch that one.
@@ -169,6 +172,8 @@ public abstract class Index implements IndexInitializer {
 
         } catch (IOException e) {
             log.error("Error reading index template from filesystem {}", template);
+        } catch (ResourceAlreadyExistsException e) {
+            log.info("Index template {} already exists. Skipping.", template);
         } catch (
                 Exception
                         e) { // TimeoutException may be raised by actionGet(), but we cannot catch that one.
