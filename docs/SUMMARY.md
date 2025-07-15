@@ -14,9 +14,9 @@
 - [Plugins]()
   - [Setup](dev/plugins/setup.md)
   - [Security](dev/plugins/security.md)
+  - [Reporting](dev/plugins/reporting.md)
 
 # Reference Manual
-
 - [Introduction]()
   - [Description](ref/description.md)
   - [Architecture](ref/architecture.md)
@@ -33,6 +33,8 @@
   - [Setup](ref/modules/setup/index.md)
     - [Architecture](ref/modules/setup/architecture.md)
     - [API Reference]()
+  - [Reporting](ref/modules/reporting/index.md)
+    - [Usage](ref/modules/reporting/usage.md)
 - [Upgrade](ref/upgrade.md)
 - [Uninstall](ref/uninstall.md)
 - [Back Up and Restore](ref/backup-restore.md)
@@ -41,4 +43,3 @@
   - [Defining Users and Roles](ref/security/defining-users-and-roles.md)
 - [Performance]()
 - [Glossary]()
-
