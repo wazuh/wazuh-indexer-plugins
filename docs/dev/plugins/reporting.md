@@ -4,7 +4,7 @@ This document describes how to extend the Wazuh Reporting setup plugin to create
 ## Working from your IDE
 
 In order to deploy a minimal environment for developing the reporting plugin just for testing purposes, you must have at least a Wazuh Indexer and a Wazuh Dashboard environment running. Then, you can create your own SMPT server to test the email notifications from the following [Mailpit configuration](https://github.com/wazuh/wazuh-indexer-reporting/tree/main/docs).
-To verify everything is working correctly, try generating reports following the [user's guide](../../ref/modules/reporting/usage).
+To verify everything is working correctly, try generating reports following the [user's guide](../../ref/modules/reporting/usage.md).
 
 ## Working from real scenario packages
 
