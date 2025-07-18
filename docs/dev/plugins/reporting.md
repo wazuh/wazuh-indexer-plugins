@@ -1,7 +1,7 @@
 # Wazuh Indexer Reporting Plugin — Development Guide
-This document describes how to extend the Wazuh Reporting setup plugin to create new features and how to test them in a development environment.
+This document describes how to build a Wazuh Reporting plugin development environment to create and test new features.
 
-## Working from your IDE
+## Working from a minimal environment
 
 In order to deploy a minimal environment for developing the reporting plugin just for testing purposes, you must have at least a Wazuh Indexer and a Wazuh Dashboard environment running. Then, you can create your own SMPT server to test the email notifications from the following [Mailpit configuration](https://github.com/wazuh/wazuh-indexer-reporting/tree/main/docs).
 To verify everything is working correctly, try generating reports following the [user's guide](../../ref/modules/reporting/usage.md).
@@ -12,6 +12,8 @@ To verify everything is working correctly, try generating reports following the 
 
 - Wazuh Indexer package (debian package based on OpenSearch 3.1.0). Compiled locally using the [Docker builder](https://github.com/wazuh/wazuh-indexer/tree/main/build-scripts): `bash builder.sh -d deb -a x64`.
 - Wazuh Dashboard package (debian package based on OpenSearch 3.1.0). Downloaded from [wazuh-dashboard actions](https://github.com/wazuh/wazuh-dashboard/actions/runs/16009728935).
+
+> To test using `rpm` packages changes must be done concerning the VM images from the Vagrantfile (`generic/ubuntu2204` to `generic/centos7` for example) and the scripts, that should use `rpm` features instead of the `deb` ones.
 
 ### Preparing a development environment
 
@@ -301,7 +303,7 @@ gencert_ec
 </p>
 </details>
 
-1. Bring up the environment with `vagrant up`. Use the command provided in the console to start mailpit from within its VM. **mailpit** is configured to use TLS and access credentias (`admin:admin`). Use `ip addr` to check for the public IP address given to the VM and use that IP to access mailpit UI (e.g: `https://172.28.128.136:8025/`).
+1. Bring up the environment with `vagrant up`. Use the command provided in the console to start mailpit from within its VM. **mailpit** is configured to use TLS and access credentials (`admin:admin`). Use `ip addr` to check for the public IP address given to the VM and use that IP to access mailpit UI (e.g: `https://172.28.128.136:8025/`).
 2. Add the username and password for mailpit to the Wazuh Indexer keystore.
     ```bash
     echo "admin" | /usr/share/wazuh-indexer/bin/opensearch-keystore add opensearch.notifications.core.email.mailpit.username
