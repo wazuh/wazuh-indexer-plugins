@@ -13,7 +13,7 @@ To verify everything is working correctly, try generating reports following the 
 - Wazuh Indexer package (debian package based on OpenSearch 3.1.0). Compiled locally using the [Docker builder](https://github.com/wazuh/wazuh-indexer/tree/main/build-scripts): `bash builder.sh -d deb -a x64`.
 - Wazuh Dashboard package (debian package based on OpenSearch 3.1.0). Downloaded from [wazuh-dashboard actions](https://github.com/wazuh/wazuh-dashboard/actions/runs/16009728935).
 
-> To test using `rpm` packages changes must be done concerning the VM images from the Vagrantfile (`generic/ubuntu2204` to `generic/centos7` for example) and the scripts, that should use `rpm` features instead of the `deb` ones.
+> Note: To test using RPM packages, update the Vagrant configuration and provisioning scripts accordingly (for example, change `generic/ubuntu2204` to `generic/centos7` in the Vagrantfile and replace Debian-specific installation commands with RPM equivalents).
 
 ### Preparing a development environment
 
