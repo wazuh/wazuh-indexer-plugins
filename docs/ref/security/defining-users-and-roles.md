@@ -69,6 +69,5 @@ After creating the user and role:
 
 ## Additional Resources
 
-* [OpenSearch Security Plugin - User Management](https://opensearch.org/docs/latest/security/access-control/users/)
-* [OpenSearch Security Plugin - Roles](https://opensearch.org/docs/latest/security/access-control/roles/)
+* [OpenSearch Security Plugin - User-Roles Management](https://docs.opensearch.org/latest/security/access-control/users-roles/))
 
