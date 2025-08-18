@@ -119,7 +119,7 @@
         "wazuh.cluster.name",
         "wazuh.cluster.node"
       ],
-      "refresh_interval": "5s"
+      "refresh_interval": "2s"
     }
   }
 }
