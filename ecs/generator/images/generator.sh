@@ -99,6 +99,12 @@ generate_mappings() {
     # Delete the "@timestamp" field from the csv file
     echo "Deleting the \"@timestamp\" and \"tags\" fields from the CSV file"
     sed -i '/@timestamp/d; /tags/d' "$csv_file"
+  else
+    # Generate the template for `wazuh-archives`
+    echo "Generating template for 'wazuh-archives'"
+    archives_file="$out_dir/generated/elasticsearch/legacy/template-archives.json"
+    cp "$in_file" "$archives_file"
+    sed -i 's/wazuh-alerts/wazuh-archives/g' "$archives_file"
   fi
 
   # Transform legacy index template for OpenSearch compatibility

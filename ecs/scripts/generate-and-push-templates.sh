@@ -167,6 +167,12 @@ commit_and_push_changes() {
         mkdir -p "$documentation_dir"
         echo "  - Copy the updated csv definitions for module '$ecs_module' to '$documentation_dir'"
         cp "$CURRENT_PATH/ecs/$ecs_module/$CSV_SUBPATH" "$documentation_dir"
+
+        # Generate archives index template from the alerts one
+        if [ "$ecs_module" == "stateless" ]; then
+            cp "$CURRENT_PATH/ecs/$ecs_module/$MAPPINGS_SUBPATH" "$OUTPUT_PATH/index-template-archives.json"
+            sed -i 's/wazuh-alerts/wazuh-archives/g' "$OUTPUT_PATH/index-template-archives.json"
+        fi
     done
 
     git status --short

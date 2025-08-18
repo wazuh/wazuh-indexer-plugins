@@ -2,6 +2,7 @@
   "index_patterns": ["wazuh-alerts-5.x-*"],
   "order": 1,
   "settings": {
+    "plugins.index_state_management.rollover_alias": "wazuh-alerts",
     "index": {
       "number_of_shards": "3",
       "number_of_replicas": "0",

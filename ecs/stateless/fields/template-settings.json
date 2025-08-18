@@ -3,6 +3,7 @@
   "priority": 1,
   "template": {
     "settings": {
+      "plugins.index_state_management.rollover_alias": "wazuh-alerts",
       "index": {
         "number_of_shards": "3",
         "number_of_replicas": "0",
