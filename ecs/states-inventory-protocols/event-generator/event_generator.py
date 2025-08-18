@@ -33,6 +33,7 @@ def generate_random_data(number):
             "agent": generate_random_agent(),
             "checksum": generate_random_checksum(),
             "network": generate_random_network(),
+            "interface": generate_random_interface(),
             "wazuh": generate_random_wazuh(),
         }
         data.append(event_data)
