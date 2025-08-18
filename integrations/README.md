@@ -30,4 +30,4 @@ We host development environments to support the following integrations:
 |                | Wazuh  | Logstash | OpenSearch | Elastic | Splunk |
 | -------------- | ------ | -------- | ---------- | ------- | ------ |
 | v1.0           | 4.8.1  | 8.9.0    | 2.14.0     | 8.14.3  | 9.1.4  |
-| Latest version | 4.12.0 | 8.9.0    | 3.1.0      | 9.0.3   | 9.4.3  |
+| Latest version | 4.12.0 | 8.9.0    | 3.1.0      | 9.1.0   | 9.4.3  |
