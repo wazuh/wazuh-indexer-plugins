@@ -170,8 +170,10 @@ commit_and_push_changes() {
 
         # Generate archives index template from the alerts one
         if [ "$ecs_module" == "stateless" ]; then
-            cp "$CURRENT_PATH/ecs/$ecs_module/$MAPPINGS_SUBPATH" "$OUTPUT_PATH/index-template-archives.json"
-            sed -i 's/wazuh-alerts/wazuh-archives/g' "$OUTPUT_PATH/index-template-archives.json"
+            target_file="$OUTPUT_PATH/index-template-archives.json"
+            echo "  - Generate template for module '$ecs_module/archives' to '$target_file'"
+            cp "$CURRENT_PATH/ecs/$ecs_module/$MAPPINGS_SUBPATH" "$target_file"
+            sed -i 's/wazuh-alerts/wazuh-archives/g' "$target_file"
         fi
     done
 
