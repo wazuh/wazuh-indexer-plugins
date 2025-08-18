@@ -8330,6 +8330,7 @@
         "wazuh.schema.version"
       ],
       "refresh_interval": "2s"
-    }
+    },
+    "plugins.index_state_management.rollover_alias": "wazuh-alerts"
   }
 }
