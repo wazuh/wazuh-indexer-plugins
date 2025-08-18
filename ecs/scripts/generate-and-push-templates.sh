@@ -69,6 +69,7 @@ detect_modified_modules() {
 
     # Mapping section
     module_to_file=(
+        [stateless]="index-template-alerts.json"
         [states-fim-files]="index-template-fim-files.json"
         [states-fim-registry-keys]="index-template-fim-registry-keys.json"
         [states-fim-registry-values]="index-template-fim-registry-values.json"

@@ -32,6 +32,8 @@ def generate_random_data(number):
         event_data = {
             "@timestamp": generate_random_date(),
             "agent": generate_random_agent(),
+            'policy': generate_random_policy(),
+            'check': generate_random_check(),
             "wazuh": generate_random_wazuh(),
         }
         data.append(event_data)
@@ -59,6 +61,32 @@ def generate_random_host():
         "architecture": random.choice(["x86_64", "arm64"]),
         "ip": f"{random.randint(1, 255)}.{random.randint(0, 255)}.{random.randint(0, 255)}.{random.randint(0, 255)}",
     }
+
+def generate_random_policy():
+    policy = {
+      'id': f'policy{random.randint(0, 999)}',
+      'name': f'Policy {random.randint(0, 999)}',
+      'file': f'policy{random.randint(0, 999)}.yml',
+      'description': 'Generated policy description.',
+      'references': [f'https://example.com/policy{random.randint(0, 999)}']
+    }
+    return policy
+
+def generate_random_check():
+    check = {
+      'id': f'check{random.randint(0, 9999)}',
+      'name': 'Check Example',
+      'description': 'Generated check description.',
+      'rationale': 'Generated rationale.',
+      'remediation': 'Generated remediation.',
+      'references': [f'https://example.com/check{random.randint(0, 9999)}'],
+      'condition': 'all',
+      'compliance': [f'cis:{random.randint(1, 10)}.{random.randint(1, 10)}.{random.randint(1, 10)}'],
+      'rules': [f'Rule {random.randint(1, 100)}', f'Rule {random.randint(1, 100)}'],
+      'result': 'pass',
+      'reason': 'Randomly passed.'
+    }
+    return check
 
 def generate_random_wazuh():
     return {
