@@ -69,6 +69,7 @@ detect_modified_modules() {
 
     # Mapping section
     module_to_file=(
+        [stateless]="index-template-alerts.json"
         [states-fim-files]="index-template-fim-files.json"
         [states-fim-registry-keys]="index-template-fim-registry-keys.json"
         [states-fim-registry-values]="index-template-fim-registry-values.json"
@@ -166,6 +167,14 @@ commit_and_push_changes() {
         mkdir -p "$documentation_dir"
         echo "  - Copy the updated csv definitions for module '$ecs_module' to '$documentation_dir'"
         cp "$CURRENT_PATH/ecs/$ecs_module/$CSV_SUBPATH" "$documentation_dir"
+
+        # Generate archives index template from the alerts one
+        if [ "$ecs_module" == "stateless" ]; then
+            target_file="$TEMPLATES_PATH/index-template-archives.json"
+            echo "  - Generate template for module '$ecs_module/archives' to '$target_file'"
+            cp "$CURRENT_PATH/ecs/$ecs_module/$MAPPINGS_SUBPATH" "$target_file"
+            sed -i 's/wazuh-alerts/wazuh-archives/g' "$target_file"
+        fi
     done
 
     git status --short
