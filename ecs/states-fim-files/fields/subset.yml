@@ -34,5 +34,8 @@ fields:
       permissions: {}
       size: {}
       uid: {}
+  state:
+    fields:
+      modified_at: {}
   wazuh:
     fields: "*"

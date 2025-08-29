@@ -7,6 +7,7 @@ ECS_Version,Indexed,Field_Set,Field,Type,Level,Normalization,Example,Description
 8.11.0,true,checksum,checksum.hash.sha1,keyword,custom,,,SHA1 hash used as checksum of the data collected by the agent.
 8.11.0,true,package,package.hotfix,object,custom,,,Hotfix related data.
 8.11.0,true,package,package.hotfix.name,keyword,custom,,,Name of the Hotfix.
+8.11.0,true,state,state.modified_at,date,custom,,,Date/time when the event originated.
 8.11.0,true,wazuh,wazuh.cluster.name,keyword,custom,,,Wazuh cluster name.
 8.11.0,true,wazuh,wazuh.cluster.node,keyword,custom,,,Wazuh cluster node name.
 8.11.0,true,wazuh,wazuh.schema.version,keyword,custom,,,Wazuh schema version.

@@ -80,7 +80,16 @@ def generate_random_user():
             "type": random.choice(["ssh", "console", "remote"])
         },
         "wazuh": generate_random_wazuh(),
+        "state": {
+            "modified_at": generate_random_date()
+        },
     }
+
+def generate_random_date():
+    start_date = datetime.datetime.now()
+    end_date = start_date - datetime.timedelta(days=10)
+    random_date = start_date + (end_date - start_date) * random.random()
+    return random_date.strftime(DATE_FORMAT)
 
 
 def generate_random_agent():

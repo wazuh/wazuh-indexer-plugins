@@ -25,6 +25,7 @@
           "registry.path",
           "registry.size",
           "registry.value",
+          "state.modified_at",
           "wazuh.cluster.name",
           "wazuh.cluster.node",
           "wazuh.schema.version"

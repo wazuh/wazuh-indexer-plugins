@@ -5,6 +5,7 @@
 The fields are based on:
 - [Global Queries](https://github.com/wazuh/wazuh/issues/27898) (included in 4.13.0).
 - [States Persistence](https://github.com/wazuh/wazuh/issues/29840#issuecomment-2937251736) (included in 5.0.0)
+- [States Persistence](https://github.com/wazuh/wazuh/issues/29533) (included in 5.0.0)
 
 Based on ECS:
 
@@ -71,3 +72,4 @@ The detail of the fields can be found in csv file [States vulnerabilities Fields
 | wazuh.cluster.node                | keyword | Wazuh cluster node name.                                                                                            | wazuh.cluster.node                | TRUE   |
 | wazuh.schema.version              | keyword | Wazuh schema version.                                                                                               | wazuh.schema.version              | TRUE   |
 | checksum                          | keyword | SHA1 hash used as checksum of the data collected by the agent.                                                      | checksum.hash.sha1                | TRUE   |
+| end_scan                          | date    | Date/time when the event originated.                                                                                | state.modified_at                 | TRUE   |

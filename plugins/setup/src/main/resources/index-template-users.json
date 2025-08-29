@@ -74,6 +74,13 @@
           }
         }
       },
+      "state": {
+        "properties": {
+          "modified_at": {
+            "type": "date"
+          }
+        }
+      },
       "user": {
         "properties": {
           "auth_failures": {
@@ -235,7 +242,8 @@
         "user.roles",
         "user.last_login",
         "process.pid",
-        "host.ip"
+        "host.ip",
+        "state.modified_at"
       ],
       "refresh_interval": "5s"
     }

@@ -5,6 +5,7 @@
 The fields are based on:
 - [Inventory enrichment tier 1](https://github.com/wazuh/wazuh-indexer/issues/889#issuecomment-2923017753) (included in 4.14.0)
 - [States Persistence](https://github.com/wazuh/wazuh/issues/29840#issuecomment-2937251736) (included in 5.0.0)
+- [States Persistence](https://github.com/wazuh/wazuh/issues/29533) (included in 5.0.0)
 
 Based on ECS:
 

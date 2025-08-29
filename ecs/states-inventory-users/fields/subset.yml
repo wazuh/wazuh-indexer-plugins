@@ -62,5 +62,8 @@ fields:
       status: {}
       type: {}
       tty: {}
+  state:
+    fields:
+      modified_at: {}
   wazuh:
     fields: "*"

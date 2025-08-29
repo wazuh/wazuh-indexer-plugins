@@ -10,6 +10,7 @@ ECS_Version,Indexed,Field_Set,Field,Type,Level,Normalization,Example,Description
 8.11.0,true,login,login.tty,keyword,custom,,,"Terminal associated with the login session (e.g., pts/1)."
 8.11.0,true,login,login.type,keyword,custom,,,"Type of login session. Example values: ""user"", ""system"", ""remote""."
 8.11.0,true,process,process.pid,long,core,,4242,Process id.
+8.11.0,true,state,state.modified_at,date,custom,,,Date/time when the event originated.
 8.11.0,true,user,user.auth_failures.count,integer,custom,,,Number of failed authentication attempts.
 8.11.0,true,user,user.auth_failures.timestamp,date,custom,,,Timestamp of the last authentication failure.
 8.11.0,true,user,user.created,date,custom,,,Datetime when the user was created.

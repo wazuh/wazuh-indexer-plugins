@@ -27,5 +27,8 @@ fields:
       metric: {}
       netmask: {}
       type: {}
+  state:
+    fields:
+      modified_at: {}
   wazuh:
     fields: "*"

@@ -76,10 +76,19 @@ def generate_random_data(number):
             'policy': generate_random_policy(),
             'check': generate_random_check(),
             'checksum': generate_random_checksum(),
-            'wazuh': generate_random_wazuh()
+            'wazuh': generate_random_wazuh(),
+            'state': {
+                'modified_at': generate_random_date()
+            },
         }
         data.append(event_data)
     return data
+
+def generate_random_date():
+    start_date = datetime.datetime.now()
+    end_date = start_date - datetime.timedelta(days=10)
+    random_date = start_date + (end_date - start_date) * random.random()
+    return random_date.strftime(DATE_FORMAT)
 
 def generate_random_checksum():
     return {

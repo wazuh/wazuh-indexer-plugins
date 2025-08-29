@@ -88,6 +88,13 @@
           }
         }
       },
+      "state": {
+        "properties": {
+          "modified_at": {
+            "type": "date"
+          }
+        }
+      },
       "wazuh": {
         "properties": {
           "cluster": {
@@ -137,6 +144,7 @@
         "registry.path",
         "registry.permissions",
         "registry.uid",
+        "state.modified_at",
         "wazuh.cluster.name",
         "wazuh.cluster.node",
         "wazuh.schema.version"

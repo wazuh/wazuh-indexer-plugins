@@ -34,7 +34,10 @@ def generate_random_data(number):
             "checksum": generate_random_checksum(),
             "interface": generate_random_interface(),
             "network": generate_random_network(),
-            "wazuh": generate_random_wazuh()
+            "wazuh": generate_random_wazuh(),
+            "state": {
+                "modified_at": generate_random_date(),
+            },
         }
         data.append(event_data)
     return data

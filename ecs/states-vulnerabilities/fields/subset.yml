@@ -22,5 +22,8 @@ fields:
           version: ""
   vulnerability:
     fields: "*"
+  state:
+    fields:
+      modified_at: {}
   wazuh:
     fields: "*"

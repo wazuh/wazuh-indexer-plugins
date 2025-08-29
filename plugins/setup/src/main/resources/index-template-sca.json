@@ -117,6 +117,13 @@
           }
         }
       },
+      "state": {
+        "properties": {
+          "modified_at": {
+            "type": "date"
+          }
+        }
+      },
       "wazuh": {
         "properties": {
           "cluster": {
@@ -160,6 +167,7 @@
         "policy.id",
         "policy.name",
         "policy.file",
+        "state.modified_at",
         "wazuh.cluster.name",
         "wazuh.cluster.node",
         "wazuh.schema.version"

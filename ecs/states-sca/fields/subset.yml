@@ -19,5 +19,8 @@ fields:
     fields: "*"
   policy:
     fields: "*"
+  state:
+    fields:
+      modified_at: {}
   wazuh:
     fields: "*"

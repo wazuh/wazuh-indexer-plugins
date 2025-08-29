@@ -31,5 +31,8 @@ fields:
       type: {}
       vendor: {}
       version: {}
+  state:
+    fields:
+      modified_at: {}
   wazuh:
     fields: "*"

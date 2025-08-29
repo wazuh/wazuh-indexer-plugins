@@ -76,6 +76,13 @@
           }
         }
       },
+      "state": {
+        "properties": {
+          "modified_at": {
+            "type": "date"
+          }
+        }
+      },
       "wazuh": {
         "properties": {
           "cluster": {
@@ -116,6 +123,7 @@
         "interface.name",
         "network.ip",
         "network.name",
+        "state.modified_at",
         "wazuh.cluster.name",
         "wazuh.cluster.node"
       ],

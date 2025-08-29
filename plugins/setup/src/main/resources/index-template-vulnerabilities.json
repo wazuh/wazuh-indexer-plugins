@@ -136,6 +136,13 @@
           }
         }
       },
+      "state": {
+        "properties": {
+          "modified_at": {
+            "type": "date"
+          }
+        }
+      },
       "vulnerability": {
         "properties": {
           "category": {
@@ -273,6 +280,7 @@
         "vulnerability.id",
         "vulnerability.description",
         "vulnerability.severity",
+        "state.modified_at",
         "wazuh.cluster.name",
         "wazuh.cluster.node",
         "wazuh.schema.version"

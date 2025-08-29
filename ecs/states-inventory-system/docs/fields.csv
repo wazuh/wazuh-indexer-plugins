@@ -23,6 +23,7 @@ ECS_Version,Indexed,Field_Set,Field,Type,Level,Normalization,Example,Description
 8.11.0,true,host,host.os.platform,keyword,extended,,darwin,"Operating system platform (such centos, ubuntu, windows)."
 8.11.0,true,host,host.os.type,keyword,extended,,macos,"Which commercial OS family (one of: linux, macos, unix, windows, ios or android)."
 8.11.0,true,host,host.os.version,keyword,extended,,10.14.1,Operating system version as a raw string.
+8.11.0,true,state,state.modified_at,date,custom,,,Date/time when the event originated.
 8.11.0,true,wazuh,wazuh.cluster.name,keyword,custom,,,Wazuh cluster name.
 8.11.0,true,wazuh,wazuh.cluster.node,keyword,custom,,,Wazuh cluster node name.
 8.11.0,true,wazuh,wazuh.schema.version,keyword,custom,,,Wazuh schema version.

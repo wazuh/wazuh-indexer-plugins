@@ -379,6 +379,9 @@ def generate_random_data(number):
             "package": generate_random_package(),
             "vulnerability": generate_random_vulnerability(),
             "wazuh": generate_random_wazuh(),
+            "state": {
+                "modified_at": generate_random_date()
+            }
         }
         data.append(event_data)
     return data
