@@ -15,7 +15,7 @@ ECS_Version,Indexed,Field_Set,Field,Type,Level,Normalization,Example,Description
 8.11.0,true,registry,registry.path,keyword,core,,HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Image File Execution Options\winword.exe\Debugger,"Full path, including hive, key and value"
 8.11.0,true,registry,registry.size,long,custom,,,Size of the file or registry value (in bytes)
 8.11.0,true,registry,registry.value,keyword,core,,Debugger,Name of the value written.
-8.11.0,true,state,state.modified_at,date,custom,,,Date/time when the event originated.
+8.11.0,true,state,state.modified_at,date,custom,,,Date/time when the state was last modified.
 8.11.0,true,wazuh,wazuh.cluster.name,keyword,custom,,,Wazuh cluster name.
 8.11.0,true,wazuh,wazuh.cluster.node,keyword,custom,,,Wazuh cluster node name.
 8.11.0,true,wazuh,wazuh.schema.version,keyword,custom,,,Wazuh schema version.

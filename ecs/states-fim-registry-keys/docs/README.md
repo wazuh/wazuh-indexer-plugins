@@ -5,7 +5,6 @@
 The fields are based on:
 - [Global Queries](https://github.com/wazuh/wazuh/issues/27898) (included in 4.13.0).
 - [States Persistence](https://github.com/wazuh/wazuh/issues/29840#issuecomment-2914305496) (included in 5.0.0)
-- [States Persistence](https://github.com/wazuh/wazuh/issues/29533) (included in 5.0.0)
 
 Based on ECS:
 
@@ -38,4 +37,4 @@ The detail of the fields can be found in csv file [States FIM registries Fields]
 | user_name/owner   | string | Name of the owner of the entity (user).             | registry.owner            | TRUE   |
 | permissions/perm  | string | Permissions associated with the registry key.       | registry.permissions      | TRUE   |
 | checksum          | string | SHA1 hash of the file.                              | checksum.hash.sha1        | TRUE   |
-| end_scan          | date   | Date/time when the event originated.                | state.modified_at         | TRUE   |
+| scan_time         | date   | Date/time when the state was last modified.                | state.modified_at         | TRUE   |

@@ -8,4 +8,4 @@
       type: date
       level: custom
       description: >
-        Date/time when the event originated.
+        Date/time when the state was last modified.
