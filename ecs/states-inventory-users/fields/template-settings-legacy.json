@@ -30,7 +30,8 @@
                 "user.roles",
                 "user.last_login",
                 "process.pid",
-                "host.ip"
+                "host.ip",
+                "state.modified_at"
             ]
         }
     }

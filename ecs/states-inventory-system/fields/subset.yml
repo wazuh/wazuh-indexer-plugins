@@ -40,5 +40,8 @@ fields:
           platform: {}
           type: {}
           version: {}
+  state:
+    fields:
+      modified_at: {}
   wazuh:
     fields: "*"

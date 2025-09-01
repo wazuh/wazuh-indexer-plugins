@@ -1,0 +1,11 @@
+---
+- name: state
+  title: State
+  description: >
+    State custom fields
+  fields:
+    - name: modified_at
+      type: date
+      level: custom
+      description: >
+        Date/time when the state was last modified.

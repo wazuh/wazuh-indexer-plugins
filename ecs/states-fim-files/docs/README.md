@@ -41,4 +41,5 @@ The detail of the fields can be found in csv file [States FIM files Fields](fiel
 | attributes       | string | List of attributes related to the file.                                   | file.attributes         |        |
 | dev/device       | string | Device that is the source of the file.                                    | file.device             |        |
 | perm/permissions | string | List of permissions related to the file.                                  | file.permissions        | TRUE   |
+| scan_time        | date   | Date/time when the state was last modified.                                      | state.modified_at       | TRUE   |
  

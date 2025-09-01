@@ -40,6 +40,9 @@ def generate_random_data(number):
             "process": generate_random_process(),
             "source": generate_random_source(),
             "wazuh": generate_random_wazuh(),
+            "state": {
+                "modified_at": generate_random_date()
+            }
         }
         data.append(event_data)
     return data

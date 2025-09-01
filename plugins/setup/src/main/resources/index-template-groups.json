@@ -73,6 +73,13 @@
           }
         }
       },
+      "state": {
+        "properties": {
+          "modified_at": {
+            "type": "date"
+          }
+        }
+      },
       "wazuh": {
         "properties": {
           "cluster": {
@@ -110,7 +117,8 @@
         "group.description",
         "group.id_signed",
         "group.uuid",
-        "group.users"
+        "group.users",
+        "state.modified_at"
       ],
       "refresh_interval": "5s"
     }

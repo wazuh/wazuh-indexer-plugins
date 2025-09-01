@@ -25,6 +25,9 @@ fields:
       uuid: {}
       is_hidden: {}
       users: {}
+  state:
+    fields:
+      modified_at: {}
   wazuh:
     fields: "*"
 

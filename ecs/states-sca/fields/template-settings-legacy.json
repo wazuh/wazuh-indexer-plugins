@@ -18,6 +18,7 @@
         "policy.id",
         "policy.name",
         "policy.file",
+        "state.modified_at",
         "wazuh.cluster.name",
         "wazuh.cluster.node",
         "wazuh.schema.version"

@@ -37,3 +37,4 @@ The detail of the fields can be found in csv file [States FIM registries Fields]
 | name/value        | string | Name of the registry value.                         | registry.value            |        |
 | value_type        | string | Type of the registry value, e.g., "REG_SZ".         | registry.data.type        |        |
 | checksum          | string | SHA1 hash of the file.                              | checksum.hash.sha1        | TRUE   |
+| scan_time         | date   | Date/time when the state was last modified.                | state.modified_at         | TRUE   |

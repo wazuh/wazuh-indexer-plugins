@@ -47,5 +47,8 @@ fields:
     fields:
       ip: {}
       port: {}
+  state:
+    fields:
+      modified_at: {}
   wazuh:
     fields: "*"

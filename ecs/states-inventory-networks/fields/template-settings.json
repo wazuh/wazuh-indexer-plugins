@@ -18,6 +18,7 @@
           "interface.name",
           "network.ip",
           "network.name",
+          "state.modified_at",
           "wazuh.cluster.name",
           "wazuh.cluster.node"
         ]

@@ -24,6 +24,7 @@
         "registry.path",
         "registry.permissions",
         "registry.uid",
+        "state.modified_at",
         "wazuh.cluster.name",
         "wazuh.cluster.node",
         "wazuh.schema.version"

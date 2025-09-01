@@ -17,6 +17,7 @@ ECS_Version,Indexed,Field_Set,Field,Type,Level,Normalization,Example,Description
 8.11.0,true,process,process.state,keyword,custom,,,Current process state
 8.11.0,true,process,process.stime,long,custom,,,System mode CPU time used
 8.11.0,true,process,process.utime,long,custom,,,User mode CPU time used
+8.11.0,true,state,state.modified_at,date,custom,,,Date/time when the state was last modified.
 8.11.0,true,wazuh,wazuh.cluster.name,keyword,custom,,,Wazuh cluster name.
 8.11.0,true,wazuh,wazuh.cluster.node,keyword,custom,,,Wazuh cluster node name.
 8.11.0,true,wazuh,wazuh.schema.version,keyword,custom,,,Wazuh schema version.

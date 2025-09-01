@@ -35,3 +35,4 @@ The detail of the fields can be found in csv file [States inventory processes Fi
 |                | date    | The time the process started                                   | process.start        | FALSE  |
 |                | long    | Length of the process.args array.                              | process.args_count   | FALSE  |
 | checksum       | keyword | SHA1 hash used as checksum of the data collected by the agent. | checksum.hash.sha1   | TRUE   |
+| scan_time      | date    | Date/time when the state was last modified.                           | state.modified_at    | TRUE   |

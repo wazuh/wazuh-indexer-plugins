@@ -25,5 +25,8 @@ fields:
   interface:
     fields:
       name: {}
+  state:
+    fields:
+      modified_at: {}
   wazuh:
     fields: "*"

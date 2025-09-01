@@ -27,6 +27,7 @@ ECS_Version,Indexed,Field_Set,Field,Type,Level,Normalization,Example,Description
 8.11.0,true,package,package.size,long,extended,,62231,Package size in bytes.
 8.11.0,true,package,package.type,keyword,extended,,rpm,Package type
 8.11.0,true,package,package.version,keyword,extended,,1.12.9,Package version
+8.11.0,true,state,state.modified_at,date,custom,,,Date/time when the state was last modified.
 8.11.0,true,vulnerability,vulnerability.category,keyword,extended,array,"[""Firewall""]",Category of a vulnerability.
 8.11.0,true,vulnerability,vulnerability.classification,keyword,extended,,CVSS,Classification of the vulnerability.
 8.11.0,true,vulnerability,vulnerability.description,keyword,extended,,"In macOS before 2.12.6, there is a vulnerability in the RPC...",Description of the vulnerability.

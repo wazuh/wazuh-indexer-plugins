@@ -17,6 +17,7 @@
         "agent.name",
         "agent.version",
         "package.hotfix.name",
+        "state.modified_at",
         "wazuh.cluster.name",
         "wazuh.cluster.node",
         "wazuh.schema.version"

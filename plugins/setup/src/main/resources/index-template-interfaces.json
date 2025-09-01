@@ -112,6 +112,13 @@
           }
         }
       },
+      "state": {
+        "properties": {
+          "modified_at": {
+            "type": "date"
+          }
+        }
+      },
       "wazuh": {
         "properties": {
           "cluster": {
@@ -152,6 +159,7 @@
         "host.mac",
         "interface.name",
         "interface.alias",
+        "state.modified_at",
         "wazuh.cluster.name",
         "wazuh.cluster.node"
       ],

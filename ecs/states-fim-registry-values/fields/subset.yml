@@ -32,5 +32,8 @@ fields:
       path: {}
       size: {}
       value: {}
+  state:
+    fields:
+      modified_at: {}
   wazuh:
     fields: "*"

@@ -19,6 +19,7 @@ ECS_Version,Indexed,Field_Set,Field,Type,Level,Normalization,Example,Description
 8.11.0,true,interface,interface.name,keyword,extended,,eth0,Interface name
 8.11.0,true,interface,interface.state,keyword,custom,,,State of the network interface.
 8.11.0,true,interface,interface.type,keyword,custom,,,Interface type.
+8.11.0,true,state,state.modified_at,date,custom,,,Date/time when the state was last modified.
 8.11.0,true,wazuh,wazuh.cluster.name,keyword,custom,,,Wazuh cluster name.
 8.11.0,true,wazuh,wazuh.cluster.node,keyword,custom,,,Wazuh cluster node name.
 8.11.0,true,wazuh,wazuh.schema.version,keyword,custom,,,Wazuh schema version.

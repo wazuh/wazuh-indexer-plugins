@@ -34,6 +34,9 @@ def generate_random_data(number):
             "file": generate_random_file(),
             "wazuh": generate_random_wazuh(),
             "checksum": generate_random_checksum(),
+            "state": {
+                "modified_at": generate_random_date()
+            }
         }
         data.append(event_data)
     return data

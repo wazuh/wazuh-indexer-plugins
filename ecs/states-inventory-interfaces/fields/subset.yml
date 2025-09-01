@@ -40,5 +40,8 @@ fields:
       name: {}
       state: {}
       type: {}
+  state:
+    fields:
+      modified_at: {}
   wazuh:
     fields: "*"

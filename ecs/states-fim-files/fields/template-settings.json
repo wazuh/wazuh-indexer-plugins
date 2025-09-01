@@ -30,6 +30,7 @@
           "file.permissions",
           "file.size",
           "file.uid",
+          "state.modified_at",
           "wazuh.cluster.name",
           "wazuh.cluster.node",
           "wazuh.schema.version"
