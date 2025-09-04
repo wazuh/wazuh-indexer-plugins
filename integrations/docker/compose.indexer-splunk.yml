@@ -158,6 +158,7 @@ services:
       SPLUNK_HTTP_ENABLESSL: "true"
       SPLUNK_PASSWORD: Password.1234
       SPLUNK_STANDALONE_URL: https://splunk:8080
+      SPLUNK_GENERAL_TERMS: --accept-sgt-current-at-splunk-com
       SPLUNK_START_ARGS: --accept-license
 
   logstash:
