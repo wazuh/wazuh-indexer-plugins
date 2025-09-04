@@ -3,7 +3,7 @@ import java.util.concurrent.Callable
 
 buildscript {
     ext {
-        opensearch_version = System.getProperty("opensearch.version", "3.2.0")
+        opensearch_version = System.getProperty("opensearch.version", "3.2.0-SNAPSHOT")
         opensearch_build = opensearch_version.replace("-SNAPSHOT","") + ".0"
         wazuh_version = System.getProperty("version", "5.0.0")
         revision = System.getProperty("revision", "0")
@@ -17,7 +17,7 @@ buildscript {
     }
 
     dependencies {
-      //  classpath "org.opensearch.gradle:build-tools:${opensearch_version.replace('-SNAPSHOT', '')}"
+      classpath "org.opensearch.gradle:build-tools:${opensearch_version.replace('-SNAPSHOT', '')}"
       classpath "org.opensearch.gradle:build-tools:${opensearch_version}"
     }
 }
