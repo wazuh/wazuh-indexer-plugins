@@ -23,7 +23,6 @@ fields:
   vulnerability:
     fields: "*"
   state:
-    fields:
-      modified_at: {}
+    fields: "*"
   wazuh:
     fields: "*"

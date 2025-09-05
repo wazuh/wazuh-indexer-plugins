@@ -26,8 +26,7 @@ fields:
       is_hidden: {}
       users: {}
   state:
-    fields:
-      modified_at: {}
+    fields: "*"
   wazuh:
     fields: "*"
 

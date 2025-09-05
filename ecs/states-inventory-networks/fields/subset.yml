@@ -28,7 +28,6 @@ fields:
       netmask: {}
       type: {}
   state:
-    fields:
-      modified_at: {}
+    fields: "*"
   wazuh:
     fields: "*"
