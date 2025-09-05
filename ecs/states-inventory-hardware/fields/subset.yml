@@ -27,7 +27,6 @@ fields:
           speed: {}
       serial_number: {}
   state:
-    fields:
-      modified_at: {}
+    fields: "*"
   wazuh:
     fields: "*"

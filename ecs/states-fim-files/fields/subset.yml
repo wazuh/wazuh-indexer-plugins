@@ -35,7 +35,6 @@ fields:
       size: {}
       uid: {}
   state:
-    fields:
-      modified_at: {}
+    fields: "*"
   wazuh:
     fields: "*"

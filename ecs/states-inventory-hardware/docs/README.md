@@ -33,4 +33,3 @@ The detail of the fields can be found in csv file [States inventory hardware Fie
 | cluster_node    | string       | Wazuh cluster node                                             | wazuh.cluster.node   | TRUE   |
 | schema_version  | string       | Wazuh schema version                                           | wazuh.schema.version | TRUE   |
 | checksum        | keyword      | SHA1 hash used as checksum of the data collected by the agent. | checksum.hash.sha1   | TRUE   |
-| scan_time       | date         | Date/time when the state was last modified.                           | state.modified_at    | TRUE   |

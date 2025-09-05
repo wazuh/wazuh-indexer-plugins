@@ -31,7 +31,6 @@ fields:
       stime: {}
       utime: {}
   state:
-    fields:
-      modified_at: {}
+    fields: "*"
   wazuh:
     fields: "*"

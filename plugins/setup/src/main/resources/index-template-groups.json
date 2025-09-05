@@ -109,7 +109,6 @@
   "order": 1,
   "settings": {
     "index": {
-      "auto_expand_replicas": "0-1",
       "number_of_replicas": "0",
       "number_of_shards": "1",
       "query.default_field": [
@@ -120,7 +119,7 @@
         "group.users",
         "state.modified_at"
       ],
-      "refresh_interval": "5s"
+      "refresh_interval": "2s"
     }
   }
 }

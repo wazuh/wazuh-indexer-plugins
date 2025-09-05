@@ -37,12 +37,16 @@ remove_multi_fields() {
     .mappings.properties.agent.properties.host.properties.os.properties.name.fields,
     .mappings.properties.host.properties.os.properties.full.fields,
     .mappings.properties.host.properties.os.properties.name.fields,
+    .mappings.properties.vulnerability.properties.description.fields,
     .mappings.properties.process.properties.command_line.fields,
     .mappings.properties.process.properties.name.fields,
     .mappings.properties.vulnerability.properties.description.fields,
     .mappings.properties.file.properties.path.fields,
     .mappings.properties.user.properties.name.fields,
-    .mappings.properties.user.properties.full_name.fields
+    .mappings.properties.user.properties.full_name.fields,
+    .mappings.properties.process.properties.user.properties.name.fields,
+    .mappings.properties.process.properties.executable.fields,
+    .mappings.properties.process.properties.working_directory.fields
   )' "$in_file" > "$out_file"
 }
 

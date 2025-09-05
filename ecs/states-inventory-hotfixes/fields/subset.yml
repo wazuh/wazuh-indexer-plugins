@@ -22,7 +22,6 @@ fields:
         fields:
           name: {}
   state:
-    fields:
-      modified_at: {}
+    fields: "*"
   wazuh:
     fields: "*"

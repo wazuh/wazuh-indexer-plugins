@@ -32,7 +32,6 @@ fields:
       vendor: {}
       version: {}
   state:
-    fields:
-      modified_at: {}
+    fields: "*"
   wazuh:
     fields: "*"

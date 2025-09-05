@@ -33,7 +33,6 @@ fields:
       size: {}
       value: {}
   state:
-    fields:
-      modified_at: {}
+    fields: "*"
   wazuh:
     fields: "*"
