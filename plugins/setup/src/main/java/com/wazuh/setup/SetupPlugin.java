@@ -80,6 +80,7 @@ public class SetupPlugin extends Plugin implements ClusterPlugin {
         this.indices.add(new StateIndex("wazuh-states-fim-files", "index-template-fim-files"));
         this.indices.add(new StateIndex("wazuh-states-fim-registry-keys", "index-template-fim-registry-keys"));
         this.indices.add(new StateIndex("wazuh-states-fim-registry-values", "index-template-fim-registry-values"));
+        this.indices.add(new StateIndex("wazuh-states-inventory-browser-extensions", "index-template-browser-extensions"));
         this.indices.add(new StateIndex("wazuh-states-inventory-groups", "index-template-groups"));
         this.indices.add(new StateIndex("wazuh-states-inventory-hardware", "index-template-hardware"));
         this.indices.add(new StateIndex("wazuh-states-inventory-hotfixes", "index-template-hotfixes"));
@@ -90,6 +91,7 @@ public class SetupPlugin extends Plugin implements ClusterPlugin {
         this.indices.add(new StateIndex("wazuh-states-inventory-ports", "index-template-ports"));
         this.indices.add(new StateIndex("wazuh-states-inventory-processes", "index-template-processes"));
         this.indices.add(new StateIndex("wazuh-states-inventory-protocols", "index-template-protocols"));
+        this.indices.add(new StateIndex("wazuh-states-inventory-services", "index-template-services"));
         this.indices.add(new StateIndex("wazuh-states-inventory-system", "index-template-system"));
         this.indices.add(new StateIndex("wazuh-states-inventory-users", "index-template-users"));
         this.indices.add(new StateIndex("wazuh-states-vulnerabilities", "index-template-vulnerabilities"));
