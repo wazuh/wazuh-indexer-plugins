@@ -4,6 +4,7 @@
 
 The fields are based on:
 - [Inventory - Services mappings](https://github.com/wazuh/wazuh-agent/issues/807#issuecomment-3212090933) (included in 4.14.0)
+- [States Persistence](https://github.com/wazuh/wazuh/issues/29840#issuecomment-2937251736) (included in 5.0.0)
 
 Based on osquery and ECS:
 

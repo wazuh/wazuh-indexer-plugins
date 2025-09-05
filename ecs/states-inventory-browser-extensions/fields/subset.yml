@@ -41,6 +41,8 @@ fields:
   user:
     fields:
       id: {}
+  state:
+    fields: "*"
   wazuh:
     fields: "*"
 

@@ -1,5 +1,7 @@
 #!/bin/python3
 
+import argparse
+import datetime
 import json
 import logging
 import random
@@ -30,8 +32,17 @@ logging.basicConfig(filename=LOG_FILE, level=logging.INFO)
 # Suppress warnings
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
+
 def random_string(length=6):
     return ''.join(random.choices(string.ascii_lowercase + string.digits, k=length))
+
+
+def generate_random_date():
+    start_date = datetime.datetime.now()
+    end_date = start_date - datetime.timedelta(days=10)
+    random_date = start_date + (end_date - start_date) * random.random()
+    return random_date.strftime(DATE_FORMAT)
+
 
 def generate_agent():
     return {
@@ -44,6 +55,7 @@ def generate_agent():
         "version": f"{random.randint(1,5)}.{random.randint(0,9)}.{random.randint(0,9)}"
     }
 
+
 def generate_file(os_type=OS.LINUX):
     if os_type == OS.LINUX:
         return {
@@ -53,6 +65,7 @@ def generate_file(os_type=OS.LINUX):
         return {
             "path": f"/Applications/{random.choice(['App.app', 'Service.app'])}"
         }
+
 
 def generate_process(os_type=OS.LINUX, state="running"):
     pid = random.randint(1000, 5000) if state.lower() in ["running", "active"] else 0
@@ -84,6 +97,7 @@ def generate_process(os_type=OS.LINUX, state="running"):
             "working_directory": f"/home/{random.choice(['user1', 'user2', 'user3'])}",
             "root_directory": f"/home/{random.choice(['user1', 'user2', 'user3'])}"
         }
+
 
 def generate_service(os_type=OS.LINUX):
     # State and substate depending on the OS
@@ -152,6 +166,7 @@ def generate_service(os_type=OS.LINUX):
         }
     return service_data
 
+
 def generate_wazuh():
     return {
         "cluster": {
@@ -162,6 +177,7 @@ def generate_wazuh():
             "version": f"{random.randint(1,3)}.{random.randint(0,9)}"
         }
     }
+
 
 def generate_log(os_type=OS.LINUX):
     if os_type == OS.MACOS:
@@ -174,6 +190,7 @@ def generate_log(os_type=OS.LINUX):
                 ]),
             }
         }
+
 
 def generate_error(os_type=OS.LINUX):
     if os_type == OS.MACOS:
@@ -189,6 +206,7 @@ def generate_error(os_type=OS.LINUX):
             }
         }
 
+
 def generate_random_data(number):
     data = []
     for _ in range(number):
@@ -198,7 +216,10 @@ def generate_random_data(number):
             "agent": generate_agent(),
             "process": generate_process(os_type=os_choice, state=service_data["state"]),
             "service": service_data,
-            "wazuh": generate_wazuh()
+            "wazuh": generate_wazuh(),
+            "state": {
+                "modified_at": generate_random_date()
+            },
         }
 
         if os_choice == OS.MACOS:
@@ -211,29 +232,38 @@ def generate_random_data(number):
         data.append(event_data)
     return data
 
-def inject_events(ip, port, index, username, password, data):
-    url = f"https://{ip}:{port}/{index}/_doc"
+
+def inject_events(ip, port, index, username, password, data, protocol):
+    url = f"{protocol}://{ip}:{port}/{index}/_doc"
     session = requests.Session()
     session.auth = (username, password)
     session.verify = False
     headers = {"Content-Type": "application/json"}
 
-    try:
-        for event_data in data:
-            response = session.post(url, json=event_data, headers=headers)
-            if response.status_code != 201:
-                logging.error(f"Error: {response.status_code}")
-                logging.error(response.text)
-                break
-        logging.info("Data injection completed successfully.")
-    except Exception as e:
-        logging.error(f"Error: {str(e)}")
+    for event_data in data:
+        response = session.post(url, json=event_data, headers=headers)
+        if response.status_code != 201:
+            logging.error(f"Error: {response.status_code}")
+            logging.error(response.text)
+            break
+    logging.info("Data injection completed successfully.")
 
 def main():
+    parser = argparse.ArgumentParser(
+        description="Generate and optionally inject documents into a Wazuh Indexer cluster."
+    )
+    parser.add_argument(
+        "--protocol",
+        choices=['http', 'https'],
+        default='https',
+        help="Specify the protocol to use: http or https. Default is 'https'."
+    )
+    args = parser.parse_args()
+
     try:
         number = int(input("How many events do you want to generate? "))
     except ValueError:
-        logging.error("Invalid input. Please enter a valid number.")
+        logging.error("Invalid input. Please enter a number.")
         return
 
     logging.info(f"Generating {number} events...")
@@ -244,21 +274,21 @@ def main():
             json.dump(event_data, outfile)
             outfile.write("\n")
 
-    logging.info("Data generation completed.")
+    logging.info("User data generation completed.")
 
-    inject = (
-        input("Do you want to inject the generated data into your indexer? (y/n) ")
-        .strip()
-        .lower()
-    )
+    inject = input(
+        "Inject the generated data into the indexer? (y/n) ").strip().lower()
     if inject == "y":
         ip = input(f"Enter the IP of your Indexer (default: '{IP}'): ") or IP
-        port = input(f"Enter the port of your Indexer (default: '{PORT}'): ") or PORT
-        index = input(f"Enter the index name (default: '{INDEX_NAME}'): ") or INDEX_NAME
+        port = input(
+            f"Enter the port of your Indexer (default: '{PORT}'): ") or PORT
+        index = input(
+            f"Enter the index name (default: '{INDEX_NAME}'): ") or INDEX_NAME
         username = input(f"Username (default: '{USERNAME}'): ") or USERNAME
         password = input(f"Password (default: '{PASSWORD}'): ") or PASSWORD
-        inject_events(ip, port, index, username, password, data)
+        inject_events(data, ip, port, username, password, index, args.protocol)
 
 
 if __name__ == "__main__":
     main()
+

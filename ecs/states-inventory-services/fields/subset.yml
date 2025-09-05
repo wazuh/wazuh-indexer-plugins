@@ -69,5 +69,7 @@ fields:
   file:
     fields:
       path: {}
+  state:
+    fields: "*"
   wazuh:
     fields: "*"
