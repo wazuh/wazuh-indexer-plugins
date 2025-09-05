@@ -1,6 +1,6 @@
 {
   "index_patterns": [
-    "wazuh-states-inventory-processes*"
+    "wazuh-states-inventory-browser-extensions*"
   ],
   "mappings": {
     "date_detection": false,
@@ -33,11 +33,34 @@
           }
         }
       },
-      "checksum": {
+      "browser": {
+        "properties": {
+          "name": {
+            "ignore_above": 1024,
+            "type": "keyword"
+          },
+          "profile": {
+            "properties": {
+              "name": {
+                "ignore_above": 1024,
+                "type": "keyword"
+              },
+              "path": {
+                "ignore_above": 1024,
+                "type": "keyword"
+              },
+              "referenced": {
+                "type": "boolean"
+              }
+            }
+          }
+        }
+      },
+      "file": {
         "properties": {
           "hash": {
             "properties": {
-              "sha1": {
+              "sha256": {
                 "ignore_above": 1024,
                 "type": "keyword"
               }
@@ -45,44 +68,65 @@
           }
         }
       },
-      "process": {
+      "package": {
         "properties": {
-          "args": {
+          "autoupdate": {
+            "type": "boolean"
+          },
+          "build_version": {
             "ignore_above": 1024,
             "type": "keyword"
           },
-          "args_count": {
-            "type": "long"
-          },
-          "command_line": {
+          "description": {
+            "ignore_above": 1024,
             "type": "keyword"
+          },
+          "enabled": {
+            "type": "boolean"
+          },
+          "from_webstore": {
+            "type": "boolean"
+          },
+          "id": {
+            "ignore_above": 1024,
+            "type": "keyword"
+          },
+          "installed": {
+            "type": "date"
           },
           "name": {
             "ignore_above": 1024,
             "type": "keyword"
           },
-          "parent": {
-            "properties": {
-              "pid": {
-                "type": "long"
-              }
-            }
-          },
-          "pid": {
-            "type": "long"
-          },
-          "start": {
-            "type": "date"
-          },
-          "state": {
+          "path": {
             "ignore_above": 1024,
             "type": "keyword"
           },
-          "stime": {
-            "type": "long"
+          "permissions": {
+            "ignore_above": 1024,
+            "type": "keyword"
           },
-          "utime": {
-            "type": "long"
+          "persistent": {
+            "type": "boolean"
+          },
+          "reference": {
+            "ignore_above": 1024,
+            "type": "keyword"
+          },
+          "type": {
+            "ignore_above": 1024,
+            "type": "keyword"
+          },
+          "vendor": {
+            "ignore_above": 1024,
+            "type": "keyword"
+          },
+          "version": {
+            "ignore_above": 1024,
+            "type": "keyword"
+          },
+          "visible": {
+            "type": "boolean"
           }
         }
       },
@@ -90,6 +134,14 @@
         "properties": {
           "modified_at": {
             "type": "date"
+          }
+        }
+      },
+      "user": {
+        "properties": {
+          "id": {
+            "ignore_above": 1024,
+            "type": "keyword"
           }
         }
       },
@@ -130,16 +182,13 @@
         "agent.id",
         "agent.name",
         "agent.version",
-        "process.args",
-        "process.args_count",
-        "process.command_line",
-        "process.name",
-        "process.parent.pid",
-        "process.pid",
-        "process.start",
-        "process.state",
-        "process.stime",
-        "process.utime",
+        "browser.name",
+        "user.id",
+        "package.name",
+        "package.id",
+        "package.version",
+        "package.vendor",
+        "package.type",
         "state.modified_at",
         "wazuh.cluster.name",
         "wazuh.cluster.node",
