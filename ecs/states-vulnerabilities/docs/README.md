@@ -71,4 +71,3 @@ The detail of the fields can be found in csv file [States vulnerabilities Fields
 | wazuh.cluster.node                | keyword | Wazuh cluster node name.                                                                                            | wazuh.cluster.node                | TRUE   |
 | wazuh.schema.version              | keyword | Wazuh schema version.                                                                                               | wazuh.schema.version              | TRUE   |
 | checksum                          | keyword | SHA1 hash used as checksum of the data collected by the agent.                                                      | checksum.hash.sha1                | TRUE   |
-| scan_time                         | date    | Date/time when the state was last modified.                                                                         | state.modified_at                 | TRUE   |

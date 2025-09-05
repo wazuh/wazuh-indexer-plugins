@@ -42,4 +42,3 @@ The detail of the fields can be found in csv file [States inventory system Field
 | schema_version     | string  | Wazuh schema version                                                              | wazuh.schema.version         | TRUE   |
 |                    | string  | Which commercial OS family (one of: linux, macos, unix, windows, ios or android). | host.os.type                 | FALSE  |
 | checksum           | keyword | SHA1 hash used as checksum of the data collected by the agent.                    | checksum.hash.sha1           | TRUE   |
-| scan_time          | date    | Date/time when the state was last modified.                                              | state.modified_at            | TRUE   |

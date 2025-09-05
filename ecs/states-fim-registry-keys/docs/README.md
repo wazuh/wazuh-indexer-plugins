@@ -37,4 +37,3 @@ The detail of the fields can be found in csv file [States FIM registries Fields]
 | user_name/owner   | string | Name of the owner of the entity (user).             | registry.owner            | TRUE   |
 | permissions/perm  | string | Permissions associated with the registry key.       | registry.permissions      | TRUE   |
 | checksum          | string | SHA1 hash of the file.                              | checksum.hash.sha1        | TRUE   |
-| scan_time         | date   | Date/time when the state was last modified.                | state.modified_at         | TRUE   |
