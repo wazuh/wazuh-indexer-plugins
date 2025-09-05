@@ -28,6 +28,7 @@
         "host.os.platform",
         "host.os.type",
         "host.os.version",
+        "state.modified_at",
         "wazuh.cluster.name",
         "wazuh.cluster.node",
         "wazuh.schema.version"

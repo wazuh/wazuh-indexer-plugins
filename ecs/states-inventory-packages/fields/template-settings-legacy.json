@@ -25,6 +25,7 @@
         "package.type",
         "package.vendor",
         "package.version",
+        "state.modified_at",
         "wazuh.cluster.name",
         "wazuh.cluster.node",
         "wazuh.schema.version"

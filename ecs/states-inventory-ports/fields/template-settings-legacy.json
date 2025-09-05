@@ -21,6 +21,7 @@
         "process.pid",
         "source.ip",
         "destination.ip",
+        "state.modified_at",
         "wazuh.cluster.name",
         "wazuh.cluster.node",
         "wazuh.schema.version"

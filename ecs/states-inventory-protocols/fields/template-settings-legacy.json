@@ -14,6 +14,7 @@
         "agent.version",
         "network.type",
         "interface.name",
+        "state.modified_at",
         "wazuh.cluster.name",
         "wazuh.cluster.node",
         "wazuh.schema.version"

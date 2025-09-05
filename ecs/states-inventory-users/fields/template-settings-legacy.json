@@ -28,7 +28,11 @@
                 "user.roles",
                 "user.last_login",
                 "process.pid",
-                "host.ip"
+                "host.ip",
+                "state.modified_at",
+                "wazuh.cluster.name",
+                "wazuh.cluster.node",
+                "wazuh.schema.version"
             ]
         }
     }
