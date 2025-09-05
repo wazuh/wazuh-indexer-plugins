@@ -5,7 +5,6 @@
     "index": {
       "number_of_shards": "1",
       "number_of_replicas": "0",
-      "auto_expand_replicas": "0-1",
       "refresh_interval": "2s",
       "query.default_field": [
         "agent.host.architecture",
@@ -13,9 +12,6 @@
         "agent.id",
         "agent.name",
         "agent.version",
-        "checksum.hash.sha1",
-        "file.attributes",
-        "file.device",
         "file.gid",
         "file.group",
         "file.hash.md5",
@@ -26,10 +22,8 @@
         "file.owner",
         "file.path",
         "file.path.fields.text",
-        "file.permissions",
         "file.size",
         "file.uid",
-        "state.modified_at",
         "wazuh.cluster.name",
         "wazuh.cluster.node",
         "wazuh.schema.version"
