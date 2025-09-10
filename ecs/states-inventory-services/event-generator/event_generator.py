@@ -56,6 +56,14 @@ def generate_agent():
     }
 
 
+def generate_random_checksum():
+    return {
+        'hash': {
+            'sha1': ''.join(random.choices("ABCDEF0123456789", k=40)),
+        }
+    }
+
+
 def generate_file(os_type=OS.LINUX):
     if os_type == OS.LINUX:
         return {
@@ -214,6 +222,7 @@ def generate_random_data(number):
         service_data = generate_service(os_type=os_choice)
         event_data = {
             "agent": generate_agent(),
+            "checksum": generate_random_checksum(),
             "process": generate_process(os_type=os_choice, state=service_data["state"]),
             "service": service_data,
             "wazuh": generate_wazuh(),
