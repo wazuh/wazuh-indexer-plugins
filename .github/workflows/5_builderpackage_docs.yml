@@ -1,4 +1,4 @@
-name: Deploy GH pages
+name: (5.x) Deploy GH pages
 
 # From https://github.com/rust-lang/mdBook/wiki/Automated-Deployment%3A-GitHub-Actions#GitHub-Pages-Deploy
 
@@ -7,7 +7,6 @@ on:
   push:
     branches:
       - main
-      #- 6.0.0
     paths:
       - "docs/**"
 
