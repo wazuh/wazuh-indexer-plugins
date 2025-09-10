@@ -1,4 +1,4 @@
-name: "Detect Modified Plugins"
+name: "(5.x) Detect Modified Plugins"
 description: "Detect modified plugins based on changed files in a pull request or push event."
 inputs:
   base_branch:

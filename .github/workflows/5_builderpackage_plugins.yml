@@ -1,5 +1,5 @@
 run-name: Build ${{ inputs.plugin }} plugin | ${{ inputs.id  }}
-name: Build packages
+name: (5.x) Build packages
 
 # This workflow runs when any of the following occur:
 # - Run manually

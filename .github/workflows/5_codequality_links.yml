@@ -1,4 +1,4 @@
-name: Link Checker
+name: (5.x) Check links
 on:
   push:
 
