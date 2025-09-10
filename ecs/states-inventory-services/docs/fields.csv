@@ -4,6 +4,7 @@ ECS_Version,Indexed,Field_Set,Field,Type,Level,Normalization,Example,Description
 8.11.0,true,agent,agent.id,keyword,core,,8a4f500d,Unique identifier of this agent.
 8.11.0,true,agent,agent.name,keyword,core,,foo,Custom name of the agent.
 8.11.0,true,agent,agent.version,keyword,core,,6.0.0-rc2,Version of the agent.
+8.11.0,true,checksum,checksum.hash.sha1,keyword,custom,,,SHA1 hash used as checksum of the data collected by the agent.
 8.11.0,true,error,error.log.file.path,keyword,extended,,/var/log/fun-times.log,Full path to the log file this event came from.
 8.11.0,true,file,file.path,keyword,extended,,/home/alice/example.png,"Full path to the file, including the file name."
 8.11.0,true,file,file.path.text,keyword,extended,,/home/alice/example.png,"Full path to the file, including the file name."

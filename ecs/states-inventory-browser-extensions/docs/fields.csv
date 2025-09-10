@@ -8,6 +8,7 @@ ECS_Version,Indexed,Field_Set,Field,Type,Level,Normalization,Example,Description
 8.11.0,true,browser,browser.profile.name,keyword,custom,,default,Name of the browser profile.
 8.11.0,true,browser,browser.profile.path,keyword,custom,,/home/user/.config/google-chrome/Default,Path to the browser profile.
 8.11.0,true,browser,browser.profile.referenced,boolean,custom,,True,Indicates if the extension is referenced by the Preferences file of the browser profile.
+8.11.0,true,checksum,checksum.hash.sha1,keyword,custom,,,SHA1 hash used as checksum of the data collected by the agent.
 8.11.0,true,file,file.hash.sha256,keyword,extended,,,SHA256 hash.
 8.11.0,true,package,package.autoupdate,boolean,custom,,True,Indicates if the browser extension is set to auto-update.
 8.11.0,true,package,package.build_version,keyword,extended,,36f4f7e89dd61b0988b12ee000b98966867710cd,Build version information

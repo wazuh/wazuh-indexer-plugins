@@ -56,6 +56,18 @@
           }
         }
       },
+      "checksum": {
+        "properties": {
+          "hash": {
+            "properties": {
+              "sha1": {
+                "ignore_above": 1024,
+                "type": "keyword"
+              }
+            }
+          }
+        }
+      },
       "file": {
         "properties": {
           "hash": {
