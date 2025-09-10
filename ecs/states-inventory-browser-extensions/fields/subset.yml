@@ -13,6 +13,8 @@ fields:
         fields:
           architecture: {}
           ip: {}
+  checksum:
+    fields: "*"
   browser:
     fields: "*"
   package:

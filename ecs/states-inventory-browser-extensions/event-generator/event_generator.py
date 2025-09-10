@@ -40,6 +40,14 @@ def generate_random_date():
     return random_date.strftime(DATE_FORMAT)
 
 
+def generate_random_checksum():
+    return {
+        'hash': {
+            'sha1': ''.join(random.choices("ABCDEF0123456789", k=40)),
+        }
+    }
+
+
 def random_sha256():
     return ''.join(random.choices('0123456789abcdef', k=64))
 
@@ -158,6 +166,7 @@ def generate_random_data(number):
         event_data = generate_browser_extension()
         # Add agent and Wazuh data
         event_data["agent"] = generate_agent()
+        event_data["checksum"] = generate_random_checksum(),
         event_data["wazuh"] = generate_wazuh()
         event_data["state"] = {
             "modified_at": generate_random_date()
