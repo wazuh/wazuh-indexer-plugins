@@ -24,7 +24,7 @@ jobs:
     outputs:
       projects: ${{ steps.detect_changes.outputs.projects }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - name: Set base branch for push events
         run: echo "base_branch=$(bash scripts/product_version.sh)" >> $GITHUB_ENV
         if: github.event_name == 'push'
