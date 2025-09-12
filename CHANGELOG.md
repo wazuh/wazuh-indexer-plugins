@@ -49,6 +49,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Adapt command manager plugin for OpenSearch 3.0.0 [(#446)](https://github.com/wazuh/wazuh-indexer-plugins/pull/456)
 - Adapt setup plugin for OpenSearch 3.0.0 [(#454)](https://github.com/wazuh/wazuh-indexer-plugins/pull/454)
 - Adapt content manager plugin for OpenSearch 3.0.0 [(#458)](https://github.com/wazuh/wazuh-indexer-plugins/pull/458)
+- Update GitHub Actions versions in 6.0.0 [(#573)](https://github.com/wazuh/wazuh-indexer-plugins/pull/573)
 
 ### Deprecated
 -
