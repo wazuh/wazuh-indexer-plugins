@@ -31,6 +31,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - FIM indices rework [(#509)](https://github.com/wazuh/wazuh-indexer-plugins/pull/509)
 - Add state.modified_at to stateful indexes [(#561)](https://github.com/wazuh/wazuh-indexer-plugins/pull/561)
 - Update GitHub Actions versions in main branch [(#572)](https://github.com/wazuh/wazuh-indexer-plugins/pull/572)
+- Add browser-extensions and services inventory indices to documentation [(#574)](https://github.com/wazuh/wazuh-indexer-plugins/pull/574)
 
 ### Deprecated
 -
