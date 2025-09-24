@@ -51,6 +51,8 @@ def generate_random_agent():
         "version": f"v{random.randint(0, 9)}-stable",
         "ephemeral_id": f"{random.randint(0, 99999)}",
         "type": random.choice(["filebeat", "windows", "linux", "macos"]),
+        "host": generate_random_host(),
+        "groups": [random.choice(["default", "admins", "devs", "ops", "testers"])]
     }
     return agent
 
@@ -256,21 +258,29 @@ def generate_random_event():
 
 
 def generate_random_host():
-    family = random.choice(["debian", "ubuntu", "macos", "ios", "android", "RHEL"])
+    family = random.choice(
+        ["debian", "ubuntu", "macos", "ios", "android", "RHEL"])
     version = f"{random.randint(0, 99)}.{random.randint(0, 99)}"
     host = {
-        "os": {
-            "full": f"{family} {version}",
-            "kernel": f"{random.randint(0, 9)}.{random.randint(0, 9)}.{random.randint(0, 9)}",
-            "name": f"{family} {version}",
-            "platform": family,
-            "type": random.choice(
-                ["windows", "linux", "macos", "ios", "android", "unix"]
-            ),
-            "version": version,
-        }
+        "architecture": random.choice(["x86_64", "arm64"]),
+        "hostname": random.choice(["mercury", "venus", "earth", "mars", "jupiter", "saturn", "uranus", "neptune"]),
+        "ip": f"{random.randint(1, 255)}.{random.randint(0, 255)}.{random.randint(0, 255)}.{random.randint(0, 255)}",
+        "os": generate_random_os(family, version)
     }
     return host
+
+
+def generate_random_os(family, version):
+    return {
+        "full": f"{family} {version}",
+        "kernel": f"{random.randint(0, 9)}.{random.randint(0, 9)}.{random.randint(0, 9)}",
+        "name": f"{family} {version}",
+        "platform": family,
+        "type": random.choice(
+                  ["windows", "linux", "macos", "ios", "android", "unix"]
+        ),
+        "version": version,
+    }
 
 
 def generate_random_labels():
@@ -380,7 +390,8 @@ def generate_random_data(number):
             "vulnerability": generate_random_vulnerability(),
             "wazuh": generate_random_wazuh(),
             "state": {
-                "modified_at": generate_random_date()
+                "modified_at": generate_random_date(),
+                "document_version": random.randint(1, 10)
             }
         }
         data.append(event_data)
@@ -419,7 +430,8 @@ def main():
     args = parser.parse_args()
 
     try:
-        number = int(input("How many events do you want to generate? ").strip() or 50)
+        number = int(
+            input("How many events do you want to generate? ").strip() or 50)
     except ValueError:
         logging.error("Invalid input. Please enter a valid number.")
         return
@@ -441,8 +453,10 @@ def main():
     )
     if inject == "y":
         ip = input(f"Enter the IP of your Indexer (default: '{IP}'): ") or IP
-        port = input(f"Enter the port of your Indexer (default: '{PORT}'): ") or PORT
-        index = input(f"Enter the index name (default: '{INDEX_NAME}'): ") or INDEX_NAME
+        port = input(
+            f"Enter the port of your Indexer (default: '{PORT}'): ") or PORT
+        index = input(
+            f"Enter the index name (default: '{INDEX_NAME}'): ") or INDEX_NAME
         username = input(f"Username (default: '{USERNAME}'): ") or USERNAME
         password = input(f"Password (default: '{PASSWORD}'): ") or PASSWORD
         inject_events(data, ip, port, username, password, index, args.protocol)
