@@ -9,3 +9,8 @@
       level: custom
       description: >
         Date/time when the state was last modified.
+    - name: document_version
+      type: integer
+      level: custom
+      description: >
+        Version of the document.

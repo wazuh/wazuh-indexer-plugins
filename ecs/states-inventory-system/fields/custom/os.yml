@@ -4,6 +4,7 @@
     top_level: true
     expected:
       - { at: host, as: os }
+      - agent.host
   fields:
     - name: build
       description: >

@@ -1,5 +1,7 @@
 {
-  "index_patterns": ["wazuh-states-fim-files*"],
+  "index_patterns": [
+    "wazuh-states-fim-files*"
+  ],
   "order": 1,
   "settings": {
     "index": {
@@ -7,11 +9,17 @@
       "number_of_replicas": "0",
       "refresh_interval": "2s",
       "query.default_field": [
-        "agent.host.architecture",
-        "agent.host.ip",
-        "agent.id",
-        "agent.name",
-        "agent.version",
+        "agent.groups ",
+        "agent.host.architecture ",
+        "agent.host.hostname ",
+        "agent.host.ip ",
+        "agent.host.os.name ",
+        "agent.host.os.platform ",
+        "agent.host.os.type ",
+        "agent.host.os.version ",
+        "agent.id ",
+        "agent.name ",
+        "agent.version ",
         "checksum.hash.sha1",
         "file.attributes",
         "file.device",
@@ -28,6 +36,7 @@
         "file.permissions",
         "file.size",
         "file.uid",
+        "state.document_version",
         "state.modified_at",
         "wazuh.cluster.name",
         "wazuh.cluster.node",

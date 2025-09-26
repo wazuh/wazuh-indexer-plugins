@@ -8,14 +8,42 @@
     "properties": {
       "agent": {
         "properties": {
+          "groups": {
+            "ignore_above": 1024,
+            "type": "keyword"
+          },
           "host": {
             "properties": {
               "architecture": {
                 "ignore_above": 1024,
                 "type": "keyword"
               },
+              "hostname": {
+                "ignore_above": 1024,
+                "type": "keyword"
+              },
               "ip": {
                 "type": "ip"
+              },
+              "os": {
+                "properties": {
+                  "name": {
+                    "ignore_above": 1024,
+                    "type": "keyword"
+                  },
+                  "platform": {
+                    "ignore_above": 1024,
+                    "type": "keyword"
+                  },
+                  "type": {
+                    "ignore_above": 1024,
+                    "type": "keyword"
+                  },
+                  "version": {
+                    "ignore_above": 1024,
+                    "type": "keyword"
+                  }
+                }
               }
             }
           },
@@ -144,6 +172,9 @@
       },
       "state": {
         "properties": {
+          "document_version": {
+            "type": "integer"
+          },
           "modified_at": {
             "type": "date"
           }

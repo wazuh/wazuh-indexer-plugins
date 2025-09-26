@@ -21,10 +21,13 @@ USERNAME = "admin"
 PASSWORD = "admin"
 IP = "127.0.0.1"
 PORT = "9200"
+
+
 class OS(Enum):
     LINUX = "Linux"
     WINDOWS = "Windows"
     MACOS = "macOS"
+
 
 # Configure logging
 logging.basicConfig(filename=LOG_FILE, level=logging.INFO)
@@ -44,15 +47,31 @@ def generate_random_date():
     return random_date.strftime(DATE_FORMAT)
 
 
-def generate_agent():
+def generate_random_agent():
     return {
-        "host": {
-            "architecture": random.choice(["x86_64", "arm64"]),
-            "ip": f"192.168.{random.randint(0, 255)}.{random.randint(1, 254)}"
-        },
-        "id": random_string(8),
-        "name": f"agent-{random.randint(1, 100)}",
-        "version": f"{random.randint(1,5)}.{random.randint(0,9)}.{random.randint(0,9)}"
+        "id": f"{random.randint(0, 99):03d}",
+        "name": f"Agent{random.randint(0, 99)}",
+        "version": f"v{random.randint(0, 9)}-stable",
+        "host": generate_random_host(),
+        "groups": [random.choice(["default", "admins", "devs", "ops", "testers"])]
+    }
+
+
+def generate_random_host():
+    return {
+        "architecture": random.choice(["x86_64", "arm64"]),
+        "hostname": random.choice(["mercury", "venus", "earth", "mars", "jupiter", "saturn", "uranus", "neptune"]),
+        "ip": f"{random.randint(1, 255)}.{random.randint(0, 255)}.{random.randint(0, 255)}.{random.randint(0, 255)}",
+        "os": generate_random_os()
+    }
+
+
+def generate_random_os():
+    return {
+        "name": random.choice(["Windows", "Linux", "macOS", "FreeBSD", "Solaris"]),
+        "version": f"{random.randint(1, 10)}.{random.randint(0, 20)}.{random.randint(0, 99)}",
+        "platform": random.choice(["x86_64", "arm64", "i386", "amd64"]),
+        "type": random.choice(["desktop", "server", "mobile"])
     }
 
 
@@ -76,13 +95,17 @@ def generate_file(os_type=OS.LINUX):
 
 
 def generate_process(os_type=OS.LINUX, state="running"):
-    pid = random.randint(1000, 5000) if state.lower() in ["running", "active"] else 0
+    pid = random.randint(1000, 5000) if state.lower() in [
+        "running", "active"] else 0
     if os_type == OS.WINDOWS:
-        executable = random.choice(["C:\\Program Files\\App\\app.exe", "C:\\Windows\\System32\\svchost.exe"])
+        executable = random.choice(
+            ["C:\\Program Files\\App\\app.exe", "C:\\Windows\\System32\\svchost.exe"])
     elif os_type == OS.LINUX:
-        executable = random.choice(["/usr/bin/python3", "/usr/sbin/sshd", "/usr/sbin/nginx"])
+        executable = random.choice(
+            ["/usr/bin/python3", "/usr/sbin/sshd", "/usr/sbin/nginx"])
     else:
-        executable = random.choice(["/Applications/App.app/Contents/MacOS/App", "/usr/bin/terminal"])
+        executable = random.choice(
+            ["/Applications/App.app/Contents/MacOS/App", "/usr/bin/terminal"])
 
     if os_type == OS.WINDOWS:
         return {
@@ -114,9 +137,9 @@ def generate_service(os_type=OS.LINUX):
         sub_state = random.choice(["running", "dead", "exited"])
     elif os_type == OS.WINDOWS:
         state = random.choice(["RUNNING", "STOPPED"])
-    else:  
+    else:
         state = random.choice(["running", "stopped"])
-    
+
     if os_type == OS.LINUX:
         name = random.choice(["nginx", "sshd", "cron"])
         service_data = {
@@ -221,13 +244,14 @@ def generate_random_data(number):
         os_choice = random.choice(list(OS))
         service_data = generate_service(os_type=os_choice)
         event_data = {
-            "agent": generate_agent(),
+            "agent": generate_random_agent(),
             "checksum": generate_random_checksum(),
             "process": generate_process(os_type=os_choice, state=service_data["state"]),
             "service": service_data,
             "wazuh": generate_wazuh(),
             "state": {
-                "modified_at": generate_random_date()
+                "modified_at": generate_random_date(),
+                "document_version": random.randint(1, 10)
             },
         }
 
@@ -256,6 +280,7 @@ def inject_events(ip, port, index, username, password, data, protocol):
             logging.error(response.text)
             break
     logging.info("Data injection completed successfully.")
+
 
 def main():
     parser = argparse.ArgumentParser(
@@ -300,4 +325,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-

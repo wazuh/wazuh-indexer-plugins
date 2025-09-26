@@ -5,7 +5,27 @@ fields:
     fields:
       tags: []
   agent:
-    fields: "*"
+    fields:
+      ephemeral_id: {}
+      groups: []
+      id: {}
+      name: {}
+      type: {}
+      version: {}
+      build:
+        fields:
+          original: {}
+      host:
+        fields:
+          architecture: {}
+          hostname: {}
+          ip: {}
+          os:
+            fields:
+              name: {}
+              platform: {}
+              type: {}
+              version: {}
   checksum:
     fields: "*"
   package:

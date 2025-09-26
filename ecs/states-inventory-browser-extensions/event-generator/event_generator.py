@@ -74,7 +74,8 @@ def generate_browser_extension():
     user_id = f"user{random.randint(1,10)}" if not is_ie else None
 
     # Name and ID of the extension
-    ext_name = random.choice(["Adblock Plus", "LastPass", "Grammarly", "Honey", "Dark Reader"])
+    ext_name = random.choice(
+        ["Adblock Plus", "LastPass", "Grammarly", "Honey", "Dark Reader"])
     ext_id = random_string(32) if is_chrome else random_string(16)
 
     # Common fields
@@ -122,29 +123,49 @@ def generate_browser_extension():
         extension_data["package"]["permissions"] = random_permissions()
 
     elif is_firefox:
-        extension_data["package"]["type"] = random.choice(["extension", "webapp"])
-        extension_data["package"]["path"] = f"/home/{user_id}/.mozilla/firefox/{random_string(8)}.default/extensions/{ext_id}.xpi"
-        extension_data["package"]["reference"] = f"https://addons.mozilla.org/firefox/downloads/file/{random.randint(1000,9999)}/"
+        extension_data["package"]["type"] = random.choice(
+            ["extension", "webapp"])
+        extension_data["package"][
+            "path"] = f"/home/{user_id}/.mozilla/firefox/{random_string(8)}.default/extensions/{ext_id}.xpi"
+        extension_data["package"][
+            "reference"] = f"https://addons.mozilla.org/firefox/downloads/file/{random.randint(1000,9999)}/"
         extension_data["package"]["visible"] = random.choice([True, False])
 
     elif is_safari:
         extension_data["package"]["path"] = f"/Users/{user_id}/Library/Safari/Extensions/{ext_name}.safariextz"
 
     elif is_ie:
-        extension_data["package"]["path"] = f"HKEY_LOCAL_MACHINE\\SOFTWARE\\Microsoft\\Internet Explorer\\Extensions\\{ext_id}"
+        extension_data["package"][
+            "path"] = f"HKEY_LOCAL_MACHINE\\SOFTWARE\\Microsoft\\Internet Explorer\\Extensions\\{ext_id}"
 
     return extension_data
 
 
-def generate_agent():
+def generate_random_agent():
     return {
-        "host": {
-            "architecture": random.choice(["x86_64", "arm64"]),
-            "ip": f"192.168.{random.randint(0, 255)}.{random.randint(1, 254)}"
-        },
-        "id": random_string(8),
-        "name": f"agent-{random.randint(1, 100)}",
-        "version": f"{random.randint(1,5)}.{random.randint(0,9)}.{random.randint(0,9)}"
+        "id": f"{random.randint(0, 99):03d}",
+        "name": f"Agent{random.randint(0, 99)}",
+        "version": f"v{random.randint(0, 9)}-stable",
+        "host": generate_random_host(),
+        "groups": [random.choice(["default", "admins", "devs", "ops", "testers"])]
+    }
+
+
+def generate_random_host():
+    return {
+        "architecture": random.choice(["x86_64", "arm64"]),
+        "hostname": random.choice(["mercury", "venus", "earth", "mars", "jupiter", "saturn", "uranus", "neptune"]),
+        "ip": f"{random.randint(1, 255)}.{random.randint(0, 255)}.{random.randint(0, 255)}.{random.randint(0, 255)}",
+        "os": generate_random_os()
+    }
+
+
+def generate_random_os():
+    return {
+        "name": random.choice(["Windows", "Linux", "macOS", "FreeBSD", "Solaris"]),
+        "version": f"{random.randint(1, 10)}.{random.randint(0, 20)}.{random.randint(0, 99)}",
+        "platform": random.choice(["x86_64", "arm64", "i386", "amd64"]),
+        "type": random.choice(["desktop", "server", "mobile"])
     }
 
 
@@ -165,11 +186,12 @@ def generate_random_data(number):
     for _ in range(number):
         event_data = generate_browser_extension()
         # Add agent and Wazuh data
-        event_data["agent"] = generate_agent()
+        event_data["agent"] = generate_random_agent()
         event_data["checksum"] = generate_random_checksum(),
         event_data["wazuh"] = generate_wazuh()
         event_data["state"] = {
-            "modified_at": generate_random_date()
+            "modified_at": generate_random_date(),
+            "document_version": random.randint(1, 10)
         }
 
         data.append(event_data)
@@ -235,4 +257,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-

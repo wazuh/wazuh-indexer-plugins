@@ -81,9 +81,11 @@ def generate_random_user():
         },
         "wazuh": generate_random_wazuh(),
         "state": {
-            "modified_at": generate_random_date()
+            "modified_at": generate_random_date(),
+            "document_version": random.randint(1, 10)
         },
     }
+
 
 def generate_random_date():
     start_date = datetime.datetime.now()
@@ -98,6 +100,7 @@ def generate_random_agent():
         "name": f"Agent{random.randint(0, 99)}",
         "version": f"v{random.randint(0, 9)}-stable",
         "host": generate_random_host(),
+        "groups": [random.choice(["default", "admins", "devs", "ops", "testers"])]
     }
 
 
@@ -112,7 +115,18 @@ def generate_random_checksum():
 def generate_random_host():
     return {
         "architecture": random.choice(["x86_64", "arm64"]),
+        "hostname": random.choice(["mercury", "venus", "earth", "mars", "jupiter", "saturn", "uranus", "neptune"]),
         "ip": f"{random.randint(1, 255)}.{random.randint(0, 255)}.{random.randint(0, 255)}.{random.randint(0, 255)}",
+        "os": generate_random_os()
+    }
+
+
+def generate_random_os():
+    return {
+        "name": random.choice(["Windows", "Linux", "macOS", "FreeBSD", "Solaris"]),
+        "version": f"{random.randint(1, 10)}.{random.randint(0, 20)}.{random.randint(0, 99)}",
+        "platform": random.choice(["x86_64", "arm64", "i386", "amd64"]),
+        "type": random.choice(["desktop", "server", "mobile"])
     }
 
 

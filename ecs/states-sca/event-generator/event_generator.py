@@ -32,6 +32,7 @@ def generate_random_agent():
         'name': f'Agent{random.randint(0, 99)}',
         'version': f'v{random.randint(0, 9)}-stable',
         'host': generate_random_host(),
+        "groups": [random.choice(["default", "admins", "devs", "ops", "testers"])]
     }
     return agent
 
@@ -39,34 +40,48 @@ def generate_random_agent():
 def generate_random_host():
     return {
         "architecture": random.choice(["x86_64", "arm64"]),
+        "hostname": random.choice(["mercury", "venus", "earth", "mars", "jupiter", "saturn", "uranus", "neptune"]),
         "ip": f"{random.randint(1, 255)}.{random.randint(0, 255)}.{random.randint(0, 255)}.{random.randint(0, 255)}",
+        "os": generate_random_os()
     }
+
+
+def generate_random_os():
+    return {
+        "name": random.choice(["Windows", "Linux", "macOS", "FreeBSD", "Solaris"]),
+        "version": f"{random.randint(1, 10)}.{random.randint(0, 20)}.{random.randint(0, 99)}",
+        "platform": random.choice(["x86_64", "arm64", "i386", "amd64"]),
+        "type": random.choice(["desktop", "server", "mobile"])
+    }
+
 
 def generate_random_policy():
     policy = {
-      'id': f'policy{random.randint(0, 999)}',
-      'name': f'Policy {random.randint(0, 999)}',
-      'file': f'policy{random.randint(0, 999)}.yml',
-      'description': 'Generated policy description.',
-      'references': [f'https://example.com/policy{random.randint(0, 999)}']
+        'id': f'policy{random.randint(0, 999)}',
+        'name': f'Policy {random.randint(0, 999)}',
+        'file': f'policy{random.randint(0, 999)}.yml',
+        'description': 'Generated policy description.',
+        'references': [f'https://example.com/policy{random.randint(0, 999)}']
     }
     return policy
 
+
 def generate_random_check():
     check = {
-      'id': f'check{random.randint(0, 9999)}',
-      'name': 'Check Example',
-      'description': 'Generated check description.',
-      'rationale': 'Generated rationale.',
-      'remediation': 'Generated remediation.',
-      'references': [f'https://example.com/check{random.randint(0, 9999)}'],
-      'condition': 'all',
-      'compliance': [f'cis:{random.randint(1, 10)}.{random.randint(1, 10)}.{random.randint(1, 10)}'],
-      'rules': [f'Rule {random.randint(1, 100)}', f'Rule {random.randint(1, 100)}'],
-      'result': 'pass',
-      'reason': 'Randomly passed.'
+        'id': f'check{random.randint(0, 9999)}',
+        'name': 'Check Example',
+        'description': 'Generated check description.',
+        'rationale': 'Generated rationale.',
+        'remediation': 'Generated remediation.',
+        'references': [f'https://example.com/check{random.randint(0, 9999)}'],
+        'condition': 'all',
+        'compliance': [f'cis:{random.randint(1, 10)}.{random.randint(1, 10)}.{random.randint(1, 10)}'],
+        'rules': [f'Rule {random.randint(1, 100)}', f'Rule {random.randint(1, 100)}'],
+        'result': 'pass',
+        'reason': 'Randomly passed.'
     }
     return check
+
 
 def generate_random_data(number):
     data = []
@@ -78,11 +93,13 @@ def generate_random_data(number):
             'checksum': generate_random_checksum(),
             'wazuh': generate_random_wazuh(),
             'state': {
-                'modified_at': generate_random_date()
+                'modified_at': generate_random_date(),
+                "document_version": random.randint(1, 10)
             },
         }
         data.append(event_data)
     return data
+
 
 def generate_random_date():
     start_date = datetime.datetime.now()
@@ -90,12 +107,14 @@ def generate_random_date():
     random_date = start_date + (end_date - start_date) * random.random()
     return random_date.strftime(DATE_FORMAT)
 
+
 def generate_random_checksum():
     return {
         "hash": {
             "sha1": f"{random.randint(0, 9999)}",
         }
     }
+
 
 def generate_random_wazuh():
     return {
@@ -105,6 +124,7 @@ def generate_random_wazuh():
         },
         "schema": {"version": "1.7.0"},
     }
+
 
 def inject_events(protocol, ip, port, index, username, password, data):
     url = f'{protocol}://{ip}:{port}/{index}/_doc'
@@ -122,6 +142,7 @@ def inject_events(protocol, ip, port, index, username, password, data):
         logging.info('Data injection completed successfully.')
     except Exception as e:
         logging.error(f'Error: {str(e)}')
+
 
 def main():
     parser = argparse.ArgumentParser(
@@ -151,11 +172,14 @@ def main():
     logging.info('Data generation completed.')
     if input("Do you want to inject the generated data into your indexer? (y/n) ").strip().lower() == 'y':
         ip = input(f"Enter the IP of your Indexer (default: '{IP}'): ") or IP
-        port = input(f"Enter the port of your Indexer (default: '{PORT}'): ") or PORT
-        index = input(f"Enter the index name (default: '{INDEX_NAME}'): ") or INDEX_NAME
+        port = input(
+            f"Enter the port of your Indexer (default: '{PORT}'): ") or PORT
+        index = input(
+            f"Enter the index name (default: '{INDEX_NAME}'): ") or INDEX_NAME
         username = input(f"Username (default: '{USERNAME}'): ") or USERNAME
         password = input(f"Password (default: '{PASSWORD}'): ") or PASSWORD
         inject_events(args.protocol, ip, port, index, username, password, data)
+
 
 if __name__ == "__main__":
     main()

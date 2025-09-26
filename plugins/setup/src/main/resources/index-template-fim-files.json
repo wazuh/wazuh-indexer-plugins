@@ -8,14 +8,42 @@
     "properties": {
       "agent": {
         "properties": {
+          "groups": {
+            "ignore_above": 1024,
+            "type": "keyword"
+          },
           "host": {
             "properties": {
               "architecture": {
                 "ignore_above": 1024,
                 "type": "keyword"
               },
+              "hostname": {
+                "ignore_above": 1024,
+                "type": "keyword"
+              },
               "ip": {
                 "type": "ip"
+              },
+              "os": {
+                "properties": {
+                  "name": {
+                    "ignore_above": 1024,
+                    "type": "keyword"
+                  },
+                  "platform": {
+                    "ignore_above": 1024,
+                    "type": "keyword"
+                  },
+                  "type": {
+                    "ignore_above": 1024,
+                    "type": "keyword"
+                  },
+                  "version": {
+                    "ignore_above": 1024,
+                    "type": "keyword"
+                  }
+                }
               }
             }
           },
@@ -109,6 +137,9 @@
       },
       "state": {
         "properties": {
+          "document_version": {
+            "type": "integer"
+          },
           "modified_at": {
             "type": "date"
           }
@@ -146,11 +177,17 @@
       "number_of_replicas": "0",
       "number_of_shards": "1",
       "query.default_field": [
-        "agent.host.architecture",
-        "agent.host.ip",
-        "agent.id",
-        "agent.name",
-        "agent.version",
+        "agent.groups ",
+        "agent.host.architecture ",
+        "agent.host.hostname ",
+        "agent.host.ip ",
+        "agent.host.os.name ",
+        "agent.host.os.platform ",
+        "agent.host.os.type ",
+        "agent.host.os.version ",
+        "agent.id ",
+        "agent.name ",
+        "agent.version ",
         "checksum.hash.sha1",
         "file.attributes",
         "file.device",
@@ -167,6 +204,7 @@
         "file.permissions",
         "file.size",
         "file.uid",
+        "state.document_version",
         "state.modified_at",
         "wazuh.cluster.name",
         "wazuh.cluster.node",

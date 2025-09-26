@@ -35,7 +35,8 @@ def generate_random_data(number):
             "wazuh": generate_random_wazuh(),
             "checksum": generate_random_checksum(),
             "state": {
-                "modified_at": generate_random_date()
+                "modified_at": generate_random_date(),
+                "document_version": random.randint(1, 10)
             }
         }
         data.append(event_data)
@@ -55,13 +56,25 @@ def generate_random_agent():
         "name": f"Agent{random.randint(0, 99)}",
         "version": f"v{random.randint(0, 9)}-stable",
         "host": generate_random_host(),
+        "groups": [random.choice(["default", "admins", "devs", "ops", "testers"])]
     }
 
 
 def generate_random_host():
     return {
         "architecture": random.choice(["x86_64", "arm64"]),
+        "hostname": random.choice(["mercury", "venus", "earth", "mars", "jupiter", "saturn", "uranus", "neptune"]),
         "ip": f"{random.randint(1, 255)}.{random.randint(0, 255)}.{random.randint(0, 255)}.{random.randint(0, 255)}",
+        "os": generate_random_os()
+    }
+
+
+def generate_random_os():
+    return {
+        "name": random.choice(["Windows", "Linux", "macOS", "FreeBSD", "Solaris"]),
+        "version": f"{random.randint(1, 10)}.{random.randint(0, 20)}.{random.randint(0, 99)}",
+        "platform": random.choice(["x86_64", "arm64", "i386", "amd64"]),
+        "type": random.choice(["desktop", "server", "mobile"])
     }
 
 
@@ -91,8 +104,9 @@ def generate_random_file():
             "".join(random.choice(["r", "w", "-"]) for _ in range(9))
         ],
 
-        
+
     }
+
 
 def generate_random_checksum():
     return {
@@ -166,8 +180,10 @@ def main():
     )
     if inject == "y":
         ip = input(f"Enter the IP of your Indexer (default: '{IP}'): ") or IP
-        port = input(f"Enter the port of your Indexer (default: '{PORT}'): ") or PORT
-        index = input(f"Enter the index name (default: '{INDEX_NAME}'): ") or INDEX_NAME
+        port = input(
+            f"Enter the port of your Indexer (default: '{PORT}'): ") or PORT
+        index = input(
+            f"Enter the index name (default: '{INDEX_NAME}'): ") or INDEX_NAME
         username = input(f"Username (default: '{USERNAME}'): ") or USERNAME
         password = input(f"Password (default: '{PASSWORD}'): ") or PASSWORD
         inject_events(data, ip, port, username, password, index, args.protocol)
