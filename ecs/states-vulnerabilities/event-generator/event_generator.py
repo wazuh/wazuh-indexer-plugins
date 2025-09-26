@@ -276,6 +276,7 @@ def generate_random_host(is_top_level=True):
             "ip": f"{random.randint(1, 255)}.{random.randint(0, 255)}.{random.randint(0, 255)}.{random.randint(0, 255)}",
             "os": generate_random_os(False, family, version)
         }
+        return host
 
 
 def generate_random_os(top_level_host, family, version):
