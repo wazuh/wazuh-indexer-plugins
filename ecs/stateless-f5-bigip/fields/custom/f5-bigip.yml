@@ -2392,20 +2392,23 @@
   - name: f5_bigip.log.throughput_performance.clientBitsIn.average
     type: keyword
     level: custom
-    description: Average client inbound bits per second throughput performance metric
-      for F5 BIG-IP.
+    description: >-
+      Average client inbound bits per second throughput performance metric for F5
+      BIG-IP.
     example: example-average
   - name: f5_bigip.log.throughput_performance.clientBitsIn.current
     type: keyword
     level: custom
-    description: Current client inbound bits per second throughput performance metric
-      for F5 BIG-IP.
+    description: >-
+      Current client inbound bits per second throughput performance metric for F5
+      BIG-IP.
     example: example-current
   - name: f5_bigip.log.throughput_performance.clientBitsIn.max
     type: keyword
     level: custom
-    description: Maximum client inbound bits per second throughput performance metric
-      for F5 BIG-IP.
+    description: >-
+      Maximum client inbound bits per second throughput performance metric for F5
+      BIG-IP.
     example: example-max
   - name: f5_bigip.log.throughput_performance.clientBitsIn.name
     type: keyword
@@ -2416,26 +2419,29 @@
   - name: f5_bigip.log.throughput_performance.clientBitsOut.average
     type: keyword
     level: custom
-    description: Average client outbound bits per second throughput performance metric
-      for F5 BIG-IP.
+    description: >-
+      Average client outbound bits per second throughput performance metric for F5
+      BIG-IP.
     example: example-average
   - name: f5_bigip.log.throughput_performance.clientBitsOut.current
     type: keyword
     level: custom
-    description: Current client outbound bits per second throughput performance metric
-      for F5 BIG-IP.
+    description: >-
+      Current client outbound bits per second throughput performance metric for F5
+      BIG-IP.
     example: example-current
   - name: f5_bigip.log.throughput_performance.clientBitsOut.max
     type: keyword
     level: custom
-    description: Maximum client outbound bits per second throughput performance metric
-      for F5 BIG-IP.
+    description: >-
+      Maximum client outbound bits per second throughput performance metric for F5
+      BIG-IP.
     example: example-max
   - name: f5_bigip.log.throughput_performance.clientBitsOut.name
     type: keyword
     level: custom
-    description: Client outbound bits throughput performance metric name identifier
-      for F5 BIG-IP.
+    description: >-
+      Client outbound bits throughput performance metric name identifier for F5 BIG-IP.
     example: example-name
   - name: f5_bigip.log.throughput_performance.clientIn.average
     type: keyword
@@ -2458,8 +2464,9 @@
   - name: f5_bigip.log.throughput_performance.clientIn.name
     type: keyword
     level: custom
-    description: Client inbound traffic throughput performance metric name identifier
-      for F5 BIG-IP.
+    description: >-
+      Client inbound traffic throughput performance metric name identifier for F5
+      BIG-IP.
     example: example-name
   - name: f5_bigip.log.throughput_performance.clientOut.average
     type: keyword
@@ -2482,8 +2489,9 @@
   - name: f5_bigip.log.throughput_performance.clientOut.name
     type: keyword
     level: custom
-    description: Client outbound traffic throughput performance metric name identifier
-      for F5 BIG-IP.
+    description: >-
+      Client outbound traffic throughput performance metric name identifier for F5
+      BIG-IP.
     example: example-name
   - name: f5_bigip.log.throughput_performance.compression.average
     type: keyword
@@ -2577,8 +2585,9 @@
   - name: f5_bigip.log.throughput_performance.managementBitsIn.name
     type: keyword
     level: custom
-    description: Management inbound bits throughput performance metric name identifier
-      for F5 BIG-IP.
+    description: >-
+      Management inbound bits throughput performance metric name identifier for F5
+      BIG-IP.
     example: example-name
   - name: f5_bigip.log.throughput_performance.managementBitsOut.average
     type: keyword
@@ -2601,8 +2610,9 @@
   - name: f5_bigip.log.throughput_performance.managementBitsOut.name
     type: keyword
     level: custom
-    description: Management outbound bits throughput performance metric name identifier
-      for F5 BIG-IP.
+    description: >-
+      Management outbound bits throughput performance metric name identifier for F5
+      BIG-IP.
     example: example-name
   - name: f5_bigip.log.throughput_performance.outBits.average
     type: keyword
@@ -2655,20 +2665,23 @@
   - name: f5_bigip.log.throughput_performance.serverBitsIn.average
     type: keyword
     level: custom
-    description: Average server inbound bits per second throughput performance metric
-      for F5 BIG-IP.
+    description: >-
+      Average server inbound bits per second throughput performance metric for F5
+      BIG-IP.
     example: example-average
   - name: f5_bigip.log.throughput_performance.serverBitsIn.current
     type: keyword
     level: custom
-    description: Current server inbound bits per second throughput performance metric
-      for F5 BIG-IP.
+    description: >-
+      Current server inbound bits per second throughput performance metric for F5
+      BIG-IP.
     example: example-current
   - name: f5_bigip.log.throughput_performance.serverBitsIn.max
     type: keyword
     level: custom
-    description: Maximum server inbound bits per second throughput performance metric
-      for F5 BIG-IP.
+    description: >-
+      Maximum server inbound bits per second throughput performance metric for F5
+      BIG-IP.
     example: example-max
   - name: f5_bigip.log.throughput_performance.serverBitsIn.name
     type: keyword
@@ -2679,26 +2692,29 @@
   - name: f5_bigip.log.throughput_performance.serverBitsOut.average
     type: keyword
     level: custom
-    description: Average server outbound bits per second throughput performance metric
-      for F5 BIG-IP.
+    description: >-
+      Average server outbound bits per second throughput performance metric for F5
+      BIG-IP.
     example: example-average
   - name: f5_bigip.log.throughput_performance.serverBitsOut.current
     type: keyword
     level: custom
-    description: Current server outbound bits per second throughput performance metric
-      for F5 BIG-IP.
+    description: >-
+      Current server outbound bits per second throughput performance metric for F5
+      BIG-IP.
     example: example-current
   - name: f5_bigip.log.throughput_performance.serverBitsOut.max
     type: keyword
     level: custom
-    description: Maximum server outbound bits per second throughput performance metric
-      for F5 BIG-IP.
+    description: >-
+      Maximum server outbound bits per second throughput performance metric for F5
+      BIG-IP.
     example: example-max
   - name: f5_bigip.log.throughput_performance.serverBitsOut.name
     type: keyword
     level: custom
-    description: Server outbound bits throughput performance metric name identifier
-      for F5 BIG-IP.
+    description: >-
+      Server outbound bits throughput performance metric name identifier for F5 BIG-IP.
     example: example-name
   - name: f5_bigip.log.throughput_performance.serverIn.average
     type: keyword
@@ -2715,8 +2731,9 @@
   - name: f5_bigip.log.throughput_performance.serverIn.max
     type: keyword
     level: custom
-    description: Server inbound traffic throughput performance metric name identifier
-      for F5 BIG-IP.
+    description: >-
+      Server inbound traffic throughput performance metric name identifier for F5
+      BIG-IP.
     example: example-max
   - name: f5_bigip.log.throughput_performance.serverIn.name
     type: keyword
@@ -2739,26 +2756,27 @@
   - name: f5_bigip.log.throughput_performance.serverOut.max
     type: keyword
     level: custom
-    description: Server outbound traffic throughput performance metric name identifier
-      for F5 BIG-IP.
+    description: >-
+      Server outbound traffic throughput performance metric name identifier for F5
+      BIG-IP.
     example: example-max
   - name: f5_bigip.log.throughput_performance.serverOut.name
     type: keyword
     level: custom
-    description: Average service layer bits per second throughput performance metric
-      for F5 BIG-IP.
+    description: >-
+      Average service layer bits per second throughput performance metric for F5 BIG-IP.
     example: example-name
   - name: f5_bigip.log.throughput_performance.serviceBits.average
     type: keyword
     level: custom
-    description: Current service layer bits per second throughput performance metric
-      for F5 BIG-IP.
+    description: >-
+      Current service layer bits per second throughput performance metric for F5 BIG-IP.
     example: example-average
   - name: f5_bigip.log.throughput_performance.serviceBits.current
     type: keyword
     level: custom
-    description: Maximum service layer bits per second throughput performance metric
-      for F5 BIG-IP.
+    description: >-
+      Maximum service layer bits per second throughput performance metric for F5 BIG-IP.
     example: example-current
   - name: f5_bigip.log.throughput_performance.serviceBits.max
     type: keyword
@@ -2769,26 +2787,29 @@
   - name: f5_bigip.log.throughput_performance.serviceBits.name
     type: keyword
     level: custom
-    description: Average service layer packets per second throughput performance metric
-      for F5 BIG-IP.
+    description: >-
+      Average service layer packets per second throughput performance metric for F5
+      BIG-IP.
     example: example-name
   - name: f5_bigip.log.throughput_performance.servicePackets.average
     type: keyword
     level: custom
-    description: Current service layer packets per second throughput performance metric
-      for F5 BIG-IP.
+    description: >-
+      Current service layer packets per second throughput performance metric for F5
+      BIG-IP.
     example: example-average
   - name: f5_bigip.log.throughput_performance.servicePackets.current
     type: keyword
     level: custom
-    description: Maximum service layer packets per second throughput performance metric
-      for F5 BIG-IP.
+    description: >-
+      Maximum service layer packets per second throughput performance metric for F5
+      BIG-IP.
     example: example-current
   - name: f5_bigip.log.throughput_performance.servicePackets.max
     type: keyword
     level: custom
-    description: Service layer packets throughput performance metric name identifier
-      for F5 BIG-IP.
+    description: >-
+      Service layer packets throughput performance metric name identifier for F5 BIG-IP.
     example: example-max
   - name: f5_bigip.log.throughput_performance.servicePackets.name
     type: keyword
@@ -2811,14 +2832,16 @@
   - name: f5_bigip.log.throughput_performance.sslTps.max
     type: keyword
     level: custom
-    description: SSL transactions per second throughput performance metric name identifier
-      for F5 BIG-IP.
+    description: >-
+      SSL transactions per second throughput performance metric name identifier for
+      F5 BIG-IP.
     example: example-max
   - name: f5_bigip.log.throughput_performance.sslTps.name
     type: keyword
     level: custom
-    description: Current server inbound transactions per second throughput performance
-      metric for F5 BIG-IP.
+    description: >-
+      Current server inbound transactions per second throughput performance metric
+      for F5 BIG-IP.
     example: example-name
   - name: f5_bigip.log.throughput.health
     type: keyword

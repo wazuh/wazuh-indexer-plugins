@@ -10,8 +10,9 @@
   - name: microsoft.dnsserver_analytical_cache_scope
     type: keyword
     level: custom
-    description: An Indicator that is used to determine if the DNS data came from
-      a cache and the scope of that cache.
+    description: >-
+      An Indicator that is used to determine if the DNS data came from a cache and
+      the scope of that cache.
     example: example-dnsserver_analytical_cache_scope
   - name: microsoft.dnsserver_analytical_dnssec
     type: keyword
@@ -42,8 +43,9 @@
   - name: microsoft.dnsserver_analytical_queries_attached
     type: keyword
     level: custom
-    description: Number of queries that are related with a particular event or transaction
-      within the DNS server.
+    description: >-
+      Number of queries that are related with a particular event or transaction within
+      the DNS server.
     example: example-dnsserver_analytical_queries_attached
   - name: microsoft.dnsserver_analytical_qxid
     type: keyword
@@ -91,8 +93,9 @@
   - name: microsoft.dnsserver_audit_action
     type: keyword
     level: custom
-    description: Indicates the response that a policy requires for a query to meet
-      the criteria of the policy.
+    description: >-
+      Indicates the response that a policy requires for a query to meet the criteria
+      of the policy.
     example: example-dnsserver_audit_action
   - name: microsoft.dnsserver_audit_active_key
     type: keyword
@@ -154,26 +157,32 @@
   - name: microsoft.dnsserver_audit_digest
     type: keyword
     level: custom
-    description: A secure fingerprint, allowing DNS resolvers to validate the authenticity
-      of the trust anchor information.
+    description: >-
+      A secure fingerprint, allowing DNS resolvers to validate the authenticity of
+      the trust anchor information.
     example: example-dnsserver_audit_digest
   - name: microsoft.dnsserver_audit_digest_type
     type: keyword
     level: custom
-    description: Specifies the type of cryptographic hash algorithm used for generating
-      the digest (hash) value.
+    description: >-
+      Specifies the type of cryptographic hash algorithm used for generating the digest
+      (hash) value.
     example: example-dnsserver_audit_digest_type
   - name: microsoft.dnsserver_audit_distribute_trust_anchor
     type: keyword
     level: custom
-    description: Relates to the distribution of a trust anchor for DNSSEC, which is
-      a secure public key that helps in the validation of DNS data.
+    short: >-
+      Distribution of DNSSEC trust anchor, a secure public key used for DNS data validation.
+    description: >-
+      Relates to the distribution of a trust anchor for DNSSEC, which is a secure
+      public key that helps in the validation of DNS data.
     example: example-dnsserver_audit_distribute_trust_anchor
   - name: microsoft.dnsserver_audit_ds_record_generation_algorithmAction
     type: keyword
     level: custom
-    description: The algorithm used to generate the Delegation Signer (DS) record
-      from the DNSKEY record.
+    description: >-
+      The algorithm used to generate the Delegation Signer (DS) record from the DNSKEY
+      record.
     example: example-dnsserver_audit_ds_record_generation_algorithmAction
   - name: microsoft.dnsserver_audit_ds_record_set_ttl
     type: keyword
@@ -184,14 +193,16 @@
   - name: microsoft.dnsserver_audit_ds_signature_validity_period
     type: keyword
     level: custom
-    description: The period in seconds that a DS (Delegation Signer) record's signature
-      is considered valid.
+    description: >-
+      The period in seconds that a DS (Delegation Signer) record's signature is considered
+      valid.
     example: example-dnsserver_audit_ds_signature_validity_period
   - name: microsoft.dnsserver_audit_enable_rfc_5011_key_rollover
     type: keyword
     level: custom
-    description: The process of automating the update and rollover of DNSSEC keys
-      in accordance with RFC 5011 standards.
+    description: >-
+      The process of automating the update and rollover of DNSSEC keys in accordance
+      with RFC 5011 standards.
     example: example-dnsserver_audit_enable_rfc_5011_key_rollover
   - name: microsoft.dnsserver_audit_errors_per_second
     type: keyword
@@ -212,8 +223,9 @@
   - name: microsoft.dnsserver_audit_friendly_name
     type: keyword
     level: custom
-    description: An alias or label used for identifying the server, in contrast to
-      its IP address or more technical name.
+    description: >-
+      An alias or label used for identifying the server, in contrast to its IP address
+      or more technical name.
     example: example-dnsserver_audit_friendly_name
   - name: microsoft.dnsserver_audit_guid
     type: keyword
@@ -223,8 +235,9 @@
   - name: microsoft.dnsserver_audit_initial_rollover_offset
     type: keyword
     level: custom
-    description: The initial time delay (in seconds) before the first rollover action
-      is triggered for a DNSSEC key.
+    description: >-
+      The initial time delay (in seconds) before the first rollover action is triggered
+      for a DNSSEC key.
     example: example-dnsserver_audit_initial_rollover_offset
   - name: microsoft.dnsserver_audit_ipv4_prefix_length
     type: keyword
@@ -239,8 +252,8 @@
   - name: microsoft.dnsserver_audit_is_enabled
     type: keyword
     level: custom
-    description: This parameter indicates whether the policy or exception list is
-      currently active.
+    description: >-
+      This parameter indicates whether the policy or exception list is currently active.
     example: example-dnsserver_audit_is_enabled
   - name: microsoft.dnsserver_audit_is_key_master_server
     type: keyword
@@ -261,14 +274,16 @@
   - name: microsoft.dnsserver_audit_key_master_server
     type: keyword
     level: custom
-    description: The DNS server that is responsible for generating and managing the
-      DNSSEC keys for a zone.
+    description: >-
+      The DNS server that is responsible for generating and managing the DNSSEC keys
+      for a zone.
     example: example-dnsserver_audit_key_master_server
   - name: microsoft.dnsserver_audit_key_or_zone
     type: keyword
     level: custom
-    description: The signing key used for authentication and data integrity in a specific
-      DNS zone.
+    description: >-
+      The signing key used for authentication and data integrity in a specific DNS
+      zone.
     example: example-dnsserver_audit_key_or_zone
   - name: microsoft.dnsserver_audit_key_protocol
     type: keyword
@@ -278,9 +293,13 @@
   - name: microsoft.dnsserver_audit_key_record_set_ttl
     type: keyword
     level: custom
-    description: The time-to-live (TTL) value assigned to DNSKEY records when signing
-      a DNS zone. This value determines how long a DNSKEY record will be considered
-      valid before it needs to be refreshed.
+    short: >-
+      TTL value for DNSKEY records when signing DNS zone. Determines how long DNSKEY
+      remains valid before refresh.
+    description: >-
+      The time-to-live (TTL) value assigned to DNSKEY records when signing a DNS zone.
+      This value determines how long a DNSKEY record will be considered valid before
+      it needs to be refreshed.
     example: example-dnsserver_audit_key_record_set_ttl
   - name: microsoft.dnsserver_audit_key_signature_validity_period
     type: keyword
@@ -317,8 +336,9 @@
   - name: microsoft.dnsserver_audit_leak_rate
     type: keyword
     level: custom
-    description: Response rate to RRL blocked subnets. O:No response. Default 3 means
-      1 query answered in 3. Values:O,2–10.
+    description: >-
+      Response rate to RRL blocked subnets. O:No response. Default 3 means 1 query
+      answered in 3. Values:O,2–10.
     example: example-dnsserver_audit_leak_rate
   - name: microsoft.dnsserver_audit_listen_addresses
     type: keyword
@@ -334,8 +354,9 @@
   - name: microsoft.dnsserver_audit_mode
     type: keyword
     level: custom
-    description: This represents the mode that can be configured for auditing. Allowed
-      settings are Enable, Disable, Log Only.
+    description: >-
+      This represents the mode that can be configured for auditing. Allowed settings
+      are Enable, Disable, Log Only.
     example: example-dnsserver_audit_mode
   - name: microsoft.dnsserver_audit_name
     type: keyword
@@ -351,27 +372,32 @@
   - name: microsoft.dnsserver_audit_name_server
     type: keyword
     level: custom
-    description: Represents the DNS server where the policy or exception list is being
-      configured.
+    description: >-
+      Represents the DNS server where the policy or exception list is being configured.
     example: example-dnsserver_audit_name_server
   - name: microsoft.dnsserver_audit_new_friendly_name
     type: keyword
     level: custom
-    description: Refers to a new, user-friendly alias or label that has been applied
-      to a DNS record or service.
+    description: >-
+      Refers to a new, user-friendly alias or label that has been applied to a DNS
+      record or service.
     example: example-dnsserver_audit_new_friendly_name
   - name: microsoft.dnsserver_audit_new_property_values
     type: keyword
     level: custom
-    description: The set of properties after they were updated for a specific policy
-      or exception list in the DNS server or zone.
+    description: >-
+      The set of properties after they were updated for a specific policy or exception
+      list in the DNS server or zone.
     example: example-dnsserver_audit_new_property_values
   - name: microsoft.dnsserver_audit_new_scope
     type: keyword
     level: custom
-    description: A newly defined or newly discovered scope of resources, records,
-      or configurations that are being examined or monitored within a Domain Name
-      System (DNS) infrastructure.
+    short: >-
+      Newly defined or discovered scope of resources, records, or configurations in
+      DNS infrastructure being monitored.
+    description: >-
+      A newly defined or newly discovered scope of resources, records, or configurations
+      that are being examined or monitored within a Domain Name System (DNS) infrastructure.
     example: example-dnsserver_audit_new_scope
   - name: microsoft.dnsserver_audit_new_value
     type: keyword
@@ -382,8 +408,9 @@
   - name: microsoft.dnsserver_audit_next_key
     type: keyword
     level: custom
-    description: The upcoming key that will be used in the DNS zone signing process
-      after the current active and standby keys.
+    description: >-
+      The upcoming key that will be used in the DNS zone signing process after the
+      current active and standby keys.
     example: example-dnsserver_audit_next_key
   - name: microsoft.dnsserver_audit_next_rollover_action
     type: keyword
@@ -414,8 +441,8 @@
   - name: microsoft.dnsserver_audit_nsec3_opt_out
     type: keyword
     level: custom
-    description: Indicates if the DNSSEC NSEC3 protocol is configured to allow unsigned
-      delegations.
+    description: >-
+      Indicates if the DNSSEC NSEC3 protocol is configured to allow unsigned delegations.
     example: example-dnsserver_audit_nsec3_opt_out
   - name: microsoft.dnsserver_audit_nsec3_random_salt_length
     type: keyword
@@ -431,20 +458,23 @@
   - name: microsoft.dnsserver_audit_old_friendly_name
     type: keyword
     level: custom
-    description: A legacy name associated with a domain or DNS record before it was
-      changed or updated.
+    description: >-
+      A legacy name associated with a domain or DNS record before it was changed or
+      updated.
     example: example-dnsserver_audit_old_friendly_name
   - name: microsoft.dnsserver_audit_old_property_values
     type: keyword
     level: custom
-    description: The set of properties before they were updated for a specific policy
-      or exception list in the DNS server or zone.
+    description: >-
+      The set of properties before they were updated for a specific policy or exception
+      list in the DNS server or zone.
     example: example-dnsserver_audit_old_property_values
   - name: microsoft.dnsserver_audit_old_scope
     type: keyword
     level: custom
-    description: Refers to an old or outdated IP address range or network scope that
-      has been defined in DNS settings.
+    description: >-
+      Refers to an old or outdated IP address range or network scope that has been
+      defined in DNS settings.
     example: example-dnsserver_audit_old_scope
   - name: microsoft.dnsserver_audit_parent_has_secure_delegation
     type: keyword
@@ -465,8 +495,9 @@
   - name: microsoft.dnsserver_audit_propagation_time
     type: keyword
     level: custom
-    description: Time taken for the event information to propagate. Duration (e.g.,
-      milliseconds) or "Immediate" if no delay.
+    description: >-
+      Time taken for the event information to propagate. Duration (e.g., milliseconds)
+      or "Immediate" if no delay.
     example: example-dnsserver_audit_propagation_time
   - name: microsoft.dnsserver_audit_property_key
     type: keyword
@@ -476,14 +507,16 @@
   - name: microsoft.dnsserver_audit_recursion_scope
     type: keyword
     level: custom
-    description: A specific area or set of conditions under which DNS recursion is
-      allowed or applied on a DNS server.
+    description: >-
+      A specific area or set of conditions under which DNS recursion is allowed or
+      applied on a DNS server.
     example: example-dnsserver_audit_recursion_scope
   - name: microsoft.dnsserver_audit_resolved_data
     type: keyword
     level: custom
-    description: Represents the data of the resource record that was created, deleted,
-      or scavenged in the DNS zone.
+    description: >-
+      Represents the data of the resource record that was created, deleted, or scavenged
+      in the DNS zone.
     example: example-dnsserver_audit_resolved_data
   - name: microsoft.dnsserver_audit_response_per_second
     type: keyword
@@ -504,8 +537,12 @@
   - name: microsoft.dnsserver_audit_rrl_exception_list
     type: keyword
     level: custom
-    description: A list of exceptions for Response Rate Limiting that have been reviewed,
-      logged, or flagged as part of a DNS security audit.
+    short: >-
+      List of Response Rate Limiting exceptions reviewed, logged, or flagged during
+      DNS security audit.
+    description: >-
+      A list of exceptions for Response Rate Limiting that have been reviewed, logged,
+      or flagged as part of a DNS security audit.
     example: example-dnsserver_audit_rrl_exception_list
   - name: microsoft.dnsserver_audit_scavenge_servers
     type: keyword
@@ -520,22 +557,29 @@
   - name: microsoft.dnsserver_audit_scope_weight
     type: keyword
     level: custom
-    description: This refers to a metric or value that indicates the relative importance
-      or influence of a particular DNS record or set of DNS records within the scope
-      of the audit.
+    short: >-
+      Metric indicating relative importance or influence of DNS record(s) within the
+      audit scope.
+    description: >-
+      This refers to a metric or value that indicates the relative importance or influence
+      of a particular DNS record or set of DNS records within the scope of the audit.
     example: example-dnsserver_audit_scope_weight
   - name: microsoft.dnsserver_audit_scope_weight_new
     type: keyword
     level: custom
-    description: A new parameter or metric that evaluates the scope of DNS records,
-      and possibly the weighting of certain records or configurations as part of the
-      audit process.
+    short: >-
+      Parameter evaluating DNS record scope and weighting of records/configurations
+      during audit process.
+    description: >-
+      A new parameter or metric that evaluates the scope of DNS records, and possibly
+      the weighting of certain records or configurations as part of the audit process.
     example: example-dnsserver_audit_scope_weight_new
   - name: microsoft.dnsserver_audit_scope_weight_old
     type: keyword
     level: custom
-    description: An older version of a DNS configuration or metric related to the
-      scope and weighting of DNS records.
+    description: >-
+      An older version of a DNS configuration or metric related to the scope and weighting
+      of DNS records.
     example: example-dnsserver_audit_scope_weight_old
   - name: microsoft.dnsserver_audit_scopes
     type: keyword
@@ -545,14 +589,19 @@
   - name: microsoft.dnsserver_audit_secure_delegation_polling_period
     type: keyword
     level: custom
-    description: Interval for polling secure delegation information. Numeric value
-      (e.g., minutes) or "Disabled" if not applicable.
+    description: >-
+      Interval for polling secure delegation information. Numeric value (e.g., minutes)
+      or "Disabled" if not applicable.
     example: example-dnsserver_audit_secure_delegation_polling_period
   - name: microsoft.dnsserver_audit_seized_or_transfered
     type: keyword
     level: custom
-    description: Refers to the action taken, either a seizure (when control is forcibly
-      transferred) or a voluntary transfer of the key master role.
+    short: >-
+      Action taken: seizure (forcible control transfer) or voluntary transfer of the
+      key master role.
+    description: >-
+      Refers to the action taken, either a seizure (when control is forcibly transferred)
+      or a voluntary transfer of the key master role.
     example: example-dnsserver_audit_seized_or_transfered
   - name: microsoft.dnsserver_audit_setting
     type: keyword
@@ -562,27 +611,37 @@
   - name: microsoft.dnsserver_audit_signature_inception_offset
     type: keyword
     level: custom
-    description: Offset time for DNSSEC signature inception. Duration (e.g., seconds)
-      or "Immediate" if no delay.
+    description: >-
+      Offset time for DNSSEC signature inception. Duration (e.g., seconds) or "Immediate"
+      if no delay.
     example: example-dnsserver_audit_signature_inception_offset
   - name: microsoft.dnsserver_audit_standby_key
     type: keyword
     level: custom
-    description: The backup key that will be used if the current active key is compromised
-      or needs to be replaced in the DNS zone signing process.
+    short: >-
+      Backup key used if current active key is compromised or needs replacement in
+      DNS zone signing process.
+    description: >-
+      The backup key that will be used if the current active key is compromised or
+      needs to be replaced in the DNS zone signing process.
     example: example-dnsserver_audit_standby_key
   - name: microsoft.dnsserver_audit_store_keys_in_AD
     type: keyword
     level: custom
-    description: Specifies whether the keys are stored in Active Directory Domain
-      Services (AD DS). This setting applies only to Active Directory-integrated zones
-      when the vendor of KeyStorageProvider is Microsoft.
+    short: >-
+      Indicates if keys are stored in AD DS. Applies only to AD-integrated zones with
+      Microsoft KeyStorageProvider.
+    description: >-
+      Specifies whether the keys are stored in Active Directory Domain Services (AD
+      DS). This setting applies only to Active Directory-integrated zones when the
+      vendor of KeyStorageProvider is Microsoft.
     example: example-dnsserver_audit_store_keys_in_AD
   - name: microsoft.dnsserver_audit_subtree_aging
     type: keyword
     level: custom
-    description: Mechanism that affects the aging (expiration) of DNS records within
-      a specific subtree or branch of a DNS zone.
+    description: >-
+      Mechanism that affects the aging (expiration) of DNS records within a specific
+      subtree or branch of a DNS zone.
     example: example-dnsserver_audit_subtree_aging
   - name: microsoft.dnsserver_audit_tc_rate
     type: keyword
@@ -592,8 +651,9 @@
   - name: microsoft.dnsserver_audit_total_responses_in_window
     type: keyword
     level: custom
-    description: A metric that tracks the total number of DNS responses received within
-      a specific time window.
+    description: >-
+      A metric that tracks the total number of DNS responses received within a specific
+      time window.
     example: example-dnsserver_audit_total_responses_in_window
   - name: microsoft.dnsserver_audit_type
     type: keyword
@@ -603,15 +663,19 @@
   - name: microsoft.dnsserver_audit_virtualization_id
     type: keyword
     level: custom
-    description: A unique key to manage and coordinate activities within the virtualized
-      environment.
+    description: >-
+      A unique key to manage and coordinate activities within the virtualized environment.
     example: example-dnsserver_audit_virtualization_id
   - name: microsoft.dnsserver_audit_window_size
     type: keyword
     level: custom
-    description: The size of the DNS response that is being queried, or the TCP window
-      size used during a DNS query, particularly when DNS queries are transmitted
-      over TCP (as in DNSSEC or large DNS responses).
+    short: >-
+      DNS response size being queried or TCP window size for DNS queries over TCP
+      (DNSSEC or large responses).
+    description: >-
+      The size of the DNS response that is being queried, or the TCP window size used
+      during a DNS query, particularly when DNS queries are transmitted over TCP (as
+      in DNSSEC or large DNS responses).
     example: example-dnsserver_audit_window_size
   - name: microsoft.dnsserver_audit_with_new_keys
     type: keyword
@@ -621,8 +685,9 @@
   - name: microsoft.dnsserver_audit_with_without
     type: keyword
     level: custom
-    description: Whether key signing key (KSK) metadata is included or excluded when
-      exporting DNSSEC settings for a specific zone.
+    description: >-
+      Whether key signing key (KSK) metadata is included or excluded when exporting
+      DNSSEC settings for a specific zone.
     example: example-dnsserver_audit_with_without
   - name: microsoft.dnsserver_audit_zone
     type: keyword

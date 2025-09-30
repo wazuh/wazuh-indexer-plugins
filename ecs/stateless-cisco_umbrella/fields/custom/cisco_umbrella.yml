@@ -66,16 +66,18 @@
   - name: cisco.umbrella.identity_types
     type: keyword
     level: custom
-    description: The type of identity that made the request. For example, Roaming
-      Computer or Network.
+    description: >-
+      The type of identity that made the request. For example, Roaming Computer or
+      Network.
     example: example-identity_types
     normalize:
     - array
   - name: cisco.umbrella.severity
     type: keyword
     level: custom
-    description: The severity level of the rule, such as Low/Info, Medium/Warn, High/Alert
-      or Critical.
+    description: >-
+      The severity level of the rule, such as Low/Info, Medium/Warn, High/Alert or
+      Critical.
     example: example-severity
   - name: cisco.umbrella.data_classification
     type: keyword
@@ -115,8 +117,12 @@
   - name: cisco.umbrella.classification
     type: keyword
     level: custom
-    description: The category of attack detected by a rule that is part of a more
-      general type of attack class, such as trojan-activity, attempted-user, and unknown.
+    short: >-
+      Attack category detected by rule, part of general attack class (e.g., trojan-activity,
+      attempted-user, unknown).
+    description: >-
+      The category of attack detected by a rule that is part of a more general type
+      of attack class, such as trojan-activity, attempted-user, and unknown.
     example: example-classification
   - name: cisco.umbrella.cves
     type: keyword
@@ -126,8 +132,12 @@
   - name: cisco.umbrella.identity
     type: keyword
     level: custom
-    description: The identity that made the request. An identity can be a high-level
-      entity within your system (e.g a network) or very granular (e.g a single user).
+    short: >-
+      Identity that made the request. Can be high-level entity (network) or granular
+      (single user).
+    description: >-
+      The identity that made the request. An identity can be a high-level entity within
+      your system (e.g a network) or very granular (e.g a single user).
     example: example-identity
   - name: cisco.umbrella.categories
     type: keyword
@@ -149,8 +159,10 @@
   - name: cisco.umbrella.puas
     type: keyword
     level: custom
-    description: Potentially unwanted applications (PUAs) detected during the event.
-      PUAs are software programs that may not be intentionally malicious but can negatively
+    short: Potentially unwanted applications detected.
+    description: >-
+      Potentially unwanted applications (PUAs) detected during the event. PUAs are
+      software programs that may not be intentionally malicious but can negatively
       affect system performance, security, or user experience. This field indicates
       whether any PUAs were identified, such as adware, toolbars, or other software
       that may be unwanted or pose a risk. Detection of PUAs helps organizations maintain
@@ -185,17 +197,23 @@
   - name: cisco.umbrella.dlp_status
     type: keyword
     level: custom
-    description: Indicates the status of Data Loss Prevention (DLP) for the event.
-      This field shows whether sensitive data was detected, blocked, allowed, or flagged
-      according to DLP policies. It helps track actions taken to prevent unauthorized
-      data transfer or exposure, such as blocking file uploads, alerting on policy
-      violations, or allowing compliant data transfers.
+    short: >-
+      DLP status for the event. Shows if sensitive data was detected, blocked, allowed,
+      or flagged according to DLP policies.
+    description: >-
+      Indicates the status of Data Loss Prevention (DLP) for the event. This field
+      shows whether sensitive data was detected, blocked, allowed, or flagged according
+      to DLP policies. It helps track actions taken to prevent unauthorized data transfer
+      or exposure, such as blocking file uploads, alerting on policy violations, or
+      allowing compliant data transfers.
     example: example-dlp_status
   - name: cisco.umbrella.certificate_errors
     type: keyword
     level: custom
-    description: Details about SSL/TLS certificate errors encountered during the event,
-      such as expired certificates, mismatched domains, untrusted certificate authorities,
+    short: SSL/TLS certificate error details. Identifies connection risks.
+    description: >-
+      Details about SSL/TLS certificate errors encountered during the event, such
+      as expired certificates, mismatched domains, untrusted certificate authorities,
       or invalid certificate chains. This field helps identify issues with secure
       connections and potential risks related to certificate validation failures.
     example: example-certificate_errors

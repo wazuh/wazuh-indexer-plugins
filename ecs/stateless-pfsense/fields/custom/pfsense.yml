@@ -10,14 +10,20 @@
   - name: pfsense.firewall_rule_id
     type: keyword
     level: custom
-    description: A rule ID that is unique within the scope of an agent, observer,
-      or other entity using the rule for detection of this event.
+    short: >-
+      Rule ID unique within scope of agent, observer, or entity using the rule for
+      event detection.
+    description: >-
+      A rule ID that is unique within the scope of an agent, observer, or other entity
+      using the rule for detection of this event.
     example: example-firewall_rule_id
   - name: pfsense.icmp_type
     type: keyword
     level: custom
-    description: Represents the type of ICMP (Internet Control Message Protocol) message
-      that has been received or sent by the `pfsense` firewall.
+    short: Type of ICMP message received or sent by the pfSense firewall.
+    description: >-
+      Represents the type of ICMP (Internet Control Message Protocol) message that
+      has been received or sent by the `pfsense` firewall.
     example: example-icmp_type
   - name: pfsense.ip_flags
     type: keyword
@@ -28,14 +34,19 @@
   - name: pfsense.ip_id
     type: keyword
     level: custom
-    description: Represents the unique identifier assigned to an IP packet at the
-      time of its creation.
+    description: >-
+      Represents the unique identifier assigned to an IP packet at the time of its
+      creation.
     example: example-ip_id
   - name: pfsense.ip_offset
     type: keyword
     level: custom
-    description: Indicates the offset of a fragmented IP packet, specifying where
-      the fragment should be placed within the original, unfragmented packet.
+    short: >-
+      Offset of fragmented IP packet, specifying where fragment should be placed in
+      the original unfragmented packet.
+    description: >-
+      Indicates the offset of a fragmented IP packet, specifying where the fragment
+      should be placed within the original, unfragmented packet.
     example: example-ip_offset
   - name: pfsense.ip_tos
     type: keyword
@@ -50,8 +61,12 @@
   - name: pfsense.tcp_flags
     type: keyword
     level: custom
-    description: TCP flags are used to control the flow of data between two endpoints
-      and signal specific actions or conditions within the TCP connection.
+    short: >-
+      TCP flags controlling data flow between endpoints and signaling actions or conditions
+      within TCP connection.
+    description: >-
+      TCP flags are used to control the flow of data between two endpoints and signal
+      specific actions or conditions within the TCP connection.
     example: example-tcp_flags
   - name: pfsense.tcp_length
     type: keyword
@@ -61,20 +76,22 @@
   - name: pfsense.tcp_options
     type: keyword
     level: custom
-    description: Represents the various options set in the TCP (Transmission Control
-      Protocol) header for a given packet.
+    description: >-
+      Represents the various options set in the TCP (Transmission Control Protocol)
+      header for a given packet.
     example: example-tcp_options
     normalize:
     - array
   - name: pfsense.tcp_seq
     type: keyword
     level: custom
-    description: Represents the sequence number assigned to each byte of data sent
-      in a TCP connection.
+    description: >-
+      Represents the sequence number assigned to each byte of data sent in a TCP connection.
     example: example-tcp_seq
   - name: pfsense.tcp_window
     type: keyword
     level: custom
-    description: Represents the size of the receive window that a TCP sender advertises
-      to the receiver during a TCP connection.
+    description: >-
+      Represents the size of the receive window that a TCP sender advertises to the
+      receiver during a TCP connection.
     example: example-tcp_window

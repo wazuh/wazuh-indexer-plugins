@@ -30,8 +30,10 @@
   - name: snort.gid
     type: keyword
     level: custom
-    description: The gid keyword (generator id) is used to identify what part of Snort
-      generates the event when a particular rule fires.dd
+    short: GID identifies which Snort component generates an event when a rule fires.
+    description: >-
+      The gid keyword (generator id) is used to identify what part of Snort generates
+      the event when a particular rule fires.dd
     example: example-gid
   - name: snort.icmp.code
     type: keyword

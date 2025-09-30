@@ -5,38 +5,47 @@
   - name: microsoft.dhcp.correlation_id
     type: keyword
     level: custom
-    description: An identifier used to correlate DHCP events or logs across systems
-      for tracking and debugging purposes.
+    description: >-
+      An identifier used to correlate DHCP events or logs across systems for tracking
+      and debugging purposes.
     example: example-correlation_id
   - name: microsoft.dhcp.dhc_id
     type: keyword
     level: custom
-    description: A DHCP Client Identifier that uniquely identifies the client in DHCP-related
+    description: >-
+      A DHCP Client Identifier that uniquely identifies the client in DHCP-related
       processes.
     example: example-dhc_id
   - name: microsoft.dhcp.dns_error_code
     type: keyword
     level: custom
-    description: The error code related to DNS registration, indicating success or
-      failure in updating DNS records as part of the DHCP process.
+    short: >-
+      DNS registration error code indicating success or failure in updating DNS records
+      during DHCP process.
+    description: >-
+      The error code related to DNS registration, indicating success or failure in
+      updating DNS records as part of the DHCP process.
     example: example-dns_error_code
   - name: microsoft.dhcp.duid_hex
     type: keyword
     level: custom
-    description: The hexadecimal representation of the DUID, used for identifying
-      the client in a network.
+    description: >-
+      The hexadecimal representation of the DUID, used for identifying the client
+      in a network.
     example: example-duid_hex
   - name: microsoft.dhcp.duid_length
     type: keyword
     level: custom
-    description: The length of the DHCP Unique Identifier (DUID), which uniquely identifies
-      the client or server in the DHCPv6 process.
+    description: >-
+      The length of the DHCP Unique Identifier (DUID), which uniquely identifies the
+      client or server in the DHCPv6 process.
     example: example-duid_length
   - name: microsoft.dhcp.error_code
     type: keyword
     level: custom
-    description: A specific code indicating the type of error or status encountered
-      during the DHCPv6 operation (if applicable).
+    description: >-
+      A specific code indicating the type of error or status encountered during the
+      DHCPv6 operation (if applicable).
     example: example-error_code
   - name: microsoft.dhcp.probation_time
     type: keyword
@@ -47,61 +56,87 @@
   - name: microsoft.dhcp.relay_agent_info
     type: keyword
     level: custom
-    description: Information provided by a relay agent, such as an intermediate device,
-      to assist in identifying the origin or path of a DHCP request.
+    short: >-
+      Information from relay agent (intermediate device) to help identify origin or
+      path of DHCP request.
+    description: >-
+      Information provided by a relay agent, such as an intermediate device, to assist
+      in identifying the origin or path of a DHCP request.
     example: example-relay_agent_info
   - name: microsoft.dhcp.q_result
     type: keyword
     level: custom
-    description: A result code indicating the outcome of a query operation, such as
-      DNS updates or other lookups.
+    description: >-
+      A result code indicating the outcome of a query operation, such as DNS updates
+      or other lookups.
     example: example-q_result
   - name: microsoft.dhcp.result_description
     type: keyword
     level: custom
-    description: A human-readable summary of the result or status of a DHCP operation,
-      such as "No Quarantine Information" or "NoQuarantine". It provides context on
-      whether the DHCP operation succeeded or failed, and any additional status details.
+    short: >-
+      Human-readable summary of DHCP operation result or status (e.g., "No Quarantine
+      Information", "NoQuarantine").
+    description: >-
+      A human-readable summary of the result or status of a DHCP operation, such as
+      "No Quarantine Information" or "NoQuarantine". It provides context on whether
+      the DHCP operation succeeded or failed, and any additional status details.
     example: example-result_description
   - name: microsoft.dhcp.subnet_prefix
     type: keyword
     level: custom
-    description: The IPv6 subnet prefix associated with the DHCPv6 operation, specifying
-      the network range within which the IPv6 address is assigned.
+    short: >-
+      IPv6 subnet prefix for DHCPv6 operation, specifying the network range for IPv6
+      address assignment.
+    description: >-
+      The IPv6 subnet prefix associated with the DHCPv6 operation, specifying the
+      network range within which the IPv6 address is assigned.
     example: example-subnet_prefix
   - name: microsoft.dhcp.transaction_id
     type: keyword
     level: custom
-    description: A unique identifier for the DHCP transaction, helping to correlate
-      events in the logs.
+    description: >-
+      A unique identifier for the DHCP transaction, helping to correlate events in
+      the logs.
     example: example-transaction_id
   - name: microsoft.dhcp.user_hex
     type: keyword
     level: custom
-    description: The hexadecimal representation of the user-defined class identifier,
-      allowing custom client configurations or policies.
+    description: >-
+      The hexadecimal representation of the user-defined class identifier, allowing
+      custom client configurations or policies.
     example: example-user_hex
   - name: microsoft.dhcp.user_string
     type: keyword
     level: custom
-    description: The ASCII representation of the user-defined class identifier, providing
-      a readable description for custom client classifications.
+    short: >-
+      ASCII representation of user-defined class identifier, providing readable description
+      for custom client classifications.
+    description: >-
+      The ASCII representation of the user-defined class identifier, providing a readable
+      description for custom client classifications.
     example: example-user_string
   - name: microsoft.dhcp.vendor_hex
     type: keyword
     level: custom
-    description: The hexadecimal representation of the vendor class identifier, indicating
-      the type of hardware or software used by the client.
+    short: Hexadecimal vendor class identifier indicating client hardware or software
+      type.
+    description: >-
+      The hexadecimal representation of the vendor class identifier, indicating the
+      type of hardware or software used by the client.
     example: example-vendor_hex
   - name: microsoft.dhcp.vendor_string
     type: keyword
     level: custom
-    description: The ASCII representation of the vendor class identifier, providing
-      a readable description of the client hardware/software.
+    short: >-
+      ASCII vendor class identifier providing readable description of client hardware/software.
+    description: >-
+      The ASCII representation of the vendor class identifier, providing a readable
+      description of the client hardware/software.
     example: example-vendor_string
   - name: microsoft.dhcp.dhc_id
     type: keyword
     level: custom
-    description: A DHCP Client Identifier that uniquely identifies the client in DHCP-related
+    description: >-
+      A DHCP Client Identifier that uniquely identifies the client in DHCP-related
       processes.
     example: example-dhc_id

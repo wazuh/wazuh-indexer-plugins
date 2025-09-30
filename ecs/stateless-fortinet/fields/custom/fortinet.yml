@@ -15,8 +15,9 @@
   - name: fortinet.addrgrp
     type: keyword
     level: custom
-    description: The address group associated with the event, grouping multiple addresses
-      for policy application.
+    description: >-
+      The address group associated with the event, grouping multiple addresses for
+      policy application.
     example: example-addrgrp
   - name: fortinet.advpnsc
     type: keyword
@@ -53,20 +54,23 @@
   - name: fortinet.apn
     type: keyword
     level: custom
-    description: The Access Point Name (APN) used for mobile or wireless connections,
-      identifying the network path for the event.
+    description: >-
+      The Access Point Name (APN) used for mobile or wireless connections, identifying
+      the network path for the event.
     example: example-apn
   - name: fortinet.app
     type: keyword
     level: custom
-    description: The application name or identifier detected in the event, used for
-      application-level filtering and analysis.
+    description: >-
+      The application name or identifier detected in the event, used for application-level
+      filtering and analysis.
     example: example-app
   - name: fortinet.appact
     type: keyword
     level: custom
-    description: The application action taken, such as block, allow, or monitor, for
-      the detected application.
+    description: >-
+      The application action taken, such as block, allow, or monitor, for the detected
+      application.
     example: example-appact
   - name: fortinet.appid
     type: keyword
@@ -87,8 +91,9 @@
   - name: fortinet.apscan
     type: keyword
     level: custom
-    description: Indicates whether an access point scan was performed, including details
-      about detected wireless networks.
+    description: >-
+      Indicates whether an access point scan was performed, including details about
+      detected wireless networks.
     example: example-apscan
   - name: fortinet.apstatus
     type: keyword
@@ -103,14 +108,16 @@
   - name: fortinet.assigned
     type: keyword
     level: custom
-    description: The assigned value or identifier for the event, typically used for
-      resource allocation or assignment tracking.
+    description: >-
+      The assigned value or identifier for the event, typically used for resource
+      allocation or assignment tracking.
     example: example-assigned
   - name: fortinet.assignip
     type: keyword
     level: custom
-    description: The IP address assigned to a user or device during VPN or network
-      session establishment by Fortinet.
+    description: >-
+      The IP address assigned to a user or device during VPN or network session establishment
+      by Fortinet.
     example: example-assignip
   - name: fortinet.attack
     type: keyword
@@ -135,8 +142,8 @@
   - name: fortinet.auditscore
     type: keyword
     level: custom
-    description: The score assigned during the audit process, indicating risk or compliance
-      level.
+    description: >-
+      The score assigned during the audit process, indicating risk or compliance level.
     example: example-auditscore
   - name: fortinet.audittime
     type: keyword
@@ -171,8 +178,9 @@
   - name: fortinet.bssid
     type: keyword
     level: custom
-    description: The Basic Service Set Identifier for wireless events, identifying
-      the access point.
+    description: >-
+      The Basic Service Set Identifier for wireless events, identifying the access
+      point.
     example: example-bssid
   - name: fortinet.call_id
     type: keyword
@@ -187,8 +195,8 @@
   - name: fortinet.cat
     type: keyword
     level: custom
-    description: The category assigned to the event, such as malware, intrusion, or
-      policy violation.
+    description: >-
+      The category assigned to the event, such as malware, intrusion, or policy violation.
     example: example-cat
   - name: fortinet.category
     type: keyword
@@ -254,8 +262,9 @@
   - name: fortinet.clientip
     type: keyword
     level: custom
-    description: The client IP address involved in the event, typically the original
-      client making the request.
+    description: >-
+      The client IP address involved in the event, typically the original client making
+      the request.
     example: example-clientip
   - name: fortinet.clustername
     type: keyword
@@ -328,8 +337,9 @@
   - name: fortinet.counticap
     type: keyword
     level: custom
-    description: The count of ICAP (Internet Content Adaptation Protocol) events detected
-      by Fortinet.
+    description: >-
+      The count of ICAP (Internet Content Adaptation Protocol) events detected by
+      Fortinet.
     example: example-counticap
   - name: fortinet.countips
     type: keyword
@@ -339,8 +349,9 @@
   - name: fortinet.countsctpf
     type: keyword
     level: custom
-    description: The count of SCTP (Stream Control Transmission Protocol) filtering
-      events detected by Fortinet.
+    description: >-
+      The count of SCTP (Stream Control Transmission Protocol) filtering events detected
+      by Fortinet.
     example: example-countsctpf
   - name: fortinet.countssh
     type: keyword
@@ -476,8 +487,9 @@
   - name: fortinet.detectionmethod
     type: keyword
     level: custom
-    description: The method or technique used by Fortinet to detect threats, anomalies,
-      or specific types of network activity.
+    description: >-
+      The method or technique used by Fortinet to detect threats, anomalies, or specific
+      types of network activity.
     example: example-detectionmethod
   - name: fortinet.devcategory
     type: keyword
@@ -596,8 +608,9 @@
   - name: fortinet.fams_pause
     type: keyword
     level: custom
-    description: Indicates whether FortiAnalyzer Management Service (FAMS) is paused
-      during the event.
+    description: >-
+      Indicates whether FortiAnalyzer Management Service (FAMS) is paused during the
+      event.
     example: example-fams_pause
   - name: fortinet.fazlograte
     type: keyword
@@ -956,8 +969,9 @@
   - name: fortinet.ocrlog
     type: keyword
     level: custom
-    description: The Optical Character Recognition (OCR) log information for document
-      scanning events.
+    description: >-
+      The Optical Character Recognition (OCR) log information for document scanning
+      events.
     example: example-ocrlog
   - name: fortinet.oldchannel
     type: keyword
@@ -1033,8 +1047,9 @@
   - name: fortinet.policymode
     type: keyword
     level: custom
-    description: The policy mode applied to the event, indicating the enforcement
-      or operational mode of the security policy.
+    description: >-
+      The policy mode applied to the event, indicating the enforcement or operational
+      mode of the security policy.
     example: example-policymode
   - name: fortinet.policytype
     type: keyword
@@ -1059,8 +1074,9 @@
   - name: fortinet.profile
     type: keyword
     level: custom
-    description: The proxy application type used for the event, indicating the kind
-      of proxy service.
+    description: >-
+      The proxy application type used for the event, indicating the kind of proxy
+      service.
     example: example-profile
   - name: fortinet.proxyapptype
     type: keyword
@@ -1254,8 +1270,9 @@
   - name: fortinet.severity
     type: keyword
     level: custom
-    description: The severity level assigned to the event, such as informational,
-      warning, or critical.
+    description: >-
+      The severity level assigned to the event, such as informational, warning, or
+      critical.
     example: example-severity
   - name: fortinet.signal
     type: keyword
@@ -1306,8 +1323,9 @@
   - name: fortinet.sndetected
     type: keyword
     level: custom
-    description: Indicates if a suspicious network was detected during monitoring,
-      including relevant detection details.
+    description: >-
+      Indicates if a suspicious network was detected during monitoring, including
+      relevant detection details.
     example: example-sndetected
   - name: fortinet.srccountry
     type: keyword
@@ -1368,8 +1386,9 @@
   - name: fortinet.stamac
     type: keyword
     level: custom
-    description: The MAC address of the wireless station or client device involved
-      in the event, as identified by Fortinet.
+    description: >-
+      The MAC address of the wireless station or client device involved in the event,
+      as identified by Fortinet.
     example: example-stamac
   - name: fortinet.status
     type: keyword
@@ -1604,8 +1623,8 @@
   - name: fortinet.u_pkts
     type: keyword
     level: custom
-    description: The number of packets transferred from user/uplink side in mobile
-      network events.
+    description: >-
+      The number of packets transferred from user/uplink side in mobile network events.
     example: example-u_pkts
   - name: fortinet.u_sgsn
     type: keyword
@@ -1651,44 +1670,50 @@
   - name: fortinet.virus
     type: keyword
     level: custom
-    description: Name or identifier of the virus detected by Fortinet during traffic
-      inspection or scanning.
+    description: >-
+      Name or identifier of the virus detected by Fortinet during traffic inspection
+      or scanning.
     example: example-virus
   - name: fortinet.virusid
     type: keyword
     level: custom
-    description: Unique identifier assigned to the detected virus by Fortinet for
-      tracking and reporting purposes.
+    description: >-
+      Unique identifier assigned to the detected virus by Fortinet for tracking and
+      reporting purposes.
     example: example-virusid
   - name: fortinet.voip_proto
     type: keyword
     level: custom
-    description: The Voice over IP protocol used in the network traffic, such as SIP
-      or H.323, as identified by Fortinet.
+    description: >-
+      The Voice over IP protocol used in the network traffic, such as SIP or H.323,
+      as identified by Fortinet.
     example: example-voip_proto
   - name: fortinet.vpntunnel
     type: keyword
     level: custom
-    description: Name or identifier of the VPN tunnel established or referenced in
-      the event, as recognized by Fortinet.
+    description: >-
+      Name or identifier of the VPN tunnel established or referenced in the event,
+      as recognized by Fortinet.
     example: example-vpntunnel
   - name: fortinet.vwlid
     type: keyword
     level: custom
-    description: Identifier for the virtual wireless LAN (VWL) involved in the event,
-      as assigned by Fortinet.
+    description: >-
+      Identifier for the virtual wireless LAN (VWL) involved in the event, as assigned
+      by Fortinet.
     example: example-vwlid
   - name: fortinet.vwlquality
     type: keyword
     level: custom
-    description: Quality metric or status of the virtual wireless LAN (VWL) connection
-      as reported by Fortinet.
+    description: >-
+      Quality metric or status of the virtual wireless LAN (VWL) connection as reported
+      by Fortinet.
     example: example-vwlquality
   - name: fortinet.wanin
     type: keyword
     level: custom
-    description: Amount of incoming traffic on the WAN interface, measured and reported
-      by Fortinet.
+    description: >-
+      Amount of incoming traffic on the WAN interface, measured and reported by Fortinet.
     example: example-wanin
   - name: fortinet.waninfo
     type: keyword
@@ -1699,8 +1724,8 @@
   - name: fortinet.wanout
     type: keyword
     level: custom
-    description: Amount of outgoing traffic on the WAN interface, measured and reported
-      by Fortinet.
+    description: >-
+      Amount of outgoing traffic on the WAN interface, measured and reported by Fortinet.
     example: example-wanout
   - name: fortinet.wscode
     type: keyword
@@ -1710,12 +1735,14 @@
   - name: fortinet.xauthgroup
     type: keyword
     level: custom
-    description: The group name associated with the XAuth user, used for access control
-      and policy enforcement.
+    description: >-
+      The group name associated with the XAuth user, used for access control and policy
+      enforcement.
     example: example-xauthgroup
   - name: fortinet.xauthuser
     type: keyword
     level: custom
-    description: The username authenticated via extended authentication (XAuth) for
-      VPN or secure network access.
+    description: >-
+      The username authenticated via extended authentication (XAuth) for VPN or secure
+      network access.
     example: example-xauthuser

@@ -5,8 +5,9 @@
   - name: ocsf.activity_id
     type: keyword
     level: custom
-    description: The numeric identifier of the activity that triggered the event as
-      defined by the OCSF schema.
+    description: >-
+      The numeric identifier of the activity that triggered the event as defined by
+      the OCSF schema.
     example: example-activity_id
   - name: ocsf.activity_name
     type: keyword
@@ -26,8 +27,9 @@
   - name: ocsf.class_name
     type: keyword
     level: custom
-    description: The name of the OCSF event class that defines the schema and structure
-      for this specific type of event.
+    description: >-
+      The name of the OCSF event class that defines the schema and structure for this
+      specific type of event.
     example: example-class_name
   - name: ocsf.class_uid
     type: keyword
@@ -37,8 +39,9 @@
   - name: ocsf.count
     type: keyword
     level: custom
-    description: The number of times this event occurred if it represents an aggregated
-      or summarized event.
+    description: >-
+      The number of times this event occurred if it represents an aggregated or summarized
+      event.
     example: example-count
   - name: ocsf.end_time
     type: keyword
@@ -49,20 +52,21 @@
   - name: ocsf.message
     type: keyword
     level: custom
-    description: A human-readable message or description of the event providing additional
-      context.
+    description: >-
+      A human-readable message or description of the event providing additional context.
     example: example-message
   - name: ocsf.severity
     type: keyword
     level: custom
-    description: The textual representation of the event severity such as Informational
-      or Critical.
+    description: >-
+      The textual representation of the event severity such as Informational or Critical.
     example: example-severity
   - name: ocsf.severity_id
     type: keyword
     level: custom
-    description: The numeric severity level of the event ranging from 1 (Informational)
-      to 6 (Fatal).
+    description: >-
+      The numeric severity level of the event ranging from 1 (Informational) to 6
+      (Fatal).
     example: example-severity_id
   - name: ocsf.start_time
     type: keyword
@@ -78,8 +82,9 @@
   - name: ocsf.status_code
     type: keyword
     level: custom
-    description: A status code associated with the event that provides more specific
-      information about the outcome.
+    description: >-
+      A status code associated with the event that provides more specific information
+      about the outcome.
     example: example-status_code
   - name: ocsf.status_id
     type: keyword
@@ -99,8 +104,9 @@
   - name: ocsf.type_name
     type: keyword
     level: custom
-    description: The name of the OCSF event type that provides more granular classification
-      within the event class.
+    description: >-
+      The name of the OCSF event type that provides more granular classification within
+      the event class.
     example: example-type_name
   - name: ocsf.type_uid
     type: keyword
@@ -110,14 +116,16 @@
   - name: ocsf.metadata.correlation_uid
     type: keyword
     level: custom
-    description: A unique identifier used to correlate related events across different
-      sources or time periods.
+    description: >-
+      A unique identifier used to correlate related events across different sources
+      or time periods.
     example: example-correlation_uid
   - name: ocsf.metadata.event_code
     type: keyword
     level: custom
-    description: A source-specific event code or identifier that provides additional
-      classification beyond the standard OCSF fields.
+    description: >-
+      A source-specific event code or identifier that provides additional classification
+      beyond the standard OCSF fields.
     example: example-event_code
   - name: ocsf.metadata.log_level
     type: keyword
@@ -127,14 +135,15 @@
   - name: ocsf.metadata.log_name
     type: keyword
     level: custom
-    description: The name of the log file stream or source where this event was originally
-      recorded.
+    description: >-
+      The name of the log file stream or source where this event was originally recorded.
     example: example-log_name
   - name: ocsf.metadata.log_provider
     type: keyword
     level: custom
-    description: The name of the service application or system that generated the
-      original log entry.
+    description: >-
+      The name of the service application or system that generated the original log
+      entry.
     example: example-log_provider
   - name: ocsf.metadata.log_version
     type: keyword
@@ -150,8 +159,9 @@
   - name: ocsf.metadata.original_time
     type: keyword
     level: custom
-    description: The original timestamp string as it appeared in the source system
-      before any processing.
+    description: >-
+      The original timestamp string as it appeared in the source system before any
+      processing.
     example: example-original_time
   - name: ocsf.metadata.processed_time
     type: keyword
@@ -168,8 +178,9 @@
   - name: ocsf.metadata.tenant_uid
     type: keyword
     level: custom
-    description: The unique identifier of the tenant or customer associated with this
-      event in multi-tenant environments.
+    description: >-
+      The unique identifier of the tenant or customer associated with this event in
+      multi-tenant environments.
     example: example-tenant_uid
   - name: ocsf.metadata.uid
     type: keyword
@@ -189,8 +200,9 @@
   - name: ocsf.metadata.product.vendor_name
     type: keyword
     level: custom
-    description: The name of the vendor or organization that created the product generating
-      this event.
+    description: >-
+      The name of the vendor or organization that created the product generating this
+      event.
     example: example-vendor_name
   - name: ocsf.metadata.product.version
     type: keyword
@@ -200,8 +212,9 @@
   - name: ocsf.cloud.org.name
     type: keyword
     level: custom
-    description: The name of the cloud organization or organizational unit associated
-      with this event.
+    description: >-
+      The name of the cloud organization or organizational unit associated with this
+      event.
     example: example-name
   - name: ocsf.cloud.org.ou_name
     type: keyword
@@ -222,8 +235,9 @@
   - name: ocsf.device.domain
     type: keyword
     level: custom
-    description: The network domain or Active Directory domain of the device involved
-      in the event.
+    description: >-
+      The network domain or Active Directory domain of the device involved in the
+      event.
     example: example-domain
   - name: ocsf.device.type_id
     type: keyword
@@ -331,8 +345,9 @@
   - name: ocsf.user.account.name
     type: keyword
     level: custom
-    description: The name of the user account which may be different from the user's
-      display name.
+    description: >-
+      The name of the user account which may be different from the user's display
+      name.
     example: example-name
   - name: ocsf.user.account.type
     type: keyword
@@ -367,8 +382,8 @@
   - name: ocsf.actor.user.uid
     type: keyword
     level: custom
-    description: The unique identifier of the user account under which the actor process
-      is running.
+    description: >-
+      The unique identifier of the user account under which the actor process is running.
     example: example-uid
   - name: ocsf.file.accessed_time
     type: keyword
@@ -439,14 +454,15 @@
   - name: ocsf.api.response.error
     type: keyword
     level: custom
-    description: The error code or identifier returned by the API response when the
-      request failed.
+    description: >-
+      The error code or identifier returned by the API response when the request failed.
     example: example-error
   - name: ocsf.api.response.error_message
     type: keyword
     level: custom
-    description: The human-readable error message returned by the API response when
-      the request failed.
+    description: >-
+      The human-readable error message returned by the API response when the request
+      failed.
     example: example-error_message
   - name: ocsf.api.service.name
     type: keyword
@@ -472,8 +488,8 @@
   - name: ocsf.finding.first_seen_time
     type: keyword
     level: custom
-    description: The timestamp when the security issue underlying this finding was
-      first observed.
+    description: >-
+      The timestamp when the security issue underlying this finding was first observed.
     example: example-first_seen_time
   - name: ocsf.finding.last_seen_time
     type: keyword
@@ -544,14 +560,14 @@
   - name: ocsf.traffic.bytes_in
     type: keyword
     level: custom
-    description: The number of bytes received or transferred inbound during the network
-      communication.
+    description: >-
+      The number of bytes received or transferred inbound during the network communication.
     example: example-bytes_in
   - name: ocsf.traffic.bytes_out
     type: keyword
     level: custom
-    description: The number of bytes sent or transferred outbound during the network
-      communication.
+    description: >-
+      The number of bytes sent or transferred outbound during the network communication.
     example: example-bytes_out
   - name: ocsf.traffic.packets
     type: keyword
@@ -587,8 +603,9 @@
   - name: ocsf.malware.classification_ids
     type: keyword
     level: custom
-    description: The numeric classification identifiers for the malware based on standard
-      malware taxonomies.
+    description: >-
+      The numeric classification identifiers for the malware based on standard malware
+      taxonomies.
     example: example-classification_ids
   - name: ocsf.malware.name
     type: keyword

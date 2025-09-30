@@ -10,14 +10,16 @@
   - name: azure.resource.authorization_rule
     type: keyword
     level: custom
-    description: The authorization rule associated with the Azure resource extracted
-      from the resource ID
+    description: >-
+      The authorization rule associated with the Azure resource extracted from the
+      resource ID
     example: example-authorization_rule
   - name: azure.resource.namespace
     type: keyword
     level: custom
-    description: The Azure Resource Provider namespace associated with the resource
-      involved in the event
+    description: >-
+      The Azure Resource Provider namespace associated with the resource involved
+      in the event
     example: example-namespace
   - name: azure.activitylogs.properties.event_category
     type: keyword
@@ -173,8 +175,9 @@
   - name: azure.auditlogs.identity
     type: keyword
     level: custom
-    description: The identity object from the Azure Audit Log containing information
-      about the user or service principal
+    description: >-
+      The identity object from the Azure Audit Log containing information about the
+      user or service principal
     example: example-identity
   - name: azure.auditlogs.level
     type: keyword
@@ -289,8 +292,9 @@
   - name: azure.firewall.icmp.request.code
     type: keyword
     level: custom
-    description: Refers to a specific type of ICMP message that Azure Firewall might
-      be configured to handle or log
+    description: >-
+      Refers to a specific type of ICMP message that Azure Firewall might be configured
+      to handle or log
     example: example-code
   - name: azure.firewall.policy
     type: keyword
@@ -335,8 +339,9 @@
   - name: azure.platformlogs.properties.raw
     type: keyword
     level: custom
-    description: The raw properties of the Azure Platform Log event containing unprocessed
-      event data
+    description: >-
+      The raw properties of the Azure Platform Log event containing unprocessed event
+      data
     example: example-raw
   - name: azure.firewall.dnssec_ok_bit
     type: keyword
@@ -666,8 +671,8 @@
   - name: azure.platformlogs.properties.auth_type
     type: keyword
     level: custom
-    description: The type of authentication used for the request such as 'OAuth2'
-      or 'ManagedIdentity'
+    description: >-
+      The type of authentication used for the request such as 'OAuth2' or 'ManagedIdentity'
     example: example-auth_type
   - name: azure.platformlogs.properties.protocol
     type: keyword
@@ -759,8 +764,8 @@
   - name: azure.platformlogs.properties
     type: keyword
     level: custom
-    description: The properties object from Azure Platform Logs containing additional
-      event details
+    description: >-
+      The properties object from Azure Platform Logs containing additional event details
     example: example-properties
   - name: azure.platformlogs.properties.status_code
     type: keyword
@@ -1266,8 +1271,9 @@
   - name: azure.auditlogs.properties.initiated_by.app.app_id
     type: keyword
     level: custom
-    description: The unique identifier (App ID) of the application that initiated
-      the audit log operation
+    description: >-
+      The unique identifier (App ID) of the application that initiated the audit log
+      operation
     example: example-app_id
   - name: azure.auditlogs.properties.initiated_by.app.display_name
     type: keyword
@@ -1278,8 +1284,9 @@
   - name: azure.auditlogs.properties.initiated_by.app.service_principal_name
     type: keyword
     level: custom
-    description: The name of the service principal associated with the application
-      that initiated the audit log operation
+    description: >-
+      The name of the service principal associated with the application that initiated
+      the audit log operation
     example: example-service_principal_name
   - name: azure.auditlogs.properties.initiated_by.user.display_name
     type: keyword
@@ -1310,8 +1317,12 @@
   - name: azure.auditlogs.properties.initiated_by.app.service_principal_id
     type: keyword
     level: custom
-    description: The unique identifier (Service Principal ID) of the service principal
-      associated with the application that initiated the audit log operation
+    short: >-
+      Unique Service Principal ID of the application that initiated the audit log
+      operation.
+    description: >-
+      The unique identifier (Service Principal ID) of the service principal associated
+      with the application that initiated the audit log operation
     example: example-service_principal_id
   - name: azure.provisioning.properties.provisioning_steps
     type: keyword
@@ -1418,7 +1429,8 @@
     level: custom
     description: The application ID of the source system
     example: example-application_id
-  - name: azure.provisioning.properties.source_system.details.dervice_principal_display_name
+  - name: >-
+      azure.provisioning.properties.source_system.details.dervice_principal_display_name
     type: keyword
     level: custom
     description: The display name of the service principal for the source system
@@ -1448,7 +1460,8 @@
     level: custom
     description: The application ID of the target system
     example: example-application_id
-  - name: azure.provisioning.properties.target_system.details.dervice_principal_display_name
+  - name: >-
+      azure.provisioning.properties.target_system.details.dervice_principal_display_name
     type: keyword
     level: custom
     description: The display name of the service principal for the target system
@@ -1458,22 +1471,26 @@
     level: custom
     description: The service principal ID for the target system
     example: example-service_principal_id
-  - name: azure.provisioning.properties.provisioning_status_info.error_information.additional_details
+  - name: >-
+      azure.provisioning.properties.provisioning_status_info.error_information.additional_details
     type: keyword
     level: custom
     description: Additional details about the error in the provisioning status information
     example: example-additional_details
-  - name: azure.provisioning.properties.provisioning_status_info.error_information.error_category
+  - name: >-
+      azure.provisioning.properties.provisioning_status_info.error_information.error_category
     type: keyword
     level: custom
     description: The error category in the provisioning status information
     example: example-error_category
-  - name: azure.provisioning.properties.provisioning_status_info.error_information.error_code
+  - name: >-
+      azure.provisioning.properties.provisioning_status_info.error_information.error_code
     type: keyword
     level: custom
     description: The error code in the provisioning status information
     example: example-error_code
-  - name: azure.provisioning.properties.provisioning_status_info.error_information.recommended_action
+  - name: >-
+      azure.provisioning.properties.provisioning_status_info.error_information.recommended_action
     type: keyword
     level: custom
     description: The recommended action for the error in the provisioning status information

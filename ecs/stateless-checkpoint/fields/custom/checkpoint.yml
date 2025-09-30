@@ -37,8 +37,11 @@
   - name: checkpoint.app_risk
     type: keyword
     level: custom
-    description: This field represents an application risk. Possible values are 0
-      (Unknown), 1 (Very Low), 2 (Low), 3 (Medium), 4 (High), and 5 (Critical).
+    short: >-
+      Application risk level: 0=Unknown, 1=Very Low, 2=Low, 3=Medium, 4=High, 5=Critical.
+    description: >-
+      This field represents an application risk. Possible values are 0 (Unknown),
+      1 (Very Low), 2 (Low), 3 (Medium), 4 (High), and 5 (Critical).
     example: example-app_risk
   - name: checkpoint.app_rule_id
     type: keyword
@@ -63,8 +66,9 @@
   - name: checkpoint.audit_status
     type: keyword
     level: custom
-    description: This audit status of any checkpoint firewall log. This can either
-      be Success or Failure.
+    description: >-
+      This audit status of any checkpoint firewall log. This can either be Success
+      or Failure.
     example: example-audit_status
   - name: checkpoint.auth_method
     type: keyword
@@ -176,8 +180,9 @@
   - name: checkpoint.description
     type: keyword
     level: custom
-    description: This field provides additional information how the security gateway
-      enforced a connection.
+    description: >-
+      This field provides additional information how the security gateway enforced
+      a connection.
     example: example-description
   - name: checkpoint.description_url
     type: keyword
@@ -227,8 +232,11 @@
   - name: checkpoint.failed_login_factor_num
     type: keyword
     level: custom
-    description: This represents a parameter or setting that determines the number
-      of consecutive failed login attempts before a security measure is taken.
+    short: Number of consecutive failed login attempts before triggering security
+      measures.
+    description: >-
+      This represents a parameter or setting that determines the number of consecutive
+      failed login attempts before a security measure is taken.
     example: example-failed_login_factor_num
   - name: checkpoint.fieldschanges
     type: keyword
@@ -243,8 +251,12 @@
   - name: checkpoint.fw_subproduct
     type: keyword
     level: custom
-    description: This field points to a specific functionality or module, such as
-      the FW Monitor, that helps with security monitoring, analysis, and troubleshooting.
+    short: >-
+      Points to specific functionality or module (e.g., FW Monitor) for security monitoring,
+      analysis, and troubleshooting.
+    description: >-
+      This field points to a specific functionality or module, such as the FW Monitor,
+      that helps with security monitoring, analysis, and troubleshooting.
     example: example-fw_subproduct
   - name: checkpoint.host_ip
     type: keyword
@@ -300,8 +312,8 @@
   - name: checkpoint.logid
     type: keyword
     level: custom
-    description: 'This is a unique identity for logs includes: Type, Family, Product/Blade,
-      Category.'
+    description: >-
+      This is a unique identity for logs includes: Type, Family, Product/Blade, Category.
     example: example-logid
   - name: checkpoint.login_option
     type: keyword
@@ -366,8 +378,9 @@
   - name: checkpoint.nat_addtnl_rulenum
     type: keyword
     level: custom
-    description: When matching 2 automatic rules , second rule match will be shown
-      otherwise field will be 0.
+    description: >-
+      When matching 2 automatic rules , second rule match will be shown otherwise
+      field will be 0.
     example: example-nat_addtnl_rulenum
   - name: checkpoint.nat_rule_uid
     type: keyword
@@ -402,8 +415,9 @@
   - name: checkpoint.operation_number
     type: keyword
     level: custom
-    description: Operation number done by the administrator, each operation is represented
-      by a number.
+    description: >-
+      Operation number done by the administrator, each operation is represented by
+      a number.
     example: example-operation_number
   - name: checkpoint.operation_result_description
     type: keyword
@@ -538,8 +552,9 @@
   - name: checkpoint.row_start
     type: keyword
     level: custom
-    description: This field indicates the starting row number of a log entry within
-      a specific log file.
+    description: >-
+      This field indicates the starting row number of a log entry within a specific
+      log file.
     example: example-row_start
   - name: checkpoint.rule_action
     type: keyword
@@ -554,8 +569,12 @@
   - name: checkpoint.rule_uid
     type: keyword
     level: custom
-    description: A rule ID that is unique within the scope of a set or group of agents,
-      observers, or other entities using the rule for detection of this event.
+    short: >-
+      Rule ID unique within a set or group of agents, observers, or entities using
+      the rule for event detection.
+    description: >-
+      A rule ID that is unique within the scope of a set or group of agents, observers,
+      or other entities using the rule for detection of this event.
     example: example-rule_uid
   - name: checkpoint.scheme
     type: keyword
@@ -575,20 +594,26 @@
   - name: checkpoint.security_inzone
     type: keyword
     level: custom
-    description: Network zone of incoming traffic as reported by the observer to categorize
-      the source area of ingress traffic.
+    description: >-
+      Network zone of incoming traffic as reported by the observer to categorize the
+      source area of ingress traffic.
     example: example-security_inzone
   - name: checkpoint.security_outzone
     type: keyword
     level: custom
-    description: Network zone of outbound traffic as reported by the observer to categorize
-      the destination area of egress traffic.
+    description: >-
+      Network zone of outbound traffic as reported by the observer to categorize the
+      destination area of egress traffic.
     example: example-security_outzone
   - name: checkpoint.sendtotrackerasadvancedauditlog
     type: keyword
     level: custom
-    description: This field controls whether specific log data (like security gateway
-      logs) is sent to a dedicated advanced audit log for detailed analysis.
+    short: >-
+      Controls if specific log data (security gateway logs) is sent to dedicated advanced
+      audit log for detailed analysis.
+    description: >-
+      This field controls whether specific log data (like security gateway logs) is
+      sent to a dedicated advanced audit log for detailed analysis.
     example: example-sendtotrackerasadvancedauditlog
   - name: checkpoint.ser_agent_kid
     type: keyword
@@ -663,8 +688,9 @@
   - name: checkpoint.status
     type: keyword
     level: custom
-    description: This is the operation health of the security gateway device. Possible
-      values are OK,Warning and Error.
+    description: >-
+      This is the operation health of the security gateway device. Possible values
+      are OK,Warning and Error.
     example: example-status
   - name: checkpoint.stormagentaction
     type: keyword

@@ -62,8 +62,9 @@
   - name: cisco.asa.connection_type
     type: keyword
     level: custom
-    description: The type of VPN connection established, such as SSL VPN, IPSec, or
-      clientless connections.
+    description: >-
+      The type of VPN connection established, such as SSL VPN, IPSec, or clientless
+      connections.
     example: example-connection_type
   - name: cisco.asa.connections_in_use
     type: keyword
@@ -78,8 +79,9 @@
   - name: cisco.asa.dap_records
     type: keyword
     level: custom
-    description: The Dynamic Access Policy (DAP) records assigned to the user during
-      authentication and authorization.
+    description: >-
+      The Dynamic Access Policy (DAP) records assigned to the user during authentication
+      and authorization.
     example: example-dap_records
   - name: cisco.asa.destination_interface
     type: keyword
@@ -89,8 +91,12 @@
   - name: cisco.asa.destination_user_security_group_tag
     type: keyword
     level: custom
-    description: The Security Group Tag for the destination user. Security Group Tag
-      are 16-bit identifiers used to represent logical group privilege.
+    short: >-
+      Security Group Tag for destination user. 16-bit identifier representing logical
+      group privilege.
+    description: >-
+      The Security Group Tag for the destination user. Security Group Tag are 16-bit
+      identifiers used to represent logical group privilege.
     example: example-destination_user_security_group_tag
   - name: cisco.asa.destination_user_security_group_tag_name
     type: keyword
@@ -105,38 +111,44 @@
   - name: cisco.asa.device_type
     type: keyword
     level: custom
-    description: The type of device or client connecting to the ASA, such as mobile
-      device, desktop, or browser.
+    description: >-
+      The type of device or client connecting to the ASA, such as mobile device, desktop,
+      or browser.
     example: example-device_type
   - name: cisco.asa.group_policy
     type: keyword
     level: custom
-    description: The name of the group policy applied to the user or connection, defining
-      access permissions and restrictions.
+    description: >-
+      The name of the group policy applied to the user or connection, defining access
+      permissions and restrictions.
     example: example-group_policy
   - name: cisco.asa.icmp_code
     type: keyword
     level: custom
-    description: The ICMP code field that provides additional information about the
-      ICMP message type.
+    description: >-
+      The ICMP code field that provides additional information about the ICMP message
+      type.
     example: example-icmp_code
   - name: cisco.asa.icmp_type
     type: keyword
     level: custom
-    description: The ICMP type field that identifies the specific ICMP message being
-      sent or received.
+    description: >-
+      The ICMP type field that identifies the specific ICMP message being sent or
+      received.
     example: example-icmp_type
   - name: cisco.asa.interface_name
     type: keyword
     level: custom
-    description: The name of the network interface through which the traffic is passing
-      or the event occurred.
+    description: >-
+      The name of the network interface through which the traffic is passing or the
+      event occurred.
     example: example-interface_name
   - name: cisco.asa.mapped_destination_host
     type: keyword
     level: custom
-    description: The hostname of the translated destination address after Network
-      Address Translation (NAT).
+    description: >-
+      The hostname of the translated destination address after Network Address Translation
+      (NAT).
     example: example-mapped_destination_host
   - name: cisco.asa.mapped_destination_ip
     type: keyword
@@ -146,14 +158,16 @@
   - name: cisco.asa.mapped_destination_port
     type: keyword
     level: custom
-    description: The port number of the translated destination address after Network
-      Address Translation (NAT).
+    description: >-
+      The port number of the translated destination address after Network Address
+      Translation (NAT).
     example: example-mapped_destination_port
   - name: cisco.asa.mapped_source_host
     type: keyword
     level: custom
-    description: The hostname of the translated source address after Network Address
-      Translation (NAT).
+    description: >-
+      The hostname of the translated source address after Network Address Translation
+      (NAT).
     example: example-mapped_source_host
   - name: cisco.asa.mapped_source_ip
     type: keyword
@@ -163,8 +177,9 @@
   - name: cisco.asa.mapped_source_port
     type: keyword
     level: custom
-    description: The port number of the translated source address after Network Address
-      Translation (NAT).
+    description: >-
+      The port number of the translated source address after Network Address Translation
+      (NAT).
     example: example-mapped_source_port
   - name: cisco.asa.message
     type: keyword
@@ -184,20 +199,23 @@
   - name: cisco.asa.peer_type
     type: keyword
     level: custom
-    description: The type of peer in a VPN connection, such as site-to-site or remote
-      access peer.
+    description: >-
+      The type of peer in a VPN connection, such as site-to-site or remote access
+      peer.
     example: example-peer_type
   - name: cisco.asa.pool_address
     type: keyword
     level: custom
-    description: The IP address assigned from an address pool for VPN client connections
-      or NAT translations.
+    description: >-
+      The IP address assigned from an address pool for VPN client connections or NAT
+      translations.
     example: example-pool_address
   - name: cisco.asa.pool_name
     type: keyword
     level: custom
-    description: The name of the IP address pool from which addresses are assigned
-      to VPN clients or NAT translations.
+    description: >-
+      The name of the IP address pool from which addresses are assigned to VPN clients
+      or NAT translations.
     example: example-pool_name
   - name: cisco.asa.privilege.new
     type: keyword
@@ -212,8 +230,9 @@
   - name: cisco.asa.redundant_interface_name
     type: keyword
     level: custom
-    description: The name of the redundant interface used for high availability and
-      failover configurations.
+    description: >-
+      The name of the redundant interface used for high availability and failover
+      configurations.
     example: example-redundant_interface_name
   - name: cisco.asa.rejection_reason
     type: keyword
@@ -228,8 +247,9 @@
   - name: cisco.asa.session_id
     type: keyword
     level: custom
-    description: The unique identifier for a user session or connection established
-      with the ASA device.
+    description: >-
+      The unique identifier for a user session or connection established with the
+      ASA device.
     example: example-session_id
   - name: cisco.asa.session_type
     type: keyword
@@ -244,8 +264,12 @@
   - name: cisco.asa.source_user_security_group_tag
     type: keyword
     level: custom
-    description: The Security Group Tag for the source user. Security Group Tag are
-      16-bit identifiers used to represent logical group privilege.
+    short: >-
+      Security Group Tag for source user. 16-bit identifier representing logical group
+      privilege.
+    description: >-
+      The Security Group Tag for the source user. Security Group Tag are 16-bit identifiers
+      used to represent logical group privilege.
     example: example-source_user_security_group_tag
   - name: cisco.asa.source_user_security_group_tag_name
     type: keyword
@@ -275,26 +299,29 @@
   - name: cisco.asa.threat_category
     type: keyword
     level: custom
-    description: 'Category for the malware / botnet traffic. For example: virus, botnet,
-      trojan, etc.'
+    description: >-
+      Category for the malware / botnet traffic. For example: virus, botnet, trojan,
+      etc.
     example: example-threat_category
   - name: cisco.asa.threat_level
     type: keyword
     level: custom
-    description: Threat level for malware / botnet traffic. One of very-low, low,
-      moderate, high or very-high.
+    description: >-
+      Threat level for malware / botnet traffic. One of very-low, low, moderate, high
+      or very-high.
     example: example-threat_level
   - name: cisco.asa.trustpoint
     type: keyword
     level: custom
-    description: The name of the certificate trustpoint used for SSL/TLS authentication
-      and encryption.
+    description: >-
+      The name of the certificate trustpoint used for SSL/TLS authentication and encryption.
     example: example-trustpoint
   - name: cisco.asa.tunnel_group
     type: keyword
     level: custom
-    description: The name of the tunnel group configuration used for VPN connections
-      and their associated parameters.
+    description: >-
+      The name of the tunnel group configuration used for VPN connections and their
+      associated parameters.
     example: example-tunnel_group
   - name: cisco.asa.tunnel_type
     type: keyword
