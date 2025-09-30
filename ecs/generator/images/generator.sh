@@ -64,12 +64,12 @@ generate_mappings() {
 
   # Include the common WCS fields if the module is an integration (e.g., stateless-aws)
   local include_wcs=""
-  if [[ "$MODULE" == stateless-* ]]; then
-    include_wcs="$INDEXER_SRC/ecs/stateless/fields/custom/"
+  if [[ "$ecs_module" == stateless-* ]]; then
+    include_wcs="$indexer_path/ecs/stateless/fields/custom/"
   fi
 
   # Generate mappings
-  python scripts/generator.py --strict --ref "$ECS_VERSION" \
+  python scripts/generator.py --strict --ref "$ecs_version" \
     --include "$in_files_dir/custom/" "${include_wcs}" \
     --subset "$in_files_dir/subset.yml" \
     --template-settings "$in_files_dir/template-settings.json" \
