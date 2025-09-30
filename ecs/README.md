@@ -86,7 +86,7 @@ The script uses log file. Check it out for debugging or additional information.
 
 ### Automatic PR creation tool
 
-The `generate-and-push-templates.sh` script found in the [scripts](scripts/) folder is a tool that detects modified modules, generates new templates, commits the changes and creates or updates a pull request.
+The `generate_and_push_templates.sh` script found in the [scripts](scripts/) folder is a tool that detects modified modules, generates new templates, commits the changes and creates or updates a pull request.
 
 #### Requirements
 
@@ -98,7 +98,7 @@ The `generate-and-push-templates.sh` script found in the [scripts](scripts/) fol
 To use the script, run the following command:
 
 ```sh
-./generate-and-push-templates.sh -t <GITHUB_TOKEN>
+./generate_and_push_templates.sh -t <GITHUB_TOKEN>
 ```
 
 **Options**
