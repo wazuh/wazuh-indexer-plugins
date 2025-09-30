@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 # Constants
-ECS_VERSION=${ECS_VERSION:-v8.11.0}
+ECS_VERSION=${ECS_VERSION:-v9.1.0}
 MAPPINGS_SUBPATH="mappings/${ECS_VERSION}/generated/elasticsearch/legacy/template.json"
 TEMPLATES_PATH="plugins/setup/src/main/resources/"
 CURRENT_PATH=$(pwd)

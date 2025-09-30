@@ -8,7 +8,7 @@ set -euo pipefail
 # compatible open source license.
 
 # Default values
-ECS_VERSION="${ECS_VERSION:-v8.11.0}"
+ECS_VERSION="${ECS_VERSION:-v9.1.0}"
 ECS_SOURCE="${ECS_SOURCE:-/source}"
 
 # Function to display usage information
@@ -16,9 +16,9 @@ show_usage() {
   echo "Usage: $0"
   echo "Environment Variables:"
   echo "  * ECS_MODULE:   Module to generate mappings for"
-  echo "  * ECS_VERSION:  (Optional) ECS version to generate mappings for (default: v8.11.0)"
+  echo "  * ECS_VERSION:  (Optional) ECS version to generate mappings for (default: v9.1.0)"
   echo "  * ECS_SOURCE:   (Optional) Path to the wazuh-indexer repository (default: /source)"
-  echo "Example: docker run -e ECS_MODULE=stateless -e ECS_VERSION=v8.11.0 ecs-generator"
+  echo "Example: docker run -e ECS_MODULE=stateless -e ECS_VERSION=v9.1.0 ecs-generator"
 }
 
 # Ensure ECS_MODULE is provided
