@@ -39,7 +39,7 @@ public class IndexStateManagement extends Index {
     private static final Logger log = LogManager.getLogger(IndexStateManagement.class);
 
     // ISM policies names (filename without extension)
-    static final String ALERTS_ROLLOVER_POLICY = "wazuh-alerts-rollover-policy";
+    static final String ALERTS_ROLLOVER_POLICY = "wazuh-rollover-policy";
 
     private final List<String> policies;
 

@@ -72,7 +72,9 @@
   - name: apache_tomcat.catalina.subsystem
     type: keyword
     level: custom
-    description: Indicates Apache Tomcat subsystem or the type of the module that
+    short: Apache Tomcat subsystem that was the source of the message.
+    description: > 
+      Indicates Apache Tomcat subsystem or the type of the module that
       was the source of the message. For example, RBPM or Java Messaging Service (JMS).
     example: example-subsystem
   - name: apache_tomcat.connection_pool.access_to_underlying_connection_allowed
