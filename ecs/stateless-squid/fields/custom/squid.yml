@@ -1,0 +1,26 @@
+- name: squid
+  title: Squid
+  description: squid custom fields for WCS integration
+  fields:
+  - name: squid.code
+    type: keyword
+    level: custom
+    description: Squid result code representing outcome of request (TCP_HIT/TCP_MISS
+      etc)
+    example: example-code
+  - name: squid.peerstatus
+    type: keyword
+    level: custom
+    description: Code explaining how request was handled (forwarding to peer or direct
+      to source)
+    example: example-peerstatus
+  - name: squid.status
+    type: keyword
+    level: custom
+    description: HTTP status code of the result
+    example: example-status
+  - name: squid.type
+    type: keyword
+    level: custom
+    description: Content type from HTTP reply header
+    example: example-type

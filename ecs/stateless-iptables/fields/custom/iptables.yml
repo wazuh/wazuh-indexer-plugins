@@ -1,0 +1,108 @@
+- name: iptables
+  title: Iptables
+  description: iptables custom fields for WCS integration
+  fields:
+  - name: iptables.ether_type
+    type: keyword
+    level: custom
+    description: EtherType field from Ethernet frame indicating protocol type (2048
+      for IPv4 34525 for IPv6)
+    example: example-ether_type
+  - name: iptables.flow_label
+    type: keyword
+    level: custom
+    description: IPv6 flow label field used for QoS management (IPv6 packets only)
+    example: example-flow_label
+  - name: iptables.fragment_flags
+    type: keyword
+    level: custom
+    description: IP fragmentation flags such as "DF" (Don't Fragment) indicating packet
+      fragmentation control
+    example: example-fragment_flags
+  - name: iptables.icmp_code
+    type: keyword
+    level: custom
+    description: ICMP message code providing additional information about the ICMP
+      message (ICMP packets only)
+    example: example-icmp_code
+  - name: iptables.icmp_seq
+    type: keyword
+    level: custom
+    description: ICMP sequence number for echo request/reply correlation (ICMP packets
+      only)
+    example: example-icmp_seq
+  - name: iptables.icmp_type
+    type: keyword
+    level: custom
+    description: ICMP message type indicating the purpose of the ICMP message (ICMP
+      packets only)
+    example: example-icmp_type
+  - name: iptables.id
+    type: keyword
+    level: custom
+    description: IP packet identification field used for fragment reassembly
+    example: example-id
+  - name: iptables.input_device
+    type: keyword
+    level: custom
+    description: Network interface on which the packet was received (IN field from
+      iptables log)
+    example: example-input_device
+  - name: iptables.length
+    type: keyword
+    level: custom
+    description: Total packet length in bytes (LEN field from iptables log)
+    example: example-length
+  - name: iptables.mark
+    type: keyword
+    level: custom
+    description: Netfilter mark value assigned to the packet for advanced routing/filtering
+      (MARK field when present)
+    example: example-mark
+  - name: iptables.output_device
+    type: keyword
+    level: custom
+    description: Network interface on which packet would be sent (OUT field from iptables
+      log empty for dropped packets)
+    example: example-output_device
+  - name: iptables.precedence_bits
+    type: keyword
+    level: custom
+    description: IP precedence bits indicating packet priority level (PREC field converted
+      from hex)
+    example: example-precedence_bits
+  - name: iptables.tcp_flags
+    type: keyword
+    level: custom
+    description: TCP control flags present in the packet (SYN ACK FIN RST PSH URG)
+      (TCP packets only)
+    example: example-tcp_flags
+  - name: iptables.tcp_reserved_bits
+    type: keyword
+    level: custom
+    description: Reserved bits in TCP header (RES field converted from hex) (TCP packets
+      only)
+    example: example-tcp_reserved_bits
+  - name: iptables.tcp_window
+    type: keyword
+    level: custom
+    description: TCP window size indicating receiver buffer space (WINDOW field) (TCP
+      packets only)
+    example: example-tcp_window
+  - name: iptables.tos
+    type: keyword
+    level: custom
+    description: Type of Service field from IP header indicating packet handling priority
+      (TOS or TC field converted from hex)
+    example: example-tos
+  - name: iptables.ttl
+    type: keyword
+    level: custom
+    description: Time To Live value decremented at each router hop (TTL or HOPLIMIT
+      field)
+    example: example-ttl
+  - name: pfsense.dhcp_subnet
+    type: keyword
+    level: custom
+    description: Custom field for iptables
+    example: example-dhcp_subnet

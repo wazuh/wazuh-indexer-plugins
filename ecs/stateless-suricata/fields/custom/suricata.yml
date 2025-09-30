@@ -1,0 +1,859 @@
+- name: suricata
+  title: Suricata
+  description: suricata custom fields for WCS integration
+  fields:
+  - name: suricata.alert.metadata.attack_target
+    type: keyword
+    level: custom
+    description: Custom field for suricata
+    example: example-attack_target
+  - name: suricata.alert.metadata.capec_id
+    type: keyword
+    level: custom
+    description: Custom field for suricata
+    example: example-capec_id
+  - name: suricata.alert.category
+    type: keyword
+    level: custom
+    description: Custom field for suricata
+    example: example-category
+  - name: suricata.alert.metadata.created_at
+    type: keyword
+    level: custom
+    description: Custom field for suricata
+    example: example-created_at
+  - name: suricata.alert.metadata.cve
+    type: keyword
+    level: custom
+    description: Custom field for suricata
+    example: example-cve
+  - name: suricata.alert.metadata.cvss_v2_base
+    type: keyword
+    level: custom
+    description: Custom field for suricata
+    example: example-cvss_v2_base
+  - name: suricata.alert.metadata.cvss_v2_temporal
+    type: keyword
+    level: custom
+    description: Custom field for suricata
+    example: example-cvss_v2_temporal
+  - name: suricata.alert.metadata.cvss_v3_base
+    type: keyword
+    level: custom
+    description: Custom field for suricata
+    example: example-cvss_v3_base
+  - name: suricata.alert.metadata.cvss_v3_temporal
+    type: keyword
+    level: custom
+    description: Custom field for suricata
+    example: example-cvss_v3_temporal
+  - name: suricata.alert.metadata.cwe_id
+    type: keyword
+    level: custom
+    description: Custom field for suricata
+    example: example-cwe_id
+  - name: suricata.alert.gid
+    type: keyword
+    level: custom
+    description: Custom field for suricata
+    example: example-gid
+  - name: suricata.alert.rev
+    type: keyword
+    level: custom
+    description: Custom field for suricata
+    example: example-rev
+  - name: suricata.alert.signature
+    type: keyword
+    level: custom
+    description: Custom field for suricata
+    example: example-signature
+  - name: suricata.alert.signature_id
+    type: keyword
+    level: custom
+    description: Custom field for suricata
+    example: example-signature_id
+  - name: suricata.dns.id
+    type: keyword
+    level: custom
+    description: Custom field for suricata
+    example: example-id
+  - name: suricata.dns.rrname
+    type: keyword
+    level: custom
+    description: Custom field for suricata
+    example: example-rrname
+  - name: suricata.dns.rrtype
+    type: keyword
+    level: custom
+    description: Custom field for suricata
+    example: example-rrtype
+  - name: suricata.dns.tx_id
+    type: keyword
+    level: custom
+    description: Custom field for suricata
+    example: example-tx_id
+  - name: suricata.dns.type
+    type: keyword
+    level: custom
+    description: Custom field for suricata
+    example: example-type
+  - name: suricata.event_type
+    type: keyword
+    level: custom
+    description: Custom field for suricata
+    example: example-event_type
+  - name: suricata.fileinfo.gaps
+    type: keyword
+    level: custom
+    description: Custom field for suricata
+    example: example-gaps
+  - name: suricata.fileinfo.md5
+    type: keyword
+    level: custom
+    description: Custom field for suricata
+    example: example-md5
+  - name: suricata.fileinfo.sha1
+    type: keyword
+    level: custom
+    description: Custom field for suricata
+    example: example-sha1
+  - name: suricata.fileinfo.sha256
+    type: keyword
+    level: custom
+    description: Custom field for suricata
+    example: example-sha256
+  - name: suricata.fileinfo.state
+    type: keyword
+    level: custom
+    description: Custom field for suricata
+    example: example-state
+  - name: suricata.fileinfo.stored
+    type: keyword
+    level: custom
+    description: Custom field for suricata
+    example: example-stored
+  - name: suricata.fileinfo.tx_id
+    type: keyword
+    level: custom
+    description: Custom field for suricata
+    example: example-tx_id
+  - name: suricata.flow.age
+    type: keyword
+    level: custom
+    description: Custom field for suricata
+    example: example-age
+  - name: suricata.flow.alerted
+    type: keyword
+    level: custom
+    description: Custom field for suricata
+    example: example-alerted
+  - name: suricata.flow.end
+    type: keyword
+    level: custom
+    description: Custom field for suricata
+    example: example-end
+  - name: suricata.flow.reason
+    type: keyword
+    level: custom
+    description: Custom field for suricata
+    example: example-reason
+  - name: suricata.flow.state
+    type: keyword
+    level: custom
+    description: Custom field for suricata
+    example: example-state
+  - name: suricata.flow_id
+    type: keyword
+    level: custom
+    description: Custom field for suricata
+    example: example-flow_id
+  - name: suricata.http.http_content_type
+    type: keyword
+    level: custom
+    description: Custom field for suricata
+    example: example-http_content_type
+  - name: suricata.http.http_port
+    type: keyword
+    level: custom
+    description: Custom field for suricata
+    example: example-http_port
+  - name: suricata.http.protocol
+    type: keyword
+    level: custom
+    description: Custom field for suricata
+    example: example-protocol
+  - name: suricata.in_iface
+    type: keyword
+    level: custom
+    description: Custom field for suricata
+    example: example-in_iface
+  - name: suricata.ssh.client.proto_version
+    type: keyword
+    level: custom
+    description: Custom field for suricata
+    example: example-proto_version
+  - name: suricata.ssh.client.software_version
+    type: keyword
+    level: custom
+    description: Custom field for suricata
+    example: example-software_version
+  - name: suricata.ssh.server.proto_version
+    type: keyword
+    level: custom
+    description: Custom field for suricata
+    example: example-proto_version
+  - name: suricata.ssh.server.software_version
+    type: keyword
+    level: custom
+    description: Custom field for suricata
+    example: example-software_version
+  - name: suricata.stats.app_layer.flow.dcerpc_tcp
+    type: keyword
+    level: custom
+    description: Custom field for suricata
+    example: example-dcerpc_tcp
+  - name: suricata.stats.app_layer.flow.dcerpc_udp
+    type: keyword
+    level: custom
+    description: Custom field for suricata
+    example: example-dcerpc_udp
+  - name: suricata.stats.app_layer.flow.dns_tcp
+    type: keyword
+    level: custom
+    description: Custom field for suricata
+    example: example-dns_tcp
+  - name: suricata.stats.app_layer.flow.dns_udp
+    type: keyword
+    level: custom
+    description: Custom field for suricata
+    example: example-dns_udp
+  - name: suricata.stats.app_layer.flow.failed_tcp
+    type: keyword
+    level: custom
+    description: Custom field for suricata
+    example: example-failed_tcp
+  - name: suricata.stats.app_layer.flow.failed_udp
+    type: keyword
+    level: custom
+    description: Custom field for suricata
+    example: example-failed_udp
+  - name: suricata.stats.app_layer.flow.ftp
+    type: keyword
+    level: custom
+    description: Custom field for suricata
+    example: example-ftp
+  - name: suricata.stats.app_layer.flow.http
+    type: keyword
+    level: custom
+    description: Custom field for suricata
+    example: example-http
+  - name: suricata.stats.app_layer.flow.imap
+    type: keyword
+    level: custom
+    description: Custom field for suricata
+    example: example-imap
+  - name: suricata.stats.app_layer.flow.msn
+    type: keyword
+    level: custom
+    description: Custom field for suricata
+    example: example-msn
+  - name: suricata.stats.app_layer.flow.smb
+    type: keyword
+    level: custom
+    description: Custom field for suricata
+    example: example-smb
+  - name: suricata.stats.app_layer.flow.smtp
+    type: keyword
+    level: custom
+    description: Custom field for suricata
+    example: example-smtp
+  - name: suricata.stats.app_layer.flow.ssh
+    type: keyword
+    level: custom
+    description: Custom field for suricata
+    example: example-ssh
+  - name: suricata.stats.app_layer.flow.tls
+    type: keyword
+    level: custom
+    description: Custom field for suricata
+    example: example-tls
+  - name: suricata.stats.app_layer.tx.dcerpc_tcp
+    type: keyword
+    level: custom
+    description: Custom field for suricata
+    example: example-dcerpc_tcp
+  - name: suricata.stats.app_layer.tx.dcerpc_udp
+    type: keyword
+    level: custom
+    description: Custom field for suricata
+    example: example-dcerpc_udp
+  - name: suricata.stats.app_layer.tx.dns_tcp
+    type: keyword
+    level: custom
+    description: Custom field for suricata
+    example: example-dns_tcp
+  - name: suricata.stats.app_layer.tx.dns_udp
+    type: keyword
+    level: custom
+    description: Custom field for suricata
+    example: example-dns_udp
+  - name: suricata.stats.app_layer.tx.ftp
+    type: keyword
+    level: custom
+    description: Custom field for suricata
+    example: example-ftp
+  - name: suricata.stats.app_layer.tx.http
+    type: keyword
+    level: custom
+    description: Custom field for suricata
+    example: example-http
+  - name: suricata.stats.app_layer.tx.smb
+    type: keyword
+    level: custom
+    description: Custom field for suricata
+    example: example-smb
+  - name: suricata.stats.app_layer.tx.smtp
+    type: keyword
+    level: custom
+    description: Custom field for suricata
+    example: example-smtp
+  - name: suricata.stats.app_layer.tx.ssh
+    type: keyword
+    level: custom
+    description: Custom field for suricata
+    example: example-ssh
+  - name: suricata.stats.app_layer.tx.tls
+    type: keyword
+    level: custom
+    description: Custom field for suricata
+    example: example-tls
+  - name: suricata.stats.capture.kernel_drops
+    type: keyword
+    level: custom
+    description: Custom field for suricata
+    example: example-kernel_drops
+  - name: suricata.stats.capture.kernel_ifdrops
+    type: keyword
+    level: custom
+    description: Custom field for suricata
+    example: example-kernel_ifdrops
+  - name: suricata.stats.capture.kernel_packets
+    type: keyword
+    level: custom
+    description: Custom field for suricata
+    example: example-kernel_packets
+  - name: suricata.stats.decoder.avg_pkt_size
+    type: keyword
+    level: custom
+    description: Custom field for suricata
+    example: example-avg_pkt_size
+  - name: suricata.stats.decoder.bytes
+    type: keyword
+    level: custom
+    description: Custom field for suricata
+    example: example-bytes
+  - name: suricata.stats.decoder.dce.pkt_too_small
+    type: keyword
+    level: custom
+    description: Custom field for suricata
+    example: example-pkt_too_small
+  - name: suricata.stats.decoder.erspan
+    type: keyword
+    level: custom
+    description: Custom field for suricata
+    example: example-erspan
+  - name: suricata.stats.decoder.ethernet
+    type: keyword
+    level: custom
+    description: Custom field for suricata
+    example: example-ethernet
+  - name: suricata.stats.decoder.gre
+    type: keyword
+    level: custom
+    description: Custom field for suricata
+    example: example-gre
+  - name: suricata.stats.decoder.icmpv4
+    type: keyword
+    level: custom
+    description: Custom field for suricata
+    example: example-icmpv4
+  - name: suricata.stats.decoder.icmpv6
+    type: keyword
+    level: custom
+    description: Custom field for suricata
+    example: example-icmpv6
+  - name: suricata.stats.decoder.ieee8021ah
+    type: keyword
+    level: custom
+    description: Custom field for suricata
+    example: example-ieee8021ah
+  - name: suricata.stats.decoder.invalid
+    type: keyword
+    level: custom
+    description: Custom field for suricata
+    example: example-invalid
+  - name: suricata.stats.decoder.ipraw.invalid_ip_version
+    type: keyword
+    level: custom
+    description: Custom field for suricata
+    example: example-invalid_ip_version
+  - name: suricata.stats.decoder.ipv4
+    type: keyword
+    level: custom
+    description: Custom field for suricata
+    example: example-ipv4
+  - name: suricata.stats.decoder.ipv4_in_ipv6
+    type: keyword
+    level: custom
+    description: Custom field for suricata
+    example: example-ipv4_in_ipv6
+  - name: suricata.stats.decoder.ipv6
+    type: keyword
+    level: custom
+    description: Custom field for suricata
+    example: example-ipv6
+  - name: suricata.stats.decoder.ipv6_in_ipv6
+    type: keyword
+    level: custom
+    description: Custom field for suricata
+    example: example-ipv6_in_ipv6
+  - name: suricata.stats.decoder.ltnull.pkt_too_small
+    type: keyword
+    level: custom
+    description: Custom field for suricata
+    example: example-pkt_too_small
+  - name: suricata.stats.decoder.ltnull.unsupported_type
+    type: keyword
+    level: custom
+    description: Custom field for suricata
+    example: example-unsupported_type
+  - name: suricata.stats.decoder.max_pkt_size
+    type: keyword
+    level: custom
+    description: Custom field for suricata
+    example: example-max_pkt_size
+  - name: suricata.stats.decoder.mpls
+    type: keyword
+    level: custom
+    description: Custom field for suricata
+    example: example-mpls
+  - name: suricata.stats.decoder.null
+    type: keyword
+    level: custom
+    description: Custom field for suricata
+    example: example-null
+  - name: suricata.stats.decoder.pkts
+    type: keyword
+    level: custom
+    description: Custom field for suricata
+    example: example-pkts
+  - name: suricata.stats.decoder.ppp
+    type: keyword
+    level: custom
+    description: Custom field for suricata
+    example: example-ppp
+  - name: suricata.stats.decoder.pppoe
+    type: keyword
+    level: custom
+    description: Custom field for suricata
+    example: example-pppoe
+  - name: suricata.stats.decoder.raw
+    type: keyword
+    level: custom
+    description: Custom field for suricata
+    example: example-raw
+  - name: suricata.stats.decoder.sctp
+    type: keyword
+    level: custom
+    description: Custom field for suricata
+    example: example-sctp
+  - name: suricata.stats.decoder.sll
+    type: keyword
+    level: custom
+    description: Custom field for suricata
+    example: example-sll
+  - name: suricata.stats.decoder.tcp
+    type: keyword
+    level: custom
+    description: Custom field for suricata
+    example: example-tcp
+  - name: suricata.stats.decoder.teredo
+    type: keyword
+    level: custom
+    description: Custom field for suricata
+    example: example-teredo
+  - name: suricata.stats.decoder.udp
+    type: keyword
+    level: custom
+    description: Custom field for suricata
+    example: example-udp
+  - name: suricata.stats.decoder.vlan
+    type: keyword
+    level: custom
+    description: Custom field for suricata
+    example: example-vlan
+  - name: suricata.stats.decoder.vlan_qinq
+    type: keyword
+    level: custom
+    description: Custom field for suricata
+    example: example-vlan_qinq
+  - name: suricata.stats.defrag.ipv4.fragments
+    type: keyword
+    level: custom
+    description: Custom field for suricata
+    example: example-fragments
+  - name: suricata.stats.defrag.ipv4.reassembled
+    type: keyword
+    level: custom
+    description: Custom field for suricata
+    example: example-reassembled
+  - name: suricata.stats.defrag.ipv4.timeouts
+    type: keyword
+    level: custom
+    description: Custom field for suricata
+    example: example-timeouts
+  - name: suricata.stats.defrag.ipv6.fragments
+    type: keyword
+    level: custom
+    description: Custom field for suricata
+    example: example-fragments
+  - name: suricata.stats.defrag.ipv6.reassembled
+    type: keyword
+    level: custom
+    description: Custom field for suricata
+    example: example-reassembled
+  - name: suricata.stats.defrag.ipv6.timeouts
+    type: keyword
+    level: custom
+    description: Custom field for suricata
+    example: example-timeouts
+  - name: suricata.stats.defrag.max_frag_hits
+    type: keyword
+    level: custom
+    description: Custom field for suricata
+    example: example-max_frag_hits
+  - name: suricata.stats.detect.alert
+    type: keyword
+    level: custom
+    description: Custom field for suricata
+    example: example-alert
+  - name: suricata.stats.dns.memcap_global
+    type: keyword
+    level: custom
+    description: Custom field for suricata
+    example: example-memcap_global
+  - name: suricata.stats.dns.memcap_state
+    type: keyword
+    level: custom
+    description: Custom field for suricata
+    example: example-memcap_state
+  - name: suricata.stats.dns.memuse
+    type: keyword
+    level: custom
+    description: Custom field for suricata
+    example: example-memuse
+  - name: suricata.stats.file_store.open_files
+    type: keyword
+    level: custom
+    description: Custom field for suricata
+    example: example-open_files
+  - name: suricata.stats.flow.emerg_mode_entered
+    type: keyword
+    level: custom
+    description: Custom field for suricata
+    example: example-emerg_mode_entered
+  - name: suricata.stats.flow.emerg_mode_over
+    type: keyword
+    level: custom
+    description: Custom field for suricata
+    example: example-emerg_mode_over
+  - name: suricata.stats.flow.icmpv4
+    type: keyword
+    level: custom
+    description: Custom field for suricata
+    example: example-icmpv4
+  - name: suricata.stats.flow.icmpv6
+    type: keyword
+    level: custom
+    description: Custom field for suricata
+    example: example-icmpv6
+  - name: suricata.stats.flow.memcap
+    type: keyword
+    level: custom
+    description: Custom field for suricata
+    example: example-memcap
+  - name: suricata.stats.flow.memuse
+    type: keyword
+    level: custom
+    description: Custom field for suricata
+    example: example-memuse
+  - name: suricata.stats.flow.spare
+    type: keyword
+    level: custom
+    description: Custom field for suricata
+    example: example-spare
+  - name: suricata.stats.flow.tcp
+    type: keyword
+    level: custom
+    description: Custom field for suricata
+    example: example-tcp
+  - name: suricata.stats.flow.tcp_reuse
+    type: keyword
+    level: custom
+    description: Custom field for suricata
+    example: example-tcp_reuse
+  - name: suricata.stats.flow.udp
+    type: keyword
+    level: custom
+    description: Custom field for suricata
+    example: example-udp
+  - name: suricata.stats.flow_mgr.bypassed_pruned
+    type: keyword
+    level: custom
+    description: Custom field for suricata
+    example: example-bypassed_pruned
+  - name: suricata.stats.flow_mgr.closed_pruned
+    type: keyword
+    level: custom
+    description: Custom field for suricata
+    example: example-closed_pruned
+  - name: suricata.stats.flow_mgr.est_pruned
+    type: keyword
+    level: custom
+    description: Custom field for suricata
+    example: example-est_pruned
+  - name: suricata.stats.flow_mgr.flows_checked
+    type: keyword
+    level: custom
+    description: Custom field for suricata
+    example: example-flows_checked
+  - name: suricata.stats.flow_mgr.flows_notimeout
+    type: keyword
+    level: custom
+    description: Custom field for suricata
+    example: example-flows_notimeout
+  - name: suricata.stats.flow_mgr.flows_removed
+    type: keyword
+    level: custom
+    description: Custom field for suricata
+    example: example-flows_removed
+  - name: suricata.stats.flow_mgr.flows_timeout
+    type: keyword
+    level: custom
+    description: Custom field for suricata
+    example: example-flows_timeout
+  - name: suricata.stats.flow_mgr.flows_timeout_inuse
+    type: keyword
+    level: custom
+    description: Custom field for suricata
+    example: example-flows_timeout_inuse
+  - name: suricata.stats.flow_mgr.new_pruned
+    type: keyword
+    level: custom
+    description: Custom field for suricata
+    example: example-new_pruned
+  - name: suricata.stats.flow_mgr.rows_busy
+    type: keyword
+    level: custom
+    description: Custom field for suricata
+    example: example-rows_busy
+  - name: suricata.stats.flow_mgr.rows_checked
+    type: keyword
+    level: custom
+    description: Custom field for suricata
+    example: example-rows_checked
+  - name: suricata.stats.flow_mgr.rows_empty
+    type: keyword
+    level: custom
+    description: Custom field for suricata
+    example: example-rows_empty
+  - name: suricata.stats.flow_mgr.rows_maxlen
+    type: keyword
+    level: custom
+    description: Custom field for suricata
+    example: example-rows_maxlen
+  - name: suricata.stats.flow_mgr.rows_skipped
+    type: keyword
+    level: custom
+    description: Custom field for suricata
+    example: example-rows_skipped
+  - name: suricata.stats.http.memcap
+    type: keyword
+    level: custom
+    description: Custom field for suricata
+    example: example-memcap
+  - name: suricata.stats.http.memuse
+    type: keyword
+    level: custom
+    description: Custom field for suricata
+    example: example-memuse
+  - name: suricata.stats.tcp.insert_data_normal_fail
+    type: keyword
+    level: custom
+    description: Custom field for suricata
+    example: example-insert_data_normal_fail
+  - name: suricata.stats.tcp.insert_data_overlap_fail
+    type: keyword
+    level: custom
+    description: Custom field for suricata
+    example: example-insert_data_overlap_fail
+  - name: suricata.stats.tcp.insert_list_fail
+    type: keyword
+    level: custom
+    description: Custom field for suricata
+    example: example-insert_list_fail
+  - name: suricata.stats.tcp.invalid_checksum
+    type: keyword
+    level: custom
+    description: Custom field for suricata
+    example: example-invalid_checksum
+  - name: suricata.stats.tcp.memuse
+    type: keyword
+    level: custom
+    description: Custom field for suricata
+    example: example-memuse
+  - name: suricata.stats.tcp.no_flow
+    type: keyword
+    level: custom
+    description: Custom field for suricata
+    example: example-no_flow
+  - name: suricata.stats.tcp.overlap
+    type: keyword
+    level: custom
+    description: Custom field for suricata
+    example: example-overlap
+  - name: suricata.stats.tcp.overlap_diff_data
+    type: keyword
+    level: custom
+    description: Custom field for suricata
+    example: example-overlap_diff_data
+  - name: suricata.stats.tcp.pseudo
+    type: keyword
+    level: custom
+    description: Custom field for suricata
+    example: example-pseudo
+  - name: suricata.stats.tcp.pseudo_failed
+    type: keyword
+    level: custom
+    description: Custom field for suricata
+    example: example-pseudo_failed
+  - name: suricata.stats.tcp.reassembly_gap
+    type: keyword
+    level: custom
+    description: Custom field for suricata
+    example: example-reassembly_gap
+  - name: suricata.stats.tcp.reassembly_memuse
+    type: keyword
+    level: custom
+    description: Custom field for suricata
+    example: example-reassembly_memuse
+  - name: suricata.stats.tcp.rst
+    type: keyword
+    level: custom
+    description: Custom field for suricata
+    example: example-rst
+  - name: suricata.stats.tcp.segment_memcap_drop
+    type: keyword
+    level: custom
+    description: Custom field for suricata
+    example: example-segment_memcap_drop
+  - name: suricata.stats.tcp.sessions
+    type: keyword
+    level: custom
+    description: Custom field for suricata
+    example: example-sessions
+  - name: suricata.stats.tcp.ssn_memcap_drop
+    type: keyword
+    level: custom
+    description: Custom field for suricata
+    example: example-ssn_memcap_drop
+  - name: suricata.stats.tcp.stream_depth_reached
+    type: keyword
+    level: custom
+    description: Custom field for suricata
+    example: example-stream_depth_reached
+  - name: suricata.stats.tcp.syn
+    type: keyword
+    level: custom
+    description: Custom field for suricata
+    example: example-syn
+  - name: suricata.stats.tcp.synack
+    type: keyword
+    level: custom
+    description: Custom field for suricata
+    example: example-synack
+  - name: suricata.stats.uptime
+    type: keyword
+    level: custom
+    description: Custom field for suricata
+    example: example-uptime
+  - name: suricata.tls.fingerprint
+    type: keyword
+    level: custom
+    description: Custom field for suricata
+    example: example-fingerprint
+  - name: suricata.tls.issuerdn
+    type: keyword
+    level: custom
+    description: Custom field for suricata
+    example: example-issuerdn
+  - name: suricata.tls.ja3.hash
+    type: keyword
+    level: custom
+    description: Custom field for suricata
+    example: example-hash
+  - name: suricata.tls.ja3.string
+    type: keyword
+    level: custom
+    description: Custom field for suricata
+    example: example-string
+  - name: suricata.tls.ja3s.hash
+    type: keyword
+    level: custom
+    description: Custom field for suricata
+    example: example-hash
+  - name: suricata.tls.ja3s.string
+    type: keyword
+    level: custom
+    description: Custom field for suricata
+    example: example-string
+  - name: suricata.tls.notafter
+    type: keyword
+    level: custom
+    description: Custom field for suricata
+    example: example-notafter
+  - name: suricata.tls.notbefore
+    type: keyword
+    level: custom
+    description: Custom field for suricata
+    example: example-notbefore
+  - name: suricata.tls.serial
+    type: keyword
+    level: custom
+    description: Custom field for suricata
+    example: example-serial
+  - name: suricata.tls.session_resumed
+    type: keyword
+    level: custom
+    description: Custom field for suricata
+    example: example-session_resumed
+  - name: suricata.tls.sni
+    type: keyword
+    level: custom
+    description: Custom field for suricata
+    example: example-sni
+  - name: suricata.tls.subject
+    type: keyword
+    level: custom
+    description: Custom field for suricata
+    example: example-subject
+  - name: suricata.tls.version
+    type: keyword
+    level: custom
+    description: Custom field for suricata
+    example: example-version
+  - name: suricata.tx_id
+    type: keyword
+    level: custom
+    description: Custom field for suricata
+    example: example-tx_id

@@ -1,0 +1,3067 @@
+- name: f5-bigip
+  title: F5 Bigip
+  description: f5-bigip custom fields for WCS integration
+  fields:
+  - name: f5_bigip.log.abandoned_conns
+    type: keyword
+    level: custom
+    description: Represents the number of abandoned connections detected by F5 BIG-IP.
+    example: example-abandoned_conns
+  - name: f5_bigip.log.accept_fails
+    type: keyword
+    level: custom
+    description: Indicates the number of failed accept operations in F5 BIG-IP logs.
+    example: example-accept_fails
+  - name: f5_bigip.log.accepts
+    type: keyword
+    level: custom
+    description: Shows the total number of accepted connections in F5 BIG-IP logs.
+    example: example-accepts
+  - name: f5_bigip.log.access.policy_result
+    type: keyword
+    level: custom
+    description: Result of the access policy evaluation for a given event.
+    example: example-policy_result
+  - name: f5_bigip.log.access.profile
+    type: keyword
+    level: custom
+    description: Name of the access profile used in the F5 BIG-IP log entry.
+    example: example-profile
+  - name: f5_bigip.log.acl.policy.name
+    type: keyword
+    level: custom
+    description: Name of the ACL policy applied to the network traffic.
+    example: example-name
+  - name: f5_bigip.log.acl.policy.type
+    type: keyword
+    level: custom
+    description: Type of the ACL policy associated with the event.
+    example: example-type
+  - name: f5_bigip.log.acl.rule.name
+    type: keyword
+    level: custom
+    description: Name of the ACL rule that matched the event.
+    example: example-name
+  - name: f5_bigip.log.acl.rule.uuid
+    type: keyword
+    level: custom
+    description: Unique identifier for the ACL rule in the F5 BIG-IP log.
+    example: example-uuid
+  - name: f5_bigip.log.action
+    type: keyword
+    level: custom
+    description: Action taken by the F5 BIG-IP system for this log entry.
+    example: example-action
+  - name: f5_bigip.log.active_conns
+    type: keyword
+    level: custom
+    description: Current number of active connections recorded in the F5 BIG-IP log.
+    example: example-active_conns
+  - name: f5_bigip.log.actual_mitigation_action.value
+    type: keyword
+    level: custom
+    description: Value of the actual mitigation action performed.
+    example: example-value
+  - name: f5_bigip.log.actual_mitigation_action.reason
+    type: keyword
+    level: custom
+    description: Reason for the actual mitigation action performed by the system.
+    example: example-reason
+  - name: f5_bigip.log.additional_bot_signatures
+    type: keyword
+    level: custom
+    description: Additional bot signatures detected in the F5 BIG-IP log entry.
+    example: example-additional_bot_signatures
+  - name: f5_bigip.log.afm_state
+    type: keyword
+    level: custom
+    description: Current AFM (Advanced Firewall Manager) state for the event.
+    example: example-afm_state
+  - name: f5_bigip.log.aggr_interval
+    type: keyword
+    level: custom
+    description: Aggregation interval used for the log entry in F5 BIG-IP.
+    example: example-aggr_interval
+  - name: f5_bigip.log.anomalies
+    type: keyword
+    level: custom
+    description: List of anomalies detected in the F5 BIG-IP log entry.
+    example: example-anomalies
+  - name: f5_bigip.log.anomaly_categories
+    type: keyword
+    level: custom
+    description: Categories of anomalies identified in the F5 BIG-IP log.
+    example: example-anomaly_categories
+  - name: f5_bigip.log.apm_state
+    type: keyword
+    level: custom
+    description: Current APM (Access Policy Manager) state for the event.
+    example: example-apm_state
+  - name: f5_bigip.log.application_name
+    type: keyword
+    level: custom
+    description: Name of the application associated with this F5 BIG-IP log entry.
+    example: example-application_name
+  - name: f5_bigip.log.application.display_name
+    type: keyword
+    level: custom
+    description: Display name of the application referenced in the log entry.
+    example: example-display_name
+  - name: f5_bigip.log.application.name
+    type: keyword
+    level: custom
+    description: Name of the application referenced in the F5 BIG-IP log.
+    example: example-name
+  - name: f5_bigip.log.application.response.max_time
+    type: keyword
+    level: custom
+    description: Maximum response time recorded for the application in the log.
+    example: example-max_time
+  - name: f5_bigip.log.application.response.min_time
+    type: keyword
+    level: custom
+    description: Minimum response time recorded for the application in the log.
+    example: example-min_time
+  - name: f5_bigip.log.application.response.time
+    type: keyword
+    level: custom
+    description: Total response time for the application as recorded in the log.
+    example: example-time
+  - name: f5_bigip.log.asm_attack_signatures
+    type: keyword
+    level: custom
+    description: ASM attack signature in the log.
+    example: example-asm_attack_signatures
+  - name: f5_bigip.log.asm_state
+    type: keyword
+    level: custom
+    description: Current ASM (Application Security Manager) state for the event.
+    example: example-asm_state
+  - name: f5_bigip.log.attack.count
+    type: keyword
+    level: custom
+    description: Number of attacks counted in the F5 BIG-IP log entry.
+    example: example-count
+  - name: f5_bigip.log.attack.id
+    type: keyword
+    level: custom
+    description: Unique identifier for the attack referenced in the log.
+    example: example-id
+  - name: f5_bigip.log.attack.mitigation_name
+    type: keyword
+    level: custom
+    description: Name of the mitigation applied to the attack in the log.
+    example: example-mitigation_name
+  - name: f5_bigip.log.attack.trigger_name
+    type: keyword
+    level: custom
+    description: Name of the trigger that initiated the attack event.
+    example: example-trigger_name
+  - name: f5_bigip.log.attack.type
+    type: keyword
+    level: custom
+    description: Type of attack detected and recorded in the log entry.
+    example: example-type
+  - name: f5_bigip.log.attack.vector_name
+    type: keyword
+    level: custom
+    description: Name of the attack vector associated with the event.
+    example: example-vector_name
+  - name: f5_bigip.log.base_mac
+    type: keyword
+    level: custom
+    description: Base MAC address associated with the F5 BIG-IP log entry.
+    example: example-base_mac
+  - name: f5_bigip.log.bad_actor.detection.avg
+    type: keyword
+    level: custom
+    description: Average detection value for bad actor events in the log.
+    example: example-avg
+  - name: f5_bigip.log.bad_actor.drops
+    type: keyword
+    level: custom
+    description: Number of drops attributed to bad actor detection in the log.
+    example: example-drops
+  - name: f5_bigip.log.bad_actor.events
+    type: keyword
+    level: custom
+    description: Number of bad actor events detected in the F5 BIG-IP log.
+    example: example-events
+  - name: f5_bigip.log.bad_actor.mitigation.max
+    type: keyword
+    level: custom
+    description: Maximum mitigation value for bad actor events in the log.
+    example: example-max
+  - name: f5_bigip.log.bad_actor.mitigation.min
+    type: keyword
+    level: custom
+    description: Minimum mitigation value for bad actor events in the log.
+    example: example-min
+  - name: f5_bigip.log.bigip_management.ip
+    type: keyword
+    level: custom
+    description: Primary management IP address for the F5 BIG-IP device.
+    example: example-ip
+  - name: f5_bigip.log.bigip_management.ip2
+    type: keyword
+    level: custom
+    description: Secondary management IP address for the F5 BIG-IP device.
+    example: example-ip2
+  - name: f5_bigip.log.bigip_management.ip_2
+    type: keyword
+    level: custom
+    description: Alternative secondary management IP address for the F5 BIG-IP device.
+    example: example-ip_2
+  - name: f5_bigip.log.blocking_exception_reason
+    type: keyword
+    level: custom
+    description: Reason for blocking exception in the F5 BIG-IP log entry.
+    example: example-blocking_exception_reason
+  - name: f5_bigip.log.bot_name
+    type: keyword
+    level: custom
+    description: Name of the bot detected in the F5 BIG-IP log entry.
+    example: example-bot_name
+  - name: f5_bigip.log.bot_signature.category
+    type: keyword
+    level: custom
+    description: Category of the bot signature detected in the log entry.
+    example: example-category
+  - name: f5_bigip.log.bot_signature.value
+    type: keyword
+    level: custom
+    description: Value of the bot signature detected in the log entry.
+    example: example-value
+  - name: f5_bigip.log.browser_actual_verification_action.reason
+    type: keyword
+    level: custom
+    description: Reason for the actual browser verification action performed.
+    example: example-reason
+  - name: f5_bigip.log.browser_actual_verification_action.value
+    type: keyword
+    level: custom
+    description: Value of the actual browser verification action performed.
+    example: example-value
+  - name: f5_bigip.log.browser_configured_verification_action
+    type: keyword
+    level: custom
+    description: Configured browser verification action for the event.
+    example: example-browser_configured_verification_action
+  - name: f5_bigip.log.browser_name
+    type: keyword
+    level: custom
+    description: Name of the browser detected in the F5 BIG-IP log entry.
+    example: example-browser_name
+  - name: f5_bigip.log.browser_verification_status
+    type: keyword
+    level: custom
+    description: Status of the browser verification for the event.
+    example: example-browser_verification_status
+  - name: f5_bigip.log.bytes.in
+    type: keyword
+    level: custom
+    description: Number of bytes received in the F5 BIG-IP log entry.
+    example: example-in
+  - name: f5_bigip.log.bytes.out
+    type: keyword
+    level: custom
+    description: Number of bytes sent out in the F5 BIG-IP log entry.
+    example: example-out
+  - name: f5_bigip.log.bytes.total
+    type: keyword
+    level: custom
+    description: Total number of bytes processed in the F5 BIG-IP log entry.
+    example: example-total
+  - name: f5_bigip.log.callback_url
+    type: keyword
+    level: custom
+    description: Callback URL associated with the F5 BIG-IP log entry.
+    example: example-callback_url
+  - name: f5_bigip.log.captcha_result
+    type: keyword
+    level: custom
+    description: Result of the CAPTCHA challenge for the event.
+    example: example-captcha_result
+  - name: f5_bigip.log.captcha_status
+    type: keyword
+    level: custom
+    description: Status of the CAPTCHA challenge for the event.
+    example: example-captcha_status
+  - name: f5_bigip.log.chassis_id
+    type: keyword
+    level: custom
+    description: Chassis identifier for the F5 BIG-IP device in the log entry.
+    example: example-chassis_id
+  - name: f5_bigip.log.class
+    type: keyword
+    level: custom
+    description: Class associated with the F5 BIG-IP log entry.
+    example: example-class
+  - name: f5_bigip.log.classification_reason
+    type: keyword
+    level: custom
+    description: Reason for classification in the F5 BIG-IP log entry.
+    example: example-classification_reason
+  - name: f5_bigip.log.client.ip
+    type: keyword
+    level: custom
+    description: Client IP address associated with the F5 BIG-IP log entry.
+    example: example-ip
+  - name: f5_bigip.log.client.ip_geo_location
+    type: keyword
+    level: custom
+    description: Geolocation of the client IP address in the log entry.
+    example: example-ip_geo_location
+  - name: f5_bigip.log.client.ip_route_domain
+    type: keyword
+    level: custom
+    description: Route domain of the client IP address in the log entry.
+    example: example-ip_route_domain
+  - name: f5_bigip.log.client.latency.hit_count
+    type: keyword
+    level: custom
+    description: Hit count for client latency in the F5 BIG-IP log entry.
+    example: example-hit_count
+  - name: f5_bigip.log.client.latency.max
+    type: keyword
+    level: custom
+    description: Maximum client latency recorded in the F5 BIG-IP log entry.
+    example: example-max
+  - name: f5_bigip.log.client.latency.total
+    type: keyword
+    level: custom
+    description: Total client latency recorded in the F5 BIG-IP log entry.
+    example: example-total
+  - name: f5_bigip.log.client.port
+    type: keyword
+    level: custom
+    description: Client port number associated with the F5 BIG-IP log entry.
+    example: example-port
+  - name: f5_bigip.log.client.request_uri
+    type: keyword
+    level: custom
+    description: Request URI from the client in the F5 BIG-IP log entry.
+    example: example-request_uri
+  - name: f5_bigip.log.client.type
+    type: keyword
+    level: custom
+    description: Type of client making the request in the F5 BIG-IP log entry.
+    example: example-type
+  - name: f5_bigip.log.client_side.network.latency
+    type: keyword
+    level: custom
+    description: Network latency on the client side for the F5 BIG-IP log entry.
+    example: example-latency
+  - name: f5_bigip.log.client_side.network.max_latency
+    type: keyword
+    level: custom
+    description: Maximum network latency on the client side for the F5 BIG-IP log
+      entry.
+    example: example-max_latency
+  - name: f5_bigip.log.client_side.network.min_latency
+    type: keyword
+    level: custom
+    description: Minimum network latency on the client side for the F5 BIG-IP log
+      entry.
+    example: example-min_latency
+  - name: f5_bigip.log.client_ttfb.hit_count
+    type: keyword
+    level: custom
+    description: Hit count for client TTFB (Time To First Byte) in the log entry.
+    example: example-hit_count
+  - name: f5_bigip.log.client_ttfb.max
+    type: keyword
+    level: custom
+    description: Maximum client TTFB (Time To First Byte) recorded in the log entry.
+    example: example-max
+  - name: f5_bigip.log.client_ttfb.min
+    type: keyword
+    level: custom
+    description: Minimum client TTFB (Time To First Byte) recorded in the log entry.
+    example: example-min
+  - name: f5_bigip.log.client_ttfb.value
+    type: keyword
+    level: custom
+    description: Value of client TTFB (Time To First Byte) in the log entry.
+    example: example-value
+  - name: f5_bigip.log.compression_method
+    type: keyword
+    level: custom
+    description: Compression method used for the event in the F5 BIG-IP log entry.
+    example: example-compression_method
+  - name: f5_bigip.log.concurrent.connections.avg
+    type: keyword
+    level: custom
+    description: Average number of concurrent connections recorded in the F5 BIG-IP
+      log entry.
+    example: example-avg
+  - name: f5_bigip.log.concurrent.connections.health
+    type: keyword
+    level: custom
+    description: Health status of concurrent connections in the F5 BIG-IP log entry.
+    example: example-health
+  - name: f5_bigip.log.concurrent.connections.max
+    type: keyword
+    level: custom
+    description: Maximum number of concurrent connections recorded in the F5 BIG-IP
+      log entry.
+    example: example-max
+  - name: f5_bigip.log.concurrent.users.max
+    type: keyword
+    level: custom
+    description: Maximum number of concurrent users recorded in the F5 BIG-IP log
+      entry.
+    example: example-max
+  - name: f5_bigip.log.configuration_date_time
+    type: keyword
+    level: custom
+    description: Date and time of configuration for the F5 BIG-IP log entry.
+    example: example-configuration_date_time
+  - name: f5_bigip.log.configured_mitigation_action.reason
+    type: keyword
+    level: custom
+    description: Reason for the configured mitigation action in the F5 BIG-IP log
+      entry.
+    example: example-reason
+  - name: f5_bigip.log.configured_mitigation_action.value
+    type: keyword
+    level: custom
+    description: Value of the configured mitigation action in the F5 BIG-IP log entry.
+    example: example-value
+  - name: f5_bigip.log.config_ready
+    type: keyword
+    level: custom
+    description: Readiness status of the configuration in the F5 BIG-IP log entry.
+    example: example-config_ready
+  - name: f5_bigip.log.config_sync_succeeded
+    type: keyword
+    level: custom
+    description: Indicates if configuration synchronization succeeded for the F5 BIG-IP
+      device.
+    example: example-config_sync_succeeded
+  - name: f5_bigip.log.context.type
+    type: keyword
+    level: custom
+    description: Type of context associated with the F5 BIG-IP log entry.
+    example: example-type
+  - name: f5_bigip.log.context.name
+    type: keyword
+    level: custom
+    description: Type of context associated with the F5 BIG-IP log entry.
+    example: example-name
+  - name: f5_bigip.log.continent
+    type: keyword
+    level: custom
+    description: Continent identifier from geolocation data in F5 BIG-IP logs.
+    example: example-continent
+  - name: f5_bigip.log.conviction_traps
+    type: keyword
+    level: custom
+    description: Conviction traps detected in F5 BIG-IP security logs.
+    example: example-conviction_traps
+  - name: f5_bigip.log.cookie
+    type: keyword
+    level: custom
+    description: Cookie information from HTTP requests in F5 BIG-IP logs.
+    example: example-cookie
+  - name: f5_bigip.log.country
+    type: keyword
+    level: custom
+    description: Country name from geolocation data in F5 BIG-IP logs.
+    example: example-country
+  - name: f5_bigip.log.country_code
+    type: keyword
+    level: custom
+    description: Country code from geolocation data in F5 BIG-IP logs.
+    example: example-country_code
+  - name: f5_bigip.log.cpu.analysis_plane.avg
+    type: keyword
+    level: custom
+    description: Average CPU usage for the analysis plane in F5 BIG-IP.
+    example: example-avg
+  - name: f5_bigip.log.cpu.avg
+    type: keyword
+    level: custom
+    description: Average CPU usage across all planes in F5 BIG-IP.
+    example: example-avg
+  - name: f5_bigip.log.cpu.control_plane.avg
+    type: keyword
+    level: custom
+    description: Average CPU usage for the control plane in F5 BIG-IP.
+    example: example-avg
+  - name: f5_bigip.log.cpu.data_plane.avg
+    type: keyword
+    level: custom
+    description: Average CPU usage for the data plane in F5 BIG-IP.
+    example: example-avg
+  - name: f5_bigip.log.cpu.health
+    type: keyword
+    level: custom
+    description: Overall CPU health status indicator in F5 BIG-IP.
+    example: example-health
+  - name: f5_bigip.log.cpu_value
+    type: keyword
+    level: custom
+    description: Specific CPU utilization value recorded in F5 BIG-IP logs.
+    example: example-cpu_value
+  - name: f5_bigip.log.credential_stuffing_lookup_result
+    type: keyword
+    level: custom
+    description: Result of credential stuffing lookup operation in F5 BIG-IP.
+    example: example-credential_stuffing_lookup_result
+  - name: f5_bigip.log.date_time
+    type: keyword
+    level: custom
+    description: Date and time timestamp of the F5 BIG-IP log entry.
+    example: example-date_time
+  - name: f5_bigip.log.description
+    type: keyword
+    level: custom
+    description: Descriptive text information for the F5 BIG-IP log entry.
+    example: example-description
+  - name: f5_bigip.log.dest.fqdn
+    type: keyword
+    level: custom
+    description: Fully qualified domain name of the destination in F5 BIG-IP logs.
+    example: example-fqdn
+  - name: f5_bigip.log.dest.ip
+    type: keyword
+    level: custom
+    description: Destination IP address recorded in F5 BIG-IP logs.
+    example: example-ip
+  - name: f5_bigip.log.dest.ipint_categories
+    type: keyword
+    level: custom
+    description: IP intelligence categories for the destination IP in F5 BIG-IP logs.
+    example: example-ipint_categories
+  - name: f5_bigip.log.dest.port
+    type: keyword
+    level: custom
+    description: Destination port number recorded in F5 BIG-IP logs.
+    example: example-port
+  - name: f5_bigip.log.dest.vlan
+    type: keyword
+    level: custom
+    description: Destination VLAN identifier in F5 BIG-IP logs.
+    example: example-vlan
+  - name: f5_bigip.log.dest.zone
+    type: keyword
+    level: custom
+    description: Destination network zone identifier in F5 BIG-IP logs.
+    example: example-zone
+  - name: f5_bigip.log.destination.ip
+    type: keyword
+    level: custom
+    description: Destination IP address for network traffic in F5 BIG-IP logs.
+    example: example-ip
+  - name: f5_bigip.log.destination.port
+    type: keyword
+    level: custom
+    description: Destination port number for network traffic in F5 BIG-IP logs.
+    example: example-port
+  - name: f5_bigip.log.detection.avg
+    type: keyword
+    level: custom
+    description: Average detection value for security events in F5 BIG-IP logs.
+    example: example-avg
+  - name: f5_bigip.log.device.blade
+    type: keyword
+    level: custom
+    description: Device blade identifier for the F5 BIG-IP hardware.
+    example: example-blade
+  - name: f5_bigip.log.device.id
+    type: keyword
+    level: custom
+    description: Unique device identifier for the F5 BIG-IP system.
+    example: example-id
+  - name: f5_bigip.log.device.product
+    type: keyword
+    level: custom
+    description: Product name of the F5 BIG-IP device.
+    example: example-product
+  - name: f5_bigip.log.device.vendor
+    type: keyword
+    level: custom
+    description: Vendor name of the F5 BIG-IP device.
+    example: example-vendor
+  - name: f5_bigip.log.device.version
+    type: keyword
+    level: custom
+    description: Software version of the F5 BIG-IP device.
+    example: example-version
+  - name: f5_bigip.log.device_id.action
+    type: keyword
+    level: custom
+    description: Action performed related to device identification in F5 BIG-IP.
+    example: example-action
+  - name: f5_bigip.log.device_id.status
+    type: keyword
+    level: custom
+    description: Status of device identification process in F5 BIG-IP.
+    example: example-status
+  - name: f5_bigip.log.diagnostics.action
+    type: keyword
+    level: custom
+    description: Diagnostic action performed by F5 BIG-IP system.
+    example: example-action
+  - name: f5_bigip.log.diagnostics.cve_ids
+    type: keyword
+    level: custom
+    description: CVE identifiers related to diagnostic findings in F5 BIG-IP.
+    example: example-cve_ids
+  - name: f5_bigip.log.diagnostics.header
+    type: keyword
+    level: custom
+    description: Header information for diagnostic messages in F5 BIG-IP.
+    example: example-header
+  - name: f5_bigip.log.diagnostics.importance
+    type: keyword
+    level: custom
+    description: Importance level of diagnostic information in F5 BIG-IP.
+    example: example-importance
+  - name: f5_bigip.log.diagnostics.name
+    type: keyword
+    level: custom
+    description: Name identifier for diagnostic checks in F5 BIG-IP.
+    example: example-name
+  - name: f5_bigip.log.diagnostics.solution.id
+    type: keyword
+    level: custom
+    description: Solution identifier for diagnostic issues in F5 BIG-IP.
+    example: example-id
+  - name: f5_bigip.log.diagnostics.solution.value
+    type: keyword
+    level: custom
+    description: Solution value or description for diagnostic issues in F5 BIG-IP.
+    example: example-value
+  - name: f5_bigip.log.diagnostics.summary
+    type: keyword
+    level: custom
+    description: Summary text of diagnostic findings in F5 BIG-IP.
+    example: example-summary
+  - name: f5_bigip.log.diagnostics.version.maintenance
+    type: keyword
+    level: custom
+    description: Maintenance version number for diagnostics in F5 BIG-IP.
+    example: example-maintenance
+  - name: f5_bigip.log.diagnostics.version.major
+    type: keyword
+    level: custom
+    description: Major version number for diagnostics in F5 BIG-IP.
+    example: example-major
+  - name: f5_bigip.log.diagnostics.version.minor
+    type: keyword
+    level: custom
+    description: Minor version number for diagnostics in F5 BIG-IP.
+    example: example-minor
+  - name: f5_bigip.log.diagnostics.version.point
+    type: keyword
+    level: custom
+    description: Point version number for diagnostics in F5 BIG-IP.
+    example: example-point
+  - name: f5_bigip.log.diagnostics.version.fix
+    type: keyword
+    level: custom
+    description: Fix version number for diagnostics in F5 BIG-IP.
+    example: example-fix
+  - name: f5_bigip.log.disk_storage
+    type: keyword
+    level: custom
+    description: Disk storage information measured in 1024-byte blocks for F5 BIG-IP.
+    example: example-disk_storage
+  - name: f5_bigip.log.disk_latency
+    type: keyword
+    level: custom
+    description: Disk latency metrics for F5 BIG-IP.
+    example: example-disk_latency
+  - name: f5_bigip.log.dos.attack.detection_mode
+    type: keyword
+    level: custom
+    description: Detection mode for DoS attacks in F5 BIG-IP logs.
+    example: example-detection_mode
+  - name: f5_bigip.log.dos.attack.event
+    type: keyword
+    level: custom
+    description: DoS attack event information in F5 BIG-IP logs.
+    example: example-event
+  - name: f5_bigip.log.dos.attack.id
+    type: keyword
+    level: custom
+    description: Unique identifier for DoS attacks in F5 BIG-IP logs.
+    example: example-id
+  - name: f5_bigip.log.dos.attack.latency
+    type: keyword
+    level: custom
+    description: Latency measurements during DoS attacks in F5 BIG-IP.
+    example: example-latency
+  - name: f5_bigip.log.dos.attack.name
+    type: keyword
+    level: custom
+    description: Name of the DoS attack detected in F5 BIG-IP logs.
+    example: example-name
+  - name: f5_bigip.log.dos.attack.tps
+    type: keyword
+    level: custom
+    description: Transactions per second during DoS attacks in F5 BIG-IP.
+    example: example-tps
+  - name: f5_bigip.log.dos.baseline.latency
+    type: keyword
+    level: custom
+    description: Baseline latency measurements for DoS protection in F5 BIG-IP.
+    example: example-latency
+  - name: f5_bigip.log.dos.baseline.tps
+    type: keyword
+    level: custom
+    description: Baseline transactions per second for DoS protection in F5 BIG-IP.
+    example: example-tps
+  - name: f5_bigip.log.dos.baseline.traffic_percent
+    type: keyword
+    level: custom
+    description: Baseline traffic percentage for DoS protection in F5 BIG-IP.
+    example: example-traffic_percent
+  - name: f5_bigip.log.dos.current_traffic_percent
+    type: keyword
+    level: custom
+    description: Current traffic percentage during DoS events in F5 BIG-IP.
+    example: example-current_traffic_percent
+  - name: f5_bigip.log.dos.dropped_requests_count
+    type: keyword
+    level: custom
+    description: Number of requests dropped due to DoS protection in F5 BIG-IP.
+    example: example-dropped_requests_count
+  - name: f5_bigip.log.dos.incoming_requests_count
+    type: keyword
+    level: custom
+    description: Number of incoming requests during DoS events in F5 BIG-IP.
+    example: example-incoming_requests_count
+  - name: f5_bigip.log.dos.mobile_app.client_type
+    type: keyword
+    level: custom
+    description: Mobile application client type for DoS protection in F5 BIG-IP.
+    example: example-client_type
+  - name: f5_bigip.log.dos.mobile_app.display_name
+    type: keyword
+    level: custom
+    description: Mobile application display name for DoS protection in F5 BIG-IP.
+    example: example-display_name
+  - name: f5_bigip.log.dos.mobile_app.version
+    type: keyword
+    level: custom
+    description: Mobile application version for DoS protection in F5 BIG-IP.
+    example: example-version
+  - name: f5_bigip.log.dos.profile_name
+    type: keyword
+    level: custom
+    description: DoS protection profile name in F5 BIG-IP logs.
+    example: example-profile_name
+  - name: f5_bigip.log.dos_detection.condition
+    type: keyword
+    level: custom
+    description: Condition that triggered DoS detection in F5 BIG-IP.
+    example: example-condition
+  - name: f5_bigip.log.dos_detection.threshold
+    type: keyword
+    level: custom
+    description: Threshold value for DoS detection in F5 BIG-IP.
+    example: example-threshold
+  - name: f5_bigip.log.dos_mitigate_to_threshold
+    type: keyword
+    level: custom
+    description: DoS mitigation threshold value in F5 BIG-IP.
+    example: example-dos_mitigate_to_threshold
+  - name: f5_bigip.log.dos_mitigation.action
+    type: keyword
+    level: custom
+    description: DoS mitigation action taken by F5 BIG-IP.
+    example: example-action
+  - name: f5_bigip.log.dos_mitigation.reason
+    type: keyword
+    level: custom
+    description: Reason for DoS mitigation action in F5 BIG-IP.
+    example: example-reason
+  - name: f5_bigip.log.dos_mitigation.threshold
+    type: keyword
+    level: custom
+    description: Threshold value for DoS mitigation in F5 BIG-IP.
+    example: example-threshold
+  - name: f5_bigip.log.drop_reason
+    type: keyword
+    level: custom
+    description: Reason for packet or connection drop in F5 BIG-IP.
+    example: example-drop_reason
+  - name: f5_bigip.log.dst.geo
+    type: keyword
+    level: custom
+    description: Geographic location information for destination in F5 BIG-IP.
+    example: example-geo
+  - name: f5_bigip.log.enforced_by
+    type: keyword
+    level: custom
+    description: Component or policy that enforced the action in F5 BIG-IP.
+    example: example-enforced_by
+  - name: f5_bigip.log.enforcement_action
+    type: keyword
+    level: custom
+    description: Enforcement action taken by F5 BIG-IP security policies.
+    example: example-enforcement_action
+  - name: f5_bigip.log.entity
+    type: keyword
+    level: custom
+    description: Entity identifier associated with the F5 BIG-IP log entry.
+    example: example-entity
+  - name: f5_bigip.log.eoc.timestamp
+    type: keyword
+    level: custom
+    description: End of connection timestamp in F5 BIG-IP logs.
+    example: example-timestamp
+  - name: f5_bigip.log.epoch_time
+    type: keyword
+    level: custom
+    description: Unix epoch timestamp in F5 BIG-IP logs.
+    example: example-epoch_time
+  - name: f5_bigip.log.errdefs.msg_name
+    type: keyword
+    level: custom
+    description: Error definition message name in F5 BIG-IP logs.
+    example: example-msg_name
+  - name: f5_bigip.log.errdefs.msgno
+    type: keyword
+    level: custom
+    description: Error definition message number in F5 BIG-IP logs.
+    example: example-msgno
+  - name: f5_bigip.log.event.id
+    type: keyword
+    level: custom
+    description: Unique event identifier in F5 BIG-IP logs.
+    example: example-id
+  - name: f5_bigip.log.event.source
+    type: keyword
+    level: custom
+    description: Source of the event in F5 BIG-IP logs.
+    example: example-source
+  - name: f5_bigip.log.event.timestamp
+    type: keyword
+    level: custom
+    description: Event timestamp in F5 BIG-IP logs.
+    example: example-timestamp
+  - name: f5_bigip.log.events.total
+    type: keyword
+    level: custom
+    description: Total number of events recorded in F5 BIG-IP logs.
+    example: example-total
+  - name: f5_bigip.log.expired_conns
+    type: keyword
+    level: custom
+    description: Number of expired connections in F5 BIG-IP logs.
+    example: example-expired_conns
+  - name: f5_bigip.log.failed_conns
+    type: keyword
+    level: custom
+    description: Number of failed connections in F5 BIG-IP logs.
+    example: example-failed_conns
+  - name: f5_bigip.log.failover_color
+    type: keyword
+    level: custom
+    description: Failover color status in F5 BIG-IP cluster.
+    example: example-failover_color
+  - name: f5_bigip.log.failover_status
+    type: keyword
+    level: custom
+    description: Failover status in F5 BIG-IP cluster.
+    example: example-failover_status
+  - name: f5_bigip.log.flow.id
+    type: keyword
+    level: custom
+    description: Flow identifier for network traffic in F5 BIG-IP.
+    example: example-id
+  - name: f5_bigip.log.fragment
+    type: keyword
+    level: custom
+    description: IP fragmentation information in F5 BIG-IP logs.
+    example: example-fragment
+  - name: f5_bigip.log.geo.code
+    type: keyword
+    level: custom
+    description: Geographic code from geolocation data in F5 BIG-IP.
+    example: example-code
+  - name: f5_bigip.log.geo.country
+    type: keyword
+    level: custom
+    description: Country from geolocation data in F5 BIG-IP.
+    example: example-country
+  - name: f5_bigip.log.geo.info
+    type: keyword
+    level: custom
+    description: Geolocation information in F5 BIG-IP logs.
+    example: example-info
+  - name: f5_bigip.log.geo.location
+    type: keyword
+    level: custom
+    description: Geographic location in F5 BIG-IP logs.
+    example: example-location
+  - name: f5_bigip.log.global_bigiq_conf
+    type: keyword
+    level: custom
+    description: Global BIG-IQ configuration status in F5 BIG-IP.
+    example: example-global_bigiq_conf
+  - name: f5_bigip.log.gtm_config_time
+    type: keyword
+    level: custom
+    description: GTM configuration timestamp in F5 BIG-IP.
+    example: example-gtm_config_time
+  - name: f5_bigip.log.hardware_drops
+    type: keyword
+    level: custom
+    description: Number of hardware-level packet drops in F5 BIG-IP.
+    example: example-hardware_drops
+  - name: f5_bigip.log.headers
+    type: keyword
+    level: custom
+    description: HTTP headers information in F5 BIG-IP logs.
+    example: example-headers
+  - name: f5_bigip.log.hit_count
+    type: keyword
+    level: custom
+    description: Number of hits or occurrences in F5 BIG-IP logs.
+    example: example-hit_count
+  - name: f5_bigip.log.hostname
+    type: keyword
+    level: custom
+    description: Hostname associated with the F5 BIG-IP log entry.
+    example: example-hostname
+  - name: f5_bigip.log.http.cache_control
+    type: keyword
+    level: custom
+    description: HTTP cache control header in F5 BIG-IP logs.
+    example: example-cache_control
+  - name: f5_bigip.log.http.class_name
+    type: keyword
+    level: custom
+    description: HTTP traffic class name in F5 BIG-IP logs.
+    example: example-class_name
+  - name: f5_bigip.log.http.connection
+    type: keyword
+    level: custom
+    description: HTTP connection header in F5 BIG-IP logs.
+    example: example-connection
+  - name: f5_bigip.log.http.content_type
+    type: keyword
+    level: custom
+    description: HTTP content type header in F5 BIG-IP logs.
+    example: example-content_type
+  - name: f5_bigip.log.http.host
+    type: keyword
+    level: custom
+    description: HTTP host header in F5 BIG-IP logs.
+    example: example-host
+  - name: f5_bigip.log.http.method
+    type: keyword
+    level: custom
+    description: HTTP request method in F5 BIG-IP logs.
+    example: example-method
+  - name: f5_bigip.log.http.other_headers
+    type: keyword
+    level: custom
+    description: Other HTTP headers in F5 BIG-IP logs.
+    example: example-other_headers
+  - name: f5_bigip.log.http.path
+    type: keyword
+    level: custom
+    description: HTTP request path in F5 BIG-IP logs.
+    example: example-path
+  - name: f5_bigip.log.http.pragma
+    type: keyword
+    level: custom
+    description: HTTP pragma header in F5 BIG-IP logs.
+    example: example-pragma
+  - name: f5_bigip.log.http.protocol_indication
+    type: keyword
+    level: custom
+    description: HTTP protocol indication in F5 BIG-IP logs.
+    example: example-protocol_indication
+  - name: f5_bigip.log.http.referrer
+    type: keyword
+    level: custom
+    description: HTTP referrer header in F5 BIG-IP logs.
+    example: example-referrer
+  - name: f5_bigip.log.http.request
+    type: keyword
+    level: custom
+    description: HTTP request information in F5 BIG-IP logs.
+    example: example-request
+  - name: f5_bigip.log.http.request_host
+    type: keyword
+    level: custom
+    description: HTTP request host IP address in F5 BIG-IP logs.
+    example: example-request_host
+  - name: f5_bigip.log.http.status
+    type: keyword
+    level: custom
+    description: HTTP response status code in F5 BIG-IP logs.
+    example: example-status
+  - name: f5_bigip.log.http.uri
+    type: keyword
+    level: custom
+    description: HTTP request URI in F5 BIG-IP logs.
+    example: example-uri
+  - name: f5_bigip.log.http.url
+    type: keyword
+    level: custom
+    description: HTTP request URL in F5 BIG-IP logs.
+    example: example-url
+  - name: f5_bigip.log.http.user_agent
+    type: keyword
+    level: custom
+    description: HTTP user agent header in F5 BIG-IP logs.
+    example: example-user_agent
+  - name: f5_bigip.log.http.version
+    type: keyword
+    level: custom
+    description: HTTP protocol version in F5 BIG-IP logs.
+    example: example-version
+  - name: f5_bigip.log.human_behaviour
+    type: keyword
+    level: custom
+    description: Human behavior analysis results in F5 BIG-IP logs.
+    example: example-human_behaviour
+  - name: f5_bigip.log.hw.cookie_valid
+    type: keyword
+    level: custom
+    description: Hardware cookie validation result in F5 BIG-IP.
+    example: example-cookie_valid
+  - name: f5_bigip.log.imei
+    type: keyword
+    level: custom
+    description: IMEI (International Mobile Equipment Identity) in F5 BIG-IP logs.
+    example: example-imei
+  - name: f5_bigip.log.ip_address_intelligence
+    type: keyword
+    level: custom
+    description: IP address intelligence information in F5 BIG-IP.
+    example: example-ip_address_intelligence
+  - name: f5_bigip.log.ip_protocol
+    type: keyword
+    level: custom
+    description: IP protocol type in F5 BIG-IP logs.
+    example: example-ip_protocol
+  - name: f5_bigip.log.ip_reputation
+    type: keyword
+    level: custom
+    description: IP reputation information in F5 BIG-IP logs.
+    example: example-ip_reputation
+  - name: f5_bigip.log.ip_route_domain
+    type: keyword
+    level: custom
+    description: IP route domain identifier in F5 BIG-IP logs.
+    example: example-ip_route_domain
+  - name: f5_bigip.log.ip_with_route_domain
+    type: keyword
+    level: custom
+    description: IP address with route domain in F5 BIG-IP logs.
+    example: example-ip_with_route_domain
+  - name: f5_bigip.log.is_attacking_ip
+    type: keyword
+    level: custom
+    description: Boolean indicator if IP is attacking in F5 BIG-IP.
+    example: example-is_attacking_ip
+  - name: f5_bigip.log.is_internal_activity
+    type: keyword
+    level: custom
+    description: Boolean indicator for internal activity in F5 BIG-IP.
+    example: example-is_internal_activity
+  - name: f5_bigip.log.is_mobile_device
+    type: keyword
+    level: custom
+    description: Boolean indicator for mobile device in F5 BIG-IP.
+    example: example-is_mobile_device
+  - name: f5_bigip.log.is_truncated
+    type: keyword
+    level: custom
+    description: Boolean indicator if log entry is truncated in F5 BIG-IP.
+    example: example-is_truncated
+  - name: f5_bigip.log.is_trunct
+    type: keyword
+    level: custom
+    description: Boolean indicator if data is truncated in F5 BIG-IP.
+    example: example-is_trunct
+  - name: f5_bigip.log.jailbroken_or_rooted_device
+    type: keyword
+    level: custom
+    description: Indicator for jailbroken or rooted device in F5 BIG-IP.
+    example: example-jailbroken_or_rooted_device
+  - name: f5_bigip.log.last_afm_deploy
+    type: keyword
+    level: custom
+    description: Last AFM deployment timestamp in F5 BIG-IP.
+    example: example-last_afm_deploy
+  - name: f5_bigip.log.last_asm_change
+    type: keyword
+    level: custom
+    description: Last ASM configuration change timestamp in F5 BIG-IP.
+    example: example-last_asm_change
+  - name: f5_bigip.log.latency_histogram
+    type: keyword
+    level: custom
+    description: Latency histogram data in F5 BIG-IP logs.
+    example: example-latency_histogram
+  - name: f5_bigip.log.license_ready
+    type: keyword
+    level: custom
+    description: License readiness status in F5 BIG-IP.
+    example: example-license_ready
+  - name: f5_bigip.log.likely_false_positive_sig_ids
+    type: keyword
+    level: custom
+    description: Likely false positive signature IDs in F5 BIG-IP.
+    example: example-likely_false_positive_sig_ids
+  - name: f5_bigip.log.listener
+    type: keyword
+    level: custom
+    description: Network listener information in F5 BIG-IP logs.
+    example: example-listener
+  - name: f5_bigip.log.location
+    type: keyword
+    level: custom
+    description: Location information in F5 BIG-IP logs.
+    example: example-location
+  - name: f5_bigip.log.login_result
+    type: keyword
+    level: custom
+    description: User login result in F5 BIG-IP logs.
+    example: example-login_result
+  - name: f5_bigip.log.ltm_config_time
+    type: keyword
+    level: custom
+    description: LTM configuration timestamp in F5 BIG-IP.
+    example: example-ltm_config_time
+  - name: f5_bigip.log.machine_id
+    type: keyword
+    level: custom
+    description: Machine identifier in F5 BIG-IP logs.
+    example: example-machine_id
+  - name: f5_bigip.log.management.ip_address
+    type: keyword
+    level: custom
+    description: Management IP address of F5 BIG-IP device.
+    example: example-ip_address
+  - name: f5_bigip.log.management.ip_address_2
+    type: keyword
+    level: custom
+    description: Secondary management IP address of F5 BIG-IP device.
+    example: example-ip_address_2
+  - name: f5_bigip.log.marketing_name
+    type: keyword
+    level: custom
+    description: Marketing name of F5 BIG-IP product.
+    example: example-marketing_name
+  - name: f5_bigip.log.max_active_conns
+    type: keyword
+    level: custom
+    description: Maximum active connections in F5 BIG-IP logs.
+    example: example-max_active_conns
+  - name: f5_bigip.log.memory.avg
+    type: keyword
+    level: custom
+    description: Average memory usage in F5 BIG-IP.
+    example: example-avg
+  - name: f5_bigip.log.memory.health
+    type: keyword
+    level: custom
+    description: Memory health status in F5 BIG-IP.
+    example: example-health
+  - name: f5_bigip.log.memory_value
+    type: keyword
+    level: custom
+    description: Memory utilization value in F5 BIG-IP logs.
+    example: example-memory_value
+  - name: f5_bigip.log.method
+    type: keyword
+    level: custom
+    description: Request method in F5 BIG-IP logs.
+    example: example-method
+  - name: f5_bigip.log.mgmt_ip
+    type: keyword
+    level: custom
+    description: Management IP address in F5 BIG-IP logs.
+    example: example-mgmt_ip
+  - name: f5_bigip.log.microservice
+    type: keyword
+    level: custom
+    description: Microservice identifier in F5 BIG-IP logs.
+    example: example-microservice
+  - name: f5_bigip.log.micro_service.hostname
+    type: keyword
+    level: custom
+    description: Microservice hostname in F5 BIG-IP logs.
+    example: example-hostname
+  - name: f5_bigip.log.micro_service.matched_wildcard_url
+    type: keyword
+    level: custom
+    description: Matched wildcard URL for microservice in F5 BIG-IP.
+    example: example-matched_wildcard_url
+  - name: f5_bigip.log.micro_service.name
+    type: keyword
+    level: custom
+    description: Microservice name in F5 BIG-IP logs.
+    example: example-name
+  - name: f5_bigip.log.micro_service.type
+    type: keyword
+    level: custom
+    description: Microservice type in F5 BIG-IP logs.
+    example: example-type
+  - name: f5_bigip.log.mitigation.max
+    type: keyword
+    level: custom
+    description: Maximum mitigation value in F5 BIG-IP logs.
+    example: example-max
+  - name: f5_bigip.log.mitigation.min
+    type: keyword
+    level: custom
+    description: Minimum mitigation value in F5 BIG-IP logs.
+    example: example-min
+  - name: f5_bigip.log.mobile_application.name
+    type: keyword
+    level: custom
+    description: Mobile application name in F5 BIG-IP logs.
+    example: example-name
+  - name: f5_bigip.log.mobile_application.version
+    type: keyword
+    level: custom
+    description: Mobile application version in F5 BIG-IP logs.
+    example: example-version
+  - name: f5_bigip.log.mobile_in_emulation_mode
+    type: keyword
+    level: custom
+    description: Mobile device emulation mode indicator in F5 BIG-IP.
+    example: example-mobile_in_emulation_mode
+  - name: f5_bigip.log.mobile_is_app
+    type: keyword
+    level: custom
+    description: Mobile application indicator in F5 BIG-IP logs.
+    example: example-mobile_is_app
+  - name: f5_bigip.log.module
+    type: keyword
+    level: custom
+    description: F5 BIG-IP module identifier in logs.
+    example: example-module
+  - name: f5_bigip.log.network.protocol
+    type: keyword
+    level: custom
+    description: Network protocol type in F5 BIG-IP logs.
+    example: example-protocol
+  - name: f5_bigip.log.network_interfaces
+    type: keyword
+    level: custom
+    description: Network interface configuration in F5 BIG-IP.
+    example: example-network_interfaces
+  - name: f5_bigip.log.new_conns
+    type: keyword
+    level: custom
+    description: Number of new connections in F5 BIG-IP logs.
+    example: example-new_conns
+  - name: f5_bigip.log.new_request_status
+    type: keyword
+    level: custom
+    description: Status of new requests in F5 BIG-IP logs.
+    example: example-new_request_status
+  - name: f5_bigip.log.node
+    type: keyword
+    level: custom
+    description: Node IP address in F5 BIG-IP pool configuration.
+    example: example-node
+  - name: f5_bigip.log.node_port
+    type: keyword
+    level: custom
+    description: Node port number in F5 BIG-IP pool configuration.
+    example: example-node_port
+  - name: f5_bigip.log.object_tags_list
+    type: keyword
+    level: custom
+    description: List of object tags in F5 BIG-IP logs.
+    example: example-object_tags_list
+  - name: f5_bigip.log.operation.id
+    type: keyword
+    level: custom
+    description: Operation identifier in F5 BIG-IP logs.
+    example: example-id
+  - name: f5_bigip.log.osname
+    type: keyword
+    level: custom
+    description: Operating system name in F5 BIG-IP logs.
+    example: example-osname
+  - name: f5_bigip.log.partition
+    type: keyword
+    level: custom
+    description: Partition identifier in F5 BIG-IP logs.
+    example: example-partition
+  - name: f5_bigip.log.partition_name
+    type: keyword
+    level: custom
+    description: Partition name in F5 BIG-IP logs.
+    example: example-partition_name
+  - name: f5_bigip.log.password_hash_prefix
+    type: keyword
+    level: custom
+    description: Password hash prefix in F5 BIG-IP logs.
+    example: example-password_hash_prefix
+  - name: f5_bigip.log.platform_id
+    type: keyword
+    level: custom
+    description: Platform identifier for F5 BIG-IP device.
+    example: example-platform_id
+  - name: f5_bigip.log.policy.apply_date
+    type: keyword
+    level: custom
+    description: Policy application date in F5 BIG-IP.
+    example: example-apply_date
+  - name: f5_bigip.log.policy.name
+    type: keyword
+    level: custom
+    description: Policy name in F5 BIG-IP logs.
+    example: example-name
+  - name: f5_bigip.log.pool.ip
+    type: keyword
+    level: custom
+    description: Pool member IP address in F5 BIG-IP.
+    example: example-ip
+  - name: f5_bigip.log.pool.ip_route_domain
+    type: keyword
+    level: custom
+    description: Pool IP route domain in F5 BIG-IP.
+    example: example-ip_route_domain
+  - name: f5_bigip.log.pool.port
+    type: keyword
+    level: custom
+    description: Pool member port number in F5 BIG-IP.
+    example: example-port
+  - name: f5_bigip.log.previous.action
+    type: keyword
+    level: custom
+    description: Previous action taken in F5 BIG-IP logs.
+    example: example-action
+  - name: f5_bigip.log.previous.initiated_action.status
+    type: keyword
+    level: custom
+    description: Status of previously initiated action in F5 BIG-IP.
+    example: example-status
+  - name: f5_bigip.log.previous.initiated_action.value
+    type: keyword
+    level: custom
+    description: Value of previously initiated action in F5 BIG-IP.
+    example: example-value
+  - name: f5_bigip.log.previous.request_date_time
+    type: keyword
+    level: custom
+    description: Previous request timestamp in F5 BIG-IP logs.
+    example: example-request_date_time
+  - name: f5_bigip.log.previous.requests_status
+    type: keyword
+    level: custom
+    description: Status of previous requests in F5 BIG-IP logs.
+    example: example-requests_status
+  - name: f5_bigip.log.previous.support_id
+    type: keyword
+    level: custom
+    description: Previous support case ID in F5 BIG-IP logs.
+    example: example-support_id
+  - name: f5_bigip.log.extra_fields.support_id
+    type: keyword
+    level: custom
+    description: Support case ID in F5 BIG-IP logs.
+    example: example-support_id
+  - name: f5_bigip.log.profile.name
+    type: keyword
+    level: custom
+    description: Profile name in F5 BIG-IP configuration.
+    example: example-name
+  - name: f5_bigip.log.profile_name
+    type: keyword
+    level: custom
+    description: Profile name in F5 BIG-IP logs.
+    example: example-profile_name
+  - name: f5_bigip.log.protocol
+    type: keyword
+    level: custom
+    description: Network protocol in F5 BIG-IP logs.
+    example: example-protocol
+  - name: f5_bigip.log.protocol_info
+    type: keyword
+    level: custom
+    description: Protocol information in F5 BIG-IP logs.
+    example: example-protocol_info
+  - name: f5_bigip.log.provisioning
+    type: keyword
+    level: custom
+    description: Module provisioning status in F5 BIG-IP.
+    example: example-provisioning
+  - name: f5_bigip.log.provision_ready
+    type: keyword
+    level: custom
+    description: Provision readiness status in F5 BIG-IP.
+    example: example-provision_ready
+  - name: f5_bigip.log.swap
+    type: keyword
+    level: custom
+    description: Swap memory usage in F5 BIG-IP logs.
+    example: example-swap
+  - name: f5_bigip.log.sync_color
+    type: keyword
+    level: custom
+    description: Synchronization color status in F5 BIG-IP cluster.
+    example: example-sync_color
+  - name: f5_bigip.log.sync_mode
+    type: keyword
+    level: custom
+    description: Synchronization mode in F5 BIG-IP cluster.
+    example: example-sync_mode
+  - name: f5_bigip.log.sync_status
+    type: keyword
+    level: custom
+    description: Synchronization status in F5 BIG-IP cluster.
+    example: example-sync_status
+  - name: f5_bigip.log.sync_summary
+    type: keyword
+    level: custom
+    description: Synchronization summary in F5 BIG-IP cluster.
+    example: example-sync_summary
+  - name: f5_bigip.log.system_timestamp
+    type: keyword
+    level: custom
+    description: System timestamp in F5 BIG-IP logs.
+    example: example-system_timestamp
+  - name: f5_bigip.log.query.name
+    type: keyword
+    level: custom
+    description: Query name in F5 BIG-IP logs.
+    example: example-name
+  - name: f5_bigip.log.query.sam_account_name
+    type: keyword
+    level: custom
+    description: SAM account name in query for F5 BIG-IP.
+    example: example-sam_account_name
+  - name: f5_bigip.log.query.string
+    type: keyword
+    level: custom
+    description: Query string in F5 BIG-IP logs.
+    example: example-string
+  - name: f5_bigip.log.query.type
+    type: keyword
+    level: custom
+    description: Query type in F5 BIG-IP logs.
+    example: example-type
+  - name: f5_bigip.log.query.user_name
+    type: keyword
+    level: custom
+    description: Query username in F5 BIG-IP logs.
+    example: example-user_name
+  - name: f5_bigip.log.query.user_principle_name
+    type: keyword
+    level: custom
+    description: User principal name in query for F5 BIG-IP.
+    example: example-user_principle_name
+  - name: f5_bigip.log.reason
+    type: keyword
+    level: custom
+    description: Reason description in F5 BIG-IP logs.
+    example: example-reason
+  - name: f5_bigip.log.reported_entity_type
+    type: keyword
+    level: custom
+    description: Type of reported entity in F5 BIG-IP logs.
+    example: example-reported_entity_type
+  - name: f5_bigip.log.reputation
+    type: keyword
+    level: custom
+    description: Reputation score or status in F5 BIG-IP logs.
+    example: example-reputation
+  - name: f5_bigip.log.req.elapsed_time
+    type: keyword
+    level: custom
+    description: Request elapsed time in F5 BIG-IP logs.
+    example: example-elapsed_time
+  - name: f5_bigip.log.req.start_time
+    type: keyword
+    level: custom
+    description: Request start time in F5 BIG-IP logs.
+    example: example-start_time
+  - name: f5_bigip.log.request.accept
+    type: keyword
+    level: custom
+    description: HTTP accept header in request for F5 BIG-IP.
+    example: example-accept
+  - name: f5_bigip.log.request.cache_control
+    type: keyword
+    level: custom
+    description: Cache control header in request for F5 BIG-IP.
+    example: example-cache_control
+  - name: f5_bigip.log.request.connection
+    type: keyword
+    level: custom
+    description: Connection header in request for F5 BIG-IP.
+    example: example-connection
+  - name: f5_bigip.log.request.date_time
+    type: keyword
+    level: custom
+    description: Request timestamp in F5 BIG-IP logs.
+    example: example-date_time
+  - name: f5_bigip.log.request.detail
+    type: keyword
+    level: custom
+    description: Request detail information in F5 BIG-IP logs.
+    example: example-detail
+  - name: f5_bigip.log.request.duration
+    type: keyword
+    level: custom
+    description: Request duration time in F5 BIG-IP logs.
+    example: example-duration
+  - name: f5_bigip.log.request.duration_hit_count
+    type: keyword
+    level: custom
+    description: Request duration hit count in F5 BIG-IP logs.
+    example: example-duration_hit_count
+  - name: f5_bigip.log.request.host
+    type: keyword
+    level: custom
+    description: Request host header in F5 BIG-IP logs.
+    example: example-host
+  - name: f5_bigip.log.request.max_duration
+    type: keyword
+    level: custom
+    description: Maximum request duration in F5 BIG-IP logs.
+    example: example-max_duration
+  - name: f5_bigip.log.request.method
+    type: keyword
+    level: custom
+    description: Request method in F5 BIG-IP logs.
+    example: example-method
+  - name: f5_bigip.log.request.min_duration
+    type: keyword
+    level: custom
+    description: Minimum request duration in F5 BIG-IP logs.
+    example: example-min_duration
+  - name: f5_bigip.log.request.path
+    type: keyword
+    level: custom
+    description: Request path in F5 BIG-IP logs.
+    example: example-path
+  - name: f5_bigip.log.request.protocol
+    type: keyword
+    level: custom
+    description: Request protocol in F5 BIG-IP logs.
+    example: example-protocol
+  - name: f5_bigip.log.request.status
+    type: keyword
+    level: custom
+    description: Request status in F5 BIG-IP logs.
+    example: example-status
+  - name: f5_bigip.log.request.user_agent
+    type: keyword
+    level: custom
+    description: Request user agent in F5 BIG-IP logs.
+    example: example-user_agent
+  - name: f5_bigip.log.request.user_agent.original
+    type: keyword
+    level: custom
+    description: Original user agent string in F5 BIG-IP logs.
+    example: example-original
+  - name: f5_bigip.log.request.x_forwarded_for
+    type: keyword
+    level: custom
+    description: X-Forwarded-For header in request for F5 BIG-IP.
+    example: example-x_forwarded_for
+  - name: f5_bigip.log.request_date_time
+    type: keyword
+    level: custom
+    description: Request timestamp in F5 BIG-IP logs.
+    example: example-request_date_time
+  - name: f5_bigip.log.request_status
+    type: keyword
+    level: custom
+    description: Request status in F5 BIG-IP logs.
+    example: example-request_status
+  - name: f5_bigip.log.res.start_time
+    type: keyword
+    level: custom
+    description: Response start time in F5 BIG-IP logs.
+    example: example-start_time
+  - name: f5_bigip.log.resp
+    type: keyword
+    level: custom
+    description: Response information in F5 BIG-IP logs.
+    example: example-resp
+  - name: f5_bigip.log.response.code
+    type: keyword
+    level: custom
+    description: Response status code in F5 BIG-IP logs.
+    example: example-code
+  - name: f5_bigip.log.response.duration
+    type: keyword
+    level: custom
+    description: Response duration time in F5 BIG-IP logs.
+    example: example-duration
+  - name: f5_bigip.log.response.duration_hit_count
+    type: keyword
+    level: custom
+    description: Response duration hit count in F5 BIG-IP logs.
+    example: example-duration_hit_count
+  - name: f5_bigip.log.response.max_duration
+    type: keyword
+    level: custom
+    description: Maximum response duration in F5 BIG-IP logs.
+    example: example-max_duration
+  - name: f5_bigip.log.response.min_duration
+    type: keyword
+    level: custom
+    description: Minimum response duration in F5 BIG-IP logs.
+    example: example-min_duration
+  - name: f5_bigip.log.response.value
+    type: keyword
+    level: custom
+    description: Response value in F5 BIG-IP logs.
+    example: example-value
+  - name: f5_bigip.log.route_domain
+    type: keyword
+    level: custom
+    description: Route domain identifier in F5 BIG-IP logs.
+    example: example-route_domain
+  - name: f5_bigip.log.rxbad_cookie
+    type: keyword
+    level: custom
+    description: Count of received bad cookies in F5 BIG-IP.
+    example: example-rxbad_cookie
+  - name: f5_bigip.log.rxbadseg
+    type: keyword
+    level: custom
+    description: Count of received bad segments in F5 BIG-IP.
+    example: example-rxbadseg
+  - name: f5_bigip.log.rxbadsum
+    type: keyword
+    level: custom
+    description: Count of received bad checksums in F5 BIG-IP.
+    example: example-rxbadsum
+  - name: f5_bigip.log.rxcookie
+    type: keyword
+    level: custom
+    description: Count of received cookies in F5 BIG-IP.
+    example: example-rxcookie
+  - name: f5_bigip.log.rxooseg
+    type: keyword
+    level: custom
+    description: Count of received out-of-order segments in F5 BIG-IP.
+    example: example-rxooseg
+  - name: f5_bigip.log.rxrst
+    type: keyword
+    level: custom
+    description: Count of received RST packets in F5 BIG-IP.
+    example: example-rxrst
+  - name: f5_bigip.log.sa_translation.pool
+    type: keyword
+    level: custom
+    description: SA translation pool in F5 BIG-IP logs.
+    example: example-pool
+  - name: f5_bigip.log.sa_translation.type
+    type: keyword
+    level: custom
+    description: SA translation type in F5 BIG-IP logs.
+    example: example-type
+  - name: f5_bigip.log.send_to_vs
+    type: keyword
+    level: custom
+    description: Send to virtual server information in F5 BIG-IP.
+    example: example-send_to_vs
+  - name: f5_bigip.log.server_side.network.latency
+    type: keyword
+    level: custom
+    description: Server-side network latency in F5 BIG-IP logs.
+    example: example-latency
+  - name: f5_bigip.log.server_side.network.max_latency
+    type: keyword
+    level: custom
+    description: Maximum server-side network latency in F5 BIG-IP.
+    example: example-max_latency
+  - name: f5_bigip.log.server_side.network.min_latency
+    type: keyword
+    level: custom
+    description: Minimum server-side network latency in F5 BIG-IP.
+    example: example-min_latency
+  - name: f5_bigip.log.server.hit_count
+    type: keyword
+    level: custom
+    description: Server hit count in F5 BIG-IP logs.
+    example: example-hit_count
+  - name: f5_bigip.log.server.ip
+    type: keyword
+    level: custom
+    description: Server IP address in F5 BIG-IP logs.
+    example: example-ip
+  - name: f5_bigip.log.server.latency.max
+    type: keyword
+    level: custom
+    description: Maximum server latency in F5 BIG-IP logs.
+    example: example-max
+  - name: f5_bigip.log.server.latency.min
+    type: keyword
+    level: custom
+    description: Minimum server latency in F5 BIG-IP logs.
+    example: example-min
+  - name: f5_bigip.log.server.latency.total
+    type: keyword
+    level: custom
+    description: Total server latency in F5 BIG-IP logs.
+    example: example-total
+  - name: f5_bigip.log.session.id
+    type: keyword
+    level: custom
+    description: Session identifier in F5 BIG-IP logs.
+    example: example-id
+    normalize:
+    - array
+  - name: f5_bigip.log.severity.code
+    type: keyword
+    level: custom
+    description: Severity code for log entry in F5 BIG-IP.
+    example: example-code
+  - name: f5_bigip.log.severity.name
+    type: keyword
+    level: custom
+    description: Severity name for log entry in F5 BIG-IP.
+    example: example-name
+  - name: f5_bigip.log.sig.cves
+    type: keyword
+    level: custom
+    description: CVE identifiers for signatures in F5 BIG-IP.
+    example: example-cves
+  - name: f5_bigip.log.sig.ids
+    type: keyword
+    level: custom
+    description: Signature identifiers in F5 BIG-IP logs.
+    example: example-ids
+  - name: f5_bigip.log.sig.names
+    type: keyword
+    level: custom
+    description: Signature names in F5 BIG-IP logs.
+    example: example-names
+  - name: f5_bigip.log.sig.set_names
+    type: keyword
+    level: custom
+    description: Signature set names in F5 BIG-IP logs.
+    example: example-set_names
+  - name: f5_bigip.log.slot.id
+    type: keyword
+    level: custom
+    description: Slot identifier in F5 BIG-IP hardware.
+    example: example-id
+  - name: f5_bigip.log.slot.number
+    type: keyword
+    level: custom
+    description: Slot number in F5 BIG-IP hardware.
+    example: example-number
+  - name: f5_bigip.log.sndpack
+    type: keyword
+    level: custom
+    description: Count of sent packets in F5 BIG-IP.
+    example: example-sndpack
+  - name: f5_bigip.log.software_drops
+    type: keyword
+    level: custom
+    description: Count of software-level packet drops in F5 BIG-IP.
+    example: example-software_drops
+  - name: f5_bigip.log.sos.application_response_time
+    type: keyword
+    level: custom
+    description: SOS application response time in F5 BIG-IP.
+    example: example-application_response_time
+  - name: f5_bigip.log.sos.client_side_network_latency
+    type: keyword
+    level: custom
+    description: SOS client-side network latency in F5 BIG-IP.
+    example: example-client_side_network_latency
+  - name: f5_bigip.log.sos.client_ttfb
+    type: keyword
+    level: custom
+    description: SOS client time to first byte in F5 BIG-IP.
+    example: example-client_ttfb
+  - name: f5_bigip.log.sos.request_duration
+    type: keyword
+    level: custom
+    description: SOS request duration in F5 BIG-IP.
+    example: example-request_duration
+  - name: f5_bigip.log.sos.response_duration
+    type: keyword
+    level: custom
+    description: SOS response duration in F5 BIG-IP.
+    example: example-response_duration
+  - name: f5_bigip.log.sos.server_side_network_latency
+    type: keyword
+    level: custom
+    description: SOS server-side network latency in F5 BIG-IP.
+    example: example-server_side_network_latency
+  - name: f5_bigip.log.source.fqdn
+    type: keyword
+    level: custom
+    description: Source fully qualified domain name in F5 BIG-IP.
+    example: example-fqdn
+  - name: f5_bigip.log.source.ip
+    type: keyword
+    level: custom
+    description: Source IP address in F5 BIG-IP logs.
+    example: example-ip
+  - name: f5_bigip.log.source.ip_route_domain
+    type: keyword
+    level: custom
+    description: Source IP route domain in F5 BIG-IP logs.
+    example: example-ip_route_domain
+  - name: f5_bigip.log.source.ipint_categories
+    type: keyword
+    level: custom
+    description: Source IP intelligence categories in F5 BIG-IP.
+    example: example-ipint_categories
+  - name: f5_bigip.log.source.port
+    type: keyword
+    level: custom
+    description: Source port number in F5 BIG-IP logs.
+    example: example-port
+  - name: f5_bigip.log.source.user
+    type: keyword
+    level: custom
+    description: Source user information in F5 BIG-IP logs.
+    example: example-user
+  - name: f5_bigip.log.source.user_group
+    type: keyword
+    level: custom
+    description: Source user group in F5 BIG-IP logs.
+    example: example-user_group
+  - name: f5_bigip.log.src.geo
+    type: keyword
+    level: custom
+    description: Source geographic location in F5 BIG-IP logs.
+    example: example-geo
+  - name: f5_bigip.log.src.ip
+    type: keyword
+    level: custom
+    description: Source IP address in F5 BIG-IP logs.
+    example: example-ip
+  - name: f5_bigip.log.src.port
+    type: keyword
+    level: custom
+    description: Source port number in F5 BIG-IP logs.
+    example: example-port
+  - name: f5_bigip.log.src.zone
+    type: keyword
+    level: custom
+    description: Source network zone in F5 BIG-IP logs.
+    example: example-zone
+  - name: f5_bigip.log.staged.sig.cves
+    type: keyword
+    level: custom
+    description: Staged signature CVE identifiers in F5 BIG-IP.
+    example: example-cves
+  - name: f5_bigip.log.staged.sig.ids
+    type: keyword
+    level: custom
+    description: Staged signature identifiers in F5 BIG-IP.
+    example: example-ids
+  - name: f5_bigip.log.staged.sig.names
+    type: keyword
+    level: custom
+    description: Staged signature names in F5 BIG-IP.
+    example: example-names
+  - name: f5_bigip.log.staged.sig.set_names
+    type: keyword
+    level: custom
+    description: Staged signature set names in F5 BIG-IP.
+    example: example-set_names
+  - name: f5_bigip.log.staged.threat_campaign_names
+    type: keyword
+    level: custom
+    description: Staged threat campaign names in F5 BIG-IP.
+    example: example-threat_campaign_names
+  - name: f5_bigip.log.stat_src
+    type: keyword
+    level: custom
+    description: Statistics source in F5 BIG-IP logs.
+    example: example-stat_src
+  - name: f5_bigip.log.state
+    type: keyword
+    level: custom
+    description: State information in F5 BIG-IP logs.
+    example: example-state
+  - name: f5_bigip.log.sub_violations
+    type: keyword
+    level: custom
+    description: Sub-violations detected in F5 BIG-IP logs.
+    example: example-sub_violations
+  - name: f5_bigip.log.subnet.ip
+    type: keyword
+    level: custom
+    description: Subnet IP address in F5 BIG-IP logs.
+    example: example-ip
+  - name: f5_bigip.log.subnet.name
+    type: keyword
+    level: custom
+    description: Subnet name in F5 BIG-IP logs.
+    example: example-name
+  - name: f5_bigip.log.subnet.route_domain
+    type: keyword
+    level: custom
+    description: Subnet route domain in F5 BIG-IP logs.
+    example: example-route_domain
+  - name: f5_bigip.log.support.id
+    type: keyword
+    level: custom
+    description: Support case identifier in F5 BIG-IP logs.
+    example: example-id
+  - name: f5_bigip.log.syncacheover
+    type: keyword
+    level: custom
+    description: SYN cache overflow count in F5 BIG-IP.
+    example: example-syncacheover
+  - name: f5_bigip.log.system.hostname
+    type: keyword
+    level: custom
+    description: System hostname in F5 BIG-IP logs.
+    example: example-hostname
+  - name: f5_bigip.log.system.ihealth_link
+    type: keyword
+    level: custom
+    description: IHealth support link in F5 BIG-IP logs.
+    example: example-ihealth_link
+  - name: f5_bigip.log.system.qkview_number
+    type: keyword
+    level: custom
+    description: Qkview number for support in F5 BIG-IP.
+    example: example-qkview_number
+  - name: f5_bigip.log.tap.event_id
+    type: keyword
+    level: custom
+    description: TAP event identifier in F5 BIG-IP logs.
+    example: example-event_id
+  - name: f5_bigip.log.tap.requested_actions
+    type: keyword
+    level: custom
+    description: TAP requested actions in F5 BIG-IP logs.
+    example: example-requested_actions
+  - name: f5_bigip.log.tap.sent_token
+    type: keyword
+    level: custom
+    description: TAP sent token count in F5 BIG-IP logs.
+    example: example-sent_token
+  - name: f5_bigip.log.tap.transaction_id
+    type: keyword
+    level: custom
+    description: TAP transaction identifier in F5 BIG-IP logs.
+    example: example-transaction_id
+  - name: f5_bigip.log.tap.vid
+    type: keyword
+    level: custom
+    description: TAP VID (VLAN ID) in F5 BIG-IP logs.
+    example: example-vid
+  - name: f5_bigip.log.tcp_prof
+    type: keyword
+    level: custom
+    description: TCP profile information in F5 BIG-IP logs.
+    example: example-tcp_prof
+  - name: f5_bigip.log.telemetry.event.category
+    type: keyword
+    level: custom
+    description: Telemetry event category in F5 BIG-IP.
+    example: example-category
+  - name: f5_bigip.log.telemetry.timestamp
+    type: keyword
+    level: custom
+    description: Telemetry timestamp in F5 BIG-IP logs.
+    example: example-timestamp
+  - name: f5_bigip.log.telemetry_service_info.cycle_start
+    type: keyword
+    level: custom
+    description: Telemetry service cycle start time in F5 BIG-IP.
+    example: example-cycle_start
+  - name: f5_bigip.log.telemetry_service_info.cycle_end
+    type: keyword
+    level: custom
+    description: Telemetry service cycle end time in F5 BIG-IP.
+    example: example-cycle_end
+  - name: f5_bigip.log.telemetry_service_info.polling_interval
+    type: keyword
+    level: custom
+    description: Telemetry service polling interval in F5 BIG-IP.
+    example: example-polling_interval
+  - name: f5_bigip.log.tenant
+    type: keyword
+    level: custom
+    description: Tenant identifier in F5 BIG-IP logs.
+    example: example-tenant
+  - name: f5_bigip.log.threat_campaign_names
+    type: keyword
+    level: custom
+    description: Threat campaign names detected in F5 BIG-IP.
+    example: example-threat_campaign_names
+  - name: f5_bigip.log.throughput.avg
+    type: keyword
+    level: custom
+    description: Average throughput in F5 BIG-IP logs.
+    example: example-avg
+  - name: f5_bigip.log.bytes
+    type: keyword
+    level: custom
+    description: Bytes transferred in F5 BIG-IP logs.
+    example: example-bytes
+  - name: f5_bigip.log.connections_performance.activeSslClientConnections.average
+    type: keyword
+    level: custom
+    description: SSL connection average value recorded in the log for F5 BIG-IP.
+    example: example-average
+  - name: f5_bigip.log.connections_performance.activeSslClientConnections.current
+    type: keyword
+    level: custom
+    description: SSL connection current value recorded in the log for F5 BIG-IP.
+    example: example-current
+  - name: f5_bigip.log.connections_performance.activeSslClientConnections.max
+    type: keyword
+    level: custom
+    description: SSL connection maximum value recorded in the log for F5 BIG-IP.
+    example: example-max
+  - name: f5_bigip.log.connections_performance.activeSslClientConnections.name
+    type: keyword
+    level: custom
+    description: SSL connection name associated with this field in the log for F5
+      BIG-IP.
+    example: example-name
+  - name: f5_bigip.log.connections_performance.activeSslServerConnections.average
+    type: keyword
+    level: custom
+    description: SSL connection average value recorded in the log for F5 BIG-IP.
+    example: example-average
+  - name: f5_bigip.log.connections_performance.activeSslServerConnections.current
+    type: keyword
+    level: custom
+    description: SSL connection current value recorded in the log for F5 BIG-IP.
+    example: example-current
+  - name: f5_bigip.log.connections_performance.activeSslServerConnections.max
+    type: keyword
+    level: custom
+    description: SSL connection maximum value recorded in the log for F5 BIG-IP.
+    example: example-max
+  - name: f5_bigip.log.connections_performance.activeSslServerConnections.name
+    type: keyword
+    level: custom
+    description: SSL connection name associated with this field in the log for F5
+      BIG-IP.
+    example: example-name
+  - name: f5_bigip.log.connections_performance.blade1.average
+    type: keyword
+    level: custom
+    description: Performance metric average value recorded in the log for F5 BIG-IP.
+    example: example-average
+  - name: f5_bigip.log.connections_performance.blade1.current
+    type: keyword
+    level: custom
+    description: Performance metric current value recorded in the log for F5 BIG-IP.
+    example: example-current
+  - name: f5_bigip.log.connections_performance.blade1.max
+    type: keyword
+    level: custom
+    description: Performance metric maximum value recorded in the log for F5 BIG-IP.
+    example: example-max
+  - name: f5_bigip.log.connections_performance.blade1.name
+    type: keyword
+    level: custom
+    description: Performance metric name associated with this field in the log for
+      F5 BIG-IP.
+    example: example-name
+  - name: f5_bigip.log.connections_performance.blade2.average
+    type: keyword
+    level: custom
+    description: Performance metric average value recorded in the log for F5 BIG-IP.
+    example: example-average
+  - name: f5_bigip.log.connections_performance.blade2.current
+    type: keyword
+    level: custom
+    description: Performance metric current value recorded in the log for F5 BIG-IP.
+    example: example-current
+  - name: f5_bigip.log.connections_performance.blade2.max
+    type: keyword
+    level: custom
+    description: Performance metric maximum value recorded in the log for F5 BIG-IP.
+    example: example-max
+  - name: f5_bigip.log.connections_performance.blade2.name
+    type: keyword
+    level: custom
+    description: Performance metric name associated with this field in the log for
+      F5 BIG-IP.
+    example: example-name
+  - name: f5_bigip.log.connections_performance.client.average
+    type: keyword
+    level: custom
+    description: Client connection average value recorded in the log for F5 BIG-IP.
+    example: example-average
+  - name: f5_bigip.log.connections_performance.client.current
+    type: keyword
+    level: custom
+    description: Client connection current value recorded in the log for F5 BIG-IP.
+    example: example-current
+  - name: f5_bigip.log.connections_performance.client.max
+    type: keyword
+    level: custom
+    description: Client connection maximum value recorded in the log for F5 BIG-IP.
+    example: example-max
+  - name: f5_bigip.log.connections_performance.client.name
+    type: keyword
+    level: custom
+    description: Client connection name associated with this field in the log for
+      F5 BIG-IP.
+    example: example-name
+  - name: f5_bigip.log.connections_performance.clientAccepts.average
+    type: keyword
+    level: custom
+    description: Client connection average value recorded in the log for F5 BIG-IP.
+    example: example-average
+  - name: f5_bigip.log.connections_performance.clientAccepts.current
+    type: keyword
+    level: custom
+    description: Client connection current value recorded in the log for F5 BIG-IP.
+    example: example-current
+  - name: f5_bigip.log.connections_performance.clientAccepts.max
+    type: keyword
+    level: custom
+    description: Client connection maximum value recorded in the log for F5 BIG-IP.
+    example: example-max
+  - name: f5_bigip.log.connections_performance.clientAccepts.name
+    type: keyword
+    level: custom
+    description: Client connection name associated with this field in the log for
+      F5 BIG-IP.
+    example: example-name
+  - name: f5_bigip.log.connections_performance.clientConnections.average
+    type: keyword
+    level: custom
+    description: Client connection average value recorded in the log for F5 BIG-IP.
+    example: example-average
+  - name: f5_bigip.log.connections_performance.clientConnections.current
+    type: keyword
+    level: custom
+    description: Client connection current value recorded in the log for F5 BIG-IP.
+    example: example-current
+  - name: f5_bigip.log.connections_performance.clientConnections.max
+    type: keyword
+    level: custom
+    description: Client connection maximum value recorded in the log for F5 BIG-IP.
+    example: example-max
+  - name: f5_bigip.log.connections_performance.clientConnections.name
+    type: keyword
+    level: custom
+    description: Client connection name associated with this field in the log for
+      F5 BIG-IP.
+    example: example-name
+  - name: f5_bigip.log.connections_performance.clientConnects.average
+    type: keyword
+    level: custom
+    description: Client connection average value recorded in the log for F5 BIG-IP.
+    example: example-average
+  - name: f5_bigip.log.connections_performance.clientConnects.current
+    type: keyword
+    level: custom
+    description: Client connection current value recorded in the log for F5 BIG-IP.
+    example: example-current
+  - name: f5_bigip.log.connections_performance.clientConnects.max
+    type: keyword
+    level: custom
+    description: Client connection maximum value recorded in the log for F5 BIG-IP.
+    example: example-max
+  - name: f5_bigip.log.connections_performance.clientConnects.name
+    type: keyword
+    level: custom
+    description: Client connection name associated with this field in the log for
+      F5 BIG-IP.
+    example: example-name
+  - name: f5_bigip.log.connections_performance.connections.average
+    type: keyword
+    level: custom
+    description: Performance metric average value recorded in the log for F5 BIG-IP.
+    example: example-average
+  - name: f5_bigip.log.connections_performance.connections.current
+    type: keyword
+    level: custom
+    description: Performance metric current value recorded in the log for F5 BIG-IP.
+    example: example-current
+  - name: f5_bigip.log.connections_performance.connections.max
+    type: keyword
+    level: custom
+    description: Performance metric maximum value recorded in the log for F5 BIG-IP.
+    example: example-max
+  - name: f5_bigip.log.connections_performance.connections.name
+    type: keyword
+    level: custom
+    description: Performance metric name associated with this field in the log for
+      F5 BIG-IP.
+    example: example-name
+  - name: f5_bigip.log.connections_performance.httpRequests.average
+    type: keyword
+    level: custom
+    description: Performance metric average value recorded in the log for F5 BIG-IP.
+    example: example-average
+  - name: f5_bigip.log.connections_performance.httpRequests.current
+    type: keyword
+    level: custom
+    description: Performance metric current value recorded in the log for F5 BIG-IP.
+    example: example-current
+  - name: f5_bigip.log.connections_performance.httpRequests.max
+    type: keyword
+    level: custom
+    description: Performance metric maximum value recorded in the log for F5 BIG-IP.
+    example: example-max
+  - name: f5_bigip.log.connections_performance.httpRequests.name
+    type: keyword
+    level: custom
+    description: Performance metric name associated with this field in the log for
+      F5 BIG-IP.
+    example: example-name
+  - name: f5_bigip.log.connections_performance.newSslClientConnections.average
+    type: keyword
+    level: custom
+    description: SSL connection average value recorded in the log for F5 BIG-IP.
+    example: example-average
+  - name: f5_bigip.log.connections_performance.newSslClientConnections.current
+    type: keyword
+    level: custom
+    description: SSL connection current value recorded in the log for F5 BIG-IP.
+    example: example-current
+  - name: f5_bigip.log.connections_performance.newSslClientConnections.max
+    type: keyword
+    level: custom
+    description: SSL connection maximum value recorded in the log for F5 BIG-IP.
+    example: example-max
+  - name: f5_bigip.log.connections_performance.newSslClientConnections.name
+    type: keyword
+    level: custom
+    description: SSL connection name associated with this field in the log for F5
+      BIG-IP.
+    example: example-name
+  - name: f5_bigip.log.connections_performance.newSslServerConnections.average
+    type: keyword
+    level: custom
+    description: SSL connection average value recorded in the log for F5 BIG-IP.
+    example: example-average
+  - name: f5_bigip.log.connections_performance.newSslServerConnections.current
+    type: keyword
+    level: custom
+    description: SSL connection current value recorded in the log for F5 BIG-IP.
+    example: example-current
+  - name: f5_bigip.log.connections_performance.newSslServerConnections.max
+    type: keyword
+    level: custom
+    description: SSL connection maximum value recorded in the log for F5 BIG-IP.
+    example: example-max
+  - name: f5_bigip.log.connections_performance.newSslServerConnections.name
+    type: keyword
+    level: custom
+    description: SSL connection name associated with this field in the log for F5
+      BIG-IP.
+    example: example-name
+  - name: f5_bigip.log.connections_performance.pvaClient.average
+    type: keyword
+    level: custom
+    description: Client connection average value recorded in the log for F5 BIG-IP.
+    example: example-average
+  - name: f5_bigip.log.connections_performance.pvaClient.current
+    type: keyword
+    level: custom
+    description: Client connection current value recorded in the log for F5 BIG-IP.
+    example: example-current
+  - name: f5_bigip.log.connections_performance.pvaClient.max
+    type: keyword
+    level: custom
+    description: Client connection maximum value recorded in the log for F5 BIG-IP.
+    example: example-max
+  - name: f5_bigip.log.connections_performance.pvaClient.name
+    type: keyword
+    level: custom
+    description: Client connection name associated with this field in the log for
+      F5 BIG-IP.
+    example: example-name
+  - name: f5_bigip.log.connections_performance.pvaServer.average
+    type: keyword
+    level: custom
+    description: Server connection average value recorded in the log for F5 BIG-IP.
+    example: example-average
+  - name: f5_bigip.log.connections_performance.pvaServer.current
+    type: keyword
+    level: custom
+    description: Server connection current value recorded in the log for F5 BIG-IP.
+    example: example-current
+  - name: f5_bigip.log.connections_performance.pvaServer.max
+    type: keyword
+    level: custom
+    description: Server connection maximum value recorded in the log for F5 BIG-IP.
+    example: example-max
+  - name: f5_bigip.log.connections_performance.pvaServer.name
+    type: keyword
+    level: custom
+    description: Server connection name associated with this field in the log for
+      F5 BIG-IP.
+    example: example-name
+  - name: f5_bigip.log.connections_performance.server.average
+    type: keyword
+    level: custom
+    description: Server connection average value recorded in the log for F5 BIG-IP.
+    example: example-average
+  - name: f5_bigip.log.connections_performance.server.current
+    type: keyword
+    level: custom
+    description: Server connection current value recorded in the log for F5 BIG-IP.
+    example: example-current
+  - name: f5_bigip.log.connections_performance.server.max
+    type: keyword
+    level: custom
+    description: Server connection maximum value recorded in the log for F5 BIG-IP.
+    example: example-max
+  - name: f5_bigip.log.connections_performance.server.name
+    type: keyword
+    level: custom
+    description: Server connection name associated with this field in the log for
+      F5 BIG-IP.
+    example: example-name
+  - name: f5_bigip.log.connections_performance.serverConnections.average
+    type: keyword
+    level: custom
+    description: Server connection average value recorded in the log for F5 BIG-IP.
+    example: example-average
+  - name: f5_bigip.log.connections_performance.serverConnections.current
+    type: keyword
+    level: custom
+    description: Server connection current value recorded in the log for F5 BIG-IP.
+    example: example-current
+  - name: f5_bigip.log.connections_performance.serverConnections.max
+    type: keyword
+    level: custom
+    description: Server connection maximum value recorded in the log for F5 BIG-IP.
+    example: example-max
+  - name: f5_bigip.log.connections_performance.serverConnections.name
+    type: keyword
+    level: custom
+    description: Server connection name associated with this field in the log for
+      F5 BIG-IP.
+    example: example-name
+  - name: f5_bigip.log.connections_performance.serverNewConnections.average
+    type: keyword
+    level: custom
+    description: Server connection average value recorded in the log for F5 BIG-IP.
+    example: example-average
+  - name: f5_bigip.log.connections_performance.serverNewConnections.current
+    type: keyword
+    level: custom
+    description: Server connection current value recorded in the log for F5 BIG-IP.
+    example: example-current
+  - name: f5_bigip.log.connections_performance.serverNewConnections.max
+    type: keyword
+    level: custom
+    description: Server connection maximum value recorded in the log for F5 BIG-IP.
+    example: example-max
+  - name: f5_bigip.log.connections_performance.serverNewConnections.name
+    type: keyword
+    level: custom
+    description: Server connection name associated with this field in the log for
+      F5 BIG-IP.
+    example: example-name
+  - name: f5_bigip.log.connections_performance.serverNewTcpConnections.average
+    type: keyword
+    level: custom
+    description: Server connection average value recorded in the log for F5 BIG-IP.
+    example: example-average
+  - name: f5_bigip.log.connections_performance.serverNewTcpConnections.current
+    type: keyword
+    level: custom
+    description: Server connection current value recorded in the log for F5 BIG-IP.
+    example: example-current
+  - name: f5_bigip.log.connections_performance.serverNewTcpConnections.max
+    type: keyword
+    level: custom
+    description: Server connection maximum value recorded in the log for F5 BIG-IP.
+    example: example-max
+  - name: f5_bigip.log.connections_performance.serverNewTcpConnections.name
+    type: keyword
+    level: custom
+    description: Server connection name associated with this field in the log for
+      F5 BIG-IP.
+    example: example-name
+  - name: f5_bigip.log.diagnostics
+    type: keyword
+    level: custom
+    description: Diagnostics information in F5 BIG-IP logs.
+    example: example-diagnostics
+  - name: f5_bigip.log.throughput_performance.clientBitsIn.average
+    type: keyword
+    level: custom
+    description: Average client inbound bits per second throughput performance metric
+      for F5 BIG-IP.
+    example: example-average
+  - name: f5_bigip.log.throughput_performance.clientBitsIn.current
+    type: keyword
+    level: custom
+    description: Current client inbound bits per second throughput performance metric
+      for F5 BIG-IP.
+    example: example-current
+  - name: f5_bigip.log.throughput_performance.clientBitsIn.max
+    type: keyword
+    level: custom
+    description: Maximum client inbound bits per second throughput performance metric
+      for F5 BIG-IP.
+    example: example-max
+  - name: f5_bigip.log.throughput_performance.clientBitsIn.name
+    type: keyword
+    level: custom
+    description: Client inbound bits throughput performance metric name identifier
+      for F5 BIG-IP.
+    example: example-name
+  - name: f5_bigip.log.throughput_performance.clientBitsOut.average
+    type: keyword
+    level: custom
+    description: Average client outbound bits per second throughput performance metric
+      for F5 BIG-IP.
+    example: example-average
+  - name: f5_bigip.log.throughput_performance.clientBitsOut.current
+    type: keyword
+    level: custom
+    description: Current client outbound bits per second throughput performance metric
+      for F5 BIG-IP.
+    example: example-current
+  - name: f5_bigip.log.throughput_performance.clientBitsOut.max
+    type: keyword
+    level: custom
+    description: Maximum client outbound bits per second throughput performance metric
+      for F5 BIG-IP.
+    example: example-max
+  - name: f5_bigip.log.throughput_performance.clientBitsOut.name
+    type: keyword
+    level: custom
+    description: Client outbound bits throughput performance metric name identifier
+      for F5 BIG-IP.
+    example: example-name
+  - name: f5_bigip.log.throughput_performance.clientIn.average
+    type: keyword
+    level: custom
+    description: Average client inbound traffic throughput performance metric for
+      F5 BIG-IP.
+    example: example-average
+  - name: f5_bigip.log.throughput_performance.clientIn.current
+    type: keyword
+    level: custom
+    description: Current client inbound traffic throughput performance metric for
+      F5 BIG-IP.
+    example: example-current
+  - name: f5_bigip.log.throughput_performance.clientIn.max
+    type: keyword
+    level: custom
+    description: Maximum client inbound traffic throughput performance metric for
+      F5 BIG-IP.
+    example: example-max
+  - name: f5_bigip.log.throughput_performance.clientIn.name
+    type: keyword
+    level: custom
+    description: Client inbound traffic throughput performance metric name identifier
+      for F5 BIG-IP.
+    example: example-name
+  - name: f5_bigip.log.throughput_performance.clientOut.average
+    type: keyword
+    level: custom
+    description: Average client outbound traffic throughput performance metric for
+      F5 BIG-IP.
+    example: example-average
+  - name: f5_bigip.log.throughput_performance.clientOut.current
+    type: keyword
+    level: custom
+    description: Current client outbound traffic throughput performance metric for
+      F5 BIG-IP.
+    example: example-current
+  - name: f5_bigip.log.throughput_performance.clientOut.max
+    type: keyword
+    level: custom
+    description: Maximum client outbound traffic throughput performance metric for
+      F5 BIG-IP.
+    example: example-max
+  - name: f5_bigip.log.throughput_performance.clientOut.name
+    type: keyword
+    level: custom
+    description: Client outbound traffic throughput performance metric name identifier
+      for F5 BIG-IP.
+    example: example-name
+  - name: f5_bigip.log.throughput_performance.compression.average
+    type: keyword
+    level: custom
+    description: Average compression ratio performance metric for HTTP traffic in
+      F5 BIG-IP.
+    example: example-average
+  - name: f5_bigip.log.throughput_performance.compression.current
+    type: keyword
+    level: custom
+    description: Current compression ratio performance metric for HTTP traffic in
+      F5 BIG-IP.
+    example: example-current
+  - name: f5_bigip.log.throughput_performance.compression.max
+    type: keyword
+    level: custom
+    description: Maximum compression ratio performance metric for HTTP traffic in
+      F5 BIG-IP.
+    example: example-max
+  - name: f5_bigip.log.throughput_performance.compression.name
+    type: keyword
+    level: custom
+    description: Compression ratio performance metric name identifier for F5 BIG-IP.
+    example: example-name
+  - name: f5_bigip.log.throughput_performance.inBits.average
+    type: keyword
+    level: custom
+    description: Average incoming bits per second throughput performance metric for
+      F5 BIG-IP.
+    example: example-average
+  - name: f5_bigip.log.throughput_performance.inBits.current
+    type: keyword
+    level: custom
+    description: Current incoming bits per second throughput performance metric for
+      F5 BIG-IP.
+    example: example-current
+  - name: f5_bigip.log.throughput_performance.inBits.max
+    type: keyword
+    level: custom
+    description: Maximum incoming bits per second throughput performance metric for
+      F5 BIG-IP.
+    example: example-max
+  - name: f5_bigip.log.throughput_performance.inBits.name
+    type: keyword
+    level: custom
+    description: Incoming bits throughput performance metric name identifier for F5
+      BIG-IP.
+    example: example-name
+  - name: f5_bigip.log.throughput_performance.inPackets.average
+    type: keyword
+    level: custom
+    description: Average incoming packets per second throughput performance metric
+      for F5 BIG-IP.
+    example: example-average
+  - name: f5_bigip.log.throughput_performance.inPackets.current
+    type: keyword
+    level: custom
+    description: Current incoming packets per second throughput performance metric
+      for F5 BIG-IP.
+    example: example-current
+  - name: f5_bigip.log.throughput_performance.inPackets.max
+    type: keyword
+    level: custom
+    description: Maximum incoming packets per second throughput performance metric
+      for F5 BIG-IP.
+    example: example-max
+  - name: f5_bigip.log.throughput_performance.inPackets.name
+    type: keyword
+    level: custom
+    description: Incoming packets throughput performance metric name identifier for
+      F5 BIG-IP.
+    example: example-name
+  - name: f5_bigip.log.throughput_performance.managementBitsIn.average
+    type: keyword
+    level: custom
+    description: Average management interface inbound bits per second throughput for
+      F5 BIG-IP.
+    example: example-average
+  - name: f5_bigip.log.throughput_performance.managementBitsIn.current
+    type: keyword
+    level: custom
+    description: Current management interface inbound bits per second throughput for
+      F5 BIG-IP.
+    example: example-current
+  - name: f5_bigip.log.throughput_performance.managementBitsIn.max
+    type: keyword
+    level: custom
+    description: Maximum management interface inbound bits per second throughput for
+      F5 BIG-IP.
+    example: example-max
+  - name: f5_bigip.log.throughput_performance.managementBitsIn.name
+    type: keyword
+    level: custom
+    description: Management inbound bits throughput performance metric name identifier
+      for F5 BIG-IP.
+    example: example-name
+  - name: f5_bigip.log.throughput_performance.managementBitsOut.average
+    type: keyword
+    level: custom
+    description: Average management interface outbound bits per second throughput
+      for F5 BIG-IP.
+    example: example-average
+  - name: f5_bigip.log.throughput_performance.managementBitsOut.current
+    type: keyword
+    level: custom
+    description: Current management interface outbound bits per second throughput
+      for F5 BIG-IP.
+    example: example-current
+  - name: f5_bigip.log.throughput_performance.managementBitsOut.max
+    type: keyword
+    level: custom
+    description: Maximum management interface outbound bits per second throughput
+      for F5 BIG-IP.
+    example: example-max
+  - name: f5_bigip.log.throughput_performance.managementBitsOut.name
+    type: keyword
+    level: custom
+    description: Management outbound bits throughput performance metric name identifier
+      for F5 BIG-IP.
+    example: example-name
+  - name: f5_bigip.log.throughput_performance.outBits.average
+    type: keyword
+    level: custom
+    description: Average outgoing bits per second throughput performance metric for
+      F5 BIG-IP.
+    example: example-average
+  - name: f5_bigip.log.throughput_performance.outBits.current
+    type: keyword
+    level: custom
+    description: Current outgoing bits per second throughput performance metric for
+      F5 BIG-IP.
+    example: example-current
+  - name: f5_bigip.log.throughput_performance.outBits.max
+    type: keyword
+    level: custom
+    description: Maximum outgoing bits per second throughput performance metric for
+      F5 BIG-IP.
+    example: example-max
+  - name: f5_bigip.log.throughput_performance.outBits.name
+    type: keyword
+    level: custom
+    description: Outgoing bits throughput performance metric name identifier for F5
+      BIG-IP.
+    example: example-name
+  - name: f5_bigip.log.throughput_performance.outPackets.average
+    type: keyword
+    level: custom
+    description: Average outgoing packets per second throughput performance metric
+      for F5 BIG-IP.
+    example: example-average
+  - name: f5_bigip.log.throughput_performance.outPackets.current
+    type: keyword
+    level: custom
+    description: Current outgoing packets per second throughput performance metric
+      for F5 BIG-IP.
+    example: example-current
+  - name: f5_bigip.log.throughput_performance.outPackets.max
+    type: keyword
+    level: custom
+    description: Maximum outgoing packets per second throughput performance metric
+      for F5 BIG-IP.
+    example: example-max
+  - name: f5_bigip.log.throughput_performance.outPackets.name
+    type: keyword
+    level: custom
+    description: Outgoing packets throughput performance metric name identifier for
+      F5 BIG-IP.
+    example: example-name
+  - name: f5_bigip.log.throughput_performance.serverBitsIn.average
+    type: keyword
+    level: custom
+    description: Average server inbound bits per second throughput performance metric
+      for F5 BIG-IP.
+    example: example-average
+  - name: f5_bigip.log.throughput_performance.serverBitsIn.current
+    type: keyword
+    level: custom
+    description: Current server inbound bits per second throughput performance metric
+      for F5 BIG-IP.
+    example: example-current
+  - name: f5_bigip.log.throughput_performance.serverBitsIn.max
+    type: keyword
+    level: custom
+    description: Maximum server inbound bits per second throughput performance metric
+      for F5 BIG-IP.
+    example: example-max
+  - name: f5_bigip.log.throughput_performance.serverBitsIn.name
+    type: keyword
+    level: custom
+    description: Server inbound bits throughput performance metric name identifier
+      for F5 BIG-IP.
+    example: example-name
+  - name: f5_bigip.log.throughput_performance.serverBitsOut.average
+    type: keyword
+    level: custom
+    description: Average server outbound bits per second throughput performance metric
+      for F5 BIG-IP.
+    example: example-average
+  - name: f5_bigip.log.throughput_performance.serverBitsOut.current
+    type: keyword
+    level: custom
+    description: Current server outbound bits per second throughput performance metric
+      for F5 BIG-IP.
+    example: example-current
+  - name: f5_bigip.log.throughput_performance.serverBitsOut.max
+    type: keyword
+    level: custom
+    description: Maximum server outbound bits per second throughput performance metric
+      for F5 BIG-IP.
+    example: example-max
+  - name: f5_bigip.log.throughput_performance.serverBitsOut.name
+    type: keyword
+    level: custom
+    description: Server outbound bits throughput performance metric name identifier
+      for F5 BIG-IP.
+    example: example-name
+  - name: f5_bigip.log.throughput_performance.serverIn.average
+    type: keyword
+    level: custom
+    description: Average server inbound traffic throughput performance metric for
+      F5 BIG-IP.
+    example: example-average
+  - name: f5_bigip.log.throughput_performance.serverIn.current
+    type: keyword
+    level: custom
+    description: Maximum server inbound traffic throughput performance metric for
+      F5 BIG-IP.
+    example: example-current
+  - name: f5_bigip.log.throughput_performance.serverIn.max
+    type: keyword
+    level: custom
+    description: Server inbound traffic throughput performance metric name identifier
+      for F5 BIG-IP.
+    example: example-max
+  - name: f5_bigip.log.throughput_performance.serverIn.name
+    type: keyword
+    level: custom
+    description: Average server outbound traffic throughput performance metric for
+      F5 BIG-IP.
+    example: example-name
+  - name: f5_bigip.log.throughput_performance.serverOut.average
+    type: keyword
+    level: custom
+    description: Current server outbound traffic throughput performance metric for
+      F5 BIG-IP.
+    example: example-average
+  - name: f5_bigip.log.throughput_performance.serverOut.current
+    type: keyword
+    level: custom
+    description: Maximum server outbound traffic throughput performance metric for
+      F5 BIG-IP.
+    example: example-current
+  - name: f5_bigip.log.throughput_performance.serverOut.max
+    type: keyword
+    level: custom
+    description: Server outbound traffic throughput performance metric name identifier
+      for F5 BIG-IP.
+    example: example-max
+  - name: f5_bigip.log.throughput_performance.serverOut.name
+    type: keyword
+    level: custom
+    description: Average service layer bits per second throughput performance metric
+      for F5 BIG-IP.
+    example: example-name
+  - name: f5_bigip.log.throughput_performance.serviceBits.average
+    type: keyword
+    level: custom
+    description: Current service layer bits per second throughput performance metric
+      for F5 BIG-IP.
+    example: example-average
+  - name: f5_bigip.log.throughput_performance.serviceBits.current
+    type: keyword
+    level: custom
+    description: Maximum service layer bits per second throughput performance metric
+      for F5 BIG-IP.
+    example: example-current
+  - name: f5_bigip.log.throughput_performance.serviceBits.max
+    type: keyword
+    level: custom
+    description: Service layer bits throughput performance metric name identifier
+      for F5 BIG-IP.
+    example: example-max
+  - name: f5_bigip.log.throughput_performance.serviceBits.name
+    type: keyword
+    level: custom
+    description: Average service layer packets per second throughput performance metric
+      for F5 BIG-IP.
+    example: example-name
+  - name: f5_bigip.log.throughput_performance.servicePackets.average
+    type: keyword
+    level: custom
+    description: Current service layer packets per second throughput performance metric
+      for F5 BIG-IP.
+    example: example-average
+  - name: f5_bigip.log.throughput_performance.servicePackets.current
+    type: keyword
+    level: custom
+    description: Maximum service layer packets per second throughput performance metric
+      for F5 BIG-IP.
+    example: example-current
+  - name: f5_bigip.log.throughput_performance.servicePackets.max
+    type: keyword
+    level: custom
+    description: Service layer packets throughput performance metric name identifier
+      for F5 BIG-IP.
+    example: example-max
+  - name: f5_bigip.log.throughput_performance.servicePackets.name
+    type: keyword
+    level: custom
+    description: Average SSL transactions per second throughput performance metric
+      for F5 BIG-IP.
+    example: example-name
+  - name: f5_bigip.log.throughput_performance.sslTps.average
+    type: keyword
+    level: custom
+    description: Current SSL transactions per second throughput performance metric
+      for F5 BIG-IP.
+    example: example-average
+  - name: f5_bigip.log.throughput_performance.sslTps.current
+    type: keyword
+    level: custom
+    description: Maximum SSL transactions per second throughput performance metric
+      for F5 BIG-IP.
+    example: example-current
+  - name: f5_bigip.log.throughput_performance.sslTps.max
+    type: keyword
+    level: custom
+    description: SSL transactions per second throughput performance metric name identifier
+      for F5 BIG-IP.
+    example: example-max
+  - name: f5_bigip.log.throughput_performance.sslTps.name
+    type: keyword
+    level: custom
+    description: Current server inbound transactions per second throughput performance
+      metric for F5 BIG-IP.
+    example: example-name
+  - name: f5_bigip.log.throughput.health
+    type: keyword
+    level: custom
+    description: Throughput health status in F5 BIG-IP.
+    example: example-health
+  - name: f5_bigip.log.throughput.req_per_interval.total
+    type: keyword
+    level: custom
+    description: Total requests per interval for throughput in F5 BIG-IP.
+    example: example-total
+  - name: f5_bigip.log.throughput.req_per_sec.max
+    type: keyword
+    level: custom
+    description: Maximum requests per second for throughput in F5 BIG-IP.
+    example: example-max
+  - name: f5_bigip.log.throughput.resp_per_interval.total
+    type: keyword
+    level: custom
+    description: Total responses per interval for throughput in F5 BIG-IP.
+    example: example-total
+  - name: f5_bigip.log.throughput.resp_per_sec.max
+    type: keyword
+    level: custom
+    description: Maximum responses per second for throughput in F5 BIG-IP.
+    example: example-max
+  - name: f5_bigip.log.timestamp
+    type: keyword
+    level: custom
+    description: General timestamp in F5 BIG-IP logs.
+    example: example-timestamp
+  - name: f5_bigip.log.tmm_cpu
+    type: keyword
+    level: custom
+    description: TMM (Traffic Management Microkernel) CPU usage in F5 BIG-IP.
+    example: example-tmm_cpu
+  - name: f5_bigip.log.tmm_memory
+    type: keyword
+    level: custom
+    description: TMM (Traffic Management Microkernel) memory usage in F5 BIG-IP.
+    example: example-tmm_memory
+  - name: f5_bigip.log.tmm_traffic.client_side_traffic.bits_in
+    type: keyword
+    level: custom
+    description: TMM client-side incoming traffic bits in F5 BIG-IP.
+    example: example-bits_in
+  - name: f5_bigip.log.tmm_traffic.client_side_traffic.bits_out
+    type: keyword
+    level: custom
+    description: TMM client-side outgoing traffic bits in F5 BIG-IP.
+    example: example-bits_out
+  - name: f5_bigip.log.tmm_traffic.server_side_traffic.bits_in
+    type: keyword
+    level: custom
+    description: TMM server-side incoming traffic bits in F5 BIG-IP.
+    example: example-bits_in
+  - name: f5_bigip.log.tmm_traffic.server_side_traffic.bits_out
+    type: keyword
+    level: custom
+    description: TMM server-side outgoing traffic bits in F5 BIG-IP.
+    example: example-bits_out
+  - name: f5_bigip.log.tps.max
+    type: keyword
+    level: custom
+    description: Maximum transactions per second in F5 BIG-IP logs.
+    example: example-max
+  - name: f5_bigip.log.transaction_outcome
+    type: keyword
+    level: custom
+    description: Transaction outcome status in F5 BIG-IP logs.
+    example: example-transaction_outcome
+  - name: f5_bigip.log.translated.dest.ip
+    type: keyword
+    level: custom
+    description: Translated destination IP address in F5 BIG-IP.
+    example: example-ip
+  - name: f5_bigip.log.translated.dest.port
+    type: keyword
+    level: custom
+    description: Translated destination port in F5 BIG-IP.
+    example: example-port
+  - name: f5_bigip.log.translated.ip_protocol
+    type: keyword
+    level: custom
+    description: Translated IP protocol in F5 BIG-IP.
+    example: example-ip_protocol
+  - name: f5_bigip.log.translated.route_domain
+    type: keyword
+    level: custom
+    description: Translated route domain in F5 BIG-IP.
+    example: example-route_domain
+  - name: f5_bigip.log.translated.source.ip
+    type: keyword
+    level: custom
+    description: Translated source IP address in F5 BIG-IP.
+    example: example-ip
+  - name: f5_bigip.log.translated.source.port
+    type: keyword
+    level: custom
+    description: Translated source port in F5 BIG-IP.
+    example: example-port
+  - name: f5_bigip.log.translated.vlan
+    type: keyword
+    level: custom
+    description: Translated VLAN identifier in F5 BIG-IP.
+    example: example-vlan
+  - name: f5_bigip.log.txrexmits
+    type: keyword
+    level: custom
+    description: Count of TCP retransmissions in F5 BIG-IP.
+    example: example-txrexmits
+  - name: f5_bigip.log.unit_host
+    type: keyword
+    level: custom
+    description: Unit host identifier in F5 BIG-IP logs.
+    example: example-unit_host
+  - name: f5_bigip.log.unit_hostname
+    type: keyword
+    level: custom
+    description: Unit hostname in F5 BIG-IP logs.
+    example: example-unit_hostname
+  - name: f5_bigip.log.uri
+    type: keyword
+    level: custom
+    description: URI (Uniform Resource Identifier) in F5 BIG-IP logs.
+    example: example-uri
+  - name: f5_bigip.log.url
+    type: keyword
+    level: custom
+    description: URL (Uniform Resource Locator) in F5 BIG-IP logs.
+    example: example-url
+  - name: f5_bigip.log.user.agent
+    type: keyword
+    level: custom
+    description: User agent string in F5 BIG-IP logs.
+    example: example-agent
+  - name: f5_bigip.log.user.name
+    type: keyword
+    level: custom
+    description: Username in F5 BIG-IP logs.
+    example: example-name
+  - name: f5_bigip.log.user.sessions.new_total
+    type: keyword
+    level: custom
+    description: Total new user sessions in F5 BIG-IP logs.
+    example: example-new_total
+  - name: f5_bigip.log.username
+    type: keyword
+    level: custom
+    description: Username in F5 BIG-IP logs.
+    example: example-username
+  - name: f5_bigip.log.version
+    type: keyword
+    level: custom
+    description: Version information in F5 BIG-IP logs.
+    example: example-version
+  - name: f5_bigip.log.version_build
+    type: keyword
+    level: custom
+    description: Build version information in F5 BIG-IP logs.
+    example: example-version_build
+  - name: f5_bigip.log.violate_details
+    type: keyword
+    level: custom
+    description: Violation details in F5 BIG-IP security logs.
+    example: example-violate_details
+  - name: f5_bigip.log.violation.details
+    type: keyword
+    level: custom
+    description: Security violation details in F5 BIG-IP logs.
+    example: example-details
+  - name: f5_bigip.log.violation.rating
+    type: keyword
+    level: custom
+    description: Security violation rating in F5 BIG-IP logs.
+    example: example-rating
+  - name: f5_bigip.log.violations
+    type: keyword
+    level: custom
+    description: Security violations detected in F5 BIG-IP logs.
+    example: example-violations
+  - name: f5_bigip.log.vip
+    type: keyword
+    level: custom
+    description: Virtual IP (VIP) information in F5 BIG-IP logs.
+    example: example-vip
+  - name: f5_bigip.log.virtual_server_name
+    type: keyword
+    level: custom
+    description: Virtual server IP address in F5 BIG-IP.
+    example: example-virtual_server_name
+  - name: f5_bigip.log.virtual.ip
+    type: keyword
+    level: custom
+    description: Virtual server name in F5 BIG-IP.
+    example: example-ip
+  - name: f5_bigip.log.virtual.name
+    type: keyword
+    level: custom
+    description: Virtual server identifier in F5 BIG-IP.
+    example: example-name
+  - name: f5_bigip.log.virtual.server
+    type: keyword
+    level: custom
+    description: Virus name detected in F5 BIG-IP security logs.
+    example: example-server
+  - name: f5_bigip.log.virus_name
+    type: keyword
+    level: custom
+    description: Virtual server name in F5 BIG-IP logs.
+    example: example-virus_name
+  - name: f5_bigip.log.vlan
+    type: keyword
+    level: custom
+    description: VLAN identifier in F5 BIG-IP logs.
+    example: example-vlan
+  - name: f5_bigip.log.vs_name
+    type: keyword
+    level: custom
+    description: Virtual server name in F5 BIG-IP logs.
+    example: example-vs_name
+  - name: f5_bigip.log.web_application_name
+    type: keyword
+    level: custom
+    description: Web application name in F5 BIG-IP logs.
+    example: example-web_application_name
+  - name: f5_bigip.log.websocket.direction
+    type: keyword
+    level: custom
+    description: WebSocket traffic direction in F5 BIG-IP logs.
+    example: example-direction
+  - name: f5_bigip.log.websocket.message_type
+    type: keyword
+    level: custom
+    description: WebSocket message type in F5 BIG-IP logs.
+    example: example-message_type
+  - name: f5_bigip.log.wl_events
+    type: keyword
+    level: custom
+    description: Whitelist events count in F5 BIG-IP logs.
+    example: example-wl_events
+  - name: f5_bigip.log.x_forwarded_for_header_value
+    type: keyword
+    level: custom
+    description: X-Forwarded-For header value in F5 BIG-IP logs.
+    example: example-x_forwarded_for_header_value

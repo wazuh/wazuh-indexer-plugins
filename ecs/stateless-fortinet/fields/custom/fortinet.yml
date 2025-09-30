@@ -1,0 +1,1721 @@
+- name: fortinet
+  title: Fortinet
+  description: fortinet custom fields for WCS integration
+  fields:
+  - name: fortinet.action
+    type: keyword
+    level: custom
+    description: The action taken for this event, such as allow, deny, or drop.
+    example: example-action
+  - name: fortinet.addr
+    type: keyword
+    level: custom
+    description: The address involved in the event, which may refer to source or destination.
+    example: example-addr
+  - name: fortinet.addrgrp
+    type: keyword
+    level: custom
+    description: The address group associated with the event, grouping multiple addresses
+      for policy application.
+    example: example-addrgrp
+  - name: fortinet.advpnsc
+    type: keyword
+    level: custom
+    description: Advanced VPN security configuration identifier used in Fortinet events.
+    example: example-advpnsc
+  - name: fortinet.age
+    type: keyword
+    level: custom
+    description: The age or duration of the session or event, typically measured in
+      seconds.
+    example: example-age
+  - name: fortinet.agent
+    type: keyword
+    level: custom
+    description: The agent or software component reporting or involved in the event.
+    example: example-agent
+  - name: fortinet.alert
+    type: keyword
+    level: custom
+    description: The alert type or message generated for this event.
+    example: example-alert
+  - name: fortinet.analyticscksum
+    type: keyword
+    level: custom
+    description: The checksum value used for analytics or integrity verification in
+      event logs.
+    example: example-analyticscksum
+  - name: fortinet.analyticssubmit
+    type: keyword
+    level: custom
+    description: Indicates whether analytics data was submitted for this event.
+    example: example-analyticssubmit
+  - name: fortinet.apn
+    type: keyword
+    level: custom
+    description: The Access Point Name (APN) used for mobile or wireless connections,
+      identifying the network path for the event.
+    example: example-apn
+  - name: fortinet.app
+    type: keyword
+    level: custom
+    description: The application name or identifier detected in the event, used for
+      application-level filtering and analysis.
+    example: example-app
+  - name: fortinet.appact
+    type: keyword
+    level: custom
+    description: The application action taken, such as block, allow, or monitor, for
+      the detected application.
+    example: example-appact
+  - name: fortinet.appid
+    type: keyword
+    level: custom
+    description: The unique identifier for the application involved in the event.
+    example: example-appid
+  - name: fortinet.applist
+    type: keyword
+    level: custom
+    description: The list of applications detected or referenced in the event.
+    example: example-applist
+  - name: fortinet.apprisk
+    type: keyword
+    level: custom
+    description: The risk level assigned to the application, such as low, medium,
+      or high.
+    example: example-apprisk
+  - name: fortinet.apscan
+    type: keyword
+    level: custom
+    description: Indicates whether an access point scan was performed, including details
+      about detected wireless networks.
+    example: example-apscan
+  - name: fortinet.apstatus
+    type: keyword
+    level: custom
+    description: The status of the application in the context of the event.
+    example: example-apstatus
+  - name: fortinet.aptype
+    type: keyword
+    level: custom
+    description: The type or category of the application involved in the event.
+    example: example-aptype
+  - name: fortinet.assigned
+    type: keyword
+    level: custom
+    description: The assigned value or identifier for the event, typically used for
+      resource allocation or assignment tracking.
+    example: example-assigned
+  - name: fortinet.assignip
+    type: keyword
+    level: custom
+    description: The IP address assigned to a user or device during VPN or network
+      session establishment by Fortinet.
+    example: example-assignip
+  - name: fortinet.attack
+    type: keyword
+    level: custom
+    description: The type of attack detected or prevented by Fortinet.
+    example: example-attack
+  - name: fortinet.attackid
+    type: keyword
+    level: custom
+    description: The unique identifier for the detected attack or threat.
+    example: example-attackid
+  - name: fortinet.auditid
+    type: keyword
+    level: custom
+    description: The audit identifier associated with the event for tracking and compliance.
+    example: example-auditid
+  - name: fortinet.auditreporttype
+    type: keyword
+    level: custom
+    description: The type of audit report generated for this event.
+    example: example-auditreporttype
+  - name: fortinet.auditscore
+    type: keyword
+    level: custom
+    description: The score assigned during the audit process, indicating risk or compliance
+      level.
+    example: example-auditscore
+  - name: fortinet.audittime
+    type: keyword
+    level: custom
+    description: The timestamp when the audit event occurred or was recorded.
+    example: example-audittime
+  - name: fortinet.authmsg
+    type: keyword
+    level: custom
+    description: The authentication message or status related to the event.
+    example: example-authmsg
+  - name: fortinet.authproto
+    type: keyword
+    level: custom
+    description: The authentication protocol used for the event, such as LDAP or RADIUS.
+    example: example-authproto
+  - name: fortinet.authserver
+    type: keyword
+    level: custom
+    description: The authentication server involved in the event.
+    example: example-authserver
+  - name: fortinet.bandwidth
+    type: keyword
+    level: custom
+    description: The amount of bandwidth used or measured during the event.
+    example: example-bandwidth
+  - name: fortinet.bibandwidth
+    type: keyword
+    level: custom
+    description: The bi-directional bandwidth measured for the session or event.
+    example: example-bibandwidth
+  - name: fortinet.bssid
+    type: keyword
+    level: custom
+    description: The Basic Service Set Identifier for wireless events, identifying
+      the access point.
+    example: example-bssid
+  - name: fortinet.call_id
+    type: keyword
+    level: custom
+    description: The unique identifier for a VoIP or telephony call event.
+    example: example-call_id
+  - name: fortinet.carrier
+    type: keyword
+    level: custom
+    description: The network carrier or provider associated with the event.
+    example: example-carrier
+  - name: fortinet.cat
+    type: keyword
+    level: custom
+    description: The category assigned to the event, such as malware, intrusion, or
+      policy violation.
+    example: example-cat
+  - name: fortinet.category
+    type: keyword
+    level: custom
+    description: The category classification of the event, such as traffic, security,
+      or system.
+    example: example-category
+  - name: fortinet.cfgattr
+    type: keyword
+    level: custom
+    description: The configuration attribute involved in the event.
+    example: example-cfgattr
+  - name: fortinet.cfgobj
+    type: keyword
+    level: custom
+    description: The configuration object referenced or affected by the event.
+    example: example-cfgobj
+  - name: fortinet.cfgpath
+    type: keyword
+    level: custom
+    description: The configuration path or location involved in the event.
+    example: example-cfgpath
+  - name: fortinet.cfgtid
+    type: keyword
+    level: custom
+    description: The configuration table identifier for the event.
+    example: example-cfgtid
+  - name: fortinet.cfseidaddr
+    type: keyword
+    level: custom
+    description: The control plane Fully Qualified Session Endpoint Identifier address.
+    example: example-cfseidaddr
+  - name: fortinet.cggsn6
+    type: keyword
+    level: custom
+    description: The IPv6 address of the client-side Gateway GPRS Support Node.
+    example: example-cggsn6
+  - name: fortinet.cgsn6
+    type: keyword
+    level: custom
+    description: The IPv6 address of the client-side Gateway Support Node.
+    example: example-cgsn6
+  - name: fortinet.channel
+    type: keyword
+    level: custom
+    description: The network channel or frequency used during the event.
+    example: example-channel
+  - name: fortinet.channeltype
+    type: keyword
+    level: custom
+    description: The type of channel, such as wired or wireless, involved in the event.
+    example: example-channeltype
+  - name: fortinet.clashtunnelidx
+    type: keyword
+    level: custom
+    description: The tunnel index for clash detection in mobile network events.
+    example: example-clashtunnelidx
+  - name: fortinet.cldobjid
+    type: keyword
+    level: custom
+    description: The cloud object identifier related to cloud-based Fortinet events.
+    example: example-cldobjid
+  - name: fortinet.clientip
+    type: keyword
+    level: custom
+    description: The client IP address involved in the event, typically the original
+      client making the request.
+    example: example-clientip
+  - name: fortinet.clustername
+    type: keyword
+    level: custom
+    description: The name of the Fortinet cluster involved in the event.
+    example: example-clustername
+  - name: fortinet.connection_type
+    type: keyword
+    level: custom
+    description: The type of network connection, such as VPN, LAN, or WAN, for the
+      event.
+    example: example-connection_type
+  - name: fortinet.cookies
+    type: keyword
+    level: custom
+    description: The cookies associated with the session or event, often for web traffic.
+    example: example-cookies
+  - name: fortinet.core
+    type: keyword
+    level: custom
+    description: The core system or module involved in the event processing.
+    example: example-core
+  - name: fortinet.count
+    type: keyword
+    level: custom
+    description: The total count or number of occurrences for the event type.
+    example: example-count
+  - name: fortinet.countapp
+    type: keyword
+    level: custom
+    description: The count of application-related events detected by Fortinet.
+    example: example-countapp
+  - name: fortinet.countav
+    type: keyword
+    level: custom
+    description: The count of antivirus-related events detected by Fortinet.
+    example: example-countav
+  - name: fortinet.countcasb
+    type: keyword
+    level: custom
+    description: The count of Cloud Access Security Broker (CASB) events detected
+      by Fortinet.
+    example: example-countcasb
+  - name: fortinet.countcifs
+    type: keyword
+    level: custom
+    description: The count of CIFS (Common Internet File System) events detected by
+      Fortinet.
+    example: example-countcifs
+  - name: fortinet.countdlp
+    type: keyword
+    level: custom
+    description: The count of data loss prevention events detected by Fortinet.
+    example: example-countdlp
+  - name: fortinet.countdns
+    type: keyword
+    level: custom
+    description: The count of DNS-related events detected by Fortinet.
+    example: example-countdns
+  - name: fortinet.countemail
+    type: keyword
+    level: custom
+    description: The count of email-related security events detected by Fortinet.
+    example: example-countemail
+  - name: fortinet.countff
+    type: keyword
+    level: custom
+    description: The count of file filtering events detected by Fortinet.
+    example: example-countff
+  - name: fortinet.counticap
+    type: keyword
+    level: custom
+    description: The count of ICAP (Internet Content Adaptation Protocol) events detected
+      by Fortinet.
+    example: example-counticap
+  - name: fortinet.countips
+    type: keyword
+    level: custom
+    description: The count of intrusion prevention system events detected by Fortinet.
+    example: example-countips
+  - name: fortinet.countsctpf
+    type: keyword
+    level: custom
+    description: The count of SCTP (Stream Control Transmission Protocol) filtering
+      events detected by Fortinet.
+    example: example-countsctpf
+  - name: fortinet.countssh
+    type: keyword
+    level: custom
+    description: The count of SSH-related events detected by Fortinet.
+    example: example-countssh
+  - name: fortinet.countssl
+    type: keyword
+    level: custom
+    description: The count of SSL-related events detected by Fortinet.
+    example: example-countssl
+  - name: fortinet.countwaf
+    type: keyword
+    level: custom
+    description: The count of Web Application Firewall (WAF) events detected by Fortinet.
+    example: example-countwaf
+  - name: fortinet.countweb
+    type: keyword
+    level: custom
+    description: The count of web-related events detected by Fortinet.
+    example: example-countweb
+  - name: fortinet.cpaddr
+    type: keyword
+    level: custom
+    description: The control plane IPv4 address for mobile network events.
+    example: example-cpaddr
+  - name: fortinet.cpaddr6
+    type: keyword
+    level: custom
+    description: The control plane IPv6 address for mobile network events.
+    example: example-cpaddr6
+  - name: fortinet.cpdladdr
+    type: keyword
+    level: custom
+    description: The control plane downlink IPv4 address.
+    example: example-cpdladdr
+  - name: fortinet.cpdladdr6
+    type: keyword
+    level: custom
+    description: The control plane downlink IPv6 address.
+    example: example-cpdladdr6
+  - name: fortinet.cpdlisraddr
+    type: keyword
+    level: custom
+    description: The control plane downlink ISR (Idle State Registration) IPv4 address.
+    example: example-cpdlisraddr
+  - name: fortinet.cpdlisraddr6
+    type: keyword
+    level: custom
+    description: The control plane downlink ISR (Idle State Registration) IPv6 address.
+    example: example-cpdlisraddr6
+  - name: fortinet.cpu
+    type: keyword
+    level: custom
+    description: The CPU usage or load measured during the event.
+    example: example-cpu
+  - name: fortinet.cpuladdr
+    type: keyword
+    level: custom
+    description: The control plane uplink IPv4 address.
+    example: example-cpuladdr
+  - name: fortinet.cpuladdr6
+    type: keyword
+    level: custom
+    description: The control plane uplink IPv6 address.
+    example: example-cpuladdr6
+  - name: fortinet.craction
+    type: keyword
+    level: custom
+    description: The critical action taken by Fortinet in response to the event.
+    example: example-craction
+  - name: fortinet.criticalcount
+    type: keyword
+    level: custom
+    description: The count of critical events detected by Fortinet.
+    example: example-criticalcount
+  - name: fortinet.crlevel
+    type: keyword
+    level: custom
+    description: The criticality level assigned to the event, such as high or low.
+    example: example-crlevel
+  - name: fortinet.crscore
+    type: keyword
+    level: custom
+    description: The score indicating the severity or impact of the critical event.
+    example: example-crscore
+  - name: fortinet.csgsn6
+    type: keyword
+    level: custom
+    description: The IPv6 address of the client-side Serving GPRS Support Node.
+    example: example-csgsn6
+  - name: fortinet.c_bytes
+    type: keyword
+    level: custom
+    description: The number of bytes transferred from client side in mobile/cellular
+      events.
+    example: example-c_bytes
+  - name: fortinet.c_ggsn
+    type: keyword
+    level: custom
+    description: The client-side Gateway GPRS Support Node identifier for mobile network
+      events.
+    example: example-c_ggsn
+  - name: fortinet.c_gsn
+    type: keyword
+    level: custom
+    description: The client-side Gateway Support Node identifier for mobile network
+      events.
+    example: example-c_gsn
+  - name: fortinet.c_pkts
+    type: keyword
+    level: custom
+    description: The number of packets transferred from client side in mobile/cellular
+      events.
+    example: example-c_pkts
+  - name: fortinet.c_sgsn
+    type: keyword
+    level: custom
+    description: The client-side Serving GPRS Support Node identifier for mobile network
+      events.
+    example: example-c_sgsn
+  - name: fortinet.deltabytes
+    type: keyword
+    level: custom
+    description: The difference in bytes transferred during the session or event.
+    example: example-deltabytes
+  - name: fortinet.desc
+    type: keyword
+    level: custom
+    description: The description or summary of the Fortinet event, providing additional
+      context.
+    example: example-desc
+  - name: fortinet.detectionmethod
+    type: keyword
+    level: custom
+    description: The method or technique used by Fortinet to detect threats, anomalies,
+      or specific types of network activity.
+    example: example-detectionmethod
+  - name: fortinet.devcategory
+    type: keyword
+    level: custom
+    description: The category of the device involved in the event, such as firewall
+      or router.
+    example: example-devcategory
+  - name: fortinet.devtype
+    type: keyword
+    level: custom
+    description: The type of device involved in the event, such as hardware or virtual.
+    example: example-devtype
+  - name: fortinet.disk
+    type: keyword
+    level: custom
+    description: The disk usage or capacity measured during the event.
+    example: example-disk
+  - name: fortinet.disklograte
+    type: keyword
+    level: custom
+    description: The rate at which logs are written to disk during the event.
+    example: example-disklograte
+  - name: fortinet.dlpextra
+    type: keyword
+    level: custom
+    description: Additional data loss prevention information related to the event.
+    example: example-dlpextra
+  - name: fortinet.dlpfilteridx
+    type: keyword
+    level: custom
+    description: The index of the Data Loss Prevention (DLP) filter applied to the
+      event.
+    example: example-dlpfilteridx
+  - name: fortinet.domainctrlauthstate
+    type: keyword
+    level: custom
+    description: The authentication state of the domain controller involved in the
+      event.
+    example: example-domainctrlauthstate
+  - name: fortinet.domainctrlauthtype
+    type: keyword
+    level: custom
+    description: The type of authentication used by the domain controller.
+    example: example-domainctrlauthtype
+  - name: fortinet.domainctrlprotocoltype
+    type: keyword
+    level: custom
+    description: The protocol type used for domain controller communication.
+    example: example-domainctrlprotocoltype
+  - name: fortinet.domainfilteridx
+    type: keyword
+    level: custom
+    description: The index of the domain filter applied to the event.
+    example: example-domainfilteridx
+  - name: fortinet.dstcountry
+    type: keyword
+    level: custom
+    description: The destination country for the network traffic involved in the event.
+    example: example-dstcountry
+  - name: fortinet.dstreputation
+    type: keyword
+    level: custom
+    description: The reputation score or category of the destination IP address or
+      domain.
+    example: example-dstreputation
+  - name: fortinet.dsthwvendor
+    type: keyword
+    level: custom
+    description: The hardware vendor of the destination device involved in the event.
+    example: example-dsthwvendor
+  - name: fortinet.dstintfrole
+    type: keyword
+    level: custom
+    description: The role of the destination interface, such as internal or external.
+    example: example-dstintfrole
+  - name: fortinet.dstserver
+    type: keyword
+    level: custom
+    description: The destination server involved in the event.
+    example: example-dstserver
+  - name: fortinet.dstuuid
+    type: keyword
+    level: custom
+    description: The unique identifier for the destination device or server.
+    example: example-dstuuid
+  - name: fortinet.encryption
+    type: keyword
+    level: custom
+    description: The encryption method or protocol used for the event.
+    example: example-encryption
+  - name: fortinet.endusraddress6
+    type: keyword
+    level: custom
+    description: The IPv6 end user address for mobile network sessions.
+    example: example-endusraddress6
+  - name: fortinet.end_usr_address
+    type: keyword
+    level: custom
+    description: The end user address for mobile network sessions.
+    example: example-end_usr_address
+  - name: fortinet.epoch
+    type: keyword
+    level: custom
+    description: The epoch timestamp representing when the event occurred.
+    example: example-epoch
+  - name: '-'
+    type: keyword
+    level: custom
+    description: '-'
+    example: example--
+  - name: '-'
+    type: keyword
+    level: custom
+    description: '-'
+    example: example--
+  - name: fortinet.fams_pause
+    type: keyword
+    level: custom
+    description: Indicates whether FortiAnalyzer Management Service (FAMS) is paused
+      during the event.
+    example: example-fams_pause
+  - name: fortinet.fazlograte
+    type: keyword
+    level: custom
+    description: The FortiAnalyzer log rate measured during the event.
+    example: example-fazlograte
+  - name: fortinet.fctemssn
+    type: keyword
+    level: custom
+    description: The FortiClient EMS session identifier related to the event.
+    example: example-fctemssn
+  - name: fortinet.fctuid
+    type: keyword
+    level: custom
+    description: The FortiClient unique identifier associated with the event.
+    example: example-fctuid
+  - name: fortinet.filtercat
+    type: keyword
+    level: custom
+    description: The filter category applied to the event, such as web or application.
+    example: example-filtercat
+  - name: fortinet.filteridx
+    type: keyword
+    level: custom
+    description: The index of the filter applied to the event.
+    example: example-filteridx
+  - name: fortinet.filtername
+    type: keyword
+    level: custom
+    description: The name of the filter applied to the event.
+    example: example-filtername
+  - name: fortinet.filtertype
+    type: keyword
+    level: custom
+    description: The type of filter applied, such as content or URL.
+    example: example-filtertype
+  - name: fortinet.forwardedfor
+    type: keyword
+    level: custom
+    description: The forwarded-for header value, indicating the original client IP.
+    example: example-forwardedfor
+  - name: fortinet.freediskstorage
+    type: keyword
+    level: custom
+    description: The amount of free disk storage available during the event.
+    example: example-freediskstorage
+  - name: fortinet.from
+    type: keyword
+    level: custom
+    description: The source address or entity from which the event originated.
+    example: example-from
+  - name: fortinet.from4
+    type: keyword
+    level: custom
+    description: The source IPv4 address in mobile network events.
+    example: example-from4
+  - name: fortinet.from6
+    type: keyword
+    level: custom
+    description: The source IPv6 address in mobile network events.
+    example: example-from6
+  - name: fortinet.from_vcluster
+    type: keyword
+    level: custom
+    description: The source virtual cluster identifier for cluster-related events.
+    example: example-from_vcluster
+  - name: fortinet.ha_group
+    type: keyword
+    level: custom
+    description: The high availability group involved in the event.
+    example: example-ha_group
+  - name: fortinet.ha_prio
+    type: keyword
+    level: custom
+    description: The high availability priority level assigned to the device or event.
+    example: example-ha_prio
+  - name: fortinet.ha_role
+    type: keyword
+    level: custom
+    description: The role of the device in the high availability group, such as master
+      or slave.
+    example: example-ha_role
+  - name: fortinet.handshake
+    type: keyword
+    level: custom
+    description: The handshake protocol or status for the event, often related to
+      VPN or SSL.
+    example: example-handshake
+  - name: fortinet.healthcheck
+    type: keyword
+    level: custom
+    description: The health check status or result for the device or session.
+    example: example-healthcheck
+  - name: fortinet.highcount
+    type: keyword
+    level: custom
+    description: The count of high severity events detected by Fortinet.
+    example: example-highcount
+  - name: fortinet.hostname
+    type: keyword
+    level: custom
+    description: The hostname involved in the event, either source or destination.
+    example: example-hostname
+  - name: fortinet.httpcode
+    type: keyword
+    level: custom
+    description: The HTTP status code returned for web traffic events.
+    example: example-httpcode
+  - name: fortinet.httpmethod
+    type: keyword
+    level: custom
+    description: The HTTP method used for web requests, such as GET, POST, PUT, or
+      DELETE.
+    example: example-httpmethod
+  - name: fortinet.iccid
+    type: keyword
+    level: custom
+    description: The ICCID (SIM card identifier) involved in the event.
+    example: example-iccid
+  - name: fortinet.icmpcode
+    type: keyword
+    level: custom
+    description: The ICMP code value for network diagnostic events
+    example: example-icmpcode
+  - name: fortinet.icmpid
+    type: keyword
+    level: custom
+    description: The ICMP identifier value for network diagnostic events.
+    example: example-icmpid
+  - name: fortinet.icmptype
+    type: keyword
+    level: custom
+    description: The ICMP type value for network diagnostic events.
+    example: example-icmptype
+  - name: fortinet.identifier
+    type: keyword
+    level: custom
+    description: The unique identifier for the event, session, or device.
+    example: example-identifier
+  - name: fortinet.ietype
+    type: keyword
+    level: custom
+    description: The Information Element type for mobile network protocol events.
+    example: example-ietype
+  - name: fortinet.imei
+    type: keyword
+    level: custom
+    description: The IMEI (device identifier) involved in the event.
+    example: example-imei
+  - name: fortinet.imsi
+    type: keyword
+    level: custom
+    description: The IMSI (subscriber identifier) involved in the event.
+    example: example-imsi
+  - name: fortinet.inbandwidth
+    type: keyword
+    level: custom
+    description: The inbound bandwidth measured during the event.
+    example: example-inbandwidth
+  - name: fortinet.incidentserialno
+    type: keyword
+    level: custom
+    description: The serial number for the incident or event.
+    example: example-incidentserialno
+  - name: fortinet.infectedfilelevel
+    type: keyword
+    level: custom
+    description: The severity level of the infected file detected by antivirus scanning.
+    example: example-infectedfilelevel
+  - name: fortinet.infectedfilesize
+    type: keyword
+    level: custom
+    description: The size of the infected file detected by antivirus scanning.
+    example: example-infectedfilesize
+  - name: fortinet.init
+    type: keyword
+    level: custom
+    description: The initialization status or message for the event.
+    example: example-init
+  - name: fortinet.interface
+    type: keyword
+    level: custom
+    description: The network interface involved in the event.
+    example: example-interface
+  - name: fortinet.ip
+    type: keyword
+    level: custom
+    description: The IP address involved in the event, either source or destination.
+    example: example-ip
+  - name: fortinet.jitter
+    type: keyword
+    level: custom
+    description: The network jitter measured during the event.
+    example: example-jitter
+  - name: fortinet.keysize
+    type: keyword
+    level: custom
+    description: The size of the encryption key used in security events.
+    example: example-keysize
+  - name: fortinet.kind
+    type: keyword
+    level: custom
+    description: The kind or category of the event, such as alert or log.
+    example: example-kind
+  - name: fortinet.kxproto
+    type: keyword
+    level: custom
+    description: The key exchange protocol used for the event.
+    example: example-kxproto
+  - name: fortinet.lanin
+    type: keyword
+    level: custom
+    description: The inbound LAN traffic measured during the event.
+    example: example-lanin
+  - name: fortinet.lanout
+    type: keyword
+    level: custom
+    description: The outbound LAN traffic measured during the event.
+    example: example-lanout
+  - name: fortinet.latency
+    type: keyword
+    level: custom
+    description: The network latency measured during the event.
+    example: example-latency
+  - name: fortinet.license_limit
+    type: keyword
+    level: custom
+    description: The license limit value for the device or session.
+    example: example-license_limit
+  - name: fortinet.linked_nsapi
+    type: keyword
+    level: custom
+    description: The linked Network Service Access Point Identifier for mobile network
+      events.
+    example: example-linked_nsapi
+  - name: fortinet.live
+    type: keyword
+    level: custom
+    description: Indicates whether the event or session is currently live or active.
+    example: example-live
+  - name: fortinet.lease
+    type: keyword
+    level: custom
+    description: The lease information for DHCP or resource allocation events.
+    example: example-lease
+  - name: fortinet.localdevcount
+    type: keyword
+    level: custom
+    description: The count of local devices detected or involved in the event.
+    example: example-localdevcount
+  - name: fortinet.login
+    type: keyword
+    level: custom
+    description: The login name or identifier used in the event.
+    example: example-login
+  - name: fortinet.lowcount
+    type: keyword
+    level: custom
+    description: The count of low severity events detected by Fortinet.
+    example: example-lowcount
+  - name: fortinet.manuf
+    type: keyword
+    level: custom
+    description: The manufacturer of the device involved in the event.
+    example: example-manuf
+  - name: fortinet.masterdstmac
+    type: keyword
+    level: custom
+    description: The master destination MAC address involved in the event.
+    example: example-masterdstmac
+  - name: fortinet.mastersrcmac
+    type: keyword
+    level: custom
+    description: The master source MAC address involved in the event.
+    example: example-mastersrcmac
+  - name: fortinet.mediumcount
+    type: keyword
+    level: custom
+    description: The count of medium severity events detected by Fortinet.
+    example: example-mediumcount
+  - name: fortinet.mem
+    type: keyword
+    level: custom
+    description: The memory usage or capacity measured during the event.
+    example: example-mem
+  - name: fortinet.method
+    type: keyword
+    level: custom
+    description: The method or protocol used for the event, such as HTTP or SSH.
+    example: example-method
+  - name: fortinet.metric
+    type: keyword
+    level: custom
+    description: The metric value or type measured during the event.
+    example: example-metric
+  - name: fortinet.mitm
+    type: keyword
+    level: custom
+    description: Indicates if a man-in-the-middle attack was detected or suspected.
+    example: example-mitm
+  - name: fortinet.mode
+    type: keyword
+    level: custom
+    description: The operational mode of the device or session during the event.
+    example: example-mode
+  - name: fortinet.msg_type
+    type: keyword
+    level: custom
+    description: The message type for protocol-specific events.
+    example: example-msg_type
+  - name: fortinet.mtu
+    type: keyword
+    level: custom
+    description: The Maximum Transmission Unit (MTU) size for network interface configuration.
+    example: example-mtu
+  - name: fortinet.name
+    type: keyword
+    level: custom
+    description: The name assigned to the device, session, or event.
+    example: example-name
+  - name: fortinet.netid
+    type: keyword
+    level: custom
+    description: The network identifier associated with the event.
+    example: example-netid
+  - name: fortinet.newchannel
+    type: keyword
+    level: custom
+    description: The new channel assigned or detected during wireless events.
+    example: example-newchannel
+  - name: fortinet.newslot
+    type: keyword
+    level: custom
+    description: The new slot assignment for hardware or virtual resources.
+    example: example-newslot
+  - name: fortinet.nextstat
+    type: keyword
+    level: custom
+    description: The next status or state transition for the event or session.
+    example: example-nextstat
+  - name: fortinet.newvalue
+    type: keyword
+    level: custom
+    description: The new value set or detected during the event.
+    example: example-newvalue
+  - name: fortinet.noise
+    type: keyword
+    level: custom
+    description: The noise level measured during the event, often in wireless contexts.
+    example: example-noise
+  - name: fortinet.nsapi
+    type: keyword
+    level: custom
+    description: The Network Service Access Point Identifier for mobile network events.
+    example: example-nsapi
+  - name: fortinet.ocrlog
+    type: keyword
+    level: custom
+    description: The Optical Character Recognition (OCR) log information for document
+      scanning events.
+    example: example-ocrlog
+  - name: fortinet.oldchannel
+    type: keyword
+    level: custom
+    description: The previous channel assignment before the event occurred.
+    example: example-oldchannel
+  - name: fortinet.oldslot
+    type: keyword
+    level: custom
+    description: The previous slot assignment before the event occurred.
+    example: example-oldslot
+  - name: fortinet.oldvalue
+    type: keyword
+    level: custom
+    description: The previous value before the event or change occurred.
+    example: example-oldvalue
+  - name: fortinet.onwire
+    type: keyword
+    level: custom
+    description: Indicates if the event or session was detected on the wire.
+    example: example-onwire
+  - name: fortinet.osname
+    type: keyword
+    level: custom
+    description: The operating system name involved in the event.
+    example: example-osname
+  - name: fortinet.outbandwidth
+    type: keyword
+    level: custom
+    description: The outbound bandwidth measured during the event.
+    example: example-outbandwidth
+  - name: fortinet.outintf
+    type: keyword
+    level: custom
+    description: The outbound network interface involved in the event.
+    example: example-outintf
+  - name: fortinet.packetloss
+    type: keyword
+    level: custom
+    description: The packet loss measured during the event.
+    example: example-packetloss
+  - name: fortinet.passedcount
+    type: keyword
+    level: custom
+    description: The count of passed or successful events detected by Fortinet.
+    example: example-passedcount
+  - name: fortinet.path
+    type: keyword
+    level: custom
+    description: The network or file path involved in the event.
+    example: example-path
+  - name: fortinet.peer_notif
+    type: keyword
+    level: custom
+    description: The peer notification message or status for the event.
+    example: example-peer_notif
+  - name: fortinet.phonenumber
+    type: keyword
+    level: custom
+    description: The phone number involved in the event, often for mobile or telephony
+      events.
+    example: example-phonenumber
+  - name: fortinet.pid
+    type: keyword
+    level: custom
+    description: The process ID associated with the system event or service.
+    example: example-pid
+  - name: fortinet.plan
+    type: keyword
+    level: custom
+    description: The plan or policy applied to the event or session.
+    example: example-plan
+  - name: fortinet.policymode
+    type: keyword
+    level: custom
+    description: The policy mode applied to the event, indicating the enforcement
+      or operational mode of the security policy.
+    example: example-policymode
+  - name: fortinet.policytype
+    type: keyword
+    level: custom
+    description: The type of policy applied to the event, such as security or routing.
+    example: example-policytype
+  - name: fortinet.poluuid
+    type: keyword
+    level: custom
+    description: The unique identifier for the policy involved in the event.
+    example: example-poluuid
+  - name: fortinet.prefetch
+    type: keyword
+    level: custom
+    description: Indicates whether prefetch operations were performed during the event.
+    example: example-prefetch
+  - name: fortinet.processtime
+    type: keyword
+    level: custom
+    description: The time taken to process the event, typically measured in milliseconds.
+    example: example-processtime
+  - name: fortinet.profile
+    type: keyword
+    level: custom
+    description: The proxy application type used for the event, indicating the kind
+      of proxy service.
+    example: example-profile
+  - name: fortinet.proxyapptype
+    type: keyword
+    level: custom
+    description: The profile applied to the event, such as user or device profile.
+    example: example-proxyapptype
+  - name: fortinet.qtypeval
+    type: keyword
+    level: custom
+    description: The query type value for DNS or other network queries.
+    example: example-qtypeval
+  - name: fortinet.quarskip
+    type: keyword
+    level: custom
+    description: Indicates if quarantine was skipped for the event.
+    example: example-quarskip
+  - name: fortinet.quotamax
+    type: keyword
+    level: custom
+    description: The maximum quota limit for data usage or bandwidth allocation.
+    example: example-quotamax
+  - name: fortinet.quotaused
+    type: keyword
+    level: custom
+    description: The amount of quota used for data usage or bandwidth allocation.
+    example: example-quotaused
+  - name: fortinet.radioband
+    type: keyword
+    level: custom
+    description: The radio band used for wireless events, such as 2.4GHz or 5GHz.
+    example: example-radioband
+  - name: fortinet.radioidclosest
+    type: keyword
+    level: custom
+    description: The identifier of the closest radio detected during the event.
+    example: example-radioidclosest
+  - name: fortinet.radioiddetected
+    type: keyword
+    level: custom
+    description: The identifier of the detected radio during the event.
+    example: example-radioiddetected
+  - name: fortinet.rate
+    type: keyword
+    level: custom
+    description: The rate value measured during the event, such as data transfer rate.
+    example: example-rate
+  - name: fortinet.rawdata
+    type: keyword
+    level: custom
+    description: The raw data associated with the event, often for forensic analysis.
+    example: example-rawdata
+  - name: fortinet.rawdataid
+    type: keyword
+    level: custom
+    description: The identifier for the raw data associated with the event.
+    example: example-rawdataid
+  - name: fortinet.rcode
+    type: keyword
+    level: custom
+    description: The response code for DNS or protocol-specific events.
+    example: example-rcode
+  - name: fortinet.rcvddelta
+    type: keyword
+    level: custom
+    description: The received delta value measured during the event.
+    example: example-rcvddelta
+  - name: fortinet.reqlength
+    type: keyword
+    level: custom
+    description: The length of the request in bytes for HTTP or application layer
+      events.
+    example: example-reqlength
+  - name: fortinet.reqtime
+    type: keyword
+    level: custom
+    description: The time taken to process the request, typically measured in milliseconds.
+    example: example-reqtime
+  - name: fortinet.reqtype
+    type: keyword
+    level: custom
+    description: The request type for the event, such as GET or POST.
+    example: example-reqtype
+  - name: fortinet.respfinishtime
+    type: keyword
+    level: custom
+    description: The timestamp when the response was completed.
+    example: example-respfinishtime
+  - name: fortinet.resplength
+    type: keyword
+    level: custom
+    description: The length of the response in bytes for HTTP or application layer
+      events.
+    example: example-resplength
+  - name: fortinet.resptime
+    type: keyword
+    level: custom
+    description: The response time measured for the event, typically in milliseconds.
+    example: example-resptime
+  - name: fortinet.resptype
+    type: keyword
+    level: custom
+    description: The response type for the event, indicating the kind of response
+      received.
+    example: example-resptype
+  - name: fortinet.result
+    type: keyword
+    level: custom
+    description: The result or outcome of the event, such as success or failure.
+    example: example-result
+  - name: fortinet.role
+    type: keyword
+    level: custom
+    description: The role of the device or user in the event, such as client or server.
+    example: example-role
+  - name: fortinet.rsptime
+    type: keyword
+    level: custom
+    description: The response time measured for the event, typically in milliseconds.
+    example: example-rsptime
+  - name: fortinet.rsrp
+    type: keyword
+    level: custom
+    description: The Reference Signal Received Power measured during the event.
+    example: example-rsrp
+  - name: fortinet.rsrq
+    type: keyword
+    level: custom
+    description: The Reference Signal Received Quality measured during the event.
+    example: example-rsrq
+  - name: fortinet.rssi
+    type: keyword
+    level: custom
+    description: The Received Signal Strength Indicator measured during the event.
+    example: example-rssi
+  - name: fortinet.scantime
+    type: keyword
+    level: custom
+    description: The time duration for security scanning operations.
+    example: example-scantime
+  - name: fortinet.scheme
+    type: keyword
+    level: custom
+    description: The URL scheme used for the event, such as HTTP, HTTPS, or FTP.
+    example: example-scheme
+  - name: fortinet.serial
+    type: keyword
+    level: custom
+    description: The server involved in the event, either source or destination.
+    example: example-serial
+  - name: fortinet.security
+    type: keyword
+    level: custom
+    description: The security status or protocol used for the event.
+    example: example-security
+  - name: fortinet.sentdelta
+    type: keyword
+    level: custom
+    description: The sent delta value measured during the event.
+    example: example-sentdelta
+  - name: fortinet.sentpkt
+    type: keyword
+    level: custom
+    description: The number of packets sent during the event or session.
+    example: example-sentpkt
+  - name: fortinet.seqnum
+    type: keyword
+    level: custom
+    description: The sequence number for packet or message ordering.
+    example: example-seqnum
+  - name: fortinet.server
+    type: keyword
+    level: custom
+    description: The server involved in the event, either source or destination.
+    example: example-server
+  - name: fortinet.session_id
+    type: keyword
+    level: custom
+    description: The session identifier for the event, used for tracking and correlation.
+    example: example-session_id
+  - name: fortinet.sessionid
+    type: keyword
+    level: custom
+    description: The session ID for the event, may be used interchangeably with session_id.
+    example: example-sessionid
+  - name: fortinet.setuprate
+    type: keyword
+    level: custom
+    description: The setup rate measured during the event, often for connections or
+      sessions.
+    example: example-setuprate
+  - name: fortinet.severity
+    type: keyword
+    level: custom
+    description: The severity level assigned to the event, such as informational,
+      warning, or critical.
+    example: example-severity
+  - name: fortinet.signal
+    type: keyword
+    level: custom
+    description: The signal strength measured during the event, often for wireless
+      contexts.
+    example: example-signal
+  - name: fortinet.signalstrength
+    type: keyword
+    level: custom
+    description: The signal strength value measured during the event.
+    example: example-signalstrength
+  - name: fortinet.sinr
+    type: keyword
+    level: custom
+    description: The Signal to Interference plus Noise Ratio measured during the event.
+    example: example-sinr
+  - name: fortinet.ski
+    type: keyword
+    level: custom
+    description: The session key identifier used for encryption or authentication.
+    example: example-ski
+  - name: fortinet.slamap
+    type: keyword
+    level: custom
+    description: The SLA map applied to the event, indicating service level agreements.
+    example: example-slamap
+  - name: fortinet.slatargetid
+    type: keyword
+    level: custom
+    description: The SLA target identifier for the event.
+    example: example-slatargetid
+  - name: fortinet.slot
+    type: keyword
+    level: custom
+    description: The hardware or virtual slot involved in the event.
+    example: example-slot
+  - name: fortinet.sn
+    type: keyword
+    level: custom
+    description: The serial number of the device involved in the event.
+    example: example-sn
+  - name: fortinet.snclosest
+    type: keyword
+    level: custom
+    description: The serial number of the closest device detected during the event.
+    example: example-snclosest
+  - name: fortinet.sndetected
+    type: keyword
+    level: custom
+    description: Indicates if a suspicious network was detected during monitoring,
+      including relevant detection details.
+    example: example-sndetected
+  - name: fortinet.srccountry
+    type: keyword
+    level: custom
+    description: The source country for the network traffic involved in the event.
+    example: example-srccountry
+  - name: fortinet.srcreputation
+    type: keyword
+    level: custom
+    description: The reputation score or category of the source IP address or domain.
+    example: example-srcreputation
+  - name: fortinet.srchwvendor
+    type: keyword
+    level: custom
+    description: The hardware vendor of the source device involved in the event.
+    example: example-srchwvendor
+  - name: fortinet.srcintfrole
+    type: keyword
+    level: custom
+    description: The role of the source interface, such as internal or external.
+    example: example-srcintfrole
+  - name: fortinet.srcname
+    type: keyword
+    level: custom
+    description: The name of the source device or entity involved in the event.
+    example: example-srcname
+  - name: fortinet.srcserver
+    type: keyword
+    level: custom
+    description: The source server involved in the event.
+    example: example-srcserver
+  - name: fortinet.srcswversion
+    type: keyword
+    level: custom
+    description: The software version of the source device involved in the event.
+    example: example-srcswversion
+  - name: fortinet.srcuuid
+    type: keyword
+    level: custom
+    description: The unique identifier for the source device or server.
+    example: example-srcuuid
+  - name: fortinet.ssid
+    type: keyword
+    level: custom
+    description: The SSID (Service Set Identifier) for wireless events, identifying
+      the network.
+    example: example-ssid
+  - name: fortinet.stacount
+    type: keyword
+    level: custom
+    description: The count of stations or clients detected during the event.
+    example: example-stacount
+  - name: fortinet.stage
+    type: keyword
+    level: custom
+    description: The stage or phase of the event, such as initiation or completion.
+    example: example-stage
+  - name: fortinet.stamac
+    type: keyword
+    level: custom
+    description: The MAC address of the wireless station or client device involved
+      in the event, as identified by Fortinet.
+    example: example-stamac
+  - name: fortinet.status
+    type: keyword
+    level: custom
+    description: The status of the event, session, or device, such as active or inactive.
+    example: example-status
+  - name: fortinet.statuscode
+    type: keyword
+    level: custom
+    description: The status code returned by the application or service.
+    example: example-statuscode
+  - name: fortinet.subtype
+    type: keyword
+    level: custom
+    description: The subtype or specific category of the event.
+    example: example-subtype
+  - name: fortinet.sysuptime
+    type: keyword
+    level: custom
+    description: The system uptime measured during the event, typically in seconds.
+    example: example-sysuptime
+  - name: fortinet.temperature
+    type: keyword
+    level: custom
+    description: The temperature measured during the event, often for hardware monitoring.
+    example: example-temperature
+  - name: fortinet.timeoutdelete
+    type: keyword
+    level: custom
+    description: The timeout value for deletion operations in seconds.
+    example: example-timeoutdelete
+  - name: fortinet.timestamp
+    type: keyword
+    level: custom
+    description: The timestamp when the event occurred or was recorded.
+    example: example-timestamp
+  - name: fortinet.to
+    type: keyword
+    level: custom
+    description: The destination address or entity to which the event is directed.
+    example: example-to
+  - name: fortinet.to4
+    type: keyword
+    level: custom
+    description: The destination IPv4 address in mobile network events.
+    example: example-to4
+  - name: fortinet.to6
+    type: keyword
+    level: custom
+    description: The destination IPv6 address in mobile network events.
+    example: example-to6
+  - name: fortinet.total
+    type: keyword
+    level: custom
+    description: The total count or sum value for the event metric.
+    example: example-total
+  - name: fortinet.totalsession
+    type: keyword
+    level: custom
+    description: The total number of sessions counted during the event.
+    example: example-totalsession
+  - name: fortinet.to_vcluster
+    type: keyword
+    level: custom
+    description: The destination virtual cluster identifier for cluster-related events.
+    example: example-to_vcluster
+  - name: fortinet.trandisp
+    type: keyword
+    level: custom
+    description: The translation disposition for NAT or firewall events.
+    example: example-trandisp
+  - name: fortinet.tranip
+    type: keyword
+    level: custom
+    description: The translated IP address involved in the event.
+    example: example-tranip
+  - name: fortinet.transid
+    type: keyword
+    level: custom
+    description: The transaction identifier for tracking and correlating related events.
+    example: example-transid
+  - name: fortinet.tranport
+    type: keyword
+    level: custom
+    description: The transport protocol used for the event (alternative spelling).
+    example: example-tranport
+  - name: fortinet.transip
+    type: keyword
+    level: custom
+    description: The translated source IP address involved in the event.
+    example: example-transip
+  - name: fortinet.transport
+    type: keyword
+    level: custom
+    description: The transport protocol used for the event, such as TCP or UDP.
+    example: example-transport
+  - name: fortinet.trueclntip
+    type: keyword
+    level: custom
+    description: The true client IP address, often used when traffic passes through
+      proxies.
+    example: example-trueclntip
+  - name: fortinet.tunnelid
+    type: keyword
+    level: custom
+    description: The tunnel identifier for VPN or tunneling events.
+    example: example-tunnelid
+  - name: fortinet.tunnelip
+    type: keyword
+    level: custom
+    description: The tunnel IP address involved in the event.
+    example: example-tunnelip
+  - name: fortinet.tunneltype
+    type: keyword
+    level: custom
+    description: The type of tunnel used for the event, such as IPsec or SSL
+    example: example-tunneltype
+  - name: fortinet.tunnel_idx
+    type: keyword
+    level: custom
+    description: The tunnel index for VPN or tunneling events.
+    example: example-tunnel_idx
+  - name: fortinet.type
+    type: keyword
+    level: custom
+    description: The type or category of the event, such as log or alert.
+    example: example-type
+  - name: fortinet.ui
+    type: keyword
+    level: custom
+    description: The user interface or identifier involved in the event.
+    example: example-ui
+  - name: fortinet.ufseidaddr
+    type: keyword
+    level: custom
+    description: The user plane Fully Qualified Session Endpoint Identifier address.
+    example: example-ufseidaddr
+  - name: fortinet.uggsn6
+    type: keyword
+    level: custom
+    description: The IPv6 address of the user-side Gateway GPRS Support Node.
+    example: example-uggsn6
+  - name: fortinet.ugsn6
+    type: keyword
+    level: custom
+    description: The IPv6 address of the user-side Gateway Support Node.
+    example: example-ugsn6
+  - name: fortinet.ulimcc
+    type: keyword
+    level: custom
+    description: The User Location Information Mobile Country Code.
+    example: example-ulimcc
+  - name: fortinet.ulimnc
+    type: keyword
+    level: custom
+    description: The User Location Information Mobile Network Code.
+    example: example-ulimnc
+  - name: fortinet.unauthusersource
+    type: keyword
+    level: custom
+    description: The source of unauthorized user activity detected by Fortinet.
+    example: example-unauthusersource
+  - name: fortinet.unit
+    type: keyword
+    level: custom
+    description: The unit of measurement for the event metric or value.
+    example: example-unit
+  - name: '-'
+    type: keyword
+    level: custom
+    description: '-'
+    example: example--
+  - name: fortinet.urlfilteridx
+    type: keyword
+    level: custom
+    description: The index of the URL filter applied to the event.
+    example: example-urlfilteridx
+  - name: fortinet.used
+    type: keyword
+    level: custom
+    description: The amount used or consumed during the event, such as bandwidth or
+      storage.
+    example: example-used
+  - name: fortinet.used_for_type
+    type: keyword
+    level: custom
+    description: The type for which the event or object is used.
+    example: example-used_for_type
+  - name: '-'
+    type: keyword
+    level: custom
+    description: '-'
+    example: example--
+  - name: fortinet.usgsn6
+    type: keyword
+    level: custom
+    description: The IPv6 address of the user-side Serving GPRS Support Node.
+    example: example-usgsn6
+  - name: fortinet.utmaction
+    type: keyword
+    level: custom
+    description: The UTM (Unified Threat Management) action taken for the event.
+    example: example-utmaction
+  - name: fortinet.utmref
+    type: keyword
+    level: custom
+    description: The UTM reference identifier for the event.
+    example: example-utmref
+  - name: fortinet.uuid
+    type: keyword
+    level: custom
+    description: The universally unique identifier associated with the event or session.
+    example: example-uuid
+  - name: fortinet.u_bytes
+    type: keyword
+    level: custom
+    description: The number of bytes transferred from user/uplink side in mobile network
+      events.
+    example: example-u_bytes
+  - name: fortinet.u_ggsn
+    type: keyword
+    level: custom
+    description: The user-side Gateway GPRS Support Node identifier for mobile network
+      events.
+    example: example-u_ggsn
+  - name: fortinet.u_gsn
+    type: keyword
+    level: custom
+    description: The user-side Gateway Support Node identifier for mobile network
+      events.
+    example: example-u_gsn
+  - name: fortinet.u_pkts
+    type: keyword
+    level: custom
+    description: The number of packets transferred from user/uplink side in mobile
+      network events.
+    example: example-u_pkts
+  - name: fortinet.u_sgsn
+    type: keyword
+    level: custom
+    description: The user-side Serving GPRS Support Node identifier for mobile network
+      events.
+    example: example-u_sgsn
+  - name: fortinet.valid
+    type: keyword
+    level: custom
+    description: Indicates whether the event or session is valid or has passed validation.
+    example: example-valid
+  - name: fortinet.vcluster
+    type: keyword
+    level: custom
+    description: The virtual cluster involved in the event.
+    example: example-vcluster
+  - name: fortinet.vcluster_member
+    type: keyword
+    level: custom
+    description: The member of the virtual cluster involved in the event.
+    example: example-vcluster_member
+  - name: fortinet.vcluster_state
+    type: keyword
+    level: custom
+    description: The state of the virtual cluster during the event.
+    example: example-vcluster_state
+  - name: fortinet.vd
+    type: keyword
+    level: custom
+    description: The virtual domain involved in the event.
+    example: example-vd
+  - name: fortinet.version
+    type: keyword
+    level: custom
+    description: The version of the device firmware or software involved in the event.
+    example: example-version
+  - name: fortinet.violatescore
+    type: keyword
+    level: custom
+    description: The violation score assigned to security policy violations.
+    example: example-violatescore
+  - name: fortinet.virus
+    type: keyword
+    level: custom
+    description: Name or identifier of the virus detected by Fortinet during traffic
+      inspection or scanning.
+    example: example-virus
+  - name: fortinet.virusid
+    type: keyword
+    level: custom
+    description: Unique identifier assigned to the detected virus by Fortinet for
+      tracking and reporting purposes.
+    example: example-virusid
+  - name: fortinet.voip_proto
+    type: keyword
+    level: custom
+    description: The Voice over IP protocol used in the network traffic, such as SIP
+      or H.323, as identified by Fortinet.
+    example: example-voip_proto
+  - name: fortinet.vpntunnel
+    type: keyword
+    level: custom
+    description: Name or identifier of the VPN tunnel established or referenced in
+      the event, as recognized by Fortinet.
+    example: example-vpntunnel
+  - name: fortinet.vwlid
+    type: keyword
+    level: custom
+    description: Identifier for the virtual wireless LAN (VWL) involved in the event,
+      as assigned by Fortinet.
+    example: example-vwlid
+  - name: fortinet.vwlquality
+    type: keyword
+    level: custom
+    description: Quality metric or status of the virtual wireless LAN (VWL) connection
+      as reported by Fortinet.
+    example: example-vwlquality
+  - name: fortinet.wanin
+    type: keyword
+    level: custom
+    description: Amount of incoming traffic on the WAN interface, measured and reported
+      by Fortinet.
+    example: example-wanin
+  - name: fortinet.waninfo
+    type: keyword
+    level: custom
+    description: Information about the WAN interface or connection involved in the
+      event.
+    example: example-waninfo
+  - name: fortinet.wanout
+    type: keyword
+    level: custom
+    description: Amount of outgoing traffic on the WAN interface, measured and reported
+      by Fortinet.
+    example: example-wanout
+  - name: fortinet.wscode
+    type: keyword
+    level: custom
+    description: The web security code associated with web filtering events.
+    example: example-wscode
+  - name: fortinet.xauthgroup
+    type: keyword
+    level: custom
+    description: The group name associated with the XAuth user, used for access control
+      and policy enforcement.
+    example: example-xauthgroup
+  - name: fortinet.xauthuser
+    type: keyword
+    level: custom
+    description: The username authenticated via extended authentication (XAuth) for
+      VPN or secure network access.
+    example: example-xauthuser

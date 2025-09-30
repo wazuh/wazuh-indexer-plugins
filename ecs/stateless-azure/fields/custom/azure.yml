@@ -1,0 +1,1485 @@
+- name: azure
+  title: Azure
+  description: azure custom fields for WCS integration
+  fields:
+  - name: azure.resource.provider
+    type: keyword
+    level: custom
+    description: The Azure resource provider extracted from the resource ID
+    example: example-provider
+  - name: azure.resource.authorization_rule
+    type: keyword
+    level: custom
+    description: The authorization rule associated with the Azure resource extracted
+      from the resource ID
+    example: example-authorization_rule
+  - name: azure.resource.namespace
+    type: keyword
+    level: custom
+    description: The Azure Resource Provider namespace associated with the resource
+      involved in the event
+    example: example-namespace
+  - name: azure.activitylogs.properties.event_category
+    type: keyword
+    level: custom
+    description: The category of the event that was logged in Azure activity logs
+    example: example-event_category
+  - name: azure.activitylogs.properties.event_properties_cause
+    type: keyword
+    level: custom
+    description: The cause of the event as recorded in Azure activity logs
+    example: example-event_properties_cause
+  - name: azure.activitylogs.tenant_id
+    type: keyword
+    level: custom
+    description: The tenant ID associated with the Azure Activity Log event
+    example: example-tenant_id
+  - name: azure.activitylogs.level
+    type: keyword
+    level: custom
+    description: This field indicates the severity of an event
+    example: example-level
+  - name: azure.activitylogs.result_signature
+    type: keyword
+    level: custom
+    description: The result signature of the Azure Activity Log event
+    example: example-result_signature
+  - name: azure.activitylogs.category
+    type: keyword
+    level: custom
+    description: The category of the Azure Activity Log event
+    example: example-category
+  - name: azure.activitylogs.identity.authorization.action
+    type: keyword
+    level: custom
+    description: The action performed by the identity in the authorization context
+    example: example-action
+  - name: azure.activitylogs.identity.authorization.evidence.role_assignment_scope
+    type: keyword
+    level: custom
+    description: The scope of the role assignment in the authorization evidence
+    example: example-role_assignment_scope
+  - name: azure.activitylogs.identity.authorization.evidence.role_definition_id
+    type: keyword
+    level: custom
+    description: The role definition ID in the authorization evidence
+    example: example-role_definition_id
+  - name: azure.activitylogs.identity.authorization.evidence.role
+    type: keyword
+    level: custom
+    description: The role name in the authorization evidence
+    example: example-role
+  - name: azure.activitylogs.identity.authorization.scope
+    type: keyword
+    level: custom
+    description: The authorization scope for the identity
+    example: example-scope
+  - name: azure.activitylogs.identity.authorization.evidence.role_assignment_id
+    type: keyword
+    level: custom
+    description: The role assignment ID in the authorization evidence
+    example: example-role_assignment_id
+  - name: azure.activitylogs.identity.authorization.evidence.principal_id
+    type: keyword
+    level: custom
+    description: The principal ID in the authorization evidence
+    example: example-principal_id
+  - name: azure.activitylogs.identity.authorization.evidence.principal_type
+    type: keyword
+    level: custom
+    description: The principal type in the authorization evidence
+    example: example-principal_type
+  - name: azure.activitylogs.identity.claims_initiated_by_user_fullname
+    type: keyword
+    level: custom
+    description: The full name of the user who initiated the action from identity
+      claims
+    example: example-claims_initiated_by_user_fullname
+  - name: azure.activitylogs.properties.status_code
+    type: keyword
+    level: custom
+    description: The status code from the properties of the Activity Log
+    example: example-status_code
+  - name: azure.activitylogs.event_category
+    type: keyword
+    level: custom
+    description: The event category for the Azure Activity Log
+    example: example-event_category
+  - name: azure.application_gateway.operation_name
+    type: keyword
+    level: custom
+    description: The operation name for the Azure Application Gateway event
+    example: example-operation_name
+  - name: azure.application_gateway.instance_id
+    type: keyword
+    level: custom
+    description: The instance ID of the Azure Application Gateway
+    example: example-instance_id
+  - name: azure.application_gateway.hostname
+    type: keyword
+    level: custom
+    description: The hostname of the Azure Application Gateway
+    example: example-hostname
+  - name: azure.application_gateway.transaction_id
+    type: keyword
+    level: custom
+    description: The transaction ID for the Application Gateway event
+    example: example-transaction_id
+  - name: azure.application_gateway.policy.id
+    type: keyword
+    level: custom
+    description: The policy ID associated with the Application Gateway event
+    example: example-id
+  - name: azure.application_gateway.policy.scope
+    type: keyword
+    level: custom
+    description: The policy scope for the Application Gateway event
+    example: example-scope
+  - name: azure.application_gateway.policy.scope_name
+    type: keyword
+    level: custom
+    description: The policy scope name for the Application Gateway event
+    example: example-scope_name
+  - name: azure.rule.category
+    type: keyword
+    level: custom
+    description: The category of the rule triggered in the Application Gateway
+    example: example-category
+  - name: azure.rule.version
+    type: keyword
+    level: custom
+    description: The version of the rule set in the Application Gateway
+    example: example-version
+  - name: azure.rule.ruleset
+    type: keyword
+    level: custom
+    description: The rule set name in the Application Gateway
+    example: example-ruleset
+  - name: azure.rule.description
+    type: keyword
+    level: custom
+    description: The description of the rule in the Application Gateway
+    example: example-description
+  - name: azure.auditlogs.operation_name
+    type: keyword
+    level: custom
+    description: The name of the operation performed in the Azure Audit Log event
+    example: example-operation_name
+  - name: azure.auditlogs.category
+    type: keyword
+    level: custom
+    description: The category of the Azure Audit Log event
+    example: example-category
+  - name: azure.auditlogs.identity
+    type: keyword
+    level: custom
+    description: The identity object from the Azure Audit Log containing information
+      about the user or service principal
+    example: example-identity
+  - name: azure.auditlogs.level
+    type: keyword
+    level: custom
+    description: The log level for the Azure Audit Log event
+    example: example-level
+  - name: azure.auditlogs.result_signature
+    type: keyword
+    level: custom
+    description: The result signature for the Azure Audit Log event
+    example: example-result_signature
+  - name: azure.auditlogs.operation_version
+    type: keyword
+    level: custom
+    description: The version of the operation in the Azure Audit Log
+    example: example-operation_version
+  - name: azure.tenant_id
+    type: keyword
+    level: custom
+    description: The tenant ID associated with the Azure Audit Log event
+    example: example-tenant_id
+  - name: azure.auditlogs.properties.activity_display_name
+    type: keyword
+    level: custom
+    description: The display name of the activity in the Audit Log properties
+    example: example-activity_display_name
+  - name: azure.auditlogs.properties.category
+    type: keyword
+    level: custom
+    description: The category in the Audit Log properties
+    example: example-category
+  - name: azure.auditlogs.properties.id
+    type: keyword
+    level: custom
+    description: The unique identifier in the Audit Log properties
+    example: example-id
+  - name: azure.auditlogs.properties.activity_datetime
+    type: keyword
+    level: custom
+    description: The date and time of the activity in the Audit Log properties
+    example: example-activity_datetime
+  - name: azure.auditlogs.properties.additional_details
+    type: keyword
+    level: custom
+    description: Additional details from the Audit Log properties
+    example: example-additional_details
+  - name: azure.auditlogs.properties.result_reason
+    type: keyword
+    level: custom
+    description: The reason for the result in the Audit Log properties
+    example: example-result_reason
+  - name: azure.auditlogs.properties.result_description
+    type: keyword
+    level: custom
+    description: The description of the result in the Audit Log properties
+    example: example-result_description
+  - name: azure.auditlogs.properties.correlation_id
+    type: keyword
+    level: custom
+    description: The correlation ID in the Audit Log properties
+    example: example-correlation_id
+  - name: azure.auditlogs.properties.logged_by_service
+    type: keyword
+    level: custom
+    description: The service that logged the event in the Audit Log properties
+    example: example-logged_by_service
+  - name: azure.auditlogs.properties.operation_type
+    type: keyword
+    level: custom
+    description: The type of operation in the Audit Log properties
+    example: example-operation_type
+  - name: azure.auditlogs.properties.target_resources
+    type: keyword
+    level: custom
+    description: The target resources affected by the operation in the Audit Log properties
+    example: example-target_resources
+  - name: azure.activitylogs.result_type
+    type: keyword
+    level: custom
+    description: The result type of the Azure Activity Log event (e.g. Success Failure)
+    example: example-result_type
+  - name: azure.activitylogs.operation_name
+    type: keyword
+    level: custom
+    description: The name of the operation performed in the Azure Activity Log
+    example: example-operation_name
+  - name: azure.activitylogs.operation_version
+    type: keyword
+    level: custom
+    description: The version of the operation in the Azure Activity Log
+    example: example-operation_version
+  - name: azure.activitylogs.identity.claims
+    type: keyword
+    level: custom
+    description: The claims object containing identity information
+    example: example-claims
+  - name: azure.activitylogs.properties.service_request_id
+    type: keyword
+    level: custom
+    description: The service request ID from the properties of the Activity Log
+    example: example-service_request_id
+  - name: azure.rule.id
+    type: keyword
+    level: custom
+    description: The unique identifier of the rule in the Application Gateway
+    example: example-id
+  - name: azure.firewall.transaction_id
+    type: keyword
+    level: custom
+    description: The transaction ID for the Azure Firewall event
+    example: example-transaction_id
+  - name: azure.firewall.icmp.request.code
+    type: keyword
+    level: custom
+    description: Refers to a specific type of ICMP message that Azure Firewall might
+      be configured to handle or log
+    example: example-code
+  - name: azure.firewall.policy
+    type: keyword
+    level: custom
+    description: The policy name for the Azure Firewall event
+    example: example-policy
+  - name: azure.firewall.policy_id
+    type: keyword
+    level: custom
+    description: The policy ID for the Azure Firewall event
+    example: example-policy_id
+  - name: azure.firewall.policy_scope
+    type: keyword
+    level: custom
+    description: The policy scope for the Azure Firewall event
+    example: example-policy_scope
+  - name: azure.firewall.policy_scope_name
+    type: keyword
+    level: custom
+    description: The policy scope name for the Azure Firewall event
+    example: example-policy_scope_name
+  - name: azure.firewall.operation_name
+    type: keyword
+    level: custom
+    description: The operation name for the Azure Firewall event
+    example: example-operation_name
+  - name: azure.firewall.instance_id
+    type: keyword
+    level: custom
+    description: The instance ID of the Azure Firewall
+    example: example-instance_id
+  - name: azure.firewall.hostname
+    type: keyword
+    level: custom
+    description: This is the hostname of the Azure Firewall
+    example: example-hostname
+  - name: azure.firewall.request_duration_sec
+    type: keyword
+    level: custom
+    description: The duration of the request in seconds for the Azure Firewall event
+    example: example-request_duration_sec
+  - name: azure.platformlogs.properties.raw
+    type: keyword
+    level: custom
+    description: The raw properties of the Azure Platform Log event containing unprocessed
+      event data
+    example: example-raw
+  - name: azure.firewall.dnssec_ok_bit
+    type: keyword
+    level: custom
+    description: The DNSSEC OK bit value for the Azure Firewall DNS event
+    example: example-dnssec_ok_bit
+  - name: azure.firewall.edns0_buffer_size
+    type: keyword
+    level: custom
+    description: The EDNS0 buffer size for the Azure Firewall DNS event
+    example: example-edns0_buffer_size
+  - name: azure.firewall.rule_name
+    type: keyword
+    level: custom
+    description: The name of the rule triggered in the Azure Firewall
+    example: example-rule_name
+  - name: azure.firewall.rule_ruleset
+    type: keyword
+    level: custom
+    description: The rule set name in the Azure Firewall
+    example: example-rule_ruleset
+  - name: azure.firewall.web_category
+    type: keyword
+    level: custom
+    description: The web category for the Azure Firewall event
+    example: example-web_category
+  - name: azure.firewall.is_explicit_proxy_request
+    type: keyword
+    level: custom
+    description: Indicates if the request was an explicit proxy request in the Azure
+      Firewall
+    example: example-is_explicit_proxy_request
+  - name: azure.firewall.rule_collection_group
+    type: keyword
+    level: custom
+    description: The rule collection group in the Azure Firewall
+    example: example-rule_collection_group
+  - name: azure.firewall.category
+    type: keyword
+    level: custom
+    description: The category of the Azure Firewall event
+    example: example-category
+  - name: azure.firewall.request_size
+    type: keyword
+    level: custom
+    description: The size of the request in bytes for the Azure Firewall event
+    example: example-request_size
+  - name: azure.firewall.response_size
+    type: keyword
+    level: custom
+    description: The size of the response in bytes for the Azure Firewall event
+    example: example-response_size
+  - name: azure.firewall.action
+    type: keyword
+    level: custom
+    description: The action taken by the Azure Firewall (e.g. Allow Deny)
+    example: example-action
+  - name: azure.graphactivity.category
+    type: keyword
+    level: custom
+    description: The category for Microsoft Graph Activity Logs
+    example: example-category
+  - name: azure.resource.id
+    type: keyword
+    level: custom
+    description: The unique identifier of the Azure resource associated with the event
+    example: example-id
+  - name: azure.graphactivitylogs.category
+    type: keyword
+    level: custom
+    description: The category of the Microsoft Graph Activity Log event
+    example: example-category
+  - name: azure.graphactivitylogs.result_signature
+    type: keyword
+    level: custom
+    description: The result signature of the Microsoft Graph Activity Log event
+    example: example-result_signature
+  - name: azure.graphactivitylogs.operation_name
+    type: keyword
+    level: custom
+    description: The name of the operation performed in the Microsoft Graph Activity
+      Log
+    example: example-operation_name
+  - name: azure.graphactivitylogs.operation_version
+    type: keyword
+    level: custom
+    description: The version of the operation in the Microsoft Graph Activity Log
+    example: example-operation_version
+  - name: azure.graphactivitylogs.properties.billed_size
+    type: keyword
+    level: custom
+    description: The billed size of the operation in bytes
+    example: example-billed_size
+  - name: azure.graphactivitylogs.properties.api_version
+    type: keyword
+    level: custom
+    description: The API version used for the operation
+    example: example-api_version
+  - name: azure.graphactivitylogs.properties.app_id
+    type: keyword
+    level: custom
+    description: The application ID associated with the operation
+    example: example-app_id
+  - name: azure.graphactivitylogs.properties.client_request_id
+    type: keyword
+    level: custom
+    description: The client request ID associated with the operation
+    example: example-client_request_id
+  - name: azure.graphactivitylogs.properties.operation_id
+    type: keyword
+    level: custom
+    description: The unique operation ID for the activity
+    example: example-operation_id
+  - name: azure.graphactivitylogs.properties.sign_in_activity
+    type: keyword
+    level: custom
+    description: The sign-in activity ID (may be misspelled as 'singInActivityId'
+      in some logs)
+    example: example-sign_in_activity
+  - name: azure.graphactivitylogs.properties.client_auth_method
+    type: keyword
+    level: custom
+    description: The client authentication method used for the operation
+    example: example-client_auth_method
+  - name: azure.graphactivitylogs.properties.token_issued_at
+    type: keyword
+    level: custom
+    description: The timestamp when the token was issued
+    example: example-token_issued_at
+  - name: azure.graphactivitylogs.properties.sign_in_activity_id
+    type: keyword
+    level: custom
+    description: This field indicates the sign-in activity ID of the event
+    example: example-sign_in_activity_id
+  - name: azure.graphactivitylogs.properties.time_generated
+    type: keyword
+    level: custom
+    description: The timestamp when the activity log entry was generated
+    example: example-time_generated
+  - name: azure.graphactivitylogs.properties.service_principal_id
+    type: keyword
+    level: custom
+    description: The service principal ID associated with the operation
+    example: example-service_principal_id
+  - name: azure.graphactivitylogs.properties.identity_provider
+    type: keyword
+    level: custom
+    description: The identity provider used for authentication
+    example: example-identity_provider
+  - name: azure.graphactivitylogs.properties.roles
+    type: keyword
+    level: custom
+    description: The roles assigned to the principal as an array of role names
+    example: example-roles
+  - name: azure.graphactivitylogs.properties.scopes
+    type: keyword
+    level: custom
+    description: The scopes assigned to the principal as an array of scope names
+    example: example-scopes
+  - name: azure.graphactivitylogs.properties.wids
+    type: keyword
+    level: custom
+    description: The list of role template IDs (well-known IDs) assigned to the principal
+    example: example-wids
+  - name: azure.identityprotection.operation_name
+    type: keyword
+    level: custom
+    description: The name of the operation performed in the Azure Identity Protection
+      event
+    example: example-operation_name
+  - name: azure.identityprotection.category
+    type: keyword
+    level: custom
+    description: The category of the Azure Identity Protection event
+    example: example-category
+  - name: azure.identityprotection.operation_version
+    type: keyword
+    level: custom
+    description: The version of the operation performed in the Azure Identity Protection
+      event
+    example: example-operation_version
+  - name: azure.identityprotection.result_signature
+    type: keyword
+    level: custom
+    description: The result signature of the Azure Identity Protection event
+    example: example-result_signature
+  - name: azure.identityprotection.properties.activity
+    type: keyword
+    level: custom
+    description: The activity type or name associated with the event
+    example: example-activity
+  - name: azure.identityprotection.properties.is_deleted
+    type: keyword
+    level: custom
+    description: Indicates if the user or entity is deleted
+    example: example-is_deleted
+  - name: azure.identityprotection.properties.is_guest
+    type: keyword
+    level: custom
+    description: Indicates if the user is a guest
+    example: example-is_guest
+  - name: azure.identityprotection.properties.is_processing
+    type: keyword
+    level: custom
+    description: Indicates if the event is still being processed
+    example: example-is_processing
+  - name: azure.identityprotection.properties.request_id
+    type: keyword
+    level: custom
+    description: The request ID associated with the event
+    example: example-request_id
+  - name: azure.identityprotection.properties.correlation_id
+    type: keyword
+    level: custom
+    description: The correlation ID associated with the event properties
+    example: example-correlation_id
+  - name: azure.identityprotection.properties.token_issuer_type
+    type: keyword
+    level: custom
+    description: The type of token issuer for the event
+    example: example-token_issuer_type
+  - name: azure.identityprotection.properties.additional_info
+    type: keyword
+    level: custom
+    description: Additional information related to the event
+    example: example-additional_info
+  - name: azure.identityprotection.properties.risk_type
+    type: keyword
+    level: custom
+    description: The type of risk detected in the event
+    example: example-risk_type
+  - name: azure.identityprotection.properties.risk_event_type
+    type: keyword
+    level: custom
+    description: The type of risk event detected
+    example: example-risk_event_type
+  - name: azure.identityprotection.properties.risk_state
+    type: keyword
+    level: custom
+    description: The state of the risk (e.g. active remediated)
+    example: example-risk_state
+  - name: azure.identityprotection.properties.risk_level
+    type: keyword
+    level: custom
+    description: The risk level assigned to the event (e.g. low medium high)
+    example: example-risk_level
+  - name: azure.identityprotection.properties.risk_detail
+    type: keyword
+    level: custom
+    description: This field provides additional details about the risk
+    example: example-risk_detail
+  - name: azure.identityprotection.properties.user_id
+    type: keyword
+    level: custom
+    description: The unique identifier of the user associated with the event
+    example: example-user_id
+  - name: azure.identityprotection.properties.source
+    type: keyword
+    level: custom
+    description: The source of the event or risk
+    example: example-source
+  - name: azure.identityprotection.properties.user_display_name
+    type: keyword
+    level: custom
+    description: The display name of the user associated with the event
+    example: example-user_display_name
+  - name: azure.identityprotection.properties.user_principal_name
+    type: keyword
+    level: custom
+    description: The user principal name (UPN) of the user associated with the event
+    example: example-user_principal_name
+  - name: azure.identityprotection.properties.user_type
+    type: keyword
+    level: custom
+    description: The type of user (e.g. Member Guest)
+    example: example-user_type
+  - name: azure.identityprotection.properties.last_updated_datetime
+    type: keyword
+    level: custom
+    description: The date and time when the event or risk was last updated
+    example: example-last_updated_datetime
+  - name: azure.identityprotection.properties.risk_last_updated_datetime
+    type: keyword
+    level: custom
+    description: The date and time when the risk was last updated
+    example: example-risk_last_updated_datetime
+  - name: azure.identityprotection.properties.activity_datetime
+    type: keyword
+    level: custom
+    description: The date and time when the activity occurred
+    example: example-activity_datetime
+  - name: azure.platformlogs.properties.device_id
+    type: keyword
+    level: custom
+    description: The unique identifier of the device from which the event originated
+    example: example-device_id
+  - name: azure.platformlogs.properties.error_message
+    type: keyword
+    level: custom
+    description: A descriptive error message associated with the request if any
+    example: example-error_message
+  - name: azure.platformlogs.properties.direction
+    type: keyword
+    level: custom
+    description: The direction of the communication such as 'Inbound' or 'Outbound'
+    example: example-direction
+  - name: azure.platformlogs.properties.request_name
+    type: keyword
+    level: custom
+    description: The name of the request operation initiated
+    example: example-request_name
+  - name: azure.platformlogs.properties.request_size
+    type: keyword
+    level: custom
+    description: The size of the request payload in bytes
+    example: example-request_size
+  - name: azure.platformlogs.properties.response_size
+    type: keyword
+    level: custom
+    description: The size of the response payload in bytes
+    example: example-response_size
+  - name: azure.platformlogs.properties.sdk_version
+    type: keyword
+    level: custom
+    description: The version of the SDK used to make the request
+    example: example-sdk_version
+  - name: azure.platformlogs.properties.auth_type
+    type: keyword
+    level: custom
+    description: The type of authentication used for the request such as 'OAuth2'
+      or 'ManagedIdentity'
+    example: example-auth_type
+  - name: azure.platformlogs.properties.protocol
+    type: keyword
+    level: custom
+    description: The network protocol used in the request such as 'HTTPS' or 'AMQP'
+    example: example-protocol
+  - name: azure.platformlogs.properties.masked_ipaddress
+    type: keyword
+    level: custom
+    description: The masked IP address of the client making the request for privacy
+      compliance
+    example: example-masked_ipaddress
+  - name: azure.platformlogs.cloud
+    type: keyword
+    level: custom
+    description: The Azure cloud environment where the event was generated
+    example: example-cloud
+  - name: azure.platformlogs.environment
+    type: keyword
+    level: custom
+    description: The Azure environment (such as Production Test etc.) where the event
+      occurred
+    example: example-environment
+  - name: azure.platformlogs.activity_id
+    type: keyword
+    level: custom
+    description: The unique identifier for the activity in Azure Platform Logs
+    example: example-activity_id
+  - name: azure.platformlogs.identity_name
+    type: keyword
+    level: custom
+    description: The name of the identity that performed the operation
+    example: example-identity_name
+  - name: azure.platformlogs.operation_name
+    type: keyword
+    level: custom
+    description: The name of the operation performed in the Azure Platform Log event
+    example: example-operation_name
+  - name: azure.platformlogs.category
+    type: keyword
+    level: custom
+    description: The category of the Azure Platform Log event
+    example: example-category
+  - name: azure.platformlogs.caller
+    type: keyword
+    level: custom
+    description: The caller or principal that initiated the operation
+    example: example-caller
+  - name: azure.platformlogs.scaleunit
+    type: keyword
+    level: custom
+    description: The scale unit associated with the Azure resource or event
+    example: example-scaleunit
+  - name: azure.platformlogs.event_time_string
+    type: keyword
+    level: custom
+    description: The string representation of the event time
+    example: example-event_time_string
+  - name: azure.platformlogs.ccpnamespace
+    type: keyword
+    level: custom
+    description: The CCP namespace associated with the event
+    example: example-ccpnamespace
+  - name: azure.platformlogs.result_signature
+    type: keyword
+    level: custom
+    description: The result signature of the operation
+    example: example-result_signature
+  - name: azure.platformlogs.result_description
+    type: keyword
+    level: custom
+    description: The description of the result of the operation
+    example: example-result_description
+  - name: azure.platformlogs.result_type
+    type: keyword
+    level: custom
+    description: The result type of the operation (e.g. Success Failure)
+    example: example-result_type
+  - name: azure.platformlogs.event_category
+    type: keyword
+    level: custom
+    description: The event category for the Azure Platform Log
+    example: example-event_category
+  - name: azure.platformlogs.status
+    type: keyword
+    level: custom
+    description: The status of the operation (e.g. Succeeded Failed)
+    example: example-status
+  - name: azure.platformlogs.properties
+    type: keyword
+    level: custom
+    description: The properties object from Azure Platform Logs containing additional
+      event details
+    example: example-properties
+  - name: azure.platformlogs.properties.status_code
+    type: keyword
+    level: custom
+    description: The status code from the properties of the Platform Log
+    example: example-status_code
+  - name: azure.platformlogs.properties.log
+    type: keyword
+    level: custom
+    description: The log field from the properties of the Platform Log
+    example: example-log
+  - name: azure.platformlogs.properties.stream
+    type: keyword
+    level: custom
+    description: The stream field from the properties of the Platform Log
+    example: example-stream
+  - name: azure.platformlogs.properties.namespace
+    type: keyword
+    level: custom
+    description: The namespace field from the properties of the Platform Log
+    example: example-namespace
+  - name: azure.platformlogs.properties.subscription_id
+    type: keyword
+    level: custom
+    description: The subscription ID from the properties of the Platform Log
+    example: example-subscription_id
+  - name: azure.platformlogs.properties.pod
+    type: keyword
+    level: custom
+    description: The pod name from the properties of the Platform Log
+    example: example-pod
+  - name: azure.correlation_id
+    type: keyword
+    level: custom
+    description: The correlation ID for tracking related Azure events
+    example: example-correlation_id
+  - name: azure.resource.name
+    type: keyword
+    level: custom
+    description: The name of the Azure resource extracted from the resource ID
+    example: example-name
+  - name: azure.resource.group
+    type: keyword
+    level: custom
+    description: The name of the Azure resource group containing the resource
+    example: example-group
+  - name: azure.subscription_id
+    type: keyword
+    level: custom
+    description: The subscription ID associated with the Azure resource
+    example: example-subscription_id
+  - name: azure.springcloudlogs.log_format
+    type: keyword
+    level: custom
+    description: The log format of the Azure Spring Cloud log entry
+    example: example-log_format
+  - name: azure.springcloudlogs.category
+    type: keyword
+    level: custom
+    description: The category of the Azure Spring Cloud log (e.g. SystemLogs ApplicationConsole)
+    example: example-category
+  - name: azure.springcloudlogs.operation_name
+    type: keyword
+    level: custom
+    description: The name of the operation performed in the Azure Spring Cloud log
+    example: example-operation_name
+  - name: azure.springcloudlogs.result_type
+    type: keyword
+    level: custom
+    description: The result type of the operation (e.g. Success Failure)
+    example: example-result_type
+  - name: azure.springcloudlogs.result_signature
+    type: keyword
+    level: custom
+    description: The result signature of the operation
+    example: example-result_signature
+  - name: azure.springcloudlogs.status
+    type: keyword
+    level: custom
+    description: The status of the operation (e.g. Succeeded Failed)
+    example: example-status
+  - name: azure.springcloudlogs.event_category
+    type: keyword
+    level: custom
+    description: The event category for the Azure Spring Cloud log
+    example: example-event_category
+  - name: azure.springcloudlogs.level
+    type: keyword
+    level: custom
+    description: The log level of the Azure Spring Cloud log entry
+    example: example-level
+  - name: azure.springcloudlogs.properties.instance_name
+    type: keyword
+    level: custom
+    description: The instance name from the properties of the Azure Spring Cloud log
+    example: example-instance_name
+  - name: azure.springcloudlogs.properties.service_name
+    type: keyword
+    level: custom
+    description: The service name from the properties of the Azure Spring Cloud log
+    example: example-service_name
+  - name: azure.springcloudlogs.properties.stream
+    type: keyword
+    level: custom
+    description: The stream name from the properties of the Azure Spring Cloud log
+    example: example-stream
+  - name: azure.springcloudlogs.properties.app_name
+    type: keyword
+    level: custom
+    description: The application name from the properties of the Azure Spring Cloud
+      log
+    example: example-app_name
+  - name: azure.springcloudlogs.properties.service_id
+    type: keyword
+    level: custom
+    description: The service ID from the properties of the Azure Spring Cloud log
+    example: example-service_id
+  - name: azure.springcloudlogs.properties.type
+    type: keyword
+    level: custom
+    description: The type field from the properties of the Azure Spring Cloud log
+    example: example-type
+  - name: azure.springcloudlogs.properties.logger
+    type: keyword
+    level: custom
+    description: The logger name from the properties of the Azure Spring Cloud log
+    example: example-logger
+  - name: azure.springcloudlogs.properties.stack
+    type: keyword
+    level: custom
+    description: The stack trace from the properties of the Azure Spring Cloud log
+    example: example-stack
+  - name: azure.springcloudlogs.properties.thread
+    type: keyword
+    level: custom
+    description: The thread name from the properties of the Azure Spring Cloud log
+    example: example-thread
+  - name: azure.springcloudlogs.properties.status_code
+    type: keyword
+    level: custom
+    description: The status code from the properties of the Azure Spring Cloud log
+    example: example-status_code
+  - name: azure.signinlogs.category
+    type: keyword
+    level: custom
+    description: The category of the Azure AD Sign-in log event
+    example: example-category
+  - name: azure.signinlogs.result_description
+    type: keyword
+    level: custom
+    description: A description of the result of the sign-in attempt
+    example: example-result_description
+  - name: azure.signinlogs.operation_name
+    type: keyword
+    level: custom
+    description: The name of the operation performed (typically "Sign-in activity")
+    example: example-operation_name
+  - name: azure.signinlogs.operation_version
+    type: keyword
+    level: custom
+    description: The version of the operation performed
+    example: example-operation_version
+  - name: azure.signinlogs.properties.app_id
+    type: keyword
+    level: custom
+    description: The application ID involved in the sign-in event
+    example: example-app_id
+  - name: azure.signinlogs.properties.app_display_name
+    type: keyword
+    level: custom
+    description: The display name of the application involved in the sign-in event
+    example: example-app_display_name
+  - name: azure.signinlogs.properties.authentication_protocol
+    type: keyword
+    level: custom
+    description: The authentication protocol used for the sign-in
+    example: example-authentication_protocol
+  - name: azure.signinlogs.properties.conditional_access_status
+    type: keyword
+    level: custom
+    description: The result of conditional access policies applied to the sign-in
+    example: example-conditional_access_status
+  - name: azure.signinlogs.properties.correlation_id
+    type: keyword
+    level: custom
+    description: The correlation ID specific to the sign-in log event
+    example: example-correlation_id
+  - name: azure.signinlogs.properties.created_at
+    type: keyword
+    level: custom
+    description: The timestamp when the sign-in event was created
+    example: example-created_at
+  - name: azure.signinlogs.properties.cross_tenant_access_type
+    type: keyword
+    level: custom
+    description: The type of cross-tenant access for the sign-in event
+    example: example-cross_tenant_access_type
+  - name: azure.signinlogs.properties.flagged_for_review
+    type: keyword
+    level: custom
+    description: Indicates if the sign-in event was flagged for review
+    example: example-flagged_for_review
+  - name: azure.signinlogs.properties.id
+    type: keyword
+    level: custom
+    description: The unique identifier for the sign-in event
+    example: example-id
+  - name: azure.signinlogs.properties.incoming_token_type
+    type: keyword
+    level: custom
+    description: The type of token presented during sign-in
+    example: example-incoming_token_type
+  - name: azure.signinlogs.properties.is_interactive
+    type: keyword
+    level: custom
+    description: Indicates if the sign-in was interactive
+    example: example-is_interactive
+  - name: azure.signinlogs.properties.is_tenant_restricted
+    type: keyword
+    level: custom
+    description: Indicates if the sign-in was restricted to the tenant
+    example: example-is_tenant_restricted
+  - name: azure.signinlogs.properties.processing_time_in_ms
+    type: keyword
+    level: custom
+    description: The processing time for the sign-in event in milliseconds
+    example: example-processing_time_in_ms
+  - name: azure.signinlogs.properties.resource_display_name
+    type: keyword
+    level: custom
+    description: The display name of the resource accessed during sign-in
+    example: example-resource_display_name
+  - name: azure.signinlogs.properties.resource_id
+    type: keyword
+    level: custom
+    description: The resource ID from the sign-in log properties
+    example: example-resource_id
+  - name: azure.signinlogs.properties.authentication_requirement
+    type: keyword
+    level: custom
+    description: The authentication requirement for the sign-in
+    example: example-authentication_requirement
+  - name: azure.signinlogs.properties.authentication_requirement_policies
+    type: keyword
+    level: custom
+    description: The policies that define authentication requirements
+    example: example-authentication_requirement_policies
+  - name: azure.signinlogs.properties.authentication_processing_details
+    type: keyword
+    level: custom
+    description: Details about the authentication processing for the sign-in
+    example: example-authentication_processing_details
+  - name: azure.signinlogs.properties.autonomous_system_number
+    type: keyword
+    level: custom
+    description: The autonomous system number associated with the sign-in source IP
+    example: example-autonomous_system_number
+  - name: azure.signinlogs.properties.client_app_used
+    type: keyword
+    level: custom
+    description: The client application used for the sign-in
+    example: example-client_app_used
+  - name: azure.signinlogs.properties.device_detail.operating_system
+    type: keyword
+    level: custom
+    description: The operating system of the device used for sign-in
+    example: example-operating_system
+  - name: azure.signinlogs.properties.device_detail.display_name
+    type: keyword
+    level: custom
+    description: The display name of the device used for sign-in
+    example: example-display_name
+  - name: azure.signinlogs.properties.device_detail.trust_type
+    type: keyword
+    level: custom
+    description: The trust type of the device used for sign-in
+    example: example-trust_type
+  - name: azure.signinlogs.properties.device_detail.device_id
+    type: keyword
+    level: custom
+    description: The device ID of the device used for sign-in
+    example: example-device_id
+  - name: azure.signinlogs.properties.device_detail.browser
+    type: keyword
+    level: custom
+    description: The browser used on the device for sign-in
+    example: example-browser
+  - name: azure.signinlogs.properties.device_detail.is_compliant
+    type: keyword
+    level: custom
+    description: Indicates if the device used for sign-in is compliant
+    example: example-is_compliant
+  - name: azure.signinlogs.properties.device_detail.is_managed
+    type: keyword
+    level: custom
+    description: Indicates if the device used for sign-in is managed
+    example: example-is_managed
+  - name: azure.signinlogs.properties.original_request_id
+    type: keyword
+    level: custom
+    description: The original request ID for the sign-in event
+    example: example-original_request_id
+  - name: azure.signinlogs.properties.resource_tenant_id
+    type: keyword
+    level: custom
+    description: The tenant ID of the resource accessed during sign-in
+    example: example-resource_tenant_id
+  - name: azure.signinlogs.properties.user_id
+    type: keyword
+    level: custom
+    description: The unique identifier of the user who attempted sign-in
+    example: example-user_id
+  - name: azure.signinlogs.properties.user_principal_name
+    type: keyword
+    level: custom
+    description: The user principal name (UPN) of the user who attempted sign-in
+    example: example-user_principal_name
+  - name: azure.signinlogs.properties.user_type
+    type: keyword
+    level: custom
+    description: The type of user (e.g. Member Guest)
+    example: example-user_type
+  - name: azure.signinlogs.properties.user_display_name
+    type: keyword
+    level: custom
+    description: The display name of the user who attempted sign-in
+    example: example-user_display_name
+  - name: azure.signinlogs.properties.home_tenant_id
+    type: keyword
+    level: custom
+    description: The home tenant ID of the user
+    example: example-home_tenant_id
+  - name: azure.signinlogs.properties.risk_detail
+    type: keyword
+    level: custom
+    description: Additional details about the risk detected during sign-in
+    example: example-risk_detail
+  - name: azure.signinlogs.properties.risk_level_aggregated
+    type: keyword
+    level: custom
+    description: The aggregated risk level for the sign-in event
+    example: example-risk_level_aggregated
+  - name: azure.signinlogs.properties.risk_level_during_signIn
+    type: keyword
+    level: custom
+    description: The risk level during the sign-in event
+    example: example-risk_level_during_signIn
+  - name: azure.signinlogs.properties.risk_state
+    type: keyword
+    level: custom
+    description: The state of the risk for the sign-in event
+    example: example-risk_state
+  - name: azure.signinlogs.properties.service_principal_id
+    type: keyword
+    level: custom
+    description: The service principal ID associated with the sign-in
+    example: example-service_principal_id
+  - name: azure.signinlogs.caller_ip_address
+    type: keyword
+    level: custom
+    description: The IP address from which the sign-in was attempted
+    example: example-caller_ip_address
+  - name: azure.signinlogs.identity
+    type: keyword
+    level: custom
+    description: The identity value associated with the sign-in event
+    example: example-identity
+  - name: azure.signinlogs.properties.service_principal_name
+    type: keyword
+    level: custom
+    description: The service principal name associated with the sign-in
+    example: example-service_principal_name
+  - name: azure.signinlogs.properties.status.error_code
+    type: keyword
+    level: custom
+    description: The error code returned in the sign-in status
+    example: example-error_code
+  - name: azure.signinlogs.properties.token_issuer_type
+    type: keyword
+    level: custom
+    description: The type of token issuer for the sign-in
+    example: example-token_issuer_type
+  - name: azure.signinlogs.properties.unique_token_identifier
+    type: keyword
+    level: custom
+    description: The unique identifier for the token used in the sign-in
+    example: example-unique_token_identifier
+  - name: azure.signinlogs.properties.authentication_details
+    type: keyword
+    level: custom
+    description: Details about the authentication methods used during sign-in
+    example: example-authentication_details
+  - name: azure.signinlogs.properties.applied_conditional_access_policies
+    type: keyword
+    level: custom
+    description: Conditional access policies applied to the sign-in event
+    example: example-applied_conditional_access_policies
+  - name: azure.signinlogs.result_signature
+    type: keyword
+    level: custom
+    description: The result signature for the sign-in event
+    example: example-result_signature
+  - name: azure.signinlogs.result_type
+    type: keyword
+    level: custom
+    description: The result type for the sign-in event
+    example: example-result_type
+  - name: azure.provisioning.operation_version
+    type: keyword
+    level: custom
+    description: The version of the provisioning operation
+    example: example-operation_version
+  - name: azure.provisioning.level
+    type: keyword
+    level: custom
+    description: The log level of the provisioning event
+    example: example-level
+  - name: azure.provisioning.identity
+    type: keyword
+    level: custom
+    description: The identity associated with the provisioning operation
+    example: example-identity
+  - name: azure.provisioning.result_signature
+    type: keyword
+    level: custom
+    description: The result signature of the provisioning operation
+    example: example-result_signature
+  - name: azure.provisioning.category
+    type: keyword
+    level: custom
+    description: This is the category of the provisioning event
+    example: example-category
+  - name: azure.provisioning.operation_name
+    type: keyword
+    level: custom
+    description: The represents name of the provisioning operation
+    example: example-operation_name
+  - name: azure.provisioning.result_type
+    type: keyword
+    level: custom
+    description: The result type of the provisioning operation (e.g. Success Failure)
+    example: example-result_type
+  - name: azure.provisioning.properties.action
+    type: keyword
+    level: custom
+    description: The action performed in the provisioning operation
+    example: example-action
+  - name: azure.provisioning.properties.id
+    type: keyword
+    level: custom
+    description: The unique identifier for the provisioning properties
+    example: example-id
+  - name: azure.provisioning.properties.tenant_id
+    type: keyword
+    level: custom
+    description: The tenant ID from the provisioning properties
+    example: example-tenant_id
+  - name: azure.provisioning.properties.activity_datetime
+    type: keyword
+    level: custom
+    description: The date and time when the provisioning activity occurred
+    example: example-activity_datetime
+  - name: azure.provisioning.properties.change_id
+    type: keyword
+    level: custom
+    description: The change ID for the provisioning operation
+    example: example-change_id
+  - name: azure.provisioning.properties.cycle_id
+    type: keyword
+    level: custom
+    description: The cycle ID for the provisioning operation
+    example: example-cycle_id
+  - name: azure.provisioning.properties.duration_ms
+    type: keyword
+    level: custom
+    description: The duration of the provisioning operation in milliseconds
+    example: example-duration_ms
+  - name: azure.provisioning.properties.job_id
+    type: keyword
+    level: custom
+    description: The job ID for the provisioning operation
+    example: example-job_id
+  - name: azure.provisioning.properties.provisioning_action
+    type: keyword
+    level: custom
+    description: This field indicates the provisioning action performed
+    example: example-provisioning_action
+  - name: azure.provisioning.properties.initiated_by.id
+    type: keyword
+    level: custom
+    description: The ID of the entity that initiated the provisioning operation
+    example: example-id
+  - name: azure.provisioning.properties.initiated_by.name
+    type: keyword
+    level: custom
+    description: The name of the entity that initiated the provisioning operation
+    example: example-name
+  - name: azure.provisioning.properties.initiated_by.type
+    type: keyword
+    level: custom
+    description: The type of the entity that initiated the provisioning operation
+    example: example-type
+  - name: azure.auditlogs.properties.initiated_by.app.app_id
+    type: keyword
+    level: custom
+    description: The unique identifier (App ID) of the application that initiated
+      the audit log operation
+    example: example-app_id
+  - name: azure.auditlogs.properties.initiated_by.app.display_name
+    type: keyword
+    level: custom
+    description: The display name of the application that initiated the audit log
+      operation
+    example: example-display_name
+  - name: azure.auditlogs.properties.initiated_by.app.service_principal_name
+    type: keyword
+    level: custom
+    description: The name of the service principal associated with the application
+      that initiated the audit log operation
+    example: example-service_principal_name
+  - name: azure.auditlogs.properties.initiated_by.user.display_name
+    type: keyword
+    level: custom
+    description: The display name of the user who initiated the audit log operation
+    example: example-display_name
+  - name: azure.auditlogs.properties.initiated_by.user.ipaddress
+    type: keyword
+    level: custom
+    description: The IP address from which the audit log operation was initiated
+    example: example-ipaddress
+  - name: azure.auditlogs.properties.initiated_by.user.user_principal_name
+    type: keyword
+    level: custom
+    description: The User Principal Name (UPN) of the user who initiated the audit
+      log operation
+    example: example-user_principal_name
+  - name: azure.auditlogs.properties.initiated_by.user.id
+    type: keyword
+    level: custom
+    description: The unique identifier of the user who initiated the audit log operation
+    example: example-id
+  - name: azure.auditlogs.properties.initiated_by.user.roles
+    type: keyword
+    level: custom
+    description: The roles assigned to the user who initiated the audit log operation
+    example: example-roles
+  - name: azure.auditlogs.properties.initiated_by.app.service_principal_id
+    type: keyword
+    level: custom
+    description: The unique identifier (Service Principal ID) of the service principal
+      associated with the application that initiated the audit log operation
+    example: example-service_principal_id
+  - name: azure.provisioning.properties.provisioning_steps
+    type: keyword
+    level: custom
+    description: The provisioning steps performed during the operation
+    example: example-provisioning_steps
+  - name: azure.provisioning.properties.provisioning_steps.provisioning_step_type
+    type: keyword
+    level: custom
+    description: This indicates the type of provisioning step performed
+    example: example-provisioning_step_type
+  - name: azure.provisioning.properties.provisioning_status_info.status
+    type: keyword
+    level: custom
+    description: The status of the provisioning operation
+    example: example-status
+  - name: azure.provisioning.properties.service_principal.id
+    type: keyword
+    level: custom
+    description: The ID of the service principal involved in the provisioning operation
+    example: example-id
+  - name: azure.provisioning.properties.service_principal.name
+    type: keyword
+    level: custom
+    description: The name of the service principal involved in the provisioning operation
+    example: example-name
+  - name: azure.provisioning.properties.modified_properties
+    type: keyword
+    level: custom
+    description: The modified properties during the provisioning operation
+    example: example-modified_properties
+  - name: azure.provisioning.properties.source_identity.id
+    type: keyword
+    level: custom
+    description: The ID of the source identity in the provisioning operation
+    example: example-id
+  - name: azure.provisioning.properties.source_identity.name
+    type: keyword
+    level: custom
+    description: The name of the source identity in the provisioning operation
+    example: example-name
+  - name: azure.provisioning.properties.source_identity.identity_type
+    type: keyword
+    level: custom
+    description: The type of the source identity in the provisioning operation
+    example: example-identity_type
+  - name: azure.provisioning.properties.source_identity.details.display_name
+    type: keyword
+    level: custom
+    description: The display name of the source identity
+    example: example-display_name
+  - name: azure.provisioning.properties.source_identity.details.user_principal_name
+    type: keyword
+    level: custom
+    description: The user principal name of the source identity
+    example: example-user_principal_name
+  - name: azure.provisioning.properties.target_identity.id
+    type: keyword
+    level: custom
+    description: The ID of the target identity in the provisioning operation
+    example: example-id
+  - name: azure.provisioning.properties.target_identity.name
+    type: keyword
+    level: custom
+    description: The name of the target identity in the provisioning operation
+    example: example-name
+  - name: azure.provisioning.properties.target_identity.identity_type
+    type: keyword
+    level: custom
+    description: The type of the target identity in the provisioning operation
+    example: example-identity_type
+  - name: azure.provisioning.properties.target_identity.details
+    type: keyword
+    level: custom
+    description: The details object for the target identity
+    example: example-details
+  - name: azure.provisioning.properties.target_identity.details.display_name
+    type: keyword
+    level: custom
+    description: The display name of the target identity
+    example: example-display_name
+  - name: azure.provisioning.properties.target_identity.details.user_principal_name
+    type: keyword
+    level: custom
+    description: The user principal name of the target identity
+    example: example-user_principal_name
+  - name: azure.provisioning.properties.source_system.id
+    type: keyword
+    level: custom
+    description: The ID of the source system in the provisioning operation
+    example: example-id
+  - name: azure.provisioning.properties.source_system.name
+    type: keyword
+    level: custom
+    description: The name of the source system in the provisioning operation
+    example: example-name
+  - name: azure.provisioning.properties.source_system.details
+    type: keyword
+    level: custom
+    description: The details object for the source system
+    example: example-details
+  - name: azure.provisioning.properties.source_system.details.application_id
+    type: keyword
+    level: custom
+    description: The application ID of the source system
+    example: example-application_id
+  - name: azure.provisioning.properties.source_system.details.dervice_principal_display_name
+    type: keyword
+    level: custom
+    description: The display name of the service principal for the source system
+    example: example-dervice_principal_display_name
+  - name: azure.provisioning.properties.source_system.details.service_principal_id
+    type: keyword
+    level: custom
+    description: The service principal ID for the source system
+    example: example-service_principal_id
+  - name: azure.provisioning.properties.target_system.id
+    type: keyword
+    level: custom
+    description: The ID of the target system in the provisioning operation
+    example: example-id
+  - name: azure.provisioning.properties.target_system.name
+    type: keyword
+    level: custom
+    description: The name of the target system in the provisioning operation
+    example: example-name
+  - name: azure.provisioning.properties.target_system.details
+    type: keyword
+    level: custom
+    description: The details object for the target system
+    example: example-details
+  - name: azure.provisioning.properties.target_system.details.application_id
+    type: keyword
+    level: custom
+    description: The application ID of the target system
+    example: example-application_id
+  - name: azure.provisioning.properties.target_system.details.dervice_principal_display_name
+    type: keyword
+    level: custom
+    description: The display name of the service principal for the target system
+    example: example-dervice_principal_display_name
+  - name: azure.provisioning.properties.target_system.details.service_principal_id
+    type: keyword
+    level: custom
+    description: The service principal ID for the target system
+    example: example-service_principal_id
+  - name: azure.provisioning.properties.provisioning_status_info.error_information.additional_details
+    type: keyword
+    level: custom
+    description: Additional details about the error in the provisioning status information
+    example: example-additional_details
+  - name: azure.provisioning.properties.provisioning_status_info.error_information.error_category
+    type: keyword
+    level: custom
+    description: The error category in the provisioning status information
+    example: example-error_category
+  - name: azure.provisioning.properties.provisioning_status_info.error_information.error_code
+    type: keyword
+    level: custom
+    description: The error code in the provisioning status information
+    example: example-error_code
+  - name: azure.provisioning.properties.provisioning_status_info.error_information.recommended_action
+    type: keyword
+    level: custom
+    description: The recommended action for the error in the provisioning status information
+    example: example-recommended_action
+  - name: azure.provisioning.properties.provisioning_status_info.error_information.reason
+    type: keyword
+    level: custom
+    description: The reason for the error in the provisioning status information
+    example: example-reason

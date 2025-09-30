@@ -1,0 +1,221 @@
+- name: cisco_umbrella
+  title: Cisco Umbrella
+  description: cisco_umbrella custom fields for WCS integration
+  fields:
+  - name: cisco.umbrella.audit.after
+    type: keyword
+    level: custom
+    description: The policy or setting after the change was made.
+    example: example-after
+    normalize:
+    - array
+  - name: cisco.umbrella.audit.before
+    type: keyword
+    level: custom
+    description: The policy or setting before the change was made.
+    example: example-before
+    normalize:
+    - array
+  - name: cisco.umbrella.audit.after_values
+    type: keyword
+    level: custom
+    description: The individual values of the policy or setting after the change was
+      made.
+    example: example-after_values
+  - name: cisco.umbrella.audit.before_values
+    type: keyword
+    level: custom
+    description: The individual values of the policy or setting before the change
+      was made.
+    example: example-before_values
+  - name: cisco.umbrella.audit.type
+    type: keyword
+    level: custom
+    description: Where the change was made, such as settings or a policy.
+    example: example-type
+  - name: cisco.umbrella.origin_id
+    type: keyword
+    level: custom
+    description: The unique identity of the network tunnel.
+    example: example-origin_id
+  - name: cisco.umbrella.datacenter
+    type: keyword
+    level: custom
+    description: The name of the Umbrella Data Center that processed the user-generated
+      traffic.
+    example: example-datacenter
+  - name: cisco.umbrella.destination_lists_id
+    type: keyword
+    level: custom
+    description: The ID number umbrella assigns to a destination list.
+    example: example-destination_lists_id
+  - name: cisco.umbrella.fqdns
+    type: keyword
+    level: custom
+    description: The fully qualified domain names (FQDNs) that match the request.
+    example: example-fqdns
+    normalize:
+    - array
+  - name: cisco.umbrella.identities
+    type: keyword
+    level: custom
+    description: An array of the different identities related to the event.
+    example: example-identities
+    normalize:
+    - array
+  - name: cisco.umbrella.identity_types
+    type: keyword
+    level: custom
+    description: The type of identity that made the request. For example, Roaming
+      Computer or Network.
+    example: example-identity_types
+    normalize:
+    - array
+  - name: cisco.umbrella.severity
+    type: keyword
+    level: custom
+    description: The severity level of the rule, such as Low/Info, Medium/Warn, High/Alert
+      or Critical.
+    example: example-severity
+  - name: cisco.umbrella.data_classification
+    type: keyword
+    level: custom
+    description: The data classification whose data identifier matched on the violation.
+    example: example-data_classification
+  - name: cisco.umbrella.data_identifier
+    type: keyword
+    level: custom
+    description: The data identifier that matched on the request.
+    example: example-data_identifier
+  - name: cisco.umbrella.file_label
+    type: keyword
+    level: custom
+    description: The file name label that matched on the file properties.
+    example: example-file_label
+  - name: cisco.umbrella.gid
+    type: keyword
+    level: custom
+    description: Unique ID assigned to the part of the IPS which generated the event.
+    example: example-gid
+  - name: cisco.umbrella.sid
+    type: keyword
+    level: custom
+    description: Used to uniquely identify signatures.
+    example: example-sid
+  - name: cisco.umbrella.message
+    type: keyword
+    level: custom
+    description: A brief description of the signature.
+    example: example-message
+  - name: cisco.umbrella.signature_list_id
+    type: keyword
+    level: custom
+    description: Unique ID assigned to a Default or Custom Signature List.
+    example: example-signature_list_id
+  - name: cisco.umbrella.classification
+    type: keyword
+    level: custom
+    description: The category of attack detected by a rule that is part of a more
+      general type of attack class, such as trojan-activity, attempted-user, and unknown.
+    example: example-classification
+  - name: cisco.umbrella.cves
+    type: keyword
+    level: custom
+    description: A list of information about security vulnerabilities and exposures.
+    example: example-cves
+  - name: cisco.umbrella.identity
+    type: keyword
+    level: custom
+    description: The identity that made the request. An identity can be a high-level
+      entity within your system (e.g a network) or very granular (e.g a single user).
+    example: example-identity
+  - name: cisco.umbrella.categories
+    type: keyword
+    level: custom
+    description: The security or content categories that the destination matches.
+    example: example-categories
+    normalize:
+    - array
+  - name: cisco.umbrella.sha_sha256
+    type: keyword
+    level: custom
+    description: SHA256 hash of the file involved in the event.
+    example: example-sha_sha256
+  - name: cisco.umbrella.av_detections
+    type: keyword
+    level: custom
+    description: Antivirus detections associated with the event.
+    example: example-av_detections
+  - name: cisco.umbrella.puas
+    type: keyword
+    level: custom
+    description: Potentially unwanted applications (PUAs) detected during the event.
+      PUAs are software programs that may not be intentionally malicious but can negatively
+      affect system performance, security, or user experience. This field indicates
+      whether any PUAs were identified, such as adware, toolbars, or other software
+      that may be unwanted or pose a risk. Detection of PUAs helps organizations maintain
+      security hygiene by flagging applications that could introduce vulnerabilities
+      or unwanted behavior.
+    example: example-puas
+  - name: cisco.umbrella.amp_disposition
+    type: keyword
+    level: custom
+    description: AMP (Advanced Malware Protection) disposition for the file.
+    example: example-amp_disposition
+  - name: cisco.umbrella.amp_malware_name
+    type: keyword
+    level: custom
+    description: Name of the malware detected by AMP.
+    example: example-amp_malware_name
+  - name: cisco.umbrella.amp_score
+    type: keyword
+    level: custom
+    description: AMP score indicating the threat level.
+    example: example-amp_score
+  - name: cisco.umbrella.policy_identity_type
+    type: keyword
+    level: custom
+    description: Type of identity policy applied.
+    example: example-policy_identity_type
+  - name: cisco.umbrella.blocked_categories
+    type: keyword
+    level: custom
+    description: Categories that caused the request to be blocked.
+    example: example-blocked_categories
+  - name: cisco.umbrella.dlp_status
+    type: keyword
+    level: custom
+    description: Indicates the status of Data Loss Prevention (DLP) for the event.
+      This field shows whether sensitive data was detected, blocked, allowed, or flagged
+      according to DLP policies. It helps track actions taken to prevent unauthorized
+      data transfer or exposure, such as blocking file uploads, alerting on policy
+      violations, or allowing compliant data transfers.
+    example: example-dlp_status
+  - name: cisco.umbrella.certificate_errors
+    type: keyword
+    level: custom
+    description: Details about SSL/TLS certificate errors encountered during the event,
+      such as expired certificates, mismatched domains, untrusted certificate authorities,
+      or invalid certificate chains. This field helps identify issues with secure
+      connections and potential risks related to certificate validation failures.
+    example: example-certificate_errors
+  - name: cisco.umbrella.ruleset_id
+    type: keyword
+    level: custom
+    description: ID of the ruleset that matched the event.
+    example: example-ruleset_id
+  - name: cisco.umbrella.isolate_action
+    type: keyword
+    level: custom
+    description: Action taken to isolate the threat.
+    example: example-isolate_action
+  - name: cisco.umbrella.file_action
+    type: keyword
+    level: custom
+    description: Action taken on the file.
+    example: example-file_action
+  - name: cisco.umbrella.warn_status
+    type: keyword
+    level: custom
+    description: Warning status for the event.
+    example: example-warn_status

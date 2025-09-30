@@ -1,0 +1,224 @@
+- name: azure-app-service
+  title: Azure App Service
+  description: azure-app-service custom fields for WCS integration
+  fields:
+  - name: azure.app_service.category
+    type: keyword
+    level: custom
+    description: Category of the Azure App Service operation
+    example: example-category
+  - name: azure.app_service.container_id
+    type: keyword
+    level: custom
+    description: Azure App Service application container ID
+    example: example-container_id
+  - name: azure.app_service.event_ip_address
+    type: keyword
+    level: custom
+    description: IP address of the Azure App Service event
+    example: example-event_ip_address
+  - name: azure.app_service.event_primary_stamp_name
+    type: keyword
+    level: custom
+    description: Primary name of the Azure App Service
+    example: example-event_primary_stamp_name
+  - name: azure.app_service.event_stamp_name
+    type: keyword
+    level: custom
+    description: Name of the Azure App Service stamp
+    example: example-event_stamp_name
+  - name: azure.app_service.event_stamp_type
+    type: keyword
+    level: custom
+    description: Type values that the Azure App Service supports
+    example: example-event_stamp_type
+  - name: azure.app_service.host
+    type: keyword
+    level: custom
+    description: Host where the Azure App Service application is running
+    example: example-host
+  - name: azure.app_service.level
+    type: keyword
+    level: custom
+    description: Verbosity level of the Azure App Service log
+    example: example-level
+  - name: azure.app_service.log
+    type: keyword
+    level: custom
+    description: Azure App Service log details depending on log level
+    example: example-log
+  - name: azure.app_service.operation_name
+    type: keyword
+    level: custom
+    description: Azure App Service operation name
+    example: example-operation_name
+  - name: azure.app_service.properties.client_ip
+    type: keyword
+    level: custom
+    description: Client IP address from Azure App Service HTTP request
+    example: example-client_ip
+  - name: azure.app_service.properties.client_port
+    type: keyword
+    level: custom
+    description: Client port number from Azure App Service
+    example: example-client_port
+  - name: azure.app_service.properties.computer_name
+    type: keyword
+    level: custom
+    description: Server name where Azure App Service log entry was generated
+    example: example-computer_name
+  - name: azure.app_service.properties.cookie
+    type: keyword
+    level: custom
+    description: Cookie present in the Azure App Service HTTP request
+    example: example-cookie
+  - name: azure.app_service.properties.cs_bytes
+    type: keyword
+    level: custom
+    description: Number of bytes received by Azure App Service server
+    example: example-cs_bytes
+  - name: azure.app_service.properties.cs_host
+    type: keyword
+    level: custom
+    description: Host name header from Azure App Service HTTP request
+    example: example-cs_host
+  - name: azure.app_service.properties.cs_method
+    type: keyword
+    level: custom
+    description: HTTP request method for Azure App Service (GET/POST/etc)
+    example: example-cs_method
+  - name: azure.app_service.properties.cs_uri_query
+    type: keyword
+    level: custom
+    description: URI query from Azure App Service HTTP request
+    example: example-cs_uri_query
+  - name: azure.app_service.properties.cs_uri_stem
+    type: keyword
+    level: custom
+    description: Target path of Azure App Service HTTP request
+    example: example-cs_uri_stem
+  - name: azure.app_service.properties.cs_username
+    type: keyword
+    level: custom
+    description: Authenticated username from Azure App Service HTTP request
+    example: example-cs_username
+  - name: azure.app_service.properties.details
+    type: keyword
+    level: custom
+    description: Additional information related to Azure App Service event
+    example: example-details
+  - name: azure.app_service.properties.protocol
+    type: keyword
+    level: custom
+    description: Authentication protocol used by Azure App Service
+    example: example-protocol
+  - name: azure.app_service.properties.referer
+    type: keyword
+    level: custom
+    description: HTTP referer header from Azure App Service request
+    example: example-referer
+  - name: azure.app_service.properties.result
+    type: keyword
+    level: custom
+    description: Success or failure result of Azure App Service HTTP request
+    example: example-result
+  - name: azure.app_service.properties.s_port
+    type: keyword
+    level: custom
+    description: Azure App Service server port number
+    example: example-s_port
+  - name: azure.app_service.properties.sc_bytes
+    type: keyword
+    level: custom
+    description: Number of bytes sent by Azure App Service server
+    example: example-sc_bytes
+  - name: azure.app_service.properties.sc_status
+    type: keyword
+    level: custom
+    description: HTTP status code returned by Azure App Service
+    example: example-sc_status
+  - name: azure.app_service.properties.sc_substatus
+    type: keyword
+    level: custom
+    description: HTTP substatus error code from Azure App Service
+    example: example-sc_substatus
+  - name: azure.app_service.properties.sc_win32status
+    type: keyword
+    level: custom
+    description: Windows status code from Azure App Service HTTP request
+    example: example-sc_win32status
+  - name: azure.app_service.properties.service_endpoint
+    type: keyword
+    level: custom
+    description: Azure App Service Virtual Network Service Endpoint indicator
+    example: example-service_endpoint
+  - name: azure.app_service.properties.time_taken
+    type: keyword
+    level: custom
+    description: Time taken by Azure App Service HTTP request in milliseconds
+    example: example-time_taken
+  - name: azure.app_service.properties.user
+    type: keyword
+    level: custom
+    description: Username for Azure App Service publishing access
+    example: example-user
+  - name: azure.app_service.properties.user_agent
+    type: keyword
+    level: custom
+    description: User agent string from Azure App Service HTTP request
+    example: example-user_agent
+  - name: azure.app_service.properties.user_display_name
+    type: keyword
+    level: custom
+    description: User email for Azure App Service AAD authentication
+    example: example-user_display_name
+  - name: azure.app_service.properties.xazurefdid
+    type: keyword
+    level: custom
+    description: X-Azure-FDID header (Azure Frontdoor ID) from request
+    example: example-xazurefdid
+  - name: azure.app_service.properties.xfdhealth_probe
+    type: keyword
+    level: custom
+    description: X-FD-HealthProbe header (Azure Frontdoor Health) from request
+    example: example-xfdhealth_probe
+  - name: azure.app_service.properties.xforwarded_for
+    type: keyword
+    level: custom
+    description: X-Forwarded-For header from Azure App Service request
+    example: example-xforwarded_for
+  - name: azure.app_service.properties.xforwarded_host
+    type: keyword
+    level: custom
+    description: X-Forwarded-Host header from Azure App Service request
+    example: example-xforwarded_host
+  - name: azure.app_service.result_description
+    type: keyword
+    level: custom
+    description: Azure App Service log message description
+    example: example-result_description
+  - name: azure.resource.id
+    type: keyword
+    level: custom
+    description: Azure resource identifier for the App Service
+    example: example-id
+  - name: azure.app_service.properties.source_system
+    type: keyword
+    level: custom
+    description: The source system for the Azure App Service log
+    example: example-source_system
+  - name: azure.app_service.properties.time_generated
+    type: keyword
+    level: custom
+    description: Time of the Azure App Service HTTP request
+    example: example-time_generated
+  - name: azure.app_service.properties.type
+    type: keyword
+    level: custom
+    description: The name of the Azure App Service log table
+    example: example-type
+  - name: azure.correlation_id
+    type: keyword
+    level: custom
+    description: Correlation ID for the Azure App Service request
+    example: example-correlation_id

@@ -1,0 +1,58 @@
+- name: oracle_weblogic
+  title: Oracle Weblogic
+  description: oracle_weblogic custom fields for WCS integration
+  fields:
+  - name: oracle.weblogic.subsystem
+    type: keyword
+    level: custom
+    description: The WebLogic subsystem that generated the log message. Examples include
+      Security, JTA (Java Transaction API), JDBC, JMS, EJB, HTTP, etc. This helps
+      categorize log entries by functional area within the WebLogic server.
+    example: example-subsystem
+  - name: oracle.weblogic.machine_name
+    type: keyword
+    level: custom
+    description: The name of the physical or virtual machine where the WebLogic server
+      instance is running. This is useful in clustered environments to identify which
+      node generated the log entry.
+    example: example-machine_name
+  - name: oracle.weblogic.server_name
+    type: keyword
+    level: custom
+    description: The name of the WebLogic server instance that generated the log message.
+      In a WebLogic domain, this could be an Admin Server or a Managed Server name
+      (e.g., AdminServer, ManagedServer1, etc.).
+    example: example-server_name
+  - name: oracle.weblogic.thread_id
+    type: keyword
+    level: custom
+    description: The identifier of the thread that generated the log message. WebLogic
+      uses thread pools to handle requests, and this field helps track which thread
+      was responsible for the logged operation.
+    example: example-thread_id
+  - name: oracle.weblogic.diagnostic_context_id
+    type: keyword
+    level: custom
+    description: A unique identifier used for correlating related log messages across
+      different components and subsystems within a single request or transaction flow.
+      This is essential for distributed tracing and debugging.
+    example: example-diagnostic_context_id
+  - name: oracle.weblogic.meta
+    type: keyword
+    level: custom
+    description: Additional metadata or context information associated with the log
+      entry. This may contain supplementary details about the logged event or operation.
+    example: example-meta
+  - name: oracle.weblogic.message_id
+    type: keyword
+    level: custom
+    description: A unique identifier for the specific type of message or event being
+      logged. WebLogic uses it to categorize different types of entries.
+    example: example-message_id
+  - name: oracle.weblogic.transaction_id
+    type: keyword
+    level: custom
+    description: The identifier of the transaction associated with the log entry.
+      In WebLogic, this helps track operations that span multiple components or services
+      within a single business transaction.
+    example: example-transaction_id

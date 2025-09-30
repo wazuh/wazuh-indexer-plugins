@@ -1,0 +1,577 @@
+- name: microsoft-exchange-server
+  title: Microsoft Exchange Server
+  description: microsoft-exchange-server custom fields for WCS integration
+  fields:
+  - name: microsoft.exchange.account_forest_latency_breakup
+    type: keyword
+    level: custom
+    description: Provides a breakdown of latency for account forest operations.
+    example: example-account_forest_latency_breakup
+  - name: microsoft.exchange.activity_context_lifetime
+    type: keyword
+    level: custom
+    description: The duration of the activity context's lifetime during the request.
+    example: example-activity_context_lifetime
+  - name: microsoft.exchange.ad_latency
+    type: keyword
+    level: custom
+    description: Measures the latency in Active Directory lookups.
+    example: example-ad_latency
+  - name: microsoft.exchange.anchor_mailbox
+    type: keyword
+    level: custom
+    description: The mailbox used to anchor the request, typically guiding the request
+      routing.
+    example: example-anchor_mailbox
+  - name: microsoft.exchange.auth_module_perf_context
+    type: keyword
+    level: custom
+    description: Performance metrics related to the authentication module.
+    example: example-auth_module_perf_context
+  - name: microsoft.exchange.authenticated_user
+    type: keyword
+    level: custom
+    description: The username of the authenticated user making the request.
+    example: example-authenticated_user
+  - name: microsoft.exchange.authentication_type
+    type: keyword
+    level: custom
+    description: Describes the authentication method used, such as Kerberos, NTLM,
+      or OAuth.
+    example: example-authentication_type
+  - name: microsoft.exchange.backend_cookie
+    type: keyword
+    level: custom
+    description: A cookie used by the backend server to maintain session state or
+      track requests.
+    example: example-backend_cookie
+  - name: microsoft.exchange.backend_generic_info
+    type: keyword
+    level: custom
+    description: Generic information logged about backend operations.
+    example: example-backend_generic_info
+  - name: microsoft.exchange.backend_processing_latency
+    type: keyword
+    level: custom
+    description: The latency incurred while processing the request in the backend.
+    example: example-backend_processing_latency
+  - name: microsoft.exchange.backend_request_init_latency
+    type: keyword
+    level: custom
+    description: The latency incurred during initialization of the backend request.
+    example: example-backend_request_init_latency
+  - name: microsoft.exchange.backend_request_stream_latency
+    type: keyword
+    level: custom
+    description: The latency during backend request streaming.
+    example: example-backend_request_stream_latency
+  - name: microsoft.exchange.backend_response_init_latency
+    type: keyword
+    level: custom
+    description: The time taken to initiate the backend response.
+    example: example-backend_response_init_latency
+  - name: microsoft.exchange.backend_response_stream_latency
+    type: keyword
+    level: custom
+    description: Measures latency during backend response streaming.
+    example: example-backend_response_stream_latency
+  - name: microsoft.exchange.backend_status
+    type: keyword
+    level: custom
+    description: Indicates the status returned by the backend server processing the
+      request.
+    example: example-backend_status
+  - name: microsoft.exchange.build_version
+    type: keyword
+    level: custom
+    description: Specifies the build version of the Exchange server, indicating a
+      specific release or update.
+    example: example-build_version
+  - name: microsoft.exchange.calculate_target_backend_latency
+    type: keyword
+    level: custom
+    description: Indicates the time taken to determine the target backend server for
+      processing.
+    example: example-calculate_target_backend_latency
+  - name: microsoft.exchange.cip
+    type: keyword
+    level: custom
+    description: The client IP address or remote endpoint of the session, formatted
+      as <IP address>:<port>.
+    example: example-cip
+  - name: microsoft.exchange.client_ip_address
+    type: keyword
+    level: custom
+    description: The IP address of the client making the request.
+    example: example-client_ip_address
+  - name: microsoft.exchange.client_request_id
+    type: keyword
+    level: custom
+    description: A unique identifier assigned to a client request to correlate it
+      with logs and processes.
+    example: example-client_request_id
+  - name: microsoft.exchange.client_request_stream_latency
+    type: keyword
+    level: custom
+    description: The latency incurred while streaming the client request.
+    example: example-client_request_stream_latency
+  - name: microsoft.exchange.client_response_stream_latency
+    type: keyword
+    level: custom
+    description: The latency during client response streaming.
+    example: example-client_response_stream_latency
+  - name: microsoft.exchange.command
+    type: keyword
+    level: custom
+    description: The protocol command issued by the client, such as EHLO, MAIL, or
+      RCPT for SMTP events.
+    example: example-command
+  - name: microsoft.exchange.connector_id
+    type: keyword
+    level: custom
+    description: Identifies the Send or Receive connector responsible for handling
+      the message.
+    example: example-connector_id
+  - name: microsoft.exchange.context
+    type: keyword
+    level: custom
+    description: Additional contextual information related to the SMTP event, offering
+      further insight or metadata where applicable.
+    example: example-context
+  - name: microsoft.exchange.core_latency
+    type: keyword
+    level: custom
+    description: Core latency observed during the request's lifecycle.
+    example: example-core_latency
+  - name: microsoft.exchange.custom_data
+    type: keyword
+    level: custom
+    description: Contains event-specific data, such as GUIDs for mail flow rules or
+      DLP policies that acted on the message.
+    example: example-custom_data
+  - name: microsoft.exchange.data
+    type: keyword
+    level: custom
+    description: Text information associated with the SMTP event, providing additional
+      details or metadata about the event.
+    example: example-data
+  - name: microsoft.exchange.database_guid
+    type: keyword
+    level: custom
+    description: The globally unique identifier of the database associated with the
+      operation.
+    example: example-database_guid
+  - name: microsoft.exchange.duration
+    type: keyword
+    level: custom
+    description: The duration of the protocol event or session in milliseconds, indicating
+      how long the event took to complete.
+    example: example-duration
+  - name: microsoft.exchange.edge_trace_id
+    type: keyword
+    level: custom
+    description: A unique identifier for tracing operations at the edge server.
+    example: example-edge_trace_id
+  - name: microsoft.exchange.error_code
+    type: keyword
+    level: custom
+    description: Provides an error code, if any, generated during the processing of
+      the request.
+    example: example-error_code
+  - name: microsoft.exchange.event
+    type: keyword
+    level: custom
+    description: A single character that represents the protocol event.
+    example: example-event
+  - name: microsoft.exchange.event_id
+    type: keyword
+    level: custom
+    description: Represents the type of event being tracked in the log. Common examples
+      include RECEIVE, SEND, and DELIVER.
+    example: example-event_id
+  - name: microsoft.exchange.generic_errors
+    type: keyword
+    level: custom
+    description: Logs any generic errors encountered during processing.
+    example: example-generic_errors
+  - name: microsoft.exchange.generic_info
+    type: keyword
+    level: custom
+    description: Additional generic details or metadata about the request.
+    example: example-generic_info
+  - name: microsoft.exchange.gls_latency_breakup
+    type: keyword
+    level: custom
+    description: Details the latency breakup for Global Locator Service (GLS) operations.
+    example: example-gls_latency_breakup
+  - name: microsoft.exchange.handler_completion_latency
+    type: keyword
+    level: custom
+    description: The latency measured from handler initialization to completion.
+    example: example-handler_completion_latency
+  - name: microsoft.exchange.handler_to_module_switching_latency
+    type: keyword
+    level: custom
+    description: Latency in switching between a handler and a module.
+    example: example-handler_to_module_switching_latency
+  - name: microsoft.exchange.http_pipeline_latency
+    type: keyword
+    level: custom
+    description: Measures the latency experienced in the HTTP pipeline during the
+      request.
+    example: example-http_pipeline_latency
+  - name: microsoft.exchange.http_proxy_overhead
+    type: keyword
+    level: custom
+    description: Overhead introduced by the HTTP proxy in processing the request.
+    example: example-http_proxy_overhead
+  - name: microsoft.exchange.internal_message_id
+    type: keyword
+    level: custom
+    description: A unique identifier for the message assigned by the Exchange server
+      processing it. This ID is server-specific.
+    example: example-internal_message_id
+  - name: microsoft.exchange.is_authenticated
+    type: keyword
+    level: custom
+    description: Indicates whether the request was authenticated (true/false).
+    example: example-is_authenticated
+  - name: microsoft.exchange.kerberos_auth_header_latency
+    type: keyword
+    level: custom
+    description: Measures latency in processing Kerberos authentication headers.
+    example: example-kerberos_auth_header_latency
+  - name: microsoft.exchange.local_endpoint
+    type: keyword
+    level: custom
+    description: The local endpoint of the SMTP session, consisting of an IP address
+      and TCP port number, formatted as <IP address>:<port>.
+    example: example-local_endpoint
+  - name: microsoft.exchange.log_id
+    type: keyword
+    level: custom
+    description: A unique identifier for a log entry in the message tracking log.
+      Not typically significant in on-premises Exchange.
+    example: example-log_id
+  - name: microsoft.exchange.log_type
+    type: keyword
+    level: custom
+    description: An identifier for the type of log entry, such as "SMTP" or "STOREDRIVER".
+      Not typically used in on-premises Exchange.
+    example: example-log_type
+  - name: microsoft.exchange.major_version
+    type: keyword
+    level: custom
+    description: Indicates the major version number of the Exchange server involved
+      in the request.
+    example: example-major_version
+  - name: microsoft.exchange.message_info
+    type: keyword
+    level: custom
+    description: Additional details about the message, such as origination date-time
+      in UTC or authentication error information.
+    example: example-message_info
+  - name: microsoft.exchange.minor_version
+    type: keyword
+    level: custom
+    description: Represents the minor version number of the Exchange server handling
+      the request.
+    example: example-minor_version
+  - name: microsoft.exchange.module_to_handler_switching_latency
+    type: keyword
+    level: custom
+    description: Measures latency when switching from a module to a handler during
+      processing.
+    example: example-module_to_handler_switching_latency
+  - name: microsoft.exchange.network_message_id
+    type: keyword
+    level: custom
+    description: A unique identifier for the message that remains constant across
+      multiple copies created due to bifurcation or other processes.
+    example: example-network_message_id
+  - name: microsoft.exchange.organization
+    type: keyword
+    level: custom
+    description: Specifies the organization associated with the request, typically
+      in multi-tenant environments.
+    example: example-organization
+  - name: microsoft.exchange.original_client_ip
+    type: keyword
+    level: custom
+    description: The IPv4 or IPv6 address of the original client that initiated the
+      message.
+    example: example-original_client_ip
+  - name: microsoft.exchange.original_server_ip
+    type: keyword
+    level: custom
+    description: The IPv4 or IPv6 address of the original server handling the message.
+    example: example-original_server_ip
+  - name: microsoft.exchange.parameters
+    type: keyword
+    level: custom
+    description: Additional parameters associated with the protocol command, providing
+      context or details for the operation.
+    example: example-parameters
+  - name: microsoft.exchange.partition_endpoint_lookup_latency
+    type: keyword
+    level: custom
+    description: The latency incurred during partition endpoint lookup.
+    example: example-partition_endpoint_lookup_latency
+  - name: microsoft.exchange.protocol
+    type: keyword
+    level: custom
+    description: Indicates the communication protocol (e.g., HTTP, MAPI, EWS) used
+      in the request.
+    example: example-protocol
+  - name: microsoft.exchange.protocol_action
+    type: keyword
+    level: custom
+    description: Specifies the action being performed over the specified protocol,
+      such as GetFolder or SendMail.
+    example: example-protocol_action
+  - name: microsoft.exchange.proxy_action
+    type: keyword
+    level: custom
+    description: Specifies the proxy action taken by the server, such as forwarding
+      or redirecting the request.
+    example: example-proxy_action
+  - name: microsoft.exchange.proxy_time
+    type: keyword
+    level: custom
+    description: Measures the total time spent on proxy operations.
+    example: example-proxy_time
+  - name: microsoft.exchange.puid
+    type: keyword
+    level: custom
+    description: A unique identifier associated with the user or process, often used
+      for tracking user-specific events or activity.
+    example: example-puid
+  - name: microsoft.exchange.recipient_count
+    type: keyword
+    level: custom
+    description: The total number of recipients in the message, including To, CC,
+      and BCC addresses.
+    example: example-recipient_count
+  - name: microsoft.exchange.recipient_status
+    type: keyword
+    level: custom
+    description: Describes the status of each recipient in the message, such as "Recipient
+      OK" or error codes indicating delivery issues.
+    example: example-recipient_status
+  - name: microsoft.exchange.reference
+    type: keyword
+    level: custom
+    description: Contains additional information related to the event, such as Message-Id
+      values for delivery status notifications or details about forked messages.
+    example: example-reference
+  - name: microsoft.exchange.related_recipient_address
+    type: keyword
+    level: custom
+    description: Displays related recipient email addresses for events like EXPAND,
+      REDIRECT, and RESOLVE.
+    example: example-related_recipient_address
+  - name: microsoft.exchange.remote_endpoint
+    type: keyword
+    level: custom
+    description: The remote endpoint of the SMTP session, consisting of an IP address
+      and TCP port number, formatted as <IP address>:<port>.
+    example: example-remote_endpoint
+  - name: microsoft.exchange.request_handler_latency
+    type: keyword
+    level: custom
+    description: Latency incurred during the request handler's execution.
+    example: example-request_handler_latency
+  - name: microsoft.exchange.request_id
+    type: keyword
+    level: custom
+    description: A unique identifier for the request processed by Microsoft Exchange,
+      used for tracking and debugging.
+    example: example-request_id
+  - name: microsoft.exchange.resource_forest_latency_breakup
+    type: keyword
+    level: custom
+    description: Details latency breakdown for resource forest operations.
+    example: example-resource_forest_latency_breakup
+  - name: microsoft.exchange.return_path
+    type: keyword
+    level: custom
+    description: Represents the return address specified by the MAIL FROM command.
+      May contain the null sender value, represented as <>.
+    example: example-return_path
+  - name: microsoft.exchange.revision_version
+    type: keyword
+    level: custom
+    description: Denotes the revision version of the Exchange server, identifying
+      finer-grained updates or fixes.
+    example: example-revision_version
+  - name: microsoft.exchange.route_refresher_latency
+    type: keyword
+    level: custom
+    description: Measures the latency in refreshing the route table or configuration.
+    example: example-route_refresher_latency
+  - name: microsoft.exchange.routing_hint
+    type: keyword
+    level: custom
+    description: Provides hints or metadata to optimize routing decisions.
+    example: example-routing_hint
+  - name: microsoft.exchange.routing_latency
+    type: keyword
+    level: custom
+    description: Latency incurred while routing the request.
+    example: example-routing_latency
+  - name: microsoft.exchange.routing_status
+    type: keyword
+    level: custom
+    description: The status of routing operations, indicating success or failure.
+    example: example-routing_status
+  - name: microsoft.exchange.routing_type
+    type: keyword
+    level: custom
+    description: Describes the routing type used, such as SMTP or MAPI, to direct
+      the request.
+    example: example-routing_type
+  - name: microsoft.exchange.rpsize
+    type: keyword
+    level: custom
+    description: The size of the response sent from the server to the client during
+      the protocol event, measured in bytes.
+    example: example-rpsize
+  - name: microsoft.exchange.rqsize
+    type: keyword
+    level: custom
+    description: The size of the request sent from the client to the server during
+      the protocol event, measured in bytes.
+    example: example-rqsize
+  - name: microsoft.exchange.schema_version
+    type: keyword
+    level: custom
+    description: Indicates the schema version of the Exchange server that created
+      the log entry.
+    example: example-schema_version
+  - name: microsoft.exchange.sender_address
+    type: keyword
+    level: custom
+    description: Specifies the sender's email address as found in the Sender or From
+      header fields of the message.
+    example: example-sender_address
+  - name: microsoft.exchange.sequence_number
+    type: keyword
+    level: custom
+    description: A counter that starts at 0 and increments for each event within the
+      same SMTP session, ensuring the proper event order.
+    example: example-sequence_number
+  - name: microsoft.exchange.server_locator_host
+    type: keyword
+    level: custom
+    description: The host server used by the server locator service to identify resources.
+    example: example-server_locator_host
+  - name: microsoft.exchange.server_locator_latency
+    type: keyword
+    level: custom
+    description: Measures the latency incurred while locating the server for the request.
+    example: example-server_locator_latency
+  - name: microsoft.exchange.session_id
+    type: keyword
+    level: custom
+    description: A GUID that uniquely identifies the SMTP session. This value is consistent
+      across all events within the same session.
+    example: example-session_id
+  - name: microsoft.exchange.shared_cache_latency_breakup
+    type: keyword
+    level: custom
+    description: Provides latency details for shared cache operations.
+    example: example-shared_cache_latency_breakup
+  - name: microsoft.exchange.sip
+    type: keyword
+    level: custom
+    description: The server IP address or local endpoint of the session, formatted
+      as <IP address>:<port>.
+    example: example-sip
+  - name: microsoft.exchange.source
+    type: keyword
+    level: custom
+    description: Specifies the Exchange transport component responsible for the logged
+      event.
+    example: example-source
+  - name: microsoft.exchange.source_context
+    type: keyword
+    level: custom
+    description: Extra information associated with the source field, such as context
+      details or metadata related to the event or process.
+    example: example-source_context
+  - name: microsoft.exchange.target_outstanding_requests
+    type: keyword
+    level: custom
+    description: Indicates the number of outstanding requests on the target server
+      during the operation.
+    example: example-target_outstanding_requests
+  - name: microsoft.exchange.target_server
+    type: keyword
+    level: custom
+    description: The server targeted by the request or proxy operation.
+    example: example-target_server
+  - name: microsoft.exchange.target_server_version
+    type: keyword
+    level: custom
+    description: The version of the target server handling the request.
+    example: example-target_server_version
+  - name: microsoft.exchange.tenant_id
+    type: keyword
+    level: custom
+    description: In multi-tenant environments, specifies the tenant ID associated
+      with the message. Not typically used in on-premises Exchange.
+    example: example-tenant_id
+  - name: microsoft.exchange.total_account_forest_latency
+    type: keyword
+    level: custom
+    description: The total latency incurred during account forest operations.
+    example: example-total_account_forest_latency
+  - name: microsoft.exchange.total_gls_latency
+    type: keyword
+    level: custom
+    description: The total latency experienced in Global Locator Service operations.
+    example: example-total_gls_latency
+  - name: microsoft.exchange.total_request_time
+    type: keyword
+    level: custom
+    description: The total time taken to process the entire request.
+    example: example-total_request_time
+  - name: microsoft.exchange.total_resource_forest_latency
+    type: keyword
+    level: custom
+    description: The total latency incurred in resource forest operations.
+    example: example-total_resource_forest_latency
+  - name: microsoft.exchange.total_shared_cache_latency
+    type: keyword
+    level: custom
+    description: Total latency incurred during shared cache lookups.
+    example: example-total_shared_cache_latency
+  - name: microsoft.exchange.transport_traffic_type
+    type: keyword
+    level: custom
+    description: Specifies the type of transport traffic, often "Email" in on-premises
+      Exchange environments.
+    example: example-transport_traffic_type
+  - name: microsoft.exchange.url_host
+    type: keyword
+    level: custom
+    description: Represents the host component of the URL accessed during the Exchange
+      operation.
+    example: example-url_host
+  - name: microsoft.exchange.url_stem
+    type: keyword
+    level: custom
+    description: Refers to the path or stem portion of the URL accessed during the
+      Exchange request.
+    example: example-url_stem
+  - name: microsoft.exchange.user
+    type: keyword
+    level: custom
+    description: The username of the client associated with the session or protocol
+      event.
+    example: example-user
+  - name: microsoft.exchange.user_ad_object_guid
+    type: keyword
+    level: custom
+    description: The unique identifier for the user's Active Directory object.
+    example: example-user_ad_object_guid

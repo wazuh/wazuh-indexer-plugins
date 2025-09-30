@@ -1,0 +1,110 @@
+- name: snort
+  title: Snort
+  description: snort custom fields for WCS integration
+  fields:
+  - name: snort.action
+    type: keyword
+    level: custom
+    description: The action taken by snort (e.g., allowed, blocked, etc.).
+    example: example-action
+  - name: snort.class
+    type: keyword
+    level: custom
+    description: Snort's classification type of the event.
+    example: example-class
+  - name: snort.sid
+    type: keyword
+    level: custom
+    description: The Snort id of the rule that generated the event.
+    example: example-sid
+  - name: snort.dgm.length
+    type: keyword
+    level: custom
+    description: Length of \n
+    example: example-length
+  - name: snort.eth.length
+    type: keyword
+    level: custom
+    description: Length of the Ethernet header and payload.
+    example: example-length
+  - name: snort.gid
+    type: keyword
+    level: custom
+    description: The gid keyword (generator id) is used to identify what part of Snort
+      generates the event when a particular rule fires.dd
+    example: example-gid
+  - name: snort.icmp.code
+    type: keyword
+    level: custom
+    description: ICMP code.
+    example: example-code
+  - name: snort.icmp.id
+    type: keyword
+    level: custom
+    description: ID of the echo request/reply
+    example: example-id
+  - name: snort.icmp.seq
+    type: keyword
+    level: custom
+    description: ICMP sequence number.
+    example: example-seq
+  - name: snort.icmp.type
+    type: keyword
+    level: custom
+    description: ICMP type.
+    example: example-type
+  - name: snort.ip.flags
+    type: keyword
+    level: custom
+    description: IP flags.
+    example: example-flags
+  - name: snort.ip.id
+    type: keyword
+    level: custom
+    description: ID of the packet
+    example: example-id
+  - name: snort.ip.length
+    type: keyword
+    level: custom
+    description: Length of the IP header and payload.
+    example: example-length
+  - name: snort.ip.tos
+    type: keyword
+    level: custom
+    description: IP Type of Service identification.
+    example: example-tos
+  - name: snort.ip.ttl
+    type: keyword
+    level: custom
+    description: Time To Live (TTL) of the packet
+    example: example-ttl
+  - name: snort.tcp.ack
+    type: keyword
+    level: custom
+    description: TCP Acknowledgment number.
+    example: example-ack
+  - name: snort.tcp.flags
+    type: keyword
+    level: custom
+    description: TCP flags.
+    example: example-flags
+  - name: snort.tcp.length
+    type: keyword
+    level: custom
+    description: Length of the TCP header and payload.
+    example: example-length
+  - name: snort.tcp.seq
+    type: keyword
+    level: custom
+    description: TCP sequence number.
+    example: example-seq
+  - name: snort.tcp.window
+    type: keyword
+    level: custom
+    description: Advertised TCP window size.
+    example: example-window
+  - name: snort.udp.length
+    type: keyword
+    level: custom
+    description: Length of the UDP header and payload.
+    example: example-length

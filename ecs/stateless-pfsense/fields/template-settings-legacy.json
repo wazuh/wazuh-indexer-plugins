@@ -1,0 +1,26 @@
+{
+  "index_patterns": [
+    "wazuh-events-5.x-pfsense-*"
+  ],
+  "order": 1,
+  "settings": {
+    "plugins.index_state_management.rollover_alias": "wazuh-events-pfsense",
+    "mapping.total_fields.limit": 2500,
+    "index": {
+      "number_of_shards": "3",
+      "number_of_replicas": "0",
+      "auto_expand_replicas": "0-1",
+      "refresh_interval": "2s",
+      "query.default_field": [
+        "agent.host.architecture",
+        "agent.host.ip",
+        "agent.id",
+        "agent.name",
+        "agent.version",
+        "wazuh.cluster.name",
+        "wazuh.cluster.node",
+        "wazuh.schema.version"
+      ]
+    }
+  }
+}

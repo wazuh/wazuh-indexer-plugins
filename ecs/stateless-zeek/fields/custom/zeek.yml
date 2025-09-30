@@ -1,0 +1,1654 @@
+- name: zeek
+  title: Zeek
+  description: zeek custom fields for WCS integration
+  fields:
+  - name: zeek.capture_loss_acks
+    type: keyword
+    level: custom
+    description: Total number of ACKs seen in the previous measurement interval.
+    example: example-capture_loss_acks
+  - name: zeek.capture_loss_gaps
+    type: keyword
+    level: custom
+    description: Number of missed ACKs from the previous measurement interval.
+    example: example-capture_loss_gaps
+  - name: zeek.capture_loss_peer
+    type: keyword
+    level: custom
+    description: In the event that there are multiple Zeek instances logging to the
+      same host, this distinguishes each peer with its individual name.
+    example: example-capture_loss_peer
+  - name: zeek.capture_loss_percent_lost
+    type: keyword
+    level: custom
+    description: Percentage of ACKs seen where the data being ACKed wasn't seen.
+    example: example-capture_loss_percent_lost
+  - name: zeek.capture_loss_ts_delta
+    type: keyword
+    level: custom
+    description: The time delay between this measurement and the last.
+    example: example-capture_loss_ts_delta
+  - name: zeek.conn_history
+    type: keyword
+    level: custom
+    description: These are connection flags indicating the history of the session.
+    example: example-conn_history
+  - name: zeek.conn_icmp_code
+    type: keyword
+    level: custom
+    description: This indicates the ICMP message code.
+    example: example-conn_icmp_code
+  - name: zeek.conn_icmp_type
+    type: keyword
+    level: custom
+    description: This indicates the ICMP message type.
+    example: example-conn_icmp_type
+  - name: zeek.conn_local_orig
+    type: keyword
+    level: custom
+    description: This indicates whether the session is originated locally.
+    example: example-conn_local_orig
+  - name: zeek.conn_local_resp
+    type: keyword
+    level: custom
+    description: This indicates whether the session is responded locally.
+    example: example-conn_local_resp
+  - name: zeek.conn_missed_bytes
+    type: keyword
+    level: custom
+    description: This indicates the missed bytes for the session.
+    example: example-conn_missed_bytes
+  - name: zeek.conn_state
+    type: keyword
+    level: custom
+    description: This is a code indicating the state of the session.
+    example: example-conn_state
+  - name: zeek.conn_state_message
+    type: keyword
+    level: custom
+    description: This indicates the state of the session.
+    example: example-conn_state_message
+  - name: zeek.dce_rpc_endpoint
+    type: keyword
+    level: custom
+    description: This is the endpoint name looked up from the uuid.
+    example: example-dce_rpc_endpoint
+  - name: zeek.dce_rpc_named_pipe
+    type: keyword
+    level: custom
+    description: This is the name of the remote pipe.
+    example: example-dce_rpc_named_pipe
+  - name: zeek.dce_rpc_operation
+    type: keyword
+    level: custom
+    description: This is the operation as seen in the call.
+    example: example-dce_rpc_operation
+  - name: zeek.dce_rpc_rtt
+    type: keyword
+    level: custom
+    description: Round trip time from the request to the response. If either the request
+      or response wasn't seen, this will be null.
+    example: example-dce_rpc_rtt
+  - name: zeek.dhcp_agent_remote_id
+    type: keyword
+    level: custom
+    description: A globally unique identifier added by relay agents to identify the
+      remote host end of the circuit.
+    example: example-dhcp_agent_remote_id
+  - name: zeek.dhcp_assigned_addr
+    type: keyword
+    level: custom
+    description: This is the IP address assigned by the server.
+    example: example-dhcp_assigned_addr
+  - name: zeek.dhcp_circuit_id
+    type: keyword
+    level: custom
+    description: Added by DHCP relay agents which terminate switched or permanent
+      circuits. It encodes an agent-local identifier of the circuit from which a DHCP
+      client-to-server packet was received. Typically it should represent a router
+      or switch interface number.
+    example: example-dhcp_circuit_id
+  - name: zeek.dhcp_client_addr
+    type: keyword
+    level: custom
+    description: This is the IP address of the client. If a transaction is only a
+      client sending INFORM messages then there is no lease information exchanged
+      so this is helpful to know who sent the messages. Getting an address in this
+      field does require that the client sources at least one DHCP message using a
+      non-broadcast address.
+    example: example-dhcp_client_addr
+  - name: zeek.dhcp_client_message
+    type: keyword
+    level: custom
+    description: This is the message typically accompanied with a DHCP_DECLINE so
+      the client can tell the server why it rejected an address.
+    example: example-dhcp_client_message
+  - name: zeek.dhcp_client_software
+    type: keyword
+    level: custom
+    description: The software reported by the client in the vendor_class option.
+    example: example-dhcp_client_software
+  - name: zeek.dhcp_domain
+    type: keyword
+    level: custom
+    description: This is the domain given by the server in option 15.
+    example: example-dhcp_domain
+  - name: zeek.dhcp_duration
+    type: keyword
+    level: custom
+    description: "This is the duration of the DHCP â€œsessionâ€\x9D representing the\
+      \ time from the first message to the last."
+    example: example-dhcp_duration
+  - name: zeek.dhcp_host_name
+    type: keyword
+    level: custom
+    description: This is the name given by client in Hostname option 12.
+    example: example-dhcp_host_name
+  - name: zeek.dhcp_lease_time
+    type: keyword
+    level: custom
+    description: This is the IP address lease interval.
+    example: example-dhcp_lease_time
+  - name: zeek.dhcp_mac
+    type: keyword
+    level: custom
+    description: This is the client's hardware address.
+    example: example-dhcp_mac
+  - name: zeek.dhcp_msg_orig
+    type: keyword
+    level: custom
+    description: The address that originated each message from the msg_types field.
+    example: example-dhcp_msg_orig
+  - name: zeek.dhcp_msg_types
+    type: keyword
+    level: custom
+    description: The DHCP message types seen by this DHCP transaction.
+    example: example-dhcp_msg_types
+  - name: zeek.dhcp_requested_addr
+    type: keyword
+    level: custom
+    description: This is the IP address requested by the client.
+    example: example-dhcp_requested_addr
+  - name: zeek.dhcp_server_addr
+    type: keyword
+    level: custom
+    description: This is the IP address of the server involved in actually handing
+      out the lease. There could be other servers replying with OFFER messages which
+      won't be represented here. Getting an address in this field also requires that
+      the server handing out the lease also sources packets from a non-broadcast IP
+      address.
+    example: example-dhcp_server_addr
+  - name: zeek.dhcp_server_message
+    type: keyword
+    level: custom
+    description: Message typically accompanied with a DHCP_NAK to let the client know
+      why it rejected the request.
+    example: example-dhcp_server_message
+  - name: zeek.dhcp_server_software
+    type: keyword
+    level: custom
+    description: This is the software reported by the server in the vendor_class option.
+    example: example-dhcp_server_software
+  - name: zeek.dhcp_subscriber_id
+    type: keyword
+    level: custom
+    description: The subscriber ID is a value independent of the physical network
+      configuration so that a customer's DHCP configuration can be given to them correctly
+      no matter where they are physically connected.
+    example: example-dhcp_subscriber_id
+  - name: zeek.dhcp_uids
+    type: keyword
+    level: custom
+    description: A series of unique identifiers of the connections over which DHCP
+      is occurring. This behavior with multiple connections is unique to DHCP because
+      of the way it uses broadcast packets on local networks.
+    example: example-dhcp_uids
+  - name: zeek.dnp3_fc_reply
+    type: keyword
+    level: custom
+    description: This is the name of the function message in the reply.
+    example: example-dnp3_fc_reply
+  - name: zeek.dnp3_fc_request
+    type: keyword
+    level: custom
+    description: This the name of the function message in the request.
+    example: example-dnp3_fc_request
+  - name: zeek.dnp3_iin
+    type: keyword
+    level: custom
+    description: "This is the response's â€œinternal indication numberâ€\x9D."
+    example: example-dnp3_iin
+  - name: zeek.dns_TTLs
+    type: keyword
+    level: custom
+    description: This is the caching intervals of the associated RRs described by
+      the answers field.
+    example: example-dns_TTLs
+  - name: zeek.dns_answers
+    type: keyword
+    level: custom
+    description: This is the set of resource descriptions in the query answer.
+    example: example-dns_answers
+  - name: zeek.dns_qclass
+    type: keyword
+    level: custom
+    description: This is the QCLASS value specifying the class of the query.
+    example: example-dns_qclass
+  - name: zeek.dns_qclass_name
+    type: keyword
+    level: custom
+    description: This is a descriptive name for the class of the query.
+    example: example-dns_qclass_name
+  - name: zeek.dns_qtype
+    type: keyword
+    level: custom
+    description: This is a QTYPE value specifying the type of the query.
+    example: example-dns_qtype
+  - name: zeek.dns_qtype_name
+    type: keyword
+    level: custom
+    description: This is a descriptive name for the type of the query.
+    example: example-dns_qtype_name
+  - name: zeek.dns_query
+    type: keyword
+    level: custom
+    description: This is the domain name that is the subject of the DNS query.
+    example: example-dns_query
+  - name: zeek.dns_rcode
+    type: keyword
+    level: custom
+    description: This is the response code value in DNS response messages.
+    example: example-dns_rcode
+  - name: zeek.dns_rcode_name
+    type: keyword
+    level: custom
+    description: This is a descriptive name for the response code value.
+    example: example-dns_rcode_name
+  - name: zeek.dns_rejected
+    type: keyword
+    level: custom
+    description: This indicates whether the DNS query was rejected by the server.
+    example: example-dns_rejected
+  - name: zeek.dns_rtt
+    type: keyword
+    level: custom
+    description: This is the round trip time for the query and response.
+    example: example-dns_rtt
+  - name: zeek.dns_trans_id
+    type: keyword
+    level: custom
+    description: This is the DNS transaction identifier.
+    example: example-dns_trans_id
+  - name: zeek.dpd_analyzer
+    type: keyword
+    level: custom
+    description: This is the analyzer that generated the violation.
+    example: example-dpd_analyzer
+  - name: zeek.dpd_failure_reason
+    type: keyword
+    level: custom
+    description: This is the textual reason for the analysis failure.
+    example: example-dpd_failure_reason
+  - name: zeek.files_analyzers
+    type: keyword
+    level: custom
+    description: This is a set of analysis types done during the file analysis.
+    example: example-files_analyzers
+  - name: zeek.files_depth
+    type: keyword
+    level: custom
+    description: This is a value to represent the depth of this file in relation to
+      its source. In SMTP, it is the depth of the MIME attachment on the message.
+      In HTTP, it is the depth of the request within the TCP connection.
+    example: example-files_depth
+  - name: zeek.files_duration
+    type: keyword
+    level: custom
+    description: This is the duration the file was analyzed for. Not the duration
+      of the session.
+    example: example-files_duration
+  - name: zeek.files_fuid
+    type: keyword
+    level: custom
+    description: This is a file unique identifier.
+    example: example-files_fuid
+  - name: zeek.files_is_orig
+    type: keyword
+    level: custom
+    description: If the source of this file is a network connection, this field indicates
+      if the file is being sent by the originator of the connection or the responder.
+    example: example-files_is_orig
+  - name: zeek.files_local_orig
+    type: keyword
+    level: custom
+    description: If the source of this file is a network connection, this field indicates
+      if the data originated from the local network or not.
+    example: example-files_local_orig
+  - name: zeek.files_missing_bytes
+    type: keyword
+    level: custom
+    description: The number of bytes in the file stream that were completely missed
+      during the process of analysis.
+    example: example-files_missing_bytes
+  - name: zeek.files_overflow_bytes
+    type: keyword
+    level: custom
+    description: The number of bytes in the file stream that were not delivered to
+      stream file analyzers. This could be overlapping bytes or bytes that couldn't
+      be reassembled.
+    example: example-files_overflow_bytes
+  - name: zeek.files_rx_host
+    type: keyword
+    level: custom
+    description: This is the host that received the file.
+    example: example-files_rx_host
+  - name: zeek.files_seen_bytes
+    type: keyword
+    level: custom
+    description: This is the number of bytes provided to the file analysis engine
+      for the file.
+    example: example-files_seen_bytes
+  - name: zeek.files_source
+    type: keyword
+    level: custom
+    description: This is an identification of the source of the file data. E.g. it
+      may be a network protocol over which it was transferred, or a local file path
+      which was read, or some other input source.
+    example: example-files_source
+  - name: zeek.files_timedout
+    type: keyword
+    level: custom
+    description: This indicates whether the file analysis timed out at least once
+      for the file.
+    example: example-files_timedout
+  - name: zeek.files_tx_host
+    type: keyword
+    level: custom
+    description: This is the host that transferred the file.
+    example: example-files_tx_host
+  - name: zeek.ftp_arg
+    type: keyword
+    level: custom
+    description: This is the argument for the command if one was given.
+    example: example-ftp_arg
+  - name: zeek.ftp_data_channel_orig_h
+    type: keyword
+    level: custom
+    description: This is the host that will be initiating the data connection.
+    example: example-ftp_data_channel_orig_h
+  - name: zeek.ftp_data_channel_passive
+    type: keyword
+    level: custom
+    description: This indicates whether PASV mode is toggled for control channel.
+    example: example-ftp_data_channel_passive
+  - name: zeek.ftp_data_channel_resp_h
+    type: keyword
+    level: custom
+    description: This is the host that will be accepting the data connection.
+    example: example-ftp_data_channel_resp_h
+  - name: zeek.ftp_data_channel_resp_p
+    type: keyword
+    level: custom
+    description: This is the port at which the acceptor is listening for the data
+      connection.
+    example: example-ftp_data_channel_resp_p
+  - name: zeek.ftp_fuid
+    type: keyword
+    level: custom
+    description: File unique ID. (present if base/protocols/ftp/files.bro is loaded).
+    example: example-ftp_fuid
+  - name: zeek.ftp_password
+    type: keyword
+    level: custom
+    description: This is the password if one was captured by Zeek.
+    example: example-ftp_password
+  - name: zeek.ftp_reply_code
+    type: keyword
+    level: custom
+    description: This is the reply code from the server in response to the command.
+    example: example-ftp_reply_code
+  - name: zeek.ftp_reply_msg
+    type: keyword
+    level: custom
+    description: This is the eply message from the server in response to the command.
+    example: example-ftp_reply_msg
+  - name: zeek.http_resp_fuids
+    type: keyword
+    level: custom
+    description: This is an ordered vector of file unique IDs from the responder.
+    example: example-http_resp_fuids
+  - name: zeek.http_resp_mime_types
+    type: keyword
+    level: custom
+    description: This is an ordered vector of mime types from the responder.
+    example: example-http_resp_mime_types
+  - name: zeek.http_status_msg
+    type: keyword
+    level: custom
+    description: This is the status message returned by the server.
+    example: example-http_status_msg
+  - name: zeek.http_tags
+    type: keyword
+    level: custom
+    description: This is a set of indicators of various attributes discovered and
+      related to a particular request/response pair.
+    example: example-http_tags
+  - name: zeek.http_trans_depth
+    type: keyword
+    level: custom
+    description: This field represents the pipelined depth into the connection of
+      this request/response transaction.
+    example: example-http_trans_depth
+  - name: zeek.intel_matched
+    type: keyword
+    level: custom
+    description: The event to represent a match in the intelligence data from data
+      that was seen.
+    example: example-intel_matched
+  - name: zeek.intel_seen_indicator
+    type: keyword
+    level: custom
+    description: This field represents the intelligence indicator.
+    example: example-intel_seen_indicator
+  - name: zeek.intel_seen_indicator_type
+    type: keyword
+    level: custom
+    description: This field represents the type of data the indicator represents.
+    example: example-intel_seen_indicator_type
+  - name: zeek.intel_seen_node
+    type: keyword
+    level: custom
+    description: This field represents the name of the node where the match was discovered.
+    example: example-intel_seen_node
+  - name: zeek.intel_seen_where
+    type: keyword
+    level: custom
+    description: This field represents where the data was discovered.
+    example: example-intel_seen_where
+  - name: zeek.intel_sources
+    type: keyword
+    level: custom
+    description: This field represents the sources which supplied data for this match.
+    example: example-intel_sources
+  - name: zeek.irc_addl
+    type: keyword
+    level: custom
+    description: This field represents any additional data for the command.
+    example: example-irc_addl
+  - name: zeek.irc_nick
+    type: keyword
+    level: custom
+    description: This is the nickname given for the connection.
+    example: example-irc_nick
+  - name: zeek.irc_value
+    type: keyword
+    level: custom
+    description: This is the value for the command given by the client.
+    example: example-irc_value
+  - name: zeek.kerberos_auth_ticket
+    type: keyword
+    level: custom
+    description: Hash of ticket returned by the KDC. (present if policy/protocols/krb/ticket-logging.zeek
+      is loaded).
+    example: example-kerberos_auth_ticket
+  - name: zeek.kerberos_cert_client_fuid
+    type: keyword
+    level: custom
+    description: File unique ID of client cert, if any. (present if base/protocols/krb/files.zeek
+      is loaded).
+    example: example-kerberos_cert_client_fuid
+  - name: zeek.kerberos_cert_client_subject
+    type: keyword
+    level: custom
+    description: Subject of server certificate, if any. (present if base/protocols/krb/files.zeek
+      is loaded).
+    example: example-kerberos_cert_client_subject
+  - name: zeek.kerberos_cert_server_fuid
+    type: keyword
+    level: custom
+    description: File unique ID of server cert, if any. (present if base/protocols/krb/files.zeek
+      is loaded).
+    example: example-kerberos_cert_server_fuid
+  - name: zeek.kerberos_cert_server_subject
+    type: keyword
+    level: custom
+    description: Subject of server certificate, if any. (present if base/protocols/krb/files.zeek
+      is loaded).
+    example: example-kerberos_cert_server_subject
+  - name: zeek.kerberos_cert_server_value
+    type: keyword
+    level: custom
+    description: This is the value of the server certificate.
+    example: example-kerberos_cert_server_value
+  - name: zeek.kerberos_cipher
+    type: keyword
+    level: custom
+    description: This is the value of the ticket encryption type.
+    example: example-kerberos_cipher
+  - name: zeek.kerberos_error_code
+    type: keyword
+    level: custom
+    description: This is the value of the error code.
+    example: example-kerberos_error_code
+  - name: zeek.kerberos_error_msg
+    type: keyword
+    level: custom
+    description: This is the value of the error message.
+    example: example-kerberos_error_msg
+  - name: zeek.kerberos_forwardable
+    type: keyword
+    level: custom
+    description: This is the value of the forwardable ticket requested.
+    example: example-kerberos_forwardable
+  - name: zeek.kerberos_from
+    type: keyword
+    level: custom
+    description: This is the date ticket is valid from.
+    example: example-kerberos_from
+  - name: zeek.kerberos_new_ticket
+    type: keyword
+    level: custom
+    description: Hash of ticket returned by the KDC. (present if policy/protocols/krb/ticket-logging.zeek
+      is loaded).
+    example: example-kerberos_new_ticket
+  - name: zeek.kerberos_renewable
+    type: keyword
+    level: custom
+    description: This is the value of the renewable ticket requested.
+    example: example-kerberos_renewable
+  - name: zeek.kerberos_service
+    type: keyword
+    level: custom
+    description: This is the value of the service name.
+    example: example-kerberos_service
+  - name: zeek.kerberos_success
+    type: keyword
+    level: custom
+    description: This is the value of the request result.
+    example: example-kerberos_success
+  - name: zeek.kerberos_till
+    type: keyword
+    level: custom
+    description: This is the date the ticket is valid until.
+    example: example-kerberos_till
+  - name: zeek.mysql_arg
+    type: keyword
+    level: custom
+    description: This is the argument issued to the command.
+    example: example-mysql_arg
+  - name: zeek.mysql_response
+    type: keyword
+    level: custom
+    description: This is the server message, if any.
+    example: example-mysql_response
+  - name: zeek.mysql_rows
+    type: keyword
+    level: custom
+    description: This is the number of affected rows, if any.
+    example: example-mysql_rows
+  - name: zeek.mysql_success
+    type: keyword
+    level: custom
+    description: This indicates whether the command succeeded.
+    example: example-mysql_success
+  - name: zeek.notice_actions
+    type: keyword
+    level: custom
+    description: These are the actions which have been applied to this notice.
+    example: example-notice_actions
+  - name: zeek.notice_dropped
+    type: keyword
+    level: custom
+    description: This indicates if the source IP address was dropped and denied network
+      access.
+    example: example-notice_dropped
+  - name: zeek.notice_fuid
+    type: keyword
+    level: custom
+    description: This is a file unique ID if this notice is related to a file.
+    example: example-notice_fuid
+  - name: zeek.notice_msg
+    type: keyword
+    level: custom
+    description: This is a human readable message for the notice.
+    example: example-notice_msg
+  - name: zeek.notice_note
+    type: keyword
+    level: custom
+    description: This is the type of the notice.
+    example: example-notice_note
+  - name: zeek.notice_peer_descr
+    type: keyword
+    level: custom
+    description: This is the textual description for the peer that raised this notice.
+    example: example-notice_peer_descr
+  - name: zeek.notice_sub
+    type: keyword
+    level: custom
+    description: This is the human readable sub-message.
+    example: example-notice_sub
+  - name: zeek.notice_suppress_for
+    type: keyword
+    level: custom
+    description: This field indicates the length of time that this unique notice should
+      be suppressed.
+    example: example-notice_suppress_for
+  - name: zeek.ntlm_hostname
+    type: keyword
+    level: custom
+    description: This is the hostname given by the client.
+    example: example-ntlm_hostname
+  - name: zeek.ntlm_server_dns_computer_name
+    type: keyword
+    level: custom
+    description: This is the DNS name given by the server in a CHALLENGE.
+    example: example-ntlm_server_dns_computer_name
+  - name: zeek.ntlm_server_nb_computer_name
+    type: keyword
+    level: custom
+    description: This is the NetBIOS name given by the server in a CHALLENGE.
+    example: example-ntlm_server_nb_computer_name
+  - name: zeek.ntlm_server_tree_name
+    type: keyword
+    level: custom
+    description: This field indicates the tree name given by the server in a CHALLENGE.
+    example: example-ntlm_server_tree_name
+  - name: zeek.ntp_mode
+    type: keyword
+    level: custom
+    description: This field indicates the NTP mode being used.
+    example: example-ntp_mode
+  - name: zeek.ntp_num_exts
+    type: keyword
+    level: custom
+    description: This field indicates the number of extension fields (which are not
+      currently parsed).
+    example: example-ntp_num_exts
+  - name: zeek.ntp_org_time
+    type: keyword
+    level: custom
+    description: This field indicates the time at the client when the request departed
+      for the NTP server.
+    example: example-ntp_org_time
+  - name: zeek.ntp_poll
+    type: keyword
+    level: custom
+    description: This field indicates the maximum interval between successive messages
+      in seconds.
+    example: example-ntp_poll
+  - name: zeek.ntp_precision
+    type: keyword
+    level: custom
+    description: This is the precision of the system clock in seconds.
+    example: example-ntp_precision
+  - name: zeek.ntp_rec_time
+    type: keyword
+    level: custom
+    description: This is the time at the server when the request arrived from the
+      NTP client.
+    example: example-ntp_rec_time
+  - name: zeek.ntp_ref_id
+    type: keyword
+    level: custom
+    description: For stratum 0, 4 character string used for debugging. For stratum
+      1, ID assigned to the reference clock by IANA. Above stratum 1, when using IPv4,
+      the IP address of the reference clock. Note that the NTP protocol did not originally
+      specify a large enough field to represent IPv6 addresses, so they use the first
+      four bytes of the MD5 hash of the reference clock's IPv6 address (i.e. an IPv4
+      address here is not necessarily IPv4).
+    example: example-ntp_ref_id
+  - name: zeek.ntp_ref_time
+    type: keyword
+    level: custom
+    description: This is the time when the system clock was last set or correct.
+    example: example-ntp_ref_time
+  - name: zeek.ntp_root_delay
+    type: keyword
+    level: custom
+    description: This is the total round-trip delay to the reference clock in seconds.
+    example: example-ntp_root_delay
+  - name: zeek.ntp_root_disp
+    type: keyword
+    level: custom
+    description: This is the total dispersion to the reference clock in seconds.
+    example: example-ntp_root_disp
+  - name: zeek.ntp_stratum
+    type: keyword
+    level: custom
+    description: This field indicates the stratum (primary server, secondary server,
+      etc.).
+    example: example-ntp_stratum
+  - name: zeek.ntp_version
+    type: keyword
+    level: custom
+    description: This field indicates the NTP version number (1, 2, 3, 4).
+    example: example-ntp_version
+  - name: zeek.ntp_xmt_time
+    type: keyword
+    level: custom
+    description: This is the time at the server when the response departed for the
+      NTP client.
+    example: example-ntp_xmt_time
+  - name: zeek.ocsp_cert_status
+    type: keyword
+    level: custom
+    description: This is the status of the affected certificate.
+    example: example-ocsp_cert_status
+  - name: zeek.ocsp_hash_algorithm
+    type: keyword
+    level: custom
+    description: This is the hash algorithm used to generate issuerNameHash and issuerKeyHash.
+    example: example-ocsp_hash_algorithm
+  - name: zeek.ocsp_id
+    type: keyword
+    level: custom
+    description: This is the file id of the OCSP reply.
+    example: example-ocsp_id
+  - name: zeek.ocsp_issuer_key_hash
+    type: keyword
+    level: custom
+    description: This is the hash of the issuer's public key.
+    example: example-ocsp_issuer_key_hash
+  - name: zeek.ocsp_issuer_name_hash
+    type: keyword
+    level: custom
+    description: This is the hash of the issuer's public key.
+    example: example-ocsp_issuer_name_hash
+  - name: zeek.ocsp_next_update
+    type: keyword
+    level: custom
+    description: This is the latest time at which new information about the status
+      of the certificate will be available.
+    example: example-ocsp_next_update
+  - name: zeek.ocsp_revokereason
+    type: keyword
+    level: custom
+    description: This is the reason for which the certificate was revoked.
+    example: example-ocsp_revokereason
+  - name: zeek.ocsp_revoketime
+    type: keyword
+    level: custom
+    description: This is the time at which the certificate was revoked.
+    example: example-ocsp_revoketime
+  - name: zeek.ocsp_serial_number
+    type: keyword
+    level: custom
+    description: This is the serial number of the affected certificate.
+    example: example-ocsp_serial_number
+  - name: zeek.ocsp_this_update
+    type: keyword
+    level: custom
+    description: This is the time at which the status being shows is known to have
+      been correct.
+    example: example-ocsp_this_update
+  - name: zeek.pe_compile_ts
+    type: keyword
+    level: custom
+    description: This is the time that the file was created at.
+    example: example-pe_compile_ts
+  - name: zeek.pe_has_cert_table
+    type: keyword
+    level: custom
+    description: This indicates whether the file has an attribute certificate table.
+    example: example-pe_has_cert_table
+  - name: zeek.pe_has_debug_data
+    type: keyword
+    level: custom
+    description: This indicates whether the file has a debug table.
+    example: example-pe_has_debug_data
+  - name: zeek.pe_has_export_table
+    type: keyword
+    level: custom
+    description: This indicates whether the file has a export table.
+    example: example-pe_has_export_table
+  - name: zeek.pe_has_import_table
+    type: keyword
+    level: custom
+    description: This indicates whether the file has a import table.
+    example: example-pe_has_import_table
+  - name: zeek.pe_id
+    type: keyword
+    level: custom
+    description: This is the file id of this portable executable file.
+    example: example-pe_id
+  - name: zeek.pe_is_64bit
+    type: keyword
+    level: custom
+    description: This indicates whether the file is a 64-bit executable.
+    example: example-pe_is_64bit
+  - name: zeek.pe_is_exe
+    type: keyword
+    level: custom
+    description: This indicates whether the file is an executable, or just an object
+      file.
+    example: example-pe_is_exe
+  - name: zeek.pe_machine
+    type: keyword
+    level: custom
+    description: This is the target machine that the file was compiled for.
+    example: example-pe_machine
+  - name: zeek.pe_os
+    type: keyword
+    level: custom
+    description: This is the he required operating system.
+    example: example-pe_os
+  - name: zeek.pe_section_names
+    type: keyword
+    level: custom
+    description: These are the names of the sections, in order.
+    example: example-pe_section_names
+  - name: zeek.pe_subsystem
+    type: keyword
+    level: custom
+    description: This is the subsystem that is required to run this file.
+    example: example-pe_subsystem
+  - name: zeek.pe_uses_aslr
+    type: keyword
+    level: custom
+    description: This indicates whether the file supports Address Space Layout Randomization.
+    example: example-pe_uses_aslr
+  - name: zeek.pe_uses_code_integrity
+    type: keyword
+    level: custom
+    description: This indicates whether the file enforces code integrity checks.
+    example: example-pe_uses_code_integrity
+  - name: zeek.pe_uses_dep
+    type: keyword
+    level: custom
+    description: This indicates whether the file supports Data Execution Prevention.
+    example: example-pe_uses_dep
+  - name: zeek.pe_uses_seh
+    type: keyword
+    level: custom
+    description: This indicates whether the file uses use structured exception handing.
+    example: example-pe_uses_seh
+  - name: zeek.radius_mac
+    type: keyword
+    level: custom
+    description: This indicates the MAC address, if present.
+    example: example-radius_mac
+  - name: zeek.rdp_cert_count
+    type: keyword
+    level: custom
+    description: This is the number of certs seen. X.509 can transfer an entire certificate
+      chain.
+    example: example-rdp_cert_count
+  - name: zeek.rdp_cert_permanent
+    type: keyword
+    level: custom
+    description: This indicates if the provided certificate or certificate chain is
+      permanent or temporary.
+    example: example-rdp_cert_permanent
+  - name: zeek.rdp_cert_type
+    type: keyword
+    level: custom
+    description: This indicates if the connection is being encrypted with native RDP
+      encryption, this is the type of cert being used.
+    example: example-rdp_cert_type
+  - name: zeek.rdp_client_build
+    type: keyword
+    level: custom
+    description: This is the RDP client version used by the client machine.
+    example: example-rdp_client_build
+  - name: zeek.rdp_client_dig_product_id
+    type: keyword
+    level: custom
+    description: This is the product ID of the client machine.
+    example: example-rdp_client_dig_product_id
+  - name: zeek.rdp_client_name
+    type: keyword
+    level: custom
+    description: This is the name of the client machine.
+    example: example-rdp_client_name
+  - name: zeek.rdp_desktop_height
+    type: keyword
+    level: custom
+    description: This is the desktop height of the client machine.
+    example: example-rdp_desktop_height
+  - name: zeek.rdp_desktop_width
+    type: keyword
+    level: custom
+    description: This is the desktop width of the client machine.
+    example: example-rdp_desktop_width
+  - name: zeek.rdp_encryption_level
+    type: keyword
+    level: custom
+    description: This indicates the encryption level of the connection.
+    example: example-rdp_encryption_level
+  - name: zeek.rdp_encryption_method
+    type: keyword
+    level: custom
+    description: This indicates the encryption method of the connection.
+    example: example-rdp_encryption_method
+  - name: zeek.rdp_requested_color_depth
+    type: keyword
+    level: custom
+    description: This indicates the color depth requested by the client in the high_color_depth
+      field.
+    example: example-rdp_requested_color_depth
+  - name: zeek.rdp_result
+    type: keyword
+    level: custom
+    description: This indicates the status result for the connection. It's a mix between
+      RDP negotation failure messages and GCC server create response messages.
+    example: example-rdp_result
+  - name: zeek.rdp_security_protocol
+    type: keyword
+    level: custom
+    description: This indicates the security protocol chosen by the server.
+    example: example-rdp_security_protocol
+  - name: zeek.rfb_auth
+    type: keyword
+    level: custom
+    description: This indicates whether or not authentication was successful.
+    example: example-rfb_auth
+  - name: zeek.rfb_authentication_method
+    type: keyword
+    level: custom
+    description: This indicates the identifier of authentication method used.
+    example: example-rfb_authentication_method
+  - name: zeek.rfb_client_major_version
+    type: keyword
+    level: custom
+    description: This is the major version of the client.
+    example: example-rfb_client_major_version
+  - name: zeek.rfb_client_minor_version
+    type: keyword
+    level: custom
+    description: This is the minor version of the client.
+    example: example-rfb_client_minor_version
+  - name: zeek.rfb_desktop_name
+    type: keyword
+    level: custom
+    description: This is the name of the screen that is being shared.
+    example: example-rfb_desktop_name
+  - name: zeek.rfb_height
+    type: keyword
+    level: custom
+    description: This is the height of the screen that is being shared.
+    example: example-rfb_height
+  - name: zeek.rfb_server_major_version
+    type: keyword
+    level: custom
+    description: This is the major version of the server.
+    example: example-rfb_server_major_version
+  - name: zeek.rfb_server_minor_version
+    type: keyword
+    level: custom
+    description: This is the minor version of the server.
+    example: example-rfb_server_minor_version
+  - name: zeek.rfb_share_flag
+    type: keyword
+    level: custom
+    description: This indicates whether the client has an exclusive or a shared session.
+    example: example-rfb_share_flag
+  - name: zeek.rfb_width
+    type: keyword
+    level: custom
+    description: This indicates the width of the screen that is being shared.
+    example: example-rfb_width
+  - name: zeek.signature_event_msg
+    type: keyword
+    level: custom
+    description: This is a more descriptive message of the signature-matching event.
+    example: example-signature_event_msg
+  - name: zeek.signature_note
+    type: keyword
+    level: custom
+    description: This is a otice associated with signature event.
+    example: example-signature_note
+  - name: zeek.signature_sig_id
+    type: keyword
+    level: custom
+    description: This is thenname of the signature that matched.
+    example: example-signature_sig_id
+  - name: zeek.signature_sub_msg
+    type: keyword
+    level: custom
+    description: This is the extracted payload data or extra message.
+    example: example-signature_sub_msg
+  - name: zeek.sip_call_id
+    type: keyword
+    level: custom
+    description: 'These are the contents of the Call-ID: header from the client.'
+    example: example-sip_call_id
+  - name: zeek.sip_request_body_len
+    type: keyword
+    level: custom
+    description: 'These are the contents of the Content-Length: header from the client.'
+    example: example-sip_request_body_len
+  - name: zeek.sip_request_from
+    type: keyword
+    level: custom
+    description: 'These are the contents of the request From: header Note: The tag=
+      value that''s usually appended to the sender is stripped off and not logged.'
+    example: example-sip_request_from
+  - name: zeek.sip_request_path
+    type: keyword
+    level: custom
+    description: This is the client message transmission path, as extracted from the
+      headers.
+    example: example-sip_request_path
+  - name: zeek.sip_request_to
+    type: keyword
+    level: custom
+    description: 'These are the contents of the To: header.'
+    example: example-sip_request_to
+  - name: zeek.sip_response_body_len
+    type: keyword
+    level: custom
+    description: 'These are the contents of the Content-Length: header from the server.'
+    example: example-sip_response_body_len
+  - name: zeek.sip_response_from
+    type: keyword
+    level: custom
+    description: 'These are the contents of the response From: header Note: The tag=
+      value that''s usually appended to the sender is stripped off and not logged.'
+    example: example-sip_response_from
+  - name: zeek.sip_response_path
+    type: keyword
+    level: custom
+    description: This is the server message transmission path, as extracted from the
+      headers.
+    example: example-sip_response_path
+  - name: zeek.sip_response_to
+    type: keyword
+    level: custom
+    description: 'These are the contents of the response To: header.'
+    example: example-sip_response_to
+  - name: zeek.sip_seq
+    type: keyword
+    level: custom
+    description: 'These are the contents of the CSeq: header from the client.'
+    example: example-sip_seq
+  - name: zeek.sip_status_code
+    type: keyword
+    level: custom
+    description: This is the status code returned by the server.
+    example: example-sip_status_code
+  - name: zeek.sip_status_msg
+    type: keyword
+    level: custom
+    description: This is the status message returned by the server.
+    example: example-sip_status_msg
+  - name: zeek.sip_trans_depth
+    type: keyword
+    level: custom
+    description: This value represents the pipelined depth into the connection of
+      this request/response transaction.
+    example: example-sip_trans_depth
+  - name: zeek.smb_cmd_argument
+    type: keyword
+    level: custom
+    description: Command argument sent by the client, if any.
+    example: example-smb_cmd_argument
+  - name: zeek.smb_cmd_referenced_file_action
+    type: keyword
+    level: custom
+    description: This the action this log record represents.
+    example: example-smb_cmd_referenced_file_action
+  - name: zeek.smb_cmd_referenced_file_id_orig_h
+    type: keyword
+    level: custom
+    description: This is the address of the transmitting host.
+    example: example-smb_cmd_referenced_file_id_orig_h
+  - name: zeek.smb_cmd_referenced_file_id_resp_h
+    type: keyword
+    level: custom
+    description: This is the address of the receiving host.
+    example: example-smb_cmd_referenced_file_id_resp_h
+  - name: zeek.smb_cmd_referenced_file_name
+    type: keyword
+    level: custom
+    description: This is the filename if one was seen.
+    example: example-smb_cmd_referenced_file_name
+  - name: zeek.smb_cmd_referenced_file_ts
+    type: keyword
+    level: custom
+    description: This is the time when referenced file was captured by Zeek.
+    example: example-smb_cmd_referenced_file_ts
+  - name: zeek.smb_cmd_referenced_file_uid
+    type: keyword
+    level: custom
+    description: This is the UID of the referenced file.
+    example: example-smb_cmd_referenced_file_uid
+  - name: zeek.smb_cmd_rtt
+    type: keyword
+    level: custom
+    description: This is the round trip time from the request to the response.
+    example: example-smb_cmd_rtt
+  - name: zeek.smb_cmd_status
+    type: keyword
+    level: custom
+    description: This is the server reply to the client's command.
+    example: example-smb_cmd_status
+  - name: zeek.smb_cmd_tree
+    type: keyword
+    level: custom
+    description: If this is related to a tree, this is the tree that was used for
+      the current command.
+    example: example-smb_cmd_tree
+  - name: zeek.smb_cmd_tree_service
+    type: keyword
+    level: custom
+    description: The type of tree (disk share, printer share, named pipe, etc.).
+    example: example-smb_cmd_tree_service
+  - name: zeek.smb_cmd_version
+    type: keyword
+    level: custom
+    description: This is the version of SMB for the command.
+    example: example-smb_cmd_version
+  - name: zeek.smb_mapping_native_file_system
+    type: keyword
+    level: custom
+    description: This is the file system of the tree.
+    example: example-smb_mapping_native_file_system
+  - name: zeek.smb_mapping_path
+    type: keyword
+    level: custom
+    description: This is the name of the tree path.
+    example: example-smb_mapping_path
+  - name: zeek.smb_mapping_service
+    type: keyword
+    level: custom
+    description: This is the type of resource of the tree (disk share, printer share,
+      named pipe, etc.).
+    example: example-smb_mapping_service
+  - name: zeek.smb_mapping_share_type
+    type: keyword
+    level: custom
+    description: If this is SMB2, a share type will be included. For SMB1, the type
+      of share will be deduced and included as well.
+    example: example-smb_mapping_share_type
+  - name: zeek.smtp_date
+    type: keyword
+    level: custom
+    description: These are the contents of the Date header.
+    example: example-smtp_date
+  - name: zeek.smtp_fuids
+    type: keyword
+    level: custom
+    description: An ordered vector of file unique IDs seen attached to the message.
+      (present if base/protocols/smtp/files.bro is loaded).
+    example: example-smtp_fuids
+  - name: zeek.smtp_helo
+    type: keyword
+    level: custom
+    description: These are the contents of the Helo header.
+    example: example-smtp_helo
+  - name: zeek.smtp_is_webmail
+    type: keyword
+    level: custom
+    description: This indicates if the message was sent through a webmail interface.
+    example: example-smtp_is_webmail
+  - name: zeek.smtp_last_reply
+    type: keyword
+    level: custom
+    description: This is the last message that the server sent to the client.
+    example: example-smtp_last_reply
+  - name: zeek.smtp_mailfrom
+    type: keyword
+    level: custom
+    description: This is the email addresses found in the MAIL FROM header.
+    example: example-smtp_mailfrom
+  - name: zeek.smtp_msg_id
+    type: keyword
+    level: custom
+    description: These are the contents of the MsgID header.
+    example: example-smtp_msg_id
+  - name: zeek.smtp_path
+    type: keyword
+    level: custom
+    description: The message transmission path, as extracted from the headers.
+    example: example-smtp_path
+  - name: zeek.smtp_rcptto
+    type: keyword
+    level: custom
+    description: These are the email addresses found in the RCPT TO header.
+    example: example-smtp_rcptto
+  - name: zeek.smtp_subject
+    type: keyword
+    level: custom
+    description: These are the contents of the Subject header.
+    example: example-smtp_subject
+  - name: zeek.smtp_trans_depth
+    type: keyword
+    level: custom
+    description: A count to represent the depth of this message transaction in a single
+      connection where multiple messages were transferred.
+    example: example-smtp_trans_depth
+  - name: zeek.smtp_user_agent
+    type: keyword
+    level: custom
+    description: This is the value of the User-Agent header from the client.
+    example: example-smtp_user_agent
+  - name: zeek.snmp_duration
+    type: keyword
+    level: custom
+    description: The amount of time between the first packet beloning to the SNMP
+      session and the latest one seen.
+    example: example-snmp_duration
+  - name: zeek.snmp_get_bulk_requests
+    type: keyword
+    level: custom
+    description: The number of variable bindings in GetBulkRequest PDUs seen for the
+      session.
+    example: example-snmp_get_bulk_requests
+  - name: zeek.snmp_get_requests
+    type: keyword
+    level: custom
+    description: The number of variable bindings in GetRequest/GetNextRequest PDUs
+      seen for the session.
+    example: example-snmp_get_requests
+  - name: zeek.snmp_get_responses
+    type: keyword
+    level: custom
+    description: The number of variable bindings in GetResponse/Response PDUs seen
+      for the session.
+    example: example-snmp_get_responses
+  - name: zeek.snmp_set_requests
+    type: keyword
+    level: custom
+    description: The number of variable bindings in SetRequest PDUs seen for the session.
+    example: example-snmp_set_requests
+  - name: zeek.snmp_up_since
+    type: keyword
+    level: custom
+    description: The time at which the SNMP responder endpoint claims it's been up
+      since.
+    example: example-snmp_up_since
+  - name: zeek.snmp_version
+    type: keyword
+    level: custom
+    description: This is the version of SNMP being used.
+    example: example-snmp_version
+  - name: zeek.socks_bound_host
+    type: keyword
+    level: custom
+    description: Server bound address. Could be an address, a name or both.
+    example: example-socks_bound_host
+  - name: zeek.socks_bound_p
+    type: keyword
+    level: custom
+    description: This is the server bound port.
+    example: example-socks_bound_p
+  - name: zeek.socks_request_name
+    type: keyword
+    level: custom
+    description: Client requested SOCKS address. Could be an address, a name or both.
+    example: example-socks_request_name
+  - name: zeek.socks_request_p
+    type: keyword
+    level: custom
+    description: This is the client requested port.
+    example: example-socks_request_p
+  - name: zeek.socks_status
+    type: keyword
+    level: custom
+    description: This is the server status for the attempt at using the proxy.
+    example: example-socks_status
+  - name: zeek.socks_version
+    type: keyword
+    level: custom
+    description: This is the protocol version of SOCKS.
+    example: example-socks_version
+  - name: zeek.software_host
+    type: keyword
+    level: custom
+    description: The IP address detected running the software.
+    example: example-software_host
+  - name: zeek.software_name
+    type: keyword
+    level: custom
+    description: This is the name of the software (e.g. Apache).
+    example: example-software_name
+  - name: zeek.software_type
+    type: keyword
+    level: custom
+    description: This is the type of software detected.
+    example: example-software_type
+  - name: zeek.software_unparsed_version
+    type: keyword
+    level: custom
+    description: This is the full unparsed version of the software.
+    example: example-software_unparsed_version
+  - name: zeek.software_version_addl
+    type: keyword
+    level: custom
+    description: This field contains additional version information.
+    example: example-software_version_addl
+  - name: zeek.software_version_major
+    type: keyword
+    level: custom
+    description: This is the major version of software.
+    example: example-software_version_major
+  - name: zeek.software_version_minor
+    type: keyword
+    level: custom
+    description: This is the minor version of software.
+    example: example-software_version_minor
+  - name: zeek.software_version_minor2
+    type: keyword
+    level: custom
+    description: This is the 2nd minor version of software.
+    example: example-software_version_minor2
+  - name: zeek.software_version_minor3
+    type: keyword
+    level: custom
+    description: This is the 3rd minor version of software.
+    example: example-software_version_minor3
+  - name: zeek.ssh_auth_attempts
+    type: keyword
+    level: custom
+    description: The number of authentication attempts we observed. There's always
+      at least one, since some servers might support no authentication at all. It's
+      important to note that not all of these are failures, since some servers require
+      two-factor auth (e.g. password AND pubkey).
+    example: example-ssh_auth_attempts
+  - name: zeek.ssh_auth_success
+    type: keyword
+    level: custom
+    description: Authentication result (T=success, F=failure, unset=unknown).
+    example: example-ssh_auth_success
+  - name: zeek.ssh_cipher_alg
+    type: keyword
+    level: custom
+    description: This is the encryption algorithm in use.
+    example: example-ssh_cipher_alg
+  - name: zeek.ssh_client
+    type: keyword
+    level: custom
+    description: This is the client's version string.
+    example: example-ssh_client
+  - name: zeek.ssh_compression_alg
+    type: keyword
+    level: custom
+    description: This is the compression algorithm in use.
+    example: example-ssh_compression_alg
+  - name: zeek.ssh_direction
+    type: keyword
+    level: custom
+    description: Direction of the connection. If the client was a local host logging
+      into an external host, this would be OUTBOUND. INBOUND would be set for the
+      opposite situation.
+    example: example-ssh_direction
+  - name: zeek.ssh_host_key
+    type: keyword
+    level: custom
+    description: This is the server's key thumbprint.
+    example: example-ssh_host_key
+  - name: zeek.ssh_host_key_alg
+    type: keyword
+    level: custom
+    description: This is the server host key's algorithm.
+    example: example-ssh_host_key_alg
+  - name: zeek.ssh_kex_alg
+    type: keyword
+    level: custom
+    description: This is the key exchange algorithm in use.
+    example: example-ssh_kex_alg
+  - name: zeek.ssh_mac_alg
+    type: keyword
+    level: custom
+    description: This is the signing (MAC) algorithm in use.
+    example: example-ssh_mac_alg
+  - name: zeek.ssh_server
+    type: keyword
+    level: custom
+    description: This is the server's version string.
+    example: example-ssh_server
+  - name: zeek.ssh_version
+    type: keyword
+    level: custom
+    description: This is the SSH major version (1 or 2).
+    example: example-ssh_version
+  - name: zeek.ssl_cert_chain
+    type: keyword
+    level: custom
+    description: This is the chain of certificates offered by the server to validate
+      its complete signing chain.
+    example: example-ssl_cert_chain
+  - name: zeek.ssl_cert_chain_fuids
+    type: keyword
+    level: custom
+    description: This is an ordered vector of certificate file identifiers for the
+      certificates offered by the server.
+    example: example-ssl_cert_chain_fuids
+  - name: zeek.ssl_client_cert_chain
+    type: keyword
+    level: custom
+    description: This is the chain of certificates offered by the client to validate
+      its complete signing chain.
+    example: example-ssl_client_cert_chain
+  - name: zeek.ssl_client_cert_chain_fuids
+    type: keyword
+    level: custom
+    description: This is an ordered vector of certificate file identifiers for the
+      certificates offered by the client.
+    example: example-ssl_client_cert_chain_fuids
+  - name: zeek.ssl_client_issuer
+    type: keyword
+    level: custom
+    description: This is the issuer of the client's SSL certificate.
+    example: example-ssl_client_issuer
+  - name: zeek.ssl_client_subject
+    type: keyword
+    level: custom
+    description: This is the subject of the client's SSL certificate.
+    example: example-ssl_client_subject
+  - name: zeek.ssl_issuer
+    type: keyword
+    level: custom
+    description: This is the issuer of the server's SSL certificate.
+    example: example-ssl_issuer
+  - name: zeek.ssl_server_name
+    type: keyword
+    level: custom
+    description: This is the value of the Server Name Indicator SSL/TLS extension.
+      It indicates the server name that the client was requesting.
+    example: example-ssl_server_name
+  - name: zeek.ssl_subject
+    type: keyword
+    level: custom
+    description: This is the subject of the server's SSL certificate.
+    example: example-ssl_subject
+  - name: zeek.ssl_validation_code
+    type: keyword
+    level: custom
+    description: This is the result of certificate validation for this connection,
+      given as OpenSSL validation code.
+    example: example-ssl_validation_code
+  - name: zeek.ssl_validation_status
+    type: keyword
+    level: custom
+    description: This is the result of certificate validation for this connection.
+    example: example-ssl_validation_status
+  - name: zeek.ssl_version
+    type: keyword
+    level: custom
+    description: This is the SSL/TLS version that was logged.
+    example: example-ssl_version
+  - name: zeek.stats_active_dns_requests
+    type: keyword
+    level: custom
+    description: This is the current number of DNS requests awaiting a reply.
+    example: example-stats_active_dns_requests
+  - name: zeek.stats_active_files
+    type: keyword
+    level: custom
+    description: This is the number of active files.
+    example: example-stats_active_files
+  - name: zeek.stats_active_icmp_conns
+    type: keyword
+    level: custom
+    description: This is the number of active ICMP connections.
+    example: example-stats_active_icmp_conns
+  - name: zeek.stats_active_tcp_conns
+    type: keyword
+    level: custom
+    description: This is the number of active TCP connections.
+    example: example-stats_active_tcp_conns
+  - name: zeek.stats_active_timers
+    type: keyword
+    level: custom
+    description: This is the number of active timers.
+    example: example-stats_active_timers
+  - name: zeek.stats_active_udp_conns
+    type: keyword
+    level: custom
+    description: This is the number of active UDP connections.
+    example: example-stats_active_udp_conns
+  - name: zeek.stats_bytes_recv
+    type: keyword
+    level: custom
+    description: This is the number of bytes received since the last stats interval
+      if reading live traffic.
+    example: example-stats_bytes_recv
+  - name: zeek.stats_dns_requests
+    type: keyword
+    level: custom
+    description: This is the number of DNS requests.
+    example: example-stats_dns_requests
+  - name: zeek.stats_event_proc
+    type: keyword
+    level: custom
+    description: This is the number of events processed.
+    example: example-stats_event_proc
+  - name: zeek.stats_event_queued
+    type: keyword
+    level: custom
+    description: This is the number of events queued.
+    example: example-stats_event_queued
+  - name: zeek.stats_files
+    type: keyword
+    level: custom
+    description: This is the number of files.
+    example: example-stats_files
+  - name: zeek.stats_icmp_conns
+    type: keyword
+    level: custom
+    description: This is the number of ICMP connections.
+    example: example-stats_icmp_conns
+  - name: zeek.stats_mem
+    type: keyword
+    level: custom
+    description: The amount of memory currently in use in MB.
+    example: example-stats_mem
+  - name: zeek.stats_peer
+    type: keyword
+    level: custom
+    description: This is the peer identifier.
+    example: example-stats_peer
+  - name: zeek.stats_pkt_lag
+    type: keyword
+    level: custom
+    description: This is the lag between the wall clock and packet timestamps if reading
+      live traffic.
+    example: example-stats_pkt_lag
+  - name: zeek.stats_pkts_dropped
+    type: keyword
+    level: custom
+    description: This is the number of packets dropped since the last stats interval.
+    example: example-stats_pkts_dropped
+  - name: zeek.stats_pkts_link
+    type: keyword
+    level: custom
+    description: This is the number of packets seen on the link since the last stats
+      interval if reading live traffic.
+    example: example-stats_pkts_link
+  - name: zeek.stats_pkts_proc
+    type: keyword
+    level: custom
+    description: This is the number of packets processed since the last stats interval.
+    example: example-stats_pkts_proc
+  - name: zeek.stats_reassem_file_size
+    type: keyword
+    level: custom
+    description: This is the size of the file reassembly buffer.
+    example: example-stats_reassem_file_size
+  - name: zeek.stats_reassem_frag_size
+    type: keyword
+    level: custom
+    description: This is the size of fragment reassembly buffer.
+    example: example-stats_reassem_frag_size
+  - name: zeek.stats_reassem_tcp_size
+    type: keyword
+    level: custom
+    description: This is the size of the TCP reassembly buffer.
+    example: example-stats_reassem_tcp_size
+  - name: zeek.stats_reassem_unknown_size
+    type: keyword
+    level: custom
+    description: This is the size of the unknown reassembly buffer.
+    example: example-stats_reassem_unknown_size
+  - name: zeek.stats_tcp_conns
+    type: keyword
+    level: custom
+    description: This is the number of TCP connections.
+    example: example-stats_tcp_conns
+  - name: zeek.stats_timers
+    type: keyword
+    level: custom
+    description: This is the number of timers.
+    example: example-stats_timers
+  - name: zeek.stats_udp_conns
+    type: keyword
+    level: custom
+    description: This is the number of UDP connections.
+    example: example-stats_udp_conns
+  - name: zeek.tunnel_type
+    type: keyword
+    level: custom
+    description: This is the type of tunnel used in the connection.
+    example: example-tunnel_type
+  - name: zeek.uid
+    type: keyword
+    level: custom
+    description: This is Zeek's unique identifier for the connection.
+    example: example-uid
+  - name: zeek.weird_addl
+    type: keyword
+    level: custom
+    description: This field represents any additional data for the weird event.
+    example: example-weird_addl
+  - name: zeek.weird_name
+    type: keyword
+    level: custom
+    description: This is the name of the weird event.
+    example: example-weird_name
+  - name: zeek.weird_notice
+    type: keyword
+    level: custom
+    description: This indicates whether the weird event triggered a notice.
+    example: example-weird_notice
+  - name: zeek.weird_peer
+    type: keyword
+    level: custom
+    description: This is the peer identifier where the weird event was observed.
+    example: example-weird_peer
+  - name: zeek.x509_basic_constraints_ca
+    type: keyword
+    level: custom
+    description: Indicates whether the certificate is a CA certificate.
+    example: example-x509_basic_constraints_ca
+  - name: zeek.x509_basic_constraints_path_len
+    type: keyword
+    level: custom
+    description: Specifies the maximum depth of valid certification paths that include
+      this certificate.
+    example: example-x509_basic_constraints_path_len
+  - name: zeek.x509_certificate_issuer
+    type: keyword
+    level: custom
+    description: This is the issuer of the X.509 certificate.
+    example: example-x509_certificate_issuer
+  - name: zeek.x509_certificate_key_type
+    type: keyword
+    level: custom
+    description: This is the type of key used in the X.509 certificate.
+    example: example-x509_certificate_key_type
+  - name: zeek.x509_certificate_subject
+    type: keyword
+    level: custom
+    description: This is the subject of the X.509 certificate.
+    example: example-x509_certificate_subject
