@@ -6,13 +6,21 @@ fields:
       tags: []
   agent:
     fields:
+      groups: []
       id: {}
       name: {}
       version: {}
       host:
         fields:
-          ip: {}
           architecture: {}
+          hostname: {}
+          ip: {}
+          os:
+            fields:
+              name: {}
+              platform: {}
+              type: {}
+              version: {}
   check:
     fields: "*"
   checksum:
