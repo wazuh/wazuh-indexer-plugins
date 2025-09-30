@@ -2,6 +2,7 @@
 
 # This script checks that specific fields are present in the mappings of given indices.
 # Checks that metadata fields required by Wazuh States indices are present.
+# Runs a curl command against localhost:9200 to get the mappings of each index.
 # Related to issue: https://github.com/wazuh/wazuh-indexer-plugins/issues/576
 
 set -e
@@ -28,7 +29,6 @@ indices=(
 )
 
 fields_to_check=(
-    "state.properties.document_version"
     "agent.properties.host.properties.architecture"
     "agent.properties.host.properties.hostname"
     "agent.properties.host.properties.os.properties.name"
@@ -39,6 +39,9 @@ fields_to_check=(
     "agent.properties.name"
     "agent.properties.id"
     "agent.properties.groups"
+    "state.properties.modified_at"
+    "state.properties.document_version"
+    "wazuh"
 )
 
 # Check mappings ensuring all fields are present
