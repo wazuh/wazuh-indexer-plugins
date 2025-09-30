@@ -88,6 +88,7 @@ detect_modified_modules() {
         [states-inventory-users]="index-template-users.json"
         [states-sca]="index-template-sca.json"
         [states-vulnerabilities]="index-template-vulnerabilities.json"
+        # Stateless modules
         [stateless-amazon-security-lake]="index-template-amazon-security-lake.json"
         [stateless-apache_tomcat]="index-template-apache_tomcat.json"
         [stateless-audit]="index-template-audit.json"

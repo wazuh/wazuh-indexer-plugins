@@ -1,10 +1,16 @@
 name: (5.x) Generate index templates
 
 on:
+  pull_request:
+    types: [synchronize]
+    paths:
+      - "ecs/**/*.json"
+      - "ecs/**/*.yml"
   push:
     paths:
       - "ecs/**/*.json"
       - "ecs/**/*.yml"
+
 jobs:
   run-ecs-generator:
     if: github.repository == 'wazuh/wazuh-indexer-plugins'
