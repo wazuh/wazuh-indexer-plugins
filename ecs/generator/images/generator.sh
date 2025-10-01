@@ -29,6 +29,7 @@ fi
 
 # Function to remove multi-fields from the generated index template
 remove_multi_fields() {
+  echo "Removing multi-fields from the index template"
   local in_file="$1"
   local out_file="$2"
 
@@ -48,6 +49,7 @@ remove_multi_fields() {
     .mappings.properties.process.properties.executable.fields,
     .mappings.properties.process.properties.working_directory.fields
   )' "$in_file" > "$out_file"
+    mv "$out_file" "$in_file"
 }
 
 # Function to get the OpenTelemetry semantic conventions version for a given ECS version
@@ -98,9 +100,11 @@ generate_mappings() {
   local csv_file="$out_dir/generated/csv/fields.csv"
 
   # Remove multi-fields from the generated index template
-  echo "Removing multi-fields from the index template"
   remove_multi_fields "$in_file" "$out_file"
-  mv "$out_file" "$in_file"
+
+  # Delete "synthetic_source_keep" from the index template
+  echo "Deleting \"synthetic_source_keep\" mappings setting from the index template"
+  sed -i '/synthetic_source_keep/d' "$in_file"
 
   if [ "$ECS_MODULE" != "stateless" ]; then
     # Delete the "tags" field from the index template

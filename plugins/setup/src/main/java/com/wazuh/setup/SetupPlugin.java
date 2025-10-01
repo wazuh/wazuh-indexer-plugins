@@ -81,11 +81,11 @@ public class SetupPlugin extends Plugin implements ClusterPlugin {
         //     "index-template-<integration-name>",
         //     "wazuh-events-<integration-name>"
         // ));
-//        this.indices.add(new StreamIndex(
-//            "wazuh-events-5.x-amazon-security-lake-000001",
-//            "index-template-amazon-security-lake",
-//            "wazuh-events-amazon-security-lake"
-//        ));
+        this.indices.add(new StreamIndex(
+            "wazuh-events-5.x-amazon-security-lake-000001",
+            "index-template-amazon-security-lake",
+            "wazuh-events-amazon-security-lake"
+        ));
         // ...
 
         // State indices
