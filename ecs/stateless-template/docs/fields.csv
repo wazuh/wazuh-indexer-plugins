@@ -1,6 +1,7 @@
 ECS_Version,Indexed,Field_Set,Field,Type,Level,Normalization,Example,Description
 9.1.0,true,base,labels,object,core,,"{""application"": ""foo-bar"", ""env"": ""production""}",Custom key/value pairs.
 9.1.0,true,base,message,keyword,core,,Hello World,Log message optimized for viewing in a log viewer.
+9.1.0,true,<integration-name>,<integration-name>.<integration-name>.field1,keyword,custom,,example-value-1,Description of field1.
 9.1.0,true,agent,agent.build.original,keyword,core,,"metricbeat version 7.6.0 (amd64), libbeat 7.6.0 [6a23e8f8f30f5001ba344e4e54d8d9cb82cb107c built 2020-02-05 23:10:10 +0000 UTC]",Extended build information for the agent.
 9.1.0,true,agent,agent.ephemeral_id,keyword,extended,,8a4f500f,Ephemeral identifier of this agent.
 9.1.0,true,agent,agent.groups,keyword,custom,array,"[""group1"", ""group2""]",List of groups the agent belongs to.
@@ -67,50 +68,6 @@ ECS_Version,Indexed,Field_Set,Field,Type,Level,Normalization,Example,Description
 9.1.0,true,agent,agent.name,keyword,core,,foo,Custom name of the agent.
 9.1.0,true,agent,agent.type,keyword,core,,filebeat,Type of the agent.
 9.1.0,true,agent,agent.version,keyword,core,,6.0.0-rc2,Version of the agent.
-9.1.0,true,azure-app-service,azure-app-service.azure.app_service.category,keyword,custom,,example-category,Category of the Azure App Service operation
-9.1.0,true,azure-app-service,azure-app-service.azure.app_service.container_id,keyword,custom,,example-container_id,Azure App Service application container ID
-9.1.0,true,azure-app-service,azure-app-service.azure.app_service.event_ip_address,keyword,custom,,example-event_ip_address,IP address of the Azure App Service event
-9.1.0,true,azure-app-service,azure-app-service.azure.app_service.event_primary_stamp_name,keyword,custom,,example-event_primary_stamp_name,Primary name of the Azure App Service
-9.1.0,true,azure-app-service,azure-app-service.azure.app_service.event_stamp_name,keyword,custom,,example-event_stamp_name,Name of the Azure App Service stamp
-9.1.0,true,azure-app-service,azure-app-service.azure.app_service.event_stamp_type,keyword,custom,,example-event_stamp_type,Type values that the Azure App Service supports
-9.1.0,true,azure-app-service,azure-app-service.azure.app_service.host,keyword,custom,,example-host,Host where the Azure App Service application is running
-9.1.0,true,azure-app-service,azure-app-service.azure.app_service.level,keyword,custom,,example-level,Verbosity level of the Azure App Service log
-9.1.0,true,azure-app-service,azure-app-service.azure.app_service.log,keyword,custom,,example-log,Azure App Service log details depending on log level
-9.1.0,true,azure-app-service,azure-app-service.azure.app_service.operation_name,keyword,custom,,example-operation_name,Azure App Service operation name
-9.1.0,true,azure-app-service,azure-app-service.azure.app_service.properties.client_ip,keyword,custom,,example-client_ip,Client IP address from Azure App Service HTTP request
-9.1.0,true,azure-app-service,azure-app-service.azure.app_service.properties.client_port,keyword,custom,,example-client_port,Client port number from Azure App Service
-9.1.0,true,azure-app-service,azure-app-service.azure.app_service.properties.computer_name,keyword,custom,,example-computer_name,Server name where Azure App Service log entry was generated
-9.1.0,true,azure-app-service,azure-app-service.azure.app_service.properties.cookie,keyword,custom,,example-cookie,Cookie present in the Azure App Service HTTP request
-9.1.0,true,azure-app-service,azure-app-service.azure.app_service.properties.cs_bytes,keyword,custom,,example-cs_bytes,Number of bytes received by Azure App Service server
-9.1.0,true,azure-app-service,azure-app-service.azure.app_service.properties.cs_host,keyword,custom,,example-cs_host,Host name header from Azure App Service HTTP request
-9.1.0,true,azure-app-service,azure-app-service.azure.app_service.properties.cs_method,keyword,custom,,example-cs_method,HTTP request method for Azure App Service (GET/POST/etc)
-9.1.0,true,azure-app-service,azure-app-service.azure.app_service.properties.cs_uri_query,keyword,custom,,example-cs_uri_query,URI query from Azure App Service HTTP request
-9.1.0,true,azure-app-service,azure-app-service.azure.app_service.properties.cs_uri_stem,keyword,custom,,example-cs_uri_stem,Target path of Azure App Service HTTP request
-9.1.0,true,azure-app-service,azure-app-service.azure.app_service.properties.cs_username,keyword,custom,,example-cs_username,Authenticated username from Azure App Service HTTP request
-9.1.0,true,azure-app-service,azure-app-service.azure.app_service.properties.details,keyword,custom,,example-details,Additional information related to Azure App Service event
-9.1.0,true,azure-app-service,azure-app-service.azure.app_service.properties.protocol,keyword,custom,,example-protocol,Authentication protocol used by Azure App Service
-9.1.0,true,azure-app-service,azure-app-service.azure.app_service.properties.referer,keyword,custom,,example-referer,HTTP referer header from Azure App Service request
-9.1.0,true,azure-app-service,azure-app-service.azure.app_service.properties.result,keyword,custom,,example-result,Success or failure result of Azure App Service HTTP request
-9.1.0,true,azure-app-service,azure-app-service.azure.app_service.properties.s_port,keyword,custom,,example-s_port,Azure App Service server port number
-9.1.0,true,azure-app-service,azure-app-service.azure.app_service.properties.sc_bytes,keyword,custom,,example-sc_bytes,Number of bytes sent by Azure App Service server
-9.1.0,true,azure-app-service,azure-app-service.azure.app_service.properties.sc_status,keyword,custom,,example-sc_status,HTTP status code returned by Azure App Service
-9.1.0,true,azure-app-service,azure-app-service.azure.app_service.properties.sc_substatus,keyword,custom,,example-sc_substatus,HTTP substatus error code from Azure App Service
-9.1.0,true,azure-app-service,azure-app-service.azure.app_service.properties.sc_win32status,keyword,custom,,example-sc_win32status,Windows status code from Azure App Service HTTP request
-9.1.0,true,azure-app-service,azure-app-service.azure.app_service.properties.service_endpoint,keyword,custom,,example-service_endpoint,Azure App Service Virtual Network Service Endpoint indicator
-9.1.0,true,azure-app-service,azure-app-service.azure.app_service.properties.source_system,keyword,custom,,example-source_system,The source system for the Azure App Service log
-9.1.0,true,azure-app-service,azure-app-service.azure.app_service.properties.time_generated,keyword,custom,,example-time_generated,Time of the Azure App Service HTTP request
-9.1.0,true,azure-app-service,azure-app-service.azure.app_service.properties.time_taken,keyword,custom,,example-time_taken,Time taken by Azure App Service HTTP request in milliseconds
-9.1.0,true,azure-app-service,azure-app-service.azure.app_service.properties.type,keyword,custom,,example-type,The name of the Azure App Service log table
-9.1.0,true,azure-app-service,azure-app-service.azure.app_service.properties.user,keyword,custom,,example-user,Username for Azure App Service publishing access
-9.1.0,true,azure-app-service,azure-app-service.azure.app_service.properties.user_agent,keyword,custom,,example-user_agent,User agent string from Azure App Service HTTP request
-9.1.0,true,azure-app-service,azure-app-service.azure.app_service.properties.user_display_name,keyword,custom,,example-user_display_name,User email for Azure App Service AAD authentication
-9.1.0,true,azure-app-service,azure-app-service.azure.app_service.properties.xazurefdid,keyword,custom,,example-xazurefdid,X-Azure-FDID header (Azure Frontdoor ID) from request
-9.1.0,true,azure-app-service,azure-app-service.azure.app_service.properties.xfdhealth_probe,keyword,custom,,example-xfdhealth_probe,X-FD-HealthProbe header (Azure Frontdoor Health) from request
-9.1.0,true,azure-app-service,azure-app-service.azure.app_service.properties.xforwarded_for,keyword,custom,,example-xforwarded_for,X-Forwarded-For header from Azure App Service request
-9.1.0,true,azure-app-service,azure-app-service.azure.app_service.properties.xforwarded_host,keyword,custom,,example-xforwarded_host,X-Forwarded-Host header from Azure App Service request
-9.1.0,true,azure-app-service,azure-app-service.azure.app_service.result_description,keyword,custom,,example-result_description,Azure App Service log message description
-9.1.0,true,azure-app-service,azure-app-service.azure.correlation_id,keyword,custom,,example-correlation_id,Correlation ID for the Azure App Service request
-9.1.0,true,azure-app-service,azure-app-service.azure.resource.id,keyword,custom,,example-id,Azure resource identifier for the App Service
 9.1.0,true,check,check.compliance,keyword,custom,array,"[""cis:1.1.1"",""cis_csc:5.2""]",CIS compliance standard.
 9.1.0,true,check,check.condition,keyword,custom,,all,Relationship between the rules.
 9.1.0,true,check,check.description,keyword,custom,,"""The password history setting determines the number of unique new passwords a user must use before an old password can be reused.""",Extended description of the check.
