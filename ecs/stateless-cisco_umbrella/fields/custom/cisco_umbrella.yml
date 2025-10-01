@@ -3,31 +3,27 @@
   description: cisco_umbrella custom fields for WCS integration
   fields:
   - name: cisco.umbrella.audit.after
-    type: keyword
+    type: nested
     level: custom
     description: The policy or setting after the change was made.
-    example: example-after
     normalize:
     - array
   - name: cisco.umbrella.audit.before
-    type: keyword
+    type: nested
     level: custom
     description: The policy or setting before the change was made.
-    example: example-before
     normalize:
     - array
   - name: cisco.umbrella.audit.after_values
-    type: keyword
+    type: object
     level: custom
     description: The individual values of the policy or setting after the change was
       made.
-    example: example-after_values
   - name: cisco.umbrella.audit.before_values
-    type: keyword
+    type: object
     level: custom
     description: The individual values of the policy or setting before the change
       was made.
-    example: example-before_values
   - name: cisco.umbrella.audit.type
     type: keyword
     level: custom
@@ -50,26 +46,23 @@
     description: The ID number umbrella assigns to a destination list.
     example: example-destination_lists_id
   - name: cisco.umbrella.fqdns
-    type: keyword
+    type: nested
     level: custom
     description: The fully qualified domain names (FQDNs) that match the request.
-    example: example-fqdns
     normalize:
     - array
   - name: cisco.umbrella.identities
-    type: keyword
+    type: nested
     level: custom
     description: An array of the different identities related to the event.
-    example: example-identities
     normalize:
     - array
   - name: cisco.umbrella.identity_types
-    type: keyword
+    type: nested
     level: custom
     description: >-
       The type of identity that made the request. For example, Roaming Computer or
       Network.
-    example: example-identity_types
     normalize:
     - array
   - name: cisco.umbrella.severity
@@ -180,10 +173,10 @@
     description: Name of the malware detected by AMP.
     example: example-amp_malware_name
   - name: cisco.umbrella.amp_score
-    type: keyword
+    type: long
     level: custom
     description: AMP score indicating the threat level.
-    example: example-amp_score
+    example: 12345
   - name: cisco.umbrella.policy_identity_type
     type: keyword
     level: custom

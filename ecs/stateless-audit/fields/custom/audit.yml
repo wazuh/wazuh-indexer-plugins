@@ -93,20 +93,20 @@
     description: Direction of cryptographic operation
     example: example-direction
   - name: auditd.dst_prefixlen
-    type: keyword
+    type: long
     level: custom
     description: Destination network prefix length
-    example: example-dst_prefixlen
+    example: 12345
   - name: auditd.EGID
     type: keyword
     level: custom
     description: Effective group ID from EGID field
     example: example-EGID
   - name: auditd.entries
-    type: keyword
+    type: long
     level: custom
     description: Number of entries in audit configuration
-    example: example-entries
+    example: 12345
   - name: auditd.EUID
     type: keyword
     level: custom
@@ -218,20 +218,20 @@
     description: Audit rule key for filtering and categorization
     example: example-key
   - name: auditd.key_enforce
-    type: keyword
+    type: boolean
     level: custom
     description: Key enforcement enabled (1=true/0=false)
-    example: example-key_enforce
+    example: true
   - name: auditd.kind
     type: keyword
     level: custom
     description: Kind of virtualization event
     example: example-kind
   - name: auditd.ksize
-    type: keyword
+    type: long
     level: custom
     description: Cryptographic key size in bits
-    example: example-ksize
+    example: 12345
   - name: auditd.label
     type: keyword
     level: custom
@@ -255,10 +255,10 @@
     normalize:
     - array
   - name: auditd.lport
-    type: keyword
+    type: long
     level: custom
     description: Local port number from network connection
-    example: example-lport
+    example: 12345
   - name: auditd.major
     type: keyword
     level: custom
@@ -390,10 +390,10 @@
     description: File system path being accessed
     example: example-path
   - name: auditd.peer_pid
-    type: keyword
+    type: long
     level: custom
     description: Peer process ID for inter-process communication
-    example: example-peer_pid
+    example: 12345
   - name: auditd.permissive
     type: keyword
     level: custom
@@ -450,10 +450,10 @@
     description: Root directory for chroot operations
     example: example-root_dir
   - name: auditd.rport
-    type: keyword
+    type: long
     level: custom
     description: Remote port number from network connection
-    example: example-rport
+    example: 12345
   - name: auditd.saddr
     type: keyword
     level: custom
@@ -480,10 +480,10 @@
     description: Selected SELinux security context
     example: example-selected-context
   - name: auditd.sequence
-    type: keyword
+    type: long
     level: custom
     description: Message sequence number for correlation of related audit records
-    example: example-sequence
+    example: 12345
   - name: auditd.ses
     type: keyword
     level: custom
@@ -505,20 +505,20 @@
     description: Session process ID for crypto events
     example: example-spid
   - name: auditd.src_prefixlen
-    type: keyword
+    type: long
     level: custom
     description: Source network prefix length
-    example: example-src_prefixlen
+    example: 12345
   - name: auditd.subj
     type: keyword
     level: custom
     description: SELinux subject context of the process
     example: example-subj
   - name: auditd.success
-    type: keyword
+    type: boolean
     level: custom
     description: Whether system call completed successfully (yes=true/no=false)
-    example: example-success
+    example: true
   - name: auditd.SUID
     type: keyword
     level: custom

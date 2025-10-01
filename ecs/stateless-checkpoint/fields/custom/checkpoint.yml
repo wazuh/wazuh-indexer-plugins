@@ -35,14 +35,14 @@
       logs.
     example: example-alert
   - name: checkpoint.app_risk
-    type: keyword
+    type: long
     level: custom
     short: >-
       Application risk level: 0=Unknown, 1=Very Low, 2=Low, 3=Medium, 4=High, 5=Critical.
     description: >-
       This field represents an application risk. Possible values are 0 (Unknown),
       1 (Very Low), 2 (Low), 3 (Medium), 4 (High), and 5 (Critical).
-    example: example-app_risk
+    example: 12345
   - name: checkpoint.app_rule_id
     type: keyword
     level: custom
@@ -230,14 +230,14 @@
     description: The facility associated with the log message.
     example: example-facility
   - name: checkpoint.failed_login_factor_num
-    type: keyword
+    type: long
     level: custom
     short: Number of consecutive failed login attempts before triggering security
       measures.
     description: >-
       This represents a parameter or setting that determines the number of consecutive
       failed login attempts before a security measure is taken.
-    example: example-failed_login_factor_num
+    example: 12345
   - name: checkpoint.fieldschanges
     type: keyword
     level: custom
@@ -259,10 +259,10 @@
       that helps with security monitoring, analysis, and troubleshooting.
     example: example-fw_subproduct
   - name: checkpoint.host_ip
-    type: keyword
+    type: ip
     level: custom
     description: The IP address of the host.
-    example: example-host_ip
+    example: 192.168.1.1
   - name: checkpoint.hostname
     type: keyword
     level: custom
@@ -310,11 +310,11 @@
       object.
     example: example-logic_changes
   - name: checkpoint.logid
-    type: keyword
+    type: long
     level: custom
     description: >-
       This is a unique identity for logs includes: Type, Family, Product/Blade, Category.
-    example: example-logid
+    example: 12345
   - name: checkpoint.login_option
     type: keyword
     level: custom
@@ -356,10 +356,10 @@
     description: This is the Threat Prevention rule name.
     example: example-malware_rule_name
   - name: checkpoint.match_id
-    type: keyword
+    type: long
     level: custom
     description: This field represents private key of the rule.
-    example: example-match_id
+    example: 12345
   - name: checkpoint.message
     type: keyword
     level: custom
@@ -376,22 +376,22 @@
     description: Additional information about the log entry.
     example: example-more
   - name: checkpoint.nat_addtnl_rulenum
-    type: keyword
+    type: long
     level: custom
     description: >-
       When matching 2 automatic rules , second rule match will be shown otherwise
       field will be 0.
-    example: example-nat_addtnl_rulenum
+    example: 12345
   - name: checkpoint.nat_rule_uid
     type: keyword
     level: custom
     description: The unique identifier for the NAT rule.
     example: example-nat_rule_uid
   - name: checkpoint.nat_rulenum
-    type: keyword
+    type: long
     level: custom
     description: NAT rulebase first matched rule.
-    example: example-nat_rulenum
+    example: 12345
   - name: checkpoint.objectname
     type: keyword
     level: custom
@@ -403,22 +403,22 @@
     description: This indicates the type of the affected object.
     example: example-objecttype
   - name: checkpoint.office_mode_ip
-    type: keyword
+    type: ip
     level: custom
     description: The IP address assigned in office mode.
-    example: example-office_mode_ip
+    example: 192.168.1.1
   - name: checkpoint.operation
     type: keyword
     level: custom
     description: This represents the Operation made by Threat Extraction.
     example: example-operation
   - name: checkpoint.operation_number
-    type: keyword
+    type: long
     level: custom
     description: >-
       Operation number done by the administrator, each operation is represented by
       a number.
-    example: example-operation_number
+    example: 12345
   - name: checkpoint.operation_result_description
     type: keyword
     level: custom
@@ -475,15 +475,15 @@
     description: The unique identifier for the packet capture.
     example: example-packet_capture_unique_id
   - name: checkpoint.parent_rule
-    type: keyword
+    type: long
     level: custom
     description: This field is the Parent rule number, in case of inline layer.
-    example: example-parent_rule
+    example: 12345
   - name: checkpoint.peer_gateway
-    type: keyword
+    type: ip
     level: custom
     description: Main IP address of the VPN peer Security Gateway.
-    example: example-peer_gateway
+    example: 192.168.1.1
   - name: checkpoint.performance_impact
     type: keyword
     level: custom
@@ -530,10 +530,10 @@
     description: The protocol used in the connection.
     example: example-protocol
   - name: checkpoint.proxy_src_ip
-    type: keyword
+    type: ip
     level: custom
     description: The source IP address of the proxy.
-    example: example-proxy_src_ip
+    example: 192.168.1.1
   - name: checkpoint.reason
     type: keyword
     level: custom

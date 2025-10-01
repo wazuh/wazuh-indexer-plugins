@@ -37,10 +37,10 @@
     description: The tenant ID associated with the Azure Activity Log event
     example: example-tenant_id
   - name: azure.activitylogs.level
-    type: keyword
+    type: long
     level: custom
     description: This field indicates the severity of an event
-    example: example-level
+    example: 12345
   - name: azure.activitylogs.result_signature
     type: keyword
     level: custom
@@ -180,10 +180,10 @@
       user or service principal
     example: example-identity
   - name: azure.auditlogs.level
-    type: keyword
+    type: long
     level: custom
     description: The log level for the Azure Audit Log event
-    example: example-level
+    example: 12345
   - name: azure.auditlogs.result_signature
     type: keyword
     level: custom
@@ -215,15 +215,14 @@
     description: The unique identifier in the Audit Log properties
     example: example-id
   - name: azure.auditlogs.properties.activity_datetime
-    type: keyword
+    type: date
     level: custom
     description: The date and time of the activity in the Audit Log properties
-    example: example-activity_datetime
+    example: '2023-01-01T00:00:00.000Z'
   - name: azure.auditlogs.properties.additional_details
-    type: keyword
+    type: object
     level: custom
     description: Additional details from the Audit Log properties
-    example: example-additional_details
   - name: azure.auditlogs.properties.result_reason
     type: keyword
     level: custom
@@ -250,10 +249,9 @@
     description: The type of operation in the Audit Log properties
     example: example-operation_type
   - name: azure.auditlogs.properties.target_resources
-    type: keyword
+    type: object
     level: custom
     description: The target resources affected by the operation in the Audit Log properties
-    example: example-target_resources
   - name: azure.activitylogs.result_type
     type: keyword
     level: custom
@@ -270,10 +268,9 @@
     description: The version of the operation in the Azure Activity Log
     example: example-operation_version
   - name: azure.activitylogs.identity.claims
-    type: keyword
+    type: object
     level: custom
     description: The claims object containing identity information
-    example: example-claims
   - name: azure.activitylogs.properties.service_request_id
     type: keyword
     level: custom
@@ -332,10 +329,10 @@
     description: This is the hostname of the Azure Firewall
     example: example-hostname
   - name: azure.firewall.request_duration_sec
-    type: keyword
+    type: long
     level: custom
     description: The duration of the request in seconds for the Azure Firewall event
-    example: example-request_duration_sec
+    example: 12345
   - name: azure.platformlogs.properties.raw
     type: keyword
     level: custom
@@ -344,15 +341,15 @@
       data
     example: example-raw
   - name: azure.firewall.dnssec_ok_bit
-    type: keyword
+    type: boolean
     level: custom
     description: The DNSSEC OK bit value for the Azure Firewall DNS event
-    example: example-dnssec_ok_bit
+    example: true
   - name: azure.firewall.edns0_buffer_size
-    type: keyword
+    type: long
     level: custom
     description: The EDNS0 buffer size for the Azure Firewall DNS event
-    example: example-edns0_buffer_size
+    example: 12345
   - name: azure.firewall.rule_name
     type: keyword
     level: custom
@@ -369,11 +366,11 @@
     description: The web category for the Azure Firewall event
     example: example-web_category
   - name: azure.firewall.is_explicit_proxy_request
-    type: keyword
+    type: boolean
     level: custom
     description: Indicates if the request was an explicit proxy request in the Azure
       Firewall
-    example: example-is_explicit_proxy_request
+    example: true
   - name: azure.firewall.rule_collection_group
     type: keyword
     level: custom
@@ -385,15 +382,15 @@
     description: The category of the Azure Firewall event
     example: example-category
   - name: azure.firewall.request_size
-    type: keyword
+    type: long
     level: custom
     description: The size of the request in bytes for the Azure Firewall event
-    example: example-request_size
+    example: 12345
   - name: azure.firewall.response_size
-    type: keyword
+    type: long
     level: custom
     description: The size of the response in bytes for the Azure Firewall event
-    example: example-response_size
+    example: 12345
   - name: azure.firewall.action
     type: keyword
     level: custom
@@ -431,10 +428,10 @@
     description: The version of the operation in the Microsoft Graph Activity Log
     example: example-operation_version
   - name: azure.graphactivitylogs.properties.billed_size
-    type: keyword
+    type: long
     level: custom
     description: The billed size of the operation in bytes
-    example: example-billed_size
+    example: 12345
   - name: azure.graphactivitylogs.properties.api_version
     type: keyword
     level: custom
@@ -467,20 +464,20 @@
     description: The client authentication method used for the operation
     example: example-client_auth_method
   - name: azure.graphactivitylogs.properties.token_issued_at
-    type: keyword
+    type: date
     level: custom
     description: The timestamp when the token was issued
-    example: example-token_issued_at
+    example: '2023-01-01T00:00:00.000Z'
   - name: azure.graphactivitylogs.properties.sign_in_activity_id
     type: keyword
     level: custom
     description: This field indicates the sign-in activity ID of the event
     example: example-sign_in_activity_id
   - name: azure.graphactivitylogs.properties.time_generated
-    type: keyword
+    type: date
     level: custom
     description: The timestamp when the activity log entry was generated
-    example: example-time_generated
+    example: '2023-01-01T00:00:00.000Z'
   - name: azure.graphactivitylogs.properties.service_principal_id
     type: keyword
     level: custom
@@ -492,20 +489,17 @@
     description: The identity provider used for authentication
     example: example-identity_provider
   - name: azure.graphactivitylogs.properties.roles
-    type: keyword
+    type: object
     level: custom
     description: The roles assigned to the principal as an array of role names
-    example: example-roles
   - name: azure.graphactivitylogs.properties.scopes
-    type: keyword
+    type: object
     level: custom
     description: The scopes assigned to the principal as an array of scope names
-    example: example-scopes
   - name: azure.graphactivitylogs.properties.wids
-    type: keyword
+    type: object
     level: custom
     description: The list of role template IDs (well-known IDs) assigned to the principal
-    example: example-wids
   - name: azure.identityprotection.operation_name
     type: keyword
     level: custom
@@ -534,20 +528,20 @@
     description: The activity type or name associated with the event
     example: example-activity
   - name: azure.identityprotection.properties.is_deleted
-    type: keyword
+    type: boolean
     level: custom
     description: Indicates if the user or entity is deleted
-    example: example-is_deleted
+    example: true
   - name: azure.identityprotection.properties.is_guest
-    type: keyword
+    type: boolean
     level: custom
     description: Indicates if the user is a guest
-    example: example-is_guest
+    example: true
   - name: azure.identityprotection.properties.is_processing
-    type: keyword
+    type: boolean
     level: custom
     description: Indicates if the event is still being processed
-    example: example-is_processing
+    example: true
   - name: azure.identityprotection.properties.request_id
     type: keyword
     level: custom
@@ -619,20 +613,20 @@
     description: The type of user (e.g. Member Guest)
     example: example-user_type
   - name: azure.identityprotection.properties.last_updated_datetime
-    type: keyword
+    type: date
     level: custom
     description: The date and time when the event or risk was last updated
-    example: example-last_updated_datetime
+    example: '2023-01-01T00:00:00.000Z'
   - name: azure.identityprotection.properties.risk_last_updated_datetime
-    type: keyword
+    type: date
     level: custom
     description: The date and time when the risk was last updated
-    example: example-risk_last_updated_datetime
+    example: '2023-01-01T00:00:00.000Z'
   - name: azure.identityprotection.properties.activity_datetime
-    type: keyword
+    type: date
     level: custom
     description: The date and time when the activity occurred
-    example: example-activity_datetime
+    example: '2023-01-01T00:00:00.000Z'
   - name: azure.platformlogs.properties.device_id
     type: keyword
     level: custom
@@ -680,11 +674,11 @@
     description: The network protocol used in the request such as 'HTTPS' or 'AMQP'
     example: example-protocol
   - name: azure.platformlogs.properties.masked_ipaddress
-    type: keyword
+    type: ip
     level: custom
     description: The masked IP address of the client making the request for privacy
       compliance
-    example: example-masked_ipaddress
+    example: 192.168.1.1
   - name: azure.platformlogs.cloud
     type: keyword
     level: custom
@@ -954,20 +948,20 @@
     description: The correlation ID specific to the sign-in log event
     example: example-correlation_id
   - name: azure.signinlogs.properties.created_at
-    type: keyword
+    type: date
     level: custom
     description: The timestamp when the sign-in event was created
-    example: example-created_at
+    example: '2023-01-01T00:00:00.000Z'
   - name: azure.signinlogs.properties.cross_tenant_access_type
     type: keyword
     level: custom
     description: The type of cross-tenant access for the sign-in event
     example: example-cross_tenant_access_type
   - name: azure.signinlogs.properties.flagged_for_review
-    type: keyword
+    type: boolean
     level: custom
     description: Indicates if the sign-in event was flagged for review
-    example: example-flagged_for_review
+    example: true
   - name: azure.signinlogs.properties.id
     type: keyword
     level: custom
@@ -979,20 +973,20 @@
     description: The type of token presented during sign-in
     example: example-incoming_token_type
   - name: azure.signinlogs.properties.is_interactive
-    type: keyword
+    type: boolean
     level: custom
     description: Indicates if the sign-in was interactive
-    example: example-is_interactive
+    example: true
   - name: azure.signinlogs.properties.is_tenant_restricted
-    type: keyword
+    type: boolean
     level: custom
     description: Indicates if the sign-in was restricted to the tenant
-    example: example-is_tenant_restricted
+    example: true
   - name: azure.signinlogs.properties.processing_time_in_ms
-    type: keyword
+    type: long
     level: custom
     description: The processing time for the sign-in event in milliseconds
-    example: example-processing_time_in_ms
+    example: 12345
   - name: azure.signinlogs.properties.resource_display_name
     type: keyword
     level: custom
@@ -1009,20 +1003,18 @@
     description: The authentication requirement for the sign-in
     example: example-authentication_requirement
   - name: azure.signinlogs.properties.authentication_requirement_policies
-    type: keyword
+    type: object
     level: custom
     description: The policies that define authentication requirements
-    example: example-authentication_requirement_policies
   - name: azure.signinlogs.properties.authentication_processing_details
-    type: keyword
+    type: object
     level: custom
     description: Details about the authentication processing for the sign-in
-    example: example-authentication_processing_details
   - name: azure.signinlogs.properties.autonomous_system_number
-    type: keyword
+    type: long
     level: custom
     description: The autonomous system number associated with the sign-in source IP
-    example: example-autonomous_system_number
+    example: 12345
   - name: azure.signinlogs.properties.client_app_used
     type: keyword
     level: custom
@@ -1054,15 +1046,15 @@
     description: The browser used on the device for sign-in
     example: example-browser
   - name: azure.signinlogs.properties.device_detail.is_compliant
-    type: keyword
+    type: boolean
     level: custom
     description: Indicates if the device used for sign-in is compliant
-    example: example-is_compliant
+    example: true
   - name: azure.signinlogs.properties.device_detail.is_managed
-    type: keyword
+    type: boolean
     level: custom
     description: Indicates if the device used for sign-in is managed
-    example: example-is_managed
+    example: true
   - name: azure.signinlogs.properties.original_request_id
     type: keyword
     level: custom
@@ -1124,10 +1116,10 @@
     description: The service principal ID associated with the sign-in
     example: example-service_principal_id
   - name: azure.signinlogs.caller_ip_address
-    type: keyword
+    type: ip
     level: custom
     description: The IP address from which the sign-in was attempted
-    example: example-caller_ip_address
+    example: 192.168.1.1
   - name: azure.signinlogs.identity
     type: keyword
     level: custom
@@ -1139,10 +1131,10 @@
     description: The service principal name associated with the sign-in
     example: example-service_principal_name
   - name: azure.signinlogs.properties.status.error_code
-    type: keyword
+    type: long
     level: custom
     description: The error code returned in the sign-in status
-    example: example-error_code
+    example: 12345
   - name: azure.signinlogs.properties.token_issuer_type
     type: keyword
     level: custom
@@ -1154,15 +1146,13 @@
     description: The unique identifier for the token used in the sign-in
     example: example-unique_token_identifier
   - name: azure.signinlogs.properties.authentication_details
-    type: keyword
+    type: object
     level: custom
     description: Details about the authentication methods used during sign-in
-    example: example-authentication_details
   - name: azure.signinlogs.properties.applied_conditional_access_policies
-    type: keyword
+    type: object
     level: custom
     description: Conditional access policies applied to the sign-in event
-    example: example-applied_conditional_access_policies
   - name: azure.signinlogs.result_signature
     type: keyword
     level: custom
@@ -1224,10 +1214,10 @@
     description: The tenant ID from the provisioning properties
     example: example-tenant_id
   - name: azure.provisioning.properties.activity_datetime
-    type: keyword
+    type: date
     level: custom
     description: The date and time when the provisioning activity occurred
-    example: example-activity_datetime
+    example: '2023-01-01T00:00:00.000Z'
   - name: azure.provisioning.properties.change_id
     type: keyword
     level: custom
@@ -1239,10 +1229,10 @@
     description: The cycle ID for the provisioning operation
     example: example-cycle_id
   - name: azure.provisioning.properties.duration_ms
-    type: keyword
+    type: long
     level: custom
     description: The duration of the provisioning operation in milliseconds
-    example: example-duration_ms
+    example: 12345
   - name: azure.provisioning.properties.job_id
     type: keyword
     level: custom
@@ -1294,10 +1284,10 @@
     description: The display name of the user who initiated the audit log operation
     example: example-display_name
   - name: azure.auditlogs.properties.initiated_by.user.ipaddress
-    type: keyword
+    type: ip
     level: custom
     description: The IP address from which the audit log operation was initiated
-    example: example-ipaddress
+    example: 192.168.1.1
   - name: azure.auditlogs.properties.initiated_by.user.user_principal_name
     type: keyword
     level: custom
@@ -1325,10 +1315,9 @@
       with the application that initiated the audit log operation
     example: example-service_principal_id
   - name: azure.provisioning.properties.provisioning_steps
-    type: keyword
+    type: object
     level: custom
     description: The provisioning steps performed during the operation
-    example: example-provisioning_steps
   - name: azure.provisioning.properties.provisioning_steps.provisioning_step_type
     type: keyword
     level: custom
@@ -1350,10 +1339,9 @@
     description: The name of the service principal involved in the provisioning operation
     example: example-name
   - name: azure.provisioning.properties.modified_properties
-    type: keyword
+    type: object
     level: custom
     description: The modified properties during the provisioning operation
-    example: example-modified_properties
   - name: azure.provisioning.properties.source_identity.id
     type: keyword
     level: custom
@@ -1395,10 +1383,9 @@
     description: The type of the target identity in the provisioning operation
     example: example-identity_type
   - name: azure.provisioning.properties.target_identity.details
-    type: keyword
+    type: object
     level: custom
     description: The details object for the target identity
-    example: example-details
   - name: azure.provisioning.properties.target_identity.details.display_name
     type: keyword
     level: custom
@@ -1420,10 +1407,9 @@
     description: The name of the source system in the provisioning operation
     example: example-name
   - name: azure.provisioning.properties.source_system.details
-    type: keyword
+    type: object
     level: custom
     description: The details object for the source system
-    example: example-details
   - name: azure.provisioning.properties.source_system.details.application_id
     type: keyword
     level: custom
@@ -1451,10 +1437,9 @@
     description: The name of the target system in the provisioning operation
     example: example-name
   - name: azure.provisioning.properties.target_system.details
-    type: keyword
+    type: object
     level: custom
     description: The details object for the target system
-    example: example-details
   - name: azure.provisioning.properties.target_system.details.application_id
     type: keyword
     level: custom

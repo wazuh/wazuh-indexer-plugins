@@ -37,12 +37,12 @@
     description: The numeric unique identifier of the OCSF event class.
     example: example-class_uid
   - name: ocsf.count
-    type: keyword
+    type: long
     level: custom
     description: >-
       The number of times this event occurred if it represents an aggregated or summarized
       event.
-    example: example-count
+    example: 12345
   - name: ocsf.end_time
     type: keyword
     level: custom
@@ -62,12 +62,12 @@
       The textual representation of the event severity such as Informational or Critical.
     example: example-severity
   - name: ocsf.severity_id
-    type: keyword
+    type: long
     level: custom
     description: >-
       The numeric severity level of the event ranging from 1 (Informational) to 6
       (Fatal).
-    example: example-severity_id
+    example: 12345
   - name: ocsf.start_time
     type: keyword
     level: custom
@@ -87,20 +87,20 @@
       about the outcome.
     example: example-status_code
   - name: ocsf.status_id
-    type: keyword
+    type: long
     level: custom
     description: The numeric identifier corresponding to the status of the event.
-    example: example-status_id
+    example: 12345
   - name: ocsf.time
     type: keyword
     level: custom
     description: The primary timestamp of the event converted from epoch time.
     example: example-time
   - name: ocsf.timezone_offset
-    type: keyword
+    type: long
     level: custom
     description: The timezone offset from UTC in minutes for the event timestamp.
-    example: example-timezone_offset
+    example: 12345
   - name: ocsf.type_name
     type: keyword
     level: custom
@@ -170,11 +170,11 @@
       format.
     example: example-processed_time
   - name: ocsf.metadata.sequence
-    type: keyword
+    type: long
     level: custom
     description: A sequence number that indicates the order of events within a stream
       or batch.
-    example: example-sequence
+    example: 12345
   - name: ocsf.metadata.tenant_uid
     type: keyword
     level: custom
@@ -240,10 +240,10 @@
       event.
     example: example-domain
   - name: ocsf.device.type_id
-    type: keyword
+    type: long
     level: custom
     description: The numeric identifier representing the type of device.
-    example: example-type_id
+    example: 12345
   - name: ocsf.device.region
     type: keyword
     level: custom
@@ -338,10 +338,10 @@
     description: The type of user account such as Regular or Admin.
     example: example-type
   - name: ocsf.user.type_id
-    type: keyword
+    type: long
     level: custom
     description: The numeric identifier representing the user account type.
-    example: example-type_id
+    example: 12345
   - name: ocsf.user.account.name
     type: keyword
     level: custom
@@ -458,12 +458,11 @@
       The error code or identifier returned by the API response when the request failed.
     example: example-error
   - name: ocsf.api.response.error_message
-    type: keyword
+    type: text
     level: custom
     description: >-
       The human-readable error message returned by the API response when the request
       failed.
-    example: example-error_message
   - name: ocsf.api.service.name
     type: keyword
     level: custom
@@ -475,16 +474,15 @@
     description: The version of the API that was used for the request.
     example: example-version
   - name: ocsf.finding.created_time
-    type: keyword
+    type: date
     level: custom
     description: The timestamp when the security finding was first created.
-    example: example-created_time
+    example: '2023-01-01T00:00:00.000Z'
   - name: ocsf.finding.desc
-    type: keyword
+    type: text
     level: custom
     description: A detailed description of the security finding including what was
       detected.
-    example: example-desc
   - name: ocsf.finding.first_seen_time
     type: keyword
     level: custom
@@ -518,72 +516,70 @@
     description: The specific compliance control or requirement being evaluated.
     example: example-control
   - name: ocsf.compliance.requirements
-    type: keyword
+    type: nested
     level: custom
     description: The compliance requirements or standards that apply to this evaluation.
-    example: example-requirements
   - name: ocsf.compliance.standards
-    type: keyword
+    type: nested
     level: custom
     description: The compliance standards or frameworks being evaluated.
-    example: example-standards
   - name: ocsf.compliance.status
     type: keyword
     level: custom
     description: The compliance status result such as Pass or Fail.
     example: example-status
   - name: ocsf.compliance.status_id
-    type: keyword
+    type: long
     level: custom
     description: The numeric identifier representing the compliance status.
-    example: example-status_id
+    example: 12345
   - name: ocsf.connection_info.boundary
     type: keyword
     level: custom
     description: The network boundary classification for the connection.
     example: example-boundary
   - name: ocsf.connection_info.direction_id
-    type: keyword
+    type: long
     level: custom
     description: The numeric identifier representing the direction of network traffic.
-    example: example-direction_id
+    example: 12345
   - name: ocsf.connection_info.protocol_ver
     type: keyword
     level: custom
     description: The version of the network protocol used in the connection.
     example: example-protocol_ver
   - name: ocsf.traffic.bytes
-    type: keyword
+    type: long
     level: custom
     description: The total number of bytes transferred in the network communication.
-    example: example-bytes
+    example: 12345
   - name: ocsf.traffic.bytes_in
-    type: keyword
+    type: long
     level: custom
     description: >-
       The number of bytes received or transferred inbound during the network communication.
-    example: example-bytes_in
+    example: 12345
   - name: ocsf.traffic.bytes_out
-    type: keyword
+    type: long
     level: custom
     description: >-
       The number of bytes sent or transferred outbound during the network communication.
-    example: example-bytes_out
+    example: 12345
   - name: ocsf.traffic.packets
-    type: keyword
+    type: long
     level: custom
     description: The total number of network packets transferred in the communication.
-    example: example-packets
+    example: 12345
   - name: ocsf.traffic.packets_in
-    type: keyword
+    type: long
     level: custom
     description: The number of network packets received or transferred inbound.
-    example: example-packets_in
+    example: 12345
   - name: ocsf.traffic.packets_out
-    type: keyword
+    type: long
     level: custom
     description: The number of network packets sent or transferred outbound.
-    example: example-packets_out
+    example: 12345
   - name: ocsf.http_request.uid
     type: keyword
     level: custom
@@ -595,18 +591,16 @@
     description: The user agent string provided by the client making the HTTP request.
     example: example-user_agent
   - name: ocsf.http_response.message
-    type: keyword
+    type: text
     level: custom
     description: The human-readable message associated with the HTTP response status
       code.
-    example: example-message
   - name: ocsf.malware.classification_ids
-    type: keyword
+    type: nested
     level: custom
     description: >-
       The numeric classification identifiers for the malware based on standard malware
       taxonomies.
-    example: example-classification_ids
   - name: ocsf.malware.name
     type: keyword
     level: custom

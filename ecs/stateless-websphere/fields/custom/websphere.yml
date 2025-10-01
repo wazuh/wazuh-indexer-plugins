@@ -3,30 +3,30 @@
   description: websphere custom fields for WCS integration
   fields:
   - name: websphere.metrics.alarm_manager.cancelled.total
-    type: keyword
+    type: long
     level: custom
     description: Total number of cancelled alarms in the alarm manager.
-    example: example-total
+    example: 12345
   - name: websphere.metrics.alarm_manager.create.total
-    type: keyword
+    type: long
     level: custom
     description: Total number of alarms created in the alarm manager.
-    example: example-total
+    example: 12345
   - name: websphere.metrics.alarm_manager.fired.total
-    type: keyword
+    type: long
     level: custom
     description: Total number of alarms fired in the alarm manager.
-    example: example-total
+    example: 12345
   - name: websphere.metrics.alarm_manager.latency_seconds
-    type: keyword
+    type: long
     level: custom
     description: Latency of alarm manager operations in seconds.
-    example: example-latency_seconds
+    example: 12345
   - name: websphere.metrics.alarm_manager.pending_alarms
-    type: keyword
+    type: long
     level: custom
     description: Number of pending alarms in the alarm manager.
-    example: example-pending_alarms
+    example: 12345
   - name: websphere.metrics.appname
     type: keyword
     level: custom
@@ -38,175 +38,175 @@
     description: Type of authentication assertion used in WebSphere.
     example: example-assertion_type
   - name: websphere.metrics.authentication.authentications.total
-    type: keyword
+    type: long
     level: custom
     description: Total number of authentication operations performed.
-    example: example-total
+    example: 12345
   - name: websphere.metrics.authentication.credential_creations.total
-    type: keyword
+    type: long
     level: custom
     description: Total number of credential creation operations performed.
-    example: example-total
+    example: 12345
   - name: websphere.metrics.authentication.credential_creation.time_seconds.total
-    type: keyword
+    type: long
     level: custom
     description: Total time spent in credential creation operations in seconds.
-    example: example-total
+    example: 12345
   - name: websphere.metrics.authentication.identity_assertions.total
-    type: keyword
+    type: long
     level: custom
     description: Total number of identity assertion operations performed.
-    example: example-total
+    example: 12345
   - name: websphere.metrics.authentication.identity_assertion.time_seconds.total
-    type: keyword
+    type: long
     level: custom
     description: Total time spent in identity assertion operations in seconds.
-    example: example-total
+    example: 12345
   - name: websphere.metrics.authentication.tai_requests.total
-    type: keyword
+    type: long
     level: custom
     description: Total number of TAI (Trust Association Interceptor) requests.
-    example: example-total
+    example: 12345
   - name: websphere.metrics.authentication.tai_request.time_seconds.total
-    type: keyword
+    type: long
     level: custom
     description: Total time spent in TAI request processing in seconds.
-    example: example-total
+    example: 12345
   - name: websphere.metrics.authentication.time_seconds.total
-    type: keyword
+    type: long
     level: custom
     description: Total time spent in authentication operations in seconds.
-    example: example-total
+    example: 12345
   - name: websphere.metrics.authentication.type
     type: keyword
     level: custom
     description: Type of authentication mechanism used in WebSphere.
     example: example-type
   - name: websphere.metrics.authorization.authorizations.total
-    type: keyword
+    type: long
     level: custom
     description: Total number of authorization operations performed.
-    example: example-total
+    example: 12345
   - name: websphere.metrics.authorization.authorization_time_seconds.total
-    type: keyword
+    type: long
     level: custom
     description: Total time spent in authorization operations in seconds.
-    example: example-total
+    example: 12345
   - name: websphere.metrics.cacheobject
     type: keyword
     level: custom
     description: Identifier for the cache object in use.
     example: example-cacheobject
   - name: websphere.metrics.dynamic_caching.cache_entries
-    type: keyword
+    type: long
     level: custom
     description: Number of entries in the dynamic cache.
-    example: example-cache_entries
+    example: 12345
   - name: websphere.metrics.dynamic_caching.distributed_requests.total
-    type: keyword
+    type: long
     level: custom
     description: Total number of distributed cache requests performed.
-    example: example-total
+    example: 12345
   - name: websphere.metrics.dynamic_caching.explicit_invalidate.total
-    type: keyword
+    type: long
     level: custom
     description: Total number of explicit cache invalidations performed.
-    example: example-total
+    example: 12345
   - name: websphere.metrics.dynamic_caching.hit.total
-    type: keyword
+    type: long
     level: custom
     description: Total number of dynamic cache hits recorded.
-    example: example-total
+    example: 12345
   - name: websphere.metrics.dynamic_caching.in_memory_and_disk_cache_entries.total
-    type: keyword
+    type: long
     level: custom
     description: Total number of cache entries in memory and disk.
-    example: example-total
+    example: 12345
   - name: websphere.metrics.dynamic_caching.invalidate.total
-    type: keyword
+    type: long
     level: custom
     description: Total number of cache invalidations performed.
-    example: example-total
+    example: 12345
   - name: websphere.metrics.dynamic_caching.miss.total
-    type: keyword
+    type: long
     level: custom
     description: Total number of dynamic cache misses recorded.
-    example: example-total
+    example: 12345
   - name: websphere.metrics.dynamic_caching.remote_create.total
-    type: keyword
+    type: long
     level: custom
     description: Total number of remote cache creates performed.
-    example: example-total
+    example: 12345
   - name: websphere.metrics.dynamic_caching.remote_hit.total
-    type: keyword
+    type: long
     level: custom
     description: Total number of remote cache hits recorded.
-    example: example-total
+    example: 12345
   - name: websphere.metrics.dynamic_caching.requests.total
-    type: keyword
+    type: long
     level: custom
     description: Total number of dynamic cache requests performed.
-    example: example-total
+    example: 12345
   - name: websphere.metrics.extension_registry.displacement.total
-    type: keyword
+    type: long
     level: custom
     description: Total number of extension registry displacements performed.
-    example: example-total
+    example: 12345
   - name: websphere.metrics.extension_registry.hit.total
-    type: keyword
+    type: long
     level: custom
     description: Total number of extension registry hits recorded.
-    example: example-total
+    example: 12345
   - name: websphere.metrics.extension_registry.requests.total
-    type: keyword
+    type: long
     level: custom
     description: Total number of extension registry requests performed.
-    example: example-total
+    example: 12345
   - name: websphere.metrics.ha_manager.bulletin_board_rebuild.time_seconds.total
-    type: keyword
+    type: long
     level: custom
     description: Total time spent rebuilding bulletin board in seconds.
-    example: example-total
+    example: 12345
   - name: websphere.metrics.ha_manager.bulletin_board_rebuild.total
-    type: keyword
+    type: long
     level: custom
     description: Total number of bulletin board rebuilds performed.
-    example: example-total
+    example: 12345
   - name: websphere.metrics.ha_manager.bulletin_board_subjects
-    type: keyword
+    type: long
     level: custom
     description: Number of bulletin board subjects in HA manager.
-    example: example-bulletin_board_subjects
+    example: 12345
   - name: websphere.metrics.ha_manager.bulletin_board_subscriptions
-    type: keyword
+    type: long
     level: custom
     description: Number of bulletin board subscriptions in HA manager.
-    example: example-bulletin_board_subscriptions
+    example: 12345
   - name: websphere.metrics.ha_manager.group_state_rebuild.time_seconds.total
-    type: keyword
+    type: long
     level: custom
     description: Total time spent rebuilding group state in seconds.
-    example: example-total
+    example: 12345
   - name: websphere.metrics.ha_manager.group_state_rebuild.total
-    type: keyword
+    type: long
     level: custom
     description: Total number of group state rebuilds performed.
-    example: example-total
+    example: 12345
   - name: websphere.metrics.ha_manager.local.bulletin_board_subjects
-    type: keyword
+    type: long
     level: custom
     description: Number of local bulletin board subjects in HA manager.
-    example: example-bulletin_board_subjects
+    example: 12345
   - name: websphere.metrics.ha_manager.local.bulletin_board_subscriptions
-    type: keyword
+    type: long
     level: custom
     description: Number of local bulletin board subscriptions in HA manager.
-    example: example-bulletin_board_subscriptions
+    example: 12345
   - name: websphere.metrics.ha_manager.local.groups
-    type: keyword
+    type: long
     level: custom
     description: Number of local HA groups in the manager.
-    example: example-groups
+    example: 12345
   - name: websphere.metrics.hitstype
     type: keyword
     level: custom
@@ -218,615 +218,615 @@
     description: Identifier for the interceptor in use.
     example: example-interceptor
   - name: websphere.metrics.jax_ws.dispatch.time_seconds.total
-    type: keyword
+    type: long
     level: custom
     description: Total time spent in JAX-WS dispatch operations in seconds.
-    example: example-total
+    example: 12345
   - name: websphere.metrics.jax_ws.dispatch.total
-    type: keyword
+    type: long
     level: custom
     description: Total number of JAX-WS dispatch operations performed.
-    example: example-total
+    example: 12345
   - name: websphere.metrics.jax_ws.payloads.bytes.total
-    type: keyword
+    type: long
     level: custom
     description: Total size of JAX-WS payloads in bytes.
-    example: example-total
+    example: 12345
   - name: websphere.metrics.jax_ws.payloads.total
-    type: keyword
+    type: long
     level: custom
     description: Total number of JAX-WS payloads processed.
-    example: example-total
+    example: 12345
   - name: websphere.metrics.jax_ws.reply.time_seconds.total
-    type: keyword
+    type: long
     level: custom
     description: Total time spent in JAX-WS reply operations in seconds.
-    example: example-total
+    example: 12345
   - name: websphere.metrics.jax_ws.reply.total
-    type: keyword
+    type: long
     level: custom
     description: Total number of JAX-WS reply operations performed.
-    example: example-total
+    example: 12345
   - name: websphere.metrics.jax_ws.requests_dispatched.total
-    type: keyword
+    type: long
     level: custom
     description: Total number of JAX-WS requests dispatched.
-    example: example-total
+    example: 12345
   - name: websphere.metrics.jax_ws.requests_received.total
-    type: keyword
+    type: long
     level: custom
     description: Total number of JAX-WS requests received.
-    example: example-total
+    example: 12345
   - name: websphere.metrics.jax_ws.requests_successful.total
-    type: keyword
+    type: long
     level: custom
     description: Total number of successful JAX-WS requests processed.
-    example: example-total
+    example: 12345
   - name: websphere.metrics.jax_ws.requests.total
-    type: keyword
+    type: long
     level: custom
     description: Total number of JAX-WS requests processed.
-    example: example-total
+    example: 12345
   - name: websphere.metrics.jax_ws.request.time_seconds.total
-    type: keyword
+    type: long
     level: custom
     description: Total time spent in JAX-WS request processing in seconds.
-    example: example-total
+    example: 12345
   - name: websphere.metrics.jax_ws.responses.total
-    type: keyword
+    type: long
     level: custom
     description: Total number of JAX-WS responses processed.
-    example: example-total
+    example: 12345
   - name: websphere.metrics.jax_ws.response.time_seconds.total
-    type: keyword
+    type: long
     level: custom
     description: Total time spent in JAX-WS response processing in seconds.
-    example: example-total
+    example: 12345
   - name: websphere.metrics.jax_ws.services_loaded.total
-    type: keyword
+    type: long
     level: custom
     description: Total number of JAX-WS services loaded.
-    example: example-total
+    example: 12345
   - name: websphere.metrics.jdbc.connection.allocated
-    type: keyword
+    type: long
     level: custom
     description: Number of allocated JDBC connections in the pool.
-    example: example-allocated
+    example: 12345
   - name: websphere.metrics.jdbc.total_cache_discarded
-    type: keyword
+    type: long
     level: custom
     description: Number of JDBC connections that were discarded from the cache.
-    example: example-total_cache_discarded
+    example: 12345
   - name: websphere.metrics.jdbc.connection.closed
-    type: keyword
+    type: long
     level: custom
     description: Number of closed JDBC connections in the pool.
-    example: example-closed
+    example: 12345
   - name: websphere.metrics.jdbc.connection.connection_handles
-    type: keyword
+    type: long
     level: custom
     description: Number of JDBC connection handles in the pool.
-    example: example-connection_handles
+    example: 12345
   - name: websphere.metrics.jdbc.connection.handles
-    type: keyword
+    type: long
     level: custom
     description: Number of JDBC connection handles in the pool.
-    example: example-handles
+    example: 12345
   - name: websphere.metrics.jdbc.connection.created
-    type: keyword
+    type: long
     level: custom
     description: Number of created JDBC connections in the pool.
-    example: example-created
+    example: 12345
   - name: websphere.metrics.jdbc.connection.managed_connections
-    type: keyword
+    type: long
     level: custom
     description: Number of managed JDBC connections in the pool.
-    example: example-managed_connections
+    example: 12345
   - name: websphere.metrics.jdbc.connection.fault.total
-    type: keyword
+    type: long
     level: custom
     description: Total number of JDBC connection faults encountered.
-    example: example-total
+    example: 12345
   - name: websphere.metrics.jdbc.connection.free
-    type: keyword
+    type: long
     level: custom
     description: Number of free JDBC connections in the pool.
-    example: example-free
+    example: 12345
   - name: websphere.metrics.jdbc.connection.jdbc_operations.total
-    type: keyword
+    type: long
     level: custom
     description: Total number of JDBC operations performed.
-    example: example-total
+    example: 12345
   - name: websphere.metrics.jdbc.connection.jdbc_operation_time_seconds.total
-    type: keyword
+    type: long
     level: custom
     description: Total time spent in JDBC operations in seconds.
-    example: example-total
+    example: 12345
   - name: websphere.metrics.jdbc.connection.managed
-    type: keyword
+    type: long
     level: custom
     description: Number of managed JDBC connections in the pool.
-    example: example-managed
+    example: 12345
   - name: websphere.metrics.jdbc.connection.prep_stmt_cache_discard.total
-    type: keyword
+    type: long
     level: custom
     description: Total number of prepared statement cache discards performed.
-    example: example-total
+    example: 12345
   - name: websphere.metrics.jdbc.connection.returned
-    type: keyword
+    type: long
     level: custom
     description: Number of returned JDBC connections in the pool.
-    example: example-returned
+    example: 12345
   - name: websphere.metrics.jdbc.connection.total.operations_calls
-    type: keyword
+    type: long
     level: custom
     description: Total number of JDBC connection operations calls performed.
-    example: example-operations_calls
+    example: 12345
   - name: websphere.metrics.jdbc.connection.total.operations_seconds
-    type: keyword
+    type: long
     level: custom
     description: Total time spent in JDBC connection operations in seconds.
-    example: example-operations_seconds
+    example: 12345
   - name: websphere.metrics.jdbc.connection.total.in_use
-    type: keyword
+    type: long
     level: custom
     description: Total number of JDBC connections in use.
-    example: example-in_use
+    example: 12345
   - name: websphere.metrics.jdbc.connection.total.seconds_in_use
-    type: keyword
+    type: long
     level: custom
     description: Total seconds JDBC connections have been in use.
-    example: example-seconds_in_use
+    example: 12345
   - name: websphere.metrics.jdbc.connection.total.wait
-    type: keyword
+    type: long
     level: custom
     description: Total number of JDBC connection waits encountered.
-    example: example-wait
+    example: 12345
   - name: websphere.metrics.jdbc.connection.total.wait_seconds
-    type: keyword
+    type: long
     level: custom
     description: Total wait time for JDBC connections in seconds.
-    example: example-wait_seconds
+    example: 12345
   - name: websphere.metrics.jdbc.connection.waiting_threads
-    type: keyword
+    type: long
     level: custom
     description: Number of threads waiting for JDBC connections in the pool.
-    example: example-waiting_threads
+    example: 12345
   - name: websphere.metrics.jdbc.data_source
     type: keyword
     level: custom
     description: Identifier for the JDBC data source in use.
     example: example-data_source
   - name: websphere.metrics.jdbc.percent_used
-    type: keyword
+    type: long
     level: custom
     description: Percentage of JDBC connection pool used.
-    example: example-percent_used
+    example: 12345
   - name: websphere.metrics.jdbc.pool_size
-    type: keyword
+    type: long
     level: custom
     description: Size of the JDBC connection pool in use.
-    example: example-pool_size
+    example: 12345
   - name: websphere.metrics.jvm.memory.area
     type: keyword
     level: custom
     description: Identifier for the JVM memory area in use.
     example: example-area
   - name: websphere.metrics.jvm.memory.committed_bytes
-    type: keyword
+    type: long
     level: custom
     description: Committed JVM memory in bytes.
-    example: example-committed_bytes
+    example: 12345
   - name: websphere.metrics.jvm.memory.max_bytes
-    type: keyword
+    type: long
     level: custom
     description: Maximum JVM memory in bytes.
-    example: example-max_bytes
+    example: 12345
   - name: websphere.metrics.jvm.memory.used_bytes
-    type: keyword
+    type: long
     level: custom
     description: Used JVM memory in bytes.
-    example: example-used_bytes
+    example: 12345
   - name: websphere.metrics.objectpool
     type: keyword
     level: custom
     description: Identifier for the object pool in use.
     example: example-objectpool
   - name: websphere.metrics.object_pool.allocate.total
-    type: keyword
+    type: long
     level: custom
     description: Total number of object pool allocations performed.
-    example: example-total
+    example: 12345
   - name: websphere.metrics.object_pool.create.total
-    type: keyword
+    type: long
     level: custom
     description: Total number of object pool creations performed.
-    example: example-total
+    example: 12345
   - name: websphere.metrics.object_pool.idle_objects
-    type: keyword
+    type: long
     level: custom
     description: Number of idle objects in the object pool.
-    example: example-idle_objects
+    example: 12345
   - name: websphere.metrics.object_pool.return.total
-    type: keyword
+    type: long
     level: custom
     description: Total number of objects returned to the object pool.
-    example: example-total
+    example: 12345
   - name: websphere.metrics.orb.concurrent_requests
-    type: keyword
+    type: long
     level: custom
     description: Number of concurrent ORB requests processed.
-    example: example-concurrent_requests
+    example: 12345
   - name: websphere.metrics.orb.lookup.time_seconds.total
-    type: keyword
+    type: long
     level: custom
     description: Total time spent in ORB lookup operations in seconds.
-    example: example-total
+    example: 12345
   - name: websphere.metrics.orb.lookup.total
-    type: keyword
+    type: long
     level: custom
     description: Total number of ORB lookup operations performed.
-    example: example-total
+    example: 12345
   - name: websphere.metrics.orb.processing.time_seconds.total
-    type: keyword
+    type: long
     level: custom
     description: Total time spent in ORB processing in seconds.
-    example: example-total
+    example: 12345
   - name: websphere.metrics.orb.processing.total
-    type: keyword
+    type: long
     level: custom
     description: Total number of ORB processing operations performed.
-    example: example-total
+    example: 12345
   - name: websphere.metrics.orb.requests.total
-    type: keyword
+    type: long
     level: custom
     description: Total number of ORB requests processed.
-    example: example-total
+    example: 12345
   - name: websphere.metrics.portlet.concurrent_requests
-    type: keyword
+    type: long
     level: custom
     description: Number of concurrent portlet requests processed.
-    example: example-concurrent_requests
+    example: 12345
   - name: websphere.metrics.portlet.errors.total
-    type: keyword
+    type: long
     level: custom
     description: Total number of portlet errors encountered.
-    example: example-total
+    example: 12345
   - name: websphere.metrics.portlet.requests.total
-    type: keyword
+    type: long
     level: custom
     description: Total number of portlet requests processed.
-    example: example-total
+    example: 12345
   - name: websphere.metrics.process.cpu_utilization
-    type: keyword
+    type: long
     level: custom
     description: CPU utilization of the process in percentage.
-    example: example-cpu_utilization
+    example: 12345
   - name: websphere.metrics.process.uptime_seconds
-    type: keyword
+    type: long
     level: custom
     description: Process uptime in seconds since start.
-    example: example-uptime_seconds
+    example: 12345
   - name: websphere.metrics.scrape.duration_seconds
-    type: keyword
+    type: long
     level: custom
     description: Duration of metrics scrape operation in seconds.
-    example: example-duration_seconds
+    example: 12345
   - name: websphere.metrics.servlet.app_name
     type: keyword
     level: custom
     description: Application name for servlet metrics in WebSphere.
     example: example-app_name
   - name: websphere.metrics.servlet.async_context.responses.total
-    type: keyword
+    type: long
     level: custom
     description: Total number of async context responses processed.
-    example: example-total
+    example: 12345
   - name: websphere.metrics.servlet.async_context.response_time_seconds
-    type: keyword
+    type: long
     level: custom
     description: Response time for async context operations in seconds.
-    example: example-response_time_seconds
+    example: 12345
   - name: websphere.metrics.servlet.errors
-    type: keyword
+    type: long
     level: custom
     description: Number of servlet errors encountered during processing.
-    example: example-errors
+    example: 12345
   - name: websphere.metrics.servlet.loaded
-    type: keyword
+    type: long
     level: custom
     description: Number of loaded servlets in the application.
-    example: example-loaded
+    example: 12345
   - name: websphere.metrics.servlet.reloaded
-    type: keyword
+    type: long
     level: custom
     description: Number of reloaded servlets in the application.
-    example: example-reloaded
+    example: 12345
   - name: websphere.metrics.servlet.requests.concurrent
-    type: keyword
+    type: long
     level: custom
     description: Number of concurrent servlet requests processed.
-    example: example-concurrent
+    example: 12345
   - name: websphere.metrics.servlet.requests.processed
-    type: keyword
+    type: long
     level: custom
     description: Number of processed servlet requests in total.
-    example: example-processed
+    example: 12345
   - name: websphere.metrics.servlet.responses.processed
-    type: keyword
+    type: long
     level: custom
     description: Number of processed servlet responses in total.
-    example: example-processed
+    example: 12345
   - name: websphere.metrics.servlet.response_time_seconds
-    type: keyword
+    type: long
     level: custom
     description: Servlet response time in seconds for requests.
-    example: example-response_time_seconds
+    example: 12345
   - name: websphere.metrics.servlet.uri.async_context.responses.total
-    type: keyword
+    type: long
     level: custom
     description: Total number of async context responses by URI processed.
-    example: example-total
+    example: 12345
   - name: websphere.metrics.servlet.uri.async_context.response_time_seconds
-    type: keyword
+    type: long
     level: custom
     description: Response time for async context operations by URI in seconds.
-    example: example-response_time_seconds
+    example: 12345
   - name: websphere.metrics.servlet.uri.requests.concurrent
-    type: keyword
+    type: long
     level: custom
     description: Number of concurrent requests by URI processed.
-    example: example-concurrent
+    example: 12345
   - name: websphere.metrics.servlet.uri.requests.total
-    type: keyword
+    type: long
     level: custom
     description: Total number of requests by URI processed.
-    example: example-total
+    example: 12345
   - name: websphere.metrics.servlet.uri.responses.total
-    type: keyword
+    type: long
     level: custom
     description: Total number of responses by URI processed.
-    example: example-total
+    example: 12345
   - name: websphere.metrics.servlet.uri.response_time_seconds
-    type: keyword
+    type: long
     level: custom
     description: Response time by URI in seconds for requests.
-    example: example-response_time_seconds
+    example: 12345
   - name: websphere.metrics.session.activated.total
-    type: keyword
+    type: long
     level: custom
     description: Total number of activated sessions in the application.
-    example: example-total
+    example: 12345
   - name: websphere.metrics.session.finished.total
-    type: keyword
+    type: long
     level: custom
     description: Total number of finished sessions in the application.
-    example: example-total
+    example: 12345
   - name: websphere.metrics.session_manager.activated_non_existent_sessions
-    type: keyword
+    type: long
     level: custom
     description: Number of activated non-existent sessions encountered.
-    example: example-activated_non_existent_sessions
+    example: 12345
   - name: websphere.metrics.session_manager.affinity_breaks
-    type: keyword
+    type: long
     level: custom
     description: Number of session affinity breaks encountered.
-    example: example-affinity_breaks
+    example: 12345
   - name: websphere.metrics.session_manager.cache_discarded
-    type: keyword
+    type: long
     level: custom
     description: Number of discarded session cache entries in the manager.
-    example: example-cache_discarded
+    example: 12345
   - name: websphere.metrics.session_manager.external.bytes.read
-    type: keyword
+    type: long
     level: custom
     description: Bytes read from external session storage in total.
-    example: example-read
+    example: 12345
   - name: websphere.metrics.session_manager.external.bytes.written
-    type: keyword
+    type: long
     level: custom
     description: Bytes written to external session storage in total.
-    example: example-written
+    example: 12345
   - name: websphere.metrics.session_manager.external.time_seconds.read
-    type: keyword
+    type: long
     level: custom
     description: Time spent reading from external session storage in seconds.
-    example: example-read
+    example: 12345
   - name: websphere.metrics.session_manager.external.time_seconds.written
-    type: keyword
+    type: long
     level: custom
     description: Time spent writing to external session storage in seconds.
-    example: example-written
+    example: 12345
   - name: websphere.metrics.session_manager.no_room_for_new_sessions
-    type: keyword
+    type: long
     level: custom
     description: Number of times there was no room for new sessions.
-    example: example-no_room_for_new_sessions
+    example: 12345
   - name: websphere.metrics.session_manager.persistent_stores.data_read
-    type: keyword
+    type: long
     level: custom
     description: Amount of data read from persistent session stores in total.
-    example: example-data_read
+    example: 12345
   - name: websphere.metrics.session_manager.persistent_stores.data_written
-    type: keyword
+    type: long
     level: custom
     description: Amount of data written to persistent session stores in total.
-    example: example-data_written
+    example: 12345
   - name: websphere.metrics.session_manager.sessions.active
-    type: keyword
+    type: long
     level: custom
     description: Number of active sessions in the application.
-    example: example-active
+    example: 12345
   - name: websphere.metrics.session_manager.sessions.created
-    type: keyword
+    type: long
     level: custom
     description: Number of created sessions in the application.
-    example: example-created
+    example: 12345
   - name: websphere.metrics.session_manager.sessions.current
-    type: keyword
+    type: long
     level: custom
     description: Current number of sessions in the application.
-    example: example-current
+    example: 12345
   - name: websphere.metrics.session_manager.sessions.invalidated.by_timeouts
-    type: keyword
+    type: long
     level: custom
     description: Number of sessions invalidated by timeouts encountered.
-    example: example-by_timeouts
+    example: 12345
   - name: websphere.metrics.session_manager.sessions.invalidated.total
-    type: keyword
+    type: long
     level: custom
     description: Total number of invalidated sessions in the application.
-    example: example-total
+    example: 12345
   - name: websphere.metrics.session_manager.sessions.life_time
-    type: keyword
+    type: long
     level: custom
     description: Lifetime of sessions in the application.
-    example: example-life_time
+    example: 12345
   - name: websphere.metrics.session_manager.time_since_session_last_activated
-    type: keyword
+    type: long
     level: custom
     description: Time since session was last activated in seconds.
-    example: example-time_since_session_last_activated
+    example: 12345
   - name: websphere.metrics.session.session_objects.bytes.total
-    type: keyword
+    type: long
     level: custom
     description: Total size of session objects in bytes.
-    example: example-total
+    example: 12345
   - name: websphere.metrics.session.session_objects.total
-    type: keyword
+    type: long
     level: custom
     description: Total number of session objects in the application.
-    example: example-total
+    example: 12345
   - name: websphere.metrics.system.cpu_utilization
-    type: keyword
+    type: long
     level: custom
     description: System CPU utilization in percentage.
-    example: example-cpu_utilization
+    example: 12345
   - name: websphere.metrics.system.memory.free_bytes
-    type: keyword
+    type: long
     level: custom
     description: Free system memory in bytes available.
-    example: example-free_bytes
+    example: 12345
   - name: websphere.metrics.threadpool.active_time_seconds
-    type: keyword
+    type: long
     level: custom
     description: Active time of thread pool in seconds.
-    example: example-active_time_seconds
+    example: 12345
   - name: websphere.metrics.threadpool.name
     type: keyword
     level: custom
     description: Name of the thread pool in use.
     example: example-name
   - name: websphere.metrics.threadpool.threads.active
-    type: keyword
+    type: long
     level: custom
     description: Number of active threads in the thread pool.
-    example: example-active
+    example: 12345
   - name: websphere.metrics.threadpool.threads.cleared
-    type: keyword
+    type: long
     level: custom
     description: Number of cleared threads in the thread pool.
-    example: example-cleared
+    example: 12345
   - name: websphere.metrics.threadpool.threads.stopped.concurrent
-    type: keyword
+    type: long
     level: custom
     description: Number of concurrent stopped threads in the pool.
-    example: example-concurrent
+    example: 12345
   - name: websphere.metrics.threadpool.threads.stopped.declared
-    type: keyword
+    type: long
     level: custom
     description: Number of declared stopped threads in the pool.
-    example: example-declared
+    example: 12345
   - name: websphere.metrics.threadpool.threads.total
-    type: keyword
+    type: long
     level: custom
     description: Total number of threads in the thread pool.
-    example: example-total
+    example: 12345
   - name: websphere.metrics.threadpool.total.active
-    type: keyword
+    type: long
     level: custom
     description: Total number of active threads across all thread pools.
-    example: example-active
+    example: 12345
   - name: websphere.metrics.threadpool.total.created
-    type: keyword
+    type: long
     level: custom
     description: Total number of threads created across all thread pools.
-    example: example-created
+    example: 12345
   - name: websphere.metrics.threadpool.total.destroyed
-    type: keyword
+    type: long
     level: custom
     description: Total number of threads destroyed across all thread pools.
-    example: example-destroyed
+    example: 12345
   - name: websphere.metrics.transaction_manager.active_transactions
-    type: keyword
+    type: long
     level: custom
     description: Number of active transactions in the manager.
-    example: example-active_transactions
+    example: 12345
   - name: websphere.metrics.transaction_manager.before_completion.seconds.total
-    type: keyword
+    type: long
     level: custom
     description: Total time spent in before completion operations in seconds.
-    example: example-total
+    example: 12345
   - name: websphere.metrics.transaction_manager.before_completion.total
-    type: keyword
+    type: long
     level: custom
     description: Total number of before completion operations performed.
-    example: example-total
+    example: 12345
   - name: websphere.metrics.transaction_manager.begun.total
-    type: keyword
+    type: long
     level: custom
     description: Total number of transactions begun in the manager.
-    example: example-total
+    example: 12345
   - name: websphere.metrics.transaction_manager.committed.total
-    type: keyword
+    type: long
     level: custom
     description: Total number of committed transactions in the manager.
-    example: example-total
+    example: 12345
   - name: websphere.metrics.transaction_manager.commit.time_seconds.total
-    type: keyword
+    type: long
     level: custom
     description: Total time spent in commit operations in seconds.
-    example: example-total
+    example: 12345
   - name: websphere.metrics.transaction_manager.global_involved.total
-    type: keyword
+    type: long
     level: custom
     description: Total number of global transactions involved in the manager.
-    example: example-total
+    example: 12345
   - name: websphere.metrics.transaction_manager.global_prepare.time_seconds.total
-    type: keyword
+    type: long
     level: custom
     description: Total time spent in global prepare operations in seconds.
-    example: example-total
+    example: 12345
   - name: websphere.metrics.transaction_manager.global_prepare.total
-    type: keyword
+    type: long
     level: custom
     description: Total number of global prepare operations performed.
-    example: example-total
+    example: 12345
   - name: websphere.metrics.transaction_manager.optimization.total
-    type: keyword
+    type: long
     level: custom
     description: Total number of transaction optimizations performed.
-    example: example-total
+    example: 12345
   - name: websphere.metrics.transaction_manager.rolledback.total
-    type: keyword
+    type: long
     level: custom
     description: Total number of rolled back transactions in the manager.
-    example: example-total
+    example: 12345
   - name: websphere.metrics.transaction_manager.timedout.total
-    type: keyword
+    type: long
     level: custom
     description: Total number of timed out transactions in the manager.
-    example: example-total
+    example: 12345
   - name: websphere.metrics.transaction_manager.transactions.total
-    type: keyword
+    type: long
     level: custom
     description: Total number of transactions in the manager.
-    example: example-total
+    example: 12345
   - name: websphere.metrics.transaction_manager.transaction.time_seconds.total
-    type: keyword
+    type: long
     level: custom
     description: Total transaction time in seconds for all transactions.
-    example: example-total
+    example: 12345
   - name: websphere.metrics.transactiontype
     type: keyword
     level: custom

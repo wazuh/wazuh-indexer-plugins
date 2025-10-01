@@ -53,148 +53,145 @@
     description: The field describes the namespace selected
     example: example-namespace
   - name: azure.compute_vm.inbound_flows_maximum_creation_rate.avg
-    type: keyword
+    type: long
     level: custom
     description: The maximum creation rate of inbound flows (traffic going into the
       VM)
-    example: example-avg
+    example: 12345
   - name: azure.compute_vm.outbound_flows_maximum_creation_rate.avg
-    type: keyword
+    type: long
     level: custom
     description: The maximum creation rate of outbound flows (traffic going out of
       the VM)
-    example: example-avg
+    example: 12345
   - name: azure.compute_vm.percentage_cpu.avg
-    type: keyword
+    type: float
     level: custom
     description: >-
       The percentage of allocated compute units currently in use by the Virtual Machine
-    example: example-avg
   - name: azure.compute_vm.disk_read_bytes.total
-    type: keyword
+    type: float
     level: custom
     description: Total bytes read from disk during the monitoring period
-    example: example-total
   - name: azure.compute_vm.network_in.total
-    type: keyword
+    type: long
     level: custom
     description: The number of bytes received on all network interfaces (incoming
       traffic)
-    example: example-total
+    example: 12345
   - name: azure.compute_vm.network_in_total.total
-    type: keyword
+    type: long
     level: custom
     description: The total number of incoming bytes received across all network interfaces
-    example: example-total
+    example: 12345
   - name: azure.compute_vm_scaleset.cpu_credits_consumed.avg
-    type: keyword
+    type: long
     level: custom
     description: >-
       Total number of credits consumed by the Virtual Machine. Only available on B-series
       burstable VMs
-    example: example-avg
+    example: 12345
   - name: azure.container_instance.network_bytes_transmitted_per_second.avg
-    type: keyword
+    type: long
     level: custom
     description: Average number of network bytes transmitted per second by the container
       instance
-    example: example-avg
+    example: 12345
   - name: azure.container_instance.network_bytes_received_per_second.avg
-    type: keyword
+    type: long
     level: custom
     description: Average number of network bytes received per second by the container
       instance
-    example: example-avg
+    example: 12345
   - name: azure.container_registry.agent_pool_cpu_time.total
-    type: keyword
+    type: long
     level: custom
     description: Total CPU time consumed by the container registry agent pool
-    example: example-total
+    example: 12345
   - name: azure.container_registry.run_duration.total
-    type: keyword
+    type: long
     level: custom
     description: Total duration of all container registry tasks run
-    example: example-total
+    example: 12345
   - name: azure.container_registry.storage_used.avg
-    type: keyword
+    type: long
     level: custom
     description: The average amount of storage used by the container registry
-    example: example-avg
+    example: 12345
   - name: azure.container_registry.successful_pull_count.total
-    type: keyword
+    type: long
     level: custom
     description: Number of successful image pulls from the container registry
-    example: example-total
+    example: 12345
   - name: azure.container_registry.successful_push_count.total
-    type: keyword
+    type: long
     level: custom
     description: Number of successful image pushes to the container registry
-    example: example-total
+    example: 12345
   - name: azure.container_registry.total_pull_count.total
-    type: keyword
+    type: long
     level: custom
     description: Total number of image pulls from the container registry
-    example: example-total
+    example: 12345
   - name: azure.container_registry.total_push_count.total
-    type: keyword
+    type: long
     level: custom
     description: Total number of image pushes to the container registry
-    example: example-total
+    example: 12345
   - name: azure.dimensions.geolocation
     type: keyword
     level: custom
     description: This field represents the geolocation of the container registry
     example: example-geolocation
   - name: azure.container_service.kube_node_status_allocatable_cpu_cores.avg
-    type: keyword
+    type: long
     level: custom
     description: Average allocatable CPU cores across Kubernetes nodes in the container
       service
-    example: example-avg
+    example: 12345
   - name: azure.container_service.kube_node_status_allocatable_memory_bytes.avg
-    type: keyword
+    type: long
     level: custom
     description: >-
       Average allocatable memory (in bytes) across Kubernetes nodes in the container
       service
-    example: example-avg
+    example: 12345
   - name: azure.container_service.kube_node_status_condition.avg
-    type: keyword
+    type: long
     level: custom
     description: Average status condition of Kubernetes nodes in the container service
-    example: example-avg
+    example: 12345
   - name: azure.container_service.kube_pod_status_phase.avg
-    type: keyword
+    type: long
     level: custom
     description: Average status phase of Kubernetes pods in the container service
-    example: example-avg
+    example: 12345
   - name: azure.container_service.kube_pod_status_ready.avg
-    type: keyword
+    type: long
     level: custom
     description: Average readiness status of Kubernetes pods in the container service
-    example: example-avg
+    example: 12345
   - name: azure.metrics.document_quota.total
-    type: keyword
+    type: long
     level: custom
     description: >-
       This field represents the total number of documents allowed in the Azure Cosmos
       DB account (document quota)
-    example: example-total
+    example: 12345
   - name: azure.database_account.mongo_requests_count.total
-    type: keyword
+    type: long
     level: custom
     description: Total number of MongoDB requests in the database account
-    example: example-total
+    example: 12345
   - name: azure.database_account.data_usage_storage.avg
-    type: keyword
+    type: long
     level: custom
     description: Average storage used by the database account
-    example: example-avg
+    example: 12345
   - name: azure.database_account.availability.avg
-    type: keyword
+    type: float
     level: custom
     description: Average availability percentage of the database account
-    example: example-avg
   - name: azure.dimensions.command_name
     type: keyword
     level: custom
@@ -216,10 +213,9 @@
     description: This is the status code of the database request
     example: example-status_code
   - name: azure.resource.tags
-    type: keyword
+    type: object
     level: custom
     description: This field indicates Azure resource tags
-    example: example-tags
   - name: azure.dimensions.condition
     type: keyword
     level: custom
@@ -262,40 +258,40 @@
     description: Reason for Cassandra connection closures
     example: example-closure_reason
   - name: azure.storage_account.availability.avg
-    type: keyword
+    type: long
     level: custom
     description: Average availability of the storage account
-    example: example-avg
+    example: 12345
   - name: azure.storage_account.used_capacity.avg
-    type: keyword
+    type: long
     level: custom
     description: Average used storage capacity of the storage account
-    example: example-avg
+    example: 12345
   - name: azure.metrics.SuccessE2ELatency.avg
-    type: keyword
+    type: long
     level: custom
     description: Average end-to-end latency for successful storage transactions
-    example: example-avg
+    example: 12345
   - name: azure.metrics.SuccessServerLatency.avg
-    type: keyword
+    type: long
     level: custom
     description: Average server latency for successful storage transactions
-    example: example-avg
+    example: 12345
   - name: azure.metrics.Ingress.total
-    type: keyword
+    type: long
     level: custom
     description: Total ingress bytes in the storage account
-    example: example-total
+    example: 12345
   - name: azure.metrics.Egress.total
-    type: keyword
+    type: long
     level: custom
     description: Total egress bytes in the storage account
-    example: example-total
+    example: 12345
   - name: azure.metrics.Transactions.total
-    type: keyword
+    type: long
     level: custom
     description: Total number of transactions in the storage account
-    example: example-total
+    example: 12345
   - name: azure.dimensions.api_name
     type: keyword
     level: custom
@@ -349,7 +345,7 @@
       compute_vm) the event belongs to
     example: example-name
   - name: metricset.period
-    type: keyword
+    type: long
     level: custom
     short: >-
       Collection interval (ms) for the metricset. Indicates how frequently metrics
@@ -357,7 +353,7 @@
     description: >-
       This field represents the collection interval (in milliseconds) for the metricset.
       It indicates how frequently the metrics were gathered from the Azure resource
-    example: example-period
+    example: 12345
   - name: azure.application_id
     type: keyword
     level: custom
@@ -369,9 +365,9 @@
       associated with the collected metrics
     example: example-application_id
   - name: azure.compute_vm_scaleset.cpu_credits_remaining.avg
-    type: keyword
+    type: long
     level: custom
     description: >-
       This field represents the total number of CPU credits currently available to
       burst
-    example: example-avg
+    example: 12345

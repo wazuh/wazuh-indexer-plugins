@@ -13,10 +13,10 @@
     description: Azure App Service application container ID
     example: example-container_id
   - name: azure.app_service.event_ip_address
-    type: keyword
+    type: ip
     level: custom
     description: IP address of the Azure App Service event
-    example: example-event_ip_address
+    example: 192.168.1.1
   - name: azure.app_service.event_primary_stamp_name
     type: keyword
     level: custom
@@ -53,15 +53,15 @@
     description: Azure App Service operation name
     example: example-operation_name
   - name: azure.app_service.properties.client_ip
-    type: keyword
+    type: ip
     level: custom
     description: Client IP address from Azure App Service HTTP request
-    example: example-client_ip
+    example: 192.168.1.1
   - name: azure.app_service.properties.client_port
-    type: keyword
+    type: long
     level: custom
     description: Client port number from Azure App Service
-    example: example-client_port
+    example: 12345
   - name: azure.app_service.properties.computer_name
     type: keyword
     level: custom
@@ -73,10 +73,10 @@
     description: Cookie present in the Azure App Service HTTP request
     example: example-cookie
   - name: azure.app_service.properties.cs_bytes
-    type: keyword
+    type: long
     level: custom
     description: Number of bytes received by Azure App Service server
-    example: example-cs_bytes
+    example: 12345
   - name: azure.app_service.properties.cs_host
     type: keyword
     level: custom
@@ -128,15 +128,15 @@
     description: Azure App Service server port number
     example: example-s_port
   - name: azure.app_service.properties.sc_bytes
-    type: keyword
+    type: long
     level: custom
     description: Number of bytes sent by Azure App Service server
-    example: example-sc_bytes
+    example: 12345
   - name: azure.app_service.properties.sc_status
-    type: keyword
+    type: long
     level: custom
     description: HTTP status code returned by Azure App Service
-    example: example-sc_status
+    example: 12345
   - name: azure.app_service.properties.sc_substatus
     type: keyword
     level: custom
@@ -153,10 +153,10 @@
     description: Azure App Service Virtual Network Service Endpoint indicator
     example: example-service_endpoint
   - name: azure.app_service.properties.time_taken
-    type: keyword
+    type: long
     level: custom
     description: Time taken by Azure App Service HTTP request in milliseconds
-    example: example-time_taken
+    example: 12345
   - name: azure.app_service.properties.user
     type: keyword
     level: custom

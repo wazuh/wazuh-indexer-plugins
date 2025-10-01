@@ -8,15 +8,15 @@
     description: Provides a breakdown of latency for account forest operations.
     example: example-account_forest_latency_breakup
   - name: microsoft.exchange.activity_context_lifetime
-    type: keyword
+    type: long
     level: custom
     description: The duration of the activity context's lifetime during the request.
-    example: example-activity_context_lifetime
+    example: 12345
   - name: microsoft.exchange.ad_latency
-    type: keyword
+    type: long
     level: custom
     description: Measures the latency in Active Directory lookups.
-    example: example-ad_latency
+    example: 12345
   - name: microsoft.exchange.anchor_mailbox
     type: keyword
     level: custom
@@ -51,49 +51,49 @@
     description: Generic information logged about backend operations.
     example: example-backend_generic_info
   - name: microsoft.exchange.backend_processing_latency
-    type: keyword
+    type: long
     level: custom
     description: The latency incurred while processing the request in the backend.
-    example: example-backend_processing_latency
+    example: 12345
   - name: microsoft.exchange.backend_request_init_latency
-    type: keyword
+    type: long
     level: custom
     description: The latency incurred during initialization of the backend request.
-    example: example-backend_request_init_latency
+    example: 12345
   - name: microsoft.exchange.backend_request_stream_latency
-    type: keyword
+    type: long
     level: custom
     description: The latency during backend request streaming.
-    example: example-backend_request_stream_latency
+    example: 12345
   - name: microsoft.exchange.backend_response_init_latency
-    type: keyword
+    type: long
     level: custom
     description: The time taken to initiate the backend response.
-    example: example-backend_response_init_latency
+    example: 12345
   - name: microsoft.exchange.backend_response_stream_latency
-    type: keyword
+    type: long
     level: custom
     description: Measures latency during backend response streaming.
-    example: example-backend_response_stream_latency
+    example: 12345
   - name: microsoft.exchange.backend_status
-    type: keyword
+    type: long
     level: custom
     description: Indicates the status returned by the backend server processing the
       request.
-    example: example-backend_status
+    example: 12345
   - name: microsoft.exchange.build_version
-    type: keyword
+    type: long
     level: custom
     description: >-
       Specifies the build version of the Exchange server, indicating a specific release
       or update.
-    example: example-build_version
+    example: 12345
   - name: microsoft.exchange.calculate_target_backend_latency
-    type: keyword
+    type: long
     level: custom
     description: Indicates the time taken to determine the target backend server for
       processing.
-    example: example-calculate_target_backend_latency
+    example: 12345
   - name: microsoft.exchange.cip
     type: keyword
     level: custom
@@ -113,15 +113,15 @@
       processes.
     example: example-client_request_id
   - name: microsoft.exchange.client_request_stream_latency
-    type: keyword
+    type: long
     level: custom
     description: The latency incurred while streaming the client request.
-    example: example-client_request_stream_latency
+    example: 12345
   - name: microsoft.exchange.client_response_stream_latency
-    type: keyword
+    type: long
     level: custom
     description: The latency during client response streaming.
-    example: example-client_response_stream_latency
+    example: 12345
   - name: microsoft.exchange.command
     type: keyword
     level: custom
@@ -143,10 +143,10 @@
       insight or metadata where applicable.
     example: example-context
   - name: microsoft.exchange.core_latency
-    type: keyword
+    type: long
     level: custom
     description: Core latency observed during the request's lifecycle.
-    example: example-core_latency
+    example: 12345
   - name: microsoft.exchange.custom_data
     type: keyword
     level: custom
@@ -168,12 +168,12 @@
       operation.
     example: example-database_guid
   - name: microsoft.exchange.duration
-    type: keyword
+    type: long
     level: custom
     description: >-
       The duration of the protocol event or session in milliseconds, indicating how
       long the event took to complete.
-    example: example-duration
+    example: 12345
   - name: microsoft.exchange.edge_trace_id
     type: keyword
     level: custom
@@ -213,26 +213,26 @@
     description: Details the latency breakup for Global Locator Service (GLS) operations.
     example: example-gls_latency_breakup
   - name: microsoft.exchange.handler_completion_latency
-    type: keyword
+    type: long
     level: custom
     description: The latency measured from handler initialization to completion.
-    example: example-handler_completion_latency
+    example: 12345
   - name: microsoft.exchange.handler_to_module_switching_latency
-    type: keyword
+    type: long
     level: custom
     description: Latency in switching between a handler and a module.
-    example: example-handler_to_module_switching_latency
+    example: 12345
   - name: microsoft.exchange.http_pipeline_latency
-    type: keyword
+    type: long
     level: custom
     description: Measures the latency experienced in the HTTP pipeline during the
       request.
-    example: example-http_pipeline_latency
+    example: 12345
   - name: microsoft.exchange.http_proxy_overhead
-    type: keyword
+    type: long
     level: custom
     description: Overhead introduced by the HTTP proxy in processing the request.
-    example: example-http_proxy_overhead
+    example: 12345
   - name: microsoft.exchange.internal_message_id
     type: keyword
     level: custom
@@ -241,15 +241,15 @@
       it. This ID is server-specific.
     example: example-internal_message_id
   - name: microsoft.exchange.is_authenticated
-    type: keyword
+    type: boolean
     level: custom
     description: Indicates whether the request was authenticated (true/false).
-    example: example-is_authenticated
+    example: true
   - name: microsoft.exchange.kerberos_auth_header_latency
-    type: keyword
+    type: long
     level: custom
     description: Measures latency in processing Kerberos authentication headers.
-    example: example-kerberos_auth_header_latency
+    example: 12345
   - name: microsoft.exchange.local_endpoint
     type: keyword
     level: custom
@@ -275,11 +275,11 @@
       typically used in on-premises Exchange.
     example: example-log_type
   - name: microsoft.exchange.major_version
-    type: keyword
+    type: long
     level: custom
     description: >-
       Indicates the major version number of the Exchange server involved in the request.
-    example: example-major_version
+    example: 12345
   - name: microsoft.exchange.message_info
     type: keyword
     level: custom
@@ -288,17 +288,17 @@
       authentication error information.
     example: example-message_info
   - name: microsoft.exchange.minor_version
-    type: keyword
+    type: long
     level: custom
     description: Represents the minor version number of the Exchange server handling
       the request.
-    example: example-minor_version
+    example: 12345
   - name: microsoft.exchange.module_to_handler_switching_latency
-    type: keyword
+    type: long
     level: custom
     description: Measures latency when switching from a module to a handler during
       processing.
-    example: example-module_to_handler_switching_latency
+    example: 12345
   - name: microsoft.exchange.network_message_id
     type: keyword
     level: custom
@@ -335,10 +335,10 @@
       or details for the operation.
     example: example-parameters
   - name: microsoft.exchange.partition_endpoint_lookup_latency
-    type: keyword
+    type: long
     level: custom
     description: The latency incurred during partition endpoint lookup.
-    example: example-partition_endpoint_lookup_latency
+    example: 12345
   - name: microsoft.exchange.protocol
     type: keyword
     level: custom
@@ -360,10 +360,10 @@
       the request.
     example: example-proxy_action
   - name: microsoft.exchange.proxy_time
-    type: keyword
+    type: long
     level: custom
     description: Measures the total time spent on proxy operations.
-    example: example-proxy_time
+    example: 12345
   - name: microsoft.exchange.puid
     type: keyword
     level: custom
@@ -372,11 +372,11 @@
       user-specific events or activity.
     example: example-puid
   - name: microsoft.exchange.recipient_count
-    type: keyword
+    type: long
     level: custom
     description: >-
       The total number of recipients in the message, including To, CC, and BCC addresses.
-    example: example-recipient_count
+    example: 12345
   - name: microsoft.exchange.recipient_status
     type: keyword
     level: custom
@@ -412,10 +412,10 @@
       port number, formatted as <IP address>:<port>.
     example: example-remote_endpoint
   - name: microsoft.exchange.request_handler_latency
-    type: keyword
+    type: long
     level: custom
     description: Latency incurred during the request handler's execution.
-    example: example-request_handler_latency
+    example: 12345
   - name: microsoft.exchange.request_id
     type: keyword
     level: custom
@@ -436,27 +436,27 @@
       the null sender value, represented as <>.
     example: example-return_path
   - name: microsoft.exchange.revision_version
-    type: keyword
+    type: long
     level: custom
     description: >-
       Denotes the revision version of the Exchange server, identifying finer-grained
       updates or fixes.
-    example: example-revision_version
+    example: 12345
   - name: microsoft.exchange.route_refresher_latency
-    type: keyword
+    type: long
     level: custom
     description: Measures the latency in refreshing the route table or configuration.
-    example: example-route_refresher_latency
+    example: 12345
   - name: microsoft.exchange.routing_hint
     type: keyword
     level: custom
     description: Provides hints or metadata to optimize routing decisions.
     example: example-routing_hint
   - name: microsoft.exchange.routing_latency
-    type: keyword
+    type: long
     level: custom
     description: Latency incurred while routing the request.
-    example: example-routing_latency
+    example: 12345
   - name: microsoft.exchange.routing_status
     type: keyword
     level: custom
@@ -469,19 +469,19 @@
       the request.
     example: example-routing_type
   - name: microsoft.exchange.rpsize
-    type: keyword
+    type: long
     level: custom
     description: >-
       The size of the response sent from the server to the client during the protocol
       event, measured in bytes.
-    example: example-rpsize
+    example: 12345
   - name: microsoft.exchange.rqsize
-    type: keyword
+    type: long
     level: custom
     description: >-
       The size of the request sent from the client to the server during the protocol
       event, measured in bytes.
-    example: example-rqsize
+    example: 12345
   - name: microsoft.exchange.schema_version
     type: keyword
     level: custom
@@ -496,22 +496,22 @@
       of the message.
     example: example-sender_address
   - name: microsoft.exchange.sequence_number
-    type: keyword
+    type: long
     level: custom
     description: >-
       A counter that starts at 0 and increments for each event within the same SMTP
       session, ensuring the proper event order.
-    example: example-sequence_number
+    example: 12345
   - name: microsoft.exchange.server_locator_host
     type: keyword
     level: custom
     description: The host server used by the server locator service to identify resources.
     example: example-server_locator_host
   - name: microsoft.exchange.server_locator_latency
-    type: keyword
+    type: long
     level: custom
     description: Measures the latency incurred while locating the server for the request.
-    example: example-server_locator_latency
+    example: 12345
   - name: microsoft.exchange.session_id
     type: keyword
     level: custom
@@ -544,12 +544,12 @@
       or metadata related to the event or process.
     example: example-source_context
   - name: microsoft.exchange.target_outstanding_requests
-    type: keyword
+    type: long
     level: custom
     description: >-
       Indicates the number of outstanding requests on the target server during the
       operation.
-    example: example-target_outstanding_requests
+    example: 12345
   - name: microsoft.exchange.target_server
     type: keyword
     level: custom
@@ -571,30 +571,30 @@
       Not typically used in on-premises Exchange.
     example: example-tenant_id
   - name: microsoft.exchange.total_account_forest_latency
-    type: keyword
+    type: long
     level: custom
     description: The total latency incurred during account forest operations.
-    example: example-total_account_forest_latency
+    example: 12345
   - name: microsoft.exchange.total_gls_latency
-    type: keyword
+    type: long
     level: custom
     description: The total latency experienced in Global Locator Service operations.
-    example: example-total_gls_latency
+    example: 12345
   - name: microsoft.exchange.total_request_time
-    type: keyword
+    type: long
     level: custom
     description: The total time taken to process the entire request.
-    example: example-total_request_time
+    example: 12345
   - name: microsoft.exchange.total_resource_forest_latency
-    type: keyword
+    type: long
     level: custom
     description: The total latency incurred in resource forest operations.
-    example: example-total_resource_forest_latency
+    example: 12345
   - name: microsoft.exchange.total_shared_cache_latency
-    type: keyword
+    type: long
     level: custom
     description: Total latency incurred during shared cache lookups.
-    example: example-total_shared_cache_latency
+    example: 12345
   - name: microsoft.exchange.transport_traffic_type
     type: keyword
     level: custom

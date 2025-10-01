@@ -9,10 +9,10 @@
       accounting.
     example: example-aaa_type
   - name: cisco.asa.assigned_ip
-    type: keyword
+    type: ip
     level: custom
     description: The IP address assigned to a VPN client successfully connecting.
-    example: example-assigned_ip
+    example: 192.168.1.1
   - name: cisco.asa.burst.avg_rate
     type: keyword
     level: custom
@@ -67,15 +67,15 @@
       connections.
     example: example-connection_type
   - name: cisco.asa.connections_in_use
-    type: keyword
+    type: long
     level: custom
     description: The number of connections in use.
-    example: example-connections_in_use
+    example: 12345
   - name: cisco.asa.connections_most_used
-    type: keyword
+    type: long
     level: custom
     description: The number of most used connections.
-    example: example-connections_most_used
+    example: 12345
   - name: cisco.asa.dap_records
     type: keyword
     level: custom
@@ -89,7 +89,7 @@
     description: Destination interface for the flow or event.
     example: example-destination_interface
   - name: cisco.asa.destination_user_security_group_tag
-    type: keyword
+    type: long
     level: custom
     short: >-
       Security Group Tag for destination user. 16-bit identifier representing logical
@@ -97,7 +97,7 @@
     description: >-
       The Security Group Tag for the destination user. Security Group Tag are 16-bit
       identifiers used to represent logical group privilege.
-    example: example-destination_user_security_group_tag
+    example: 12345
   - name: cisco.asa.destination_user_security_group_tag_name
     type: keyword
     level: custom
@@ -123,19 +123,19 @@
       permissions and restrictions.
     example: example-group_policy
   - name: cisco.asa.icmp_code
-    type: keyword
+    type: long
     level: custom
     description: >-
       The ICMP code field that provides additional information about the ICMP message
       type.
-    example: example-icmp_code
+    example: 12345
   - name: cisco.asa.icmp_type
-    type: keyword
+    type: long
     level: custom
     description: >-
       The ICMP type field that identifies the specific ICMP message being sent or
       received.
-    example: example-icmp_type
+    example: 12345
   - name: cisco.asa.interface_name
     type: keyword
     level: custom
@@ -151,17 +151,17 @@
       (NAT).
     example: example-mapped_destination_host
   - name: cisco.asa.mapped_destination_ip
-    type: keyword
+    type: ip
     level: custom
     description: The translated destination IP address.
-    example: example-mapped_destination_ip
+    example: 192.168.1.1
   - name: cisco.asa.mapped_destination_port
-    type: keyword
+    type: long
     level: custom
     description: >-
       The port number of the translated destination address after Network Address
       Translation (NAT).
-    example: example-mapped_destination_port
+    example: 12345
   - name: cisco.asa.mapped_source_host
     type: keyword
     level: custom
@@ -170,32 +170,32 @@
       (NAT).
     example: example-mapped_source_host
   - name: cisco.asa.mapped_source_ip
-    type: keyword
+    type: ip
     level: custom
     description: The translated source IP address.
-    example: example-mapped_source_ip
+    example: 192.168.1.1
   - name: cisco.asa.mapped_source_port
-    type: keyword
+    type: long
     level: custom
     description: >-
       The port number of the translated source address after Network Address Translation
       (NAT).
-    example: example-mapped_source_port
+    example: 12345
   - name: cisco.asa.message
     type: keyword
     level: custom
     description: The message associated with SIP and Skinny VoIP events.
     example: example-message
   - name: cisco.asa.message_repeats
-    type: keyword
+    type: long
     level: custom
     description: The number of times the message has been repeated.
-    example: example-message_repeats
+    example: 12345
   - name: cisco.asa.original_iana_number
-    type: keyword
+    type: long
     level: custom
     description: IANA Protocol Number of the original IP payload.
-    example: example-original_iana_number
+    example: 12345
   - name: cisco.asa.peer_type
     type: keyword
     level: custom
@@ -204,12 +204,12 @@
       peer.
     example: example-peer_type
   - name: cisco.asa.pool_address
-    type: keyword
+    type: ip
     level: custom
     description: >-
       The IP address assigned from an address pool for VPN client connections or NAT
       translations.
-    example: example-pool_address
+    example: 192.168.1.1
   - name: cisco.asa.pool_name
     type: keyword
     level: custom
@@ -262,7 +262,7 @@
     description: Source interface for the flow or event.
     example: example-source_interface
   - name: cisco.asa.source_user_security_group_tag
-    type: keyword
+    type: long
     level: custom
     short: >-
       Security Group Tag for source user. 16-bit identifier representing logical group
@@ -270,7 +270,7 @@
     description: >-
       The Security Group Tag for the source user. Security Group Tag are 16-bit identifiers
       used to represent logical group privilege.
-    example: example-source_user_security_group_tag
+    example: 12345
   - name: cisco.asa.source_user_security_group_tag_name
     type: keyword
     level: custom

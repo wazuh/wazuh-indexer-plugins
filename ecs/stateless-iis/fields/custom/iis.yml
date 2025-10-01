@@ -3,22 +3,22 @@
   description: iis custom fields for WCS integration
   fields:
   - name: iis.bytes_received_by_client
-    type: keyword
+    type: long
     level: custom
     description: This is the number of bytes received by the client.
-    example: example-bytes_received_by_client
+    example: 12345
   - name: iis.bytes_sent_by_server
-    type: keyword
+    type: long
     level: custom
     description: This is the number of bytes sent by the server.
-    example: example-bytes_sent_by_server
+    example: 12345
   - name: iis.sub_status
-    type: keyword
+    type: long
     level: custom
     description: This field represents the substatus error code in the iis log.
-    example: example-sub_status
+    example: 12345
   - name: iis.win32_status
-    type: keyword
+    type: long
     level: custom
     description: This field represents the Windows status code in the iis log.
-    example: example-win32_status
+    example: 12345

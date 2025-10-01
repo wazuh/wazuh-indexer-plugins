@@ -32,14 +32,14 @@
       a packet.
     example: example-ip_flags
   - name: pfsense.ip_id
-    type: keyword
+    type: long
     level: custom
     description: >-
       Represents the unique identifier assigned to an IP packet at the time of its
       creation.
-    example: example-ip_id
+    example: 12345
   - name: pfsense.ip_offset
-    type: keyword
+    type: long
     level: custom
     short: >-
       Offset of fragmented IP packet, specifying where fragment should be placed in
@@ -47,17 +47,17 @@
     description: >-
       Indicates the offset of a fragmented IP packet, specifying where the fragment
       should be placed within the original, unfragmented packet.
-    example: example-ip_offset
+    example: 12345
   - name: pfsense.ip_tos
     type: keyword
     level: custom
     description: IP Type of Service identification.
     example: example-ip_tos
   - name: pfsense.ip_ttl
-    type: keyword
+    type: long
     level: custom
     description: Time To Live (TTL) of the packet.
-    example: example-ip_ttl
+    example: 12345
   - name: pfsense.tcp_flags
     type: keyword
     level: custom
@@ -69,10 +69,10 @@
       specific actions or conditions within the TCP connection.
     example: example-tcp_flags
   - name: pfsense.tcp_length
-    type: keyword
+    type: long
     level: custom
     description: Length of the TCP header and payload.
-    example: example-tcp_length
+    example: 12345
   - name: pfsense.tcp_options
     type: keyword
     level: custom
@@ -83,15 +83,15 @@
     normalize:
     - array
   - name: pfsense.tcp_seq
-    type: keyword
+    type: long
     level: custom
     description: >-
       Represents the sequence number assigned to each byte of data sent in a TCP connection.
-    example: example-tcp_seq
+    example: 12345
   - name: pfsense.tcp_window
-    type: keyword
+    type: long
     level: custom
     description: >-
       Represents the size of the receive window that a TCP sender advertises to the
       receiver during a TCP connection.
-    example: example-tcp_window
+    example: 12345

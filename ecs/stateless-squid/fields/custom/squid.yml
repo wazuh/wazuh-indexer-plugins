@@ -15,10 +15,10 @@
       to source)
     example: example-peerstatus
   - name: squid.status
-    type: keyword
+    type: long
     level: custom
     description: HTTP status code of the result
-    example: example-status
+    example: 12345
   - name: squid.type
     type: keyword
     level: custom

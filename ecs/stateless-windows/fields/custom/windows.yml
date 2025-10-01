@@ -38,35 +38,34 @@
     description: PowerShell script block content
     example: example-script_block_text
   - name: powershell.sequence
-    type: keyword
+    type: long
     level: custom
     description: Sequence number for PowerShell events
-    example: example-sequence
+    example: 12345
   - name: powershell.total
-    type: keyword
+    type: long
     level: custom
     description: Total number of PowerShell script blocks
-    example: example-total
+    example: 12345
   - name: sysmon.dns.status
     type: keyword
     level: custom
     description: DNS query status from Sysmon DNS events
     example: example-status
   - name: sysmon.file.archived
-    type: keyword
+    type: boolean
     level: custom
     description: Whether file was archived from Sysmon file deletion events
-    example: example-archived
+    example: true
   - name: sysmon.file.is_executable
-    type: keyword
+    type: boolean
     level: custom
     description: Whether file is executable from Sysmon file events
-    example: example-is_executable
+    example: true
   - name: windows.EventData
-    type: keyword
+    type: object
     level: custom
     description: Complete Windows event data section with all event-specific fields
-    example: example-EventData
   - name: windows.EventData.AuthenticationPackageName
     type: keyword
     level: custom
@@ -83,20 +82,20 @@
     description: Token impersonation level from Windows security events
     example: example-ImpersonationLevel
   - name: windows.EventData.IpAddress
-    type: keyword
+    type: ip
     level: custom
     description: IP address from Windows logon events
-    example: example-IpAddress
+    example: 192.168.1.1
   - name: windows.EventData.IpPort
-    type: keyword
+    type: long
     level: custom
     description: IP port from Windows network logon events
-    example: example-IpPort
+    example: 12345
   - name: windows.EventData.KeyLength
-    type: keyword
+    type: long
     level: custom
     description: Encryption key length from Windows security events
-    example: example-KeyLength
+    example: 12345
   - name: windows.EventData.LmPackageName
     type: keyword
     level: custom
@@ -245,10 +244,10 @@
     description: Windows custom field windows.logon.process
     example: example-process
   - name: windows.logon.process.pid
-    type: keyword
+    type: long
     level: custom
     description: Windows logon process identifier
-    example: example-pid
+    example: 12345
   - name: windows.logon.process.thread
     type: keyword
     level: custom
@@ -280,10 +279,9 @@
     description: Human-readable Windows logon type (Interactive/Network/Batch/etc)
     example: example-type
   - name: windows.System
-    type: keyword
+    type: object
     level: custom
     description: Windows event system section with metadata
-    example: example-System
   - name: windows.System.Channel.#text
     type: keyword
     level: custom
@@ -350,10 +348,10 @@
     description: Windows event task category code
     example: example-#text
   - name: windows.System.TimeCreated.@SystemTime
-    type: keyword
+    type: date
     level: custom
     description: Timestamp when Windows event was created
-    example: example-@SystemTime
+    example: '2023-01-01T00:00:00.000Z'
   - name: windows.System.Version.#text
     type: keyword
     level: custom

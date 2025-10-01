@@ -70,13 +70,10 @@ class WCSIntegrationsGenerator:
                 # Parse field information including the new Short column
                 field_info = {
                     'name': wazuh_field_name,
-                    'type': self._map_wazuh_type_to_es_type(row.get('Wazuh Type', 'keyword').strip()),
+                    'type': row.get('Wazuh type', 'keyword').strip(),
                     'description': row.get('Description', '').strip(),
-                    'short': row.get('Short', '').strip(),  # NEW: Short description field
+                    'short': row.get('Short', '').strip(),
                     'is_array': row.get('Is array?', '').strip().lower() == 'yes',
-                    'notes': row.get('Notes', '').strip(),
-                    'elastic_field_name': row.get('Elastic field name', '').strip(),
-                    'elastic_type': row.get('Elastic type', '').strip()
                 }
 
                 self.integrations_data[integration_normalized]['fields'].append(field_info)
@@ -85,24 +82,6 @@ class WCSIntegrationsGenerator:
         for integration, data in self.integrations_data.items():
             original_name = data.get('original_name', integration)
             print(f"  - {original_name} -> {integration} ({data['log_family']}): {len(data['fields'])} fields")
-
-    def _map_wazuh_type_to_es_type(self, wazuh_type):
-        """Map Wazuh field types to Elasticsearch field types."""
-        type_mapping = {
-            'string': 'keyword',
-            'keyword': 'keyword',
-            'text': 'text',
-            'long': 'long',
-            'integer': 'long',
-            'double': 'double',
-            'float': 'float',
-            'boolean': 'boolean',
-            'date': 'date',
-            'ip': 'ip',
-            'geo_point': 'geo_point',
-            'flattened': 'flattened'
-        }
-        return type_mapping.get(wazuh_type.lower(), 'keyword')
 
     def create_folder_structure(self):
         """Create the folder structure for all integrations."""
