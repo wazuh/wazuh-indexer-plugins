@@ -488,7 +488,6 @@ ECS_Version,Indexed,Field_Set,Field,Type,Level,Normalization,Example,Description
 9.1.0,true,file,file.x509.subject.organizational_unit,keyword,extended,array,,List of organizational units (OU) of subject.
 9.1.0,true,file,file.x509.subject.state_or_province,keyword,extended,array,California,"List of state or province names (ST, S, or P)"
 9.1.0,true,file,file.x509.version_number,keyword,extended,,3,Version of x509 format.
-9.1.0,true,fortinet,fortinet.-,-,custom,,,-
 9.1.0,true,fortinet,fortinet.fortinet.action,keyword,custom,,example-action,"The action taken for this event, such as allow, deny, or drop."
 9.1.0,true,fortinet,fortinet.fortinet.addr,keyword,custom,,example-addr,"The address involved in the event, which may refer to source or destination."
 9.1.0,true,fortinet,fortinet.fortinet.addrgrp,keyword,custom,,example-addrgrp,"The address group associated with the event, grouping multiple addresses for policy application."
