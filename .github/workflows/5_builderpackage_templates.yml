@@ -2,11 +2,7 @@ name: (5.x) Generate index templates
 
 on:
   pull_request:
-    types: [synchronize]
-    paths:
-      - "ecs/**/*.json"
-      - "ecs/**/*.yml"
-  push:
+    types: [opened, reopened, synchronize]
     paths:
       - "ecs/**/*.json"
       - "ecs/**/*.yml"
