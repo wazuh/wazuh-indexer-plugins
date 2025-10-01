@@ -1,6 +1,8 @@
 ECS_Version,Indexed,Field_Set,Field,Type,Level,Normalization,Example,Description
+9.1.0,true,base,@timestamp,date,core,,2016-05-23T08:05:34.853Z,Date/time when the event originated.
 9.1.0,true,base,labels,object,core,,"{""application"": ""foo-bar"", ""env"": ""production""}",Custom key/value pairs.
 9.1.0,true,base,message,keyword,core,,Hello World,Log message optimized for viewing in a log viewer.
+9.1.0,true,base,tags,keyword,core,array,"[""production"", ""env2""]",List of keywords used to tag each event.
 9.1.0,true,agent,agent.build.original,keyword,core,,"metricbeat version 7.6.0 (amd64), libbeat 7.6.0 [6a23e8f8f30f5001ba344e4e54d8d9cb82cb107c built 2020-02-05 23:10:10 +0000 UTC]",Extended build information for the agent.
 9.1.0,true,agent,agent.ephemeral_id,keyword,extended,,8a4f500f,Ephemeral identifier of this agent.
 9.1.0,true,agent,agent.groups,keyword,custom,array,"[""group1"", ""group2""]",List of groups the agent belongs to.
@@ -155,6 +157,7 @@ ECS_Version,Indexed,Field_Set,Field,Type,Level,Normalization,Example,Description
 9.1.0,true,container,container.id,keyword,core,,,Unique container id.
 9.1.0,true,container,container.image.hash.all,keyword,extended,array,[sha256:f8fefc80e3273dc756f288a63945820d6476ad64883892c771b5e2ece6bf1b26],An array of digests of the image the container was built on.
 9.1.0,true,container,container.image.name,keyword,extended,,,Name of the image the container was built on.
+9.1.0,true,container,container.image.tag,keyword,extended,array,,Container image tags.
 9.1.0,true,container,container.labels,object,extended,,,Image labels.
 9.1.0,true,container,container.memory.usage,scaled_float,extended,,,"Percent memory used, between 0 and 1."
 9.1.0,true,container,container.name,keyword,extended,,,Container name.
@@ -510,6 +513,8 @@ ECS_Version,Indexed,Field_Set,Field,Type,Level,Normalization,Example,Description
 9.1.0,true,gcp_audit,gcp_audit.operation.id,keyword,custom,,example-id,An identifier for the audit log operation
 9.1.0,true,gcp_audit,gcp_audit.orgpolicyviolationinfo.payload.key1,keyword,custom,,example-key1,The key in the payload policy violatio information
 9.1.0,true,gcp_audit,gcp_audit.orgpolicyviolationinfo.payload.key2,keyword,custom,,example-key2,The key in the payload policy violatio information
+9.1.0,true,gcp_audit,gcp_audit.orgpolicyviolationinfo.resourcetags.instance_id,keyword,custom,,example-instance_id,The insance ID present in the resource tags in the policy violation information
+9.1.0,true,gcp_audit,gcp_audit.orgpolicyviolationinfo.resourcetags.zone,keyword,custom,,example-zone,The zone present in the resource tags in the policy violation information
 9.1.0,true,gcp_audit,gcp_audit.related.entity,nested,custom,array,,Any other relevant entities that may be connected to the logged event
 9.1.0,true,gcp_audit,gcp_audit.request.@type,keyword,custom,,example-@type,The message type of the request payload
 9.1.0,true,gcp_audit,gcp_audit.request.apiVersion,keyword,custom,,example-apiVersion,The version of the API used in the request
@@ -664,6 +669,7 @@ ECS_Version,Indexed,Field_Set,Field,Type,Level,Normalization,Example,Description
 9.1.0,true,gcp_firewall,gcp_firewall.rule_details.ip_port_info,nested,custom,array,,The IP protocol specified in the firewall rule
 9.1.0,true,gcp_firewall,gcp_firewall.rule_details.reference,keyword,custom,,example-reference,A reference identifier for the firewall rule
 9.1.0,true,gcp_firewall,gcp_firewall.rule_details.source_range,keyword,custom,array,example-source_range,An array of source IP ranges specified in the firewall rule
+9.1.0,true,gcp_firewall,gcp_firewall.rule_details.target_tag,keyword,custom,array,example-target_tag,An array of target tags defined in the firewall rule
 9.1.0,true,gcp_firewall,gcp_firewall.rule_name,keyword,custom,,example-rule_name,The firewall rul name triggered in the GCP firewall allow/block action
 9.1.0,true,gcp_loadbalancer,gcp_loadbalancer.backend_service_name,keyword,custom,,example-backend_service_name,The backend service name used by the load balancer
 9.1.0,true,gcp_loadbalancer,gcp_loadbalancer.cacheHit,boolean,custom,,True,Indicates whether the load balancer served the response from cache

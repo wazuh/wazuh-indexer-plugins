@@ -14,6 +14,9 @@
           }
         }
       },
+      "@timestamp": {
+        "type": "date"
+      },
       "agent": {
         "properties": {
           "build": {
@@ -16739,6 +16742,10 @@
             "type": "keyword"
           }
         }
+      },
+      "tags": {
+        "ignore_above": 1024,
+        "type": "keyword"
       },
       "threat": {
         "properties": {
