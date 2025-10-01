@@ -356,26 +356,21 @@
                     "type": "keyword"
                   },
                   "amp_score": {
-                    "ignore_above": 1024,
-                    "type": "keyword"
+                    "type": "long"
                   },
                   "audit": {
                     "properties": {
                       "after": {
-                        "ignore_above": 1024,
-                        "type": "keyword"
+                        "type": "nested"
                       },
                       "after_values": {
-                        "ignore_above": 1024,
-                        "type": "keyword"
+                        "type": "object"
                       },
                       "before": {
-                        "ignore_above": 1024,
-                        "type": "keyword"
+                        "type": "nested"
                       },
                       "before_values": {
-                        "ignore_above": 1024,
-                        "type": "keyword"
+                        "type": "object"
                       },
                       "type": {
                         "ignore_above": 1024,
@@ -436,24 +431,21 @@
                     "type": "keyword"
                   },
                   "fqdns": {
-                    "ignore_above": 1024,
-                    "type": "keyword"
+                    "type": "nested"
                   },
                   "gid": {
                     "ignore_above": 1024,
                     "type": "keyword"
                   },
                   "identities": {
-                    "ignore_above": 1024,
-                    "type": "keyword"
+                    "type": "nested"
                   },
                   "identity": {
                     "ignore_above": 1024,
                     "type": "keyword"
                   },
                   "identity_types": {
-                    "ignore_above": 1024,
-                    "type": "keyword"
+                    "type": "nested"
                   },
                   "isolate_action": {
                     "ignore_above": 1024,
@@ -19657,7 +19649,8 @@
       ],
       "refresh_interval": "2s"
     },
-    "mapping.total_fields.limit": 2500,
+    "mapping.nested_fields.limit": 100,
+    "mapping.total_fields.limit": 10000,
     "plugins.index_state_management.rollover_alias": "wazuh-events-cisco_umbrella"
   }
 }

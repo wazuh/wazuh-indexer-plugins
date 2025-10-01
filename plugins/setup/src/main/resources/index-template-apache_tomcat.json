@@ -318,18 +318,15 @@
                   "ip": {
                     "properties": {
                       "local": {
-                        "ignore_above": 1024,
-                        "type": "keyword"
+                        "type": "ip"
                       }
                     }
                   },
                   "request_process_time": {
-                    "ignore_above": 1024,
-                    "type": "keyword"
+                    "type": "double"
                   },
                   "response_time": {
-                    "ignore_above": 1024,
-                    "type": "keyword"
+                    "type": "double"
                   }
                 }
               },
@@ -342,16 +339,14 @@
                   "hit": {
                     "properties": {
                       "count": {
-                        "ignore_above": 1024,
-                        "type": "keyword"
+                        "type": "double"
                       }
                     }
                   },
                   "lookup": {
                     "properties": {
                       "count": {
-                        "ignore_above": 1024,
-                        "type": "keyword"
+                        "type": "double"
                       }
                     }
                   },
@@ -362,8 +357,7 @@
                           "max": {
                             "properties": {
                               "kb": {
-                                "ignore_above": 1024,
-                                "type": "keyword"
+                                "type": "double"
                               }
                             }
                           }
@@ -376,16 +370,14 @@
                       "current": {
                         "properties": {
                           "kb": {
-                            "ignore_above": 1024,
-                            "type": "keyword"
+                            "type": "double"
                           }
                         }
                       },
                       "max": {
                         "properties": {
                           "kb": {
-                            "ignore_above": 1024,
-                            "type": "keyword"
+                            "type": "double"
                           }
                         }
                       }
@@ -394,8 +386,7 @@
                   "ttl": {
                     "properties": {
                       "ms": {
-                        "ignore_above": 1024,
-                        "type": "keyword"
+                        "type": "double"
                       }
                     }
                   }
@@ -412,8 +403,7 @@
               "connection_pool": {
                 "properties": {
                   "access_to_underlying_connection_allowed": {
-                    "ignore_above": 1024,
-                    "type": "keyword"
+                    "type": "boolean"
                   },
                   "application_name": {
                     "ignore_above": 1024,
@@ -422,36 +412,30 @@
                   "cache": {
                     "properties": {
                       "state": {
-                        "ignore_above": 1024,
-                        "type": "keyword"
+                        "type": "long"
                       }
                     }
                   },
                   "connection": {
                     "properties": {
                       "abandoned_usage_tracking": {
-                        "ignore_above": 1024,
-                        "type": "keyword"
+                        "type": "boolean"
                       },
                       "active": {
                         "properties": {
                           "count": {
-                            "ignore_above": 1024,
-                            "type": "keyword"
+                            "type": "long"
                           }
                         }
                       },
                       "autocommit_on_return": {
-                        "ignore_above": 1024,
-                        "type": "keyword"
+                        "type": "boolean"
                       },
                       "clear_statement_pool_on_return": {
-                        "ignore_above": 1024,
-                        "type": "keyword"
+                        "type": "boolean"
                       },
                       "closed": {
-                        "ignore_above": 1024,
-                        "type": "keyword"
+                        "type": "boolean"
                       },
                       "database": {
                         "properties": {
@@ -460,8 +444,7 @@
                               "max": {
                                 "properties": {
                                   "ms": {
-                                    "ignore_above": 1024,
-                                    "type": "keyword"
+                                    "type": "long"
                                   }
                                 }
                               }
@@ -470,42 +453,34 @@
                         }
                       },
                       "default_transaction_isolation": {
-                        "ignore_above": 1024,
-                        "type": "keyword"
+                        "type": "long"
                       },
                       "enable_autocommit_on_return": {
-                        "ignore_above": 1024,
-                        "type": "keyword"
+                        "type": "boolean"
                       },
                       "fast_fail_validation": {
-                        "ignore_above": 1024,
-                        "type": "keyword"
+                        "type": "boolean"
                       },
                       "idle": {
                         "properties": {
                           "count": {
-                            "ignore_above": 1024,
-                            "type": "keyword"
+                            "type": "long"
                           },
                           "exists": {
-                            "ignore_above": 1024,
-                            "type": "keyword"
+                            "type": "boolean"
                           },
                           "max": {
                             "properties": {
                               "count": {
-                                "ignore_above": 1024,
-                                "type": "keyword"
+                                "type": "long"
                               },
                               "size": {
-                                "ignore_above": 1024,
-                                "type": "keyword"
+                                "type": "long"
                               },
                               "time": {
                                 "properties": {
                                   "ms": {
-                                    "ignore_above": 1024,
-                                    "type": "keyword"
+                                    "type": "long"
                                   }
                                 }
                               }
@@ -514,14 +489,12 @@
                           "min": {
                             "properties": {
                               "size": {
-                                "ignore_above": 1024,
-                                "type": "keyword"
+                                "type": "long"
                               },
                               "time": {
                                 "properties": {
                                   "ms": {
-                                    "ignore_above": 1024,
-                                    "type": "keyword"
+                                    "type": "long"
                                   }
                                 }
                               }
@@ -532,8 +505,7 @@
                       "initial_size": {
                         "properties": {
                           "count": {
-                            "ignore_above": 1024,
-                            "type": "keyword"
+                            "type": "long"
                           }
                         }
                       },
@@ -542,90 +514,74 @@
                           "max": {
                             "properties": {
                               "ms": {
-                                "ignore_above": 1024,
-                                "type": "keyword"
+                                "type": "long"
                               }
                             }
                           }
                         }
                       },
                       "log_expired": {
-                        "ignore_above": 1024,
-                        "type": "keyword"
+                        "type": "boolean"
                       },
                       "min_evictable_idle": {
                         "properties": {
                           "time": {
-                            "ignore_above": 1024,
-                            "type": "keyword"
+                            "type": "long"
                           }
                         }
                       },
                       "remove_abandoned_on_borrow": {
-                        "ignore_above": 1024,
-                        "type": "keyword"
+                        "type": "boolean"
                       },
                       "remove_abandoned_on_maintenance": {
-                        "ignore_above": 1024,
-                        "type": "keyword"
+                        "type": "boolean"
                       },
                       "remove_abandoned_timeout": {
-                        "ignore_above": 1024,
-                        "type": "keyword"
+                        "type": "long"
                       },
                       "rollback_on_return": {
-                        "ignore_above": 1024,
-                        "type": "keyword"
+                        "type": "boolean"
                       },
                       "test_on_return": {
-                        "ignore_above": 1024,
-                        "type": "keyword"
+                        "type": "boolean"
                       },
                       "test_while_idle": {
-                        "ignore_above": 1024,
-                        "type": "keyword"
+                        "type": "boolean"
                       },
                       "time_between_eviction_run": {
                         "properties": {
                           "time": {
                             "properties": {
                               "ms": {
-                                "ignore_above": 1024,
-                                "type": "keyword"
+                                "type": "long"
                               }
                             }
                           }
                         }
                       },
                       "validate": {
-                        "ignore_above": 1024,
-                        "type": "keyword"
+                        "type": "long"
                       }
                     }
                   },
                   "lifo": {
-                    "ignore_above": 1024,
-                    "type": "keyword"
+                    "type": "boolean"
                   },
                   "max": {
                     "properties": {
                       "total": {
-                        "ignore_above": 1024,
-                        "type": "keyword"
+                        "type": "long"
                       }
                     }
                   },
                   "prepared_statements": {
-                    "ignore_above": 1024,
-                    "type": "keyword"
+                    "type": "boolean"
                   },
                   "test_on_borrow": {
-                    "ignore_above": 1024,
-                    "type": "keyword"
+                    "type": "boolean"
                   },
                   "test_on_create": {
-                    "ignore_above": 1024,
-                    "type": "keyword"
+                    "type": "boolean"
                   }
                 }
               },
@@ -648,22 +604,19 @@
                       "collection": {
                         "properties": {
                           "count": {
-                            "ignore_above": 1024,
-                            "type": "keyword"
+                            "type": "long"
                           },
                           "time": {
                             "properties": {
                               "ms": {
-                                "ignore_above": 1024,
-                                "type": "keyword"
+                                "type": "long"
                               }
                             }
                           }
                         }
                       },
                       "valid": {
-                        "ignore_above": 1024,
-                        "type": "keyword"
+                        "type": "long"
                       }
                     }
                   },
@@ -742,28 +695,24 @@
                   "object_pending_finalization": {
                     "properties": {
                       "count": {
-                        "ignore_above": 1024,
-                        "type": "keyword"
+                        "type": "long"
                       }
                     }
                   },
                   "verbose": {
-                    "ignore_above": 1024,
-                    "type": "keyword"
+                    "type": "boolean"
                   }
                 }
               },
               "request": {
                 "properties": {
                   "count": {
-                    "ignore_above": 1024,
-                    "type": "keyword"
+                    "type": "long"
                   },
                   "error": {
                     "properties": {
                       "count": {
-                        "ignore_above": 1024,
-                        "type": "keyword"
+                        "type": "long"
                       }
                     }
                   },
@@ -774,28 +723,24 @@
                   "received": {
                     "properties": {
                       "bytes": {
-                        "ignore_above": 1024,
-                        "type": "keyword"
+                        "type": "long"
                       }
                     }
                   },
                   "sent": {
                     "properties": {
                       "bytes": {
-                        "ignore_above": 1024,
-                        "type": "keyword"
+                        "type": "long"
                       }
                     }
                   },
                   "time": {
                     "properties": {
                       "max": {
-                        "ignore_above": 1024,
-                        "type": "keyword"
+                        "type": "long"
                       },
                       "total": {
-                        "ignore_above": 1024,
-                        "type": "keyword"
+                        "type": "long"
                       }
                     }
                   }
@@ -808,30 +753,25 @@
                       "allowed": {
                         "properties": {
                           "max": {
-                            "ignore_above": 1024,
-                            "type": "keyword"
+                            "type": "long"
                           }
                         }
                       },
                       "max": {
-                        "ignore_above": 1024,
-                        "type": "keyword"
+                        "type": "long"
                       },
                       "total": {
-                        "ignore_above": 1024,
-                        "type": "keyword"
+                        "type": "long"
                       }
                     }
                   },
                   "alive_time": {
                     "properties": {
                       "avg": {
-                        "ignore_above": 1024,
-                        "type": "keyword"
+                        "type": "long"
                       },
                       "max": {
-                        "ignore_above": 1024,
-                        "type": "keyword"
+                        "type": "long"
                       }
                     }
                   },
@@ -842,62 +782,52 @@
                   "create": {
                     "properties": {
                       "rate": {
-                        "ignore_above": 1024,
-                        "type": "keyword"
+                        "type": "long"
                       },
                       "total": {
-                        "ignore_above": 1024,
-                        "type": "keyword"
+                        "type": "long"
                       }
                     }
                   },
                   "duplicate_ids": {
                     "properties": {
                       "count": {
-                        "ignore_above": 1024,
-                        "type": "keyword"
+                        "type": "long"
                       }
                     }
                   },
                   "expire": {
                     "properties": {
                       "rate": {
-                        "ignore_above": 1024,
-                        "type": "keyword"
+                        "type": "long"
                       },
                       "total": {
-                        "ignore_above": 1024,
-                        "type": "keyword"
+                        "type": "long"
                       }
                     }
                   },
                   "persist_authentication": {
-                    "ignore_above": 1024,
-                    "type": "keyword"
+                    "type": "boolean"
                   },
                   "process_expires_frequency": {
                     "properties": {
                       "count": {
-                        "ignore_above": 1024,
-                        "type": "keyword"
+                        "type": "long"
                       }
                     }
                   },
                   "processing_time": {
-                    "ignore_above": 1024,
-                    "type": "keyword"
+                    "type": "long"
                   },
                   "rejected": {
                     "properties": {
                       "count": {
-                        "ignore_above": 1024,
-                        "type": "keyword"
+                        "type": "long"
                       }
                     }
                   },
                   "warn_on_session_attribute_filter_failure": {
-                    "ignore_above": 1024,
-                    "type": "keyword"
+                    "type": "boolean"
                   }
                 }
               },
@@ -906,28 +836,23 @@
                   "connection": {
                     "properties": {
                       "count": {
-                        "ignore_above": 1024,
-                        "type": "keyword"
+                        "type": "long"
                       },
                       "linger": {
-                        "ignore_above": 1024,
-                        "type": "keyword"
+                        "type": "long"
                       },
                       "max": {
-                        "ignore_above": 1024,
-                        "type": "keyword"
+                        "type": "long"
                       },
                       "timeout": {
-                        "ignore_above": 1024,
-                        "type": "keyword"
+                        "type": "long"
                       }
                     }
                   },
                   "contention": {
                     "properties": {
                       "monitoring_enabled": {
-                        "ignore_above": 1024,
-                        "type": "keyword"
+                        "type": "boolean"
                       }
                     }
                   },
@@ -936,8 +861,7 @@
                       "timeout": {
                         "properties": {
                           "ms": {
-                            "ignore_above": 1024,
-                            "type": "keyword"
+                            "type": "long"
                           }
                         }
                       }
@@ -946,24 +870,20 @@
                   "initiated_connector": {
                     "properties": {
                       "state": {
-                        "ignore_above": 1024,
-                        "type": "keyword"
+                        "type": "boolean"
                       }
                     }
                   },
                   "keep_alive": {
                     "properties": {
                       "count": {
-                        "ignore_above": 1024,
-                        "type": "keyword"
+                        "type": "long"
                       },
                       "max_requests": {
-                        "ignore_above": 1024,
-                        "type": "keyword"
+                        "type": "long"
                       },
                       "timeout": {
-                        "ignore_above": 1024,
-                        "type": "keyword"
+                        "type": "long"
                       }
                     }
                   },
@@ -972,40 +892,34 @@
                     "type": "keyword"
                   },
                   "ssl_enabled": {
-                    "ignore_above": 1024,
-                    "type": "keyword"
+                    "type": "boolean"
                   },
                   "tcp_no_delay": {
-                    "ignore_above": 1024,
-                    "type": "keyword"
+                    "type": "boolean"
                   },
                   "thread": {
                     "properties": {
                       "accept": {
                         "properties": {
                           "count": {
-                            "ignore_above": 1024,
-                            "type": "keyword"
+                            "type": "long"
                           }
                         }
                       },
                       "active": {
                         "properties": {
                           "count": {
-                            "ignore_above": 1024,
-                            "type": "keyword"
+                            "type": "long"
                           }
                         }
                       },
                       "allocated_memory": {
                         "properties": {
                           "enabled": {
-                            "ignore_above": 1024,
-                            "type": "keyword"
+                            "type": "boolean"
                           },
                           "supported": {
-                            "ignore_above": 1024,
-                            "type": "keyword"
+                            "type": "boolean"
                           }
                         }
                       },
@@ -1020,20 +934,17 @@
                             }
                           },
                           "busy": {
-                            "ignore_above": 1024,
-                            "type": "keyword"
+                            "type": "long"
                           },
                           "count": {
-                            "ignore_above": 1024,
-                            "type": "keyword"
+                            "type": "long"
                           },
                           "cpu": {
                             "properties": {
                               "time": {
                                 "properties": {
                                   "enabled": {
-                                    "ignore_above": 1024,
-                                    "type": "keyword"
+                                    "type": "boolean"
                                   },
                                   "ms": {
                                     "ignore_above": 1024,
@@ -1060,108 +971,90 @@
                       "daemon": {
                         "properties": {
                           "count": {
-                            "ignore_above": 1024,
-                            "type": "keyword"
+                            "type": "long"
                           },
                           "status": {
-                            "ignore_above": 1024,
-                            "type": "keyword"
+                            "type": "boolean"
                           }
                         }
                       },
                       "paused": {
-                        "ignore_above": 1024,
-                        "type": "keyword"
+                        "type": "boolean"
                       },
                       "peak": {
                         "properties": {
                           "count": {
-                            "ignore_above": 1024,
-                            "type": "keyword"
+                            "type": "long"
                           }
                         }
                       },
                       "port": {
                         "properties": {
                           "default": {
-                            "ignore_above": 1024,
-                            "type": "keyword"
+                            "type": "long"
                           },
                           "offset": {
-                            "ignore_above": 1024,
-                            "type": "keyword"
+                            "type": "long"
                           },
                           "value": {
-                            "ignore_above": 1024,
-                            "type": "keyword"
+                            "type": "long"
                           },
                           "with_offset": {
-                            "ignore_above": 1024,
-                            "type": "keyword"
+                            "type": "long"
                           }
                         }
                       },
                       "priority": {
                         "properties": {
                           "acceptor": {
-                            "ignore_above": 1024,
-                            "type": "keyword"
+                            "type": "long"
                           },
                           "count": {
-                            "ignore_above": 1024,
-                            "type": "keyword"
+                            "type": "long"
                           },
                           "poller": {
-                            "ignore_above": 1024,
-                            "type": "keyword"
+                            "type": "long"
                           }
                         }
                       },
                       "requests": {
                         "properties": {
                           "max": {
-                            "ignore_above": 1024,
-                            "type": "keyword"
+                            "type": "long"
                           }
                         }
                       },
                       "running": {
                         "properties": {
                           "min": {
-                            "ignore_above": 1024,
-                            "type": "keyword"
+                            "type": "long"
                           },
                           "value": {
-                            "ignore_above": 1024,
-                            "type": "keyword"
+                            "type": "boolean"
                           }
                         }
                       },
                       "selector": {
                         "properties": {
                           "timeout": {
-                            "ignore_above": 1024,
-                            "type": "keyword"
+                            "type": "long"
                           }
                         }
                       },
                       "sni_parse_limit": {
-                        "ignore_above": 1024,
-                        "type": "keyword"
+                        "type": "long"
                       },
                       "supported": {
                         "properties": {
                           "contention_monitoring": {
-                            "ignore_above": 1024,
-                            "type": "keyword"
+                            "type": "boolean"
                           },
                           "cpu": {
                             "properties": {
                               "current": {
                                 "properties": {
                                   "time": {
-                                    "ignore_above": 1024,
-                                    "type": "keyword"
+                                    "type": "boolean"
                                   }
                                 }
                               }
@@ -1170,30 +1063,25 @@
                           "usage": {
                             "properties": {
                               "object_monitor": {
-                                "ignore_above": 1024,
-                                "type": "keyword"
+                                "type": "boolean"
                               },
                               "synchronizer": {
-                                "ignore_above": 1024,
-                                "type": "keyword"
+                                "type": "boolean"
                               }
                             }
                           }
                         }
                       },
                       "total": {
-                        "ignore_above": 1024,
-                        "type": "keyword"
+                        "type": "long"
                       }
                     }
                   },
                   "use_inherited_channel": {
-                    "ignore_above": 1024,
-                    "type": "keyword"
+                    "type": "boolean"
                   },
                   "use_send_file": {
-                    "ignore_above": 1024,
-                    "type": "keyword"
+                    "type": "boolean"
                   }
                 }
               }
@@ -20401,7 +20289,8 @@
       ],
       "refresh_interval": "2s"
     },
-    "mapping.total_fields.limit": 2500,
+    "mapping.nested_fields.limit": 100,
+    "mapping.total_fields.limit": 10000,
     "plugins.index_state_management.rollover_alias": "wazuh-events-apache_tomcat"
   }
 }

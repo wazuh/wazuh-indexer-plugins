@@ -16564,40 +16564,33 @@
               "dgm": {
                 "properties": {
                   "length": {
-                    "ignore_above": 1024,
-                    "type": "keyword"
+                    "type": "long"
                   }
                 }
               },
               "eth": {
                 "properties": {
                   "length": {
-                    "ignore_above": 1024,
-                    "type": "keyword"
+                    "type": "long"
                   }
                 }
               },
               "gid": {
-                "ignore_above": 1024,
-                "type": "keyword"
+                "type": "long"
               },
               "icmp": {
                 "properties": {
                   "code": {
-                    "ignore_above": 1024,
-                    "type": "keyword"
+                    "type": "long"
                   },
                   "id": {
-                    "ignore_above": 1024,
-                    "type": "keyword"
+                    "type": "long"
                   },
                   "seq": {
-                    "ignore_above": 1024,
-                    "type": "keyword"
+                    "type": "long"
                   },
                   "type": {
-                    "ignore_above": 1024,
-                    "type": "keyword"
+                    "type": "long"
                   }
                 }
               },
@@ -16608,20 +16601,16 @@
                     "type": "keyword"
                   },
                   "id": {
-                    "ignore_above": 1024,
-                    "type": "keyword"
+                    "type": "long"
                   },
                   "length": {
-                    "ignore_above": 1024,
-                    "type": "keyword"
+                    "type": "long"
                   },
                   "tos": {
-                    "ignore_above": 1024,
-                    "type": "keyword"
+                    "type": "long"
                   },
                   "ttl": {
-                    "ignore_above": 1024,
-                    "type": "keyword"
+                    "type": "long"
                   }
                 }
               },
@@ -16632,32 +16621,27 @@
               "tcp": {
                 "properties": {
                   "ack": {
-                    "ignore_above": 1024,
-                    "type": "keyword"
+                    "type": "long"
                   },
                   "flags": {
                     "ignore_above": 1024,
                     "type": "keyword"
                   },
                   "length": {
-                    "ignore_above": 1024,
-                    "type": "keyword"
+                    "type": "long"
                   },
                   "seq": {
-                    "ignore_above": 1024,
-                    "type": "keyword"
+                    "type": "long"
                   },
                   "window": {
-                    "ignore_above": 1024,
-                    "type": "keyword"
+                    "type": "long"
                   }
                 }
               },
               "udp": {
                 "properties": {
                   "length": {
-                    "ignore_above": 1024,
-                    "type": "keyword"
+                    "type": "long"
                   }
                 }
               }
@@ -19609,7 +19593,8 @@
       ],
       "refresh_interval": "2s"
     },
-    "mapping.total_fields.limit": 2500,
+    "mapping.nested_fields.limit": 100,
+    "mapping.total_fields.limit": 10000,
     "plugins.index_state_management.rollover_alias": "wazuh-events-snort"
   }
 }

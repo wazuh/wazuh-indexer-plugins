@@ -308,8 +308,7 @@
                     "type": "keyword"
                   },
                   "event_ip_address": {
-                    "ignore_above": 1024,
-                    "type": "keyword"
+                    "type": "ip"
                   },
                   "event_primary_stamp_name": {
                     "ignore_above": 1024,
@@ -342,12 +341,10 @@
                   "properties": {
                     "properties": {
                       "client_ip": {
-                        "ignore_above": 1024,
-                        "type": "keyword"
+                        "type": "ip"
                       },
                       "client_port": {
-                        "ignore_above": 1024,
-                        "type": "keyword"
+                        "type": "long"
                       },
                       "computer_name": {
                         "ignore_above": 1024,
@@ -358,8 +355,7 @@
                         "type": "keyword"
                       },
                       "cs_bytes": {
-                        "ignore_above": 1024,
-                        "type": "keyword"
+                        "type": "long"
                       },
                       "cs_host": {
                         "ignore_above": 1024,
@@ -402,12 +398,10 @@
                         "type": "keyword"
                       },
                       "sc_bytes": {
-                        "ignore_above": 1024,
-                        "type": "keyword"
+                        "type": "long"
                       },
                       "sc_status": {
-                        "ignore_above": 1024,
-                        "type": "keyword"
+                        "type": "long"
                       },
                       "sc_substatus": {
                         "ignore_above": 1024,
@@ -430,8 +424,7 @@
                         "type": "keyword"
                       },
                       "time_taken": {
-                        "ignore_above": 1024,
-                        "type": "keyword"
+                        "type": "long"
                       },
                       "type": {
                         "ignore_above": 1024,
@@ -19689,7 +19682,8 @@
       ],
       "refresh_interval": "2s"
     },
-    "mapping.total_fields.limit": 2500,
+    "mapping.nested_fields.limit": 100,
+    "mapping.total_fields.limit": 10000,
     "plugins.index_state_management.rollover_alias": "wazuh-events-azure-app-service"
   }
 }

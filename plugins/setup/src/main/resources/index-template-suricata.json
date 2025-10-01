@@ -16743,8 +16743,7 @@
                     "type": "keyword"
                   },
                   "gid": {
-                    "ignore_above": 1024,
-                    "type": "keyword"
+                    "type": "long"
                   },
                   "metadata": {
                     "properties": {
@@ -16757,8 +16756,7 @@
                         "type": "keyword"
                       },
                       "created_at": {
-                        "ignore_above": 1024,
-                        "type": "keyword"
+                        "type": "date"
                       },
                       "cve": {
                         "ignore_above": 1024,
@@ -16787,24 +16785,21 @@
                     }
                   },
                   "rev": {
-                    "ignore_above": 1024,
-                    "type": "keyword"
+                    "type": "long"
                   },
                   "signature": {
                     "ignore_above": 1024,
                     "type": "keyword"
                   },
                   "signature_id": {
-                    "ignore_above": 1024,
-                    "type": "keyword"
+                    "type": "long"
                   }
                 }
               },
               "dns": {
                 "properties": {
                   "id": {
-                    "ignore_above": 1024,
-                    "type": "keyword"
+                    "type": "long"
                   },
                   "rrname": {
                     "ignore_above": 1024,
@@ -16815,8 +16810,7 @@
                     "type": "keyword"
                   },
                   "tx_id": {
-                    "ignore_above": 1024,
-                    "type": "keyword"
+                    "type": "long"
                   },
                   "type": {
                     "ignore_above": 1024,
@@ -16831,8 +16825,7 @@
               "fileinfo": {
                 "properties": {
                   "gaps": {
-                    "ignore_above": 1024,
-                    "type": "keyword"
+                    "type": "boolean"
                   },
                   "md5": {
                     "ignore_above": 1024,
@@ -16851,28 +16844,23 @@
                     "type": "keyword"
                   },
                   "stored": {
-                    "ignore_above": 1024,
-                    "type": "keyword"
+                    "type": "boolean"
                   },
                   "tx_id": {
-                    "ignore_above": 1024,
-                    "type": "keyword"
+                    "type": "long"
                   }
                 }
               },
               "flow": {
                 "properties": {
                   "age": {
-                    "ignore_above": 1024,
-                    "type": "keyword"
+                    "type": "long"
                   },
                   "alerted": {
-                    "ignore_above": 1024,
-                    "type": "keyword"
+                    "type": "boolean"
                   },
                   "end": {
-                    "ignore_above": 1024,
-                    "type": "keyword"
+                    "type": "date"
                   },
                   "reason": {
                     "ignore_above": 1024,
@@ -16895,8 +16883,7 @@
                     "type": "keyword"
                   },
                   "http_port": {
-                    "ignore_above": 1024,
-                    "type": "keyword"
+                    "type": "long"
                   },
                   "protocol": {
                     "ignore_above": 1024,
@@ -16943,104 +16930,80 @@
                       "flow": {
                         "properties": {
                           "dcerpc_tcp": {
-                            "ignore_above": 1024,
-                            "type": "keyword"
+                            "type": "long"
                           },
                           "dcerpc_udp": {
-                            "ignore_above": 1024,
-                            "type": "keyword"
+                            "type": "long"
                           },
                           "dns_tcp": {
-                            "ignore_above": 1024,
-                            "type": "keyword"
+                            "type": "long"
                           },
                           "dns_udp": {
-                            "ignore_above": 1024,
-                            "type": "keyword"
+                            "type": "long"
                           },
                           "failed_tcp": {
-                            "ignore_above": 1024,
-                            "type": "keyword"
+                            "type": "long"
                           },
                           "failed_udp": {
-                            "ignore_above": 1024,
-                            "type": "keyword"
+                            "type": "long"
                           },
                           "ftp": {
-                            "ignore_above": 1024,
-                            "type": "keyword"
+                            "type": "long"
                           },
                           "http": {
-                            "ignore_above": 1024,
-                            "type": "keyword"
+                            "type": "long"
                           },
                           "imap": {
-                            "ignore_above": 1024,
-                            "type": "keyword"
+                            "type": "long"
                           },
                           "msn": {
-                            "ignore_above": 1024,
-                            "type": "keyword"
+                            "type": "long"
                           },
                           "smb": {
-                            "ignore_above": 1024,
-                            "type": "keyword"
+                            "type": "long"
                           },
                           "smtp": {
-                            "ignore_above": 1024,
-                            "type": "keyword"
+                            "type": "long"
                           },
                           "ssh": {
-                            "ignore_above": 1024,
-                            "type": "keyword"
+                            "type": "long"
                           },
                           "tls": {
-                            "ignore_above": 1024,
-                            "type": "keyword"
+                            "type": "long"
                           }
                         }
                       },
                       "tx": {
                         "properties": {
                           "dcerpc_tcp": {
-                            "ignore_above": 1024,
-                            "type": "keyword"
+                            "type": "long"
                           },
                           "dcerpc_udp": {
-                            "ignore_above": 1024,
-                            "type": "keyword"
+                            "type": "long"
                           },
                           "dns_tcp": {
-                            "ignore_above": 1024,
-                            "type": "keyword"
+                            "type": "long"
                           },
                           "dns_udp": {
-                            "ignore_above": 1024,
-                            "type": "keyword"
+                            "type": "long"
                           },
                           "ftp": {
-                            "ignore_above": 1024,
-                            "type": "keyword"
+                            "type": "long"
                           },
                           "http": {
-                            "ignore_above": 1024,
-                            "type": "keyword"
+                            "type": "long"
                           },
                           "smb": {
-                            "ignore_above": 1024,
-                            "type": "keyword"
+                            "type": "long"
                           },
                           "smtp": {
-                            "ignore_above": 1024,
-                            "type": "keyword"
+                            "type": "long"
                           },
                           "ssh": {
-                            "ignore_above": 1024,
-                            "type": "keyword"
+                            "type": "long"
                           },
                           "tls": {
-                            "ignore_above": 1024,
-                            "type": "keyword"
+                            "type": "long"
                           }
                         }
                       }
@@ -17049,156 +17012,122 @@
                   "capture": {
                     "properties": {
                       "kernel_drops": {
-                        "ignore_above": 1024,
-                        "type": "keyword"
+                        "type": "long"
                       },
                       "kernel_ifdrops": {
-                        "ignore_above": 1024,
-                        "type": "keyword"
+                        "type": "long"
                       },
                       "kernel_packets": {
-                        "ignore_above": 1024,
-                        "type": "keyword"
+                        "type": "long"
                       }
                     }
                   },
                   "decoder": {
                     "properties": {
                       "avg_pkt_size": {
-                        "ignore_above": 1024,
-                        "type": "keyword"
+                        "type": "long"
                       },
                       "bytes": {
-                        "ignore_above": 1024,
-                        "type": "keyword"
+                        "type": "long"
                       },
                       "dce": {
                         "properties": {
                           "pkt_too_small": {
-                            "ignore_above": 1024,
-                            "type": "keyword"
+                            "type": "long"
                           }
                         }
                       },
                       "erspan": {
-                        "ignore_above": 1024,
-                        "type": "keyword"
+                        "type": "long"
                       },
                       "ethernet": {
-                        "ignore_above": 1024,
-                        "type": "keyword"
+                        "type": "long"
                       },
                       "gre": {
-                        "ignore_above": 1024,
-                        "type": "keyword"
+                        "type": "long"
                       },
                       "icmpv4": {
-                        "ignore_above": 1024,
-                        "type": "keyword"
+                        "type": "long"
                       },
                       "icmpv6": {
-                        "ignore_above": 1024,
-                        "type": "keyword"
+                        "type": "long"
                       },
                       "ieee8021ah": {
-                        "ignore_above": 1024,
-                        "type": "keyword"
+                        "type": "long"
                       },
                       "invalid": {
-                        "ignore_above": 1024,
-                        "type": "keyword"
+                        "type": "long"
                       },
                       "ipraw": {
                         "properties": {
                           "invalid_ip_version": {
-                            "ignore_above": 1024,
-                            "type": "keyword"
+                            "type": "long"
                           }
                         }
                       },
                       "ipv4": {
-                        "ignore_above": 1024,
-                        "type": "keyword"
+                        "type": "long"
                       },
                       "ipv4_in_ipv6": {
-                        "ignore_above": 1024,
-                        "type": "keyword"
+                        "type": "long"
                       },
                       "ipv6": {
-                        "ignore_above": 1024,
-                        "type": "keyword"
+                        "type": "long"
                       },
                       "ipv6_in_ipv6": {
-                        "ignore_above": 1024,
-                        "type": "keyword"
+                        "type": "long"
                       },
                       "ltnull": {
                         "properties": {
                           "pkt_too_small": {
-                            "ignore_above": 1024,
-                            "type": "keyword"
+                            "type": "long"
                           },
                           "unsupported_type": {
-                            "ignore_above": 1024,
-                            "type": "keyword"
+                            "type": "long"
                           }
                         }
                       },
                       "max_pkt_size": {
-                        "ignore_above": 1024,
-                        "type": "keyword"
+                        "type": "long"
                       },
                       "mpls": {
-                        "ignore_above": 1024,
-                        "type": "keyword"
+                        "type": "long"
                       },
                       "null": {
-                        "ignore_above": 1024,
-                        "type": "keyword"
+                        "type": "long"
                       },
                       "pkts": {
-                        "ignore_above": 1024,
-                        "type": "keyword"
+                        "type": "long"
                       },
                       "ppp": {
-                        "ignore_above": 1024,
-                        "type": "keyword"
+                        "type": "long"
                       },
                       "pppoe": {
-                        "ignore_above": 1024,
-                        "type": "keyword"
+                        "type": "long"
                       },
                       "raw": {
-                        "ignore_above": 1024,
-                        "type": "keyword"
+                        "type": "long"
                       },
                       "sctp": {
-                        "ignore_above": 1024,
-                        "type": "keyword"
+                        "type": "long"
                       },
                       "sll": {
-                        "ignore_above": 1024,
-                        "type": "keyword"
+                        "type": "long"
                       },
                       "tcp": {
-                        "ignore_above": 1024,
-                        "type": "keyword"
+                        "type": "long"
                       },
                       "teredo": {
-                        "ignore_above": 1024,
-                        "type": "keyword"
+                        "type": "long"
                       },
                       "udp": {
-                        "ignore_above": 1024,
-                        "type": "keyword"
+                        "type": "long"
                       },
                       "vlan": {
-                        "ignore_above": 1024,
-                        "type": "keyword"
+                        "type": "long"
                       },
                       "vlan_qinq": {
-                        "ignore_above": 1024,
-                        "type": "keyword"
+                        "type": "long"
                       }
                     }
                   },
@@ -17207,272 +17136,214 @@
                       "ipv4": {
                         "properties": {
                           "fragments": {
-                            "ignore_above": 1024,
-                            "type": "keyword"
+                            "type": "long"
                           },
                           "reassembled": {
-                            "ignore_above": 1024,
-                            "type": "keyword"
+                            "type": "long"
                           },
                           "timeouts": {
-                            "ignore_above": 1024,
-                            "type": "keyword"
+                            "type": "long"
                           }
                         }
                       },
                       "ipv6": {
                         "properties": {
                           "fragments": {
-                            "ignore_above": 1024,
-                            "type": "keyword"
+                            "type": "long"
                           },
                           "reassembled": {
-                            "ignore_above": 1024,
-                            "type": "keyword"
+                            "type": "long"
                           },
                           "timeouts": {
-                            "ignore_above": 1024,
-                            "type": "keyword"
+                            "type": "long"
                           }
                         }
                       },
                       "max_frag_hits": {
-                        "ignore_above": 1024,
-                        "type": "keyword"
+                        "type": "long"
                       }
                     }
                   },
                   "detect": {
                     "properties": {
                       "alert": {
-                        "ignore_above": 1024,
-                        "type": "keyword"
+                        "type": "long"
                       }
                     }
                   },
                   "dns": {
                     "properties": {
                       "memcap_global": {
-                        "ignore_above": 1024,
-                        "type": "keyword"
+                        "type": "long"
                       },
                       "memcap_state": {
-                        "ignore_above": 1024,
-                        "type": "keyword"
+                        "type": "long"
                       },
                       "memuse": {
-                        "ignore_above": 1024,
-                        "type": "keyword"
+                        "type": "long"
                       }
                     }
                   },
                   "file_store": {
                     "properties": {
                       "open_files": {
-                        "ignore_above": 1024,
-                        "type": "keyword"
+                        "type": "long"
                       }
                     }
                   },
                   "flow": {
                     "properties": {
                       "emerg_mode_entered": {
-                        "ignore_above": 1024,
-                        "type": "keyword"
+                        "type": "long"
                       },
                       "emerg_mode_over": {
-                        "ignore_above": 1024,
-                        "type": "keyword"
+                        "type": "long"
                       },
                       "icmpv4": {
-                        "ignore_above": 1024,
-                        "type": "keyword"
+                        "type": "long"
                       },
                       "icmpv6": {
-                        "ignore_above": 1024,
-                        "type": "keyword"
+                        "type": "long"
                       },
                       "memcap": {
-                        "ignore_above": 1024,
-                        "type": "keyword"
+                        "type": "long"
                       },
                       "memuse": {
-                        "ignore_above": 1024,
-                        "type": "keyword"
+                        "type": "long"
                       },
                       "spare": {
-                        "ignore_above": 1024,
-                        "type": "keyword"
+                        "type": "long"
                       },
                       "tcp": {
-                        "ignore_above": 1024,
-                        "type": "keyword"
+                        "type": "long"
                       },
                       "tcp_reuse": {
-                        "ignore_above": 1024,
-                        "type": "keyword"
+                        "type": "long"
                       },
                       "udp": {
-                        "ignore_above": 1024,
-                        "type": "keyword"
+                        "type": "long"
                       }
                     }
                   },
                   "flow_mgr": {
                     "properties": {
                       "bypassed_pruned": {
-                        "ignore_above": 1024,
-                        "type": "keyword"
+                        "type": "long"
                       },
                       "closed_pruned": {
-                        "ignore_above": 1024,
-                        "type": "keyword"
+                        "type": "long"
                       },
                       "est_pruned": {
-                        "ignore_above": 1024,
-                        "type": "keyword"
+                        "type": "long"
                       },
                       "flows_checked": {
-                        "ignore_above": 1024,
-                        "type": "keyword"
+                        "type": "long"
                       },
                       "flows_notimeout": {
-                        "ignore_above": 1024,
-                        "type": "keyword"
+                        "type": "long"
                       },
                       "flows_removed": {
-                        "ignore_above": 1024,
-                        "type": "keyword"
+                        "type": "long"
                       },
                       "flows_timeout": {
-                        "ignore_above": 1024,
-                        "type": "keyword"
+                        "type": "long"
                       },
                       "flows_timeout_inuse": {
-                        "ignore_above": 1024,
-                        "type": "keyword"
+                        "type": "long"
                       },
                       "new_pruned": {
-                        "ignore_above": 1024,
-                        "type": "keyword"
+                        "type": "long"
                       },
                       "rows_busy": {
-                        "ignore_above": 1024,
-                        "type": "keyword"
+                        "type": "long"
                       },
                       "rows_checked": {
-                        "ignore_above": 1024,
-                        "type": "keyword"
+                        "type": "long"
                       },
                       "rows_empty": {
-                        "ignore_above": 1024,
-                        "type": "keyword"
+                        "type": "long"
                       },
                       "rows_maxlen": {
-                        "ignore_above": 1024,
-                        "type": "keyword"
+                        "type": "long"
                       },
                       "rows_skipped": {
-                        "ignore_above": 1024,
-                        "type": "keyword"
+                        "type": "long"
                       }
                     }
                   },
                   "http": {
                     "properties": {
                       "memcap": {
-                        "ignore_above": 1024,
-                        "type": "keyword"
+                        "type": "long"
                       },
                       "memuse": {
-                        "ignore_above": 1024,
-                        "type": "keyword"
+                        "type": "long"
                       }
                     }
                   },
                   "tcp": {
                     "properties": {
                       "insert_data_normal_fail": {
-                        "ignore_above": 1024,
-                        "type": "keyword"
+                        "type": "long"
                       },
                       "insert_data_overlap_fail": {
-                        "ignore_above": 1024,
-                        "type": "keyword"
+                        "type": "long"
                       },
                       "insert_list_fail": {
-                        "ignore_above": 1024,
-                        "type": "keyword"
+                        "type": "long"
                       },
                       "invalid_checksum": {
-                        "ignore_above": 1024,
-                        "type": "keyword"
+                        "type": "long"
                       },
                       "memuse": {
-                        "ignore_above": 1024,
-                        "type": "keyword"
+                        "type": "long"
                       },
                       "no_flow": {
-                        "ignore_above": 1024,
-                        "type": "keyword"
+                        "type": "long"
                       },
                       "overlap": {
-                        "ignore_above": 1024,
-                        "type": "keyword"
+                        "type": "long"
                       },
                       "overlap_diff_data": {
-                        "ignore_above": 1024,
-                        "type": "keyword"
+                        "type": "long"
                       },
                       "pseudo": {
-                        "ignore_above": 1024,
-                        "type": "keyword"
+                        "type": "long"
                       },
                       "pseudo_failed": {
-                        "ignore_above": 1024,
-                        "type": "keyword"
+                        "type": "long"
                       },
                       "reassembly_gap": {
-                        "ignore_above": 1024,
-                        "type": "keyword"
+                        "type": "long"
                       },
                       "reassembly_memuse": {
-                        "ignore_above": 1024,
-                        "type": "keyword"
+                        "type": "long"
                       },
                       "rst": {
-                        "ignore_above": 1024,
-                        "type": "keyword"
+                        "type": "long"
                       },
                       "segment_memcap_drop": {
-                        "ignore_above": 1024,
-                        "type": "keyword"
+                        "type": "long"
                       },
                       "sessions": {
-                        "ignore_above": 1024,
-                        "type": "keyword"
+                        "type": "long"
                       },
                       "ssn_memcap_drop": {
-                        "ignore_above": 1024,
-                        "type": "keyword"
+                        "type": "long"
                       },
                       "stream_depth_reached": {
-                        "ignore_above": 1024,
-                        "type": "keyword"
+                        "type": "long"
                       },
                       "syn": {
-                        "ignore_above": 1024,
-                        "type": "keyword"
+                        "type": "long"
                       },
                       "synack": {
-                        "ignore_above": 1024,
-                        "type": "keyword"
+                        "type": "long"
                       }
                     }
                   },
                   "uptime": {
-                    "ignore_above": 1024,
-                    "type": "keyword"
+                    "type": "long"
                   }
                 }
               },
@@ -17511,20 +17382,17 @@
                     }
                   },
                   "notafter": {
-                    "ignore_above": 1024,
-                    "type": "keyword"
+                    "type": "date"
                   },
                   "notbefore": {
-                    "ignore_above": 1024,
-                    "type": "keyword"
+                    "type": "date"
                   },
                   "serial": {
                     "ignore_above": 1024,
                     "type": "keyword"
                   },
                   "session_resumed": {
-                    "ignore_above": 1024,
-                    "type": "keyword"
+                    "type": "boolean"
                   },
                   "sni": {
                     "ignore_above": 1024,
@@ -17541,8 +17409,7 @@
                 }
               },
               "tx_id": {
-                "ignore_above": 1024,
-                "type": "keyword"
+                "type": "long"
               }
             }
           }
@@ -20309,7 +20176,8 @@
       ],
       "refresh_interval": "2s"
     },
-    "mapping.total_fields.limit": 2500,
+    "mapping.nested_fields.limit": 100,
+    "mapping.total_fields.limit": 10000,
     "plugins.index_state_management.rollover_alias": "wazuh-events-suricata"
   }
 }

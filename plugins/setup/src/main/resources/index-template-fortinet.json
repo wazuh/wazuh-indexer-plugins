@@ -2202,8 +2202,7 @@
       "fortinet": {
         "properties": {
           "-": {
-            "ignore_above": 1024,
-            "type": "keyword"
+            "type": "-"
           },
           "fortinet": {
             "properties": {
@@ -2296,8 +2295,7 @@
                 "type": "keyword"
               },
               "auditid": {
-                "ignore_above": 1024,
-                "type": "keyword"
+                "type": "long"
               },
               "auditreporttype": {
                 "ignore_above": 1024,
@@ -2308,8 +2306,7 @@
                 "type": "keyword"
               },
               "audittime": {
-                "ignore_above": 1024,
-                "type": "keyword"
+                "type": "long"
               },
               "authmsg": {
                 "ignore_above": 1024,
@@ -2336,8 +2333,7 @@
                 "type": "keyword"
               },
               "c_bytes": {
-                "ignore_above": 1024,
-                "type": "keyword"
+                "type": "long"
               },
               "c_ggsn": {
                 "ignore_above": 1024,
@@ -2348,8 +2344,7 @@
                 "type": "keyword"
               },
               "c_pkts": {
-                "ignore_above": 1024,
-                "type": "keyword"
+                "type": "long"
               },
               "c_sgsn": {
                 "ignore_above": 1024,
@@ -2408,8 +2403,7 @@
                 "type": "keyword"
               },
               "clashtunnelidx": {
-                "ignore_above": 1024,
-                "type": "keyword"
+                "type": "long"
               },
               "cldobjid": {
                 "ignore_above": 1024,
@@ -2436,68 +2430,52 @@
                 "type": "keyword"
               },
               "count": {
-                "ignore_above": 1024,
-                "type": "keyword"
+                "type": "long"
               },
               "countapp": {
-                "ignore_above": 1024,
-                "type": "keyword"
+                "type": "long"
               },
               "countav": {
-                "ignore_above": 1024,
-                "type": "keyword"
+                "type": "long"
               },
               "countcasb": {
-                "ignore_above": 1024,
-                "type": "keyword"
+                "type": "long"
               },
               "countcifs": {
-                "ignore_above": 1024,
-                "type": "keyword"
+                "type": "long"
               },
               "countdlp": {
-                "ignore_above": 1024,
-                "type": "keyword"
+                "type": "long"
               },
               "countdns": {
-                "ignore_above": 1024,
-                "type": "keyword"
+                "type": "long"
               },
               "countemail": {
-                "ignore_above": 1024,
-                "type": "keyword"
+                "type": "long"
               },
               "countff": {
-                "ignore_above": 1024,
-                "type": "keyword"
+                "type": "long"
               },
               "counticap": {
-                "ignore_above": 1024,
-                "type": "keyword"
+                "type": "long"
               },
               "countips": {
-                "ignore_above": 1024,
-                "type": "keyword"
+                "type": "long"
               },
               "countsctpf": {
-                "ignore_above": 1024,
-                "type": "keyword"
+                "type": "long"
               },
               "countssh": {
-                "ignore_above": 1024,
-                "type": "keyword"
+                "type": "long"
               },
               "countssl": {
-                "ignore_above": 1024,
-                "type": "keyword"
+                "type": "long"
               },
               "countwaf": {
-                "ignore_above": 1024,
-                "type": "keyword"
+                "type": "long"
               },
               "countweb": {
-                "ignore_above": 1024,
-                "type": "keyword"
+                "type": "long"
               },
               "cpaddr": {
                 "ignore_above": 1024,
@@ -2524,8 +2502,7 @@
                 "type": "keyword"
               },
               "cpu": {
-                "ignore_above": 1024,
-                "type": "keyword"
+                "type": "long"
               },
               "cpuladdr": {
                 "ignore_above": 1024,
@@ -2536,32 +2513,28 @@
                 "type": "keyword"
               },
               "craction": {
-                "ignore_above": 1024,
-                "type": "keyword"
+                "type": "long"
               },
               "criticalcount": {
-                "ignore_above": 1024,
-                "type": "keyword"
+                "type": "long"
               },
               "crlevel": {
                 "ignore_above": 1024,
                 "type": "keyword"
               },
               "crscore": {
-                "ignore_above": 1024,
-                "type": "keyword"
+                "type": "long"
               },
               "csgsn6": {
                 "ignore_above": 1024,
                 "type": "keyword"
               },
               "deltabytes": {
-                "ignore_above": 1024,
-                "type": "keyword"
+                "type": "long"
               },
               "desc": {
-                "ignore_above": 1024,
-                "type": "keyword"
+                "norms": false,
+                "type": "text"
               },
               "detectionmethod": {
                 "ignore_above": 1024,
@@ -2576,20 +2549,17 @@
                 "type": "keyword"
               },
               "disk": {
-                "ignore_above": 1024,
-                "type": "keyword"
+                "type": "long"
               },
               "disklograte": {
-                "ignore_above": 1024,
-                "type": "keyword"
+                "type": "long"
               },
               "dlpextra": {
                 "ignore_above": 1024,
                 "type": "keyword"
               },
               "dlpfilteridx": {
-                "ignore_above": 1024,
-                "type": "keyword"
+                "type": "long"
               },
               "domainctrlauthstate": {
                 "ignore_above": 1024,
@@ -2604,8 +2574,7 @@
                 "type": "keyword"
               },
               "domainfilteridx": {
-                "ignore_above": 1024,
-                "type": "keyword"
+                "type": "long"
               },
               "dstcountry": {
                 "ignore_above": 1024,
@@ -2624,8 +2593,7 @@
                 "type": "keyword"
               },
               "dstserver": {
-                "ignore_above": 1024,
-                "type": "keyword"
+                "type": "long"
               },
               "dstuuid": {
                 "ignore_above": 1024,
@@ -2644,16 +2612,14 @@
                 "type": "keyword"
               },
               "epoch": {
-                "ignore_above": 1024,
-                "type": "keyword"
+                "type": "long"
               },
               "fams_pause": {
                 "ignore_above": 1024,
                 "type": "keyword"
               },
               "fazlograte": {
-                "ignore_above": 1024,
-                "type": "keyword"
+                "type": "long"
               },
               "fctemssn": {
                 "ignore_above": 1024,
@@ -2668,8 +2634,7 @@
                 "type": "keyword"
               },
               "filteridx": {
-                "ignore_above": 1024,
-                "type": "keyword"
+                "type": "long"
               },
               "filtername": {
                 "ignore_above": 1024,
@@ -2684,8 +2649,7 @@
                 "type": "keyword"
               },
               "freediskstorage": {
-                "ignore_above": 1024,
-                "type": "keyword"
+                "type": "long"
               },
               "from": {
                 "ignore_above": 1024,
@@ -2704,8 +2668,7 @@
                 "type": "keyword"
               },
               "ha_group": {
-                "ignore_above": 1024,
-                "type": "keyword"
+                "type": "long"
               },
               "ha_prio": {
                 "ignore_above": 1024,
@@ -2724,8 +2687,7 @@
                 "type": "keyword"
               },
               "highcount": {
-                "ignore_above": 1024,
-                "type": "keyword"
+                "type": "long"
               },
               "hostname": {
                 "ignore_above": 1024,
@@ -2776,16 +2738,14 @@
                 "type": "keyword"
               },
               "incidentserialno": {
-                "ignore_above": 1024,
-                "type": "keyword"
+                "type": "long"
               },
               "infectedfilelevel": {
                 "ignore_above": 1024,
                 "type": "keyword"
               },
               "infectedfilesize": {
-                "ignore_above": 1024,
-                "type": "keyword"
+                "type": "long"
               },
               "init": {
                 "ignore_above": 1024,
@@ -2800,12 +2760,10 @@
                 "type": "keyword"
               },
               "jitter": {
-                "ignore_above": 1024,
-                "type": "keyword"
+                "type": "long"
               },
               "keysize": {
-                "ignore_above": 1024,
-                "type": "keyword"
+                "type": "long"
               },
               "kind": {
                 "ignore_above": 1024,
@@ -2816,16 +2774,13 @@
                 "type": "keyword"
               },
               "lanin": {
-                "ignore_above": 1024,
-                "type": "keyword"
+                "type": "long"
               },
               "lanout": {
-                "ignore_above": 1024,
-                "type": "keyword"
+                "type": "long"
               },
               "latency": {
-                "ignore_above": 1024,
-                "type": "keyword"
+                "type": "long"
               },
               "lease": {
                 "ignore_above": 1024,
@@ -2844,16 +2799,14 @@
                 "type": "keyword"
               },
               "localdevcount": {
-                "ignore_above": 1024,
-                "type": "keyword"
+                "type": "long"
               },
               "login": {
                 "ignore_above": 1024,
                 "type": "keyword"
               },
               "lowcount": {
-                "ignore_above": 1024,
-                "type": "keyword"
+                "type": "long"
               },
               "manuf": {
                 "ignore_above": 1024,
@@ -2868,12 +2821,10 @@
                 "type": "keyword"
               },
               "mediumcount": {
-                "ignore_above": 1024,
-                "type": "keyword"
+                "type": "long"
               },
               "mem": {
-                "ignore_above": 1024,
-                "type": "keyword"
+                "type": "long"
               },
               "method": {
                 "ignore_above": 1024,
@@ -2896,8 +2847,7 @@
                 "type": "keyword"
               },
               "mtu": {
-                "ignore_above": 1024,
-                "type": "keyword"
+                "type": "long"
               },
               "name": {
                 "ignore_above": 1024,
@@ -2968,8 +2918,7 @@
                 "type": "keyword"
               },
               "passedcount": {
-                "ignore_above": 1024,
-                "type": "keyword"
+                "type": "long"
               },
               "path": {
                 "ignore_above": 1024,
@@ -2984,8 +2933,7 @@
                 "type": "keyword"
               },
               "pid": {
-                "ignore_above": 1024,
-                "type": "keyword"
+                "type": "long"
               },
               "plan": {
                 "ignore_above": 1024,
@@ -3004,12 +2952,10 @@
                 "type": "keyword"
               },
               "prefetch": {
-                "ignore_above": 1024,
-                "type": "keyword"
+                "type": "long"
               },
               "processtime": {
-                "ignore_above": 1024,
-                "type": "keyword"
+                "type": "long"
               },
               "profile": {
                 "ignore_above": 1024,
@@ -3020,20 +2966,17 @@
                 "type": "keyword"
               },
               "qtypeval": {
-                "ignore_above": 1024,
-                "type": "keyword"
+                "type": "long"
               },
               "quarskip": {
                 "ignore_above": 1024,
                 "type": "keyword"
               },
               "quotamax": {
-                "ignore_above": 1024,
-                "type": "keyword"
+                "type": "long"
               },
               "quotaused": {
-                "ignore_above": 1024,
-                "type": "keyword"
+                "type": "long"
               },
               "radioband": {
                 "ignore_above": 1024,
@@ -3064,32 +3007,26 @@
                 "type": "keyword"
               },
               "rcvddelta": {
-                "ignore_above": 1024,
-                "type": "keyword"
+                "type": "long"
               },
               "reqlength": {
-                "ignore_above": 1024,
-                "type": "keyword"
+                "type": "long"
               },
               "reqtime": {
-                "ignore_above": 1024,
-                "type": "keyword"
+                "type": "long"
               },
               "reqtype": {
                 "ignore_above": 1024,
                 "type": "keyword"
               },
               "respfinishtime": {
-                "ignore_above": 1024,
-                "type": "keyword"
+                "type": "long"
               },
               "resplength": {
-                "ignore_above": 1024,
-                "type": "keyword"
+                "type": "long"
               },
               "resptime": {
-                "ignore_above": 1024,
-                "type": "keyword"
+                "type": "long"
               },
               "resptype": {
                 "ignore_above": 1024,
@@ -3104,8 +3041,7 @@
                 "type": "keyword"
               },
               "rsptime": {
-                "ignore_above": 1024,
-                "type": "keyword"
+                "type": "long"
               },
               "rsrp": {
                 "ignore_above": 1024,
@@ -3120,8 +3056,7 @@
                 "type": "keyword"
               },
               "scantime": {
-                "ignore_above": 1024,
-                "type": "keyword"
+                "type": "long"
               },
               "scheme": {
                 "ignore_above": 1024,
@@ -3132,16 +3067,13 @@
                 "type": "keyword"
               },
               "sentdelta": {
-                "ignore_above": 1024,
-                "type": "keyword"
+                "type": "long"
               },
               "sentpkt": {
-                "ignore_above": 1024,
-                "type": "keyword"
+                "type": "long"
               },
               "seqnum": {
-                "ignore_above": 1024,
-                "type": "keyword"
+                "type": "long"
               },
               "serial": {
                 "ignore_above": 1024,
@@ -3160,8 +3092,7 @@
                 "type": "keyword"
               },
               "setuprate": {
-                "ignore_above": 1024,
-                "type": "keyword"
+                "type": "long"
               },
               "severity": {
                 "ignore_above": 1024,
@@ -3192,8 +3123,7 @@
                 "type": "keyword"
               },
               "slot": {
-                "ignore_above": 1024,
-                "type": "keyword"
+                "type": "long"
               },
               "sn": {
                 "ignore_above": 1024,
@@ -3228,8 +3158,7 @@
                 "type": "keyword"
               },
               "srcserver": {
-                "ignore_above": 1024,
-                "type": "keyword"
+                "type": "long"
               },
               "srcswversion": {
                 "ignore_above": 1024,
@@ -3248,8 +3177,7 @@
                 "type": "keyword"
               },
               "stage": {
-                "ignore_above": 1024,
-                "type": "keyword"
+                "type": "long"
               },
               "stamac": {
                 "ignore_above": 1024,
@@ -3260,24 +3188,21 @@
                 "type": "keyword"
               },
               "statuscode": {
-                "ignore_above": 1024,
-                "type": "keyword"
+                "type": "long"
               },
               "subtype": {
                 "ignore_above": 1024,
                 "type": "keyword"
               },
               "sysuptime": {
-                "ignore_above": 1024,
-                "type": "keyword"
+                "type": "long"
               },
               "temperature": {
                 "ignore_above": 1024,
                 "type": "keyword"
               },
               "timeoutdelete": {
-                "ignore_above": 1024,
-                "type": "keyword"
+                "type": "long"
               },
               "timestamp": {
                 "ignore_above": 1024,
@@ -3300,12 +3225,10 @@
                 "type": "keyword"
               },
               "total": {
-                "ignore_above": 1024,
-                "type": "keyword"
+                "type": "long"
               },
               "totalsession": {
-                "ignore_above": 1024,
-                "type": "keyword"
+                "type": "long"
               },
               "trandisp": {
                 "ignore_above": 1024,
@@ -3336,8 +3259,7 @@
                 "type": "keyword"
               },
               "tunnel_idx": {
-                "ignore_above": 1024,
-                "type": "keyword"
+                "type": "long"
               },
               "tunnelid": {
                 "ignore_above": 1024,
@@ -3356,8 +3278,7 @@
                 "type": "keyword"
               },
               "u_bytes": {
-                "ignore_above": 1024,
-                "type": "keyword"
+                "type": "long"
               },
               "u_ggsn": {
                 "ignore_above": 1024,
@@ -3368,8 +3289,7 @@
                 "type": "keyword"
               },
               "u_pkts": {
-                "ignore_above": 1024,
-                "type": "keyword"
+                "type": "long"
               },
               "u_sgsn": {
                 "ignore_above": 1024,
@@ -3408,16 +3328,13 @@
                 "type": "keyword"
               },
               "urlfilteridx": {
-                "ignore_above": 1024,
-                "type": "keyword"
+                "type": "long"
               },
               "used": {
-                "ignore_above": 1024,
-                "type": "keyword"
+                "type": "long"
               },
               "used_for_type": {
-                "ignore_above": 1024,
-                "type": "keyword"
+                "type": "long"
               },
               "usgsn6": {
                 "ignore_above": 1024,
@@ -3436,16 +3353,13 @@
                 "type": "keyword"
               },
               "valid": {
-                "ignore_above": 1024,
-                "type": "keyword"
+                "type": "long"
               },
               "vcluster": {
-                "ignore_above": 1024,
-                "type": "keyword"
+                "type": "long"
               },
               "vcluster_member": {
-                "ignore_above": 1024,
-                "type": "keyword"
+                "type": "long"
               },
               "vcluster_state": {
                 "ignore_above": 1024,
@@ -3460,8 +3374,7 @@
                 "type": "keyword"
               },
               "violatescore": {
-                "ignore_above": 1024,
-                "type": "keyword"
+                "type": "long"
               },
               "virus": {
                 "ignore_above": 1024,
@@ -3488,16 +3401,14 @@
                 "type": "keyword"
               },
               "wanin": {
-                "ignore_above": 1024,
-                "type": "keyword"
+                "type": "long"
               },
               "waninfo": {
                 "ignore_above": 1024,
                 "type": "keyword"
               },
               "wanout": {
-                "ignore_above": 1024,
-                "type": "keyword"
+                "type": "long"
               },
               "wscode": {
                 "ignore_above": 1024,
@@ -20809,7 +20720,8 @@
       ],
       "refresh_interval": "2s"
     },
-    "mapping.total_fields.limit": 2500,
+    "mapping.nested_fields.limit": 100,
+    "mapping.total_fields.limit": 10000,
     "plugins.index_state_management.rollover_alias": "wazuh-events-fortinet"
   }
 }

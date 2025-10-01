@@ -2216,8 +2216,7 @@
           "dns": {
             "properties": {
               "answers": {
-                "ignore_above": 1024,
-                "type": "keyword"
+                "type": "nested"
               }
             }
           },
@@ -2226,8 +2225,7 @@
               "actor": {
                 "properties": {
                   "entity_id": {
-                    "ignore_above": 1024,
-                    "type": "keyword"
+                    "type": "nested"
                   }
                 }
               },
@@ -2238,8 +2236,7 @@
                     "type": "keyword"
                   },
                   "serviceaccountdelegationinfo": {
-                    "ignore_above": 1024,
-                    "type": "keyword"
+                    "type": "nested"
                   },
                   "serviceaccountkeyname": {
                     "ignore_above": 1024,
@@ -2248,16 +2245,14 @@
                 }
               },
               "authorizationinfo": {
-                "ignore_above": 1024,
-                "type": "keyword"
+                "type": "nested"
               },
               "event_provider": {
                 "ignore_above": 1024,
                 "type": "keyword"
               },
               "labels": {
-                "ignore_above": 1024,
-                "type": "keyword"
+                "type": "object"
               },
               "metadata": {
                 "properties": {
@@ -2274,8 +2269,7 @@
                     "type": "keyword"
                   },
                   "ingressViolations": {
-                    "ignore_above": 1024,
-                    "type": "keyword"
+                    "type": "nested"
                   },
                   "operationType": {
                     "ignore_above": 1024,
@@ -2300,8 +2294,7 @@
                   "usedResources": {
                     "properties": {
                       "attachedDisks": {
-                        "ignore_above": 1024,
-                        "type": "keyword"
+                        "type": "nested"
                       }
                     }
                   },
@@ -2316,8 +2309,7 @@
                 }
               },
               "numresponseitems": {
-                "ignore_above": 1024,
-                "type": "keyword"
+                "type": "long"
               },
               "operation": {
                 "properties": {
@@ -2358,8 +2350,7 @@
               "related": {
                 "properties": {
                   "entity": {
-                    "ignore_above": 1024,
-                    "type": "keyword"
+                    "type": "nested"
                   }
                 }
               },
@@ -2382,8 +2373,7 @@
                     "type": "keyword"
                   },
                   "guestOsFeatures": {
-                    "ignore_above": 1024,
-                    "type": "keyword"
+                    "type": "nested"
                   },
                   "kind": {
                     "ignore_above": 1024,
@@ -2396,8 +2386,7 @@
                   "metadata": {
                     "properties": {
                       "creationTimestamp": {
-                        "ignore_above": 1024,
-                        "type": "keyword"
+                        "type": "date"
                       }
                     }
                   },
@@ -2406,8 +2395,7 @@
                     "type": "keyword"
                   },
                   "networkInterfaces": {
-                    "ignore_above": 1024,
-                    "type": "keyword"
+                    "type": "nested"
                   },
                   "pageSize": {
                     "ignore_above": 1024,
@@ -2420,8 +2408,7 @@
                   "policy": {
                     "properties": {
                       "bindings": {
-                        "ignore_above": 1024,
-                        "type": "keyword"
+                        "type": "nested"
                       },
                       "etag": {
                         "ignore_above": 1024,
@@ -2450,8 +2437,7 @@
                     "type": "keyword"
                   },
                   "serviceAccounts": {
-                    "ignore_above": 1024,
-                    "type": "keyword"
+                    "type": "nested"
                   },
                   "sourceType": {
                     "ignore_above": 1024,
@@ -2460,8 +2446,7 @@
                   "spec": {
                     "properties": {
                       "group": {
-                        "ignore_above": 1024,
-                        "type": "keyword"
+                        "type": "nested"
                       },
                       "nonResourceAttributes": {
                         "properties": {
@@ -2486,8 +2471,7 @@
                       "template": {
                         "properties": {
                           "spec": {
-                            "ignore_above": 1024,
-                            "type": "keyword"
+                            "type": "object"
                           }
                         }
                       },
@@ -2500,8 +2484,7 @@
                   "status": {
                     "properties": {
                       "allowed": {
-                        "ignore_above": 1024,
-                        "type": "keyword"
+                        "type": "boolean"
                       }
                     }
                   }
@@ -2510,8 +2493,7 @@
               "resourcelocation": {
                 "properties": {
                   "currentlocation": {
-                    "ignore_above": 1024,
-                    "type": "keyword"
+                    "type": "nested"
                   }
                 }
               },
@@ -2530,8 +2512,7 @@
                     "type": "keyword"
                   },
                   "bindings": {
-                    "ignore_above": 1024,
-                    "type": "keyword"
+                    "type": "nested"
                   },
                   "details": {
                     "properties": {
@@ -2572,24 +2553,20 @@
                   "metadata": {
                     "properties": {
                       "annotations": {
-                        "ignore_above": 1024,
-                        "type": "keyword"
+                        "type": "object"
                       },
                       "creationTimestamp": {
-                        "ignore_above": 1024,
-                        "type": "keyword"
+                        "type": "date"
                       },
                       "generation": {
                         "ignore_above": 1024,
                         "type": "keyword"
                       },
                       "labels": {
-                        "ignore_above": 1024,
-                        "type": "keyword"
+                        "type": "object"
                       },
                       "managedFields": {
-                        "ignore_above": 1024,
-                        "type": "keyword"
+                        "type": "nested"
                       },
                       "name": {
                         "ignore_above": 1024,
@@ -2632,8 +2609,7 @@
                   "spec": {
                     "properties": {
                       "group": {
-                        "ignore_above": 1024,
-                        "type": "keyword"
+                        "type": "nested"
                       },
                       "nonResourceAttributes": {
                         "properties": {
@@ -2696,12 +2672,10 @@
                           "metadata": {
                             "properties": {
                               "annotations": {
-                                "ignore_above": 1024,
-                                "type": "keyword"
+                                "type": "object"
                               },
                               "creationTimestamp": {
-                                "ignore_above": 1024,
-                                "type": "keyword"
+                                "type": "date"
                               },
                               "labels": {
                                 "properties": {
@@ -2716,16 +2690,14 @@
                           "spec": {
                             "properties": {
                               "containers": {
-                                "ignore_above": 1024,
-                                "type": "keyword"
+                                "type": "nested"
                               },
                               "dnsPolicy": {
                                 "ignore_above": 1024,
                                 "type": "keyword"
                               },
                               "nodeSelector": {
-                                "ignore_above": 1024,
-                                "type": "keyword"
+                                "type": "object"
                               },
                               "priorityClassName": {
                                 "ignore_above": 1024,
@@ -2768,16 +2740,13 @@
                                 "type": "keyword"
                               },
                               "tolerations": {
-                                "ignore_above": 1024,
-                                "type": "keyword"
+                                "type": "nested"
                               },
                               "topologySpreadConstraints": {
-                                "ignore_above": 1024,
-                                "type": "keyword"
+                                "type": "nested"
                               },
                               "volumes": {
-                                "ignore_above": 1024,
-                                "type": "keyword"
+                                "type": "nested"
                               }
                             }
                           }
@@ -2796,16 +2765,14 @@
                   "status": {
                     "properties": {
                       "allowed": {
-                        "ignore_above": 1024,
-                        "type": "keyword"
+                        "type": "boolean"
                       },
                       "availableReplicas": {
                         "ignore_above": 1024,
                         "type": "keyword"
                       },
                       "conditions": {
-                        "ignore_above": 1024,
-                        "type": "keyword"
+                        "type": "nested"
                       },
                       "observedGeneration": {
                         "ignore_above": 1024,
@@ -2858,12 +2825,10 @@
               "status": {
                 "properties": {
                   "code": {
-                    "ignore_above": 1024,
-                    "type": "keyword"
+                    "type": "long"
                   },
                   "details": {
-                    "ignore_above": 1024,
-                    "type": "keyword"
+                    "type": "nested"
                   },
                   "message": {
                     "ignore_above": 1024,
@@ -2874,8 +2839,7 @@
               "target": {
                 "properties": {
                   "entity_id": {
-                    "ignore_above": 1024,
-                    "type": "keyword"
+                    "type": "nested"
                   }
                 }
               },
@@ -2910,16 +2874,14 @@
                       "dropped": {
                         "properties": {
                           "bytes": {
-                            "ignore_above": 1024,
-                            "type": "keyword"
+                            "type": "long"
                           }
                         }
                       },
                       "dropped_packets_count": {
                         "properties": {
                           "value": {
-                            "ignore_above": 1024,
-                            "type": "keyword"
+                            "type": "long"
                           }
                         }
                       }
@@ -2932,24 +2894,21 @@
                           "reserved_cores": {
                             "properties": {
                               "value": {
-                                "ignore_above": 1024,
-                                "type": "keyword"
+                                "type": "long"
                               }
                             }
                           },
                           "usage": {
                             "properties": {
                               "pct": {
-                                "ignore_above": 1024,
-                                "type": "keyword"
+                                "type": "float"
                               }
                             }
                           },
                           "usage_time": {
                             "properties": {
                               "sec": {
-                                "ignore_above": 1024,
-                                "type": "keyword"
+                                "type": "float"
                               }
                             }
                           }
@@ -2960,32 +2919,28 @@
                           "read": {
                             "properties": {
                               "bytes": {
-                                "ignore_above": 1024,
-                                "type": "keyword"
+                                "type": "long"
                               }
                             }
                           },
                           "read_ops_count": {
                             "properties": {
                               "value": {
-                                "ignore_above": 1024,
-                                "type": "keyword"
+                                "type": "long"
                               }
                             }
                           },
                           "write": {
                             "properties": {
                               "bytes": {
-                                "ignore_above": 1024,
-                                "type": "keyword"
+                                "type": "long"
                               }
                             }
                           },
                           "write_ops_count": {
                             "properties": {
                               "value": {
-                                "ignore_above": 1024,
-                                "type": "keyword"
+                                "type": "long"
                               }
                             }
                           }
@@ -2998,32 +2953,28 @@
                               "ram_size": {
                                 "properties": {
                                   "value": {
-                                    "ignore_above": 1024,
-                                    "type": "keyword"
+                                    "type": "long"
                                   }
                                 }
                               },
                               "ram_used": {
                                 "properties": {
                                   "value": {
-                                    "ignore_above": 1024,
-                                    "type": "keyword"
+                                    "type": "long"
                                   }
                                 }
                               },
                               "swap_in": {
                                 "properties": {
                                   "bytes": {
-                                    "ignore_above": 1024,
-                                    "type": "keyword"
+                                    "type": "long"
                                   }
                                 }
                               },
                               "swap_out": {
                                 "properties": {
                                   "bytes": {
-                                    "ignore_above": 1024,
-                                    "type": "keyword"
+                                    "type": "long"
                                   }
                                 }
                               }
@@ -3036,14 +2987,12 @@
                           "egress": {
                             "properties": {
                               "bytes": {
-                                "ignore_above": 1024,
-                                "type": "keyword"
+                                "type": "long"
                               },
                               "packets": {
                                 "properties": {
                                   "count": {
-                                    "ignore_above": 1024,
-                                    "type": "keyword"
+                                    "type": "long"
                                   }
                                 }
                               }
@@ -3052,14 +3001,12 @@
                           "ingress": {
                             "properties": {
                               "bytes": {
-                                "ignore_above": 1024,
-                                "type": "keyword"
+                                "type": "long"
                               },
                               "packets": {
                                 "properties": {
                                   "count": {
-                                    "ignore_above": 1024,
-                                    "type": "keyword"
+                                    "type": "long"
                                   }
                                 }
                               }
@@ -3070,8 +3017,7 @@
                       "uptime": {
                         "properties": {
                           "sec": {
-                            "ignore_above": 1024,
-                            "type": "keyword"
+                            "type": "float"
                           }
                         }
                       },
@@ -3092,8 +3038,7 @@
           "gcp_dns": {
             "properties": {
               "authanswer": {
-                "ignore_above": 1024,
-                "type": "keyword"
+                "type": "boolean"
               },
               "destinationIP": {
                 "ignore_above": 1024,
@@ -3124,8 +3069,7 @@
                 "type": "keyword"
               },
               "serverlatency": {
-                "ignore_above": 1024,
-                "type": "keyword"
+                "type": "long"
               },
               "source_type": {
                 "ignore_above": 1024,
@@ -3210,8 +3154,7 @@
                     "type": "keyword"
                   },
                   "ip_port_info": {
-                    "ignore_above": 1024,
-                    "type": "keyword"
+                    "type": "nested"
                   },
                   "reference": {
                     "ignore_above": 1024,
@@ -3240,16 +3183,14 @@
                 "type": "keyword"
               },
               "cacheHit": {
-                "ignore_above": 1024,
-                "type": "keyword"
+                "type": "boolean"
               },
               "cacheId": {
                 "ignore_above": 1024,
                 "type": "keyword"
               },
               "cacheLookup": {
-                "ignore_above": 1024,
-                "type": "keyword"
+                "type": "boolean"
               },
               "forwarding_rule_name": {
                 "ignore_above": 1024,
@@ -3312,8 +3253,7 @@
                 "type": "keyword"
               },
               "rtt_msec": {
-                "ignore_above": 1024,
-                "type": "keyword"
+                "type": "long"
               },
               "src_instance": {
                 "properties": {
@@ -3360,8 +3300,7 @@
                 "type": "keyword"
               },
               "period": {
-                "ignore_above": 1024,
-                "type": "keyword"
+                "type": "long"
               }
             }
           },
@@ -20669,7 +20608,8 @@
       ],
       "refresh_interval": "2s"
     },
-    "mapping.total_fields.limit": 2500,
+    "mapping.nested_fields.limit": 100,
+    "mapping.total_fields.limit": 10000,
     "plugins.index_state_management.rollover_alias": "wazuh-events-gcp"
   }
 }

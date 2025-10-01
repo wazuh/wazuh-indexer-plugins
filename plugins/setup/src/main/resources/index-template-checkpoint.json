@@ -370,8 +370,7 @@
                 "type": "keyword"
               },
               "app_risk": {
-                "ignore_above": 1024,
-                "type": "keyword"
+                "type": "long"
               },
               "app_rule_id": {
                 "ignore_above": 1024,
@@ -518,8 +517,7 @@
                 "type": "keyword"
               },
               "failed_login_factor_num": {
-                "ignore_above": 1024,
-                "type": "keyword"
+                "type": "long"
               },
               "fieldschanges": {
                 "ignore_above": 1024,
@@ -534,8 +532,7 @@
                 "type": "keyword"
               },
               "host_ip": {
-                "ignore_above": 1024,
-                "type": "keyword"
+                "type": "ip"
               },
               "hostname": {
                 "ignore_above": 1024,
@@ -574,8 +571,7 @@
                 "type": "keyword"
               },
               "logid": {
-                "ignore_above": 1024,
-                "type": "keyword"
+                "type": "long"
               },
               "login_option": {
                 "ignore_above": 1024,
@@ -610,8 +606,7 @@
                 "type": "keyword"
               },
               "match_id": {
-                "ignore_above": 1024,
-                "type": "keyword"
+                "type": "long"
               },
               "message": {
                 "ignore_above": 1024,
@@ -626,16 +621,14 @@
                 "type": "keyword"
               },
               "nat_addtnl_rulenum": {
-                "ignore_above": 1024,
-                "type": "keyword"
+                "type": "long"
               },
               "nat_rule_uid": {
                 "ignore_above": 1024,
                 "type": "keyword"
               },
               "nat_rulenum": {
-                "ignore_above": 1024,
-                "type": "keyword"
+                "type": "long"
               },
               "objectname": {
                 "ignore_above": 1024,
@@ -646,16 +639,14 @@
                 "type": "keyword"
               },
               "office_mode_ip": {
-                "ignore_above": 1024,
-                "type": "keyword"
+                "type": "ip"
               },
               "operation": {
                 "ignore_above": 1024,
                 "type": "keyword"
               },
               "operation_number": {
-                "ignore_above": 1024,
-                "type": "keyword"
+                "type": "long"
               },
               "operation_result_description": {
                 "ignore_above": 1024,
@@ -702,12 +693,10 @@
                 "type": "keyword"
               },
               "parent_rule": {
-                "ignore_above": 1024,
-                "type": "keyword"
+                "type": "long"
               },
               "peer_gateway": {
-                "ignore_above": 1024,
-                "type": "keyword"
+                "type": "ip"
               },
               "performance_impact": {
                 "ignore_above": 1024,
@@ -746,8 +735,7 @@
                 "type": "keyword"
               },
               "proxy_src_ip": {
-                "ignore_above": 1024,
-                "type": "keyword"
+                "type": "ip"
               },
               "reason": {
                 "ignore_above": 1024,
@@ -20129,7 +20117,8 @@
       ],
       "refresh_interval": "2s"
     },
-    "mapping.total_fields.limit": 2500,
+    "mapping.nested_fields.limit": 100,
+    "mapping.total_fields.limit": 10000,
     "plugins.index_state_management.rollover_alias": "wazuh-events-checkpoint"
   }
 }

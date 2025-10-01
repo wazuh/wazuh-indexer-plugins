@@ -3182,40 +3182,34 @@
                 "type": "keyword"
               },
               "ip_id": {
-                "ignore_above": 1024,
-                "type": "keyword"
+                "type": "long"
               },
               "ip_offset": {
-                "ignore_above": 1024,
-                "type": "keyword"
+                "type": "long"
               },
               "ip_tos": {
                 "ignore_above": 1024,
                 "type": "keyword"
               },
               "ip_ttl": {
-                "ignore_above": 1024,
-                "type": "keyword"
+                "type": "long"
               },
               "tcp_flags": {
                 "ignore_above": 1024,
                 "type": "keyword"
               },
               "tcp_length": {
-                "ignore_above": 1024,
-                "type": "keyword"
+                "type": "long"
               },
               "tcp_options": {
                 "ignore_above": 1024,
                 "type": "keyword"
               },
               "tcp_seq": {
-                "ignore_above": 1024,
-                "type": "keyword"
+                "type": "long"
               },
               "tcp_window": {
-                "ignore_above": 1024,
-                "type": "keyword"
+                "type": "long"
               }
             }
           }
@@ -19553,7 +19547,8 @@
       ],
       "refresh_interval": "2s"
     },
-    "mapping.total_fields.limit": 2500,
+    "mapping.nested_fields.limit": 100,
+    "mapping.total_fields.limit": 10000,
     "plugins.index_state_management.rollover_alias": "wazuh-events-pfsense"
   }
 }

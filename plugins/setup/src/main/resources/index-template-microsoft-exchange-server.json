@@ -2677,12 +2677,10 @@
                     "type": "keyword"
                   },
                   "activity_context_lifetime": {
-                    "ignore_above": 1024,
-                    "type": "keyword"
+                    "type": "long"
                   },
                   "ad_latency": {
-                    "ignore_above": 1024,
-                    "type": "keyword"
+                    "type": "long"
                   },
                   "anchor_mailbox": {
                     "ignore_above": 1024,
@@ -2709,36 +2707,28 @@
                     "type": "keyword"
                   },
                   "backend_processing_latency": {
-                    "ignore_above": 1024,
-                    "type": "keyword"
+                    "type": "long"
                   },
                   "backend_request_init_latency": {
-                    "ignore_above": 1024,
-                    "type": "keyword"
+                    "type": "long"
                   },
                   "backend_request_stream_latency": {
-                    "ignore_above": 1024,
-                    "type": "keyword"
+                    "type": "long"
                   },
                   "backend_response_init_latency": {
-                    "ignore_above": 1024,
-                    "type": "keyword"
+                    "type": "long"
                   },
                   "backend_response_stream_latency": {
-                    "ignore_above": 1024,
-                    "type": "keyword"
+                    "type": "long"
                   },
                   "backend_status": {
-                    "ignore_above": 1024,
-                    "type": "keyword"
+                    "type": "long"
                   },
                   "build_version": {
-                    "ignore_above": 1024,
-                    "type": "keyword"
+                    "type": "long"
                   },
                   "calculate_target_backend_latency": {
-                    "ignore_above": 1024,
-                    "type": "keyword"
+                    "type": "long"
                   },
                   "cip": {
                     "ignore_above": 1024,
@@ -2753,12 +2743,10 @@
                     "type": "keyword"
                   },
                   "client_request_stream_latency": {
-                    "ignore_above": 1024,
-                    "type": "keyword"
+                    "type": "long"
                   },
                   "client_response_stream_latency": {
-                    "ignore_above": 1024,
-                    "type": "keyword"
+                    "type": "long"
                   },
                   "command": {
                     "ignore_above": 1024,
@@ -2773,8 +2761,7 @@
                     "type": "keyword"
                   },
                   "core_latency": {
-                    "ignore_above": 1024,
-                    "type": "keyword"
+                    "type": "long"
                   },
                   "custom_data": {
                     "ignore_above": 1024,
@@ -2789,8 +2776,7 @@
                     "type": "keyword"
                   },
                   "duration": {
-                    "ignore_above": 1024,
-                    "type": "keyword"
+                    "type": "long"
                   },
                   "edge_trace_id": {
                     "ignore_above": 1024,
@@ -2821,32 +2807,26 @@
                     "type": "keyword"
                   },
                   "handler_completion_latency": {
-                    "ignore_above": 1024,
-                    "type": "keyword"
+                    "type": "long"
                   },
                   "handler_to_module_switching_latency": {
-                    "ignore_above": 1024,
-                    "type": "keyword"
+                    "type": "long"
                   },
                   "http_pipeline_latency": {
-                    "ignore_above": 1024,
-                    "type": "keyword"
+                    "type": "long"
                   },
                   "http_proxy_overhead": {
-                    "ignore_above": 1024,
-                    "type": "keyword"
+                    "type": "long"
                   },
                   "internal_message_id": {
                     "ignore_above": 1024,
                     "type": "keyword"
                   },
                   "is_authenticated": {
-                    "ignore_above": 1024,
-                    "type": "keyword"
+                    "type": "boolean"
                   },
                   "kerberos_auth_header_latency": {
-                    "ignore_above": 1024,
-                    "type": "keyword"
+                    "type": "long"
                   },
                   "local_endpoint": {
                     "ignore_above": 1024,
@@ -2861,20 +2841,17 @@
                     "type": "keyword"
                   },
                   "major_version": {
-                    "ignore_above": 1024,
-                    "type": "keyword"
+                    "type": "long"
                   },
                   "message_info": {
                     "ignore_above": 1024,
                     "type": "keyword"
                   },
                   "minor_version": {
-                    "ignore_above": 1024,
-                    "type": "keyword"
+                    "type": "long"
                   },
                   "module_to_handler_switching_latency": {
-                    "ignore_above": 1024,
-                    "type": "keyword"
+                    "type": "long"
                   },
                   "network_message_id": {
                     "ignore_above": 1024,
@@ -2897,8 +2874,7 @@
                     "type": "keyword"
                   },
                   "partition_endpoint_lookup_latency": {
-                    "ignore_above": 1024,
-                    "type": "keyword"
+                    "type": "long"
                   },
                   "protocol": {
                     "ignore_above": 1024,
@@ -2913,16 +2889,14 @@
                     "type": "keyword"
                   },
                   "proxy_time": {
-                    "ignore_above": 1024,
-                    "type": "keyword"
+                    "type": "long"
                   },
                   "puid": {
                     "ignore_above": 1024,
                     "type": "keyword"
                   },
                   "recipient_count": {
-                    "ignore_above": 1024,
-                    "type": "keyword"
+                    "type": "long"
                   },
                   "recipient_status": {
                     "ignore_above": 1024,
@@ -2941,8 +2915,7 @@
                     "type": "keyword"
                   },
                   "request_handler_latency": {
-                    "ignore_above": 1024,
-                    "type": "keyword"
+                    "type": "long"
                   },
                   "request_id": {
                     "ignore_above": 1024,
@@ -2957,20 +2930,17 @@
                     "type": "keyword"
                   },
                   "revision_version": {
-                    "ignore_above": 1024,
-                    "type": "keyword"
+                    "type": "long"
                   },
                   "route_refresher_latency": {
-                    "ignore_above": 1024,
-                    "type": "keyword"
+                    "type": "long"
                   },
                   "routing_hint": {
                     "ignore_above": 1024,
                     "type": "keyword"
                   },
                   "routing_latency": {
-                    "ignore_above": 1024,
-                    "type": "keyword"
+                    "type": "long"
                   },
                   "routing_status": {
                     "ignore_above": 1024,
@@ -2981,12 +2951,10 @@
                     "type": "keyword"
                   },
                   "rpsize": {
-                    "ignore_above": 1024,
-                    "type": "keyword"
+                    "type": "long"
                   },
                   "rqsize": {
-                    "ignore_above": 1024,
-                    "type": "keyword"
+                    "type": "long"
                   },
                   "schema_version": {
                     "ignore_above": 1024,
@@ -2997,16 +2965,14 @@
                     "type": "keyword"
                   },
                   "sequence_number": {
-                    "ignore_above": 1024,
-                    "type": "keyword"
+                    "type": "long"
                   },
                   "server_locator_host": {
                     "ignore_above": 1024,
                     "type": "keyword"
                   },
                   "server_locator_latency": {
-                    "ignore_above": 1024,
-                    "type": "keyword"
+                    "type": "long"
                   },
                   "session_id": {
                     "ignore_above": 1024,
@@ -3029,8 +2995,7 @@
                     "type": "keyword"
                   },
                   "target_outstanding_requests": {
-                    "ignore_above": 1024,
-                    "type": "keyword"
+                    "type": "long"
                   },
                   "target_server": {
                     "ignore_above": 1024,
@@ -3045,24 +3010,19 @@
                     "type": "keyword"
                   },
                   "total_account_forest_latency": {
-                    "ignore_above": 1024,
-                    "type": "keyword"
+                    "type": "long"
                   },
                   "total_gls_latency": {
-                    "ignore_above": 1024,
-                    "type": "keyword"
+                    "type": "long"
                   },
                   "total_request_time": {
-                    "ignore_above": 1024,
-                    "type": "keyword"
+                    "type": "long"
                   },
                   "total_resource_forest_latency": {
-                    "ignore_above": 1024,
-                    "type": "keyword"
+                    "type": "long"
                   },
                   "total_shared_cache_latency": {
-                    "ignore_above": 1024,
-                    "type": "keyword"
+                    "type": "long"
                   },
                   "transport_traffic_type": {
                     "ignore_above": 1024,
@@ -19917,7 +19877,8 @@
       ],
       "refresh_interval": "2s"
     },
-    "mapping.total_fields.limit": 2500,
+    "mapping.nested_fields.limit": 100,
+    "mapping.total_fields.limit": 10000,
     "plugins.index_state_management.rollover_alias": "wazuh-events-microsoft-exchange-server"
   }
 }

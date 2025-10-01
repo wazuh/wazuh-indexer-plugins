@@ -19478,48 +19478,39 @@
           "zeek": {
             "properties": {
               "capture_loss_acks": {
-                "ignore_above": 1024,
-                "type": "keyword"
+                "type": "long"
               },
               "capture_loss_gaps": {
-                "ignore_above": 1024,
-                "type": "keyword"
+                "type": "long"
               },
               "capture_loss_peer": {
                 "ignore_above": 1024,
                 "type": "keyword"
               },
               "capture_loss_percent_lost": {
-                "ignore_above": 1024,
-                "type": "keyword"
+                "type": "long"
               },
               "capture_loss_ts_delta": {
-                "ignore_above": 1024,
-                "type": "keyword"
+                "type": "long"
               },
               "conn_history": {
                 "ignore_above": 1024,
                 "type": "keyword"
               },
               "conn_icmp_code": {
-                "ignore_above": 1024,
-                "type": "keyword"
+                "type": "long"
               },
               "conn_icmp_type": {
-                "ignore_above": 1024,
-                "type": "keyword"
+                "type": "long"
               },
               "conn_local_orig": {
-                "ignore_above": 1024,
-                "type": "keyword"
+                "type": "boolean"
               },
               "conn_local_resp": {
-                "ignore_above": 1024,
-                "type": "keyword"
+                "type": "boolean"
               },
               "conn_missed_bytes": {
-                "ignore_above": 1024,
-                "type": "keyword"
+                "type": "long"
               },
               "conn_state": {
                 "ignore_above": 1024,
@@ -19542,8 +19533,7 @@
                 "type": "keyword"
               },
               "dce_rpc_rtt": {
-                "ignore_above": 1024,
-                "type": "keyword"
+                "type": "long"
               },
               "dhcp_agent_remote_id": {
                 "ignore_above": 1024,
@@ -19574,16 +19564,14 @@
                 "type": "keyword"
               },
               "dhcp_duration": {
-                "ignore_above": 1024,
-                "type": "keyword"
+                "type": "long"
               },
               "dhcp_host_name": {
                 "ignore_above": 1024,
                 "type": "keyword"
               },
               "dhcp_lease_time": {
-                "ignore_above": 1024,
-                "type": "keyword"
+                "type": "long"
               },
               "dhcp_mac": {
                 "ignore_above": 1024,
@@ -19630,28 +19618,24 @@
                 "type": "keyword"
               },
               "dnp3_iin": {
-                "ignore_above": 1024,
-                "type": "keyword"
+                "type": "long"
               },
               "dns_TTLs": {
-                "ignore_above": 1024,
-                "type": "keyword"
+                "type": "long"
               },
               "dns_answers": {
                 "ignore_above": 1024,
                 "type": "keyword"
               },
               "dns_qclass": {
-                "ignore_above": 1024,
-                "type": "keyword"
+                "type": "long"
               },
               "dns_qclass_name": {
                 "ignore_above": 1024,
                 "type": "keyword"
               },
               "dns_qtype": {
-                "ignore_above": 1024,
-                "type": "keyword"
+                "type": "long"
               },
               "dns_qtype_name": {
                 "ignore_above": 1024,
@@ -19662,20 +19646,17 @@
                 "type": "keyword"
               },
               "dns_rcode": {
-                "ignore_above": 1024,
-                "type": "keyword"
+                "type": "long"
               },
               "dns_rcode_name": {
                 "ignore_above": 1024,
                 "type": "keyword"
               },
               "dns_rejected": {
-                "ignore_above": 1024,
-                "type": "keyword"
+                "type": "boolean"
               },
               "dns_rtt": {
-                "ignore_above": 1024,
-                "type": "keyword"
+                "type": "long"
               },
               "dns_trans_id": {
                 "ignore_above": 1024,
@@ -19694,72 +19675,58 @@
                 "type": "keyword"
               },
               "files_depth": {
-                "ignore_above": 1024,
-                "type": "keyword"
+                "type": "long"
               },
               "files_duration": {
-                "ignore_above": 1024,
-                "type": "keyword"
+                "type": "long"
               },
               "files_fuid": {
                 "ignore_above": 1024,
                 "type": "keyword"
               },
               "files_is_orig": {
-                "ignore_above": 1024,
-                "type": "keyword"
+                "type": "boolean"
               },
               "files_local_orig": {
-                "ignore_above": 1024,
-                "type": "keyword"
+                "type": "boolean"
               },
               "files_missing_bytes": {
-                "ignore_above": 1024,
-                "type": "keyword"
+                "type": "long"
               },
               "files_overflow_bytes": {
-                "ignore_above": 1024,
-                "type": "keyword"
+                "type": "long"
               },
               "files_rx_host": {
-                "ignore_above": 1024,
-                "type": "keyword"
+                "type": "ip"
               },
               "files_seen_bytes": {
-                "ignore_above": 1024,
-                "type": "keyword"
+                "type": "long"
               },
               "files_source": {
                 "ignore_above": 1024,
                 "type": "keyword"
               },
               "files_timedout": {
-                "ignore_above": 1024,
-                "type": "keyword"
+                "type": "boolean"
               },
               "files_tx_host": {
-                "ignore_above": 1024,
-                "type": "keyword"
+                "type": "ip"
               },
               "ftp_arg": {
                 "ignore_above": 1024,
                 "type": "keyword"
               },
               "ftp_data_channel_orig_h": {
-                "ignore_above": 1024,
-                "type": "keyword"
+                "type": "ip"
               },
               "ftp_data_channel_passive": {
-                "ignore_above": 1024,
-                "type": "keyword"
+                "type": "boolean"
               },
               "ftp_data_channel_resp_h": {
-                "ignore_above": 1024,
-                "type": "keyword"
+                "type": "ip"
               },
               "ftp_data_channel_resp_p": {
-                "ignore_above": 1024,
-                "type": "keyword"
+                "type": "long"
               },
               "ftp_fuid": {
                 "ignore_above": 1024,
@@ -19770,8 +19737,7 @@
                 "type": "keyword"
               },
               "ftp_reply_code": {
-                "ignore_above": 1024,
-                "type": "keyword"
+                "type": "long"
               },
               "ftp_reply_msg": {
                 "ignore_above": 1024,
@@ -19794,8 +19760,7 @@
                 "type": "keyword"
               },
               "http_trans_depth": {
-                "ignore_above": 1024,
-                "type": "keyword"
+                "type": "long"
               },
               "intel_matched": {
                 "ignore_above": 1024,
@@ -19862,36 +19827,31 @@
                 "type": "keyword"
               },
               "kerberos_error_code": {
-                "ignore_above": 1024,
-                "type": "keyword"
+                "type": "long"
               },
               "kerberos_error_msg": {
                 "ignore_above": 1024,
                 "type": "keyword"
               },
               "kerberos_forwardable": {
-                "ignore_above": 1024,
-                "type": "keyword"
+                "type": "boolean"
               },
               "kerberos_from": {
-                "ignore_above": 1024,
-                "type": "keyword"
+                "type": "date"
               },
               "kerberos_new_ticket": {
                 "ignore_above": 1024,
                 "type": "keyword"
               },
               "kerberos_renewable": {
-                "ignore_above": 1024,
-                "type": "keyword"
+                "type": "boolean"
               },
               "kerberos_service": {
                 "ignore_above": 1024,
                 "type": "keyword"
               },
               "kerberos_success": {
-                "ignore_above": 1024,
-                "type": "keyword"
+                "type": "boolean"
               },
               "kerberos_till": {
                 "ignore_above": 1024,
@@ -19906,20 +19866,17 @@
                 "type": "keyword"
               },
               "mysql_rows": {
-                "ignore_above": 1024,
-                "type": "keyword"
+                "type": "long"
               },
               "mysql_success": {
-                "ignore_above": 1024,
-                "type": "keyword"
+                "type": "boolean"
               },
               "notice_actions": {
                 "ignore_above": 1024,
                 "type": "keyword"
               },
               "notice_dropped": {
-                "ignore_above": 1024,
-                "type": "keyword"
+                "type": "boolean"
               },
               "notice_fuid": {
                 "ignore_above": 1024,
@@ -19942,8 +19899,7 @@
                 "type": "keyword"
               },
               "notice_suppress_for": {
-                "ignore_above": 1024,
-                "type": "keyword"
+                "type": "long"
               },
               "ntlm_hostname": {
                 "ignore_above": 1024,
@@ -19962,56 +19918,44 @@
                 "type": "keyword"
               },
               "ntp_mode": {
-                "ignore_above": 1024,
-                "type": "keyword"
+                "type": "long"
               },
               "ntp_num_exts": {
-                "ignore_above": 1024,
-                "type": "keyword"
+                "type": "long"
               },
               "ntp_org_time": {
-                "ignore_above": 1024,
-                "type": "keyword"
+                "type": "date"
               },
               "ntp_poll": {
-                "ignore_above": 1024,
-                "type": "keyword"
+                "type": "long"
               },
               "ntp_precision": {
-                "ignore_above": 1024,
-                "type": "keyword"
+                "type": "long"
               },
               "ntp_rec_time": {
-                "ignore_above": 1024,
-                "type": "keyword"
+                "type": "date"
               },
               "ntp_ref_id": {
                 "ignore_above": 1024,
                 "type": "keyword"
               },
               "ntp_ref_time": {
-                "ignore_above": 1024,
-                "type": "keyword"
+                "type": "date"
               },
               "ntp_root_delay": {
-                "ignore_above": 1024,
-                "type": "keyword"
+                "type": "float"
               },
               "ntp_root_disp": {
-                "ignore_above": 1024,
-                "type": "keyword"
+                "type": "float"
               },
               "ntp_stratum": {
-                "ignore_above": 1024,
-                "type": "keyword"
+                "type": "long"
               },
               "ntp_version": {
-                "ignore_above": 1024,
-                "type": "keyword"
+                "type": "long"
               },
               "ntp_xmt_time": {
-                "ignore_above": 1024,
-                "type": "keyword"
+                "type": "date"
               },
               "ocsp_cert_status": {
                 "ignore_above": 1024,
@@ -20034,56 +19978,46 @@
                 "type": "keyword"
               },
               "ocsp_next_update": {
-                "ignore_above": 1024,
-                "type": "keyword"
+                "type": "date"
               },
               "ocsp_revokereason": {
                 "ignore_above": 1024,
                 "type": "keyword"
               },
               "ocsp_revoketime": {
-                "ignore_above": 1024,
-                "type": "keyword"
+                "type": "date"
               },
               "ocsp_serial_number": {
                 "ignore_above": 1024,
                 "type": "keyword"
               },
               "ocsp_this_update": {
-                "ignore_above": 1024,
-                "type": "keyword"
+                "type": "date"
               },
               "pe_compile_ts": {
-                "ignore_above": 1024,
-                "type": "keyword"
+                "type": "date"
               },
               "pe_has_cert_table": {
-                "ignore_above": 1024,
-                "type": "keyword"
+                "type": "boolean"
               },
               "pe_has_debug_data": {
-                "ignore_above": 1024,
-                "type": "keyword"
+                "type": "boolean"
               },
               "pe_has_export_table": {
-                "ignore_above": 1024,
-                "type": "keyword"
+                "type": "boolean"
               },
               "pe_has_import_table": {
-                "ignore_above": 1024,
-                "type": "keyword"
+                "type": "boolean"
               },
               "pe_id": {
                 "ignore_above": 1024,
                 "type": "keyword"
               },
               "pe_is_64bit": {
-                "ignore_above": 1024,
-                "type": "keyword"
+                "type": "boolean"
               },
               "pe_is_exe": {
-                "ignore_above": 1024,
-                "type": "keyword"
+                "type": "boolean"
               },
               "pe_machine": {
                 "ignore_above": 1024,
@@ -20102,32 +20036,26 @@
                 "type": "keyword"
               },
               "pe_uses_aslr": {
-                "ignore_above": 1024,
-                "type": "keyword"
+                "type": "boolean"
               },
               "pe_uses_code_integrity": {
-                "ignore_above": 1024,
-                "type": "keyword"
+                "type": "boolean"
               },
               "pe_uses_dep": {
-                "ignore_above": 1024,
-                "type": "keyword"
+                "type": "boolean"
               },
               "pe_uses_seh": {
-                "ignore_above": 1024,
-                "type": "keyword"
+                "type": "boolean"
               },
               "radius_mac": {
                 "ignore_above": 1024,
                 "type": "keyword"
               },
               "rdp_cert_count": {
-                "ignore_above": 1024,
-                "type": "keyword"
+                "type": "long"
               },
               "rdp_cert_permanent": {
-                "ignore_above": 1024,
-                "type": "keyword"
+                "type": "boolean"
               },
               "rdp_cert_type": {
                 "ignore_above": 1024,
@@ -20146,12 +20074,10 @@
                 "type": "keyword"
               },
               "rdp_desktop_height": {
-                "ignore_above": 1024,
-                "type": "keyword"
+                "type": "long"
               },
               "rdp_desktop_width": {
-                "ignore_above": 1024,
-                "type": "keyword"
+                "type": "long"
               },
               "rdp_encryption_level": {
                 "ignore_above": 1024,
@@ -20174,8 +20100,7 @@
                 "type": "keyword"
               },
               "rfb_auth": {
-                "ignore_above": 1024,
-                "type": "keyword"
+                "type": "boolean"
               },
               "rfb_authentication_method": {
                 "ignore_above": 1024,
@@ -20194,8 +20119,7 @@
                 "type": "keyword"
               },
               "rfb_height": {
-                "ignore_above": 1024,
-                "type": "keyword"
+                "type": "long"
               },
               "rfb_server_major_version": {
                 "ignore_above": 1024,
@@ -20206,12 +20130,10 @@
                 "type": "keyword"
               },
               "rfb_share_flag": {
-                "ignore_above": 1024,
-                "type": "keyword"
+                "type": "boolean"
               },
               "rfb_width": {
-                "ignore_above": 1024,
-                "type": "keyword"
+                "type": "long"
               },
               "signature_event_msg": {
                 "ignore_above": 1024,
@@ -20234,8 +20156,7 @@
                 "type": "keyword"
               },
               "sip_request_body_len": {
-                "ignore_above": 1024,
-                "type": "keyword"
+                "type": "long"
               },
               "sip_request_from": {
                 "ignore_above": 1024,
@@ -20250,8 +20171,7 @@
                 "type": "keyword"
               },
               "sip_response_body_len": {
-                "ignore_above": 1024,
-                "type": "keyword"
+                "type": "long"
               },
               "sip_response_from": {
                 "ignore_above": 1024,
@@ -20270,16 +20190,14 @@
                 "type": "keyword"
               },
               "sip_status_code": {
-                "ignore_above": 1024,
-                "type": "keyword"
+                "type": "long"
               },
               "sip_status_msg": {
                 "ignore_above": 1024,
                 "type": "keyword"
               },
               "sip_trans_depth": {
-                "ignore_above": 1024,
-                "type": "keyword"
+                "type": "long"
               },
               "smb_cmd_argument": {
                 "ignore_above": 1024,
@@ -20290,28 +20208,24 @@
                 "type": "keyword"
               },
               "smb_cmd_referenced_file_id_orig_h": {
-                "ignore_above": 1024,
-                "type": "keyword"
+                "type": "ip"
               },
               "smb_cmd_referenced_file_id_resp_h": {
-                "ignore_above": 1024,
-                "type": "keyword"
+                "type": "ip"
               },
               "smb_cmd_referenced_file_name": {
                 "ignore_above": 1024,
                 "type": "keyword"
               },
               "smb_cmd_referenced_file_ts": {
-                "ignore_above": 1024,
-                "type": "keyword"
+                "type": "date"
               },
               "smb_cmd_referenced_file_uid": {
                 "ignore_above": 1024,
                 "type": "keyword"
               },
               "smb_cmd_rtt": {
-                "ignore_above": 1024,
-                "type": "keyword"
+                "type": "long"
               },
               "smb_cmd_status": {
                 "ignore_above": 1024,
@@ -20346,8 +20260,7 @@
                 "type": "keyword"
               },
               "smtp_date": {
-                "ignore_above": 1024,
-                "type": "keyword"
+                "type": "date"
               },
               "smtp_fuids": {
                 "ignore_above": 1024,
@@ -20358,8 +20271,7 @@
                 "type": "keyword"
               },
               "smtp_is_webmail": {
-                "ignore_above": 1024,
-                "type": "keyword"
+                "type": "boolean"
               },
               "smtp_last_reply": {
                 "ignore_above": 1024,
@@ -20386,36 +20298,29 @@
                 "type": "keyword"
               },
               "smtp_trans_depth": {
-                "ignore_above": 1024,
-                "type": "keyword"
+                "type": "long"
               },
               "smtp_user_agent": {
                 "ignore_above": 1024,
                 "type": "keyword"
               },
               "snmp_duration": {
-                "ignore_above": 1024,
-                "type": "keyword"
+                "type": "long"
               },
               "snmp_get_bulk_requests": {
-                "ignore_above": 1024,
-                "type": "keyword"
+                "type": "long"
               },
               "snmp_get_requests": {
-                "ignore_above": 1024,
-                "type": "keyword"
+                "type": "long"
               },
               "snmp_get_responses": {
-                "ignore_above": 1024,
-                "type": "keyword"
+                "type": "long"
               },
               "snmp_set_requests": {
-                "ignore_above": 1024,
-                "type": "keyword"
+                "type": "long"
               },
               "snmp_up_since": {
-                "ignore_above": 1024,
-                "type": "keyword"
+                "type": "date"
               },
               "snmp_version": {
                 "ignore_above": 1024,
@@ -20426,8 +20331,7 @@
                 "type": "keyword"
               },
               "socks_bound_p": {
-                "ignore_above": 1024,
-                "type": "keyword"
+                "type": "long"
               },
               "socks_request_name": {
                 "ignore_above": 1024,
@@ -20442,12 +20346,10 @@
                 "type": "keyword"
               },
               "socks_version": {
-                "ignore_above": 1024,
-                "type": "keyword"
+                "type": "long"
               },
               "software_host": {
-                "ignore_above": 1024,
-                "type": "keyword"
+                "type": "ip"
               },
               "software_name": {
                 "ignore_above": 1024,
@@ -20466,28 +20368,22 @@
                 "type": "keyword"
               },
               "software_version_major": {
-                "ignore_above": 1024,
-                "type": "keyword"
+                "type": "long"
               },
               "software_version_minor": {
-                "ignore_above": 1024,
-                "type": "keyword"
+                "type": "long"
               },
               "software_version_minor2": {
-                "ignore_above": 1024,
-                "type": "keyword"
+                "type": "long"
               },
               "software_version_minor3": {
-                "ignore_above": 1024,
-                "type": "keyword"
+                "type": "long"
               },
               "ssh_auth_attempts": {
-                "ignore_above": 1024,
-                "type": "keyword"
+                "type": "long"
               },
               "ssh_auth_success": {
-                "ignore_above": 1024,
-                "type": "keyword"
+                "type": "boolean"
               },
               "ssh_cipher_alg": {
                 "ignore_above": 1024,
@@ -20526,8 +20422,7 @@
                 "type": "keyword"
               },
               "ssh_version": {
-                "ignore_above": 1024,
-                "type": "keyword"
+                "type": "long"
               },
               "ssl_cert_chain": {
                 "ignore_above": 1024,
@@ -20578,104 +20473,80 @@
                 "type": "keyword"
               },
               "stats_active_dns_requests": {
-                "ignore_above": 1024,
-                "type": "keyword"
+                "type": "long"
               },
               "stats_active_files": {
-                "ignore_above": 1024,
-                "type": "keyword"
+                "type": "long"
               },
               "stats_active_icmp_conns": {
-                "ignore_above": 1024,
-                "type": "keyword"
+                "type": "long"
               },
               "stats_active_tcp_conns": {
-                "ignore_above": 1024,
-                "type": "keyword"
+                "type": "long"
               },
               "stats_active_timers": {
-                "ignore_above": 1024,
-                "type": "keyword"
+                "type": "long"
               },
               "stats_active_udp_conns": {
-                "ignore_above": 1024,
-                "type": "keyword"
+                "type": "long"
               },
               "stats_bytes_recv": {
-                "ignore_above": 1024,
-                "type": "keyword"
+                "type": "long"
               },
               "stats_dns_requests": {
-                "ignore_above": 1024,
-                "type": "keyword"
+                "type": "long"
               },
               "stats_event_proc": {
-                "ignore_above": 1024,
-                "type": "keyword"
+                "type": "long"
               },
               "stats_event_queued": {
-                "ignore_above": 1024,
-                "type": "keyword"
+                "type": "long"
               },
               "stats_files": {
-                "ignore_above": 1024,
-                "type": "keyword"
+                "type": "long"
               },
               "stats_icmp_conns": {
-                "ignore_above": 1024,
-                "type": "keyword"
+                "type": "long"
               },
               "stats_mem": {
-                "ignore_above": 1024,
-                "type": "keyword"
+                "type": "long"
               },
               "stats_peer": {
                 "ignore_above": 1024,
                 "type": "keyword"
               },
               "stats_pkt_lag": {
-                "ignore_above": 1024,
-                "type": "keyword"
+                "type": "float"
               },
               "stats_pkts_dropped": {
-                "ignore_above": 1024,
-                "type": "keyword"
+                "type": "long"
               },
               "stats_pkts_link": {
-                "ignore_above": 1024,
-                "type": "keyword"
+                "type": "long"
               },
               "stats_pkts_proc": {
-                "ignore_above": 1024,
-                "type": "keyword"
+                "type": "long"
               },
               "stats_reassem_file_size": {
-                "ignore_above": 1024,
-                "type": "keyword"
+                "type": "long"
               },
               "stats_reassem_frag_size": {
-                "ignore_above": 1024,
-                "type": "keyword"
+                "type": "long"
               },
               "stats_reassem_tcp_size": {
-                "ignore_above": 1024,
-                "type": "keyword"
+                "type": "long"
               },
               "stats_reassem_unknown_size": {
-                "ignore_above": 1024,
-                "type": "keyword"
+                "type": "long"
               },
               "stats_tcp_conns": {
-                "ignore_above": 1024,
-                "type": "keyword"
+                "type": "long"
               },
               "stats_timers": {
-                "ignore_above": 1024,
-                "type": "keyword"
+                "type": "long"
               },
               "stats_udp_conns": {
-                "ignore_above": 1024,
-                "type": "keyword"
+                "type": "long"
               },
               "tunnel_type": {
                 "ignore_above": 1024,
@@ -20694,20 +20565,17 @@
                 "type": "keyword"
               },
               "weird_notice": {
-                "ignore_above": 1024,
-                "type": "keyword"
+                "type": "boolean"
               },
               "weird_peer": {
                 "ignore_above": 1024,
                 "type": "keyword"
               },
               "x509_basic_constraints_ca": {
-                "ignore_above": 1024,
-                "type": "keyword"
+                "type": "boolean"
               },
               "x509_basic_constraints_path_len": {
-                "ignore_above": 1024,
-                "type": "keyword"
+                "type": "long"
               },
               "x509_certificate_issuer": {
                 "ignore_above": 1024,
@@ -20745,7 +20613,8 @@
       ],
       "refresh_interval": "2s"
     },
-    "mapping.total_fields.limit": 2500,
+    "mapping.nested_fields.limit": 100,
+    "mapping.total_fields.limit": 10000,
     "plugins.index_state_management.rollover_alias": "wazuh-events-zeek"
   }
 }

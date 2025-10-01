@@ -352,8 +352,7 @@
                     "type": "keyword"
                   },
                   "assigned_ip": {
-                    "ignore_above": 1024,
-                    "type": "keyword"
+                    "type": "ip"
                   },
                   "burst": {
                     "properties": {
@@ -400,12 +399,10 @@
                     "type": "keyword"
                   },
                   "connections_in_use": {
-                    "ignore_above": 1024,
-                    "type": "keyword"
+                    "type": "long"
                   },
                   "connections_most_used": {
-                    "ignore_above": 1024,
-                    "type": "keyword"
+                    "type": "long"
                   },
                   "dap_records": {
                     "ignore_above": 1024,
@@ -416,8 +413,7 @@
                     "type": "keyword"
                   },
                   "destination_user_security_group_tag": {
-                    "ignore_above": 1024,
-                    "type": "keyword"
+                    "type": "long"
                   },
                   "destination_user_security_group_tag_name": {
                     "ignore_above": 1024,
@@ -436,12 +432,10 @@
                     "type": "keyword"
                   },
                   "icmp_code": {
-                    "ignore_above": 1024,
-                    "type": "keyword"
+                    "type": "long"
                   },
                   "icmp_type": {
-                    "ignore_above": 1024,
-                    "type": "keyword"
+                    "type": "long"
                   },
                   "interface_name": {
                     "ignore_above": 1024,
@@ -452,44 +446,37 @@
                     "type": "keyword"
                   },
                   "mapped_destination_ip": {
-                    "ignore_above": 1024,
-                    "type": "keyword"
+                    "type": "ip"
                   },
                   "mapped_destination_port": {
-                    "ignore_above": 1024,
-                    "type": "keyword"
+                    "type": "long"
                   },
                   "mapped_source_host": {
                     "ignore_above": 1024,
                     "type": "keyword"
                   },
                   "mapped_source_ip": {
-                    "ignore_above": 1024,
-                    "type": "keyword"
+                    "type": "ip"
                   },
                   "mapped_source_port": {
-                    "ignore_above": 1024,
-                    "type": "keyword"
+                    "type": "long"
                   },
                   "message": {
                     "ignore_above": 1024,
                     "type": "keyword"
                   },
                   "message_repeats": {
-                    "ignore_above": 1024,
-                    "type": "keyword"
+                    "type": "long"
                   },
                   "original_iana_number": {
-                    "ignore_above": 1024,
-                    "type": "keyword"
+                    "type": "long"
                   },
                   "peer_type": {
                     "ignore_above": 1024,
                     "type": "keyword"
                   },
                   "pool_address": {
-                    "ignore_above": 1024,
-                    "type": "keyword"
+                    "type": "ip"
                   },
                   "pool_name": {
                     "ignore_above": 1024,
@@ -532,8 +519,7 @@
                     "type": "keyword"
                   },
                   "source_user_security_group_tag": {
-                    "ignore_above": 1024,
-                    "type": "keyword"
+                    "type": "long"
                   },
                   "source_user_security_group_tag_name": {
                     "ignore_above": 1024,
@@ -19749,7 +19735,8 @@
       ],
       "refresh_interval": "2s"
     },
-    "mapping.total_fields.limit": 2500,
+    "mapping.nested_fields.limit": 100,
+    "mapping.total_fields.limit": 10000,
     "plugins.index_state_management.rollover_alias": "wazuh-events-cisco-asa"
   }
 }

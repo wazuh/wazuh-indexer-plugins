@@ -402,12 +402,10 @@
                 "type": "keyword"
               },
               "dst_prefixlen": {
-                "ignore_above": 1024,
-                "type": "keyword"
+                "type": "long"
               },
               "entries": {
-                "ignore_above": 1024,
-                "type": "keyword"
+                "type": "long"
               },
               "fam": {
                 "ignore_above": 1024,
@@ -482,16 +480,14 @@
                 "type": "keyword"
               },
               "key_enforce": {
-                "ignore_above": 1024,
-                "type": "keyword"
+                "type": "boolean"
               },
               "kind": {
                 "ignore_above": 1024,
                 "type": "keyword"
               },
               "ksize": {
-                "ignore_above": 1024,
-                "type": "keyword"
+                "type": "long"
               },
               "label": {
                 "ignore_above": 1024,
@@ -510,8 +506,7 @@
                 "type": "keyword"
               },
               "lport": {
-                "ignore_above": 1024,
-                "type": "keyword"
+                "type": "long"
               },
               "major": {
                 "ignore_above": 1024,
@@ -618,8 +613,7 @@
                 "type": "keyword"
               },
               "peer_pid": {
-                "ignore_above": 1024,
-                "type": "keyword"
+                "type": "long"
               },
               "permissive": {
                 "ignore_above": 1024,
@@ -666,8 +660,7 @@
                 "type": "keyword"
               },
               "rport": {
-                "ignore_above": 1024,
-                "type": "keyword"
+                "type": "long"
               },
               "saddr": {
                 "ignore_above": 1024,
@@ -690,8 +683,7 @@
                 "type": "keyword"
               },
               "sequence": {
-                "ignore_above": 1024,
-                "type": "keyword"
+                "type": "long"
               },
               "ses": {
                 "ignore_above": 1024,
@@ -706,16 +698,14 @@
                 "type": "keyword"
               },
               "src_prefixlen": {
-                "ignore_above": 1024,
-                "type": "keyword"
+                "type": "long"
               },
               "subj": {
                 "ignore_above": 1024,
                 "type": "keyword"
               },
               "success": {
-                "ignore_above": 1024,
-                "type": "keyword"
+                "type": "boolean"
               },
               "sw": {
                 "ignore_above": 1024,
@@ -20017,7 +20007,8 @@
       ],
       "refresh_interval": "2s"
     },
-    "mapping.total_fields.limit": 2500,
+    "mapping.nested_fields.limit": 100,
+    "mapping.total_fields.limit": 10000,
     "plugins.index_state_management.rollover_alias": "wazuh-events-audit"
   }
 }

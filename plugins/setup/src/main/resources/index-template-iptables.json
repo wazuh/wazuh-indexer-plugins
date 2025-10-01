@@ -2573,72 +2573,59 @@
           "iptables": {
             "properties": {
               "ether_type": {
-                "ignore_above": 1024,
-                "type": "keyword"
+                "type": "long"
               },
               "flow_label": {
-                "ignore_above": 1024,
-                "type": "keyword"
+                "type": "long"
               },
               "fragment_flags": {
                 "ignore_above": 1024,
                 "type": "keyword"
               },
               "icmp_code": {
-                "ignore_above": 1024,
-                "type": "keyword"
+                "type": "long"
               },
               "icmp_seq": {
-                "ignore_above": 1024,
-                "type": "keyword"
+                "type": "long"
               },
               "icmp_type": {
-                "ignore_above": 1024,
-                "type": "keyword"
+                "type": "long"
               },
               "id": {
-                "ignore_above": 1024,
-                "type": "keyword"
+                "type": "long"
               },
               "input_device": {
                 "ignore_above": 1024,
                 "type": "keyword"
               },
               "length": {
-                "ignore_above": 1024,
-                "type": "keyword"
+                "type": "long"
               },
               "mark": {
-                "ignore_above": 1024,
-                "type": "keyword"
+                "type": "long"
               },
               "output_device": {
                 "ignore_above": 1024,
                 "type": "keyword"
               },
               "precedence_bits": {
-                "ignore_above": 1024,
-                "type": "keyword"
+                "type": "long"
               },
               "tcp_flags": {
                 "ignore_above": 1024,
                 "type": "keyword"
               },
               "tcp_reserved_bits": {
-                "ignore_above": 1024,
-                "type": "keyword"
+                "type": "long"
               },
               "tcp_window": {
-                "ignore_above": 1024,
-                "type": "keyword"
+                "type": "long"
               },
               "tos": {
-                "ignore_above": 1024,
-                "type": "keyword"
+                "type": "long"
               },
               "ttl": {
-                "ignore_above": 1024,
-                "type": "keyword"
+                "type": "long"
               }
             }
           },
@@ -19577,7 +19564,8 @@
       ],
       "refresh_interval": "2s"
     },
-    "mapping.total_fields.limit": 2500,
+    "mapping.nested_fields.limit": 100,
+    "mapping.total_fields.limit": 10000,
     "plugins.index_state_management.rollover_alias": "wazuh-events-iptables"
   }
 }

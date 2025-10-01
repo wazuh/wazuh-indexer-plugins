@@ -362,8 +362,8 @@
                         "type": "keyword"
                       },
                       "error_message": {
-                        "ignore_above": 1024,
-                        "type": "keyword"
+                        "norms": false,
+                        "type": "text"
                       }
                     }
                   },
@@ -428,20 +428,17 @@
                     "type": "keyword"
                   },
                   "requirements": {
-                    "ignore_above": 1024,
-                    "type": "keyword"
+                    "type": "nested"
                   },
                   "standards": {
-                    "ignore_above": 1024,
-                    "type": "keyword"
+                    "type": "nested"
                   },
                   "status": {
                     "ignore_above": 1024,
                     "type": "keyword"
                   },
                   "status_id": {
-                    "ignore_above": 1024,
-                    "type": "keyword"
+                    "type": "long"
                   }
                 }
               },
@@ -452,8 +449,7 @@
                     "type": "keyword"
                   },
                   "direction_id": {
-                    "ignore_above": 1024,
-                    "type": "keyword"
+                    "type": "long"
                   },
                   "protocol_ver": {
                     "ignore_above": 1024,
@@ -462,8 +458,7 @@
                 }
               },
               "count": {
-                "ignore_above": 1024,
-                "type": "keyword"
+                "type": "long"
               },
               "device": {
                 "properties": {
@@ -476,8 +471,7 @@
                     "type": "keyword"
                   },
                   "type_id": {
-                    "ignore_above": 1024,
-                    "type": "keyword"
+                    "type": "long"
                   }
                 }
               },
@@ -548,12 +542,11 @@
               "finding": {
                 "properties": {
                   "created_time": {
-                    "ignore_above": 1024,
-                    "type": "keyword"
+                    "type": "date"
                   },
                   "desc": {
-                    "ignore_above": 1024,
-                    "type": "keyword"
+                    "norms": false,
+                    "type": "text"
                   },
                   "first_seen_time": {
                     "ignore_above": 1024,
@@ -592,16 +585,15 @@
               "http_response": {
                 "properties": {
                   "message": {
-                    "ignore_above": 1024,
-                    "type": "keyword"
+                    "norms": false,
+                    "type": "text"
                   }
                 }
               },
               "malware": {
                 "properties": {
                   "classification_ids": {
-                    "ignore_above": 1024,
-                    "type": "keyword"
+                    "type": "nested"
                   },
                   "name": {
                     "ignore_above": 1024,
@@ -672,8 +664,7 @@
                     }
                   },
                   "sequence": {
-                    "ignore_above": 1024,
-                    "type": "keyword"
+                    "type": "long"
                   },
                   "tenant_uid": {
                     "ignore_above": 1024,
@@ -722,8 +713,7 @@
                 "type": "keyword"
               },
               "severity_id": {
-                "ignore_above": 1024,
-                "type": "keyword"
+                "type": "long"
               },
               "src_endpoint": {
                 "properties": {
@@ -770,42 +760,34 @@
                 "type": "keyword"
               },
               "status_id": {
-                "ignore_above": 1024,
-                "type": "keyword"
+                "type": "long"
               },
               "time": {
                 "ignore_above": 1024,
                 "type": "keyword"
               },
               "timezone_offset": {
-                "ignore_above": 1024,
-                "type": "keyword"
+                "type": "long"
               },
               "traffic": {
                 "properties": {
                   "bytes": {
-                    "ignore_above": 1024,
-                    "type": "keyword"
+                    "type": "long"
                   },
                   "bytes_in": {
-                    "ignore_above": 1024,
-                    "type": "keyword"
+                    "type": "long"
                   },
                   "bytes_out": {
-                    "ignore_above": 1024,
-                    "type": "keyword"
+                    "type": "long"
                   },
                   "packets": {
-                    "ignore_above": 1024,
-                    "type": "keyword"
+                    "type": "long"
                   },
                   "packets_in": {
-                    "ignore_above": 1024,
-                    "type": "keyword"
+                    "type": "long"
                   },
                   "packets_out": {
-                    "ignore_above": 1024,
-                    "type": "keyword"
+                    "type": "long"
                   }
                 }
               },
@@ -848,8 +830,7 @@
                     "type": "keyword"
                   },
                   "type_id": {
-                    "ignore_above": 1024,
-                    "type": "keyword"
+                    "type": "long"
                   }
                 }
               }
@@ -20057,7 +20038,8 @@
       ],
       "refresh_interval": "2s"
     },
-    "mapping.total_fields.limit": 2500,
+    "mapping.nested_fields.limit": 100,
+    "mapping.total_fields.limit": 10000,
     "plugins.index_state_management.rollover_alias": "wazuh-events-amazon-security-lake"
   }
 }
