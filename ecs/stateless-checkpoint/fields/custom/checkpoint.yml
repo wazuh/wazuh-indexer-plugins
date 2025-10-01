@@ -1,6 +1,7 @@
 - name: checkpoint
   title: Checkpoint
   description: checkpoint custom fields for WCS integration
+  root: true
   fields:
   - name: checkpoint.action_reason
     type: keyword

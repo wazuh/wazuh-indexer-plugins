@@ -1,6 +1,7 @@
 - name: unifiedlogs
   title: Unifiedlogs
   description: unifiedlogs custom fields for WCS integration
+  root: true
   fields:
   - name: macos_uls.macos_entitlement
     type: keyword

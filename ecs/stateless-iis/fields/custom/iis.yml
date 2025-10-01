@@ -1,6 +1,7 @@
 - name: iis
   title: Iis
   description: iis custom fields for WCS integration
+  root: true
   fields:
   - name: iis.bytes_received_by_client
     type: long

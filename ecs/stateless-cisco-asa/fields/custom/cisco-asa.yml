@@ -1,6 +1,7 @@
 - name: cisco-asa
   title: Cisco Asa
   description: cisco-asa custom fields for WCS integration
+  root: true
   fields:
   - name: cisco.asa.aaa_type
     type: keyword

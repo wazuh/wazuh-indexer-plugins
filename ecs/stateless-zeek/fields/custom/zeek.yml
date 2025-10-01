@@ -1,6 +1,7 @@
 - name: zeek
   title: Zeek
   description: zeek custom fields for WCS integration
+  root: true
   fields:
   - name: zeek.capture_loss_acks
     type: long

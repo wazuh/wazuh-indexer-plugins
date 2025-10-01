@@ -3,6 +3,7 @@
   title: <integration-name>
   description: >
     <integration-name> custom fields
+  root: true
   fields:
     - name: <integration-name>.field1
       type: keyword

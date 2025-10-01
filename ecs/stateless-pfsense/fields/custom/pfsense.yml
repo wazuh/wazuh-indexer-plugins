@@ -1,6 +1,7 @@
 - name: pfsense
   title: Pfsense
   description: pfsense custom fields for WCS integration
+  root: true
   fields:
   - name: pfsense.dhcp_subnet
     type: keyword

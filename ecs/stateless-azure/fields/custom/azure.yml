@@ -1,6 +1,7 @@
 - name: azure
   title: Azure
   description: azure custom fields for WCS integration
+  root: true
   fields:
   - name: azure.resource.provider
     type: keyword

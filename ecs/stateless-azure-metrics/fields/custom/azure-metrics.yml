@@ -1,6 +1,7 @@
 - name: azure-metrics
   title: Azure Metrics
   description: azure-metrics custom fields for WCS integration
+  root: true
   fields:
   - name: azure.resource.group
     type: keyword

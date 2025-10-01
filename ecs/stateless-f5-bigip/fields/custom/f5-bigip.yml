@@ -1,6 +1,7 @@
 - name: f5-bigip
   title: F5 Bigip
   description: f5-bigip custom fields for WCS integration
+  root: true
   fields:
   - name: f5_bigip.log.abandoned_conns
     type: long

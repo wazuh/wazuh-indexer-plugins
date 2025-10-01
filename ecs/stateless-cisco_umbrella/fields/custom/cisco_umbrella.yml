@@ -1,6 +1,7 @@
 - name: cisco_umbrella
   title: Cisco Umbrella
   description: cisco_umbrella custom fields for WCS integration
+  root: true
   fields:
   - name: cisco.umbrella.audit.after
     type: nested

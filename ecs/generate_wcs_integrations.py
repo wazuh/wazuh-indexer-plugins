@@ -149,6 +149,7 @@ class WCSIntegrationsGenerator:
             'name': integration,
             'title': integration.replace('_', ' ').replace('-', ' ').title(),
             'description': f'{integration} custom fields for WCS integration',
+            'root': True,
             'fields': fields
         }]
 

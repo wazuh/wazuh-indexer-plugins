@@ -1,6 +1,7 @@
 - name: microsoft-exchange-server
   title: Microsoft Exchange Server
   description: microsoft-exchange-server custom fields for WCS integration
+  root: true
   fields:
   - name: microsoft.exchange.account_forest_latency_breakup
     type: keyword

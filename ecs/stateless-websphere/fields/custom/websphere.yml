@@ -1,6 +1,7 @@
 - name: websphere
   title: Websphere
   description: websphere custom fields for WCS integration
+  root: true
   fields:
   - name: websphere.metrics.alarm_manager.cancelled.total
     type: long

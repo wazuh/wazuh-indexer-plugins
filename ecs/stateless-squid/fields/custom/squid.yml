@@ -1,6 +1,7 @@
 - name: squid
   title: Squid
   description: squid custom fields for WCS integration
+  root: true
   fields:
   - name: squid.code
     type: keyword

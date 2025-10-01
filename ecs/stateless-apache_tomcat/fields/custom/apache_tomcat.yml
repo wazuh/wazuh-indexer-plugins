@@ -1,6 +1,7 @@
 - name: apache_tomcat
   title: Apache Tomcat
   description: apache_tomcat custom fields for WCS integration
+  root: true
   fields:
   - name: apache_tomcat.access.connection_status
     type: keyword

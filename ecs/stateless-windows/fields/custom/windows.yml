@@ -1,6 +1,7 @@
 - name: windows
   title: Windows
   description: windows custom fields for WCS integration
+  root: true
   fields:
   - name: powershell.command.name
     type: keyword

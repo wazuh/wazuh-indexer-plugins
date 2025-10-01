@@ -1,6 +1,7 @@
 - name: azure-app-service
   title: Azure App Service
   description: azure-app-service custom fields for WCS integration
+  root: true
   fields:
   - name: azure.app_service.category
     type: keyword

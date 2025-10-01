@@ -1,6 +1,7 @@
 - name: suricata
   title: Suricata
   description: suricata custom fields for WCS integration
+  root: true
   fields:
   - name: suricata.alert.metadata.attack_target
     type: keyword

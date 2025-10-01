@@ -1,6 +1,7 @@
 - name: oracle_weblogic
   title: Oracle Weblogic
   description: oracle_weblogic custom fields for WCS integration
+  root: true
   fields:
   - name: oracle.weblogic.subsystem
     type: keyword
