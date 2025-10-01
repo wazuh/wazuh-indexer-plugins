@@ -1847,8 +1847,7 @@
                       "total": {
                         "type": "long"
                       }
-                    },
-                    "type": "long"
+                    }
                   },
                   "callback_url": {
                     "ignore_above": 1024,
