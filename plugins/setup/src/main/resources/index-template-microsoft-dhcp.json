@@ -2666,77 +2666,73 @@
       "message": {
         "type": "keyword"
       },
-      "microsoft-dhcp": {
+      "microsoft": {
         "properties": {
-          "microsoft": {
+          "dhcp": {
             "properties": {
-              "dhcp": {
-                "properties": {
-                  "correlation_id": {
-                    "ignore_above": 1024,
-                    "type": "keyword"
-                  },
-                  "dhc_id": {
-                    "ignore_above": 1024,
-                    "type": "keyword"
-                  },
-                  "dns_error_code": {
-                    "ignore_above": 1024,
-                    "type": "keyword"
-                  },
-                  "duid_hex": {
-                    "ignore_above": 1024,
-                    "type": "keyword"
-                  },
-                  "duid_length": {
-                    "ignore_above": 1024,
-                    "type": "keyword"
-                  },
-                  "error_code": {
-                    "ignore_above": 1024,
-                    "type": "keyword"
-                  },
-                  "probation_time": {
-                    "ignore_above": 1024,
-                    "type": "keyword"
-                  },
-                  "q_result": {
-                    "ignore_above": 1024,
-                    "type": "keyword"
-                  },
-                  "relay_agent_info": {
-                    "ignore_above": 1024,
-                    "type": "keyword"
-                  },
-                  "result_description": {
-                    "ignore_above": 1024,
-                    "type": "keyword"
-                  },
-                  "subnet_prefix": {
-                    "ignore_above": 1024,
-                    "type": "keyword"
-                  },
-                  "transaction_id": {
-                    "ignore_above": 1024,
-                    "type": "keyword"
-                  },
-                  "user_hex": {
-                    "ignore_above": 1024,
-                    "type": "keyword"
-                  },
-                  "user_string": {
-                    "ignore_above": 1024,
-                    "type": "keyword"
-                  },
-                  "vendor_hex": {
-                    "ignore_above": 1024,
-                    "type": "keyword"
-                  },
-                  "vendor_string": {
-                    "ignore_above": 1024,
-                    "type": "keyword"
-                  }
-                }
+              "correlation_id": {
+                "ignore_above": 1024,
+                "type": "keyword"
+              },
+              "dhc_id": {
+                "ignore_above": 1024,
+                "type": "keyword"
+              },
+              "dns_error_code": {
+                "ignore_above": 1024,
+                "type": "keyword"
+              },
+              "duid_hex": {
+                "ignore_above": 1024,
+                "type": "keyword"
+              },
+              "duid_length": {
+                "ignore_above": 1024,
+                "type": "keyword"
+              },
+              "error_code": {
+                "ignore_above": 1024,
+                "type": "keyword"
+              },
+              "probation_time": {
+                "ignore_above": 1024,
+                "type": "keyword"
+              },
+              "q_result": {
+                "ignore_above": 1024,
+                "type": "keyword"
+              },
+              "relay_agent_info": {
+                "ignore_above": 1024,
+                "type": "keyword"
+              },
+              "result_description": {
+                "ignore_above": 1024,
+                "type": "keyword"
+              },
+              "subnet_prefix": {
+                "ignore_above": 1024,
+                "type": "keyword"
+              },
+              "transaction_id": {
+                "ignore_above": 1024,
+                "type": "keyword"
+              },
+              "user_hex": {
+                "ignore_above": 1024,
+                "type": "keyword"
+              },
+              "user_string": {
+                "ignore_above": 1024,
+                "type": "keyword"
+              },
+              "vendor_hex": {
+                "ignore_above": 1024,
+                "type": "keyword"
+              },
+              "vendor_string": {
+                "ignore_above": 1024,
+                "type": "keyword"
               }
             }
           }

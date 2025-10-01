@@ -8,13 +8,9 @@
     "properties": {
       "<integration-name>": {
         "properties": {
-          "<integration-name>": {
-            "properties": {
-              "field1": {
-                "ignore_above": 1024,
-                "type": "keyword"
-              }
-            }
+          "field1": {
+            "ignore_above": 1024,
+            "type": "keyword"
           }
         }
       },

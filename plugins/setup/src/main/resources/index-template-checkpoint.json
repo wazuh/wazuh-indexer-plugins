@@ -343,625 +343,621 @@
       },
       "checkpoint": {
         "properties": {
-          "checkpoint": {
-            "properties": {
-              "action_reason": {
-                "ignore_above": 1024,
-                "type": "keyword"
-              },
-              "action_reason_msg": {
-                "ignore_above": 1024,
-                "type": "keyword"
-              },
-              "additional_info": {
-                "ignore_above": 1024,
-                "type": "keyword"
-              },
-              "administrator": {
-                "ignore_above": 1024,
-                "type": "keyword"
-              },
-              "aggregated_log_count": {
-                "ignore_above": 1024,
-                "type": "keyword"
-              },
-              "alert": {
-                "ignore_above": 1024,
-                "type": "keyword"
-              },
-              "app_risk": {
-                "type": "long"
-              },
-              "app_rule_id": {
-                "ignore_above": 1024,
-                "type": "keyword"
-              },
-              "app_rule_name": {
-                "ignore_above": 1024,
-                "type": "keyword"
-              },
-              "attack": {
-                "ignore_above": 1024,
-                "type": "keyword"
-              },
-              "attack_info": {
-                "ignore_above": 1024,
-                "type": "keyword"
-              },
-              "audit_status": {
-                "ignore_above": 1024,
-                "type": "keyword"
-              },
-              "auth_method": {
-                "ignore_above": 1024,
-                "type": "keyword"
-              },
-              "auth_method2": {
-                "ignore_above": 1024,
-                "type": "keyword"
-              },
-              "auth_status": {
-                "ignore_above": 1024,
-                "type": "keyword"
-              },
-              "categories": {
-                "ignore_above": 1024,
-                "type": "keyword"
-              },
-              "client_build": {
-                "ignore_above": 1024,
-                "type": "keyword"
-              },
-              "client_ipe": {
-                "ignore_above": 1024,
-                "type": "keyword"
-              },
-              "client_name": {
-                "ignore_above": 1024,
-                "type": "keyword"
-              },
-              "client_version": {
-                "ignore_above": 1024,
-                "type": "keyword"
-              },
-              "comment": {
-                "ignore_above": 1024,
-                "type": "keyword"
-              },
-              "community": {
-                "ignore_above": 1024,
-                "type": "keyword"
-              },
-              "confidence_level": {
-                "ignore_above": 1024,
-                "type": "keyword"
-              },
-              "conn_direction": {
-                "ignore_above": 1024,
-                "type": "keyword"
-              },
-              "connection_count": {
-                "ignore_above": 1024,
-                "type": "keyword"
-              },
-              "context_num": {
-                "ignore_above": 1024,
-                "type": "keyword"
-              },
-              "contract_name": {
-                "ignore_above": 1024,
-                "type": "keyword"
-              },
-              "control_log_type": {
-                "ignore_above": 1024,
-                "type": "keyword"
-              },
-              "cp_component_name": {
-                "ignore_above": 1024,
-                "type": "keyword"
-              },
-              "cp_component_version": {
-                "ignore_above": 1024,
-                "type": "keyword"
-              },
-              "cvpn_category": {
-                "ignore_above": 1024,
-                "type": "keyword"
-              },
-              "db_ver": {
-                "ignore_above": 1024,
-                "type": "keyword"
-              },
-              "default_device_message": {
-                "ignore_above": 1024,
-                "type": "keyword"
-              },
-              "description": {
-                "ignore_above": 1024,
-                "type": "keyword"
-              },
-              "description_url": {
-                "ignore_above": 1024,
-                "type": "keyword"
-              },
-              "device_identification": {
-                "ignore_above": 1024,
-                "type": "keyword"
-              },
-              "device_name": {
-                "ignore_above": 1024,
-                "type": "keyword"
-              },
-              "device_type": {
-                "ignore_above": 1024,
-                "type": "keyword"
-              },
-              "dlp_incident_uid": {
-                "ignore_above": 1024,
-                "type": "keyword"
-              },
-              "dst_domain_name": {
-                "ignore_above": 1024,
-                "type": "keyword"
-              },
-              "elapsed": {
-                "ignore_above": 1024,
-                "type": "keyword"
-              },
-              "event_type": {
-                "ignore_above": 1024,
-                "type": "keyword"
-              },
-              "facility": {
-                "ignore_above": 1024,
-                "type": "keyword"
-              },
-              "failed_login_factor_num": {
-                "type": "long"
-              },
-              "fieldschanges": {
-                "ignore_above": 1024,
-                "type": "keyword"
-              },
-              "frequency": {
-                "ignore_above": 1024,
-                "type": "keyword"
-              },
-              "fw_subproduct": {
-                "ignore_above": 1024,
-                "type": "keyword"
-              },
-              "host_ip": {
-                "type": "ip"
-              },
-              "hostname": {
-                "ignore_above": 1024,
-                "type": "keyword"
-              },
-              "icmp": {
-                "ignore_above": 1024,
-                "type": "keyword"
-              },
-              "icmp_code": {
-                "ignore_above": 1024,
-                "type": "keyword"
-              },
-              "icmp_type": {
-                "ignore_above": 1024,
-                "type": "keyword"
-              },
-              "identity_src": {
-                "ignore_above": 1024,
-                "type": "keyword"
-              },
-              "identity_type": {
-                "ignore_above": 1024,
-                "type": "keyword"
-              },
-              "install_policy_acceleration": {
-                "ignore_above": 1024,
-                "type": "keyword"
-              },
-              "log_delay": {
-                "ignore_above": 1024,
-                "type": "keyword"
-              },
-              "logic_changes": {
-                "ignore_above": 1024,
-                "type": "keyword"
-              },
-              "logid": {
-                "type": "long"
-              },
-              "login_option": {
-                "ignore_above": 1024,
-                "type": "keyword"
-              },
-              "login_timestamp": {
-                "ignore_above": 1024,
-                "type": "keyword"
-              },
-              "loguid": {
-                "ignore_above": 1024,
-                "type": "keyword"
-              },
-              "machine": {
-                "ignore_above": 1024,
-                "type": "keyword"
-              },
-              "malware_action": {
-                "ignore_above": 1024,
-                "type": "keyword"
-              },
-              "malware_family": {
-                "ignore_above": 1024,
-                "type": "keyword"
-              },
-              "malware_rule_id": {
-                "ignore_above": 1024,
-                "type": "keyword"
-              },
-              "malware_rule_name": {
-                "ignore_above": 1024,
-                "type": "keyword"
-              },
-              "match_id": {
-                "type": "long"
-              },
-              "message": {
-                "ignore_above": 1024,
-                "type": "keyword"
-              },
-              "methods": {
-                "ignore_above": 1024,
-                "type": "keyword"
-              },
-              "more": {
-                "ignore_above": 1024,
-                "type": "keyword"
-              },
-              "nat_addtnl_rulenum": {
-                "type": "long"
-              },
-              "nat_rule_uid": {
-                "ignore_above": 1024,
-                "type": "keyword"
-              },
-              "nat_rulenum": {
-                "type": "long"
-              },
-              "objectname": {
-                "ignore_above": 1024,
-                "type": "keyword"
-              },
-              "objecttype": {
-                "ignore_above": 1024,
-                "type": "keyword"
-              },
-              "office_mode_ip": {
-                "type": "ip"
-              },
-              "operation": {
-                "ignore_above": 1024,
-                "type": "keyword"
-              },
-              "operation_number": {
-                "type": "long"
-              },
-              "operation_result_description": {
-                "ignore_above": 1024,
-                "type": "keyword"
-              },
-              "operation_results": {
-                "ignore_above": 1024,
-                "type": "keyword"
-              },
-              "origin_sic_name": {
-                "ignore_above": 1024,
-                "type": "keyword"
-              },
-              "os_bits": {
-                "ignore_above": 1024,
-                "type": "keyword"
-              },
-              "os_build": {
-                "ignore_above": 1024,
-                "type": "keyword"
-              },
-              "os_edition": {
-                "ignore_above": 1024,
-                "type": "keyword"
-              },
-              "outzonlags": {
-                "ignore_above": 1024,
-                "type": "keyword"
-              },
-              "package_action": {
-                "ignore_above": 1024,
-                "type": "keyword"
-              },
-              "packet_capture_name": {
-                "ignore_above": 1024,
-                "type": "keyword"
-              },
-              "packet_capture_time": {
-                "ignore_above": 1024,
-                "type": "keyword"
-              },
-              "packet_capture_unique_id": {
-                "ignore_above": 1024,
-                "type": "keyword"
-              },
-              "parent_rule": {
-                "type": "long"
-              },
-              "peer_gateway": {
-                "type": "ip"
-              },
-              "performance_impact": {
-                "ignore_above": 1024,
-                "type": "keyword"
-              },
-              "policy_name": {
-                "ignore_above": 1024,
-                "type": "keyword"
-              },
-              "policy_time": {
-                "ignore_above": 1024,
-                "type": "keyword"
-              },
-              "portal_message": {
-                "ignore_above": 1024,
-                "type": "keyword"
-              },
-              "precise_error": {
-                "ignore_above": 1024,
-                "type": "keyword"
-              },
-              "protection_id": {
-                "ignore_above": 1024,
-                "type": "keyword"
-              },
-              "protection_name": {
-                "ignore_above": 1024,
-                "type": "keyword"
-              },
-              "protection_type": {
-                "ignore_above": 1024,
-                "type": "keyword"
-              },
-              "protocol": {
-                "ignore_above": 1024,
-                "type": "keyword"
-              },
-              "proxy_src_ip": {
-                "type": "ip"
-              },
-              "reason": {
-                "ignore_above": 1024,
-                "type": "keyword"
-              },
-              "reject_id_kid": {
-                "ignore_above": 1024,
-                "type": "keyword"
-              },
-              "roles": {
-                "ignore_above": 1024,
-                "type": "keyword"
-              },
-              "row_start": {
-                "ignore_above": 1024,
-                "type": "keyword"
-              },
-              "rule_action": {
-                "ignore_above": 1024,
-                "type": "keyword"
-              },
-              "rule_name": {
-                "ignore_above": 1024,
-                "type": "keyword"
-              },
-              "rule_uid": {
-                "ignore_above": 1024,
-                "type": "keyword"
-              },
-              "scheme": {
-                "ignore_above": 1024,
-                "type": "keyword"
-              },
-              "scope": {
-                "ignore_above": 1024,
-                "type": "keyword"
-              },
-              "script_value_for_one_time_scripts": {
-                "ignore_above": 1024,
-                "type": "keyword"
-              },
-              "security_inzone": {
-                "ignore_above": 1024,
-                "type": "keyword"
-              },
-              "security_outzone": {
-                "ignore_above": 1024,
-                "type": "keyword"
-              },
-              "sendtotrackerasadvancedauditlog": {
-                "ignore_above": 1024,
-                "type": "keyword"
-              },
-              "ser_agent_kid": {
-                "ignore_above": 1024,
-                "type": "keyword"
-              },
-              "server_inbound_interface": {
-                "ignore_above": 1024,
-                "type": "keyword"
-              },
-              "session_description": {
-                "ignore_above": 1024,
-                "type": "keyword"
-              },
-              "session_id": {
-                "ignore_above": 1024,
-                "type": "keyword"
-              },
-              "session_name": {
-                "ignore_above": 1024,
-                "type": "keyword"
-              },
-              "session_timeout": {
-                "ignore_above": 1024,
-                "type": "keyword"
-              },
-              "session_uid": {
-                "ignore_above": 1024,
-                "type": "keyword"
-              },
-              "sig_id": {
-                "ignore_above": 1024,
-                "type": "keyword"
-              },
-              "smartdefense_profile": {
-                "ignore_above": 1024,
-                "type": "keyword"
-              },
-              "snid": {
-                "ignore_above": 1024,
-                "type": "keyword"
-              },
-              "special_properties": {
-                "ignore_above": 1024,
-                "type": "keyword"
-              },
-              "sport_svc": {
-                "ignore_above": 1024,
-                "type": "keyword"
-              },
-              "src_user_dn": {
-                "ignore_above": 1024,
-                "type": "keyword"
-              },
-              "src_user_name": {
-                "ignore_above": 1024,
-                "type": "keyword"
-              },
-              "status": {
-                "ignore_above": 1024,
-                "type": "keyword"
-              },
-              "stormagentaction": {
-                "ignore_above": 1024,
-                "type": "keyword"
-              },
-              "stormagentname": {
-                "ignore_above": 1024,
-                "type": "keyword"
-              },
-              "subject": {
-                "ignore_above": 1024,
-                "type": "keyword"
-              },
-              "subs_exp": {
-                "ignore_above": 1024,
-                "type": "keyword"
-              },
-              "subscription_stat": {
-                "ignore_above": 1024,
-                "type": "keyword"
-              },
-              "subscription_stat_desc": {
-                "ignore_above": 1024,
-                "type": "keyword"
-              },
-              "suppressed_logs": {
-                "ignore_above": 1024,
-                "type": "keyword"
-              },
-              "svc": {
-                "ignore_above": 1024,
-                "type": "keyword"
-              },
-              "sys_message": {
-                "ignore_above": 1024,
-                "type": "keyword"
-              },
-              "syslog_severity": {
-                "ignore_above": 1024,
-                "type": "keyword"
-              },
-              "system_application": {
-                "ignore_above": 1024,
-                "type": "keyword"
-              },
-              "task": {
-                "ignore_above": 1024,
-                "type": "keyword"
-              },
-              "task_percent": {
-                "ignore_above": 1024,
-                "type": "keyword"
-              },
-              "task_progress": {
-                "ignore_above": 1024,
-                "type": "keyword"
-              },
-              "taskid": {
-                "ignore_above": 1024,
-                "type": "keyword"
-              },
-              "tasktargetid": {
-                "ignore_above": 1024,
-                "type": "keyword"
-              },
-              "tcp_flags": {
-                "ignore_above": 1024,
-                "type": "keyword"
-              },
-              "tcp_packet_out_of_state": {
-                "ignore_above": 1024,
-                "type": "keyword"
-              },
-              "time": {
-                "ignore_above": 1024,
-                "type": "keyword"
-              },
-              "tunnel_protocol": {
-                "ignore_above": 1024,
-                "type": "keyword"
-              },
-              "update_status": {
-                "ignore_above": 1024,
-                "type": "keyword"
-              },
-              "user_dn": {
-                "ignore_above": 1024,
-                "type": "keyword"
-              },
-              "usercheck": {
-                "ignore_above": 1024,
-                "type": "keyword"
-              },
-              "usercheck_confirmation_level": {
-                "ignore_above": 1024,
-                "type": "keyword"
-              },
-              "usercheck_interaction_name": {
-                "ignore_above": 1024,
-                "type": "keyword"
-              },
-              "vpn_featurename": {
-                "ignore_above": 1024,
-                "type": "keyword"
-              },
-              "xlatedport_svc": {
-                "ignore_above": 1024,
-                "type": "keyword"
-              },
-              "xlatesport_svc": {
-                "ignore_above": 1024,
-                "type": "keyword"
-              }
-            }
+          "action_reason": {
+            "ignore_above": 1024,
+            "type": "keyword"
+          },
+          "action_reason_msg": {
+            "ignore_above": 1024,
+            "type": "keyword"
+          },
+          "additional_info": {
+            "ignore_above": 1024,
+            "type": "keyword"
+          },
+          "administrator": {
+            "ignore_above": 1024,
+            "type": "keyword"
+          },
+          "aggregated_log_count": {
+            "ignore_above": 1024,
+            "type": "keyword"
+          },
+          "alert": {
+            "ignore_above": 1024,
+            "type": "keyword"
+          },
+          "app_risk": {
+            "type": "long"
+          },
+          "app_rule_id": {
+            "ignore_above": 1024,
+            "type": "keyword"
+          },
+          "app_rule_name": {
+            "ignore_above": 1024,
+            "type": "keyword"
+          },
+          "attack": {
+            "ignore_above": 1024,
+            "type": "keyword"
+          },
+          "attack_info": {
+            "ignore_above": 1024,
+            "type": "keyword"
+          },
+          "audit_status": {
+            "ignore_above": 1024,
+            "type": "keyword"
+          },
+          "auth_method": {
+            "ignore_above": 1024,
+            "type": "keyword"
+          },
+          "auth_method2": {
+            "ignore_above": 1024,
+            "type": "keyword"
+          },
+          "auth_status": {
+            "ignore_above": 1024,
+            "type": "keyword"
+          },
+          "categories": {
+            "ignore_above": 1024,
+            "type": "keyword"
+          },
+          "client_build": {
+            "ignore_above": 1024,
+            "type": "keyword"
+          },
+          "client_ipe": {
+            "ignore_above": 1024,
+            "type": "keyword"
+          },
+          "client_name": {
+            "ignore_above": 1024,
+            "type": "keyword"
+          },
+          "client_version": {
+            "ignore_above": 1024,
+            "type": "keyword"
+          },
+          "comment": {
+            "ignore_above": 1024,
+            "type": "keyword"
+          },
+          "community": {
+            "ignore_above": 1024,
+            "type": "keyword"
+          },
+          "confidence_level": {
+            "ignore_above": 1024,
+            "type": "keyword"
+          },
+          "conn_direction": {
+            "ignore_above": 1024,
+            "type": "keyword"
+          },
+          "connection_count": {
+            "ignore_above": 1024,
+            "type": "keyword"
+          },
+          "context_num": {
+            "ignore_above": 1024,
+            "type": "keyword"
+          },
+          "contract_name": {
+            "ignore_above": 1024,
+            "type": "keyword"
+          },
+          "control_log_type": {
+            "ignore_above": 1024,
+            "type": "keyword"
+          },
+          "cp_component_name": {
+            "ignore_above": 1024,
+            "type": "keyword"
+          },
+          "cp_component_version": {
+            "ignore_above": 1024,
+            "type": "keyword"
+          },
+          "cvpn_category": {
+            "ignore_above": 1024,
+            "type": "keyword"
+          },
+          "db_ver": {
+            "ignore_above": 1024,
+            "type": "keyword"
+          },
+          "default_device_message": {
+            "ignore_above": 1024,
+            "type": "keyword"
+          },
+          "description": {
+            "ignore_above": 1024,
+            "type": "keyword"
+          },
+          "description_url": {
+            "ignore_above": 1024,
+            "type": "keyword"
+          },
+          "device_identification": {
+            "ignore_above": 1024,
+            "type": "keyword"
+          },
+          "device_name": {
+            "ignore_above": 1024,
+            "type": "keyword"
+          },
+          "device_type": {
+            "ignore_above": 1024,
+            "type": "keyword"
+          },
+          "dlp_incident_uid": {
+            "ignore_above": 1024,
+            "type": "keyword"
+          },
+          "dst_domain_name": {
+            "ignore_above": 1024,
+            "type": "keyword"
+          },
+          "elapsed": {
+            "ignore_above": 1024,
+            "type": "keyword"
+          },
+          "event_type": {
+            "ignore_above": 1024,
+            "type": "keyword"
+          },
+          "facility": {
+            "ignore_above": 1024,
+            "type": "keyword"
+          },
+          "failed_login_factor_num": {
+            "type": "long"
+          },
+          "fieldschanges": {
+            "ignore_above": 1024,
+            "type": "keyword"
+          },
+          "frequency": {
+            "ignore_above": 1024,
+            "type": "keyword"
+          },
+          "fw_subproduct": {
+            "ignore_above": 1024,
+            "type": "keyword"
+          },
+          "host_ip": {
+            "type": "ip"
+          },
+          "hostname": {
+            "ignore_above": 1024,
+            "type": "keyword"
+          },
+          "icmp": {
+            "ignore_above": 1024,
+            "type": "keyword"
+          },
+          "icmp_code": {
+            "ignore_above": 1024,
+            "type": "keyword"
+          },
+          "icmp_type": {
+            "ignore_above": 1024,
+            "type": "keyword"
+          },
+          "identity_src": {
+            "ignore_above": 1024,
+            "type": "keyword"
+          },
+          "identity_type": {
+            "ignore_above": 1024,
+            "type": "keyword"
+          },
+          "install_policy_acceleration": {
+            "ignore_above": 1024,
+            "type": "keyword"
+          },
+          "log_delay": {
+            "ignore_above": 1024,
+            "type": "keyword"
+          },
+          "logic_changes": {
+            "ignore_above": 1024,
+            "type": "keyword"
+          },
+          "logid": {
+            "type": "long"
+          },
+          "login_option": {
+            "ignore_above": 1024,
+            "type": "keyword"
+          },
+          "login_timestamp": {
+            "ignore_above": 1024,
+            "type": "keyword"
+          },
+          "loguid": {
+            "ignore_above": 1024,
+            "type": "keyword"
+          },
+          "machine": {
+            "ignore_above": 1024,
+            "type": "keyword"
+          },
+          "malware_action": {
+            "ignore_above": 1024,
+            "type": "keyword"
+          },
+          "malware_family": {
+            "ignore_above": 1024,
+            "type": "keyword"
+          },
+          "malware_rule_id": {
+            "ignore_above": 1024,
+            "type": "keyword"
+          },
+          "malware_rule_name": {
+            "ignore_above": 1024,
+            "type": "keyword"
+          },
+          "match_id": {
+            "type": "long"
+          },
+          "message": {
+            "ignore_above": 1024,
+            "type": "keyword"
+          },
+          "methods": {
+            "ignore_above": 1024,
+            "type": "keyword"
+          },
+          "more": {
+            "ignore_above": 1024,
+            "type": "keyword"
+          },
+          "nat_addtnl_rulenum": {
+            "type": "long"
+          },
+          "nat_rule_uid": {
+            "ignore_above": 1024,
+            "type": "keyword"
+          },
+          "nat_rulenum": {
+            "type": "long"
+          },
+          "objectname": {
+            "ignore_above": 1024,
+            "type": "keyword"
+          },
+          "objecttype": {
+            "ignore_above": 1024,
+            "type": "keyword"
+          },
+          "office_mode_ip": {
+            "type": "ip"
+          },
+          "operation": {
+            "ignore_above": 1024,
+            "type": "keyword"
+          },
+          "operation_number": {
+            "type": "long"
+          },
+          "operation_result_description": {
+            "ignore_above": 1024,
+            "type": "keyword"
+          },
+          "operation_results": {
+            "ignore_above": 1024,
+            "type": "keyword"
+          },
+          "origin_sic_name": {
+            "ignore_above": 1024,
+            "type": "keyword"
+          },
+          "os_bits": {
+            "ignore_above": 1024,
+            "type": "keyword"
+          },
+          "os_build": {
+            "ignore_above": 1024,
+            "type": "keyword"
+          },
+          "os_edition": {
+            "ignore_above": 1024,
+            "type": "keyword"
+          },
+          "outzonlags": {
+            "ignore_above": 1024,
+            "type": "keyword"
+          },
+          "package_action": {
+            "ignore_above": 1024,
+            "type": "keyword"
+          },
+          "packet_capture_name": {
+            "ignore_above": 1024,
+            "type": "keyword"
+          },
+          "packet_capture_time": {
+            "ignore_above": 1024,
+            "type": "keyword"
+          },
+          "packet_capture_unique_id": {
+            "ignore_above": 1024,
+            "type": "keyword"
+          },
+          "parent_rule": {
+            "type": "long"
+          },
+          "peer_gateway": {
+            "type": "ip"
+          },
+          "performance_impact": {
+            "ignore_above": 1024,
+            "type": "keyword"
+          },
+          "policy_name": {
+            "ignore_above": 1024,
+            "type": "keyword"
+          },
+          "policy_time": {
+            "ignore_above": 1024,
+            "type": "keyword"
+          },
+          "portal_message": {
+            "ignore_above": 1024,
+            "type": "keyword"
+          },
+          "precise_error": {
+            "ignore_above": 1024,
+            "type": "keyword"
+          },
+          "protection_id": {
+            "ignore_above": 1024,
+            "type": "keyword"
+          },
+          "protection_name": {
+            "ignore_above": 1024,
+            "type": "keyword"
+          },
+          "protection_type": {
+            "ignore_above": 1024,
+            "type": "keyword"
+          },
+          "protocol": {
+            "ignore_above": 1024,
+            "type": "keyword"
+          },
+          "proxy_src_ip": {
+            "type": "ip"
+          },
+          "reason": {
+            "ignore_above": 1024,
+            "type": "keyword"
+          },
+          "reject_id_kid": {
+            "ignore_above": 1024,
+            "type": "keyword"
+          },
+          "roles": {
+            "ignore_above": 1024,
+            "type": "keyword"
+          },
+          "row_start": {
+            "ignore_above": 1024,
+            "type": "keyword"
+          },
+          "rule_action": {
+            "ignore_above": 1024,
+            "type": "keyword"
+          },
+          "rule_name": {
+            "ignore_above": 1024,
+            "type": "keyword"
+          },
+          "rule_uid": {
+            "ignore_above": 1024,
+            "type": "keyword"
+          },
+          "scheme": {
+            "ignore_above": 1024,
+            "type": "keyword"
+          },
+          "scope": {
+            "ignore_above": 1024,
+            "type": "keyword"
+          },
+          "script_value_for_one_time_scripts": {
+            "ignore_above": 1024,
+            "type": "keyword"
+          },
+          "security_inzone": {
+            "ignore_above": 1024,
+            "type": "keyword"
+          },
+          "security_outzone": {
+            "ignore_above": 1024,
+            "type": "keyword"
+          },
+          "sendtotrackerasadvancedauditlog": {
+            "ignore_above": 1024,
+            "type": "keyword"
+          },
+          "ser_agent_kid": {
+            "ignore_above": 1024,
+            "type": "keyword"
+          },
+          "server_inbound_interface": {
+            "ignore_above": 1024,
+            "type": "keyword"
+          },
+          "session_description": {
+            "ignore_above": 1024,
+            "type": "keyword"
+          },
+          "session_id": {
+            "ignore_above": 1024,
+            "type": "keyword"
+          },
+          "session_name": {
+            "ignore_above": 1024,
+            "type": "keyword"
+          },
+          "session_timeout": {
+            "ignore_above": 1024,
+            "type": "keyword"
+          },
+          "session_uid": {
+            "ignore_above": 1024,
+            "type": "keyword"
+          },
+          "sig_id": {
+            "ignore_above": 1024,
+            "type": "keyword"
+          },
+          "smartdefense_profile": {
+            "ignore_above": 1024,
+            "type": "keyword"
+          },
+          "snid": {
+            "ignore_above": 1024,
+            "type": "keyword"
+          },
+          "special_properties": {
+            "ignore_above": 1024,
+            "type": "keyword"
+          },
+          "sport_svc": {
+            "ignore_above": 1024,
+            "type": "keyword"
+          },
+          "src_user_dn": {
+            "ignore_above": 1024,
+            "type": "keyword"
+          },
+          "src_user_name": {
+            "ignore_above": 1024,
+            "type": "keyword"
+          },
+          "status": {
+            "ignore_above": 1024,
+            "type": "keyword"
+          },
+          "stormagentaction": {
+            "ignore_above": 1024,
+            "type": "keyword"
+          },
+          "stormagentname": {
+            "ignore_above": 1024,
+            "type": "keyword"
+          },
+          "subject": {
+            "ignore_above": 1024,
+            "type": "keyword"
+          },
+          "subs_exp": {
+            "ignore_above": 1024,
+            "type": "keyword"
+          },
+          "subscription_stat": {
+            "ignore_above": 1024,
+            "type": "keyword"
+          },
+          "subscription_stat_desc": {
+            "ignore_above": 1024,
+            "type": "keyword"
+          },
+          "suppressed_logs": {
+            "ignore_above": 1024,
+            "type": "keyword"
+          },
+          "svc": {
+            "ignore_above": 1024,
+            "type": "keyword"
+          },
+          "sys_message": {
+            "ignore_above": 1024,
+            "type": "keyword"
+          },
+          "syslog_severity": {
+            "ignore_above": 1024,
+            "type": "keyword"
+          },
+          "system_application": {
+            "ignore_above": 1024,
+            "type": "keyword"
+          },
+          "task": {
+            "ignore_above": 1024,
+            "type": "keyword"
+          },
+          "task_percent": {
+            "ignore_above": 1024,
+            "type": "keyword"
+          },
+          "task_progress": {
+            "ignore_above": 1024,
+            "type": "keyword"
+          },
+          "taskid": {
+            "ignore_above": 1024,
+            "type": "keyword"
+          },
+          "tasktargetid": {
+            "ignore_above": 1024,
+            "type": "keyword"
+          },
+          "tcp_flags": {
+            "ignore_above": 1024,
+            "type": "keyword"
+          },
+          "tcp_packet_out_of_state": {
+            "ignore_above": 1024,
+            "type": "keyword"
+          },
+          "time": {
+            "ignore_above": 1024,
+            "type": "keyword"
+          },
+          "tunnel_protocol": {
+            "ignore_above": 1024,
+            "type": "keyword"
+          },
+          "update_status": {
+            "ignore_above": 1024,
+            "type": "keyword"
+          },
+          "user_dn": {
+            "ignore_above": 1024,
+            "type": "keyword"
+          },
+          "usercheck": {
+            "ignore_above": 1024,
+            "type": "keyword"
+          },
+          "usercheck_confirmation_level": {
+            "ignore_above": 1024,
+            "type": "keyword"
+          },
+          "usercheck_interaction_name": {
+            "ignore_above": 1024,
+            "type": "keyword"
+          },
+          "vpn_featurename": {
+            "ignore_above": 1024,
+            "type": "keyword"
+          },
+          "xlatedport_svc": {
+            "ignore_above": 1024,
+            "type": "keyword"
+          },
+          "xlatesport_svc": {
+            "ignore_above": 1024,
+            "type": "keyword"
           }
         }
       },

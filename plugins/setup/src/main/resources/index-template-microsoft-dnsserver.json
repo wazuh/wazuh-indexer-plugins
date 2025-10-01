@@ -2666,463 +2666,459 @@
       "message": {
         "type": "keyword"
       },
-      "microsoft-dnsserver": {
+      "microsoft": {
         "properties": {
-          "microsoft": {
-            "properties": {
-              "dnsserver_analytical_additional_info": {
-                "ignore_above": 1024,
-                "type": "keyword"
-              },
-              "dnsserver_analytical_cache_scope": {
-                "ignore_above": 1024,
-                "type": "keyword"
-              },
-              "dnsserver_analytical_dnssec": {
-                "ignore_above": 1024,
-                "type": "keyword"
-              },
-              "dnsserver_analytical_elapsed_time": {
-                "ignore_above": 1024,
-                "type": "keyword"
-              },
-              "dnsserver_analytical_guid": {
-                "ignore_above": 1024,
-                "type": "keyword"
-              },
-              "dnsserver_analytical_packet_data": {
-                "ignore_above": 1024,
-                "type": "keyword"
-              },
-              "dnsserver_analytical_policy_name": {
-                "ignore_above": 1024,
-                "type": "keyword"
-              },
-              "dnsserver_analytical_queries_attached": {
-                "ignore_above": 1024,
-                "type": "keyword"
-              },
-              "dnsserver_analytical_qxid": {
-                "ignore_above": 1024,
-                "type": "keyword"
-              },
-              "dnsserver_analytical_reason": {
-                "ignore_above": 1024,
-                "type": "keyword"
-              },
-              "dnsserver_analytical_recursion_depth": {
-                "ignore_above": 1024,
-                "type": "keyword"
-              },
-              "dnsserver_analytical_recursion_scope": {
-                "ignore_above": 1024,
-                "type": "keyword"
-              },
-              "dnsserver_analytical_scope": {
-                "ignore_above": 1024,
-                "type": "keyword"
-              },
-              "dnsserver_analytical_secure": {
-                "ignore_above": 1024,
-                "type": "keyword"
-              },
-              "dnsserver_analytical_zone": {
-                "ignore_above": 1024,
-                "type": "keyword"
-              },
-              "dnsserver_analytical_zone_scope": {
-                "ignore_above": 1024,
-                "type": "keyword"
-              },
-              "dnsserver_audit_action": {
-                "ignore_above": 1024,
-                "type": "keyword"
-              },
-              "dnsserver_audit_active_key": {
-                "ignore_above": 1024,
-                "type": "keyword"
-              },
-              "dnsserver_audit_base64_data": {
-                "ignore_above": 1024,
-                "type": "keyword"
-              },
-              "dnsserver_audit_child_zone": {
-                "ignore_above": 1024,
-                "type": "keyword"
-              },
-              "dnsserver_audit_client_subnet_list": {
-                "ignore_above": 1024,
-                "type": "keyword"
-              },
-              "dnsserver_audit_client_subnet_record": {
-                "ignore_above": 1024,
-                "type": "keyword"
-              },
-              "dnsserver_audit_condition": {
-                "ignore_above": 1024,
-                "type": "keyword"
-              },
-              "dnsserver_audit_criteria": {
-                "ignore_above": 1024,
-                "type": "keyword"
-              },
-              "dnsserver_audit_crypto_algorithm": {
-                "ignore_above": 1024,
-                "type": "keyword"
-              },
-              "dnsserver_audit_current_rollover_status": {
-                "ignore_above": 1024,
-                "type": "keyword"
-              },
-              "dnsserver_audit_current_state": {
-                "ignore_above": 1024,
-                "type": "keyword"
-              },
-              "dnsserver_audit_denial_of_existence": {
-                "ignore_above": 1024,
-                "type": "keyword"
-              },
-              "dnsserver_audit_digest": {
-                "ignore_above": 1024,
-                "type": "keyword"
-              },
-              "dnsserver_audit_digest_type": {
-                "ignore_above": 1024,
-                "type": "keyword"
-              },
-              "dnsserver_audit_distribute_trust_anchor": {
-                "ignore_above": 1024,
-                "type": "keyword"
-              },
-              "dnsserver_audit_ds_record_generation_algorithmAction": {
-                "ignore_above": 1024,
-                "type": "keyword"
-              },
-              "dnsserver_audit_ds_record_set_ttl": {
-                "ignore_above": 1024,
-                "type": "keyword"
-              },
-              "dnsserver_audit_ds_signature_validity_period": {
-                "ignore_above": 1024,
-                "type": "keyword"
-              },
-              "dnsserver_audit_enable_rfc_5011_key_rollover": {
-                "ignore_above": 1024,
-                "type": "keyword"
-              },
-              "dnsserver_audit_errors_per_second": {
-                "ignore_above": 1024,
-                "type": "keyword"
-              },
-              "dnsserver_audit_event_string": {
-                "ignore_above": 1024,
-                "type": "keyword"
-              },
-              "dnsserver_audit_forwarders": {
-                "ignore_above": 1024,
-                "type": "keyword"
-              },
-              "dnsserver_audit_friendly_name": {
-                "ignore_above": 1024,
-                "type": "keyword"
-              },
-              "dnsserver_audit_guid": {
-                "ignore_above": 1024,
-                "type": "keyword"
-              },
-              "dnsserver_audit_initial_rollover_offset": {
-                "ignore_above": 1024,
-                "type": "keyword"
-              },
-              "dnsserver_audit_ipv4_prefix_length": {
-                "ignore_above": 1024,
-                "type": "keyword"
-              },
-              "dnsserver_audit_ipv6_prefix_length": {
-                "ignore_above": 1024,
-                "type": "keyword"
-              },
-              "dnsserver_audit_is_enabled": {
-                "ignore_above": 1024,
-                "type": "keyword"
-              },
-              "dnsserver_audit_is_key_master_server": {
-                "ignore_above": 1024,
-                "type": "keyword"
-              },
-              "dnsserver_audit_key_id": {
-                "ignore_above": 1024,
-                "type": "keyword"
-              },
-              "dnsserver_audit_key_length": {
-                "ignore_above": 1024,
-                "type": "keyword"
-              },
-              "dnsserver_audit_key_master_server": {
-                "ignore_above": 1024,
-                "type": "keyword"
-              },
-              "dnsserver_audit_key_or_zone": {
-                "ignore_above": 1024,
-                "type": "keyword"
-              },
-              "dnsserver_audit_key_protocol": {
-                "ignore_above": 1024,
-                "type": "keyword"
-              },
-              "dnsserver_audit_key_record_set_ttl": {
-                "ignore_above": 1024,
-                "type": "keyword"
-              },
-              "dnsserver_audit_key_signature_validity_period": {
-                "ignore_above": 1024,
-                "type": "keyword"
-              },
-              "dnsserver_audit_key_storage_provider": {
-                "ignore_above": 1024,
-                "type": "keyword"
-              },
-              "dnsserver_audit_key_tag": {
-                "ignore_above": 1024,
-                "type": "keyword"
-              },
-              "dnsserver_audit_key_type": {
-                "ignore_above": 1024,
-                "type": "keyword"
-              },
-              "dnsserver_audit_ksk_or_zsk": {
-                "ignore_above": 1024,
-                "type": "keyword"
-              },
-              "dnsserver_audit_last_rollover_time": {
-                "ignore_above": 1024,
-                "type": "keyword"
-              },
-              "dnsserver_audit_leak_rate": {
-                "ignore_above": 1024,
-                "type": "keyword"
-              },
-              "dnsserver_audit_listen_addresses": {
-                "ignore_above": 1024,
-                "type": "keyword"
-              },
-              "dnsserver_audit_master_server": {
-                "ignore_above": 1024,
-                "type": "keyword"
-              },
-              "dnsserver_audit_mode": {
-                "ignore_above": 1024,
-                "type": "keyword"
-              },
-              "dnsserver_audit_name": {
-                "ignore_above": 1024,
-                "type": "keyword"
-              },
-              "dnsserver_audit_name_server": {
-                "ignore_above": 1024,
-                "type": "keyword"
-              },
-              "dnsserver_audit_new_friendly_name": {
-                "ignore_above": 1024,
-                "type": "keyword"
-              },
-              "dnsserver_audit_new_property_values": {
-                "ignore_above": 1024,
-                "type": "keyword"
-              },
-              "dnsserver_audit_new_scope": {
-                "ignore_above": 1024,
-                "type": "keyword"
-              },
-              "dnsserver_audit_new_value": {
-                "ignore_above": 1024,
-                "type": "keyword"
-              },
-              "dnsserver_audit_next_key": {
-                "ignore_above": 1024,
-                "type": "keyword"
-              },
-              "dnsserver_audit_next_rollover_action": {
-                "ignore_above": 1024,
-                "type": "keyword"
-              },
-              "dnsserver_audit_next_rollover_time": {
-                "ignore_above": 1024,
-                "type": "keyword"
-              },
-              "dnsserver_audit_node_name": {
-                "ignore_above": 1024,
-                "type": "keyword"
-              },
-              "dnsserver_audit_nsec3_hash_algorithm": {
-                "ignore_above": 1024,
-                "type": "keyword"
-              },
-              "dnsserver_audit_nsec3_iterations": {
-                "ignore_above": 1024,
-                "type": "keyword"
-              },
-              "dnsserver_audit_nsec3_opt_out": {
-                "ignore_above": 1024,
-                "type": "keyword"
-              },
-              "dnsserver_audit_nsec3_random_salt_length": {
-                "ignore_above": 1024,
-                "type": "keyword"
-              },
-              "dnsserver_audit_nsec3_user_salt": {
-                "ignore_above": 1024,
-                "type": "keyword"
-              },
-              "dnsserver_audit_old_friendly_name": {
-                "ignore_above": 1024,
-                "type": "keyword"
-              },
-              "dnsserver_audit_old_property_values": {
-                "ignore_above": 1024,
-                "type": "keyword"
-              },
-              "dnsserver_audit_old_scope": {
-                "ignore_above": 1024,
-                "type": "keyword"
-              },
-              "dnsserver_audit_parent_has_secure_delegation": {
-                "ignore_above": 1024,
-                "type": "keyword"
-              },
-              "dnsserver_audit_policy": {
-                "ignore_above": 1024,
-                "type": "keyword"
-              },
-              "dnsserver_audit_processing_order": {
-                "ignore_above": 1024,
-                "type": "keyword"
-              },
-              "dnsserver_audit_propagation_time": {
-                "ignore_above": 1024,
-                "type": "keyword"
-              },
-              "dnsserver_audit_property_key": {
-                "ignore_above": 1024,
-                "type": "keyword"
-              },
-              "dnsserver_audit_recursion_scope": {
-                "ignore_above": 1024,
-                "type": "keyword"
-              },
-              "dnsserver_audit_resolved_data": {
-                "ignore_above": 1024,
-                "type": "keyword"
-              },
-              "dnsserver_audit_response_per_second": {
-                "ignore_above": 1024,
-                "type": "keyword"
-              },
-              "dnsserver_audit_rollover_period": {
-                "ignore_above": 1024,
-                "type": "keyword"
-              },
-              "dnsserver_audit_rollover_type": {
-                "ignore_above": 1024,
-                "type": "keyword"
-              },
-              "dnsserver_audit_rrl_exception_list": {
-                "ignore_above": 1024,
-                "type": "keyword"
-              },
-              "dnsserver_audit_scavenge_servers": {
-                "ignore_above": 1024,
-                "type": "keyword"
-              },
-              "dnsserver_audit_scope": {
-                "ignore_above": 1024,
-                "type": "keyword"
-              },
-              "dnsserver_audit_scope_weight": {
-                "ignore_above": 1024,
-                "type": "keyword"
-              },
-              "dnsserver_audit_scope_weight_new": {
-                "ignore_above": 1024,
-                "type": "keyword"
-              },
-              "dnsserver_audit_scope_weight_old": {
-                "ignore_above": 1024,
-                "type": "keyword"
-              },
-              "dnsserver_audit_scopes": {
-                "ignore_above": 1024,
-                "type": "keyword"
-              },
-              "dnsserver_audit_secure_delegation_polling_period": {
-                "ignore_above": 1024,
-                "type": "keyword"
-              },
-              "dnsserver_audit_seized_or_transfered": {
-                "ignore_above": 1024,
-                "type": "keyword"
-              },
-              "dnsserver_audit_setting": {
-                "ignore_above": 1024,
-                "type": "keyword"
-              },
-              "dnsserver_audit_signature_inception_offset": {
-                "ignore_above": 1024,
-                "type": "keyword"
-              },
-              "dnsserver_audit_standby_key": {
-                "ignore_above": 1024,
-                "type": "keyword"
-              },
-              "dnsserver_audit_store_keys_in_AD": {
-                "ignore_above": 1024,
-                "type": "keyword"
-              },
-              "dnsserver_audit_subtree_aging": {
-                "ignore_above": 1024,
-                "type": "keyword"
-              },
-              "dnsserver_audit_tc_rate": {
-                "ignore_above": 1024,
-                "type": "keyword"
-              },
-              "dnsserver_audit_total_responses_in_window": {
-                "ignore_above": 1024,
-                "type": "keyword"
-              },
-              "dnsserver_audit_type": {
-                "ignore_above": 1024,
-                "type": "keyword"
-              },
-              "dnsserver_audit_virtualization_id": {
-                "ignore_above": 1024,
-                "type": "keyword"
-              },
-              "dnsserver_audit_window_size": {
-                "ignore_above": 1024,
-                "type": "keyword"
-              },
-              "dnsserver_audit_with_new_keys": {
-                "ignore_above": 1024,
-                "type": "keyword"
-              },
-              "dnsserver_audit_with_without": {
-                "ignore_above": 1024,
-                "type": "keyword"
-              },
-              "dnsserver_audit_zone": {
-                "ignore_above": 1024,
-                "type": "keyword"
-              },
-              "dnsserver_audit_zone_scope": {
-                "ignore_above": 1024,
-                "type": "keyword"
-              },
-              "dnsserver_audit_zone_signature_validity_period": {
-                "ignore_above": 1024,
-                "type": "keyword"
-              }
-            }
+          "dnsserver_analytical_additional_info": {
+            "ignore_above": 1024,
+            "type": "keyword"
+          },
+          "dnsserver_analytical_cache_scope": {
+            "ignore_above": 1024,
+            "type": "keyword"
+          },
+          "dnsserver_analytical_dnssec": {
+            "ignore_above": 1024,
+            "type": "keyword"
+          },
+          "dnsserver_analytical_elapsed_time": {
+            "ignore_above": 1024,
+            "type": "keyword"
+          },
+          "dnsserver_analytical_guid": {
+            "ignore_above": 1024,
+            "type": "keyword"
+          },
+          "dnsserver_analytical_packet_data": {
+            "ignore_above": 1024,
+            "type": "keyword"
+          },
+          "dnsserver_analytical_policy_name": {
+            "ignore_above": 1024,
+            "type": "keyword"
+          },
+          "dnsserver_analytical_queries_attached": {
+            "ignore_above": 1024,
+            "type": "keyword"
+          },
+          "dnsserver_analytical_qxid": {
+            "ignore_above": 1024,
+            "type": "keyword"
+          },
+          "dnsserver_analytical_reason": {
+            "ignore_above": 1024,
+            "type": "keyword"
+          },
+          "dnsserver_analytical_recursion_depth": {
+            "ignore_above": 1024,
+            "type": "keyword"
+          },
+          "dnsserver_analytical_recursion_scope": {
+            "ignore_above": 1024,
+            "type": "keyword"
+          },
+          "dnsserver_analytical_scope": {
+            "ignore_above": 1024,
+            "type": "keyword"
+          },
+          "dnsserver_analytical_secure": {
+            "ignore_above": 1024,
+            "type": "keyword"
+          },
+          "dnsserver_analytical_zone": {
+            "ignore_above": 1024,
+            "type": "keyword"
+          },
+          "dnsserver_analytical_zone_scope": {
+            "ignore_above": 1024,
+            "type": "keyword"
+          },
+          "dnsserver_audit_action": {
+            "ignore_above": 1024,
+            "type": "keyword"
+          },
+          "dnsserver_audit_active_key": {
+            "ignore_above": 1024,
+            "type": "keyword"
+          },
+          "dnsserver_audit_base64_data": {
+            "ignore_above": 1024,
+            "type": "keyword"
+          },
+          "dnsserver_audit_child_zone": {
+            "ignore_above": 1024,
+            "type": "keyword"
+          },
+          "dnsserver_audit_client_subnet_list": {
+            "ignore_above": 1024,
+            "type": "keyword"
+          },
+          "dnsserver_audit_client_subnet_record": {
+            "ignore_above": 1024,
+            "type": "keyword"
+          },
+          "dnsserver_audit_condition": {
+            "ignore_above": 1024,
+            "type": "keyword"
+          },
+          "dnsserver_audit_criteria": {
+            "ignore_above": 1024,
+            "type": "keyword"
+          },
+          "dnsserver_audit_crypto_algorithm": {
+            "ignore_above": 1024,
+            "type": "keyword"
+          },
+          "dnsserver_audit_current_rollover_status": {
+            "ignore_above": 1024,
+            "type": "keyword"
+          },
+          "dnsserver_audit_current_state": {
+            "ignore_above": 1024,
+            "type": "keyword"
+          },
+          "dnsserver_audit_denial_of_existence": {
+            "ignore_above": 1024,
+            "type": "keyword"
+          },
+          "dnsserver_audit_digest": {
+            "ignore_above": 1024,
+            "type": "keyword"
+          },
+          "dnsserver_audit_digest_type": {
+            "ignore_above": 1024,
+            "type": "keyword"
+          },
+          "dnsserver_audit_distribute_trust_anchor": {
+            "ignore_above": 1024,
+            "type": "keyword"
+          },
+          "dnsserver_audit_ds_record_generation_algorithmAction": {
+            "ignore_above": 1024,
+            "type": "keyword"
+          },
+          "dnsserver_audit_ds_record_set_ttl": {
+            "ignore_above": 1024,
+            "type": "keyword"
+          },
+          "dnsserver_audit_ds_signature_validity_period": {
+            "ignore_above": 1024,
+            "type": "keyword"
+          },
+          "dnsserver_audit_enable_rfc_5011_key_rollover": {
+            "ignore_above": 1024,
+            "type": "keyword"
+          },
+          "dnsserver_audit_errors_per_second": {
+            "ignore_above": 1024,
+            "type": "keyword"
+          },
+          "dnsserver_audit_event_string": {
+            "ignore_above": 1024,
+            "type": "keyword"
+          },
+          "dnsserver_audit_forwarders": {
+            "ignore_above": 1024,
+            "type": "keyword"
+          },
+          "dnsserver_audit_friendly_name": {
+            "ignore_above": 1024,
+            "type": "keyword"
+          },
+          "dnsserver_audit_guid": {
+            "ignore_above": 1024,
+            "type": "keyword"
+          },
+          "dnsserver_audit_initial_rollover_offset": {
+            "ignore_above": 1024,
+            "type": "keyword"
+          },
+          "dnsserver_audit_ipv4_prefix_length": {
+            "ignore_above": 1024,
+            "type": "keyword"
+          },
+          "dnsserver_audit_ipv6_prefix_length": {
+            "ignore_above": 1024,
+            "type": "keyword"
+          },
+          "dnsserver_audit_is_enabled": {
+            "ignore_above": 1024,
+            "type": "keyword"
+          },
+          "dnsserver_audit_is_key_master_server": {
+            "ignore_above": 1024,
+            "type": "keyword"
+          },
+          "dnsserver_audit_key_id": {
+            "ignore_above": 1024,
+            "type": "keyword"
+          },
+          "dnsserver_audit_key_length": {
+            "ignore_above": 1024,
+            "type": "keyword"
+          },
+          "dnsserver_audit_key_master_server": {
+            "ignore_above": 1024,
+            "type": "keyword"
+          },
+          "dnsserver_audit_key_or_zone": {
+            "ignore_above": 1024,
+            "type": "keyword"
+          },
+          "dnsserver_audit_key_protocol": {
+            "ignore_above": 1024,
+            "type": "keyword"
+          },
+          "dnsserver_audit_key_record_set_ttl": {
+            "ignore_above": 1024,
+            "type": "keyword"
+          },
+          "dnsserver_audit_key_signature_validity_period": {
+            "ignore_above": 1024,
+            "type": "keyword"
+          },
+          "dnsserver_audit_key_storage_provider": {
+            "ignore_above": 1024,
+            "type": "keyword"
+          },
+          "dnsserver_audit_key_tag": {
+            "ignore_above": 1024,
+            "type": "keyword"
+          },
+          "dnsserver_audit_key_type": {
+            "ignore_above": 1024,
+            "type": "keyword"
+          },
+          "dnsserver_audit_ksk_or_zsk": {
+            "ignore_above": 1024,
+            "type": "keyword"
+          },
+          "dnsserver_audit_last_rollover_time": {
+            "ignore_above": 1024,
+            "type": "keyword"
+          },
+          "dnsserver_audit_leak_rate": {
+            "ignore_above": 1024,
+            "type": "keyword"
+          },
+          "dnsserver_audit_listen_addresses": {
+            "ignore_above": 1024,
+            "type": "keyword"
+          },
+          "dnsserver_audit_master_server": {
+            "ignore_above": 1024,
+            "type": "keyword"
+          },
+          "dnsserver_audit_mode": {
+            "ignore_above": 1024,
+            "type": "keyword"
+          },
+          "dnsserver_audit_name": {
+            "ignore_above": 1024,
+            "type": "keyword"
+          },
+          "dnsserver_audit_name_server": {
+            "ignore_above": 1024,
+            "type": "keyword"
+          },
+          "dnsserver_audit_new_friendly_name": {
+            "ignore_above": 1024,
+            "type": "keyword"
+          },
+          "dnsserver_audit_new_property_values": {
+            "ignore_above": 1024,
+            "type": "keyword"
+          },
+          "dnsserver_audit_new_scope": {
+            "ignore_above": 1024,
+            "type": "keyword"
+          },
+          "dnsserver_audit_new_value": {
+            "ignore_above": 1024,
+            "type": "keyword"
+          },
+          "dnsserver_audit_next_key": {
+            "ignore_above": 1024,
+            "type": "keyword"
+          },
+          "dnsserver_audit_next_rollover_action": {
+            "ignore_above": 1024,
+            "type": "keyword"
+          },
+          "dnsserver_audit_next_rollover_time": {
+            "ignore_above": 1024,
+            "type": "keyword"
+          },
+          "dnsserver_audit_node_name": {
+            "ignore_above": 1024,
+            "type": "keyword"
+          },
+          "dnsserver_audit_nsec3_hash_algorithm": {
+            "ignore_above": 1024,
+            "type": "keyword"
+          },
+          "dnsserver_audit_nsec3_iterations": {
+            "ignore_above": 1024,
+            "type": "keyword"
+          },
+          "dnsserver_audit_nsec3_opt_out": {
+            "ignore_above": 1024,
+            "type": "keyword"
+          },
+          "dnsserver_audit_nsec3_random_salt_length": {
+            "ignore_above": 1024,
+            "type": "keyword"
+          },
+          "dnsserver_audit_nsec3_user_salt": {
+            "ignore_above": 1024,
+            "type": "keyword"
+          },
+          "dnsserver_audit_old_friendly_name": {
+            "ignore_above": 1024,
+            "type": "keyword"
+          },
+          "dnsserver_audit_old_property_values": {
+            "ignore_above": 1024,
+            "type": "keyword"
+          },
+          "dnsserver_audit_old_scope": {
+            "ignore_above": 1024,
+            "type": "keyword"
+          },
+          "dnsserver_audit_parent_has_secure_delegation": {
+            "ignore_above": 1024,
+            "type": "keyword"
+          },
+          "dnsserver_audit_policy": {
+            "ignore_above": 1024,
+            "type": "keyword"
+          },
+          "dnsserver_audit_processing_order": {
+            "ignore_above": 1024,
+            "type": "keyword"
+          },
+          "dnsserver_audit_propagation_time": {
+            "ignore_above": 1024,
+            "type": "keyword"
+          },
+          "dnsserver_audit_property_key": {
+            "ignore_above": 1024,
+            "type": "keyword"
+          },
+          "dnsserver_audit_recursion_scope": {
+            "ignore_above": 1024,
+            "type": "keyword"
+          },
+          "dnsserver_audit_resolved_data": {
+            "ignore_above": 1024,
+            "type": "keyword"
+          },
+          "dnsserver_audit_response_per_second": {
+            "ignore_above": 1024,
+            "type": "keyword"
+          },
+          "dnsserver_audit_rollover_period": {
+            "ignore_above": 1024,
+            "type": "keyword"
+          },
+          "dnsserver_audit_rollover_type": {
+            "ignore_above": 1024,
+            "type": "keyword"
+          },
+          "dnsserver_audit_rrl_exception_list": {
+            "ignore_above": 1024,
+            "type": "keyword"
+          },
+          "dnsserver_audit_scavenge_servers": {
+            "ignore_above": 1024,
+            "type": "keyword"
+          },
+          "dnsserver_audit_scope": {
+            "ignore_above": 1024,
+            "type": "keyword"
+          },
+          "dnsserver_audit_scope_weight": {
+            "ignore_above": 1024,
+            "type": "keyword"
+          },
+          "dnsserver_audit_scope_weight_new": {
+            "ignore_above": 1024,
+            "type": "keyword"
+          },
+          "dnsserver_audit_scope_weight_old": {
+            "ignore_above": 1024,
+            "type": "keyword"
+          },
+          "dnsserver_audit_scopes": {
+            "ignore_above": 1024,
+            "type": "keyword"
+          },
+          "dnsserver_audit_secure_delegation_polling_period": {
+            "ignore_above": 1024,
+            "type": "keyword"
+          },
+          "dnsserver_audit_seized_or_transfered": {
+            "ignore_above": 1024,
+            "type": "keyword"
+          },
+          "dnsserver_audit_setting": {
+            "ignore_above": 1024,
+            "type": "keyword"
+          },
+          "dnsserver_audit_signature_inception_offset": {
+            "ignore_above": 1024,
+            "type": "keyword"
+          },
+          "dnsserver_audit_standby_key": {
+            "ignore_above": 1024,
+            "type": "keyword"
+          },
+          "dnsserver_audit_store_keys_in_AD": {
+            "ignore_above": 1024,
+            "type": "keyword"
+          },
+          "dnsserver_audit_subtree_aging": {
+            "ignore_above": 1024,
+            "type": "keyword"
+          },
+          "dnsserver_audit_tc_rate": {
+            "ignore_above": 1024,
+            "type": "keyword"
+          },
+          "dnsserver_audit_total_responses_in_window": {
+            "ignore_above": 1024,
+            "type": "keyword"
+          },
+          "dnsserver_audit_type": {
+            "ignore_above": 1024,
+            "type": "keyword"
+          },
+          "dnsserver_audit_virtualization_id": {
+            "ignore_above": 1024,
+            "type": "keyword"
+          },
+          "dnsserver_audit_window_size": {
+            "ignore_above": 1024,
+            "type": "keyword"
+          },
+          "dnsserver_audit_with_new_keys": {
+            "ignore_above": 1024,
+            "type": "keyword"
+          },
+          "dnsserver_audit_with_without": {
+            "ignore_above": 1024,
+            "type": "keyword"
+          },
+          "dnsserver_audit_zone": {
+            "ignore_above": 1024,
+            "type": "keyword"
+          },
+          "dnsserver_audit_zone_scope": {
+            "ignore_above": 1024,
+            "type": "keyword"
+          },
+          "dnsserver_audit_zone_signature_validity_period": {
+            "ignore_above": 1024,
+            "type": "keyword"
           }
         }
       },

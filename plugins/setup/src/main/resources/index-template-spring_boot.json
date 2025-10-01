@@ -16732,114 +16732,110 @@
           }
         }
       },
-      "spring_boot": {
+      "springboot": {
         "properties": {
-          "springboot": {
+          "gc": {
             "properties": {
-              "gc": {
+              "last_info": {
                 "properties": {
-                  "last_info": {
+                  "memory_usage": {
                     "properties": {
-                      "memory_usage": {
+                      "after": {
                         "properties": {
-                          "after": {
-                            "properties": {
-                              "code_cache": {
-                                "type": "object"
-                              },
-                              "compressed_class_space": {
-                                "type": "object"
-                              },
-                              "g1_eden_space": {
-                                "type": "object"
-                              },
-                              "g1_old_gen": {
-                                "type": "object"
-                              },
-                              "g1_survivor_space": {
-                                "type": "object"
-                              },
-                              "metaspace": {
-                                "type": "object"
-                              },
-                              "ps_eden_space": {
-                                "type": "object"
-                              },
-                              "ps_old_gen": {
-                                "type": "object"
-                              },
-                              "ps_survivor_space": {
-                                "type": "object"
-                              }
-                            },
+                          "code_cache": {
                             "type": "object"
                           },
-                          "before": {
-                            "properties": {
-                              "code_cache": {
-                                "type": "object"
-                              },
-                              "compressed_class_space": {
-                                "type": "object"
-                              },
-                              "g1_eden_space": {
-                                "type": "object"
-                              },
-                              "g1_old_gen": {
-                                "type": "object"
-                              },
-                              "g1_survivor_space": {
-                                "type": "object"
-                              },
-                              "metaspace": {
-                                "type": "object"
-                              },
-                              "ps_eden_space": {
-                                "type": "object"
-                              },
-                              "ps_old_gen": {
-                                "type": "object"
-                              },
-                              "ps_survivor_space": {
-                                "type": "object"
-                              }
-                            },
+                          "compressed_class_space": {
+                            "type": "object"
+                          },
+                          "g1_eden_space": {
+                            "type": "object"
+                          },
+                          "g1_old_gen": {
+                            "type": "object"
+                          },
+                          "g1_survivor_space": {
+                            "type": "object"
+                          },
+                          "metaspace": {
+                            "type": "object"
+                          },
+                          "ps_eden_space": {
+                            "type": "object"
+                          },
+                          "ps_old_gen": {
+                            "type": "object"
+                          },
+                          "ps_survivor_space": {
                             "type": "object"
                           }
-                        }
+                        },
+                        "type": "object"
                       },
-                      "time": {
+                      "before": {
                         "properties": {
-                          "duration": {
-                            "type": "long"
+                          "code_cache": {
+                            "type": "object"
                           },
-                          "end": {
-                            "type": "long"
+                          "compressed_class_space": {
+                            "type": "object"
                           },
-                          "start": {
-                            "type": "long"
+                          "g1_eden_space": {
+                            "type": "object"
+                          },
+                          "g1_old_gen": {
+                            "type": "object"
+                          },
+                          "g1_survivor_space": {
+                            "type": "object"
+                          },
+                          "metaspace": {
+                            "type": "object"
+                          },
+                          "ps_eden_space": {
+                            "type": "object"
+                          },
+                          "ps_old_gen": {
+                            "type": "object"
+                          },
+                          "ps_survivor_space": {
+                            "type": "object"
                           }
-                        }
+                        },
+                        "type": "object"
                       }
                     }
                   },
-                  "name": {
-                    "ignore_above": 1024,
-                    "type": "keyword"
+                  "time": {
+                    "properties": {
+                      "duration": {
+                        "type": "long"
+                      },
+                      "end": {
+                        "type": "long"
+                      },
+                      "start": {
+                        "type": "long"
+                      }
+                    }
                   }
                 }
               },
-              "http_trace": {
-                "properties": {
-                  "principal": {
-                    "ignore_above": 1024,
-                    "type": "keyword"
-                  },
-                  "session": {
-                    "ignore_above": 1024,
-                    "type": "keyword"
-                  }
-                }
+              "name": {
+                "ignore_above": 1024,
+                "type": "keyword"
+              }
+            }
+          },
+          "http_trace": {
+            "properties": {
+              "principal": {
+                "ignore_above": 1024,
+                "type": "keyword"
+              },
+              "session": {
+                "ignore_above": 1024,
+                "type": "keyword"
               }
             }
           }

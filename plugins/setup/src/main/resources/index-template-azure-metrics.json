@@ -293,420 +293,405 @@
           }
         }
       },
-      "azure-metrics": {
+      "azure": {
         "properties": {
-          "azure": {
+          "application_id": {
+            "ignore_above": 1024,
+            "type": "keyword"
+          },
+          "compute_vm": {
             "properties": {
-              "application_id": {
+              "disk_read_bytes": {
+                "properties": {
+                  "total": {
+                    "type": "float"
+                  }
+                }
+              },
+              "inbound_flows_maximum_creation_rate": {
+                "properties": {
+                  "avg": {
+                    "type": "long"
+                  }
+                }
+              },
+              "network_in": {
+                "properties": {
+                  "total": {
+                    "type": "long"
+                  }
+                }
+              },
+              "network_in_total": {
+                "properties": {
+                  "total": {
+                    "type": "long"
+                  }
+                }
+              },
+              "outbound_flows_maximum_creation_rate": {
+                "properties": {
+                  "avg": {
+                    "type": "long"
+                  }
+                }
+              },
+              "percentage_cpu": {
+                "properties": {
+                  "avg": {
+                    "type": "float"
+                  }
+                }
+              }
+            }
+          },
+          "compute_vm_scaleset": {
+            "properties": {
+              "cpu_credits_consumed": {
+                "properties": {
+                  "avg": {
+                    "type": "long"
+                  }
+                }
+              },
+              "cpu_credits_remaining": {
+                "properties": {
+                  "avg": {
+                    "type": "long"
+                  }
+                }
+              }
+            }
+          },
+          "container_instance": {
+            "properties": {
+              "network_bytes_received_per_second": {
+                "properties": {
+                  "avg": {
+                    "type": "long"
+                  }
+                }
+              },
+              "network_bytes_transmitted_per_second": {
+                "properties": {
+                  "avg": {
+                    "type": "long"
+                  }
+                }
+              }
+            }
+          },
+          "container_registry": {
+            "properties": {
+              "agent_pool_cpu_time": {
+                "properties": {
+                  "total": {
+                    "type": "long"
+                  }
+                }
+              },
+              "run_duration": {
+                "properties": {
+                  "total": {
+                    "type": "long"
+                  }
+                }
+              },
+              "storage_used": {
+                "properties": {
+                  "avg": {
+                    "type": "long"
+                  }
+                }
+              },
+              "successful_pull_count": {
+                "properties": {
+                  "total": {
+                    "type": "long"
+                  }
+                }
+              },
+              "successful_push_count": {
+                "properties": {
+                  "total": {
+                    "type": "long"
+                  }
+                }
+              },
+              "total_pull_count": {
+                "properties": {
+                  "total": {
+                    "type": "long"
+                  }
+                }
+              },
+              "total_push_count": {
+                "properties": {
+                  "total": {
+                    "type": "long"
+                  }
+                }
+              }
+            }
+          },
+          "container_service": {
+            "properties": {
+              "kube_node_status_allocatable_cpu_cores": {
+                "properties": {
+                  "avg": {
+                    "type": "long"
+                  }
+                }
+              },
+              "kube_node_status_allocatable_memory_bytes": {
+                "properties": {
+                  "avg": {
+                    "type": "long"
+                  }
+                }
+              },
+              "kube_node_status_condition": {
+                "properties": {
+                  "avg": {
+                    "type": "long"
+                  }
+                }
+              },
+              "kube_pod_status_phase": {
+                "properties": {
+                  "avg": {
+                    "type": "long"
+                  }
+                }
+              },
+              "kube_pod_status_ready": {
+                "properties": {
+                  "avg": {
+                    "type": "long"
+                  }
+                }
+              }
+            }
+          },
+          "database_account": {
+            "properties": {
+              "availability": {
+                "properties": {
+                  "avg": {
+                    "type": "float"
+                  }
+                }
+              },
+              "data_usage_storage": {
+                "properties": {
+                  "avg": {
+                    "type": "long"
+                  }
+                }
+              },
+              "mongo_requests_count": {
+                "properties": {
+                  "total": {
+                    "type": "long"
+                  }
+                }
+              }
+            }
+          },
+          "dimensions": {
+            "properties": {
+              "api_name": {
                 "ignore_above": 1024,
                 "type": "keyword"
               },
-              "compute_vm": {
-                "properties": {
-                  "disk_read_bytes": {
-                    "properties": {
-                      "total": {
-                        "type": "float"
-                      }
-                    }
-                  },
-                  "inbound_flows_maximum_creation_rate": {
-                    "properties": {
-                      "avg": {
-                        "type": "long"
-                      }
-                    }
-                  },
-                  "network_in": {
-                    "properties": {
-                      "total": {
-                        "type": "long"
-                      }
-                    }
-                  },
-                  "network_in_total": {
-                    "properties": {
-                      "total": {
-                        "type": "long"
-                      }
-                    }
-                  },
-                  "outbound_flows_maximum_creation_rate": {
-                    "properties": {
-                      "avg": {
-                        "type": "long"
-                      }
-                    }
-                  },
-                  "percentage_cpu": {
-                    "properties": {
-                      "avg": {
-                        "type": "float"
-                      }
-                    }
-                  }
-                }
+              "authentication": {
+                "ignore_above": 1024,
+                "type": "keyword"
               },
-              "compute_vm_scaleset": {
-                "properties": {
-                  "cpu_credits_consumed": {
-                    "properties": {
-                      "avg": {
-                        "type": "long"
-                      }
-                    }
-                  },
-                  "cpu_credits_remaining": {
-                    "properties": {
-                      "avg": {
-                        "type": "long"
-                      }
-                    }
-                  }
-                }
+              "blob_type": {
+                "ignore_above": 1024,
+                "type": "keyword"
               },
-              "container_instance": {
-                "properties": {
-                  "network_bytes_received_per_second": {
-                    "properties": {
-                      "avg": {
-                        "type": "long"
-                      }
-                    }
-                  },
-                  "network_bytes_transmitted_per_second": {
-                    "properties": {
-                      "avg": {
-                        "type": "long"
-                      }
-                    }
-                  }
-                }
+              "closure_reason": {
+                "ignore_above": 1024,
+                "type": "keyword"
               },
-              "container_registry": {
-                "properties": {
-                  "agent_pool_cpu_time": {
-                    "properties": {
-                      "total": {
-                        "type": "long"
-                      }
-                    }
-                  },
-                  "run_duration": {
-                    "properties": {
-                      "total": {
-                        "type": "long"
-                      }
-                    }
-                  },
-                  "storage_used": {
-                    "properties": {
-                      "avg": {
-                        "type": "long"
-                      }
-                    }
-                  },
-                  "successful_pull_count": {
-                    "properties": {
-                      "total": {
-                        "type": "long"
-                      }
-                    }
-                  },
-                  "successful_push_count": {
-                    "properties": {
-                      "total": {
-                        "type": "long"
-                      }
-                    }
-                  },
-                  "total_pull_count": {
-                    "properties": {
-                      "total": {
-                        "type": "long"
-                      }
-                    }
-                  },
-                  "total_push_count": {
-                    "properties": {
-                      "total": {
-                        "type": "long"
-                      }
-                    }
-                  }
-                }
+              "command_name": {
+                "ignore_above": 1024,
+                "type": "keyword"
               },
-              "container_service": {
-                "properties": {
-                  "kube_node_status_allocatable_cpu_cores": {
-                    "properties": {
-                      "avg": {
-                        "type": "long"
-                      }
-                    }
-                  },
-                  "kube_node_status_allocatable_memory_bytes": {
-                    "properties": {
-                      "avg": {
-                        "type": "long"
-                      }
-                    }
-                  },
-                  "kube_node_status_condition": {
-                    "properties": {
-                      "avg": {
-                        "type": "long"
-                      }
-                    }
-                  },
-                  "kube_pod_status_phase": {
-                    "properties": {
-                      "avg": {
-                        "type": "long"
-                      }
-                    }
-                  },
-                  "kube_pod_status_ready": {
-                    "properties": {
-                      "avg": {
-                        "type": "long"
-                      }
-                    }
-                  }
-                }
+              "condition": {
+                "ignore_above": 1024,
+                "type": "keyword"
               },
-              "database_account": {
-                "properties": {
-                  "availability": {
-                    "properties": {
-                      "avg": {
-                        "type": "float"
-                      }
-                    }
-                  },
-                  "data_usage_storage": {
-                    "properties": {
-                      "avg": {
-                        "type": "long"
-                      }
-                    }
-                  },
-                  "mongo_requests_count": {
-                    "properties": {
-                      "total": {
-                        "type": "long"
-                      }
-                    }
-                  }
-                }
+              "database_name": {
+                "ignore_above": 1024,
+                "type": "keyword"
               },
-              "dimensions": {
-                "properties": {
-                  "api_name": {
-                    "ignore_above": 1024,
-                    "type": "keyword"
-                  },
-                  "authentication": {
-                    "ignore_above": 1024,
-                    "type": "keyword"
-                  },
-                  "blob_type": {
-                    "ignore_above": 1024,
-                    "type": "keyword"
-                  },
-                  "closure_reason": {
-                    "ignore_above": 1024,
-                    "type": "keyword"
-                  },
-                  "command_name": {
-                    "ignore_above": 1024,
-                    "type": "keyword"
-                  },
-                  "condition": {
-                    "ignore_above": 1024,
-                    "type": "keyword"
-                  },
-                  "database_name": {
-                    "ignore_above": 1024,
-                    "type": "keyword"
-                  },
-                  "file_share": {
-                    "ignore_above": 1024,
-                    "type": "keyword"
-                  },
-                  "geo_type": {
-                    "ignore_above": 1024,
-                    "type": "keyword"
-                  },
-                  "geolocation": {
-                    "ignore_above": 1024,
-                    "type": "keyword"
-                  },
-                  "lun": {
-                    "ignore_above": 1024,
-                    "type": "keyword"
-                  },
-                  "namespace": {
-                    "ignore_above": 1024,
-                    "type": "keyword"
-                  },
-                  "node": {
-                    "ignore_above": 1024,
-                    "type": "keyword"
-                  },
-                  "phase": {
-                    "ignore_above": 1024,
-                    "type": "keyword"
-                  },
-                  "pod": {
-                    "ignore_above": 1024,
-                    "type": "keyword"
-                  },
-                  "resource_name": {
-                    "ignore_above": 1024,
-                    "type": "keyword"
-                  },
-                  "response_type": {
-                    "ignore_above": 1024,
-                    "type": "keyword"
-                  },
-                  "status": {
-                    "ignore_above": 1024,
-                    "type": "keyword"
-                  },
-                  "status_code": {
-                    "ignore_above": 1024,
-                    "type": "keyword"
-                  },
-                  "tier": {
-                    "ignore_above": 1024,
-                    "type": "keyword"
-                  },
-                  "transaction_type": {
-                    "ignore_above": 1024,
-                    "type": "keyword"
-                  },
-                  "virtual_machine": {
-                    "ignore_above": 1024,
-                    "type": "keyword"
-                  },
-                  "vmname": {
-                    "ignore_above": 1024,
-                    "type": "keyword"
-                  }
-                }
+              "file_share": {
+                "ignore_above": 1024,
+                "type": "keyword"
               },
-              "metrics": {
-                "properties": {
-                  "Egress": {
-                    "properties": {
-                      "total": {
-                        "type": "long"
-                      }
-                    }
-                  },
-                  "Ingress": {
-                    "properties": {
-                      "total": {
-                        "type": "long"
-                      }
-                    }
-                  },
-                  "SuccessE2ELatency": {
-                    "properties": {
-                      "avg": {
-                        "type": "long"
-                      }
-                    }
-                  },
-                  "SuccessServerLatency": {
-                    "properties": {
-                      "avg": {
-                        "type": "long"
-                      }
-                    }
-                  },
-                  "Transactions": {
-                    "properties": {
-                      "total": {
-                        "type": "long"
-                      }
-                    }
-                  },
-                  "document_quota": {
-                    "properties": {
-                      "total": {
-                        "type": "long"
-                      }
-                    }
-                  }
-                }
+              "geo_type": {
+                "ignore_above": 1024,
+                "type": "keyword"
+              },
+              "geolocation": {
+                "ignore_above": 1024,
+                "type": "keyword"
+              },
+              "lun": {
+                "ignore_above": 1024,
+                "type": "keyword"
               },
               "namespace": {
                 "ignore_above": 1024,
                 "type": "keyword"
               },
-              "resource": {
-                "properties": {
-                  "group": {
-                    "ignore_above": 1024,
-                    "type": "keyword"
-                  },
-                  "id": {
-                    "ignore_above": 1024,
-                    "type": "keyword"
-                  },
-                  "name": {
-                    "ignore_above": 1024,
-                    "type": "keyword"
-                  },
-                  "tags": {
-                    "type": "object"
-                  },
-                  "type": {
-                    "ignore_above": 1024,
-                    "type": "keyword"
-                  }
-                }
-              },
-              "storage_account": {
-                "properties": {
-                  "availability": {
-                    "properties": {
-                      "avg": {
-                        "type": "long"
-                      }
-                    }
-                  },
-                  "used_capacity": {
-                    "properties": {
-                      "avg": {
-                        "type": "long"
-                      }
-                    }
-                  }
-                }
-              },
-              "subscription_id": {
+              "node": {
                 "ignore_above": 1024,
                 "type": "keyword"
               },
-              "timegrain": {
+              "phase": {
+                "ignore_above": 1024,
+                "type": "keyword"
+              },
+              "pod": {
+                "ignore_above": 1024,
+                "type": "keyword"
+              },
+              "resource_name": {
+                "ignore_above": 1024,
+                "type": "keyword"
+              },
+              "response_type": {
+                "ignore_above": 1024,
+                "type": "keyword"
+              },
+              "status": {
+                "ignore_above": 1024,
+                "type": "keyword"
+              },
+              "status_code": {
+                "ignore_above": 1024,
+                "type": "keyword"
+              },
+              "tier": {
+                "ignore_above": 1024,
+                "type": "keyword"
+              },
+              "transaction_type": {
+                "ignore_above": 1024,
+                "type": "keyword"
+              },
+              "virtual_machine": {
+                "ignore_above": 1024,
+                "type": "keyword"
+              },
+              "vmname": {
                 "ignore_above": 1024,
                 "type": "keyword"
               }
             }
           },
-          "metricset": {
+          "metrics": {
             "properties": {
+              "Egress": {
+                "properties": {
+                  "total": {
+                    "type": "long"
+                  }
+                }
+              },
+              "Ingress": {
+                "properties": {
+                  "total": {
+                    "type": "long"
+                  }
+                }
+              },
+              "SuccessE2ELatency": {
+                "properties": {
+                  "avg": {
+                    "type": "long"
+                  }
+                }
+              },
+              "SuccessServerLatency": {
+                "properties": {
+                  "avg": {
+                    "type": "long"
+                  }
+                }
+              },
+              "Transactions": {
+                "properties": {
+                  "total": {
+                    "type": "long"
+                  }
+                }
+              },
+              "document_quota": {
+                "properties": {
+                  "total": {
+                    "type": "long"
+                  }
+                }
+              }
+            }
+          },
+          "namespace": {
+            "ignore_above": 1024,
+            "type": "keyword"
+          },
+          "resource": {
+            "properties": {
+              "group": {
+                "ignore_above": 1024,
+                "type": "keyword"
+              },
+              "id": {
+                "ignore_above": 1024,
+                "type": "keyword"
+              },
               "name": {
                 "ignore_above": 1024,
                 "type": "keyword"
               },
-              "period": {
-                "type": "long"
+              "tags": {
+                "type": "object"
+              },
+              "type": {
+                "ignore_above": 1024,
+                "type": "keyword"
               }
             }
+          },
+          "storage_account": {
+            "properties": {
+              "availability": {
+                "properties": {
+                  "avg": {
+                    "type": "long"
+                  }
+                }
+              },
+              "used_capacity": {
+                "properties": {
+                  "avg": {
+                    "type": "long"
+                  }
+                }
+              }
+            }
+          },
+          "subscription_id": {
+            "ignore_above": 1024,
+            "type": "keyword"
+          },
+          "timegrain": {
+            "ignore_above": 1024,
+            "type": "keyword"
           }
         }
       },
@@ -3082,6 +3067,17 @@
       },
       "message": {
         "type": "keyword"
+      },
+      "metricset": {
+        "properties": {
+          "name": {
+            "ignore_above": 1024,
+            "type": "keyword"
+          },
+          "period": {
+            "type": "long"
+          }
+        }
       },
       "network": {
         "properties": {

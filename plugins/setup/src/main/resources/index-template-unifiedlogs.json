@@ -2663,6 +2663,22 @@
           }
         }
       },
+      "macos_uls": {
+        "properties": {
+          "auth_method": {
+            "ignore_above": 1024,
+            "type": "keyword"
+          },
+          "ipc_type": {
+            "ignore_above": 1024,
+            "type": "keyword"
+          },
+          "macos_entitlement": {
+            "ignore_above": 1024,
+            "type": "keyword"
+          }
+        }
+      },
       "message": {
         "type": "keyword"
       },
@@ -18990,26 +19006,6 @@
           "id": {
             "ignore_above": 1024,
             "type": "keyword"
-          }
-        }
-      },
-      "unifiedlogs": {
-        "properties": {
-          "macos_uls": {
-            "properties": {
-              "auth_method": {
-                "ignore_above": 1024,
-                "type": "keyword"
-              },
-              "ipc_type": {
-                "ignore_above": 1024,
-                "type": "keyword"
-              },
-              "macos_entitlement": {
-                "ignore_above": 1024,
-                "type": "keyword"
-              }
-            }
           }
         }
       },

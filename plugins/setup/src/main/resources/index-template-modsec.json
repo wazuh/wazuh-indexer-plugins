@@ -2666,43 +2666,39 @@
       "message": {
         "type": "keyword"
       },
-      "modsec": {
+      "modsecurity": {
         "properties": {
-          "modsecurity": {
-            "properties": {
-              "audit_data_details": {
-                "ignore_above": 1024,
-                "type": "keyword"
-              },
-              "audit_data_messages": {
-                "ignore_above": 1024,
-                "type": "keyword"
-              },
-              "audit_data_server": {
-                "ignore_above": 1024,
-                "type": "keyword"
-              },
-              "transaction_id": {
-                "ignore_above": 1024,
-                "type": "keyword"
-              },
-              "transaction_messages_details": {
-                "ignore_above": 1024,
-                "type": "keyword"
-              },
-              "transaction_messages_message": {
-                "ignore_above": 1024,
-                "type": "keyword"
-              },
-              "transaction_producer_connector": {
-                "ignore_above": 1024,
-                "type": "keyword"
-              },
-              "transaction_response_headers_Server": {
-                "ignore_above": 1024,
-                "type": "keyword"
-              }
-            }
+          "audit_data_details": {
+            "ignore_above": 1024,
+            "type": "keyword"
+          },
+          "audit_data_messages": {
+            "ignore_above": 1024,
+            "type": "keyword"
+          },
+          "audit_data_server": {
+            "ignore_above": 1024,
+            "type": "keyword"
+          },
+          "transaction_id": {
+            "ignore_above": 1024,
+            "type": "keyword"
+          },
+          "transaction_messages_details": {
+            "ignore_above": 1024,
+            "type": "keyword"
+          },
+          "transaction_messages_message": {
+            "ignore_above": 1024,
+            "type": "keyword"
+          },
+          "transaction_producer_connector": {
+            "ignore_above": 1024,
+            "type": "keyword"
+          },
+          "transaction_response_headers_Server": {
+            "ignore_above": 1024,
+            "type": "keyword"
           }
         }
       },

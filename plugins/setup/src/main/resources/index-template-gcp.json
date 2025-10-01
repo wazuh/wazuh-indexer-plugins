@@ -2199,350 +2199,303 @@
           }
         }
       },
-      "gcp": {
+      "gcp_audit": {
         "properties": {
-          "cloud": {
+          "actor": {
             "properties": {
-              "instance": {
-                "properties": {
-                  "name": {
-                    "ignore_above": 1024,
-                    "type": "keyword"
-                  }
-                }
-              }
-            }
-          },
-          "dns": {
-            "properties": {
-              "answers": {
+              "entity_id": {
                 "type": "nested"
               }
             }
           },
-          "gcp_audit": {
+          "authenticationinfo": {
             "properties": {
-              "actor": {
-                "properties": {
-                  "entity_id": {
-                    "type": "nested"
-                  }
-                }
-              },
-              "authenticationinfo": {
-                "properties": {
-                  "principalsubject": {
-                    "ignore_above": 1024,
-                    "type": "keyword"
-                  },
-                  "serviceaccountdelegationinfo": {
-                    "type": "nested"
-                  },
-                  "serviceaccountkeyname": {
-                    "ignore_above": 1024,
-                    "type": "keyword"
-                  }
-                }
-              },
-              "authorizationinfo": {
-                "type": "nested"
-              },
-              "event_provider": {
+              "principalsubject": {
                 "ignore_above": 1024,
                 "type": "keyword"
               },
-              "labels": {
-                "type": "object"
+              "serviceaccountdelegationinfo": {
+                "type": "nested"
+              },
+              "serviceaccountkeyname": {
+                "ignore_above": 1024,
+                "type": "keyword"
+              }
+            }
+          },
+          "authorizationinfo": {
+            "type": "nested"
+          },
+          "event_provider": {
+            "ignore_above": 1024,
+            "type": "keyword"
+          },
+          "labels": {
+            "type": "object"
+          },
+          "metadata": {
+            "properties": {
+              "@type": {
+                "ignore_above": 1024,
+                "type": "keyword"
+              },
+              "accessLevels": {
+                "ignore_above": 1024,
+                "type": "keyword"
+              },
+              "identityDelegationChain": {
+                "ignore_above": 1024,
+                "type": "keyword"
+              },
+              "ingressViolations": {
+                "type": "nested"
+              },
+              "operationType": {
+                "ignore_above": 1024,
+                "type": "keyword"
+              },
+              "resourceNames": {
+                "ignore_above": 1024,
+                "type": "keyword"
+              },
+              "securityPolicyInfo": {
+                "properties": {
+                  "organizationId": {
+                    "ignore_above": 1024,
+                    "type": "keyword"
+                  },
+                  "servicePerimeterName": {
+                    "ignore_above": 1024,
+                    "type": "keyword"
+                  }
+                }
+              },
+              "usedResources": {
+                "properties": {
+                  "attachedDisks": {
+                    "type": "nested"
+                  }
+                }
+              },
+              "violationReason": {
+                "ignore_above": 1024,
+                "type": "keyword"
+              },
+              "vpcServiceControlsUniqueId": {
+                "ignore_above": 1024,
+                "type": "keyword"
+              }
+            }
+          },
+          "numresponseitems": {
+            "type": "long"
+          },
+          "operation": {
+            "properties": {
+              "id": {
+                "ignore_above": 1024,
+                "type": "keyword"
+              }
+            }
+          },
+          "orgpolicyviolationinfo": {
+            "properties": {
+              "payload": {
+                "properties": {
+                  "key1": {
+                    "ignore_above": 1024,
+                    "type": "keyword"
+                  },
+                  "key2": {
+                    "ignore_above": 1024,
+                    "type": "keyword"
+                  }
+                }
+              },
+              "resourcetags": {
+                "properties": {
+                  "instance_id": {
+                    "ignore_above": 1024,
+                    "type": "keyword"
+                  },
+                  "zone": {
+                    "ignore_above": 1024,
+                    "type": "keyword"
+                  }
+                }
+              }
+            }
+          },
+          "related": {
+            "properties": {
+              "entity": {
+                "type": "nested"
+              }
+            }
+          },
+          "request": {
+            "properties": {
+              "@type": {
+                "ignore_above": 1024,
+                "type": "keyword"
+              },
+              "apiVersion": {
+                "ignore_above": 1024,
+                "type": "keyword"
+              },
+              "disks": {
+                "ignore_above": 1024,
+                "type": "keyword"
+              },
+              "family": {
+                "ignore_above": 1024,
+                "type": "keyword"
+              },
+              "guestOsFeatures": {
+                "type": "nested"
+              },
+              "kind": {
+                "ignore_above": 1024,
+                "type": "keyword"
+              },
+              "machineType": {
+                "ignore_above": 1024,
+                "type": "keyword"
               },
               "metadata": {
                 "properties": {
-                  "@type": {
-                    "ignore_above": 1024,
-                    "type": "keyword"
-                  },
-                  "accessLevels": {
-                    "ignore_above": 1024,
-                    "type": "keyword"
-                  },
-                  "identityDelegationChain": {
-                    "ignore_above": 1024,
-                    "type": "keyword"
-                  },
-                  "ingressViolations": {
-                    "type": "nested"
-                  },
-                  "operationType": {
-                    "ignore_above": 1024,
-                    "type": "keyword"
-                  },
-                  "resourceNames": {
-                    "ignore_above": 1024,
-                    "type": "keyword"
-                  },
-                  "securityPolicyInfo": {
-                    "properties": {
-                      "organizationId": {
-                        "ignore_above": 1024,
-                        "type": "keyword"
-                      },
-                      "servicePerimeterName": {
-                        "ignore_above": 1024,
-                        "type": "keyword"
-                      }
-                    }
-                  },
-                  "usedResources": {
-                    "properties": {
-                      "attachedDisks": {
-                        "type": "nested"
-                      }
-                    }
-                  },
-                  "violationReason": {
-                    "ignore_above": 1024,
-                    "type": "keyword"
-                  },
-                  "vpcServiceControlsUniqueId": {
-                    "ignore_above": 1024,
-                    "type": "keyword"
+                  "creationTimestamp": {
+                    "type": "date"
                   }
                 }
               },
-              "numresponseitems": {
-                "type": "long"
-              },
-              "operation": {
-                "properties": {
-                  "id": {
-                    "ignore_above": 1024,
-                    "type": "keyword"
-                  }
-                }
-              },
-              "orgpolicyviolationinfo": {
-                "properties": {
-                  "payload": {
-                    "properties": {
-                      "key1": {
-                        "ignore_above": 1024,
-                        "type": "keyword"
-                      },
-                      "key2": {
-                        "ignore_above": 1024,
-                        "type": "keyword"
-                      }
-                    }
-                  },
-                  "resourcetags": {
-                    "properties": {
-                      "instance_id": {
-                        "ignore_above": 1024,
-                        "type": "keyword"
-                      },
-                      "zone": {
-                        "ignore_above": 1024,
-                        "type": "keyword"
-                      }
-                    }
-                  }
-                }
-              },
-              "related": {
-                "properties": {
-                  "entity": {
-                    "type": "nested"
-                  }
-                }
-              },
-              "request": {
-                "properties": {
-                  "@type": {
-                    "ignore_above": 1024,
-                    "type": "keyword"
-                  },
-                  "apiVersion": {
-                    "ignore_above": 1024,
-                    "type": "keyword"
-                  },
-                  "disks": {
-                    "ignore_above": 1024,
-                    "type": "keyword"
-                  },
-                  "family": {
-                    "ignore_above": 1024,
-                    "type": "keyword"
-                  },
-                  "guestOsFeatures": {
-                    "type": "nested"
-                  },
-                  "kind": {
-                    "ignore_above": 1024,
-                    "type": "keyword"
-                  },
-                  "machineType": {
-                    "ignore_above": 1024,
-                    "type": "keyword"
-                  },
-                  "metadata": {
-                    "properties": {
-                      "creationTimestamp": {
-                        "type": "date"
-                      }
-                    }
-                  },
-                  "name": {
-                    "ignore_above": 1024,
-                    "type": "keyword"
-                  },
-                  "networkInterfaces": {
-                    "type": "nested"
-                  },
-                  "pageSize": {
-                    "ignore_above": 1024,
-                    "type": "keyword"
-                  },
-                  "page_token": {
-                    "ignore_above": 1024,
-                    "type": "keyword"
-                  },
-                  "policy": {
-                    "properties": {
-                      "bindings": {
-                        "type": "nested"
-                      },
-                      "etag": {
-                        "ignore_above": 1024,
-                        "type": "keyword"
-                      }
-                    }
-                  },
-                  "policyvalue": {
-                    "ignore_above": 1024,
-                    "type": "keyword"
-                  },
-                  "rawDisk": {
-                    "properties": {
-                      "source": {
-                        "ignore_above": 1024,
-                        "type": "keyword"
-                      }
-                    }
-                  },
-                  "resource": {
-                    "ignore_above": 1024,
-                    "type": "keyword"
-                  },
-                  "resourceName": {
-                    "ignore_above": 1024,
-                    "type": "keyword"
-                  },
-                  "serviceAccounts": {
-                    "type": "nested"
-                  },
-                  "sourceType": {
-                    "ignore_above": 1024,
-                    "type": "keyword"
-                  },
-                  "spec": {
-                    "properties": {
-                      "group": {
-                        "type": "nested"
-                      },
-                      "nonResourceAttributes": {
-                        "properties": {
-                          "path": {
-                            "ignore_above": 1024,
-                            "type": "keyword"
-                          },
-                          "verb": {
-                            "ignore_above": 1024,
-                            "type": "keyword"
-                          }
-                        }
-                      },
-                      "strategy": {
-                        "properties": {
-                          "$retainKeys": {
-                            "ignore_above": 1024,
-                            "type": "keyword"
-                          }
-                        }
-                      },
-                      "template": {
-                        "properties": {
-                          "spec": {
-                            "type": "object"
-                          }
-                        }
-                      },
-                      "user": {
-                        "ignore_above": 1024,
-                        "type": "keyword"
-                      }
-                    }
-                  },
-                  "status": {
-                    "properties": {
-                      "allowed": {
-                        "type": "boolean"
-                      }
-                    }
-                  }
-                }
-              },
-              "resourcelocation": {
-                "properties": {
-                  "currentlocation": {
-                    "type": "nested"
-                  }
-                }
-              },
-              "resourcename": {
+              "name": {
                 "ignore_above": 1024,
                 "type": "keyword"
               },
-              "response": {
+              "networkInterfaces": {
+                "type": "nested"
+              },
+              "pageSize": {
+                "ignore_above": 1024,
+                "type": "keyword"
+              },
+              "page_token": {
+                "ignore_above": 1024,
+                "type": "keyword"
+              },
+              "policy": {
                 "properties": {
-                  "@type": {
-                    "ignore_above": 1024,
-                    "type": "keyword"
-                  },
-                  "apiVersion": {
-                    "ignore_above": 1024,
-                    "type": "keyword"
-                  },
                   "bindings": {
                     "type": "nested"
-                  },
-                  "details": {
-                    "properties": {
-                      "group": {
-                        "ignore_above": 1024,
-                        "type": "keyword"
-                      },
-                      "kind": {
-                        "ignore_above": 1024,
-                        "type": "keyword"
-                      },
-                      "name": {
-                        "ignore_above": 1024,
-                        "type": "keyword"
-                      },
-                      "uid": {
-                        "ignore_above": 1024,
-                        "type": "keyword"
-                      }
-                    }
                   },
                   "etag": {
                     "ignore_above": 1024,
                     "type": "keyword"
-                  },
-                  "id": {
+                  }
+                }
+              },
+              "policyvalue": {
+                "ignore_above": 1024,
+                "type": "keyword"
+              },
+              "rawDisk": {
+                "properties": {
+                  "source": {
                     "ignore_above": 1024,
                     "type": "keyword"
+                  }
+                }
+              },
+              "resource": {
+                "ignore_above": 1024,
+                "type": "keyword"
+              },
+              "resourceName": {
+                "ignore_above": 1024,
+                "type": "keyword"
+              },
+              "serviceAccounts": {
+                "type": "nested"
+              },
+              "sourceType": {
+                "ignore_above": 1024,
+                "type": "keyword"
+              },
+              "spec": {
+                "properties": {
+                  "group": {
+                    "type": "nested"
                   },
-                  "insertTime": {
+                  "nonResourceAttributes": {
+                    "properties": {
+                      "path": {
+                        "ignore_above": 1024,
+                        "type": "keyword"
+                      },
+                      "verb": {
+                        "ignore_above": 1024,
+                        "type": "keyword"
+                      }
+                    }
+                  },
+                  "strategy": {
+                    "properties": {
+                      "$retainKeys": {
+                        "ignore_above": 1024,
+                        "type": "keyword"
+                      }
+                    }
+                  },
+                  "template": {
+                    "properties": {
+                      "spec": {
+                        "type": "object"
+                      }
+                    }
+                  },
+                  "user": {
+                    "ignore_above": 1024,
+                    "type": "keyword"
+                  }
+                }
+              },
+              "status": {
+                "properties": {
+                  "allowed": {
+                    "type": "boolean"
+                  }
+                }
+              }
+            }
+          },
+          "resourcelocation": {
+            "properties": {
+              "currentlocation": {
+                "type": "nested"
+              }
+            }
+          },
+          "resourcename": {
+            "ignore_above": 1024,
+            "type": "keyword"
+          },
+          "response": {
+            "properties": {
+              "@type": {
+                "ignore_above": 1024,
+                "type": "keyword"
+              },
+              "apiVersion": {
+                "ignore_above": 1024,
+                "type": "keyword"
+              },
+              "bindings": {
+                "type": "nested"
+              },
+              "details": {
+                "properties": {
+                  "group": {
                     "ignore_above": 1024,
                     "type": "keyword"
                   },
@@ -2550,94 +2503,160 @@
                     "ignore_above": 1024,
                     "type": "keyword"
                   },
-                  "metadata": {
-                    "properties": {
-                      "annotations": {
-                        "type": "object"
-                      },
-                      "creationTimestamp": {
-                        "type": "date"
-                      },
-                      "generation": {
-                        "ignore_above": 1024,
-                        "type": "keyword"
-                      },
-                      "labels": {
-                        "type": "object"
-                      },
-                      "managedFields": {
-                        "type": "nested"
-                      },
-                      "name": {
-                        "ignore_above": 1024,
-                        "type": "keyword"
-                      },
-                      "namespace": {
-                        "ignore_above": 1024,
-                        "type": "keyword"
-                      },
-                      "resourceVersion": {
-                        "ignore_above": 1024,
-                        "type": "keyword"
-                      },
-                      "uid": {
-                        "ignore_above": 1024,
-                        "type": "keyword"
-                      }
-                    }
+                  "name": {
+                    "ignore_above": 1024,
+                    "type": "keyword"
+                  },
+                  "uid": {
+                    "ignore_above": 1024,
+                    "type": "keyword"
+                  }
+                }
+              },
+              "etag": {
+                "ignore_above": 1024,
+                "type": "keyword"
+              },
+              "id": {
+                "ignore_above": 1024,
+                "type": "keyword"
+              },
+              "insertTime": {
+                "ignore_above": 1024,
+                "type": "keyword"
+              },
+              "kind": {
+                "ignore_above": 1024,
+                "type": "keyword"
+              },
+              "metadata": {
+                "properties": {
+                  "annotations": {
+                    "type": "object"
+                  },
+                  "creationTimestamp": {
+                    "type": "date"
+                  },
+                  "generation": {
+                    "ignore_above": 1024,
+                    "type": "keyword"
+                  },
+                  "labels": {
+                    "type": "object"
+                  },
+                  "managedFields": {
+                    "type": "nested"
                   },
                   "name": {
                     "ignore_above": 1024,
                     "type": "keyword"
                   },
-                  "operationType": {
+                  "namespace": {
                     "ignore_above": 1024,
                     "type": "keyword"
                   },
-                  "progress": {
+                  "resourceVersion": {
                     "ignore_above": 1024,
                     "type": "keyword"
                   },
-                  "selfLink": {
+                  "uid": {
                     "ignore_above": 1024,
                     "type": "keyword"
+                  }
+                }
+              },
+              "name": {
+                "ignore_above": 1024,
+                "type": "keyword"
+              },
+              "operationType": {
+                "ignore_above": 1024,
+                "type": "keyword"
+              },
+              "progress": {
+                "ignore_above": 1024,
+                "type": "keyword"
+              },
+              "selfLink": {
+                "ignore_above": 1024,
+                "type": "keyword"
+              },
+              "selfLinkWithId": {
+                "ignore_above": 1024,
+                "type": "keyword"
+              },
+              "spec": {
+                "properties": {
+                  "group": {
+                    "type": "nested"
                   },
-                  "selfLinkWithId": {
-                    "ignore_above": 1024,
-                    "type": "keyword"
-                  },
-                  "spec": {
+                  "nonResourceAttributes": {
                     "properties": {
-                      "group": {
-                        "type": "nested"
+                      "path": {
+                        "ignore_above": 1024,
+                        "type": "keyword"
                       },
-                      "nonResourceAttributes": {
+                      "verb": {
+                        "ignore_above": 1024,
+                        "type": "keyword"
+                      }
+                    }
+                  },
+                  "progressDeadlineSeconds": {
+                    "ignore_above": 1024,
+                    "type": "keyword"
+                  },
+                  "replicas": {
+                    "ignore_above": 1024,
+                    "type": "keyword"
+                  },
+                  "revisionHistoryLimit": {
+                    "ignore_above": 1024,
+                    "type": "keyword"
+                  },
+                  "selector": {
+                    "properties": {
+                      "matchLabels": {
                         "properties": {
-                          "path": {
+                          "k8s-app": {
+                            "ignore_above": 1024,
+                            "type": "keyword"
+                          }
+                        }
+                      }
+                    }
+                  },
+                  "strategy": {
+                    "properties": {
+                      "rollingUpdate": {
+                        "properties": {
+                          "maxSurge": {
                             "ignore_above": 1024,
                             "type": "keyword"
                           },
-                          "verb": {
+                          "maxUnavailable": {
                             "ignore_above": 1024,
                             "type": "keyword"
                           }
                         }
                       },
-                      "progressDeadlineSeconds": {
+                      "type": {
                         "ignore_above": 1024,
                         "type": "keyword"
-                      },
-                      "replicas": {
-                        "ignore_above": 1024,
-                        "type": "keyword"
-                      },
-                      "revisionHistoryLimit": {
-                        "ignore_above": 1024,
-                        "type": "keyword"
-                      },
-                      "selector": {
+                      }
+                    }
+                  },
+                  "template": {
+                    "properties": {
+                      "metadata": {
                         "properties": {
-                          "matchLabels": {
+                          "annotations": {
+                            "type": "object"
+                          },
+                          "creationTimestamp": {
+                            "type": "date"
+                          },
+                          "labels": {
                             "properties": {
                               "k8s-app": {
                                 "ignore_above": 1024,
@@ -2647,238 +2666,257 @@
                           }
                         }
                       },
-                      "strategy": {
+                      "spec": {
                         "properties": {
-                          "rollingUpdate": {
-                            "properties": {
-                              "maxSurge": {
-                                "ignore_above": 1024,
-                                "type": "keyword"
-                              },
-                              "maxUnavailable": {
-                                "ignore_above": 1024,
-                                "type": "keyword"
-                              }
-                            }
+                          "containers": {
+                            "type": "nested"
                           },
-                          "type": {
+                          "dnsPolicy": {
                             "ignore_above": 1024,
                             "type": "keyword"
-                          }
-                        }
-                      },
-                      "template": {
-                        "properties": {
-                          "metadata": {
+                          },
+                          "nodeSelector": {
+                            "type": "object"
+                          },
+                          "priorityClassName": {
+                            "ignore_above": 1024,
+                            "type": "keyword"
+                          },
+                          "restartPolicy": {
+                            "ignore_above": 1024,
+                            "type": "keyword"
+                          },
+                          "schedulerName": {
+                            "ignore_above": 1024,
+                            "type": "keyword"
+                          },
+                          "securityContext": {
                             "properties": {
-                              "annotations": {
-                                "type": "object"
+                              "fsGroup": {
+                                "ignore_above": 1024,
+                                "type": "keyword"
                               },
-                              "creationTimestamp": {
-                                "type": "date"
+                              "runAsGroup": {
+                                "ignore_above": 1024,
+                                "type": "keyword"
                               },
-                              "labels": {
-                                "properties": {
-                                  "k8s-app": {
-                                    "ignore_above": 1024,
-                                    "type": "keyword"
-                                  }
-                                }
+                              "runAsUser": {
+                                "ignore_above": 1024,
+                                "type": "keyword"
                               }
                             }
                           },
-                          "spec": {
-                            "properties": {
-                              "containers": {
-                                "type": "nested"
-                              },
-                              "dnsPolicy": {
-                                "ignore_above": 1024,
-                                "type": "keyword"
-                              },
-                              "nodeSelector": {
-                                "type": "object"
-                              },
-                              "priorityClassName": {
-                                "ignore_above": 1024,
-                                "type": "keyword"
-                              },
-                              "restartPolicy": {
-                                "ignore_above": 1024,
-                                "type": "keyword"
-                              },
-                              "schedulerName": {
-                                "ignore_above": 1024,
-                                "type": "keyword"
-                              },
-                              "securityContext": {
-                                "properties": {
-                                  "fsGroup": {
-                                    "ignore_above": 1024,
-                                    "type": "keyword"
-                                  },
-                                  "runAsGroup": {
-                                    "ignore_above": 1024,
-                                    "type": "keyword"
-                                  },
-                                  "runAsUser": {
-                                    "ignore_above": 1024,
-                                    "type": "keyword"
-                                  }
-                                }
-                              },
-                              "serviceAccount": {
-                                "ignore_above": 1024,
-                                "type": "keyword"
-                              },
-                              "serviceAccountName": {
-                                "ignore_above": 1024,
-                                "type": "keyword"
-                              },
-                              "terminationGracePeriodSeconds": {
-                                "ignore_above": 1024,
-                                "type": "keyword"
-                              },
-                              "tolerations": {
-                                "type": "nested"
-                              },
-                              "topologySpreadConstraints": {
-                                "type": "nested"
-                              },
-                              "volumes": {
-                                "type": "nested"
-                              }
-                            }
+                          "serviceAccount": {
+                            "ignore_above": 1024,
+                            "type": "keyword"
+                          },
+                          "serviceAccountName": {
+                            "ignore_above": 1024,
+                            "type": "keyword"
+                          },
+                          "terminationGracePeriodSeconds": {
+                            "ignore_above": 1024,
+                            "type": "keyword"
+                          },
+                          "tolerations": {
+                            "type": "nested"
+                          },
+                          "topologySpreadConstraints": {
+                            "type": "nested"
+                          },
+                          "volumes": {
+                            "type": "nested"
                           }
                         }
-                      },
-                      "user": {
-                        "ignore_above": 1024,
-                        "type": "keyword"
                       }
                     }
-                  },
-                  "startTime": {
-                    "ignore_above": 1024,
-                    "type": "keyword"
-                  },
-                  "status": {
-                    "properties": {
-                      "allowed": {
-                        "type": "boolean"
-                      },
-                      "availableReplicas": {
-                        "ignore_above": 1024,
-                        "type": "keyword"
-                      },
-                      "conditions": {
-                        "type": "nested"
-                      },
-                      "observedGeneration": {
-                        "ignore_above": 1024,
-                        "type": "keyword"
-                      },
-                      "readyReplicas": {
-                        "ignore_above": 1024,
-                        "type": "keyword"
-                      },
-                      "reason": {
-                        "ignore_above": 1024,
-                        "type": "keyword"
-                      },
-                      "replicas": {
-                        "ignore_above": 1024,
-                        "type": "keyword"
-                      },
-                      "updatedReplicas": {
-                        "ignore_above": 1024,
-                        "type": "keyword"
-                      }
-                    }
-                  },
-                  "statusvalue": {
-                    "ignore_above": 1024,
-                    "type": "keyword"
-                  },
-                  "targetId": {
-                    "ignore_above": 1024,
-                    "type": "keyword"
-                  },
-                  "targetLink": {
-                    "ignore_above": 1024,
-                    "type": "keyword"
                   },
                   "user": {
-                    "ignore_above": 1024,
-                    "type": "keyword"
-                  },
-                  "zone": {
                     "ignore_above": 1024,
                     "type": "keyword"
                   }
                 }
               },
-              "servicename": {
+              "startTime": {
                 "ignore_above": 1024,
                 "type": "keyword"
               },
               "status": {
                 "properties": {
-                  "code": {
-                    "type": "long"
+                  "allowed": {
+                    "type": "boolean"
                   },
-                  "details": {
+                  "availableReplicas": {
+                    "ignore_above": 1024,
+                    "type": "keyword"
+                  },
+                  "conditions": {
                     "type": "nested"
                   },
-                  "message": {
+                  "observedGeneration": {
+                    "ignore_above": 1024,
+                    "type": "keyword"
+                  },
+                  "readyReplicas": {
+                    "ignore_above": 1024,
+                    "type": "keyword"
+                  },
+                  "reason": {
+                    "ignore_above": 1024,
+                    "type": "keyword"
+                  },
+                  "replicas": {
+                    "ignore_above": 1024,
+                    "type": "keyword"
+                  },
+                  "updatedReplicas": {
                     "ignore_above": 1024,
                     "type": "keyword"
                   }
                 }
               },
-              "target": {
-                "properties": {
-                  "entity_id": {
-                    "type": "nested"
-                  }
-                }
+              "statusvalue": {
+                "ignore_above": 1024,
+                "type": "keyword"
               },
-              "type": {
+              "targetId": {
+                "ignore_above": 1024,
+                "type": "keyword"
+              },
+              "targetLink": {
+                "ignore_above": 1024,
+                "type": "keyword"
+              },
+              "user": {
+                "ignore_above": 1024,
+                "type": "keyword"
+              },
+              "zone": {
                 "ignore_above": 1024,
                 "type": "keyword"
               }
             }
           },
-          "gcp_compute": {
+          "servicename": {
+            "ignore_above": 1024,
+            "type": "keyword"
+          },
+          "status": {
             "properties": {
-              "event_module": {
+              "code": {
+                "type": "long"
+              },
+              "details": {
+                "type": "nested"
+              },
+              "message": {
                 "ignore_above": 1024,
                 "type": "keyword"
-              },
-              "labels": {
+              }
+            }
+          },
+          "target": {
+            "properties": {
+              "entity_id": {
+                "type": "nested"
+              }
+            }
+          },
+          "type": {
+            "ignore_above": 1024,
+            "type": "keyword"
+          }
+        }
+      },
+      "gcp_compute": {
+        "properties": {
+          "event_module": {
+            "ignore_above": 1024,
+            "type": "keyword"
+          },
+          "labels": {
+            "properties": {
+              "user": {
                 "properties": {
-                  "user": {
+                  "goog-gke-node": {
+                    "ignore_above": 1024,
+                    "type": "keyword"
+                  }
+                }
+              }
+            }
+          },
+          "metrics": {
+            "properties": {
+              "firewall": {
+                "properties": {
+                  "dropped": {
                     "properties": {
-                      "goog-gke-node": {
-                        "ignore_above": 1024,
-                        "type": "keyword"
+                      "bytes": {
+                        "type": "long"
+                      }
+                    }
+                  },
+                  "dropped_packets_count": {
+                    "properties": {
+                      "value": {
+                        "type": "long"
                       }
                     }
                   }
                 }
               },
-              "metrics": {
+              "instance": {
                 "properties": {
-                  "firewall": {
+                  "cpu": {
                     "properties": {
-                      "dropped": {
+                      "reserved_cores": {
+                        "properties": {
+                          "value": {
+                            "type": "long"
+                          }
+                        }
+                      },
+                      "usage": {
+                        "properties": {
+                          "pct": {
+                            "type": "float"
+                          }
+                        }
+                      },
+                      "usage_time": {
+                        "properties": {
+                          "sec": {
+                            "type": "float"
+                          }
+                        }
+                      }
+                    }
+                  },
+                  "disk": {
+                    "properties": {
+                      "read": {
                         "properties": {
                           "bytes": {
                             "type": "long"
                           }
                         }
                       },
-                      "dropped_packets_count": {
+                      "read_ops_count": {
+                        "properties": {
+                          "value": {
+                            "type": "long"
+                          }
+                        }
+                      },
+                      "write": {
+                        "properties": {
+                          "bytes": {
+                            "type": "long"
+                          }
+                        }
+                      },
+                      "write_ops_count": {
                         "properties": {
                           "value": {
                             "type": "long"
@@ -2887,426 +2925,346 @@
                       }
                     }
                   },
-                  "instance": {
+                  "memory": {
                     "properties": {
-                      "cpu": {
+                      "balloon": {
                         "properties": {
-                          "reserved_cores": {
+                          "ram_size": {
                             "properties": {
                               "value": {
                                 "type": "long"
                               }
                             }
                           },
-                          "usage": {
-                            "properties": {
-                              "pct": {
-                                "type": "float"
-                              }
-                            }
-                          },
-                          "usage_time": {
-                            "properties": {
-                              "sec": {
-                                "type": "float"
-                              }
-                            }
-                          }
-                        }
-                      },
-                      "disk": {
-                        "properties": {
-                          "read": {
-                            "properties": {
-                              "bytes": {
-                                "type": "long"
-                              }
-                            }
-                          },
-                          "read_ops_count": {
+                          "ram_used": {
                             "properties": {
                               "value": {
                                 "type": "long"
                               }
                             }
                           },
-                          "write": {
+                          "swap_in": {
                             "properties": {
                               "bytes": {
                                 "type": "long"
                               }
                             }
                           },
-                          "write_ops_count": {
-                            "properties": {
-                              "value": {
-                                "type": "long"
-                              }
-                            }
-                          }
-                        }
-                      },
-                      "memory": {
-                        "properties": {
-                          "balloon": {
-                            "properties": {
-                              "ram_size": {
-                                "properties": {
-                                  "value": {
-                                    "type": "long"
-                                  }
-                                }
-                              },
-                              "ram_used": {
-                                "properties": {
-                                  "value": {
-                                    "type": "long"
-                                  }
-                                }
-                              },
-                              "swap_in": {
-                                "properties": {
-                                  "bytes": {
-                                    "type": "long"
-                                  }
-                                }
-                              },
-                              "swap_out": {
-                                "properties": {
-                                  "bytes": {
-                                    "type": "long"
-                                  }
-                                }
-                              }
-                            }
-                          }
-                        }
-                      },
-                      "network": {
-                        "properties": {
-                          "egress": {
+                          "swap_out": {
                             "properties": {
                               "bytes": {
                                 "type": "long"
-                              },
-                              "packets": {
-                                "properties": {
-                                  "count": {
-                                    "type": "long"
-                                  }
-                                }
                               }
                             }
+                          }
+                        }
+                      }
+                    }
+                  },
+                  "network": {
+                    "properties": {
+                      "egress": {
+                        "properties": {
+                          "bytes": {
+                            "type": "long"
                           },
-                          "ingress": {
+                          "packets": {
                             "properties": {
-                              "bytes": {
+                              "count": {
                                 "type": "long"
-                              },
-                              "packets": {
-                                "properties": {
-                                  "count": {
-                                    "type": "long"
-                                  }
-                                }
                               }
                             }
                           }
                         }
                       },
-                      "uptime": {
+                      "ingress": {
                         "properties": {
-                          "sec": {
-                            "type": "float"
+                          "bytes": {
+                            "type": "long"
+                          },
+                          "packets": {
+                            "properties": {
+                              "count": {
+                                "type": "long"
+                              }
+                            }
                           }
                         }
-                      },
-                      "uptime_total": {
-                        "properties": {
-                          "sec": {
-                            "ignore_above": 1024,
-                            "type": "keyword"
-                          }
-                        }
+                      }
+                    }
+                  },
+                  "uptime": {
+                    "properties": {
+                      "sec": {
+                        "type": "float"
+                      }
+                    }
+                  },
+                  "uptime_total": {
+                    "properties": {
+                      "sec": {
+                        "ignore_above": 1024,
+                        "type": "keyword"
                       }
                     }
                   }
                 }
               }
             }
+          }
+        }
+      },
+      "gcp_dns": {
+        "properties": {
+          "authanswer": {
+            "type": "boolean"
           },
-          "gcp_dns": {
+          "destinationIP": {
+            "ignore_above": 1024,
+            "type": "keyword"
+          },
+          "egresserror": {
+            "ignore_above": 1024,
+            "type": "keyword"
+          },
+          "protocol": {
+            "ignore_above": 1024,
+            "type": "keyword"
+          },
+          "queryname": {
+            "ignore_above": 1024,
+            "type": "keyword"
+          },
+          "querytype": {
+            "ignore_above": 1024,
+            "type": "keyword"
+          },
+          "rdata": {
+            "ignore_above": 1024,
+            "type": "keyword"
+          },
+          "responsecode": {
+            "ignore_above": 1024,
+            "type": "keyword"
+          },
+          "serverlatency": {
+            "type": "long"
+          },
+          "source_type": {
+            "ignore_above": 1024,
+            "type": "keyword"
+          },
+          "sourceip": {
+            "ignore_above": 1024,
+            "type": "keyword"
+          },
+          "sourcenetwork": {
+            "ignore_above": 1024,
+            "type": "keyword"
+          },
+          "target_type": {
+            "ignore_above": 1024,
+            "type": "keyword"
+          },
+          "vminstanceid": {
+            "ignore_above": 1024,
+            "type": "keyword"
+          },
+          "vminstancename": {
+            "ignore_above": 1024,
+            "type": "keyword"
+          },
+          "vmprojectid": {
+            "ignore_above": 1024,
+            "type": "keyword"
+          },
+          "vmzonename": {
+            "ignore_above": 1024,
+            "type": "keyword"
+          }
+        }
+      },
+      "gcp_firewall": {
+        "properties": {
+          "destinationinstance": {
             "properties": {
-              "authanswer": {
-                "type": "boolean"
-              },
-              "destinationIP": {
+              "project_id": {
                 "ignore_above": 1024,
                 "type": "keyword"
               },
-              "egresserror": {
+              "region": {
                 "ignore_above": 1024,
                 "type": "keyword"
               },
-              "protocol": {
+              "vm_name": {
                 "ignore_above": 1024,
                 "type": "keyword"
               },
-              "queryname": {
-                "ignore_above": 1024,
-                "type": "keyword"
-              },
-              "querytype": {
-                "ignore_above": 1024,
-                "type": "keyword"
-              },
-              "rdata": {
-                "ignore_above": 1024,
-                "type": "keyword"
-              },
-              "responsecode": {
-                "ignore_above": 1024,
-                "type": "keyword"
-              },
-              "serverlatency": {
-                "type": "long"
-              },
-              "source_type": {
-                "ignore_above": 1024,
-                "type": "keyword"
-              },
-              "sourceip": {
-                "ignore_above": 1024,
-                "type": "keyword"
-              },
-              "sourcenetwork": {
-                "ignore_above": 1024,
-                "type": "keyword"
-              },
-              "target_type": {
-                "ignore_above": 1024,
-                "type": "keyword"
-              },
-              "vminstanceid": {
-                "ignore_above": 1024,
-                "type": "keyword"
-              },
-              "vminstancename": {
-                "ignore_above": 1024,
-                "type": "keyword"
-              },
-              "vmprojectid": {
-                "ignore_above": 1024,
-                "type": "keyword"
-              },
-              "vmzonename": {
+              "zone": {
                 "ignore_above": 1024,
                 "type": "keyword"
               }
             }
           },
-          "gcp_firewall": {
+          "destinationvpc": {
             "properties": {
-              "destinationinstance": {
-                "properties": {
-                  "project_id": {
-                    "ignore_above": 1024,
-                    "type": "keyword"
-                  },
-                  "region": {
-                    "ignore_above": 1024,
-                    "type": "keyword"
-                  },
-                  "vm_name": {
-                    "ignore_above": 1024,
-                    "type": "keyword"
-                  },
-                  "zone": {
-                    "ignore_above": 1024,
-                    "type": "keyword"
-                  }
-                }
+              "project_id": {
+                "ignore_above": 1024,
+                "type": "keyword"
               },
-              "destinationvpc": {
-                "properties": {
-                  "project_id": {
-                    "ignore_above": 1024,
-                    "type": "keyword"
-                  },
-                  "subnetwork_name": {
-                    "ignore_above": 1024,
-                    "type": "keyword"
-                  },
-                  "vpc_name": {
-                    "ignore_above": 1024,
-                    "type": "keyword"
-                  }
-                }
+              "subnetwork_name": {
+                "ignore_above": 1024,
+                "type": "keyword"
               },
-              "rule_details": {
-                "properties": {
-                  "action": {
-                    "ignore_above": 1024,
-                    "type": "keyword"
-                  },
-                  "direction": {
-                    "ignore_above": 1024,
-                    "type": "keyword"
-                  },
-                  "ip_port_info": {
-                    "type": "nested"
-                  },
-                  "reference": {
-                    "ignore_above": 1024,
-                    "type": "keyword"
-                  },
-                  "source_range": {
-                    "ignore_above": 1024,
-                    "type": "keyword"
-                  },
-                  "target_tag": {
-                    "ignore_above": 1024,
-                    "type": "keyword"
-                  }
-                }
-              },
-              "rule_name": {
+              "vpc_name": {
                 "ignore_above": 1024,
                 "type": "keyword"
               }
             }
           },
-          "gcp_loadbalancer": {
+          "rule_details": {
             "properties": {
-              "backend_service_name": {
+              "action": {
                 "ignore_above": 1024,
                 "type": "keyword"
               },
-              "cacheHit": {
-                "type": "boolean"
-              },
-              "cacheId": {
+              "direction": {
                 "ignore_above": 1024,
                 "type": "keyword"
               },
-              "cacheLookup": {
-                "type": "boolean"
+              "ip_port_info": {
+                "type": "nested"
               },
-              "forwarding_rule_name": {
+              "reference": {
                 "ignore_above": 1024,
                 "type": "keyword"
               },
-              "statusDetails": {
+              "source_range": {
                 "ignore_above": 1024,
                 "type": "keyword"
               },
-              "target_proxy_name": {
-                "ignore_above": 1024,
-                "type": "keyword"
-              },
-              "url_map_name": {
+              "target_tag": {
                 "ignore_above": 1024,
                 "type": "keyword"
               }
             }
           },
-          "gcp_vpcflow": {
+          "rule_name": {
+            "ignore_above": 1024,
+            "type": "keyword"
+          }
+        }
+      },
+      "gcp_loadbalancer": {
+        "properties": {
+          "backend_service_name": {
+            "ignore_above": 1024,
+            "type": "keyword"
+          },
+          "cacheHit": {
+            "type": "boolean"
+          },
+          "cacheId": {
+            "ignore_above": 1024,
+            "type": "keyword"
+          },
+          "cacheLookup": {
+            "type": "boolean"
+          },
+          "forwarding_rule_name": {
+            "ignore_above": 1024,
+            "type": "keyword"
+          },
+          "statusDetails": {
+            "ignore_above": 1024,
+            "type": "keyword"
+          },
+          "target_proxy_name": {
+            "ignore_above": 1024,
+            "type": "keyword"
+          },
+          "url_map_name": {
+            "ignore_above": 1024,
+            "type": "keyword"
+          }
+        }
+      },
+      "gcp_vpcflow": {
+        "properties": {
+          "dest_instance": {
             "properties": {
-              "dest_instance": {
-                "properties": {
-                  "project_id": {
-                    "ignore_above": 1024,
-                    "type": "keyword"
-                  },
-                  "region": {
-                    "ignore_above": 1024,
-                    "type": "keyword"
-                  },
-                  "vm_name": {
-                    "ignore_above": 1024,
-                    "type": "keyword"
-                  },
-                  "zone": {
-                    "ignore_above": 1024,
-                    "type": "keyword"
-                  }
-                }
-              },
-              "dest_vpc": {
-                "properties": {
-                  "project_id": {
-                    "ignore_above": 1024,
-                    "type": "keyword"
-                  },
-                  "subnetwork_name": {
-                    "ignore_above": 1024,
-                    "type": "keyword"
-                  },
-                  "vpc_name": {
-                    "ignore_above": 1024,
-                    "type": "keyword"
-                  }
-                }
-              },
-              "reporter": {
+              "project_id": {
                 "ignore_above": 1024,
                 "type": "keyword"
               },
-              "rtt_msec": {
-                "type": "long"
-              },
-              "src_instance": {
-                "properties": {
-                  "project_id": {
-                    "ignore_above": 1024,
-                    "type": "keyword"
-                  },
-                  "region": {
-                    "ignore_above": 1024,
-                    "type": "keyword"
-                  },
-                  "vm_name": {
-                    "ignore_above": 1024,
-                    "type": "keyword"
-                  },
-                  "zone": {
-                    "ignore_above": 1024,
-                    "type": "keyword"
-                  }
-                }
-              },
-              "src_vpc": {
-                "properties": {
-                  "project_id": {
-                    "ignore_above": 1024,
-                    "type": "keyword"
-                  },
-                  "subnetwork_name": {
-                    "ignore_above": 1024,
-                    "type": "keyword"
-                  },
-                  "vpc_name": {
-                    "ignore_above": 1024,
-                    "type": "keyword"
-                  }
-                }
-              }
-            }
-          },
-          "metricset": {
-            "properties": {
-              "name": {
+              "region": {
                 "ignore_above": 1024,
                 "type": "keyword"
               },
-              "period": {
-                "type": "long"
+              "vm_name": {
+                "ignore_above": 1024,
+                "type": "keyword"
+              },
+              "zone": {
+                "ignore_above": 1024,
+                "type": "keyword"
               }
             }
           },
-          "service": {
+          "dest_vpc": {
             "properties": {
-              "type": {
+              "project_id": {
+                "ignore_above": 1024,
+                "type": "keyword"
+              },
+              "subnetwork_name": {
+                "ignore_above": 1024,
+                "type": "keyword"
+              },
+              "vpc_name": {
+                "ignore_above": 1024,
+                "type": "keyword"
+              }
+            }
+          },
+          "reporter": {
+            "ignore_above": 1024,
+            "type": "keyword"
+          },
+          "rtt_msec": {
+            "type": "long"
+          },
+          "src_instance": {
+            "properties": {
+              "project_id": {
+                "ignore_above": 1024,
+                "type": "keyword"
+              },
+              "region": {
+                "ignore_above": 1024,
+                "type": "keyword"
+              },
+              "vm_name": {
+                "ignore_above": 1024,
+                "type": "keyword"
+              },
+              "zone": {
+                "ignore_above": 1024,
+                "type": "keyword"
+              }
+            }
+          },
+          "src_vpc": {
+            "properties": {
+              "project_id": {
+                "ignore_above": 1024,
+                "type": "keyword"
+              },
+              "subnetwork_name": {
+                "ignore_above": 1024,
+                "type": "keyword"
+              },
+              "vpc_name": {
                 "ignore_above": 1024,
                 "type": "keyword"
               }
@@ -3780,6 +3738,17 @@
       },
       "message": {
         "type": "keyword"
+      },
+      "metricset": {
+        "properties": {
+          "name": {
+            "ignore_above": 1024,
+            "type": "keyword"
+          },
+          "period": {
+            "type": "long"
+          }
+        }
       },
       "network": {
         "properties": {

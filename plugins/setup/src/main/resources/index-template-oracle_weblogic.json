@@ -3015,45 +3015,41 @@
           }
         }
       },
-      "oracle_weblogic": {
+      "oracle": {
         "properties": {
-          "oracle": {
+          "weblogic": {
             "properties": {
-              "weblogic": {
-                "properties": {
-                  "diagnostic_context_id": {
-                    "ignore_above": 1024,
-                    "type": "keyword"
-                  },
-                  "machine_name": {
-                    "ignore_above": 1024,
-                    "type": "keyword"
-                  },
-                  "message_id": {
-                    "ignore_above": 1024,
-                    "type": "keyword"
-                  },
-                  "meta": {
-                    "ignore_above": 1024,
-                    "type": "keyword"
-                  },
-                  "server_name": {
-                    "ignore_above": 1024,
-                    "type": "keyword"
-                  },
-                  "subsystem": {
-                    "ignore_above": 1024,
-                    "type": "keyword"
-                  },
-                  "thread_id": {
-                    "ignore_above": 1024,
-                    "type": "keyword"
-                  },
-                  "transaction_id": {
-                    "ignore_above": 1024,
-                    "type": "keyword"
-                  }
-                }
+              "diagnostic_context_id": {
+                "ignore_above": 1024,
+                "type": "keyword"
+              },
+              "machine_name": {
+                "ignore_above": 1024,
+                "type": "keyword"
+              },
+              "message_id": {
+                "ignore_above": 1024,
+                "type": "keyword"
+              },
+              "meta": {
+                "ignore_above": 1024,
+                "type": "keyword"
+              },
+              "server_name": {
+                "ignore_above": 1024,
+                "type": "keyword"
+              },
+              "subsystem": {
+                "ignore_above": 1024,
+                "type": "keyword"
+              },
+              "thread_id": {
+                "ignore_above": 1024,
+                "type": "keyword"
+              },
+              "transaction_id": {
+                "ignore_above": 1024,
+                "type": "keyword"
               }
             }
           }

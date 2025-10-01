@@ -19475,112 +19475,244 @@
       },
       "websphere": {
         "properties": {
-          "websphere": {
+          "metrics": {
             "properties": {
-              "metrics": {
+              "alarm_manager": {
                 "properties": {
-                  "alarm_manager": {
+                  "cancelled": {
                     "properties": {
-                      "cancelled": {
-                        "properties": {
-                          "total": {
-                            "type": "long"
-                          }
-                        }
-                      },
-                      "create": {
-                        "properties": {
-                          "total": {
-                            "type": "long"
-                          }
-                        }
-                      },
-                      "fired": {
-                        "properties": {
-                          "total": {
-                            "type": "long"
-                          }
-                        }
-                      },
-                      "latency_seconds": {
-                        "type": "long"
-                      },
-                      "pending_alarms": {
+                      "total": {
                         "type": "long"
                       }
                     }
                   },
-                  "appname": {
+                  "create": {
+                    "properties": {
+                      "total": {
+                        "type": "long"
+                      }
+                    }
+                  },
+                  "fired": {
+                    "properties": {
+                      "total": {
+                        "type": "long"
+                      }
+                    }
+                  },
+                  "latency_seconds": {
+                    "type": "long"
+                  },
+                  "pending_alarms": {
+                    "type": "long"
+                  }
+                }
+              },
+              "appname": {
+                "ignore_above": 1024,
+                "type": "keyword"
+              },
+              "authentication": {
+                "properties": {
+                  "assertion_type": {
                     "ignore_above": 1024,
                     "type": "keyword"
                   },
-                  "authentication": {
+                  "authentications": {
                     "properties": {
-                      "assertion_type": {
-                        "ignore_above": 1024,
-                        "type": "keyword"
-                      },
-                      "authentications": {
+                      "total": {
+                        "type": "long"
+                      }
+                    }
+                  },
+                  "credential_creation": {
+                    "properties": {
+                      "time_seconds": {
                         "properties": {
                           "total": {
                             "type": "long"
                           }
                         }
-                      },
-                      "credential_creation": {
-                        "properties": {
-                          "time_seconds": {
-                            "properties": {
-                              "total": {
-                                "type": "long"
-                              }
-                            }
-                          }
-                        }
-                      },
-                      "credential_creations": {
-                        "properties": {
-                          "total": {
-                            "type": "long"
-                          }
-                        }
-                      },
-                      "identity_assertion": {
-                        "properties": {
-                          "time_seconds": {
-                            "properties": {
-                              "total": {
-                                "type": "long"
-                              }
-                            }
-                          }
-                        }
-                      },
-                      "identity_assertions": {
+                      }
+                    }
+                  },
+                  "credential_creations": {
+                    "properties": {
+                      "total": {
+                        "type": "long"
+                      }
+                    }
+                  },
+                  "identity_assertion": {
+                    "properties": {
+                      "time_seconds": {
                         "properties": {
                           "total": {
                             "type": "long"
                           }
                         }
-                      },
-                      "tai_request": {
-                        "properties": {
-                          "time_seconds": {
-                            "properties": {
-                              "total": {
-                                "type": "long"
-                              }
-                            }
-                          }
-                        }
-                      },
-                      "tai_requests": {
+                      }
+                    }
+                  },
+                  "identity_assertions": {
+                    "properties": {
+                      "total": {
+                        "type": "long"
+                      }
+                    }
+                  },
+                  "tai_request": {
+                    "properties": {
+                      "time_seconds": {
                         "properties": {
                           "total": {
                             "type": "long"
                           }
                         }
-                      },
+                      }
+                    }
+                  },
+                  "tai_requests": {
+                    "properties": {
+                      "total": {
+                        "type": "long"
+                      }
+                    }
+                  },
+                  "time_seconds": {
+                    "properties": {
+                      "total": {
+                        "type": "long"
+                      }
+                    }
+                  },
+                  "type": {
+                    "ignore_above": 1024,
+                    "type": "keyword"
+                  }
+                }
+              },
+              "authorization": {
+                "properties": {
+                  "authorization_time_seconds": {
+                    "properties": {
+                      "total": {
+                        "type": "long"
+                      }
+                    }
+                  },
+                  "authorizations": {
+                    "properties": {
+                      "total": {
+                        "type": "long"
+                      }
+                    }
+                  }
+                }
+              },
+              "cacheobject": {
+                "ignore_above": 1024,
+                "type": "keyword"
+              },
+              "dynamic_caching": {
+                "properties": {
+                  "cache_entries": {
+                    "type": "long"
+                  },
+                  "distributed_requests": {
+                    "properties": {
+                      "total": {
+                        "type": "long"
+                      }
+                    }
+                  },
+                  "explicit_invalidate": {
+                    "properties": {
+                      "total": {
+                        "type": "long"
+                      }
+                    }
+                  },
+                  "hit": {
+                    "properties": {
+                      "total": {
+                        "type": "long"
+                      }
+                    }
+                  },
+                  "in_memory_and_disk_cache_entries": {
+                    "properties": {
+                      "total": {
+                        "type": "long"
+                      }
+                    }
+                  },
+                  "invalidate": {
+                    "properties": {
+                      "total": {
+                        "type": "long"
+                      }
+                    }
+                  },
+                  "miss": {
+                    "properties": {
+                      "total": {
+                        "type": "long"
+                      }
+                    }
+                  },
+                  "remote_create": {
+                    "properties": {
+                      "total": {
+                        "type": "long"
+                      }
+                    }
+                  },
+                  "remote_hit": {
+                    "properties": {
+                      "total": {
+                        "type": "long"
+                      }
+                    }
+                  },
+                  "requests": {
+                    "properties": {
+                      "total": {
+                        "type": "long"
+                      }
+                    }
+                  }
+                }
+              },
+              "extension_registry": {
+                "properties": {
+                  "displacement": {
+                    "properties": {
+                      "total": {
+                        "type": "long"
+                      }
+                    }
+                  },
+                  "hit": {
+                    "properties": {
+                      "total": {
+                        "type": "long"
+                      }
+                    }
+                  },
+                  "requests": {
+                    "properties": {
+                      "total": {
+                        "type": "long"
+                      }
+                    }
+                  }
+                }
+              },
+              "ha_manager": {
+                "properties": {
+                  "bulletin_board_rebuild": {
+                    "properties": {
                       "time_seconds": {
                         "properties": {
                           "total": {
@@ -19588,281 +19720,408 @@
                           }
                         }
                       },
-                      "type": {
-                        "ignore_above": 1024,
-                        "type": "keyword"
-                      }
-                    }
-                  },
-                  "authorization": {
-                    "properties": {
-                      "authorization_time_seconds": {
-                        "properties": {
-                          "total": {
-                            "type": "long"
-                          }
-                        }
-                      },
-                      "authorizations": {
-                        "properties": {
-                          "total": {
-                            "type": "long"
-                          }
-                        }
-                      }
-                    }
-                  },
-                  "cacheobject": {
-                    "ignore_above": 1024,
-                    "type": "keyword"
-                  },
-                  "dynamic_caching": {
-                    "properties": {
-                      "cache_entries": {
+                      "total": {
                         "type": "long"
-                      },
-                      "distributed_requests": {
-                        "properties": {
-                          "total": {
-                            "type": "long"
-                          }
-                        }
-                      },
-                      "explicit_invalidate": {
-                        "properties": {
-                          "total": {
-                            "type": "long"
-                          }
-                        }
-                      },
-                      "hit": {
-                        "properties": {
-                          "total": {
-                            "type": "long"
-                          }
-                        }
-                      },
-                      "in_memory_and_disk_cache_entries": {
-                        "properties": {
-                          "total": {
-                            "type": "long"
-                          }
-                        }
-                      },
-                      "invalidate": {
-                        "properties": {
-                          "total": {
-                            "type": "long"
-                          }
-                        }
-                      },
-                      "miss": {
-                        "properties": {
-                          "total": {
-                            "type": "long"
-                          }
-                        }
-                      },
-                      "remote_create": {
-                        "properties": {
-                          "total": {
-                            "type": "long"
-                          }
-                        }
-                      },
-                      "remote_hit": {
-                        "properties": {
-                          "total": {
-                            "type": "long"
-                          }
-                        }
-                      },
-                      "requests": {
-                        "properties": {
-                          "total": {
-                            "type": "long"
-                          }
-                        }
                       }
                     }
                   },
-                  "extension_registry": {
+                  "bulletin_board_subjects": {
+                    "type": "long"
+                  },
+                  "bulletin_board_subscriptions": {
+                    "type": "long"
+                  },
+                  "group_state_rebuild": {
                     "properties": {
-                      "displacement": {
+                      "time_seconds": {
                         "properties": {
                           "total": {
                             "type": "long"
                           }
                         }
                       },
-                      "hit": {
-                        "properties": {
-                          "total": {
-                            "type": "long"
-                          }
-                        }
-                      },
-                      "requests": {
-                        "properties": {
-                          "total": {
-                            "type": "long"
-                          }
-                        }
+                      "total": {
+                        "type": "long"
                       }
                     }
                   },
-                  "ha_manager": {
+                  "local": {
                     "properties": {
-                      "bulletin_board_rebuild": {
-                        "properties": {
-                          "time_seconds": {
-                            "properties": {
-                              "total": {
-                                "type": "long"
-                              }
-                            }
-                          },
-                          "total": {
-                            "type": "long"
-                          }
-                        }
-                      },
                       "bulletin_board_subjects": {
                         "type": "long"
                       },
                       "bulletin_board_subscriptions": {
                         "type": "long"
                       },
-                      "group_state_rebuild": {
+                      "groups": {
+                        "type": "long"
+                      }
+                    }
+                  }
+                }
+              },
+              "hitstype": {
+                "ignore_above": 1024,
+                "type": "keyword"
+              },
+              "interceptor": {
+                "ignore_above": 1024,
+                "type": "keyword"
+              },
+              "jax_ws": {
+                "properties": {
+                  "dispatch": {
+                    "properties": {
+                      "time_seconds": {
                         "properties": {
-                          "time_seconds": {
-                            "properties": {
-                              "total": {
-                                "type": "long"
-                              }
-                            }
-                          },
                           "total": {
                             "type": "long"
                           }
                         }
                       },
-                      "local": {
+                      "total": {
+                        "type": "long"
+                      }
+                    }
+                  },
+                  "payloads": {
+                    "properties": {
+                      "bytes": {
                         "properties": {
-                          "bulletin_board_subjects": {
+                          "total": {
                             "type": "long"
-                          },
-                          "bulletin_board_subscriptions": {
+                          }
+                        }
+                      },
+                      "total": {
+                        "type": "long"
+                      }
+                    }
+                  },
+                  "reply": {
+                    "properties": {
+                      "time_seconds": {
+                        "properties": {
+                          "total": {
                             "type": "long"
-                          },
-                          "groups": {
+                          }
+                        }
+                      },
+                      "total": {
+                        "type": "long"
+                      }
+                    }
+                  },
+                  "request": {
+                    "properties": {
+                      "time_seconds": {
+                        "properties": {
+                          "total": {
                             "type": "long"
                           }
                         }
                       }
                     }
                   },
-                  "hitstype": {
-                    "ignore_above": 1024,
-                    "type": "keyword"
-                  },
-                  "interceptor": {
-                    "ignore_above": 1024,
-                    "type": "keyword"
-                  },
-                  "jax_ws": {
+                  "requests": {
                     "properties": {
-                      "dispatch": {
+                      "total": {
+                        "type": "long"
+                      }
+                    }
+                  },
+                  "requests_dispatched": {
+                    "properties": {
+                      "total": {
+                        "type": "long"
+                      }
+                    }
+                  },
+                  "requests_received": {
+                    "properties": {
+                      "total": {
+                        "type": "long"
+                      }
+                    }
+                  },
+                  "requests_successful": {
+                    "properties": {
+                      "total": {
+                        "type": "long"
+                      }
+                    }
+                  },
+                  "response": {
+                    "properties": {
+                      "time_seconds": {
                         "properties": {
-                          "time_seconds": {
-                            "properties": {
-                              "total": {
-                                "type": "long"
-                              }
-                            }
+                          "total": {
+                            "type": "long"
+                          }
+                        }
+                      }
+                    }
+                  },
+                  "responses": {
+                    "properties": {
+                      "total": {
+                        "type": "long"
+                      }
+                    }
+                  },
+                  "services_loaded": {
+                    "properties": {
+                      "total": {
+                        "type": "long"
+                      }
+                    }
+                  }
+                }
+              },
+              "jdbc": {
+                "properties": {
+                  "connection": {
+                    "properties": {
+                      "allocated": {
+                        "type": "long"
+                      },
+                      "closed": {
+                        "type": "long"
+                      },
+                      "connection_handles": {
+                        "type": "long"
+                      },
+                      "created": {
+                        "type": "long"
+                      },
+                      "fault": {
+                        "properties": {
+                          "total": {
+                            "type": "long"
+                          }
+                        }
+                      },
+                      "free": {
+                        "type": "long"
+                      },
+                      "handles": {
+                        "type": "long"
+                      },
+                      "jdbc_operation_time_seconds": {
+                        "properties": {
+                          "total": {
+                            "type": "long"
+                          }
+                        }
+                      },
+                      "jdbc_operations": {
+                        "properties": {
+                          "total": {
+                            "type": "long"
+                          }
+                        }
+                      },
+                      "managed": {
+                        "type": "long"
+                      },
+                      "managed_connections": {
+                        "type": "long"
+                      },
+                      "prep_stmt_cache_discard": {
+                        "properties": {
+                          "total": {
+                            "type": "long"
+                          }
+                        }
+                      },
+                      "returned": {
+                        "type": "long"
+                      },
+                      "total": {
+                        "properties": {
+                          "in_use": {
+                            "type": "long"
                           },
-                          "total": {
+                          "operations_calls": {
                             "type": "long"
-                          }
-                        }
-                      },
-                      "payloads": {
-                        "properties": {
-                          "bytes": {
-                            "properties": {
-                              "total": {
-                                "type": "long"
-                              }
-                            }
                           },
-                          "total": {
+                          "operations_seconds": {
                             "type": "long"
-                          }
-                        }
-                      },
-                      "reply": {
-                        "properties": {
-                          "time_seconds": {
-                            "properties": {
-                              "total": {
-                                "type": "long"
-                              }
-                            }
                           },
+                          "seconds_in_use": {
+                            "type": "long"
+                          },
+                          "wait": {
+                            "type": "long"
+                          },
+                          "wait_seconds": {
+                            "type": "long"
+                          }
+                        }
+                      },
+                      "waiting_threads": {
+                        "type": "long"
+                      }
+                    }
+                  },
+                  "data_source": {
+                    "ignore_above": 1024,
+                    "type": "keyword"
+                  },
+                  "percent_used": {
+                    "type": "long"
+                  },
+                  "pool_size": {
+                    "type": "long"
+                  },
+                  "total_cache_discarded": {
+                    "type": "long"
+                  }
+                }
+              },
+              "jvm": {
+                "properties": {
+                  "memory": {
+                    "properties": {
+                      "area": {
+                        "ignore_above": 1024,
+                        "type": "keyword"
+                      },
+                      "committed_bytes": {
+                        "type": "long"
+                      },
+                      "max_bytes": {
+                        "type": "long"
+                      },
+                      "used_bytes": {
+                        "type": "long"
+                      }
+                    }
+                  }
+                }
+              },
+              "object_pool": {
+                "properties": {
+                  "allocate": {
+                    "properties": {
+                      "total": {
+                        "type": "long"
+                      }
+                    }
+                  },
+                  "create": {
+                    "properties": {
+                      "total": {
+                        "type": "long"
+                      }
+                    }
+                  },
+                  "idle_objects": {
+                    "type": "long"
+                  },
+                  "return": {
+                    "properties": {
+                      "total": {
+                        "type": "long"
+                      }
+                    }
+                  }
+                }
+              },
+              "objectpool": {
+                "ignore_above": 1024,
+                "type": "keyword"
+              },
+              "orb": {
+                "properties": {
+                  "concurrent_requests": {
+                    "type": "long"
+                  },
+                  "lookup": {
+                    "properties": {
+                      "time_seconds": {
+                        "properties": {
                           "total": {
                             "type": "long"
                           }
                         }
                       },
-                      "request": {
-                        "properties": {
-                          "time_seconds": {
-                            "properties": {
-                              "total": {
-                                "type": "long"
-                              }
-                            }
-                          }
-                        }
-                      },
-                      "requests": {
+                      "total": {
+                        "type": "long"
+                      }
+                    }
+                  },
+                  "processing": {
+                    "properties": {
+                      "time_seconds": {
                         "properties": {
                           "total": {
                             "type": "long"
                           }
                         }
                       },
-                      "requests_dispatched": {
-                        "properties": {
-                          "total": {
-                            "type": "long"
-                          }
-                        }
-                      },
-                      "requests_received": {
-                        "properties": {
-                          "total": {
-                            "type": "long"
-                          }
-                        }
-                      },
-                      "requests_successful": {
-                        "properties": {
-                          "total": {
-                            "type": "long"
-                          }
-                        }
-                      },
-                      "response": {
-                        "properties": {
-                          "time_seconds": {
-                            "properties": {
-                              "total": {
-                                "type": "long"
-                              }
-                            }
-                          }
-                        }
+                      "total": {
+                        "type": "long"
+                      }
+                    }
+                  },
+                  "requests": {
+                    "properties": {
+                      "total": {
+                        "type": "long"
+                      }
+                    }
+                  }
+                }
+              },
+              "portlet": {
+                "properties": {
+                  "concurrent_requests": {
+                    "type": "long"
+                  },
+                  "errors": {
+                    "properties": {
+                      "total": {
+                        "type": "long"
+                      }
+                    }
+                  },
+                  "requests": {
+                    "properties": {
+                      "total": {
+                        "type": "long"
+                      }
+                    }
+                  }
+                }
+              },
+              "process": {
+                "properties": {
+                  "cpu_utilization": {
+                    "type": "long"
+                  },
+                  "uptime_seconds": {
+                    "type": "long"
+                  }
+                }
+              },
+              "scrape": {
+                "properties": {
+                  "duration_seconds": {
+                    "type": "long"
+                  }
+                }
+              },
+              "servlet": {
+                "properties": {
+                  "app_name": {
+                    "ignore_above": 1024,
+                    "type": "keyword"
+                  },
+                  "async_context": {
+                    "properties": {
+                      "response_time_seconds": {
+                        "type": "long"
                       },
                       "responses": {
                         "properties": {
@@ -19870,256 +20129,40 @@
                             "type": "long"
                           }
                         }
-                      },
-                      "services_loaded": {
-                        "properties": {
-                          "total": {
-                            "type": "long"
-                          }
-                        }
                       }
                     }
                   },
-                  "jdbc": {
+                  "errors": {
+                    "type": "long"
+                  },
+                  "loaded": {
+                    "type": "long"
+                  },
+                  "reloaded": {
+                    "type": "long"
+                  },
+                  "requests": {
                     "properties": {
-                      "connection": {
-                        "properties": {
-                          "allocated": {
-                            "type": "long"
-                          },
-                          "closed": {
-                            "type": "long"
-                          },
-                          "connection_handles": {
-                            "type": "long"
-                          },
-                          "created": {
-                            "type": "long"
-                          },
-                          "fault": {
-                            "properties": {
-                              "total": {
-                                "type": "long"
-                              }
-                            }
-                          },
-                          "free": {
-                            "type": "long"
-                          },
-                          "handles": {
-                            "type": "long"
-                          },
-                          "jdbc_operation_time_seconds": {
-                            "properties": {
-                              "total": {
-                                "type": "long"
-                              }
-                            }
-                          },
-                          "jdbc_operations": {
-                            "properties": {
-                              "total": {
-                                "type": "long"
-                              }
-                            }
-                          },
-                          "managed": {
-                            "type": "long"
-                          },
-                          "managed_connections": {
-                            "type": "long"
-                          },
-                          "prep_stmt_cache_discard": {
-                            "properties": {
-                              "total": {
-                                "type": "long"
-                              }
-                            }
-                          },
-                          "returned": {
-                            "type": "long"
-                          },
-                          "total": {
-                            "properties": {
-                              "in_use": {
-                                "type": "long"
-                              },
-                              "operations_calls": {
-                                "type": "long"
-                              },
-                              "operations_seconds": {
-                                "type": "long"
-                              },
-                              "seconds_in_use": {
-                                "type": "long"
-                              },
-                              "wait": {
-                                "type": "long"
-                              },
-                              "wait_seconds": {
-                                "type": "long"
-                              }
-                            }
-                          },
-                          "waiting_threads": {
-                            "type": "long"
-                          }
-                        }
-                      },
-                      "data_source": {
-                        "ignore_above": 1024,
-                        "type": "keyword"
-                      },
-                      "percent_used": {
+                      "concurrent": {
                         "type": "long"
                       },
-                      "pool_size": {
-                        "type": "long"
-                      },
-                      "total_cache_discarded": {
+                      "processed": {
                         "type": "long"
                       }
                     }
                   },
-                  "jvm": {
-                    "properties": {
-                      "memory": {
-                        "properties": {
-                          "area": {
-                            "ignore_above": 1024,
-                            "type": "keyword"
-                          },
-                          "committed_bytes": {
-                            "type": "long"
-                          },
-                          "max_bytes": {
-                            "type": "long"
-                          },
-                          "used_bytes": {
-                            "type": "long"
-                          }
-                        }
-                      }
-                    }
+                  "response_time_seconds": {
+                    "type": "long"
                   },
-                  "object_pool": {
+                  "responses": {
                     "properties": {
-                      "allocate": {
-                        "properties": {
-                          "total": {
-                            "type": "long"
-                          }
-                        }
-                      },
-                      "create": {
-                        "properties": {
-                          "total": {
-                            "type": "long"
-                          }
-                        }
-                      },
-                      "idle_objects": {
-                        "type": "long"
-                      },
-                      "return": {
-                        "properties": {
-                          "total": {
-                            "type": "long"
-                          }
-                        }
-                      }
-                    }
-                  },
-                  "objectpool": {
-                    "ignore_above": 1024,
-                    "type": "keyword"
-                  },
-                  "orb": {
-                    "properties": {
-                      "concurrent_requests": {
-                        "type": "long"
-                      },
-                      "lookup": {
-                        "properties": {
-                          "time_seconds": {
-                            "properties": {
-                              "total": {
-                                "type": "long"
-                              }
-                            }
-                          },
-                          "total": {
-                            "type": "long"
-                          }
-                        }
-                      },
-                      "processing": {
-                        "properties": {
-                          "time_seconds": {
-                            "properties": {
-                              "total": {
-                                "type": "long"
-                              }
-                            }
-                          },
-                          "total": {
-                            "type": "long"
-                          }
-                        }
-                      },
-                      "requests": {
-                        "properties": {
-                          "total": {
-                            "type": "long"
-                          }
-                        }
-                      }
-                    }
-                  },
-                  "portlet": {
-                    "properties": {
-                      "concurrent_requests": {
-                        "type": "long"
-                      },
-                      "errors": {
-                        "properties": {
-                          "total": {
-                            "type": "long"
-                          }
-                        }
-                      },
-                      "requests": {
-                        "properties": {
-                          "total": {
-                            "type": "long"
-                          }
-                        }
-                      }
-                    }
-                  },
-                  "process": {
-                    "properties": {
-                      "cpu_utilization": {
-                        "type": "long"
-                      },
-                      "uptime_seconds": {
+                      "processed": {
                         "type": "long"
                       }
                     }
                   },
-                  "scrape": {
+                  "uri": {
                     "properties": {
-                      "duration_seconds": {
-                        "type": "long"
-                      }
-                    }
-                  },
-                  "servlet": {
-                    "properties": {
-                      "app_name": {
-                        "ignore_above": 1024,
-                        "type": "keyword"
-                      },
                       "async_context": {
                         "properties": {
                           "response_time_seconds": {
@@ -20134,21 +20177,12 @@
                           }
                         }
                       },
-                      "errors": {
-                        "type": "long"
-                      },
-                      "loaded": {
-                        "type": "long"
-                      },
-                      "reloaded": {
-                        "type": "long"
-                      },
                       "requests": {
                         "properties": {
                           "concurrent": {
                             "type": "long"
                           },
-                          "processed": {
+                          "total": {
                             "type": "long"
                           }
                         }
@@ -20158,342 +20192,304 @@
                       },
                       "responses": {
                         "properties": {
-                          "processed": {
-                            "type": "long"
-                          }
-                        }
-                      },
-                      "uri": {
-                        "properties": {
-                          "async_context": {
-                            "properties": {
-                              "response_time_seconds": {
-                                "type": "long"
-                              },
-                              "responses": {
-                                "properties": {
-                                  "total": {
-                                    "type": "long"
-                                  }
-                                }
-                              }
-                            }
-                          },
-                          "requests": {
-                            "properties": {
-                              "concurrent": {
-                                "type": "long"
-                              },
-                              "total": {
-                                "type": "long"
-                              }
-                            }
-                          },
-                          "response_time_seconds": {
-                            "type": "long"
-                          },
-                          "responses": {
-                            "properties": {
-                              "total": {
-                                "type": "long"
-                              }
-                            }
-                          }
-                        }
-                      }
-                    }
-                  },
-                  "session": {
-                    "properties": {
-                      "activated": {
-                        "properties": {
-                          "total": {
-                            "type": "long"
-                          }
-                        }
-                      },
-                      "finished": {
-                        "properties": {
-                          "total": {
-                            "type": "long"
-                          }
-                        }
-                      },
-                      "session_objects": {
-                        "properties": {
-                          "bytes": {
-                            "properties": {
-                              "total": {
-                                "type": "long"
-                              }
-                            }
-                          },
                           "total": {
                             "type": "long"
                           }
                         }
                       }
                     }
-                  },
-                  "session_manager": {
+                  }
+                }
+              },
+              "session": {
+                "properties": {
+                  "activated": {
                     "properties": {
-                      "activated_non_existent_sessions": {
-                        "type": "long"
-                      },
-                      "affinity_breaks": {
-                        "type": "long"
-                      },
-                      "cache_discarded": {
-                        "type": "long"
-                      },
-                      "external": {
-                        "properties": {
-                          "bytes": {
-                            "properties": {
-                              "read": {
-                                "type": "long"
-                              },
-                              "written": {
-                                "type": "long"
-                              }
-                            }
-                          },
-                          "time_seconds": {
-                            "properties": {
-                              "read": {
-                                "type": "long"
-                              },
-                              "written": {
-                                "type": "long"
-                              }
-                            }
-                          }
-                        }
-                      },
-                      "no_room_for_new_sessions": {
-                        "type": "long"
-                      },
-                      "persistent_stores": {
-                        "properties": {
-                          "data_read": {
-                            "type": "long"
-                          },
-                          "data_written": {
-                            "type": "long"
-                          }
-                        }
-                      },
-                      "sessions": {
-                        "properties": {
-                          "active": {
-                            "type": "long"
-                          },
-                          "created": {
-                            "type": "long"
-                          },
-                          "current": {
-                            "type": "long"
-                          },
-                          "invalidated": {
-                            "properties": {
-                              "by_timeouts": {
-                                "type": "long"
-                              },
-                              "total": {
-                                "type": "long"
-                              }
-                            }
-                          },
-                          "life_time": {
-                            "type": "long"
-                          }
-                        }
-                      },
-                      "time_since_session_last_activated": {
+                      "total": {
                         "type": "long"
                       }
                     }
                   },
-                  "system": {
+                  "finished": {
                     "properties": {
-                      "cpu_utilization": {
+                      "total": {
                         "type": "long"
-                      },
-                      "memory": {
-                        "properties": {
-                          "free_bytes": {
-                            "type": "long"
-                          }
-                        }
                       }
                     }
                   },
-                  "threadpool": {
+                  "session_objects": {
                     "properties": {
-                      "active_time_seconds": {
-                        "type": "long"
-                      },
-                      "name": {
-                        "ignore_above": 1024,
-                        "type": "keyword"
-                      },
-                      "threads": {
+                      "bytes": {
                         "properties": {
-                          "active": {
-                            "type": "long"
-                          },
-                          "cleared": {
-                            "type": "long"
-                          },
-                          "stopped": {
-                            "properties": {
-                              "concurrent": {
-                                "type": "long"
-                              },
-                              "declared": {
-                                "type": "long"
-                              }
-                            }
-                          },
                           "total": {
                             "type": "long"
                           }
                         }
                       },
                       "total": {
-                        "properties": {
-                          "active": {
-                            "type": "long"
-                          },
-                          "created": {
-                            "type": "long"
-                          },
-                          "destroyed": {
-                            "type": "long"
-                          }
-                        }
-                      }
-                    }
-                  },
-                  "transaction_manager": {
-                    "properties": {
-                      "active_transactions": {
                         "type": "long"
-                      },
-                      "before_completion": {
-                        "properties": {
-                          "seconds": {
-                            "properties": {
-                              "total": {
-                                "type": "long"
-                              }
-                            }
-                          },
-                          "total": {
-                            "type": "long"
-                          }
-                        }
-                      },
-                      "begun": {
-                        "properties": {
-                          "total": {
-                            "type": "long"
-                          }
-                        }
-                      },
-                      "commit": {
-                        "properties": {
-                          "time_seconds": {
-                            "properties": {
-                              "total": {
-                                "type": "long"
-                              }
-                            }
-                          }
-                        }
-                      },
-                      "committed": {
-                        "properties": {
-                          "total": {
-                            "type": "long"
-                          }
-                        }
-                      },
-                      "global_involved": {
-                        "properties": {
-                          "total": {
-                            "type": "long"
-                          }
-                        }
-                      },
-                      "global_prepare": {
-                        "properties": {
-                          "time_seconds": {
-                            "properties": {
-                              "total": {
-                                "type": "long"
-                              }
-                            }
-                          },
-                          "total": {
-                            "type": "long"
-                          }
-                        }
-                      },
-                      "optimization": {
-                        "properties": {
-                          "total": {
-                            "type": "long"
-                          }
-                        }
-                      },
-                      "rolledback": {
-                        "properties": {
-                          "total": {
-                            "type": "long"
-                          }
-                        }
-                      },
-                      "timedout": {
-                        "properties": {
-                          "total": {
-                            "type": "long"
-                          }
-                        }
-                      },
-                      "transaction": {
-                        "properties": {
-                          "time_seconds": {
-                            "properties": {
-                              "total": {
-                                "type": "long"
-                              }
-                            }
-                          }
-                        }
-                      },
-                      "transactions": {
-                        "properties": {
-                          "total": {
-                            "type": "long"
-                          }
-                        }
                       }
                     }
-                  },
-                  "transactiontype": {
-                    "ignore_above": 1024,
-                    "type": "keyword"
-                  },
-                  "type": {
-                    "ignore_above": 1024,
-                    "type": "keyword"
-                  },
-                  "workmanager": {
-                    "ignore_above": 1024,
-                    "type": "keyword"
                   }
                 }
+              },
+              "session_manager": {
+                "properties": {
+                  "activated_non_existent_sessions": {
+                    "type": "long"
+                  },
+                  "affinity_breaks": {
+                    "type": "long"
+                  },
+                  "cache_discarded": {
+                    "type": "long"
+                  },
+                  "external": {
+                    "properties": {
+                      "bytes": {
+                        "properties": {
+                          "read": {
+                            "type": "long"
+                          },
+                          "written": {
+                            "type": "long"
+                          }
+                        }
+                      },
+                      "time_seconds": {
+                        "properties": {
+                          "read": {
+                            "type": "long"
+                          },
+                          "written": {
+                            "type": "long"
+                          }
+                        }
+                      }
+                    }
+                  },
+                  "no_room_for_new_sessions": {
+                    "type": "long"
+                  },
+                  "persistent_stores": {
+                    "properties": {
+                      "data_read": {
+                        "type": "long"
+                      },
+                      "data_written": {
+                        "type": "long"
+                      }
+                    }
+                  },
+                  "sessions": {
+                    "properties": {
+                      "active": {
+                        "type": "long"
+                      },
+                      "created": {
+                        "type": "long"
+                      },
+                      "current": {
+                        "type": "long"
+                      },
+                      "invalidated": {
+                        "properties": {
+                          "by_timeouts": {
+                            "type": "long"
+                          },
+                          "total": {
+                            "type": "long"
+                          }
+                        }
+                      },
+                      "life_time": {
+                        "type": "long"
+                      }
+                    }
+                  },
+                  "time_since_session_last_activated": {
+                    "type": "long"
+                  }
+                }
+              },
+              "system": {
+                "properties": {
+                  "cpu_utilization": {
+                    "type": "long"
+                  },
+                  "memory": {
+                    "properties": {
+                      "free_bytes": {
+                        "type": "long"
+                      }
+                    }
+                  }
+                }
+              },
+              "threadpool": {
+                "properties": {
+                  "active_time_seconds": {
+                    "type": "long"
+                  },
+                  "name": {
+                    "ignore_above": 1024,
+                    "type": "keyword"
+                  },
+                  "threads": {
+                    "properties": {
+                      "active": {
+                        "type": "long"
+                      },
+                      "cleared": {
+                        "type": "long"
+                      },
+                      "stopped": {
+                        "properties": {
+                          "concurrent": {
+                            "type": "long"
+                          },
+                          "declared": {
+                            "type": "long"
+                          }
+                        }
+                      },
+                      "total": {
+                        "type": "long"
+                      }
+                    }
+                  },
+                  "total": {
+                    "properties": {
+                      "active": {
+                        "type": "long"
+                      },
+                      "created": {
+                        "type": "long"
+                      },
+                      "destroyed": {
+                        "type": "long"
+                      }
+                    }
+                  }
+                }
+              },
+              "transaction_manager": {
+                "properties": {
+                  "active_transactions": {
+                    "type": "long"
+                  },
+                  "before_completion": {
+                    "properties": {
+                      "seconds": {
+                        "properties": {
+                          "total": {
+                            "type": "long"
+                          }
+                        }
+                      },
+                      "total": {
+                        "type": "long"
+                      }
+                    }
+                  },
+                  "begun": {
+                    "properties": {
+                      "total": {
+                        "type": "long"
+                      }
+                    }
+                  },
+                  "commit": {
+                    "properties": {
+                      "time_seconds": {
+                        "properties": {
+                          "total": {
+                            "type": "long"
+                          }
+                        }
+                      }
+                    }
+                  },
+                  "committed": {
+                    "properties": {
+                      "total": {
+                        "type": "long"
+                      }
+                    }
+                  },
+                  "global_involved": {
+                    "properties": {
+                      "total": {
+                        "type": "long"
+                      }
+                    }
+                  },
+                  "global_prepare": {
+                    "properties": {
+                      "time_seconds": {
+                        "properties": {
+                          "total": {
+                            "type": "long"
+                          }
+                        }
+                      },
+                      "total": {
+                        "type": "long"
+                      }
+                    }
+                  },
+                  "optimization": {
+                    "properties": {
+                      "total": {
+                        "type": "long"
+                      }
+                    }
+                  },
+                  "rolledback": {
+                    "properties": {
+                      "total": {
+                        "type": "long"
+                      }
+                    }
+                  },
+                  "timedout": {
+                    "properties": {
+                      "total": {
+                        "type": "long"
+                      }
+                    }
+                  },
+                  "transaction": {
+                    "properties": {
+                      "time_seconds": {
+                        "properties": {
+                          "total": {
+                            "type": "long"
+                          }
+                        }
+                      }
+                    }
+                  },
+                  "transactions": {
+                    "properties": {
+                      "total": {
+                        "type": "long"
+                      }
+                    }
+                  }
+                }
+              },
+              "transactiontype": {
+                "ignore_above": 1024,
+                "type": "keyword"
+              },
+              "type": {
+                "ignore_above": 1024,
+                "type": "keyword"
+              },
+              "workmanager": {
+                "ignore_above": 1024,
+                "type": "keyword"
               }
             }
           }

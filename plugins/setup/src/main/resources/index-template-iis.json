@@ -2543,21 +2543,17 @@
       },
       "iis": {
         "properties": {
-          "iis": {
-            "properties": {
-              "bytes_received_by_client": {
-                "type": "long"
-              },
-              "bytes_sent_by_server": {
-                "type": "long"
-              },
-              "sub_status": {
-                "type": "long"
-              },
-              "win32_status": {
-                "type": "long"
-              }
-            }
+          "bytes_received_by_client": {
+            "type": "long"
+          },
+          "bytes_sent_by_server": {
+            "type": "long"
+          },
+          "sub_status": {
+            "type": "long"
+          },
+          "win32_status": {
+            "type": "long"
           }
         }
       },

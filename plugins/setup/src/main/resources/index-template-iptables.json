@@ -2570,72 +2570,60 @@
       },
       "iptables": {
         "properties": {
-          "iptables": {
-            "properties": {
-              "ether_type": {
-                "type": "long"
-              },
-              "flow_label": {
-                "type": "long"
-              },
-              "fragment_flags": {
-                "ignore_above": 1024,
-                "type": "keyword"
-              },
-              "icmp_code": {
-                "type": "long"
-              },
-              "icmp_seq": {
-                "type": "long"
-              },
-              "icmp_type": {
-                "type": "long"
-              },
-              "id": {
-                "type": "long"
-              },
-              "input_device": {
-                "ignore_above": 1024,
-                "type": "keyword"
-              },
-              "length": {
-                "type": "long"
-              },
-              "mark": {
-                "type": "long"
-              },
-              "output_device": {
-                "ignore_above": 1024,
-                "type": "keyword"
-              },
-              "precedence_bits": {
-                "type": "long"
-              },
-              "tcp_flags": {
-                "ignore_above": 1024,
-                "type": "keyword"
-              },
-              "tcp_reserved_bits": {
-                "type": "long"
-              },
-              "tcp_window": {
-                "type": "long"
-              },
-              "tos": {
-                "type": "long"
-              },
-              "ttl": {
-                "type": "long"
-              }
-            }
+          "ether_type": {
+            "type": "long"
           },
-          "pfsense": {
-            "properties": {
-              "dhcp_subnet": {
-                "ignore_above": 1024,
-                "type": "keyword"
-              }
-            }
+          "flow_label": {
+            "type": "long"
+          },
+          "fragment_flags": {
+            "ignore_above": 1024,
+            "type": "keyword"
+          },
+          "icmp_code": {
+            "type": "long"
+          },
+          "icmp_seq": {
+            "type": "long"
+          },
+          "icmp_type": {
+            "type": "long"
+          },
+          "id": {
+            "type": "long"
+          },
+          "input_device": {
+            "ignore_above": 1024,
+            "type": "keyword"
+          },
+          "length": {
+            "type": "long"
+          },
+          "mark": {
+            "type": "long"
+          },
+          "output_device": {
+            "ignore_above": 1024,
+            "type": "keyword"
+          },
+          "precedence_bits": {
+            "type": "long"
+          },
+          "tcp_flags": {
+            "ignore_above": 1024,
+            "type": "keyword"
+          },
+          "tcp_reserved_bits": {
+            "type": "long"
+          },
+          "tcp_window": {
+            "type": "long"
+          },
+          "tos": {
+            "type": "long"
+          },
+          "ttl": {
+            "type": "long"
           }
         }
       },
@@ -3227,6 +3215,14 @@
             "type": "keyword"
           },
           "version": {
+            "ignore_above": 1024,
+            "type": "keyword"
+          }
+        }
+      },
+      "pfsense": {
+        "properties": {
+          "dhcp_subnet": {
             "ignore_above": 1024,
             "type": "keyword"
           }

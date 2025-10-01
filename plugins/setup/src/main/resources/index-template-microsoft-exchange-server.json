@@ -2666,385 +2666,381 @@
       "message": {
         "type": "keyword"
       },
-      "microsoft-exchange-server": {
+      "microsoft": {
         "properties": {
-          "microsoft": {
+          "exchange": {
             "properties": {
-              "exchange": {
-                "properties": {
-                  "account_forest_latency_breakup": {
-                    "ignore_above": 1024,
-                    "type": "keyword"
-                  },
-                  "activity_context_lifetime": {
-                    "type": "long"
-                  },
-                  "ad_latency": {
-                    "type": "long"
-                  },
-                  "anchor_mailbox": {
-                    "ignore_above": 1024,
-                    "type": "keyword"
-                  },
-                  "auth_module_perf_context": {
-                    "ignore_above": 1024,
-                    "type": "keyword"
-                  },
-                  "authenticated_user": {
-                    "ignore_above": 1024,
-                    "type": "keyword"
-                  },
-                  "authentication_type": {
-                    "ignore_above": 1024,
-                    "type": "keyword"
-                  },
-                  "backend_cookie": {
-                    "ignore_above": 1024,
-                    "type": "keyword"
-                  },
-                  "backend_generic_info": {
-                    "ignore_above": 1024,
-                    "type": "keyword"
-                  },
-                  "backend_processing_latency": {
-                    "type": "long"
-                  },
-                  "backend_request_init_latency": {
-                    "type": "long"
-                  },
-                  "backend_request_stream_latency": {
-                    "type": "long"
-                  },
-                  "backend_response_init_latency": {
-                    "type": "long"
-                  },
-                  "backend_response_stream_latency": {
-                    "type": "long"
-                  },
-                  "backend_status": {
-                    "type": "long"
-                  },
-                  "build_version": {
-                    "type": "long"
-                  },
-                  "calculate_target_backend_latency": {
-                    "type": "long"
-                  },
-                  "cip": {
-                    "ignore_above": 1024,
-                    "type": "keyword"
-                  },
-                  "client_ip_address": {
-                    "ignore_above": 1024,
-                    "type": "keyword"
-                  },
-                  "client_request_id": {
-                    "ignore_above": 1024,
-                    "type": "keyword"
-                  },
-                  "client_request_stream_latency": {
-                    "type": "long"
-                  },
-                  "client_response_stream_latency": {
-                    "type": "long"
-                  },
-                  "command": {
-                    "ignore_above": 1024,
-                    "type": "keyword"
-                  },
-                  "connector_id": {
-                    "ignore_above": 1024,
-                    "type": "keyword"
-                  },
-                  "context": {
-                    "ignore_above": 1024,
-                    "type": "keyword"
-                  },
-                  "core_latency": {
-                    "type": "long"
-                  },
-                  "custom_data": {
-                    "ignore_above": 1024,
-                    "type": "keyword"
-                  },
-                  "data": {
-                    "ignore_above": 1024,
-                    "type": "keyword"
-                  },
-                  "database_guid": {
-                    "ignore_above": 1024,
-                    "type": "keyword"
-                  },
-                  "duration": {
-                    "type": "long"
-                  },
-                  "edge_trace_id": {
-                    "ignore_above": 1024,
-                    "type": "keyword"
-                  },
-                  "error_code": {
-                    "ignore_above": 1024,
-                    "type": "keyword"
-                  },
-                  "event": {
-                    "ignore_above": 1024,
-                    "type": "keyword"
-                  },
-                  "event_id": {
-                    "ignore_above": 1024,
-                    "type": "keyword"
-                  },
-                  "generic_errors": {
-                    "ignore_above": 1024,
-                    "type": "keyword"
-                  },
-                  "generic_info": {
-                    "ignore_above": 1024,
-                    "type": "keyword"
-                  },
-                  "gls_latency_breakup": {
-                    "ignore_above": 1024,
-                    "type": "keyword"
-                  },
-                  "handler_completion_latency": {
-                    "type": "long"
-                  },
-                  "handler_to_module_switching_latency": {
-                    "type": "long"
-                  },
-                  "http_pipeline_latency": {
-                    "type": "long"
-                  },
-                  "http_proxy_overhead": {
-                    "type": "long"
-                  },
-                  "internal_message_id": {
-                    "ignore_above": 1024,
-                    "type": "keyword"
-                  },
-                  "is_authenticated": {
-                    "type": "boolean"
-                  },
-                  "kerberos_auth_header_latency": {
-                    "type": "long"
-                  },
-                  "local_endpoint": {
-                    "ignore_above": 1024,
-                    "type": "keyword"
-                  },
-                  "log_id": {
-                    "ignore_above": 1024,
-                    "type": "keyword"
-                  },
-                  "log_type": {
-                    "ignore_above": 1024,
-                    "type": "keyword"
-                  },
-                  "major_version": {
-                    "type": "long"
-                  },
-                  "message_info": {
-                    "ignore_above": 1024,
-                    "type": "keyword"
-                  },
-                  "minor_version": {
-                    "type": "long"
-                  },
-                  "module_to_handler_switching_latency": {
-                    "type": "long"
-                  },
-                  "network_message_id": {
-                    "ignore_above": 1024,
-                    "type": "keyword"
-                  },
-                  "organization": {
-                    "ignore_above": 1024,
-                    "type": "keyword"
-                  },
-                  "original_client_ip": {
-                    "ignore_above": 1024,
-                    "type": "keyword"
-                  },
-                  "original_server_ip": {
-                    "ignore_above": 1024,
-                    "type": "keyword"
-                  },
-                  "parameters": {
-                    "ignore_above": 1024,
-                    "type": "keyword"
-                  },
-                  "partition_endpoint_lookup_latency": {
-                    "type": "long"
-                  },
-                  "protocol": {
-                    "ignore_above": 1024,
-                    "type": "keyword"
-                  },
-                  "protocol_action": {
-                    "ignore_above": 1024,
-                    "type": "keyword"
-                  },
-                  "proxy_action": {
-                    "ignore_above": 1024,
-                    "type": "keyword"
-                  },
-                  "proxy_time": {
-                    "type": "long"
-                  },
-                  "puid": {
-                    "ignore_above": 1024,
-                    "type": "keyword"
-                  },
-                  "recipient_count": {
-                    "type": "long"
-                  },
-                  "recipient_status": {
-                    "ignore_above": 1024,
-                    "type": "keyword"
-                  },
-                  "reference": {
-                    "ignore_above": 1024,
-                    "type": "keyword"
-                  },
-                  "related_recipient_address": {
-                    "ignore_above": 1024,
-                    "type": "keyword"
-                  },
-                  "remote_endpoint": {
-                    "ignore_above": 1024,
-                    "type": "keyword"
-                  },
-                  "request_handler_latency": {
-                    "type": "long"
-                  },
-                  "request_id": {
-                    "ignore_above": 1024,
-                    "type": "keyword"
-                  },
-                  "resource_forest_latency_breakup": {
-                    "ignore_above": 1024,
-                    "type": "keyword"
-                  },
-                  "return_path": {
-                    "ignore_above": 1024,
-                    "type": "keyword"
-                  },
-                  "revision_version": {
-                    "type": "long"
-                  },
-                  "route_refresher_latency": {
-                    "type": "long"
-                  },
-                  "routing_hint": {
-                    "ignore_above": 1024,
-                    "type": "keyword"
-                  },
-                  "routing_latency": {
-                    "type": "long"
-                  },
-                  "routing_status": {
-                    "ignore_above": 1024,
-                    "type": "keyword"
-                  },
-                  "routing_type": {
-                    "ignore_above": 1024,
-                    "type": "keyword"
-                  },
-                  "rpsize": {
-                    "type": "long"
-                  },
-                  "rqsize": {
-                    "type": "long"
-                  },
-                  "schema_version": {
-                    "ignore_above": 1024,
-                    "type": "keyword"
-                  },
-                  "sender_address": {
-                    "ignore_above": 1024,
-                    "type": "keyword"
-                  },
-                  "sequence_number": {
-                    "type": "long"
-                  },
-                  "server_locator_host": {
-                    "ignore_above": 1024,
-                    "type": "keyword"
-                  },
-                  "server_locator_latency": {
-                    "type": "long"
-                  },
-                  "session_id": {
-                    "ignore_above": 1024,
-                    "type": "keyword"
-                  },
-                  "shared_cache_latency_breakup": {
-                    "ignore_above": 1024,
-                    "type": "keyword"
-                  },
-                  "sip": {
-                    "ignore_above": 1024,
-                    "type": "keyword"
-                  },
-                  "source": {
-                    "ignore_above": 1024,
-                    "type": "keyword"
-                  },
-                  "source_context": {
-                    "ignore_above": 1024,
-                    "type": "keyword"
-                  },
-                  "target_outstanding_requests": {
-                    "type": "long"
-                  },
-                  "target_server": {
-                    "ignore_above": 1024,
-                    "type": "keyword"
-                  },
-                  "target_server_version": {
-                    "ignore_above": 1024,
-                    "type": "keyword"
-                  },
-                  "tenant_id": {
-                    "ignore_above": 1024,
-                    "type": "keyword"
-                  },
-                  "total_account_forest_latency": {
-                    "type": "long"
-                  },
-                  "total_gls_latency": {
-                    "type": "long"
-                  },
-                  "total_request_time": {
-                    "type": "long"
-                  },
-                  "total_resource_forest_latency": {
-                    "type": "long"
-                  },
-                  "total_shared_cache_latency": {
-                    "type": "long"
-                  },
-                  "transport_traffic_type": {
-                    "ignore_above": 1024,
-                    "type": "keyword"
-                  },
-                  "url_host": {
-                    "ignore_above": 1024,
-                    "type": "keyword"
-                  },
-                  "url_stem": {
-                    "ignore_above": 1024,
-                    "type": "keyword"
-                  },
-                  "user": {
-                    "ignore_above": 1024,
-                    "type": "keyword"
-                  },
-                  "user_ad_object_guid": {
-                    "ignore_above": 1024,
-                    "type": "keyword"
-                  }
-                }
+              "account_forest_latency_breakup": {
+                "ignore_above": 1024,
+                "type": "keyword"
+              },
+              "activity_context_lifetime": {
+                "type": "long"
+              },
+              "ad_latency": {
+                "type": "long"
+              },
+              "anchor_mailbox": {
+                "ignore_above": 1024,
+                "type": "keyword"
+              },
+              "auth_module_perf_context": {
+                "ignore_above": 1024,
+                "type": "keyword"
+              },
+              "authenticated_user": {
+                "ignore_above": 1024,
+                "type": "keyword"
+              },
+              "authentication_type": {
+                "ignore_above": 1024,
+                "type": "keyword"
+              },
+              "backend_cookie": {
+                "ignore_above": 1024,
+                "type": "keyword"
+              },
+              "backend_generic_info": {
+                "ignore_above": 1024,
+                "type": "keyword"
+              },
+              "backend_processing_latency": {
+                "type": "long"
+              },
+              "backend_request_init_latency": {
+                "type": "long"
+              },
+              "backend_request_stream_latency": {
+                "type": "long"
+              },
+              "backend_response_init_latency": {
+                "type": "long"
+              },
+              "backend_response_stream_latency": {
+                "type": "long"
+              },
+              "backend_status": {
+                "type": "long"
+              },
+              "build_version": {
+                "type": "long"
+              },
+              "calculate_target_backend_latency": {
+                "type": "long"
+              },
+              "cip": {
+                "ignore_above": 1024,
+                "type": "keyword"
+              },
+              "client_ip_address": {
+                "ignore_above": 1024,
+                "type": "keyword"
+              },
+              "client_request_id": {
+                "ignore_above": 1024,
+                "type": "keyword"
+              },
+              "client_request_stream_latency": {
+                "type": "long"
+              },
+              "client_response_stream_latency": {
+                "type": "long"
+              },
+              "command": {
+                "ignore_above": 1024,
+                "type": "keyword"
+              },
+              "connector_id": {
+                "ignore_above": 1024,
+                "type": "keyword"
+              },
+              "context": {
+                "ignore_above": 1024,
+                "type": "keyword"
+              },
+              "core_latency": {
+                "type": "long"
+              },
+              "custom_data": {
+                "ignore_above": 1024,
+                "type": "keyword"
+              },
+              "data": {
+                "ignore_above": 1024,
+                "type": "keyword"
+              },
+              "database_guid": {
+                "ignore_above": 1024,
+                "type": "keyword"
+              },
+              "duration": {
+                "type": "long"
+              },
+              "edge_trace_id": {
+                "ignore_above": 1024,
+                "type": "keyword"
+              },
+              "error_code": {
+                "ignore_above": 1024,
+                "type": "keyword"
+              },
+              "event": {
+                "ignore_above": 1024,
+                "type": "keyword"
+              },
+              "event_id": {
+                "ignore_above": 1024,
+                "type": "keyword"
+              },
+              "generic_errors": {
+                "ignore_above": 1024,
+                "type": "keyword"
+              },
+              "generic_info": {
+                "ignore_above": 1024,
+                "type": "keyword"
+              },
+              "gls_latency_breakup": {
+                "ignore_above": 1024,
+                "type": "keyword"
+              },
+              "handler_completion_latency": {
+                "type": "long"
+              },
+              "handler_to_module_switching_latency": {
+                "type": "long"
+              },
+              "http_pipeline_latency": {
+                "type": "long"
+              },
+              "http_proxy_overhead": {
+                "type": "long"
+              },
+              "internal_message_id": {
+                "ignore_above": 1024,
+                "type": "keyword"
+              },
+              "is_authenticated": {
+                "type": "boolean"
+              },
+              "kerberos_auth_header_latency": {
+                "type": "long"
+              },
+              "local_endpoint": {
+                "ignore_above": 1024,
+                "type": "keyword"
+              },
+              "log_id": {
+                "ignore_above": 1024,
+                "type": "keyword"
+              },
+              "log_type": {
+                "ignore_above": 1024,
+                "type": "keyword"
+              },
+              "major_version": {
+                "type": "long"
+              },
+              "message_info": {
+                "ignore_above": 1024,
+                "type": "keyword"
+              },
+              "minor_version": {
+                "type": "long"
+              },
+              "module_to_handler_switching_latency": {
+                "type": "long"
+              },
+              "network_message_id": {
+                "ignore_above": 1024,
+                "type": "keyword"
+              },
+              "organization": {
+                "ignore_above": 1024,
+                "type": "keyword"
+              },
+              "original_client_ip": {
+                "ignore_above": 1024,
+                "type": "keyword"
+              },
+              "original_server_ip": {
+                "ignore_above": 1024,
+                "type": "keyword"
+              },
+              "parameters": {
+                "ignore_above": 1024,
+                "type": "keyword"
+              },
+              "partition_endpoint_lookup_latency": {
+                "type": "long"
+              },
+              "protocol": {
+                "ignore_above": 1024,
+                "type": "keyword"
+              },
+              "protocol_action": {
+                "ignore_above": 1024,
+                "type": "keyword"
+              },
+              "proxy_action": {
+                "ignore_above": 1024,
+                "type": "keyword"
+              },
+              "proxy_time": {
+                "type": "long"
+              },
+              "puid": {
+                "ignore_above": 1024,
+                "type": "keyword"
+              },
+              "recipient_count": {
+                "type": "long"
+              },
+              "recipient_status": {
+                "ignore_above": 1024,
+                "type": "keyword"
+              },
+              "reference": {
+                "ignore_above": 1024,
+                "type": "keyword"
+              },
+              "related_recipient_address": {
+                "ignore_above": 1024,
+                "type": "keyword"
+              },
+              "remote_endpoint": {
+                "ignore_above": 1024,
+                "type": "keyword"
+              },
+              "request_handler_latency": {
+                "type": "long"
+              },
+              "request_id": {
+                "ignore_above": 1024,
+                "type": "keyword"
+              },
+              "resource_forest_latency_breakup": {
+                "ignore_above": 1024,
+                "type": "keyword"
+              },
+              "return_path": {
+                "ignore_above": 1024,
+                "type": "keyword"
+              },
+              "revision_version": {
+                "type": "long"
+              },
+              "route_refresher_latency": {
+                "type": "long"
+              },
+              "routing_hint": {
+                "ignore_above": 1024,
+                "type": "keyword"
+              },
+              "routing_latency": {
+                "type": "long"
+              },
+              "routing_status": {
+                "ignore_above": 1024,
+                "type": "keyword"
+              },
+              "routing_type": {
+                "ignore_above": 1024,
+                "type": "keyword"
+              },
+              "rpsize": {
+                "type": "long"
+              },
+              "rqsize": {
+                "type": "long"
+              },
+              "schema_version": {
+                "ignore_above": 1024,
+                "type": "keyword"
+              },
+              "sender_address": {
+                "ignore_above": 1024,
+                "type": "keyword"
+              },
+              "sequence_number": {
+                "type": "long"
+              },
+              "server_locator_host": {
+                "ignore_above": 1024,
+                "type": "keyword"
+              },
+              "server_locator_latency": {
+                "type": "long"
+              },
+              "session_id": {
+                "ignore_above": 1024,
+                "type": "keyword"
+              },
+              "shared_cache_latency_breakup": {
+                "ignore_above": 1024,
+                "type": "keyword"
+              },
+              "sip": {
+                "ignore_above": 1024,
+                "type": "keyword"
+              },
+              "source": {
+                "ignore_above": 1024,
+                "type": "keyword"
+              },
+              "source_context": {
+                "ignore_above": 1024,
+                "type": "keyword"
+              },
+              "target_outstanding_requests": {
+                "type": "long"
+              },
+              "target_server": {
+                "ignore_above": 1024,
+                "type": "keyword"
+              },
+              "target_server_version": {
+                "ignore_above": 1024,
+                "type": "keyword"
+              },
+              "tenant_id": {
+                "ignore_above": 1024,
+                "type": "keyword"
+              },
+              "total_account_forest_latency": {
+                "type": "long"
+              },
+              "total_gls_latency": {
+                "type": "long"
+              },
+              "total_request_time": {
+                "type": "long"
+              },
+              "total_resource_forest_latency": {
+                "type": "long"
+              },
+              "total_shared_cache_latency": {
+                "type": "long"
+              },
+              "transport_traffic_type": {
+                "ignore_above": 1024,
+                "type": "keyword"
+              },
+              "url_host": {
+                "ignore_above": 1024,
+                "type": "keyword"
+              },
+              "url_stem": {
+                "ignore_above": 1024,
+                "type": "keyword"
+              },
+              "user": {
+                "ignore_above": 1024,
+                "type": "keyword"
+              },
+              "user_ad_object_guid": {
+                "ignore_above": 1024,
+                "type": "keyword"
               }
             }
           }

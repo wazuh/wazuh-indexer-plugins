@@ -3185,6 +3185,48 @@
           }
         }
       },
+      "powershell": {
+        "properties": {
+          "command": {
+            "properties": {
+              "name": {
+                "ignore_above": 1024,
+                "type": "keyword"
+              },
+              "path": {
+                "ignore_above": 1024,
+                "type": "keyword"
+              },
+              "type": {
+                "ignore_above": 1024,
+                "type": "keyword"
+              },
+              "value": {
+                "ignore_above": 1024,
+                "type": "keyword"
+              }
+            }
+          },
+          "file": {
+            "properties": {
+              "script_block_id": {
+                "ignore_above": 1024,
+                "type": "keyword"
+              },
+              "script_block_text": {
+                "ignore_above": 1024,
+                "type": "keyword"
+              }
+            }
+          },
+          "sequence": {
+            "type": "long"
+          },
+          "total": {
+            "type": "long"
+          }
+        }
+      },
       "process": {
         "properties": {
           "args": {
@@ -16732,6 +16774,28 @@
           }
         }
       },
+      "sysmon": {
+        "properties": {
+          "dns": {
+            "properties": {
+              "status": {
+                "ignore_above": 1024,
+                "type": "keyword"
+              }
+            }
+          },
+          "file": {
+            "properties": {
+              "archived": {
+                "type": "boolean"
+              },
+              "is_executable": {
+                "type": "boolean"
+              }
+            }
+          }
+        }
+      },
       "threat": {
         "properties": {
           "enrichments": {
@@ -19475,51 +19539,247 @@
       },
       "windows": {
         "properties": {
-          "powershell": {
+          "EventData": {
             "properties": {
-              "command": {
-                "properties": {
-                  "name": {
-                    "ignore_above": 1024,
-                    "type": "keyword"
-                  },
-                  "path": {
-                    "ignore_above": 1024,
-                    "type": "keyword"
-                  },
-                  "type": {
-                    "ignore_above": 1024,
-                    "type": "keyword"
-                  },
-                  "value": {
-                    "ignore_above": 1024,
-                    "type": "keyword"
-                  }
-                }
+              "AuthenticationPackageName": {
+                "ignore_above": 1024,
+                "type": "keyword"
               },
-              "file": {
-                "properties": {
-                  "script_block_id": {
-                    "ignore_above": 1024,
-                    "type": "keyword"
-                  },
-                  "script_block_text": {
-                    "ignore_above": 1024,
-                    "type": "keyword"
-                  }
-                }
+              "ElevatedToken": {
+                "ignore_above": 1024,
+                "type": "keyword"
               },
-              "sequence": {
+              "ImpersonationLevel": {
+                "ignore_above": 1024,
+                "type": "keyword"
+              },
+              "IpAddress": {
+                "type": "ip"
+              },
+              "IpPort": {
                 "type": "long"
               },
-              "total": {
+              "KeyLength": {
                 "type": "long"
+              },
+              "LmPackageName": {
+                "ignore_above": 1024,
+                "type": "keyword"
+              },
+              "LogonGuid": {
+                "ignore_above": 1024,
+                "type": "keyword"
+              },
+              "LogonProcessName": {
+                "ignore_above": 1024,
+                "type": "keyword"
+              },
+              "LogonType": {
+                "ignore_above": 1024,
+                "type": "keyword"
+              },
+              "ProcessId": {
+                "ignore_above": 1024,
+                "type": "keyword"
+              },
+              "ProcessName": {
+                "ignore_above": 1024,
+                "type": "keyword"
+              },
+              "RestrictedAdminMode": {
+                "ignore_above": 1024,
+                "type": "keyword"
+              },
+              "SubjectDomainName": {
+                "ignore_above": 1024,
+                "type": "keyword"
+              },
+              "SubjectLogonId": {
+                "ignore_above": 1024,
+                "type": "keyword"
+              },
+              "SubjectUserName": {
+                "ignore_above": 1024,
+                "type": "keyword"
+              },
+              "SubjectUserSid": {
+                "ignore_above": 1024,
+                "type": "keyword"
+              },
+              "TargetDomainName": {
+                "ignore_above": 1024,
+                "type": "keyword"
+              },
+              "TargetLinkedLogonId": {
+                "ignore_above": 1024,
+                "type": "keyword"
+              },
+              "TargetLogonId": {
+                "ignore_above": 1024,
+                "type": "keyword"
+              },
+              "TargetOutboundDomainName": {
+                "ignore_above": 1024,
+                "type": "keyword"
+              },
+              "TargetOutboundUserName": {
+                "ignore_above": 1024,
+                "type": "keyword"
+              },
+              "TargetUserName": {
+                "ignore_above": 1024,
+                "type": "keyword"
+              },
+              "TargetUserSid": {
+                "ignore_above": 1024,
+                "type": "keyword"
+              },
+              "TransmittedServices": {
+                "ignore_above": 1024,
+                "type": "keyword"
+              },
+              "VirtualAccount": {
+                "ignore_above": 1024,
+                "type": "keyword"
+              },
+              "WorkstationName": {
+                "ignore_above": 1024,
+                "type": "keyword"
               }
-            }
+            },
+            "type": "object"
           },
-          "sysmon": {
+          "System": {
             "properties": {
-              "dns": {
+              "Channel": {
+                "properties": {
+                  "#text": {
+                    "ignore_above": 1024,
+                    "type": "keyword"
+                  }
+                }
+              },
+              "Computer": {
+                "properties": {
+                  "#text": {
+                    "ignore_above": 1024,
+                    "type": "keyword"
+                  }
+                }
+              },
+              "Correlation": {
+                "properties": {
+                  "@ActivityID": {
+                    "ignore_above": 1024,
+                    "type": "keyword"
+                  }
+                }
+              },
+              "EventID": {
+                "properties": {
+                  "#text": {
+                    "ignore_above": 1024,
+                    "type": "keyword"
+                  }
+                }
+              },
+              "EventRecordID": {
+                "properties": {
+                  "#text": {
+                    "ignore_above": 1024,
+                    "type": "keyword"
+                  }
+                }
+              },
+              "Execution": {
+                "properties": {
+                  "@ProcessID": {
+                    "ignore_above": 1024,
+                    "type": "keyword"
+                  },
+                  "@ThreadID": {
+                    "ignore_above": 1024,
+                    "type": "keyword"
+                  }
+                }
+              },
+              "Keywords": {
+                "properties": {
+                  "#text": {
+                    "ignore_above": 1024,
+                    "type": "keyword"
+                  }
+                }
+              },
+              "Level": {
+                "properties": {
+                  "#text": {
+                    "ignore_above": 1024,
+                    "type": "keyword"
+                  }
+                }
+              },
+              "Opcode": {
+                "properties": {
+                  "#text": {
+                    "ignore_above": 1024,
+                    "type": "keyword"
+                  }
+                }
+              },
+              "Provider": {
+                "properties": {
+                  "@Guid": {
+                    "ignore_above": 1024,
+                    "type": "keyword"
+                  },
+                  "@Name": {
+                    "ignore_above": 1024,
+                    "type": "keyword"
+                  }
+                }
+              },
+              "Task": {
+                "properties": {
+                  "#text": {
+                    "ignore_above": 1024,
+                    "type": "keyword"
+                  }
+                }
+              },
+              "TimeCreated": {
+                "properties": {
+                  "@SystemTime": {
+                    "type": "date"
+                  }
+                }
+              },
+              "Version": {
+                "properties": {
+                  "#text": {
+                    "ignore_above": 1024,
+                    "type": "keyword"
+                  }
+                }
+              }
+            },
+            "type": "object"
+          },
+          "logon": {
+            "properties": {
+              "channel": {
+                "ignore_above": 1024,
+                "type": "keyword"
+              },
+              "computer_name": {
+                "ignore_above": 1024,
+                "type": "keyword"
+              },
+              "event_id": {
+                "ignore_above": 1024,
+                "type": "keyword"
+              },
+              "failure": {
                 "properties": {
                   "status": {
                     "ignore_above": 1024,
@@ -19527,308 +19787,44 @@
                   }
                 }
               },
-              "file": {
+              "id": {
+                "ignore_above": 1024,
+                "type": "keyword"
+              },
+              "keywords": {
+                "ignore_above": 1024,
+                "type": "keyword"
+              },
+              "process": {
                 "properties": {
-                  "archived": {
-                    "type": "boolean"
-                  },
-                  "is_executable": {
-                    "type": "boolean"
-                  }
-                }
-              }
-            }
-          },
-          "windows": {
-            "properties": {
-              "EventData": {
-                "properties": {
-                  "AuthenticationPackageName": {
-                    "ignore_above": 1024,
-                    "type": "keyword"
-                  },
-                  "ElevatedToken": {
-                    "ignore_above": 1024,
-                    "type": "keyword"
-                  },
-                  "ImpersonationLevel": {
-                    "ignore_above": 1024,
-                    "type": "keyword"
-                  },
-                  "IpAddress": {
-                    "type": "ip"
-                  },
-                  "IpPort": {
+                  "pid": {
                     "type": "long"
                   },
-                  "KeyLength": {
-                    "type": "long"
-                  },
-                  "LmPackageName": {
-                    "ignore_above": 1024,
-                    "type": "keyword"
-                  },
-                  "LogonGuid": {
-                    "ignore_above": 1024,
-                    "type": "keyword"
-                  },
-                  "LogonProcessName": {
-                    "ignore_above": 1024,
-                    "type": "keyword"
-                  },
-                  "LogonType": {
-                    "ignore_above": 1024,
-                    "type": "keyword"
-                  },
-                  "ProcessId": {
-                    "ignore_above": 1024,
-                    "type": "keyword"
-                  },
-                  "ProcessName": {
-                    "ignore_above": 1024,
-                    "type": "keyword"
-                  },
-                  "RestrictedAdminMode": {
-                    "ignore_above": 1024,
-                    "type": "keyword"
-                  },
-                  "SubjectDomainName": {
-                    "ignore_above": 1024,
-                    "type": "keyword"
-                  },
-                  "SubjectLogonId": {
-                    "ignore_above": 1024,
-                    "type": "keyword"
-                  },
-                  "SubjectUserName": {
-                    "ignore_above": 1024,
-                    "type": "keyword"
-                  },
-                  "SubjectUserSid": {
-                    "ignore_above": 1024,
-                    "type": "keyword"
-                  },
-                  "TargetDomainName": {
-                    "ignore_above": 1024,
-                    "type": "keyword"
-                  },
-                  "TargetLinkedLogonId": {
-                    "ignore_above": 1024,
-                    "type": "keyword"
-                  },
-                  "TargetLogonId": {
-                    "ignore_above": 1024,
-                    "type": "keyword"
-                  },
-                  "TargetOutboundDomainName": {
-                    "ignore_above": 1024,
-                    "type": "keyword"
-                  },
-                  "TargetOutboundUserName": {
-                    "ignore_above": 1024,
-                    "type": "keyword"
-                  },
-                  "TargetUserName": {
-                    "ignore_above": 1024,
-                    "type": "keyword"
-                  },
-                  "TargetUserSid": {
-                    "ignore_above": 1024,
-                    "type": "keyword"
-                  },
-                  "TransmittedServices": {
-                    "ignore_above": 1024,
-                    "type": "keyword"
-                  },
-                  "VirtualAccount": {
-                    "ignore_above": 1024,
-                    "type": "keyword"
-                  },
-                  "WorkstationName": {
-                    "ignore_above": 1024,
-                    "type": "keyword"
-                  }
-                },
-                "type": "object"
-              },
-              "System": {
-                "properties": {
-                  "Channel": {
+                  "thread": {
                     "properties": {
-                      "#text": {
+                      "id": {
                         "ignore_above": 1024,
                         "type": "keyword"
                       }
                     }
-                  },
-                  "Computer": {
-                    "properties": {
-                      "#text": {
-                        "ignore_above": 1024,
-                        "type": "keyword"
-                      }
-                    }
-                  },
-                  "Correlation": {
-                    "properties": {
-                      "@ActivityID": {
-                        "ignore_above": 1024,
-                        "type": "keyword"
-                      }
-                    }
-                  },
-                  "EventID": {
-                    "properties": {
-                      "#text": {
-                        "ignore_above": 1024,
-                        "type": "keyword"
-                      }
-                    }
-                  },
-                  "EventRecordID": {
-                    "properties": {
-                      "#text": {
-                        "ignore_above": 1024,
-                        "type": "keyword"
-                      }
-                    }
-                  },
-                  "Execution": {
-                    "properties": {
-                      "@ProcessID": {
-                        "ignore_above": 1024,
-                        "type": "keyword"
-                      },
-                      "@ThreadID": {
-                        "ignore_above": 1024,
-                        "type": "keyword"
-                      }
-                    }
-                  },
-                  "Keywords": {
-                    "properties": {
-                      "#text": {
-                        "ignore_above": 1024,
-                        "type": "keyword"
-                      }
-                    }
-                  },
-                  "Level": {
-                    "properties": {
-                      "#text": {
-                        "ignore_above": 1024,
-                        "type": "keyword"
-                      }
-                    }
-                  },
-                  "Opcode": {
-                    "properties": {
-                      "#text": {
-                        "ignore_above": 1024,
-                        "type": "keyword"
-                      }
-                    }
-                  },
-                  "Provider": {
-                    "properties": {
-                      "@Guid": {
-                        "ignore_above": 1024,
-                        "type": "keyword"
-                      },
-                      "@Name": {
-                        "ignore_above": 1024,
-                        "type": "keyword"
-                      }
-                    }
-                  },
-                  "Task": {
-                    "properties": {
-                      "#text": {
-                        "ignore_above": 1024,
-                        "type": "keyword"
-                      }
-                    }
-                  },
-                  "TimeCreated": {
-                    "properties": {
-                      "@SystemTime": {
-                        "type": "date"
-                      }
-                    }
-                  },
-                  "Version": {
-                    "properties": {
-                      "#text": {
-                        "ignore_above": 1024,
-                        "type": "keyword"
-                      }
-                    }
-                  }
-                },
-                "type": "object"
-              },
-              "logon": {
-                "properties": {
-                  "channel": {
-                    "ignore_above": 1024,
-                    "type": "keyword"
-                  },
-                  "computer_name": {
-                    "ignore_above": 1024,
-                    "type": "keyword"
-                  },
-                  "event_id": {
-                    "ignore_above": 1024,
-                    "type": "keyword"
-                  },
-                  "failure": {
-                    "properties": {
-                      "status": {
-                        "ignore_above": 1024,
-                        "type": "keyword"
-                      }
-                    }
-                  },
-                  "id": {
-                    "ignore_above": 1024,
-                    "type": "keyword"
-                  },
-                  "keywords": {
-                    "ignore_above": 1024,
-                    "type": "keyword"
-                  },
-                  "process": {
-                    "properties": {
-                      "pid": {
-                        "type": "long"
-                      },
-                      "thread": {
-                        "properties": {
-                          "id": {
-                            "ignore_above": 1024,
-                            "type": "keyword"
-                          }
-                        }
-                      }
-                    }
-                  },
-                  "provider_guid": {
-                    "ignore_above": 1024,
-                    "type": "keyword"
-                  },
-                  "provider_name": {
-                    "ignore_above": 1024,
-                    "type": "keyword"
-                  },
-                  "record_id": {
-                    "ignore_above": 1024,
-                    "type": "keyword"
-                  },
-                  "type": {
-                    "ignore_above": 1024,
-                    "type": "keyword"
                   }
                 }
+              },
+              "provider_guid": {
+                "ignore_above": 1024,
+                "type": "keyword"
+              },
+              "provider_name": {
+                "ignore_above": 1024,
+                "type": "keyword"
+              },
+              "record_id": {
+                "ignore_above": 1024,
+                "type": "keyword"
+              },
+              "type": {
+                "ignore_above": 1024,
+                "type": "keyword"
               }
             }
           }

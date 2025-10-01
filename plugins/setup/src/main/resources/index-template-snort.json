@@ -16551,99 +16551,95 @@
       },
       "snort": {
         "properties": {
-          "snort": {
+          "action": {
+            "ignore_above": 1024,
+            "type": "keyword"
+          },
+          "class": {
+            "ignore_above": 1024,
+            "type": "keyword"
+          },
+          "dgm": {
             "properties": {
-              "action": {
-                "ignore_above": 1024,
-                "type": "keyword"
-              },
-              "class": {
-                "ignore_above": 1024,
-                "type": "keyword"
-              },
-              "dgm": {
-                "properties": {
-                  "length": {
-                    "type": "long"
-                  }
-                }
-              },
-              "eth": {
-                "properties": {
-                  "length": {
-                    "type": "long"
-                  }
-                }
-              },
-              "gid": {
+              "length": {
+                "type": "long"
+              }
+            }
+          },
+          "eth": {
+            "properties": {
+              "length": {
+                "type": "long"
+              }
+            }
+          },
+          "gid": {
+            "type": "long"
+          },
+          "icmp": {
+            "properties": {
+              "code": {
                 "type": "long"
               },
-              "icmp": {
-                "properties": {
-                  "code": {
-                    "type": "long"
-                  },
-                  "id": {
-                    "type": "long"
-                  },
-                  "seq": {
-                    "type": "long"
-                  },
-                  "type": {
-                    "type": "long"
-                  }
-                }
+              "id": {
+                "type": "long"
               },
-              "ip": {
-                "properties": {
-                  "flags": {
-                    "ignore_above": 1024,
-                    "type": "keyword"
-                  },
-                  "id": {
-                    "type": "long"
-                  },
-                  "length": {
-                    "type": "long"
-                  },
-                  "tos": {
-                    "type": "long"
-                  },
-                  "ttl": {
-                    "type": "long"
-                  }
-                }
+              "seq": {
+                "type": "long"
               },
-              "sid": {
+              "type": {
+                "type": "long"
+              }
+            }
+          },
+          "ip": {
+            "properties": {
+              "flags": {
                 "ignore_above": 1024,
                 "type": "keyword"
               },
-              "tcp": {
-                "properties": {
-                  "ack": {
-                    "type": "long"
-                  },
-                  "flags": {
-                    "ignore_above": 1024,
-                    "type": "keyword"
-                  },
-                  "length": {
-                    "type": "long"
-                  },
-                  "seq": {
-                    "type": "long"
-                  },
-                  "window": {
-                    "type": "long"
-                  }
-                }
+              "id": {
+                "type": "long"
               },
-              "udp": {
-                "properties": {
-                  "length": {
-                    "type": "long"
-                  }
-                }
+              "length": {
+                "type": "long"
+              },
+              "tos": {
+                "type": "long"
+              },
+              "ttl": {
+                "type": "long"
+              }
+            }
+          },
+          "sid": {
+            "ignore_above": 1024,
+            "type": "keyword"
+          },
+          "tcp": {
+            "properties": {
+              "ack": {
+                "type": "long"
+              },
+              "flags": {
+                "ignore_above": 1024,
+                "type": "keyword"
+              },
+              "length": {
+                "type": "long"
+              },
+              "seq": {
+                "type": "long"
+              },
+              "window": {
+                "type": "long"
+              }
+            }
+          },
+          "udp": {
+            "properties": {
+              "length": {
+                "type": "long"
               }
             }
           }

@@ -3163,55 +3163,51 @@
       },
       "pfsense": {
         "properties": {
-          "pfsense": {
-            "properties": {
-              "dhcp_subnet": {
-                "ignore_above": 1024,
-                "type": "keyword"
-              },
-              "firewall_rule_id": {
-                "ignore_above": 1024,
-                "type": "keyword"
-              },
-              "icmp_type": {
-                "ignore_above": 1024,
-                "type": "keyword"
-              },
-              "ip_flags": {
-                "ignore_above": 1024,
-                "type": "keyword"
-              },
-              "ip_id": {
-                "type": "long"
-              },
-              "ip_offset": {
-                "type": "long"
-              },
-              "ip_tos": {
-                "ignore_above": 1024,
-                "type": "keyword"
-              },
-              "ip_ttl": {
-                "type": "long"
-              },
-              "tcp_flags": {
-                "ignore_above": 1024,
-                "type": "keyword"
-              },
-              "tcp_length": {
-                "type": "long"
-              },
-              "tcp_options": {
-                "ignore_above": 1024,
-                "type": "keyword"
-              },
-              "tcp_seq": {
-                "type": "long"
-              },
-              "tcp_window": {
-                "type": "long"
-              }
-            }
+          "dhcp_subnet": {
+            "ignore_above": 1024,
+            "type": "keyword"
+          },
+          "firewall_rule_id": {
+            "ignore_above": 1024,
+            "type": "keyword"
+          },
+          "icmp_type": {
+            "ignore_above": 1024,
+            "type": "keyword"
+          },
+          "ip_flags": {
+            "ignore_above": 1024,
+            "type": "keyword"
+          },
+          "ip_id": {
+            "type": "long"
+          },
+          "ip_offset": {
+            "type": "long"
+          },
+          "ip_tos": {
+            "ignore_above": 1024,
+            "type": "keyword"
+          },
+          "ip_ttl": {
+            "type": "long"
+          },
+          "tcp_flags": {
+            "ignore_above": 1024,
+            "type": "keyword"
+          },
+          "tcp_length": {
+            "type": "long"
+          },
+          "tcp_options": {
+            "ignore_above": 1024,
+            "type": "keyword"
+          },
+          "tcp_seq": {
+            "type": "long"
+          },
+          "tcp_window": {
+            "type": "long"
           }
         }
       },

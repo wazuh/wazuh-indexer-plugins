@@ -293,190 +293,186 @@
           }
         }
       },
-      "azure-app-service": {
+      "azure": {
         "properties": {
-          "azure": {
+          "app_service": {
             "properties": {
-              "app_service": {
-                "properties": {
-                  "category": {
-                    "ignore_above": 1024,
-                    "type": "keyword"
-                  },
-                  "container_id": {
-                    "ignore_above": 1024,
-                    "type": "keyword"
-                  },
-                  "event_ip_address": {
-                    "type": "ip"
-                  },
-                  "event_primary_stamp_name": {
-                    "ignore_above": 1024,
-                    "type": "keyword"
-                  },
-                  "event_stamp_name": {
-                    "ignore_above": 1024,
-                    "type": "keyword"
-                  },
-                  "event_stamp_type": {
-                    "ignore_above": 1024,
-                    "type": "keyword"
-                  },
-                  "host": {
-                    "ignore_above": 1024,
-                    "type": "keyword"
-                  },
-                  "level": {
-                    "ignore_above": 1024,
-                    "type": "keyword"
-                  },
-                  "log": {
-                    "ignore_above": 1024,
-                    "type": "keyword"
-                  },
-                  "operation_name": {
-                    "ignore_above": 1024,
-                    "type": "keyword"
-                  },
-                  "properties": {
-                    "properties": {
-                      "client_ip": {
-                        "type": "ip"
-                      },
-                      "client_port": {
-                        "type": "long"
-                      },
-                      "computer_name": {
-                        "ignore_above": 1024,
-                        "type": "keyword"
-                      },
-                      "cookie": {
-                        "ignore_above": 1024,
-                        "type": "keyword"
-                      },
-                      "cs_bytes": {
-                        "type": "long"
-                      },
-                      "cs_host": {
-                        "ignore_above": 1024,
-                        "type": "keyword"
-                      },
-                      "cs_method": {
-                        "ignore_above": 1024,
-                        "type": "keyword"
-                      },
-                      "cs_uri_query": {
-                        "ignore_above": 1024,
-                        "type": "keyword"
-                      },
-                      "cs_uri_stem": {
-                        "ignore_above": 1024,
-                        "type": "keyword"
-                      },
-                      "cs_username": {
-                        "ignore_above": 1024,
-                        "type": "keyword"
-                      },
-                      "details": {
-                        "ignore_above": 1024,
-                        "type": "keyword"
-                      },
-                      "protocol": {
-                        "ignore_above": 1024,
-                        "type": "keyword"
-                      },
-                      "referer": {
-                        "ignore_above": 1024,
-                        "type": "keyword"
-                      },
-                      "result": {
-                        "ignore_above": 1024,
-                        "type": "keyword"
-                      },
-                      "s_port": {
-                        "ignore_above": 1024,
-                        "type": "keyword"
-                      },
-                      "sc_bytes": {
-                        "type": "long"
-                      },
-                      "sc_status": {
-                        "type": "long"
-                      },
-                      "sc_substatus": {
-                        "ignore_above": 1024,
-                        "type": "keyword"
-                      },
-                      "sc_win32status": {
-                        "ignore_above": 1024,
-                        "type": "keyword"
-                      },
-                      "service_endpoint": {
-                        "ignore_above": 1024,
-                        "type": "keyword"
-                      },
-                      "source_system": {
-                        "ignore_above": 1024,
-                        "type": "keyword"
-                      },
-                      "time_generated": {
-                        "ignore_above": 1024,
-                        "type": "keyword"
-                      },
-                      "time_taken": {
-                        "type": "long"
-                      },
-                      "type": {
-                        "ignore_above": 1024,
-                        "type": "keyword"
-                      },
-                      "user": {
-                        "ignore_above": 1024,
-                        "type": "keyword"
-                      },
-                      "user_agent": {
-                        "ignore_above": 1024,
-                        "type": "keyword"
-                      },
-                      "user_display_name": {
-                        "ignore_above": 1024,
-                        "type": "keyword"
-                      },
-                      "xazurefdid": {
-                        "ignore_above": 1024,
-                        "type": "keyword"
-                      },
-                      "xfdhealth_probe": {
-                        "ignore_above": 1024,
-                        "type": "keyword"
-                      },
-                      "xforwarded_for": {
-                        "ignore_above": 1024,
-                        "type": "keyword"
-                      },
-                      "xforwarded_host": {
-                        "ignore_above": 1024,
-                        "type": "keyword"
-                      }
-                    }
-                  },
-                  "result_description": {
-                    "ignore_above": 1024,
-                    "type": "keyword"
-                  }
-                }
-              },
-              "correlation_id": {
+              "category": {
                 "ignore_above": 1024,
                 "type": "keyword"
               },
-              "resource": {
+              "container_id": {
+                "ignore_above": 1024,
+                "type": "keyword"
+              },
+              "event_ip_address": {
+                "type": "ip"
+              },
+              "event_primary_stamp_name": {
+                "ignore_above": 1024,
+                "type": "keyword"
+              },
+              "event_stamp_name": {
+                "ignore_above": 1024,
+                "type": "keyword"
+              },
+              "event_stamp_type": {
+                "ignore_above": 1024,
+                "type": "keyword"
+              },
+              "host": {
+                "ignore_above": 1024,
+                "type": "keyword"
+              },
+              "level": {
+                "ignore_above": 1024,
+                "type": "keyword"
+              },
+              "log": {
+                "ignore_above": 1024,
+                "type": "keyword"
+              },
+              "operation_name": {
+                "ignore_above": 1024,
+                "type": "keyword"
+              },
+              "properties": {
                 "properties": {
-                  "id": {
+                  "client_ip": {
+                    "type": "ip"
+                  },
+                  "client_port": {
+                    "type": "long"
+                  },
+                  "computer_name": {
+                    "ignore_above": 1024,
+                    "type": "keyword"
+                  },
+                  "cookie": {
+                    "ignore_above": 1024,
+                    "type": "keyword"
+                  },
+                  "cs_bytes": {
+                    "type": "long"
+                  },
+                  "cs_host": {
+                    "ignore_above": 1024,
+                    "type": "keyword"
+                  },
+                  "cs_method": {
+                    "ignore_above": 1024,
+                    "type": "keyword"
+                  },
+                  "cs_uri_query": {
+                    "ignore_above": 1024,
+                    "type": "keyword"
+                  },
+                  "cs_uri_stem": {
+                    "ignore_above": 1024,
+                    "type": "keyword"
+                  },
+                  "cs_username": {
+                    "ignore_above": 1024,
+                    "type": "keyword"
+                  },
+                  "details": {
+                    "ignore_above": 1024,
+                    "type": "keyword"
+                  },
+                  "protocol": {
+                    "ignore_above": 1024,
+                    "type": "keyword"
+                  },
+                  "referer": {
+                    "ignore_above": 1024,
+                    "type": "keyword"
+                  },
+                  "result": {
+                    "ignore_above": 1024,
+                    "type": "keyword"
+                  },
+                  "s_port": {
+                    "ignore_above": 1024,
+                    "type": "keyword"
+                  },
+                  "sc_bytes": {
+                    "type": "long"
+                  },
+                  "sc_status": {
+                    "type": "long"
+                  },
+                  "sc_substatus": {
+                    "ignore_above": 1024,
+                    "type": "keyword"
+                  },
+                  "sc_win32status": {
+                    "ignore_above": 1024,
+                    "type": "keyword"
+                  },
+                  "service_endpoint": {
+                    "ignore_above": 1024,
+                    "type": "keyword"
+                  },
+                  "source_system": {
+                    "ignore_above": 1024,
+                    "type": "keyword"
+                  },
+                  "time_generated": {
+                    "ignore_above": 1024,
+                    "type": "keyword"
+                  },
+                  "time_taken": {
+                    "type": "long"
+                  },
+                  "type": {
+                    "ignore_above": 1024,
+                    "type": "keyword"
+                  },
+                  "user": {
+                    "ignore_above": 1024,
+                    "type": "keyword"
+                  },
+                  "user_agent": {
+                    "ignore_above": 1024,
+                    "type": "keyword"
+                  },
+                  "user_display_name": {
+                    "ignore_above": 1024,
+                    "type": "keyword"
+                  },
+                  "xazurefdid": {
+                    "ignore_above": 1024,
+                    "type": "keyword"
+                  },
+                  "xfdhealth_probe": {
+                    "ignore_above": 1024,
+                    "type": "keyword"
+                  },
+                  "xforwarded_for": {
+                    "ignore_above": 1024,
+                    "type": "keyword"
+                  },
+                  "xforwarded_host": {
                     "ignore_above": 1024,
                     "type": "keyword"
                   }
                 }
+              },
+              "result_description": {
+                "ignore_above": 1024,
+                "type": "keyword"
+              }
+            }
+          },
+          "correlation_id": {
+            "ignore_above": 1024,
+            "type": "keyword"
+          },
+          "resource": {
+            "properties": {
+              "id": {
+                "ignore_above": 1024,
+                "type": "keyword"
               }
             }
           }

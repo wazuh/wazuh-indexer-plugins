@@ -341,243 +341,231 @@
           }
         }
       },
-      "cisco-asa": {
+      "cisco": {
         "properties": {
-          "cisco": {
+          "asa": {
             "properties": {
-              "asa": {
-                "properties": {
-                  "aaa_type": {
-                    "ignore_above": 1024,
-                    "type": "keyword"
-                  },
-                  "assigned_ip": {
-                    "type": "ip"
-                  },
-                  "burst": {
-                    "properties": {
-                      "avg_rate": {
-                        "ignore_above": 1024,
-                        "type": "keyword"
-                      },
-                      "configured_avg_rate": {
-                        "ignore_above": 1024,
-                        "type": "keyword"
-                      },
-                      "configured_rate": {
-                        "ignore_above": 1024,
-                        "type": "keyword"
-                      },
-                      "cumulative_count": {
-                        "ignore_above": 1024,
-                        "type": "keyword"
-                      },
-                      "current_rate": {
-                        "ignore_above": 1024,
-                        "type": "keyword"
-                      },
-                      "id": {
-                        "ignore_above": 1024,
-                        "type": "keyword"
-                      },
-                      "object": {
-                        "ignore_above": 1024,
-                        "type": "keyword"
-                      }
-                    }
-                  },
-                  "command_line_arguments": {
-                    "ignore_above": 1024,
-                    "type": "keyword"
-                  },
-                  "connection_id": {
-                    "ignore_above": 1024,
-                    "type": "keyword"
-                  },
-                  "connection_type": {
-                    "ignore_above": 1024,
-                    "type": "keyword"
-                  },
-                  "connections_in_use": {
-                    "type": "long"
-                  },
-                  "connections_most_used": {
-                    "type": "long"
-                  },
-                  "dap_records": {
-                    "ignore_above": 1024,
-                    "type": "keyword"
-                  },
-                  "destination_interface": {
-                    "ignore_above": 1024,
-                    "type": "keyword"
-                  },
-                  "destination_user_security_group_tag": {
-                    "type": "long"
-                  },
-                  "destination_user_security_group_tag_name": {
-                    "ignore_above": 1024,
-                    "type": "keyword"
-                  },
-                  "destination_username": {
-                    "ignore_above": 1024,
-                    "type": "keyword"
-                  },
-                  "device_type": {
-                    "ignore_above": 1024,
-                    "type": "keyword"
-                  },
-                  "group_policy": {
-                    "ignore_above": 1024,
-                    "type": "keyword"
-                  },
-                  "icmp_code": {
-                    "type": "long"
-                  },
-                  "icmp_type": {
-                    "type": "long"
-                  },
-                  "interface_name": {
-                    "ignore_above": 1024,
-                    "type": "keyword"
-                  },
-                  "mapped_destination_host": {
-                    "ignore_above": 1024,
-                    "type": "keyword"
-                  },
-                  "mapped_destination_ip": {
-                    "type": "ip"
-                  },
-                  "mapped_destination_port": {
-                    "type": "long"
-                  },
-                  "mapped_source_host": {
-                    "ignore_above": 1024,
-                    "type": "keyword"
-                  },
-                  "mapped_source_ip": {
-                    "type": "ip"
-                  },
-                  "mapped_source_port": {
-                    "type": "long"
-                  },
-                  "message": {
-                    "ignore_above": 1024,
-                    "type": "keyword"
-                  },
-                  "message_repeats": {
-                    "type": "long"
-                  },
-                  "original_iana_number": {
-                    "type": "long"
-                  },
-                  "peer_type": {
-                    "ignore_above": 1024,
-                    "type": "keyword"
-                  },
-                  "pool_address": {
-                    "type": "ip"
-                  },
-                  "pool_name": {
-                    "ignore_above": 1024,
-                    "type": "keyword"
-                  },
-                  "privilege": {
-                    "properties": {
-                      "new": {
-                        "ignore_above": 1024,
-                        "type": "keyword"
-                      },
-                      "old": {
-                        "ignore_above": 1024,
-                        "type": "keyword"
-                      }
-                    }
-                  },
-                  "redundant_interface_name": {
-                    "ignore_above": 1024,
-                    "type": "keyword"
-                  },
-                  "rejection_reason": {
-                    "ignore_above": 1024,
-                    "type": "keyword"
-                  },
-                  "rule_name": {
-                    "ignore_above": 1024,
-                    "type": "keyword"
-                  },
-                  "session_id": {
-                    "ignore_above": 1024,
-                    "type": "keyword"
-                  },
-                  "session_type": {
-                    "ignore_above": 1024,
-                    "type": "keyword"
-                  },
-                  "source_interface": {
-                    "ignore_above": 1024,
-                    "type": "keyword"
-                  },
-                  "source_user_security_group_tag": {
-                    "type": "long"
-                  },
-                  "source_user_security_group_tag_name": {
-                    "ignore_above": 1024,
-                    "type": "keyword"
-                  },
-                  "source_username": {
-                    "ignore_above": 1024,
-                    "type": "keyword"
-                  },
-                  "suffix": {
-                    "ignore_above": 1024,
-                    "type": "keyword"
-                  },
-                  "termination_initiator": {
-                    "ignore_above": 1024,
-                    "type": "keyword"
-                  },
-                  "termination_user": {
-                    "ignore_above": 1024,
-                    "type": "keyword"
-                  },
-                  "threat_category": {
-                    "ignore_above": 1024,
-                    "type": "keyword"
-                  },
-                  "threat_level": {
-                    "ignore_above": 1024,
-                    "type": "keyword"
-                  },
-                  "trustpoint": {
-                    "ignore_above": 1024,
-                    "type": "keyword"
-                  },
-                  "tunnel_group": {
-                    "ignore_above": 1024,
-                    "type": "keyword"
-                  },
-                  "tunnel_type": {
-                    "ignore_above": 1024,
-                    "type": "keyword"
-                  },
-                  "webvpn": {
-                    "properties": {
-                      "group_name": {
-                        "ignore_above": 1024,
-                        "type": "keyword"
-                      }
-                    }
-                  }
-                }
-              }
-            }
-          },
-          "input": {
-            "properties": {
-              "type": {
+              "aaa_type": {
                 "ignore_above": 1024,
                 "type": "keyword"
+              },
+              "assigned_ip": {
+                "type": "ip"
+              },
+              "burst": {
+                "properties": {
+                  "avg_rate": {
+                    "ignore_above": 1024,
+                    "type": "keyword"
+                  },
+                  "configured_avg_rate": {
+                    "ignore_above": 1024,
+                    "type": "keyword"
+                  },
+                  "configured_rate": {
+                    "ignore_above": 1024,
+                    "type": "keyword"
+                  },
+                  "cumulative_count": {
+                    "ignore_above": 1024,
+                    "type": "keyword"
+                  },
+                  "current_rate": {
+                    "ignore_above": 1024,
+                    "type": "keyword"
+                  },
+                  "id": {
+                    "ignore_above": 1024,
+                    "type": "keyword"
+                  },
+                  "object": {
+                    "ignore_above": 1024,
+                    "type": "keyword"
+                  }
+                }
+              },
+              "command_line_arguments": {
+                "ignore_above": 1024,
+                "type": "keyword"
+              },
+              "connection_id": {
+                "ignore_above": 1024,
+                "type": "keyword"
+              },
+              "connection_type": {
+                "ignore_above": 1024,
+                "type": "keyword"
+              },
+              "connections_in_use": {
+                "type": "long"
+              },
+              "connections_most_used": {
+                "type": "long"
+              },
+              "dap_records": {
+                "ignore_above": 1024,
+                "type": "keyword"
+              },
+              "destination_interface": {
+                "ignore_above": 1024,
+                "type": "keyword"
+              },
+              "destination_user_security_group_tag": {
+                "type": "long"
+              },
+              "destination_user_security_group_tag_name": {
+                "ignore_above": 1024,
+                "type": "keyword"
+              },
+              "destination_username": {
+                "ignore_above": 1024,
+                "type": "keyword"
+              },
+              "device_type": {
+                "ignore_above": 1024,
+                "type": "keyword"
+              },
+              "group_policy": {
+                "ignore_above": 1024,
+                "type": "keyword"
+              },
+              "icmp_code": {
+                "type": "long"
+              },
+              "icmp_type": {
+                "type": "long"
+              },
+              "interface_name": {
+                "ignore_above": 1024,
+                "type": "keyword"
+              },
+              "mapped_destination_host": {
+                "ignore_above": 1024,
+                "type": "keyword"
+              },
+              "mapped_destination_ip": {
+                "type": "ip"
+              },
+              "mapped_destination_port": {
+                "type": "long"
+              },
+              "mapped_source_host": {
+                "ignore_above": 1024,
+                "type": "keyword"
+              },
+              "mapped_source_ip": {
+                "type": "ip"
+              },
+              "mapped_source_port": {
+                "type": "long"
+              },
+              "message": {
+                "ignore_above": 1024,
+                "type": "keyword"
+              },
+              "message_repeats": {
+                "type": "long"
+              },
+              "original_iana_number": {
+                "type": "long"
+              },
+              "peer_type": {
+                "ignore_above": 1024,
+                "type": "keyword"
+              },
+              "pool_address": {
+                "type": "ip"
+              },
+              "pool_name": {
+                "ignore_above": 1024,
+                "type": "keyword"
+              },
+              "privilege": {
+                "properties": {
+                  "new": {
+                    "ignore_above": 1024,
+                    "type": "keyword"
+                  },
+                  "old": {
+                    "ignore_above": 1024,
+                    "type": "keyword"
+                  }
+                }
+              },
+              "redundant_interface_name": {
+                "ignore_above": 1024,
+                "type": "keyword"
+              },
+              "rejection_reason": {
+                "ignore_above": 1024,
+                "type": "keyword"
+              },
+              "rule_name": {
+                "ignore_above": 1024,
+                "type": "keyword"
+              },
+              "session_id": {
+                "ignore_above": 1024,
+                "type": "keyword"
+              },
+              "session_type": {
+                "ignore_above": 1024,
+                "type": "keyword"
+              },
+              "source_interface": {
+                "ignore_above": 1024,
+                "type": "keyword"
+              },
+              "source_user_security_group_tag": {
+                "type": "long"
+              },
+              "source_user_security_group_tag_name": {
+                "ignore_above": 1024,
+                "type": "keyword"
+              },
+              "source_username": {
+                "ignore_above": 1024,
+                "type": "keyword"
+              },
+              "suffix": {
+                "ignore_above": 1024,
+                "type": "keyword"
+              },
+              "termination_initiator": {
+                "ignore_above": 1024,
+                "type": "keyword"
+              },
+              "termination_user": {
+                "ignore_above": 1024,
+                "type": "keyword"
+              },
+              "threat_category": {
+                "ignore_above": 1024,
+                "type": "keyword"
+              },
+              "threat_level": {
+                "ignore_above": 1024,
+                "type": "keyword"
+              },
+              "trustpoint": {
+                "ignore_above": 1024,
+                "type": "keyword"
+              },
+              "tunnel_group": {
+                "ignore_above": 1024,
+                "type": "keyword"
+              },
+              "tunnel_type": {
+                "ignore_above": 1024,
+                "type": "keyword"
+              },
+              "webvpn": {
+                "properties": {
+                  "group_name": {
+                    "ignore_above": 1024,
+                    "type": "keyword"
+                  }
+                }
               }
             }
           }
@@ -2778,6 +2766,14 @@
             }
           },
           "version": {
+            "ignore_above": 1024,
+            "type": "keyword"
+          }
+        }
+      },
+      "input": {
+        "properties": {
+          "type": {
             "ignore_above": 1024,
             "type": "keyword"
           }
