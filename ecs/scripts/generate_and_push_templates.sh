@@ -211,7 +211,7 @@ commit_and_push_changes() {
     if ! git diff-index --quiet HEAD --; then
         echo "Changes detected. Committing and pushing to the repository..."
         git add plugins/setup/src/main/resources/*.json
-        git add docs/**/fields.csv
+        git add ecs/**/docs/fields.csv
         git status --short
         git commit -m "Update ECS templates for modified modules: ${relevant_modules[*]}"
         git push
