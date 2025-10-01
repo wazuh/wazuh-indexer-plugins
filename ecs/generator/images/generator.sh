@@ -106,7 +106,7 @@ generate_mappings() {
   echo "Deleting \"synthetic_source_keep\" mappings setting from the index template"
   sed -i '/synthetic_source_keep/d' "$in_file"
 
-  if [ "$ECS_MODULE" != "stateless" ]; then
+  if [[ "$ecs_module" != stateless* ]]; then
     # Delete the "tags" field from the index template
     echo "Deleting the \"tags\" field from the index template"
     jq 'del(.mappings.properties.tags)' "$in_file" > "$out_file"
@@ -120,7 +120,9 @@ generate_mappings() {
     # Delete the "@timestamp" field from the csv file
     echo "Deleting the \"@timestamp\" and \"tags\" fields from the CSV file"
     sed -i '/@timestamp/d; /tags/d' "$csv_file"
-  else
+  # The stateless module is the one for the "wazuh-alerts" index template
+  # We need to generate another template for "wazuh-archives" index
+  elif [[ "$ecs_module" == "stateless" ]]; then
     # Generate the template for `wazuh-archives`
     echo "Generating template for 'wazuh-archives'"
     archives_file="$out_dir/generated/elasticsearch/legacy/template-archives.json"
