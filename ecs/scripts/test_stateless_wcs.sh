@@ -11,9 +11,9 @@ USERNAME=""
 PASSWORD=""
 INTELLIGENCE_DATA_PATH=""
 LOG_FILE="wcs-test-tool.log"
-INTEGRATIONS_MAP=""
+INTEGRATIONS_FILE=""
 CURL_OPTS="-s"
-STRICT_MAPPING=false
+STRICT_MAPPING=true
 
 # Colors for output
 RED='\033[0;31m'
@@ -24,11 +24,11 @@ NC='\033[0m' # No Color
 
 # Usage function
 usage() {
-    echo "Usage: $0 -p <intelligence-data-path> -i <integrations-map> -u <indexer-url> [-c <username:password>] [-l <log-file>] [-s]"
+    echo "Usage: $0 -p <intelligence-data-path> -f <integrations-file> -u <indexer-url> [-c <username:password>] [-l <log-file>] [-s]"
     echo
     echo "Parameters:"
     echo "  -p, --path            Path to the intelligence-data repository"
-    echo "  -i, --integrations    Comma-separated list of integration:index pairs (e.g., 'azure:wazuh-events-azure,aws:wazuh-events-aws')"
+    echo "  -f, --file            Path to integrations configuration file (one integration:index per line)"
     echo "  -u, --url             URL of the Indexer instance (e.g., https://localhost:9200)"
     echo "  -c, --credentials     Username and password separated by colon (optional)"
     echo "  -l, --log-file        Log file path (default: wcs-test-tool.log)"
@@ -36,7 +36,12 @@ usage() {
     echo "  -h, --help            Show this help message"
     echo
     echo "Example:"
-    echo "  $0 -p /path/to/intelligence-data -i 'amazon-security-lake:wazuh-events-amazon-security-lake' -u https://localhost:9200 -c admin:admin -s"
+    echo "  $0 -p /path/to/intelligence-data -f integrations.txt -u https://localhost:9200 -c admin:admin -s"
+    echo
+    echo "Integrations file format (one per line):"
+    echo "  amazon-security-lake:wazuh-events-amazon-security-lake"
+    echo "  azure:wazuh-events-azure"
+    echo "  aws:wazuh-events-aws"
     exit 1
 }
 
@@ -77,8 +82,8 @@ parse_args() {
                 INTELLIGENCE_DATA_PATH="$2"
                 shift 2
                 ;;
-            -i|--integrations)
-                INTEGRATIONS_MAP="$2"
+            -f|--file)
+                INTEGRATIONS_FILE="$2"
                 shift 2
                 ;;
             -u|--url)
@@ -115,9 +120,14 @@ parse_args() {
         usage
     fi
 
-    if [[ -z "$INTEGRATIONS_MAP" ]]; then
-        log_error "Integrations map is required"
+    if [[ -z "$INTEGRATIONS_FILE" ]]; then
+        log_error "Integrations file is required"
         usage
+    fi
+
+    if [[ ! -f "$INTEGRATIONS_FILE" ]]; then
+        log_error "Integrations file does not exist: $INTEGRATIONS_FILE"
+        exit 1
     fi
 
     if [[ -z "$INDEXER_URL" ]]; then
@@ -337,7 +347,7 @@ index_document() {
         log_error "Failed to index document. HTTP code: $http_code"
         log_error "URL: $url"
         log_error "Response body: $response_body"
-        log_error "Document (first 200 chars): $(echo "$document" | cut -c1-200)..."
+        log_error "Document (first 2000 chars): $(echo "$document" | cut -c1-2000)..."
         return 1
     fi
 }
@@ -444,6 +454,41 @@ process_integration() {
     log_success "Integration processing complete: $integration"
 }
 
+# Read integrations from configuration file
+read_integrations_file() {
+    local file="$1"
+    local -a integrations=()
+    
+    log_info "Reading integrations from file: $file"
+    
+    while IFS= read -r line || [[ -n "$line" ]]; do
+        # Skip empty lines and comments (lines starting with #)
+        if [[ -z "$line" || "$line" =~ ^[[:space:]]*# ]]; then
+            continue
+        fi
+        
+        # Remove leading/trailing whitespace
+        line=$(echo "$line" | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')
+        
+        # Validate format integration:index
+        if [[ "$line" =~ ^([^:]+):(.+)$ ]]; then
+            integrations+=("$line")
+        else
+            log_warning "Invalid line format in integrations file (expected integration:index): $line"
+        fi
+    done < "$file"
+    
+    if [[ ${#integrations[@]} -eq 0 ]]; then
+        log_error "No valid integrations found in file: $file"
+        exit 1
+    fi
+    
+    log_info "Found ${#integrations[@]} valid integrations in file"
+    
+    # Return integrations as space-separated string
+    printf '%s\n' "${integrations[@]}"
+}
+
 # Main function
 main() {
     echo "WCS Test Tool - Wazuh Common Schema Test Tool"
@@ -458,22 +503,25 @@ main() {
     
     log_info "Starting WCS test tool"
     log_info "Intelligence data path: $INTELLIGENCE_DATA_PATH"
+    log_info "Integrations file: $INTEGRATIONS_FILE"
     log_info "Indexer URL: $INDEXER_URL"
     log_info "Log file: $LOG_FILE"
     log_info "Strict mapping mode: $(if [[ "$STRICT_MAPPING" == "true" ]]; then echo "enabled"; else echo "disabled"; fi)"
     
     check_indexer
     
-    # Parse integrations map and process each integration
-    IFS=',' read -ra INTEGRATION_PAIRS <<< "$INTEGRATIONS_MAP"
+    # Read integrations from file and process each integration
+    local integrations
+    integrations=$(read_integrations_file "$INTEGRATIONS_FILE")
     
-    local total_integrations=${#INTEGRATION_PAIRS[@]}
+    local total_integrations
+    total_integrations=$(echo "$integrations" | wc -l)
     local processed_integrations=0
     
     log_info "Processing $total_integrations integrations"
     
-    for pair in "${INTEGRATION_PAIRS[@]}"; do
-        if [[ "$pair" =~ ^([^:]+):(.+)$ ]]; then
+    while IFS= read -r pair; do
+        if [[ -n "$pair" && "$pair" =~ ^([^:]+):(.+)$ ]]; then
             local integration="${BASH_REMATCH[1]}"
             local index_name="${BASH_REMATCH[2]}"
             
@@ -483,7 +531,7 @@ main() {
             log_error "Invalid integration:index pair format: $pair"
             log_error "Expected format: integration:index"
         fi
-    done
+    done <<< "$integrations"
     
     log_success "WCS test tool completed successfully"
     log_success "Processed $processed_integrations/$total_integrations integrations"
