@@ -50,6 +50,12 @@ remove_multi_fields() {
   )' "$in_file" > "$out_file"
 }
 
+# Function to get the OpenTelemetry semantic conventions version for a given ECS version
+# Required since ECS v9.0.0.
+get_otel_version() {
+  curl -s "https://raw.githubusercontent.com/elastic/ecs/refs/tags/${ECS_VERSION}/otel-semconv-version"
+}
+
 # Function to generate mappings
 generate_mappings() {
   local ecs_module="$1"
@@ -70,6 +76,7 @@ generate_mappings() {
 
   # Generate mappings
   python scripts/generator.py --strict --ref "$ecs_version" \
+    --semconv-version "$(get_otel_version)" \
     --include "$in_files_dir/custom/" "${include_wcs}" \
     --subset "$in_files_dir/subset.yml" \
     --template-settings "$in_files_dir/template-settings.json" \

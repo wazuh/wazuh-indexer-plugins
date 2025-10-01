@@ -10,7 +10,7 @@ ARG ECS_VERSION=v9.1.0
 RUN apt-get update && \
     apt-get upgrade -y && \
     # Install dependencies
-    apt-get install  -y git jq && \
+    apt-get install  -y git jq curl && \
     # Cleanup
     apt-get clean && \
     rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/* && \
