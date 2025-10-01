@@ -389,7 +389,6 @@ ECS_Version,Indexed,Field_Set,Field,Type,Level,Normalization,Example,Description
 9.1.0,true,f5_bigip,f5_bigip.log.browser_configured_verification_action,keyword,custom,,example-browser_configured_verification_action,Configured browser verification action for the event.
 9.1.0,true,f5_bigip,f5_bigip.log.browser_name,keyword,custom,,example-browser_name,Name of the browser detected in the F5 BIG-IP log entry.
 9.1.0,true,f5_bigip,f5_bigip.log.browser_verification_status,keyword,custom,,example-browser_verification_status,Status of the browser verification for the event.
-9.1.0,true,f5_bigip,f5_bigip.log.bytes,long,custom,,12345,Bytes transferred in F5 BIG-IP logs.
 9.1.0,true,f5_bigip,f5_bigip.log.bytes.in,long,custom,,12345,Number of bytes received in the F5 BIG-IP log entry.
 9.1.0,true,f5_bigip,f5_bigip.log.bytes.out,long,custom,,12345,Number of bytes sent out in the F5 BIG-IP log entry.
 9.1.0,true,f5_bigip,f5_bigip.log.bytes.total,long,custom,,12345,Total number of bytes processed in the F5 BIG-IP log entry.
