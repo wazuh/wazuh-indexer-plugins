@@ -139,7 +139,6 @@
               },
               "mac": {
                 "ignore_above": 1024,
-                "synthetic_source_keep": "none",
                 "type": "keyword"
               },
               "memory": {
@@ -511,7 +510,6 @@
               },
               "roles": {
                 "ignore_above": 1024,
-                "synthetic_source_keep": "none",
                 "type": "keyword"
               }
             }
@@ -770,7 +768,6 @@
               },
               "tag": {
                 "ignore_above": 1024,
-                "synthetic_source_keep": "none",
                 "type": "keyword"
               }
             }
@@ -1003,7 +1000,6 @@
               },
               "roles": {
                 "ignore_above": 1024,
-                "synthetic_source_keep": "none",
                 "type": "keyword"
               }
             }
@@ -1252,7 +1248,6 @@
           },
           "header_flags": {
             "ignore_above": 1024,
-            "synthetic_source_keep": "none",
             "type": "keyword"
           },
           "id": {
@@ -1378,7 +1373,6 @@
             "properties": {
               "address": {
                 "ignore_above": 1024,
-                "synthetic_source_keep": "none",
                 "type": "keyword"
               }
             }
@@ -1387,7 +1381,6 @@
             "properties": {
               "address": {
                 "ignore_above": 1024,
-                "synthetic_source_keep": "none",
                 "type": "keyword"
               }
             }
@@ -1407,7 +1400,6 @@
             "properties": {
               "address": {
                 "ignore_above": 1024,
-                "synthetic_source_keep": "none",
                 "type": "keyword"
               }
             }
@@ -1426,7 +1418,6 @@
             "properties": {
               "address": {
                 "ignore_above": 1024,
-                "synthetic_source_keep": "none",
                 "type": "keyword"
               }
             }
@@ -1435,7 +1426,6 @@
             "properties": {
               "address": {
                 "ignore_above": 1024,
-                "synthetic_source_keep": "none",
                 "type": "keyword"
               }
             }
@@ -1453,7 +1443,6 @@
             "properties": {
               "address": {
                 "ignore_above": 1024,
-                "synthetic_source_keep": "none",
                 "type": "keyword"
               }
             }
@@ -1503,7 +1492,6 @@
           },
           "category": {
             "ignore_above": 1024,
-            "synthetic_source_keep": "none",
             "type": "keyword"
           },
           "changed_fields": {
@@ -1592,7 +1580,6 @@
           },
           "type": {
             "ignore_above": 1024,
-            "synthetic_source_keep": "none",
             "type": "keyword"
           },
           "url": {
@@ -1643,7 +1630,6 @@
           },
           "attributes": {
             "ignore_above": 1024,
-            "synthetic_source_keep": "none",
             "type": "keyword"
           },
           "code_signature": {
@@ -2344,7 +2330,6 @@
           },
           "mac": {
             "ignore_above": 1024,
-            "synthetic_source_keep": "none",
             "type": "keyword"
           },
           "memory": {
@@ -3420,7 +3405,6 @@
           },
           "mac": {
             "ignore_above": 1024,
-            "synthetic_source_keep": "none",
             "type": "keyword"
           },
           "name": {
@@ -3529,7 +3513,6 @@
             "properties": {
               "annotation": {
                 "ignore_above": 1024,
-                "synthetic_source_keep": "none",
                 "type": "keyword"
               },
               "id": {
@@ -3541,7 +3524,6 @@
               },
               "label": {
                 "ignore_above": 1024,
-                "synthetic_source_keep": "none",
                 "type": "keyword"
               },
               "name": {
@@ -3766,7 +3748,6 @@
               },
               "roles": {
                 "ignore_above": 1024,
-                "synthetic_source_keep": "none",
                 "type": "keyword"
               }
             }
@@ -4077,7 +4058,6 @@
                   },
                   "roles": {
                     "ignore_above": 1024,
-                    "synthetic_source_keep": "none",
                     "type": "keyword"
                   }
                 }
@@ -4417,7 +4397,6 @@
               },
               "env_vars": {
                 "ignore_above": 1024,
-                "synthetic_source_keep": "none",
                 "type": "keyword"
               },
               "executable": {
@@ -4697,7 +4676,6 @@
                       },
                       "roles": {
                         "ignore_above": 1024,
-                        "synthetic_source_keep": "none",
                         "type": "keyword"
                       }
                     }
@@ -5037,7 +5015,6 @@
                   },
                   "env_vars": {
                     "ignore_above": 1024,
-                    "synthetic_source_keep": "none",
                     "type": "keyword"
                   },
                   "executable": {
@@ -5400,7 +5377,6 @@
                       },
                       "roles": {
                         "ignore_above": 1024,
-                        "synthetic_source_keep": "none",
                         "type": "keyword"
                       }
                     }
@@ -5502,7 +5478,6 @@
                       },
                       "roles": {
                         "ignore_above": 1024,
-                        "synthetic_source_keep": "none",
                         "type": "keyword"
                       }
                     }
@@ -5610,7 +5585,6 @@
                           },
                           "roles": {
                             "ignore_above": 1024,
-                            "synthetic_source_keep": "none",
                             "type": "keyword"
                           }
                         }
@@ -5950,7 +5924,6 @@
                       },
                       "env_vars": {
                         "ignore_above": 1024,
-                        "synthetic_source_keep": "none",
                         "type": "keyword"
                       },
                       "executable": {
@@ -6313,7 +6286,6 @@
                           },
                           "roles": {
                             "ignore_above": 1024,
-                            "synthetic_source_keep": "none",
                             "type": "keyword"
                           }
                         }
@@ -6415,7 +6387,6 @@
                           },
                           "roles": {
                             "ignore_above": 1024,
-                            "synthetic_source_keep": "none",
                             "type": "keyword"
                           }
                         }
@@ -6445,12 +6416,10 @@
                             "properties": {
                               "effective": {
                                 "ignore_above": 1024,
-                                "synthetic_source_keep": "none",
                                 "type": "keyword"
                               },
                               "permitted": {
                                 "ignore_above": 1024,
-                                "synthetic_source_keep": "none",
                                 "type": "keyword"
                               }
                             }
@@ -6575,7 +6544,6 @@
                           },
                           "roles": {
                             "ignore_above": 1024,
-                            "synthetic_source_keep": "none",
                             "type": "keyword"
                           }
                         }
@@ -6619,12 +6587,10 @@
                         "properties": {
                           "effective": {
                             "ignore_above": 1024,
-                            "synthetic_source_keep": "none",
                             "type": "keyword"
                           },
                           "permitted": {
                             "ignore_above": 1024,
-                            "synthetic_source_keep": "none",
                             "type": "keyword"
                           }
                         }
@@ -6749,7 +6715,6 @@
                       },
                       "roles": {
                         "ignore_above": 1024,
-                        "synthetic_source_keep": "none",
                         "type": "keyword"
                       }
                     }
@@ -6954,7 +6919,6 @@
                   },
                   "roles": {
                     "ignore_above": 1024,
-                    "synthetic_source_keep": "none",
                     "type": "keyword"
                   }
                 }
@@ -7056,7 +7020,6 @@
                   },
                   "roles": {
                     "ignore_above": 1024,
-                    "synthetic_source_keep": "none",
                     "type": "keyword"
                   }
                 }
@@ -7086,12 +7049,10 @@
                     "properties": {
                       "effective": {
                         "ignore_above": 1024,
-                        "synthetic_source_keep": "none",
                         "type": "keyword"
                       },
                       "permitted": {
                         "ignore_above": 1024,
-                        "synthetic_source_keep": "none",
                         "type": "keyword"
                       }
                     }
@@ -7216,7 +7177,6 @@
                   },
                   "roles": {
                     "ignore_above": 1024,
-                    "synthetic_source_keep": "none",
                     "type": "keyword"
                   }
                 }
@@ -7362,7 +7322,6 @@
           },
           "env_vars": {
             "ignore_above": 1024,
-            "synthetic_source_keep": "none",
             "type": "keyword"
           },
           "executable": {
@@ -7491,7 +7450,6 @@
                   },
                   "roles": {
                     "ignore_above": 1024,
-                    "synthetic_source_keep": "none",
                     "type": "keyword"
                   }
                 }
@@ -7831,7 +7789,6 @@
               },
               "env_vars": {
                 "ignore_above": 1024,
-                "synthetic_source_keep": "none",
                 "type": "keyword"
               },
               "executable": {
@@ -8194,7 +8151,6 @@
                   },
                   "roles": {
                     "ignore_above": 1024,
-                    "synthetic_source_keep": "none",
                     "type": "keyword"
                   }
                 }
@@ -8296,7 +8252,6 @@
                   },
                   "roles": {
                     "ignore_above": 1024,
-                    "synthetic_source_keep": "none",
                     "type": "keyword"
                   }
                 }
@@ -8326,12 +8281,10 @@
                     "properties": {
                       "effective": {
                         "ignore_above": 1024,
-                        "synthetic_source_keep": "none",
                         "type": "keyword"
                       },
                       "permitted": {
                         "ignore_above": 1024,
-                        "synthetic_source_keep": "none",
                         "type": "keyword"
                       }
                     }
@@ -8456,7 +8409,6 @@
                   },
                   "roles": {
                     "ignore_above": 1024,
-                    "synthetic_source_keep": "none",
                     "type": "keyword"
                   }
                 }
@@ -8719,7 +8671,6 @@
                   },
                   "roles": {
                     "ignore_above": 1024,
-                    "synthetic_source_keep": "none",
                     "type": "keyword"
                   }
                 }
@@ -9059,7 +9010,6 @@
               },
               "env_vars": {
                 "ignore_above": 1024,
-                "synthetic_source_keep": "none",
                 "type": "keyword"
               },
               "executable": {
@@ -9193,7 +9143,6 @@
                       },
                       "roles": {
                         "ignore_above": 1024,
-                        "synthetic_source_keep": "none",
                         "type": "keyword"
                       }
                     }
@@ -9533,7 +9482,6 @@
                   },
                   "env_vars": {
                     "ignore_above": 1024,
-                    "synthetic_source_keep": "none",
                     "type": "keyword"
                   },
                   "executable": {
@@ -9896,7 +9844,6 @@
                       },
                       "roles": {
                         "ignore_above": 1024,
-                        "synthetic_source_keep": "none",
                         "type": "keyword"
                       }
                     }
@@ -9998,7 +9945,6 @@
                       },
                       "roles": {
                         "ignore_above": 1024,
-                        "synthetic_source_keep": "none",
                         "type": "keyword"
                       }
                     }
@@ -10028,12 +9974,10 @@
                         "properties": {
                           "effective": {
                             "ignore_above": 1024,
-                            "synthetic_source_keep": "none",
                             "type": "keyword"
                           },
                           "permitted": {
                             "ignore_above": 1024,
-                            "synthetic_source_keep": "none",
                             "type": "keyword"
                           }
                         }
@@ -10158,7 +10102,6 @@
                       },
                       "roles": {
                         "ignore_above": 1024,
-                        "synthetic_source_keep": "none",
                         "type": "keyword"
                       }
                     }
@@ -10509,7 +10452,6 @@
                   },
                   "roles": {
                     "ignore_above": 1024,
-                    "synthetic_source_keep": "none",
                     "type": "keyword"
                   }
                 }
@@ -10611,7 +10553,6 @@
                   },
                   "roles": {
                     "ignore_above": 1024,
-                    "synthetic_source_keep": "none",
                     "type": "keyword"
                   }
                 }
@@ -10641,12 +10582,10 @@
                     "properties": {
                       "effective": {
                         "ignore_above": 1024,
-                        "synthetic_source_keep": "none",
                         "type": "keyword"
                       },
                       "permitted": {
                         "ignore_above": 1024,
-                        "synthetic_source_keep": "none",
                         "type": "keyword"
                       }
                     }
@@ -10771,7 +10710,6 @@
                   },
                   "roles": {
                     "ignore_above": 1024,
-                    "synthetic_source_keep": "none",
                     "type": "keyword"
                   }
                 }
@@ -10985,7 +10923,6 @@
                   },
                   "roles": {
                     "ignore_above": 1024,
-                    "synthetic_source_keep": "none",
                     "type": "keyword"
                   }
                 }
@@ -11325,7 +11262,6 @@
               },
               "env_vars": {
                 "ignore_above": 1024,
-                "synthetic_source_keep": "none",
                 "type": "keyword"
               },
               "executable": {
@@ -11688,7 +11624,6 @@
                   },
                   "roles": {
                     "ignore_above": 1024,
-                    "synthetic_source_keep": "none",
                     "type": "keyword"
                   }
                 }
@@ -11790,7 +11725,6 @@
                   },
                   "roles": {
                     "ignore_above": 1024,
-                    "synthetic_source_keep": "none",
                     "type": "keyword"
                   }
                 }
@@ -11820,12 +11754,10 @@
                     "properties": {
                       "effective": {
                         "ignore_above": 1024,
-                        "synthetic_source_keep": "none",
                         "type": "keyword"
                       },
                       "permitted": {
                         "ignore_above": 1024,
-                        "synthetic_source_keep": "none",
                         "type": "keyword"
                       }
                     }
@@ -11950,7 +11882,6 @@
                   },
                   "roles": {
                     "ignore_above": 1024,
-                    "synthetic_source_keep": "none",
                     "type": "keyword"
                   }
                 }
@@ -12063,7 +11994,6 @@
               },
               "roles": {
                 "ignore_above": 1024,
-                "synthetic_source_keep": "none",
                 "type": "keyword"
               }
             }
@@ -12171,7 +12101,6 @@
                   },
                   "roles": {
                     "ignore_above": 1024,
-                    "synthetic_source_keep": "none",
                     "type": "keyword"
                   }
                 }
@@ -12511,7 +12440,6 @@
               },
               "env_vars": {
                 "ignore_above": 1024,
-                "synthetic_source_keep": "none",
                 "type": "keyword"
               },
               "executable": {
@@ -12874,7 +12802,6 @@
                   },
                   "roles": {
                     "ignore_above": 1024,
-                    "synthetic_source_keep": "none",
                     "type": "keyword"
                   }
                 }
@@ -12976,7 +12903,6 @@
                   },
                   "roles": {
                     "ignore_above": 1024,
-                    "synthetic_source_keep": "none",
                     "type": "keyword"
                   }
                 }
@@ -13006,12 +12932,10 @@
                     "properties": {
                       "effective": {
                         "ignore_above": 1024,
-                        "synthetic_source_keep": "none",
                         "type": "keyword"
                       },
                       "permitted": {
                         "ignore_above": 1024,
-                        "synthetic_source_keep": "none",
                         "type": "keyword"
                       }
                     }
@@ -13136,7 +13060,6 @@
                   },
                   "roles": {
                     "ignore_above": 1024,
-                    "synthetic_source_keep": "none",
                     "type": "keyword"
                   }
                 }
@@ -13252,7 +13175,6 @@
               },
               "roles": {
                 "ignore_above": 1024,
-                "synthetic_source_keep": "none",
                 "type": "keyword"
               }
             }
@@ -13360,7 +13282,6 @@
                   },
                   "roles": {
                     "ignore_above": 1024,
-                    "synthetic_source_keep": "none",
                     "type": "keyword"
                   }
                 }
@@ -13700,7 +13621,6 @@
               },
               "env_vars": {
                 "ignore_above": 1024,
-                "synthetic_source_keep": "none",
                 "type": "keyword"
               },
               "executable": {
@@ -13980,7 +13900,6 @@
                       },
                       "roles": {
                         "ignore_above": 1024,
-                        "synthetic_source_keep": "none",
                         "type": "keyword"
                       }
                     }
@@ -14320,7 +14239,6 @@
                   },
                   "env_vars": {
                     "ignore_above": 1024,
-                    "synthetic_source_keep": "none",
                     "type": "keyword"
                   },
                   "executable": {
@@ -14683,7 +14601,6 @@
                       },
                       "roles": {
                         "ignore_above": 1024,
-                        "synthetic_source_keep": "none",
                         "type": "keyword"
                       }
                     }
@@ -14785,7 +14702,6 @@
                       },
                       "roles": {
                         "ignore_above": 1024,
-                        "synthetic_source_keep": "none",
                         "type": "keyword"
                       }
                     }
@@ -14893,7 +14809,6 @@
                           },
                           "roles": {
                             "ignore_above": 1024,
-                            "synthetic_source_keep": "none",
                             "type": "keyword"
                           }
                         }
@@ -15233,7 +15148,6 @@
                       },
                       "env_vars": {
                         "ignore_above": 1024,
-                        "synthetic_source_keep": "none",
                         "type": "keyword"
                       },
                       "executable": {
@@ -15596,7 +15510,6 @@
                           },
                           "roles": {
                             "ignore_above": 1024,
-                            "synthetic_source_keep": "none",
                             "type": "keyword"
                           }
                         }
@@ -15698,7 +15611,6 @@
                           },
                           "roles": {
                             "ignore_above": 1024,
-                            "synthetic_source_keep": "none",
                             "type": "keyword"
                           }
                         }
@@ -15728,12 +15640,10 @@
                             "properties": {
                               "effective": {
                                 "ignore_above": 1024,
-                                "synthetic_source_keep": "none",
                                 "type": "keyword"
                               },
                               "permitted": {
                                 "ignore_above": 1024,
-                                "synthetic_source_keep": "none",
                                 "type": "keyword"
                               }
                             }
@@ -15858,7 +15768,6 @@
                           },
                           "roles": {
                             "ignore_above": 1024,
-                            "synthetic_source_keep": "none",
                             "type": "keyword"
                           }
                         }
@@ -15902,12 +15811,10 @@
                         "properties": {
                           "effective": {
                             "ignore_above": 1024,
-                            "synthetic_source_keep": "none",
                             "type": "keyword"
                           },
                           "permitted": {
                             "ignore_above": 1024,
-                            "synthetic_source_keep": "none",
                             "type": "keyword"
                           }
                         }
@@ -16032,7 +15939,6 @@
                       },
                       "roles": {
                         "ignore_above": 1024,
-                        "synthetic_source_keep": "none",
                         "type": "keyword"
                       }
                     }
@@ -16237,7 +16143,6 @@
                   },
                   "roles": {
                     "ignore_above": 1024,
-                    "synthetic_source_keep": "none",
                     "type": "keyword"
                   }
                 }
@@ -16339,7 +16244,6 @@
                   },
                   "roles": {
                     "ignore_above": 1024,
-                    "synthetic_source_keep": "none",
                     "type": "keyword"
                   }
                 }
@@ -16369,12 +16273,10 @@
                     "properties": {
                       "effective": {
                         "ignore_above": 1024,
-                        "synthetic_source_keep": "none",
                         "type": "keyword"
                       },
                       "permitted": {
                         "ignore_above": 1024,
-                        "synthetic_source_keep": "none",
                         "type": "keyword"
                       }
                     }
@@ -16499,7 +16401,6 @@
                   },
                   "roles": {
                     "ignore_above": 1024,
-                    "synthetic_source_keep": "none",
                     "type": "keyword"
                   }
                 }
@@ -16543,12 +16444,10 @@
                 "properties": {
                   "effective": {
                     "ignore_above": 1024,
-                    "synthetic_source_keep": "none",
                     "type": "keyword"
                   },
                   "permitted": {
                     "ignore_above": 1024,
-                    "synthetic_source_keep": "none",
                     "type": "keyword"
                   }
                 }
@@ -16668,7 +16567,6 @@
               },
               "roles": {
                 "ignore_above": 1024,
-                "synthetic_source_keep": "none",
                 "type": "keyword"
               }
             }
@@ -16721,12 +16619,10 @@
         "properties": {
           "hash": {
             "ignore_above": 1024,
-            "synthetic_source_keep": "none",
             "type": "keyword"
           },
           "hosts": {
             "ignore_above": 1024,
-            "synthetic_source_keep": "none",
             "type": "keyword"
           },
           "ip": {
@@ -16734,7 +16630,6 @@
           },
           "user": {
             "ignore_above": 1024,
-            "synthetic_source_keep": "none",
             "type": "keyword"
           }
         }
@@ -16743,7 +16638,6 @@
         "properties": {
           "author": {
             "ignore_above": 1024,
-            "synthetic_source_keep": "none",
             "type": "keyword"
           },
           "category": {
@@ -16953,7 +16847,6 @@
               },
               "roles": {
                 "ignore_above": 1024,
-                "synthetic_source_keep": "none",
                 "type": "keyword"
               }
             }
@@ -16994,7 +16887,6 @@
               },
               "roles": {
                 "ignore_above": 1024,
-                "synthetic_source_keep": "none",
                 "type": "keyword"
               }
             }
@@ -17033,7 +16925,6 @@
                   },
                   "roles": {
                     "ignore_above": 1024,
-                    "synthetic_source_keep": "none",
                     "type": "keyword"
                   }
                 }
@@ -17090,7 +16981,6 @@
                   },
                   "roles": {
                     "ignore_above": 1024,
-                    "synthetic_source_keep": "none",
                     "type": "keyword"
                   }
                 }
@@ -17288,7 +17178,6 @@
               },
               "roles": {
                 "ignore_above": 1024,
-                "synthetic_source_keep": "none",
                 "type": "keyword"
               }
             }
@@ -17352,7 +17241,6 @@
                       },
                       "attributes": {
                         "ignore_above": 1024,
-                        "synthetic_source_keep": "none",
                         "type": "keyword"
                       },
                       "code_signature": {
@@ -18233,7 +18121,6 @@
             "properties": {
               "alias": {
                 "ignore_above": 1024,
-                "synthetic_source_keep": "none",
                 "type": "keyword"
               },
               "id": {
@@ -18295,7 +18182,6 @@
                   },
                   "attributes": {
                     "ignore_above": 1024,
-                    "synthetic_source_keep": "none",
                     "type": "keyword"
                   },
                   "code_signature": {
@@ -18864,7 +18750,6 @@
               },
               "id": {
                 "ignore_above": 1024,
-                "synthetic_source_keep": "none",
                 "type": "keyword"
               },
               "ip": {
@@ -19126,7 +19011,6 @@
             "properties": {
               "alias": {
                 "ignore_above": 1024,
-                "synthetic_source_keep": "none",
                 "type": "keyword"
               },
               "id": {
@@ -19139,7 +19023,6 @@
               },
               "platforms": {
                 "ignore_above": 1024,
-                "synthetic_source_keep": "none",
                 "type": "keyword"
               },
               "reference": {
@@ -19692,7 +19575,6 @@
               },
               "roles": {
                 "ignore_above": 1024,
-                "synthetic_source_keep": "none",
                 "type": "keyword"
               }
             }
@@ -19755,7 +19637,6 @@
               },
               "roles": {
                 "ignore_above": 1024,
-                "synthetic_source_keep": "none",
                 "type": "keyword"
               }
             }
@@ -19822,7 +19703,6 @@
           },
           "roles": {
             "ignore_above": 1024,
-            "synthetic_source_keep": "none",
             "type": "keyword"
           },
           "target": {
@@ -19879,7 +19759,6 @@
               },
               "roles": {
                 "ignore_above": 1024,
-                "synthetic_source_keep": "none",
                 "type": "keyword"
               }
             }
@@ -19961,7 +19840,6 @@
         "properties": {
           "category": {
             "ignore_above": 1024,
-            "synthetic_source_keep": "none",
             "type": "keyword"
           },
           "classification": {
