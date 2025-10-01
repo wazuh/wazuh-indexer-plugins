@@ -7,6 +7,10 @@ on:
       - "ecs/**/*.json"
       - "ecs/**/*.yml"
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   run-ecs-generator:
     if: github.repository == 'wazuh/wazuh-indexer-plugins'
