@@ -92,6 +92,7 @@ detect_modified_modules() {
         [stateless-amazon-security-lake]="index-template-amazon-security-lake.json"
         [stateless-apache_tomcat]="index-template-apache_tomcat.json"
         [stateless-audit]="index-template-audit.json"
+        [stateless-azure]="index-template-azure.json"
         [stateless-azure-metrics]="index-template-azure-metrics.json"
         [stateless-azure-app-service]="index-template-azure-app-service.json"
         [stateless-checkpoint]="index-template-checkpoint.json"

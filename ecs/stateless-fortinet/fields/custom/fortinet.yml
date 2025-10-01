@@ -594,14 +594,6 @@
     level: custom
     description: The epoch timestamp representing when the event occurred.
     example: 12345
-  - name: '-'
-    type: '-'
-    level: custom
-    description: '-'
-  - name: '-'
-    type: '-'
-    level: custom
-    description: '-'
   - name: fortinet.fams_pause
     type: keyword
     level: custom
@@ -1553,10 +1545,6 @@
     level: custom
     description: The unit of measurement for the event metric or value.
     example: example-unit
-  - name: '-'
-    type: '-'
-    level: custom
-    description: '-'
   - name: fortinet.urlfilteridx
     type: long
     level: custom
@@ -1573,10 +1561,6 @@
     level: custom
     description: The type for which the event or object is used.
     example: 12345
-  - name: '-'
-    type: '-'
-    level: custom
-    description: '-'
   - name: fortinet.usgsn6
     type: keyword
     level: custom

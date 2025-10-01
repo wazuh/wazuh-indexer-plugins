@@ -2201,9 +2201,6 @@
       },
       "fortinet": {
         "properties": {
-          "-": {
-            "type": "-"
-          },
           "fortinet": {
             "properties": {
               "action": {
