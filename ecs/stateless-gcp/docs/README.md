@@ -14,4 +14,4 @@ The detail of the fields can be found in csv file [Stateless Gcp Fields](fields.
 
 ### Integration: gcp
 
-This integration belongs to the **general** log family and provides specialized fields for processing gcp events in the Wazuh security platform.
+This integration belongs to the **google** log family and provides specialized fields for processing gcp events in the Wazuh security platform.

@@ -14,4 +14,4 @@ The detail of the fields can be found in csv file [Stateless Microsoft-Dnsserver
 
 ### Integration: microsoft-dnsserver
 
-This integration belongs to the **windows** log family and provides specialized fields for processing microsoft-dnsserver events in the Wazuh security platform.
+This integration belongs to the **microsoft** log family and provides specialized fields for processing microsoft-dnsserver events in the Wazuh security platform.

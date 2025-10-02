@@ -1997,6 +1997,11 @@
     level: custom
     description: Average throughput in F5 BIG-IP logs.
     example: 12345
+  - name: f5_bigip.log.bytes
+    type: long
+    level: custom
+    description: Bytes transferred in F5 BIG-IP logs.
+    example: 12345
   - name: f5_bigip.log.connections_performance.activeSslClientConnections.average
     type: long
     level: custom

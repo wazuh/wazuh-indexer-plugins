@@ -14,4 +14,4 @@ The detail of the fields can be found in csv file [Stateless Microsoft-Exchange-
 
 ### Integration: microsoft-exchange-server
 
-This integration belongs to the **windows** log family and provides specialized fields for processing microsoft-exchange-server events in the Wazuh security platform.
+This integration belongs to the **microsoft** log family and provides specialized fields for processing microsoft-exchange-server events in the Wazuh security platform.
