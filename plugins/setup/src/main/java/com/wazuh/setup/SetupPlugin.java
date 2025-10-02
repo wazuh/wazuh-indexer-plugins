@@ -143,6 +143,11 @@ public class SetupPlugin extends Plugin implements ClusterPlugin {
             "wazuh-events-gcp"
         ));
         this.indices.add(new StreamIndex(
+            "wazuh-events-5.x-iis-000001",
+            "index-template-iis",
+            "wazuh-events-iis"
+        ));
+        this.indices.add(new StreamIndex(
             "wazuh-events-5.x-iptables-000001",
             "index-template-iptables",
             "wazuh-events-iptables"
