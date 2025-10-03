@@ -1,0 +1,169 @@
+- name: azure-blob-storage
+  title: Azure Blob Storage
+  description: azure-blob-storage custom fields for WCS integration
+  root: true
+  fields:
+  - name: azure.category
+    type: keyword
+    level: custom
+    description: Category of the storage operation (StorageRead/StorageWrite/StorageDelete)
+    example: example-category
+  - name: azure.correlation_id
+    type: keyword
+    level: custom
+    description: Correlation ID that ties together related requests for tracing
+    example: example-correlation_id
+  - name: azure.identity.properties.metric_response_type
+    type: keyword
+    level: custom
+    description: Metric response type indicating operation success (Success/Failure)
+    example: example-metric_response_type
+  - name: azure.identity.properties.object_key
+    type: keyword
+    level: custom
+    description: Target object key within the storage account (container/blob path)
+    example: example-object_key
+  - name: azure.identity.requester.app_id
+    type: keyword
+    level: custom
+    description: Client application ID (GUID) making the storage request
+    example: example-app_id
+  - name: azure.identity.requester.audience
+    type: keyword
+    level: custom
+    description: Access token audience (resource URL) for OAuth authentication
+    example: example-audience
+  - name: azure.identity.requester.object_id
+    type: keyword
+    level: custom
+    description: Requester Azure Active Directory object ID (GUID)
+    example: example-object_id
+  - name: azure.identity.requester.tenant_id
+    type: keyword
+    level: custom
+    description: Microsoft Entra (Azure AD) tenant GUID owning the requesting principal
+    example: example-tenant_id
+  - name: azure.identity.requester.token_issuer
+    type: keyword
+    level: custom
+    description: Security Token Service (STS) issuer URI that issued the OAuth token
+    example: example-token_issuer
+  - name: azure.identity.requester.upn
+    type: keyword
+    level: custom
+    description: Requester User Principal Name (may be empty for service accounts)
+    example: example-upn
+  - name: azure.identity.type
+    type: keyword
+    level: custom
+    description: Authentication type used for the request (OAuth/Key/SAS)
+    example: example-type
+  - name: azure.identity_authorization
+    type: object
+    level: custom
+    description: Azure RBAC action executed metadata including roles and permissions
+  - name: azure.resource.id
+    type: keyword
+    level: custom
+    description: Fully-qualified Azure resource ID path for the storage account
+    example: example-id
+  - name: azure.storage.account_name
+    type: keyword
+    level: custom
+    description: Name of the Azure Storage account targeted by the request
+    example: example-account_name
+  - name: azure.storage.client_request_id
+    type: keyword
+    level: custom
+    description: Client-provided request ID for correlation and troubleshooting
+    example: example-client_request_id
+  - name: azure.storage.conditions_used
+    type: keyword
+    level: custom
+    description: Conditional headers used (If-Modified-Since/If-Match/If-None-Match)
+    example: example-conditions_used
+  - name: azure.storage.container
+    type: keyword
+    level: custom
+    description: Container name(s) referenced by the operation (multi-valued)
+    example: example-container
+  - name: azure.storage.content_length_header
+    type: long
+    level: custom
+    description: Content-Length header value in the HTTP request
+    example: 12345
+  - name: azure.storage.duration.ms
+    type: long
+    level: custom
+    description: End-to-end request duration in milliseconds
+    example: 12345
+  - name: azure.storage.etag
+    type: keyword
+    level: custom
+    description: ETag associated with the blob resource for versioning
+    example: example-etag
+  - name: azure.storage.last_modified_time
+    type: date
+    level: custom
+    description: Last modification timestamp of the blob resource
+    example: '2023-01-01T00:00:00.000Z'
+  - name: azure.storage.operation.name
+    type: keyword
+    level: custom
+    description: Storage operation name (ListBlobs/GetBlob/PutBlob/DeleteBlob)
+    example: example-name
+  - name: azure.storage.operation.version
+    type: keyword
+    level: custom
+    description: Azure Storage service API version used for the operation
+    example: example-version
+  - name: azure.storage.operation_count
+    type: long
+    level: custom
+    description: Number of operations performed in this request
+    example: 12345
+  - name: azure.storage.request_header_size
+    type: long
+    level: custom
+    description: Size of the HTTP request headers in bytes
+    example: 12345
+  - name: azure.storage.request_md5
+    type: keyword
+    level: custom
+    description: Base64-encoded MD5 hash supplied by client for payload integrity
+    example: example-request_md5
+  - name: azure.storage.request_url
+    type: keyword
+    level: custom
+    description: Absolute request URL including path and query parameters
+    example: example-request_url
+  - name: azure.storage.response_header_size
+    type: long
+    level: custom
+    description: Size of the HTTP response headers in bytes
+    example: 12345
+  - name: azure.storage.schema.version
+    type: keyword
+    level: custom
+    description: Schema version of the Azure Storage log record format
+    example: example-version
+  - name: azure.storage.server_latency.ms
+    type: long
+    level: custom
+    description: Server processing latency in milliseconds (excluding network time)
+    example: 12345
+  - name: azure.storage.server_md5
+    type: keyword
+    level: custom
+    description: Server-side MD5 hash for the response payload validation
+    example: example-server_md5
+  - name: azure.storage.service_type
+    type: keyword
+    level: custom
+    description: Storage service type (blob/file/queue/table)
+    example: example-service_type
+  - name: azure.storage.status_text
+    type: keyword
+    level: custom
+    description: Service-level textual status describing operation outcome
+    example: example-status_text

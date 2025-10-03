@@ -90,7 +90,7 @@ public class IndexStateManagementTests extends OpenSearchTestCase {
         doReturn(actionFuture).when(this.indicesAdminClient).create(any(CreateIndexRequest.class));
 
         Map<String, Object> policyFile = Map.of("policy", "definition");
-        doReturn(policyFile).when(this.indexUtils).fromFile("wazuh-alerts-rollover-policy.json");
+        doReturn(policyFile).when(this.indexUtils).fromFile("wazuh-rollover-policy.json");
 
         doReturn(actionFuture).when(this.client).index(any(IndexRequest.class));
 
@@ -126,7 +126,7 @@ public class IndexStateManagementTests extends OpenSearchTestCase {
         doReturn(true).when(this.ismIndex).indexExists(".opendistro-ism-config");
         doThrow(new IOException("file not found"))
                 .when(indexUtils)
-                .fromFile("wazuh-alerts-rollover-policy.json");
+                .fromFile("wazuh-rollover-policy.json");
 
         this.ismIndex.initialize();
 
@@ -144,7 +144,7 @@ public class IndexStateManagementTests extends OpenSearchTestCase {
         doReturn(true).when(this.ismIndex).indexExists(".opendistro-ism-config");
 
         Map<String, Object> policyFile = Map.of("policy", "definition");
-        doReturn(policyFile).when(indexUtils).fromFile("wazuh-alerts-rollover-policy.json");
+        doReturn(policyFile).when(indexUtils).fromFile("wazuh-rollover-policy.json");
         doThrow(new ResourceAlreadyExistsException("already exists"))
                 .when(this.client)
                 .index(any(IndexRequest.class));

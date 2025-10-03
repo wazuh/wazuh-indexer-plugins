@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 # Constants
-ECS_VERSION=${ECS_VERSION:-v8.11.0}
+ECS_VERSION=${ECS_VERSION:-v9.1.0}
 MAPPINGS_SUBPATH="mappings/${ECS_VERSION}/generated/elasticsearch/legacy/template.json"
 TEMPLATES_PATH="plugins/setup/src/main/resources/"
 CURRENT_PATH=$(pwd)
@@ -88,6 +88,36 @@ detect_modified_modules() {
         [states-inventory-users]="index-template-users.json"
         [states-sca]="index-template-sca.json"
         [states-vulnerabilities]="index-template-vulnerabilities.json"
+        # Stateless modules
+        [stateless-amazon-security-lake]="index-template-amazon-security-lake.json"
+        [stateless-apache_tomcat]="index-template-apache_tomcat.json"
+        [stateless-audit]="index-template-audit.json"
+        [stateless-azure]="index-template-azure.json"
+        [stateless-azure-metrics]="index-template-azure-metrics.json"
+        [stateless-azure-app-service]="index-template-azure-app-service.json"
+        [stateless-checkpoint]="index-template-checkpoint.json"
+        [stateless-cisco-asa]="index-template-cisco-asa.json"
+        [stateless-cisco_umbrella]="index-template-cisco_umbrella.json"
+        [stateless-f5-bigip]="index-template-f5-bigip.json"
+        [stateless-fortinet]="index-template-fortinet.json"
+        [stateless-gcp]="index-template-gcp.json"
+        [stateless-iis]="index-template-iis.json"
+        [stateless-iptables]="index-template-iptables.json"
+        [stateless-microsoft-dhcp]="index-template-microsoft-dhcp.json"
+        [stateless-microsoft-dnsserver]="index-template-microsoft-dnsserver.json"
+        [stateless-microsoft-exchange-server]="index-template-microsoft-exchange-server.json"
+        [stateless-modsec]="index-template-modsec.json"
+        [stateless-oracle_weblogic]="index-template-oracle_weblogic.json"
+        [stateless-pfsense]="index-template-pfsense.json"
+        [stateless-snort]="index-template-snort.json"
+        [stateless-spring_boot]="index-template-spring_boot.json"
+        [stateless-squid]="index-template-squid.json"
+        [stateless-suricata]="index-template-suricata.json"
+        [stateless-template]="index-template-template.json"
+        [stateless-unifiedlogs]="index-template-unifiedlogs.json"
+        [stateless-websphere]="index-template-websphere.json"
+        [stateless-windows]="index-template-windows.json"
+        [stateless-zeek]="index-template-zeek.json"
     )
 
     relevant_modules=()
@@ -105,7 +135,7 @@ run_ecs_generator() {
     echo "---> Running ECS Generator script..."
     if [[ ${#relevant_modules[@]} -gt 0 ]]; then
         for ecs_module in "${relevant_modules[@]}"; do
-            if [ "$(bash ecs/generator/mapping-generator.sh run "$ecs_module")" -ne 0 ]; then
+            if [ ! "$(bash ecs/generator/mapping-generator.sh run "$ecs_module")" ]; then
                 echo "Error: Failed to run ECS generator for module: $ecs_module"
                 exit 1
             else
@@ -179,11 +209,11 @@ commit_and_push_changes() {
         fi
     done
 
-    git status --short
-
     if ! git diff-index --quiet HEAD --; then
         echo "Changes detected. Committing and pushing to the repository..."
-        git add .
+        git add plugins/setup/src/main/resources/*.json
+        git add ecs/**/docs/fields.csv
+        git status --short
         git commit -m "Update ECS templates for modified modules: ${relevant_modules[*]}"
         git push
     else

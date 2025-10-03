@@ -1,10 +1,16 @@
 name: (5.x) Generate index templates
 
 on:
-  push:
+  pull_request:
+    types: [opened, reopened, synchronize]
     paths:
       - "ecs/**/*.json"
       - "ecs/**/*.yml"
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   run-ecs-generator:
     if: github.repository == 'wazuh/wazuh-indexer-plugins'
@@ -20,6 +26,7 @@ jobs:
         uses: actions/checkout@v5
         with:
           fetch-depth: 2
+          ref: ${{ github.event.pull_request.head.ref }}
 
       - name: Extract branch name
         shell: bash

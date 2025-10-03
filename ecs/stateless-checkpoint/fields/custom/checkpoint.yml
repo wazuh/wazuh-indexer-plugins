@@ -1,0 +1,835 @@
+- name: checkpoint
+  title: Checkpoint
+  description: checkpoint custom fields for WCS integration
+  root: true
+  fields:
+  - name: checkpoint.action_reason
+    type: keyword
+    level: custom
+    description: This field represents the reason for a dropped connection.
+    example: example-action_reason
+  - name: checkpoint.action_reason_msg
+    type: keyword
+    level: custom
+    description: A detailed message explaining the reason for the action.
+    example: example-action_reason_msg
+  - name: checkpoint.additional_info
+    type: keyword
+    level: custom
+    description: This field represents ID of original file or mail which are sent
+      by admin.
+    example: example-additional_info
+  - name: checkpoint.administrator
+    type: keyword
+    level: custom
+    description: This is the source administrator name.
+    example: example-administrator
+  - name: checkpoint.aggregated_log_count
+    type: keyword
+    level: custom
+    description: The count of aggregated logs.
+    example: example-aggregated_log_count
+  - name: checkpoint.alert
+    type: keyword
+    level: custom
+    description: This field represents alert level of matched rule for connection
+      logs.
+    example: example-alert
+  - name: checkpoint.app_risk
+    type: long
+    level: custom
+    short: >-
+      Application risk level: 0=Unknown, 1=Very Low, 2=Low, 3=Medium, 4=High, 5=Critical.
+    description: >-
+      This field represents an application risk. Possible values are 0 (Unknown),
+      1 (Very Low), 2 (Low), 3 (Medium), 4 (High), and 5 (Critical).
+    example: 12345
+  - name: checkpoint.app_rule_id
+    type: keyword
+    level: custom
+    description: This field represents an application rule id.
+    example: example-app_rule_id
+  - name: checkpoint.app_rule_name
+    type: keyword
+    level: custom
+    description: This field represents an application rule name.
+    example: example-app_rule_name
+  - name: checkpoint.attack
+    type: keyword
+    level: custom
+    description: The name or type of the attack detected.
+    example: example-attack
+  - name: checkpoint.attack_info
+    type: keyword
+    level: custom
+    description: Additional information about the detected attack.
+    example: example-attack_info
+  - name: checkpoint.audit_status
+    type: keyword
+    level: custom
+    description: >-
+      This audit status of any checkpoint firewall log. This can either be Success
+      or Failure.
+    example: example-audit_status
+  - name: checkpoint.auth_method
+    type: keyword
+    level: custom
+    description: The authentication method used in the event.
+    example: example-auth_method
+  - name: checkpoint.auth_method2
+    type: keyword
+    level: custom
+    description: A secondary authentication method used.
+    example: example-auth_method2
+  - name: checkpoint.auth_status
+    type: keyword
+    level: custom
+    description: The status of the authentication process.
+    example: example-auth_status
+  - name: checkpoint.categories
+    type: keyword
+    level: custom
+    description: This field indicates matched categories.
+    example: example-categories
+  - name: checkpoint.client_build
+    type: keyword
+    level: custom
+    description: The build version of the client.
+    example: example-client_build
+  - name: checkpoint.client_ipe
+    type: keyword
+    level: custom
+    description: The IP address of the client endpoint.
+    example: example-client_ipe
+  - name: checkpoint.client_name
+    type: keyword
+    level: custom
+    description: The name of the client.
+    example: example-client_name
+  - name: checkpoint.client_version
+    type: keyword
+    level: custom
+    description: The version of the client.
+    example: example-client_version
+  - name: checkpoint.comment
+    type: keyword
+    level: custom
+    description: This field indicates the descriptive text to a rule.
+    example: example-comment
+  - name: checkpoint.community
+    type: keyword
+    level: custom
+    description: This indicates the community name for the IPSec key and the usage
+      of the IKEv.
+    example: example-community
+  - name: checkpoint.confidence_level
+    type: keyword
+    level: custom
+    description: The confidence level of the detection.
+    example: example-confidence_level
+  - name: checkpoint.conn_direction
+    type: keyword
+    level: custom
+    description: The direction of the connection (e.g., inbound, outbound).
+    example: example-conn_direction
+  - name: checkpoint.connection_count
+    type: keyword
+    level: custom
+    description: The count of connections associated with the log entry.
+    example: example-connection_count
+  - name: checkpoint.context_num
+    type: keyword
+    level: custom
+    description: The context number associated with the log entry.
+    example: example-context_num
+  - name: checkpoint.contract_name
+    type: keyword
+    level: custom
+    description: The name of the contract associated with the log entry.
+    example: example-contract_name
+  - name: checkpoint.control_log_type
+    type: keyword
+    level: custom
+    description: The type of control log.
+    example: example-control_log_type
+  - name: checkpoint.cp_component_name
+    type: keyword
+    level: custom
+    description: The name of the Check Point component.
+    example: example-cp_component_name
+  - name: checkpoint.cp_component_version
+    type: keyword
+    level: custom
+    description: The version of the Check Point component.
+    example: example-cp_component_version
+  - name: checkpoint.cvpn_category
+    type: keyword
+    level: custom
+    description: The category of the Check Point VPN.
+    example: example-cvpn_category
+  - name: checkpoint.db_ver
+    type: keyword
+    level: custom
+    description: The database version used by the Check Point gateway or management
+      server.
+    example: example-db_ver
+  - name: checkpoint.default_device_message
+    type: keyword
+    level: custom
+    description: The default message generated by the device.
+    example: example-default_device_message
+  - name: checkpoint.description
+    type: keyword
+    level: custom
+    description: >-
+      This field provides additional information how the security gateway enforced
+      a connection.
+    example: example-description
+  - name: checkpoint.description_url
+    type: keyword
+    level: custom
+    description: A URL providing additional details about the log entry.
+    example: example-description_url
+  - name: checkpoint.device_identification
+    type: keyword
+    level: custom
+    description: The identification of the device.
+    example: example-device_identification
+  - name: checkpoint.device_name
+    type: keyword
+    level: custom
+    description: This refers to the unique name assign to a device.
+    example: example-device_name
+  - name: checkpoint.device_type
+    type: keyword
+    level: custom
+    description: This refers to the type of the device.
+    example: example-device_type
+  - name: checkpoint.dlp_incident_uid
+    type: keyword
+    level: custom
+    description: The unique identifier for the DLP incident.
+    example: example-dlp_incident_uid
+  - name: checkpoint.dst_domain_name
+    type: keyword
+    level: custom
+    description: The domain name of the destination.
+    example: example-dst_domain_name
+  - name: checkpoint.elapsed
+    type: keyword
+    level: custom
+    description: The elapsed time for the operation, in milliseconds.
+    example: example-elapsed
+  - name: checkpoint.event_type
+    type: keyword
+    level: custom
+    description: The type of event logged.
+    example: example-event_type
+  - name: checkpoint.facility
+    type: keyword
+    level: custom
+    description: The facility associated with the log message.
+    example: example-facility
+  - name: checkpoint.failed_login_factor_num
+    type: long
+    level: custom
+    short: Number of consecutive failed login attempts before triggering security
+      measures.
+    description: >-
+      This represents a parameter or setting that determines the number of consecutive
+      failed login attempts before a security measure is taken.
+    example: 12345
+  - name: checkpoint.fieldschanges
+    type: keyword
+    level: custom
+    description: This field helps to monitor changes made to log fields.
+    example: example-fieldschanges
+  - name: checkpoint.frequency
+    type: keyword
+    level: custom
+    description: The frequency of the event.
+    example: example-frequency
+  - name: checkpoint.fw_subproduct
+    type: keyword
+    level: custom
+    short: >-
+      Points to specific functionality or module (e.g., FW Monitor) for security monitoring,
+      analysis, and troubleshooting.
+    description: >-
+      This field points to a specific functionality or module, such as the FW Monitor,
+      that helps with security monitoring, analysis, and troubleshooting.
+    example: example-fw_subproduct
+  - name: checkpoint.host_ip
+    type: ip
+    level: custom
+    description: The IP address of the host.
+    example: 192.168.1.1
+  - name: checkpoint.hostname
+    type: keyword
+    level: custom
+    description: The hostname of the device.
+    example: example-hostname
+  - name: checkpoint.icmp
+    type: keyword
+    level: custom
+    description: The ICMP protocol information associated with the log entry.
+    example: example-icmp
+  - name: checkpoint.icmp_code
+    type: keyword
+    level: custom
+    description: The ICMP code field associated with the log entry.
+    example: example-icmp_code
+  - name: checkpoint.icmp_type
+    type: keyword
+    level: custom
+    description: The ICMP type field associated with the log entry.
+    example: example-icmp_type
+  - name: checkpoint.identity_src
+    type: keyword
+    level: custom
+    description: The source of the identity information.
+    example: example-identity_src
+  - name: checkpoint.identity_type
+    type: keyword
+    level: custom
+    description: The type of identity information.
+    example: example-identity_type
+  - name: checkpoint.install_policy_acceleration
+    type: keyword
+    level: custom
+    description: Indicates whether policy acceleration was installed.
+    example: example-install_policy_acceleration
+  - name: checkpoint.log_delay
+    type: keyword
+    level: custom
+    description: The delay in logging the event, in milliseconds.
+    example: example-log_delay
+  - name: checkpoint.logic_changes
+    type: keyword
+    level: custom
+    description: Technical information about the specific changes done on the affected
+      object.
+    example: example-logic_changes
+  - name: checkpoint.logid
+    type: long
+    level: custom
+    description: >-
+      This is a unique identity for logs includes: Type, Family, Product/Blade, Category.
+    example: 12345
+  - name: checkpoint.login_option
+    type: keyword
+    level: custom
+    description: The login option used for the event as reported by the observer.
+    example: example-login_option
+  - name: checkpoint.login_timestamp
+    type: keyword
+    level: custom
+    description: The timestamp of the login event.
+    example: example-login_timestamp
+  - name: checkpoint.loguid
+    type: keyword
+    level: custom
+    description: The unique identifier for the log entry.
+    example: example-loguid
+  - name: checkpoint.machine
+    type: keyword
+    level: custom
+    description: L2TP machine which triggered the log and the log refers to it.
+    example: example-machine
+  - name: checkpoint.malware_action
+    type: keyword
+    level: custom
+    description: Detailed explanation of the observerd behavior.
+    example: example-malware_action
+  - name: checkpoint.malware_family
+    type: keyword
+    level: custom
+    description: The family of malware detected.
+    example: example-malware_family
+  - name: checkpoint.malware_rule_id
+    type: keyword
+    level: custom
+    description: This field represents the threat Prevention rule ID.
+    example: example-malware_rule_id
+  - name: checkpoint.malware_rule_name
+    type: keyword
+    level: custom
+    description: This is the Threat Prevention rule name.
+    example: example-malware_rule_name
+  - name: checkpoint.match_id
+    type: long
+    level: custom
+    description: This field represents private key of the rule.
+    example: 12345
+  - name: checkpoint.message
+    type: keyword
+    level: custom
+    description: This field provides additional information to the event.
+    example: example-message
+  - name: checkpoint.methods
+    type: keyword
+    level: custom
+    description: This field represents the IPsec methods.
+    example: example-methods
+  - name: checkpoint.more
+    type: keyword
+    level: custom
+    description: Additional information about the log entry.
+    example: example-more
+  - name: checkpoint.nat_addtnl_rulenum
+    type: long
+    level: custom
+    description: >-
+      When matching 2 automatic rules , second rule match will be shown otherwise
+      field will be 0.
+    example: 12345
+  - name: checkpoint.nat_rule_uid
+    type: keyword
+    level: custom
+    description: The unique identifier for the NAT rule.
+    example: example-nat_rule_uid
+  - name: checkpoint.nat_rulenum
+    type: long
+    level: custom
+    description: NAT rulebase first matched rule.
+    example: 12345
+  - name: checkpoint.objectname
+    type: keyword
+    level: custom
+    description: This indicates the name of the object that is affected by the action.
+    example: example-objectname
+  - name: checkpoint.objecttype
+    type: keyword
+    level: custom
+    description: This indicates the type of the affected object.
+    example: example-objecttype
+  - name: checkpoint.office_mode_ip
+    type: ip
+    level: custom
+    description: The IP address assigned in office mode.
+    example: 192.168.1.1
+  - name: checkpoint.operation
+    type: keyword
+    level: custom
+    description: This represents the Operation made by Threat Extraction.
+    example: example-operation
+  - name: checkpoint.operation_number
+    type: long
+    level: custom
+    description: >-
+      Operation number done by the administrator, each operation is represented by
+      a number.
+    example: 12345
+  - name: checkpoint.operation_result_description
+    type: keyword
+    level: custom
+    description: Description of the result of an operation performed.
+    example: example-operation_result_description
+  - name: checkpoint.operation_results
+    type: keyword
+    level: custom
+    description: The results of the operation performed.
+    example: example-operation_results
+  - name: checkpoint.origin_sic_name
+    type: keyword
+    level: custom
+    description: This indicates the SIC name of the Security Gateway.
+    example: example-origin_sic_name
+  - name: checkpoint.os_bits
+    type: keyword
+    level: custom
+    description: The number of bits of the operating system.
+    example: example-os_bits
+  - name: checkpoint.os_build
+    type: keyword
+    level: custom
+    description: The build version of the operating system.
+    example: example-os_build
+  - name: checkpoint.os_edition
+    type: keyword
+    level: custom
+    description: The edition of the operating system.
+    example: example-os_edition
+  - name: checkpoint.outzonlags
+    type: keyword
+    level: custom
+    description: The lag in the outbound zone.
+    example: example-outzonlags
+  - name: checkpoint.package_action
+    type: keyword
+    level: custom
+    description: The action performed on the package.
+    example: example-package_action
+  - name: checkpoint.packet_capture_name
+    type: keyword
+    level: custom
+    description: The name of the packet capture file.
+    example: example-packet_capture_name
+  - name: checkpoint.packet_capture_time
+    type: keyword
+    level: custom
+    description: The timestamp of the packet capture.
+    example: example-packet_capture_time
+  - name: checkpoint.packet_capture_unique_id
+    type: keyword
+    level: custom
+    description: The unique identifier for the packet capture.
+    example: example-packet_capture_unique_id
+  - name: checkpoint.parent_rule
+    type: long
+    level: custom
+    description: This field is the Parent rule number, in case of inline layer.
+    example: 12345
+  - name: checkpoint.peer_gateway
+    type: ip
+    level: custom
+    description: Main IP address of the VPN peer Security Gateway.
+    example: 192.168.1.1
+  - name: checkpoint.performance_impact
+    type: keyword
+    level: custom
+    description: The impact of the event on system performance.
+    example: example-performance_impact
+  - name: checkpoint.policy_name
+    type: keyword
+    level: custom
+    description: Name of the last policy that this Security Gateway fetched.
+    example: example-policy_name
+  - name: checkpoint.policy_time
+    type: keyword
+    level: custom
+    description: The timestamp of the policy application.
+    example: example-policy_time
+  - name: checkpoint.portal_message
+    type: keyword
+    level: custom
+    description: The message displayed on the portal.
+    example: example-portal_message
+  - name: checkpoint.precise_error
+    type: keyword
+    level: custom
+    description: A precise error message or code.
+    example: example-precise_error
+  - name: checkpoint.protection_id
+    type: keyword
+    level: custom
+    description: The unique identifier for the protection mechanism.
+    example: example-protection_id
+  - name: checkpoint.protection_name
+    type: keyword
+    level: custom
+    description: The name of the protection mechanism.
+    example: example-protection_name
+  - name: checkpoint.protection_type
+    type: keyword
+    level: custom
+    description: The type of protection mechanism.
+    example: example-protection_type
+  - name: checkpoint.protocol
+    type: keyword
+    level: custom
+    description: The protocol used in the connection.
+    example: example-protocol
+  - name: checkpoint.proxy_src_ip
+    type: ip
+    level: custom
+    description: The source IP address of the proxy.
+    example: 192.168.1.1
+  - name: checkpoint.reason
+    type: keyword
+    level: custom
+    description: This field provides description of log's reason.
+    example: example-reason
+  - name: checkpoint.reject_id_kid
+    type: keyword
+    level: custom
+    description: The identifier for the rejection event.
+    example: example-reject_id_kid
+  - name: checkpoint.roles
+    type: keyword
+    level: custom
+    description: This field represents the role of identity.
+    example: example-roles
+  - name: checkpoint.row_start
+    type: keyword
+    level: custom
+    description: >-
+      This field indicates the starting row number of a log entry within a specific
+      log file.
+    example: example-row_start
+  - name: checkpoint.rule_action
+    type: keyword
+    level: custom
+    description: Action of the matched rule in the access policy.
+    example: example-rule_action
+  - name: checkpoint.rule_name
+    type: keyword
+    level: custom
+    description: The name of the rule or signature generating the event.
+    example: example-rule_name
+  - name: checkpoint.rule_uid
+    type: keyword
+    level: custom
+    short: >-
+      Rule ID unique within a set or group of agents, observers, or entities using
+      the rule for event detection.
+    description: >-
+      A rule ID that is unique within the scope of a set or group of agents, observers,
+      or other entities using the rule for detection of this event.
+    example: example-rule_uid
+  - name: checkpoint.scheme
+    type: keyword
+    level: custom
+    description: This field describes the scheme used for the log.
+    example: example-scheme
+  - name: checkpoint.scope
+    type: keyword
+    level: custom
+    description: The scope of the log entry.
+    example: example-scope
+  - name: checkpoint.script_value_for_one_time_scripts
+    type: keyword
+    level: custom
+    description: The value or output of a one-time script execution.
+    example: example-script_value_for_one_time_scripts
+  - name: checkpoint.security_inzone
+    type: keyword
+    level: custom
+    description: >-
+      Network zone of incoming traffic as reported by the observer to categorize the
+      source area of ingress traffic.
+    example: example-security_inzone
+  - name: checkpoint.security_outzone
+    type: keyword
+    level: custom
+    description: >-
+      Network zone of outbound traffic as reported by the observer to categorize the
+      destination area of egress traffic.
+    example: example-security_outzone
+  - name: checkpoint.sendtotrackerasadvancedauditlog
+    type: keyword
+    level: custom
+    short: >-
+      Controls if specific log data (security gateway logs) is sent to dedicated advanced
+      audit log for detailed analysis.
+    description: >-
+      This field controls whether specific log data (like security gateway logs) is
+      sent to a dedicated advanced audit log for detailed analysis.
+    example: example-sendtotrackerasadvancedauditlog
+  - name: checkpoint.ser_agent_kid
+    type: keyword
+    level: custom
+    description: The identifier for the security agent.
+    example: example-ser_agent_kid
+  - name: checkpoint.server_inbound_interface
+    type: keyword
+    level: custom
+    description: The inbound interface of the server.
+    example: example-server_inbound_interface
+  - name: checkpoint.session_description
+    type: keyword
+    level: custom
+    description: A description of the session associated with the log.
+    example: example-session_description
+  - name: checkpoint.session_id
+    type: keyword
+    level: custom
+    description: The unique identifier for the session.
+    example: example-session_id
+  - name: checkpoint.session_name
+    type: keyword
+    level: custom
+    description: The name of the session, in which the change was published.
+    example: example-session_name
+  - name: checkpoint.session_timeout
+    type: keyword
+    level: custom
+    description: The session timeout value, in seconds.
+    example: example-session_timeout
+  - name: checkpoint.session_uid
+    type: keyword
+    level: custom
+    description: This is the HTTP session-id.
+    example: example-session_uid
+  - name: checkpoint.sig_id
+    type: keyword
+    level: custom
+    description: The signature ID associated with the log entry.
+    example: example-sig_id
+  - name: checkpoint.smartdefense_profile
+    type: keyword
+    level: custom
+    description: The SmartDefense profile associated with the log entry.
+    example: example-smartdefense_profile
+  - name: checkpoint.snid
+    type: keyword
+    level: custom
+    description: This field represents the Check Point session ID.
+    example: example-snid
+  - name: checkpoint.special_properties
+    type: keyword
+    level: custom
+    description: Special properties or attributes associated with the log entry.
+    example: example-special_properties
+  - name: checkpoint.sport_svc
+    type: keyword
+    level: custom
+    description: This fields represents the source port of the connection.
+    example: example-sport_svc
+  - name: checkpoint.src_user_dn
+    type: keyword
+    level: custom
+    description: This is the User distinguished name connected to the source IP address.
+    example: example-src_user_dn
+  - name: checkpoint.src_user_name
+    type: keyword
+    level: custom
+    description: This is the Username connected to the source IP.
+    example: example-src_user_name
+  - name: checkpoint.status
+    type: keyword
+    level: custom
+    description: >-
+      This is the operation health of the security gateway device. Possible values
+      are OK,Warning and Error.
+    example: example-status
+  - name: checkpoint.stormagentaction
+    type: keyword
+    level: custom
+    description: The action taken by the storm agent.
+    example: example-stormagentaction
+  - name: checkpoint.stormagentname
+    type: keyword
+    level: custom
+    description: The name of the storm agent.
+    example: example-stormagentname
+  - name: checkpoint.subject
+    type: keyword
+    level: custom
+    description: This field indicates audit log category.
+    example: example-subject
+  - name: checkpoint.subs_exp
+    type: keyword
+    level: custom
+    description: The subscription expiration date or status.
+    example: example-subs_exp
+  - name: checkpoint.subscription_stat
+    type: keyword
+    level: custom
+    description: The status of the subscription.
+    example: example-subscription_stat
+  - name: checkpoint.subscription_stat_desc
+    type: keyword
+    level: custom
+    description: A description of the subscription status.
+    example: example-subscription_stat_desc
+  - name: checkpoint.suppressed_logs
+    type: keyword
+    level: custom
+    description: The number of logs suppressed for this event.
+    example: example-suppressed_logs
+  - name: checkpoint.svc
+    type: keyword
+    level: custom
+    description: This fields represents the name of the service.
+    example: example-svc
+  - name: checkpoint.sys_message
+    type: keyword
+    level: custom
+    description: This field represents system messages.
+    example: example-sys_message
+  - name: checkpoint.syslog_severity
+    type: keyword
+    level: custom
+    description: The severity level of the syslog message.
+    example: example-syslog_severity
+  - name: checkpoint.system_application
+    type: keyword
+    level: custom
+    description: The system application associated with the log entry.
+    example: example-system_application
+  - name: checkpoint.task
+    type: keyword
+    level: custom
+    description: The name or identifier of a task being executed.
+    example: example-task
+  - name: checkpoint.task_percent
+    type: keyword
+    level: custom
+    description: The percentage of task completion.
+    example: example-task_percent
+  - name: checkpoint.task_progress
+    type: keyword
+    level: custom
+    description: The progress status of the task.
+    example: example-task_progress
+  - name: checkpoint.taskid
+    type: keyword
+    level: custom
+    description: The unique identifier for a task.
+    example: example-taskid
+  - name: checkpoint.tasktargetid
+    type: keyword
+    level: custom
+    description: The unique identifier for the target of a task.
+    example: example-tasktargetid
+  - name: checkpoint.tcp_flags
+    type: keyword
+    level: custom
+    description: The TCP flags associated with the connection.
+    example: example-tcp_flags
+  - name: checkpoint.tcp_packet_out_of_state
+    type: keyword
+    level: custom
+    description: Indicates whether the TCP packet is out of state.
+    example: example-tcp_packet_out_of_state
+  - name: checkpoint.time
+    type: keyword
+    level: custom
+    description: The timestamp of the event.
+    example: example-time
+  - name: checkpoint.tunnel_protocol
+    type: keyword
+    level: custom
+    description: The protocol used in the tunnel.
+    example: example-tunnel_protocol
+  - name: checkpoint.update_status
+    type: keyword
+    level: custom
+    description: The status of an update operation.
+    example: example-update_status
+  - name: checkpoint.user_dn
+    type: keyword
+    level: custom
+    description: The distinguished name of the user.
+    example: example-user_dn
+  - name: checkpoint.usercheck
+    type: keyword
+    level: custom
+    description: The user check information associated with the log entry.
+    example: example-usercheck
+  - name: checkpoint.usercheck_confirmation_level
+    type: keyword
+    level: custom
+    description: The confirmation level of the user check.
+    example: example-usercheck_confirmation_level
+  - name: checkpoint.usercheck_interaction_name
+    type: keyword
+    level: custom
+    description: The name of the user check interaction.
+    example: example-usercheck_interaction_name
+  - name: checkpoint.vpn_featurename
+    type: keyword
+    level: custom
+    description: This fields represents the L2TP /IKE /Link Selection.
+    example: example-vpn_featurename
+  - name: checkpoint.xlatedport_svc
+    type: keyword
+    level: custom
+    description: This fields represents the destination translated port for the service.
+    example: example-xlatedport_svc
+  - name: checkpoint.xlatesport_svc
+    type: keyword
+    level: custom
+    description: This fields represents source translated port for the service.
+    example: example-xlatesport_svc

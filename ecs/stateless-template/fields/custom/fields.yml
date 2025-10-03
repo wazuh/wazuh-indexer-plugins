@@ -1,0 +1,13 @@
+---
+- name: <integration-name>
+  title: <integration-name>
+  description: >
+    <integration-name> custom fields
+  root: true
+  fields:
+    - name: <integration-name>.field1
+      type: keyword
+      level: custom
+      description: >
+        Description of field1.
+      example: "example-value-1"
