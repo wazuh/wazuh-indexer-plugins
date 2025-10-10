@@ -84,6 +84,8 @@
       The Dynamic Access Policy (DAP) records assigned to the user during authentication
       and authorization.
     example: example-dap_records
+    normalize:
+    - array
   - name: cisco.asa.destination_interface
     type: keyword
     level: custom

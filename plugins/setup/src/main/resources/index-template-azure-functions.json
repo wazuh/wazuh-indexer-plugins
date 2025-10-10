@@ -1,6 +1,6 @@
 {
   "index_patterns": [
-    "wazuh-events-5.x-spring_boot-*"
+    "wazuh-events-5.x-azure-functions-*"
   ],
   "mappings": {
     "date_detection": false,
@@ -291,6 +291,107 @@
             "type": "keyword"
           },
           "version": {
+            "ignore_above": 1024,
+            "type": "keyword"
+          }
+        }
+      },
+      "azure": {
+        "properties": {
+          "category": {
+            "ignore_above": 1024,
+            "type": "keyword"
+          },
+          "function": {
+            "properties": {
+              "app_name": {
+                "ignore_above": 1024,
+                "type": "keyword"
+              },
+              "category": {
+                "ignore_above": 1024,
+                "type": "keyword"
+              },
+              "event_id": {
+                "type": "long"
+              },
+              "event_name": {
+                "ignore_above": 1024,
+                "type": "keyword"
+              },
+              "exception_details": {
+                "norms": false,
+                "type": "text"
+              },
+              "exception_message": {
+                "norms": false,
+                "type": "text"
+              },
+              "exception_type": {
+                "ignore_above": 1024,
+                "type": "keyword"
+              },
+              "host_instance_id": {
+                "ignore_above": 1024,
+                "type": "keyword"
+              },
+              "host_version": {
+                "ignore_above": 1024,
+                "type": "keyword"
+              },
+              "invocation_id": {
+                "ignore_above": 1024,
+                "type": "keyword"
+              },
+              "level": {
+                "ignore_above": 1024,
+                "type": "keyword"
+              },
+              "level_id": {
+                "type": "long"
+              },
+              "message": {
+                "norms": false,
+                "type": "text"
+              },
+              "name": {
+                "ignore_above": 1024,
+                "type": "keyword"
+              },
+              "process_id": {
+                "type": "long"
+              },
+              "role_instance": {
+                "ignore_above": 1024,
+                "type": "keyword"
+              }
+            }
+          },
+          "operation_name": {
+            "ignore_above": 1024,
+            "type": "keyword"
+          },
+          "resource": {
+            "properties": {
+              "group": {
+                "ignore_above": 1024,
+                "type": "keyword"
+              },
+              "id": {
+                "ignore_above": 1024,
+                "type": "keyword"
+              },
+              "name": {
+                "ignore_above": 1024,
+                "type": "keyword"
+              },
+              "provider": {
+                "ignore_above": 1024,
+                "type": "keyword"
+              }
+            }
+          },
+          "subscription_id": {
             "ignore_above": 1024,
             "type": "keyword"
           }
@@ -16735,115 +16836,6 @@
           }
         }
       },
-      "springboot": {
-        "properties": {
-          "gc": {
-            "properties": {
-              "last_info": {
-                "properties": {
-                  "memory_usage": {
-                    "properties": {
-                      "after": {
-                        "properties": {
-                          "code_cache": {
-                            "type": "object"
-                          },
-                          "compressed_class_space": {
-                            "type": "object"
-                          },
-                          "g1_eden_space": {
-                            "type": "object"
-                          },
-                          "g1_old_gen": {
-                            "type": "object"
-                          },
-                          "g1_survivor_space": {
-                            "type": "object"
-                          },
-                          "metaspace": {
-                            "type": "object"
-                          },
-                          "ps_eden_space": {
-                            "type": "object"
-                          },
-                          "ps_old_gen": {
-                            "type": "object"
-                          },
-                          "ps_survivor_space": {
-                            "type": "object"
-                          }
-                        },
-                        "type": "object"
-                      },
-                      "before": {
-                        "properties": {
-                          "code_cache": {
-                            "type": "object"
-                          },
-                          "compressed_class_space": {
-                            "type": "object"
-                          },
-                          "g1_eden_space": {
-                            "type": "object"
-                          },
-                          "g1_old_gen": {
-                            "type": "object"
-                          },
-                          "g1_survivor_space": {
-                            "type": "object"
-                          },
-                          "metaspace": {
-                            "type": "object"
-                          },
-                          "ps_eden_space": {
-                            "type": "object"
-                          },
-                          "ps_old_gen": {
-                            "type": "object"
-                          },
-                          "ps_survivor_space": {
-                            "type": "object"
-                          }
-                        },
-                        "type": "object"
-                      }
-                    }
-                  },
-                  "time": {
-                    "properties": {
-                      "duration": {
-                        "type": "long"
-                      },
-                      "end": {
-                        "type": "long"
-                      },
-                      "start": {
-                        "type": "long"
-                      }
-                    }
-                  }
-                }
-              },
-              "name": {
-                "ignore_above": 1024,
-                "type": "keyword"
-              }
-            }
-          },
-          "http_trace": {
-            "properties": {
-              "principal": {
-                "ignore_above": 1024,
-                "type": "keyword"
-              },
-              "session": {
-                "ignore_above": 1024,
-                "type": "keyword"
-              }
-            }
-          }
-        }
-      },
       "tags": {
         "ignore_above": 1024,
         "type": "keyword"
@@ -19611,6 +19603,6 @@
     },
     "mapping.nested_fields.limit": 100,
     "mapping.total_fields.limit": 10000,
-    "plugins.index_state_management.rollover_alias": "wazuh-events-spring_boot"
+    "plugins.index_state_management.rollover_alias": "wazuh-events-azure-functions"
   }
 }

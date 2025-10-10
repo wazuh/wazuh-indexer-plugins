@@ -2503,24 +2503,19 @@
                   "version": {
                     "properties": {
                       "fix": {
-                        "ignore_above": 1024,
-                        "type": "keyword"
+                        "type": "long"
                       },
                       "maintenance": {
-                        "ignore_above": 1024,
-                        "type": "keyword"
+                        "type": "long"
                       },
                       "major": {
-                        "ignore_above": 1024,
-                        "type": "keyword"
+                        "type": "long"
                       },
                       "minor": {
-                        "ignore_above": 1024,
-                        "type": "keyword"
+                        "type": "long"
                       },
                       "point": {
-                        "ignore_above": 1024,
-                        "type": "keyword"
+                        "type": "long"
                       }
                     }
                   }

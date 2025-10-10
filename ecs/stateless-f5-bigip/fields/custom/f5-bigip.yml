@@ -640,30 +640,30 @@
     description: Summary text of diagnostic findings in F5 BIG-IP.
     example: example-summary
   - name: f5_bigip.log.diagnostics.version.maintenance
-    type: keyword
+    type: long
     level: custom
     description: Maintenance version number for diagnostics in F5 BIG-IP.
-    example: example-maintenance
+    example: 12345
   - name: f5_bigip.log.diagnostics.version.major
-    type: keyword
+    type: long
     level: custom
     description: Major version number for diagnostics in F5 BIG-IP.
-    example: example-major
+    example: 12345
   - name: f5_bigip.log.diagnostics.version.minor
-    type: keyword
+    type: long
     level: custom
     description: Minor version number for diagnostics in F5 BIG-IP.
-    example: example-minor
+    example: 12345
   - name: f5_bigip.log.diagnostics.version.point
-    type: keyword
+    type: long
     level: custom
     description: Point version number for diagnostics in F5 BIG-IP.
-    example: example-point
+    example: 12345
   - name: f5_bigip.log.diagnostics.version.fix
-    type: keyword
+    type: long
     level: custom
     description: Fix version number for diagnostics in F5 BIG-IP.
-    example: example-fix
+    example: 12345
   - name: f5_bigip.log.disk_storage
     type: object
     level: custom
@@ -1996,11 +1996,6 @@
     type: long
     level: custom
     description: Average throughput in F5 BIG-IP logs.
-    example: 12345
-  - name: f5_bigip.log.bytes
-    type: long
-    level: custom
-    description: Bytes transferred in F5 BIG-IP logs.
     example: 12345
   - name: f5_bigip.log.connections_performance.activeSslClientConnections.average
     type: long

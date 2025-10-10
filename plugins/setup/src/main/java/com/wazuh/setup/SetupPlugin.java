@@ -88,10 +88,10 @@ public class SetupPlugin extends Plugin implements ClusterPlugin {
             "wazuh-events-amazon-security-lake"
         ));
         this.indices.add(new StreamIndex(
-                 "wazuh-events-5.x-apache_tomcat-000001",
-                 "index-template-apache_tomcat",
-                 "wazuh-events-apache_tomcat"
-             ));
+             "wazuh-events-5.x-apache-tomcat-000001",
+             "index-template-apache-tomcat",
+             "wazuh-events-apache-tomcat"
+        ));
         this.indices.add(new StreamIndex(
             "wazuh-events-5.x-audit-000001",
             "index-template-audit",
@@ -118,9 +118,9 @@ public class SetupPlugin extends Plugin implements ClusterPlugin {
             "wazuh-events-checkpoint"
         ));
         this.indices.add(new StreamIndex(
-            "wazuh-events-5.x-cisco_umbrella-000001",
-            "index-template-cisco_umbrella",
-            "wazuh-events-cisco_umbrella"
+            "wazuh-events-5.x-cisco-umbrella-000001",
+            "index-template-cisco-umbrella",
+            "wazuh-events-cisco-umbrella"
         ));
         this.indices.add(new StreamIndex(
             "wazuh-events-5.x-cisco-asa-000001",
@@ -173,9 +173,9 @@ public class SetupPlugin extends Plugin implements ClusterPlugin {
             "wazuh-events-modsec"
         ));
         this.indices.add(new StreamIndex(
-            "wazuh-events-5.x-oracle_weblogic-000001",
-            "index-template-oracle_weblogic",
-            "wazuh-events-oracle_weblogic"
+            "wazuh-events-5.x-oracle-weblogic-000001",
+            "index-template-oracle-weblogic",
+            "wazuh-events-oracle-weblogic"
         ));
         this.indices.add(new StreamIndex(
             "wazuh-events-5.x-pfsense-000001",
@@ -188,9 +188,9 @@ public class SetupPlugin extends Plugin implements ClusterPlugin {
             "wazuh-events-snort"
         ));
         this.indices.add(new StreamIndex(
-            "wazuh-events-5.x-spring_boot-000001",
-            "index-template-spring_boot",
-            "wazuh-events-spring_boot"
+            "wazuh-events-5.x-springboot-000001",
+            "index-template-springboot",
+            "wazuh-events-springboot"
         ));
         this.indices.add(new StreamIndex(
             "wazuh-events-5.x-squid-000001",

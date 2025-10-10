@@ -1,6 +1,6 @@
 {
   "index_patterns": [
-    "wazuh-events-5.x-cisco_umbrella-*"
+    "wazuh-events-5.x-springboot-*"
   ],
   "mappings": {
     "date_detection": false,
@@ -341,158 +341,6 @@
           "rules": {
             "ignore_above": 1024,
             "type": "keyword"
-          }
-        }
-      },
-      "cisco": {
-        "properties": {
-          "umbrella": {
-            "properties": {
-              "amp_disposition": {
-                "ignore_above": 1024,
-                "type": "keyword"
-              },
-              "amp_malware_name": {
-                "ignore_above": 1024,
-                "type": "keyword"
-              },
-              "amp_score": {
-                "type": "long"
-              },
-              "audit": {
-                "properties": {
-                  "after": {
-                    "type": "nested"
-                  },
-                  "after_values": {
-                    "type": "object"
-                  },
-                  "before": {
-                    "type": "nested"
-                  },
-                  "before_values": {
-                    "type": "object"
-                  },
-                  "type": {
-                    "ignore_above": 1024,
-                    "type": "keyword"
-                  }
-                }
-              },
-              "av_detections": {
-                "ignore_above": 1024,
-                "type": "keyword"
-              },
-              "blocked_categories": {
-                "ignore_above": 1024,
-                "type": "keyword"
-              },
-              "categories": {
-                "ignore_above": 1024,
-                "type": "keyword"
-              },
-              "certificate_errors": {
-                "ignore_above": 1024,
-                "type": "keyword"
-              },
-              "classification": {
-                "ignore_above": 1024,
-                "type": "keyword"
-              },
-              "cves": {
-                "ignore_above": 1024,
-                "type": "keyword"
-              },
-              "data_classification": {
-                "ignore_above": 1024,
-                "type": "keyword"
-              },
-              "data_identifier": {
-                "ignore_above": 1024,
-                "type": "keyword"
-              },
-              "datacenter": {
-                "ignore_above": 1024,
-                "type": "keyword"
-              },
-              "destination_lists_id": {
-                "ignore_above": 1024,
-                "type": "keyword"
-              },
-              "dlp_status": {
-                "ignore_above": 1024,
-                "type": "keyword"
-              },
-              "file_action": {
-                "ignore_above": 1024,
-                "type": "keyword"
-              },
-              "file_label": {
-                "ignore_above": 1024,
-                "type": "keyword"
-              },
-              "fqdns": {
-                "type": "nested"
-              },
-              "gid": {
-                "ignore_above": 1024,
-                "type": "keyword"
-              },
-              "identities": {
-                "type": "nested"
-              },
-              "identity": {
-                "ignore_above": 1024,
-                "type": "keyword"
-              },
-              "identity_types": {
-                "type": "nested"
-              },
-              "isolate_action": {
-                "ignore_above": 1024,
-                "type": "keyword"
-              },
-              "message": {
-                "ignore_above": 1024,
-                "type": "keyword"
-              },
-              "origin_id": {
-                "ignore_above": 1024,
-                "type": "keyword"
-              },
-              "policy_identity_type": {
-                "ignore_above": 1024,
-                "type": "keyword"
-              },
-              "puas": {
-                "ignore_above": 1024,
-                "type": "keyword"
-              },
-              "ruleset_id": {
-                "ignore_above": 1024,
-                "type": "keyword"
-              },
-              "severity": {
-                "ignore_above": 1024,
-                "type": "keyword"
-              },
-              "sha_sha256": {
-                "ignore_above": 1024,
-                "type": "keyword"
-              },
-              "sid": {
-                "ignore_above": 1024,
-                "type": "keyword"
-              },
-              "signature_list_id": {
-                "ignore_above": 1024,
-                "type": "keyword"
-              },
-              "warn_status": {
-                "ignore_above": 1024,
-                "type": "keyword"
-              }
-            }
           }
         }
       },
@@ -16887,6 +16735,115 @@
           }
         }
       },
+      "springboot": {
+        "properties": {
+          "gc": {
+            "properties": {
+              "last_info": {
+                "properties": {
+                  "memory_usage": {
+                    "properties": {
+                      "after": {
+                        "properties": {
+                          "code_cache": {
+                            "type": "object"
+                          },
+                          "compressed_class_space": {
+                            "type": "object"
+                          },
+                          "g1_eden_space": {
+                            "type": "object"
+                          },
+                          "g1_old_gen": {
+                            "type": "object"
+                          },
+                          "g1_survivor_space": {
+                            "type": "object"
+                          },
+                          "metaspace": {
+                            "type": "object"
+                          },
+                          "ps_eden_space": {
+                            "type": "object"
+                          },
+                          "ps_old_gen": {
+                            "type": "object"
+                          },
+                          "ps_survivor_space": {
+                            "type": "object"
+                          }
+                        },
+                        "type": "object"
+                      },
+                      "before": {
+                        "properties": {
+                          "code_cache": {
+                            "type": "object"
+                          },
+                          "compressed_class_space": {
+                            "type": "object"
+                          },
+                          "g1_eden_space": {
+                            "type": "object"
+                          },
+                          "g1_old_gen": {
+                            "type": "object"
+                          },
+                          "g1_survivor_space": {
+                            "type": "object"
+                          },
+                          "metaspace": {
+                            "type": "object"
+                          },
+                          "ps_eden_space": {
+                            "type": "object"
+                          },
+                          "ps_old_gen": {
+                            "type": "object"
+                          },
+                          "ps_survivor_space": {
+                            "type": "object"
+                          }
+                        },
+                        "type": "object"
+                      }
+                    }
+                  },
+                  "time": {
+                    "properties": {
+                      "duration": {
+                        "type": "long"
+                      },
+                      "end": {
+                        "type": "long"
+                      },
+                      "start": {
+                        "type": "long"
+                      }
+                    }
+                  }
+                }
+              },
+              "name": {
+                "ignore_above": 1024,
+                "type": "keyword"
+              }
+            }
+          },
+          "http_trace": {
+            "properties": {
+              "principal": {
+                "ignore_above": 1024,
+                "type": "keyword"
+              },
+              "session": {
+                "ignore_above": 1024,
+                "type": "keyword"
+              }
+            }
+          }
+        }
+      },
       "tags": {
         "ignore_above": 1024,
         "type": "keyword"
@@ -19654,6 +19611,6 @@
     },
     "mapping.nested_fields.limit": 100,
     "mapping.total_fields.limit": 10000,
-    "plugins.index_state_management.rollover_alias": "wazuh-events-cisco_umbrella"
+    "plugins.index_state_management.rollover_alias": "wazuh-events-springboot"
   }
 }

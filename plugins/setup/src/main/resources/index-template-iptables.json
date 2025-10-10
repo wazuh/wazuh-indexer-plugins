@@ -3223,14 +3223,6 @@
           }
         }
       },
-      "pfsense": {
-        "properties": {
-          "dhcp_subnet": {
-            "ignore_above": 1024,
-            "type": "keyword"
-          }
-        }
-      },
       "policy": {
         "properties": {
           "description": {

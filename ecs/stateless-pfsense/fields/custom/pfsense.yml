@@ -8,6 +8,11 @@
     level: custom
     description: The subnet for which the DHCP server is issuing IPs.
     example: example-dhcp_subnet
+  - name: pfsense.dhcp_subnet
+    type: keyword
+    level: custom
+    description: The subnet for which the DHCP server is issuing IPs.
+    example: example-dhcp_subnet
   - name: pfsense.firewall_rule_id
     type: keyword
     level: custom

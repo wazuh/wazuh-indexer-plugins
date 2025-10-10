@@ -191,6 +191,8 @@
     level: custom
     description: Categories that caused the request to be blocked.
     example: example-blocked_categories
+    normalize:
+    - array
   - name: cisco.umbrella.dlp_status
     type: keyword
     level: custom

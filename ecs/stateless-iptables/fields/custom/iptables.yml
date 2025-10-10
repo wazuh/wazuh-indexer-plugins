@@ -111,8 +111,3 @@
     description: Time To Live value decremented at each router hop (TTL or HOPLIMIT
       field)
     example: 12345
-  - name: pfsense.dhcp_subnet
-    type: keyword
-    level: custom
-    description: Custom field for iptables
-    example: example-dhcp_subnet

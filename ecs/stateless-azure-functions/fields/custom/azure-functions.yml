@@ -18,6 +18,9 @@
   - name: azure.function.category
     type: keyword
     level: custom
+    short: >-
+      Function category in format 'Function.{function-name}' indicating which function
+      generated log entry
     description: >-
       The specific function category in the format 'Function.{function-name}' indicating
       which function generated the log entry
@@ -39,6 +42,9 @@
   - name: azure.function.exception_details
     type: text
     level: custom
+    short: >-
+      Complete exception stack trace when function execution fails including inner
+      exceptions (error logs only)
     description: >-
       The complete exception stack trace and details when a function execution fails
       including inner exceptions and call stack information (error logs only)
@@ -92,6 +98,9 @@
   - name: azure.function.message
     type: text
     level: custom
+    short: >-
+      Detailed log message about function execution including status, duration, and
+      invocation reason
     description: >-
       The detailed log message containing information about function execution including
       status duration and reason for invocation
@@ -130,6 +139,8 @@
   - name: azure.resource.id
     type: keyword
     level: custom
+    short: >-
+      Unique Azure resource ID: '/subscriptions/{id}/resourceGroups/{group}/providers/{provider}/{name}'
     description: >-
       The unique Azure resource identifier in the format '/subscriptions/{subscription-id}/resourceGroups/{resource-group}/providers/{provider}/{resource-name}'
     example: example-id

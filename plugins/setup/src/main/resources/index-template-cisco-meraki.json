@@ -1,6 +1,6 @@
 {
   "index_patterns": [
-    "wazuh-events-5.x-oracle_weblogic-*"
+    "wazuh-events-5.x-cisco-meraki-*"
   ],
   "mappings": {
     "date_detection": false,
@@ -341,6 +341,423 @@
           "rules": {
             "ignore_above": 1024,
             "type": "keyword"
+          }
+        }
+      },
+      "cisco": {
+        "properties": {
+          "meraki": {
+            "properties": {
+              "aid": {
+                "ignore_above": 1024,
+                "type": "keyword"
+              },
+              "alertData": {
+                "properties": {
+                  "connection": {
+                    "ignore_above": 1024,
+                    "type": "keyword"
+                  },
+                  "local": {
+                    "ignore_above": 1024,
+                    "type": "keyword"
+                  },
+                  "model": {
+                    "ignore_above": 1024,
+                    "type": "keyword"
+                  },
+                  "provider": {
+                    "ignore_above": 1024,
+                    "type": "keyword"
+                  },
+                  "remote": {
+                    "ignore_above": 1024,
+                    "type": "keyword"
+                  }
+                },
+                "type": "object"
+              },
+              "alertId": {
+                "ignore_above": 1024,
+                "type": "keyword"
+              },
+              "alertType": {
+                "ignore_above": 1024,
+                "type": "keyword"
+              },
+              "alertTypeId": {
+                "ignore_above": 1024,
+                "type": "keyword"
+              },
+              "anyconnect_vpn_session_manager": {
+                "properties": {
+                  "action": {
+                    "ignore_above": 1024,
+                    "type": "keyword"
+                  },
+                  "bytes_in": {
+                    "type": "long"
+                  },
+                  "bytes_out": {
+                    "type": "long"
+                  },
+                  "conn_id": {
+                    "type": "long"
+                  },
+                  "duration": {
+                    "ignore_above": 1024,
+                    "type": "keyword"
+                  },
+                  "filter": {
+                    "ignore_above": 1024,
+                    "type": "keyword"
+                  },
+                  "ip": {
+                    "type": "ip"
+                  },
+                  "peer_ip": {
+                    "type": "ip"
+                  },
+                  "peer_port": {
+                    "type": "long"
+                  },
+                  "reason": {
+                    "ignore_above": 1024,
+                    "type": "keyword"
+                  },
+                  "session_id": {
+                    "type": "long"
+                  },
+                  "session_type": {
+                    "ignore_above": 1024,
+                    "type": "keyword"
+                  },
+                  "tunnel_id": {
+                    "type": "float"
+                  },
+                  "tunnel_type": {
+                    "ignore_above": 1024,
+                    "type": "keyword"
+                  },
+                  "user_name": {
+                    "ignore_above": 1024,
+                    "type": "keyword"
+                  }
+                },
+                "type": "object"
+              },
+              "apple_da_reason": {
+                "ignore_above": 1024,
+                "type": "keyword"
+              },
+              "arp_resp": {
+                "ignore_above": 1024,
+                "type": "keyword"
+              },
+              "arp_src": {
+                "ignore_above": 1024,
+                "type": "keyword"
+              },
+              "auth_neg_dur": {
+                "type": "float"
+              },
+              "band": {
+                "ignore_above": 1024,
+                "type": "keyword"
+              },
+              "best_ap": {
+                "ignore_above": 1024,
+                "type": "keyword"
+              },
+              "best_ap_load": {
+                "type": "long"
+              },
+              "best_ap_rssi": {
+                "type": "long"
+              },
+              "bssid": {
+                "ignore_above": 1024,
+                "type": "keyword"
+              },
+              "channel": {
+                "type": "long"
+              },
+              "connectivity": {
+                "ignore_above": 1024,
+                "type": "keyword"
+              },
+              "da_vendor": {
+                "ignore_above": 1024,
+                "type": "keyword"
+              },
+              "details": {
+                "ignore_above": 1024,
+                "type": "keyword"
+              },
+              "deviceTags": {
+                "ignore_above": 1024,
+                "type": "keyword"
+              },
+              "deviceUrl": {
+                "ignore_above": 1024,
+                "type": "keyword"
+              },
+              "dhcp_lease_completed": {
+                "type": "float"
+              },
+              "dhcp_resp": {
+                "ignore_above": 1024,
+                "type": "keyword"
+              },
+              "disposition": {
+                "ignore_above": 1024,
+                "type": "keyword"
+              },
+              "dns_req_rtt": {
+                "type": "float"
+              },
+              "dns_resp": {
+                "ignore_above": 1024,
+                "type": "keyword"
+              },
+              "dns_server": {
+                "type": "ip"
+              },
+              "download": {
+                "ignore_above": 1024,
+                "type": "keyword"
+              },
+              "dst": {
+                "ignore_above": 1024,
+                "type": "keyword"
+              },
+              "duration": {
+                "type": "float"
+              },
+              "event_subtype": {
+                "ignore_above": 1024,
+                "type": "keyword"
+              },
+              "event_type": {
+                "ignore_above": 1024,
+                "type": "keyword"
+              },
+              "fc_subtype": {
+                "ignore_above": 1024,
+                "type": "keyword"
+              },
+              "fc_type": {
+                "ignore_above": 1024,
+                "type": "keyword"
+              },
+              "firewall": {
+                "properties": {
+                  "action": {
+                    "ignore_above": 1024,
+                    "type": "keyword"
+                  },
+                  "pattern": {
+                    "ignore_above": 1024,
+                    "type": "keyword"
+                  },
+                  "rule": {
+                    "ignore_above": 1024,
+                    "type": "keyword"
+                  }
+                },
+                "type": "object"
+              },
+              "flows": {
+                "properties": {
+                  "op": {
+                    "ignore_above": 1024,
+                    "type": "keyword"
+                  }
+                },
+                "type": "object"
+              },
+              "full_conn": {
+                "type": "float"
+              },
+              "http_resp": {
+                "ignore_above": 1024,
+                "type": "keyword"
+              },
+              "identity": {
+                "ignore_above": 1024,
+                "type": "keyword"
+              },
+              "instigator": {
+                "ignore_above": 1024,
+                "type": "keyword"
+              },
+              "ip_resp": {
+                "ignore_above": 1024,
+                "type": "keyword"
+              },
+              "is_8021x": {
+                "type": "long"
+              },
+              "is_wpa": {
+                "type": "long"
+              },
+              "last_auth_ago": {
+                "type": "float"
+              },
+              "load": {
+                "type": "long"
+              },
+              "mxport": {
+                "ignore_above": 1024,
+                "type": "keyword"
+              },
+              "networkId": {
+                "ignore_above": 1024,
+                "type": "keyword"
+              },
+              "networkTags": {
+                "ignore_above": 1024,
+                "type": "keyword"
+              },
+              "networkUrl": {
+                "ignore_above": 1024,
+                "type": "keyword"
+              },
+              "new_port_status": {
+                "ignore_above": 1024,
+                "type": "keyword"
+              },
+              "occurredAt": {
+                "type": "date"
+              },
+              "old_port_status": {
+                "ignore_above": 1024,
+                "type": "keyword"
+              },
+              "organizationUrl": {
+                "ignore_above": 1024,
+                "type": "keyword"
+              },
+              "peer_contact": {
+                "ignore_above": 1024,
+                "type": "keyword"
+              },
+              "peer_ident": {
+                "ignore_above": 1024,
+                "type": "keyword"
+              },
+              "port": {
+                "type": "long"
+              },
+              "radio": {
+                "ignore_above": 1024,
+                "type": "keyword"
+              },
+              "reason": {
+                "ignore_above": 1024,
+                "type": "keyword"
+              },
+              "rssi": {
+                "type": "long"
+              },
+              "security": {
+                "properties": {
+                  "action": {
+                    "ignore_above": 1024,
+                    "type": "keyword"
+                  },
+                  "decision": {
+                    "ignore_above": 1024,
+                    "type": "keyword"
+                  },
+                  "dhost": {
+                    "ignore_above": 1024,
+                    "type": "keyword"
+                  },
+                  "mac": {
+                    "ignore_above": 1024,
+                    "type": "keyword"
+                  },
+                  "priority": {
+                    "type": "long"
+                  },
+                  "signature": {
+                    "ignore_above": 1024,
+                    "type": "keyword"
+                  }
+                },
+                "type": "object"
+              },
+              "sentAt": {
+                "type": "date"
+              },
+              "server_ip": {
+                "type": "ip"
+              },
+              "server_mac": {
+                "ignore_above": 1024,
+                "type": "keyword"
+              },
+              "sharedSecret": {
+                "ignore_above": 1024,
+                "type": "keyword"
+              },
+              "site_to_site_vpn": {
+                "properties": {
+                  "raw": {
+                    "ignore_above": 1024,
+                    "type": "keyword"
+                  }
+                },
+                "type": "object"
+              },
+              "src": {
+                "ignore_above": 1024,
+                "type": "keyword"
+              },
+              "summary": {
+                "ignore_above": 1024,
+                "type": "keyword"
+              },
+              "timestamp": {
+                "type": "date"
+              },
+              "type": {
+                "ignore_above": 1024,
+                "type": "keyword"
+              },
+              "upload": {
+                "ignore_above": 1024,
+                "type": "keyword"
+              },
+              "url": {
+                "ignore_above": 1024,
+                "type": "keyword"
+              },
+              "vap": {
+                "ignore_above": 1024,
+                "type": "keyword"
+              },
+              "version": {
+                "ignore_above": 1024,
+                "type": "keyword"
+              },
+              "vlan": {
+                "type": "long"
+              },
+              "vpn_type": {
+                "ignore_above": 1024,
+                "type": "keyword"
+              },
+              "wired_mac": {
+                "ignore_above": 1024,
+                "type": "keyword"
+              },
+              "wired_vlan": {
+                "type": "long"
+              }
+            },
+            "type": "object"
           }
         }
       },
@@ -3018,46 +3435,6 @@
           }
         }
       },
-      "oracle": {
-        "properties": {
-          "weblogic": {
-            "properties": {
-              "diagnostic_context_id": {
-                "ignore_above": 1024,
-                "type": "keyword"
-              },
-              "machine_name": {
-                "ignore_above": 1024,
-                "type": "keyword"
-              },
-              "message_id": {
-                "ignore_above": 1024,
-                "type": "keyword"
-              },
-              "meta": {
-                "ignore_above": 1024,
-                "type": "keyword"
-              },
-              "server_name": {
-                "ignore_above": 1024,
-                "type": "keyword"
-              },
-              "subsystem": {
-                "ignore_above": 1024,
-                "type": "keyword"
-              },
-              "thread_id": {
-                "ignore_above": 1024,
-                "type": "keyword"
-              },
-              "transaction_id": {
-                "ignore_above": 1024,
-                "type": "keyword"
-              }
-            }
-          }
-        }
-      },
       "orchestrator": {
         "properties": {
           "api_version": {
@@ -3203,6 +3580,10 @@
             "type": "keyword"
           }
         }
+      },
+      "payload": {
+        "ignore_above": 1024,
+        "type": "keyword"
       },
       "policy": {
         "properties": {
@@ -19542,6 +19923,6 @@
     },
     "mapping.nested_fields.limit": 100,
     "mapping.total_fields.limit": 10000,
-    "plugins.index_state_management.rollover_alias": "wazuh-events-oracle_weblogic"
+    "plugins.index_state_management.rollover_alias": "wazuh-events-cisco-meraki"
   }
 }
