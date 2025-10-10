@@ -1,0 +1,543 @@
+- name: cisco-meraki
+  title: Cisco Meraki
+  description: cisco-meraki custom fields for WCS integration
+  root: true
+  fields:
+  - name: cisco.meraki
+    type: object
+    level: custom
+    description: Root object containing all Cisco Meraki specific fields and data.
+  - name: cisco.meraki.aid
+    type: keyword
+    level: custom
+    description: Association identifier used for device association tracking.
+    example: example-aid
+  - name: cisco.meraki.alertData
+    type: object
+    level: custom
+    description: Complete alert data information containing event details.
+  - name: cisco.meraki.alertData.connection
+    type: keyword
+    level: custom
+    description: Connection information details within the alert data structure.
+    example: example-connection
+  - name: cisco.meraki.alertData.local
+    type: keyword
+    level: custom
+    description: Local endpoint information contained within alert data.
+    example: example-local
+  - name: cisco.meraki.alertData.model
+    type: keyword
+    level: custom
+    description: Device model information contained within alert data structure.
+    example: example-model
+  - name: cisco.meraki.alertData.provider
+    type: keyword
+    level: custom
+    description: Provider information details within the alert data structure.
+    example: example-provider
+  - name: cisco.meraki.alertData.remote
+    type: keyword
+    level: custom
+    description: Remote endpoint information contained within alert data.
+    example: example-remote
+  - name: cisco.meraki.alertId
+    type: keyword
+    level: custom
+    description: Unique alert identifier for tracking specific alerts.
+    example: example-alertId
+  - name: cisco.meraki.alertType
+    type: keyword
+    level: custom
+    description: Type classification of the generated alert event.
+    example: example-alertType
+  - name: cisco.meraki.alertTypeId
+    type: keyword
+    level: custom
+    description: Unique identifier for the specific alert type classification.
+    example: example-alertTypeId
+  - name: cisco.meraki.anyconnect_vpn_session_manager
+    type: object
+    level: custom
+    description: AnyConnect VPN session manager containing connection details.
+  - name: cisco.meraki.anyconnect_vpn_session_manager.action
+    type: keyword
+    level: custom
+    description: Specific action performed during the VPN session event.
+    example: example-action
+  - name: cisco.meraki.anyconnect_vpn_session_manager.bytes_in
+    type: long
+    level: custom
+    description: Total number of bytes received during the VPN session.
+    example: 12345
+  - name: cisco.meraki.anyconnect_vpn_session_manager.bytes_out
+    type: long
+    level: custom
+    description: Total number of bytes transmitted during VPN session.
+    example: 12345
+  - name: cisco.meraki.anyconnect_vpn_session_manager.conn_id
+    type: long
+    level: custom
+    description: Unique connection identifier for the VPN session instance.
+    example: 12345
+  - name: cisco.meraki.anyconnect_vpn_session_manager.duration
+    type: keyword
+    level: custom
+    description: Total duration of the VPN session in seconds or milliseconds.
+    example: example-duration
+  - name: cisco.meraki.anyconnect_vpn_session_manager.filter
+    type: keyword
+    level: custom
+    description: Network filter rules applied during the VPN session.
+    example: example-filter
+  - name: cisco.meraki.anyconnect_vpn_session_manager.ip
+    type: ip
+    level: custom
+    description: IP address assigned to the client during VPN session.
+    example: 192.168.1.1
+  - name: cisco.meraki.anyconnect_vpn_session_manager.peer_ip
+    type: ip
+    level: custom
+    description: Peer IP address connected during the VPN session.
+    example: 192.168.1.1
+  - name: cisco.meraki.anyconnect_vpn_session_manager.peer_port
+    type: long
+    level: custom
+    description: Network port number used by the peer during VPN session.
+    example: 12345
+  - name: cisco.meraki.anyconnect_vpn_session_manager.reason
+    type: keyword
+    level: custom
+    description: Detailed reason or cause for the VPN session event occurrence.
+    example: example-reason
+  - name: cisco.meraki.anyconnect_vpn_session_manager.session_id
+    type: long
+    level: custom
+    description: Unique session identifier for tracking the VPN connection.
+    example: 12345
+  - name: cisco.meraki.anyconnect_vpn_session_manager.session_type
+    type: keyword
+    level: custom
+    description: Type classification of the established VPN session.
+    example: example-session_type
+  - name: cisco.meraki.anyconnect_vpn_session_manager.tunnel_id
+    type: float
+    level: custom
+    description: Unique tunnel identifier for the VPN connection instance.
+  - name: cisco.meraki.anyconnect_vpn_session_manager.tunnel_type
+    type: keyword
+    level: custom
+    description: Type of VPN tunnel protocol used for the connection.
+    example: example-tunnel_type
+  - name: cisco.meraki.anyconnect_vpn_session_manager.user_name
+    type: keyword
+    level: custom
+    description: Username of the authenticated user in the VPN session.
+    example: example-user_name
+  - name: cisco.meraki.apple_da_reason
+    type: keyword
+    level: custom
+    description: Reason for Apple device association or disassociation event.
+    example: example-apple_da_reason
+  - name: cisco.meraki.arp_resp
+    type: keyword
+    level: custom
+    description: ARP response information and protocol details.
+    example: example-arp_resp
+  - name: cisco.meraki.arp_src
+    type: keyword
+    level: custom
+    description: ARP source information containing originating device details.
+    example: example-arp_src
+  - name: cisco.meraki.auth_neg_dur
+    type: float
+    level: custom
+    description: Authentication negotiation duration measured in milliseconds.
+  - name: cisco.meraki.band
+    type: keyword
+    level: custom
+    description: Wireless frequency band used for the connection.
+    example: example-band
+  - name: cisco.meraki.best_ap
+    type: keyword
+    level: custom
+    description: Best available access point identifier for optimal connection.
+    example: example-best_ap
+  - name: cisco.meraki.best_ap_load
+    type: long
+    level: custom
+    description: Current load percentage on the best available access point.
+    example: 12345
+  - name: cisco.meraki.best_ap_rssi
+    type: long
+    level: custom
+    description: Received Signal Strength Indicator for the best access point.
+    example: 12345
+  - name: cisco.meraki.bssid
+    type: keyword
+    level: custom
+    description: Basic Service Set Identifier for the wireless network.
+    example: example-bssid
+  - name: cisco.meraki.channel
+    type: long
+    level: custom
+    description: Wireless channel number used for the network communication.
+    example: 12345
+  - name: cisco.meraki.connectivity
+    type: keyword
+    level: custom
+    description: Current connectivity status of the network device.
+    example: example-connectivity
+  - name: cisco.meraki.da_vendor
+    type: keyword
+    level: custom
+    description: Device association vendor information and manufacturer details.
+    example: example-da_vendor
+  - name: cisco.meraki.details
+    type: keyword
+    level: custom
+    description: Additional detailed information about the network event.
+    example: example-details
+  - name: cisco.meraki.deviceTags
+    type: keyword
+    level: custom
+    description: Collection of tags associated with the network device.
+    example: example-deviceTags
+    normalize:
+    - array
+  - name: cisco.meraki.deviceUrl
+    type: keyword
+    level: custom
+    description: Complete URL pointing to the device management interface.
+    example: example-deviceUrl
+  - name: cisco.meraki.dhcp_lease_completed
+    type: float
+    level: custom
+    description: Status indicating whether DHCP lease process completed successfully.
+  - name: cisco.meraki.dhcp_resp
+    type: keyword
+    level: custom
+    description: DHCP response information containing lease details.
+    example: example-dhcp_resp
+  - name: cisco.meraki.disposition
+    type: keyword
+    level: custom
+    description: Final disposition or outcome of the network event.
+    example: example-disposition
+  - name: cisco.meraki.dns_req_rtt
+    type: float
+    level: custom
+    description: DNS request round-trip time measured in milliseconds.
+  - name: cisco.meraki.dns_resp
+    type: keyword
+    level: custom
+    description: DNS response information containing query results.
+    example: example-dns_resp
+  - name: cisco.meraki.dns_server
+    type: ip
+    level: custom
+    description: IP address of the DNS server used for name resolution.
+    example: 192.168.1.1
+  - name: cisco.meraki.download
+    type: keyword
+    level: custom
+    description: Total amount of data downloaded measured in bytes.
+    example: example-download
+  - name: cisco.meraki.dst
+    type: keyword
+    level: custom
+    description: Destination address or identifier for network traffic.
+    example: example-dst
+  - name: cisco.meraki.duration
+    type: float
+    level: custom
+    description: Total duration of the network event in seconds.
+  - name: cisco.meraki.event_subtype
+    type: keyword
+    level: custom
+    description: Specific subtype classification of the network event.
+    example: example-event_subtype
+  - name: cisco.meraki.event_type
+    type: keyword
+    level: custom
+    description: Primary type classification of the network event.
+    example: example-event_type
+  - name: cisco.meraki.fc_subtype
+    type: keyword
+    level: custom
+    description: Frame control subtype for wireless protocol communication.
+    example: example-fc_subtype
+  - name: cisco.meraki.fc_type
+    type: keyword
+    level: custom
+    description: Frame control type used in wireless protocol frames.
+    example: example-fc_type
+  - name: cisco.meraki.firewall
+    type: object
+    level: custom
+    description: Comprehensive firewall information and security details.
+  - name: cisco.meraki.firewall.action
+    type: keyword
+    level: custom
+    description: Specific action taken by the firewall security system.
+    example: example-action
+  - name: cisco.meraki.firewall.pattern
+    type: keyword
+    level: custom
+    description: Security pattern or signature matched by firewall rules.
+    example: example-pattern
+  - name: cisco.meraki.firewall.rule
+    type: keyword
+    level: custom
+    description: Specific firewall rule applied to the network traffic.
+    example: example-rule
+  - name: cisco.meraki.flows
+    type: object
+    level: custom
+    description: Network flow information containing traffic details.
+  - name: cisco.meraki.flows.op
+    type: keyword
+    level: custom
+    description: Specific operation performed within the network flow.
+    example: example-op
+  - name: cisco.meraki.full_conn
+    type: float
+    level: custom
+    description: Status indicating whether connection is fully established.
+  - name: cisco.meraki.http_resp
+    type: keyword
+    level: custom
+    description: HTTP response information containing status details.
+    example: example-http_resp
+  - name: cisco.meraki.identity
+    type: keyword
+    level: custom
+    description: Identity information of the connected device or user.
+    example: example-identity
+  - name: cisco.meraki.instigator
+    type: keyword
+    level: custom
+    description: Entity or process that initiated the network event.
+    example: example-instigator
+  - name: cisco.meraki.ip_resp
+    type: keyword
+    level: custom
+    description: IP response information containing protocol details.
+    example: example-ip_resp
+  - name: cisco.meraki.is_8021x
+    type: long
+    level: custom
+    description: Status indicating whether 802.1X authentication is enabled.
+    example: 12345
+  - name: cisco.meraki.is_wpa
+    type: long
+    level: custom
+    description: Status indicating whether WPA authentication is enabled.
+    example: 12345
+  - name: cisco.meraki.last_auth_ago
+    type: float
+    level: custom
+    description: Time elapsed since the last authentication in seconds.
+  - name: cisco.meraki.load
+    type: long
+    level: custom
+    description: Current load information for the network device.
+    example: 12345
+  - name: cisco.meraki.mxport
+    type: keyword
+    level: custom
+    description: MX appliance port number used for the connection.
+    example: example-mxport
+  - name: cisco.meraki.networkId
+    type: keyword
+    level: custom
+    description: Unique identifier for the specific Meraki network.
+    example: example-networkId
+  - name: cisco.meraki.networkTags
+    type: keyword
+    level: custom
+    description: Collection of tags associated with the network configuration.
+    example: example-networkTags
+  - name: cisco.meraki.networkUrl
+    type: keyword
+    level: custom
+    description: Complete URL pointing to the network management interface.
+    example: example-networkUrl
+  - name: cisco.meraki.new_port_status
+    type: keyword
+    level: custom
+    description: Current status of the network port after event.
+    example: example-new_port_status
+  - name: cisco.meraki.occurredAt
+    type: date
+    level: custom
+    description: Precise timestamp indicating when the event occurred.
+    example: '2023-01-01T00:00:00.000Z'
+  - name: cisco.meraki.old_port_status
+    type: keyword
+    level: custom
+    description: Previous status of the network port before event.
+    example: example-old_port_status
+  - name: cisco.meraki.organizationUrl
+    type: keyword
+    level: custom
+    description: Complete URL pointing to the organization management interface.
+    example: example-organizationUrl
+  - name: cisco.meraki.peer_contact
+    type: keyword
+    level: custom
+    description: Contact information for the connected peer device.
+    example: example-peer_contact
+  - name: cisco.meraki.peer_ident
+    type: keyword
+    level: custom
+    description: Unique identifier for the connected peer device.
+    example: example-peer_ident
+  - name: cisco.meraki.port
+    type: long
+    level: custom
+    description: Network port number used for the connection.
+    example: 12345
+  - name: cisco.meraki.radio
+    type: keyword
+    level: custom
+    description: Radio interface information for wireless connections.
+    example: example-radio
+  - name: cisco.meraki.reason
+    type: keyword
+    level: custom
+    description: Detailed reason or cause for the network event.
+    example: example-reason
+  - name: cisco.meraki.rssi
+    type: long
+    level: custom
+    description: Received Signal Strength Indicator measured in decibels.
+    example: 12345
+  - name: cisco.meraki.security
+    type: object
+    level: custom
+    description: Comprehensive security information and threat details.
+  - name: cisco.meraki.security.action
+    type: keyword
+    level: custom
+    description: Specific security action taken by the protection system.
+    example: example-action
+  - name: cisco.meraki.security.decision
+    type: keyword
+    level: custom
+    description: Security decision made by the threat protection system.
+    example: example-decision
+  - name: cisco.meraki.security.dhost
+    type: keyword
+    level: custom
+    description: Destination host involved in the security event.
+    example: example-dhost
+  - name: cisco.meraki.security.mac
+    type: keyword
+    level: custom
+    description: MAC address associated with the security event.
+    example: example-mac
+  - name: cisco.meraki.security.priority
+    type: long
+    level: custom
+    description: Priority level assigned to the security event or threat.
+    example: 12345
+  - name: cisco.meraki.security.signature
+    type: keyword
+    level: custom
+    description: Security signature or pattern used for threat detection.
+    example: example-signature
+  - name: cisco.meraki.sentAt
+    type: date
+    level: custom
+    description: Precise timestamp when the event was transmitted.
+    example: '2023-01-01T00:00:00.000Z'
+  - name: cisco.meraki.server_ip
+    type: ip
+    level: custom
+    description: IP address of the server involved in the connection.
+    example: 192.168.1.1
+  - name: cisco.meraki.server_mac
+    type: keyword
+    level: custom
+    description: MAC address of the server involved in the connection.
+    example: example-server_mac
+  - name: cisco.meraki.sharedSecret
+    type: keyword
+    level: custom
+    description: Shared secret used for authentication or encryption.
+    example: example-sharedSecret
+  - name: cisco.meraki.site_to_site_vpn
+    type: object
+    level: custom
+    description: Site-to-site VPN connection information and details.
+  - name: cisco.meraki.site_to_site_vpn.raw
+    type: keyword
+    level: custom
+    description: Raw unprocessed site-to-site VPN event data.
+    example: example-raw
+  - name: cisco.meraki.src
+    type: keyword
+    level: custom
+    description: Source address or identifier for network traffic.
+    example: example-src
+  - name: cisco.meraki.summary
+    type: keyword
+    level: custom
+    description: Comprehensive summary of the network event details.
+    example: example-summary
+  - name: cisco.meraki.timestamp
+    type: date
+    level: custom
+    description: Precise timestamp indicating when the event occurred.
+    example: '2023-01-01T00:00:00.000Z'
+  - name: cisco.meraki.type
+    type: keyword
+    level: custom
+    description: Primary type classification of the network event.
+    example: example-type
+  - name: cisco.meraki.upload
+    type: keyword
+    level: custom
+    description: Total amount of data uploaded measured in bytes.
+    example: example-upload
+  - name: cisco.meraki.url
+    type: keyword
+    level: custom
+    description: Complete URL information related to the network event.
+    example: example-url
+  - name: cisco.meraki.vap
+    type: keyword
+    level: custom
+    description: Virtual Access Point identifier for wireless networks.
+    example: example-vap
+  - name: cisco.meraki.version
+    type: keyword
+    level: custom
+    description: Version information of the device or protocol.
+    example: example-version
+  - name: cisco.meraki.vlan
+    type: long
+    level: custom
+    description: Virtual Local Area Network identifier number.
+    example: 12345
+  - name: cisco.meraki.vpn_type
+    type: keyword
+    level: custom
+    description: Type of VPN connection protocol being used.
+    example: example-vpn_type
+  - name: cisco.meraki.wired_mac
+    type: keyword
+    level: custom
+    description: MAC address of the wired network interface.
+    example: example-wired_mac
+  - name: cisco.meraki.wired_vlan
+    type: long
+    level: custom
+    description: VLAN identifier for the wired network connection.
+    example: 12345
+  - name: payload
+    type: keyword
+    level: custom
+    description: Raw event payload containing the original log message.
+    example: example-payload

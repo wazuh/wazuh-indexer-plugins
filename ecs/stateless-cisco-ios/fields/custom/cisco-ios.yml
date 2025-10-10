@@ -1,0 +1,141 @@
+- name: cisco-ios
+  title: Cisco Ios
+  description: cisco-ios custom fields for WCS integration
+  root: true
+  fields:
+  - name: cisco.ios
+    type: object
+    level: custom
+    description: An object containing specific events and data captured by Cisco IOS
+      devices.
+  - name: cisco.ios.access_list
+    type: keyword
+    level: custom
+    description: >-
+      The name or identifier of the access control list (ACL) that processed the network
+      traffic.
+    example: example-access_list
+  - name: cisco.ios.action
+    type: keyword
+    level: custom
+    description: >-
+      The action performed by the Cisco IOS device, such as "Login Success", "exited",
+      or multicast operations.
+    example: example-action
+  - name: cisco.ios.facility
+    type: keyword
+    level: custom
+    short: >-
+      Cisco IOS syslog facility code indicating program/process type that generated
+      message
+    description: >-
+      The facility code from the Cisco IOS syslog message, indicating the type of
+      program or process that generated the message.
+    example: example-facility
+  - name: cisco.ios.interface
+    type: object
+    level: custom
+    description: >-
+      An object containing information about network interfaces on the Cisco IOS device.
+  - name: cisco.ios.interface.name
+    type: keyword
+    level: custom
+    description: >-
+      The name of the network interface (e.g., "GigabitEthernet1/0/1", "FastEthernet0/0")
+      involved in the event.
+    example: example-name
+  - name: cisco.ios.message_count
+    type: long
+    level: custom
+    description: >-
+      The sequential message counter from the Cisco IOS device, used to track the
+      order of syslog messages.
+    example: 12345
+  - name: cisco.ios.outcome
+    type: keyword
+    level: custom
+    description: >-
+      The outcome or result of an operation, extracted from event messages that contain
+      both text and IP addresses.
+    example: example-outcome
+  - name: cisco.ios.pim
+    type: object
+    level: custom
+    description: An object containing Protocol Independent Multicast (PIM) related
+      information.
+  - name: cisco.ios.pim.group.ip
+    type: ip
+    level: custom
+    description: The IP address of the multicast group involved in PIM operations.
+    example: 192.168.1.1
+  - name: cisco.ios.pim.source.ip
+    type: ip
+    level: custom
+    description: The source IP address involved in PIM operations.
+    example: 192.168.1.1
+  - name: cisco.ios.session
+    type: object
+    level: custom
+    description: An object containing information about user sessions on the Cisco
+      IOS device.
+  - name: cisco.ios.session.number
+    type: integer
+    level: custom
+    description: >-
+      The session number or identifier assigned to the user session on the Cisco IOS
+      device.
+  - name: cisco.ios.session.type
+    type: keyword
+    level: custom
+    description: >-
+      The type of user session (e.g., "tty", "vty", "console") established on the
+      Cisco IOS device.
+    example: example-type
+  - name: cisco.ios.tableid
+    type: keyword
+    level: custom
+    description: >-
+      The routing table identifier used in network operations, typically seen in BGP
+      or MPLS contexts.
+    example: example-tableid
+  - name: cisco.ios.uptime
+    type: keyword
+    level: custom
+    description: >-
+      The system uptime of the Cisco IOS device when the event occurred, typically
+      in format like "2y10w" (2 years, 10 weeks).
+    example: example-uptime
+  - name: icmp
+    type: object
+    level: custom
+    description: >-
+      An object containing Internet Control Message Protocol (ICMP) related information.
+  - name: icmp.code
+    type: long
+    level: custom
+    description: >-
+      The ICMP code field, used in conjunction with the ICMP type to provide specific
+      error information in ICMP messages.
+    example: 12345
+  - name: icmp.type
+    type: long
+    level: custom
+    description: >-
+      The ICMP type field, indicating the type of ICMP message (e.g., echo request,
+      echo reply, destination unreachable).
+    example: 12345
+  - name: igmp
+    type: object
+    level: custom
+    description: >-
+      An object containing Internet Group Management Protocol (IGMP) related information.
+  - name: igmp.type
+    type: long
+    level: custom
+    short: >-
+      IGMP type field indicating Internet Group Management Protocol message type for
+      multicast
+    description: >-
+      The IGMP (Internet Group Management Protocol) type field, indicating the type
+      of IGMP message used for multicast group management.
+    example: 12345

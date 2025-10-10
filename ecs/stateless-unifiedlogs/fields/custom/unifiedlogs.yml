@@ -1,0 +1,35 @@
+- name: unifiedlogs
+  title: Unifiedlogs
+  description: unifiedlogs custom fields for WCS integration
+  root: true
+  fields:
+  - name: macos_uls.macos_entitlement
+    type: keyword
+    level: custom
+    short: >-
+      macOS entitlement allowing executables to bypass system restrictions. Used for
+      detecting privilege escalation attempts.
+    description: >-
+      Specific macOS entitlement or capability allowing an executable to bypass certain
+      system restrictions. Useful for detecting privilege usage or bypass attempts.
+    example: example-macos_entitlement
+  - name: macos_uls.auth_method
+    type: keyword
+    level: custom
+    short: >-
+      Authentication method used during login (e.g., keyboard-interactive, pam, smartcard).
+      Used for access auditing.
+    description: >-
+      Authentication method used during a login attempt (e.g., `keyboard-interactive`,
+      `pam`, or `smartcard`). Useful for access auditing.
+    example: example-auth_method
+  - name: macos_uls.ipc_type
+    type: keyword
+    level: custom
+    short: >-
+      IPC mechanism type used in process spawning (e.g., mach, socket). Useful for
+      process activity analysis.
+    description: >-
+      Type of Interprocess Communication (IPC) mechanism involved in spawning a process
+      (e.g., `mach`, `socket`). Useful for process activity analysis.
+    example: example-ipc_type

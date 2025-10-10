@@ -1,0 +1,3256 @@
+- name: aws
+  title: Aws
+  description: aws custom fields for WCS integration
+  root: true
+  fields:
+  - name: aws.apigateway_api_id
+    type: keyword
+    level: custom
+    description: The identifier API Gateway assigns to your API.
+    example: example-apigateway_api_id
+  - name: aws.apigateway_caller
+    type: keyword
+    level: custom
+    description: The principal identifier of the caller making the request.
+    example: example-apigateway_caller
+  - name: aws.apigateway_connection_id
+    type: keyword
+    level: custom
+    description: >-
+      A unique ID for the connection that can be used to make a callback to the client.
+    example: example-apigateway_connection_id
+  - name: aws.apigateway_domain_name
+    type: keyword
+    level: custom
+    description: The full domain name used to invoke the API.
+    example: example-apigateway_domain_name
+  - name: aws.apigateway_event_type
+    type: keyword
+    level: custom
+    description: 'The event type: CONNECT, MESSAGE, or DISCONNECT.'
+    example: example-apigateway_event_type
+  - name: aws.apigateway_http_method
+    type: keyword
+    level: custom
+    description: >-
+      The HTTP method used. Valid values include: DELETE, GET, HEAD, OPTIONS, PATCH,
+      POST, and PUT.
+    example: example-apigateway_http_method
+  - name: aws.apigateway_ip
+    type: keyword
+    level: custom
+    description: The internet address of the requester.
+    example: example-apigateway_ip
+  - name: aws.apigateway_protocol
+    type: keyword
+    level: custom
+    description: >-
+      API Gateway APIs can accept HTTP/2 requests, but API Gateway sends requests
+      to backend integrations using HTTP/1.1.
+    example: example-apigateway_protocol
+  - name: aws.apigateway_request_id
+    type: keyword
+    level: custom
+    description: An ID for the request. Clients can override this request ID.
+    example: example-apigateway_request_id
+  - name: aws.apigateway_request_time
+    type: date
+    level: custom
+    description: The CLF-formatted request time as reported by the log source.
+    example: '2023-01-01T00:00:00.000Z'
+  - name: aws.apigateway_resource_path
+    type: keyword
+    level: custom
+    description: The path to your resource.
+    example: example-apigateway_resource_path
+  - name: aws.apigateway_response_length
+    type: long
+    level: custom
+    description: The response payload length in bytes.
+    example: 12345
+  - name: aws.apigateway_route_key
+    type: keyword
+    level: custom
+    description: The selected route key as reported by the log source.
+    example: example-apigateway_route_key
+  - name: aws.apigateway_stage
+    type: keyword
+    level: custom
+    description: The deployment stage of the API call (for example, beta or prod).
+    example: example-apigateway_stage
+  - name: aws.apigateway_status
+    type: long
+    level: custom
+    description: The response status as reported by AWS API Gateway.
+    example: 12345
+  - name: aws.apigateway_user
+    type: keyword
+    level: custom
+    description: The principal identifier of the user making the request.
+    example: example-apigateway_user
+  - name: aws.cloudfront_domain
+    type: keyword
+    level: custom
+    description: The domain name of the CloudFront distribution as reported by AWS
+      CloudFront.
+    example: example-cloudfront_domain
+  - name: aws.cloudfront_edge_detailed_result_type
+    type: keyword
+    level: custom
+    short: Error type when x-edge-result-type is Error
+    description: >-
+      When the value of the x-edge-result-type field is Error, this field contains
+      the specific type of error. When the object was served to the viewer from the
+      Origin Shield cache, this field contains OriginShieldHit. In all other cases,
+      this field contains the same value as x-edge-result-type.
+    example: example-cloudfront_edge_detailed_result_type
+  - name: aws.cloudfront_edge_location
+    type: keyword
+    level: custom
+    short: >-
+      Edge location serving request (3-letter IATA airport code + number, e.g., DFW3)
+      identifying geographic location
+    description: >-
+      The edge location that served the request. Each edge location is identified
+      by a three-letter code and an arbitrarily assigned number (for example, DFW3).
+      The three-letter code typically corresponds with the International Air Transport
+      Association (IATA) airport code for an airport near the edge location’s geographic
+      location.
+    example: example-cloudfront_edge_location
+  - name: aws.cloudfront_edge_response_result_type
+    type: keyword
+    level: custom
+    short: >-
+      Server response classification just before returning response to viewer (see
+      also x-edge-result-type field)
+    description: >-
+      How the server classified the response just before returning the response to
+      the viewer. See also the x-edge-result-type field.
+    example: example-cloudfront_edge_response_result_type
+  - name: aws.cloudfront_edge_result_type
+    type: keyword
+    level: custom
+    short: >-
+      Server response classification after last byte sent; result type can change
+      during response transmission
+    description: >-
+      How the server classified the response after the last byte left the server.
+      In some cases, the result type can change between the time that the server is
+      ready to send the response and the time that it finishes sending the response.
+    example: example-cloudfront_edge_result_type
+  - name: aws.cloudfront_forwarded_ip
+    type: keyword
+    level: custom
+    description: This field contains client IP addresses collected by CloudFront.
+    example: example-cloudfront_forwarded_ip
+  - name: aws.cloudfront_range_end
+    type: long
+    level: custom
+    description: >-
+      When the response contains the HTTP Content-Range header, this field contains
+      the range end value.
+    example: 12345
+  - name: aws.cloudfront_range_start
+    type: long
+    level: custom
+    description: >-
+      When the response contains the HTTP Content-Range header, this field contains
+      the range start value.
+    example: 12345
+  - name: aws.cloudfront_time_to_first_byte
+    type: float
+    level: custom
+    short: >-
+      Seconds between receiving request and writing first response byte, measured
+      on server
+    description: >-
+      The number of seconds between receiving the request and writing the first byte
+      of the response, as measured on the server.
+  - name: aws.cloudtrail_additional_event_data
+    type: keyword
+    level: custom
+    description: Additional data about the event that was not part of the request
+      or response.
+    example: example-cloudtrail_additional_event_data
+  - name: aws.cloudtrail_api_version
+    type: keyword
+    level: custom
+    description: The API version associated with the AwsApiCall eventType value.
+    example: example-cloudtrail_api_version
+  - name: aws.cloudtrail_console_login_additional_event_data_login_to
+    type: keyword
+    level: custom
+    description: The URL that the user navigated to when logging into the AWS Management
+      Console.
+    example: example-cloudtrail_console_login_additional_event_data_login_to
+  - name: aws.cloudtrail_console_login_additional_event_data_mfa_used
+    type: boolean
+    level: custom
+    description: >-
+      Indicates whether multi-factor authentication (MFA) was used during console
+      login.
+    example: true
+  - name: aws.cloudtrail_console_login_additional_event_data_mobile_version
+    type: boolean
+    level: custom
+    description: Indicates whether the mobile version of the console was used for
+      login.
+    example: true
+  - name: aws.cloudtrail_digest_end_time
+    type: date
+    level: custom
+    description: The end time for the digest delivery time range.
+    example: '2023-01-01T00:00:00.000Z'
+  - name: aws.cloudtrail_digest_log_files
+    type: nested
+    level: custom
+    description: A list of log files that are covered by the digest file.
+  - name: aws.cloudtrail_digest_newest_event_time
+    type: date
+    level: custom
+    description: The timestamp of the newest event in the digest file.
+    example: '2023-01-01T00:00:00.000Z'
+  - name: aws.cloudtrail_digest_oldest_event_time
+    type: date
+    level: custom
+    description: The timestamp of the oldest event in the digest file.
+    example: '2023-01-01T00:00:00.000Z'
+  - name: aws.cloudtrail_digest_previous_hash_algorithm
+    type: keyword
+    level: custom
+    description: The hash algorithm used for the previous digest file.
+    example: example-cloudtrail_digest_previous_hash_algorithm
+  - name: aws.cloudtrail_digest_previous_s3_bucket
+    type: keyword
+    level: custom
+    description: The S3 bucket where the previous digest file was delivered.
+    example: example-cloudtrail_digest_previous_s3_bucket
+  - name: aws.cloudtrail_digest_public_key_fingerprint
+    type: keyword
+    level: custom
+    description: The fingerprint of the public key used to validate the digest file.
+    example: example-cloudtrail_digest_public_key_fingerprint
+  - name: aws.cloudtrail_digest_s3_bucket
+    type: keyword
+    level: custom
+    description: The S3 bucket where the digest file was delivered.
+    example: example-cloudtrail_digest_s3_bucket
+  - name: aws.cloudtrail_digest_signature_algorithm
+    type: keyword
+    level: custom
+    description: The algorithm used to sign the digest file.
+    example: example-cloudtrail_digest_signature_algorithm
+  - name: aws.cloudtrail_digest_start_time
+    type: date
+    level: custom
+    description: The start time for the digest delivery time range.
+    example: '2023-01-01T00:00:00.000Z'
+  - name: aws.cloudtrail_error_code
+    type: keyword
+    level: custom
+    description: The AWS service error if the request returns an error.
+    example: example-cloudtrail_error_code
+  - name: aws.cloudtrail_error_message
+    type: keyword
+    level: custom
+    description: If the request returns an error, the description of the error.
+    example: example-cloudtrail_error_message
+  - name: aws.cloudtrail_event_category
+    type: keyword
+    level: custom
+    description: The category of the CloudTrail event, such as Management, Data, or
+      Insight.
+    example: example-cloudtrail_event_category
+  - name: aws.cloudtrail_event_id
+    type: keyword
+    level: custom
+    description: A unique ID for this event. This can be used to identify a specific
+      event.
+    example: example-cloudtrail_event_id
+  - name: aws.cloudtrail_event_source
+    type: keyword
+    level: custom
+    description: The source of the CloudTrail event.
+    example: example-cloudtrail_event_source
+  - name: aws.cloudtrail_event_type
+    type: keyword
+    level: custom
+    description: >-
+      Identifies the type of event, such as AwsApiCall, AwsServiceEvent, or AwsConsoleSignIn.
+    example: example-cloudtrail_event_type
+  - name: aws.cloudtrail_event_version
+    type: keyword
+    level: custom
+    description: The version of the CloudTrail event format.
+    example: example-cloudtrail_event_version
+  - name: aws.cloudtrail_insight_details
+    type: object
+    level: custom
+    description: Additional information about an Insights event.
+  - name: aws.cloudtrail_management_event
+    type: boolean
+    level: custom
+    description: >-
+      Indicates whether the event is a management event. A value of true indicates
+      a management event.
+    example: true
+  - name: aws.cloudtrail_read_only
+    type: boolean
+    level: custom
+    description: Identifies whether an event is a read-only event or a write event.
+    example: true
+  - name: aws.cloudtrail_recipient_account_id
+    type: keyword
+    level: custom
+    description: Represents the account ID that received this event.
+    example: example-cloudtrail_recipient_account_id
+  - name: aws.cloudtrail_request_id
+    type: keyword
+    level: custom
+    description: >-
+      The value that identifies the request. The service being called generates this
+      value.
+    example: example-cloudtrail_request_id
+  - name: aws.cloudtrail_request_parameters
+    type: keyword
+    level: custom
+    description: The parameters, if any, that were sent with the request.
+    example: example-cloudtrail_request_parameters
+  - name: aws.cloudtrail_resources
+    type: nested
+    level: custom
+    description: A list of resources accessed in the event.
+  - name: aws.cloudtrail_response_elements
+    type: keyword
+    level: custom
+    description: The response elements from the service that processed the request.
+    example: example-cloudtrail_response_elements
+  - name: aws.cloudtrail_shared_event_id
+    type: keyword
+    level: custom
+    description: >-
+      GUID generated by CloudTrail to uniquely identify CloudTrail events from the
+      same AWS action.
+    example: example-cloudtrail_shared_event_id
+  - name: aws.cloudtrail_user_identity_access_key_id
+    type: keyword
+    level: custom
+    description: The access key ID that was used to sign the request.
+    example: example-cloudtrail_user_identity_access_key_id
+  - name: aws.cloudtrail_user_identity_arn
+    type: keyword
+    level: custom
+    description: The Amazon Resource Name (ARN) of the principal that made the call.
+    example: example-cloudtrail_user_identity_arn
+  - name: aws.cloudtrail_user_identity_invoked_by
+    type: keyword
+    level: custom
+    description: The name of the AWS service that made the request, such as signin.amazonaws.com.
+    example: example-cloudtrail_user_identity_invoked_by
+  - name: aws.cloudtrail_user_identity_session_context_creation_date
+    type: date
+    level: custom
+    description: The date and time when the session credentials were issued.
+    example: '2023-01-01T00:00:00.000Z'
+  - name: aws.cloudtrail_user_identity_session_context_mfa_authenticated
+    type: keyword
+    level: custom
+    description: >-
+      If MFA was used to authenticate the request, shows whether MFA was authenticated
+      or not.
+    example: example-cloudtrail_user_identity_session_context_mfa_authenticated
+  - name: aws.cloudtrail_user_identity_session_context_session_issuer_account_id
+    type: keyword
+    level: custom
+    description: The account that owns the entity that was used to get credentials.
+    example: example-cloudtrail_user_identity_session_context_session_issuer_account_id
+  - name: aws.cloudtrail_user_identity_session_context_session_issuer_arn
+    type: keyword
+    level: custom
+    description: >-
+      The ARN of the source (account, IAM user, or role) that was used to get temporary
+      credentials.
+    example: example-cloudtrail_user_identity_session_context_session_issuer_arn
+  - name: aws.cloudtrail_user_identity_session_context_session_issuer_principal_id
+    type: keyword
+    level: custom
+    description: The internal ID of the entity that was used to get credentials.
+    example: example-cloudtrail_user_identity_session_context_session_issuer_principal_id
+  - name: aws.cloudtrail_user_identity_session_context_session_issuer_type
+    type: keyword
+    level: custom
+    description: The type of session issuer, such as Role or IAMUser.
+    example: example-cloudtrail_user_identity_session_context_session_issuer_type
+  - name: aws.cloudtrail_user_identity_type
+    type: keyword
+    level: custom
+    description: >-
+      The type of identity that made the request, such as IAMUser, AssumedRole, or
+      Root.
+    example: example-cloudtrail_user_identity_type
+  - name: aws.cloudtrail_vpc_endpoint_id
+    type: keyword
+    level: custom
+    description: >-
+      Identifies the VPC endpoint in which requests were made from a VPC to another
+      AWS service.
+    example: example-cloudtrail_vpc_endpoint_id
+  - name: aws.cloudwatch.event_id
+    type: keyword
+    level: custom
+    description: The unique identifier for the CloudWatch log event.
+    example: example-event_id
+  - name: aws.cloudwatch.ingestion_time
+    type: date
+    level: custom
+    description: The time the CloudWatch log event was ingested.
+    example: '2023-01-01T00:00:00.000Z'
+  - name: aws.cloudwatch.log_stream_name
+    type: keyword
+    level: custom
+    description: The name of the CloudWatch log stream.
+    example: example-log_stream_name
+  - name: aws.ec2_ip_address
+    type: ip
+    level: custom
+    description: The IP address of the EC2 instance.
+    example: 192.168.1.1
+  - name: aws.elb_action_executed
+    type: keyword
+    level: custom
+    description: The action executed by the load balancer.
+    example: example-elb_action_executed
+  - name: aws.elb_alpn_be_protocol
+    type: keyword
+    level: custom
+    description: >-
+      The Application-Layer Protocol Negotiation (ALPN) protocol used for the back-end
+      connection.
+    example: example-elb_alpn_be_protocol
+  - name: aws.elb_alpn_client_preference_list
+    type: keyword
+    level: custom
+    description: The list of ALPN protocols preferred by the client.
+    example: example-elb_alpn_client_preference_list
+  - name: aws.elb_alpn_fe_protocol
+    type: keyword
+    level: custom
+    description: >-
+      The Application-Layer Protocol Negotiation (ALPN) protocol used for the front-end
+      connection.
+    example: example-elb_alpn_fe_protocol
+  - name: aws.elb_backend_http_response_status_code
+    type: long
+    level: custom
+    description: The HTTP response status code from the backend.
+    example: 12345
+  - name: aws.elb_backend_ip
+    type: ip
+    level: custom
+    description: The IP address of the backend instance.
+    example: 192.168.1.1
+  - name: aws.elb_backend_port
+    type: keyword
+    level: custom
+    description: The port number of the backend instance.
+    example: example-elb_backend_port
+  - name: aws.elb_backend_processing_time_sec
+    type: float
+    level: custom
+    short: >-
+      Total seconds load balancer spent sending request to backend and receiving response
+      from instance
+    description: >-
+      The total time, in seconds, that the load balancer spent sending the request
+      to a backend instance and receiving the response from the instance.
+  - name: aws.elb_chosen_cert_arn
+    type: keyword
+    level: custom
+    description: The ARN of the chosen certificate.
+    example: example-elb_chosen_cert_arn
+  - name: aws.elb_chosen_cert_serial
+    type: keyword
+    level: custom
+    description: The serial number of the chosen certificate.
+    example: example-elb_chosen_cert_serial
+  - name: aws.elb_chosen_cert.arn
+    type: keyword
+    level: custom
+    description: The ARN of the chosen certificate as reported by the log source.
+    example: example-arn
+  - name: aws.elb_classification
+    type: keyword
+    level: custom
+    description: The classification of the request.
+    example: example-elb_classification
+  - name: aws.elb_classification_reason
+    type: keyword
+    level: custom
+    description: The reason for the classification.
+    example: example-elb_classification_reason
+  - name: aws.elb_connection_time_ms
+    type: float
+    level: custom
+    description: The total time, in milliseconds, that the connection was open.
+  - name: aws.elb_connection_time.ms
+    type: float
+    level: custom
+    description: The time, in milliseconds, that the connection was open.
+  - name: aws.elb_error_reason
+    type: keyword
+    level: custom
+    description: The reason for the error.
+    example: example-elb_error_reason
+  - name: aws.elb_incoming_tls_alert
+    type: keyword
+    level: custom
+    description: The TLS alert received from the client.
+    example: example-elb_incoming_tls_alert
+  - name: aws.elb_leaf_client_cert_not_after
+    type: date
+    level: custom
+    description: The date and time after which the client certificate is not valid.
+    example: '2023-01-01T00:00:00.000Z'
+  - name: aws.elb_leaf_client_cert_not_before
+    type: date
+    level: custom
+    description: The date and time before which the client certificate is not valid.
+    example: '2023-01-01T00:00:00.000Z'
+  - name: aws.elb_leaf_client_cert_serial_number
+    type: keyword
+    level: custom
+    description: The serial number of the client certificate.
+    example: example-elb_leaf_client_cert_serial_number
+  - name: aws.elb_leaf_client_cert_subject
+    type: keyword
+    level: custom
+    description: The subject of the client certificate.
+    example: example-elb_leaf_client_cert_subject
+  - name: aws.elb_listener
+    type: keyword
+    level: custom
+    description: The listener associated with the connection.
+    example: example-elb_listener
+  - name: aws.elb_matched_rule_priority
+    type: keyword
+    level: custom
+    description: The priority of the matched rule.
+    example: example-elb_matched_rule_priority
+  - name: aws.elb_name
+    type: keyword
+    level: custom
+    description: The name of the Elastic Load Balancer.
+    example: example-elb_name
+  - name: aws.elb_protocol
+    type: keyword
+    level: custom
+    description: The protocol used by the Elastic Load Balancer (e.g., HTTP, HTTPS).
+    example: example-elb_protocol
+  - name: aws.elb_redirect_url
+    type: keyword
+    level: custom
+    description: The URL to which the request was redirected.
+    example: example-elb_redirect_url
+  - name: aws.elb_request_processing_time_sec
+    type: float
+    level: custom
+    short: >-
+      Total seconds load balancer spent receiving request from client and sending
+      to backend instance
+    description: >-
+      The total time, in seconds, that the load balancer spent receiving the request
+      from the client and sending it to a backend instance.
+  - name: aws.elb_response_processing_time_sec
+    type: float
+    level: custom
+    short: >-
+      Total seconds load balancer spent receiving backend response and sending to
+      client
+    description: >-
+      The total time, in seconds, that the load balancer spent receiving the response
+      from the backend instance and sending it to the client.
+  - name: aws.elb_ssl_cipher
+    type: keyword
+    level: custom
+    description: The SSL cipher used for the connection.
+    example: example-elb_ssl_cipher
+  - name: aws.elb_ssl_named_group
+    type: keyword
+    level: custom
+    description: The named group used for the SSL connection.
+    example: example-elb_ssl_named_group
+  - name: aws.elb_ssl_protocol
+    type: keyword
+    level: custom
+    description: The SSL protocol used for the connection.
+    example: example-elb_ssl_protocol
+  - name: aws.elb_target_group_arn
+    type: keyword
+    level: custom
+    description: The ARN of the target group.
+    example: example-elb_target_group_arn
+  - name: aws.elb_target_group.arn
+    type: keyword
+    level: custom
+    description: The Amazon Resource Name (ARN) of the target group as reported.
+    example: example-arn
+  - name: aws.elb_target_port
+    type: keyword
+    level: custom
+    description: The port of the target.
+    example: example-elb_target_port
+  - name: aws.elb_target_status_code
+    type: keyword
+    level: custom
+    description: The status code of the target.
+    example: example-elb_target_status_code
+  - name: aws.elb_tls_connection_creation_time
+    type: date
+    level: custom
+    description: The time when the TLS connection was created.
+    example: '2023-01-01T00:00:00.000Z'
+  - name: aws.elb_tls_connection_creation_time_str
+    type: date
+    level: custom
+    description: The time when the TLS connection was created as reported by the log
+      source.
+    example: '2023-01-01T00:00:00.000Z'
+  - name: aws.elb_tls_error_code
+    type: keyword
+    level: custom
+    description: The TLS error code as reported by AWS ELB.
+    example: example-elb_tls_error_code
+  - name: aws.elb_tls_handshake_latency
+    type: float
+    level: custom
+    description: The latency of the TLS handshake as reported by the log source.
+  - name: aws.elb_tls_handshake_time_ms
+    type: float
+    level: custom
+    description: The total time, in milliseconds, that the TLS handshake took.
+  - name: aws.elb_tls_handshake_time.ms
+    type: float
+    level: custom
+    description: The time, in milliseconds, that the TLS handshake took.
+  - name: aws.elb_tls_verify_status
+    type: keyword
+    level: custom
+    description: The TLS verification status as reported by AWS ELB.
+    example: example-elb_tls_verify_status
+  - name: aws.elb_trace_id
+    type: keyword
+    level: custom
+    description: The trace ID of the request.
+    example: example-elb_trace_id
+  - name: aws.elb_type
+    type: keyword
+    level: custom
+    description: The type of Elastic Load Balancer (e.g., application, network).
+    example: example-elb_type
+  - name: aws.firewall_alert_category
+    type: keyword
+    level: custom
+    description: The category of the alert generated by the AWS Network Firewall.
+    example: example-firewall_alert_category
+  - name: aws.firewall_alert_rev_id
+    type: keyword
+    level: custom
+    description: The revision ID of the alert signature.
+    example: example-firewall_alert_rev_id
+  - name: aws.firewall_alert_severity
+    type: long
+    level: custom
+    description: The severity level of the alert generated by the AWS Network Firewall.
+    example: 12345
+  - name: aws.firewall_alert_signature
+    type: keyword
+    level: custom
+    description: The name or description of the alert signature.
+    example: example-firewall_alert_signature
+  - name: aws.firewall_alert_signature_id
+    type: long
+    level: custom
+    description: The unique identifier for the alert signature.
+    example: 12345
+  - name: aws.firewall_flow
+    type: nested
+    level: custom
+    description: The network flow information related to the event.
+  - name: aws.firewall_flow.age
+    type: long
+    level: custom
+    description: The age of the network flow in seconds.
+    example: 12345
+  - name: aws.firewall_flow.bytes
+    type: long
+    level: custom
+    description: The total number of bytes transferred in the network flow.
+    example: 12345
+  - name: aws.firewall_flow.end
+    type: keyword
+    level: custom
+    description: The timestamp indicating when the network flow ended.
+    example: example-end
+  - name: aws.firewall_flow.id
+    type: keyword
+    level: custom
+    description: The unique identifier for the network flow.
+    example: example-id
+  - name: aws.firewall_flow.max_ttl
+    type: long
+    level: custom
+    description: The maximum time-to-live (TTL) value observed in the network flow.
+    example: 12345
+  - name: aws.firewall_flow.min_ttl
+    type: long
+    level: custom
+    description: The minimum time-to-live (TTL) value observed in the network flow.
+    example: 12345
+  - name: aws.firewall_flow.pkts
+    type: long
+    level: custom
+    description: The total number of packets transferred in the network flow.
+    example: 12345
+  - name: aws.firewall_flow.start
+    type: keyword
+    level: custom
+    description: The timestamp indicating when the network flow started.
+    example: example-start
+  - name: aws.firewall_tcp_flags
+    type: keyword
+    level: custom
+    description: The TCP flags associated with the event.
+    example: example-firewall_tcp_flags
+  - name: aws.guardduty.account_id
+    type: keyword
+    level: custom
+    description: The twelve-digit AWS account ID associated with the GuardDuty finding.
+    example: example-account_id
+  - name: aws.guardduty.arn
+    type: keyword
+    level: custom
+    description: The Amazon Resource Name (ARN) generated for the specific GuardDuty
+      finding.
+    example: example-arn
+  - name: aws.guardduty.confidence
+    type: float
+    level: custom
+    description: The confidence level (0-100) associated with the accuracy of the
+      finding.
+  - name: aws.guardduty.created_at
+    type: date
+    level: custom
+    description: The timestamp indicating when the finding was initially created by
+      GuardDuty.
+    example: '2023-01-01T00:00:00.000Z'
+  - name: aws.guardduty.description
+    type: keyword
+    level: custom
+    description: >-
+      A detailed description explaining the potential security issue identified by
+      GuardDuty.
+    example: example-description
+  - name: aws.guardduty.id
+    type: keyword
+    level: custom
+    description: The unique identifier assigned to this specific GuardDuty finding
+      event.
+    example: example-id
+  - name: aws.guardduty.partition
+    type: keyword
+    level: custom
+    description: The AWS partition where the finding occurred (e.g., aws, aws-cn).
+    example: example-partition
+  - name: aws.guardduty.region
+    type: keyword
+    level: custom
+    description: The specific AWS Region where the potential security issue was detected.
+    example: example-region
+  - name: aws.guardduty.resource.access_key_details.accesskey_id
+    type: keyword
+    level: custom
+    description: The access key ID related to the compromised AWS resource finding.
+    example: example-accesskey_id
+  - name: aws.guardduty.resource.access_key_details.principal_id
+    type: keyword
+    level: custom
+    description: The principal ID associated with the identified AWS access key event.
+    example: example-principal_id
+  - name: aws.guardduty.resource.access_key_details.user.name
+    type: keyword
+    level: custom
+    description: The username connected to the involved AWS access key credentials
+      involved.
+    example: example-name
+  - name: aws.guardduty.resource.access_key_details.user.type
+    type: keyword
+    level: custom
+    description: The type of user associated with the access key (e.g., IAMUser).
+    example: example-type
+  - name: aws.guardduty.resource.container_details.container_runtime
+    type: keyword
+    level: custom
+    description: The runtime environment used by the container involved in the finding.
+    example: example-container_runtime
+  - name: aws.guardduty.resource.container_details.id
+    type: keyword
+    level: custom
+    description: The unique identifier of the container involved in the detected event.
+    example: example-id
+  - name: aws.guardduty.resource.container_details.image.prefix
+    type: keyword
+    level: custom
+    description: The prefix part of the container image name identified in finding.
+    example: example-prefix
+  - name: aws.guardduty.resource.container_details.image.value
+    type: keyword
+    level: custom
+    description: The full name of the container image related to the finding.
+    example: example-value
+  - name: aws.guardduty.resource.container_details.name
+    type: keyword
+    level: custom
+    description: The specific name of the container associated with the security finding.
+    example: example-name
+  - name: aws.guardduty.resource.container_details.security_context.privileged
+    type: boolean
+    level: custom
+    description: Indicates if the container was running with elevated (privileged)
+      permissions.
+    example: true
+  - name: aws.guardduty.resource.container_details.volume_mounts
+    type: nested
+    level: custom
+    description: Details about volume mounts configured for the affected container
+      resource.
+  - name: aws.guardduty.resource.ebs_volume_details.scanned_volume_details
+    type: nested
+    level: custom
+    description: Information about the EBS volumes that were successfully scanned
+      by GuardDuty.
+  - name: aws.guardduty.resource.ebs_volume_details.skipped_volume_details
+    type: nested
+    level: custom
+    description: Information about the EBS volumes that GuardDuty skipped during the
+      scan.
+  - name: aws.guardduty.resource.ecs_cluster_details.active_services_count
+    type: long
+    level: custom
+    description: The total number of active services running within the ECS cluster.
+    example: 12345
+  - name: aws.guardduty.resource.ecs_cluster_details.arn
+    type: keyword
+    level: custom
+    description: The Amazon Resource Name (ARN) identifying the affected ECS cluster
+      resource.
+    example: example-arn
+  - name: aws.guardduty.resource.ecs_cluster_details.name
+    type: keyword
+    level: custom
+    description: The friendly name assigned to the ECS cluster involved in finding.
+    example: example-name
+  - name: aws.guardduty.resource.ecs_cluster_details.registered_container_instances_count
+    type: long
+    level: custom
+    description: Count of container instances registered within the relevant ECS cluster.
+    example: 12345
+  - name: aws.guardduty.resource.ecs_cluster_details.running_tasks_count
+    type: long
+    level: custom
+    description: The number of tasks currently running within the specified ECS cluster.
+    example: 12345
+  - name: aws.guardduty.resource.ecs_cluster_details.status
+    type: keyword
+    level: custom
+    description: The current operational status of the ECS cluster (e.g., ACTIVE).
+    example: example-status
+  - name: aws.guardduty.resource.ecs_cluster_details.tags
+    type: nested
+    level: custom
+    description: Key-value tags associated with the ECS cluster resource for categorization.
+  - name: aws.guardduty.resource.ecs_cluster_details.task_details.arn
+    type: keyword
+    level: custom
+    description: The Amazon Resource Name (ARN) of the specific ECS task involved.
+    example: example-arn
+  - name: aws.guardduty.resource.ecs_cluster_details.task_details.containers
+    type: nested
+    level: custom
+    description: Details about the containers running as part of the ECS task.
+  - name: aws.guardduty.resource.ecs_cluster_details.task_details.created_at
+    type: date
+    level: custom
+    description: Timestamp indicating when the involved ECS task resource was created.
+    example: '2023-01-01T00:00:00.000Z'
+  - name: aws.guardduty.resource.ecs_cluster_details.task_details.definitionarn
+    type: keyword
+    level: custom
+    description: The ARN of the ECS task definition used by the task.
+    example: example-definitionarn
+  - name: aws.guardduty.resource.ecs_cluster_details.task_details.group
+    type: keyword
+    level: custom
+    description: The group name associated with the affected ECS task finding.
+    example: example-group
+  - name: aws.guardduty.resource.ecs_cluster_details.task_details.started_at
+    type: date
+    level: custom
+    description: Timestamp indicating when the involved ECS task actually started
+      running.
+    example: '2023-01-01T00:00:00.000Z'
+  - name: aws.guardduty.resource.ecs_cluster_details.task_details.started_by
+    type: keyword
+    level: custom
+    description: Identifier for the entity that initiated the start of the task.
+    example: example-started_by
+  - name: aws.guardduty.resource.ecs_cluster_details.task_details.tags
+    type: nested
+    level: custom
+    description: Key-value tags associated with the specific ECS task for identification.
+  - name: aws.guardduty.resource.ecs_cluster_details.task_details.version
+    type: keyword
+    level: custom
+    description: The version number associated with the ECS task involved in finding.
+    example: example-version
+  - name: aws.guardduty.resource.ecs_cluster_details.task_details.volumes
+    type: nested
+    level: custom
+    description: Information regarding volumes attached or used by the specific ECS
+      task.
+  - name: aws.guardduty.resource.eks_cluster_details.arn
+    type: keyword
+    level: custom
+    description: The Amazon Resource Name (ARN) of the EKS cluster resource.
+    example: example-arn
+  - name: aws.guardduty.resource.eks_cluster_details.created_at
+    type: date
+    level: custom
+    description: Timestamp indicating when the specified EKS cluster resource was
+      created.
+    example: '2023-01-01T00:00:00.000Z'
+  - name: aws.guardduty.resource.eks_cluster_details.name
+    type: keyword
+    level: custom
+    description: The user-defined name identifying the EKS cluster involved in finding.
+    example: example-name
+  - name: aws.guardduty.resource.eks_cluster_details.status
+    type: keyword
+    level: custom
+    description: The current operational status of the EKS cluster (e.g., ACTIVE).
+    example: example-status
+  - name: aws.guardduty.resource.eks_cluster_details.tags
+    type: nested
+    level: custom
+    description: Key-value tags that are associated with the EKS cluster resource.
+  - name: aws.guardduty.resource.eks_cluster_details.vpcid
+    type: keyword
+    level: custom
+    description: The VPC ID associated with the EKS cluster identified in finding.
+    example: example-vpcid
+  - name: aws.guardduty.resource.instance_details.availability_zone
+    type: keyword
+    level: custom
+    description: The Availability Zone where the EC2 instance is currently located.
+    example: example-availability_zone
+  - name: aws.guardduty.resource.instance_details.iaminstance_profile
+    type: nested
+    level: custom
+    description: Details of the IAM instance profile attached to the EC2 instance.
+  - name: aws.guardduty.resource.instance_details.image.description
+    type: keyword
+    level: custom
+    description: Textual description of the AMI used to launch the instance.
+    example: example-description
+  - name: aws.guardduty.resource.instance_details.image.id
+    type: keyword
+    level: custom
+    description: The unique identifier (AMI ID) of the image used for instance.
+    example: example-id
+  - name: aws.guardduty.resource.instance_details.instance.id
+    type: keyword
+    level: custom
+    description: The unique instance ID of the EC2 resource involved in finding.
+    example: example-id
+  - name: aws.guardduty.resource.instance_details.instance.state
+    type: keyword
+    level: custom
+    description: The current operational state of the EC2 instance (e.g., running).
+    example: example-state
+  - name: aws.guardduty.resource.instance_details.instance.type
+    type: keyword
+    level: custom
+    description: The type classification of the EC2 instance (e.g., t2.micro).
+    example: example-type
+  - name: aws.guardduty.resource.instance_details.launch_time
+    type: date
+    level: custom
+    description: Timestamp indicating when the EC2 instance was initially launched
+      successfully.
+    example: '2023-01-01T00:00:00.000Z'
+  - name: aws.guardduty.resource.instance_details.network_interfaces
+    type: nested
+    level: custom
+    description: Details regarding network interfaces attached to the specific EC2
+      instance.
+  - name: aws.guardduty.resource.instance_details.outpost_arn
+    type: keyword
+    level: custom
+    description: The ARN of the AWS Outpost if the instance resides there.
+    example: example-outpost_arn
+  - name: aws.guardduty.resource.instance_details.platform
+    type: keyword
+    level: custom
+    description: The operating system platform of the instance (e.g., Linux, Windows).
+    example: example-platform
+  - name: aws.guardduty.resource.instance_details.product_codes
+    type: nested
+    level: custom
+    description: Product codes associated with the AMI used by the EC2 instance.
+  - name: aws.guardduty.resource.instance_details.tags
+    type: nested
+    level: custom
+    description: Key-value tags associated with the EC2 instance resource for identification.
+  - name: aws.guardduty.resource.kubernetes_details.kubernetes_user_details.groups
+    type: keyword
+    level: custom
+    description: An array of group names the Kubernetes user belongs to.
+    example: example-groups
+  - name: aws.guardduty.resource.kubernetes_details.kubernetes_user_details.uid
+    type: keyword
+    level: custom
+    description: The unique identifier (UID) of the Kubernetes user involved in action.
+    example: example-uid
+  - name: aws.guardduty.resource.kubernetes_details.kubernetes_user_details.user_name
+    type: keyword
+    level: custom
+    description: The username of the Kubernetes user performing the related API call.
+    example: example-user_name
+  - name: aws.guardduty.resource.kubernetes_details.kubernetes_workload_details.containers
+    type: nested
+    level: custom
+    description: Details about containers that are part of the Kubernetes workload.
+  - name: >-
+      aws.guardduty.resource.kubernetes_details.kubernetes_workload_details.host_network
+    type: boolean
+    level: custom
+    description: Indicates if the Kubernetes workload is using the host network namespace.
+    example: true
+  - name: aws.guardduty.resource.kubernetes_details.kubernetes_workload_details.name
+    type: keyword
+    level: custom
+    description: The name assigned to the specific Kubernetes workload (e.g., deployment
+      name).
+    example: example-name
+  - name: aws.guardduty.resource.kubernetes_details.kubernetes_workload_details.name_space
+    type: keyword
+    level: custom
+    description: The Kubernetes namespace where the workload resource is currently
+      operating.
+    example: example-name_space
+  - name: aws.guardduty.resource.kubernetes_details.kubernetes_workload_details.type
+    type: keyword
+    level: custom
+    description: The type of Kubernetes workload (e.g., Pod, Deployment, StatefulSet).
+    example: example-type
+  - name: aws.guardduty.resource.kubernetes_details.kubernetes_workload_details.uid
+    type: keyword
+    level: custom
+    description: The unique identifier (UID) associated with the Kubernetes workload
+      resource.
+    example: example-uid
+  - name: aws.guardduty.resource.kubernetes_details.kubernetes_workload_details.volumes
+    type: nested
+    level: custom
+    description: Information about volumes associated or used by the Kubernetes workload.
+  - name: aws.guardduty.resource.rdsdb_instance_details.cluster_identifier
+    type: keyword
+    level: custom
+    description: The identifier of the cluster if the RDS instance is clustered.
+    example: example-cluster_identifier
+  - name: aws.guardduty.resource.rdsdb_instance_details.engine
+    type: keyword
+    level: custom
+    description: The database engine type used by the RDS instance (e.g., mysql).
+    example: example-engine
+  - name: aws.guardduty.resource.rdsdb_instance_details.engine_version
+    type: keyword
+    level: custom
+    description: The specific version of the database engine running on instance.
+    example: example-engine_version
+  - name: aws.guardduty.resource.rdsdb_instance_details.instance_arn
+    type: keyword
+    level: custom
+    description: The Amazon Resource Name (ARN) for the affected RDS DB instance.
+    example: example-instance_arn
+  - name: aws.guardduty.resource.rdsdb_instance_details.instance_identifier
+    type: keyword
+    level: custom
+    description: The unique identifier for the RDS database instance resource involved.
+    example: example-instance_identifier
+  - name: aws.guardduty.resource.rdsdb_user_details.application
+    type: keyword
+    level: custom
+    description: The application name reported by the client during RDS connection
+      attempt.
+    example: example-application
+  - name: aws.guardduty.resource.rdsdb_user_details.auth_method
+    type: keyword
+    level: custom
+    description: The authentication method used during the reported RDS login attempt.
+    example: example-auth_method
+  - name: aws.guardduty.resource.rdsdb_user_details.database
+    type: keyword
+    level: custom
+    description: The name of the database the user attempted to access.
+    example: example-database
+  - name: aws.guardduty.resource.rdsdb_user_details.ssl
+    type: keyword
+    level: custom
+    description: Indicates the SSL status used for the database connection attempt.
+    example: example-ssl
+  - name: aws.guardduty.resource.rdsdb_user_details.user
+    type: keyword
+    level: custom
+    description: The database username involved in the detected RDS login attempt.
+    example: example-user
+  - name: aws.guardduty.resource.s3_bucket_details
+    type: nested
+    level: custom
+    description: Detailed information about S3 buckets related to the security finding.
+  - name: aws.guardduty.resource.type
+    type: keyword
+    level: custom
+    description: The general type category of the AWS resource affected by finding.
+    example: example-type
+  - name: aws.guardduty.schema_version
+    type: keyword
+    level: custom
+    description: The version number of the GuardDuty finding format schema being used.
+    example: example-schema_version
+  - name: aws.guardduty.service.action.dns_request_action.blocked
+    type: boolean
+    level: custom
+    description: Indicates if the DNS request associated with the finding was blocked.
+    example: true
+  - name: aws.guardduty.service.action.dns_request_action.domain
+    type: keyword
+    level: custom
+    description: The domain name requested in the DNS query related to finding.
+    example: example-domain
+  - name: aws.guardduty.service.action.dns_request_action.protocol
+    type: keyword
+    level: custom
+    description: Network protocol used for the observed DNS request (e.g., UDP).
+    example: example-protocol
+  - name: aws.guardduty.service.action.kubernetes_api_call_action.parameters
+    type: keyword
+    level: custom
+    description: Parameters included in the Kubernetes API call related to the finding.
+    example: example-parameters
+  - name: >-
+      aws.guardduty.service.action.kubernetes_api_call_action.remote_ip_details.city.name
+    type: keyword
+    level: custom
+    description: City name associated with the remote IP making the K8s call.
+    example: example-name
+  - name: >-
+      aws.guardduty.service.action.kubernetes_api_call_action.remote_ip_details.country.code
+    type: keyword
+    level: custom
+    description: Country code associated with the remote IP making the K8s call.
+    example: example-code
+  - name: >-
+      aws.guardduty.service.action.kubernetes_api_call_action.remote_ip_details.country.name
+    type: keyword
+    level: custom
+    description: Country name associated with the remote IP making the K8s call.
+    example: example-name
+  - name: >-
+      aws.guardduty.service.action.kubernetes_api_call_action.remote_ip_details.geo_location
+    type: nested
+    level: custom
+    description: Geographical location details for the remote IP making the K8s call.
+  - name: >-
+      aws.guardduty.service.action.kubernetes_api_call_action.remote_ip_details.ip_address_v4
+    type: ip
+    level: custom
+    description: The remote IPv4 address making the Kubernetes API call action.
+    example: 192.168.1.1
+  - name: >-
+      aws.guardduty.service.action.kubernetes_api_call_action.remote_ip_details.organization.asn
+    type: keyword
+    level: custom
+    description: ASN associated with the remote IP making the Kubernetes API call.
+    example: example-asn
+  - name: >-
+      aws.guardduty.service.action.kubernetes_api_call_action.remote_ip_details.organization.asnorg
+    type: keyword
+    level: custom
+    description: ASN organization name for the remote IP making the K8s call.
+    example: example-asnorg
+  - name: >-
+      aws.guardduty.service.action.kubernetes_api_call_action.remote_ip_details.organization.isp
+    type: keyword
+    level: custom
+    description: ISP associated with the remote IP making the Kubernetes API call.
+    example: example-isp
+  - name: >-
+      aws.guardduty.service.action.kubernetes_api_call_action.remote_ip_details.organization.org
+    type: keyword
+    level: custom
+    description: Organization name for the remote IP making the Kubernetes API call.
+    example: example-org
+  - name: aws.guardduty.service.action.kubernetes_api_call_action.request_uri
+    type: keyword
+    level: custom
+    description: The specific request URI targeted by the Kubernetes API call action.
+    example: example-request_uri
+  - name: aws.guardduty.service.action.kubernetes_api_call_action.source_ips
+    type: keyword
+    level: custom
+    description: An array containing source IP addresses involved in the K8s API call.
+    example: example-source_ips
+  - name: aws.guardduty.service.action.kubernetes_api_call_action.status_code
+    type: long
+    level: custom
+    description: The HTTP status code returned in response to the API call.
+    example: 12345
+  - name: aws.guardduty.service.action.kubernetes_api_call_action.user_agent
+    type: keyword
+    level: custom
+    description: The user agent string reported by the client making API call.
+    example: example-user_agent
+  - name: aws.guardduty.service.action.kubernetes_api_call_action.verb
+    type: keyword
+    level: custom
+    description: The HTTP verb (e.g., GET, POST) used in the Kubernetes API call.
+    example: example-verb
+  - name: >-
+      aws.guardduty.service.action.network_connection_action.local_port_details.port.name
+    type: keyword
+    level: custom
+    description: The common name associated with the local port number, if known.
+    example: example-name
+  - name: >-
+      aws.guardduty.service.action.network_connection_action.remote_ip_details.city.name
+    type: keyword
+    level: custom
+    description: The city name associated with the remote IP address location.
+    example: example-name
+  - name: >-
+      aws.guardduty.service.action.network_connection_action.remote_ip_details.country.code
+    type: keyword
+    level: custom
+    description: The country code corresponding to the remote IP address location.
+    example: example-code
+  - name: >-
+      aws.guardduty.service.action.network_connection_action.remote_ip_details.country.name
+    type: keyword
+    level: custom
+    description: The full country name associated with the remote IP address.
+    example: example-name
+  - name: >-
+      aws.guardduty.service.action.network_connection_action.remote_ip_details.geo_location
+    type: nested
+    level: custom
+    description: Geographical location details (latitude, longitude) for the remote
+      IP address.
+  - name: >-
+      aws.guardduty.service.action.network_connection_action.remote_ip_details.ip_address_v4
+    type: ip
+    level: custom
+    description: The remote IPv4 address involved in the network connection action.
+    example: 192.168.1.1
+  - name: >-
+      aws.guardduty.service.action.network_connection_action.remote_ip_details.organization.asn
+    type: keyword
+    level: custom
+    description: The Autonomous System Number (ASN) associated with the remote IP.
+    example: example-asn
+  - name: >-
+      aws.guardduty.service.action.network_connection_action.remote_ip_details.organization.asnorg
+    type: keyword
+    level: custom
+    description: The organization name associated with the ASN of the remote IP.
+    example: example-asnorg
+  - name: >-
+      aws.guardduty.service.action.network_connection_action.remote_ip_details.organization.isp
+    type: keyword
+    level: custom
+    description: The Internet Service Provider (ISP) associated with the remote IP
+      address.
+    example: example-isp
+  - name: >-
+      aws.guardduty.service.action.network_connection_action.remote_ip_details.organization.org
+    type: keyword
+    level: custom
+    description: The organization owning or managing the remote IP address space.
+    example: example-org
+  - name: >-
+      aws.guardduty.service.action.network_connection_action.remote_port_details.port.name
+    type: keyword
+    level: custom
+    description: The common name associated with the remote port number, if known.
+    example: example-name
+  - name: >-
+      aws.guardduty.service.action.network_connection_action.remote_port_details.port.value
+    type: long
+    level: custom
+    description: The numerical value of the remote port used in connection.
+    example: 12345
+  - name: aws.guardduty.service.action.network_connection_action.transport
+    type: keyword
+    level: custom
+    description: The transport protocol used for the network connection (e.g., TCP).
+    example: example-transport
+  - name: aws.guardduty.service.action.port_probe_action.port_probe_details
+    type: nested
+    level: custom
+    description: Details about the specific ports probed during the port probe action.
+  - name: >-
+      aws.guardduty.service.action.rds_login_attempt_action.remote_ip_details.city.name
+    type: keyword
+    level: custom
+    description: City name associated with the remote IP attempting RDS login.
+    example: example-name
+  - name: >-
+      aws.guardduty.service.action.rds_login_attempt_action.remote_ip_details.country.code
+    type: keyword
+    level: custom
+    description: Country code associated with the remote IP attempting RDS login.
+    example: example-code
+  - name: >-
+      aws.guardduty.service.action.rds_login_attempt_action.remote_ip_details.country.name
+    type: keyword
+    level: custom
+    description: Country name associated with the remote IP attempting RDS login.
+    example: example-name
+  - name: >-
+      aws.guardduty.service.action.rds_login_attempt_action.remote_ip_details.geo_location
+    type: nested
+    level: custom
+    description: Geographical location details for the remote IP attempting RDS login.
+  - name: >-
+      aws.guardduty.service.action.rds_login_attempt_action.remote_ip_details.geo_location.lat
+    type: long
+    level: custom
+    description: The latitude of the geographic location associated with the remote
+      IP address.
+    example: 12345
+  - name: >-
+      aws.guardduty.service.action.rds_login_attempt_action.remote_ip_details.geo_location.lon
+    type: long
+    level: custom
+    description: The longitude of the geographic location associated with the remote
+      IP address.
+    example: 12345
+  - name: >-
+      aws.guardduty.service.action.rds_login_attempt_action.remote_ip_details.ip_address_v4
+    type: ip
+    level: custom
+    description: The remote IPv4 address attempting the RDS database login action.
+    example: 192.168.1.1
+  - name: >-
+      aws.guardduty.service.action.rds_login_attempt_action.remote_ip_details.organization.asn
+    type: keyword
+    level: custom
+    description: ASN associated with the remote IP attempting the RDS login.
+    example: example-asn
+  - name: >-
+      aws.guardduty.service.action.rds_login_attempt_action.remote_ip_details.organization.asnorg
+    type: keyword
+    level: custom
+    description: ASN organization name for the remote IP attempting RDS login.
+    example: example-asnorg
+  - name: >-
+      aws.guardduty.service.action.rds_login_attempt_action.remote_ip_details.organization.isp
+    type: keyword
+    level: custom
+    description: ISP associated with the remote IP attempting the RDS login.
+    example: example-isp
+  - name: >-
+      aws.guardduty.service.action.rds_login_attempt_action.remote_ip_details.organization.org
+    type: keyword
+    level: custom
+    description: Organization name for the remote IP attempting the RDS login.
+    example: example-org
+  - name: aws.guardduty.service.action.type
+    type: keyword
+    level: custom
+    description: >-
+      The type of action observed by GuardDuty (e.g., NETWORK_CONNECTION, DNS_REQUEST).
+    example: example-type
+  - name: aws.guardduty.service.additional_info
+    type: keyword
+    level: custom
+    description: >-
+      Contains supplementary information specific to the particular GuardDuty finding
+      type.
+    example: example-additional_info
+  - name: aws.guardduty.service.archived
+    type: boolean
+    level: custom
+    description: Indicates whether the finding has been archived within GuardDuty
+      console.
+    example: true
+  - name: aws.guardduty.service.count
+    type: long
+    level: custom
+    description: The aggregated count of similar events contributing to this finding.
+    example: 12345
+  - name: aws.guardduty.service.detector_id
+    type: keyword
+    level: custom
+    description: The unique identifier of the GuardDuty detector that generated finding.
+    example: example-detector_id
+  - name: aws.guardduty.service.event.first_seen
+    type: date
+    level: custom
+    description: Timestamp indicating when the first event related to finding occurred.
+    example: '2023-01-01T00:00:00.000Z'
+  - name: aws.guardduty.service.event.last_seen
+    type: date
+    level: custom
+    description: Timestamp indicating when the most recent event related finding occurred.
+    example: '2023-01-01T00:00:00.000Z'
+  - name: aws.guardduty.service.evidence.threat_intelligence_details
+    type: nested
+    level: custom
+    description: Provides supporting evidence details related to the detected security
+      finding.
+  - name: aws.guardduty.service.feature_name
+    type: keyword
+    level: custom
+    description: The specific GuardDuty feature name that generated the current finding.
+    example: example-feature_name
+  - name: aws.guardduty.service.resource_role
+    type: keyword
+    level: custom
+    description: Identifies the role of the resource in the finding (e.g., TARGET).
+    example: example-resource_role
+  - name: aws.guardduty.service.runtime_details.context.address_family
+    type: keyword
+    level: custom
+    description: Network address family observed in runtime event (e.g., INET, INET6).
+    example: example-address_family
+  - name: aws.guardduty.service.runtime_details.context.command_line_example
+    type: keyword
+    level: custom
+    description: An example command line associated with the detected runtime activity.
+    example: example-command_line_example
+  - name: aws.guardduty.service.runtime_details.context.file_system_type
+    type: keyword
+    level: custom
+    description: The type of file system involved in the runtime context finding.
+    example: example-file_system_type
+  - name: aws.guardduty.service.runtime_details.context.flags
+    type: keyword
+    level: custom
+    description: An array of flags related to the specific runtime context event.
+    example: example-flags
+  - name: aws.guardduty.service.runtime_details.context.iana_protocol_number
+    type: keyword
+    level: custom
+    description: The IANA protocol number related to the network activity observed.
+    example: example-iana_protocol_number
+  - name: aws.guardduty.service.runtime_details.context.ld_preload
+    type: keyword
+    level: custom
+    description: The value of LD_PRELOAD environment variable related to the event.
+    example: example-ld_preload
+  - name: aws.guardduty.service.runtime_details.context.library_path
+    type: keyword
+    level: custom
+    description: The library path value associated with the runtime detection context.
+    example: example-library_path
+  - name: aws.guardduty.service.runtime_details.context.memory_regions
+    type: keyword
+    level: custom
+    description: Regions of memory involved or targeted in the runtime finding.
+    example: example-memory_regions
+  - name: aws.guardduty.service.runtime_details.context.modified_at
+    type: date
+    level: custom
+    description: Timestamp indicating when the resource within the context was modified.
+    example: '2023-01-01T00:00:00.000Z'
+  - name: aws.guardduty.service.runtime_details.context.modifying_process
+    type: nested
+    level: custom
+    description: Details about the process responsible for modifications detected
+      during runtime.
+  - name: aws.guardduty.service.runtime_details.context.module_file_path
+    type: keyword
+    level: custom
+    description: File path of the kernel module related to the runtime event.
+    example: example-module_file_path
+  - name: aws.guardduty.service.runtime_details.context.module_name
+    type: keyword
+    level: custom
+    description: Name of the kernel module associated with the runtime finding.
+    example: example-module_name
+  - name: aws.guardduty.service.runtime_details.context.module_sha256
+    type: keyword
+    level: custom
+    description: The SHA256 hash of the kernel module related to the event.
+    example: example-module_sha256
+  - name: aws.guardduty.service.runtime_details.context.mount_source
+    type: keyword
+    level: custom
+    description: The source path used in the file system mount operation event.
+    example: example-mount_source
+  - name: aws.guardduty.service.runtime_details.context.mount_target
+    type: keyword
+    level: custom
+    description: The target path used in the file system mount operation event.
+    example: example-mount_target
+  - name: aws.guardduty.service.runtime_details.context.release_agent_path
+    type: keyword
+    level: custom
+    description: Path to the release agent involved in the runtime context.
+    example: example-release_agent_path
+  - name: aws.guardduty.service.runtime_details.context.runc_binary_path
+    type: keyword
+    level: custom
+    description: The file path to the runC binary related to container event.
+    example: example-runc_binary_path
+  - name: aws.guardduty.service.runtime_details.context.script_path
+    type: keyword
+    level: custom
+    description: The file path of the script executed during the runtime event.
+    example: example-script_path
+  - name: aws.guardduty.service.runtime_details.context.service_name
+    type: keyword
+    level: custom
+    description: The name of the system service involved in the runtime context.
+    example: example-service_name
+  - name: aws.guardduty.service.runtime_details.context.shell_history_file_path
+    type: keyword
+    level: custom
+    description: The file path to the shell history file potentially modified.
+    example: example-shell_history_file_path
+  - name: aws.guardduty.service.runtime_details.context.socket_path
+    type: keyword
+    level: custom
+    description: Path to the socket involved in the detected runtime communication
+      event.
+    example: example-socket_path
+  - name: aws.guardduty.service.runtime_details.context.target_process
+    type: nested
+    level: custom
+    description: Details about the target process affected by the runtime activity.
+  - name: aws.guardduty.service.runtime_details.context.threat_file_path
+    type: keyword
+    level: custom
+    description: The file path identified as potentially malicious or related to threat.
+    example: example-threat_file_path
+  - name: aws.guardduty.service.runtime_details.context.tool_category
+    type: keyword
+    level: custom
+    description: Category classification of the tool used in the runtime event.
+    example: example-tool_category
+  - name: aws.guardduty.service.runtime_details.context.tool_name
+    type: keyword
+    level: custom
+    description: Name of the specific tool identified during the runtime analysis.
+    example: example-tool_name
+  - name: aws.guardduty.service.runtime_details.process.euid
+    type: long
+    level: custom
+    description: The effective user ID (EUID) of the process during runtime event.
+    example: 12345
+  - name: aws.guardduty.service.runtime_details.process.executable_path
+    type: keyword
+    level: custom
+    description: The full file system path of the process executable binary.
+    example: example-executable_path
+  - name: aws.guardduty.service.runtime_details.process.executable_sha256
+    type: keyword
+    level: custom
+    description: The SHA256 hash calculated for the process executable file content.
+    example: example-executable_sha256
+  - name: aws.guardduty.service.runtime_details.process.lineage
+    type: nested
+    level: custom
+    description: Information about the parent processes related to the observed process.
+  - name: aws.guardduty.service.runtime_details.process.name
+    type: keyword
+    level: custom
+    description: The name of the process observed during the runtime security event.
+    example: example-name
+  - name: aws.guardduty.service.runtime_details.process.namespace_pid
+    type: long
+    level: custom
+    description: The process ID (PID) within its specific namespace context.
+    example: 12345
+  - name: aws.guardduty.service.runtime_details.process.parent_uuid
+    type: keyword
+    level: custom
+    description: The unique identifier (UUID) of the parent process that started this.
+    example: example-parent_uuid
+  - name: aws.guardduty.service.runtime_details.process.pid
+    type: long
+    level: custom
+    description: The process ID (PID) of the process involved in runtime event.
+    example: 12345
+  - name: aws.guardduty.service.runtime_details.process.pwd
+    type: keyword
+    level: custom
+    description: The present working directory (PWD) of the process during event.
+    example: example-pwd
+  - name: aws.guardduty.service.runtime_details.process.start_time
+    type: date
+    level: custom
+    description: The timestamp indicating when the involved process actually started
+      execution.
+    example: '2023-01-01T00:00:00.000Z'
+  - name: aws.guardduty.service.runtime_details.process.user
+    type: keyword
+    level: custom
+    description: The username associated with the process identified in the finding.
+    example: example-user
+  - name: aws.guardduty.service.runtime_details.process.user_id
+    type: long
+    level: custom
+    description: The user ID (UID) associated with the running process instance.
+    example: 12345
+  - name: aws.guardduty.service.runtime_details.process.uuid
+    type: keyword
+    level: custom
+    description: The unique identifier (UUID) assigned to this specific process instance.
+    example: example-uuid
+  - name: aws.guardduty.service.service_name
+    type: keyword
+    level: custom
+    description: The name of the AWS service that generated the finding (guardduty).
+    example: example-service_name
+  - name: aws.guardduty.severity.code
+    type: long
+    level: custom
+    description: The numerical severity code assigned by GuardDuty (e.g., 2.0, 5.0,
+      8.0).
+    example: 12345
+  - name: aws.guardduty.severity.value
+    type: keyword
+    level: custom
+    description: The severity label (Low, Medium, High) derived from the numerical
+      severity code.
+    example: example-value
+  - name: aws.guardduty.title
+    type: keyword
+    level: custom
+    description: The concise title summarizing the nature of the GuardDuty finding.
+    example: example-title
+  - name: aws.guardduty.type
+    type: keyword
+    level: custom
+    description: >-
+      The specific type classification for the GuardDuty finding reported (e.g., Recon:EC2/PortProbeUnprotectedPort).
+    example: example-type
+  - name: aws.guardduty.updated_at
+    type: date
+    level: custom
+    description: The timestamp indicating the last time the finding was updated by
+      GuardDuty.
+    example: '2023-01-01T00:00:00.000Z'
+  - name: aws.inspector.aws_account_id
+    type: keyword
+    level: custom
+    description: The twelve-digit AWS account ID where the Inspector finding was generated.
+    example: example-aws_account_id
+  - name: aws.inspector.description
+    type: keyword
+    level: custom
+    description: A detailed textual description of the AWS Inspector finding identified.
+    example: example-description
+  - name: aws.inspector.finding_arn
+    type: keyword
+    level: custom
+    description: >-
+      The unique Amazon Resource Name (ARN) identifying the specific Inspector finding.
+    example: example-finding_arn
+  - name: aws.inspector.first_observed_at
+    type: date
+    level: custom
+    description: Timestamp indicating when this finding was first observed by AWS
+      Inspector.
+    example: '2023-01-01T00:00:00.000Z'
+  - name: aws.inspector.fix_available
+    type: keyword
+    level: custom
+    description: Indicates whether a fix is available for the reported finding (YES/NO/PARTIAL).
+    example: example-fix_available
+  - name: aws.inspector.inspector_score
+    type: float
+    level: custom
+    description: The overall score assigned by AWS Inspector based on its assessment.
+  - name: aws.inspector.inspector_score_details.adjusted_cvss.adjustments
+    type: nested
+    level: custom
+    description: Details about adjustments made to the CVSS score by Inspector.
+  - name: aws.inspector.inspector_score_details.adjusted_cvss.cvss_source
+    type: keyword
+    level: custom
+    description: >-
+      Source information regarding the base CVSS score used for adjustment calculation.
+    example: example-cvss_source
+  - name: aws.inspector.inspector_score_details.adjusted_cvss.score.source
+    type: keyword
+    level: custom
+    description: The source providing the base CVSS score value (e.g., NVD).
+    example: example-source
+  - name: aws.inspector.inspector_score_details.adjusted_cvss.score.value
+    type: float
+    level: custom
+    description: The final adjusted CVSS score after applying Inspector's contextual
+      adjustments.
+  - name: aws.inspector.inspector_score_details.adjusted_cvss.scoring_vector
+    type: keyword
+    level: custom
+    description: The CVSS scoring vector string representing the detailed base metrics.
+    example: example-scoring_vector
+  - name: aws.inspector.inspector_score_details.adjusted_cvss.version
+    type: keyword
+    level: custom
+    description: The version number of the CVSS standard used for scoring (e.g., 3.1).
+    example: example-version
+  - name: aws.inspector.last_observed_at
+    type: date
+    level: custom
+    description: Timestamp indicating the most recent time this finding was observed.
+    example: '2023-01-01T00:00:00.000Z'
+  - name: aws.inspector.network_reachability_details.network_path.steps
+    type: nested
+    level: custom
+    description: >-
+      Detailed steps outlining the network path identified in the reachability finding.
+  - name: aws.inspector.network_reachability_details.open_port_range.begin
+    type: long
+    level: custom
+    description: The starting port number of the open range in reachability finding.
+    example: 12345
+  - name: aws.inspector.network_reachability_details.open_port_range.end
+    type: long
+    level: custom
+    description: The ending port number of the open range in reachability finding.
+    example: 12345
+  - name: aws.inspector.network_reachability_details.protocol
+    type: keyword
+    level: custom
+    description: The network protocol associated with the reachability finding (e.g.,
+      TCP).
+    example: example-protocol
+  - name: aws.inspector.package_vulnerability_details.cvss
+    type: nested
+    level: custom
+    description: Contains CVSS score details associated with the specific package
+      vulnerability.
+  - name: aws.inspector.package_vulnerability_details.reference_urls
+    type: keyword
+    level: custom
+    description: An array of URLs providing reference information for the vulnerability.
+    example: example-reference_urls
+  - name: aws.inspector.package_vulnerability_details.related_vulnerabilities
+    type: keyword
+    level: custom
+    description: An array of identifiers for vulnerabilities related to this finding.
+    example: example-related_vulnerabilities
+  - name: aws.inspector.package_vulnerability_details.source.url
+    type: nested
+    level: custom
+    description: Parsed URI components pointing to the source of the vulnerability
+      data.
+  - name: aws.inspector.package_vulnerability_details.source.value
+    type: keyword
+    level: custom
+    description: The source from which the vulnerability information was obtained
+      (e.g., NVD).
+    example: example-value
+  - name: aws.inspector.package_vulnerability_details.vendor.created_at
+    type: date
+    level: custom
+    description: Timestamp when the vendor first published information about the vulnerability.
+    example: '2023-01-01T00:00:00.000Z'
+  - name: aws.inspector.package_vulnerability_details.vendor.severity
+    type: keyword
+    level: custom
+    description: The severity level assigned to the vulnerability by the vendor.
+    example: example-severity
+  - name: aws.inspector.package_vulnerability_details.vendor.updated_at
+    type: date
+    level: custom
+    description: Timestamp when the vendor last updated information about the vulnerability.
+    example: '2023-01-01T00:00:00.000Z'
+  - name: aws.inspector.package_vulnerability_details.vulnerability_id
+    type: keyword
+    level: custom
+    description: The unique identifier for the vulnerability (e.g., CVE-2023-12345).
+    example: example-vulnerability_id
+  - name: aws.inspector.package_vulnerability_details.vulnerable_packages
+    type: nested
+    level: custom
+    description: Details about the specific software packages identified as vulnerable.
+  - name: aws.inspector.remediation.recommendation.text
+    type: keyword
+    level: custom
+    description: Textual description of the recommended steps to remediate the finding.
+    example: example-text
+  - name: aws.inspector.remediation.recommendation.url
+    type: nested
+    level: custom
+    description: >-
+      Parsed URI components linking to detailed remediation recommendations or information.
+  - name: aws.inspector.resources
+    type: nested
+    level: custom
+    description: Details about the specific AWS resources affected by this finding.
+  - name: aws.inspector.severity
+    type: keyword
+    level: custom
+    description: The severity level assigned to the finding (e.g., HIGH, MEDIUM, LOW).
+    example: example-severity
+  - name: aws.inspector.status
+    type: keyword
+    level: custom
+    description: The current status of the finding within Inspector (e.g., ACTIVE,
+      SUPPRESSED).
+    example: example-status
+  - name: aws.inspector.title
+    type: keyword
+    level: custom
+    description: A concise title summarizing the nature of the Inspector security
+      finding.
+    example: example-title
+  - name: aws.inspector.type
+    type: keyword
+    level: custom
+    description: >-
+      The type classification of the finding (e.g., PACKAGE_VULNERABILITY, NETWORK_REACHABILITY).
+    example: example-type
+  - name: aws.inspector.updated_at
+    type: date
+    level: custom
+    description: Timestamp indicating the last time this specific finding was updated.
+    example: '2023-01-01T00:00:00.000Z'
+  - name: aws.instance_id
+    type: keyword
+    level: custom
+    description: The EC2 instance ID from which the DNS query was initiated.
+    example: example-instance_id
+  - name: aws.region
+    type: keyword
+    level: custom
+    description: The AWS region where the event occurred.
+    example: example-region
+  - name: aws.route53.edge_location
+    type: keyword
+    level: custom
+    description: The AWS edge location that received the DNS query request initially.
+    example: example-edge_location
+  - name: aws.route53.edns_client_subnet
+    type: keyword
+    level: custom
+    description: The EDNS client subnet information included in the DNS query request.
+    example: example-edns_client_subnet
+  - name: aws.route53.firewall.action
+    type: keyword
+    level: custom
+    description: The action taken by Route 53 Resolver DNS Firewall (e.g., ALLOW,
+      BLOCK).
+    example: example-action
+  - name: aws.route53.firewall.dns.answers
+    type: nested
+    level: custom
+    description: The DNS answers returned by Route 53 Resolver DNS Firewall for the
+      query.
+  - name: aws.route53.firewall.domain_list.id
+    type: keyword
+    level: custom
+    description: The unique identifier of the firewall domain list that was matched.
+    example: example-id
+  - name: aws.route53.firewall.rule_group.id
+    type: keyword
+    level: custom
+    description: The unique identifier of the firewall rule group that was matched.
+    example: example-id
+  - name: aws.route53.hosted_zone_id
+    type: keyword
+    level: custom
+    description: The unique identifier for the Route 53 public hosted zone queried.
+    example: example-hosted_zone_id
+  - name: aws.s3.bucket.arn
+    type: keyword
+    level: custom
+    description: The ARN of the S3 bucket involved in the event.
+    example: example-arn
+  - name: aws.s3.bucket.name
+    type: keyword
+    level: custom
+    description: The name of the S3 bucket involved in the event.
+    example: example-name
+  - name: aws.s3.name
+    type: keyword
+    level: custom
+    description: The name of the S3 event (e.g., ObjectCreated:Put).
+    example: example-name
+  - name: aws.s3.object.e_tag
+    type: keyword
+    level: custom
+    description: The ETag of the S3 object.
+    example: example-e_tag
+  - name: aws.s3.object.key
+    type: keyword
+    level: custom
+    description: The key (path) of the S3 object involved in the event.
+    example: example-key
+  - name: aws.s3.object.sequencer
+    type: keyword
+    level: custom
+    description: The sequencer value for the S3 event.
+    example: example-sequencer
+  - name: aws.s3.object.size
+    type: long
+    level: custom
+    description: The size of the S3 object in bytes.
+    example: 12345
+  - name: aws.s3.source
+    type: keyword
+    level: custom
+    description: The source of the S3 event notification.
+    example: example-source
+  - name: aws.s3.time
+    type: date
+    level: custom
+    description: The time the S3 event occurred.
+    example: '2023-01-01T00:00:00.000Z'
+  - name: aws.s3.user.identity.principal_id
+    type: keyword
+    level: custom
+    description: The principal ID of the user who triggered the S3 event.
+    example: example-principal_id
+  - name: aws.s3access.access_point_arn
+    type: keyword
+    level: custom
+    description: The Amazon Resource Name (ARN) of the access point receiving request.
+    example: example-access_point_arn
+  - name: aws.s3access.aclrequired
+    type: keyword
+    level: custom
+    description: Indicates if an Access Control List (ACL) was required for request.
+    example: example-aclrequired
+  - name: aws.s3access.authentication_type
+    type: keyword
+    level: custom
+    description: The type of authentication used for the request (e.g., AuthHeader,
+      QueryString).
+    example: example-authentication_type
+  - name: aws.s3access.bucket
+    type: keyword
+    level: custom
+    description: The name of the S3 bucket that the request was processed against.
+    example: example-bucket
+  - name: aws.s3access.bucket_owner
+    type: keyword
+    level: custom
+    description: The canonical user ID of the owner of the source S3 bucket.
+    example: example-bucket_owner
+  - name: aws.s3access.bytes_sent
+    type: long
+    level: custom
+    description: The total number of response bytes sent from S3 for request.
+    example: 12345
+  - name: aws.s3access.cipher_suite
+    type: keyword
+    level: custom
+    description: The SSL cipher suite negotiated for the secure HTTPS connection used.
+    example: example-cipher_suite
+  - name: aws.s3access.error_code
+    type: keyword
+    level: custom
+    description: The S3 error code if the request returned an error response.
+    example: example-error_code
+  - name: aws.s3access.host_header
+    type: keyword
+    level: custom
+    description: The endpoint specified in the Host header of the HTTP request.
+    example: example-host_header
+  - name: aws.s3access.host_id
+    type: keyword
+    level: custom
+    description: The S3 host ID serving the request, aiding in AWS support.
+    example: example-host_id
+  - name: aws.s3access.http_status
+    type: long
+    level: custom
+    description: The numerical HTTP status code returned by S3 for the request.
+    example: 12345
+  - name: aws.s3access.key
+    type: keyword
+    level: custom
+    description: The object key specified in the S3 request, URL-encoded.
+    example: example-key
+  - name: aws.s3access.object_size
+    type: long
+    level: custom
+    description: The total size in bytes of the object specified in request.
+    example: 12345
+  - name: aws.s3access.operation
+    type: keyword
+    level: custom
+    description: The type of S3 REST operation performed (e.g., GET.OBJECT, PUT.OBJECT).
+    example: example-operation
+  - name: aws.s3access.referrer
+    type: keyword
+    level: custom
+    description: The value of the Referer header from the incoming HTTP request.
+    example: example-referrer
+  - name: aws.s3access.remote_ip
+    type: ip
+    level: custom
+    description: The apparent internet address of the entity making the S3 request.
+    example: 192.168.1.1
+  - name: aws.s3access.request_id
+    type: keyword
+    level: custom
+    description: The unique string generated by S3 to uniquely identify the request.
+    example: example-request_id
+  - name: aws.s3access.request_uri
+    type: keyword
+    level: custom
+    description: The raw Request-URI part of the HTTP request line sent to S3.
+    example: example-request_uri
+  - name: aws.s3access.requester
+    type: keyword
+    level: custom
+    description: The canonical user ID or ARN of the user making the request.
+    example: example-requester
+  - name: aws.s3access.signature_version
+    type: keyword
+    level: custom
+    description: The signature version (e.g., SigV4) used to authenticate the request.
+    example: example-signature_version
+  - name: aws.s3access.tls_version
+    type: keyword
+    level: custom
+    description: The Transport Layer Security (TLS) version negotiated for the connection.
+    example: example-tls_version
+  - name: aws.s3access.total_time
+    type: long
+    level: custom
+    description: The total time in milliseconds the request was being processed by
+      S3.
+    example: 12345
+  - name: aws.s3access.turn_around_time
+    type: long
+    level: custom
+    description: The time in milliseconds S3 spent processing the request internally.
+    example: 12345
+  - name: aws.s3access.user_agent
+    type: keyword
+    level: custom
+    description: The value of the User-Agent header identifying the client application.
+    example: example-user_agent
+  - name: aws.s3access.version_id
+    type: keyword
+    level: custom
+    description: The version ID of the object involved in the S3 request.
+    example: example-version_id
+  - name: aws.securityhub_findings.action.aws_api_call.affected_resources
+    type: nested
+    level: custom
+    description: Provides details about the resources specifically affected by the
+      API call.
+  - name: aws.securityhub_findings.action.aws_api_call.api
+    type: keyword
+    level: custom
+    description: The specific AWS API method name that was invoked for action.
+    example: example-api
+  - name: aws.securityhub_findings.action.aws_api_call.caller.type
+    type: keyword
+    level: custom
+    description: Indicates the type of principal that invoked the detected API call.
+    example: example-type
+  - name: aws.securityhub_findings.action.aws_api_call.domain_details.domain
+    type: keyword
+    level: custom
+    description: The domain name associated with the API call action, if applicable.
+    example: example-domain
+  - name: aws.securityhub_findings.action.aws_api_call.remote_ip.city.name
+    type: keyword
+    level: custom
+    description: The city name derived from the remote IP address making call.
+    example: example-name
+  - name: aws.securityhub_findings.action.aws_api_call.remote_ip.country.code
+    type: keyword
+    level: custom
+    description: The country code derived from the remote IP address location.
+    example: example-code
+  - name: aws.securityhub_findings.action.aws_api_call.remote_ip.country.name
+    type: keyword
+    level: custom
+    description: The country name derived from the remote IP address location.
+    example: example-name
+  - name: aws.securityhub_findings.action.aws_api_call.remote_ip.geolocation.latitude
+    type: float
+    level: custom
+    description: The latitude coordinate associated with the remote IP address geolocation.
+  - name: aws.securityhub_findings.action.aws_api_call.remote_ip.geolocation.longitude
+    type: float
+    level: custom
+    description: The longitude coordinate associated with the remote IP address geolocation.
+  - name: aws.securityhub_findings.action.aws_api_call.remote_ip.ip.address_v4
+    type: ip
+    level: custom
+    description: The IPv4 address of the remote host making the API call.
+    example: 192.168.1.1
+  - name: aws.securityhub_findings.action.aws_api_call.remote_ip.organization.asn
+    type: keyword
+    level: custom
+    description: The Autonomous System Number (ASN) associated with the remote IP
+      address.
+    example: example-asn
+  - name: >-
+      aws.securityhub_findings.action.aws_api_call.remote_ip.organization.asn_organization
+    type: keyword
+    level: custom
+    description: The name of the organization associated with the remote IP's ASN.
+    example: example-asn_organization
+  - name: >-
+      aws.securityhub_findings.action.aws_api_call.remote_ip.organization.internet_provider
+    type: keyword
+    level: custom
+    description: The name of the organization registered to the remote IP address.
+    example: example-internet_provider
+  - name: >-
+      aws.securityhub_findings.action.aws_api_call.remote_ip.organization.internet_service_provider
+    type: keyword
+    level: custom
+    description: The Internet Service Provider (ISP) associated with the remote IP
+      address.
+    example: example-internet_service_provider
+  - name: aws.securityhub_findings.action.aws_api_call.service.name
+    type: keyword
+    level: custom
+    description: The AWS service name where the API call action was invoked.
+    example: example-name
+  - name: aws.securityhub_findings.action.dns_request.blocked
+    type: boolean
+    level: custom
+    description: Indicates whether the DNS request action was blocked by security
+      controls.
+    example: true
+  - name: aws.securityhub_findings.action.dns_request.domain
+    type: keyword
+    level: custom
+    description: The domain name that was requested in the observed DNS query.
+    example: example-domain
+  - name: aws.securityhub_findings.action.dns_request.protocol
+    type: keyword
+    level: custom
+    description: The network protocol used for the detected DNS request action observed.
+    example: example-protocol
+  - name: aws.securityhub_findings.action.network_connection.blocked
+    type: boolean
+    level: custom
+    description: Indicates whether the network connection action was blocked by controls.
+    example: true
+  - name: aws.securityhub_findings.action.network_connection.direction
+    type: keyword
+    level: custom
+    description: The direction of the network connection observed (e.g., INBOUND,
+      OUTBOUND).
+    example: example-direction
+  - name: aws.securityhub_findings.action.network_connection.local.port.name
+    type: keyword
+    level: custom
+    description: The common name associated with the local port number, if known.
+    example: example-name
+  - name: aws.securityhub_findings.action.network_connection.local.port.number
+    type: long
+    level: custom
+    description: The local port number involved in the detected network connection
+      action.
+    example: 12345
+  - name: aws.securityhub_findings.action.network_connection.protocol
+    type: keyword
+    level: custom
+    description: The network protocol used for the detected network connection (e.g.,
+      TCP).
+    example: example-protocol
+  - name: aws.securityhub_findings.action.network_connection.remote_ip.city.name
+    type: keyword
+    level: custom
+    description: The city name derived from the remote IP address in connection.
+    example: example-name
+  - name: aws.securityhub_findings.action.network_connection.remote_ip.country.code
+    type: keyword
+    level: custom
+    description: The country code derived from the remote IP address in connection.
+    example: example-code
+  - name: aws.securityhub_findings.action.network_connection.remote_ip.country.name
+    type: keyword
+    level: custom
+    description: The country name derived from the remote IP address in connection.
+    example: example-name
+  - name: >-
+      aws.securityhub_findings.action.network_connection.remote_ip.geolocation.latitude
+    type: float
+    level: custom
+    description: The latitude coordinate associated with the remote IP in the connection.
+  - name: >-
+      aws.securityhub_findings.action.network_connection.remote_ip.geolocation.longitude
+    type: float
+    level: custom
+    description: The longitude coordinate associated with the remote IP in the connection.
+  - name: aws.securityhub_findings.action.network_connection.remote_ip.ip.address_v4
+    type: ip
+    level: custom
+    description: The IPv4 address of the remote host in the network connection.
+    example: 192.168.1.1
+  - name: aws.securityhub_findings.action.network_connection.remote_ip.organization.asn
+    type: keyword
+    level: custom
+    description: The ASN associated with the remote IP address in the connection.
+    example: example-asn
+  - name: >-
+      aws.securityhub_findings.action.network_connection.remote_ip.organization.asn_organization
+    type: keyword
+    level: custom
+    description: The ASN organization name for the remote IP in the connection.
+    example: example-asn_organization
+  - name: >-
+      aws.securityhub_findings.action.network_connection.remote_ip.organization.internet_provider
+    type: keyword
+    level: custom
+    description: The organization name registered to the remote IP in the connection.
+    example: example-internet_provider
+  - name: >-
+      aws.securityhub_findings.action.network_connection.remote_ip.organization.internet_service_provider
+    type: keyword
+    level: custom
+    description: The ISP associated with the remote IP address in the connection.
+    example: example-internet_service_provider
+  - name: aws.securityhub_findings.action.network_connection.remote.port.name
+    type: keyword
+    level: custom
+    description: The common name associated with the remote port number, if known.
+    example: example-name
+  - name: aws.securityhub_findings.action.network_connection.remote.port.number
+    type: long
+    level: custom
+    description: The remote port number involved in the detected network connection
+      action.
+    example: 12345
+  - name: aws.securityhub_findings.action.port_probe.blocked
+    type: boolean
+    level: custom
+    description: Indicates whether the port probe action was blocked by security controls.
+    example: true
+  - name: aws.securityhub_findings.action.port_probe.details
+    type: nested
+    level: custom
+    description: Contains detailed information about the ports included in the probe
+      action.
+  - name: aws.securityhub_findings.action.type
+    type: keyword
+    level: custom
+    description: The type of action that was detected for the finding.
+    example: example-type
+  - name: aws.securityhub_findings.aws_account_id
+    type: keyword
+    level: custom
+    description: The twelve-digit AWS account ID associated with the Security Hub
+      finding.
+    example: example-aws_account_id
+  - name: aws.securityhub_findings.company.name
+    type: keyword
+    level: custom
+    description: The name of the company that owns the product generating finding.
+    example: example-name
+  - name: aws.securityhub_findings.compliance.related_requirements
+    type: keyword
+    level: custom
+    description: An array of requirements related to the compliance status check reported.
+    example: example-related_requirements
+  - name: aws.securityhub_findings.compliance.security_control_id
+    type: keyword
+    level: custom
+    description: The unique identifier of the security control related to the finding.
+    example: example-security_control_id
+  - name: aws.securityhub_findings.compliance.status
+    type: keyword
+    level: custom
+    description: The compliance status of the resource related to the security control.
+    example: example-status
+  - name: aws.securityhub_findings.compliance.status_reasons
+    type: nested
+    level: custom
+    description: Provides reasons for the current compliance status for the resource.
+  - name: aws.securityhub_findings.confidence
+    type: long
+    level: custom
+    description: The level of confidence (0-100) in the accuracy of the finding.
+    example: 12345
+  - name: aws.securityhub_findings.created_at
+    type: date
+    level: custom
+    description: Timestamp indicating when the finding record was initially created
+      in Hub.
+    example: '2023-01-01T00:00:00.000Z'
+  - name: aws.securityhub_findings.criticality
+    type: long
+    level: custom
+    description: The level of importance (0-100) assigned to the resource associated.
+    example: 12345
+  - name: aws.securityhub_findings.description
+    type: keyword
+    level: custom
+    description: A detailed description of the Security Hub finding providing context.
+    example: example-description
+  - name: aws.securityhub_findings.first_observed_at
+    type: date
+    level: custom
+    description: Timestamp indicating when the potential security issue was first
+      observed.
+    example: '2023-01-01T00:00:00.000Z'
+  - name: aws.securityhub_findings.generator.id
+    type: keyword
+    level: custom
+    description: >-
+      The identifier for the solution-specific component generating the resource finding.
+    example: example-id
+  - name: aws.securityhub_findings.id
+    type: keyword
+    level: custom
+    description: The unique identifier assigned to the finding by AWS Security Hub.
+    example: example-id
+  - name: aws.securityhub_findings.last_observed_at
+    type: date
+    level: custom
+    description: >-
+      Timestamp indicating when the potential security issue was most recently observed.
+    example: '2023-01-01T00:00:00.000Z'
+  - name: aws.securityhub_findings.malware
+    type: nested
+    level: custom
+    description: Provides details about malware detected that is related to finding.
+  - name: aws.securityhub_findings.network_path
+    type: nested
+    level: custom
+    description: Details about the network path associated with the current finding.
+  - name: aws.securityhub_findings.network.destination.domain
+    type: keyword
+    level: custom
+    description: The destination domain name involved in the observed network traffic.
+    example: example-domain
+  - name: aws.securityhub_findings.network.destination.ip.v4
+    type: ip
+    level: custom
+    description: The destination IPv4 address involved in the observed network traffic.
+    example: 192.168.1.1
+  - name: aws.securityhub_findings.network.destination.ip.v6
+    type: ip
+    level: custom
+    description: The destination IPv6 address involved in the observed network traffic.
+    example: 192.168.1.1
+  - name: aws.securityhub_findings.network.destination.port
+    type: keyword
+    level: custom
+    description: The destination port number involved in the observed network traffic.
+    example: example-port
+  - name: aws.securityhub_findings.network.direction
+    type: keyword
+    level: custom
+    description: The direction of the network traffic observed (e.g., IN, OUT).
+    example: example-direction
+  - name: aws.securityhub_findings.network.open_port_range.begin
+    type: long
+    level: custom
+    description: The starting port number of an open range on the resource.
+    example: 12345
+  - name: aws.securityhub_findings.network.open_port_range.end
+    type: long
+    level: custom
+    description: The ending port number of an open range on the resource.
+    example: 12345
+  - name: aws.securityhub_findings.network.protocol
+    type: keyword
+    level: custom
+    description: The network protocol used in the observed network traffic (e.g.,
+      TCP).
+    example: example-protocol
+  - name: aws.securityhub_findings.network.source.domain
+    type: keyword
+    level: custom
+    description: The source domain name involved in the observed network traffic.
+    example: example-domain
+  - name: aws.securityhub_findings.network.source.ip.v4
+    type: ip
+    level: custom
+    description: The source IPv4 address involved in the observed network traffic.
+    example: 192.168.1.1
+  - name: aws.securityhub_findings.network.source.ip.v6
+    type: ip
+    level: custom
+    description: The source IPv6 address involved in the observed network traffic.
+    example: 192.168.1.1
+  - name: aws.securityhub_findings.network.source.mac
+    type: keyword
+    level: custom
+    description: The source MAC address involved in the observed network traffic.
+    example: example-mac
+  - name: aws.securityhub_findings.network.source.port
+    type: keyword
+    level: custom
+    description: The source port number involved in the observed network traffic.
+    example: example-port
+  - name: aws.securityhub_findings.note.text
+    type: keyword
+    level: custom
+    description: The text content of the note added to the finding.
+    example: example-text
+  - name: aws.securityhub_findings.note.updated_at
+    type: date
+    level: custom
+    description: Timestamp indicating when the note associated with the finding was
+      updated.
+    example: '2023-01-01T00:00:00.000Z'
+  - name: aws.securityhub_findings.note.updated_by
+    type: keyword
+    level: custom
+    description: The principal that added or updated the note for the finding.
+    example: example-updated_by
+  - name: aws.securityhub_findings.patch_summary.failed.count
+    type: keyword
+    level: custom
+    description: The number of patches that failed to install successfully.
+    example: example-count
+  - name: aws.securityhub_findings.patch_summary.id
+    type: keyword
+    level: custom
+    description: The identifier for the patch compliance summary related to finding.
+    example: example-id
+  - name: aws.securityhub_findings.patch_summary.installed.count
+    type: keyword
+    level: custom
+    description: The number of patches that installed successfully on the resource.
+    example: example-count
+  - name: aws.securityhub_findings.patch_summary.installed.other.count
+    type: keyword
+    level: custom
+    description: Number of installed patches not related to common security updates.
+    example: example-count
+  - name: aws.securityhub_findings.patch_summary.installed.pending_reboot
+    type: keyword
+    level: custom
+    description: Number of installed patches that require a system reboot.
+    example: example-pending_reboot
+  - name: aws.securityhub_findings.patch_summary.installed.rejected.count
+    type: keyword
+    level: custom
+    description: The number of installed patches that were subsequently rejected.
+    example: example-count
+  - name: aws.securityhub_findings.patch_summary.missing.count
+    type: keyword
+    level: custom
+    description: The number of patches that are missing from the resource.
+    example: example-count
+  - name: aws.securityhub_findings.patch_summary.operation.end_time
+    type: date
+    level: custom
+    description: Timestamp indicating when the patch operation concluded for the resource.
+    example: '2023-01-01T00:00:00.000Z'
+  - name: aws.securityhub_findings.patch_summary.operation.start_time
+    type: date
+    level: custom
+    description: Timestamp indicating when the patch operation began for the resource.
+    example: '2023-01-01T00:00:00.000Z'
+  - name: aws.securityhub_findings.patch_summary.operation.type
+    type: keyword
+    level: custom
+    description: The type of patch operation performed (e.g., Scan, Install).
+    example: example-type
+  - name: aws.securityhub_findings.patch_summary.reboot_option
+    type: keyword
+    level: custom
+    description: The reboot option specified for the patch operation (e.g., RebootIfNeeded).
+    example: example-reboot_option
+  - name: aws.securityhub_findings.process.launched_at
+    type: date
+    level: custom
+    description: Timestamp indicating when the observed process instance was initially
+      launched.
+    example: '2023-01-01T00:00:00.000Z'
+  - name: aws.securityhub_findings.process.name
+    type: keyword
+    level: custom
+    description: The name of the process observed in the context of finding.
+    example: example-name
+  - name: aws.securityhub_findings.process.parent.pid
+    type: long
+    level: custom
+    description: The process ID (PID) of the parent of the observed process.
+    example: 12345
+  - name: aws.securityhub_findings.process.path
+    type: keyword
+    level: custom
+    description: The file system path of the executable for the observed process.
+    example: example-path
+  - name: aws.securityhub_findings.process.pid
+    type: long
+    level: custom
+    description: The process ID (PID) of the observed process related to finding.
+    example: 12345
+  - name: aws.securityhub_findings.process.terminated_at
+    type: date
+    level: custom
+    description: Timestamp indicating when the observed process instance was finally
+      terminated.
+    example: '2023-01-01T00:00:00.000Z'
+  - name: aws.securityhub_findings.product.arn
+    type: keyword
+    level: custom
+    description: The ARN generated by Security Hub for the product reporting findings.
+    example: example-arn
+  - name: aws.securityhub_findings.product.fields
+    type: nested
+    level: custom
+    description: >-
+      Contains product-specific fields associated with the finding not mapped elsewhere.
+  - name: aws.securityhub_findings.product.name
+    type: keyword
+    level: custom
+    description: The name of the AWS service or product reporting the finding.
+    example: example-name
+  - name: aws.securityhub_findings.provider_fields.confidence
+    type: long
+    level: custom
+    description: The finding provider's assessment of the accuracy confidence level
+      (0-100).
+    example: 12345
+  - name: aws.securityhub_findings.provider_fields.criticality
+    type: long
+    level: custom
+    description: The finding provider's assessment of the resource's criticality level
+      (0-100).
+    example: 12345
+  - name: aws.securityhub_findings.provider_fields.related_findings
+    type: nested
+    level: custom
+    description: Provides details about findings related to this finding from the
+      provider.
+  - name: aws.securityhub_findings.provider_fields.severity.label
+    type: keyword
+    level: custom
+    description: The severity label assigned by the finding provider (e.g., HIGH).
+    example: example-label
+  - name: aws.securityhub_findings.provider_fields.severity.normalized
+    type: keyword
+    level: custom
+    description: The finding provider's severity value normalized to the Security
+      Hub scale.
+    example: example-normalized
+  - name: aws.securityhub_findings.provider_fields.severity.original
+    type: keyword
+    level: custom
+    description: The original severity value assigned by the finding provider product.
+    example: example-original
+  - name: aws.securityhub_findings.provider_fields.severity.product
+    type: keyword
+    level: custom
+    description: The severity assigned by the product normalized to provider's scale.
+    example: example-product
+  - name: aws.securityhub_findings.provider_fields.types
+    type: keyword
+    level: custom
+    description: One or more finding types assigned by the finding provider product.
+    example: example-types
+  - name: aws.securityhub_findings.record_state
+    type: keyword
+    level: custom
+    description: Indicates the current state of the finding record (ACTIVE/ARCHIVED).
+    example: example-record_state
+  - name: aws.securityhub_findings.region
+    type: keyword
+    level: custom
+    description: The AWS Region where the finding event was generated or occurred.
+    example: example-region
+  - name: aws.securityhub_findings.related_findings
+    type: nested
+    level: custom
+    description: Details about other findings that are related to the current finding.
+  - name: aws.securityhub_findings.remediation.recommendation.text
+    type: keyword
+    level: custom
+    description: Text describing the recommended steps to remediate the identified
+      finding.
+    example: example-text
+  - name: aws.securityhub_findings.remediation.recommendation.url
+    type: keyword
+    level: custom
+    description: A URL linking to additional information about the finding remediation.
+    example: example-url
+  - name: aws.securityhub_findings.resources
+    type: nested
+    level: custom
+    description: Contains details about the AWS resources affected by the finding.
+  - name: aws.securityhub_findings.sample
+    type: boolean
+    level: custom
+    description: Indicates whether the current finding is a sample finding from Hub.
+    example: true
+  - name: aws.securityhub_findings.schema.version
+    type: keyword
+    level: custom
+    description: The schema version number of the AWS Security Finding Format used.
+    example: example-version
+  - name: aws.securityhub_findings.severity.label
+    type: keyword
+    level: custom
+    description: The severity label assigned by Security Hub (e.g., HIGH, MEDIUM,
+      LOW).
+    example: example-label
+  - name: aws.securityhub_findings.severity.normalized
+    type: keyword
+    level: custom
+    description: The finding severity normalized to a 0-100 scale by Security Hub.
+    example: example-normalized
+  - name: aws.securityhub_findings.severity.original
+    type: keyword
+    level: custom
+    description: The original severity value as assigned by the finding originating
+      product.
+    example: example-original
+  - name: aws.securityhub_findings.severity.product
+    type: keyword
+    level: custom
+    description: The product's severity value normalized to its own scale (0-100).
+    example: example-product
+  - name: aws.securityhub_findings.source_url
+    type: keyword
+    level: custom
+    description: A URL pointing to the source of the finding information details.
+    example: example-source_url
+  - name: aws.securityhub_findings.threat_intel_indicators
+    type: nested
+    level: custom
+    description: Provides details about threat intelligence indicators related to
+      the finding.
+  - name: aws.securityhub_findings.title
+    type: keyword
+    level: custom
+    description: A concise title summarizing the nature of the Security Hub finding.
+    example: example-title
+  - name: aws.securityhub_findings.types
+    type: keyword
+    level: custom
+    description: One or more finding types using the ASFF format classification taxonomy.
+    example: example-types
+  - name: aws.securityhub_findings.updated_at
+    type: date
+    level: custom
+    description: Timestamp indicating the last time the finding record was updated.
+    example: '2023-01-01T00:00:00.000Z'
+  - name: aws.securityhub_findings.user_defined_fields
+    type: nested
+    level: custom
+    description: Contains custom key-value fields added by the user to finding.
+  - name: aws.securityhub_findings.verification_state
+    type: keyword
+    level: custom
+    description: >-
+      The verification state of the finding (e.g., UNKNOWN, TRUE_POSITIVE, FALSE_POSITIVE).
+    example: example-verification_state
+  - name: aws.securityhub_findings.vulnerabilities
+    type: nested
+    level: custom
+    description: >-
+      Provides details about vulnerabilities associated with the current Security
+      Hub finding.
+  - name: aws.securityhub_findings.workflow.state
+    type: keyword
+    level: custom
+    description: The workflow state of the finding as reported by the finding provider.
+    example: example-state
+  - name: aws.securityhub_findings.workflow.status
+    type: keyword
+    level: custom
+    description: The workflow status assigned to the finding (e.g., NEW, NOTIFIED,
+      RESOLVED).
+    example: example-status
+  - name: aws.securityhub_insights.filters.aws_account_id
+    type: nested
+    level: custom
+    description: Filter criteria based on the AWS account ID associated with findings.
+  - name: aws.securityhub_insights.filters.company.name
+    type: nested
+    level: custom
+    description: Filter criteria based on the company name of the finding product.
+  - name: aws.securityhub_insights.filters.compliance.status
+    type: nested
+    level: custom
+    description: Filter criteria based on the compliance status of the finding resource.
+  - name: aws.securityhub_insights.filters.confidence
+    type: nested
+    level: custom
+    description: Filter criteria based on the confidence level range of the findings.
+  - name: aws.securityhub_insights.filters.created_at
+    type: nested
+    level: custom
+    description: Filter criteria based on the creation timestamp range of the findings.
+  - name: aws.securityhub_insights.filters.criticality
+    type: nested
+    level: custom
+    description: Filter criteria based on the criticality level range of the findings.
+  - name: aws.securityhub_insights.filters.description
+    type: nested
+    level: custom
+    description: Filter criteria based on matching text within the finding's description
+      field.
+  - name: aws.securityhub_insights.filters.finding_provider_fields.confidence
+    type: nested
+    level: custom
+    description: Filter criteria based on the confidence range from finding provider
+      fields.
+  - name: aws.securityhub_insights.filters.finding_provider_fields.criticality
+    type: nested
+    level: custom
+    description: Filter criteria based on the criticality range from finding provider
+      fields.
+  - name: aws.securityhub_insights.filters.finding_provider_fields.related_findings.id
+    type: nested
+    level: custom
+    description: Filter criteria based on the ID of related findings in provider fields.
+  - name: >-
+      aws.securityhub_insights.filters.finding_provider_fields.related_findings.product.arn
+    type: nested
+    level: custom
+    description: Filter criteria based on product ARN of related findings provider
+      fields.
+  - name: aws.securityhub_insights.filters.finding_provider_fields.severity.label
+    type: nested
+    level: custom
+    description: Filter criteria based on the severity label from finding provider
+      fields.
+  - name: aws.securityhub_insights.filters.finding_provider_fields.severity.original
+    type: nested
+    level: custom
+    description: Filter criteria based on original severity value from finding provider
+      fields.
+  - name: aws.securityhub_insights.filters.finding_provider_fields.types
+    type: nested
+    level: custom
+    description: Filter criteria based on the finding types from finding provider
+      fields.
+  - name: aws.securityhub_insights.filters.first_observed_at
+    type: nested
+    level: custom
+    description: Filter criteria based on the first observed timestamp range of findings.
+  - name: aws.securityhub_insights.filters.generator.id
+    type: nested
+    level: custom
+    description: Filter criteria based on the generator ID associated with the findings.
+  - name: aws.securityhub_insights.filters.id
+    type: nested
+    level: custom
+    description: Filter criteria based on the Security Hub finding ID itself.
+  - name: aws.securityhub_insights.filters.keyword
+    type: nested
+    level: custom
+    description: Filter criteria based on general keyword matches across multiple
+      finding fields.
+  - name: aws.securityhub_insights.filters.last_observed_at
+    type: nested
+    level: custom
+    description: Filter criteria based on the last observed timestamp range of findings.
+  - name: aws.securityhub_insights.filters.malware.name
+    type: nested
+    level: custom
+    description: Filter criteria based on the name of the malware identified.
+  - name: aws.securityhub_insights.filters.malware.path
+    type: nested
+    level: custom
+    description: Filter criteria based on the file path associated with the malware.
+  - name: aws.securityhub_insights.filters.malware.state
+    type: nested
+    level: custom
+    description: Filter criteria based on the state of the identified malware.
+  - name: aws.securityhub_insights.filters.malware.type
+    type: nested
+    level: custom
+    description: Filter criteria based on the type classification of the identified
+      malware.
+  - name: aws.securityhub_insights.filters.network.destination.domain
+    type: nested
+    level: custom
+    description: Filter criteria based on the destination domain involved in network
+      activity.
+  - name: aws.securityhub_insights.filters.network.destination.ip.v4
+    type: nested
+    level: custom
+    description: Filter criteria based on the destination IPv4 address or CIDR range.
+  - name: aws.securityhub_insights.filters.network.destination.ip.v6
+    type: nested
+    level: custom
+    description: Filter criteria based on the destination IPv6 address or CIDR range.
+  - name: aws.securityhub_insights.filters.network.destination.port
+    type: nested
+    level: custom
+    description: Filter criteria based on the destination port number range in network
+      activity.
+  - name: aws.securityhub_insights.filters.network.direction
+    type: nested
+    level: custom
+    description: Filter criteria based on the direction of the observed network traffic.
+  - name: aws.securityhub_insights.filters.network.protocol
+    type: nested
+    level: custom
+    description: Filter criteria based on the network protocol used in the activity.
+  - name: aws.securityhub_insights.filters.network.source.domain
+    type: nested
+    level: custom
+    description: Filter criteria based on the source domain involved in network activity.
+  - name: aws.securityhub_insights.filters.network.source.ip.v4
+    type: nested
+    level: custom
+    description: Filter criteria based on the source IPv4 address or CIDR range.
+  - name: aws.securityhub_insights.filters.network.source.ip.v6
+    type: nested
+    level: custom
+    description: Filter criteria based on the source IPv6 address or CIDR range.
+  - name: aws.securityhub_insights.filters.network.source.mac
+    type: nested
+    level: custom
+    description: Filter criteria based on the source MAC address in network activity.
+  - name: aws.securityhub_insights.filters.network.source.port
+    type: nested
+    level: custom
+    description: Filter criteria based on the source port number range in network
+      activity.
+  - name: aws.securityhub_insights.filters.note.text
+    type: nested
+    level: custom
+    description: Filter criteria based on matching text within the finding's note
+      field.
+  - name: aws.securityhub_insights.filters.note.updated_at
+    type: nested
+    level: custom
+    description: Filter criteria based on the update timestamp range of finding notes.
+  - name: aws.securityhub_insights.filters.note.updated_by
+    type: nested
+    level: custom
+    description: Filter criteria based on the principal who last updated finding note.
+  - name: aws.securityhub_insights.filters.process.launched_at
+    type: nested
+    level: custom
+    description: Filter criteria based on the launch timestamp range of related processes.
+  - name: aws.securityhub_insights.filters.process.name
+    type: nested
+    level: custom
+    description: Filter criteria based on the name of the process involved.
+  - name: aws.securityhub_insights.filters.process.parent.pid
+    type: nested
+    level: custom
+    description: Filter criteria based on the parent process ID range involved.
+  - name: aws.securityhub_insights.filters.process.path
+    type: nested
+    level: custom
+    description: Filter criteria based on the executable path of the process involved.
+  - name: aws.securityhub_insights.filters.process.pid
+    type: nested
+    level: custom
+    description: Filter criteria based on the process ID range involved.
+  - name: aws.securityhub_insights.filters.process.terminated_at
+    type: nested
+    level: custom
+    description: Filter criteria based on the termination timestamp range of related
+      processes.
+  - name: aws.securityhub_insights.filters.product.arn
+    type: nested
+    level: custom
+    description: Filter criteria based on the ARN of the product generating findings.
+  - name: aws.securityhub_insights.filters.product.fields
+    type: nested
+    level: custom
+    description: Filter criteria based on key-value pairs within the product fields
+      data.
+  - name: aws.securityhub_insights.filters.product.name
+    type: nested
+    level: custom
+    description: Filter criteria based on the name of the product generating findings.
+  - name: aws.securityhub_insights.filters.recommendation_text
+    type: nested
+    level: custom
+    description: >-
+      Filter criteria based on matching text within the finding's recommendation field.
+  - name: aws.securityhub_insights.filters.record_state
+    type: nested
+    level: custom
+    description: Filter criteria based on the record state of the finding (ACTIVE/ARCHIVED).
+  - name: aws.securityhub_insights.filters.region
+    type: nested
+    level: custom
+    description: Filter criteria based on the AWS Region associated with the finding.
+  - name: aws.securityhub_insights.filters.related_findings.id
+    type: nested
+    level: custom
+    description: Filter criteria based on the finding ID of related Security Hub findings.
+  - name: aws.securityhub_insights.filters.related_findings.product.arn
+    type: nested
+    level: custom
+    description: Filter criteria based on product ARN of related Security Hub findings.
+  - name: >-
+      aws.securityhub_insights.filters.resource.aws_ec2_instance.iam_instance_profile.arn
+    type: nested
+    level: custom
+    description: Filter criteria based on the IAM instance profile ARN of EC2 resource.
+  - name: aws.securityhub_insights.filters.resource.aws_ec2_instance.image.id
+    type: nested
+    level: custom
+    description: Filter criteria based on the AMI image ID of the EC2 resource.
+  - name: aws.securityhub_insights.filters.resource.aws_ec2_instance.ip.v4_addresses
+    type: nested
+    level: custom
+    description: Filter criteria based on the IPv4 addresses associated with EC2 resource.
+  - name: aws.securityhub_insights.filters.resource.aws_ec2_instance.ip.v6_addresses
+    type: nested
+    level: custom
+    description: Filter criteria based on the IPv6 addresses associated with EC2 resource.
+  - name: aws.securityhub_insights.filters.resource.aws_ec2_instance.key.name
+    type: nested
+    level: custom
+    description: Filter criteria based on the key pair name of EC2 resource.
+  - name: aws.securityhub_insights.filters.resource.aws_ec2_instance.launched_at
+    type: nested
+    level: custom
+    description: Filter criteria based on the launch timestamp range of EC2 resource.
+  - name: aws.securityhub_insights.filters.resource.aws_ec2_instance.subnet.id
+    type: nested
+    level: custom
+    description: Filter criteria based on the subnet ID associated with EC2 resource.
+  - name: aws.securityhub_insights.filters.resource.aws_ec2_instance.type
+    type: nested
+    level: custom
+    description: Filter criteria based on the instance type of the EC2 resource.
+  - name: aws.securityhub_insights.filters.resource.aws_ec2_instance.vpc.id
+    type: nested
+    level: custom
+    description: Filter criteria based on the VPC ID associated with EC2 resource.
+  - name: aws.securityhub_insights.filters.resource.aws_iam_access_key.created_at
+    type: nested
+    level: custom
+    description: Filter criteria based on the creation timestamp range of IAM access
+      key.
+  - name: aws.securityhub_insights.filters.resource.aws_iam_access_key.principal.name
+    type: nested
+    level: custom
+    description: Filter criteria based on the principal name associated with IAM key.
+  - name: aws.securityhub_insights.filters.resource.aws_iam_access_key.status
+    type: nested
+    level: custom
+    description: Filter criteria based on the status of the IAM access key.
+  - name: aws.securityhub_insights.filters.resource.aws_iam_access_key.user.name
+    type: nested
+    level: custom
+    description: Filter criteria based on the username associated with the IAM key.
+  - name: aws.securityhub_insights.filters.resource.aws_iam_user.user.name
+    type: nested
+    level: custom
+    description: Filter criteria based on the username of the IAM user resource.
+  - name: aws.securityhub_insights.filters.resource.aws_s3_bucket.owner.id
+    type: nested
+    level: custom
+    description: Filter criteria based on the owner ID of S3 bucket resource.
+  - name: aws.securityhub_insights.filters.resource.aws_s3_bucket.owner.name
+    type: nested
+    level: custom
+    description: Filter criteria based on the owner name of S3 bucket resource.
+  - name: aws.securityhub_insights.filters.resource.container.image.id
+    type: nested
+    level: custom
+    description: Filter criteria based on the image ID of container resource.
+  - name: aws.securityhub_insights.filters.resource.container.image.name
+    type: nested
+    level: custom
+    description: Filter criteria based on the image name of container resource.
+  - name: aws.securityhub_insights.filters.resource.container.launched_at
+    type: nested
+    level: custom
+    description: Filter criteria based on the launch timestamp range of container
+      resource.
+  - name: aws.securityhub_insights.filters.resource.container.name
+    type: nested
+    level: custom
+    description: Filter criteria based on the name of the container resource involved.
+  - name: aws.securityhub_insights.filters.resource.details_other
+    type: nested
+    level: custom
+    description: Filter criteria based on key-value pairs within other resource details.
+  - name: aws.securityhub_insights.filters.resource.id
+    type: nested
+    level: custom
+    description: Filter criteria based on the identifier of the resource associated.
+  - name: aws.securityhub_insights.filters.resource.partition
+    type: nested
+    level: custom
+    description: Filter criteria based on the AWS partition of the finding resource.
+  - name: aws.securityhub_insights.filters.resource.region
+    type: nested
+    level: custom
+    description: Filter criteria based on the AWS Region of the finding resource.
+  - name: aws.securityhub_insights.filters.resource.tags
+    type: nested
+    level: custom
+    description: Filter criteria based on the key-value tags of the finding resource.
+  - name: aws.securityhub_insights.filters.resource.type
+    type: nested
+    level: custom
+    description: Filter criteria based on the type of the resource associated.
+  - name: aws.securityhub_insights.filters.sample
+    type: nested
+    level: custom
+    description: Filter criteria based on whether the finding is a sample finding.
+  - name: aws.securityhub_insights.filters.severity.label
+    type: nested
+    level: custom
+    description: Filter criteria based on the Security Hub normalized severity label.
+  - name: aws.securityhub_insights.filters.severity.normalized
+    type: nested
+    level: custom
+    description: Filter criteria based on the Security Hub normalized severity score
+      range.
+  - name: aws.securityhub_insights.filters.severity.product
+    type: nested
+    level: custom
+    description: Filter criteria based on the product's normalized severity score
+      range.
+  - name: aws.securityhub_insights.filters.source_url
+    type: nested
+    level: custom
+    description: Filter criteria based on the source URL associated with the finding.
+  - name: aws.securityhub_insights.filters.threat_intel_indicator.category
+    type: nested
+    level: custom
+    description: Filter criteria based on the category of threat intelligence indicator.
+  - name: aws.securityhub_insights.filters.threat_intel_indicator.last_observed_at
+    type: nested
+    level: custom
+    description: Filter criteria based on last observed timestamp range of threat
+      indicator.
+  - name: aws.securityhub_insights.filters.threat_intel_indicator.source
+    type: nested
+    level: custom
+    description: Filter criteria based on the source of the threat intelligence indicator.
+  - name: aws.securityhub_insights.filters.threat_intel_indicator.source_url
+    type: nested
+    level: custom
+    description: Filter criteria based on source URL of the threat intelligence indicator.
+  - name: aws.securityhub_insights.filters.threat_intel_indicator.type
+    type: nested
+    level: custom
+    description: Filter criteria based on the type of the threat intelligence indicator.
+  - name: aws.securityhub_insights.filters.threat_intel_indicator.value
+    type: nested
+    level: custom
+    description: Filter criteria based on the value of the threat intelligence indicator.
+  - name: aws.securityhub_insights.filters.title
+    type: nested
+    level: custom
+    description: Filter criteria based on matching text within the finding's title
+      field.
+  - name: aws.securityhub_insights.filters.type
+    type: nested
+    level: custom
+    description: Filter criteria based on the ASFF type classification of the finding.
+  - name: aws.securityhub_insights.filters.updated_at
+    type: nested
+    level: custom
+    description: Filter criteria based on the update timestamp range of the findings.
+  - name: aws.securityhub_insights.filters.user_defined_fields
+    type: nested
+    level: custom
+    description: Filter criteria based on key-value pairs within user-defined fields.
+  - name: aws.securityhub_insights.filters.verification.state
+    type: nested
+    level: custom
+    description: Filter criteria based on the verification state assigned to the finding.
+  - name: aws.securityhub_insights.filters.workflow.state
+    type: nested
+    level: custom
+    description: The Filter criteria based on the workflow state of the finding.
+  - name: aws.securityhub_insights.filters.workflow.status
+    type: nested
+    level: custom
+    description: Filter criteria based on the workflow status assigned to the finding.
+  - name: aws.securityhub_insights.group_by_attribute
+    type: keyword
+    level: custom
+    description: The attribute used to group findings for this Security Hub insight.
+    example: example-group_by_attribute
+  - name: aws.securityhub_insights.insight_arn
+    type: keyword
+    level: custom
+    description: The unique Amazon Resource Name (ARN) identifying this Security Hub
+      insight.
+    example: example-insight_arn
+  - name: aws.securityhub_insights.name
+    type: keyword
+    level: custom
+    description: >-
+      The user-defined name assigned to this specific Security Hub insight configuration.
+    example: example-name
+  - name: aws.vpc_id
+    type: keyword
+    level: custom
+    description: The identifier of the VPC where the DNS query originated from.
+    example: example-vpc_id
+  - name: aws.vpcflow.account_id
+    type: keyword
+    level: custom
+    description: The AWS account ID associated with the VPC Flow Log record.
+    example: example-account_id
+  - name: aws.vpcflow.action
+    type: keyword
+    level: custom
+    description: The action associated with the traffic (ACCEPT or REJECT).
+    example: example-action
+  - name: aws.vpcflow.instance_id
+    type: keyword
+    level: custom
+    description: The EC2 instance ID associated with the network interface logged.
+    example: example-instance_id
+  - name: aws.vpcflow.interface_id
+    type: keyword
+    level: custom
+    description: The unique identifier of the elastic network interface (ENI) involved.
+    example: example-interface_id
+  - name: aws.vpcflow.log_status
+    type: keyword
+    level: custom
+    description: The logging status of the flow log record (OK, NODATA, SKIPDATA).
+    example: example-log_status
+  - name: aws.vpcflow.pkt_dst_service
+    type: keyword
+    level: custom
+    description: The IANA service name identified for the packet destination port/protocol.
+    example: example-pkt_dst_service
+  - name: aws.vpcflow.pkt_dstaddr
+    type: ip
+    level: custom
+    description: The destination IP address of the packet after network address translation.
+    example: 192.168.1.1
+  - name: aws.vpcflow.pkt_src_service
+    type: keyword
+    level: custom
+    description: The IANA service name identified for the packet source port/protocol.
+    example: example-pkt_src_service
+  - name: aws.vpcflow.pkt_srcaddr
+    type: ip
+    level: custom
+    description: The source IP address of the packet after network address translation.
+    example: 192.168.1.1
+  - name: aws.vpcflow.sublocation.id
+    type: keyword
+    level: custom
+    description: The identifier of the sublocation where the traffic originated or
+      terminated.
+    example: example-id
+  - name: aws.vpcflow.sublocation.type
+    type: keyword
+    level: custom
+    description: The type of the sublocation where the traffic originated or terminated.
+    example: example-type
+  - name: aws.vpcflow.subnet_id
+    type: keyword
+    level: custom
+    description: The identifier of the subnet containing the network interface logged.
+    example: example-subnet_id
+  - name: aws.vpcflow.tcp_flags
+    type: keyword
+    level: custom
+    description: The bitmask value representing the TCP flags observed in the flow.
+    example: example-tcp_flags
+  - name: aws.vpcflow.tcp_flags_array
+    type: keyword
+    level: custom
+    description: An array containing the parsed TCP flag names (e.g., syn, ack).
+    example: example-tcp_flags_array
+  - name: aws.vpcflow.traffic_path
+    type: keyword
+    level: custom
+    description: The path the traffic took through the network infrastructure elements.
+    example: example-traffic_path
+  - name: aws.vpcflow.type
+    type: keyword
+    level: custom
+    description: The type of traffic recorded, typically indicating the IP version
+      (IPv4/IPv6).
+    example: example-type
+  - name: aws.vpcflow.version
+    type: keyword
+    level: custom
+    description: The version number of the VPC Flow Log record format used.
+    example: example-version
+  - name: aws.vpcflow.vpc_id
+    type: keyword
+    level: custom
+    description: The identifier of the VPC containing the network interface logged.
+    example: example-vpc_id
+  - name: aws.waf.arn
+    type: keyword
+    level: custom
+    description: The Amazon Resource Name (ARN) of the WebACL that processed the request.
+    example: example-arn
+  - name: aws.waf.id
+    type: keyword
+    level: custom
+    description: The identifier part extracted from the full WebACL ARN string.
+    example: example-id
+  - name: aws.waf.non_terminating_matching_rules
+    type: nested
+    level: custom
+    description: Details about non-terminating rules that matched the incoming web
+      request.
+  - name: aws.waf.rate_based_rule_list
+    type: nested
+    level: custom
+    description: Details about rate-based rules evaluated, including matched rules
+      and actions.
+  - name: aws.waf.request.headers
+    type: nested
+    level: custom
+    description: Contains the key-value pairs representing the HTTP request headers
+      observed.
+  - name: aws.waf.rule_group_list
+    type: nested
+    level: custom
+    description: Details about rule groups evaluated, including matched rules and
+      actions.
+  - name: aws.waf.rule.id
+    type: keyword
+    level: custom
+    description: The unique identifier of the rule that terminated the web request.
+    example: example-id
+  - name: aws.waf.rule.ruleset
+    type: keyword
+    level: custom
+    description: The type of rule that terminated the request (e.g., REGULAR, RATE_BASED).
+    example: example-ruleset
+  - name: aws.waf.source.id
+    type: keyword
+    level: custom
+    description: The identifier of the source that originated the HTTP request logged.
+    example: example-id
+  - name: aws.waf.source.name
+    type: keyword
+    level: custom
+    description: The name of the source that originated the HTTP request logged.
+    example: example-name
+  - name: aws.waf.terminating_matching_rule
+    type: nested
+    level: custom
+    description: Details about the specific rule that terminated the web request evaluation.
+  - name: aws.waf.terminating_rule_match_details
+    type: nested
+    level: custom
+    description: Provides specific details about why the terminating rule matched
+      request.

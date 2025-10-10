@@ -1,13 +1,16 @@
-FROM python:3.10
+FROM python:3.13-slim
+
+# Upgrade pip and setuptools to latest versions for security
+RUN pip install --upgrade pip setuptools
 
 # Define the version as a build argument 
-ARG ECS_VERSION=v8.11.0
+ARG ECS_VERSION=v9.1.0
 
 # Update the package list and upgrade all packages
 RUN apt-get update && \
     apt-get upgrade -y && \
     # Install dependencies
-    apt-get install  -y git jq && \
+    apt-get install  -y git jq curl && \
     # Cleanup
     apt-get clean && \
     rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/* && \

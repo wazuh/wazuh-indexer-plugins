@@ -1,0 +1,77 @@
+- name: cisco-aironet
+  title: Cisco Aironet
+  description: cisco-aironet custom fields for WCS integration
+  root: true
+  fields:
+  - name: cisco.eapol.descriptor
+    type: long
+    level: custom
+    description: >-
+      Cisco eapol descriptor. Supposed to be short, but set to long as the Engine
+      does not support the 'short' data type yet.
+    example: 12345
+  - name: cisco.eapol.type
+    type: long
+    level: custom
+    description: >-
+      Cisco eapol type. Supposed to be short, but set to long as the Engine does not
+      support the 'short' data type yet.
+    example: 12345
+  - name: cisco.eapol.version
+    type: long
+    level: custom
+    description: >-
+      Cisco eapol version. Supposed to be short, but set to long as the Engine does
+      not support the 'short' data type yet.
+    example: 12345
+  - name: cisco.interface.type
+    type: keyword
+    level: custom
+    description: 'Cisco interface type. Expected values are: ["wired", "wireless"].'
+    example: example-type
+  - name: cisco.ssid
+    type: keyword
+    level: custom
+    short: 'Cisco SSID: unique wireless network name broadcast by router/access point'
+    description: >-
+      Cisco SSID. SSID stands for Service Set Identifier, and it is the unique name
+      of a wireless (Wi-Fi) network that is broadcast by a router or access point.
+    example: example-ssid
+  - name: cisco.wps.channel
+    type: long
+    level: custom
+    description: >-
+      Cisco WPS channel. Supposed to be short, but set to long as the Engine does
+      not support the 'short' data type yet.
+    example: 12345
+  - name: cisco.wps.hits
+    type: long
+    level: custom
+    description: >-
+      Cisco WPS hits. Supposed to be short, but set to long as the Engine does not
+      support the 'short' data type yet.
+    example: 12345
+  - name: cisco.wps.preced
+    type: long
+    level: custom
+    description: >-
+      Cisco WPS precedence. Supposed to be short, but set to long as the Engine does
+      not support the 'short' data type yet.
+    example: 12345
+  - name: cisco.wps.slot
+    type: long
+    level: custom
+    description: >-
+      Cisco WPS slot. Supposed to be short, but set to long as the Engine does not
+      support the 'short' data type yet.
+    example: 12345
+  - name: cisco.wps.track
+    type: keyword
+    level: custom
+    short: 'Cisco WPS track: Wi-Fi Protected Setup monitoring method (per-Mac, global)'
+    description: >-
+      Cisco WPS track. WPS stands for Wi-Fi Protected Setup, and it is a network security
+      standard that allows users to easily secure a wireless home network. The WPS
+      track indicates the tracking method used for monitoring and managing WPS-related
+      activities on the network. Expected values are: ["per-Mac", "global"].
+    example: example-track

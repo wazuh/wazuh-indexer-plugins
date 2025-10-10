@@ -1,0 +1,360 @@
+- name: windows
+  title: Windows
+  description: windows custom fields for WCS integration
+  root: true
+  fields:
+  - name: powershell.command.name
+    type: keyword
+    level: custom
+    description: PowerShell command name from EventData.CommandName
+    example: example-name
+  - name: powershell.command.path
+    type: keyword
+    level: custom
+    description: PowerShell command path from EventData.CommandPath
+    example: example-path
+  - name: powershell.command.type
+    type: keyword
+    level: custom
+    description: PowerShell command type from EventData.CommandType
+    example: example-type
+  - name: powershell.command.value
+    type: keyword
+    level: custom
+    description: PowerShell command line from EventData.CommandLine
+    example: example-value
+  - name: powershell.file
+    type: keyword
+    level: custom
+    description: PowerShell field file
+    example: example-file
+  - name: powershell.file.script_block_id
+    type: keyword
+    level: custom
+    description: Script block identifier for PowerShell scripts
+    example: example-script_block_id
+  - name: powershell.file.script_block_text
+    type: keyword
+    level: custom
+    description: PowerShell script block content
+    example: example-script_block_text
+  - name: powershell.sequence
+    type: long
+    level: custom
+    description: Sequence number for PowerShell events
+    example: 12345
+  - name: powershell.total
+    type: long
+    level: custom
+    description: Total number of PowerShell script blocks
+    example: 12345
+  - name: sysmon.dns.status
+    type: keyword
+    level: custom
+    description: DNS query status from Sysmon DNS events
+    example: example-status
+  - name: sysmon.file.archived
+    type: boolean
+    level: custom
+    description: Whether file was archived from Sysmon file deletion events
+    example: true
+  - name: sysmon.file.is_executable
+    type: boolean
+    level: custom
+    description: Whether file is executable from Sysmon file events
+    example: true
+  - name: windows.EventData
+    type: object
+    level: custom
+    description: Complete Windows event data section with all event-specific fields
+  - name: windows.EventData.AuthenticationPackageName
+    type: keyword
+    level: custom
+    description: Authentication package used for Windows logon (Kerberos/NTLM/Negotiate)
+    example: example-AuthenticationPackageName
+  - name: windows.EventData.ElevatedToken
+    type: keyword
+    level: custom
+    description: Whether elevated token was used in Windows logon
+    example: example-ElevatedToken
+  - name: windows.EventData.ImpersonationLevel
+    type: keyword
+    level: custom
+    description: Token impersonation level from Windows security events
+    example: example-ImpersonationLevel
+  - name: windows.EventData.IpAddress
+    type: ip
+    level: custom
+    description: IP address from Windows logon events
+    example: 192.168.1.1
+  - name: windows.EventData.IpPort
+    type: long
+    level: custom
+    description: IP port from Windows network logon events
+    example: 12345
+  - name: windows.EventData.KeyLength
+    type: long
+    level: custom
+    description: Encryption key length from Windows security events
+    example: 12345
+  - name: windows.EventData.LmPackageName
+    type: keyword
+    level: custom
+    description: LM package name used in Windows authentication
+    example: example-LmPackageName
+  - name: windows.EventData.LogonGuid
+    type: keyword
+    level: custom
+    description: Logon session GUID for Windows authentication correlation
+    example: example-LogonGuid
+  - name: windows.EventData.LogonProcessName
+    type: keyword
+    level: custom
+    description: Logon process name (User32/Winlogon/etc)
+    example: example-LogonProcessName
+  - name: windows.EventData.LogonType
+    type: keyword
+    level: custom
+    description: Windows logon type numeric code
+    example: example-LogonType
+  - name: windows.EventData.ProcessId
+    type: keyword
+    level: custom
+    description: Process ID from Windows EventData (hex format)
+    example: example-ProcessId
+  - name: windows.EventData.ProcessName
+    type: keyword
+    level: custom
+    description: Process name from Windows security events
+    example: example-ProcessName
+  - name: windows.EventData.RestrictedAdminMode
+    type: keyword
+    level: custom
+    description: Whether restricted admin mode was used
+    example: example-RestrictedAdminMode
+  - name: windows.EventData.SubjectDomainName
+    type: keyword
+    level: custom
+    description: Domain name of subject user in Windows security events
+    example: example-SubjectDomainName
+  - name: windows.EventData.SubjectLogonId
+    type: keyword
+    level: custom
+    description: Logon session ID of subject user
+    example: example-SubjectLogonId
+  - name: windows.EventData.SubjectUserName
+    type: keyword
+    level: custom
+    description: Username of subject user performing the action
+    example: example-SubjectUserName
+  - name: windows.EventData.SubjectUserSid
+    type: keyword
+    level: custom
+    description: Security identifier of subject user
+    example: example-SubjectUserSid
+  - name: windows.EventData.TargetDomainName
+    type: keyword
+    level: custom
+    description: Domain name of target user account
+    example: example-TargetDomainName
+  - name: windows.EventData.TargetLinkedLogonId
+    type: keyword
+    level: custom
+    description: Linked logon session ID for target account
+    example: example-TargetLinkedLogonId
+  - name: windows.EventData.TargetLogonId
+    type: keyword
+    level: custom
+    description: Logon session ID of target user
+    example: example-TargetLogonId
+  - name: windows.EventData.TargetOutboundDomainName
+    type: keyword
+    level: custom
+    description: Outbound domain name for target user
+    example: example-TargetOutboundDomainName
+  - name: windows.EventData.TargetOutboundUserName
+    type: keyword
+    level: custom
+    description: Outbound username for target user
+    example: example-TargetOutboundUserName
+  - name: windows.EventData.TargetUserName
+    type: keyword
+    level: custom
+    description: Username of target user account
+    example: example-TargetUserName
+  - name: windows.EventData.TargetUserSid
+    type: keyword
+    level: custom
+    description: Security identifier of target user
+    example: example-TargetUserSid
+  - name: windows.EventData.TransmittedServices
+    type: keyword
+    level: custom
+    description: Services transmitted during authentication
+    example: example-TransmittedServices
+  - name: windows.EventData.VirtualAccount
+    type: keyword
+    level: custom
+    description: Whether virtual account was used in logon
+    example: example-VirtualAccount
+  - name: windows.EventData.WorkstationName
+    type: keyword
+    level: custom
+    description: Workstation name from Windows logon events
+    example: example-WorkstationName
+  - name: windows.logon.channel
+    type: keyword
+    level: custom
+    description: Windows logon event log channel
+    example: example-channel
+  - name: windows.logon.computer_name
+    type: keyword
+    level: custom
+    description: Windows logon computer name
+    example: example-computer_name
+  - name: windows.logon.event_id
+    type: keyword
+    level: custom
+    description: Windows logon Event ID
+    example: example-event_id
+  - name: windows.logon.failure
+    type: keyword
+    level: custom
+    description: Windows custom field windows.logon.failure
+    example: example-failure
+  - name: windows.logon.failure.status
+    type: keyword
+    level: custom
+    description: Windows custom field windows.logon.failure.status
+    example: example-status
+  - name: windows.logon.id
+    type: keyword
+    level: custom
+    description: Windows logon session identifier
+    example: example-id
+  - name: windows.logon.keywords
+    type: keyword
+    level: custom
+    description: Windows logon event keywords array
+    example: example-keywords
+    normalize:
+    - array
+  - name: windows.logon.process
+    type: keyword
+    level: custom
+    description: Windows custom field windows.logon.process
+    example: example-process
+  - name: windows.logon.process.pid
+    type: long
+    level: custom
+    description: Windows logon process identifier
+    example: 12345
+  - name: windows.logon.process.thread
+    type: keyword
+    level: custom
+    description: Windows custom field windows.logon.process.thread
+    example: example-thread
+  - name: windows.logon.process.thread.id
+    type: keyword
+    level: custom
+    description: Windows logon thread identifier
+    example: example-id
+  - name: windows.logon.provider_guid
+    type: keyword
+    level: custom
+    description: Windows logon provider GUID
+    example: example-provider_guid
+  - name: windows.logon.provider_name
+    type: keyword
+    level: custom
+    description: Windows logon provider name
+    example: example-provider_name
+  - name: windows.logon.record_id
+    type: keyword
+    level: custom
+    description: Windows logon event record ID
+    example: example-record_id
+  - name: windows.logon.type
+    type: keyword
+    level: custom
+    description: Human-readable Windows logon type (Interactive/Network/Batch/etc)
+    example: example-type
+  - name: windows.System
+    type: object
+    level: custom
+    description: Windows event system section with metadata
+  - name: windows.System.Channel.#text
+    type: keyword
+    level: custom
+    description: Windows event log channel name (Security/System/Application)
+    example: example-#text
+  - name: windows.System.Computer.#text
+    type: keyword
+    level: custom
+    description: Computer name where Windows event was generated
+    example: example-#text
+  - name: windows.System.Correlation.@ActivityID
+    type: keyword
+    level: custom
+    description: Activity ID for correlating related Windows events
+    example: example-@ActivityID
+  - name: windows.System.EventID.#text
+    type: keyword
+    level: custom
+    description: Windows Event ID as text
+    example: example-#text
+  - name: windows.System.EventRecordID.#text
+    type: keyword
+    level: custom
+    description: Unique record ID for Windows event
+    example: example-#text
+  - name: windows.System.Execution.@ProcessID
+    type: keyword
+    level: custom
+    description: Process ID that generated the Windows event
+    example: example-@ProcessID
+  - name: windows.System.Execution.@ThreadID
+    type: keyword
+    level: custom
+    description: Thread ID that generated the Windows event
+    example: example-@ThreadID
+  - name: windows.System.Keywords.#text
+    type: keyword
+    level: custom
+    description: Windows event keywords bitmask
+    example: example-#text
+  - name: windows.System.Level.#text
+    type: keyword
+    level: custom
+    description: Windows event severity level (0-5)
+    example: example-#text
+  - name: windows.System.Opcode.#text
+    type: keyword
+    level: custom
+    description: Windows event opcode
+    example: example-#text
+  - name: windows.System.Provider.@Guid
+    type: keyword
+    level: custom
+    description: GUID of Windows event provider
+    example: example-@Guid
+  - name: windows.System.Provider.@Name
+    type: keyword
+    level: custom
+    description: Name of Windows event provider
+    example: example-@Name
+  - name: windows.System.Task.#text
+    type: keyword
+    level: custom
+    description: Windows event task category code
+    example: example-#text
+  - name: windows.System.TimeCreated.@SystemTime
+    type: date
+    level: custom
+    description: Timestamp when Windows event was created
+    example: '2023-01-01T00:00:00.000Z'
+  - name: windows.System.Version.#text
+    type: keyword
+    level: custom
+    description: Windows event schema version
+    example: example-#text

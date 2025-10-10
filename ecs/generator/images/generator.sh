@@ -8,7 +8,7 @@ set -euo pipefail
 # compatible open source license.
 
 # Default values
-ECS_VERSION="${ECS_VERSION:-v8.11.0}"
+ECS_VERSION="${ECS_VERSION:-v9.1.0}"
 ECS_SOURCE="${ECS_SOURCE:-/source}"
 
 # Function to display usage information
@@ -16,9 +16,9 @@ show_usage() {
   echo "Usage: $0"
   echo "Environment Variables:"
   echo "  * ECS_MODULE:   Module to generate mappings for"
-  echo "  * ECS_VERSION:  (Optional) ECS version to generate mappings for (default: v8.11.0)"
+  echo "  * ECS_VERSION:  (Optional) ECS version to generate mappings for (default: v9.1.0)"
   echo "  * ECS_SOURCE:   (Optional) Path to the wazuh-indexer repository (default: /source)"
-  echo "Example: docker run -e ECS_MODULE=alerts -e ECS_VERSION=v8.11.0 ecs-generator"
+  echo "Example: docker run -e ECS_MODULE=stateless -e ECS_VERSION=v9.1.0 ecs-generator"
 }
 
 # Ensure ECS_MODULE is provided
@@ -29,6 +29,7 @@ fi
 
 # Function to remove multi-fields from the generated index template
 remove_multi_fields() {
+  echo "Removing multi-fields from the index template"
   local in_file="$1"
   local out_file="$2"
 
@@ -48,6 +49,13 @@ remove_multi_fields() {
     .mappings.properties.process.properties.executable.fields,
     .mappings.properties.process.properties.working_directory.fields
   )' "$in_file" > "$out_file"
+    mv "$out_file" "$in_file"
+}
+
+# Function to get the OpenTelemetry semantic conventions version for a given ECS version
+# Required since ECS v9.0.0.
+get_otel_version() {
+  curl -s "https://raw.githubusercontent.com/elastic/ecs/refs/tags/${ECS_VERSION}/otel-semconv-version"
 }
 
 # Function to generate mappings
@@ -62,9 +70,16 @@ generate_mappings() {
   # Ensure the output directory exists
   mkdir -p "$out_dir"
 
+  # Include the common WCS fields if the module is an integration (e.g., stateless-aws)
+  local include_wcs=""
+  if [[ "$ecs_module" == stateless-* ]]; then
+    include_wcs="$indexer_path/ecs/stateless/fields/custom/"
+  fi
+
   # Generate mappings
   python scripts/generator.py --strict --ref "$ecs_version" \
-    --include "$in_files_dir/custom/" \
+    --semconv-version "$(get_otel_version)" \
+    --include "$in_files_dir/custom/" "${include_wcs}" \
     --subset "$in_files_dir/subset.yml" \
     --template-settings "$in_files_dir/template-settings.json" \
     --template-settings-legacy "$in_files_dir/template-settings-legacy.json" \
@@ -85,11 +100,13 @@ generate_mappings() {
   local csv_file="$out_dir/generated/csv/fields.csv"
 
   # Remove multi-fields from the generated index template
-  echo "Removing multi-fields from the index template"
   remove_multi_fields "$in_file" "$out_file"
-  mv "$out_file" "$in_file"
 
-  if [ "$ECS_MODULE" != "stateless" ]; then
+  # Delete "synthetic_source_keep" from the index template
+  echo "Deleting \"synthetic_source_keep\" mappings setting from the index template"
+  sed -i '/synthetic_source_keep/d' "$in_file"
+
+  if [[ "$ecs_module" != stateless* ]]; then
     # Delete the "tags" field from the index template
     echo "Deleting the \"tags\" field from the index template"
     jq 'del(.mappings.properties.tags)' "$in_file" > "$out_file"
@@ -103,7 +120,9 @@ generate_mappings() {
     # Delete the "@timestamp" field from the csv file
     echo "Deleting the \"@timestamp\" and \"tags\" fields from the CSV file"
     sed -i '/@timestamp/d; /tags/d' "$csv_file"
-  else
+  # The stateless module is the one for the "wazuh-alerts" index template
+  # We need to generate another template for "wazuh-archives" index
+  elif [[ "$ecs_module" == "stateless" ]]; then
     # Generate the template for `wazuh-archives`
     echo "Generating template for 'wazuh-archives'"
     archives_file="$out_dir/generated/elasticsearch/legacy/template-archives.json"

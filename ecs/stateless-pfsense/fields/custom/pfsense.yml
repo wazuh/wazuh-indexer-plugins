@@ -1,0 +1,103 @@
+- name: pfsense
+  title: Pfsense
+  description: pfsense custom fields for WCS integration
+  root: true
+  fields:
+  - name: pfsense.dhcp_subnet
+    type: keyword
+    level: custom
+    description: The subnet for which the DHCP server is issuing IPs.
+    example: example-dhcp_subnet
+  - name: pfsense.dhcp_subnet
+    type: keyword
+    level: custom
+    description: The subnet for which the DHCP server is issuing IPs.
+    example: example-dhcp_subnet
+  - name: pfsense.firewall_rule_id
+    type: keyword
+    level: custom
+    short: >-
+      Rule ID unique within scope of agent, observer, or entity using the rule for
+      event detection.
+    description: >-
+      A rule ID that is unique within the scope of an agent, observer, or other entity
+      using the rule for detection of this event.
+    example: example-firewall_rule_id
+  - name: pfsense.icmp_type
+    type: keyword
+    level: custom
+    short: Type of ICMP message received or sent by the pfSense firewall.
+    description: >-
+      Represents the type of ICMP (Internet Control Message Protocol) message that
+      has been received or sent by the `pfsense` firewall.
+    example: example-icmp_type
+  - name: pfsense.ip_flags
+    type: keyword
+    level: custom
+    description: Represents the flags set in the IP (Internet Protocol) header of
+      a packet.
+    example: example-ip_flags
+  - name: pfsense.ip_id
+    type: long
+    level: custom
+    description: >-
+      Represents the unique identifier assigned to an IP packet at the time of its
+      creation.
+    example: 12345
+  - name: pfsense.ip_offset
+    type: long
+    level: custom
+    short: >-
+      Offset of fragmented IP packet, specifying where fragment should be placed in
+      the original unfragmented packet.
+    description: >-
+      Indicates the offset of a fragmented IP packet, specifying where the fragment
+      should be placed within the original, unfragmented packet.
+    example: 12345
+  - name: pfsense.ip_tos
+    type: keyword
+    level: custom
+    description: IP Type of Service identification.
+    example: example-ip_tos
+  - name: pfsense.ip_ttl
+    type: long
+    level: custom
+    description: Time To Live (TTL) of the packet.
+    example: 12345
+  - name: pfsense.tcp_flags
+    type: keyword
+    level: custom
+    short: >-
+      TCP flags controlling data flow between endpoints and signaling actions or conditions
+      within TCP connection.
+    description: >-
+      TCP flags are used to control the flow of data between two endpoints and signal
+      specific actions or conditions within the TCP connection.
+    example: example-tcp_flags
+  - name: pfsense.tcp_length
+    type: long
+    level: custom
+    description: Length of the TCP header and payload.
+    example: 12345
+  - name: pfsense.tcp_options
+    type: keyword
+    level: custom
+    description: >-
+      Represents the various options set in the TCP (Transmission Control Protocol)
+      header for a given packet.
+    example: example-tcp_options
+    normalize:
+    - array
+  - name: pfsense.tcp_seq
+    type: long
+    level: custom
+    description: >-
+      Represents the sequence number assigned to each byte of data sent in a TCP connection.
+    example: 12345
+  - name: pfsense.tcp_window
+    type: long
+    level: custom
+    description: >-
+      Represents the size of the receive window that a TCP sender advertises to the
+      receiver during a TCP connection.
+    example: 12345
