@@ -32,6 +32,7 @@ function navigate_to_project_root() {
   fi
 
   cd "$script_path"
+  echo "$script_path"
 }
 
 # ====
