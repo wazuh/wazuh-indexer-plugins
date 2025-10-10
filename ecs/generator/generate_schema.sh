@@ -51,7 +51,7 @@ function detect_modified_modules() {
   local modified_modules=()
   modified_files=$(git diff --name-only origin/"$BASE_BRANCH")
   for file in $modified_files; do
-    if [[ $file == ecs/* && ($file == *.yml || $file == *.json) ]]; then
+    if [[ $file == ecs/state* && ($file == *.yml || $file == *.json) ]]; then
       ecs_module=$(echo "$file" | cut -d'/' -f2)
       if [[ ! " ${modified_modules[*]} " =~ ${ecs_module} ]]; then
         # Ignore the template folder "stateless-template" from modified modules

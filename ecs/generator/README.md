@@ -1,15 +1,14 @@
 # Wazuh Common Schema generator
 
 The generation of the Wazuh Common Schema is automated using a set of scripts and Docker projects.
-These are located under the [generator/](./generator) folder, which contains the following files:
 
-- [compose.yml](./generator/compose.yml): Docker Compose file to define the services for the schema generator.
-- [generate_schema.sh](./generator/generate_schema.sh): generates the complete schema. The list of modules to generate is read from the [module_list.txt](./module_list.txt) file. Copies the generated files to the appropriate folders. The index templates are copied to Setup plugin's [resources/](../plugins/setup/src/main/resources/) folder, while the CSV files are copied to each module's `docs/` folder.
-- [push_schema.sh](./generator/push_schema.sh): commits and pushes the changes in the schema to the repository. This script is meant to be used by our GH Workflow. Do not use it locally.
-- [run_generator.sh](./generator/run_generator.sh): Script to start the Docker Compose project. This is the main entry point for the schema generation.
-- [update_module_list.sh](./generator/update_module_list.sh): generates the [module_list.txt](./module_list.txt) file, by scanning the [ecs/](.) folder. Run this script whenever a new module is added.
-- [images/Dockerfile](./generator/images/Dockerfile): Dockerfile to build the image used for the schema generation. Clones the ECS repository, which contains the main tooling.
-- [images/generator.sh](./generator/images/generator.sh): our actual schema generation script. It is executed inside the container. Contains post-processing steps to make the templates compatible with OpenSearch and to adapt them to our needs.
+- [compose.yml](./compose.yml): Docker Compose file to define the services for the schema generator.
+- [generate_schema.sh](./generate_schema.sh): generates the complete schema. The list of modules to generate is read from the [module_list.txt](../module_list.txt) file. Copies the generated files to the appropriate folders. The index templates are copied to Setup plugin's [resources/](../../plugins/setup/src/main/resources/) folder, while the CSV files are copied to each module's `docs/` folder.
+- [push_schema.sh](./push_schema.sh): commits and pushes the changes in the schema to the repository. This script is meant to be used by our GH Workflow. Do not use it locally.
+- [run_generator.sh](./run_generator.sh): Script to start the Docker Compose project. This is the main entry point for the schema generation.
+- [update_module_list.sh](./update_module_list.sh): generates the [module_list.txt](../module_list.txt) file, by scanning the [ecs/](..) folder. Run this script whenever a new module is added.
+- [images/Dockerfile](./images/Dockerfile): Dockerfile to build the image used for the schema generation. Clones the ECS repository, which contains the main tooling.
+- [images/generator.sh](./images/generator.sh): our actual schema generation script. It is executed inside the container. Contains post-processing steps to make the templates compatible with OpenSearch and to adapt them to our needs.
 
 ### Requirements
 
@@ -75,7 +74,7 @@ The name of the folder will be the name of the module to be passed to the script
 - `fields/custom`: folder containg custom fields for the module. This folder is optional.
 
 > [!IMPORTANT]
-> Add the new module to the [SetupPlugin.java](../plugins/setup/src/main/java/com/wazuh/setup/SetupPlugin.java) file, so it is included in the installation process.
+> Add the new module to the [SetupPlugin.java](../../plugins/setup/src/main/java/com/wazuh/setup/SetupPlugin.java) file, so it is included in the installation process.
 
 ## Event generators
 
@@ -88,8 +87,8 @@ Each module contains a Python script to generate events for its module. The scri
 The script will generate a JSON file with the events, and will also ask whether to upload them to the indexer. If the upload option is selected, the script will ask for the indexer URL and port, credentials, and index name.
 The script uses log file. Check it out for debugging or additional information.
 
-The [run_event_generators.sh](./scripts/run_event_generators.sh) script can be used to run all the event generators in sequence. It will prompt for the indexer details only once, and will use them for all the modules.
+The [run_event_generators.sh](../scripts/run_event_generators.sh) script can be used to run all the event generators in sequence. It will prompt for the indexer details only once, and will use them for all the modules.
 
 ## GitHub Workflow
 
-The schema generation is automated using a GitHub Workflow, defined in the [5_builderpackage_schema.yml](../.github/workflows/5_builderpackage_schema.yml) file.
+The schema generation is automated using a GitHub Workflow, defined in the [5_builderpackage_schema.yml](../../.github/workflows/5_builderpackage_schema.yml) file.
