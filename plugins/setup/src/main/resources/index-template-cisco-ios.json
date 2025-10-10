@@ -398,7 +398,7 @@
               "session": {
                 "properties": {
                   "number": {
-                    "type": "integer"
+                    "type": "Integer"
                   },
                   "type": {
                     "ignore_above": 1024,
