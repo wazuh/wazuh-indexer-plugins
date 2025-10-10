@@ -94,7 +94,7 @@ ECS_Version,Indexed,Field_Set,Field,Type,Level,Normalization,Example,Description
 9.1.0,true,cisco,cisco.ios.pim.group.ip,ip,custom,,192.168.1.1,The IP address of the multicast group involved in PIM operations.
 9.1.0,true,cisco,cisco.ios.pim.source.ip,ip,custom,,192.168.1.1,The source IP address involved in PIM operations.
 9.1.0,true,cisco,cisco.ios.session,object,custom,,,An object containing information about user sessions on the Cisco IOS device.
-9.1.0,true,cisco,cisco.ios.session.number,Integer,custom,,,The session number or identifier assigned to the user session on the Cisco IOS device.
+9.1.0,true,cisco,cisco.ios.session.number,integer,custom,,,The session number or identifier assigned to the user session on the Cisco IOS device.
 9.1.0,true,cisco,cisco.ios.session.type,keyword,custom,,example-type,"The type of user session (e.g., ""tty"", ""vty"", ""console"") established on the Cisco IOS device."
 9.1.0,true,cisco,cisco.ios.tableid,keyword,custom,,example-tableid,"The routing table identifier used in network operations, typically seen in BGP or MPLS contexts."
 9.1.0,true,cisco,cisco.ios.uptime,keyword,custom,,example-uptime,"The system uptime of the Cisco IOS device when the event occurred, typically in format like ""2y10w"" (2 years, 10 weeks)."
