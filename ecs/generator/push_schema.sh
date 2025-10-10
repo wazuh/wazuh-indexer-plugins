@@ -64,7 +64,7 @@ function push_changes() {
   if ! git diff-index --quiet HEAD --; then
     git add plugins/setup/src/main/resources/*.json
     git add ecs/**/docs/fields.csv
-    git add ecs/scripts/module_list.txt
+    git add ecs/module_list.txt
     git status --short
     git commit -m "Update the Wazuh Common Schema"
     git push

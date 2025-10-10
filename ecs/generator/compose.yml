@@ -1,7 +1,7 @@
 services:
-  ecs-mapping-generator:
-    image: wazuh-ecs-generator
-    container_name: wazuh-ecs-generator
+  wcs-generator:
+    image: wazuh-common-schema-generator
+    container_name: wazuh-common-schema-generator
     build:
       context: ./../..
       dockerfile: ${REPO_PATH:-.}/ecs/generator/images/Dockerfile

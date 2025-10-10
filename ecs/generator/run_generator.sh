@@ -40,7 +40,7 @@ function usage() {
 }
 
 function main() {
-    local compose_filename="ecs/generator/mapping-generator.yml"
+    local compose_filename="ecs/generator/compose.yml"
     local compose_command
     local module
     local repo_path
@@ -58,7 +58,7 @@ function main() {
         repo_path="${3:-$(pwd)}"
 
         # Start the container with the required env variables
-        ECS_MODULE="$module" REPO_PATH="$repo_path" $compose_command up --exit-code-from ecs-mapping-generator
+        ECS_MODULE="$module" REPO_PATH="$repo_path" $compose_command up --exit-code-from wcs-generator
         # The containers are stopped after each execution
         # $compose_command stop
         ;;

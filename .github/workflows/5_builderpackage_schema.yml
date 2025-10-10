@@ -12,7 +12,8 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  run-ecs-generator:
+  build-wcs:
+    name: Build Wazuh Common Schema
     if: github.repository == 'wazuh/wazuh-indexer-plugins'
     runs-on: ubuntu-24.04
     permissions:
@@ -33,12 +34,12 @@ jobs:
         run: sudo apt-get install docker-compose
 
       - name: Update module list
-        run: bash ecs/scripts/update_module_list.sh
+        run: bash ecs/generator/update_module_list.sh
 
       - name: Generate WCS
         env:
           BASE_BRANCH: ${{ github.event.repository.default_branch }}
-        run: bash ecs/scripts/generate_templates.sh
+        run: bash ecs/generator/generate_schema.sh
 
       - name: Push changes
         env:
@@ -48,8 +49,9 @@ jobs:
           SSH_PRIVATE_KEY: ${{ secrets.INDEXER_BOT_PRIVATE_SSH_KEY }}
           SSH_PUBLIC_KEY: ${{ secrets.INDEXER_BOT_PUBLIC_SSH_KEY }}
           BASE_BRANCH: ${{ github.event.repository.default_branch }}
-        run: bash ecs/scripts/push_templates.sh
+        run: bash ecs/generator/push_schema.sh
 
-      - if: ${{ success() }}
+      - name: Display pull request link
+        if: ${{ success() }}
         run: echo "::notice::Pull request link => $(cat /tmp/pull_request_link.txt)"
      

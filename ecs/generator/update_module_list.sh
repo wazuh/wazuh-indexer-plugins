@@ -8,8 +8,6 @@ module_sets=(
     "stateless-" # Third-party log sources (aws, cisco, etc.)
 )
 
-output_file="$(dirname "$0")/module_list.txt"
-
 declare -A wazuh_modules
 declare -A third_party_modules
 
@@ -77,6 +75,7 @@ function map_modules_in_set() {
 # ====
 function main() {
     navigate_to_project_root
+    output_file="ecs/module_list.txt"
     init_module_list
 
     # Print in Bash associative array format
