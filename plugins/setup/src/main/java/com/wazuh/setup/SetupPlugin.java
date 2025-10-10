@@ -97,6 +97,22 @@ public class SetupPlugin extends Plugin implements ClusterPlugin {
             "index-template-audit",
             "wazuh-events-audit"
         ));
+        // FIXME template is not generated
+//        this.indices.add(new StreamIndex(
+//            "wazuh-events-5.x-aws-000001",
+//            "index-template-aws",
+//            "wazuh-events-aws"
+//        ));
+        this.indices.add(new StreamIndex(
+            "wazuh-events-5.x-aws-firehose-000001",
+            "index-template-aws-firehose",
+            "wazuh-events-aws-firehose"
+        ));
+        this.indices.add(new StreamIndex(
+            "wazuh-events-5.x-aws-logs-000001",
+            "index-template-aws-logs",
+            "wazuh-events-aws-logs"
+        ));
         this.indices.add(new StreamIndex(
             "wazuh-events-5.x-azure-000001",
             "index-template-azure",
@@ -108,9 +124,24 @@ public class SetupPlugin extends Plugin implements ClusterPlugin {
             "wazuh-events-azure-app-service"
         ));
         this.indices.add(new StreamIndex(
+            "wazuh-events-5.x-azure-blob-storage-000001",
+            "index-template-azure-blob-storage",
+            "wazuh-events-azure-blob-storage"
+        ));
+        this.indices.add(new StreamIndex(
+            "wazuh-events-5.x-azure-functions-000001",
+            "index-template-azure-functions",
+            "wazuh-events-azure-functions"
+        ));
+        this.indices.add(new StreamIndex(
             "wazuh-events-5.x-azure-metrics-000001",
             "index-template-azure-metrics",
             "wazuh-events-azure-metrics"
+        ));
+        this.indices.add(new StreamIndex(
+            "wazuh-events-5.x-azure-openai-000001",
+            "index-template-azure-openai",
+            "wazuh-events-azure-openai"
         ));
         this.indices.add(new StreamIndex(
             "wazuh-events-5.x-checkpoint-000001",
@@ -118,14 +149,29 @@ public class SetupPlugin extends Plugin implements ClusterPlugin {
             "wazuh-events-checkpoint"
         ));
         this.indices.add(new StreamIndex(
-            "wazuh-events-5.x-cisco-umbrella-000001",
-            "index-template-cisco-umbrella",
-            "wazuh-events-cisco-umbrella"
+            "wazuh-events-5.x-cisco-aironet-000001",
+            "index-template-cisco-aironet",
+            "wazuh-events-cisco-aironet"
         ));
         this.indices.add(new StreamIndex(
             "wazuh-events-5.x-cisco-asa-000001",
             "index-template-cisco-asa",
             "wazuh-events-cisco-asa"
+        ));
+        this.indices.add(new StreamIndex(
+            "wazuh-events-5.x-cisco-ios-000001",
+            "index-template-cisco-ios",
+            "wazuh-events-cisco-ios"
+        ));
+        this.indices.add(new StreamIndex(
+            "wazuh-events-5.x-cisco-meraki-000001",
+            "index-template-cisco-meraki",
+            "wazuh-events-cisco-meraki"
+        ));
+        this.indices.add(new StreamIndex(
+            "wazuh-events-5.x-cisco-umbrella-000001",
+            "index-template-cisco-umbrella",
+            "wazuh-events-cisco-umbrella"
         ));
         this.indices.add(new StreamIndex(
             "wazuh-events-5.x-f5-bigip-000001",
@@ -141,6 +187,11 @@ public class SetupPlugin extends Plugin implements ClusterPlugin {
             "wazuh-events-5.x-gcp-000001",
             "index-template-gcp",
             "wazuh-events-gcp"
+        ));
+        this.indices.add(new StreamIndex(
+            "wazuh-events-5.x-google-scc-000001",
+            "index-template-google-scc",
+            "wazuh-events-google-scc"
         ));
         this.indices.add(new StreamIndex(
             "wazuh-events-5.x-iis-000001",
@@ -168,9 +219,9 @@ public class SetupPlugin extends Plugin implements ClusterPlugin {
             "wazuh-events-microsoft-exchange-server"
         ));
         this.indices.add(new StreamIndex(
-            "wazuh-events-5.x-modsec-000001",
-            "index-template-modsec",
-            "wazuh-events-modsec"
+            "wazuh-events-5.x-modsecurity-000001",
+            "index-template-modsecurity",
+            "wazuh-events-modsecurity"
         ));
         this.indices.add(new StreamIndex(
             "wazuh-events-5.x-oracle-weblogic-000001",
@@ -186,6 +237,11 @@ public class SetupPlugin extends Plugin implements ClusterPlugin {
             "wazuh-events-5.x-snort-000001",
             "index-template-snort",
             "wazuh-events-snort"
+        ));
+        this.indices.add(new StreamIndex(
+            "wazuh-events-5.x-sonicwall-firewall-000001",
+            "index-template-sonicwall-firewall",
+            "wazuh-events-sonicwall-firewall"
         ));
         this.indices.add(new StreamIndex(
             "wazuh-events-5.x-springboot-000001",

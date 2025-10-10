@@ -1,7 +1,7 @@
 ---
-name: wazuh-events-modsec
+name: wazuh-events-modsecurity
 fields:
-  modsec:
+  modsecurity:
     fields: "*"
   base:
     fields: "*"
