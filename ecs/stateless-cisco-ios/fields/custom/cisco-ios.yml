@@ -79,7 +79,7 @@
     description: An object containing information about user sessions on the Cisco
       IOS device.
   - name: cisco.ios.session.number
-    type: Integer
+    type: integer
     level: custom
     description: >-
       The session number or identifier assigned to the user session on the Cisco IOS

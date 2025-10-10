@@ -97,9 +97,7 @@
   - name: aws.cloudfront_edge_detailed_result_type
     type: keyword
     level: custom
-    short: >-
-      Error type when x-edge-result-type is Error; OriginShieldHit for Origin Shield
-      cache; otherwise same as x-edge-result-type
+    short: Error type when x-edge-result-type is Error
     description: >-
       When the value of the x-edge-result-type field is Error, this field contains
       the specific type of error. When the object was served to the viewer from the

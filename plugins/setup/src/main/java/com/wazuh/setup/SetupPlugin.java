@@ -97,12 +97,11 @@ public class SetupPlugin extends Plugin implements ClusterPlugin {
             "index-template-audit",
             "wazuh-events-audit"
         ));
-        // FIXME template is not generated
-//        this.indices.add(new StreamIndex(
-//            "wazuh-events-5.x-aws-000001",
-//            "index-template-aws",
-//            "wazuh-events-aws"
-//        ));
+        this.indices.add(new StreamIndex(
+            "wazuh-events-5.x-aws-000001",
+            "index-template-aws",
+            "wazuh-events-aws"
+        ));
         this.indices.add(new StreamIndex(
             "wazuh-events-5.x-aws-firehose-000001",
             "index-template-aws-firehose",

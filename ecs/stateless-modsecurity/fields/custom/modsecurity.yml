@@ -1,5 +1,5 @@
 - name: modsecurity
-  title: modsecurity
+  title: Modsecurity
   description: modsecurity custom fields for WCS integration
   root: true
   fields:

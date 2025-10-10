@@ -10,7 +10,7 @@ For this stage, we are using all the fields of the WCS. Dynamic mode is temporar
 
 - [WCS main mappings](../../stateless/docs/fields.csv)
 
-The detail of the fields can be found in csv file [Stateless modsecurity Fields](fields.csv).
+The detail of the fields can be found in csv file [Stateless Modsecurity Fields](fields.csv).
 
 ### Integration: modsecurity
 
