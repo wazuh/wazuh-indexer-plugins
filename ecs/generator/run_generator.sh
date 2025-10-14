@@ -59,8 +59,6 @@ function main() {
 
         # Start the container with the required env variables
         ECS_MODULE="$module" REPO_PATH="$repo_path" $compose_command up --exit-code-from wcs-generator
-        # The containers are stopped after each execution
-        # $compose_command stop
         ;;
     down)
         $compose_command down

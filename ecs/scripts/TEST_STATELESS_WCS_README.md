@@ -2,6 +2,8 @@
 
 A bash script to test Wazuh Common Schema (WCS) index templates by indexing sample events from the intelligence-data repository into a Wazuh Indexer instance.
 
+Mapping mode is temporarily set to `strict` to ensure all fields conform to the schema.
+
 ## Features
 
 - ✅ Finds all `*_expected.json` test files for specified integrations
@@ -22,13 +24,13 @@ A bash script to test Wazuh Common Schema (WCS) index templates by indexing samp
 ## Usage
 
 ```bash
-./wcs-test-tool.sh -p <intelligence-data-path> -i <integrations-map> -u <indexer-url> [options]
+./test_stateless_wcs.sh -p <intelligence-data-path> -f <integrations-file> -u <indexer-url> [options]
 ```
 
 ### Required Parameters
 
 - `-p, --path`: Path to the intelligence-data repository
-- `-i, --integrations`: Comma-separated list of integration:index pairs
+- `-f, --file`: Path to integrations configuration file (one integration:index per line)
 - `-u, --url`: URL of the Indexer instance
 
 ### Optional Parameters
@@ -42,9 +44,9 @@ A bash script to test Wazuh Common Schema (WCS) index templates by indexing samp
 ### Test Amazon Security Lake integration
 
 ```bash
-./wcs-test-tool.sh \
+./test_stateless_wcs.sh \
   -p /path/to/intelligence-data \
-  -i 'amazon-security-lake:wazuh-events-amazon-security-lake' \
+  -f 'integrations.txt' \
   -u https://localhost:9200 \
   -c admin:admin
 ```
@@ -52,9 +54,9 @@ A bash script to test Wazuh Common Schema (WCS) index templates by indexing samp
 ### Test multiple integrations
 
 ```bash
-./wcs-test-tool.sh \
+./test_stateless_wcs.sh \
   -p /path/to/intelligence-data \
-  -i 'azure:wazuh-events-azure,aws:wazuh-events-aws,nginx:wazuh-events-nginx' \
+  -f 'integrations.txt' \
   -u https://localhost:9200 \
   -c admin:admin \
   -l /tmp/wcs-test.log
@@ -63,9 +65,9 @@ A bash script to test Wazuh Common Schema (WCS) index templates by indexing samp
 ### Test with local Wazuh Indexer
 
 ```bash
-./wcs-test-tool.sh \
+./test_stateless_wcs.sh \
   -p ./intelligence-data \
-  -i 'amazon-security-lake:wazuh-events-amazon-security-lake' \
+  -f 'integrations.txt' \
   -u http://localhost:9200
 ```
 
@@ -144,9 +146,9 @@ This tool can be integrated into CI/CD pipelines to automatically test index tem
 
 ```bash
 # Example CI step
-./wcs-test-tool.sh \
+./test_stateless_wcs.sh \
   -p $INTELLIGENCE_DATA_PATH \
-  -i $INTEGRATIONS_TO_TEST \
+  -f $INTEGRATIONS_TO_TEST \
   -u $INDEXER_URL \
   -c $INDEXER_CREDENTIALS \
   -l ci-test-results.log

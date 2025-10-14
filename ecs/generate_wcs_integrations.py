@@ -118,11 +118,8 @@ class WCSIntegrationsGenerator:
             # Add description (required)
             description = field_info['description'] or f"Custom field for {integration}"
 
-            # Format multi-line descriptions using YAML block scalar
-            if '\n' in description or len(description) > 80:
-                field_def['description'] = description
-            else:
-                field_def['description'] = description
+            # Assign description directly
+            field_def['description'] = description
 
             # Add example if available (use field name as placeholder)
             if field_info['name']:

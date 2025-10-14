@@ -50,7 +50,8 @@ log() {
     local level="$1"
     shift
     local message="$*"
-    local timestamp=$(date '+%Y-%m-%d %H:%M:%S')
+    local timestamp
+    timestamp=$(date '+%Y-%m-%d %H:%M:%S')
     echo "[$timestamp] [$level] $message" | tee -a "$LOG_FILE"
 }
 
@@ -161,31 +162,31 @@ parse_args() {
 # Check if indexer is accessible
 check_indexer() {
     log_info "Checking connection to indexer: $INDEXER_URL"
-    
+
     local response
     local http_code
-    
-    response=$(curl $CURL_OPTS -w "\n%{http_code}" "$INDEXER_URL" 2>&1)
+
+    response=$(curl "$CURL_OPTS" -w "\n%{http_code}" "$INDEXER_URL" 2>&1)
     local curl_exit_code=$?
-    
+
     if [[ $curl_exit_code -ne 0 ]]; then
         log_error "Failed to connect to indexer. Curl exit code: $curl_exit_code"
         log_error "Response: $response"
         exit 1
     fi
-    
+
     http_code=$(echo "$response" | tail -n1)
-    
+
     log_info "Connection test HTTP code: $http_code"
-    
+
     if [[ "$http_code" != "200" ]]; then
         log_error "Failed to connect to indexer. HTTP code: $http_code"
         log_error "Response: $(echo "$response" | head -n -1)"
         exit 1
     fi
-    
+
     log_success "Successfully connected to indexer"
-    
+
     # Test if we can access the cluster info
     log_info "Testing cluster access..."
     local cluster_response
@@ -197,17 +198,17 @@ check_indexer() {
 find_test_files() {
     local integration="$1"
     local integration_path="$INTELLIGENCE_DATA_PATH/ruleset/integrations/$integration"
-    
+
     if [[ ! -d "$integration_path" ]]; then
         log_warning "Integration directory not found: $integration_path"
         return 1
     fi
-    
+
     if [[ ! -d "$integration_path/test" ]]; then
         log_warning "Test directory not found for integration: $integration"
         return 1
     fi
-    
+
     # Find all _expected.json files recursively in the test directory
     find "$integration_path/test" -name "*_expected.json" -type f 2>/dev/null || true
 }
@@ -215,12 +216,12 @@ find_test_files() {
 # Count JSON documents in a file
 count_documents() {
     local file="$1"
-    
+
     if [[ ! -f "$file" ]]; then
         echo "0"
         return
     fi
-    
+
     # Use jq to count array elements, fallback to basic counting if jq fails
     local count
     count=$(jq '. | length' "$file" 2>/dev/null || echo "0")
@@ -230,31 +231,32 @@ count_documents() {
 # Update index mapping to strict mode
 update_mapping_to_strict() {
     local index_name="$1"
-    
+
     log_info "Updating mapping to strict mode for index: $index_name"
-    
+
     local response
     local http_code
     local mapping_json='{"dynamic": "strict"}'
-    
-    response=$(curl $CURL_OPTS -w "\n%{http_code}" -X PUT \
+
+    response=$(curl "$CURL_OPTS" -w "\n%{http_code}" -X PUT \
         -H "Content-Type: application/json" \
         -d "$mapping_json" \
         "$INDEXER_URL/$index_name/_mapping" 2>&1)
-    
+
     local curl_exit_code=$?
-    
+
     if [[ $curl_exit_code -ne 0 ]]; then
         log_error "Failed to update mapping. Curl exit code: $curl_exit_code"
         log_error "Response: $response"
         return 1
     fi
-    
+
     http_code=$(echo "$response" | tail -n1)
-    local response_body=$(echo "$response" | head -n -1)
-    
+    local response_body=
+    response_body=$(echo "$response" | head -n -1)
+
     log_info "Mapping update HTTP response code: $http_code"
-    
+
     if [[ "$http_code" =~ ^20[0-9]$ ]]; then
         log_success "Successfully updated mapping to strict mode"
         return 0
@@ -268,31 +270,32 @@ update_mapping_to_strict() {
 # Restore index mapping to false mode
 restore_mapping_to_false() {
     local index_name="$1"
-    
+
     log_info "Restoring mapping to false mode for index: $index_name"
-    
+
     local response
     local http_code
     local mapping_json='{"dynamic": "false"}'
-    
-    response=$(curl $CURL_OPTS -w "\n%{http_code}" -X PUT \
+
+    response=$(curl "$CURL_OPTS" -w "\n%{http_code}" -X PUT \
         -H "Content-Type: application/json" \
         -d "$mapping_json" \
         "$INDEXER_URL/$index_name/_mapping" 2>&1)
-    
+
     local curl_exit_code=$?
-    
+
     if [[ $curl_exit_code -ne 0 ]]; then
         log_error "Failed to restore mapping. Curl exit code: $curl_exit_code"
         log_error "Response: $response"
         return 1
     fi
-    
+
     http_code=$(echo "$response" | tail -n1)
-    local response_body=$(echo "$response" | head -n -1)
-    
+    local response_body=
+    response_body=$(echo "$response" | head -n -1)
+
     log_info "Mapping restore HTTP response code: $http_code"
-    
+
     if [[ "$http_code" =~ ^20[0-9]$ ]]; then
         log_success "Successfully restored mapping to false mode"
         return 0
@@ -308,38 +311,38 @@ index_document() {
     local index_name="$1"
     local document="$2"
     local doc_id="$3"
-    
+
     local response
     local http_code
     local response_body
-    
+
     # Index the document with automatic ID generation if doc_id is empty
     local url="$INDEXER_URL/$index_name/_doc"
     if [[ -n "$doc_id" ]]; then
         url="$url/$doc_id"
     fi
-    
+
     log_info "Indexing document to: $url"
-    
+
     # Make the curl request with better error handling
-    response=$(curl $CURL_OPTS -w "\n%{http_code}" -X POST \
+    response=$(curl "$CURL_OPTS" -w "\n%{http_code}" -X POST \
         -H "Content-Type: application/json" \
         -d "$document" \
         "$url" 2>&1)
-    
+
     local curl_exit_code=$?
-    
+
     if [[ $curl_exit_code -ne 0 ]]; then
         log_error "Curl command failed with exit code: $curl_exit_code"
         log_error "Response: $response"
         return 1
     fi
-    
+
     http_code=$(echo "$response" | tail -n1)
     response_body=$(echo "$response" | head -n -1)
-    
+
     log_info "HTTP response code: $http_code"
-    
+
     if [[ "$http_code" =~ ^20[0-9]$ ]]; then
         log_info "Document indexed successfully"
         return 0
@@ -356,38 +359,38 @@ index_document() {
 process_test_file() {
     local file="$1"
     local index_name="$2"
-    
+
     log_info "Processing file: $file"
     log_info "Target index: $index_name"
-    
+
     local total_docs
     local indexed_docs=0
     local failed_docs=0
-    
+
     total_docs=$(count_documents "$file")
-    
+
     if [[ "$total_docs" -eq 0 ]]; then
         log_warning "No documents found in file: $file"
         return
     fi
-    
+
     log_info "Found $total_docs documents in file"
-    
+
     # Process each document in the array
     for ((i=0; i<total_docs; i++)); do
         log_info "Processing document $((i+1))/$total_docs"
-        
+
         local document
         document=$(jq -c ".[$i]" "$file" 2>/dev/null)
-        
+
         if [[ -z "$document" || "$document" == "null" ]]; then
             log_warning "Skipping empty or invalid document at index $i"
             ((failed_docs++))
             continue
         fi
-        
-        log_info "Document size: $(echo "$document" | wc -c) characters"
-        
+
+        log_info "Document size: ${#document} characters"
+
         # Try to index the document
         if index_document "$index_name" "$document" ""; then
             ((indexed_docs++))
@@ -396,17 +399,17 @@ process_test_file() {
             ((failed_docs++))
             log_error "Failed to index document $((i+1))"
         fi
-        
+
         # Add a small delay between requests to avoid overwhelming the server
         sleep 0.1
     done
-    
+
     log_success "File processing complete: $indexed_docs/$total_docs documents indexed successfully"
-    
+
     if [[ "$failed_docs" -gt 0 ]]; then
         log_warning "$failed_docs documents failed to index"
     fi
-    
+
     # Log summary for this file
     echo "$file,$total_docs,$indexed_docs,$failed_docs" >> "${LOG_FILE}.summary.csv"
 }
@@ -415,42 +418,42 @@ process_test_file() {
 process_integration() {
     local integration="$1"
     local index_name="$2"
-    
+
     log_info "Processing integration: $integration -> $index_name"
-    
+
     # Update mapping to strict mode if requested
     if [[ "$STRICT_MAPPING" == "true" ]]; then
         if ! update_mapping_to_strict "$index_name"; then
             log_warning "Failed to update mapping to strict mode, but continuing with indexing..."
         fi
     fi
-    
+
     local test_files
     test_files=$(find_test_files "$integration")
-    
+
     if [[ -z "$test_files" ]]; then
         log_warning "No test files found for integration: $integration"
         return
     fi
-    
+
     local file_count
     file_count=$(echo "$test_files" | wc -l)
     log_info "Found $file_count test files for integration: $integration"
-    
+
     # Process each test file
     while IFS= read -r file; do
         if [[ -n "$file" ]]; then
             process_test_file "$file" "$index_name"
         fi
     done <<< "$test_files"
-    
+
     # Restore mapping to false mode if strict mode was used
     if [[ "$STRICT_MAPPING" == "true" ]]; then
         if ! restore_mapping_to_false "$index_name"; then
             log_warning "Failed to restore mapping to false mode"
         fi
     fi
-    
+
     log_success "Integration processing complete: $integration"
 }
 
@@ -458,18 +461,18 @@ process_integration() {
 read_integrations_file() {
     local file="$1"
     local -a integrations=()
-    
+
     log_info "Reading integrations from file: $file"
-    
+
     while IFS= read -r line || [[ -n "$line" ]]; do
         # Skip empty lines and comments (lines starting with #)
         if [[ -z "$line" || "$line" =~ ^[[:space:]]*# ]]; then
             continue
         fi
-        
+
         # Remove leading/trailing whitespace
         line=$(echo "$line" | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')
-        
+
         # Validate format integration:index
         if [[ "$line" =~ ^([^:]+):(.+)$ ]]; then
             integrations+=("$line")
@@ -477,14 +480,14 @@ read_integrations_file() {
             log_warning "Invalid line format in integrations file (expected integration:index): $line"
         fi
     done < "$file"
-    
+
     if [[ ${#integrations[@]} -eq 0 ]]; then
         log_error "No valid integrations found in file: $file"
         exit 1
     fi
-    
+
     log_info "Found ${#integrations[@]} valid integrations in file"
-    
+
     # Return integrations as space-separated string
     printf '%s\n' "${integrations[@]}"
 }
@@ -494,37 +497,37 @@ main() {
     echo "WCS Test Tool - Wazuh Common Schema Test Tool"
     echo "=============================================="
     echo
-    
+
     # Initialize log file
     echo "# WCS Test Tool Log - $(date)" > "$LOG_FILE"
     echo "file,total_docs,indexed_docs,failed_docs" > "${LOG_FILE}.summary.csv"
-    
+
     parse_args "$@"
-    
+
     log_info "Starting WCS test tool"
     log_info "Intelligence data path: $INTELLIGENCE_DATA_PATH"
     log_info "Integrations file: $INTEGRATIONS_FILE"
     log_info "Indexer URL: $INDEXER_URL"
     log_info "Log file: $LOG_FILE"
     log_info "Strict mapping mode: $(if [[ "$STRICT_MAPPING" == "true" ]]; then echo "enabled"; else echo "disabled"; fi)"
-    
+
     check_indexer
-    
+
     # Read integrations from file and process each integration
     local integrations
     integrations=$(read_integrations_file "$INTEGRATIONS_FILE")
-    
+
     local total_integrations
     total_integrations=$(echo "$integrations" | wc -l)
     local processed_integrations=0
-    
+
     log_info "Processing $total_integrations integrations"
-    
+
     while IFS= read -r pair; do
         if [[ -n "$pair" && "$pair" =~ ^([^:]+):(.+)$ ]]; then
             local integration="${BASH_REMATCH[1]}"
             local index_name="${BASH_REMATCH[2]}"
-            
+
             process_integration "$integration" "$index_name"
             ((processed_integrations++))
         else
@@ -532,11 +535,11 @@ main() {
             log_error "Expected format: integration:index"
         fi
     done <<< "$integrations"
-    
+
     log_success "WCS test tool completed successfully"
     log_success "Processed $processed_integrations/$total_integrations integrations"
     log_info "Summary report available at: ${LOG_FILE}.summary.csv"
-    
+
     # Display summary
     echo
     echo "Summary Report:"
