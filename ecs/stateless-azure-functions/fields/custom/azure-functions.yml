@@ -1,0 +1,163 @@
+- name: azure-functions
+  title: Azure Functions
+  description: azure-functions custom fields for WCS integration
+  root: true
+  fields:
+  - name: azure.category
+    type: keyword
+    level: custom
+    description: The category of the Azure log entry (always "FunctionAppLogs")
+    example: example-category
+  - name: azure.function.app_name
+    type: keyword
+    level: custom
+    description: >-
+      The display name of the Azure Functions application as configured in the app
+      settings
+    example: example-app_name
+  - name: azure.function.category
+    type: keyword
+    level: custom
+    short: >-
+      Function category in format 'Function.{function-name}' indicating which function
+      generated log entry
+    description: >-
+      The specific function category in the format 'Function.{function-name}' indicating
+      which function generated the log entry
+    example: example-category
+  - name: azure.function.event_id
+    type: long
+    level: custom
+    description: >-
+      The numeric identifier for the type of event (e.g. 1 for FunctionStarted 3 for
+      FunctionCompleted)
+    example: 12345
+  - name: azure.function.event_name
+    type: keyword
+    level: custom
+    description: >-
+      The name of the lifecycle event being logged (e.g. FunctionStarted FunctionCompleted
+      FunctionFailed)
+    example: example-event_name
+  - name: azure.function.exception_details
+    type: text
+    level: custom
+    short: >-
+      Complete exception stack trace when function execution fails including inner
+      exceptions (error logs only)
+    description: >-
+      The complete exception stack trace and details when a function execution fails
+      including inner exceptions and call stack information (error logs only)
+  - name: azure.function.exception_message
+    type: text
+    level: custom
+    description: >-
+      The primary exception message describing the error that occurred during function
+      execution (error logs only)
+  - name: azure.function.exception_type
+    type: keyword
+    level: custom
+    description: >-
+      The .NET type name of the exception that was thrown during function execution
+      (error logs only)
+    example: example-exception_type
+  - name: azure.function.host_instance_id
+    type: keyword
+    level: custom
+    description: >-
+      The unique identifier of the Azure Functions host instance where the function
+      was executed
+    example: example-host_instance_id
+  - name: azure.function.host_version
+    type: keyword
+    level: custom
+    description: The version of the Azure Functions runtime host that executed the
+      function
+    example: example-host_version
+  - name: azure.function.invocation_id
+    type: keyword
+    level: custom
+    description: >-
+      The unique identifier assigned to each function invocation used for tracking
+      and correlation across logs
+    example: example-invocation_id
+  - name: azure.function.level
+    type: keyword
+    level: custom
+    description: >-
+      The severity level of the log entry (e.g. Information Warning Error) as determined
+      by the Functions runtime
+    example: example-level
+  - name: azure.function.level_id
+    type: long
+    level: custom
+    description: >-
+      The numeric identifier corresponding to the log level used for programmatic
+      filtering and analysis
+    example: 12345
+  - name: azure.function.message
+    type: text
+    level: custom
+    short: >-
+      Detailed log message about function execution including status, duration, and
+      invocation reason
+    description: >-
+      The detailed log message containing information about function execution including
+      status duration and reason for invocation
+  - name: azure.function.name
+    type: keyword
+    level: custom
+    description: >-
+      The full name of the Azure function in the format 'Functions.{function-name}'
+      that was executed
+    example: example-name
+  - name: azure.function.process_id
+    type: long
+    level: custom
+    description: >-
+      The process identifier of the Azure Functions host process that executed the
+      function
+    example: 12345
+  - name: azure.function.role_instance
+    type: keyword
+    level: custom
+    description: >-
+      The unique identifier of the Azure Functions host instance processing the function
+      execution
+    example: example-role_instance
+  - name: azure.operation_name
+    type: keyword
+    level: custom
+    description: >-
+      The name of the operation being performed in Azure typically "Microsoft.Web/sites/functions/log"
+    example: example-operation_name
+  - name: azure.resource.group
+    type: keyword
+    level: custom
+    description: The name of the Azure resource group containing the Functions app
+    example: example-group
+  - name: azure.resource.id
+    type: keyword
+    level: custom
+    short: >-
+      Unique Azure resource ID: '/subscriptions/{id}/resourceGroups/{group}/providers/{provider}/{name}'
+    description: >-
+      The unique Azure resource identifier in the format '/subscriptions/{subscription-id}/resourceGroups/{resource-group}/providers/{provider}/{resource-name}'
+    example: example-id
+  - name: azure.resource.name
+    type: keyword
+    level: custom
+    description: The name of the Azure Functions app resource as defined in Azure
+    example: example-name
+  - name: azure.resource.provider
+    type: keyword
+    level: custom
+    description: >-
+      The Azure resource provider namespace and type typically 'MICROSOFT.WEB/SITES'
+      for Functions apps
+    example: example-provider
+  - name: azure.subscription_id
+    type: keyword
+    level: custom
+    description: The Azure subscription identifier where the resource is hosted
+    example: example-subscription_id

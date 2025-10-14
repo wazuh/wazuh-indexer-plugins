@@ -88,7 +88,6 @@ dependencies {
     zipArchive group: 'org.opensearch.plugin', name: 'opensearch-job-scheduler', version: opensearch_build
     zipArchive group: 'org.opensearch.plugin', name: 'opensearch-index-management', version: opensearch_build
     compileOnly "org.opensearch:opensearch-job-scheduler-spi:${opensearch_build}"
-
 }
 
 // No need to validate license headers since spotless checks and applies it

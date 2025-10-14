@@ -8,6 +8,6 @@ This is a time-based (stateless) index. The `wazuh-archives-5.x` index uses the 
 
 For this stage, we are using all the fields of the ECS. Dynamic mode is temporarily set to `false` to avoid the creation of new fields while allowing the indexing of events containing fields not in the schema. These fields can be retrieved from the original event (`_source`).
 
-- [ECS main mappings](https://github.com/elastic/ecs/blob/v8.11.0/schemas/subsets/main.yml)
+- [ECS main mappings](https://github.com/elastic/ecs/blob/v9.1.0/schemas/subsets/main.yml)
 
 The detail of the fields can be found in csv file [Stateless Fields](fields.csv).

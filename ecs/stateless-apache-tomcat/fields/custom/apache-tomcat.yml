@@ -1,0 +1,862 @@
+- name: apache-tomcat
+  title: Apache Tomcat
+  description: apache-tomcat custom fields for WCS integration
+  root: true
+  fields:
+  - name: apache_tomcat.access.connection_status
+    type: keyword
+    level: custom
+    description: Connection status when response is completed.
+    example: example-connection_status
+  - name: apache_tomcat.access.http.ident
+    type: keyword
+    level: custom
+    description: Remote logical username from identd.
+    example: example-ident
+  - name: apache_tomcat.access.http.useragent
+    type: keyword
+    level: custom
+    description: >-
+      The user id of the authenticated user requesting the page (if HTTP authentication
+      is used).
+    example: example-useragent
+  - name: apache_tomcat.access.ip.local
+    type: ip
+    level: custom
+    description: The local IP address of the Apache Tomcat server that handled the
+      request.
+    example: 192.168.1.1
+  - name: apache_tomcat.access.request_process_time
+    type: double
+    level: custom
+    description: Time taken to process the request, in millis.
+  - name: apache_tomcat.access.response_time
+    type: double
+    level: custom
+    description: Time taken to commit the response, in millis.
+  - name: apache_tomcat.cache.application_name
+    type: keyword
+    level: custom
+    description: Name of the Apache Tomcat application.
+    example: example-application_name
+  - name: apache_tomcat.cache.hit.count
+    type: double
+    level: custom
+    description: The number of requests for resources that were served from the cache.
+  - name: apache_tomcat.cache.lookup.count
+    type: double
+    level: custom
+    description: The number of requests for resources.
+  - name: apache_tomcat.cache.object.size.max.kb
+    type: double
+    level: custom
+    description: The maximum permitted size for a single object in the cache in kB.
+  - name: apache_tomcat.cache.size.current.kb
+    type: double
+    level: custom
+    description: The current estimate of the cache size in kB.
+  - name: apache_tomcat.cache.size.max.kb
+    type: double
+    level: custom
+    description: The maximum permitted size of the cache in kB.
+  - name: apache_tomcat.cache.ttl.ms
+    type: double
+    level: custom
+    description: The time-to-live for cache entries in milliseconds.
+  - name: apache_tomcat.catalina.subsystem
+    type: keyword
+    level: custom
+    short: >-
+      Apache Tomcat subsystem or module type that generated the message (e.g., RBPM,
+      JMS). Identifies the source component.
+    description: >-
+      Indicates Apache Tomcat subsystem or the type of the module that was the source
+      of the message. For example, RBPM or Java Messaging Service (JMS).
+    example: example-subsystem
+  - name: apache_tomcat.connection_pool.access_to_underlying_connection_allowed
+    type: boolean
+    level: custom
+    description: >-
+      Returns the state of connections that will be established when the connection
+      pool is started.
+    example: true
+  - name: apache_tomcat.connection_pool.application_name
+    type: keyword
+    level: custom
+    description: Name of the Apache Tomcat application.
+    example: example-application_name
+  - name: apache_tomcat.connection_pool.cache.state
+    type: long
+    level: custom
+    description: Cache state of connection pool.
+    example: 12345
+  - name: apache_tomcat.connection_pool.connection.abandoned_usage_tracking
+    type: boolean
+    level: custom
+    description: Indicates if full stack traces are required when logAbandoned is
+      true.
+    example: true
+  - name: apache_tomcat.connection_pool.connection.active.count
+    type: long
+    level: custom
+    description: Number of active connections in pool.
+    example: 12345
+  - name: apache_tomcat.connection_pool.connection.autocommit_on_return
+    type: boolean
+    level: custom
+    description: Connections being returned to the pool.
+    example: true
+  - name: apache_tomcat.connection_pool.connection.clear_statement_pool_on_return
+    type: boolean
+    level: custom
+    description: Keeps track of statements associated with a connection.
+    example: true
+  - name: apache_tomcat.connection_pool.connection.closed
+    type: boolean
+    level: custom
+    short: >-
+      Indicates if connection is closed. Helps identify connection issues, network
+      interruptions, or resource exhaustion.
+    description: >-
+      Indicates whether the connection has been closed. This field can help identify
+      issues such as random connection closed exceptions, which may occur due to network
+      interruptions, resource exhaustion, or improper connection handling in the application
+      or database. Monitoring this field can assist in troubleshooting and maintaining
+      the stability of the connection pool.
+    example: true
+  - name: apache_tomcat.connection_pool.connection.database.time.max.ms
+    type: long
+    level: custom
+    description: Maximum time to wait for a database connection to become available
+      in ms.
+    example: 12345
+  - name: apache_tomcat.connection_pool.connection.default_transaction_isolation
+    type: long
+    level: custom
+    description: TransactionIsolation state of connections created by this pool.
+    example: 12345
+  - name: apache_tomcat.connection_pool.connection.enable_autocommit_on_return
+    type: boolean
+    level: custom
+    description: >-
+      Connections being returned to the pool will be checked and configured with Connection.
+    example: true
+  - name: apache_tomcat.connection_pool.connection.fast_fail_validation
+    type: boolean
+    level: custom
+    description: Timeout before a connection validation queries fail.
+    example: true
+  - name: apache_tomcat.connection_pool.connection.idle.count
+    type: long
+    level: custom
+    description: Idle number of connection pool.
+    example: 12345
+  - name: apache_tomcat.connection_pool.connection.idle.exists
+    type: boolean
+    level: custom
+    short: >-
+      Indicates if connection is idle in pool. Helps monitor connection state and
+      identify inefficient usage.
+    description: >-
+      Indicates whether the connection is currently idle in the pool. This field can
+      be useful for monitoring the state of connections and identifying potential
+      issues such as resource leaks or inefficient connection usage. When enabled,
+      it may work in conjunction with logAbandoned to help determine if a connection
+      has been left idle for too long, which can assist in troubleshooting and optimizing
+      connection pool performance.
+    example: true
+  - name: apache_tomcat.connection_pool.connection.idle.max.count
+    type: long
+    level: custom
+    short: >-
+      Maximum idle connections allowed in pool. Optimizes resource usage and balances
+      availability with overhead reduction.
+    description: >-
+      Specifies the maximum number of connections that can remain idle in the connection
+      pool without being closed. This setting helps optimize resource usage by ensuring
+      that idle connections do not exceed a defined limit, which can prevent unnecessary
+      resource consumption and improve overall application performance. Adjusting
+      this value can help balance between having enough available connections for
+      peak loads and minimizing overhead during periods of low activity.
+    example: 12345
+  - name: apache_tomcat.connection_pool.connection.idle.max.size
+    type: long
+    level: custom
+    description: Returns the maximum number of connections that can remain idle in
+      the pool.
+    example: 12345
+  - name: apache_tomcat.connection_pool.connection.idle.max.time.ms
+    type: long
+    level: custom
+    short: >-
+      Maximum objects examined per run of the idle object evictor thread. Controls
+      pool cleanup efficiency.
+    description: >-
+      It represents the maximum number of objects that the pool will examine during
+      each run of the idle object evictor thread.
+    example: 12345
+  - name: apache_tomcat.connection_pool.connection.idle.min.size
+    type: long
+    level: custom
+    description: >-
+      The minimum number of established connections that should be kept in the pool
+      at all times.
+    example: 12345
+  - name: apache_tomcat.connection_pool.connection.idle.min.time.ms
+    type: long
+    level: custom
+    short: >-
+      Minimum time an object sits idle in pool before becoming eligible for eviction
+      by the idle object evictor.
+    description: >-
+      An attribute of the Tomcat DataSource object that sets the minimum time an object
+      may sit idle in the pool before it is eligible for eviction by the idle object
+      evictor.
+    example: 12345
+  - name: apache_tomcat.connection_pool.connection.initial_size.count
+    type: long
+    level: custom
+    description: The initial number of connections that are created when the pool
+      is started.
+    example: 12345
+  - name: apache_tomcat.connection_pool.connection.lifetime.max.ms
+    type: long
+    level: custom
+    description: The maximum lifetime in milliseconds of a connection.
+    example: 12345
+  - name: apache_tomcat.connection_pool.connection.log_expired
+    type: boolean
+    level: custom
+    description: Log expired connection in pool.
+    example: true
+  - name: apache_tomcat.connection_pool.connection.min_evictable_idle.time
+    type: long
+    level: custom
+    description: >-
+      The minimum amount of time an object may sit idle in the pool before it is eligible
+      for eviction.
+    example: 12345
+  - name: apache_tomcat.connection_pool.connection.remove_abandoned_on_borrow
+    type: boolean
+    level: custom
+    description: Remove abandoned connections from the pool when a connection is borrowed.
+    example: true
+  - name: apache_tomcat.connection_pool.connection.remove_abandoned_on_maintenance
+    type: boolean
+    level: custom
+    description: >-
+      The commons dbcp parameters which are unique from the Tomcat JDBC connection
+      pool parameters are not being accepted.
+    example: true
+  - name: apache_tomcat.connection_pool.connection.remove_abandoned_timeout
+    type: long
+    level: custom
+    description: Timeout in seconds before an abandoned (in use) connection can be
+      removed.
+    example: 12345
+  - name: apache_tomcat.connection_pool.connection.rollback_on_return
+    type: boolean
+    level: custom
+    description: The pool can terminate the transaction by calling rollback on the
+      connection.
+    example: true
+  - name: apache_tomcat.connection_pool.connection.test_on_return
+    type: boolean
+    level: custom
+    description: >-
+      The indication of whether objects will be validated before being returned to
+      the pool.
+    example: true
+  - name: apache_tomcat.connection_pool.connection.test_while_idle
+    type: boolean
+    level: custom
+    short: >-
+      Indicates if pool tests idle connections for validity. Prevents stale connections
+      and improves application reliability.
+    description: >-
+      Indicates whether the connection pool will test connections while they are idle.
+      When enabled, the pool will validate idle connections at regular intervals to
+      ensure they are still valid and usable before being allocated to a client. This
+      helps prevent issues caused by stale or closed connections and can improve the
+      reliability and stability of the application by ensuring only healthy connections
+      are used.
+    example: true
+  - name: apache_tomcat.connection_pool.connection.time_between_eviction_run.time.ms
+    type: long
+    level: custom
+    description: >-
+      The total amount of time in milliseconds to sleep between runs of the idle connection
+      validation/cleaner thread.
+    example: 12345
+  - name: apache_tomcat.connection_pool.connection.validate
+    type: long
+    level: custom
+    description: Validate connections from this pool.
+    example: 12345
+  - name: apache_tomcat.connection_pool.lifo
+    type: boolean
+    level: custom
+    description: Last In First Out connections.
+    example: true
+  - name: apache_tomcat.connection_pool.max.total
+    type: long
+    level: custom
+    description: Maximum total of connection pool.
+    example: 12345
+  - name: apache_tomcat.connection_pool.prepared_statements
+    type: boolean
+    level: custom
+    description: Validate connections from this pool.
+    example: true
+  - name: apache_tomcat.connection_pool.test_on_borrow
+    type: boolean
+    level: custom
+    description: >-
+      The indication of whether objects will be validated before being borrowed from
+      the pool.
+    example: true
+  - name: apache_tomcat.connection_pool.test_on_create
+    type: boolean
+    level: custom
+    description: >-
+      Property determines whether or not the pool will validate objects immediately
+      after they are created by the pool.
+    example: true
+  - name: apache_tomcat.localhost.subsystem
+    type: keyword
+    level: custom
+    short: >-
+      Apache Tomcat subsystem or module type that generated the message (e.g., RBPM,
+      JMS). Identifies the source component.
+    description: >-
+      Indicates Apache Tomcat subsystem or the type of the module that was the source
+      of the message. For example, RBPM or Java Messaging Service (JMS).
+    example: example-subsystem
+  - name: apache_tomcat.memory.doc_type
+    type: keyword
+    level: custom
+    description: Document type of the event. This should be either 'memory' or 'gc'.
+    example: example-doc_type
+  - name: apache_tomcat.memory.gc.collection.count
+    type: long
+    level: custom
+    description: >-
+      The cumulative number of invoked garbage collections since the start of the
+      server.
+    example: 12345
+  - name: apache_tomcat.memory.gc.collection.time.ms
+    type: long
+    level: custom
+    description: >-
+      The time (in milliseconds) taken by garbage collection during the collection
+      interval.
+    example: 12345
+  - name: apache_tomcat.memory.gc.valid
+    type: long
+    level: custom
+    short: >-
+      G1 garbage collection validity when old GC JMX counter stays at 0 while old
+      space is reclaimed by young collections.
+    description: >-
+      The garbage collection process in G1 is considered valid even if the old GC
+      JMX counter remains at 0 while old space is gradually reclaimed by the young
+      collections.
+    example: 12345
+  - name: apache_tomcat.memory.heap.committed.bytes
+    type: keyword
+    level: custom
+    short: >-
+      Heap memory committed in bytes. Memory guaranteed available for heap use, managed
+      by JVM for performance optimization.
+    description: >-
+      The amount of heap memory committed, in bytes. This value represents the amount
+      of memory that is guaranteed to be available for use by the heap, regardless
+      of the actual usage. It may be larger than the amount of memory currently used,
+      and is managed by the JVM to optimize performance and resource allocation.
+    example: example-bytes
+  - name: apache_tomcat.memory.heap.init.bytes
+    type: keyword
+    level: custom
+    short: >-
+      Heap memory initialized in bytes. Initial memory allocated for heap at JVM startup,
+      configurable via JVM options.
+    description: >-
+      The amount of heap memory initialized, in bytes. This value represents the initial
+      amount of memory allocated for the heap when the JVM starts. It is determined
+      by the JVM configuration and may affect application startup performance and
+      memory usage. The value can be adjusted using JVM options to optimize resource
+      allocation for specific workloads.
+    example: example-bytes
+  - name: apache_tomcat.memory.heap.max.bytes
+    type: keyword
+    level: custom
+    short: >-
+      Max heap memory usage in bytes. Value of -1 indicates no predefined size limit
+      was specified by the user.
+    description: >-
+      Max heap memory usage. When the value for the maximum memory size (in bytes)
+      is set to -1 for heap memory configurations, it indicates that the user has
+      not specified a predefined size for the memory allocation.
+    example: example-bytes
+  - name: apache_tomcat.memory.heap.used.bytes
+    type: keyword
+    level: custom
+    description: The amount of heap memory used, in bytes.
+    example: example-bytes
+  - name: apache_tomcat.memory.non_heap.committed.bytes
+    type: keyword
+    level: custom
+    description: The amount of non-heap memory committed, in bytes.
+    example: example-bytes
+  - name: apache_tomcat.memory.non_heap.init.bytes
+    type: keyword
+    level: custom
+    short: Non-heap memory initialized in bytes, configurable via JVM options.
+    description: >-
+      The amount of non-heap memory initialized, in bytes. This value represents the
+      initial amount of memory allocated for non-heap memory when the JVM starts.
+      It is determined by the JVM configuration and may affect application startup
+      performance and memory usage. The value can be adjusted using JVM options to
+      optimize resource allocation for specific workloads.
+    example: example-bytes
+  - name: apache_tomcat.memory.non_heap.max.bytes
+    type: keyword
+    level: custom
+    short: >-
+      Max non-heap memory usage in bytes. Value of -1 indicates no predefined size
+      limit was specified by the user.
+    description: >-
+      Max non-heap memory usage. When the value for the maximum memory size (in bytes)
+      is set to -1 for non-heap memory configurations, it indicates that the user
+      has not specified a predefined size for the memory allocation.
+    example: example-bytes
+  - name: apache_tomcat.memory.non_heap.used.bytes
+    type: keyword
+    level: custom
+    description: The amount of non-heap memory used, in bytes.
+    example: example-bytes
+  - name: apache_tomcat.memory.object_pending_finalization.count
+    type: long
+    level: custom
+    description: Count of object pending finalization.
+    example: 12345
+  - name: apache_tomcat.memory.verbose
+    type: boolean
+    level: custom
+    short: >-
+      Enables memory manager console messages for memory operations when true (1.0=true,
+      0.0=false).
+    description: >-
+      When set to true, will cause the memory manager to print messages to the console
+      whenever it performs certain memory-related operations.(1.0-true, 0.0-false).
+    example: true
+  - name: apache_tomcat.request.count
+    type: long
+    level: custom
+    description: The total number of requests received.
+    example: 12345
+  - name: apache_tomcat.request.error.count
+    type: long
+    level: custom
+    description: The total number of requests that resulted in an error.
+    example: 12345
+  - name: apache_tomcat.request.nio_connector
+    type: keyword
+    level: custom
+    description: The name of the NIO connector used to process the request.
+    example: example-nio_connector
+  - name: apache_tomcat.request.received.bytes
+    type: long
+    level: custom
+    description: The total number of bytes received in requests.
+    example: 12345
+  - name: apache_tomcat.request.sent.bytes
+    type: long
+    level: custom
+    description: The total number of bytes sent in responses.
+    example: 12345
+  - name: apache_tomcat.request.time.max
+    type: long
+    level: custom
+    description: The maximum time taken to process a request, in milliseconds.
+    example: 12345
+  - name: apache_tomcat.request.time.total
+    type: long
+    level: custom
+    description: The total time taken to process requests, in milliseconds.
+    example: 12345
+  - name: apache_tomcat.session.active.allowed.max
+    type: long
+    level: custom
+    description: The maximum number of active sessions allowed, or -1 for no limit.
+    example: 12345
+  - name: apache_tomcat.session.active.max
+    type: long
+    level: custom
+    description: Maximum number of active sessions so far.
+    example: 12345
+  - name: apache_tomcat.session.active.total
+    type: long
+    level: custom
+    description: Number of active sessions at this moment.
+    example: 12345
+  - name: apache_tomcat.session.alive_time.avg
+    type: long
+    level: custom
+    description: Average time an expired session had been alive.
+    example: 12345
+  - name: apache_tomcat.session.alive_time.max
+    type: long
+    level: custom
+    description: Longest time an expired session had been alive.
+    example: 12345
+  - name: apache_tomcat.session.application_name
+    type: keyword
+    level: custom
+    description: Name of the Apache Tomcat application.
+    example: example-application_name
+  - name: apache_tomcat.session.create.rate
+    type: long
+    level: custom
+    description: Session creation rate in sessions per minute.
+    example: 12345
+  - name: apache_tomcat.session.create.total
+    type: long
+    level: custom
+    description: Total number of sessions created by the manager.
+    example: 12345
+  - name: apache_tomcat.session.duplicate_ids.count
+    type: long
+    level: custom
+    description: Number of duplicated session ids generated.
+    example: 12345
+  - name: apache_tomcat.session.expire.rate
+    type: long
+    level: custom
+    description: Session expiration rate in sessions per minute.
+    example: 12345
+  - name: apache_tomcat.session.expire.total
+    type: long
+    level: custom
+    description: Number of sessions that expired (doesn't include explicit invalidations).
+    example: 12345
+  - name: apache_tomcat.session.persist_authentication
+    type: boolean
+    level: custom
+    short: >-
+      Indicates if sessions persist authentication info when saved (e.g., across application
+      restarts).
+    description: >-
+      Indicates whether sessions shall persist authentication information when being
+      persisted (e.g. across application restarts).
+    example: true
+  - name: apache_tomcat.session.process_expires_frequency.count
+    type: long
+    level: custom
+    description: The frequency of the manager checks (expiration and passivation).
+    example: 12345
+  - name: apache_tomcat.session.processing_time
+    type: long
+    level: custom
+    description: Time spent doing housekeeping and expiration.
+    example: 12345
+  - name: apache_tomcat.session.rejected.count
+    type: long
+    level: custom
+    description: Number of sessions we rejected due to maxActive being reached.
+    example: 12345
+  - name: apache_tomcat.session.warn_on_session_attribute_filter_failure
+    type: boolean
+    level: custom
+    description: >-
+      Indicates whether a warning should be issued when session attribute filtering
+      fails.
+    example: true
+  - name: apache_tomcat.thread_pool.connection.count
+    type: long
+    level: custom
+    short: >-
+      Total connections managed by Tomcat thread pool. Monitors capacity, usage, and
+      helps identify bottlenecks.
+    description: >-
+      The total number of connections currently managed by the Apache Tomcat thread
+      pool. This metric provides insight into the pool's capacity and usage, helping
+      to monitor resource allocation and identify potential bottlenecks or scaling
+      needs. Tracking this value can assist in optimizing thread pool performance
+      and ensuring efficient handling of concurrent requests.
+    example: 12345
+  - name: apache_tomcat.thread_pool.connection.linger
+    type: long
+    level: custom
+    description: >-
+      The number of seconds during which the sockets used by this connector will linger
+      when they are closed.
+    example: 12345
+  - name: apache_tomcat.thread_pool.connection.max
+    type: long
+    level: custom
+    description: >-
+      The total number of concurrent connections that the server will accept and process.
+    example: 12345
+  - name: apache_tomcat.thread_pool.connection.timeout
+    type: long
+    level: custom
+    short: Maximum idle time (ms) for connections in thread pool before closure.
+    description: >-
+      The maximum time, in milliseconds, that a connection can remain idle in the
+      thread pool before being closed. This setting helps prevent resource exhaustion
+      by ensuring that inactive connections do not persist indefinitely, improving
+      overall server performance and stability. Adjusting this value can help balance
+      responsiveness and resource usage based on application requirements.
+    example: 12345
+  - name: apache_tomcat.thread_pool.contention.monitoring_enabled
+    type: boolean
+    level: custom
+    description: >-
+      This is used to determine if a Java virtual machine enables thread contention
+      monitoring.
+    example: true
+  - name: apache_tomcat.thread_pool.executor_termination.timeout.ms
+    type: long
+    level: custom
+    short: >-
+      Time (ms) internal executor waits for request threads to terminate before stopping
+      connector. Default is 5000ms.
+    description: >-
+      The time that the private internal executor will wait for request processing
+      threads to terminate before continuing with the process of stopping the connector.
+      If not set, the default is 5000 (5 seconds).
+    example: 12345
+  - name: apache_tomcat.thread_pool.initiated_connector.state
+    type: boolean
+    level: custom
+    description: State of bound when the connector is initiated.
+    example: true
+  - name: apache_tomcat.thread_pool.keep_alive.count
+    type: long
+    level: custom
+    description: Total keep alive on the ThreadPool.
+    example: 12345
+  - name: apache_tomcat.thread_pool.keep_alive.max_requests
+    type: long
+    level: custom
+    description: Maximum number of request keep alive in ThreadPool.
+    example: 12345
+  - name: apache_tomcat.thread_pool.keep_alive.timeout
+    type: long
+    level: custom
+    description: Keep alive timeout on the ThreadPool.
+    example: 12345
+  - name: apache_tomcat.thread_pool.nio_connector
+    type: keyword
+    level: custom
+    description: Indicates if NIO connector is enabled in thread pool.
+    example: example-nio_connector
+  - name: apache_tomcat.thread_pool.ssl_enabled
+    type: boolean
+    level: custom
+    description: The status which states whether SSL is enabled for the thread pool.
+    example: true
+  - name: apache_tomcat.thread_pool.tcp_no_delay
+    type: boolean
+    level: custom
+    description: >-
+      Status of tcp no delay option used to improves performance under most circumstances.
+    example: true
+  - name: apache_tomcat.thread_pool.thread.accept.count
+    type: long
+    level: custom
+    description: Count of all threads accepted.
+    example: 12345
+  - name: apache_tomcat.thread_pool.thread.active.count
+    type: long
+    level: custom
+    description: Current active threads at JVM level (from java.lang:type=Threading).
+    example: 12345
+  - name: apache_tomcat.thread_pool.thread.allocated_memory.enabled
+    type: boolean
+    level: custom
+    description: Allocated memory enabled in thread.
+    example: true
+  - name: apache_tomcat.thread_pool.thread.allocated_memory.supported
+    type: boolean
+    level: custom
+    description: Allocated memory supported in thread.
+    example: true
+  - name: apache_tomcat.thread_pool.thread.current.allocated.bytes
+    type: keyword
+    level: custom
+    description: Allocated bytes in current thread.
+    example: example-bytes
+  - name: apache_tomcat.thread_pool.thread.current.busy
+    type: long
+    level: custom
+    description: Current busy threads from the ThreadPool.
+    example: 12345
+  - name: apache_tomcat.thread_pool.thread.current.count
+    type: long
+    level: custom
+    description: Current number of threads, taken from the ThreadPool.
+    example: 12345
+  - name: apache_tomcat.thread_pool.thread.current.cpu.time.enabled
+    type: boolean
+    level: custom
+    description: CPU time for the current thread.
+    example: true
+  - name: apache_tomcat.thread_pool.thread.current.cpu.time.enabled
+    type: boolean
+    level: custom
+    description: >-
+      This is used to determine if a Java virtual machine enables CPU time for the
+      current thread.
+    example: true
+  - name: apache_tomcat.thread_pool.thread.current.cpu.time.ms
+    type: keyword
+    level: custom
+    description: CPU time used by the current thread.
+    example: example-ms
+  - name: apache_tomcat.thread_pool.thread.current.user.time.ms
+    type: keyword
+    level: custom
+    description: User time used by the current thread.
+    example: example-ms
+  - name: apache_tomcat.thread_pool.thread.daemon.count
+    type: long
+    level: custom
+    description: Current number of daemon threads in the thread pool.
+    example: 12345
+  - name: apache_tomcat.thread_pool.thread.daemon.status
+    type: boolean
+    level: custom
+    description: The status which states whether the thread is daemon or not.
+    example: true
+  - name: apache_tomcat.thread_pool.thread.paused
+    type: boolean
+    level: custom
+    description: The status which states whether the thread is paused or not.
+    example: true
+  - name: apache_tomcat.thread_pool.thread.peak.count
+    type: long
+    level: custom
+    description: Peak number of threads at JVM level (from java.lang:type=Threading).
+    example: 12345
+  - name: apache_tomcat.thread_pool.thread.port.default
+    type: long
+    level: custom
+    description: Default port of thread in Apache Tomcat.
+    example: 12345
+  - name: apache_tomcat.thread_pool.thread.port.offset
+    type: long
+    level: custom
+    description: The offset to apply to port of thread.
+    example: 12345
+  - name: apache_tomcat.thread_pool.thread.port.value
+    type: long
+    level: custom
+    short: >-
+      Network port associated with the Apache Tomcat thread. Used for monitoring,
+      troubleshooting, and performance analysis.
+    description: >-
+      Specifies the network port associated with the thread in the Apache Tomcat integration.
+      This field identifies the port number on which the thread is operating, useful
+      for monitoring, troubleshooting, correlating events, and understanding network
+      activity. It helps administrators track which port is utilized by a particular
+      thread, aiding in performance analysis, security auditing, and resource allocation.
+    example: 12345
+  - name: apache_tomcat.thread_pool.thread.port.with_offset
+    type: long
+    level: custom
+    description: Port of thread with offset.
+    example: 12345
+  - name: apache_tomcat.thread_pool.thread.priority.acceptor
+    type: long
+    level: custom
+    description: The priority of the acceptor thread.
+    example: 12345
+  - name: apache_tomcat.thread_pool.thread.priority.count
+    type: long
+    level: custom
+    description: Count of all threads with a specific priority.
+    example: 12345
+  - name: apache_tomcat.thread_pool.thread.priority.poller
+    type: long
+    level: custom
+    description: The priority of the poller threads.
+    example: 12345
+  - name: apache_tomcat.thread_pool.thread.requests.max
+    type: long
+    level: custom
+    description: >-
+      Max threads from the ThreadPool, to be created by the connector and made available
+      for requests.
+    example: 12345
+  - name: apache_tomcat.thread_pool.thread.running.min
+    type: long
+    level: custom
+    description: The minimum number of threads always kept running.
+    example: 12345
+  - name: apache_tomcat.thread_pool.thread.running.value
+    type: boolean
+    level: custom
+    description: The status which states whether the thread is running or not.
+    example: true
+  - name: apache_tomcat.thread_pool.thread.selector.timeout
+    type: long
+    level: custom
+    description: Selector timeout for the thread pool.
+    example: 12345
+  - name: apache_tomcat.thread_pool.thread.sni_parse_limit
+    type: long
+    level: custom
+    description: SNI parsing limit of thread.
+    example: 12345
+  - name: apache_tomcat.thread_pool.thread.supported.contention_monitoring
+    type: boolean
+    level: custom
+    description: >-
+      This is used to determine if a Java virtual machine supports thread contention
+      monitoring.
+    example: true
+  - name: apache_tomcat.thread_pool.thread.supported.cpu.current.time
+    type: boolean
+    level: custom
+    description: CPU time that the current thread has executed in user mode is supported
+      or not.
+    example: true
+  - name: apache_tomcat.thread_pool.thread.supported.usage.object_monitor
+    type: boolean
+    level: custom
+    description: Support of object monitor usage of thread.
+    example: true
+  - name: apache_tomcat.thread_pool.thread.supported.usage.synchronizer
+    type: boolean
+    level: custom
+    short: >-
+      Indicates if JVM supports monitoring thread synchronizer usage. Helps diagnose
+      performance bottlenecks and deadlocks.
+    description: >-
+      Indicates whether the Java virtual machine supports monitoring the usage of
+      synchronizers (such as locks and other synchronization primitives) by threads.
+      This field helps determine if the JVM can track and report thread contention
+      and synchronization activity, which is useful for diagnosing performance bottlenecks,
+      deadlocks, and concurrency issues in Apache Tomcat environments.
+    example: true
+  - name: apache_tomcat.thread_pool.thread.total
+    type: long
+    level: custom
+    description: Total threads at the JVM level (from java.lang:type=Threading).
+    example: 12345
+  - name: apache_tomcat.thread_pool.use_inherited_channel
+    type: boolean
+    level: custom
+    description: >-
+      Returns the channel inherited from the entity that created this Java virtual
+      machine.
+    example: true
+  - name: apache_tomcat.thread_pool.use_send_file
+    type: boolean
+    level: custom
+    description: >-
+      Use of sendfile will disable any compression that Tomcat may otherwise have
+      performed on the response.
+    example: true
