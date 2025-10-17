@@ -1,5 +1,5 @@
 ---
-name: wazuh-events-<category-name>
+name: wazuh-events-cloud-services
 fields:
   base:
     fields: "*"
@@ -268,4 +268,30 @@ fields:
   check:
     fields: "*"
   policy:
+    fields: "*"
+  amazon-security-lake:
+    fields: "*"
+  aws:
+    fields: "*"
+  aws-firehose:
+    fields: "*"
+  aws-logs:
+    fields: "*"
+  azure:
+    fields: "*"
+  azure-app-service:
+    fields: "*"
+  azure-blob-storage:
+    fields: "*"
+  azure-functions:
+    fields: "*"
+  azure-metrics:
+    fields: "*"
+  azure-openai:
+    fields: "*"
+  cisco-umbrella:
+    fields: "*"
+  gcp:
+    fields: "*"
+  google-scc:
     fields: "*"

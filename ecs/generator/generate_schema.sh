@@ -67,6 +67,10 @@ function detect_modified_modules() {
   modules_to_update=()
   for ecs_module in "${modified_modules[@]}"; do
     echo "  - $ecs_module"
+    if [[ ! -v module_to_file[$ecs_module] ]]; then
+      echo "Warning: Module '$ecs_module' not found in module list. Probably removed. Skipping."
+      continue
+    fi
     if [[ -n "${module_to_file[$ecs_module]}" ]]; then
       modules_to_update+=("$ecs_module")
     fi

@@ -1,5 +1,5 @@
 ---
-name: wazuh-events-<category-name>
+name: wazuh-events-security
 fields:
   base:
     fields: "*"
@@ -268,4 +268,12 @@ fields:
   check:
     fields: "*"
   policy:
+    fields: "*"
+  modsecurity:
+    fields: "*"
+  snort:
+    fields: "*"
+  suricata:
+    fields: "*"
+  zeek:
     fields: "*"

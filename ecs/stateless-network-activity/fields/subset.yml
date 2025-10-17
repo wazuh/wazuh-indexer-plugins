@@ -1,5 +1,5 @@
 ---
-name: wazuh-events-<category-name>
+name: wazuh-events-network-activity
 fields:
   base:
     fields: "*"
@@ -268,4 +268,24 @@ fields:
   check:
     fields: "*"
   policy:
+    fields: "*"
+  checkpoint:
+    fields: "*"
+  cisco-aironet:
+    fields: "*"
+  cisco-asa:
+    fields: "*"
+  cisco-ios:
+    fields: "*"
+  cisco-meraki:
+    fields: "*"
+  f5-bigip:
+    fields: "*"
+  fortinet:
+    fields: "*"
+  iptables:
+    fields: "*"
+  pfsense:
+    fields: "*"
+  sonicwall-firewall:
     fields: "*"
