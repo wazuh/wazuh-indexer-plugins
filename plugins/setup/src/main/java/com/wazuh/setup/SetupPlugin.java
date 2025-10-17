@@ -52,6 +52,17 @@ import com.wazuh.setup.utils.IndexUtils;
 public class SetupPlugin extends Plugin implements ClusterPlugin {
 
     private final List<Index> indices = new ArrayList<>();
+    // spotless:off
+    private final String[] categories = {
+        "access-management", // No integration in this category yet
+        "applications",
+        "cloud-services",
+        "network-activity",
+        "security",
+        "system-activity",
+        "other" // No integration in this category yet
+    };
+    // spotless:on
 
     /** Default constructor */
     public SetupPlugin() {}
@@ -76,207 +87,13 @@ public class SetupPlugin extends Plugin implements ClusterPlugin {
         this.indices.add(new StreamIndex("wazuh-alerts-5.x-000001", "index-template-alerts", "wazuh-alerts"));
         this.indices.add(new StreamIndex("wazuh-archives-5.x-000001", "index-template-archives", "wazuh-archives"));
         // Decoder indices
-        // this.indices.add(new StreamIndex(
-        //     "wazuh-events-5.x-<integration-name>-000001",
-        //     "index-template-<integration-name>",
-        //     "wazuh-events-<integration-name>"
-        // ));
-        // TODO transform into loop
-        this.indices.add(new StreamIndex(
-            "wazuh-events-5.x-amazon-security-lake-000001",
-            "index-template-amazon-security-lake",
-            "wazuh-events-amazon-security-lake"
-        ));
-        this.indices.add(new StreamIndex(
-             "wazuh-events-5.x-apache-tomcat-000001",
-             "index-template-apache-tomcat",
-             "wazuh-events-apache-tomcat"
-        ));
-        this.indices.add(new StreamIndex(
-            "wazuh-events-5.x-audit-000001",
-            "index-template-audit",
-            "wazuh-events-audit"
-        ));
-        this.indices.add(new StreamIndex(
-            "wazuh-events-5.x-aws-000001",
-            "index-template-aws",
-            "wazuh-events-aws"
-        ));
-        this.indices.add(new StreamIndex(
-            "wazuh-events-5.x-aws-firehose-000001",
-            "index-template-aws-firehose",
-            "wazuh-events-aws-firehose"
-        ));
-        this.indices.add(new StreamIndex(
-            "wazuh-events-5.x-aws-logs-000001",
-            "index-template-aws-logs",
-            "wazuh-events-aws-logs"
-        ));
-        this.indices.add(new StreamIndex(
-            "wazuh-events-5.x-azure-000001",
-            "index-template-azure",
-            "wazuh-events-azure"
-        ));
-        this.indices.add(new StreamIndex(
-            "wazuh-events-5.x-azure-app-service-000001",
-            "index-template-azure-app-service",
-            "wazuh-events-azure-app-service"
-        ));
-        this.indices.add(new StreamIndex(
-            "wazuh-events-5.x-azure-blob-storage-000001",
-            "index-template-azure-blob-storage",
-            "wazuh-events-azure-blob-storage"
-        ));
-        this.indices.add(new StreamIndex(
-            "wazuh-events-5.x-azure-functions-000001",
-            "index-template-azure-functions",
-            "wazuh-events-azure-functions"
-        ));
-        this.indices.add(new StreamIndex(
-            "wazuh-events-5.x-azure-metrics-000001",
-            "index-template-azure-metrics",
-            "wazuh-events-azure-metrics"
-        ));
-        this.indices.add(new StreamIndex(
-            "wazuh-events-5.x-azure-openai-000001",
-            "index-template-azure-openai",
-            "wazuh-events-azure-openai"
-        ));
-        this.indices.add(new StreamIndex(
-            "wazuh-events-5.x-checkpoint-000001",
-            "index-template-checkpoint",
-            "wazuh-events-checkpoint"
-        ));
-        this.indices.add(new StreamIndex(
-            "wazuh-events-5.x-cisco-aironet-000001",
-            "index-template-cisco-aironet",
-            "wazuh-events-cisco-aironet"
-        ));
-        this.indices.add(new StreamIndex(
-            "wazuh-events-5.x-cisco-asa-000001",
-            "index-template-cisco-asa",
-            "wazuh-events-cisco-asa"
-        ));
-        this.indices.add(new StreamIndex(
-            "wazuh-events-5.x-cisco-ios-000001",
-            "index-template-cisco-ios",
-            "wazuh-events-cisco-ios"
-        ));
-        this.indices.add(new StreamIndex(
-            "wazuh-events-5.x-cisco-meraki-000001",
-            "index-template-cisco-meraki",
-            "wazuh-events-cisco-meraki"
-        ));
-        this.indices.add(new StreamIndex(
-            "wazuh-events-5.x-cisco-umbrella-000001",
-            "index-template-cisco-umbrella",
-            "wazuh-events-cisco-umbrella"
-        ));
-        this.indices.add(new StreamIndex(
-            "wazuh-events-5.x-f5-bigip-000001",
-            "index-template-f5-bigip",
-            "wazuh-events-f5-bigip"
-        ));
-        this.indices.add(new StreamIndex(
-            "wazuh-events-5.x-fortinet-000001",
-            "index-template-fortinet",
-            "wazuh-events-fortinet"
-        ));
-        this.indices.add(new StreamIndex(
-            "wazuh-events-5.x-gcp-000001",
-            "index-template-gcp",
-            "wazuh-events-gcp"
-        ));
-        this.indices.add(new StreamIndex(
-            "wazuh-events-5.x-google-scc-000001",
-            "index-template-google-scc",
-            "wazuh-events-google-scc"
-        ));
-        this.indices.add(new StreamIndex(
-            "wazuh-events-5.x-iis-000001",
-            "index-template-iis",
-            "wazuh-events-iis"
-        ));
-        this.indices.add(new StreamIndex(
-            "wazuh-events-5.x-iptables-000001",
-            "index-template-iptables",
-            "wazuh-events-iptables"
-        ));
-        this.indices.add(new StreamIndex(
-            "wazuh-events-5.x-microsoft-dhcp-000001",
-            "index-template-microsoft-dhcp",
-            "wazuh-events-microsoft-dhcp"
-        ));
-        this.indices.add(new StreamIndex(
-            "wazuh-events-5.x-microsoft-dnsserver-000001",
-            "index-template-microsoft-dnsserver",
-            "wazuh-events-microsoft-dnsserver"
-        ));
-        this.indices.add(new StreamIndex(
-            "wazuh-events-5.x-microsoft-exchange-server-000001",
-            "index-template-microsoft-exchange-server",
-            "wazuh-events-microsoft-exchange-server"
-        ));
-        this.indices.add(new StreamIndex(
-            "wazuh-events-5.x-modsecurity-000001",
-            "index-template-modsecurity",
-            "wazuh-events-modsecurity"
-        ));
-        this.indices.add(new StreamIndex(
-            "wazuh-events-5.x-oracle-weblogic-000001",
-            "index-template-oracle-weblogic",
-            "wazuh-events-oracle-weblogic"
-        ));
-        this.indices.add(new StreamIndex(
-            "wazuh-events-5.x-pfsense-000001",
-            "index-template-pfsense",
-            "wazuh-events-pfsense"
-        ));
-        this.indices.add(new StreamIndex(
-            "wazuh-events-5.x-snort-000001",
-            "index-template-snort",
-            "wazuh-events-snort"
-        ));
-        this.indices.add(new StreamIndex(
-            "wazuh-events-5.x-sonicwall-firewall-000001",
-            "index-template-sonicwall-firewall",
-            "wazuh-events-sonicwall-firewall"
-        ));
-        this.indices.add(new StreamIndex(
-            "wazuh-events-5.x-springboot-000001",
-            "index-template-springboot",
-            "wazuh-events-springboot"
-        ));
-        this.indices.add(new StreamIndex(
-            "wazuh-events-5.x-squid-000001",
-            "index-template-squid",
-            "wazuh-events-squid"
-        ));
-        this.indices.add(new StreamIndex(
-            "wazuh-events-5.x-suricata-000001",
-            "index-template-suricata",
-            "wazuh-events-suricata"
-        ));
-        this.indices.add(new StreamIndex(
-            "wazuh-events-5.x-unifiedlogs-000001",
-            "index-template-unifiedlogs",
-            "wazuh-events-unifiedlogs"
-        ));
-        this.indices.add(new StreamIndex(
-            "wazuh-events-5.x-websphere-000001",
-            "index-template-websphere",
-            "wazuh-events-websphere"
-        ));
-        this.indices.add(new StreamIndex(
-            "wazuh-events-5.x-windows-000001",
-            "index-template-windows",
-            "wazuh-events-windows"
-        ));
-        this.indices.add(new StreamIndex(
-            "wazuh-events-5.x-zeek-000001",
-            "index-template-zeek",
-            "wazuh-events-zeek"
-        ));
+        for (String category : this.categories) {
+            this.indices.add(new StreamIndex(
+                "wazuh-events-5.x-" + category + "-000001",
+                "index-template-" + category,
+                "wazuh-events-" + category
+            ));
+        }
 
         // State indices
         this.indices.add(new StateIndex("wazuh-states-sca", "index-template-sca"));

@@ -1,5 +1,5 @@
 ---
-name: wazuh-events-<category-name>
+name: wazuh-events-applications
 fields:
   base:
     fields: "*"
@@ -268,4 +268,16 @@ fields:
   check:
     fields: "*"
   policy:
+    fields: "*"
+  apache-tomcat:
+    fields: "*"
+  iis:
+    fields: "*"
+  oracle-weblogic:
+    fields: "*"
+  springboot:
+    fields: "*"
+  squid:
+    fields: "*"
+  websphere:
     fields: "*"

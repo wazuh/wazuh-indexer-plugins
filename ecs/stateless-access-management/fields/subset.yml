@@ -1,5 +1,5 @@
 ---
-name: wazuh-events-<category-name>
+name: wazuh-events-access-management
 fields:
   base:
     fields: "*"
