@@ -20,8 +20,7 @@ jobs:
       - uses: actions/setup-java@v5
         with:
           distribution: temurin
-          java-version: ${{ JDK_VERSION }}
-
+          java-version: ${{ vars.JDK_VERSION }}
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v4
 

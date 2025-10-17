@@ -57,7 +57,7 @@ jobs:
       - uses: actions/setup-java@v5
         with:
           distribution: temurin
-          java-version: 21
+          java-version: ${{ vars.JDK_VERSION }}
 
       - name: Setup Gradle # Used for caching
         uses: gradle/actions/setup-gradle@v4

@@ -90,7 +90,7 @@ public class SetupPluginIT extends OpenSearchIntegTestCase {
                         .anyMatch(pluginInfo -> pluginInfo.getName().equals("wazuh-indexer-setup")));
     }
 
-    /** Test to verify that the ISM plugin is installed and the cluster is healthy.*/
+    /** Test to verify that the ISM plugin is installed and the cluster is healthy. */
     public void testISMPluginInstalled() {
         // Wait for initialization to complete.
         this.ensureGreen();
