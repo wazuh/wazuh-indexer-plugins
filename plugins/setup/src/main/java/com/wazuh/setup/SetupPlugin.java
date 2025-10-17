@@ -52,6 +52,7 @@ import com.wazuh.setup.utils.IndexUtils;
 public class SetupPlugin extends Plugin implements ClusterPlugin {
 
     private final List<Index> indices = new ArrayList<>();
+    // spotless:off
     private final String categories[] = {
         // "access-management", // No integration in this category yet
         "applications",
@@ -61,6 +62,7 @@ public class SetupPlugin extends Plugin implements ClusterPlugin {
         "system-activity",
         // "other" // No integration in this category yet
     };
+    // spotless:on
 
     /** Default constructor */
     public SetupPlugin() {}
