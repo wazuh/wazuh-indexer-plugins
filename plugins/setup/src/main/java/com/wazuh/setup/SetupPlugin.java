@@ -53,14 +53,14 @@ public class SetupPlugin extends Plugin implements ClusterPlugin {
 
     private final List<Index> indices = new ArrayList<>();
     // spotless:off
-    private final String categories[] = {
-        // "access-management", // No integration in this category yet
+    private final String[] categories = {
+        "access-management", // No integration in this category yet
         "applications",
         "cloud-services",
         "network-activity",
         "security",
         "system-activity",
-        // "other" // No integration in this category yet
+        "other" // No integration in this category yet
     };
     // spotless:on
 
@@ -87,11 +87,6 @@ public class SetupPlugin extends Plugin implements ClusterPlugin {
         this.indices.add(new StreamIndex("wazuh-alerts-5.x-000001", "index-template-alerts", "wazuh-alerts"));
         this.indices.add(new StreamIndex("wazuh-archives-5.x-000001", "index-template-archives", "wazuh-archives"));
         // Decoder indices
-        // this.indices.add(new StreamIndex(
-        //     "wazuh-events-5.x-<category-name>-000001",
-        //     "index-template-<category-name>",
-        //     "wazuh-events-<category-name>"
-        // ));
         for (String category : this.categories) {
             this.indices.add(new StreamIndex(
                 "wazuh-events-5.x-" + category + "-000001",
