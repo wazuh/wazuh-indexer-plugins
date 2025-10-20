@@ -1,5 +1,5 @@
 ---
-name: wazuh-events-<category-name>
+name: wazuh-events-system-activity
 fields:
   base:
     fields: "*"
@@ -268,4 +268,16 @@ fields:
   check:
     fields: "*"
   policy:
+    fields: "*"
+  audit:
+    fields: "*"
+  microsoft-dhcp:
+    fields: "*"
+  microsoft-dnsserver:
+    fields: "*"
+  microsoft-exchange-server:
+    fields: "*"
+  unifiedlogs:
+    fields: "*"
+  windows:
     fields: "*"

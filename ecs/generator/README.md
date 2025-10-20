@@ -48,6 +48,8 @@ In order to make this template compatible with OpenSearch, the following changes
 
 The tooling takes care of these changes automatically, generating the `opensearch-template.json` file as a result.
 
+If a module has been removed from the repository, the `generate_schema.sh` script will skip it gracefully, issuing a warning message instead of failing.
+
 ### Uploading templates to the Indexer
 
 You can either upload the index template using cURL or the UI (dev tools).
@@ -92,3 +94,7 @@ The [run_event_generators.sh](../scripts/run_event_generators.sh) script can be 
 ## GitHub Workflow
 
 The schema generation is automated using a GitHub Workflow, defined in the [5_builderpackage_schema.yml](../../.github/workflows/5_builderpackage_schema.yml) file.
+
+## Troubleshooting
+
+1. In case you added a new module and the script is not recognizing it, make sure to run the `update_module_list.sh` script to update the modules list **AND** to stage the changes in Git, as the script compares the current Git working directory with the last state in main.

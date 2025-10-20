@@ -54,15 +54,15 @@ class WCSIntegrationsGenerator:
                     continue
 
                 # Normalize integration name (replace spaces with hyphens, lowercase)
-                integration_normalized = integration.lower().replace(' ', '-')
+                integration_name = integration.lower().replace(' ', '-')
 
-                # Determine log family (default to 'general' if empty)
-                log_family = row.get('Log family', '').strip() or 'general'
+                # Determine log category (default to 'other' if empty)
+                log_category = row.get('Category', '').strip() or 'other'
 
                 # Store integration data using normalized name
-                if integration_normalized not in self.integrations_data:
-                    self.integrations_data[integration_normalized] = {
-                        'log_family': log_family,
+                if integration_name not in self.integrations_data:
+                    self.integrations_data[integration_name] = {
+                        'log_category': log_category,
                         'original_name': integration,
                         'fields': []
                     }
@@ -76,20 +76,20 @@ class WCSIntegrationsGenerator:
                     'is_array': row.get('Is array?', '').strip().lower() == 'yes',
                 }
 
-                self.integrations_data[integration_normalized]['fields'].append(field_info)
+                self.integrations_data[integration_name]['fields'].append(field_info)
 
         print(f"Loaded {len(self.integrations_data)} integrations")
         for integration, data in self.integrations_data.items():
             original_name = data.get('original_name', integration)
-            print(f"  - {original_name} -> {integration} ({data['log_family']}): {len(data['fields'])} fields")
+            print(f"  - {original_name} -> {integration} ({data['log_category']}): {len(data['fields'])} fields")
 
     def create_folder_structure(self):
-        """Create the folder structure for all integrations."""
+        """Create the folder structure for all categories."""
         print("Creating folder structure...")
 
-        # Create a separate folder for each integration
-        for integration, data in self.integrations_data.items():
-            folder_name = f"stateless-{integration}"
+        # Create a separate folder for each category
+        for category in set(data['log_category'] for data in self.integrations_data.values()):
+            folder_name = f"stateless-{category}"
             folder_path = self.ecs_base_path / folder_name
 
             print(f"Creating folder: {folder_path}")
@@ -98,7 +98,7 @@ class WCSIntegrationsGenerator:
             (folder_path / "docs").mkdir(parents=True, exist_ok=True)
             (folder_path / "fields" / "custom").mkdir(parents=True, exist_ok=True)
 
-            print(f"  Created structure for {integration} integration")
+            print(f"  Created structure for {category} integration")
 
     def generate_custom_fields_yaml(self, integration, integration_data):
         """Generate the custom YAML fields file for an integration."""
@@ -152,20 +152,37 @@ class WCSIntegrationsGenerator:
 
         return yaml_content
 
-    def generate_subset_yaml(self, integration, log_family):
+    def generate_subset_yaml(self, subset_path, integration, log_category):
         """Generate the subset.yml file for an integration."""
-        # Read the template subset.yml
-        template_subset_path = self.template_path / "fields" / "subset.yml"
+        # Read the subset content from the template or the final file, 
+        # depending on existence.
+        # In both cases, append the integration fields block, if not present.
+        if not subset_path.exists():
+            # Read the template subset.yml
+            template_subset_path = self.template_path / "fields" / "subset.yml"
 
-        with open(template_subset_path, 'r') as f:
-            subset_content = f.read()
+            with open(template_subset_path, 'r') as f:
+                subset_content = f.read()
 
-        # Replace placeholders
-        subset_content = subset_content.replace('<integration-name>', integration)
+            # Replace placeholders
+            subset_content = subset_content.replace('<category-name>', log_category)
+        else:
+            with open(subset_path, 'r') as f:
+                subset_content = f.read()
+
+        if f"  {integration}:" in subset_content:
+            # Integration already present
+            return subset_content
+        
+        # Append integration fields to the subset
+        integration_block = f"""  {integration}:
+    fields: "*"
+"""
+        subset_content += integration_block
 
         return subset_content
 
-    def generate_template_settings(self, integration, log_family):
+    def generate_template_settings(self, log_category):
         """Generate template-settings.json for an integration."""
         template_settings_path = self.template_path / "fields" / "template-settings.json"
 
@@ -173,12 +190,12 @@ class WCSIntegrationsGenerator:
             settings = json.load(f)
 
         # Update index patterns and settings
-        settings['index_patterns'] = [f"wazuh-events-5.x-{integration}-*"]
-        settings['template']['settings']['plugins.index_state_management.rollover_alias'] = f"wazuh-events-{integration}"
+        settings['index_patterns'] = [f"wazuh-events-5.x-{log_category}-*"]
+        settings['template']['settings']['plugins.index_state_management.rollover_alias'] = f"wazuh-events-{log_category}"
 
         return settings
 
-    def generate_template_settings_legacy(self, integration, log_family):
+    def generate_template_settings_legacy(self, log_category):
         """Generate template-settings-legacy.json for an integration."""
         template_settings_path = self.template_path / "fields" / "template-settings-legacy.json"
 
@@ -186,12 +203,12 @@ class WCSIntegrationsGenerator:
             settings = json.load(f)
 
         # Update index patterns and settings
-        settings['index_patterns'] = [f"wazuh-events-5.x-{integration}-*"]
-        settings['settings']['plugins.index_state_management.rollover_alias'] = f"wazuh-events-{integration}"
+        settings['index_patterns'] = [f"wazuh-events-5.x-{log_category}-*"]
+        settings['settings']['plugins.index_state_management.rollover_alias'] = f"wazuh-events-{log_category}"
 
         return settings
 
-    def generate_mapping_settings(self, integration, log_family):
+    def generate_mapping_settings(self):
         """Generate mapping-settings.json for an integration."""
         template_mapping_path = self.template_path / "fields" / "mapping-settings.json"
 
@@ -202,16 +219,17 @@ class WCSIntegrationsGenerator:
         # but we return a copy to allow for future customization
         return settings
 
-    def generate_readme(self, integration, integration_data):
+    def generate_readme(self, integration_data):
         """Generate README.md for an integration."""
-        log_family = integration_data['log_family']
-        original_name = integration_data.get('original_name', integration)
+        log_category = integration_data['log_category']
+        integrations = [data['original_name'] for _, data in self.integrations_data.items() if data['log_category'] == log_category]
+        integrations_list = '\n'.join(f"- {name}" for name in sorted(integrations))
 
-        readme_content = f"""## `wazuh-events-5.x-{integration}` time series index
+        readme_content = f"""## `wazuh-events-5.x-{log_category}` time series index
 
-The `wazuh-events-*` indices store events received from monitored endpoints through the {original_name} integration.
+The `wazuh-events-5.x-{log_category}` indices store events received from monitored endpoints through the relevant integrations.
 
-This is a time-based (stateless) index. The index includes the WCS fields and the fields of the corresponding {original_name} integration.
+This is a time-based (stateless) index. The index includes the WCS fields and the fields of the corresponding {log_category} integrations.
 
 ### Fields summary
 
@@ -219,18 +237,19 @@ For this stage, we are using all the fields of the WCS. Dynamic mode is temporar
 
 - [WCS main mappings](../../stateless/docs/fields.csv)
 
-The detail of the fields can be found in csv file [Stateless {original_name.title()} Fields](fields.csv).
+The detail of the fields can be found in csv file [Stateless {log_category.title()} Fields](fields.csv).
 
-### Integration: {original_name}
+### Integrations:
 
-This integration belongs to the **{log_family}** log family and provides specialized fields for processing {original_name} events in the Wazuh security platform.
+The **{log_category}** log category provides specialized fields for processing events in the Wazuh security platform coming from these integrations:
+{integrations_list}
 """
         return readme_content
 
     def write_files_for_integration(self, integration, integration_data):
         """Write all files for a specific integration."""
-        log_family = integration_data['log_family']
-        folder_name = f"stateless-{integration}"
+        log_category = integration_data['log_category']
+        folder_name = f"stateless-{log_category}"
         base_path = self.ecs_base_path / folder_name
 
         print(f"  Generating files for {integration} integration...")
@@ -246,35 +265,35 @@ This integration belongs to the **{log_family}** log family and provides special
             yaml.dump(custom_fields, f, default_flow_style=False, sort_keys=False, allow_unicode=True)
 
         # 2. Generate subset.yml
-        subset_content = self.generate_subset_yaml(integration, log_family)
         subset_path = base_path / "fields" / "subset.yml"
+        subset_content = self.generate_subset_yaml(subset_path, integration, log_category)
 
         with open(subset_path, 'w') as f:
             f.write(subset_content)
 
         # 3. Generate template-settings.json
-        template_settings = self.generate_template_settings(integration, log_family)
+        template_settings = self.generate_template_settings(log_category)
         template_settings_path = base_path / "fields" / "template-settings.json"
 
         with open(template_settings_path, 'w') as f:
             json.dump(template_settings, f, indent=2)
 
         # 4. Generate template-settings-legacy.json
-        template_settings_legacy = self.generate_template_settings_legacy(integration, log_family)
+        template_settings_legacy = self.generate_template_settings_legacy(log_category)
         template_settings_legacy_path = base_path / "fields" / "template-settings-legacy.json"
 
         with open(template_settings_legacy_path, 'w') as f:
             json.dump(template_settings_legacy, f, indent=2)
 
         # 5. Generate mapping-settings.json
-        mapping_settings = self.generate_mapping_settings(integration, log_family)
+        mapping_settings = self.generate_mapping_settings()
         mapping_settings_path = base_path / "fields" / "mapping-settings.json"
 
         with open(mapping_settings_path, 'w') as f:
             json.dump(mapping_settings, f, indent=2)
 
         # 6. Generate README.md
-        readme_content = self.generate_readme(integration, integration_data)
+        readme_content = self.generate_readme(integration_data)
         readme_path = base_path / "docs" / "README.md"
 
         with open(readme_path, 'w') as f:
@@ -301,8 +320,8 @@ This integration belongs to the **{log_family}** log family and provides special
         # Process each integration individually
         total_integrations = 0
         for integration, integration_data in self.integrations_data.items():
-            log_family = integration_data['log_family']
-            print(f"\nProcessing integration: {integration} (family: {log_family})")
+            log_category = integration_data['log_category']
+            print(f"\nProcessing integration: {integration} (category: {log_category})")
 
             self.write_files_for_integration(integration, integration_data)
             total_integrations += 1
@@ -329,14 +348,14 @@ This integration belongs to the **{log_family}** log family and provides special
             print("✅ WCS Integrations generation completed successfully!")
             print(f"📊 Generated {len(self.integrations_data)} integrations")
 
-            # Summary by log family
-            log_families = defaultdict(int)
+            # Summary by log category
+            log_categories = defaultdict(int)
             for integration, data in self.integrations_data.items():
-                log_families[data['log_family']] += 1
+                log_categories[data['log_category']] += 1
 
-            print("\n📋 Summary by log family:")
-            for family, count in sorted(log_families.items()):
-                print(f"  - {family}: {count} integration(s)")
+            print("\n📋 Summary by log category:")
+            for category, count in sorted(log_categories.items()):
+                print(f"  - {category}: {count} integration(s)")
 
         except Exception as e:
             print(f"\n❌ Error during generation: {e}")
@@ -394,7 +413,7 @@ def main():
         generator.read_csv_data()
         print("\nIntegrations that would be generated:")
         for integration, data in generator.integrations_data.items():
-            print(f"  - {integration} ({data['log_family']}): {len(data['fields'])} fields")
+            print(f"  - {integration} ({data['log_category']}): {len(data['fields'])} fields")
     else:
         generator.run()
 

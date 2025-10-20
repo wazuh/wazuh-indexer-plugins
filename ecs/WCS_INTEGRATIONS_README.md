@@ -19,7 +19,7 @@ The `generate_wcs_integrations.py` script automates the creation of WCS integrat
   - `fields/mapping-settings.json`: Mapping configuration settings
 - **CSV Parsing**: Reads integration data from spreadsheet format
 - **Type Mapping**: Converts Wazuh field types to Elasticsearch field types
-- **Log Family Support**: Organizes integrations by log family (general, microsoft, azure, etc.)
+- **Log Category Support**: Organizes integrations by log category (general, microsoft, azure, etc.)
 
 ## Usage
 
@@ -49,17 +49,17 @@ python3 generate_wcs_integrations.py /path/to/csv-file.csv --ecs-path /path/to/e
 
 The input CSV file must contain the following columns:
 
-| Column | Description | Required |
-|--------|-------------|----------|
-| `Elastic Field Name` | Field name in Elastic Common Schema | No |
-| `Elastic type` | Field type in ECS | No |
-| `Wazuh Field Name` | Custom field name for WCS | **Yes** |
-| `Wazuh Type` | Field type for WCS | **Yes** |
-| `Is array?` | Whether field can hold multiple values (Yes/No) | No |
-| `Description` | Field description | No |
-| `Integration` | Integration name | **Yes** |
-| `Notes` | Additional notes | No |
-| `Log family` | Log family category (e.g., microsoft, azure, cisco) | No |
+| Column               | Description                                           | Required |
+| -------------------- | ----------------------------------------------------- | -------- |
+| `Elastic Field Name` | Field name in Elastic Common Schema                   | No       |
+| `Elastic type`       | Field type in ECS                                     | No       |
+| `Wazuh Field Name`   | Custom field name for WCS                             | **Yes**  |
+| `Wazuh Type`         | Field type for WCS                                    | **Yes**  |
+| `Is array?`          | Whether field can hold multiple values (Yes/No)       | No       |
+| `Description`        | Field description                                     | No       |
+| `Integration`        | Integration name                                      | **Yes**  |
+| `Notes`              | Additional notes                                      | No       |
+| `Log category`       | Log category category (e.g., microsoft, azure, cisco) | No       |
 
 ## Generated Structure
 
@@ -85,7 +85,7 @@ stateless-{integration}/
 
 ```bash
 cd /path/to/wazuh-indexer-plugins/ecs
-python3 generate_wcs_integrations.py "WCS - Ruleset tier 1 - Original fields.csv" --ecs-path .
+python3 generate_wcs_integrations.py "fields.csv" --ecs-path .
 ```
 
 ### Example Output
@@ -93,11 +93,11 @@ python3 generate_wcs_integrations.py "WCS - Ruleset tier 1 - Original fields.csv
 ```
 🚀 Starting WCS Integrations Generator
 ==================================================
-Reading CSV data from: WCS - Ruleset tier 1 - Original fields.csv
+Reading CSV data from: fields.csv
 Loaded 26 integrations
-  - snort (general): 21 fields
-  - azure (azure): 292 fields
-  - windows (windows): 71 fields
+  - snort (Security): 21 fields
+  - azure (Cloud): 292 fields
+  - windows (System Activity): 71 fields
   ...
 
 Creating folder structure...
@@ -106,7 +106,7 @@ Creating folder: stateless-azure
 ...
 
 Generating integration files...
-Processing integration: snort (family: general)
+Processing integration: snort (category: Security)
   ✓ Created 21 field definitions
   ✓ Generated all required files in stateless-snort
 ...
@@ -114,34 +114,17 @@ Processing integration: snort (family: general)
 ✅ Successfully generated 26 integrations
 ```
 
-## Field Type Mapping
+## Log Categories
 
-The script automatically maps Wazuh field types to Elasticsearch types:
+Integrations are organized by log category:
 
-| Wazuh Type | Elasticsearch Type |
-|------------|-------------------|
-| string | keyword |
-| keyword | keyword |
-| text | text |
-| long | long |
-| integer | long |
-| double | double |
-| float | float |
-| boolean | boolean |
-| date | date |
-| ip | ip |
-| geo_point | geo_point |
-| flattened | flattened |
-
-## Log Families
-
-Integrations are organized by log family:
-
-- **general**: Default family for most integrations
-- **microsoft**: Microsoft-specific integrations
-- **windows**: Windows-specific integrations  
-- **azure**: Azure cloud integrations
-- **cisco**: Cisco network device integrations
+- **Access Management**: User access, authentication and group management
+- **Applications**: Application lifecycle, API and web resources activities
+- **Cloud Services**: Services managed by cloud providers
+- **Network Activity**: DNS, HTTP, Email, SSH, FTP, DHCP, RDP
+- **Security**: Security events, threat detection, vulnerability management
+- **System Activity**: System monitoring logs
+- **Other**: Logs not covered in other categories
 
 ## Generated Files Details
 
@@ -204,7 +187,7 @@ Modify files in `stateless-template/` to change the default structure and conten
 Use `--dry-run` to preview what would be generated without creating files:
 
 ```bash
-python3 generate_wcs_integrations.py file.csv --dry-run
+python3 generate_wcs_integrations.py fields.csv --dry-run
 ```
 
 ## Script Architecture
