@@ -5,7 +5,7 @@
   "order": 1,
   "settings": {
     "plugins.index_state_management.rollover_alias": "wazuh-events-applications",
-    "mapping.total_fields.limit": 10000,
+    "mapping.total_fields.limit": 5000,
     "mapping.nested_fields.limit": 100,
     "index": {
       "number_of_shards": "3",
