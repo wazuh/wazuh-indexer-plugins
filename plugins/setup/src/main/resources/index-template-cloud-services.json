@@ -27132,7 +27132,7 @@
       "refresh_interval": "2s"
     },
     "mapping.nested_fields.limit": 300,
-    "mapping.total_fields.limit": 6500,
+    "mapping.total_fields.limit": 7500,
     "plugins.index_state_management.rollover_alias": "wazuh-events-cloud-services"
   }
 }
