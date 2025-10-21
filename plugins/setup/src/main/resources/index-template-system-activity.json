@@ -21269,6 +21269,7 @@
   "settings": {
     "index": {
       "auto_expand_replicas": "0-1",
+      "max_docvalue_fields_search": 150,
       "number_of_replicas": "0",
       "number_of_shards": "3",
       "query.default_field": [
@@ -21284,7 +21285,7 @@
       "refresh_interval": "2s"
     },
     "mapping.nested_fields.limit": 100,
-    "mapping.total_fields.limit": 10000,
+    "mapping.total_fields.limit": 5500,
     "plugins.index_state_management.rollover_alias": "wazuh-events-system-activity"
   }
 }

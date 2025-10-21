@@ -24991,7 +24991,7 @@
       "refresh_interval": "2s"
     },
     "mapping.nested_fields.limit": 100,
-    "mapping.total_fields.limit": 10000,
+    "mapping.total_fields.limit": 6000,
     "plugins.index_state_management.rollover_alias": "wazuh-events-network-activity"
   }
 }
