@@ -19,6 +19,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Add index definition for stateless indices [(#554)](https://github.com/wazuh/wazuh-indexer-plugins/pull/554)
 - Add tooling and index definitions for Wazuh decoders [(#581)](https://github.com/wazuh/wazuh-indexer-plugins/pull/581)
 - Categorize WCS stateless indices [(#588)](https://github.com/wazuh/wazuh-indexer-plugins/pull/588)
+- Add major version to index aliases [(#592)](https://github.com/wazuh/wazuh-indexer-plugins/pull/592)
 
 ### Dependencies
 -
