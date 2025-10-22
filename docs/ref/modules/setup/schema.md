@@ -47,7 +47,7 @@ None yet.
 
 | Integration Name    | Subcategory | Category         |
 | ------------------- | ----------- | ---------------- |
-| iptable             | -           | Network Activity |
+| iptables            | -           | Network Activity |
 | Cisco ASA           | Cisco       | Network Activity |
 | Cisco IOS           | Cisco       | Network Activity |
 | Cisco Meraki        | Cisco       | Network Activity |
