@@ -22,7 +22,8 @@
           "wazuh.cluster.name",
           "wazuh.cluster.node",
           "wazuh.schema.version"
-        ]
+        ],
+        "max_docvalue_fields_search": 200
       }
     }
   }
