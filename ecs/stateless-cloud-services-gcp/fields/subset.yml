@@ -1,5 +1,5 @@
 ---
-name: wazuh-events-cloud-services
+name: wazuh-events-cloud-services-gcp
 fields:
   base:
     fields: "*"
@@ -269,5 +269,7 @@ fields:
     fields: "*"
   policy:
     fields: "*"
-  cisco-umbrella:
+  gcp:
+    fields: "*"
+  google-scc:
     fields: "*"

@@ -58,11 +58,13 @@ class WCSIntegrationsGenerator:
 
                 # Determine log category (default to 'other' if empty)
                 log_category = row.get('Category', '').strip() or 'other'
+                log_subcategory = row.get('Subcategory', '').strip() or ''
 
                 # Store integration data using normalized name
                 if integration_name not in self.integrations_data:
                     self.integrations_data[integration_name] = {
-                        'log_category': log_category,
+                        'log_category': f"{log_category}-{log_subcategory}" if log_subcategory else log_category,
+                        'log_subcategory': log_subcategory,
                         'original_name': integration,
                         'fields': []
                     }
@@ -182,7 +184,7 @@ class WCSIntegrationsGenerator:
 
         return subset_content
 
-    def generate_template_settings(self, log_category):
+    def generate_template_settings(self, log_category, log_subcategory):
         """Generate template-settings.json for an integration."""
         template_settings_path = self.template_path / "fields" / "template-settings.json"
 
@@ -191,11 +193,12 @@ class WCSIntegrationsGenerator:
 
         # Update index patterns and settings
         settings['index_patterns'] = [f"wazuh-events-5.x-{log_category}-*"]
-        settings['template']['settings']['plugins.index_state_management.rollover_alias'] = f"wazuh-events-{log_category}"
+        settings['template']['settings']['plugins.index_state_management.rollover_alias'] = f"wazuh-events-5.x-{log_category}"
+        settings['priority'] = 10  if log_subcategory else 1
 
         return settings
 
-    def generate_template_settings_legacy(self, log_category):
+    def generate_template_settings_legacy(self, log_category, log_subcategory):
         """Generate template-settings-legacy.json for an integration."""
         template_settings_path = self.template_path / "fields" / "template-settings-legacy.json"
 
@@ -204,7 +207,8 @@ class WCSIntegrationsGenerator:
 
         # Update index patterns and settings
         settings['index_patterns'] = [f"wazuh-events-5.x-{log_category}-*"]
-        settings['settings']['plugins.index_state_management.rollover_alias'] = f"wazuh-events-{log_category}"
+        settings['settings']['plugins.index_state_management.rollover_alias'] = f"wazuh-events-5.x-{log_category}"
+        settings['order'] = 10  if log_subcategory else 1
 
         return settings
 
@@ -249,6 +253,7 @@ The **{log_category}** log category provides specialized fields for processing e
     def write_files_for_integration(self, integration, integration_data):
         """Write all files for a specific integration."""
         log_category = integration_data['log_category']
+        log_subcategory = integration_data['log_subcategory']
         folder_name = f"stateless-{log_category}"
         base_path = self.ecs_base_path / folder_name
 
@@ -272,14 +277,14 @@ The **{log_category}** log category provides specialized fields for processing e
             f.write(subset_content)
 
         # 3. Generate template-settings.json
-        template_settings = self.generate_template_settings(log_category)
+        template_settings = self.generate_template_settings(log_category, log_subcategory)
         template_settings_path = base_path / "fields" / "template-settings.json"
 
         with open(template_settings_path, 'w') as f:
             json.dump(template_settings, f, indent=2)
 
         # 4. Generate template-settings-legacy.json
-        template_settings_legacy = self.generate_template_settings_legacy(log_category)
+        template_settings_legacy = self.generate_template_settings_legacy(log_category, log_subcategory)
         template_settings_legacy_path = base_path / "fields" / "template-settings-legacy.json"
 
         with open(template_settings_legacy_path, 'w') as f:

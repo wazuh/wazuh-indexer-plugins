@@ -1,5 +1,5 @@
 ---
-name: wazuh-events-cloud-services
+name: wazuh-events-cloud-services-aws
 fields:
   base:
     fields: "*"
@@ -269,5 +269,11 @@ fields:
     fields: "*"
   policy:
     fields: "*"
-  cisco-umbrella:
+  amazon-security-lake:
+    fields: "*"
+  aws:
+    fields: "*"
+  aws-firehose:
+    fields: "*"
+  aws-logs:
     fields: "*"

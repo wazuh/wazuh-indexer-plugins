@@ -1,5 +1,5 @@
 ---
-name: wazuh-events-cloud-services
+name: wazuh-events-cloud-services-azure
 fields:
   base:
     fields: "*"
@@ -269,5 +269,15 @@ fields:
     fields: "*"
   policy:
     fields: "*"
-  cisco-umbrella:
+  azure:
+    fields: "*"
+  azure-app-service:
+    fields: "*"
+  azure-blob-storage:
+    fields: "*"
+  azure-functions:
+    fields: "*"
+  azure-metrics:
+    fields: "*"
+  azure-openai:
     fields: "*"
