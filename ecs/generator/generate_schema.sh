@@ -188,18 +188,4 @@ function main() {
   update_modified_modules
   copy_files "$repo_path"
 
-  # ====
-  # Update mapping.total_fields.limit for modified modules
-  # ====
-  echo
-  echo "---> Updating mapping.total_fields.limit for modified modules"
-  for ecs_module in "${modules_to_update[@]}"; do
-    echo "  - $ecs_module"
-    # Use the updater script to compute and apply the new limit
-    if ! bash ecs/generator/count_and_update_total_fields.sh "$ecs_module" --apply; then
-      echo "Warning: Failed to update mapping.total_fields.limit for module: $ecs_module"
-    fi
-  done
-}
-
 main "$@"

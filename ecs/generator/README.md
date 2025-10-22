@@ -9,6 +9,7 @@ The generation of the Wazuh Common Schema is automated using a set of scripts an
 - [update_module_list.sh](./update_module_list.sh): generates the [module_list.txt](../module_list.txt) file, by scanning the [ecs/](..) folder. Run this script whenever a new module is added.
 - [images/Dockerfile](./images/Dockerfile): Dockerfile to build the image used for the schema generation. Clones the ECS repository, which contains the main tooling.
 - [images/generator.sh](./images/generator.sh): our actual schema generation script. It is executed inside the container. Contains post-processing steps to make the templates compatible with OpenSearch and to adapt them to our needs.
+- [count_and_update_total_fields.sh](./count_and_update_total_fields.sh): counts fields in a generated index template and proposes (or applies with --apply) an updated mapping.total_fields.limit rounded up to the next 500.
 
 ### Requirements
 
@@ -29,6 +30,11 @@ However, it can also be run locally. To do so, follow these steps.
 
     ```bash
     ./generate_schema.sh
+    ```
+
+3. Update the number of total field of each module:
+    ``` bash
+    ./count_and_update_total_fields.sh all --apply
     ```
 
 The scripts can be invoked from any location. When successful, all the generated files will be copied to their corresponding folders.
