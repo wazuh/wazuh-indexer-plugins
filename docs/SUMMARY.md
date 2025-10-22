@@ -33,6 +33,7 @@
   - [Setup](ref/modules/setup/index.md)
     - [Architecture](ref/modules/setup/architecture.md)
     - [API Reference]()
+    - [Wazuh Common Schema](ref/modules/setup/schema.md)
   - [Reporting](ref/modules/reporting/index.md)
     - [Usage](ref/modules/reporting/usage.md)
 - [Upgrade](ref/upgrade.md)
