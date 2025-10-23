@@ -187,5 +187,6 @@ function main() {
   detect_modified_modules
   update_modified_modules
   copy_files "$repo_path"
+}
 
 main "$@"
