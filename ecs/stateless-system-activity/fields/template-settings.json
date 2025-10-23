@@ -1,11 +1,11 @@
 {
   "index_patterns": [
-    "wazuh-events-5.x-system-activity-*"
+    "wazuh-events-v5-system-activity-*"
   ],
   "priority": 1,
   "template": {
     "settings": {
-      "plugins.index_state_management.rollover_alias": "wazuh-events-5.x-system-activity",
+      "plugins.index_state_management.rollover_alias": "wazuh-events-v5-system-activity",
       "mapping.total_fields.limit": 10000,
       "mapping.nested_fields.limit": 100,
       "index": {

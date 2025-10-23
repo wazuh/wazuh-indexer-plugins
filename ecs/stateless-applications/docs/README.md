@@ -1,6 +1,6 @@
-## `wazuh-events-5.x-applications` time series index
+## `wazuh-events-v5-applications` time series index
 
-The `wazuh-events-5.x-applications` indices store events received from monitored endpoints through the relevant integrations.
+The `wazuh-events-v5-applications` indices store events received from monitored endpoints through the relevant integrations.
 
 This is a time-based (stateless) index. The index includes the WCS fields and the fields of the corresponding applications integrations.
 

@@ -1,6 +1,6 @@
 {
   "index_patterns": [
-    "wazuh-events-5.x-cloud-services-gcp-*"
+    "wazuh-events-v5-cloud-services-gcp-*"
   ],
   "mappings": {
     "date_detection": false,
@@ -21053,6 +21053,6 @@
     },
     "mapping.nested_fields.limit": 100,
     "mapping.total_fields.limit": 10000,
-    "plugins.index_state_management.rollover_alias": "wazuh-events-5.x-cloud-services-gcp"
+    "plugins.index_state_management.rollover_alias": "wazuh-events-v5-cloud-services-gcp"
   }
 }

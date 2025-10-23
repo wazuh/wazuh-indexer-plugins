@@ -192,8 +192,8 @@ class WCSIntegrationsGenerator:
             settings = json.load(f)
 
         # Update index patterns and settings
-        settings['index_patterns'] = [f"wazuh-events-5.x-{log_category}-*"]
-        settings['template']['settings']['plugins.index_state_management.rollover_alias'] = f"wazuh-events-5.x-{log_category}"
+        settings['index_patterns'] = [f"wazuh-events-v5-{log_category}-*"]
+        settings['template']['settings']['plugins.index_state_management.rollover_alias'] = f"wazuh-events-v5-{log_category}"
         settings['priority'] = 10  if log_subcategory else 1
 
         return settings
@@ -206,8 +206,8 @@ class WCSIntegrationsGenerator:
             settings = json.load(f)
 
         # Update index patterns and settings
-        settings['index_patterns'] = [f"wazuh-events-5.x-{log_category}-*"]
-        settings['settings']['plugins.index_state_management.rollover_alias'] = f"wazuh-events-5.x-{log_category}"
+        settings['index_patterns'] = [f"wazuh-events-v5-{log_category}-*"]
+        settings['settings']['plugins.index_state_management.rollover_alias'] = f"wazuh-events-v5-{log_category}"
         settings['order'] = 10  if log_subcategory else 1
 
         return settings
@@ -229,9 +229,9 @@ class WCSIntegrationsGenerator:
         integrations = [data['original_name'] for _, data in self.integrations_data.items() if data['log_category'] == log_category]
         integrations_list = '\n'.join(f"- {name}" for name in sorted(integrations))
 
-        readme_content = f"""## `wazuh-events-5.x-{log_category}` time series index
+        readme_content = f"""## `wazuh-events-v5-{log_category}` time series index
 
-The `wazuh-events-5.x-{log_category}` indices store events received from monitored endpoints through the relevant integrations.
+The `wazuh-events-v5-{log_category}` indices store events received from monitored endpoints through the relevant integrations.
 
 This is a time-based (stateless) index. The index includes the WCS fields and the fields of the corresponding {log_category} integrations.
 

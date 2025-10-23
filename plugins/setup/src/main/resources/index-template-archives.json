@@ -1,6 +1,6 @@
 {
   "index_patterns": [
-    "wazuh-archives-5.x-*"
+    "wazuh-archives-v5-*"
   ],
   "mappings": {
     "date_detection": false,
