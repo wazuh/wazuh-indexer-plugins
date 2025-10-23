@@ -57,6 +57,9 @@ public class SetupPlugin extends Plugin implements ClusterPlugin {
         "access-management", // No integration in this category yet
         "applications",
         "cloud-services",
+        "cloud-services-aws",
+        "cloud-services-azure",
+        "cloud-services-gcp",
         "network-activity",
         "security",
         "system-activity",

@@ -15,16 +15,4 @@ The detail of the fields can be found in csv file [Stateless Cloud-Services Fiel
 ### Integrations:
 
 The **cloud-services** log category provides specialized fields for processing events in the Wazuh security platform coming from these integrations:
-- amazon-security-lake
-- aws
-- aws-firehose
-- aws-logs
-- azure
-- azure-app-service
-- azure-blob-storage
-- azure-functions
-- azure-metrics
-- azure-openai
 - cisco-umbrella
-- gcp
-- google-scc

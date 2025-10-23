@@ -155,6 +155,7 @@ public abstract class Index implements IndexInitializer {
                     new PutIndexTemplateRequest()
                             .mapping(this.indexUtils.get(templateFile, "mappings"))
                             .settings(this.indexUtils.get(templateFile, "settings"))
+                            .order((int) templateFile.getOrDefault("order", 0))
                             .name(template)
                             .patterns((List<String>) templateFile.get("index_patterns"));
 

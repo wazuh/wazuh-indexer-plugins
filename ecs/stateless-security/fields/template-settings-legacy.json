@@ -4,7 +4,7 @@
   ],
   "order": 1,
   "settings": {
-    "plugins.index_state_management.rollover_alias": "wazuh-events-security",
+    "plugins.index_state_management.rollover_alias": "wazuh-events-5.x-security",
     "mapping.total_fields.limit": 10000,
     "mapping.nested_fields.limit": 100,
     "index": {

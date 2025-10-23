@@ -20,11 +20,14 @@ module_to_file=(
   [states-fim-files]=index-template-fim-files.json
   [states-inventory-users]=index-template-inventory-users.json
   # Third-party stateless modules
+  [stateless-cloud-services-gcp]=index-template-cloud-services-gcp.json
   [stateless-system-activity]=index-template-system-activity.json
+  [stateless-cloud-services-aws]=index-template-cloud-services-aws.json
   [stateless-other]=index-template-other.json
   [stateless-cloud-services]=index-template-cloud-services.json
   [stateless-network-activity]=index-template-network-activity.json
   [stateless-security]=index-template-security.json
+  [stateless-cloud-services-azure]=index-template-cloud-services-azure.json
   [stateless-access-management]=index-template-access-management.json
   [stateless-applications]=index-template-applications.json
 )
