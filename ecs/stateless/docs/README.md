@@ -1,8 +1,8 @@
-## `wazuh-alerts-5.x` time series index
+## `wazuh-alerts-v5` time series index
 
 The `wazuh-alerts-*` indices store events received from monitored endpoints that trigger alerts when they match a detection rule.
 
-This is a time-based (stateless) index. The `wazuh-archives-5.x` index uses the same mappings and settings. The template is generated programatically off the `wazuh-alerts-5.x` index.
+This is a time-based (stateless) index. The `wazuh-archives-v5` index uses the same mappings and settings. The template is generated programatically off the `wazuh-alerts-v5` index.
 
 ### Fields summary
 

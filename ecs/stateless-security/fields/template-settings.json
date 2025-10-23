@@ -1,11 +1,11 @@
 {
   "index_patterns": [
-    "wazuh-events-5.x-security-*"
+    "wazuh-events-v5-security-*"
   ],
   "priority": 1,
   "template": {
     "settings": {
-      "plugins.index_state_management.rollover_alias": "wazuh-events-security",
+      "plugins.index_state_management.rollover_alias": "wazuh-events-v5-security",
       "mapping.total_fields.limit": 6000,
       "mapping.nested_fields.limit": 100,
       "index": {

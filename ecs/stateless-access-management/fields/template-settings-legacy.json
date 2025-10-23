@@ -1,10 +1,10 @@
 {
   "index_patterns": [
-    "wazuh-events-5.x-access-management-*"
+    "wazuh-events-v5-access-management-*"
   ],
   "order": 1,
   "settings": {
-    "plugins.index_state_management.rollover_alias": "wazuh-events-access-management",
+    "plugins.index_state_management.rollover_alias": "wazuh-events-v5-access-management",
     "mapping.total_fields.limit": 5500,
     "mapping.nested_fields.limit": 100,
     "index": {

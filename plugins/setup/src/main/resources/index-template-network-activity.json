@@ -1,6 +1,6 @@
 {
   "index_patterns": [
-    "wazuh-events-5.x-network-activity-*"
+    "wazuh-events-v5-network-activity-*"
   ],
   "mappings": {
     "date_detection": false,
@@ -24993,6 +24993,6 @@
     },
     "mapping.nested_fields.limit": 100,
     "mapping.total_fields.limit": 7000,
-    "plugins.index_state_management.rollover_alias": "wazuh-events-network-activity"
+    "plugins.index_state_management.rollover_alias": "wazuh-events-v5-network-activity"
   }
 }

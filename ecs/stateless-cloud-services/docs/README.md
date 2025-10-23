@@ -1,6 +1,6 @@
-## `wazuh-events-5.x-cloud-services` time series index
+## `wazuh-events-v5-cloud-services` time series index
 
-The `wazuh-events-5.x-cloud-services` indices store events received from monitored endpoints through the relevant integrations.
+The `wazuh-events-v5-cloud-services` indices store events received from monitored endpoints through the relevant integrations.
 
 This is a time-based (stateless) index. The index includes the WCS fields and the fields of the corresponding cloud-services integrations.
 
@@ -15,16 +15,4 @@ The detail of the fields can be found in csv file [Stateless Cloud-Services Fiel
 ### Integrations:
 
 The **cloud-services** log category provides specialized fields for processing events in the Wazuh security platform coming from these integrations:
-- amazon-security-lake
-- aws
-- aws-firehose
-- aws-logs
-- azure
-- azure-app-service
-- azure-blob-storage
-- azure-functions
-- azure-metrics
-- azure-openai
 - cisco-umbrella
-- gcp
-- google-scc

@@ -57,6 +57,9 @@ public class SetupPlugin extends Plugin implements ClusterPlugin {
         "access-management", // No integration in this category yet
         "applications",
         "cloud-services",
+        "cloud-services-aws",
+        "cloud-services-azure",
+        "cloud-services-gcp",
         "network-activity",
         "security",
         "system-activity",
@@ -84,14 +87,14 @@ public class SetupPlugin extends Plugin implements ClusterPlugin {
         // ISM index
         this.indices.add(new IndexStateManagement(".opendistro-ism-config", "opendistro-ism-config"));
         // Stream indices
-        this.indices.add(new StreamIndex("wazuh-alerts-5.x-000001", "index-template-alerts", "wazuh-alerts-5.x"));
-        this.indices.add(new StreamIndex("wazuh-archives-5.x-000001", "index-template-archives", "wazuh-archives-5.x"));
+        this.indices.add(new StreamIndex("wazuh-alerts-v5-000001", "index-template-alerts", "wazuh-alerts-v5"));
+        this.indices.add(new StreamIndex("wazuh-archives-v5-000001", "index-template-archives", "wazuh-archives-v5"));
         // Decoder indices
         for (String category : this.categories) {
             this.indices.add(new StreamIndex(
-                "wazuh-events-5.x-" + category + "-000001",
+                "wazuh-events-v5-" + category + "-000001",
                 "index-template-" + category,
-                "wazuh-events-5.x-" + category
+                "wazuh-events-v5-" + category
             ));
         }
 

@@ -6,6 +6,8 @@ The Wazuh Common Schema (WCS) is a standardized structure for organizing and cat
 
 The Wazuh Common Schema categorizes events into several key areas to streamline data management and analysis.
 
+The index mappings and settings for subcategories take precedence over those from the main category. In OpenSearch, index templates are applied in order of their "priority" value: templates with a lower priority are applied first, and those with a higher priority are applied afterward, allowing them to override previous settings. This means the index template for the main category is applied first (priority=1), and then the subcategory template (priority=10) is applied on top of it, so subcategory-specific settings override the main category defaults.
+
 #### Access Management
 
 None yet.
@@ -39,9 +41,9 @@ None yet.
 | Azure Functions      | Azure       | Cloud Services |
 | Azure Metrics        | Azure       | Cloud Services |
 | Azure OpenAI         | Azure       | Cloud Services |
-| Cisco Umbrella       | Cisco       | Cloud Services |
-| GCP                  | Google      | Cloud Services |
-| Google SCC           | Google      | Cloud Services |
+| Cisco Umbrella       | -           | Cloud Services |
+| GCP                  | GCP         | Cloud Services |
+| Google SCC           | GCP         | Cloud Services |
 
 #### Network Activity
 
@@ -87,23 +89,29 @@ None yet.
 ### Indices
 
 ```
-wazuh-events-5.x-access-management-000001
-wazuh-events-5.x-applications-000001
-wazuh-events-5.x-cloud-services-000001
-wazuh-events-5.x-network-activity-000001
-wazuh-events-5.x-security-000001
-wazuh-events-5.x-system-activity-000001
-wazuh-events-5.x-other-000001
+wazuh-events-v5-access-management-000001
+wazuh-events-v5-applications-000001
+wazuh-events-v5-cloud-services-000001
+wazuh-events-v5-cloud-services-aws-000001
+wazuh-events-v5-cloud-services-azure-000001
+wazuh-events-v5-cloud-services-gcp-000001
+wazuh-events-v5-network-activity-000001
+wazuh-events-v5-other-000001
+wazuh-events-v5-security-000001
+wazuh-events-v5-system-activity-000001
 ```
 
 ### Aliases
 
 ```
-wazuh-events-5.x-access-management
-wazuh-events-5.x-applications
-wazuh-events-5.x-cloud-services
-wazuh-events-5.x-network-activity
-wazuh-events-5.x-security
-wazuh-events-5.x-system-activity
-wazuh-events-5.x-other
+wazuh-events-v5-access-management
+wazuh-events-v5-applications
+wazuh-events-v5-cloud-services
+wazuh-events-v5-cloud-services-aws
+wazuh-events-v5-cloud-services-azure
+wazuh-events-v5-cloud-services-gcp
+wazuh-events-v5-network-activity
+wazuh-events-v5-other
+wazuh-events-v5-security
+wazuh-events-v5-system-activity
 ```
