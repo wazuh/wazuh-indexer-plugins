@@ -5,7 +5,7 @@
   "order": 10,
   "settings": {
     "plugins.index_state_management.rollover_alias": "wazuh-events-v5-cloud-services-aws",
-    "mapping.total_fields.limit": 10000,
+    "mapping.total_fields.limit": 6500,
     "mapping.nested_fields.limit": 250,
     "index": {
       "number_of_shards": "3",
