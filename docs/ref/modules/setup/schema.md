@@ -89,29 +89,29 @@ None yet.
 ### Indices
 
 ```
-wazuh-events-5.x-access-management-000001
-wazuh-events-5.x-applications-000001
-wazuh-events-5.x-cloud-services-000001
-wazuh-events-5.x-cloud-services-aws-000001
-wazuh-events-5.x-cloud-services-azure-000001
-wazuh-events-5.x-cloud-services-gcp-000001
-wazuh-events-5.x-network-activity-000001
-wazuh-events-5.x-other-000001
-wazuh-events-5.x-security-000001
-wazuh-events-5.x-system-activity-000001
+wazuh-events-v5-access-management-000001
+wazuh-events-v5-applications-000001
+wazuh-events-v5-cloud-services-000001
+wazuh-events-v5-cloud-services-aws-000001
+wazuh-events-v5-cloud-services-azure-000001
+wazuh-events-v5-cloud-services-gcp-000001
+wazuh-events-v5-network-activity-000001
+wazuh-events-v5-other-000001
+wazuh-events-v5-security-000001
+wazuh-events-v5-system-activity-000001
 ```
 
 ### Aliases
 
 ```
-wazuh-events-5.x-access-management
-wazuh-events-5.x-applications
-wazuh-events-5.x-cloud-services
-wazuh-events-5.x-cloud-services-aws
-wazuh-events-5.x-cloud-services-azure
-wazuh-events-5.x-cloud-services-gcp
-wazuh-events-5.x-network-activity
-wazuh-events-5.x-other
-wazuh-events-5.x-security
-wazuh-events-5.x-system-activity
+wazuh-events-v5-access-management
+wazuh-events-v5-applications
+wazuh-events-v5-cloud-services
+wazuh-events-v5-cloud-services-aws
+wazuh-events-v5-cloud-services-azure
+wazuh-events-v5-cloud-services-gcp
+wazuh-events-v5-network-activity
+wazuh-events-v5-other
+wazuh-events-v5-security
+wazuh-events-v5-system-activity
 ```

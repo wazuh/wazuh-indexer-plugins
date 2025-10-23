@@ -1,6 +1,6 @@
 {
   "index_patterns": [
-    "wazuh-alerts-5.x-*"
+    "wazuh-alerts-v5-*"
   ],
   "mappings": {
     "date_detection": false,

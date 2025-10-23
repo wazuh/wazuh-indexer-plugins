@@ -1,5 +1,5 @@
 {
-  "index_patterns": ["wazuh-alerts-5.x-*"],
+  "index_patterns": ["wazuh-alerts-v5-*"],
   "priority": 1,
   "template": {
     "settings": {

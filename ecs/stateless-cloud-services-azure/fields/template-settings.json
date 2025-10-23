@@ -1,11 +1,11 @@
 {
   "index_patterns": [
-    "wazuh-events-5.x-cloud-services-azure-*"
+    "wazuh-events-v5-cloud-services-azure-*"
   ],
   "priority": 10,
   "template": {
     "settings": {
-      "plugins.index_state_management.rollover_alias": "wazuh-events-5.x-cloud-services-azure",
+      "plugins.index_state_management.rollover_alias": "wazuh-events-v5-cloud-services-azure",
       "mapping.total_fields.limit": 10000,
       "mapping.nested_fields.limit": 100,
       "index": {

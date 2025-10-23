@@ -143,7 +143,7 @@ Defines which ECS fields to include in the index mapping, with the integration's
 ### Template Settings (`fields/template-settings.json`)
 
 Index template configuration including:
-- Index patterns: `wazuh-events-5.x-{integration}-*`
+- Index patterns: `wazuh-events-v5-{integration}-*`
 - Rollover alias: `wazuh-events-{integration}`
 - Default query fields
 - Index settings (shards, replicas, etc.)
