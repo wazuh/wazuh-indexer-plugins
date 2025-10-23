@@ -148,7 +148,7 @@ testClusters.integTest {
     plugin(getPlugin("opensearch-job-scheduler"))
     plugin(getPlugin("opensearch-index-management"))
 
-    testDistribution = "ARCHIVE"
+    testDistribution = "INTEG_TEST"
     // This installs our plugin into the testClusters
     plugin(project.tasks.bundlePlugin.archiveFile)
 
