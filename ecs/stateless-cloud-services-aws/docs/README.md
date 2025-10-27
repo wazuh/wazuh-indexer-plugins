@@ -17,5 +17,6 @@ The detail of the fields can be found in csv file [Stateless Cloud-Services-Aws 
 The **cloud-services-aws** log category provides specialized fields for processing events in the Wazuh security platform coming from these integrations:
 - amazon-security-lake
 - aws
+- aws-bedrock
 - aws-firehose
 - aws-logs

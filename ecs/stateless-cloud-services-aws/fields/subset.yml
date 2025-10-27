@@ -612,6 +612,8 @@ fields:
     fields: "*"
   aws:
     fields: "*"
+  aws-bedrock:
+    fields: "*"
   aws-firehose:
     fields: "*"
   aws-logs:

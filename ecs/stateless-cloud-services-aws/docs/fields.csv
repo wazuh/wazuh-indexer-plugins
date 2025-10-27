@@ -728,6 +728,28 @@ ECS_Version,Indexed,Field_Set,Field,Type,Level,Normalization,Example,Description
 9.1.0,true,aws,aws.waf.source.name,keyword,custom,,example-name,The name of the source that originated the HTTP request logged.
 9.1.0,true,aws,aws.waf.terminating_matching_rule,nested,custom,,,Details about the specific rule that terminated the web request evaluation.
 9.1.0,true,aws,aws.waf.terminating_rule_match_details,nested,custom,,,Provides specific details about why the terminating rule matched request.
+9.1.0,true,aws_bedrock,aws_bedrock.invocation.compliance.violation_code,keyword,custom,,example-violation_code,The specific code identifying the type of compliance violation detected.
+9.1.0,true,aws_bedrock,aws_bedrock.invocation.compliance.violation_detected,boolean,custom,,True,Indicates whether a compliance violation was detected during AI model processing.
+9.1.0,true,aws_bedrock,aws_bedrock.invocation.input.input_body_json,keyword,custom,,example-input_body_json,The JSON string representation of the input request body sent to the AWS Bedrock model.
+9.1.0,true,aws_bedrock,aws_bedrock.invocation.input.input_body_s3_path,keyword,custom,,example-input_body_s3_path,The S3 path where the input request body is stored when it exceeds size limits.
+9.1.0,true,aws_bedrock,aws_bedrock.invocation.input.input_content_type,keyword,custom,,example-input_content_type,The content type of the input request body sent to the Bedrock model.
+9.1.0,true,aws_bedrock,aws_bedrock.invocation.input.input_token_count,long,custom,,12345,The number of tokens in the input request sent to the AWS Bedrock model.
+9.1.0,true,aws_bedrock,aws_bedrock.invocation.model.type,keyword,custom,,example-type,The type or family of the AI model used (e.g. anthropic amazon cohere meta ai21).
+9.1.0,true,aws_bedrock,aws_bedrock.invocation.model.version,keyword,custom,,example-version,The version identifier of the AI model used for the request.
+9.1.0,true,aws_bedrock,aws_bedrock.invocation.model_id,keyword,custom,,example-model_id,The unique identifier of the AWS Bedrock foundation model used for the invocation.
+9.1.0,true,aws_bedrock,aws_bedrock.invocation.output.completion_text,keyword,custom,,example-completion_text,The generated text completion response from the AWS Bedrock model.
+9.1.0,true,aws_bedrock,aws_bedrock.invocation.output.output_body_json,keyword,custom,,example-output_body_json,The JSON string representation of the output response body from the AWS Bedrock model.
+9.1.0,true,aws_bedrock,aws_bedrock.invocation.output.output_body_s3_path,keyword,custom,,example-output_body_s3_path,The S3 path where the output response body is stored when it exceeds size limits.
+9.1.0,true,aws_bedrock,aws_bedrock.invocation.output.output_content_type,keyword,custom,,example-output_content_type,The content type of the output response body from the Bedrock model.
+9.1.0,true,aws_bedrock,aws_bedrock.invocation.output.output_token_count,long,custom,,12345,The number of tokens in the output response from the AWS Bedrock model.
+9.1.0,true,aws_bedrock,aws_bedrock.invocation.performance.response_time,long,custom,,12345,The response time in milliseconds for the AI model invocation request.
+9.1.0,true,aws_bedrock,aws_bedrock.invocation.policy.action,keyword,custom,,example-action,The action taken by AI governance policies during the model invocation.
+9.1.0,true,aws_bedrock,aws_bedrock.invocation.policy.violation,object,custom,,,Details about policy violations detected during the AI model invocation.
+9.1.0,true,aws_bedrock,aws_bedrock.invocation.request_id,keyword,custom,,example-request_id,The unique identifier for the specific AWS Bedrock model invocation request.
+9.1.0,true,aws_bedrock,aws_bedrock.invocation.response.timestamp,date,custom,,2023-01-01T00:00:00.000Z,The timestamp when the AI model response was generated.
+9.1.0,true,aws_bedrock,aws_bedrock.invocation.schema_type,keyword,custom,,example-schema_type,The schema type identifier for the AWS Bedrock invocation log format.
+9.1.0,true,aws_bedrock,aws_bedrock.invocation.schema_version,keyword,custom,,example-schema_version,The version number of the AWS Bedrock invocation log schema used.
+9.1.0,true,aws_bedrock,aws_bedrock.invocation.user.id,keyword,custom,,example-id,The identifier of the user or principal making the AI model request.
 9.1.0,true,check,check.compliance,keyword,custom,array,"[""cis:1.1.1"",""cis_csc:5.2""]",CIS compliance standard.
 9.1.0,true,check,check.condition,keyword,custom,,all,Relationship between the rules.
 9.1.0,true,check,check.description,keyword,custom,,"""The password history setting determines the number of unique new passwords a user must use before an old password can be reused.""",Extended description of the check.
