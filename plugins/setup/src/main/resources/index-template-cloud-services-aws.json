@@ -3412,6 +3412,128 @@
           }
         }
       },
+      "aws_bedrock": {
+        "properties": {
+          "invocation": {
+            "properties": {
+              "compliance": {
+                "properties": {
+                  "violation_code": {
+                    "ignore_above": 1024,
+                    "type": "keyword"
+                  },
+                  "violation_detected": {
+                    "type": "boolean"
+                  }
+                }
+              },
+              "input": {
+                "properties": {
+                  "input_body_json": {
+                    "ignore_above": 1024,
+                    "type": "keyword"
+                  },
+                  "input_body_s3_path": {
+                    "ignore_above": 1024,
+                    "type": "keyword"
+                  },
+                  "input_content_type": {
+                    "ignore_above": 1024,
+                    "type": "keyword"
+                  },
+                  "input_token_count": {
+                    "type": "long"
+                  }
+                }
+              },
+              "model": {
+                "properties": {
+                  "type": {
+                    "ignore_above": 1024,
+                    "type": "keyword"
+                  },
+                  "version": {
+                    "ignore_above": 1024,
+                    "type": "keyword"
+                  }
+                }
+              },
+              "model_id": {
+                "ignore_above": 1024,
+                "type": "keyword"
+              },
+              "output": {
+                "properties": {
+                  "completion_text": {
+                    "ignore_above": 1024,
+                    "type": "keyword"
+                  },
+                  "output_body_json": {
+                    "ignore_above": 1024,
+                    "type": "keyword"
+                  },
+                  "output_body_s3_path": {
+                    "ignore_above": 1024,
+                    "type": "keyword"
+                  },
+                  "output_content_type": {
+                    "ignore_above": 1024,
+                    "type": "keyword"
+                  },
+                  "output_token_count": {
+                    "type": "long"
+                  }
+                }
+              },
+              "performance": {
+                "properties": {
+                  "response_time": {
+                    "type": "long"
+                  }
+                }
+              },
+              "policy": {
+                "properties": {
+                  "action": {
+                    "ignore_above": 1024,
+                    "type": "keyword"
+                  },
+                  "violation": {
+                    "type": "object"
+                  }
+                }
+              },
+              "request_id": {
+                "ignore_above": 1024,
+                "type": "keyword"
+              },
+              "response": {
+                "properties": {
+                  "timestamp": {
+                    "type": "date"
+                  }
+                }
+              },
+              "schema_type": {
+                "ignore_above": 1024,
+                "type": "keyword"
+              },
+              "schema_version": {
+                "ignore_above": 1024,
+                "type": "keyword"
+              },
+              "user": {
+                "properties": {
+                  "id": {
+                    "ignore_above": 1024,
+                    "type": "keyword"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
       "check": {
         "properties": {
           "compliance": {
