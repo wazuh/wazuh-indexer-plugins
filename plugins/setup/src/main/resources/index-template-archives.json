@@ -1030,6 +1030,10 @@
                 "type": "keyword"
               }
             }
+          },
+          "serial_number": {
+            "ignore_above": 1024,
+            "type": "keyword"
           }
         }
       },
@@ -1043,6 +1047,10 @@
               },
               "exists": {
                 "type": "boolean"
+              },
+              "flags": {
+                "ignore_above": 1024,
+                "type": "keyword"
               },
               "signing_id": {
                 "ignore_above": 1024,
@@ -1060,6 +1068,10 @@
                 "ignore_above": 1024,
                 "type": "keyword"
               },
+              "thumbprint_sha256": {
+                "ignore_above": 64,
+                "type": "keyword"
+              },
               "timestamp": {
                 "type": "date"
               },
@@ -1073,6 +1085,10 @@
           },
           "hash": {
             "properties": {
+              "cdhash": {
+                "ignore_above": 1024,
+                "type": "keyword"
+              },
               "md5": {
                 "ignore_above": 1024,
                 "type": "keyword"
@@ -1105,6 +1121,14 @@
           },
           "name": {
             "ignore_above": 1024,
+            "type": "keyword"
+          },
+          "origin_referrer_url": {
+            "ignore_above": 8192,
+            "type": "keyword"
+          },
+          "origin_url": {
+            "ignore_above": 8192,
             "type": "keyword"
           },
           "path": {
@@ -1298,6 +1322,10 @@
                   },
                   "hash": {
                     "properties": {
+                      "cdhash": {
+                        "ignore_above": 1024,
+                        "type": "keyword"
+                      },
                       "md5": {
                         "ignore_above": 1024,
                         "type": "keyword"
@@ -1558,7 +1586,7 @@
             "type": "keyword"
           },
           "url": {
-            "ignore_above": 1024,
+            "ignore_above": 2083,
             "type": "keyword"
           }
         }
@@ -1616,6 +1644,10 @@
               "exists": {
                 "type": "boolean"
               },
+              "flags": {
+                "ignore_above": 1024,
+                "type": "keyword"
+              },
               "signing_id": {
                 "ignore_above": 1024,
                 "type": "keyword"
@@ -1630,6 +1662,10 @@
               },
               "team_id": {
                 "ignore_above": 1024,
+                "type": "keyword"
+              },
+              "thumbprint_sha256": {
+                "ignore_above": 64,
                 "type": "keyword"
               },
               "timestamp": {
@@ -1825,6 +1861,10 @@
           },
           "hash": {
             "properties": {
+              "cdhash": {
+                "ignore_above": 1024,
+                "type": "keyword"
+              },
               "md5": {
                 "ignore_above": 1024,
                 "type": "keyword"
@@ -1930,6 +1970,14 @@
           },
           "name": {
             "ignore_above": 1024,
+            "type": "keyword"
+          },
+          "origin_referrer_url": {
+            "ignore_above": 8192,
+            "type": "keyword"
+          },
+          "origin_url": {
+            "ignore_above": 8192,
             "type": "keyword"
           },
           "owner": {
@@ -2149,6 +2197,142 @@
               "version_number": {
                 "ignore_above": 1024,
                 "type": "keyword"
+              }
+            }
+          }
+        }
+      },
+      "gen_ai": {
+        "properties": {
+          "agent": {
+            "properties": {
+              "description": {
+                "doc_values": false,
+                "index": false,
+                "type": "keyword"
+              },
+              "id": {
+                "ignore_above": 1024,
+                "type": "keyword"
+              },
+              "name": {
+                "ignore_above": 1024,
+                "type": "keyword"
+              }
+            }
+          },
+          "operation": {
+            "properties": {
+              "name": {
+                "ignore_above": 1024,
+                "type": "keyword"
+              }
+            }
+          },
+          "output": {
+            "properties": {
+              "type": {
+                "ignore_above": 1024,
+                "type": "keyword"
+              }
+            }
+          },
+          "request": {
+            "properties": {
+              "choice": {
+                "properties": {
+                  "count": {
+                    "type": "integer"
+                  }
+                }
+              },
+              "encoding_formats": {
+                "type": "nested"
+              },
+              "frequency_penalty": {
+                "type": "double"
+              },
+              "max_tokens": {
+                "type": "integer"
+              },
+              "model": {
+                "ignore_above": 1024,
+                "type": "keyword"
+              },
+              "presence_penalty": {
+                "type": "double"
+              },
+              "seed": {
+                "type": "integer"
+              },
+              "stop_sequences": {
+                "type": "nested"
+              },
+              "temperature": {
+                "type": "double"
+              },
+              "top_k": {
+                "type": "double"
+              },
+              "top_p": {
+                "type": "double"
+              }
+            }
+          },
+          "response": {
+            "properties": {
+              "finish_reasons": {
+                "type": "nested"
+              },
+              "id": {
+                "ignore_above": 1024,
+                "type": "keyword"
+              },
+              "model": {
+                "ignore_above": 1024,
+                "type": "keyword"
+              }
+            }
+          },
+          "system": {
+            "ignore_above": 1024,
+            "type": "keyword"
+          },
+          "token": {
+            "properties": {
+              "type": {
+                "ignore_above": 1024,
+                "type": "keyword"
+              }
+            }
+          },
+          "tool": {
+            "properties": {
+              "call": {
+                "properties": {
+                  "id": {
+                    "ignore_above": 1024,
+                    "type": "keyword"
+                  }
+                }
+              },
+              "name": {
+                "ignore_above": 1024,
+                "type": "keyword"
+              },
+              "type": {
+                "ignore_above": 1024,
+                "type": "keyword"
+              }
+            }
+          },
+          "usage": {
+            "properties": {
+              "input_tokens": {
+                "type": "integer"
+              },
+              "output_tokens": {
+                "type": "integer"
               }
             }
           }
@@ -3158,6 +3342,10 @@
               "exists": {
                 "type": "boolean"
               },
+              "flags": {
+                "ignore_above": 1024,
+                "type": "keyword"
+              },
               "signing_id": {
                 "ignore_above": 1024,
                 "type": "keyword"
@@ -3172,6 +3360,10 @@
               },
               "team_id": {
                 "ignore_above": 1024,
+                "type": "keyword"
+              },
+              "thumbprint_sha256": {
+                "ignore_above": 64,
                 "type": "keyword"
               },
               "timestamp": {
@@ -3599,16 +3791,23 @@
             "type": "keyword"
           },
           "executable": {
-            "fields": {
-              "text": {
-                "type": "keyword"
-              }
-            },
             "ignore_above": 1024,
             "type": "keyword"
           },
           "exit_code": {
             "type": "long"
+          },
+          "group": {
+            "properties": {
+              "id": {
+                "ignore_above": 1024,
+                "type": "keyword"
+              },
+              "name": {
+                "ignore_above": 1024,
+                "type": "keyword"
+              }
+            }
           },
           "group_leader": {
             "properties": {
@@ -3791,6 +3990,10 @@
           },
           "hash": {
             "properties": {
+              "cdhash": {
+                "ignore_above": 1024,
+                "type": "keyword"
+              },
               "md5": {
                 "ignore_above": 1024,
                 "type": "keyword"
@@ -3936,6 +4139,10 @@
                   "exists": {
                     "type": "boolean"
                   },
+                  "flags": {
+                    "ignore_above": 1024,
+                    "type": "keyword"
+                  },
                   "signing_id": {
                     "ignore_above": 1024,
                     "type": "keyword"
@@ -3950,6 +4157,10 @@
                   },
                   "team_id": {
                     "ignore_above": 1024,
+                    "type": "keyword"
+                  },
+                  "thumbprint_sha256": {
+                    "ignore_above": 64,
                     "type": "keyword"
                   },
                   "timestamp": {
@@ -4167,6 +4378,10 @@
               },
               "hash": {
                 "properties": {
+                  "cdhash": {
+                    "ignore_above": 1024,
+                    "type": "keyword"
+                  },
                   "md5": {
                     "ignore_above": 1024,
                     "type": "keyword"
@@ -4352,9 +4567,6 @@
                     "type": "nested"
                   }
                 }
-              },
-              "pgid": {
-                "type": "long"
               },
               "pid": {
                 "type": "long"
@@ -4598,9 +4810,6 @@
                 "type": "nested"
               }
             }
-          },
-          "pgid": {
-            "type": "long"
           },
           "pid": {
             "type": "long"
@@ -4974,11 +5183,6 @@
                 "type": "keyword"
               },
               "name": {
-                "fields": {
-                  "text": {
-                    "type": "keyword"
-                  }
-                },
                 "ignore_above": 1024,
                 "type": "keyword"
               }
@@ -4988,11 +5192,6 @@
             "type": "long"
           },
           "working_directory": {
-            "fields": {
-              "text": {
-                "type": "keyword"
-              }
-            },
             "ignore_above": 1024,
             "type": "keyword"
           }
@@ -5674,6 +5873,10 @@
                           "exists": {
                             "type": "boolean"
                           },
+                          "flags": {
+                            "ignore_above": 1024,
+                            "type": "keyword"
+                          },
                           "signing_id": {
                             "ignore_above": 1024,
                             "type": "keyword"
@@ -5688,6 +5891,10 @@
                           },
                           "team_id": {
                             "ignore_above": 1024,
+                            "type": "keyword"
+                          },
+                          "thumbprint_sha256": {
+                            "ignore_above": 64,
                             "type": "keyword"
                           },
                           "timestamp": {
@@ -5883,6 +6090,10 @@
                       },
                       "hash": {
                         "properties": {
+                          "cdhash": {
+                            "ignore_above": 1024,
+                            "type": "keyword"
+                          },
                           "md5": {
                             "ignore_above": 1024,
                             "type": "keyword"
@@ -5930,6 +6141,14 @@
                       },
                       "name": {
                         "ignore_above": 1024,
+                        "type": "keyword"
+                      },
+                      "origin_referrer_url": {
+                        "ignore_above": 8192,
+                        "type": "keyword"
+                      },
+                      "origin_url": {
+                        "ignore_above": 8192,
                         "type": "keyword"
                       },
                       "owner": {
@@ -6331,7 +6550,7 @@
                         "type": "long"
                       },
                       "query": {
-                        "ignore_above": 1024,
+                        "ignore_above": 2083,
                         "type": "keyword"
                       },
                       "registered_domain": {
@@ -6595,6 +6814,10 @@
                       "exists": {
                         "type": "boolean"
                       },
+                      "flags": {
+                        "ignore_above": 1024,
+                        "type": "keyword"
+                      },
                       "signing_id": {
                         "ignore_above": 1024,
                         "type": "keyword"
@@ -6609,6 +6832,10 @@
                       },
                       "team_id": {
                         "ignore_above": 1024,
+                        "type": "keyword"
+                      },
+                      "thumbprint_sha256": {
+                        "ignore_above": 64,
                         "type": "keyword"
                       },
                       "timestamp": {
@@ -6804,6 +7031,10 @@
                   },
                   "hash": {
                     "properties": {
+                      "cdhash": {
+                        "ignore_above": 1024,
+                        "type": "keyword"
+                      },
                       "md5": {
                         "ignore_above": 1024,
                         "type": "keyword"
@@ -6851,6 +7082,14 @@
                   },
                   "name": {
                     "ignore_above": 1024,
+                    "type": "keyword"
+                  },
+                  "origin_referrer_url": {
+                    "ignore_above": 8192,
+                    "type": "keyword"
+                  },
+                  "origin_url": {
+                    "ignore_above": 8192,
                     "type": "keyword"
                   },
                   "owner": {
@@ -7130,6 +7369,10 @@
                   }
                 }
               },
+              "id": {
+                "ignore_above": 1024,
+                "type": "keyword"
+              },
               "ip": {
                 "type": "ip"
               },
@@ -7252,7 +7495,7 @@
                     "type": "long"
                   },
                   "query": {
-                    "ignore_above": 1024,
+                    "ignore_above": 2083,
                     "type": "keyword"
                   },
                   "registered_domain": {
@@ -7872,7 +8115,7 @@
             "type": "long"
           },
           "query": {
-            "ignore_above": 1024,
+            "ignore_above": 2083,
             "type": "keyword"
           },
           "registered_domain": {
@@ -8214,6 +8457,71 @@
           }
         }
       },
+      "volume": {
+        "properties": {
+          "bus_type": {
+            "ignore_above": 1024,
+            "type": "keyword"
+          },
+          "default_access": {
+            "ignore_above": 1024,
+            "type": "keyword"
+          },
+          "device_name": {
+            "ignore_above": 1024,
+            "type": "keyword"
+          },
+          "device_type": {
+            "ignore_above": 1024,
+            "type": "keyword"
+          },
+          "dos_name": {
+            "ignore_above": 1024,
+            "type": "keyword"
+          },
+          "file_system_type": {
+            "ignore_above": 1024,
+            "type": "keyword"
+          },
+          "mount_name": {
+            "ignore_above": 1024,
+            "type": "keyword"
+          },
+          "nt_name": {
+            "ignore_above": 1024,
+            "type": "keyword"
+          },
+          "product_id": {
+            "ignore_above": 1024,
+            "type": "keyword"
+          },
+          "product_name": {
+            "ignore_above": 1024,
+            "type": "keyword"
+          },
+          "removable": {
+            "type": "boolean"
+          },
+          "serial_number": {
+            "ignore_above": 1024,
+            "type": "keyword"
+          },
+          "size": {
+            "type": "long"
+          },
+          "vendor_id": {
+            "ignore_above": 1024,
+            "type": "keyword"
+          },
+          "vendor_name": {
+            "ignore_above": 1024,
+            "type": "keyword"
+          },
+          "writable": {
+            "type": "boolean"
+          }
+        }
+      },
       "vulnerability": {
         "properties": {
           "category": {
@@ -8332,6 +8640,6 @@
       "refresh_interval": "2s"
     },
     "mapping.total_fields.limit": 2500,
-    "plugins.index_state_management.rollover_alias": "wazuh-archives"
+    "plugins.index_state_management.rollover_alias": "wazuh-archives-v5"
   }
 }
