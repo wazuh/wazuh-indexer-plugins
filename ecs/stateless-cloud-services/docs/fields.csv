@@ -1977,3 +1977,4 @@ ECS_Version,Indexed,Field_Set,Field,Type,Level,Normalization,Example,Description
 9.1.0,true,wazuh,wazuh.protocol.queue,byte,custom,,1,Ingestion queue for the log.
 9.1.0,true,wazuh,wazuh.rules,keyword,custom,"a, r, r, a, y","[ 'rule-1', 'rule-2' ]",Wazuh rules that matched on this event.
 9.1.0,true,wazuh,wazuh.schema.version,keyword,custom,,1.7.0,Wazuh schema version.
+9.1.0,true,wazuh,wazuh.test.field,keyword,custom,,1.7.0,A dummy field to test template generation.

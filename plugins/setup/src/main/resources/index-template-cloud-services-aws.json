@@ -12398,6 +12398,14 @@
                 "type": "keyword"
               }
             }
+          },
+          "test": {
+            "properties": {
+              "field": {
+                "ignore_above": 1024,
+                "type": "keyword"
+              }
+            }
           }
         }
       }

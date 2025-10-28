@@ -2116,6 +2116,7 @@ ECS_Version,Indexed,Field_Set,Field,Type,Level,Normalization,Example,Description
 9.1.0,true,wazuh,wazuh.protocol.queue,byte,custom,,1,Ingestion queue for the log.
 9.1.0,true,wazuh,wazuh.rules,keyword,custom,"a, r, r, a, y","[ 'rule-1', 'rule-2' ]",Wazuh rules that matched on this event.
 9.1.0,true,wazuh,wazuh.schema.version,keyword,custom,,1.7.0,Wazuh schema version.
+9.1.0,true,wazuh,wazuh.test.field,keyword,custom,,1.7.0,A dummy field to test template generation.
 9.1.0,true,websphere,websphere.metrics.alarm_manager.cancelled.total,long,custom,,12345,Total number of cancelled alarms in the alarm manager.
 9.1.0,true,websphere,websphere.metrics.alarm_manager.create.total,long,custom,,12345,Total number of alarms created in the alarm manager.
 9.1.0,true,websphere,websphere.metrics.alarm_manager.fired.total,long,custom,,12345,Total number of alarms fired in the alarm manager.
