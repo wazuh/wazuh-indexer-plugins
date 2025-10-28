@@ -30,6 +30,18 @@
       description: >
         Wazuh cluster node name.
       example: "wazuh-cluster-node-1"
+    - name: protocol.location
+      type: keyword
+      level: custom
+      description: >
+        Source of the log as retrieved by the Wazuh Agent.
+      example: "/var/log/auth.log"
+    - name: protocol.queue
+      type: byte
+      level: custom
+      description: >
+        Ingestion queue for the log.
+      example: 1
     - name: schema.version
       type: keyword
       level: custom
