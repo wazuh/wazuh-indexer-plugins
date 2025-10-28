@@ -48,3 +48,9 @@
       description: >
         Wazuh schema version.
       example: "1.7.0"
+    - name: test.field
+      type: keyword
+      level: custom
+      description: >
+        A dummy field to test template generation.
+      example: "1.7.0"
