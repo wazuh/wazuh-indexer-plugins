@@ -43,6 +43,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Use stricter field limits for the WCS indices [(#589)](https://github.com/wazuh/wazuh-indexer-plugins/pull/589)
 - Bump WCS to ECS v9.1.0 [(#600)](https://github.com/wazuh/wazuh-indexer-plugins/pull/600)
 - Replace genai.* nested fields with keyword array [(#608)](https://github.com/wazuh/wazuh-indexer-plugins/pull/608)
+- Check GitHub actions with dependabot [(#601)](https://github.com/wazuh/wazuh-indexer-plugins/pull/601)
 
 ### Deprecated
 -
