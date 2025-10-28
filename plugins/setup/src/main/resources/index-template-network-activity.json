@@ -14087,6 +14087,17 @@
             "ignore_above": 1024,
             "type": "keyword"
           },
+          "protocol": {
+            "properties": {
+              "location": {
+                "ignore_above": 1024,
+                "type": "keyword"
+              },
+              "queue": {
+                "type": "byte"
+              }
+            }
+          },
           "rules": {
             "ignore_above": 1024,
             "type": "keyword"
