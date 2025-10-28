@@ -83,8 +83,6 @@ fields:
     fields: "*"
   dns:
     fields: "*"
-  ecs:
-    fields: "*"
   elf:
     fields: "*"
   email:
