@@ -985,17 +985,17 @@ ECS_Version,Indexed,Field_Set,Field,Type,Level,Normalization,Example,Description
 9.1.0,true,gen_ai,gen_ai.operation.name,keyword,extended,,chat; text_completion; embeddings,The name of the operation being performed.
 9.1.0,true,gen_ai,gen_ai.output.type,keyword,extended,,text; json; image,Represents the content type requested by the client.
 9.1.0,true,gen_ai,gen_ai.request.choice.count,integer,extended,,3,The target number of candidate completions to return.
-9.1.0,true,gen_ai,gen_ai.request.encoding_formats,nested,extended,,"[""float"", ""binary""]","The encoding formats requested in an embeddings operation, if specified."
+9.1.0,true,gen_ai,gen_ai.request.encoding_formats,keyword,extended,array,"[""float"", ""binary""]","The encoding formats requested in an embeddings operation, if specified."
 9.1.0,true,gen_ai,gen_ai.request.frequency_penalty,double,extended,,0.1,The frequency penalty setting for the GenAI request.
 9.1.0,true,gen_ai,gen_ai.request.max_tokens,integer,extended,,100,The maximum number of tokens the model generates for a request.
 9.1.0,true,gen_ai,gen_ai.request.model,keyword,extended,,gpt-4,The name of the GenAI model a request is being made to.
 9.1.0,true,gen_ai,gen_ai.request.presence_penalty,double,extended,,0.1,The presence penalty setting for the GenAI request.
 9.1.0,true,gen_ai,gen_ai.request.seed,integer,extended,,100,Requests with same seed value more likely to return same result.
-9.1.0,true,gen_ai,gen_ai.request.stop_sequences,nested,extended,,"[""forest"", ""lived""]",List of sequences that the model will use to stop generating further tokens.
+9.1.0,true,gen_ai,gen_ai.request.stop_sequences,keyword,extended,array,"[""forest"", ""lived""]",List of sequences that the model will use to stop generating further tokens.
 9.1.0,true,gen_ai,gen_ai.request.temperature,double,extended,,0.0,The temperature setting for the GenAI request.
 9.1.0,true,gen_ai,gen_ai.request.top_k,double,extended,,1.0,The top_k sampling setting for the GenAI request.
 9.1.0,true,gen_ai,gen_ai.request.top_p,double,extended,,1.0,The top_p sampling setting for the GenAI request.
-9.1.0,true,gen_ai,gen_ai.response.finish_reasons,nested,extended,,"[""stop"", ""length""]","Array of reasons the model stopped generating tokens, corresponding to each generation received."
+9.1.0,true,gen_ai,gen_ai.response.finish_reasons,keyword,extended,array,"[""stop"", ""length""]","Array of reasons the model stopped generating tokens, corresponding to each generation received."
 9.1.0,true,gen_ai,gen_ai.response.id,keyword,extended,,chatcmpl-123,The unique identifier for the completion.
 9.1.0,true,gen_ai,gen_ai.response.model,keyword,extended,,gpt-4-0613,The name of the model that generated the response.
 9.1.0,true,gen_ai,gen_ai.system,keyword,extended,,openai,The Generative AI product as identified by the client or server instrumentation.

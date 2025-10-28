@@ -2757,7 +2757,7 @@
                 }
               },
               "encoding_formats": {
-                "type": "nested"
+                "type": "keyword"
               },
               "frequency_penalty": {
                 "type": "double"
@@ -2776,7 +2776,7 @@
                 "type": "integer"
               },
               "stop_sequences": {
-                "type": "nested"
+                "type": "keyword"
               },
               "temperature": {
                 "type": "double"
@@ -2792,7 +2792,7 @@
           "response": {
             "properties": {
               "finish_reasons": {
-                "type": "nested"
+                "type": "keyword"
               },
               "id": {
                 "ignore_above": 1024,
