@@ -2682,14 +2682,6 @@
           }
         }
       },
-      "ecs": {
-        "properties": {
-          "version": {
-            "ignore_above": 1024,
-            "type": "keyword"
-          }
-        }
-      },
       "email": {
         "properties": {
           "attachments": {

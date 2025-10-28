@@ -409,7 +409,6 @@ ECS_Version,Indexed,Field_Set,Field,Type,Level,Normalization,Example,Description
 9.1.0,true,dns,dns.resolved_ip,ip,extended,array,"[""10.10.10.10"", ""10.10.10.11""]",Array containing all IPs seen in answers.data
 9.1.0,true,dns,dns.response_code,keyword,extended,,NOERROR,The DNS response code.
 9.1.0,true,dns,dns.type,keyword,extended,,answer,"The type of DNS event captured, query or answer."
-9.1.0,true,ecs,ecs.version,keyword,core,,1.0.0,ECS version this event conforms to.
 9.1.0,true,email,email.attachments,nested,extended,array,,List of objects describing the attachments.
 9.1.0,true,email,email.attachments.file.extension,keyword,extended,,txt,Attachment file extension.
 9.1.0,true,email,email.attachments.file.hash.cdhash,keyword,extended,,3783b4052fd474dbe30676b45c329e7a6d44acd9,The Code Directory (CD) hash of an executable.
