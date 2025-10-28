@@ -45,6 +45,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Replace genai.* nested fields with keyword array [(#608)](https://github.com/wazuh/wazuh-indexer-plugins/pull/608)
 - Check GitHub actions with dependabot [(#601)](https://github.com/wazuh/wazuh-indexer-plugins/pull/601)
 - Remove ECS object from WCS definitions [(#612)](https://github.com/wazuh/wazuh-indexer-plugins/pull/612)
+- Add wazuh.protocol.location and wazuh.protocol.queue fields to WCS [(#613)](https://github.com/wazuh/wazuh-indexer-plugins/pull/613)
 
 ### Deprecated
 -
