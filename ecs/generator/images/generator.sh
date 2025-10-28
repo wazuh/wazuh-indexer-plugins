@@ -58,6 +58,27 @@ get_otel_version() {
   curl -s "https://raw.githubusercontent.com/elastic/ecs/refs/tags/${ECS_VERSION}/otel-semconv-version"
 }
 
+# Nested fields under the gen_ai.request and gen_ai.response are set to nested
+# type, but do not contain any sub-fields. This causes failures when creating a 
+# detector in the Security Analytics plugin. We change their type to keyword array,
+# gollowing the OpenTelemetry documentation for gen_ai fields.
+# Reference: https://github.com/wazuh/wazuh-indexer-plugins/issues/607
+fix_gen_ai_nested_fields() {
+  local in_file="$1"
+  local csv_file="$2"
+
+  echo "Fixing gen_ai nested fields in $in_file"
+  jq '(.mappings.properties.gen_ai.properties.request.properties.encoding_formats.type) = "keyword" |
+      (.mappings.properties.gen_ai.properties.request.properties.stop_sequences.type) = "keyword" |
+      (.mappings.properties.gen_ai.properties.response.properties.finish_reasons.type) = "keyword"' "$in_file" > "${in_file}.tmp"
+  mv "${in_file}.tmp" "$in_file"
+
+  echo "Fixing gen_ai nested fields in $csv_file"
+  sed -i 's/encoding_formats,nested,extended,,/encoding_formats,keyword,extended,array,/g' "$csv_file"
+  sed -i 's/stop_sequences,nested,extended,,/stop_sequences,keyword,extended,array,/g' "$csv_file"
+  sed -i 's/finish_reasons,nested,extended,,/finish_reasons,keyword,extended,array,/g' "$csv_file"
+}
+
 # Function to generate mappings
 generate_mappings() {
   local ecs_module="$1"
@@ -105,6 +126,8 @@ generate_mappings() {
   # Delete "synthetic_source_keep" from the index template
   echo "Deleting \"synthetic_source_keep\" mappings setting from the index template"
   sed -i '/synthetic_source_keep/d' "$in_file"
+
+  fix_gen_ai_nested_fields "$in_file" "$csv_file"
 
   if [[ "$ecs_module" != stateless* ]]; then
     # Delete the "tags" field from the index template

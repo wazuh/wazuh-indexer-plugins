@@ -1,5 +1,5 @@
 ---
-name: wazuh-alerts
+name: main
 fields:
   base:
     fields: "*"
@@ -96,6 +96,8 @@ fields:
   faas:
     fields: "*"
   file:
+    fields: "*"
+  gen_ai:
     fields: "*"
   geo:
     fields: "*"
@@ -358,6 +360,10 @@ fields:
           args: {}
           args_count: {}
           executable: {}
+      group:
+        fields:
+          id: {}
+          name: {}
       real_group:
         fields:
           id: {}
@@ -588,10 +594,13 @@ fields:
           roles: {}
   vlan:
     fields: "*"
+  volume:
+    fields: "*"
   vulnerability:
     fields: "*"
   x509:
     fields: "*"
+  # Wazuh specific fields
   wazuh:
     fields: "*"
   check:

@@ -6,8 +6,8 @@
   "template": {
     "settings": {
       "plugins.index_state_management.rollover_alias": "wazuh-events-v5-access-management",
-      "mapping.total_fields.limit": 5500,
-      "mapping.nested_fields.limit": 100,
+      "mapping.total_fields.limit": 2500,
+      "mapping.nested_fields.limit": 50,
       "index": {
         "number_of_shards": "3",
         "number_of_replicas": "0",

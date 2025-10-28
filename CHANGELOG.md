@@ -22,6 +22,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Add major version to index aliases [(#592)](https://github.com/wazuh/wazuh-indexer-plugins/pull/592)
 - Increase max_docvalue_fields_search to 200 [(#594)](https://github.com/wazuh/wazuh-indexer-plugins/pull/594)
 - Add cloud services subcategories [(#595)](https://github.com/wazuh/wazuh-indexer-plugins/pull/595)
+- Add AWS Bedrock integration [(#602)](https://github.com/wazuh/wazuh-indexer-plugins/pull/602)
 
 ### Dependencies
 -
@@ -40,6 +41,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Update index templates with agent fields [(#578)](https://github.com/wazuh/wazuh-indexer-plugins/pull/578)
 - Rename indices from *-5.x-* to *-v5-* [(#597)](https://github.com/wazuh/wazuh-indexer-plugins/pull/597)
 - Use stricter field limits for the WCS indices [(#589)](https://github.com/wazuh/wazuh-indexer-plugins/pull/589)
+- Bump WCS to ECS v9.1.0 [(#600)](https://github.com/wazuh/wazuh-indexer-plugins/pull/600)
+- Replace genai.* nested fields with keyword array [(#608)](https://github.com/wazuh/wazuh-indexer-plugins/pull/608)
+- Check GitHub actions with dependabot [(#601)](https://github.com/wazuh/wazuh-indexer-plugins/pull/601)
 
 ### Deprecated
 -
