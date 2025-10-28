@@ -23,6 +23,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Increase max_docvalue_fields_search to 200 [(#594)](https://github.com/wazuh/wazuh-indexer-plugins/pull/594)
 - Add cloud services subcategories [(#595)](https://github.com/wazuh/wazuh-indexer-plugins/pull/595)
 - Add AWS Bedrock integration [(#602)](https://github.com/wazuh/wazuh-indexer-plugins/pull/602)
+- Add wazuh.protocol.location and wazuh.protocol.queue fields to WCS [(#613)](https://github.com/wazuh/wazuh-indexer-plugins/pull/613)
+- Add version to the GH Workflow names [(#570)](https://github.com/wazuh/wazuh-indexer-plugins/pull/570)
+- Add browser-extensions and services inventory indices to documentation [(#574)](https://github.com/wazuh/wazuh-indexer-plugins/pull/574)
+- Add state.modified_at to stateful indexes [(#561)](https://github.com/wazuh/wazuh-indexer-plugins/pull/561)
 
 ### Dependencies
 -
@@ -35,17 +39,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Migrate WCS changes from 4.x [(#488)](https://github.com/wazuh/wazuh-indexer-plugins/pull/488) [(#552)](https://github.com/wazuh/wazuh-indexer-plugins/pull/552) [(#568)](https://github.com/wazuh/wazuh-indexer-plugins/pull/568)
 - Implement checksum fields into stateful ECS mappings [(#519)](https://github.com/wazuh/wazuh-indexer-plugins/pull/519) [(#569)](https://github.com/wazuh/wazuh-indexer-plugins/pull/569)
 - FIM indices rework [(#509)](https://github.com/wazuh/wazuh-indexer-plugins/pull/509)
-- Add state.modified_at to stateful indexes [(#561)](https://github.com/wazuh/wazuh-indexer-plugins/pull/561)
 - Update GitHub Actions versions in main branch [(#572)](https://github.com/wazuh/wazuh-indexer-plugins/pull/572)
-- Add browser-extensions and services inventory indices to documentation [(#574)](https://github.com/wazuh/wazuh-indexer-plugins/pull/574)
 - Update index templates with agent fields [(#578)](https://github.com/wazuh/wazuh-indexer-plugins/pull/578)
 - Rename indices from *-5.x-* to *-v5-* [(#597)](https://github.com/wazuh/wazuh-indexer-plugins/pull/597)
 - Use stricter field limits for the WCS indices [(#589)](https://github.com/wazuh/wazuh-indexer-plugins/pull/589)
 - Bump WCS to ECS v9.1.0 [(#600)](https://github.com/wazuh/wazuh-indexer-plugins/pull/600)
 - Replace genai.* nested fields with keyword array [(#608)](https://github.com/wazuh/wazuh-indexer-plugins/pull/608)
 - Check GitHub actions with dependabot [(#601)](https://github.com/wazuh/wazuh-indexer-plugins/pull/601)
-- Remove ECS object from WCS definitions [(#612)](https://github.com/wazuh/wazuh-indexer-plugins/pull/612)
-- Add wazuh.protocol.location and wazuh.protocol.queue fields to WCS [(#613)](https://github.com/wazuh/wazuh-indexer-plugins/pull/613)
 
 ### Deprecated
 -
@@ -54,7 +54,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Delete files not needed for `5.0.0` [(#439)](https://github.com/wazuh/wazuh-indexer-plugins/pull/439)
 - Remove extra fields from CSV documentation [(#479)](https://github.com/wazuh/wazuh-indexer-plugins/pull/479)
 - Remove outdated documentation [(#532)](https://github.com/wazuh/wazuh-indexer-plugins/pull/532)
-- Add version to the GH Workflow names [(#570)](https://github.com/wazuh/wazuh-indexer-plugins/pull/570)
+- Remove ECS object from WCS definitions [(#612)](https://github.com/wazuh/wazuh-indexer-plugins/pull/612)
 
 ### Fixed
 - Improve ECS folder structure [(#473)](https://github.com/wazuh/wazuh-indexer-plugins/pull/473)
