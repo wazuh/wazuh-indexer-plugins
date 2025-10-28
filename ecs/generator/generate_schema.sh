@@ -14,6 +14,7 @@ set -euo pipefail
 # Global variables
 declare -a modules_to_update
 declare -A module_to_file
+declare force_update=false
 
 # ====
 # Checks that the script is run from the intended location
@@ -146,7 +147,10 @@ function copy_files() {
 # Display usage information.
 # ====
 function usage() {
-  echo "Usage: $0"
+  echo "Usage: $0
+  Options:
+    -h            Show this help message
+    -f            Force update all modules"
   exit 1
 }
 
@@ -154,8 +158,12 @@ function usage() {
 # Main function.
 # ====
 function main() {
-  while getopts ":h" arg; do
+  while getopts ":fh" arg; do
     case ${arg} in
+    f)
+      # Force update all modules
+      force_update=true
+      ;;
     h)
       usage
       ;;
@@ -184,7 +192,12 @@ function main() {
   fi
 
   navigate_to_project_root
-  detect_modified_modules
+  if [ "$force_update" = true ]; then
+    echo "Force update enabled. All modules will be updated."
+    modules_to_update=("${!module_to_file[@]}")
+  else
+    detect_modified_modules
+  fi
   update_modified_modules
   copy_files "$repo_path"
 }
