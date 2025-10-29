@@ -54,15 +54,7 @@ function detect_modified_modules() {
   for file in $modified_files; do
     if [[ $file == ecs/state* && ($file == *.yml || $file == *.json) ]]; then
       ecs_module=$(echo "$file" | cut -d'/' -f2)
-      # Use exact string matching instead of regex matching to avoid substring issues
-      local already_added=false
-      for existing_module in "${modified_modules[@]}"; do
-        if [[ "$existing_module" == "$ecs_module" ]]; then
-          already_added=true
-          break
-        fi
-      done
-      if [[ "$already_added" == false ]]; then
+      if [[ ! " ${modified_modules[*]} " == ${ecs_module} ]]; then
         # Ignore the template folder "stateless-template" from modified modules
         if [[ "$ecs_module" != "stateless-template" ]]; then
           modified_modules+=("$ecs_module")
