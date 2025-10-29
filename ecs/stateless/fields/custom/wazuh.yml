@@ -9,7 +9,7 @@
       level: custom
       description: >
         Name of the Wazuh integration.
-      example: "ossec"
+      example: "Cisco Aironet"
     - name: integration.decoders
       type: keyword
       description: >
