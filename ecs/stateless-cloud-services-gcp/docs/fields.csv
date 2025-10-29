@@ -2242,8 +2242,10 @@ ECS_Version,Indexed,Field_Set,Field,Type,Level,Normalization,Example,Description
 9.1.0,true,vulnerability,vulnerability.severity,keyword,extended,,Critical,Severity of the vulnerability.
 9.1.0,true,wazuh,wazuh.cluster.name,keyword,custom,,wazuh-cluster-1,Wazuh cluster name.
 9.1.0,true,wazuh,wazuh.cluster.node,keyword,custom,,wazuh-cluster-node-1,Wazuh cluster node name.
-9.1.0,true,wazuh,wazuh.decoders,keyword,custom,"a, r, r, a, y","[ 'decoder-1', 'decoder-2' ]",Wazuh decoders that matched on this event.
+9.1.0,true,wazuh,wazuh.integration.category,keyword,custom,,security,Wazuh integration category.
+9.1.0,true,wazuh,wazuh.integration.decoders,keyword,custom,array,"[""json"", ""syslog""]",List of Wazuh decoders applied to the event.
+9.1.0,true,wazuh,wazuh.integration.name,keyword,custom,,Cisco Aironet,Name of the Wazuh integration.
+9.1.0,true,wazuh,wazuh.integration.rules,keyword,custom,array,"[""1002"", ""2003""]",List of Wazuh rules applied to the event.
 9.1.0,true,wazuh,wazuh.protocol.location,keyword,custom,,/var/log/auth.log,Source of the log as retrieved by the Wazuh Agent.
 9.1.0,true,wazuh,wazuh.protocol.queue,byte,custom,,1,Ingestion queue for the log.
-9.1.0,true,wazuh,wazuh.rules,keyword,custom,"a, r, r, a, y","[ 'rule-1', 'rule-2' ]",Wazuh rules that matched on this event.
 9.1.0,true,wazuh,wazuh.schema.version,keyword,custom,,1.7.0,Wazuh schema version.
