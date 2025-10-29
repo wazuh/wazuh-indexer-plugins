@@ -63,6 +63,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Fix permissions for job 'call-build-workflow' [(#492)](https://github.com/wazuh/wazuh-indexer-plugins/pull/492)
 - Update event generators [(#505)](https://github.com/wazuh/wazuh-indexer-plugins/pull/505)
 - Update `DEVELOPER_GUIDE.md` to use JDK 21 [(#538)](https://github.com/wazuh/wazuh-indexer-plugins/pull/538)
+- Fix WCS generator modules detection issues [(#620)](https://github.com/wazuh/wazuh-indexer-plugins/pull/620)
 
 ### Security
 - Reduce risk of GITHUB_TOKEN exposure [(#484)](https://github.com/wazuh/wazuh-indexer-plugins/pull/484)
