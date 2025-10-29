@@ -4,20 +4,34 @@
   description: >
     Wazuh Inc. custom fields
   fields:
-    - name: decoders
+    - name: integration.name
       type: keyword
       level: custom
-      normalize: array
       description: >
-        Wazuh decoders that matched on this event.
-      example: "[ 'decoder-1', 'decoder-2' ]"
-    - name: rules
+        Name of the Wazuh integration.
+      example: "ossec"
+    - name: integration.decoders
+      type: keyword
+      description: >
+        List of Wazuh decoders applied to the event.
+      normalize:
+        - array
+      level: custom
+      example: '["json", "syslog"]'
+    - name: integration.rules
       type: keyword
       level: custom
-      normalize: array
       description: >
-        Wazuh rules that matched on this event.
-      example: "[ 'rule-1', 'rule-2' ]"
+        List of Wazuh rules applied to the event.
+      normalize:
+        - array
+      example: '["1002", "2003"]'
+    - name: integration.category
+      type: keyword
+      level: custom
+      description: >
+        Wazuh integration category.
+      example: "security"
     - name: cluster.name
       type: keyword
       level: custom

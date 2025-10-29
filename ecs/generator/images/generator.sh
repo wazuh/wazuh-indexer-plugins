@@ -61,7 +61,7 @@ get_otel_version() {
 # Nested fields under the gen_ai.request and gen_ai.response are set to nested
 # type, but do not contain any sub-fields. This causes failures when creating a 
 # detector in the Security Analytics plugin. We change their type to keyword array,
-# gollowing the OpenTelemetry documentation for gen_ai fields.
+# following the OpenTelemetry documentation for gen_ai fields.
 # Reference: https://github.com/wazuh/wazuh-indexer-plugins/issues/607
 fix_gen_ai_nested_fields() {
   local in_file="$1"

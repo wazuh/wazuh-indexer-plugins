@@ -14083,9 +14083,25 @@
               }
             }
           },
-          "decoders": {
-            "ignore_above": 1024,
-            "type": "keyword"
+          "integration": {
+            "properties": {
+              "category": {
+                "ignore_above": 1024,
+                "type": "keyword"
+              },
+              "decoders": {
+                "ignore_above": 1024,
+                "type": "keyword"
+              },
+              "name": {
+                "ignore_above": 1024,
+                "type": "keyword"
+              },
+              "rules": {
+                "ignore_above": 1024,
+                "type": "keyword"
+              }
+            }
           },
           "protocol": {
             "properties": {
@@ -14097,10 +14113,6 @@
                 "type": "byte"
               }
             }
-          },
-          "rules": {
-            "ignore_above": 1024,
-            "type": "keyword"
           },
           "schema": {
             "properties": {
