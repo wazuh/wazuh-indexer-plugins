@@ -54,7 +54,7 @@ function detect_modified_modules() {
   for file in $modified_files; do
     if [[ $file == ecs/state* && ($file == *.yml || $file == *.json) ]]; then
       ecs_module=$(echo "$file" | cut -d'/' -f2)
-      if [[ ! " ${modified_modules[*]} " =~ ${ecs_module} ]]; then
+      if [[ ! " ${modified_modules[*]} " == ${ecs_module} ]]; then
         # Ignore the template folder "stateless-template" from modified modules
         if [[ "$ecs_module" != "stateless-template" ]]; then
           modified_modules+=("$ecs_module")
