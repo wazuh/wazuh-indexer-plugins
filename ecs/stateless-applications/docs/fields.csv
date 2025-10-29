@@ -2113,7 +2113,7 @@ ECS_Version,Indexed,Field_Set,Field,Type,Level,Normalization,Example,Description
 9.1.0,true,wazuh,wazuh.cluster.node,keyword,custom,,wazuh-cluster-node-1,Wazuh cluster node name.
 9.1.0,true,wazuh,wazuh.integration.category,keyword,custom,,security,Wazuh integration category.
 9.1.0,true,wazuh,wazuh.integration.decoders,keyword,custom,array,"[""json"", ""syslog""]",List of Wazuh decoders applied to the event.
-9.1.0,true,wazuh,wazuh.integration.name,keyword,custom,,ossec,Name of the Wazuh integration.
+9.1.0,true,wazuh,wazuh.integration.name,keyword,custom,,Cisco Aironet,Name of the Wazuh integration.
 9.1.0,true,wazuh,wazuh.integration.rules,keyword,custom,array,"[""1002"", ""2003""]",List of Wazuh rules applied to the event.
 9.1.0,true,wazuh,wazuh.protocol.location,keyword,custom,,/var/log/auth.log,Source of the log as retrieved by the Wazuh Agent.
 9.1.0,true,wazuh,wazuh.protocol.queue,byte,custom,,1,Ingestion queue for the log.
