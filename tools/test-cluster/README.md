@@ -4,7 +4,7 @@ This is an environment definition with the required configuration to be prepared
 cluster with two nodes using Vagrant and Libvirt to provision the Virtual Machines.
 
 It also generates the node's required certificates using the `wazuh-certs-tool` and copy them to each node's `/home`
-directory, leaving a copy in `test-tools/`.
+directory, leaving a copy in `test-cluster/`.
 
 ### Prerequisites
 
@@ -16,7 +16,7 @@ directory, leaving a copy in `test-tools/`.
 
 1. Navigate to the environment's root directory
    ```bash
-   cd test-tools
+   cd tools/test-cluster
    ```
 2. Initialize the environment
    ```bash
