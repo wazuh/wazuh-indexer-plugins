@@ -73,7 +73,7 @@ public class IndexStateManagement extends Index {
     private void indexPolicy(String policy) {
         try {
             Map<String, Object> policyFile;
-            policyFile = this.indexUtils.fromFile(ALERTS_ROLLOVER_POLICY + ".json");
+            policyFile = this.indexUtils.fromFile("policies/stream-rollover-policy.json");
 
             IndexRequest indexRequest =
                     new IndexRequest(this.index)
