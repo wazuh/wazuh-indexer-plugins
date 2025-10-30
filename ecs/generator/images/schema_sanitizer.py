@@ -8,7 +8,7 @@ from typing import Dict, Any, Set
 from dataclasses import dataclass
 from datetime import datetime
 
-LOG_FILE = f"ecs_sanitizer_{datetime.now().strftime('%Y%m%d_%H%M%S')}.log"
+LOG_FILE = f"schema_sanitizer.log"
 
 # Type mappings from ECS types to Wazuh-compatible types
 TYPE_MAPPINGS = {
@@ -28,7 +28,15 @@ SPECIFIC_OBJECTS_TYPE_MAPPINGS = {
 # Default search patterns for YAML files
 SEARCH_PATTERNS = [
     "schemas/**/*.yml",
-    "schemas/**/*.yaml"
+    "schemas/**/*.yaml",
+    "**/schemas/**/*.yml",
+    "**/schemas/**/*.yaml",
+    "generated/**/*.yml",
+    "generated/**/*.yaml",
+    "**/generated/**/*.yml",
+    "**/generated/**/*.yaml",
+    "rfcs/**/*.yml",
+    "rfcs/**/*.yaml",
 ]
 
 FIELDS_TO_REMOVE = [
@@ -109,6 +117,19 @@ class SchemaSanitizer:
                 self.stats.field_type_changes += 1
                 modified = True
 
+        # Process multi_fields (these can have their own types)
+        if 'multi_fields' in field_data and isinstance(field_data['multi_fields'], list):
+            for multi_field in field_data['multi_fields']:
+                if isinstance(multi_field, dict) and 'type' in multi_field:
+                    original_type = multi_field['type']
+                    if original_type in TYPE_MAPPINGS:
+                        multi_field['type'] = TYPE_MAPPINGS[original_type]
+                        multi_field_path = f"{field_path}.{multi_field.get('name', 'multi_field')}"
+                        self.logger.debug(
+                            f"Modified multi-field: {multi_field_path} ({original_type} -> {multi_field['type']})")
+                        self.stats.field_type_changes += 1
+                        modified = True
+
         # Recursively process nested fields
         if 'fields' in field_data and isinstance(field_data['fields'], list):
             for field in field_data['fields']:
@@ -124,6 +145,20 @@ class SchemaSanitizer:
                 nested_path = f"{field_path}.{prop_name}" if field_path else prop_name
                 if self.modify_field_type(prop_data, nested_path):
                     modified = True
+
+        # Process other nested structures that might contain field definitions
+        for key, value in field_data.items():
+            if key not in ['fields', 'properties', 'multi_fields', 'type', 'name']:
+                if isinstance(value, dict):
+                    nested_path = f"{field_path}.{key}" if field_path else key
+                    if self.modify_field_type(value, nested_path):
+                        modified = True
+                elif isinstance(value, list):
+                    for i, item in enumerate(value):
+                        if isinstance(item, dict):
+                            nested_path = f"{field_path}.{key}[{i}]" if field_path else f"{key}[{i}]"
+                            if self.modify_field_type(item, nested_path):
+                                modified = True
 
         return modified
 
@@ -142,35 +177,42 @@ class SchemaSanitizer:
         
         if not isinstance(data, dict):
             return False
-            
-        # Check for fields to remove at current level
-        fields_to_remove = []
-        for field_name in data.keys():
-            current_field_path = f"{field_path}.{field_name}" if field_path else field_name
-            
-            # Check if this field should be removed
-            if current_field_path in FIELDS_TO_REMOVE or field_name in FIELDS_TO_REMOVE:
-                fields_to_remove.append(field_name)
-                
-        # Remove the identified fields
-        for field_name in fields_to_remove:
-            del data[field_name]
-            current_field_path = f"{field_path}.{field_name}" if field_path else field_name
-            self.logger.debug(f"Removed field: {current_field_path}")
+        
+        # Remove simple properties like 'synthetic_source_keep'
+        properties_to_remove = []
+        for key in data.keys():
+            if key in FIELDS_TO_REMOVE:
+                properties_to_remove.append(key)
+        
+        for prop in properties_to_remove:
+            del data[prop]
+            self.logger.debug(f"Removed property: {prop} from {field_path}")
             self.stats.fields_removed += 1
             modified = True
-            
+        
+        # Handle 'fields' arrays - remove field definitions by name
+        if 'fields' in data and isinstance(data['fields'], list):
+            original_count = len(data['fields'])
+            data['fields'] = [
+                field for field in data['fields'] 
+                if not (isinstance(field, dict) and field.get('name') in FIELDS_TO_REMOVE)
+            ]
+            removed_count = original_count - len(data['fields'])
+            if removed_count > 0:
+                self.logger.debug(f"Removed {removed_count} field definitions from {field_path}")
+                self.stats.fields_removed += removed_count
+                modified = True
+        
         # Recursively process nested structures
-        for field_name, field_value in data.items():
-            current_field_path = f"{field_path}.{field_name}" if field_path else field_name
+        for key, value in data.items():
+            current_field_path = f"{field_path}.{key}" if field_path else key
             
-            if isinstance(field_value, dict):
-                if self.remove_unwanted_fields(field_value, current_field_path):
+            if isinstance(value, dict):
+                if self.remove_unwanted_fields(value, current_field_path):
                     modified = True
-            elif isinstance(field_value, list):
-                for i, item in enumerate(field_value):
+            elif isinstance(value, list):
+                for i, item in enumerate(value):
                     if isinstance(item, dict):
-                        # For list items, we don't extend the path with index
                         if self.remove_unwanted_fields(item, current_field_path):
                             modified = True
                             
@@ -367,14 +409,16 @@ class SchemaSanitizer:
         return self.stats.modified_files
 
 
-def get_logger() -> logging.Logger:
+def get_logger(log_dir: str) -> logging.Logger:
     """Configure logging for the application"""
+    if not os.path.exists(log_dir):
+        os.makedirs(log_dir)
     # Configure root logger
     logger = logging.getLogger()
     logger.setLevel(logging.DEBUG)
     formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
     # File handler for logging to a file
-    file_handler = logging.FileHandler(LOG_FILE, mode='w', encoding='utf-8')
+    file_handler = logging.FileHandler(os.path.join(log_dir, LOG_FILE), mode='w', encoding='utf-8')
     file_handler.setLevel(logging.DEBUG)
     file_handler.setFormatter(formatter)
     logger.addHandler(file_handler)
@@ -394,9 +438,14 @@ def parse_arguments():
         description="Sanitize ECS YAML files replacing unsupported field types with Wazuh-compatible alternatives"
     )
     parser.add_argument(
-        "--source-path",
+        "--source",
         default=".",
         help="Path to the ECS source directory"
+    )
+    parser.add_argument(
+        "--log-dir",
+        default=".",
+        help="Directory to save log files"
     )
     parser.add_argument(
         "--dry-run",
@@ -409,11 +458,11 @@ def parse_arguments():
 
 def main():
     args = parse_arguments()
-    logger = get_logger()
+    logger = get_logger(args.log_dir)
 
-    if not os.path.exists(args.source_path):
-        print(f"Error: ECS source path does not exist: {args.source_path}")
-        logger.error(f"ECS source path does not exist: {args.source_path}")
+    if not os.path.exists(args.source):
+        print(f"Error: ECS source path does not exist: {args.source}")
+        logger.error(f"ECS source path does not exist: {args.source}")
         sys.exit(1)
 
     print("ECS YAML Sanitizer")
@@ -425,10 +474,10 @@ def main():
         print("DRY RUN MODE - No files will be modified")
         logger.info("DRY RUN MODE - No files will be modified")
 
-    print(f"Source directory: {args.source_path}")
+    print(f"Source directory: {args.source}")
 
     modifier = SchemaSanitizer(
-        source_path=args.source_path,
+        source_path=args.source,
         logger=logger,
         dry_run=args.dry_run
     )

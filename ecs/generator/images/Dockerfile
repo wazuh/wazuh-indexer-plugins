@@ -28,7 +28,7 @@ ADD ecs/generator/images/schema_sanitizer.py /ecs/schema_sanitizer.py
 VOLUME /source/ecs
 
 # Execute the sanitizer script to clean up the ECS definitions
-RUN python3 /ecs/schema_sanitizer.py --source /source/ecs
+RUN python /ecs/schema_sanitizer.py --source ecs/ --log-dir /ecs
 
 # Ensure the generator.sh script is executable
 RUN chmod +x /ecs/generator.sh

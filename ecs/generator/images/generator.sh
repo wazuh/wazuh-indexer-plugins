@@ -129,7 +129,7 @@ generate_mappings() {
 
 #   fix_gen_ai_nested_fields "$in_file" "$csv_file"
 
-  if [[ "$ecs_module" != stateless* ]]; then
+#   if [[ "$ecs_module" != stateless* ]]; then
     # Delete the "tags" field from the index template
     # echo "Deleting the \"tags\" field from the index template"
     # jq 'del(.mappings.properties.tags)' "$in_file" > "$out_file"
@@ -145,7 +145,7 @@ generate_mappings() {
     # sed -i '/@timestamp/d; /tags/d' "$csv_file"
   # The stateless module is the one for the "wazuh-alerts" index template
   # We need to generate another template for "wazuh-archives" index
-  elif [[ "$ecs_module" == "stateless" ]]; then
+  if [[ "$ecs_module" == "stateless" ]]; then
     # Generate the template for `wazuh-archives`
     echo "Generating template for 'wazuh-archives'"
     archives_file="$out_dir/generated/elasticsearch/legacy/template-archives.json"
@@ -164,6 +164,9 @@ generate_mappings() {
   }' "$in_file" > "$out_dir/generated/elasticsearch/legacy/opensearch-template.json"
 
   echo "Mappings saved to $out_dir"
+  ls /ecs
+  cat /ecs/schema_sanitizer.log
+  cp /ecs/schema_sanitizer.log "$out_dir/generated/"
 }
 
 # Generate mappings
