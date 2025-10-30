@@ -20,11 +20,15 @@ RUN apt-get update && \
     # Create the directory for the ecs definitions (this will be used as a volume)
     mkdir -p /source/ecs
 
-# Ensure the generator.sh script is in the correct location
+# Ensure the scripts are in the correct location
 ADD ecs/generator/images/generator.sh /ecs/generator.sh
+ADD ecs/generator/images/schema_sanitizer.py /ecs/schema_sanitizer.py
 
 # Define the directory as a volume to allow for external mounting
 VOLUME /source/ecs
+
+# Execute the sanitizer script to clean up the ECS definitions
+RUN python3 /ecs/schema_sanitizer.py --source /source/ecs
 
 # Ensure the generator.sh script is executable
 RUN chmod +x /ecs/generator.sh
