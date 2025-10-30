@@ -31,6 +31,27 @@ SEARCH_PATTERNS = [
     "schemas/**/*.yaml"
 ]
 
+FIELDS_TO_REMOVE = [
+    # Multi-fields to be removed - Already covered by remove_multi_fields method
+    # "agent.host.os.full.fields",
+    # "agent.host.os.name.fields",
+    # "host.os.full.fields",
+    # "host.os.name.fields",
+    # "vulnerability.description.fields",
+    # "process.command_line.fields",
+    # "process.name.fields",
+    # "vulnerability.description.fields",
+    # "file.path.fields",
+    # "user.name.fields",
+    # "user.full_name.fields",
+    # "process.user.name.fields",
+    # "process.executable.fields",
+    # "process.working_directory.fields",
+    # Simple fields to be removed
+    "synthetic_source_keep",
+    "tags",
+    "@timestamp",
+    ]
 
 @dataclass
 class ModificationStats:
@@ -42,6 +63,7 @@ class ModificationStats:
     scaling_factor_removals: int = 0
     multi_field_removals: int = 0
     specific_fixes: int = 0
+    fields_removed: int = 0
 
 
 class SchemaSanitizer:
@@ -103,6 +125,55 @@ class SchemaSanitizer:
                 if self.modify_field_type(prop_data, nested_path):
                     modified = True
 
+        return modified
+
+    def remove_unwanted_fields(self, data: Dict[str, Any], field_path: str = "") -> bool:
+        """
+        Remove unwanted fields specified in FIELDS_TO_REMOVE.
+        
+        Args:
+            data (Dict[str, Any]): The YAML data structure.
+            field_path (str): The current field path.
+            
+        Returns:
+            bool: True if any modifications were made, False otherwise.
+        """
+        modified = False
+        
+        if not isinstance(data, dict):
+            return False
+            
+        # Check for fields to remove at current level
+        fields_to_remove = []
+        for field_name in data.keys():
+            current_field_path = f"{field_path}.{field_name}" if field_path else field_name
+            
+            # Check if this field should be removed
+            if current_field_path in FIELDS_TO_REMOVE or field_name in FIELDS_TO_REMOVE:
+                fields_to_remove.append(field_name)
+                
+        # Remove the identified fields
+        for field_name in fields_to_remove:
+            del data[field_name]
+            current_field_path = f"{field_path}.{field_name}" if field_path else field_name
+            self.logger.debug(f"Removed field: {current_field_path}")
+            self.stats.fields_removed += 1
+            modified = True
+            
+        # Recursively process nested structures
+        for field_name, field_value in data.items():
+            current_field_path = f"{field_path}.{field_name}" if field_path else field_name
+            
+            if isinstance(field_value, dict):
+                if self.remove_unwanted_fields(field_value, current_field_path):
+                    modified = True
+            elif isinstance(field_value, list):
+                for i, item in enumerate(field_value):
+                    if isinstance(item, dict):
+                        # For list items, we don't extend the path with index
+                        if self.remove_unwanted_fields(item, current_field_path):
+                            modified = True
+                            
         return modified
 
     def remove_multi_fields(self, field_data: Dict[str, Any]) -> bool:
@@ -168,10 +239,14 @@ class SchemaSanitizer:
                             modified = True
                         if self.remove_multi_fields(item):
                             modified = True
+                        if self.remove_unwanted_fields(item):
+                            modified = True
             elif isinstance(data, dict):
                 if self.modify_field_type(data):
                     modified = True
                 if self.remove_multi_fields(data):
+                    modified = True
+                if self.remove_unwanted_fields(data):
                     modified = True
 
             # Write back the modified data if changes were made
@@ -264,6 +339,7 @@ class SchemaSanitizer:
             print(f"Field type changes: {self.stats.field_type_changes}")
             print(f"Specific fixes: {self.stats.specific_fixes}")
             print(f"Multi-field removals: {self.stats.multi_field_removals}")
+            print(f"Fields removed: {self.stats.fields_removed}")
 
         if self.dry_run:
             print("DRY RUN MODE - No files were actually modified")
@@ -279,6 +355,7 @@ class SchemaSanitizer:
         self.logger.info(f"  Specific fixes: {self.stats.specific_fixes}")
         self.logger.info(f"  Scaling factor removals: {self.stats.scaling_factor_removals}")
         self.logger.info(f"  Multi-field removals: {self.stats.multi_field_removals}")
+        self.logger.info(f"  Fields removed: {self.stats.fields_removed}")
         self.logger.info(f"  Total modifications: {self.stats.total_modifications}")
 
         if self.dry_run:
@@ -294,14 +371,16 @@ def get_logger() -> logging.Logger:
     """Configure logging for the application"""
     # Configure root logger
     logger = logging.getLogger()
+    logger.setLevel(logging.DEBUG)
     formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
     # File handler for logging to a file
     file_handler = logging.FileHandler(LOG_FILE, mode='w', encoding='utf-8')
-    file_handler.setLevel(logging.DEBUG)  # Save all details to file
+    file_handler.setLevel(logging.DEBUG)
     file_handler.setFormatter(formatter)
     logger.addHandler(file_handler)
     # Console handler for logging to stdout
     console_handler = logging.StreamHandler(sys.stdout)
+    # Only show warnings and errors on console
     console_handler.setLevel(logging.WARNING)
     console_handler.setFormatter(formatter)
     logger.addHandler(console_handler)
