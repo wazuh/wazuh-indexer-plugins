@@ -29,6 +29,7 @@ fields:
       top_level_domain: {}
       user:
         fields:
+          domain: {}
           email: {}
           full_name: {}
           group:
