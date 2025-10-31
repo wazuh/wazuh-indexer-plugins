@@ -21,7 +21,7 @@ apply plugin: 'java'
 apply from: 'gradle/formatting.gradle'
 
 task installLocalGitHook(type: Copy){
-    from new File(rootProject.rootDir, 'scripts/pre-commit')
+    from new File(rootProject.rootDir, 'tools/pre-commit')
     into { new File(rootProject.rootDir, '.git/hooks')}
     fileMode 0775
 }
