@@ -1,3 +1,10 @@
+#!/usr/bin/env python3
+
+# WCS Sanitizer tool
+# This tool processes ECS YAML files to replace unsupported field types
+# with Wazuh-compatible alternatives, removes multi-fields, and eliminates
+# unwanted fields. It provides detailed logging and a summary of modifications.
+
 import yaml
 import os
 import sys
@@ -9,7 +16,7 @@ from dataclasses import dataclass
 
 LOG_FILE = f"schema_sanitizer.log"
 
-# Type mappings from ECS types to Wazuh-compatible types
+# Type mappings from ECS types to WCS-compatible types
 TYPE_MAPPINGS = {
     'constant_keyword': 'keyword',
     'wildcard': 'keyword',
@@ -17,14 +24,13 @@ TYPE_MAPPINGS = {
     'flattened': 'flat_object',
 }
 
-# Special field handling for gen_ai nested fields
+# Special field type mappings for specific known fields
 SPECIFIC_OBJECTS_TYPE_MAPPINGS = {
     'gen_ai.request.encoding_formats': 'keyword',
     'gen_ai.request.stop_sequences': 'keyword',
     'gen_ai.response.finish_reasons': 'keyword'
 }
 
-# Default search patterns for YAML files
 SEARCH_PATTERNS = [
     "schemas/**/*.yml",
     "**/schemas/**/*.yml",
@@ -33,11 +39,11 @@ SEARCH_PATTERNS = [
 ]
 
 FIELDS_TO_REMOVE = [
-    # Simple fields to be removed
     "synthetic_source_keep",
     "tags",
     "@timestamp",
-    ]
+]
+
 
 @dataclass
 class ModificationStats:
@@ -58,7 +64,7 @@ class SchemaSanitizer:
         self.dry_run = dry_run
         self.stats = ModificationStats()
         self.modified_files: Set[Path] = set()
-        self.logger = logger
+        self.log = logger
 
     def modify_field_type(self, field_data: Dict[str, Any], field_path: str = "") -> bool:
         """
@@ -83,15 +89,13 @@ class SchemaSanitizer:
             # Apply specific fixes
             if field_path in SPECIFIC_OBJECTS_TYPE_MAPPINGS:
                 field_data['type'] = SPECIFIC_OBJECTS_TYPE_MAPPINGS[field_path]
-                self.logger.debug(
-                    f"Fixed field: {field_path} ({original_type} -> {field_data['type']})")
+                self.log.debug(f"Fixed field: {field_path} ({original_type} -> {field_data['type']})")
                 self.stats.specific_fixes += 1
                 modified = True
             # Apply general type mappings
             elif original_type in TYPE_MAPPINGS:
                 field_data['type'] = TYPE_MAPPINGS[original_type]
-                self.logger.debug(
-                    f"Modified field: {field_path} ({original_type} -> {field_data['type']})")
+                self.log.debug(f"Modified field: {field_path} ({original_type} -> {field_data['type']})")
                 self.stats.field_type_changes += 1
                 modified = True
 
@@ -103,8 +107,7 @@ class SchemaSanitizer:
                     if original_type in TYPE_MAPPINGS:
                         multi_field['type'] = TYPE_MAPPINGS[original_type]
                         multi_field_path = f"{field_path}.{multi_field.get('name', 'multi_field')}"
-                        self.logger.debug(
-                            f"Modified multi-field: {multi_field_path} ({original_type} -> {multi_field['type']})")
+                        self.log.debug(f"Modified multi-field: {multi_field_path} ({original_type} -> {multi_field['type']})")
                         self.stats.field_type_changes += 1
                         modified = True
 
@@ -149,48 +152,48 @@ class SchemaSanitizer:
     def remove_unwanted_fields(self, data: Dict[str, Any], field_path: str = "") -> bool:
         """
         Remove unwanted fields specified in FIELDS_TO_REMOVE.
-        
+
         Args:
             data (Dict[str, Any]): The YAML data structure.
             field_path (str): The current field path.
-            
+
         Returns:
             bool: True if any modifications were made, False otherwise.
         """
         modified = False
-        
+
         if not isinstance(data, dict):
             return False
-        
-        # Remove simple properties like 'synthetic_source_keep'
+
+        # Remove simple properties
         properties_to_remove = []
         for key in data.keys():
             if key in FIELDS_TO_REMOVE:
                 properties_to_remove.append(key)
-        
+
         for prop in properties_to_remove:
             del data[prop]
-            self.logger.debug(f"Removed property: {prop} from {field_path}")
+            self.log.debug(f"Removed property: {prop} from {field_path}")
             self.stats.fields_removed += 1
             modified = True
-        
+
         # Handle 'fields' arrays - remove field definitions by name
         if 'fields' in data and isinstance(data['fields'], list):
             original_count = len(data['fields'])
             data['fields'] = [
-                field for field in data['fields'] 
+                field for field in data['fields']
                 if not (isinstance(field, dict) and field.get('name') in FIELDS_TO_REMOVE)
             ]
             removed_count = original_count - len(data['fields'])
             if removed_count > 0:
-                self.logger.debug(f"Removed {removed_count} field definitions from {field_path}")
+                self.log.debug(f"Removed {removed_count} field definitions from {field_path}")
                 self.stats.fields_removed += removed_count
                 modified = True
-        
+
         # Recursively process nested structures
         for key, value in data.items():
             current_field_path = f"{field_path}.{key}" if field_path else key
-            
+
             if isinstance(value, dict):
                 if self.remove_unwanted_fields(value, current_field_path):
                     modified = True
@@ -199,7 +202,7 @@ class SchemaSanitizer:
                     if isinstance(item, dict):
                         if self.remove_unwanted_fields(item, current_field_path):
                             modified = True
-                            
+
         return modified
 
     def remove_multi_fields(self, field_data: Dict[str, Any]) -> bool:
@@ -220,7 +223,7 @@ class SchemaSanitizer:
         # Remove multi_fields property (array of multi-field definitions)
         if 'multi_fields' in field_data:
             del field_data['multi_fields']
-            self.logger.debug("Removed multi_fields array from field definition")
+            self.log.debug("Removed multi_fields array from field definition")
             self.stats.multi_field_removals += 1
             modified = True
 
@@ -228,7 +231,7 @@ class SchemaSanitizer:
         if 'fields' in field_data:
             if isinstance(field_data['fields'], dict):
                 del field_data['fields']
-                self.logger.debug("Removed multi-fields dict from field definition")
+                self.log.debug("Removed multi-fields dict from field definition")
                 self.stats.multi_field_removals += 1
                 modified = True
             # Note: Don't remove 'fields' when it's a list, as that contains nested field definitions
@@ -263,7 +266,7 @@ class SchemaSanitizer:
                 data = yaml.safe_load(f)
 
             if not data:
-                self.logger.debug(f"Skipping empty file: {yaml_file_path}")
+                self.log.debug(f"Skipping empty file: {yaml_file_path}")
                 return False
 
             # Process the YAML structure
@@ -286,10 +289,6 @@ class SchemaSanitizer:
 
             # Write back the modified data if changes were made
             if modified:
-                if self.dry_run:
-                    print(f"  [DRY RUN] Would modify: {yaml_file_path.name}")
-                    return True
-
                 # Write the modified file
                 with open(yaml_file_path, 'w', encoding='utf-8') as f:
                     yaml.dump(data, f, default_flow_style=False, sort_keys=False,
@@ -298,17 +297,16 @@ class SchemaSanitizer:
                 self.stats.modified_files += 1
                 self.stats.total_modifications += 1
                 self.modified_files.add(yaml_file_path)
-                print(f"  Modified: {yaml_file_path.name}")
                 return True
 
         except yaml.YAMLError as e:
-            self.logger.error(f"YAML parsing error in {yaml_file_path}: {e}")
+            self.log.error(f"YAML parsing error in {yaml_file_path}: {e}")
             return False
         except PermissionError as e:
-            self.logger.error(f"Permission denied accessing {yaml_file_path}: {e}")
+            self.log.error(f"Permission denied accessing {yaml_file_path}: {e}")
             return False
         except Exception as e:
-            self.logger.error(f"Unexpected error processing {yaml_file_path}: {e}")
+            self.log.error(f"Unexpected error processing {yaml_file_path}: {e}")
             return False
 
         return False
@@ -320,8 +318,7 @@ class SchemaSanitizer:
         Returns:
             int: Number of modified files.
         """
-        self.logger.info(f"Searching for YAML files in: {self.source_path}")
-        print(f"Searching for YAML files in: {self.source_path}")
+        self.log.info(f"Searching for YAML files in: {self.source_path}")
 
         # Collect all files first to show progress
         all_files = []
@@ -330,76 +327,45 @@ class SchemaSanitizer:
                 if yaml_file.is_file():
                     all_files.append(yaml_file)
 
-        self.logger.info(f"Found {len(all_files)} YAML files to process")
-        print(f"Found {len(all_files)} YAML files to process")
+        self.log.info(f"Found {len(all_files)} YAML files to process")
 
         # Process files with progress indication
         for i, yaml_file in enumerate(all_files, 1):
             self.stats.processed_files += 1
 
-            if len(all_files) > 10:  # Show progress for large operations
-                if i % max(1, len(all_files) // 10) == 0:
-                    progress_pct = int((i / len(all_files)) * 100)
-                    print(f"Progress: {progress_pct}% ({i}/{len(all_files)} files)")
-
-            self.logger.debug(f"Processing: {yaml_file.relative_to(self.source_path)}")
+            self.log.debug(f"Processing: {yaml_file.relative_to(self.source_path)}")
 
             if self.modify_yaml_file(yaml_file):
-                self.logger.debug(f"Modified file: {yaml_file}")
+                self.log.debug(f"Modified file: {yaml_file}")
             else:
-                self.logger.debug(f"No changes needed on file: {yaml_file}")
+                self.log.debug(f"No changes needed on file: {yaml_file}")
 
-        # For large operations show completion
-        if len(all_files) > 10:
-            print(f"Progress: 100% ({len(all_files)}/{len(all_files)} files)")
-
-        # Print detailed summary
-        self.print_summary()
+        # Log detailed summary
+        self.show_summary()
         return self.stats.modified_files
 
-    def print_summary(self) -> int:
+    def show_summary(self) -> None:
         """
-        Print summary and detailed logs
-
-        Returns:
-            int: Number of modified files.
+        Logs a detailed summary of the performed modifications.
         """
-        print("\n" + "=" * 50)
-        print("SUMMARY")
-        print("=" * 50)
-        print(f"Processed files: {self.stats.processed_files}")
-        print(f"Modified files: {self.stats.modified_files}")
-
-        if self.stats.modified_files > 0:
-            print(f"Field type changes: {self.stats.field_type_changes}")
-            print(f"Specific fixes: {self.stats.specific_fixes}")
-            print(f"Multi-field removals: {self.stats.multi_field_removals}")
-            print(f"Fields removed: {self.stats.fields_removed}")
-
-        if self.dry_run:
-            print("DRY RUN MODE - No files were actually modified")
-
-        print(f"Detailed logs saved to: {LOG_FILE}")
         # Detailed logs to file and logger
-        self.logger.info("=" * 60)
-        self.logger.info("DETAILED MODIFICATION SUMMARY")
-        self.logger.info("=" * 60)
-        self.logger.info(f"  Processed files: {self.stats.processed_files}")
-        self.logger.info(f"  Modified files: {self.stats.modified_files}")
-        self.logger.info(f"  Field type changes: {self.stats.field_type_changes}")
-        self.logger.info(f"  Specific fixes: {self.stats.specific_fixes}")
-        self.logger.info(f"  Scaling factor removals: {self.stats.scaling_factor_removals}")
-        self.logger.info(f"  Multi-field removals: {self.stats.multi_field_removals}")
-        self.logger.info(f"  Fields removed: {self.stats.fields_removed}")
-        self.logger.info(f"  Total modifications: {self.stats.total_modifications}")
+        self.log.info("=" * 60)
+        self.log.info("DETAILED MODIFICATION SUMMARY")
+        self.log.info("=" * 60)
+        self.log.info(f"  Processed files: {self.stats.processed_files}")
+        self.log.info(f"  Modified files: {self.stats.modified_files}")
+        self.log.info(f"  Field type changes: {self.stats.field_type_changes}")
+        self.log.info(f"  Specific fixes: {self.stats.specific_fixes}")
+        self.log.info(f"  Scaling factor removals: {self.stats.scaling_factor_removals}")
+        self.log.info(f"  Multi-field removals: {self.stats.multi_field_removals}")
+        self.log.info(f"  Fields removed: {self.stats.fields_removed}")
+        self.log.info(f"  Total modifications: {self.stats.total_modifications}")
 
         if self.dry_run:
-            self.logger.info("  ** DRY RUN MODE - No files were actually modified **")
+            self.log.info("  ** DRY RUN MODE - No files were actually modified **")
 
         if self.modified_files:
-            self.logger.info(f"Modified files: {sorted(self.modified_files)}")
-
-        return self.stats.modified_files
+            self.log.info(f"Modified files: {sorted(self.modified_files)}")
 
 
 def get_logger(log_dir: str) -> logging.Logger:
@@ -417,16 +383,20 @@ def get_logger(log_dir: str) -> logging.Logger:
     logger.addHandler(file_handler)
     # Console handler for logging to stdout
     console_handler = logging.StreamHandler(sys.stdout)
-    # Only show warnings and errors on console
-    console_handler.setLevel(logging.WARNING)
+    console_handler.setLevel(logging.INFO)
     console_handler.setFormatter(formatter)
     logger.addHandler(console_handler)
 
     return logger
 
 
-def parse_arguments():
-    """Parse command line arguments"""
+def parse_arguments() -> argparse.Namespace:
+    """
+    Parse command line arguments
+
+    Returns:
+        argparse.Namespace: Parsed arguments
+    """
     parser = argparse.ArgumentParser(
         description="Sanitize ECS YAML files replacing unsupported field types with Wazuh-compatible alternatives"
     )
@@ -449,52 +419,36 @@ def parse_arguments():
     return parser.parse_args()
 
 
-def main():
+def main() -> None:
     args = parse_arguments()
     logger = get_logger(args.log_dir)
 
     if not os.path.exists(args.source):
-        print(f"Error: ECS source path does not exist: {args.source}")
         logger.error(f"ECS source path does not exist: {args.source}")
         sys.exit(1)
 
-    print("ECS YAML Sanitizer")
-    print("=" * 50)
     logger.info("ECS YAML Sanitizer Started")
     logger.info("=" * 50)
 
     if args.dry_run:
-        print("DRY RUN MODE - No files will be modified")
         logger.info("DRY RUN MODE - No files will be modified")
 
-    print(f"Source directory: {args.source}")
-
-    modifier = SchemaSanitizer(
-        source_path=args.source,
-        logger=logger,
-        dry_run=args.dry_run
-    )
+    modifier = SchemaSanitizer(args.source, logger, args.dry_run)
 
     try:
         modified_count = modifier.find_and_modify_yaml_files()
         if modified_count > 0:
             if args.dry_run:
-                print(f"\nWould modify {modified_count} YAML files")
                 logger.info(f"Would modify {modified_count} YAML files")
             else:
-                print(f"\nSuccessfully modified {modified_count} YAML files")
-                logger.info(
-                    f"Successfully modified {modified_count} YAML files")
+                logger.info(f"Successfully modified {modified_count} YAML files")
         else:
-            print("\nNo modifications were needed")
             logger.info("No modifications were needed")
 
     except KeyboardInterrupt:
-        print("\nOperation cancelled by user")
         logger.warning("Operation cancelled by user")
         sys.exit(1)
     except Exception as e:
-        print(f"\nUnexpected error: {e}")
         logger.error(f"Unexpected error: {e}", exc_info=True)
         sys.exit(1)
 
