@@ -50,21 +50,9 @@ REPO_ROOT="$(pwd)"
 
 # process a single module name
 process_module() {
-
-  MODULE="$1"
-
-  # Skip stateless/main module
-  if [[ "$MODULE" == "stateless/main" ]]; then
-    echo "Skipping module: $MODULE (no changes applied to ecs/stateless/main)" >&2
-    return 0
-  fi
+  local MODULE="$1"
 
   MODULE_LIST_FILE="$REPO_ROOT/ecs/module_list.txt"
-  INDEX_TEMPLATE_BASENAME="index-template-${MODULE}.json"
-  if [[ "$MODULE" == stateless/* ]]; then
-    short=${MODULE#stateless/}
-    INDEX_TEMPLATE_BASENAME="index-template-${short}.json"
-  fi
   if [[ -f "$MODULE_LIST_FILE" ]]; then
     match=$(grep -E "\[${MODULE//./\.}\]=" "$MODULE_LIST_FILE" || true)
     if [[ -n "$match" ]]; then

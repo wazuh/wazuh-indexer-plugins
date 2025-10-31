@@ -68,10 +68,12 @@ fix_gen_ai_nested_fields() {
   local csv_file="$2"
 
   echo "Fixing gen_ai nested fields in $in_file"
-  jq '(.mappings.properties.gen_ai.properties.request.properties.encoding_formats.type) = "keyword" |
-      (.mappings.properties.gen_ai.properties.request.properties.stop_sequences.type) = "keyword" |
-      (.mappings.properties.gen_ai.properties.response.properties.finish_reasons.type) = "keyword"' "$in_file" >"${in_file}.tmp"
-  mv "${in_file}.tmp" "$in_file"
+  jq '
+    (.mappings.properties.gen_ai.properties.request.properties.encoding_formats?.type) = "keyword" |
+    (.mappings.properties.gen_ai.properties.request.properties.stop_sequences?.type) = "keyword" |
+    (.mappings.properties.gen_ai.properties.response.properties.finish_reasons?.type) = "keyword"
+    ' "$in_file" >"${in_file}.tmp"
+    mv "${in_file}.tmp" "$in_file"
 
   echo "Fixing gen_ai nested fields in $csv_file"
   sed -i 's/encoding_formats,nested,extended,,/encoding_formats,keyword,extended,array,/g' "$csv_file"
