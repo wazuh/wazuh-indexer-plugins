@@ -98,7 +98,7 @@ generate_mappings() {
   fi
 
   # Generate mappings
-  python scripts/generator.py --strict --ref "$ecs_version" \
+  python scripts/generator.py --strict \
     --semconv-version "$(get_otel_version)" \
     --include "$in_files_dir/custom/" "${include_wcs}" \
     --subset "$in_files_dir/subset.yml" \
