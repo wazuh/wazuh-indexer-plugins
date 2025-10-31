@@ -157,27 +157,6 @@
             }
           }
         }
-      },
-      "gen_ai": {
-        "properties": {
-          "request": {
-            "properties": {
-              "encoding_formats": {
-                "type": "keyword"
-              },
-              "stop_sequences": {
-                "type": "keyword"
-              }
-            }
-          },
-          "response": {
-            "properties": {
-              "finish_reasons": {
-                "type": "keyword"
-              }
-            }
-          }
-        }
       }
     }
   },

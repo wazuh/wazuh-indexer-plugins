@@ -210,7 +210,8 @@ class WCSIntegrationsGenerator:
         index_name = log_category
         settings['index_patterns'] = [f"wazuh-events-v5-{index_name}-*"]
         settings['template']['settings']['plugins.index_state_management.rollover_alias'] = f"wazuh-events-v5-{index_name}"
-        settings['priority'] = 10 if log_subcategory else 1
+        # Set priority to 10 only if log_subcategory exists and is not 'main', otherwise 1
+        settings['priority'] = 10 if log_subcategory and log_subcategory != 'main' else 1
 
         return settings
 
@@ -220,11 +221,12 @@ class WCSIntegrationsGenerator:
 
         with open(template_settings_path, 'r') as f:
             settings = json.load(f)
-    # Build index pattern name using hyphen-joined category/subcategory (original log_category)
+        # Build index pattern name using hyphen-joined category/subcategory (original log_category)
         index_name = log_category
         settings['index_patterns'] = [f"wazuh-events-v5-{index_name}-*"]
         settings['settings']['plugins.index_state_management.rollover_alias'] = f"wazuh-events-v5-{index_name}"
-        settings['order'] = 10 if log_subcategory else 1
+        # Set order to 10 only if log_subcategory exists and is not 'main', otherwise 1
+        settings['order'] = 10 if log_subcategory and log_subcategory != 'main' else 1
 
         return settings
 

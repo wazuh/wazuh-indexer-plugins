@@ -127,7 +127,11 @@ generate_mappings() {
   echo "Deleting \"synthetic_source_keep\" mappings setting from the index template"
   sed -i '/synthetic_source_keep/d' "$in_file"
 
-  fix_gen_ai_nested_fields "$in_file" "$csv_file"
+
+  # Only apply fix_gen_ai_nested_fields to stateless/* modules (not to stateful/* or others)
+  if [[ "$ecs_module" == stateless/* ]]; then
+    fix_gen_ai_nested_fields "$in_file" "$csv_file"
+  fi
 
   if [[ "$ecs_module" != stateless* ]]; then
     # Delete the "tags" field from the index template
