@@ -213,12 +213,6 @@
                     "type": "keyword"
                   },
                   "full": {
-                    "fields": {
-                      "text": {
-                        "ignore_above": 1024,
-                        "type": "keyword"
-                      }
-                    },
                     "ignore_above": 1024,
                     "type": "keyword"
                   },
@@ -227,12 +221,6 @@
                     "type": "keyword"
                   },
                   "name": {
-                    "fields": {
-                      "text": {
-                        "ignore_above": 1024,
-                        "type": "keyword"
-                      }
-                    },
                     "ignore_above": 1024,
                     "type": "keyword"
                   },
@@ -2635,12 +2623,6 @@
               "organization": {
                 "properties": {
                   "name": {
-                    "fields": {
-                      "text": {
-                        "ignore_above": 1024,
-                        "type": "keyword"
-                      }
-                    },
                     "ignore_above": 1024,
                     "type": "keyword"
                   }
@@ -2744,12 +2726,6 @@
                 "type": "keyword"
               },
               "full_name": {
-                "fields": {
-                  "text": {
-                    "ignore_above": 1024,
-                    "type": "keyword"
-                  }
-                },
                 "ignore_above": 1024,
                 "type": "keyword"
               },
@@ -2778,12 +2754,6 @@
                 "type": "keyword"
               },
               "name": {
-                "fields": {
-                  "text": {
-                    "ignore_above": 1024,
-                    "type": "keyword"
-                  }
-                },
                 "ignore_above": 1024,
                 "type": "keyword"
               },
@@ -3127,12 +3097,6 @@
               "organization": {
                 "properties": {
                   "name": {
-                    "fields": {
-                      "text": {
-                        "ignore_above": 1024,
-                        "type": "keyword"
-                      }
-                    },
                     "ignore_above": 1024,
                     "type": "keyword"
                   }
@@ -3240,12 +3204,6 @@
                 "type": "keyword"
               },
               "full_name": {
-                "fields": {
-                  "text": {
-                    "ignore_above": 1024,
-                    "type": "keyword"
-                  }
-                },
                 "ignore_above": 1024,
                 "type": "keyword"
               },
@@ -3274,12 +3232,6 @@
                 "type": "keyword"
               },
               "name": {
-                "fields": {
-                  "text": {
-                    "ignore_above": 1024,
-                    "type": "keyword"
-                  }
-                },
                 "ignore_above": 1024,
                 "type": "keyword"
               },
@@ -3709,12 +3661,6 @@
             }
           },
           "subject": {
-            "fields": {
-              "text": {
-                "ignore_above": 1024,
-                "type": "keyword"
-              }
-            },
             "ignore_above": 1024,
             "type": "keyword"
           },
@@ -3747,12 +3693,6 @@
             "type": "keyword"
           },
           "stack_trace": {
-            "fields": {
-              "text": {
-                "ignore_above": 1024,
-                "type": "keyword"
-              }
-            },
             "ignore_above": 1024,
             "type": "keyword"
           },
@@ -4264,12 +4204,6 @@
             "type": "keyword"
           },
           "path": {
-            "fields": {
-              "text": {
-                "ignore_above": 1024,
-                "type": "keyword"
-              }
-            },
             "ignore_above": 1024,
             "type": "keyword"
           },
@@ -4363,12 +4297,6 @@
             "type": "long"
           },
           "target_path": {
-            "fields": {
-              "text": {
-                "ignore_above": 1024,
-                "type": "keyword"
-              }
-            },
             "ignore_above": 1024,
             "type": "keyword"
           },
@@ -4829,12 +4757,6 @@
                 "type": "keyword"
               },
               "full": {
-                "fields": {
-                  "text": {
-                    "ignore_above": 1024,
-                    "type": "keyword"
-                  }
-                },
                 "ignore_above": 1024,
                 "type": "keyword"
               },
@@ -4843,12 +4765,6 @@
                 "type": "keyword"
               },
               "name": {
-                "fields": {
-                  "text": {
-                    "ignore_above": 1024,
-                    "type": "keyword"
-                  }
-                },
                 "ignore_above": 1024,
                 "type": "keyword"
               },
@@ -4913,12 +4829,6 @@
                     "type": "long"
                   },
                   "content": {
-                    "fields": {
-                      "text": {
-                        "ignore_above": 1024,
-                        "type": "keyword"
-                      }
-                    },
                     "ignore_above": 1024,
                     "type": "keyword"
                   }
@@ -4953,12 +4863,6 @@
                     "type": "long"
                   },
                   "content": {
-                    "fields": {
-                      "text": {
-                        "ignore_above": 1024,
-                        "type": "keyword"
-                      }
-                    },
                     "ignore_above": 1024,
                     "type": "keyword"
                   }
@@ -5411,12 +5315,6 @@
                 "type": "keyword"
               },
               "full": {
-                "fields": {
-                  "text": {
-                    "ignore_above": 1024,
-                    "type": "keyword"
-                  }
-                },
                 "ignore_above": 1024,
                 "type": "keyword"
               },
@@ -5425,12 +5323,6 @@
                 "type": "keyword"
               },
               "name": {
-                "fields": {
-                  "text": {
-                    "ignore_above": 1024,
-                    "type": "keyword"
-                  }
-                },
                 "ignore_above": 1024,
                 "type": "keyword"
               },
@@ -5552,12 +5444,6 @@
             "type": "keyword"
           },
           "name": {
-            "fields": {
-              "text": {
-                "ignore_above": 1024,
-                "type": "keyword"
-              }
-            },
             "ignore_above": 1024,
             "type": "keyword"
           }
@@ -5695,12 +5581,6 @@
             }
           },
           "command_line": {
-            "fields": {
-              "text": {
-                "ignore_above": 1024,
-                "type": "keyword"
-              }
-            },
             "ignore_above": 1024,
             "type": "keyword"
           },
@@ -5881,24 +5761,12 @@
                     "type": "keyword"
                   },
                   "name": {
-                    "fields": {
-                      "text": {
-                        "ignore_above": 1024,
-                        "type": "keyword"
-                      }
-                    },
                     "ignore_above": 1024,
                     "type": "keyword"
                   }
                 }
               },
               "command_line": {
-                "fields": {
-                  "text": {
-                    "ignore_above": 1024,
-                    "type": "keyword"
-                  }
-                },
                 "ignore_above": 1024,
                 "type": "keyword"
               },
@@ -5922,12 +5790,6 @@
                 }
               },
               "executable": {
-                "fields": {
-                  "text": {
-                    "ignore_above": 1024,
-                    "type": "keyword"
-                  }
-                },
                 "ignore_above": 1024,
                 "type": "keyword"
               },
@@ -5947,12 +5809,6 @@
                 "type": "boolean"
               },
               "name": {
-                "fields": {
-                  "text": {
-                    "ignore_above": 1024,
-                    "type": "keyword"
-                  }
-                },
                 "ignore_above": 1024,
                 "type": "keyword"
               },
@@ -6012,12 +5868,6 @@
                     "type": "keyword"
                   },
                   "name": {
-                    "fields": {
-                      "text": {
-                        "ignore_above": 1024,
-                        "type": "keyword"
-                      }
-                    },
                     "ignore_above": 1024,
                     "type": "keyword"
                   }
@@ -6045,12 +5895,6 @@
                     "type": "keyword"
                   },
                   "name": {
-                    "fields": {
-                      "text": {
-                        "ignore_above": 1024,
-                        "type": "keyword"
-                      }
-                    },
                     "ignore_above": 1024,
                     "type": "keyword"
                   }
@@ -6093,12 +5937,6 @@
                     "type": "keyword"
                   },
                   "name": {
-                    "fields": {
-                      "text": {
-                        "ignore_above": 1024,
-                        "type": "keyword"
-                      }
-                    },
                     "ignore_above": 1024,
                     "type": "keyword"
                   }
@@ -6108,12 +5946,6 @@
                 "type": "long"
               },
               "working_directory": {
-                "fields": {
-                  "text": {
-                    "ignore_above": 1024,
-                    "type": "keyword"
-                  }
-                },
                 "ignore_above": 1024,
                 "type": "keyword"
               }
@@ -6124,12 +5956,6 @@
             "type": "keyword"
           },
           "executable": {
-            "fields": {
-              "text": {
-                "ignore_above": 1024,
-                "type": "keyword"
-              }
-            },
             "ignore_above": 1024,
             "type": "keyword"
           },
@@ -6158,12 +5984,6 @@
                 "type": "long"
               },
               "command_line": {
-                "fields": {
-                  "text": {
-                    "ignore_above": 1024,
-                    "type": "keyword"
-                  }
-                },
                 "ignore_above": 1024,
                 "type": "keyword"
               },
@@ -6172,12 +5992,6 @@
                 "type": "keyword"
               },
               "executable": {
-                "fields": {
-                  "text": {
-                    "ignore_above": 1024,
-                    "type": "keyword"
-                  }
-                },
                 "ignore_above": 1024,
                 "type": "keyword"
               },
@@ -6197,12 +6011,6 @@
                 "type": "boolean"
               },
               "name": {
-                "fields": {
-                  "text": {
-                    "ignore_above": 1024,
-                    "type": "keyword"
-                  }
-                },
                 "ignore_above": 1024,
                 "type": "keyword"
               },
@@ -6228,12 +6036,6 @@
                     "type": "keyword"
                   },
                   "name": {
-                    "fields": {
-                      "text": {
-                        "ignore_above": 1024,
-                        "type": "keyword"
-                      }
-                    },
                     "ignore_above": 1024,
                     "type": "keyword"
                   }
@@ -6261,12 +6063,6 @@
                     "type": "keyword"
                   },
                   "name": {
-                    "fields": {
-                      "text": {
-                        "ignore_above": 1024,
-                        "type": "keyword"
-                      }
-                    },
                     "ignore_above": 1024,
                     "type": "keyword"
                   }
@@ -6309,12 +6105,6 @@
                     "type": "keyword"
                   },
                   "name": {
-                    "fields": {
-                      "text": {
-                        "ignore_above": 1024,
-                        "type": "keyword"
-                      }
-                    },
                     "ignore_above": 1024,
                     "type": "keyword"
                   }
@@ -6324,12 +6114,6 @@
                 "type": "long"
               },
               "working_directory": {
-                "fields": {
-                  "text": {
-                    "ignore_above": 1024,
-                    "type": "keyword"
-                  }
-                },
                 "ignore_above": 1024,
                 "type": "keyword"
               }
@@ -6466,12 +6250,6 @@
             }
           },
           "name": {
-            "fields": {
-              "text": {
-                "ignore_above": 1024,
-                "type": "keyword"
-              }
-            },
             "ignore_above": 1024,
             "type": "keyword"
           },
@@ -6529,12 +6307,6 @@
                 }
               },
               "command_line": {
-                "fields": {
-                  "text": {
-                    "ignore_above": 1024,
-                    "type": "keyword"
-                  }
-                },
                 "ignore_above": 1024,
                 "type": "keyword"
               },
@@ -6692,12 +6464,6 @@
                 "type": "keyword"
               },
               "executable": {
-                "fields": {
-                  "text": {
-                    "ignore_above": 1024,
-                    "type": "keyword"
-                  }
-                },
                 "ignore_above": 1024,
                 "type": "keyword"
               },
@@ -6831,12 +6597,6 @@
                 }
               },
               "name": {
-                "fields": {
-                  "text": {
-                    "ignore_above": 1024,
-                    "type": "keyword"
-                  }
-                },
                 "ignore_above": 1024,
                 "type": "keyword"
               },
@@ -6948,12 +6708,6 @@
                     "type": "keyword"
                   },
                   "name": {
-                    "fields": {
-                      "text": {
-                        "ignore_above": 1024,
-                        "type": "keyword"
-                      }
-                    },
                     "ignore_above": 1024,
                     "type": "keyword"
                   }
@@ -6978,12 +6732,6 @@
                     "type": "keyword"
                   },
                   "name": {
-                    "fields": {
-                      "text": {
-                        "ignore_above": 1024,
-                        "type": "keyword"
-                      }
-                    },
                     "ignore_above": 1024,
                     "type": "keyword"
                   }
@@ -7028,12 +6776,6 @@
                 }
               },
               "title": {
-                "fields": {
-                  "text": {
-                    "ignore_above": 1024,
-                    "type": "keyword"
-                  }
-                },
                 "ignore_above": 1024,
                 "type": "keyword"
               },
@@ -7062,12 +6804,6 @@
                     "type": "keyword"
                   },
                   "name": {
-                    "fields": {
-                      "text": {
-                        "ignore_above": 1024,
-                        "type": "keyword"
-                      }
-                    },
                     "ignore_above": 1024,
                     "type": "keyword"
                   }
@@ -7077,12 +6813,6 @@
                 "type": "long"
               },
               "working_directory": {
-                "fields": {
-                  "text": {
-                    "ignore_above": 1024,
-                    "type": "keyword"
-                  }
-                },
                 "ignore_above": 1024,
                 "type": "keyword"
               }
@@ -7187,12 +6917,6 @@
                 "type": "long"
               },
               "executable": {
-                "fields": {
-                  "text": {
-                    "ignore_above": 1024,
-                    "type": "keyword"
-                  }
-                },
                 "ignore_above": 1024,
                 "type": "keyword"
               }
@@ -7217,12 +6941,6 @@
                 "type": "keyword"
               },
               "name": {
-                "fields": {
-                  "text": {
-                    "ignore_above": 1024,
-                    "type": "keyword"
-                  }
-                },
                 "ignore_above": 1024,
                 "type": "keyword"
               }
@@ -7247,12 +6965,6 @@
                 "type": "keyword"
               },
               "name": {
-                "fields": {
-                  "text": {
-                    "ignore_above": 1024,
-                    "type": "keyword"
-                  }
-                },
                 "ignore_above": 1024,
                 "type": "keyword"
               }
@@ -7268,12 +6980,6 @@
                 "type": "long"
               },
               "command_line": {
-                "fields": {
-                  "text": {
-                    "ignore_above": 1024,
-                    "type": "keyword"
-                  }
-                },
                 "ignore_above": 1024,
                 "type": "keyword"
               },
@@ -7282,12 +6988,6 @@
                 "type": "keyword"
               },
               "executable": {
-                "fields": {
-                  "text": {
-                    "ignore_above": 1024,
-                    "type": "keyword"
-                  }
-                },
                 "ignore_above": 1024,
                 "type": "keyword"
               },
@@ -7307,12 +7007,6 @@
                 "type": "boolean"
               },
               "name": {
-                "fields": {
-                  "text": {
-                    "ignore_above": 1024,
-                    "type": "keyword"
-                  }
-                },
                 "ignore_above": 1024,
                 "type": "keyword"
               },
@@ -7372,12 +7066,6 @@
                     "type": "keyword"
                   },
                   "name": {
-                    "fields": {
-                      "text": {
-                        "ignore_above": 1024,
-                        "type": "keyword"
-                      }
-                    },
                     "ignore_above": 1024,
                     "type": "keyword"
                   }
@@ -7405,12 +7093,6 @@
                     "type": "keyword"
                   },
                   "name": {
-                    "fields": {
-                      "text": {
-                        "ignore_above": 1024,
-                        "type": "keyword"
-                      }
-                    },
                     "ignore_above": 1024,
                     "type": "keyword"
                   }
@@ -7453,12 +7135,6 @@
                     "type": "keyword"
                   },
                   "name": {
-                    "fields": {
-                      "text": {
-                        "ignore_above": 1024,
-                        "type": "keyword"
-                      }
-                    },
                     "ignore_above": 1024,
                     "type": "keyword"
                   }
@@ -7468,12 +7144,6 @@
                 "type": "long"
               },
               "working_directory": {
-                "fields": {
-                  "text": {
-                    "ignore_above": 1024,
-                    "type": "keyword"
-                  }
-                },
                 "ignore_above": 1024,
                 "type": "keyword"
               }
@@ -7518,12 +7188,6 @@
             }
           },
           "title": {
-            "fields": {
-              "text": {
-                "ignore_above": 1024,
-                "type": "keyword"
-              }
-            },
             "ignore_above": 1024,
             "type": "keyword"
           },
@@ -7558,12 +7222,6 @@
                 "type": "keyword"
               },
               "name": {
-                "fields": {
-                  "text": {
-                    "ignore_above": 1024,
-                    "type": "keyword"
-                  }
-                },
                 "ignore_above": 1024,
                 "type": "keyword"
               }
@@ -7573,12 +7231,6 @@
             "type": "long"
           },
           "working_directory": {
-            "fields": {
-              "text": {
-                "ignore_above": 1024,
-                "type": "keyword"
-              }
-            },
             "ignore_above": 1024,
             "type": "keyword"
           }
@@ -7697,12 +7349,6 @@
               "organization": {
                 "properties": {
                   "name": {
-                    "fields": {
-                      "text": {
-                        "ignore_above": 1024,
-                        "type": "keyword"
-                      }
-                    },
                     "ignore_above": 1024,
                     "type": "keyword"
                   }
@@ -7810,12 +7456,6 @@
                 "type": "keyword"
               },
               "full_name": {
-                "fields": {
-                  "text": {
-                    "ignore_above": 1024,
-                    "type": "keyword"
-                  }
-                },
                 "ignore_above": 1024,
                 "type": "keyword"
               },
@@ -7844,12 +7484,6 @@
                 "type": "keyword"
               },
               "name": {
-                "fields": {
-                  "text": {
-                    "ignore_above": 1024,
-                    "type": "keyword"
-                  }
-                },
                 "ignore_above": 1024,
                 "type": "keyword"
               },
@@ -8031,12 +7665,6 @@
               "organization": {
                 "properties": {
                   "name": {
-                    "fields": {
-                      "text": {
-                        "ignore_above": 1024,
-                        "type": "keyword"
-                      }
-                    },
                     "ignore_above": 1024,
                     "type": "keyword"
                   }
@@ -8144,12 +7772,6 @@
                 "type": "keyword"
               },
               "full_name": {
-                "fields": {
-                  "text": {
-                    "ignore_above": 1024,
-                    "type": "keyword"
-                  }
-                },
                 "ignore_above": 1024,
                 "type": "keyword"
               },
@@ -8178,12 +7800,6 @@
                 "type": "keyword"
               },
               "name": {
-                "fields": {
-                  "text": {
-                    "ignore_above": 1024,
-                    "type": "keyword"
-                  }
-                },
                 "ignore_above": 1024,
                 "type": "keyword"
               },
@@ -8217,12 +7833,6 @@
                       "organization": {
                         "properties": {
                           "name": {
-                            "fields": {
-                              "text": {
-                                "ignore_above": 1024,
-                                "type": "keyword"
-                              }
-                            },
                             "ignore_above": 1024,
                             "type": "keyword"
                           }
@@ -8547,12 +8157,6 @@
                         "type": "keyword"
                       },
                       "path": {
-                        "fields": {
-                          "text": {
-                            "ignore_above": 1024,
-                            "type": "keyword"
-                          }
-                        },
                         "ignore_above": 1024,
                         "type": "keyword"
                       },
@@ -8646,12 +8250,6 @@
                         "type": "long"
                       },
                       "target_path": {
-                        "fields": {
-                          "text": {
-                            "ignore_above": 1024,
-                            "type": "keyword"
-                          }
-                        },
                         "ignore_above": 1024,
                         "type": "keyword"
                       },
@@ -8918,22 +8516,10 @@
                         "type": "keyword"
                       },
                       "full": {
-                        "fields": {
-                          "text": {
-                            "ignore_above": 1024,
-                            "type": "keyword"
-                          }
-                        },
                         "ignore_above": 1024,
                         "type": "keyword"
                       },
                       "original": {
-                        "fields": {
-                          "text": {
-                            "ignore_above": 1024,
-                            "type": "keyword"
-                          }
-                        },
                         "ignore_above": 1024,
                         "type": "keyword"
                       },
@@ -9167,12 +8753,6 @@
                   "organization": {
                     "properties": {
                       "name": {
-                        "fields": {
-                          "text": {
-                            "ignore_above": 1024,
-                            "type": "keyword"
-                          }
-                        },
                         "ignore_above": 1024,
                         "type": "keyword"
                       }
@@ -9497,12 +9077,6 @@
                     "type": "keyword"
                   },
                   "path": {
-                    "fields": {
-                      "text": {
-                        "ignore_above": 1024,
-                        "type": "keyword"
-                      }
-                    },
                     "ignore_above": 1024,
                     "type": "keyword"
                   },
@@ -9596,12 +9170,6 @@
                     "type": "long"
                   },
                   "target_path": {
-                    "fields": {
-                      "text": {
-                        "ignore_above": 1024,
-                        "type": "keyword"
-                      }
-                    },
                     "ignore_above": 1024,
                     "type": "keyword"
                   },
@@ -9872,22 +9440,10 @@
                     "type": "keyword"
                   },
                   "full": {
-                    "fields": {
-                      "text": {
-                        "ignore_above": 1024,
-                        "type": "keyword"
-                      }
-                    },
                     "ignore_above": 1024,
                     "type": "keyword"
                   },
                   "original": {
-                    "fields": {
-                      "text": {
-                        "ignore_above": 1024,
-                        "type": "keyword"
-                      }
-                    },
                     "ignore_above": 1024,
                     "type": "keyword"
                   },
@@ -10087,12 +9643,6 @@
                 "type": "keyword"
               },
               "name": {
-                "fields": {
-                  "text": {
-                    "ignore_above": 1024,
-                    "type": "keyword"
-                  }
-                },
                 "ignore_above": 1024,
                 "type": "keyword"
               },
@@ -10107,12 +9657,6 @@
                     "type": "keyword"
                   },
                   "name": {
-                    "fields": {
-                      "text": {
-                        "ignore_above": 1024,
-                        "type": "keyword"
-                      }
-                    },
                     "ignore_above": 1024,
                     "type": "keyword"
                   },
@@ -10499,22 +10043,10 @@
             "type": "keyword"
           },
           "full": {
-            "fields": {
-              "text": {
-                "ignore_above": 1024,
-                "type": "keyword"
-              }
-            },
             "ignore_above": 1024,
             "type": "keyword"
           },
           "original": {
-            "fields": {
-              "text": {
-                "ignore_above": 1024,
-                "type": "keyword"
-              }
-            },
             "ignore_above": 1024,
             "type": "keyword"
           },
@@ -10568,12 +10100,6 @@
                 "type": "keyword"
               },
               "full_name": {
-                "fields": {
-                  "text": {
-                    "ignore_above": 1024,
-                    "type": "keyword"
-                  }
-                },
                 "ignore_above": 1024,
                 "type": "keyword"
               },
@@ -10602,12 +10128,6 @@
                 "type": "keyword"
               },
               "name": {
-                "fields": {
-                  "text": {
-                    "ignore_above": 1024,
-                    "type": "keyword"
-                  }
-                },
                 "ignore_above": 1024,
                 "type": "keyword"
               },
@@ -10632,12 +10152,6 @@
                 "type": "keyword"
               },
               "full_name": {
-                "fields": {
-                  "text": {
-                    "ignore_above": 1024,
-                    "type": "keyword"
-                  }
-                },
                 "ignore_above": 1024,
                 "type": "keyword"
               },
@@ -10666,12 +10180,6 @@
                 "type": "keyword"
               },
               "name": {
-                "fields": {
-                  "text": {
-                    "ignore_above": 1024,
-                    "type": "keyword"
-                  }
-                },
                 "ignore_above": 1024,
                 "type": "keyword"
               },
@@ -10686,12 +10194,6 @@
             "type": "keyword"
           },
           "full_name": {
-            "fields": {
-              "text": {
-                "ignore_above": 1024,
-                "type": "keyword"
-              }
-            },
             "ignore_above": 1024,
             "type": "keyword"
           },
@@ -10720,12 +10222,6 @@
             "type": "keyword"
           },
           "name": {
-            "fields": {
-              "text": {
-                "ignore_above": 1024,
-                "type": "keyword"
-              }
-            },
             "ignore_above": 1024,
             "type": "keyword"
           },
@@ -10768,12 +10264,6 @@
                 "type": "keyword"
               },
               "full_name": {
-                "fields": {
-                  "text": {
-                    "ignore_above": 1024,
-                    "type": "keyword"
-                  }
-                },
                 "ignore_above": 1024,
                 "type": "keyword"
               },
@@ -10802,12 +10292,6 @@
                 "type": "keyword"
               },
               "name": {
-                "fields": {
-                  "text": {
-                    "ignore_above": 1024,
-                    "type": "keyword"
-                  }
-                },
                 "ignore_above": 1024,
                 "type": "keyword"
               },
@@ -10834,12 +10318,6 @@
             "type": "keyword"
           },
           "original": {
-            "fields": {
-              "text": {
-                "ignore_above": 1024,
-                "type": "keyword"
-              }
-            },
             "ignore_above": 1024,
             "type": "keyword"
           },
@@ -10850,12 +10328,6 @@
                 "type": "keyword"
               },
               "full": {
-                "fields": {
-                  "text": {
-                    "ignore_above": 1024,
-                    "type": "keyword"
-                  }
-                },
                 "ignore_above": 1024,
                 "type": "keyword"
               },
@@ -10864,12 +10336,6 @@
                 "type": "keyword"
               },
               "name": {
-                "fields": {
-                  "text": {
-                    "ignore_above": 1024,
-                    "type": "keyword"
-                  }
-                },
                 "ignore_above": 1024,
                 "type": "keyword"
               },
@@ -10969,12 +10435,6 @@
             "type": "keyword"
           },
           "description": {
-            "fields": {
-              "text": {
-                "ignore_above": 1024,
-                "type": "keyword"
-              }
-            },
             "ignore_above": 1024,
             "type": "keyword"
           },

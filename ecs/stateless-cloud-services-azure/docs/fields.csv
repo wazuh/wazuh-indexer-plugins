@@ -47,10 +47,8 @@ ECS_Version,Indexed,Field_Set,Field,Type,Level,Normalization,Example,Description
 9.1.0,true,agent,agent.host.network.ingress.queue,long,custom,,10,Receive queue length.
 9.1.0,true,agent,agent.host.os.family,keyword,extended,,debian,"OS family (such as redhat, debian, freebsd, windows)."
 9.1.0,true,agent,agent.host.os.full,keyword,extended,,Mac OS Mojave,"Operating system name, including the version or code name."
-9.1.0,true,agent,agent.host.os.full.text,keyword,extended,,Mac OS Mojave,"Operating system name, including the version or code name."
 9.1.0,true,agent,agent.host.os.kernel,keyword,extended,,4.4.0-112-generic,Operating system kernel version as a raw string.
 9.1.0,true,agent,agent.host.os.name,keyword,extended,,Mac OS X,"Operating system name, without the version."
-9.1.0,true,agent,agent.host.os.name.text,keyword,extended,,Mac OS X,"Operating system name, without the version."
 9.1.0,true,agent,agent.host.os.platform,keyword,extended,,darwin,"Operating system platform (such centos, ubuntu, windows)."
 9.1.0,true,agent,agent.host.os.type,keyword,extended,,macos,"Which commercial OS family (one of: linux, macos, unix, windows, ios or android)."
 9.1.0,true,agent,agent.host.os.version,keyword,extended,,10.14.1,Operating system version as a raw string.
@@ -569,7 +567,6 @@ ECS_Version,Indexed,Field_Set,Field,Type,Level,Normalization,Example,Description
 9.1.0,true,client,client.address,keyword,extended,,,Client network address.
 9.1.0,true,client,client.as.number,long,extended,,15169,Unique number allocated to the autonomous system.
 9.1.0,true,client,client.as.organization.name,keyword,extended,,Google LLC,Organization name.
-9.1.0,true,client,client.as.organization.name.text,keyword,extended,,Google LLC,Organization name.
 9.1.0,true,client,client.bytes,long,core,,184,Bytes sent from the client to the server.
 9.1.0,true,client,client.domain,keyword,core,,foo.example.com,The domain name of the client.
 9.1.0,true,client,client.geo.city_name,keyword,core,,Montreal,City name.
@@ -594,14 +591,12 @@ ECS_Version,Indexed,Field_Set,Field,Type,Level,Normalization,Example,Description
 9.1.0,true,client,client.top_level_domain,keyword,extended,,co.uk,"The effective top level domain (com, org, net, co.uk)."
 9.1.0,true,client,client.user.email,keyword,extended,,,User email address.
 9.1.0,true,client,client.user.full_name,keyword,extended,,Albert Einstein,"User's full name, if available."
-9.1.0,true,client,client.user.full_name.text,keyword,extended,,Albert Einstein,"User's full name, if available."
 9.1.0,true,client,client.user.group.domain,keyword,extended,,,Name of the directory the group is a member of.
 9.1.0,true,client,client.user.group.id,keyword,extended,,,Unique identifier for the group on the system/platform.
 9.1.0,true,client,client.user.group.name,keyword,extended,,,Name of the group.
 9.1.0,true,client,client.user.hash,keyword,extended,,,Unique user hash to correlate information for a user in anonymized form.
 9.1.0,true,client,client.user.id,keyword,core,,S-1-5-21-202424912787-2692429404-2351956786-1000,Unique identifier of the user.
 9.1.0,true,client,client.user.name,keyword,core,,a.einstein,Short name or login of the user.
-9.1.0,true,client,client.user.name.text,keyword,core,,a.einstein,Short name or login of the user.
 9.1.0,true,client,client.user.roles,keyword,extended,array,"[""kibana_admin"", ""reporting_user""]",Array of user roles at the time of the event.
 9.1.0,true,cloud,cloud.account.id,keyword,extended,,666777888999,The cloud account or organization id.
 9.1.0,true,cloud,cloud.account.name,keyword,extended,,elastic-dev,The cloud account name.
@@ -656,7 +651,6 @@ ECS_Version,Indexed,Field_Set,Field,Type,Level,Normalization,Example,Description
 9.1.0,true,destination,destination.address,keyword,extended,,,Destination network address.
 9.1.0,true,destination,destination.as.number,long,extended,,15169,Unique number allocated to the autonomous system.
 9.1.0,true,destination,destination.as.organization.name,keyword,extended,,Google LLC,Organization name.
-9.1.0,true,destination,destination.as.organization.name.text,keyword,extended,,Google LLC,Organization name.
 9.1.0,true,destination,destination.bytes,long,core,,184,Bytes sent from the destination to the source.
 9.1.0,true,destination,destination.domain,keyword,core,,foo.example.com,The domain name of the destination.
 9.1.0,true,destination,destination.geo.city_name,keyword,core,,Montreal,City name.
@@ -682,14 +676,12 @@ ECS_Version,Indexed,Field_Set,Field,Type,Level,Normalization,Example,Description
 9.1.0,true,destination,destination.user.domain,keyword,extended,,,Name of the directory the user is a member of.
 9.1.0,true,destination,destination.user.email,keyword,extended,,,User email address.
 9.1.0,true,destination,destination.user.full_name,keyword,extended,,Albert Einstein,"User's full name, if available."
-9.1.0,true,destination,destination.user.full_name.text,keyword,extended,,Albert Einstein,"User's full name, if available."
 9.1.0,true,destination,destination.user.group.domain,keyword,extended,,,Name of the directory the group is a member of.
 9.1.0,true,destination,destination.user.group.id,keyword,extended,,,Unique identifier for the group on the system/platform.
 9.1.0,true,destination,destination.user.group.name,keyword,extended,,,Name of the group.
 9.1.0,true,destination,destination.user.hash,keyword,extended,,,Unique user hash to correlate information for a user in anonymized form.
 9.1.0,true,destination,destination.user.id,keyword,core,,S-1-5-21-202424912787-2692429404-2351956786-1000,Unique identifier of the user.
 9.1.0,true,destination,destination.user.name,keyword,core,,a.einstein,Short name or login of the user.
-9.1.0,true,destination,destination.user.name.text,keyword,core,,a.einstein,Short name or login of the user.
 9.1.0,true,destination,destination.user.roles,keyword,extended,array,"[""kibana_admin"", ""reporting_user""]",Array of user roles at the time of the event.
 9.1.0,true,device,device.id,keyword,extended,,00000000-54b3-e7c7-0000-000046bffd97,The unique identifier of a device.
 9.1.0,true,device,device.manufacturer,keyword,extended,,Samsung,The vendor name of the device manufacturer.
@@ -785,14 +777,12 @@ ECS_Version,Indexed,Field_Set,Field,Type,Level,Normalization,Example,Description
 9.1.0,true,email,email.reply_to.address,keyword,extended,array,reply.here@example.com,Address replies should be delivered to.
 9.1.0,true,email,email.sender.address,keyword,extended,,,Address of the message sender.
 9.1.0,true,email,email.subject,keyword,extended,,Please see this important message.,The subject of the email message.
-9.1.0,true,email,email.subject.text,keyword,extended,,Please see this important message.,The subject of the email message.
 9.1.0,true,email,email.to.address,keyword,extended,array,user1@example.com,Email address of recipient
 9.1.0,true,email,email.x_mailer,keyword,extended,,Spambot v2.5,Application that drafted email.
 9.1.0,true,error,error.code,keyword,core,,,Error code describing the error.
 9.1.0,true,error,error.id,keyword,core,,,Unique identifier for the error.
 9.1.0,true,error,error.message,keyword,core,,,Error message.
 9.1.0,true,error,error.stack_trace,keyword,extended,,,The stack trace of this error in plain text.
-9.1.0,true,error,error.stack_trace.text,keyword,extended,,,The stack trace of this error in plain text.
 9.1.0,true,error,error.type,keyword,extended,,java.lang.NullPointerException,"The type of the error, for example the class name of the exception."
 9.1.0,true,event,event.action,keyword,core,,user-password-change,The action captured by the event.
 9.1.0,true,event,event.agent_id_status,keyword,extended,,verified,Validation status of the event's agent.id field.
@@ -922,7 +912,6 @@ ECS_Version,Indexed,Field_Set,Field,Type,Level,Normalization,Example,Description
 9.1.0,true,file,file.origin_url,keyword,extended,,http://example.com/imgs/article1_img1.jpg,The URL where the file is hosted.
 9.1.0,true,file,file.owner,keyword,extended,,alice,File owner's username.
 9.1.0,true,file,file.path,keyword,extended,,/home/alice/example.png,"Full path to the file, including the file name."
-9.1.0,true,file,file.path.text,keyword,extended,,/home/alice/example.png,"Full path to the file, including the file name."
 9.1.0,true,file,file.pe.architecture,keyword,extended,,x64,CPU architecture target for the file.
 9.1.0,true,file,file.pe.company,keyword,extended,,Microsoft Corporation,"Internal company name of the file, provided at compile-time."
 9.1.0,true,file,file.pe.description,keyword,extended,,Paint,"Internal description of the file, provided at compile-time."
@@ -948,7 +937,6 @@ ECS_Version,Indexed,Field_Set,Field,Type,Level,Normalization,Example,Description
 9.1.0,true,file,file.pe.sections.virtual_size,long,extended,,,PE Section List virtual size. This is always the same as `physical_size`.
 9.1.0,true,file,file.size,long,extended,,16384,File size in bytes.
 9.1.0,true,file,file.target_path,keyword,extended,,,Target path for symlinks.
-9.1.0,true,file,file.target_path.text,keyword,extended,,,Target path for symlinks.
 9.1.0,true,file,file.type,keyword,extended,,file,"File type (file, dir, or symlink)."
 9.1.0,true,file,file.uid,keyword,extended,,1001,The user ID (UID) or security identifier (SID) of the file owner.
 9.1.0,true,file,file.x509.alternative_names,keyword,extended,array,*.elastic.co,List of subject alternative names (SAN).
@@ -1047,10 +1035,8 @@ ECS_Version,Indexed,Field_Set,Field,Type,Level,Normalization,Example,Description
 9.1.0,true,host,host.network.ingress.queue,long,custom,,10,Receive queue length.
 9.1.0,true,host,host.os.family,keyword,extended,,debian,"OS family (such as redhat, debian, freebsd, windows)."
 9.1.0,true,host,host.os.full,keyword,extended,,Mac OS Mojave,"Operating system name, including the version or code name."
-9.1.0,true,host,host.os.full.text,keyword,extended,,Mac OS Mojave,"Operating system name, including the version or code name."
 9.1.0,true,host,host.os.kernel,keyword,extended,,4.4.0-112-generic,Operating system kernel version as a raw string.
 9.1.0,true,host,host.os.name,keyword,extended,,Mac OS X,"Operating system name, without the version."
-9.1.0,true,host,host.os.name.text,keyword,extended,,Mac OS X,"Operating system name, without the version."
 9.1.0,true,host,host.os.platform,keyword,extended,,darwin,"Operating system platform (such centos, ubuntu, windows)."
 9.1.0,true,host,host.os.type,keyword,extended,,macos,"Which commercial OS family (one of: linux, macos, unix, windows, ios or android)."
 9.1.0,true,host,host.os.version,keyword,extended,,10.14.1,Operating system version as a raw string.
@@ -1065,7 +1051,6 @@ ECS_Version,Indexed,Field_Set,Field,Type,Level,Normalization,Example,Description
 9.1.0,true,host,host.uptime,long,extended,,1325,Seconds the host has been up.
 9.1.0,true,http,http.request.body.bytes,long,extended,,887,Size in bytes of the request body.
 9.1.0,true,http,http.request.body.content,keyword,extended,,Hello world,The full HTTP request body.
-9.1.0,true,http,http.request.body.content.text,keyword,extended,,Hello world,The full HTTP request body.
 9.1.0,true,http,http.request.bytes,long,extended,,1437,Total size in bytes of the request (body and headers).
 9.1.0,true,http,http.request.id,keyword,extended,,123e4567-e89b-12d3-a456-426614174000,HTTP request ID.
 9.1.0,true,http,http.request.method,keyword,extended,,POST,HTTP request method.
@@ -1073,7 +1058,6 @@ ECS_Version,Indexed,Field_Set,Field,Type,Level,Normalization,Example,Description
 9.1.0,true,http,http.request.referrer,keyword,extended,,https://blog.example.com/,Referrer for this HTTP request.
 9.1.0,true,http,http.response.body.bytes,long,extended,,887,Size in bytes of the response body.
 9.1.0,true,http,http.response.body.content,keyword,extended,,Hello world,The full HTTP response body.
-9.1.0,true,http,http.response.body.content.text,keyword,extended,,Hello world,The full HTTP response body.
 9.1.0,true,http,http.response.bytes,long,extended,,1437,Total size in bytes of the response (body and headers).
 9.1.0,true,http,http.response.mime_type,keyword,extended,,image/gif,Mime type of the body of the response.
 9.1.0,true,http,http.response.status_code,long,extended,,404,HTTP response status code.
@@ -1168,10 +1152,8 @@ ECS_Version,Indexed,Field_Set,Field,Type,Level,Normalization,Example,Description
 9.1.0,true,observer,observer.name,keyword,extended,,1_proxySG,Custom name of the observer.
 9.1.0,true,observer,observer.os.family,keyword,extended,,debian,"OS family (such as redhat, debian, freebsd, windows)."
 9.1.0,true,observer,observer.os.full,keyword,extended,,Mac OS Mojave,"Operating system name, including the version or code name."
-9.1.0,true,observer,observer.os.full.text,keyword,extended,,Mac OS Mojave,"Operating system name, including the version or code name."
 9.1.0,true,observer,observer.os.kernel,keyword,extended,,4.4.0-112-generic,Operating system kernel version as a raw string.
 9.1.0,true,observer,observer.os.name,keyword,extended,,Mac OS X,"Operating system name, without the version."
-9.1.0,true,observer,observer.os.name.text,keyword,extended,,Mac OS X,"Operating system name, without the version."
 9.1.0,true,observer,observer.os.platform,keyword,extended,,darwin,"Operating system platform (such centos, ubuntu, windows)."
 9.1.0,true,observer,observer.os.type,keyword,extended,,macos,"Which commercial OS family (one of: linux, macos, unix, windows, ios or android)."
 9.1.0,true,observer,observer.os.version,keyword,extended,,10.14.1,Operating system version as a raw string.
@@ -1197,7 +1179,6 @@ ECS_Version,Indexed,Field_Set,Field,Type,Level,Normalization,Example,Description
 9.1.0,true,orchestrator,orchestrator.type,keyword,extended,,kubernetes,"Orchestrator cluster type (e.g. kubernetes, nomad or cloudfoundry)."
 9.1.0,true,organization,organization.id,keyword,extended,,,Unique identifier for the organization.
 9.1.0,true,organization,organization.name,keyword,extended,,,Organization name.
-9.1.0,true,organization,organization.name.text,keyword,extended,,,Organization name.
 9.1.0,true,package,package.architecture,keyword,extended,,x86_64,Package architecture.
 9.1.0,true,package,package.build_version,keyword,extended,,36f4f7e89dd61b0988b12ee000b98966867710cd,Build version information
 9.1.0,true,package,package.checksum,keyword,extended,,68b329da9893e34099c7d8ad5cb9c940,Checksum of the installed package for verification.
@@ -1230,7 +1211,6 @@ ECS_Version,Indexed,Field_Set,Field,Type,Level,Normalization,Example,Description
 9.1.0,true,process,process.code_signature.trusted,boolean,extended,,true,Stores the trust status of the certificate chain.
 9.1.0,true,process,process.code_signature.valid,boolean,extended,,true,Boolean to capture if the digital signature is verified against the binary content.
 9.1.0,true,process,process.command_line,keyword,extended,,/usr/bin/ssh -l user 10.0.0.16,Full command line that started the process.
-9.1.0,true,process,process.command_line.text,keyword,extended,,/usr/bin/ssh -l user 10.0.0.16,Full command line that started the process.
 9.1.0,true,process,process.elf.architecture,keyword,extended,,x86-64,Machine architecture of the ELF file.
 9.1.0,true,process,process.elf.byte_order,keyword,extended,,Little Endian,Byte sequence of ELF file.
 9.1.0,true,process,process.elf.cpu_type,keyword,extended,,Intel,CPU type of the ELF file.
@@ -1276,19 +1256,15 @@ ECS_Version,Indexed,Field_Set,Field,Type,Level,Normalization,Example,Description
 9.1.0,true,process,process.entry_leader.attested_groups.name,keyword,extended,,,Name of the group.
 9.1.0,true,process,process.entry_leader.attested_user.id,keyword,core,,S-1-5-21-202424912787-2692429404-2351956786-1000,Unique identifier of the user.
 9.1.0,true,process,process.entry_leader.attested_user.name,keyword,core,,a.einstein,Short name or login of the user.
-9.1.0,true,process,process.entry_leader.attested_user.name.text,keyword,core,,a.einstein,Short name or login of the user.
 9.1.0,true,process,process.entry_leader.command_line,keyword,extended,,/usr/bin/ssh -l user 10.0.0.16,Full command line that started the process.
-9.1.0,true,process,process.entry_leader.command_line.text,keyword,extended,,/usr/bin/ssh -l user 10.0.0.16,Full command line that started the process.
 9.1.0,true,process,process.entry_leader.entity_id,keyword,extended,,c2c455d9f99375d,Unique identifier for the process.
 9.1.0,true,process,process.entry_leader.entry_meta.source.ip,ip,core,,,IP address of the source.
 9.1.0,true,process,process.entry_leader.entry_meta.type,keyword,extended,,,The entry type for the entry session leader.
 9.1.0,true,process,process.entry_leader.executable,keyword,extended,,/usr/bin/ssh,Absolute path to the process executable.
-9.1.0,true,process,process.entry_leader.executable.text,keyword,extended,,/usr/bin/ssh,Absolute path to the process executable.
 9.1.0,true,process,process.entry_leader.group.id,keyword,extended,,,Unique identifier for the group on the system/platform.
 9.1.0,true,process,process.entry_leader.group.name,keyword,extended,,,Name of the group.
 9.1.0,true,process,process.entry_leader.interactive,boolean,extended,,True,Whether the process is connected to an interactive shell.
 9.1.0,true,process,process.entry_leader.name,keyword,extended,,ssh,Process name.
-9.1.0,true,process,process.entry_leader.name.text,keyword,extended,,ssh,Process name.
 9.1.0,true,process,process.entry_leader.parent.entity_id,keyword,extended,,c2c455d9f99375d,Unique identifier for the process.
 9.1.0,true,process,process.entry_leader.parent.pid,long,core,,4242,Process id.
 9.1.0,true,process,process.entry_leader.parent.session_leader.entity_id,keyword,extended,,c2c455d9f99375d,Unique identifier for the process.
@@ -1302,13 +1278,11 @@ ECS_Version,Indexed,Field_Set,Field,Type,Level,Normalization,Example,Description
 9.1.0,true,process,process.entry_leader.real_group.name,keyword,extended,,,Name of the group.
 9.1.0,true,process,process.entry_leader.real_user.id,keyword,core,,S-1-5-21-202424912787-2692429404-2351956786-1000,Unique identifier of the user.
 9.1.0,true,process,process.entry_leader.real_user.name,keyword,core,,a.einstein,Short name or login of the user.
-9.1.0,true,process,process.entry_leader.real_user.name.text,keyword,core,,a.einstein,Short name or login of the user.
 9.1.0,true,process,process.entry_leader.same_as_process,boolean,extended,,True,This boolean is used to identify if a leader process is the same as the top level process.
 9.1.0,true,process,process.entry_leader.saved_group.id,keyword,extended,,,Unique identifier for the group on the system/platform.
 9.1.0,true,process,process.entry_leader.saved_group.name,keyword,extended,,,Name of the group.
 9.1.0,true,process,process.entry_leader.saved_user.id,keyword,core,,S-1-5-21-202424912787-2692429404-2351956786-1000,Unique identifier of the user.
 9.1.0,true,process,process.entry_leader.saved_user.name,keyword,core,,a.einstein,Short name or login of the user.
-9.1.0,true,process,process.entry_leader.saved_user.name.text,keyword,core,,a.einstein,Short name or login of the user.
 9.1.0,true,process,process.entry_leader.start,date,extended,,2016-05-23T08:05:34.853Z,The time the process started.
 9.1.0,true,process,process.entry_leader.supplemental_groups.id,keyword,extended,,,Unique identifier for the group on the system/platform.
 9.1.0,true,process,process.entry_leader.supplemental_groups.name,keyword,extended,,,Name of the group.
@@ -1317,40 +1291,32 @@ ECS_Version,Indexed,Field_Set,Field,Type,Level,Normalization,Example,Description
 9.1.0,true,process,process.entry_leader.tty.char_device.minor,long,extended,,1,The TTY character device's minor number.
 9.1.0,true,process,process.entry_leader.user.id,keyword,core,,S-1-5-21-202424912787-2692429404-2351956786-1000,Unique identifier of the user.
 9.1.0,true,process,process.entry_leader.user.name,keyword,core,,a.einstein,Short name or login of the user.
-9.1.0,true,process,process.entry_leader.user.name.text,keyword,core,,a.einstein,Short name or login of the user.
 9.1.0,true,process,process.entry_leader.vpid,long,core,,4242,Virtual process id.
 9.1.0,true,process,process.entry_leader.working_directory,keyword,extended,,/home/alice,The working directory of the process.
-9.1.0,true,process,process.entry_leader.working_directory.text,keyword,extended,,/home/alice,The working directory of the process.
 9.1.0,true,process,process.env_vars,keyword,extended,array,"[""PATH=/usr/local/bin:/usr/bin"", ""USER=ubuntu""]",Array of environment variable bindings.
 9.1.0,true,process,process.executable,keyword,extended,,/usr/bin/ssh,Absolute path to the process executable.
-9.1.0,true,process,process.executable.text,keyword,extended,,/usr/bin/ssh,Absolute path to the process executable.
 9.1.0,true,process,process.exit_code,long,extended,,137,The exit code of the process.
 9.1.0,true,process,process.group.id,keyword,extended,,,Unique identifier for the group on the system/platform.
 9.1.0,true,process,process.group.name,keyword,extended,,,Name of the group.
 9.1.0,true,process,process.group_leader.args,keyword,extended,array,"[""/usr/bin/ssh"", ""-l"", ""user"", ""10.0.0.16""]",Array of process arguments.
 9.1.0,true,process,process.group_leader.args_count,long,extended,,4,Length of the process.args array.
 9.1.0,true,process,process.group_leader.command_line,keyword,extended,,/usr/bin/ssh -l user 10.0.0.16,Full command line that started the process.
-9.1.0,true,process,process.group_leader.command_line.text,keyword,extended,,/usr/bin/ssh -l user 10.0.0.16,Full command line that started the process.
 9.1.0,true,process,process.group_leader.entity_id,keyword,extended,,c2c455d9f99375d,Unique identifier for the process.
 9.1.0,true,process,process.group_leader.executable,keyword,extended,,/usr/bin/ssh,Absolute path to the process executable.
-9.1.0,true,process,process.group_leader.executable.text,keyword,extended,,/usr/bin/ssh,Absolute path to the process executable.
 9.1.0,true,process,process.group_leader.group.id,keyword,extended,,,Unique identifier for the group on the system/platform.
 9.1.0,true,process,process.group_leader.group.name,keyword,extended,,,Name of the group.
 9.1.0,true,process,process.group_leader.interactive,boolean,extended,,True,Whether the process is connected to an interactive shell.
 9.1.0,true,process,process.group_leader.name,keyword,extended,,ssh,Process name.
-9.1.0,true,process,process.group_leader.name.text,keyword,extended,,ssh,Process name.
 9.1.0,true,process,process.group_leader.pid,long,core,,4242,Process id.
 9.1.0,true,process,process.group_leader.real_group.id,keyword,extended,,,Unique identifier for the group on the system/platform.
 9.1.0,true,process,process.group_leader.real_group.name,keyword,extended,,,Name of the group.
 9.1.0,true,process,process.group_leader.real_user.id,keyword,core,,S-1-5-21-202424912787-2692429404-2351956786-1000,Unique identifier of the user.
 9.1.0,true,process,process.group_leader.real_user.name,keyword,core,,a.einstein,Short name or login of the user.
-9.1.0,true,process,process.group_leader.real_user.name.text,keyword,core,,a.einstein,Short name or login of the user.
 9.1.0,true,process,process.group_leader.same_as_process,boolean,extended,,True,This boolean is used to identify if a leader process is the same as the top level process.
 9.1.0,true,process,process.group_leader.saved_group.id,keyword,extended,,,Unique identifier for the group on the system/platform.
 9.1.0,true,process,process.group_leader.saved_group.name,keyword,extended,,,Name of the group.
 9.1.0,true,process,process.group_leader.saved_user.id,keyword,core,,S-1-5-21-202424912787-2692429404-2351956786-1000,Unique identifier of the user.
 9.1.0,true,process,process.group_leader.saved_user.name,keyword,core,,a.einstein,Short name or login of the user.
-9.1.0,true,process,process.group_leader.saved_user.name.text,keyword,core,,a.einstein,Short name or login of the user.
 9.1.0,true,process,process.group_leader.start,date,extended,,2016-05-23T08:05:34.853Z,The time the process started.
 9.1.0,true,process,process.group_leader.supplemental_groups.id,keyword,extended,,,Unique identifier for the group on the system/platform.
 9.1.0,true,process,process.group_leader.supplemental_groups.name,keyword,extended,,,Name of the group.
@@ -1359,10 +1325,8 @@ ECS_Version,Indexed,Field_Set,Field,Type,Level,Normalization,Example,Description
 9.1.0,true,process,process.group_leader.tty.char_device.minor,long,extended,,1,The TTY character device's minor number.
 9.1.0,true,process,process.group_leader.user.id,keyword,core,,S-1-5-21-202424912787-2692429404-2351956786-1000,Unique identifier of the user.
 9.1.0,true,process,process.group_leader.user.name,keyword,core,,a.einstein,Short name or login of the user.
-9.1.0,true,process,process.group_leader.user.name.text,keyword,core,,a.einstein,Short name or login of the user.
 9.1.0,true,process,process.group_leader.vpid,long,core,,4242,Virtual process id.
 9.1.0,true,process,process.group_leader.working_directory,keyword,extended,,/home/alice,The working directory of the process.
-9.1.0,true,process,process.group_leader.working_directory.text,keyword,extended,,/home/alice,The working directory of the process.
 9.1.0,true,process,process.hash.cdhash,keyword,extended,,3783b4052fd474dbe30676b45c329e7a6d44acd9,The Code Directory (CD) hash of an executable.
 9.1.0,true,process,process.hash.md5,keyword,extended,,,MD5 hash.
 9.1.0,true,process,process.hash.sha1,keyword,extended,,,SHA1 hash.
@@ -1398,7 +1362,6 @@ ECS_Version,Indexed,Field_Set,Field,Type,Level,Normalization,Example,Description
 9.1.0,true,process,process.macho.sections.virtual_size,long,extended,,,Mach-O Section List virtual size. This is always the same as `physical_size`.
 9.1.0,true,process,process.macho.symhash,keyword,extended,,d3ccf195b62a9279c3c19af1080497ec,A hash of the imports in a Mach-O file.
 9.1.0,true,process,process.name,keyword,extended,,ssh,Process name.
-9.1.0,true,process,process.name.text,keyword,extended,,ssh,Process name.
 9.1.0,true,process,process.parent.args,keyword,extended,array,"[""/usr/bin/ssh"", ""-l"", ""user"", ""10.0.0.16""]",Array of process arguments.
 9.1.0,true,process,process.parent.args_count,long,extended,,4,Length of the process.args array.
 9.1.0,true,process,process.parent.code_signature.digest_algorithm,keyword,extended,,sha256,Hashing algorithm used to sign the process.
@@ -1413,7 +1376,6 @@ ECS_Version,Indexed,Field_Set,Field,Type,Level,Normalization,Example,Description
 9.1.0,true,process,process.parent.code_signature.trusted,boolean,extended,,true,Stores the trust status of the certificate chain.
 9.1.0,true,process,process.parent.code_signature.valid,boolean,extended,,true,Boolean to capture if the digital signature is verified against the binary content.
 9.1.0,true,process,process.parent.command_line,keyword,extended,,/usr/bin/ssh -l user 10.0.0.16,Full command line that started the process.
-9.1.0,true,process,process.parent.command_line.text,keyword,extended,,/usr/bin/ssh -l user 10.0.0.16,Full command line that started the process.
 9.1.0,true,process,process.parent.elf.architecture,keyword,extended,,x86-64,Machine architecture of the ELF file.
 9.1.0,true,process,process.parent.elf.byte_order,keyword,extended,,Little Endian,Byte sequence of ELF file.
 9.1.0,true,process,process.parent.elf.cpu_type,keyword,extended,,Intel,CPU type of the ELF file.
@@ -1455,7 +1417,6 @@ ECS_Version,Indexed,Field_Set,Field,Type,Level,Normalization,Example,Description
 9.1.0,true,process,process.parent.end,date,extended,,2016-05-23T08:05:34.853Z,The time the process ended.
 9.1.0,true,process,process.parent.entity_id,keyword,extended,,c2c455d9f99375d,Unique identifier for the process.
 9.1.0,true,process,process.parent.executable,keyword,extended,,/usr/bin/ssh,Absolute path to the process executable.
-9.1.0,true,process,process.parent.executable.text,keyword,extended,,/usr/bin/ssh,Absolute path to the process executable.
 9.1.0,true,process,process.parent.exit_code,long,extended,,137,The exit code of the process.
 9.1.0,true,process,process.parent.group.id,keyword,extended,,,Unique identifier for the group on the system/platform.
 9.1.0,true,process,process.parent.group.name,keyword,extended,,,Name of the group.
@@ -1489,7 +1450,6 @@ ECS_Version,Indexed,Field_Set,Field,Type,Level,Normalization,Example,Description
 9.1.0,true,process,process.parent.macho.sections.virtual_size,long,extended,,,Mach-O Section List virtual size. This is always the same as `physical_size`.
 9.1.0,true,process,process.parent.macho.symhash,keyword,extended,,d3ccf195b62a9279c3c19af1080497ec,A hash of the imports in a Mach-O file.
 9.1.0,true,process,process.parent.name,keyword,extended,,ssh,Process name.
-9.1.0,true,process,process.parent.name.text,keyword,extended,,ssh,Process name.
 9.1.0,true,process,process.parent.pe.architecture,keyword,extended,,x64,CPU architecture target for the file.
 9.1.0,true,process,process.parent.pe.company,keyword,extended,,Microsoft Corporation,"Internal company name of the file, provided at compile-time."
 9.1.0,true,process,process.parent.pe.description,keyword,extended,,Paint,"Internal description of the file, provided at compile-time."
@@ -1518,12 +1478,10 @@ ECS_Version,Indexed,Field_Set,Field,Type,Level,Normalization,Example,Description
 9.1.0,true,process,process.parent.real_group.name,keyword,extended,,,Name of the group.
 9.1.0,true,process,process.parent.real_user.id,keyword,core,,S-1-5-21-202424912787-2692429404-2351956786-1000,Unique identifier of the user.
 9.1.0,true,process,process.parent.real_user.name,keyword,core,,a.einstein,Short name or login of the user.
-9.1.0,true,process,process.parent.real_user.name.text,keyword,core,,a.einstein,Short name or login of the user.
 9.1.0,true,process,process.parent.saved_group.id,keyword,extended,,,Unique identifier for the group on the system/platform.
 9.1.0,true,process,process.parent.saved_group.name,keyword,extended,,,Name of the group.
 9.1.0,true,process,process.parent.saved_user.id,keyword,core,,S-1-5-21-202424912787-2692429404-2351956786-1000,Unique identifier of the user.
 9.1.0,true,process,process.parent.saved_user.name,keyword,core,,a.einstein,Short name or login of the user.
-9.1.0,true,process,process.parent.saved_user.name.text,keyword,core,,a.einstein,Short name or login of the user.
 9.1.0,true,process,process.parent.start,date,extended,,2016-05-23T08:05:34.853Z,The time the process started.
 9.1.0,true,process,process.parent.supplemental_groups.id,keyword,extended,,,Unique identifier for the group on the system/platform.
 9.1.0,true,process,process.parent.supplemental_groups.name,keyword,extended,,,Name of the group.
@@ -1532,17 +1490,14 @@ ECS_Version,Indexed,Field_Set,Field,Type,Level,Normalization,Example,Description
 9.1.0,true,process,process.parent.thread.id,long,extended,,4242,Thread ID.
 9.1.0,true,process,process.parent.thread.name,keyword,extended,,thread-0,Thread name.
 9.1.0,true,process,process.parent.title,keyword,extended,,,Process title.
-9.1.0,true,process,process.parent.title.text,keyword,extended,,,Process title.
 9.1.0,true,process,process.parent.tty,object,extended,,,Information about the controlling TTY device.
 9.1.0,true,process,process.parent.tty.char_device.major,long,extended,,4,The TTY character device's major number.
 9.1.0,true,process,process.parent.tty.char_device.minor,long,extended,,1,The TTY character device's minor number.
 9.1.0,true,process,process.parent.uptime,long,extended,,1325,Seconds the process has been up.
 9.1.0,true,process,process.parent.user.id,keyword,core,,S-1-5-21-202424912787-2692429404-2351956786-1000,Unique identifier of the user.
 9.1.0,true,process,process.parent.user.name,keyword,core,,a.einstein,Short name or login of the user.
-9.1.0,true,process,process.parent.user.name.text,keyword,core,,a.einstein,Short name or login of the user.
 9.1.0,true,process,process.parent.vpid,long,core,,4242,Virtual process id.
 9.1.0,true,process,process.parent.working_directory,keyword,extended,,/home/alice,The working directory of the process.
-9.1.0,true,process,process.parent.working_directory.text,keyword,extended,,/home/alice,The working directory of the process.
 9.1.0,true,process,process.pe.architecture,keyword,extended,,x64,CPU architecture target for the file.
 9.1.0,true,process,process.pe.company,keyword,extended,,Microsoft Corporation,"Internal company name of the file, provided at compile-time."
 9.1.0,true,process,process.pe.description,keyword,extended,,Paint,"Internal description of the file, provided at compile-time."
@@ -1570,29 +1525,23 @@ ECS_Version,Indexed,Field_Set,Field,Type,Level,Normalization,Example,Description
 9.1.0,true,process,process.previous.args,keyword,extended,array,"[""/usr/bin/ssh"", ""-l"", ""user"", ""10.0.0.16""]",Array of process arguments.
 9.1.0,true,process,process.previous.args_count,long,extended,,4,Length of the process.args array.
 9.1.0,true,process,process.previous.executable,keyword,extended,,/usr/bin/ssh,Absolute path to the process executable.
-9.1.0,true,process,process.previous.executable.text,keyword,extended,,/usr/bin/ssh,Absolute path to the process executable.
 9.1.0,true,process,process.real_group.id,keyword,extended,,,Unique identifier for the group on the system/platform.
 9.1.0,true,process,process.real_group.name,keyword,extended,,,Name of the group.
 9.1.0,true,process,process.real_user.id,keyword,core,,S-1-5-21-202424912787-2692429404-2351956786-1000,Unique identifier of the user.
 9.1.0,true,process,process.real_user.name,keyword,core,,a.einstein,Short name or login of the user.
-9.1.0,true,process,process.real_user.name.text,keyword,core,,a.einstein,Short name or login of the user.
 9.1.0,true,process,process.saved_group.id,keyword,extended,,,Unique identifier for the group on the system/platform.
 9.1.0,true,process,process.saved_group.name,keyword,extended,,,Name of the group.
 9.1.0,true,process,process.saved_user.id,keyword,core,,S-1-5-21-202424912787-2692429404-2351956786-1000,Unique identifier of the user.
 9.1.0,true,process,process.saved_user.name,keyword,core,,a.einstein,Short name or login of the user.
-9.1.0,true,process,process.saved_user.name.text,keyword,core,,a.einstein,Short name or login of the user.
 9.1.0,true,process,process.session_leader.args,keyword,extended,array,"[""/usr/bin/ssh"", ""-l"", ""user"", ""10.0.0.16""]",Array of process arguments.
 9.1.0,true,process,process.session_leader.args_count,long,extended,,4,Length of the process.args array.
 9.1.0,true,process,process.session_leader.command_line,keyword,extended,,/usr/bin/ssh -l user 10.0.0.16,Full command line that started the process.
-9.1.0,true,process,process.session_leader.command_line.text,keyword,extended,,/usr/bin/ssh -l user 10.0.0.16,Full command line that started the process.
 9.1.0,true,process,process.session_leader.entity_id,keyword,extended,,c2c455d9f99375d,Unique identifier for the process.
 9.1.0,true,process,process.session_leader.executable,keyword,extended,,/usr/bin/ssh,Absolute path to the process executable.
-9.1.0,true,process,process.session_leader.executable.text,keyword,extended,,/usr/bin/ssh,Absolute path to the process executable.
 9.1.0,true,process,process.session_leader.group.id,keyword,extended,,,Unique identifier for the group on the system/platform.
 9.1.0,true,process,process.session_leader.group.name,keyword,extended,,,Name of the group.
 9.1.0,true,process,process.session_leader.interactive,boolean,extended,,True,Whether the process is connected to an interactive shell.
 9.1.0,true,process,process.session_leader.name,keyword,extended,,ssh,Process name.
-9.1.0,true,process,process.session_leader.name.text,keyword,extended,,ssh,Process name.
 9.1.0,true,process,process.session_leader.parent.entity_id,keyword,extended,,c2c455d9f99375d,Unique identifier for the process.
 9.1.0,true,process,process.session_leader.parent.pid,long,core,,4242,Process id.
 9.1.0,true,process,process.session_leader.parent.session_leader.entity_id,keyword,extended,,c2c455d9f99375d,Unique identifier for the process.
@@ -1606,13 +1555,11 @@ ECS_Version,Indexed,Field_Set,Field,Type,Level,Normalization,Example,Description
 9.1.0,true,process,process.session_leader.real_group.name,keyword,extended,,,Name of the group.
 9.1.0,true,process,process.session_leader.real_user.id,keyword,core,,S-1-5-21-202424912787-2692429404-2351956786-1000,Unique identifier of the user.
 9.1.0,true,process,process.session_leader.real_user.name,keyword,core,,a.einstein,Short name or login of the user.
-9.1.0,true,process,process.session_leader.real_user.name.text,keyword,core,,a.einstein,Short name or login of the user.
 9.1.0,true,process,process.session_leader.same_as_process,boolean,extended,,True,This boolean is used to identify if a leader process is the same as the top level process.
 9.1.0,true,process,process.session_leader.saved_group.id,keyword,extended,,,Unique identifier for the group on the system/platform.
 9.1.0,true,process,process.session_leader.saved_group.name,keyword,extended,,,Name of the group.
 9.1.0,true,process,process.session_leader.saved_user.id,keyword,core,,S-1-5-21-202424912787-2692429404-2351956786-1000,Unique identifier of the user.
 9.1.0,true,process,process.session_leader.saved_user.name,keyword,core,,a.einstein,Short name or login of the user.
-9.1.0,true,process,process.session_leader.saved_user.name.text,keyword,core,,a.einstein,Short name or login of the user.
 9.1.0,true,process,process.session_leader.start,date,extended,,2016-05-23T08:05:34.853Z,The time the process started.
 9.1.0,true,process,process.session_leader.supplemental_groups.id,keyword,extended,,,Unique identifier for the group on the system/platform.
 9.1.0,true,process,process.session_leader.supplemental_groups.name,keyword,extended,,,Name of the group.
@@ -1621,10 +1568,8 @@ ECS_Version,Indexed,Field_Set,Field,Type,Level,Normalization,Example,Description
 9.1.0,true,process,process.session_leader.tty.char_device.minor,long,extended,,1,The TTY character device's minor number.
 9.1.0,true,process,process.session_leader.user.id,keyword,core,,S-1-5-21-202424912787-2692429404-2351956786-1000,Unique identifier of the user.
 9.1.0,true,process,process.session_leader.user.name,keyword,core,,a.einstein,Short name or login of the user.
-9.1.0,true,process,process.session_leader.user.name.text,keyword,core,,a.einstein,Short name or login of the user.
 9.1.0,true,process,process.session_leader.vpid,long,core,,4242,Virtual process id.
 9.1.0,true,process,process.session_leader.working_directory,keyword,extended,,/home/alice,The working directory of the process.
-9.1.0,true,process,process.session_leader.working_directory.text,keyword,extended,,/home/alice,The working directory of the process.
 9.1.0,true,process,process.start,date,extended,,2016-05-23T08:05:34.853Z,The time the process started.
 9.1.0,true,process,process.supplemental_groups.id,keyword,extended,,,Unique identifier for the group on the system/platform.
 9.1.0,true,process,process.supplemental_groups.name,keyword,extended,,,Name of the group.
@@ -1633,7 +1578,6 @@ ECS_Version,Indexed,Field_Set,Field,Type,Level,Normalization,Example,Description
 9.1.0,true,process,process.thread.id,long,extended,,4242,Thread ID.
 9.1.0,true,process,process.thread.name,keyword,extended,,thread-0,Thread name.
 9.1.0,true,process,process.title,keyword,extended,,,Process title.
-9.1.0,true,process,process.title.text,keyword,extended,,,Process title.
 9.1.0,true,process,process.tty,object,extended,,,Information about the controlling TTY device.
 9.1.0,true,process,process.tty.char_device.major,long,extended,,4,The TTY character device's major number.
 9.1.0,true,process,process.tty.char_device.minor,long,extended,,1,The TTY character device's minor number.
@@ -1642,10 +1586,8 @@ ECS_Version,Indexed,Field_Set,Field,Type,Level,Normalization,Example,Description
 9.1.0,true,process,process.uptime,long,extended,,1325,Seconds the process has been up.
 9.1.0,true,process,process.user.id,keyword,core,,S-1-5-21-202424912787-2692429404-2351956786-1000,Unique identifier of the user.
 9.1.0,true,process,process.user.name,keyword,core,,a.einstein,Short name or login of the user.
-9.1.0,true,process,process.user.name.text,keyword,core,,a.einstein,Short name or login of the user.
 9.1.0,true,process,process.vpid,long,core,,4242,Virtual process id.
 9.1.0,true,process,process.working_directory,keyword,extended,,/home/alice,The working directory of the process.
-9.1.0,true,process,process.working_directory.text,keyword,extended,,/home/alice,The working directory of the process.
 9.1.0,true,registry,registry.data.bytes,keyword,extended,,ZQBuAC0AVQBTAAAAZQBuAAAAAAA=,Original bytes written with base64 encoding.
 9.1.0,true,registry,registry.data.strings,keyword,core,array,"[""C:\rta\red_ttp\bin\myapp.exe""]",List of strings representing what was written to the registry.
 9.1.0,true,registry,registry.data.type,keyword,core,,REG_SZ,Standard registry type for encoding contents
@@ -1670,7 +1612,6 @@ ECS_Version,Indexed,Field_Set,Field,Type,Level,Normalization,Example,Description
 9.1.0,true,server,server.address,keyword,extended,,,Server network address.
 9.1.0,true,server,server.as.number,long,extended,,15169,Unique number allocated to the autonomous system.
 9.1.0,true,server,server.as.organization.name,keyword,extended,,Google LLC,Organization name.
-9.1.0,true,server,server.as.organization.name.text,keyword,extended,,Google LLC,Organization name.
 9.1.0,true,server,server.bytes,long,core,,184,Bytes sent from the server to the client.
 9.1.0,true,server,server.domain,keyword,core,,foo.example.com,The domain name of the server.
 9.1.0,true,server,server.geo.city_name,keyword,core,,Montreal,City name.
@@ -1696,14 +1637,12 @@ ECS_Version,Indexed,Field_Set,Field,Type,Level,Normalization,Example,Description
 9.1.0,true,server,server.user.domain,keyword,extended,,,Name of the directory the user is a member of.
 9.1.0,true,server,server.user.email,keyword,extended,,,User email address.
 9.1.0,true,server,server.user.full_name,keyword,extended,,Albert Einstein,"User's full name, if available."
-9.1.0,true,server,server.user.full_name.text,keyword,extended,,Albert Einstein,"User's full name, if available."
 9.1.0,true,server,server.user.group.domain,keyword,extended,,,Name of the directory the group is a member of.
 9.1.0,true,server,server.user.group.id,keyword,extended,,,Unique identifier for the group on the system/platform.
 9.1.0,true,server,server.user.group.name,keyword,extended,,,Name of the group.
 9.1.0,true,server,server.user.hash,keyword,extended,,,Unique user hash to correlate information for a user in anonymized form.
 9.1.0,true,server,server.user.id,keyword,core,,S-1-5-21-202424912787-2692429404-2351956786-1000,Unique identifier of the user.
 9.1.0,true,server,server.user.name,keyword,core,,a.einstein,Short name or login of the user.
-9.1.0,true,server,server.user.name.text,keyword,core,,a.einstein,Short name or login of the user.
 9.1.0,true,server,server.user.roles,keyword,extended,array,"[""kibana_admin"", ""reporting_user""]",Array of user roles at the time of the event.
 9.1.0,true,service,service.address,keyword,extended,,172.26.0.2:5432,Address of this service.
 9.1.0,true,service,service.environment,keyword,extended,,production,Environment of the service.
@@ -1741,7 +1680,6 @@ ECS_Version,Indexed,Field_Set,Field,Type,Level,Normalization,Example,Description
 9.1.0,true,source,source.address,keyword,extended,,,Source network address.
 9.1.0,true,source,source.as.number,long,extended,,15169,Unique number allocated to the autonomous system.
 9.1.0,true,source,source.as.organization.name,keyword,extended,,Google LLC,Organization name.
-9.1.0,true,source,source.as.organization.name.text,keyword,extended,,Google LLC,Organization name.
 9.1.0,true,source,source.bytes,long,core,,184,Bytes sent from the source to the destination.
 9.1.0,true,source,source.domain,keyword,core,,foo.example.com,The domain name of the source.
 9.1.0,true,source,source.geo.city_name,keyword,core,,Montreal,City name.
@@ -1767,21 +1705,18 @@ ECS_Version,Indexed,Field_Set,Field,Type,Level,Normalization,Example,Description
 9.1.0,true,source,source.user.domain,keyword,extended,,,Name of the directory the user is a member of.
 9.1.0,true,source,source.user.email,keyword,extended,,,User email address.
 9.1.0,true,source,source.user.full_name,keyword,extended,,Albert Einstein,"User's full name, if available."
-9.1.0,true,source,source.user.full_name.text,keyword,extended,,Albert Einstein,"User's full name, if available."
 9.1.0,true,source,source.user.group.domain,keyword,extended,,,Name of the directory the group is a member of.
 9.1.0,true,source,source.user.group.id,keyword,extended,,,Unique identifier for the group on the system/platform.
 9.1.0,true,source,source.user.group.name,keyword,extended,,,Name of the group.
 9.1.0,true,source,source.user.hash,keyword,extended,,,Unique user hash to correlate information for a user in anonymized form.
 9.1.0,true,source,source.user.id,keyword,core,,S-1-5-21-202424912787-2692429404-2351956786-1000,Unique identifier of the user.
 9.1.0,true,source,source.user.name,keyword,core,,a.einstein,Short name or login of the user.
-9.1.0,true,source,source.user.name.text,keyword,core,,a.einstein,Short name or login of the user.
 9.1.0,true,source,source.user.roles,keyword,extended,array,"[""kibana_admin"", ""reporting_user""]",Array of user roles at the time of the event.
 9.1.0,true,span,span.id,keyword,extended,,3ff9a8981b7ccd5a,Unique identifier of the span within the scope of its trace.
 9.1.0,true,threat,threat.enrichments,nested,extended,array,,List of objects containing indicators enriching the event.
 9.1.0,true,threat,threat.enrichments.indicator,object,extended,,,Object containing indicators enriching the event.
 9.1.0,true,threat,threat.enrichments.indicator.as.number,long,extended,,15169,Unique number allocated to the autonomous system.
 9.1.0,true,threat,threat.enrichments.indicator.as.organization.name,keyword,extended,,Google LLC,Organization name.
-9.1.0,true,threat,threat.enrichments.indicator.as.organization.name.text,keyword,extended,,Google LLC,Organization name.
 9.1.0,true,threat,threat.enrichments.indicator.confidence,keyword,extended,,Medium,Indicator confidence rating
 9.1.0,true,threat,threat.enrichments.indicator.description,keyword,extended,,IP x.x.x.x was observed delivering the Angler EK.,Indicator description
 9.1.0,true,threat,threat.enrichments.indicator.email.address,keyword,extended,,phish@example.com,Indicator email address
@@ -1862,7 +1797,6 @@ ECS_Version,Indexed,Field_Set,Field,Type,Level,Normalization,Example,Description
 9.1.0,true,threat,threat.enrichments.indicator.file.origin_url,keyword,extended,,http://example.com/imgs/article1_img1.jpg,The URL where the file is hosted.
 9.1.0,true,threat,threat.enrichments.indicator.file.owner,keyword,extended,,alice,File owner's username.
 9.1.0,true,threat,threat.enrichments.indicator.file.path,keyword,extended,,/home/alice/example.png,"Full path to the file, including the file name."
-9.1.0,true,threat,threat.enrichments.indicator.file.path.text,keyword,extended,,/home/alice/example.png,"Full path to the file, including the file name."
 9.1.0,true,threat,threat.enrichments.indicator.file.pe.architecture,keyword,extended,,x64,CPU architecture target for the file.
 9.1.0,true,threat,threat.enrichments.indicator.file.pe.company,keyword,extended,,Microsoft Corporation,"Internal company name of the file, provided at compile-time."
 9.1.0,true,threat,threat.enrichments.indicator.file.pe.description,keyword,extended,,Paint,"Internal description of the file, provided at compile-time."
@@ -1888,7 +1822,6 @@ ECS_Version,Indexed,Field_Set,Field,Type,Level,Normalization,Example,Description
 9.1.0,true,threat,threat.enrichments.indicator.file.pe.sections.virtual_size,long,extended,,,PE Section List virtual size. This is always the same as `physical_size`.
 9.1.0,true,threat,threat.enrichments.indicator.file.size,long,extended,,16384,File size in bytes.
 9.1.0,true,threat,threat.enrichments.indicator.file.target_path,keyword,extended,,,Target path for symlinks.
-9.1.0,true,threat,threat.enrichments.indicator.file.target_path.text,keyword,extended,,,Target path for symlinks.
 9.1.0,true,threat,threat.enrichments.indicator.file.type,keyword,extended,,file,"File type (file, dir, or symlink)."
 9.1.0,true,threat,threat.enrichments.indicator.file.uid,keyword,extended,,1001,The user ID (UID) or security identifier (SID) of the file owner.
 9.1.0,true,threat,threat.enrichments.indicator.file.x509.alternative_names,keyword,extended,array,*.elastic.co,List of subject alternative names (SAN).
@@ -1950,9 +1883,7 @@ ECS_Version,Indexed,Field_Set,Field,Type,Level,Normalization,Example,Description
 9.1.0,true,threat,threat.enrichments.indicator.url.extension,keyword,extended,,png,"File extension from the request url, excluding the leading dot."
 9.1.0,true,threat,threat.enrichments.indicator.url.fragment,keyword,extended,,,Portion of the url after the `#`.
 9.1.0,true,threat,threat.enrichments.indicator.url.full,keyword,extended,,https://www.elastic.co:443/search?q=elasticsearch#top,Full unparsed URL.
-9.1.0,true,threat,threat.enrichments.indicator.url.full.text,keyword,extended,,https://www.elastic.co:443/search?q=elasticsearch#top,Full unparsed URL.
 9.1.0,true,threat,threat.enrichments.indicator.url.original,keyword,extended,,https://www.elastic.co:443/search?q=elasticsearch#top or /search?q=elasticsearch,Unmodified original url as seen in the event source.
-9.1.0,true,threat,threat.enrichments.indicator.url.original.text,keyword,extended,,https://www.elastic.co:443/search?q=elasticsearch#top or /search?q=elasticsearch,Unmodified original url as seen in the event source.
 9.1.0,true,threat,threat.enrichments.indicator.url.password,keyword,extended,,,Password of the request.
 9.1.0,true,threat,threat.enrichments.indicator.url.path,keyword,extended,,,"Path of the request, such as ""/search""."
 9.1.0,true,threat,threat.enrichments.indicator.url.port,long,extended,,443,"Port of the request, such as 443."
@@ -2003,7 +1934,6 @@ ECS_Version,Indexed,Field_Set,Field,Type,Level,Normalization,Example,Description
 9.1.0,true,threat,threat.group.reference,keyword,extended,,https://attack.mitre.org/groups/G0037/,Reference URL of the group.
 9.1.0,true,threat,threat.indicator.as.number,long,extended,,15169,Unique number allocated to the autonomous system.
 9.1.0,true,threat,threat.indicator.as.organization.name,keyword,extended,,Google LLC,Organization name.
-9.1.0,true,threat,threat.indicator.as.organization.name.text,keyword,extended,,Google LLC,Organization name.
 9.1.0,true,threat,threat.indicator.confidence,keyword,extended,,Medium,Indicator confidence rating
 9.1.0,true,threat,threat.indicator.description,keyword,extended,,IP x.x.x.x was observed delivering the Angler EK.,Indicator description
 9.1.0,true,threat,threat.indicator.email.address,keyword,extended,,phish@example.com,Indicator email address
@@ -2084,7 +2014,6 @@ ECS_Version,Indexed,Field_Set,Field,Type,Level,Normalization,Example,Description
 9.1.0,true,threat,threat.indicator.file.origin_url,keyword,extended,,http://example.com/imgs/article1_img1.jpg,The URL where the file is hosted.
 9.1.0,true,threat,threat.indicator.file.owner,keyword,extended,,alice,File owner's username.
 9.1.0,true,threat,threat.indicator.file.path,keyword,extended,,/home/alice/example.png,"Full path to the file, including the file name."
-9.1.0,true,threat,threat.indicator.file.path.text,keyword,extended,,/home/alice/example.png,"Full path to the file, including the file name."
 9.1.0,true,threat,threat.indicator.file.pe.architecture,keyword,extended,,x64,CPU architecture target for the file.
 9.1.0,true,threat,threat.indicator.file.pe.company,keyword,extended,,Microsoft Corporation,"Internal company name of the file, provided at compile-time."
 9.1.0,true,threat,threat.indicator.file.pe.description,keyword,extended,,Paint,"Internal description of the file, provided at compile-time."
@@ -2110,7 +2039,6 @@ ECS_Version,Indexed,Field_Set,Field,Type,Level,Normalization,Example,Description
 9.1.0,true,threat,threat.indicator.file.pe.sections.virtual_size,long,extended,,,PE Section List virtual size. This is always the same as `physical_size`.
 9.1.0,true,threat,threat.indicator.file.size,long,extended,,16384,File size in bytes.
 9.1.0,true,threat,threat.indicator.file.target_path,keyword,extended,,,Target path for symlinks.
-9.1.0,true,threat,threat.indicator.file.target_path.text,keyword,extended,,,Target path for symlinks.
 9.1.0,true,threat,threat.indicator.file.type,keyword,extended,,file,"File type (file, dir, or symlink)."
 9.1.0,true,threat,threat.indicator.file.uid,keyword,extended,,1001,The user ID (UID) or security identifier (SID) of the file owner.
 9.1.0,true,threat,threat.indicator.file.x509.alternative_names,keyword,extended,array,*.elastic.co,List of subject alternative names (SAN).
@@ -2173,9 +2101,7 @@ ECS_Version,Indexed,Field_Set,Field,Type,Level,Normalization,Example,Description
 9.1.0,true,threat,threat.indicator.url.extension,keyword,extended,,png,"File extension from the request url, excluding the leading dot."
 9.1.0,true,threat,threat.indicator.url.fragment,keyword,extended,,,Portion of the url after the `#`.
 9.1.0,true,threat,threat.indicator.url.full,keyword,extended,,https://www.elastic.co:443/search?q=elasticsearch#top,Full unparsed URL.
-9.1.0,true,threat,threat.indicator.url.full.text,keyword,extended,,https://www.elastic.co:443/search?q=elasticsearch#top,Full unparsed URL.
 9.1.0,true,threat,threat.indicator.url.original,keyword,extended,,https://www.elastic.co:443/search?q=elasticsearch#top or /search?q=elasticsearch,Unmodified original url as seen in the event source.
-9.1.0,true,threat,threat.indicator.url.original.text,keyword,extended,,https://www.elastic.co:443/search?q=elasticsearch#top or /search?q=elasticsearch,Unmodified original url as seen in the event source.
 9.1.0,true,threat,threat.indicator.url.password,keyword,extended,,,Password of the request.
 9.1.0,true,threat,threat.indicator.url.path,keyword,extended,,,"Path of the request, such as ""/search""."
 9.1.0,true,threat,threat.indicator.url.port,long,extended,,443,"Port of the request, such as 443."
@@ -2220,11 +2146,9 @@ ECS_Version,Indexed,Field_Set,Field,Type,Level,Normalization,Example,Description
 9.1.0,true,threat,threat.tactic.reference,keyword,extended,array,https://attack.mitre.org/tactics/TA0002/,Threat tactic URL reference.
 9.1.0,true,threat,threat.technique.id,keyword,extended,array,T1059,Threat technique id.
 9.1.0,true,threat,threat.technique.name,keyword,extended,array,Command and Scripting Interpreter,Threat technique name.
-9.1.0,true,threat,threat.technique.name.text,keyword,extended,,Command and Scripting Interpreter,Threat technique name.
 9.1.0,true,threat,threat.technique.reference,keyword,extended,array,https://attack.mitre.org/techniques/T1059/,Threat technique URL reference.
 9.1.0,true,threat,threat.technique.subtechnique.id,keyword,extended,array,T1059.001,Threat subtechnique id.
 9.1.0,true,threat,threat.technique.subtechnique.name,keyword,extended,array,PowerShell,Threat subtechnique name.
-9.1.0,true,threat,threat.technique.subtechnique.name.text,keyword,extended,,PowerShell,Threat subtechnique name.
 9.1.0,true,threat,threat.technique.subtechnique.reference,keyword,extended,array,https://attack.mitre.org/techniques/T1059/001/,Threat subtechnique URL reference.
 9.1.0,true,tls,tls.cipher,keyword,extended,,TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256,String indicating the cipher used during the current connection.
 9.1.0,true,tls,tls.client.certificate,keyword,extended,,MII...,PEM-encoded stand-alone certificate offered by the client.
@@ -2309,9 +2233,7 @@ ECS_Version,Indexed,Field_Set,Field,Type,Level,Normalization,Example,Description
 9.1.0,true,url,url.extension,keyword,extended,,png,"File extension from the request url, excluding the leading dot."
 9.1.0,true,url,url.fragment,keyword,extended,,,Portion of the url after the `#`.
 9.1.0,true,url,url.full,keyword,extended,,https://www.elastic.co:443/search?q=elasticsearch#top,Full unparsed URL.
-9.1.0,true,url,url.full.text,keyword,extended,,https://www.elastic.co:443/search?q=elasticsearch#top,Full unparsed URL.
 9.1.0,true,url,url.original,keyword,extended,,https://www.elastic.co:443/search?q=elasticsearch#top or /search?q=elasticsearch,Unmodified original url as seen in the event source.
-9.1.0,true,url,url.original.text,keyword,extended,,https://www.elastic.co:443/search?q=elasticsearch#top or /search?q=elasticsearch,Unmodified original url as seen in the event source.
 9.1.0,true,url,url.password,keyword,extended,,,Password of the request.
 9.1.0,true,url,url.path,keyword,extended,,,"Path of the request, such as ""/search""."
 9.1.0,true,url,url.port,long,extended,,443,"Port of the request, such as 443."
@@ -2324,38 +2246,32 @@ ECS_Version,Indexed,Field_Set,Field,Type,Level,Normalization,Example,Description
 9.1.0,true,user,user.changes.domain,keyword,extended,,,Name of the directory the user is a member of.
 9.1.0,true,user,user.changes.email,keyword,extended,,,User email address.
 9.1.0,true,user,user.changes.full_name,keyword,extended,,Albert Einstein,"User's full name, if available."
-9.1.0,true,user,user.changes.full_name.text,keyword,extended,,Albert Einstein,"User's full name, if available."
 9.1.0,true,user,user.changes.group.domain,keyword,extended,,,Name of the directory the group is a member of.
 9.1.0,true,user,user.changes.group.id,keyword,extended,,,Unique identifier for the group on the system/platform.
 9.1.0,true,user,user.changes.group.name,keyword,extended,,,Name of the group.
 9.1.0,true,user,user.changes.hash,keyword,extended,,,Unique user hash to correlate information for a user in anonymized form.
 9.1.0,true,user,user.changes.id,keyword,core,,S-1-5-21-202424912787-2692429404-2351956786-1000,Unique identifier of the user.
 9.1.0,true,user,user.changes.name,keyword,core,,a.einstein,Short name or login of the user.
-9.1.0,true,user,user.changes.name.text,keyword,core,,a.einstein,Short name or login of the user.
 9.1.0,true,user,user.changes.roles,keyword,extended,array,"[""kibana_admin"", ""reporting_user""]",Array of user roles at the time of the event.
 9.1.0,true,user,user.domain,keyword,extended,,,Name of the directory the user is a member of.
 9.1.0,true,user,user.effective.domain,keyword,extended,,,Name of the directory the user is a member of.
 9.1.0,true,user,user.effective.email,keyword,extended,,,User email address.
 9.1.0,true,user,user.effective.full_name,keyword,extended,,Albert Einstein,"User's full name, if available."
-9.1.0,true,user,user.effective.full_name.text,keyword,extended,,Albert Einstein,"User's full name, if available."
 9.1.0,true,user,user.effective.group.domain,keyword,extended,,,Name of the directory the group is a member of.
 9.1.0,true,user,user.effective.group.id,keyword,extended,,,Unique identifier for the group on the system/platform.
 9.1.0,true,user,user.effective.group.name,keyword,extended,,,Name of the group.
 9.1.0,true,user,user.effective.hash,keyword,extended,,,Unique user hash to correlate information for a user in anonymized form.
 9.1.0,true,user,user.effective.id,keyword,core,,S-1-5-21-202424912787-2692429404-2351956786-1000,Unique identifier of the user.
 9.1.0,true,user,user.effective.name,keyword,core,,a.einstein,Short name or login of the user.
-9.1.0,true,user,user.effective.name.text,keyword,core,,a.einstein,Short name or login of the user.
 9.1.0,true,user,user.effective.roles,keyword,extended,array,"[""kibana_admin"", ""reporting_user""]",Array of user roles at the time of the event.
 9.1.0,true,user,user.email,keyword,extended,,,User email address.
 9.1.0,true,user,user.full_name,keyword,extended,,Albert Einstein,"User's full name, if available."
-9.1.0,true,user,user.full_name.text,keyword,extended,,Albert Einstein,"User's full name, if available."
 9.1.0,true,user,user.group.domain,keyword,extended,,,Name of the directory the group is a member of.
 9.1.0,true,user,user.group.id,keyword,extended,,,Unique identifier for the group on the system/platform.
 9.1.0,true,user,user.group.name,keyword,extended,,,Name of the group.
 9.1.0,true,user,user.hash,keyword,extended,,,Unique user hash to correlate information for a user in anonymized form.
 9.1.0,true,user,user.id,keyword,core,,S-1-5-21-202424912787-2692429404-2351956786-1000,Unique identifier of the user.
 9.1.0,true,user,user.name,keyword,core,,a.einstein,Short name or login of the user.
-9.1.0,true,user,user.name.text,keyword,core,,a.einstein,Short name or login of the user.
 9.1.0,true,user,user.risk.calculated_level,keyword,extended,,High,A risk classification level calculated by an internal system as part of entity analytics and entity risk scoring.
 9.1.0,true,user,user.risk.calculated_score,float,extended,,880.73,A risk classification score calculated by an internal system as part of entity analytics and entity risk scoring.
 9.1.0,true,user,user.risk.calculated_score_norm,float,extended,,88.73,A normalized risk score calculated by an internal system.
@@ -2366,25 +2282,20 @@ ECS_Version,Indexed,Field_Set,Field,Type,Level,Normalization,Example,Description
 9.1.0,true,user,user.target.domain,keyword,extended,,,Name of the directory the user is a member of.
 9.1.0,true,user,user.target.email,keyword,extended,,,User email address.
 9.1.0,true,user,user.target.full_name,keyword,extended,,Albert Einstein,"User's full name, if available."
-9.1.0,true,user,user.target.full_name.text,keyword,extended,,Albert Einstein,"User's full name, if available."
 9.1.0,true,user,user.target.group.domain,keyword,extended,,,Name of the directory the group is a member of.
 9.1.0,true,user,user.target.group.id,keyword,extended,,,Unique identifier for the group on the system/platform.
 9.1.0,true,user,user.target.group.name,keyword,extended,,,Name of the group.
 9.1.0,true,user,user.target.hash,keyword,extended,,,Unique user hash to correlate information for a user in anonymized form.
 9.1.0,true,user,user.target.id,keyword,core,,S-1-5-21-202424912787-2692429404-2351956786-1000,Unique identifier of the user.
 9.1.0,true,user,user.target.name,keyword,core,,a.einstein,Short name or login of the user.
-9.1.0,true,user,user.target.name.text,keyword,core,,a.einstein,Short name or login of the user.
 9.1.0,true,user,user.target.roles,keyword,extended,array,"[""kibana_admin"", ""reporting_user""]",Array of user roles at the time of the event.
 9.1.0,true,user_agent,user_agent.device.name,keyword,extended,,iPhone,Name of the device.
 9.1.0,true,user_agent,user_agent.name,keyword,extended,,Safari,Name of the user agent.
 9.1.0,true,user_agent,user_agent.original,keyword,extended,,"Mozilla/5.0 (iPhone; CPU iPhone OS 12_1 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/12.0 Mobile/15E148 Safari/604.1",Unparsed user_agent string.
-9.1.0,true,user_agent,user_agent.original.text,keyword,extended,,"Mozilla/5.0 (iPhone; CPU iPhone OS 12_1 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/12.0 Mobile/15E148 Safari/604.1",Unparsed user_agent string.
 9.1.0,true,user_agent,user_agent.os.family,keyword,extended,,debian,"OS family (such as redhat, debian, freebsd, windows)."
 9.1.0,true,user_agent,user_agent.os.full,keyword,extended,,Mac OS Mojave,"Operating system name, including the version or code name."
-9.1.0,true,user_agent,user_agent.os.full.text,keyword,extended,,Mac OS Mojave,"Operating system name, including the version or code name."
 9.1.0,true,user_agent,user_agent.os.kernel,keyword,extended,,4.4.0-112-generic,Operating system kernel version as a raw string.
 9.1.0,true,user_agent,user_agent.os.name,keyword,extended,,Mac OS X,"Operating system name, without the version."
-9.1.0,true,user_agent,user_agent.os.name.text,keyword,extended,,Mac OS X,"Operating system name, without the version."
 9.1.0,true,user_agent,user_agent.os.platform,keyword,extended,,darwin,"Operating system platform (such centos, ubuntu, windows)."
 9.1.0,true,user_agent,user_agent.os.type,keyword,extended,,macos,"Which commercial OS family (one of: linux, macos, unix, windows, ios or android)."
 9.1.0,true,user_agent,user_agent.os.version,keyword,extended,,10.14.1,Operating system version as a raw string.
@@ -2408,7 +2319,6 @@ ECS_Version,Indexed,Field_Set,Field,Type,Level,Normalization,Example,Description
 9.1.0,true,vulnerability,vulnerability.category,keyword,extended,array,"[""Firewall""]",Category of a vulnerability.
 9.1.0,true,vulnerability,vulnerability.classification,keyword,extended,,CVSS,Classification of the vulnerability.
 9.1.0,true,vulnerability,vulnerability.description,keyword,extended,,"In macOS before 2.12.6, there is a vulnerability in the RPC...",Description of the vulnerability.
-9.1.0,true,vulnerability,vulnerability.description.text,keyword,extended,,"In macOS before 2.12.6, there is a vulnerability in the RPC...",Description of the vulnerability.
 9.1.0,true,vulnerability,vulnerability.enumeration,keyword,extended,,CVE,Identifier of the vulnerability.
 9.1.0,true,vulnerability,vulnerability.id,keyword,extended,,CVE-2019-00001,ID of the vulnerability.
 9.1.0,true,vulnerability,vulnerability.reference,keyword,extended,,https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2019-6111,Reference of the vulnerability.
