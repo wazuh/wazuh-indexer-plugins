@@ -50,7 +50,7 @@ REPO_ROOT="$(pwd)"
 
 # process a single module name
 process_module() {
-  MODULE="$1"
+  local MODULE="$1"
 
   MODULE_LIST_FILE="$REPO_ROOT/ecs/module_list.txt"
   if [[ -f "$MODULE_LIST_FILE" ]]; then
