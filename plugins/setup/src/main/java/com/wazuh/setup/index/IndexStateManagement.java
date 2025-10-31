@@ -38,8 +38,12 @@ import com.wazuh.setup.settings.PluginSettings;
 public class IndexStateManagement extends Index {
     private static final Logger log = LogManager.getLogger(IndexStateManagement.class);
 
+    // ISM index name
+    public static final String ISM_INDEX_NAME = ".opendistro-ism-config";
+
     // ISM policies names (filename without extension)
     static final String STREAM_ROLLOVER_POLICY = "stream-rollover-policy";
+    static final String STREAM_ROLLOVER_POLICY_PATH = "policies/" + STREAM_ROLLOVER_POLICY + ".json";
 
     private final List<String> policies;
 
@@ -73,7 +77,7 @@ public class IndexStateManagement extends Index {
     private void indexPolicy(String policy) {
         try {
             Map<String, Object> policyFile;
-            policyFile = this.indexUtils.fromFile("policies/" + STREAM_ROLLOVER_POLICY + ".json");
+            policyFile = this.indexUtils.fromFile(STREAM_ROLLOVER_POLICY_PATH);
 
             IndexRequest indexRequest =
                     new IndexRequest(this.index)

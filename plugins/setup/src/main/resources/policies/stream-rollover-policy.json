@@ -1,6 +1,6 @@
 {
   "policy": {
-    "policy_id": "wazuh-rollover-policy",
+    "policy_id": "stream-rollover-policy",
     "description": "Wazuh rollover policy.",
     "last_updated_time": 1577990934044,
     "schema_version": 21,

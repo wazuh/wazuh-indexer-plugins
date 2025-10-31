@@ -85,7 +85,7 @@ public class SetupPlugin extends Plugin implements ClusterPlugin {
             Supplier<RepositoriesService> repositoriesServiceSupplier) {
         // spotless:off
         // ISM index
-        this.indices.add(new IndexStateManagement(".opendistro-ism-config", "templates/ism-config"));
+        this.indices.add(new IndexStateManagement(IndexStateManagement.ISM_INDEX_NAME, "templates/ism-config"));
         // Stream indices
         this.indices.add(new StreamIndex("wazuh-alerts-v5-000001", "templates/streams/alerts", "wazuh-alerts-v5"));
         this.indices.add(new StreamIndex("wazuh-archives-v5-000001", "templates/streams/archives", "wazuh-archives-v5"));
