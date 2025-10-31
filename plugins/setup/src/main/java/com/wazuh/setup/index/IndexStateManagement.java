@@ -39,7 +39,6 @@ public class IndexStateManagement extends Index {
     private static final Logger log = LogManager.getLogger(IndexStateManagement.class);
 
     // ISM policies names (filename without extension)
-    static final String ALERTS_ROLLOVER_POLICY = "wazuh-rollover-policy";
     static final String STREAM_ROLLOVER_POLICY = "stream-rollover-policy";
 
     private final List<String> policies;
@@ -55,7 +54,7 @@ public class IndexStateManagement extends Index {
         this.policies = new ArrayList<>();
 
         // Add ISM policies to be created
-        this.policies.add(ALERTS_ROLLOVER_POLICY);
+        this.policies.add(STREAM_ROLLOVER_POLICY);
     }
 
     /**
@@ -78,7 +77,7 @@ public class IndexStateManagement extends Index {
 
             IndexRequest indexRequest =
                     new IndexRequest(this.index)
-                            .id(ALERTS_ROLLOVER_POLICY)
+                            .id(STREAM_ROLLOVER_POLICY)
                             .source(policyFile, MediaTypeRegistry.JSON);
 
             this.client

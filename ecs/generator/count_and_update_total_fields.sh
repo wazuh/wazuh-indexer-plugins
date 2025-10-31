@@ -50,7 +50,7 @@ REPO_ROOT="$(pwd)"
 
 # process a single module name
 process_module() {
-  local MODULE="$1"
+  MODULE="$1"
 
   MODULE_LIST_FILE="$REPO_ROOT/ecs/module_list.txt"
   if [[ -f "$MODULE_LIST_FILE" ]]; then
@@ -105,6 +105,7 @@ process_module() {
   }
   rm -f /tmp/jq_nested_error.log
 
+
   # compute next multiple of 500 for total fields
   PROPOSED_TOTAL=$((((TOTAL_FIELDS + 499) / 500) * 500))
 
@@ -145,9 +146,9 @@ EOF
       tmpfile=$(mktemp)
       last_hex=$(tail -c1 "$REPO_ROOT/$file" 2>/dev/null | od -An -t x1 | tr -d ' \t\n' || true)
 
-      # Update both total_fields.limit and nested_fields.limit
+      # Update total_fields.limit, only update nested_fields.limit if proposed value is greater than 50
       jq_update_cmd=".template.settings[\"mapping.total_fields.limit\"] = $PROPOSED_TOTAL"
-      if [[ $NESTED_FIELDS -gt 0 ]]; then
+      if [[ $NESTED_FIELDS -gt 0 && $PROPOSED_NESTED -gt 50 ]]; then
         jq_update_cmd="$jq_update_cmd | .template.settings[\"mapping.nested_fields.limit\"] = $PROPOSED_NESTED"
       fi
 
@@ -163,9 +164,9 @@ EOF
       tmpfile=$(mktemp)
       last_hex=$(tail -c1 "$REPO_ROOT/$file" 2>/dev/null | od -An -t x1 | tr -d ' \t\n' || true)
 
-      # Update both total_fields.limit and nested_fields.limit
+      # Update total_fields.limit, only update nested_fields.limit if proposed value is greater than 50
       jq_update_cmd=".settings[\"mapping.total_fields.limit\"] = $PROPOSED_TOTAL"
-      if [[ $NESTED_FIELDS -gt 0 ]]; then
+      if [[ $NESTED_FIELDS -gt 0 && $PROPOSED_NESTED -gt 50 ]]; then
         jq_update_cmd="$jq_update_cmd | .settings[\"mapping.nested_fields.limit\"] = $PROPOSED_NESTED"
       fi
 
