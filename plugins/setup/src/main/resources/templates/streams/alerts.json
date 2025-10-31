@@ -8655,6 +8655,7 @@
       "refresh_interval": "2s"
     },
     "mapping.total_fields.limit": 2500,
-    "plugins.index_state_management.rollover_alias": "wazuh-alerts-v5"
+    "plugins.index_state_management.rollover_alias": "wazuh-alerts-v5",
+    "mapping.nested_fields.limit": 50
   }
 }

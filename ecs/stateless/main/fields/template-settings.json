@@ -1,5 +1,7 @@
 {
-  "index_patterns": ["wazuh-alerts-v5-*"],
+  "index_patterns": [
+    "wazuh-alerts-v5-*"
+  ],
   "priority": 1,
   "template": {
     "settings": {
@@ -20,7 +22,8 @@
           "wazuh.cluster.node",
           "wazuh.schema.version"
         ]
-      }
+      },
+      "mapping.nested_fields.limit": 50
     }
   }
 }

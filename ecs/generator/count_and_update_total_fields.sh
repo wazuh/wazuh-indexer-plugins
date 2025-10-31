@@ -54,8 +54,8 @@ process_module() {
 
   MODULE_LIST_FILE="$REPO_ROOT/ecs/module_list.txt"
   INDEX_TEMPLATE_BASENAME="index-template-${MODULE}.json"
-  if [[ "$MODULE" == stateless-* ]]; then
-    short=${MODULE#stateless-}
+  if [[ "$MODULE" == stateless/* ]]; then
+    short=${MODULE#stateless/}
     INDEX_TEMPLATE_BASENAME="index-template-${short}.json"
   fi
   if [[ -f "$MODULE_LIST_FILE" ]]; then
@@ -195,7 +195,7 @@ EOF
   echo "Done. Files updated."
 }
 
-# If PROCESS_ALL, read module_list and process only stateless-* modules
+# If PROCESS_ALL, read module_list and process only stateless/ modules
 if $PROCESS_ALL; then
   MODULE_LIST_FILE="$REPO_ROOT/ecs/module_list.txt"
   if [[ ! -f "$MODULE_LIST_FILE" ]]; then
@@ -210,17 +210,17 @@ if $PROCESS_ALL; then
   fi
 
   mapfile -t MODULES < <(echo "$modules_block" | grep -oP '\[\K[^\]]+(?=\])' || true)
-  # Keep only stateless- modules
+  # Keep only stateless/ modules
   filtered=()
   for m in "${MODULES[@]:-}"; do
-    if [[ "$m" == stateless-* ]]; then
+    if [[ "$m" == stateless/* ]]; then
       filtered+=("$m")
     fi
   done
   MODULES=("${filtered[@]}")
 
   if [[ ${#MODULES[@]} -eq 0 ]]; then
-    echo "No stateless-* modules found in $MODULE_LIST_FILE" >&2
+    echo "No stateless/* modules found in $MODULE_LIST_FILE" >&2
     exit 1
   fi
 
