@@ -48,8 +48,8 @@ remove_multi_fields() {
     .mappings.properties.process.properties.user.properties.name.fields,
     .mappings.properties.process.properties.executable.fields,
     .mappings.properties.process.properties.working_directory.fields
-  )' "$in_file" > "$out_file"
-    mv "$out_file" "$in_file"
+  )' "$in_file" >"$out_file"
+  mv "$out_file" "$in_file"
 }
 
 # Function to get the OpenTelemetry semantic conventions version for a given ECS version
@@ -59,7 +59,7 @@ get_otel_version() {
 }
 
 # Nested fields under the gen_ai.request and gen_ai.response are set to nested
-# type, but do not contain any sub-fields. This causes failures when creating a 
+# type, but do not contain any sub-fields. This causes failures when creating a
 # detector in the Security Analytics plugin. We change their type to keyword array,
 # following the OpenTelemetry documentation for gen_ai fields.
 # Reference: https://github.com/wazuh/wazuh-indexer-plugins/issues/607
@@ -70,7 +70,7 @@ fix_gen_ai_nested_fields() {
   echo "Fixing gen_ai nested fields in $in_file"
   jq '(.mappings.properties.gen_ai.properties.request.properties.encoding_formats.type) = "keyword" |
       (.mappings.properties.gen_ai.properties.request.properties.stop_sequences.type) = "keyword" |
-      (.mappings.properties.gen_ai.properties.response.properties.finish_reasons.type) = "keyword"' "$in_file" > "${in_file}.tmp"
+      (.mappings.properties.gen_ai.properties.response.properties.finish_reasons.type) = "keyword"' "$in_file" >"${in_file}.tmp"
   mv "${in_file}.tmp" "$in_file"
 
   echo "Fixing gen_ai nested fields in $csv_file"
@@ -113,8 +113,8 @@ generate_mappings() {
   find "$out_dir" -type f -exec sed -i 's/wildcard/keyword/g' {} \;
   find "$out_dir" -type f -exec sed -i 's/match_only_text/keyword/g' {} \;
   find "$out_dir" -type f -exec sed -i 's/flattened/flat_object/g' {} \;
-#   find "$out_dir" -type f -exec sed -i 's/scaled_float/float/g' {} \;
-#   find "$out_dir" -type f -exec sed -i '/scaling_factor/d' {} \;
+  #   find "$out_dir" -type f -exec sed -i 's/scaled_float/float/g' {} \;
+  #   find "$out_dir" -type f -exec sed -i '/scaling_factor/d' {} \;
 
   local in_file="$out_dir/generated/elasticsearch/legacy/template.json"
   local out_file="$out_dir/generated/elasticsearch/legacy/template-tmp.json"
@@ -132,12 +132,12 @@ generate_mappings() {
   if [[ "$ecs_module" != stateless* ]]; then
     # Delete the "tags" field from the index template
     echo "Deleting the \"tags\" field from the index template"
-    jq 'del(.mappings.properties.tags)' "$in_file" > "$out_file"
+    jq 'del(.mappings.properties.tags)' "$in_file" >"$out_file"
     mv "$out_file" "$in_file"
 
     # Delete the "@timestamp" field from the index template
     echo "Deleting the \"@timestamp\" field from the index template"
-    jq 'del(.mappings.properties."@timestamp")' "$in_file" > "$out_file"
+    jq 'del(.mappings.properties."@timestamp")' "$in_file" >"$out_file"
     mv "$out_file" "$in_file"
 
     # Delete the "@timestamp" field from the csv file
@@ -161,7 +161,7 @@ generate_mappings() {
       "settings": .settings,
       "mappings": .mappings
     }
-  }' "$in_file" > "$out_dir/generated/elasticsearch/legacy/opensearch-template.json"
+  }' "$in_file" >"$out_dir/generated/elasticsearch/legacy/opensearch-template.json"
 
   echo "Mappings saved to $out_dir"
 }

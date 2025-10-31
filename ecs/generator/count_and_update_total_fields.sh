@@ -73,7 +73,7 @@ process_module() {
   TEMPLATE_SETTINGS="ecs/${MODULE}/fields/template-settings.json"
   TEMPLATE_SETTINGS_LEGACY="ecs/${MODULE}/fields/template-settings-legacy.json"
 
-  if ! command -v jq &> /dev/null; then
+  if ! command -v jq &>/dev/null; then
     echo "Error: 'jq' is required but not installed." >&2
     exit 1
   fi
@@ -94,7 +94,7 @@ process_module() {
   # jq filter to count nested fields
   JQ_NESTED_FILTER='def count_nested: [ .. | objects | select(.type == "nested") ] | length; .mappings.properties | count_nested'
 
-  TOTAL_FIELDS=$(jq -r "$JQ_FILTER" "$REPO_ROOT/$INDEX_TEMPLATE_PATH" 2> /tmp/jq_error.log) || {
+  TOTAL_FIELDS=$(jq -r "$JQ_FILTER" "$REPO_ROOT/$INDEX_TEMPLATE_PATH" 2>/tmp/jq_error.log) || {
     echo "Error: Could not parse JSON or find .mappings.properties in $INDEX_TEMPLATE_PATH" >&2
     cat /tmp/jq_error.log >&2 || true
     rm -f /tmp/jq_error.log
@@ -102,7 +102,7 @@ process_module() {
   }
   rm -f /tmp/jq_error.log
 
-  NESTED_FIELDS=$(jq -r "$JQ_NESTED_FILTER" "$REPO_ROOT/$INDEX_TEMPLATE_PATH" 2> /tmp/jq_nested_error.log) || {
+  NESTED_FIELDS=$(jq -r "$JQ_NESTED_FILTER" "$REPO_ROOT/$INDEX_TEMPLATE_PATH" 2>/tmp/jq_nested_error.log) || {
     echo "Error: Could not count nested fields in $INDEX_TEMPLATE_PATH" >&2
     cat /tmp/jq_nested_error.log >&2 || true
     rm -f /tmp/jq_nested_error.log
@@ -111,11 +111,11 @@ process_module() {
   rm -f /tmp/jq_nested_error.log
 
   # compute next multiple of 500 for total fields
-  PROPOSED_TOTAL=$(( ( (TOTAL_FIELDS + 499) / 500 ) * 500 ))
+  PROPOSED_TOTAL=$((((TOTAL_FIELDS + 499) / 500) * 500))
 
   # compute next multiple of 50 for nested fields (smaller increment due to lower typical counts)
-  PROPOSED_NESTED=$(( ( (NESTED_FIELDS + 49) / 50 ) * 50 ))
-  
+  PROPOSED_NESTED=$((((NESTED_FIELDS + 49) / 50) * 50))
+
   # Ensure minimum of 50 for nested fields if any nested fields exist
   if [[ $NESTED_FIELDS -gt 0 && $PROPOSED_NESTED -lt 50 ]]; then
     PROPOSED_NESTED=50
@@ -142,47 +142,47 @@ EOF
       echo "Skipping missing file: $file" >&2
       return
     fi
-    
+
     local updated=false
-    
+
     # Handle .template.settings structure
-    if jq -e '.template? and .template.settings?' "$REPO_ROOT/$file" > /dev/null 2>&1; then
+    if jq -e '.template? and .template.settings?' "$REPO_ROOT/$file" >/dev/null 2>&1; then
       tmpfile=$(mktemp)
-      last_hex=$(tail -c1 "$REPO_ROOT/$file" 2> /dev/null | od -An -t x1 | tr -d ' \t\n' || true)
-      
+      last_hex=$(tail -c1 "$REPO_ROOT/$file" 2>/dev/null | od -An -t x1 | tr -d ' \t\n' || true)
+
       # Update both total_fields.limit and nested_fields.limit
       jq_update_cmd=".template.settings[\"mapping.total_fields.limit\"] = $PROPOSED_TOTAL"
       if [[ $NESTED_FIELDS -gt 0 ]]; then
         jq_update_cmd="$jq_update_cmd | .template.settings[\"mapping.nested_fields.limit\"] = $PROPOSED_NESTED"
       fi
-      
-      jq "$jq_update_cmd" "$REPO_ROOT/$file" > "$tmpfile"
+
+      jq "$jq_update_cmd" "$REPO_ROOT/$file" >"$tmpfile"
       if [[ -n "$last_hex" && "$last_hex" != "0a" ]]; then
-        perl -0777 -pe 's/\n\z//' "$tmpfile" > "${tmpfile}.fix" && mv "${tmpfile}.fix" "$tmpfile"
+        perl -0777 -pe 's/\n\z//' "$tmpfile" >"${tmpfile}.fix" && mv "${tmpfile}.fix" "$tmpfile"
       fi
       mv "$tmpfile" "$REPO_ROOT/$file"
       echo "Updated $file -> total_fields: $PROPOSED_TOTAL, nested_fields: $PROPOSED_NESTED"
       updated=true
-    # Handle .settings structure  
-    elif jq -e '.settings?' "$REPO_ROOT/$file" > /dev/null 2>&1; then
+    # Handle .settings structure
+    elif jq -e '.settings?' "$REPO_ROOT/$file" >/dev/null 2>&1; then
       tmpfile=$(mktemp)
-      last_hex=$(tail -c1 "$REPO_ROOT/$file" 2> /dev/null | od -An -t x1 | tr -d ' \t\n' || true)
-      
+      last_hex=$(tail -c1 "$REPO_ROOT/$file" 2>/dev/null | od -An -t x1 | tr -d ' \t\n' || true)
+
       # Update both total_fields.limit and nested_fields.limit
       jq_update_cmd=".settings[\"mapping.total_fields.limit\"] = $PROPOSED_TOTAL"
       if [[ $NESTED_FIELDS -gt 0 ]]; then
         jq_update_cmd="$jq_update_cmd | .settings[\"mapping.nested_fields.limit\"] = $PROPOSED_NESTED"
       fi
-      
-      jq "$jq_update_cmd" "$REPO_ROOT/$file" > "$tmpfile"
+
+      jq "$jq_update_cmd" "$REPO_ROOT/$file" >"$tmpfile"
       if [[ -n "$last_hex" && "$last_hex" != "0a" ]]; then
-        perl -0777 -pe 's/\n\z//' "$tmpfile" > "${tmpfile}.fix" && mv "${tmpfile}.fix" "$tmpfile"
+        perl -0777 -pe 's/\n\z//' "$tmpfile" >"${tmpfile}.fix" && mv "${tmpfile}.fix" "$tmpfile"
       fi
       mv "$tmpfile" "$REPO_ROOT/$file"
       echo "Updated $file -> total_fields: $PROPOSED_TOTAL, nested_fields: $PROPOSED_NESTED"
       updated=true
     fi
-    
+
     if [[ "$updated" == "false" ]]; then
       echo "No mapping limits found in $file. Skipping." >&2
     fi
@@ -233,4 +233,3 @@ fi
 # Otherwise process the single module provided as ARG1
 MODULE="$ARG1"
 process_module "$MODULE" || exit $?
-
