@@ -16,21 +16,7 @@ from dataclasses import dataclass
 
 LOG_FILE = f"schema_sanitizer.log"
 
-# Type mappings from ECS types to WCS-compatible types
-TYPE_MAPPINGS = {
-    'constant_keyword': 'keyword',
-    'wildcard': 'keyword',
-    'match_only_text': 'keyword',
-    'flattened': 'flat_object',
-}
-
-# Special field type mappings for specific known fields
-SPECIFIC_OBJECTS_TYPE_MAPPINGS = {
-    'gen_ai.request.encoding_formats': 'keyword',
-    'gen_ai.request.stop_sequences': 'keyword',
-    'gen_ai.response.finish_reasons': 'keyword'
-}
-
+# File search patterns for ECS YAML files
 SEARCH_PATTERNS = [
     "schemas/**/*.yml",
     "**/schemas/**/*.yml",
@@ -38,6 +24,22 @@ SEARCH_PATTERNS = [
     "**/generated/**/*.yml",
 ]
 
+# Type mappings from ECS types to WCS-compatible types
+TYPES_TO_REMAP = {
+    'constant_keyword': 'keyword',
+    'wildcard': 'keyword',
+    'match_only_text': 'keyword',
+    'flattened': 'flat_object',
+}
+
+# Specific field type remappings
+OBJECT_TYPES_TO_REMAP = {
+    'gen_ai.request.encoding_formats': 'keyword',
+    'gen_ai.request.stop_sequences': 'keyword',
+    'gen_ai.response.finish_reasons': 'keyword'
+}
+
+# Fields to be removed from the schema
 FIELDS_TO_REMOVE = [
     "synthetic_source_keep",
     "tags",
@@ -87,14 +89,14 @@ class SchemaSanitizer:
             original_type = field_data['type']
 
             # Apply specific fixes
-            if field_path in SPECIFIC_OBJECTS_TYPE_MAPPINGS:
-                field_data['type'] = SPECIFIC_OBJECTS_TYPE_MAPPINGS[field_path]
+            if field_path in OBJECT_TYPES_TO_REMAP:
+                field_data['type'] = OBJECT_TYPES_TO_REMAP[field_path]
                 self.log.debug(f"Fixed field: {field_path} ({original_type} -> {field_data['type']})")
                 self.stats.specific_fixes += 1
                 modified = True
             # Apply general type mappings
-            elif original_type in TYPE_MAPPINGS:
-                field_data['type'] = TYPE_MAPPINGS[original_type]
+            elif original_type in TYPES_TO_REMAP:
+                field_data['type'] = TYPES_TO_REMAP[original_type]
                 self.log.debug(f"Modified field: {field_path} ({original_type} -> {field_data['type']})")
                 self.stats.field_type_changes += 1
                 modified = True
@@ -104,8 +106,8 @@ class SchemaSanitizer:
             for multi_field in field_data['multi_fields']:
                 if isinstance(multi_field, dict) and 'type' in multi_field:
                     original_type = multi_field['type']
-                    if original_type in TYPE_MAPPINGS:
-                        multi_field['type'] = TYPE_MAPPINGS[original_type]
+                    if original_type in TYPES_TO_REMAP:
+                        multi_field['type'] = TYPES_TO_REMAP[original_type]
                         multi_field_path = f"{field_path}.{multi_field.get('name', 'multi_field')}"
                         self.log.debug(f"Modified multi-field: {multi_field_path} ({original_type} -> {multi_field['type']})")
                         self.stats.field_type_changes += 1
