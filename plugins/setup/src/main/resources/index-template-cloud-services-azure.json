@@ -6,9 +6,6 @@
     "date_detection": false,
     "dynamic": "false",
     "properties": {
-      "@timestamp": {
-        "type": "date"
-      },
       "agent": {
         "properties": {
           "build": {
@@ -142,7 +139,6 @@
               },
               "mac": {
                 "ignore_above": 1024,
-                "synthetic_source_keep": "none",
                 "type": "keyword"
               },
               "memory": {
@@ -219,7 +215,8 @@
                   "full": {
                     "fields": {
                       "text": {
-                        "type": "match_only_text"
+                        "ignore_above": 1024,
+                        "type": "keyword"
                       }
                     },
                     "ignore_above": 1024,
@@ -232,7 +229,8 @@
                   "name": {
                     "fields": {
                       "text": {
-                        "type": "match_only_text"
+                        "ignore_above": 1024,
+                        "type": "keyword"
                       }
                     },
                     "ignore_above": 1024,
@@ -2639,7 +2637,8 @@
                   "name": {
                     "fields": {
                       "text": {
-                        "type": "match_only_text"
+                        "ignore_above": 1024,
+                        "type": "keyword"
                       }
                     },
                     "ignore_above": 1024,
@@ -2747,7 +2746,8 @@
               "full_name": {
                 "fields": {
                   "text": {
-                    "type": "match_only_text"
+                    "ignore_above": 1024,
+                    "type": "keyword"
                   }
                 },
                 "ignore_above": 1024,
@@ -2780,7 +2780,8 @@
               "name": {
                 "fields": {
                   "text": {
-                    "type": "match_only_text"
+                    "ignore_above": 1024,
+                    "type": "keyword"
                   }
                 },
                 "ignore_above": 1024,
@@ -2788,7 +2789,6 @@
               },
               "roles": {
                 "ignore_above": 1024,
-                "synthetic_source_keep": "none",
                 "type": "keyword"
               }
             }
@@ -3047,7 +3047,6 @@
               },
               "tag": {
                 "ignore_above": 1024,
-                "synthetic_source_keep": "none",
                 "type": "keyword"
               }
             }
@@ -3101,13 +3100,16 @@
       "data_stream": {
         "properties": {
           "dataset": {
-            "type": "constant_keyword"
+            "ignore_above": 1024,
+            "type": "keyword"
           },
           "namespace": {
-            "type": "constant_keyword"
+            "ignore_above": 1024,
+            "type": "keyword"
           },
           "type": {
-            "type": "constant_keyword"
+            "ignore_above": 1024,
+            "type": "keyword"
           }
         }
       },
@@ -3127,7 +3129,8 @@
                   "name": {
                     "fields": {
                       "text": {
-                        "type": "match_only_text"
+                        "ignore_above": 1024,
+                        "type": "keyword"
                       }
                     },
                     "ignore_above": 1024,
@@ -3239,7 +3242,8 @@
               "full_name": {
                 "fields": {
                   "text": {
-                    "type": "match_only_text"
+                    "ignore_above": 1024,
+                    "type": "keyword"
                   }
                 },
                 "ignore_above": 1024,
@@ -3272,7 +3276,8 @@
               "name": {
                 "fields": {
                   "text": {
-                    "type": "match_only_text"
+                    "ignore_above": 1024,
+                    "type": "keyword"
                   }
                 },
                 "ignore_above": 1024,
@@ -3280,7 +3285,6 @@
               },
               "roles": {
                 "ignore_above": 1024,
-                "synthetic_source_keep": "none",
                 "type": "keyword"
               }
             }
@@ -3436,7 +3440,7 @@
                 "type": "keyword"
               },
               "go_imports": {
-                "type": "flattened"
+                "type": "flat_object"
               },
               "go_imports_names_entropy": {
                 "type": "long"
@@ -3456,7 +3460,7 @@
                 "type": "keyword"
               },
               "imports": {
-                "type": "flattened"
+                "type": "flat_object"
               },
               "imports_names_entropy": {
                 "type": "long"
@@ -3529,7 +3533,6 @@
           },
           "header_flags": {
             "ignore_above": 1024,
-            "synthetic_source_keep": "none",
             "type": "keyword"
           },
           "id": {
@@ -3647,7 +3650,6 @@
             "properties": {
               "address": {
                 "ignore_above": 1024,
-                "synthetic_source_keep": "none",
                 "type": "keyword"
               }
             }
@@ -3656,7 +3658,6 @@
             "properties": {
               "address": {
                 "ignore_above": 1024,
-                "synthetic_source_keep": "none",
                 "type": "keyword"
               }
             }
@@ -3676,7 +3677,6 @@
             "properties": {
               "address": {
                 "ignore_above": 1024,
-                "synthetic_source_keep": "none",
                 "type": "keyword"
               }
             }
@@ -3686,7 +3686,8 @@
             "type": "keyword"
           },
           "message_id": {
-            "type": "wildcard"
+            "ignore_above": 1024,
+            "type": "keyword"
           },
           "origination_timestamp": {
             "type": "date"
@@ -3695,7 +3696,6 @@
             "properties": {
               "address": {
                 "ignore_above": 1024,
-                "synthetic_source_keep": "none",
                 "type": "keyword"
               }
             }
@@ -3704,7 +3704,6 @@
             "properties": {
               "address": {
                 "ignore_above": 1024,
-                "synthetic_source_keep": "none",
                 "type": "keyword"
               }
             }
@@ -3712,7 +3711,8 @@
           "subject": {
             "fields": {
               "text": {
-                "type": "match_only_text"
+                "ignore_above": 1024,
+                "type": "keyword"
               }
             },
             "ignore_above": 1024,
@@ -3722,7 +3722,6 @@
             "properties": {
               "address": {
                 "ignore_above": 1024,
-                "synthetic_source_keep": "none",
                 "type": "keyword"
               }
             }
@@ -3744,15 +3743,18 @@
             "type": "keyword"
           },
           "message": {
-            "type": "match_only_text"
+            "ignore_above": 1024,
+            "type": "keyword"
           },
           "stack_trace": {
             "fields": {
               "text": {
-                "type": "match_only_text"
+                "ignore_above": 1024,
+                "type": "keyword"
               }
             },
-            "type": "wildcard"
+            "ignore_above": 1024,
+            "type": "keyword"
           },
           "type": {
             "ignore_above": 1024,
@@ -3772,7 +3774,6 @@
           },
           "category": {
             "ignore_above": 1024,
-            "synthetic_source_keep": "none",
             "type": "keyword"
           },
           "changed_fields": {
@@ -3861,7 +3862,6 @@
           },
           "type": {
             "ignore_above": 1024,
-            "synthetic_source_keep": "none",
             "type": "keyword"
           },
           "url": {
@@ -3912,7 +3912,6 @@
           },
           "attributes": {
             "ignore_above": 1024,
-            "synthetic_source_keep": "none",
             "type": "keyword"
           },
           "code_signature": {
@@ -3995,14 +3994,14 @@
                 "type": "date"
               },
               "exports": {
-                "type": "flattened"
+                "type": "flat_object"
               },
               "go_import_hash": {
                 "ignore_above": 1024,
                 "type": "keyword"
               },
               "go_imports": {
-                "type": "flattened"
+                "type": "flat_object"
               },
               "go_imports_names_entropy": {
                 "type": "long"
@@ -4053,7 +4052,7 @@
                 "type": "keyword"
               },
               "imports": {
-                "type": "flattened"
+                "type": "flat_object"
               },
               "imports_names_entropy": {
                 "type": "long"
@@ -4186,7 +4185,7 @@
                 "type": "keyword"
               },
               "go_imports": {
-                "type": "flattened"
+                "type": "flat_object"
               },
               "go_imports_names_entropy": {
                 "type": "long"
@@ -4202,7 +4201,7 @@
                 "type": "keyword"
               },
               "imports": {
-                "type": "flattened"
+                "type": "flat_object"
               },
               "imports_names_entropy": {
                 "type": "long"
@@ -4267,7 +4266,8 @@
           "path": {
             "fields": {
               "text": {
-                "type": "match_only_text"
+                "ignore_above": 1024,
+                "type": "keyword"
               }
             },
             "ignore_above": 1024,
@@ -4296,7 +4296,7 @@
                 "type": "keyword"
               },
               "go_imports": {
-                "type": "flattened"
+                "type": "flat_object"
               },
               "go_imports_names_entropy": {
                 "type": "long"
@@ -4316,7 +4316,7 @@
                 "type": "keyword"
               },
               "imports": {
-                "type": "flattened"
+                "type": "flat_object"
               },
               "imports_names_entropy": {
                 "type": "long"
@@ -4365,7 +4365,8 @@
           "target_path": {
             "fields": {
               "text": {
-                "type": "match_only_text"
+                "ignore_above": 1024,
+                "type": "keyword"
               }
             },
             "ignore_above": 1024,
@@ -4754,7 +4755,6 @@
           },
           "mac": {
             "ignore_above": 1024,
-            "synthetic_source_keep": "none",
             "type": "keyword"
           },
           "memory": {
@@ -4831,7 +4831,8 @@
               "full": {
                 "fields": {
                   "text": {
-                    "type": "match_only_text"
+                    "ignore_above": 1024,
+                    "type": "keyword"
                   }
                 },
                 "ignore_above": 1024,
@@ -4844,7 +4845,8 @@
               "name": {
                 "fields": {
                   "text": {
-                    "type": "match_only_text"
+                    "ignore_above": 1024,
+                    "type": "keyword"
                   }
                 },
                 "ignore_above": 1024,
@@ -4913,10 +4915,12 @@
                   "content": {
                     "fields": {
                       "text": {
-                        "type": "match_only_text"
+                        "ignore_above": 1024,
+                        "type": "keyword"
                       }
                     },
-                    "type": "wildcard"
+                    "ignore_above": 1024,
+                    "type": "keyword"
                   }
                 }
               },
@@ -4951,10 +4955,12 @@
                   "content": {
                     "fields": {
                       "text": {
-                        "type": "match_only_text"
+                        "ignore_above": 1024,
+                        "type": "keyword"
                       }
                     },
-                    "type": "wildcard"
+                    "ignore_above": 1024,
+                    "type": "keyword"
                   }
                 }
               },
@@ -5087,7 +5093,7 @@
                 }
               },
               "structured_data": {
-                "type": "flattened"
+                "type": "flat_object"
               },
               "version": {
                 "ignore_above": 1024,
@@ -5099,7 +5105,8 @@
         }
       },
       "message": {
-        "type": "match_only_text"
+        "ignore_above": 1024,
+        "type": "keyword"
       },
       "metricset": {
         "properties": {
@@ -5391,7 +5398,6 @@
           },
           "mac": {
             "ignore_above": 1024,
-            "synthetic_source_keep": "none",
             "type": "keyword"
           },
           "name": {
@@ -5407,7 +5413,8 @@
               "full": {
                 "fields": {
                   "text": {
-                    "type": "match_only_text"
+                    "ignore_above": 1024,
+                    "type": "keyword"
                   }
                 },
                 "ignore_above": 1024,
@@ -5420,7 +5427,8 @@
               "name": {
                 "fields": {
                   "text": {
-                    "type": "match_only_text"
+                    "ignore_above": 1024,
+                    "type": "keyword"
                   }
                 },
                 "ignore_above": 1024,
@@ -5500,7 +5508,6 @@
             "properties": {
               "annotation": {
                 "ignore_above": 1024,
-                "synthetic_source_keep": "none",
                 "type": "keyword"
               },
               "id": {
@@ -5512,7 +5519,6 @@
               },
               "label": {
                 "ignore_above": 1024,
-                "synthetic_source_keep": "none",
                 "type": "keyword"
               },
               "name": {
@@ -5548,7 +5554,8 @@
           "name": {
             "fields": {
               "text": {
-                "type": "match_only_text"
+                "ignore_above": 1024,
+                "type": "keyword"
               }
             },
             "ignore_above": 1024,
@@ -5690,10 +5697,12 @@
           "command_line": {
             "fields": {
               "text": {
-                "type": "match_only_text"
+                "ignore_above": 1024,
+                "type": "keyword"
               }
             },
-            "type": "wildcard"
+            "ignore_above": 1024,
+            "type": "keyword"
           },
           "elf": {
             "properties": {
@@ -5713,14 +5722,14 @@
                 "type": "date"
               },
               "exports": {
-                "type": "flattened"
+                "type": "flat_object"
               },
               "go_import_hash": {
                 "ignore_above": 1024,
                 "type": "keyword"
               },
               "go_imports": {
-                "type": "flattened"
+                "type": "flat_object"
               },
               "go_imports_names_entropy": {
                 "type": "long"
@@ -5771,7 +5780,7 @@
                 "type": "keyword"
               },
               "imports": {
-                "type": "flattened"
+                "type": "flat_object"
               },
               "imports_names_entropy": {
                 "type": "long"
@@ -5874,7 +5883,8 @@
                   "name": {
                     "fields": {
                       "text": {
-                        "type": "match_only_text"
+                        "ignore_above": 1024,
+                        "type": "keyword"
                       }
                     },
                     "ignore_above": 1024,
@@ -5885,10 +5895,12 @@
               "command_line": {
                 "fields": {
                   "text": {
-                    "type": "match_only_text"
+                    "ignore_above": 1024,
+                    "type": "keyword"
                   }
                 },
-                "type": "wildcard"
+                "ignore_above": 1024,
+                "type": "keyword"
               },
               "entity_id": {
                 "ignore_above": 1024,
@@ -5912,7 +5924,8 @@
               "executable": {
                 "fields": {
                   "text": {
-                    "type": "match_only_text"
+                    "ignore_above": 1024,
+                    "type": "keyword"
                   }
                 },
                 "ignore_above": 1024,
@@ -5936,7 +5949,8 @@
               "name": {
                 "fields": {
                   "text": {
-                    "type": "match_only_text"
+                    "ignore_above": 1024,
+                    "type": "keyword"
                   }
                 },
                 "ignore_above": 1024,
@@ -6000,7 +6014,8 @@
                   "name": {
                     "fields": {
                       "text": {
-                        "type": "match_only_text"
+                        "ignore_above": 1024,
+                        "type": "keyword"
                       }
                     },
                     "ignore_above": 1024,
@@ -6032,7 +6047,8 @@
                   "name": {
                     "fields": {
                       "text": {
-                        "type": "match_only_text"
+                        "ignore_above": 1024,
+                        "type": "keyword"
                       }
                     },
                     "ignore_above": 1024,
@@ -6079,7 +6095,8 @@
                   "name": {
                     "fields": {
                       "text": {
-                        "type": "match_only_text"
+                        "ignore_above": 1024,
+                        "type": "keyword"
                       }
                     },
                     "ignore_above": 1024,
@@ -6093,7 +6110,8 @@
               "working_directory": {
                 "fields": {
                   "text": {
-                    "type": "match_only_text"
+                    "ignore_above": 1024,
+                    "type": "keyword"
                   }
                 },
                 "ignore_above": 1024,
@@ -6103,13 +6121,13 @@
           },
           "env_vars": {
             "ignore_above": 1024,
-            "synthetic_source_keep": "none",
             "type": "keyword"
           },
           "executable": {
             "fields": {
               "text": {
-                "type": "match_only_text"
+                "ignore_above": 1024,
+                "type": "keyword"
               }
             },
             "ignore_above": 1024,
@@ -6142,10 +6160,12 @@
               "command_line": {
                 "fields": {
                   "text": {
-                    "type": "match_only_text"
+                    "ignore_above": 1024,
+                    "type": "keyword"
                   }
                 },
-                "type": "wildcard"
+                "ignore_above": 1024,
+                "type": "keyword"
               },
               "entity_id": {
                 "ignore_above": 1024,
@@ -6154,7 +6174,8 @@
               "executable": {
                 "fields": {
                   "text": {
-                    "type": "match_only_text"
+                    "ignore_above": 1024,
+                    "type": "keyword"
                   }
                 },
                 "ignore_above": 1024,
@@ -6178,7 +6199,8 @@
               "name": {
                 "fields": {
                   "text": {
-                    "type": "match_only_text"
+                    "ignore_above": 1024,
+                    "type": "keyword"
                   }
                 },
                 "ignore_above": 1024,
@@ -6208,7 +6230,8 @@
                   "name": {
                     "fields": {
                       "text": {
-                        "type": "match_only_text"
+                        "ignore_above": 1024,
+                        "type": "keyword"
                       }
                     },
                     "ignore_above": 1024,
@@ -6240,7 +6263,8 @@
                   "name": {
                     "fields": {
                       "text": {
-                        "type": "match_only_text"
+                        "ignore_above": 1024,
+                        "type": "keyword"
                       }
                     },
                     "ignore_above": 1024,
@@ -6287,7 +6311,8 @@
                   "name": {
                     "fields": {
                       "text": {
-                        "type": "match_only_text"
+                        "ignore_above": 1024,
+                        "type": "keyword"
                       }
                     },
                     "ignore_above": 1024,
@@ -6301,7 +6326,8 @@
               "working_directory": {
                 "fields": {
                   "text": {
-                    "type": "match_only_text"
+                    "ignore_above": 1024,
+                    "type": "keyword"
                   }
                 },
                 "ignore_above": 1024,
@@ -6365,7 +6391,8 @@
                 "type": "boolean"
               },
               "text": {
-                "type": "wildcard"
+                "ignore_above": 1024,
+                "type": "keyword"
               },
               "total_bytes_captured": {
                 "type": "long"
@@ -6387,7 +6414,7 @@
                 "type": "keyword"
               },
               "go_imports": {
-                "type": "flattened"
+                "type": "flat_object"
               },
               "go_imports_names_entropy": {
                 "type": "long"
@@ -6403,7 +6430,7 @@
                 "type": "keyword"
               },
               "imports": {
-                "type": "flattened"
+                "type": "flat_object"
               },
               "imports_names_entropy": {
                 "type": "long"
@@ -6441,7 +6468,8 @@
           "name": {
             "fields": {
               "text": {
-                "type": "match_only_text"
+                "ignore_above": 1024,
+                "type": "keyword"
               }
             },
             "ignore_above": 1024,
@@ -6503,10 +6531,12 @@
               "command_line": {
                 "fields": {
                   "text": {
-                    "type": "match_only_text"
+                    "ignore_above": 1024,
+                    "type": "keyword"
                   }
                 },
-                "type": "wildcard"
+                "ignore_above": 1024,
+                "type": "keyword"
               },
               "elf": {
                 "properties": {
@@ -6526,14 +6556,14 @@
                     "type": "date"
                   },
                   "exports": {
-                    "type": "flattened"
+                    "type": "flat_object"
                   },
                   "go_import_hash": {
                     "ignore_above": 1024,
                     "type": "keyword"
                   },
                   "go_imports": {
-                    "type": "flattened"
+                    "type": "flat_object"
                   },
                   "go_imports_names_entropy": {
                     "type": "long"
@@ -6584,7 +6614,7 @@
                     "type": "keyword"
                   },
                   "imports": {
-                    "type": "flattened"
+                    "type": "flat_object"
                   },
                   "imports_names_entropy": {
                     "type": "long"
@@ -6664,7 +6694,8 @@
               "executable": {
                 "fields": {
                   "text": {
-                    "type": "match_only_text"
+                    "ignore_above": 1024,
+                    "type": "keyword"
                   }
                 },
                 "ignore_above": 1024,
@@ -6748,7 +6779,7 @@
                     "type": "keyword"
                   },
                   "go_imports": {
-                    "type": "flattened"
+                    "type": "flat_object"
                   },
                   "go_imports_names_entropy": {
                     "type": "long"
@@ -6764,7 +6795,7 @@
                     "type": "keyword"
                   },
                   "imports": {
-                    "type": "flattened"
+                    "type": "flat_object"
                   },
                   "imports_names_entropy": {
                     "type": "long"
@@ -6802,7 +6833,8 @@
               "name": {
                 "fields": {
                   "text": {
-                    "type": "match_only_text"
+                    "ignore_above": 1024,
+                    "type": "keyword"
                   }
                 },
                 "ignore_above": 1024,
@@ -6831,7 +6863,7 @@
                     "type": "keyword"
                   },
                   "go_imports": {
-                    "type": "flattened"
+                    "type": "flat_object"
                   },
                   "go_imports_names_entropy": {
                     "type": "long"
@@ -6851,7 +6883,7 @@
                     "type": "keyword"
                   },
                   "imports": {
-                    "type": "flattened"
+                    "type": "flat_object"
                   },
                   "imports_names_entropy": {
                     "type": "long"
@@ -6918,7 +6950,8 @@
                   "name": {
                     "fields": {
                       "text": {
-                        "type": "match_only_text"
+                        "ignore_above": 1024,
+                        "type": "keyword"
                       }
                     },
                     "ignore_above": 1024,
@@ -6947,7 +6980,8 @@
                   "name": {
                     "fields": {
                       "text": {
-                        "type": "match_only_text"
+                        "ignore_above": 1024,
+                        "type": "keyword"
                       }
                     },
                     "ignore_above": 1024,
@@ -6976,12 +7010,10 @@
                     "properties": {
                       "effective": {
                         "ignore_above": 1024,
-                        "synthetic_source_keep": "none",
                         "type": "keyword"
                       },
                       "permitted": {
                         "ignore_above": 1024,
-                        "synthetic_source_keep": "none",
                         "type": "keyword"
                       }
                     }
@@ -6998,7 +7030,8 @@
               "title": {
                 "fields": {
                   "text": {
-                    "type": "match_only_text"
+                    "ignore_above": 1024,
+                    "type": "keyword"
                   }
                 },
                 "ignore_above": 1024,
@@ -7031,7 +7064,8 @@
                   "name": {
                     "fields": {
                       "text": {
-                        "type": "match_only_text"
+                        "ignore_above": 1024,
+                        "type": "keyword"
                       }
                     },
                     "ignore_above": 1024,
@@ -7045,7 +7079,8 @@
               "working_directory": {
                 "fields": {
                   "text": {
-                    "type": "match_only_text"
+                    "ignore_above": 1024,
+                    "type": "keyword"
                   }
                 },
                 "ignore_above": 1024,
@@ -7076,7 +7111,7 @@
                 "type": "keyword"
               },
               "go_imports": {
-                "type": "flattened"
+                "type": "flat_object"
               },
               "go_imports_names_entropy": {
                 "type": "long"
@@ -7096,7 +7131,7 @@
                 "type": "keyword"
               },
               "imports": {
-                "type": "flattened"
+                "type": "flat_object"
               },
               "imports_names_entropy": {
                 "type": "long"
@@ -7154,7 +7189,8 @@
               "executable": {
                 "fields": {
                   "text": {
-                    "type": "match_only_text"
+                    "ignore_above": 1024,
+                    "type": "keyword"
                   }
                 },
                 "ignore_above": 1024,
@@ -7183,7 +7219,8 @@
               "name": {
                 "fields": {
                   "text": {
-                    "type": "match_only_text"
+                    "ignore_above": 1024,
+                    "type": "keyword"
                   }
                 },
                 "ignore_above": 1024,
@@ -7212,7 +7249,8 @@
               "name": {
                 "fields": {
                   "text": {
-                    "type": "match_only_text"
+                    "ignore_above": 1024,
+                    "type": "keyword"
                   }
                 },
                 "ignore_above": 1024,
@@ -7232,10 +7270,12 @@
               "command_line": {
                 "fields": {
                   "text": {
-                    "type": "match_only_text"
+                    "ignore_above": 1024,
+                    "type": "keyword"
                   }
                 },
-                "type": "wildcard"
+                "ignore_above": 1024,
+                "type": "keyword"
               },
               "entity_id": {
                 "ignore_above": 1024,
@@ -7244,7 +7284,8 @@
               "executable": {
                 "fields": {
                   "text": {
-                    "type": "match_only_text"
+                    "ignore_above": 1024,
+                    "type": "keyword"
                   }
                 },
                 "ignore_above": 1024,
@@ -7268,7 +7309,8 @@
               "name": {
                 "fields": {
                   "text": {
-                    "type": "match_only_text"
+                    "ignore_above": 1024,
+                    "type": "keyword"
                   }
                 },
                 "ignore_above": 1024,
@@ -7332,7 +7374,8 @@
                   "name": {
                     "fields": {
                       "text": {
-                        "type": "match_only_text"
+                        "ignore_above": 1024,
+                        "type": "keyword"
                       }
                     },
                     "ignore_above": 1024,
@@ -7364,7 +7407,8 @@
                   "name": {
                     "fields": {
                       "text": {
-                        "type": "match_only_text"
+                        "ignore_above": 1024,
+                        "type": "keyword"
                       }
                     },
                     "ignore_above": 1024,
@@ -7411,7 +7455,8 @@
                   "name": {
                     "fields": {
                       "text": {
-                        "type": "match_only_text"
+                        "ignore_above": 1024,
+                        "type": "keyword"
                       }
                     },
                     "ignore_above": 1024,
@@ -7425,7 +7470,8 @@
               "working_directory": {
                 "fields": {
                   "text": {
-                    "type": "match_only_text"
+                    "ignore_above": 1024,
+                    "type": "keyword"
                   }
                 },
                 "ignore_above": 1024,
@@ -7454,12 +7500,10 @@
                 "properties": {
                   "effective": {
                     "ignore_above": 1024,
-                    "synthetic_source_keep": "none",
                     "type": "keyword"
                   },
                   "permitted": {
                     "ignore_above": 1024,
-                    "synthetic_source_keep": "none",
                     "type": "keyword"
                   }
                 }
@@ -7476,7 +7520,8 @@
           "title": {
             "fields": {
               "text": {
-                "type": "match_only_text"
+                "ignore_above": 1024,
+                "type": "keyword"
               }
             },
             "ignore_above": 1024,
@@ -7515,7 +7560,8 @@
               "name": {
                 "fields": {
                   "text": {
-                    "type": "match_only_text"
+                    "ignore_above": 1024,
+                    "type": "keyword"
                   }
                 },
                 "ignore_above": 1024,
@@ -7529,7 +7575,8 @@
           "working_directory": {
             "fields": {
               "text": {
-                "type": "match_only_text"
+                "ignore_above": 1024,
+                "type": "keyword"
               }
             },
             "ignore_above": 1024,
@@ -7546,7 +7593,8 @@
                 "type": "keyword"
               },
               "strings": {
-                "type": "wildcard"
+                "ignore_above": 1024,
+                "type": "keyword"
               },
               "type": {
                 "ignore_above": 1024,
@@ -7576,12 +7624,10 @@
         "properties": {
           "hash": {
             "ignore_above": 1024,
-            "synthetic_source_keep": "none",
             "type": "keyword"
           },
           "hosts": {
             "ignore_above": 1024,
-            "synthetic_source_keep": "none",
             "type": "keyword"
           },
           "ip": {
@@ -7589,7 +7635,6 @@
           },
           "user": {
             "ignore_above": 1024,
-            "synthetic_source_keep": "none",
             "type": "keyword"
           }
         }
@@ -7598,7 +7643,6 @@
         "properties": {
           "author": {
             "ignore_above": 1024,
-            "synthetic_source_keep": "none",
             "type": "keyword"
           },
           "category": {
@@ -7655,7 +7699,8 @@
                   "name": {
                     "fields": {
                       "text": {
-                        "type": "match_only_text"
+                        "ignore_above": 1024,
+                        "type": "keyword"
                       }
                     },
                     "ignore_above": 1024,
@@ -7767,7 +7812,8 @@
               "full_name": {
                 "fields": {
                   "text": {
-                    "type": "match_only_text"
+                    "ignore_above": 1024,
+                    "type": "keyword"
                   }
                 },
                 "ignore_above": 1024,
@@ -7800,7 +7846,8 @@
               "name": {
                 "fields": {
                   "text": {
-                    "type": "match_only_text"
+                    "ignore_above": 1024,
+                    "type": "keyword"
                   }
                 },
                 "ignore_above": 1024,
@@ -7808,7 +7855,6 @@
               },
               "roles": {
                 "ignore_above": 1024,
-                "synthetic_source_keep": "none",
                 "type": "keyword"
               }
             }
@@ -7849,7 +7895,6 @@
               },
               "roles": {
                 "ignore_above": 1024,
-                "synthetic_source_keep": "none",
                 "type": "keyword"
               }
             }
@@ -7888,7 +7933,6 @@
                   },
                   "roles": {
                     "ignore_above": 1024,
-                    "synthetic_source_keep": "none",
                     "type": "keyword"
                   }
                 }
@@ -7945,7 +7989,6 @@
                   },
                   "roles": {
                     "ignore_above": 1024,
-                    "synthetic_source_keep": "none",
                     "type": "keyword"
                   }
                 }
@@ -7990,7 +8033,8 @@
                   "name": {
                     "fields": {
                       "text": {
-                        "type": "match_only_text"
+                        "ignore_above": 1024,
+                        "type": "keyword"
                       }
                     },
                     "ignore_above": 1024,
@@ -8102,7 +8146,8 @@
               "full_name": {
                 "fields": {
                   "text": {
-                    "type": "match_only_text"
+                    "ignore_above": 1024,
+                    "type": "keyword"
                   }
                 },
                 "ignore_above": 1024,
@@ -8135,7 +8180,8 @@
               "name": {
                 "fields": {
                   "text": {
-                    "type": "match_only_text"
+                    "ignore_above": 1024,
+                    "type": "keyword"
                   }
                 },
                 "ignore_above": 1024,
@@ -8143,7 +8189,6 @@
               },
               "roles": {
                 "ignore_above": 1024,
-                "synthetic_source_keep": "none",
                 "type": "keyword"
               }
             }
@@ -8157,11 +8202,6 @@
             "type": "keyword"
           }
         }
-      },
-      "tags": {
-        "ignore_above": 1024,
-        "synthetic_source_keep": "none",
-        "type": "keyword"
       },
       "threat": {
         "properties": {
@@ -8179,7 +8219,8 @@
                           "name": {
                             "fields": {
                               "text": {
-                                "type": "match_only_text"
+                                "ignore_above": 1024,
+                                "type": "keyword"
                               }
                             },
                             "ignore_above": 1024,
@@ -8212,7 +8253,6 @@
                       },
                       "attributes": {
                         "ignore_above": 1024,
-                        "synthetic_source_keep": "none",
                         "type": "keyword"
                       },
                       "code_signature": {
@@ -8295,14 +8335,14 @@
                             "type": "date"
                           },
                           "exports": {
-                            "type": "flattened"
+                            "type": "flat_object"
                           },
                           "go_import_hash": {
                             "ignore_above": 1024,
                             "type": "keyword"
                           },
                           "go_imports": {
-                            "type": "flattened"
+                            "type": "flat_object"
                           },
                           "go_imports_names_entropy": {
                             "type": "long"
@@ -8353,7 +8393,7 @@
                             "type": "keyword"
                           },
                           "imports": {
-                            "type": "flattened"
+                            "type": "flat_object"
                           },
                           "imports_names_entropy": {
                             "type": "long"
@@ -8509,7 +8549,8 @@
                       "path": {
                         "fields": {
                           "text": {
-                            "type": "match_only_text"
+                            "ignore_above": 1024,
+                            "type": "keyword"
                           }
                         },
                         "ignore_above": 1024,
@@ -8538,7 +8579,7 @@
                             "type": "keyword"
                           },
                           "go_imports": {
-                            "type": "flattened"
+                            "type": "flat_object"
                           },
                           "go_imports_names_entropy": {
                             "type": "long"
@@ -8558,7 +8599,7 @@
                             "type": "keyword"
                           },
                           "imports": {
-                            "type": "flattened"
+                            "type": "flat_object"
                           },
                           "imports_names_entropy": {
                             "type": "long"
@@ -8607,7 +8648,8 @@
                       "target_path": {
                         "fields": {
                           "text": {
-                            "type": "match_only_text"
+                            "ignore_above": 1024,
+                            "type": "keyword"
                           }
                         },
                         "ignore_above": 1024,
@@ -8824,7 +8866,8 @@
                             "type": "keyword"
                           },
                           "strings": {
-                            "type": "wildcard"
+                            "ignore_above": 1024,
+                            "type": "keyword"
                           },
                           "type": {
                             "ignore_above": 1024,
@@ -8877,25 +8920,30 @@
                       "full": {
                         "fields": {
                           "text": {
-                            "type": "match_only_text"
+                            "ignore_above": 1024,
+                            "type": "keyword"
                           }
                         },
-                        "type": "wildcard"
+                        "ignore_above": 1024,
+                        "type": "keyword"
                       },
                       "original": {
                         "fields": {
                           "text": {
-                            "type": "match_only_text"
+                            "ignore_above": 1024,
+                            "type": "keyword"
                           }
                         },
-                        "type": "wildcard"
+                        "ignore_above": 1024,
+                        "type": "keyword"
                       },
                       "password": {
                         "ignore_above": 1024,
                         "type": "keyword"
                       },
                       "path": {
-                        "type": "wildcard"
+                        "ignore_above": 1024,
+                        "type": "keyword"
                       },
                       "port": {
                         "type": "long"
@@ -9093,7 +9141,6 @@
             "properties": {
               "alias": {
                 "ignore_above": 1024,
-                "synthetic_source_keep": "none",
                 "type": "keyword"
               },
               "id": {
@@ -9122,7 +9169,8 @@
                       "name": {
                         "fields": {
                           "text": {
-                            "type": "match_only_text"
+                            "ignore_above": 1024,
+                            "type": "keyword"
                           }
                         },
                         "ignore_above": 1024,
@@ -9155,7 +9203,6 @@
                   },
                   "attributes": {
                     "ignore_above": 1024,
-                    "synthetic_source_keep": "none",
                     "type": "keyword"
                   },
                   "code_signature": {
@@ -9238,14 +9285,14 @@
                         "type": "date"
                       },
                       "exports": {
-                        "type": "flattened"
+                        "type": "flat_object"
                       },
                       "go_import_hash": {
                         "ignore_above": 1024,
                         "type": "keyword"
                       },
                       "go_imports": {
-                        "type": "flattened"
+                        "type": "flat_object"
                       },
                       "go_imports_names_entropy": {
                         "type": "long"
@@ -9296,7 +9343,7 @@
                         "type": "keyword"
                       },
                       "imports": {
-                        "type": "flattened"
+                        "type": "flat_object"
                       },
                       "imports_names_entropy": {
                         "type": "long"
@@ -9452,7 +9499,8 @@
                   "path": {
                     "fields": {
                       "text": {
-                        "type": "match_only_text"
+                        "ignore_above": 1024,
+                        "type": "keyword"
                       }
                     },
                     "ignore_above": 1024,
@@ -9481,7 +9529,7 @@
                         "type": "keyword"
                       },
                       "go_imports": {
-                        "type": "flattened"
+                        "type": "flat_object"
                       },
                       "go_imports_names_entropy": {
                         "type": "long"
@@ -9501,7 +9549,7 @@
                         "type": "keyword"
                       },
                       "imports": {
-                        "type": "flattened"
+                        "type": "flat_object"
                       },
                       "imports_names_entropy": {
                         "type": "long"
@@ -9550,7 +9598,8 @@
                   "target_path": {
                     "fields": {
                       "text": {
-                        "type": "match_only_text"
+                        "ignore_above": 1024,
+                        "type": "keyword"
                       }
                     },
                     "ignore_above": 1024,
@@ -9724,7 +9773,6 @@
               },
               "id": {
                 "ignore_above": 1024,
-                "synthetic_source_keep": "none",
                 "type": "keyword"
               },
               "ip": {
@@ -9772,7 +9820,8 @@
                         "type": "keyword"
                       },
                       "strings": {
-                        "type": "wildcard"
+                        "ignore_above": 1024,
+                        "type": "keyword"
                       },
                       "type": {
                         "ignore_above": 1024,
@@ -9825,25 +9874,30 @@
                   "full": {
                     "fields": {
                       "text": {
-                        "type": "match_only_text"
+                        "ignore_above": 1024,
+                        "type": "keyword"
                       }
                     },
-                    "type": "wildcard"
+                    "ignore_above": 1024,
+                    "type": "keyword"
                   },
                   "original": {
                     "fields": {
                       "text": {
-                        "type": "match_only_text"
+                        "ignore_above": 1024,
+                        "type": "keyword"
                       }
                     },
-                    "type": "wildcard"
+                    "ignore_above": 1024,
+                    "type": "keyword"
                   },
                   "password": {
                     "ignore_above": 1024,
                     "type": "keyword"
                   },
                   "path": {
-                    "type": "wildcard"
+                    "ignore_above": 1024,
+                    "type": "keyword"
                   },
                   "port": {
                     "type": "long"
@@ -9986,7 +10040,6 @@
             "properties": {
               "alias": {
                 "ignore_above": 1024,
-                "synthetic_source_keep": "none",
                 "type": "keyword"
               },
               "id": {
@@ -9999,7 +10052,6 @@
               },
               "platforms": {
                 "ignore_above": 1024,
-                "synthetic_source_keep": "none",
                 "type": "keyword"
               },
               "reference": {
@@ -10037,7 +10089,8 @@
               "name": {
                 "fields": {
                   "text": {
-                    "type": "match_only_text"
+                    "ignore_above": 1024,
+                    "type": "keyword"
                   }
                 },
                 "ignore_above": 1024,
@@ -10056,7 +10109,8 @@
                   "name": {
                     "fields": {
                       "text": {
-                        "type": "match_only_text"
+                        "ignore_above": 1024,
+                        "type": "keyword"
                       }
                     },
                     "ignore_above": 1024,
@@ -10447,25 +10501,30 @@
           "full": {
             "fields": {
               "text": {
-                "type": "match_only_text"
+                "ignore_above": 1024,
+                "type": "keyword"
               }
             },
-            "type": "wildcard"
+            "ignore_above": 1024,
+            "type": "keyword"
           },
           "original": {
             "fields": {
               "text": {
-                "type": "match_only_text"
+                "ignore_above": 1024,
+                "type": "keyword"
               }
             },
-            "type": "wildcard"
+            "ignore_above": 1024,
+            "type": "keyword"
           },
           "password": {
             "ignore_above": 1024,
             "type": "keyword"
           },
           "path": {
-            "type": "wildcard"
+            "ignore_above": 1024,
+            "type": "keyword"
           },
           "port": {
             "type": "long"
@@ -10511,7 +10570,8 @@
               "full_name": {
                 "fields": {
                   "text": {
-                    "type": "match_only_text"
+                    "ignore_above": 1024,
+                    "type": "keyword"
                   }
                 },
                 "ignore_above": 1024,
@@ -10544,7 +10604,8 @@
               "name": {
                 "fields": {
                   "text": {
-                    "type": "match_only_text"
+                    "ignore_above": 1024,
+                    "type": "keyword"
                   }
                 },
                 "ignore_above": 1024,
@@ -10552,7 +10613,6 @@
               },
               "roles": {
                 "ignore_above": 1024,
-                "synthetic_source_keep": "none",
                 "type": "keyword"
               }
             }
@@ -10574,7 +10634,8 @@
               "full_name": {
                 "fields": {
                   "text": {
-                    "type": "match_only_text"
+                    "ignore_above": 1024,
+                    "type": "keyword"
                   }
                 },
                 "ignore_above": 1024,
@@ -10607,7 +10668,8 @@
               "name": {
                 "fields": {
                   "text": {
-                    "type": "match_only_text"
+                    "ignore_above": 1024,
+                    "type": "keyword"
                   }
                 },
                 "ignore_above": 1024,
@@ -10615,7 +10677,6 @@
               },
               "roles": {
                 "ignore_above": 1024,
-                "synthetic_source_keep": "none",
                 "type": "keyword"
               }
             }
@@ -10627,7 +10688,8 @@
           "full_name": {
             "fields": {
               "text": {
-                "type": "match_only_text"
+                "ignore_above": 1024,
+                "type": "keyword"
               }
             },
             "ignore_above": 1024,
@@ -10660,7 +10722,8 @@
           "name": {
             "fields": {
               "text": {
-                "type": "match_only_text"
+                "ignore_above": 1024,
+                "type": "keyword"
               }
             },
             "ignore_above": 1024,
@@ -10692,7 +10755,6 @@
           },
           "roles": {
             "ignore_above": 1024,
-            "synthetic_source_keep": "none",
             "type": "keyword"
           },
           "target": {
@@ -10708,7 +10770,8 @@
               "full_name": {
                 "fields": {
                   "text": {
-                    "type": "match_only_text"
+                    "ignore_above": 1024,
+                    "type": "keyword"
                   }
                 },
                 "ignore_above": 1024,
@@ -10741,7 +10804,8 @@
               "name": {
                 "fields": {
                   "text": {
-                    "type": "match_only_text"
+                    "ignore_above": 1024,
+                    "type": "keyword"
                   }
                 },
                 "ignore_above": 1024,
@@ -10749,7 +10813,6 @@
               },
               "roles": {
                 "ignore_above": 1024,
-                "synthetic_source_keep": "none",
                 "type": "keyword"
               }
             }
@@ -10773,7 +10836,8 @@
           "original": {
             "fields": {
               "text": {
-                "type": "match_only_text"
+                "ignore_above": 1024,
+                "type": "keyword"
               }
             },
             "ignore_above": 1024,
@@ -10788,7 +10852,8 @@
               "full": {
                 "fields": {
                   "text": {
-                    "type": "match_only_text"
+                    "ignore_above": 1024,
+                    "type": "keyword"
                   }
                 },
                 "ignore_above": 1024,
@@ -10801,7 +10866,8 @@
               "name": {
                 "fields": {
                   "text": {
-                    "type": "match_only_text"
+                    "ignore_above": 1024,
+                    "type": "keyword"
                   }
                 },
                 "ignore_above": 1024,
@@ -10896,7 +10962,6 @@
         "properties": {
           "category": {
             "ignore_above": 1024,
-            "synthetic_source_keep": "none",
             "type": "keyword"
           },
           "classification": {
@@ -10906,7 +10971,8 @@
           "description": {
             "fields": {
               "text": {
-                "type": "match_only_text"
+                "ignore_above": 1024,
+                "type": "keyword"
               }
             },
             "ignore_above": 1024,
