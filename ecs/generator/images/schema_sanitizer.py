@@ -6,7 +6,6 @@ import argparse
 from pathlib import Path
 from typing import Dict, Any, Set
 from dataclasses import dataclass
-from datetime import datetime
 
 LOG_FILE = f"schema_sanitizer.log"
 
@@ -28,33 +27,12 @@ SPECIFIC_OBJECTS_TYPE_MAPPINGS = {
 # Default search patterns for YAML files
 SEARCH_PATTERNS = [
     "schemas/**/*.yml",
-    "schemas/**/*.yaml",
     "**/schemas/**/*.yml",
-    "**/schemas/**/*.yaml",
     "generated/**/*.yml",
-    "generated/**/*.yaml",
     "**/generated/**/*.yml",
-    "**/generated/**/*.yaml",
-    "rfcs/**/*.yml",
-    "rfcs/**/*.yaml",
 ]
 
 FIELDS_TO_REMOVE = [
-    # Multi-fields to be removed - Already covered by remove_multi_fields method
-    # "agent.host.os.full.fields",
-    # "agent.host.os.name.fields",
-    # "host.os.full.fields",
-    # "host.os.name.fields",
-    # "vulnerability.description.fields",
-    # "process.command_line.fields",
-    # "process.name.fields",
-    # "vulnerability.description.fields",
-    # "file.path.fields",
-    # "user.name.fields",
-    # "user.full_name.fields",
-    # "process.user.name.fields",
-    # "process.executable.fields",
-    # "process.working_directory.fields",
     # Simple fields to be removed
     "synthetic_source_keep",
     "tags",
@@ -135,7 +113,13 @@ class SchemaSanitizer:
             for field in field_data['fields']:
                 if isinstance(field, dict):
                     field_name = field.get('name', '')
-                    nested_path = f"{field_path}.{field_name}" if field_path else field_name
+                    # Handle group-level fields by including the group name in the path
+                    if field_path == "" and 'name' in field_data and field_data.get('type') == 'group':
+                        # This is a top-level group, so construct the full path
+                        group_name = field_data.get('name', '')
+                        nested_path = f"{group_name}.{field_name}" if group_name else field_name
+                    else:
+                        nested_path = f"{field_path}.{field_name}" if field_path else field_name
                     if self.modify_field_type(field, nested_path):
                         modified = True
 
