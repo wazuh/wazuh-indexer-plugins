@@ -233,12 +233,21 @@ class SchemaSanitizer:
         if not isinstance(field_data, dict):
             return False
 
-        # Remove .fields property if it exists and is a dict
-        if 'fields' in field_data and isinstance(field_data['fields'], dict):
-            del field_data['fields']
-            self.logger.debug("Removed multi-fields from field definition")
+        # Remove multi_fields property (array of multi-field definitions)
+        if 'multi_fields' in field_data:
+            del field_data['multi_fields']
+            self.logger.debug("Removed multi_fields array from field definition")
             self.stats.multi_field_removals += 1
             modified = True
+
+        # Remove .fields property if it exists (both dict and list formats)
+        if 'fields' in field_data:
+            if isinstance(field_data['fields'], dict):
+                del field_data['fields']
+                self.logger.debug("Removed multi-fields dict from field definition")
+                self.stats.multi_field_removals += 1
+                modified = True
+            # Note: Don't remove 'fields' when it's a list, as that contains nested field definitions
 
         # Recursively process nested structures
         for key, value in field_data.items():
