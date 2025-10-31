@@ -4461,7 +4461,8 @@
                 }
               },
               "encoding_formats": {
-                "type": "nested"
+                "ignore_above": 1024,
+                "type": "keyword"
               },
               "frequency_penalty": {
                 "type": "double"
@@ -4480,7 +4481,8 @@
                 "type": "integer"
               },
               "stop_sequences": {
-                "type": "nested"
+                "ignore_above": 1024,
+                "type": "keyword"
               },
               "temperature": {
                 "type": "double"
@@ -4496,7 +4498,8 @@
           "response": {
             "properties": {
               "finish_reasons": {
-                "type": "nested"
+                "ignore_above": 1024,
+                "type": "keyword"
               },
               "id": {
                 "ignore_above": 1024,
