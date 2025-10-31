@@ -40,6 +40,7 @@ public class IndexStateManagement extends Index {
 
     // ISM policies names (filename without extension)
     static final String ALERTS_ROLLOVER_POLICY = "wazuh-rollover-policy";
+    static final String STREAM_ROLLOVER_POLICY = "stream-rollover-policy";
 
     private final List<String> policies;
 
@@ -73,7 +74,7 @@ public class IndexStateManagement extends Index {
     private void indexPolicy(String policy) {
         try {
             Map<String, Object> policyFile;
-            policyFile = this.indexUtils.fromFile("policies/stream-rollover-policy.json");
+            policyFile = this.indexUtils.fromFile("policies/" + STREAM_ROLLOVER_POLICY + ".json");
 
             IndexRequest indexRequest =
                     new IndexRequest(this.index)
