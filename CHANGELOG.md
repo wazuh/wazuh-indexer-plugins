@@ -48,6 +48,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Replace genai.* nested fields with keyword array [(#608)](https://github.com/wazuh/wazuh-indexer-plugins/pull/608)
 - Check GitHub actions with dependabot [(#601)](https://github.com/wazuh/wazuh-indexer-plugins/pull/601)
 - Automatically regenerate dependant stateless modules on base module change [(#618)](https://github.com/wazuh/wazuh-indexer-plugins/pull/618)
+- Restructuring of the repository tooling [(#625)](https://github.com/wazuh/wazuh-indexer-plugins/pull/625)
+- Fix mdbook to version 0.4.x [(#627)](https://github.com/wazuh/wazuh-indexer-plugins/pull/627)
 
 ### Deprecated
 -

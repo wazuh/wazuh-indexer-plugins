@@ -28,6 +28,7 @@ jobs:
           use-linkcheck: true
           use-mermaid: true
           use-toc: true
+          mdbook-version: "~0.4.0"
       - run: mdbook build
         working-directory: docs
       - name: Setup Pages
