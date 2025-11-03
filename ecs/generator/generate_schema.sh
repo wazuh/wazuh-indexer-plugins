@@ -130,7 +130,7 @@ function copy_files() {
 
   echo "---> Index templates"
   local destination_file
-  local resources_path="plugins/setup/src/main/resources/"
+  local resources_path="plugins/setup/src/main/resources"
   local mappings_path="mappings/${ECS_VERSION}/generated/elasticsearch/legacy/template.json"
   for ecs_module in "${modules_to_update[@]}"; do
     # Copying index templates to the initialization plugin resources folder
@@ -139,8 +139,8 @@ function copy_files() {
     echo "  - '$destination_file' updated"
 
     # Generate archives index template from the alerts one
-    if [ "$ecs_module" == "stateless" ]; then
-      destination_file="$resources_path/index-template-archives.json"
+    if [ "$ecs_module" == "stateless/main" ]; then
+      destination_file="$resources_path/templates/streams/archives.json"
       echo "  - Generate template for module '$ecs_module/archives' to '$destination_file'"
       cp "$repo_path/ecs/$ecs_module/$mappings_path" "$destination_file"
       sed -i 's/wazuh-alerts/wazuh-archives/g' "$destination_file"

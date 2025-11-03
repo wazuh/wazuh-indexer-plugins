@@ -47,8 +47,8 @@ generate_mappings() {
 
   # Include the common WCS fields if the module is an integration (e.g., stateless-aws)
   local include_wcs=""
-  if [[ "$ecs_module" == stateless-* ]]; then
-    include_wcs="$indexer_path/ecs/stateless/fields/custom/"
+  if [[ "$ecs_module" == stateless/* && "$ecs_module" != stateless/main ]]; then
+    include_wcs="$indexer_path/ecs/stateless/main/fields/custom"
   fi
 
   # Generate mappings
@@ -81,7 +81,7 @@ generate_mappings() {
       "settings": .settings,
       "mappings": .mappings
     }
-  }' "$in_file" > "$out_dir/generated/elasticsearch/legacy/opensearch-template.json"
+  }' "$in_file" >"$out_dir/generated/elasticsearch/legacy/opensearch-template.json"
 
   echo "Mappings saved to $out_dir"
 }
