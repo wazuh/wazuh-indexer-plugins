@@ -42,8 +42,6 @@ OBJECT_TYPES_TO_REMAP = {
 # Fields to be removed from the schema
 FIELDS_TO_REMOVE = [
     "synthetic_source_keep",
-    "tags",
-    "@timestamp",
 ]
 
 

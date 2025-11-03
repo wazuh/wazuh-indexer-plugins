@@ -3,7 +3,7 @@ name: wazuh-states-sca
 fields:
   base:
     fields:
-      tags: []
+      message: {}
   agent:
     fields:
       groups: []

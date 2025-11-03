@@ -3,8 +3,7 @@ name: wazuh-states-inventory-processes
 fields:
   base:
     fields:
-      "@timestamp": {}
-      tags: []
+      message: {}
   agent:
     fields:
       groups: []

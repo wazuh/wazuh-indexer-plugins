@@ -3,8 +3,7 @@ name: wazuh-users
 fields:
   base:
     fields:
-      tags: []
-      "@timestamp": {}
+      message: {}
   agent:
     fields:
       groups: []

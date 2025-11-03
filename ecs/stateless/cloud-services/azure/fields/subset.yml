@@ -2,7 +2,9 @@
 name: wazuh-events-cloud-services-azure
 fields:
   base:
-    fields: "*"
+    fields:
+      "@timestamp": {}
+      message: {}
   agent:
     fields: "*"
   as:

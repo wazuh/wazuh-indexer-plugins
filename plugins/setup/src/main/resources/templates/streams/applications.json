@@ -1150,11 +1150,6 @@
               "organization": {
                 "properties": {
                   "name": {
-                    "fields": {
-                      "text": {
-                        "type": "keyword"
-                      }
-                    },
                     "ignore_above": 1024,
                     "type": "keyword"
                   }
@@ -1262,11 +1257,6 @@
                 "type": "keyword"
               },
               "full_name": {
-                "fields": {
-                  "text": {
-                    "type": "keyword"
-                  }
-                },
                 "ignore_above": 1024,
                 "type": "keyword"
               },
@@ -1295,11 +1285,6 @@
                 "type": "keyword"
               },
               "name": {
-                "fields": {
-                  "text": {
-                    "type": "keyword"
-                  }
-                },
                 "ignore_above": 1024,
                 "type": "keyword"
               },
@@ -1616,12 +1601,15 @@
       "data_stream": {
         "properties": {
           "dataset": {
+            "ignore_above": 1024,
             "type": "keyword"
           },
           "namespace": {
+            "ignore_above": 1024,
             "type": "keyword"
           },
           "type": {
+            "ignore_above": 1024,
             "type": "keyword"
           }
         }
@@ -1640,11 +1628,6 @@
               "organization": {
                 "properties": {
                   "name": {
-                    "fields": {
-                      "text": {
-                        "type": "keyword"
-                      }
-                    },
                     "ignore_above": 1024,
                     "type": "keyword"
                   }
@@ -1752,11 +1735,6 @@
                 "type": "keyword"
               },
               "full_name": {
-                "fields": {
-                  "text": {
-                    "type": "keyword"
-                  }
-                },
                 "ignore_above": 1024,
                 "type": "keyword"
               },
@@ -1785,11 +1763,6 @@
                 "type": "keyword"
               },
               "name": {
-                "fields": {
-                  "text": {
-                    "type": "keyword"
-                  }
-                },
                 "ignore_above": 1024,
                 "type": "keyword"
               },
@@ -2196,6 +2169,7 @@
             "type": "keyword"
           },
           "message_id": {
+            "ignore_above": 1024,
             "type": "keyword"
           },
           "origination_timestamp": {
@@ -2218,11 +2192,6 @@
             }
           },
           "subject": {
-            "fields": {
-              "text": {
-                "type": "keyword"
-              }
-            },
             "ignore_above": 1024,
             "type": "keyword"
           },
@@ -2251,14 +2220,11 @@
             "type": "keyword"
           },
           "message": {
+            "ignore_above": 1024,
             "type": "keyword"
           },
           "stack_trace": {
-            "fields": {
-              "text": {
-                "type": "keyword"
-              }
-            },
+            "ignore_above": 1024,
             "type": "keyword"
           },
           "type": {
@@ -2862,11 +2828,6 @@
             "type": "long"
           },
           "target_path": {
-            "fields": {
-              "text": {
-                "type": "keyword"
-              }
-            },
             "ignore_above": 1024,
             "type": "keyword"
           },
@@ -3031,6 +2992,7 @@
                 }
               },
               "encoding_formats": {
+                "ignore_above": 1024,
                 "type": "keyword"
               },
               "frequency_penalty": {
@@ -3050,6 +3012,7 @@
                 "type": "integer"
               },
               "stop_sequences": {
+                "ignore_above": 1024,
                 "type": "keyword"
               },
               "temperature": {
@@ -3066,6 +3029,7 @@
           "response": {
             "properties": {
               "finish_reasons": {
+                "ignore_above": 1024,
                 "type": "keyword"
               },
               "id": {
@@ -3399,11 +3363,7 @@
                     "type": "long"
                   },
                   "content": {
-                    "fields": {
-                      "text": {
-                        "type": "keyword"
-                      }
-                    },
+                    "ignore_above": 1024,
                     "type": "keyword"
                   }
                 }
@@ -3437,11 +3397,7 @@
                     "type": "long"
                   },
                   "content": {
-                    "fields": {
-                      "text": {
-                        "type": "keyword"
-                      }
-                    },
+                    "ignore_above": 1024,
                     "type": "keyword"
                   }
                 }
@@ -3506,9 +3462,6 @@
             "type": "keyword"
           }
         }
-      },
-      "labels": {
-        "type": "object"
       },
       "log": {
         "properties": {
@@ -3603,6 +3556,7 @@
         }
       },
       "message": {
+        "ignore_above": 1024,
         "type": "keyword"
       },
       "network": {
@@ -3897,11 +3851,6 @@
                 "type": "keyword"
               },
               "full": {
-                "fields": {
-                  "text": {
-                    "type": "keyword"
-                  }
-                },
                 "ignore_above": 1024,
                 "type": "keyword"
               },
@@ -3910,11 +3859,6 @@
                 "type": "keyword"
               },
               "name": {
-                "fields": {
-                  "text": {
-                    "type": "keyword"
-                  }
-                },
                 "ignore_above": 1024,
                 "type": "keyword"
               },
@@ -4076,11 +4020,6 @@
             "type": "keyword"
           },
           "name": {
-            "fields": {
-              "text": {
-                "type": "keyword"
-              }
-            },
             "ignore_above": 1024,
             "type": "keyword"
           }
@@ -4218,6 +4157,7 @@
             }
           },
           "command_line": {
+            "ignore_above": 1024,
             "type": "keyword"
           },
           "elf": {
@@ -4397,22 +4337,13 @@
                     "type": "keyword"
                   },
                   "name": {
-                    "fields": {
-                      "text": {
-                        "type": "keyword"
-                      }
-                    },
                     "ignore_above": 1024,
                     "type": "keyword"
                   }
                 }
               },
               "command_line": {
-                "fields": {
-                  "text": {
-                    "type": "keyword"
-                  }
-                },
+                "ignore_above": 1024,
                 "type": "keyword"
               },
               "entity_id": {
@@ -4435,11 +4366,6 @@
                 }
               },
               "executable": {
-                "fields": {
-                  "text": {
-                    "type": "keyword"
-                  }
-                },
                 "ignore_above": 1024,
                 "type": "keyword"
               },
@@ -4459,11 +4385,6 @@
                 "type": "boolean"
               },
               "name": {
-                "fields": {
-                  "text": {
-                    "type": "keyword"
-                  }
-                },
                 "ignore_above": 1024,
                 "type": "keyword"
               },
@@ -4523,11 +4444,6 @@
                     "type": "keyword"
                   },
                   "name": {
-                    "fields": {
-                      "text": {
-                        "type": "keyword"
-                      }
-                    },
                     "ignore_above": 1024,
                     "type": "keyword"
                   }
@@ -4555,11 +4471,6 @@
                     "type": "keyword"
                   },
                   "name": {
-                    "fields": {
-                      "text": {
-                        "type": "keyword"
-                      }
-                    },
                     "ignore_above": 1024,
                     "type": "keyword"
                   }
@@ -4602,11 +4513,6 @@
                     "type": "keyword"
                   },
                   "name": {
-                    "fields": {
-                      "text": {
-                        "type": "keyword"
-                      }
-                    },
                     "ignore_above": 1024,
                     "type": "keyword"
                   }
@@ -4616,11 +4522,6 @@
                 "type": "long"
               },
               "working_directory": {
-                "fields": {
-                  "text": {
-                    "type": "keyword"
-                  }
-                },
                 "ignore_above": 1024,
                 "type": "keyword"
               }
@@ -4659,11 +4560,7 @@
                 "type": "long"
               },
               "command_line": {
-                "fields": {
-                  "text": {
-                    "type": "keyword"
-                  }
-                },
+                "ignore_above": 1024,
                 "type": "keyword"
               },
               "entity_id": {
@@ -4671,11 +4568,6 @@
                 "type": "keyword"
               },
               "executable": {
-                "fields": {
-                  "text": {
-                    "type": "keyword"
-                  }
-                },
                 "ignore_above": 1024,
                 "type": "keyword"
               },
@@ -4695,11 +4587,6 @@
                 "type": "boolean"
               },
               "name": {
-                "fields": {
-                  "text": {
-                    "type": "keyword"
-                  }
-                },
                 "ignore_above": 1024,
                 "type": "keyword"
               },
@@ -4725,11 +4612,6 @@
                     "type": "keyword"
                   },
                   "name": {
-                    "fields": {
-                      "text": {
-                        "type": "keyword"
-                      }
-                    },
                     "ignore_above": 1024,
                     "type": "keyword"
                   }
@@ -4757,11 +4639,6 @@
                     "type": "keyword"
                   },
                   "name": {
-                    "fields": {
-                      "text": {
-                        "type": "keyword"
-                      }
-                    },
                     "ignore_above": 1024,
                     "type": "keyword"
                   }
@@ -4804,11 +4681,6 @@
                     "type": "keyword"
                   },
                   "name": {
-                    "fields": {
-                      "text": {
-                        "type": "keyword"
-                      }
-                    },
                     "ignore_above": 1024,
                     "type": "keyword"
                   }
@@ -4818,11 +4690,6 @@
                 "type": "long"
               },
               "working_directory": {
-                "fields": {
-                  "text": {
-                    "type": "keyword"
-                  }
-                },
                 "ignore_above": 1024,
                 "type": "keyword"
               }
@@ -4884,6 +4751,7 @@
                 "type": "boolean"
               },
               "text": {
+                "ignore_above": 1024,
                 "type": "keyword"
               },
               "total_bytes_captured": {
@@ -5015,11 +4883,7 @@
                 }
               },
               "command_line": {
-                "fields": {
-                  "text": {
-                    "type": "keyword"
-                  }
-                },
+                "ignore_above": 1024,
                 "type": "keyword"
               },
               "elf": {
@@ -5176,11 +5040,6 @@
                 "type": "keyword"
               },
               "executable": {
-                "fields": {
-                  "text": {
-                    "type": "keyword"
-                  }
-                },
                 "ignore_above": 1024,
                 "type": "keyword"
               },
@@ -5314,11 +5173,6 @@
                 }
               },
               "name": {
-                "fields": {
-                  "text": {
-                    "type": "keyword"
-                  }
-                },
                 "ignore_above": 1024,
                 "type": "keyword"
               },
@@ -5430,11 +5284,6 @@
                     "type": "keyword"
                   },
                   "name": {
-                    "fields": {
-                      "text": {
-                        "type": "keyword"
-                      }
-                    },
                     "ignore_above": 1024,
                     "type": "keyword"
                   }
@@ -5459,11 +5308,6 @@
                     "type": "keyword"
                   },
                   "name": {
-                    "fields": {
-                      "text": {
-                        "type": "keyword"
-                      }
-                    },
                     "ignore_above": 1024,
                     "type": "keyword"
                   }
@@ -5508,11 +5352,6 @@
                 }
               },
               "title": {
-                "fields": {
-                  "text": {
-                    "type": "keyword"
-                  }
-                },
                 "ignore_above": 1024,
                 "type": "keyword"
               },
@@ -5541,11 +5380,6 @@
                     "type": "keyword"
                   },
                   "name": {
-                    "fields": {
-                      "text": {
-                        "type": "keyword"
-                      }
-                    },
                     "ignore_above": 1024,
                     "type": "keyword"
                   }
@@ -5555,11 +5389,6 @@
                 "type": "long"
               },
               "working_directory": {
-                "fields": {
-                  "text": {
-                    "type": "keyword"
-                  }
-                },
                 "ignore_above": 1024,
                 "type": "keyword"
               }
@@ -5664,11 +5493,6 @@
                 "type": "long"
               },
               "executable": {
-                "fields": {
-                  "text": {
-                    "type": "keyword"
-                  }
-                },
                 "ignore_above": 1024,
                 "type": "keyword"
               }
@@ -5693,11 +5517,6 @@
                 "type": "keyword"
               },
               "name": {
-                "fields": {
-                  "text": {
-                    "type": "keyword"
-                  }
-                },
                 "ignore_above": 1024,
                 "type": "keyword"
               }
@@ -5722,11 +5541,6 @@
                 "type": "keyword"
               },
               "name": {
-                "fields": {
-                  "text": {
-                    "type": "keyword"
-                  }
-                },
                 "ignore_above": 1024,
                 "type": "keyword"
               }
@@ -5742,11 +5556,7 @@
                 "type": "long"
               },
               "command_line": {
-                "fields": {
-                  "text": {
-                    "type": "keyword"
-                  }
-                },
+                "ignore_above": 1024,
                 "type": "keyword"
               },
               "entity_id": {
@@ -5754,11 +5564,6 @@
                 "type": "keyword"
               },
               "executable": {
-                "fields": {
-                  "text": {
-                    "type": "keyword"
-                  }
-                },
                 "ignore_above": 1024,
                 "type": "keyword"
               },
@@ -5778,11 +5583,6 @@
                 "type": "boolean"
               },
               "name": {
-                "fields": {
-                  "text": {
-                    "type": "keyword"
-                  }
-                },
                 "ignore_above": 1024,
                 "type": "keyword"
               },
@@ -5842,11 +5642,6 @@
                     "type": "keyword"
                   },
                   "name": {
-                    "fields": {
-                      "text": {
-                        "type": "keyword"
-                      }
-                    },
                     "ignore_above": 1024,
                     "type": "keyword"
                   }
@@ -5874,11 +5669,6 @@
                     "type": "keyword"
                   },
                   "name": {
-                    "fields": {
-                      "text": {
-                        "type": "keyword"
-                      }
-                    },
                     "ignore_above": 1024,
                     "type": "keyword"
                   }
@@ -5921,11 +5711,6 @@
                     "type": "keyword"
                   },
                   "name": {
-                    "fields": {
-                      "text": {
-                        "type": "keyword"
-                      }
-                    },
                     "ignore_above": 1024,
                     "type": "keyword"
                   }
@@ -5935,11 +5720,6 @@
                 "type": "long"
               },
               "working_directory": {
-                "fields": {
-                  "text": {
-                    "type": "keyword"
-                  }
-                },
                 "ignore_above": 1024,
                 "type": "keyword"
               }
@@ -5984,11 +5764,6 @@
             }
           },
           "title": {
-            "fields": {
-              "text": {
-                "type": "keyword"
-              }
-            },
             "ignore_above": 1024,
             "type": "keyword"
           },
@@ -6046,6 +5821,7 @@
                 "type": "keyword"
               },
               "strings": {
+                "ignore_above": 1024,
                 "type": "keyword"
               },
               "type": {
@@ -6149,11 +5925,6 @@
               "organization": {
                 "properties": {
                   "name": {
-                    "fields": {
-                      "text": {
-                        "type": "keyword"
-                      }
-                    },
                     "ignore_above": 1024,
                     "type": "keyword"
                   }
@@ -6261,11 +6032,6 @@
                 "type": "keyword"
               },
               "full_name": {
-                "fields": {
-                  "text": {
-                    "type": "keyword"
-                  }
-                },
                 "ignore_above": 1024,
                 "type": "keyword"
               },
@@ -6294,11 +6060,6 @@
                 "type": "keyword"
               },
               "name": {
-                "fields": {
-                  "text": {
-                    "type": "keyword"
-                  }
-                },
                 "ignore_above": 1024,
                 "type": "keyword"
               },
@@ -6480,11 +6241,6 @@
               "organization": {
                 "properties": {
                   "name": {
-                    "fields": {
-                      "text": {
-                        "type": "keyword"
-                      }
-                    },
                     "ignore_above": 1024,
                     "type": "keyword"
                   }
@@ -6592,11 +6348,6 @@
                 "type": "keyword"
               },
               "full_name": {
-                "fields": {
-                  "text": {
-                    "type": "keyword"
-                  }
-                },
                 "ignore_above": 1024,
                 "type": "keyword"
               },
@@ -6625,11 +6376,6 @@
                 "type": "keyword"
               },
               "name": {
-                "fields": {
-                  "text": {
-                    "type": "keyword"
-                  }
-                },
                 "ignore_above": 1024,
                 "type": "keyword"
               },
@@ -6777,10 +6523,6 @@
           }
         }
       },
-      "tags": {
-        "ignore_above": 1024,
-        "type": "keyword"
-      },
       "threat": {
         "properties": {
           "enrichments": {
@@ -6795,11 +6537,6 @@
                       "organization": {
                         "properties": {
                           "name": {
-                            "fields": {
-                              "text": {
-                                "type": "keyword"
-                              }
-                            },
                             "ignore_above": 1024,
                             "type": "keyword"
                           }
@@ -7124,11 +6861,6 @@
                         "type": "keyword"
                       },
                       "path": {
-                        "fields": {
-                          "text": {
-                            "type": "keyword"
-                          }
-                        },
                         "ignore_above": 1024,
                         "type": "keyword"
                       },
@@ -7222,11 +6954,6 @@
                         "type": "long"
                       },
                       "target_path": {
-                        "fields": {
-                          "text": {
-                            "type": "keyword"
-                          }
-                        },
                         "ignore_above": 1024,
                         "type": "keyword"
                       },
@@ -7441,6 +7168,7 @@
                             "type": "keyword"
                           },
                           "strings": {
+                            "ignore_above": 1024,
                             "type": "keyword"
                           },
                           "type": {
@@ -7492,19 +7220,11 @@
                         "type": "keyword"
                       },
                       "full": {
-                        "fields": {
-                          "text": {
-                            "type": "keyword"
-                          }
-                        },
+                        "ignore_above": 1024,
                         "type": "keyword"
                       },
                       "original": {
-                        "fields": {
-                          "text": {
-                            "type": "keyword"
-                          }
-                        },
+                        "ignore_above": 1024,
                         "type": "keyword"
                       },
                       "password": {
@@ -7512,6 +7232,7 @@
                         "type": "keyword"
                       },
                       "path": {
+                        "ignore_above": 1024,
                         "type": "keyword"
                       },
                       "port": {
@@ -7736,11 +7457,6 @@
                   "organization": {
                     "properties": {
                       "name": {
-                        "fields": {
-                          "text": {
-                            "type": "keyword"
-                          }
-                        },
                         "ignore_above": 1024,
                         "type": "keyword"
                       }
@@ -8065,11 +7781,6 @@
                     "type": "keyword"
                   },
                   "path": {
-                    "fields": {
-                      "text": {
-                        "type": "keyword"
-                      }
-                    },
                     "ignore_above": 1024,
                     "type": "keyword"
                   },
@@ -8163,11 +7874,6 @@
                     "type": "long"
                   },
                   "target_path": {
-                    "fields": {
-                      "text": {
-                        "type": "keyword"
-                      }
-                    },
                     "ignore_above": 1024,
                     "type": "keyword"
                   },
@@ -8386,6 +8092,7 @@
                         "type": "keyword"
                       },
                       "strings": {
+                        "ignore_above": 1024,
                         "type": "keyword"
                       },
                       "type": {
@@ -8437,19 +8144,11 @@
                     "type": "keyword"
                   },
                   "full": {
-                    "fields": {
-                      "text": {
-                        "type": "keyword"
-                      }
-                    },
+                    "ignore_above": 1024,
                     "type": "keyword"
                   },
                   "original": {
-                    "fields": {
-                      "text": {
-                        "type": "keyword"
-                      }
-                    },
+                    "ignore_above": 1024,
                     "type": "keyword"
                   },
                   "password": {
@@ -8457,6 +8156,7 @@
                     "type": "keyword"
                   },
                   "path": {
+                    "ignore_above": 1024,
                     "type": "keyword"
                   },
                   "port": {
@@ -8647,11 +8347,6 @@
                 "type": "keyword"
               },
               "name": {
-                "fields": {
-                  "text": {
-                    "type": "keyword"
-                  }
-                },
                 "ignore_above": 1024,
                 "type": "keyword"
               },
@@ -8666,11 +8361,6 @@
                     "type": "keyword"
                   },
                   "name": {
-                    "fields": {
-                      "text": {
-                        "type": "keyword"
-                      }
-                    },
                     "ignore_above": 1024,
                     "type": "keyword"
                   },
@@ -9057,19 +8747,11 @@
             "type": "keyword"
           },
           "full": {
-            "fields": {
-              "text": {
-                "type": "keyword"
-              }
-            },
+            "ignore_above": 1024,
             "type": "keyword"
           },
           "original": {
-            "fields": {
-              "text": {
-                "type": "keyword"
-              }
-            },
+            "ignore_above": 1024,
             "type": "keyword"
           },
           "password": {
@@ -9077,6 +8759,7 @@
             "type": "keyword"
           },
           "path": {
+            "ignore_above": 1024,
             "type": "keyword"
           },
           "port": {
@@ -9121,11 +8804,6 @@
                 "type": "keyword"
               },
               "full_name": {
-                "fields": {
-                  "text": {
-                    "type": "keyword"
-                  }
-                },
                 "ignore_above": 1024,
                 "type": "keyword"
               },
@@ -9154,11 +8832,6 @@
                 "type": "keyword"
               },
               "name": {
-                "fields": {
-                  "text": {
-                    "type": "keyword"
-                  }
-                },
                 "ignore_above": 1024,
                 "type": "keyword"
               },
@@ -9183,11 +8856,6 @@
                 "type": "keyword"
               },
               "full_name": {
-                "fields": {
-                  "text": {
-                    "type": "keyword"
-                  }
-                },
                 "ignore_above": 1024,
                 "type": "keyword"
               },
@@ -9216,11 +8884,6 @@
                 "type": "keyword"
               },
               "name": {
-                "fields": {
-                  "text": {
-                    "type": "keyword"
-                  }
-                },
                 "ignore_above": 1024,
                 "type": "keyword"
               },
@@ -9305,11 +8968,6 @@
                 "type": "keyword"
               },
               "full_name": {
-                "fields": {
-                  "text": {
-                    "type": "keyword"
-                  }
-                },
                 "ignore_above": 1024,
                 "type": "keyword"
               },
@@ -9338,11 +8996,6 @@
                 "type": "keyword"
               },
               "name": {
-                "fields": {
-                  "text": {
-                    "type": "keyword"
-                  }
-                },
                 "ignore_above": 1024,
                 "type": "keyword"
               },
@@ -9369,11 +9022,6 @@
             "type": "keyword"
           },
           "original": {
-            "fields": {
-              "text": {
-                "type": "keyword"
-              }
-            },
             "ignore_above": 1024,
             "type": "keyword"
           },
@@ -9384,11 +9032,6 @@
                 "type": "keyword"
               },
               "full": {
-                "fields": {
-                  "text": {
-                    "type": "keyword"
-                  }
-                },
                 "ignore_above": 1024,
                 "type": "keyword"
               },
@@ -9397,11 +9040,6 @@
                 "type": "keyword"
               },
               "name": {
-                "fields": {
-                  "text": {
-                    "type": "keyword"
-                  }
-                },
                 "ignore_above": 1024,
                 "type": "keyword"
               },
