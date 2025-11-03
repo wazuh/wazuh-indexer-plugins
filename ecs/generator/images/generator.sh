@@ -45,7 +45,7 @@ generate_mappings() {
   # Ensure the output directory exists
   mkdir -p "$out_dir"
 
-  # Include the common WCS fields if the module is an integration (e.g., stateless-aws)
+  # Include the common WCS fields if the module is an integration (e.g., stateless/aws)
   local include_wcs=""
   if [[ "$ecs_module" == stateless/* && "$ecs_module" != stateless/main ]]; then
     include_wcs="$indexer_path/ecs/stateless/main/fields/custom"
@@ -63,9 +63,9 @@ generate_mappings() {
 
   local in_file="$out_dir/generated/elasticsearch/legacy/template.json"
 
-  # The stateless module is the one for the "wazuh-alerts" index template
+  # The stateless/main module is the one for the "wazuh-alerts" index template
   # We need to generate another template for "wazuh-archives" index
-  if [[ "$ecs_module" == "stateless" ]]; then
+  if [[ "$ecs_module" == "stateless/main" ]]; then
     # Generate the template for `wazuh-archives`
     echo "Generating template for 'wazuh-archives'"
     archives_file="$out_dir/generated/elasticsearch/legacy/template-archives.json"

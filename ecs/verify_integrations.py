@@ -13,7 +13,7 @@ from pathlib import Path
 
 def verify_integration_structure(base_path, integration_name):
     """Verify that an integration has the correct file structure."""
-    integration_path = base_path / f"stateless-{integration_name}"
+    integration_path = base_path / f"stateless/{integration_name}"
     
     # Check main folders exist
     docs_path = integration_path / "docs"
@@ -84,7 +84,7 @@ def main():
     print("=" * 50)
     
     # Find all stateless integration folders
-    integration_folders = [d for d in base_path.glob("stateless-*") if d.is_dir() and d.name != "stateless-template"]
+    integration_folders = [d for d in base_path.glob("stateless/*") if d.is_dir() and d.name != "stateless/template"]
     
     if not integration_folders:
         print("❌ No integration folders found!")
@@ -95,7 +95,7 @@ def main():
     # Verify each integration
     results = []
     for folder in sorted(integration_folders):
-        integration_name = folder.name.replace("stateless-", "")
+        integration_name = folder.name.replace("stateless/", "")
         result = verify_integration_structure(base_path, integration_name)
         results.append(result)
         

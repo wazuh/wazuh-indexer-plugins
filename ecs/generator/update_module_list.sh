@@ -131,8 +131,8 @@ function sort_and_output_modules() {
   done
 
   # Output stateless main module
-  if [[ -n "${all_modules[stateless / main]}" ]]; then
-    echo "  [stateless/main]=${all_modules[stateless / main]}" >>"$output_file"
+  if [[ -n "${all_modules[stateless/main]}" ]]; then
+    echo "  [stateless/main]=${all_modules[stateless/main]}" >>"$output_file"
   fi
 
   echo "  # Third-party stateless modules" >>"$output_file"

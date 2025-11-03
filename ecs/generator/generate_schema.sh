@@ -57,8 +57,8 @@ function detect_modified_modules() {
       # We explicitly want to match against a pattern. Ignore SC2053 warning.
       # shellcheck disable=SC2053
       if [[ ! " ${modified_modules[*]} " == ${ecs_module} ]]; then
-        # Ignore the template folder "stateless-template" from modified modules
-        if [[ "$ecs_module" != "stateless-template" ]]; then
+        # Ignore the template folder "stateless/template" from modified modules
+        if [[ "$ecs_module" != "stateless/template" ]]; then
           modified_modules+=("$ecs_module")
         fi
       fi
@@ -69,12 +69,12 @@ function detect_modified_modules() {
   echo "---> Modified modules"
   modules_to_update=()
 
-  local stateless_found=false
+  local is_main_module_modified=false
 
   for ecs_module in "${modified_modules[@]}"; do
     echo "  - $ecs_module"
-    if [[ "$ecs_module" == "stateless" ]]; then
-      stateless_found=true
+    if [[ "$ecs_module" == "stateless/main" ]]; then
+      is_main_module_modified=true
     fi
     if [[ ! -v module_to_file[$ecs_module] ]]; then
       echo "Warning: Module '$ecs_module' not found in module list. Probably removed. Skipping."
@@ -84,11 +84,11 @@ function detect_modified_modules() {
       modules_to_update+=("$ecs_module")
     fi
   done
-  if [[ "$stateless_found" == true ]]; then
-    # Add all module keys starting with 'stateless-' to modules_to_update (avoid duplicates)
+  if [[ "$is_main_module_modified" == true ]]; then
+    # Add all module keys starting with 'stateless/' to modules_to_update (avoid duplicates)
     for key in "${!module_to_file[@]}"; do
-      if [[ "$key" == stateless-* ]]; then
-        if [[ ! " ${modules_to_update[*]} " =~ " $key " ]]; then
+      if [[ "$key" == stateless/* ]]; then
+        if [[ ! " ${modules_to_update[*]} " = "$key" ]]; then
           modules_to_update+=("$key")
         fi
       fi
