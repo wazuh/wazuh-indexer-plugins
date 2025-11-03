@@ -2,9 +2,7 @@
 name: wazuh-states-fim-registry-values
 fields:
   base:
-    fields:
-      tags: []
-      "@timestamp": {}
+    fields: "*"
   agent:
     fields:
       groups: []

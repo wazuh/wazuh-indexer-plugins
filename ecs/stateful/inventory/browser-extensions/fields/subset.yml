@@ -2,8 +2,7 @@
 name: wazuh-states-inventory-browser-extensions
 fields:
   base:
-    fields:
-      tags: []
+    fields: "*"
   agent:
     fields:
       groups: []

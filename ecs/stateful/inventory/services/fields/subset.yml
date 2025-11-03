@@ -2,8 +2,7 @@
 name: wazuh-states-inventory-services
 fields:
   base:
-    fields:
-      tags: []
+    fields: "*"
   agent:
     fields:
       groups: []

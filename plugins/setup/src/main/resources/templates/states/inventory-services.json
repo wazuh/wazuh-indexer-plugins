@@ -97,6 +97,9 @@
           }
         }
       },
+      "labels": {
+        "type": "object"
+      },
       "log": {
         "properties": {
           "file": {
@@ -108,6 +111,10 @@
             }
           }
         }
+      },
+      "message": {
+        "ignore_above": 1024,
+        "type": "keyword"
       },
       "process": {
         "properties": {

@@ -76,7 +76,7 @@
       "group": {
         "properties": {
           "description": {
-            "type": "keyword"
+            "type": "match_only_text"
           },
           "id": {
             "type": "unsigned_long"
@@ -100,6 +100,13 @@
             "type": "keyword"
           }
         }
+      },
+      "labels": {
+        "type": "object"
+      },
+      "message": {
+        "ignore_above": 1024,
+        "type": "keyword"
       },
       "state": {
         "properties": {

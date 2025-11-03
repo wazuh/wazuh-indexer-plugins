@@ -2,9 +2,7 @@
 name: wazuh-users
 fields:
   base:
-    fields:
-      tags: []
-      "@timestamp": {}
+    fields: "*"
   agent:
     fields:
       groups: []

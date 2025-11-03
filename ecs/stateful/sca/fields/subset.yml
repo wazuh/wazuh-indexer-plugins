@@ -2,8 +2,7 @@
 name: wazuh-states-sca
 fields:
   base:
-    fields:
-      tags: []
+    fields: "*"
   agent:
     fields:
       groups: []

@@ -2,9 +2,7 @@
 name: wazuh-states-inventory-protocols
 fields:
   base:
-    fields:
-      tags: []
-      "@timestamp": {}
+    fields: "*"
   agent:
     fields:
       groups: []
