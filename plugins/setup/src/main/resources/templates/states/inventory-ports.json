@@ -121,6 +121,10 @@
           }
         }
       },
+      "message": {
+        "ignore_above": 1024,
+        "type": "keyword"
+      },
       "network": {
         "properties": {
           "transport": {

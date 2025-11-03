@@ -18,6 +18,7 @@ module_to_file=(
   [stateful/inventory/users]=templates/states/inventory-users.json
   [stateful/sca]=templates/states/sca.json
   [stateful/vulnerabilities]=templates/states/vulnerabilities.json
+  [stateless/main]=templates/streams/alerts.json
   # Third-party stateless modules
   [stateless/access-management]=templates/streams/access-management.json
   [stateless/applications]=templates/streams/applications.json

@@ -416,7 +416,7 @@ def main():
     )
     parser.add_argument(
         "--template-path",
-        help="Path to the template directory (default: ecs-path/stateless-template)"
+        help="Path to the template directory (default: ecs-path/stateless/template)"
     )
     parser.add_argument(
         "--dry-run",

@@ -3,8 +3,7 @@ name: wazuh-states-fim-registry-keys
 fields:
   base:
     fields:
-      tags: []
-      "@timestamp": {}
+      message: {}
   agent:
     fields:
       groups: []

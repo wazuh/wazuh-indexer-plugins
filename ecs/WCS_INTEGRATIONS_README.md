@@ -8,7 +8,7 @@ The `generate_wcs_integrations.py` script automates the creation of WCS integrat
 
 ## Script Features
 
-- **Automatic Folder Creation**: Creates individual `stateless-{integration}` folders for each integration
+- **Automatic Folder Creation**: Creates individual `stateless/{integration}` folders for each integration
 - **File Generation**: Generates all required files per integration:
   - `docs/README.md`: Integration documentation
   - `docs/fields.csv`: Empty placeholder for field definitions (auto-populated later)
@@ -42,7 +42,7 @@ python3 generate_wcs_integrations.py /path/to/csv-file.csv --ecs-path /path/to/e
 
 - `csv_file`: **Required** - Path to the CSV file containing integration data
 - `--ecs-path`: Path to the ECS directory (default: current directory)
-- `--template-path`: Path to the template directory (default: ecs-path/stateless-template)
+- `--template-path`: Path to the template directory (default: ecs-path/stateless/template)
 - `--dry-run`: Show what would be generated without creating files
 
 ### CSV File Format
@@ -66,7 +66,7 @@ The input CSV file must contain the following columns:
 For each integration, the script creates:
 
 ```
-stateless-{integration}/
+stateless/{integration}/
 ├── docs/
 │   ├── README.md           # Integration documentation
 │   └── fields.csv          # Field definitions (placeholder)
@@ -101,14 +101,14 @@ Loaded 26 integrations
   ...
 
 Creating folder structure...
-Creating folder: stateless-snort
-Creating folder: stateless-azure
+Creating folder: stateless/snort
+Creating folder: stateless/azure
 ...
 
 Generating integration files...
 Processing integration: snort (category: Security)
   ✓ Created 21 field definitions
-  ✓ Generated all required files in stateless-snort
+  ✓ Generated all required files in stateless/snort
 ...
 
 ✅ Successfully generated 26 integrations
@@ -171,7 +171,7 @@ Elasticsearch mapping configuration including:
 
 ### Customizing Templates
 
-Modify files in `stateless-template/` to change the default structure and content for new integrations.
+Modify files in `stateless/template/` to change the default structure and content for new integrations.
 
 ## Troubleshooting
 

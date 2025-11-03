@@ -2,7 +2,9 @@
 name: main
 fields:
   base:
-    fields: "*"
+    fields:
+      "@timestamp": {}
+      message: {}
   agent:
     fields: "*"
   as:

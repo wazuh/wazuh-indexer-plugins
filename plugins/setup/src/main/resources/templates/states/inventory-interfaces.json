@@ -140,6 +140,10 @@
           }
         }
       },
+      "message": {
+        "ignore_above": 1024,
+        "type": "keyword"
+      },
       "state": {
         "properties": {
           "document_version": {

@@ -1,10 +1,10 @@
 ECS_Version,Indexed,Field_Set,Field,Type,Level,Normalization,Example,Description
+9.1.0,true,base,message,keyword,core,,Hello World,Log message optimized for viewing in a log viewer.
 9.1.0,true,agent,agent.groups,keyword,custom,array,"[""group1"", ""group2""]",List of groups the agent belongs to.
 9.1.0,true,agent,agent.host.architecture,keyword,core,,x86_64,Operating system architecture.
 9.1.0,true,agent,agent.host.hostname,keyword,core,,,Hostname of the host.
 9.1.0,true,agent,agent.host.ip,ip,core,array,,Host ip addresses.
 9.1.0,true,agent,agent.host.os.name,keyword,extended,,Mac OS X,"Operating system name, without the version."
-9.1.0,true,agent,agent.host.os.name.text,keyword,extended,,Mac OS X,"Operating system name, without the version."
 9.1.0,true,agent,agent.host.os.platform,keyword,extended,,darwin,"Operating system platform (such centos, ubuntu, windows)."
 9.1.0,true,agent,agent.host.os.type,keyword,extended,,macos,"Which commercial OS family (one of: linux, macos, unix, windows, ios or android)."
 9.1.0,true,agent,agent.host.os.version,keyword,extended,,10.14.1,Operating system version as a raw string.
@@ -23,7 +23,6 @@ ECS_Version,Indexed,Field_Set,Field,Type,Level,Normalization,Example,Description
 9.1.0,true,user,user.auth_failures.timestamp,date,custom,,,Timestamp of the last authentication failure.
 9.1.0,true,user,user.created,date,custom,,,Datetime when the user was created.
 9.1.0,true,user,user.full_name,keyword,extended,,Albert Einstein,"User's full name, if available."
-9.1.0,true,user,user.full_name.text,keyword,extended,,Albert Einstein,"User's full name, if available."
 9.1.0,true,user,user.group.id,unsigned_long,custom,,,Group ID.
 9.1.0,true,user,user.group.id_signed,long,custom,,,Signed group ID.
 9.1.0,true,user,user.groups,keyword,custom,array,,List of groups the user belongs to.
@@ -33,7 +32,6 @@ ECS_Version,Indexed,Field_Set,Field,Type,Level,Normalization,Example,Description
 9.1.0,true,user,user.is_remote,boolean,custom,,,Whether the user is remote.
 9.1.0,true,user,user.last_login,date,custom,,,Date of the last login.
 9.1.0,true,user,user.name,keyword,core,,a.einstein,Short name or login of the user.
-9.1.0,true,user,user.name.text,keyword,core,,a.einstein,Short name or login of the user.
 9.1.0,true,user,user.password.expiration_date,date,custom,,,Password expiration date (epoch).
 9.1.0,true,user,user.password.hash_algorithm,keyword,custom,,,Algorithm used to hash the password.
 9.1.0,true,user,user.password.inactive_days,integer,custom,,,Number of days of inactivity before disabling the password.
