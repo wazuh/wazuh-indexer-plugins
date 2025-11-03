@@ -2,7 +2,8 @@
 name: wazuh-states-fim-files
 fields:
   base:
-    fields: "*"
+    fields:
+      message: {}
   agent:
     fields:
       groups: []

@@ -2,7 +2,8 @@
 name: vulnerability_detector
 fields:
   base:
-    fields: "*"
+    fields:
+      message: {}
   agent:
     fields:
       ephemeral_id: {}

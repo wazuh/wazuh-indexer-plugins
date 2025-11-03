@@ -1,5 +1,4 @@
 ECS_Version,Indexed,Field_Set,Field,Type,Level,Normalization,Example,Description
-9.1.0,true,base,labels,object,core,,"{""application"": ""foo-bar"", ""env"": ""production""}",Custom key/value pairs.
 9.1.0,true,base,message,keyword,core,,Hello World,Log message optimized for viewing in a log viewer.
 9.1.0,true,agent,agent.groups,keyword,custom,array,"[""group1"", ""group2""]",List of groups the agent belongs to.
 9.1.0,true,agent,agent.host.architecture,keyword,core,,x86_64,Operating system architecture.

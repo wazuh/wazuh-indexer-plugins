@@ -2,7 +2,8 @@
 name: wazuh-states-fim-registry-values
 fields:
   base:
-    fields: "*"
+    fields:
+      message: {}
   agent:
     fields:
       groups: []

@@ -2,7 +2,8 @@
 name: wazuh-states-inventory-packages
 fields:
   base:
-    fields: "*"
+    fields:
+      message: {}
   agent:
     fields:
       groups: []

@@ -2,7 +2,9 @@
 name: wazuh-events-applications
 fields:
   base:
-    fields: "*"
+    fields:
+      "@timestamp": {}
+      message: {}
   agent:
     fields: "*"
   as:

@@ -6,6 +6,9 @@
     "date_detection": false,
     "dynamic": "false",
     "properties": {
+      "@timestamp": {
+        "type": "date"
+      },
       "agent": {
         "properties": {
           "build": {
@@ -2807,9 +2810,6 @@
             "type": "keyword"
           }
         }
-      },
-      "labels": {
-        "type": "object"
       },
       "log": {
         "properties": {

@@ -2,7 +2,8 @@
 name: wazuh-groups
 fields:
   base:
-    fields: "*"
+    fields:
+      message: {}
   agent:
     fields:
       groups: []

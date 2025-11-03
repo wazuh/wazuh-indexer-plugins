@@ -2,7 +2,8 @@
 name: wazuh-states-inventory-interfaces
 fields:
   base:
-    fields: "*"
+    fields:
+      message: {}
   agent:
     fields:
       groups: []

@@ -1,7 +1,7 @@
 ECS_Version,Indexed,Field_Set,Field,Type,Level,Normalization,Example,Description
+9.1.0,true,base,@timestamp,date,core,,2016-05-23T08:05:34.853Z,Date/time when the event originated.
 9.1.0,true,base,icmp,object,custom,,,An object containing Internet Control Message Protocol (ICMP) related information.
 9.1.0,true,base,igmp,object,custom,,,An object containing Internet Group Management Protocol (IGMP) related information.
-9.1.0,true,base,labels,object,core,,"{""application"": ""foo-bar"", ""env"": ""production""}",Custom key/value pairs.
 9.1.0,true,base,message,keyword,core,,Hello World,Log message optimized for viewing in a log viewer.
 9.1.0,true,base,payload,keyword,custom,,example-payload,Raw event payload containing the original log message.
 9.1.0,true,base,sonicwall,object,custom,,,An object containing specific events and data captured by SonicWall firewall devices.
