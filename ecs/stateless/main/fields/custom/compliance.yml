@@ -9,7 +9,6 @@
       level: custom
       description: >
         Array of compliance objects to support multiple frameworks per event.
-      fields:
     - name: compliance.name
       type: keyword
       level: custom
