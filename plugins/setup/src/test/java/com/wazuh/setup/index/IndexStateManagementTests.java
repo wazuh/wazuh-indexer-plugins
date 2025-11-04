@@ -61,7 +61,8 @@ public class IndexStateManagementTests extends OpenSearchTestCase {
         doReturn(adminClient).when(this.client).admin();
         doReturn(this.indicesAdminClient).when(adminClient).indices();
 
-        this.ismIndex = spy(new IndexStateManagement(IndexStateManagement.ISM_INDEX_NAME, "ism-template"));
+        this.ismIndex =
+                spy(new IndexStateManagement(IndexStateManagement.ISM_INDEX_NAME, "ism-template"));
         this.ismIndex.setClient(this.client);
         this.ismIndex.setIndexUtils(this.indexUtils);
         this.ismIndex.setClusterService(clusterService);
@@ -90,7 +91,9 @@ public class IndexStateManagementTests extends OpenSearchTestCase {
         doReturn(actionFuture).when(this.indicesAdminClient).create(any(CreateIndexRequest.class));
 
         Map<String, Object> policyFile = Map.of("policy", "definition");
-        doReturn(policyFile).when(this.indexUtils).fromFile(IndexStateManagement.STREAM_ROLLOVER_POLICY_PATH);
+        doReturn(policyFile)
+                .when(this.indexUtils)
+                .fromFile(IndexStateManagement.STREAM_ROLLOVER_POLICY_PATH);
 
         doReturn(actionFuture).when(this.client).index(any(IndexRequest.class));
 
@@ -144,7 +147,9 @@ public class IndexStateManagementTests extends OpenSearchTestCase {
         doReturn(true).when(this.ismIndex).indexExists(IndexStateManagement.ISM_INDEX_NAME);
 
         Map<String, Object> policyFile = Map.of("policy", "definition");
-        doReturn(policyFile).when(indexUtils).fromFile(IndexStateManagement.STREAM_ROLLOVER_POLICY_PATH);
+        doReturn(policyFile)
+                .when(indexUtils)
+                .fromFile(IndexStateManagement.STREAM_ROLLOVER_POLICY_PATH);
         doThrow(new ResourceAlreadyExistsException("already exists"))
                 .when(this.client)
                 .index(any(IndexRequest.class));
