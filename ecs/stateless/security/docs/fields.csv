@@ -144,6 +144,14 @@ ECS_Version,Indexed,Field_Set,Field,Type,Level,Normalization,Example,Description
 9.1.0,true,cloud,cloud.target.provider,keyword,extended,,aws,Name of the cloud provider.
 9.1.0,true,cloud,cloud.target.region,keyword,extended,,us-east-1,"Region in which this host, resource, or service is located."
 9.1.0,true,cloud,cloud.target.service.name,keyword,extended,,lambda,The cloud service name.
+9.1.0,true,compliance,compliance.compliance,nested,custom,,,Array of compliance objects to support multiple frameworks per event.
+9.1.0,true,compliance,compliance.compliance.category,keyword,custom,,payment-security,"Framework category (payment-security, data-protection, etc.)."
+9.1.0,true,compliance,compliance.compliance.name,keyword,custom,,PCI DSS,"Framework name (PCI DSS, GDPR, NIST 800-53, etc.)."
+9.1.0,true,compliance,compliance.compliance.publisher,keyword,custom,,PCI Security Standards Council,Organization that published the framework.
+9.1.0,true,compliance,compliance.compliance.requirement.description,text,custom,,The organization must rotate encryption keys every 90 days.,Full requirement description.
+9.1.0,true,compliance,compliance.compliance.requirement.id,keyword,custom,,11.5,"Requirement identifier (11.5, Article 32, AC-3, etc.)."
+9.1.0,true,compliance,compliance.compliance.requirement.title,text,custom,,Rotate cryptographic keys,Human-readable requirement title.
+9.1.0,true,compliance,compliance.compliance.version,keyword,custom,,3.2,"Framework version (4.0, 2018, 5.1, etc.)."
 9.1.0,true,container,container.cpu.usage,scaled_float,extended,,,"Percent CPU used, between 0 and 1."
 9.1.0,true,container,container.disk.read.bytes,long,extended,,,The number of bytes read by all disks.
 9.1.0,true,container,container.disk.write.bytes,long,extended,,,The number of bytes written on all disks.

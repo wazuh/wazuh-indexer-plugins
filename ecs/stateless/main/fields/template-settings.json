@@ -22,7 +22,8 @@
           "wazuh.cluster.node",
           "wazuh.schema.version"
         ]
-      }
+      },
+      "mapping.nested_fields.limit": 50
     }
   }
 }

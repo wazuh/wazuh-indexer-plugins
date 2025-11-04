@@ -52,15 +52,32 @@ function detect_modified_modules() {
   local modified_modules=()
   modified_files=$(git diff --name-only origin/"$BASE_BRANCH")
   for file in $modified_files; do
-    if [[ $file == ecs/state* && ($file == *.yml || $file == *.json) ]]; then
-      ecs_module=$(echo "$file" | cut -d'/' -f2)
-      # We explicitly want to match against a pattern. Ignore SC2053 warning.
-      # shellcheck disable=SC2053
-      if [[ ! " ${modified_modules[*]} " == ${ecs_module} ]]; then
-        # Ignore the template folder "stateless/template" from modified modules
-        if [[ "$ecs_module" != "stateless/template" ]]; then
-          modified_modules+=("$ecs_module")
+    if [[ $file == ecs/state* && ( $file == *.yml || $file == *.json ) ]]; then
+      matched=false
+      # Try to match the file to one of the known module keys for exact detection
+      for key in "${!module_to_file[@]}"; do
+        if [[ $file == ecs/$key/* || $file == ecs/$key ]]; then
+          ecs_module="$key"
+          matched=true
+          break
         fi
+      done
+
+      # Ignore the template folder "stateless/template" from modified modules
+      if [[ "$ecs_module" == "stateless/template" ]]; then
+        continue
+      fi
+
+      # Add only if not already present
+      found=false
+      for m in "${modified_modules[@]}"; do
+        if [[ "$m" == "$ecs_module" ]]; then
+          found=true
+          break
+        fi
+      done
+      if [[ "$found" == false ]]; then
+        modified_modules+=("$ecs_module")
       fi
     fi
   done
@@ -88,7 +105,14 @@ function detect_modified_modules() {
     # Add all module keys starting with 'stateless/' to modules_to_update (avoid duplicates)
     for key in "${!module_to_file[@]}"; do
       if [[ "$key" == stateless/* ]]; then
-        if [[ ! " ${modules_to_update[*]} " = "$key" ]]; then
+        skip=false
+        for exist in "${modules_to_update[@]}"; do
+          if [[ "$exist" == "$key" ]]; then
+            skip=true
+            break
+          fi
+        done
+        if [[ "$skip" == false ]]; then
           modules_to_update+=("$key")
         fi
       fi
