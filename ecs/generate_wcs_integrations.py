@@ -206,8 +206,17 @@ class WCSIntegrationsGenerator:
 
         with open(template_settings_path, 'r') as f:
             settings = json.load(f)
-        # Build index pattern name using hyphen-joined category/subcategory (original log_category)
-        index_name = log_category
+        # Build index pattern name. If the subcategory is 'main', omit the '-main' suffix
+        # so indexes use the base category (e.g. 'cloud-services' instead of 'cloud-services-main').
+        if log_subcategory and log_subcategory != 'main':
+            index_name = log_category
+        else:
+            # Remove trailing '-main' if present, otherwise use log_category as-is
+            if log_category.endswith('-main'):
+                index_name = log_category.rsplit('-', 1)[0]
+            else:
+                index_name = log_category
+
         settings['index_patterns'] = [f"wazuh-events-v5-{index_name}-*"]
         settings['template']['settings']['plugins.index_state_management.rollover_alias'] = f"wazuh-events-v5-{index_name}"
         # Set priority to 10 only if log_subcategory exists and is not 'main', otherwise 1
@@ -221,8 +230,17 @@ class WCSIntegrationsGenerator:
 
         with open(template_settings_path, 'r') as f:
             settings = json.load(f)
-        # Build index pattern name using hyphen-joined category/subcategory (original log_category)
-        index_name = log_category
+        # Build index pattern name. If the subcategory is 'main', omit the '-main' suffix
+        # so indexes use the base category (e.g. 'cloud-services' instead of 'cloud-services-main').
+        if log_subcategory and log_subcategory != 'main':
+            index_name = log_category
+        else:
+            # Remove trailing '-main' if present, otherwise use log_category as-is
+            if log_category.endswith('-main'):
+                index_name = log_category.rsplit('-', 1)[0]
+            else:
+                index_name = log_category
+
         settings['index_patterns'] = [f"wazuh-events-v5-{index_name}-*"]
         settings['settings']['plugins.index_state_management.rollover_alias'] = f"wazuh-events-v5-{index_name}"
         # Set order to 10 only if log_subcategory exists and is not 'main', otherwise 1

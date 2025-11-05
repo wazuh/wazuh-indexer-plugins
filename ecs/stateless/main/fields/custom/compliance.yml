@@ -1,0 +1,54 @@
+---
+- name: compliance
+  title: Compliance
+  description: >
+    Fields related to compliance frameworks and their specific requirements.
+  root: true
+  fields:
+    - name: compliance
+      type: nested
+      level: custom
+      description: >
+        Array of compliance objects to support multiple frameworks per event.
+    - name: compliance.name
+      type: keyword
+      level: custom
+      description: >
+        Framework name (PCI DSS, GDPR, NIST 800-53, etc.).
+      example: "PCI DSS"
+    - name: compliance.version
+      type: keyword
+      level: custom
+      description: >
+        Framework version (4.0, 2018, 5.1, etc.).
+      example: "3.2"
+    - name: compliance.category
+      type: keyword
+      level: custom
+      description: >
+        Framework category (payment-security, data-protection, etc.).
+      example: "payment-security"
+    - name: compliance.publisher
+      type: keyword
+      level: custom
+      description: >
+        Organization that published the framework.
+      example: "PCI Security Standards Council"
+    - name: compliance.requirement.id
+      type: keyword
+      level: custom
+      description: >
+        Requirement identifier (11.5, Article 32, AC-3, etc.).
+      example: "11.5"
+    - name: compliance.requirement.title
+      type: match_only_text
+      level: custom
+      description: >
+        Human-readable requirement title.
+      example: "Rotate cryptographic keys"
+    - name: compliance.requirement.description
+      type: match_only_text
+      level: custom
+      description: >
+        Full requirement description.
+      example: "The organization must rotate encryption keys every 90 days."
