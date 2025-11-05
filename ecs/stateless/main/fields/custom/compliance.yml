@@ -40,13 +40,13 @@
         Requirement identifier (11.5, Article 32, AC-3, etc.).
       example: "11.5"
     - name: compliance.requirement.title
-      type: text
+      type: match_only_text
       level: custom
       description: >
         Human-readable requirement title.
       example: "Rotate cryptographic keys"
     - name: compliance.requirement.description
-      type: text
+      type: match_only_text
       level: custom
       description: >
         Full requirement description.
