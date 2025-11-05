@@ -866,42 +866,38 @@
       },
       "compliance": {
         "properties": {
-          "compliance": {
+          "category": {
+            "ignore_above": 1024,
+            "type": "keyword"
+          },
+          "name": {
+            "ignore_above": 1024,
+            "type": "keyword"
+          },
+          "publisher": {
+            "ignore_above": 1024,
+            "type": "keyword"
+          },
+          "requirement": {
             "properties": {
-              "category": {
+              "description": {
+                "type": "match_only_text"
+              },
+              "id": {
                 "ignore_above": 1024,
                 "type": "keyword"
               },
-              "name": {
-                "ignore_above": 1024,
-                "type": "keyword"
-              },
-              "publisher": {
-                "ignore_above": 1024,
-                "type": "keyword"
-              },
-              "requirement": {
-                "properties": {
-                  "description": {
-                    "type": "match_only_text"
-                  },
-                  "id": {
-                    "ignore_above": 1024,
-                    "type": "keyword"
-                  },
-                  "title": {
-                    "type": "match_only_text"
-                  }
-                }
-              },
-              "version": {
-                "ignore_above": 1024,
-                "type": "keyword"
+              "title": {
+                "type": "match_only_text"
               }
-            },
-            "type": "nested"
+            }
+          },
+          "version": {
+            "ignore_above": 1024,
+            "type": "keyword"
           }
-        }
+        },
+        "type": "nested"
       },
       "container": {
         "properties": {

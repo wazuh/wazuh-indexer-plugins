@@ -3,6 +3,7 @@
   title: Compliance
   description: >
     Fields related to compliance frameworks and their specific requirements.
+  root: true
   fields:
     - name: compliance
       type: nested
