@@ -708,6 +708,41 @@
           }
         }
       },
+      "compliance": {
+        "properties": {
+          "category": {
+            "ignore_above": 1024,
+            "type": "keyword"
+          },
+          "name": {
+            "ignore_above": 1024,
+            "type": "keyword"
+          },
+          "publisher": {
+            "ignore_above": 1024,
+            "type": "keyword"
+          },
+          "requirement": {
+            "properties": {
+              "description": {
+                "type": "match_only_text"
+              },
+              "id": {
+                "ignore_above": 1024,
+                "type": "keyword"
+              },
+              "title": {
+                "type": "match_only_text"
+              }
+            }
+          },
+          "version": {
+            "ignore_above": 1024,
+            "type": "keyword"
+          }
+        },
+        "type": "nested"
+      },
       "container": {
         "properties": {
           "cpu": {
@@ -8292,6 +8327,7 @@
       ],
       "refresh_interval": "2s"
     },
+    "mapping.nested_fields.limit": 50,
     "mapping.total_fields.limit": 2500,
     "plugins.index_state_management.rollover_alias": "wazuh-archives-v5"
   }
