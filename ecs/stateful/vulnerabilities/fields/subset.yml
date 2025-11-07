@@ -1,0 +1,48 @@
+---
+name: vulnerability_detector
+fields:
+  base:
+    fields:
+      message: {}
+  agent:
+    fields:
+      ephemeral_id: {}
+      groups: []
+      id: {}
+      name: {}
+      type: {}
+      version: {}
+      build:
+        fields:
+          original: {}
+      host:
+        fields:
+          architecture: {}
+          hostname: {}
+          ip: {}
+          os:
+            fields:
+              name: {}
+              platform: {}
+              type: {}
+              version: {}
+  checksum:
+    fields: "*"
+  package:
+    fields: "*"
+  host:
+    fields:
+      os:
+        fields:
+          full: ""
+          kernel: ""
+          name: ""
+          platform: ""
+          type: ""
+          version: ""
+  vulnerability:
+    fields: "*"
+  state:
+    fields: "*"
+  wazuh:
+    fields: "*"

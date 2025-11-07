@@ -10,7 +10,6 @@ including YAML field definitions, JSON template settings, and documentation.
 """
 
 import csv
-import os
 import json
 import yaml
 from collections import defaultdict
@@ -33,7 +32,7 @@ class WCSIntegrationsGenerator:
         """
         self.csv_file_path = Path(csv_file_path)
         self.ecs_base_path = Path(ecs_base_path)
-        self.template_path = template_path or self.ecs_base_path / "stateless-template"
+        self.template_path = template_path or self.ecs_base_path / "stateless" / "template"
 
         # Data structure to hold integration information
         self.integrations_data = {}
@@ -88,11 +87,28 @@ class WCSIntegrationsGenerator:
     def create_folder_structure(self):
         """Create the folder structure for all categories."""
         print("Creating folder structure...")
+        # Create folders under stateless/<category>[/<subcategory>]
+        categories = set(data['log_category'] for data in self.integrations_data.values())
+        for cat in categories:
+            # Normalize special two-part sequences into single hyphenated tokens
+            # e.g., 'cloud-services-gcp' -> ['cloud-services', 'gcp']
+            parts = cat.split('-') if cat else [cat]
+            if len(parts) >= 2:
+                # join the first two when they match known patterns
+                first_two = f"{parts[0]}-{parts[1]}"
+                special = {"cloud/services": "cloud-services", "cloud-services": "cloud-services",
+                           "network/activity": "network-activity", "network-activity": "network-activity",
+                           "system/activity": "system-activity", "system-activity": "system-activity"}
 
-        # Create a separate folder for each category
-        for category in set(data['log_category'] for data in self.integrations_data.values()):
-            folder_name = f"stateless-{category}"
-            folder_path = self.ecs_base_path / folder_name
+                # check both original slash form and hyphen form
+                key_slash = f"{parts[0]}/{parts[1]}"
+                if key_slash in special:
+                    parts = [special[key_slash]] + parts[2:]
+                elif first_two in special:
+                    parts = [special[first_two]] + parts[2:]
+
+            # folder structure: stateless/<category>[/<subcategory>...]
+            folder_path = self.ecs_base_path / 'stateless' / Path(*parts)
 
             print(f"Creating folder: {folder_path}")
 
@@ -100,7 +116,7 @@ class WCSIntegrationsGenerator:
             (folder_path / "docs").mkdir(parents=True, exist_ok=True)
             (folder_path / "fields" / "custom").mkdir(parents=True, exist_ok=True)
 
-            print(f"  Created structure for {category} integration")
+            print(f"  Created structure for {cat} integration")
 
     def generate_custom_fields_yaml(self, integration, integration_data):
         """Generate the custom YAML fields file for an integration."""
@@ -190,11 +206,21 @@ class WCSIntegrationsGenerator:
 
         with open(template_settings_path, 'r') as f:
             settings = json.load(f)
+        # Build index pattern name. If the subcategory is 'main', omit the '-main' suffix
+        # so indexes use the base category (e.g. 'cloud-services' instead of 'cloud-services-main').
+        if log_subcategory and log_subcategory != 'main':
+            index_name = log_category
+        else:
+            # Remove trailing '-main' if present, otherwise use log_category as-is
+            if log_category.endswith('-main'):
+                index_name = log_category.rsplit('-', 1)[0]
+            else:
+                index_name = log_category
 
-        # Update index patterns and settings
-        settings['index_patterns'] = [f"wazuh-events-v5-{log_category}-*"]
-        settings['template']['settings']['plugins.index_state_management.rollover_alias'] = f"wazuh-events-v5-{log_category}"
-        settings['priority'] = 10  if log_subcategory else 1
+        settings['index_patterns'] = [f"wazuh-events-v5-{index_name}-*"]
+        settings['template']['settings']['plugins.index_state_management.rollover_alias'] = f"wazuh-events-v5-{index_name}"
+        # Set priority to 10 only if log_subcategory exists and is not 'main', otherwise 1
+        settings['priority'] = 10 if log_subcategory and log_subcategory != 'main' else 1
 
         return settings
 
@@ -204,11 +230,21 @@ class WCSIntegrationsGenerator:
 
         with open(template_settings_path, 'r') as f:
             settings = json.load(f)
+        # Build index pattern name. If the subcategory is 'main', omit the '-main' suffix
+        # so indexes use the base category (e.g. 'cloud-services' instead of 'cloud-services-main').
+        if log_subcategory and log_subcategory != 'main':
+            index_name = log_category
+        else:
+            # Remove trailing '-main' if present, otherwise use log_category as-is
+            if log_category.endswith('-main'):
+                index_name = log_category.rsplit('-', 1)[0]
+            else:
+                index_name = log_category
 
-        # Update index patterns and settings
-        settings['index_patterns'] = [f"wazuh-events-v5-{log_category}-*"]
-        settings['settings']['plugins.index_state_management.rollover_alias'] = f"wazuh-events-v5-{log_category}"
-        settings['order'] = 10  if log_subcategory else 1
+        settings['index_patterns'] = [f"wazuh-events-v5-{index_name}-*"]
+        settings['settings']['plugins.index_state_management.rollover_alias'] = f"wazuh-events-v5-{index_name}"
+        # Set order to 10 only if log_subcategory exists and is not 'main', otherwise 1
+        settings['order'] = 10 if log_subcategory and log_subcategory != 'main' else 1
 
         return settings
 
@@ -239,7 +275,7 @@ This is a time-based (stateless) index. The index includes the WCS fields and th
 
 For this stage, we are using all the fields of the WCS. Dynamic mode is temporarily set to `false` to avoid the creation of new fields while allowing the indexing of events containing fields not in the schema. These fields can be retrieved from the original event (`_source`).
 
-- [WCS main mappings](../../stateless/docs/fields.csv)
+- [WCS main mappings](../../main/docs/fields.csv)
 
 The detail of the fields can be found in csv file [Stateless {log_category.title()} Fields](fields.csv).
 
@@ -254,8 +290,21 @@ The **{log_category}** log category provides specialized fields for processing e
         """Write all files for a specific integration."""
         log_category = integration_data['log_category']
         log_subcategory = integration_data['log_subcategory']
-        folder_name = f"stateless-{log_category}"
-        base_path = self.ecs_base_path / folder_name
+        # Build folder path under stateless/<category>[/<subcategory>...]
+        parts = log_category.split('-') if log_category else [log_category]
+        if len(parts) >= 2:
+            key_slash = f"{parts[0]}/{parts[1]}"
+            first_two = f"{parts[0]}-{parts[1]}"
+            special = {"cloud/services": "cloud-services", "cloud-services": "cloud-services",
+                       "network/activity": "network-activity", "network-activity": "network-activity",
+                       "system/activity": "system-activity", "system-activity": "system-activity"}
+
+            if key_slash in special:
+                parts = [special[key_slash]] + parts[2:]
+            elif first_two in special:
+                parts = [special[first_two]] + parts[2:]
+
+        base_path = self.ecs_base_path / 'stateless' / Path(*parts)
 
         print(f"  Generating files for {integration} integration...")
 
@@ -385,7 +434,7 @@ def main():
     )
     parser.add_argument(
         "--template-path",
-        help="Path to the template directory (default: ecs-path/stateless-template)"
+        help="Path to the template directory (default: ecs-path/stateless/template)"
     )
     parser.add_argument(
         "--dry-run",

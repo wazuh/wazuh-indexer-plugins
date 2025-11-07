@@ -1,0 +1,42 @@
+---
+name: wazuh-states-fim-registry-keys
+fields:
+  base:
+    fields:
+      message: {}
+  agent:
+    fields:
+      groups: []
+      id: {}
+      name: {}
+      version: {}
+      host:
+        fields:
+          architecture: {}
+          hostname: {}
+          ip: {}
+          os:
+            fields:
+              name: {}
+              platform: {}
+              type: {}
+              version: {}
+  checksum:
+    fields: "*"
+  registry:
+    fields:
+      architecture: {}
+      gid: {}
+      group: {}
+      hive: {}
+      key: {}
+      mtime: {}
+      owner: {}
+      path: {}
+      permissions: {}
+      uid: {}
+  state:
+    fields: "*"
+  wazuh:
+    fields: "*"
+

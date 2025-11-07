@@ -52,13 +52,32 @@ function detect_modified_modules() {
   local modified_modules=()
   modified_files=$(git diff --name-only origin/"$BASE_BRANCH")
   for file in $modified_files; do
-    if [[ $file == ecs/state* && ($file == *.yml || $file == *.json) ]]; then
-      ecs_module=$(echo "$file" | cut -d'/' -f2)
-      if [[ ! " ${modified_modules[*]} " == ${ecs_module} ]]; then
-        # Ignore the template folder "stateless-template" from modified modules
-        if [[ "$ecs_module" != "stateless-template" ]]; then
-          modified_modules+=("$ecs_module")
+    if [[ $file == ecs/state* && ( $file == *.yml || $file == *.json ) ]]; then
+      matched=false
+      # Try to match the file to one of the known module keys for exact detection
+      for key in "${!module_to_file[@]}"; do
+        if [[ $file == ecs/$key/* || $file == ecs/$key ]]; then
+          ecs_module="$key"
+          matched=true
+          break
         fi
+      done
+
+      # Ignore the template folder "stateless/template" from modified modules
+      if [[ "$ecs_module" == "stateless/template" ]]; then
+        continue
+      fi
+
+      # Add only if not already present
+      found=false
+      for m in "${modified_modules[@]}"; do
+        if [[ "$m" == "$ecs_module" ]]; then
+          found=true
+          break
+        fi
+      done
+      if [[ "$found" == false ]]; then
+        modified_modules+=("$ecs_module")
       fi
     fi
   done
@@ -67,12 +86,12 @@ function detect_modified_modules() {
   echo "---> Modified modules"
   modules_to_update=()
 
-  local stateless_found=false
+  local is_main_module_modified=false
 
   for ecs_module in "${modified_modules[@]}"; do
     echo "  - $ecs_module"
-    if [[ "$ecs_module" == "stateless" ]]; then
-      stateless_found=true
+    if [[ "$ecs_module" == "stateless/main" ]]; then
+      is_main_module_modified=true
     fi
     if [[ ! -v module_to_file[$ecs_module] ]]; then
       echo "Warning: Module '$ecs_module' not found in module list. Probably removed. Skipping."
@@ -82,11 +101,18 @@ function detect_modified_modules() {
       modules_to_update+=("$ecs_module")
     fi
   done
-  if [[ "$stateless_found" == true ]]; then
-    # Add all module keys starting with 'stateless-' to modules_to_update (avoid duplicates)
+  if [[ "$is_main_module_modified" == true ]]; then
+    # Add all module keys starting with 'stateless/' to modules_to_update (avoid duplicates)
     for key in "${!module_to_file[@]}"; do
-      if [[ "$key" == stateless-* ]]; then
-        if [[ ! " ${modules_to_update[*]} " =~ " $key " ]]; then
+      if [[ "$key" == stateless/* ]]; then
+        skip=false
+        for exist in "${modules_to_update[@]}"; do
+          if [[ "$exist" == "$key" ]]; then
+            skip=true
+            break
+          fi
+        done
+        if [[ "$skip" == false ]]; then
           modules_to_update+=("$key")
         fi
       fi
@@ -130,7 +156,7 @@ function copy_files() {
 
   echo "---> Index templates"
   local destination_file
-  local resources_path="plugins/setup/src/main/resources/"
+  local resources_path="plugins/setup/src/main/resources"
   local mappings_path="mappings/${ECS_VERSION}/generated/elasticsearch/legacy/template.json"
   for ecs_module in "${modules_to_update[@]}"; do
     # Copying index templates to the initialization plugin resources folder
@@ -139,8 +165,8 @@ function copy_files() {
     echo "  - '$destination_file' updated"
 
     # Generate archives index template from the alerts one
-    if [ "$ecs_module" == "stateless" ]; then
-      destination_file="$resources_path/index-template-archives.json"
+    if [ "$ecs_module" == "stateless/main" ]; then
+      destination_file="$resources_path/templates/streams/archives.json"
       echo "  - Generate template for module '$ecs_module/archives' to '$destination_file'"
       cp "$repo_path/ecs/$ecs_module/$mappings_path" "$destination_file"
       sed -i 's/wazuh-alerts/wazuh-archives/g' "$destination_file"

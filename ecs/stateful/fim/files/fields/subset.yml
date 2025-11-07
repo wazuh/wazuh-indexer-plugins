@@ -1,0 +1,47 @@
+---
+name: wazuh-states-fim-files
+fields:
+  base:
+    fields:
+      message: {}
+  agent:
+    fields:
+      groups: []
+      id: {}
+      name: {}
+      version: {}
+      host:
+        fields:
+          architecture: {}
+          hostname: {}
+          ip: {}
+          os:
+            fields:
+              name: {}
+              platform: {}
+              type: {}
+              version: {}
+  checksum:
+    fields: "*"
+  file:
+    fields:
+      attributes: {}
+      device: {}
+      gid: {}
+      group: {}
+      hash:
+        fields:
+          md5: {}
+          sha1: {}
+          sha256: {}
+      inode: {}
+      mtime: {}
+      owner: {}
+      path: {}
+      permissions: {}
+      size: {}
+      uid: {}
+  state:
+    fields: "*"
+  wazuh:
+    fields: "*"

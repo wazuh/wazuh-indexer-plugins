@@ -28,6 +28,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Add browser-extensions and services inventory indices to documentation [(#574)](https://github.com/wazuh/wazuh-indexer-plugins/pull/574)
 - Add state.modified_at to stateful indexes [(#561)](https://github.com/wazuh/wazuh-indexer-plugins/pull/561)
 - Add WCS integration fields to stateless indices [(#621)](https://github.com/wazuh/wazuh-indexer-plugins/pull/621)
+- Implement pre-processing ECS sources types sanitization [(#628)](https://github.com/wazuh/wazuh-indexer-plugins/pull/628)
+- Add Security Compliance fields to the WCS [(#643)](https://github.com/wazuh/wazuh-indexer-plugins/pull/643)
 
 ### Dependencies
 -
@@ -35,7 +37,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 ### Changed
 - Replace dependabot's directories keys with wildcard [(#443)](https://github.com/wazuh/wazuh-indexer-plugins/pull/443)
 - Adapt setup plugin for 5.x [(#450)](https://github.com/wazuh/wazuh-indexer-plugins/pull/450)
-- Third-party integrations maintenance [(#478)](https://github.com/wazuh/wazuh-indexer-plugins/pull/478) [(#540)](https://github.com/wazuh/wazuh-indexer-plugins/pull/540) [(#548)](https://github.com/wazuh/wazuh-indexer-plugins/pull/548) [(#566)](https://github.com/wazuh/wazuh-indexer-plugins/pull/566) [(#583)](https://github.com/wazuh/wazuh-indexer-plugins/pull/583)
+- Third-party integrations maintenance [(#478)](https://github.com/wazuh/wazuh-indexer-plugins/pull/478) [(#540)](https://github.com/wazuh/wazuh-indexer-plugins/pull/540) [(#548)](https://github.com/wazuh/wazuh-indexer-plugins/pull/548) [(#566)](https://github.com/wazuh/wazuh-indexer-plugins/pull/566) [(#583)](https://github.com/wazuh/wazuh-indexer-plugins/pull/583) [(#642)](https://github.com/wazuh/wazuh-indexer-plugins/pull/642)
 - Replace and remove deprecated settings [(#476)](https://github.com/wazuh/wazuh-indexer-plugins/pull/476)
 - Migrate WCS changes from 4.x [(#488)](https://github.com/wazuh/wazuh-indexer-plugins/pull/488) [(#552)](https://github.com/wazuh/wazuh-indexer-plugins/pull/552) [(#568)](https://github.com/wazuh/wazuh-indexer-plugins/pull/568)
 - Implement checksum fields into stateful ECS mappings [(#519)](https://github.com/wazuh/wazuh-indexer-plugins/pull/519) [(#569)](https://github.com/wazuh/wazuh-indexer-plugins/pull/569)
@@ -44,10 +46,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Update index templates with agent fields [(#578)](https://github.com/wazuh/wazuh-indexer-plugins/pull/578)
 - Rename indices from *-5.x-* to *-v5-* [(#597)](https://github.com/wazuh/wazuh-indexer-plugins/pull/597)
 - Use stricter field limits for the WCS indices [(#589)](https://github.com/wazuh/wazuh-indexer-plugins/pull/589)
-- Bump WCS to ECS v9.1.0 [(#600)](https://github.com/wazuh/wazuh-indexer-plugins/pull/600)
+- Bump WCS to ECS v9.1.0 [(#600)](https://github.com/wazuh/wazuh-indexer-plugins/pull/600) [(#631)](https://github.com/wazuh/wazuh-indexer-plugins/pull/631)
 - Replace genai.* nested fields with keyword array [(#608)](https://github.com/wazuh/wazuh-indexer-plugins/pull/608)
 - Check GitHub actions with dependabot [(#601)](https://github.com/wazuh/wazuh-indexer-plugins/pull/601)
 - Automatically regenerate dependant stateless modules on base module change [(#618)](https://github.com/wazuh/wazuh-indexer-plugins/pull/618)
+- Restructure WCS files[(#629)](https://github.com/wazuh/wazuh-indexer-plugins/pull/629)
 - Restructuring of the repository tooling [(#625)](https://github.com/wazuh/wazuh-indexer-plugins/pull/625)
 - Fix mdbook to version 0.4.x [(#627)](https://github.com/wazuh/wazuh-indexer-plugins/pull/627)
 
@@ -66,6 +69,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Update event generators [(#505)](https://github.com/wazuh/wazuh-indexer-plugins/pull/505)
 - Update `DEVELOPER_GUIDE.md` to use JDK 21 [(#538)](https://github.com/wazuh/wazuh-indexer-plugins/pull/538)
 - Fix WCS generator modules detection issues [(#620)](https://github.com/wazuh/wazuh-indexer-plugins/pull/620)
+- Fix verify_integrations script to read the integrations from module_list.txt [(#640)](https://github.com/wazuh/wazuh-indexer-plugins/pull/640)
 
 ### Security
 - Reduce risk of GITHUB_TOKEN exposure [(#484)](https://github.com/wazuh/wazuh-indexer-plugins/pull/484)
