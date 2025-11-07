@@ -183,6 +183,20 @@ function copy_files() {
     cp "$repo_path/ecs/$ecs_module/$csv_path" "$docs_path/fields.csv"
     echo "  - '$ecs_module' docs"
   done
+
+  echo "---> Flat ECS template"
+  local docs_ecs_path
+  local flat_ecs_path="mappings/${ECS_VERSION}/generated/ecs/ecs_flat.yml"
+  for ecs_module in "${modules_to_update[@]}"; do
+    # Flat ECS is only required for the stateless modules
+    if [[ "$ecs_module" =~ stateless/* ]]; then
+        # Copying flat ECS template to the ecs/<module>/docs/ folder
+        docs_ecs_path="$repo_path/ecs/$ecs_module/docs"
+        mkdir -p "$docs_ecs_path"
+        cp "$repo_path/ecs/$ecs_module/$flat_ecs_path" "$docs_ecs_path/ecs_flat.yml"
+        echo "  - '$ecs_module' ecs_flat.yml"
+    fi
+  done
 }
 
 # ====
