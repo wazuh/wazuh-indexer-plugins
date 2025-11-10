@@ -178,4 +178,3 @@ tail -f logs/opensearch.log | grep -E "ContentManager|ContentUpdater|SnapshotMan
 
 - [Setup Plugin Guide](./setup.md)
 - [OpenSearch Plugin Development](https://opensearch.org/docs/latest/install-and-configure/plugins/)
-- [Wazuh CTI API Documentation](https://cti.wazuh.com/api/v1/docs)
