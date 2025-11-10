@@ -3,7 +3,7 @@ import java.util.concurrent.Callable
 
 buildscript {
     ext {
-        opensearch_version = System.getProperty("opensearch.version", "3.3.2")
+        opensearch_version = System.getProperty("opensearch.version", "3.3.2-SNAPSHOT")
         opensearch_build = opensearch_version.replace("-SNAPSHOT","") + ".0"
         wazuh_version = System.getProperty("version", "5.0.0")
         revision = System.getProperty("revision", "0")
@@ -11,7 +11,7 @@ buildscript {
 
     repositories {
         mavenLocal()
-        maven { url "https://aws.oss.sonatype.org/content/repositories/snapshots" }
+        maven { url "https://ci.opensearch.org/ci/dbc/snapshots/maven/" }
         mavenCentral()
         maven { url "https://plugins.gradle.org/m2/" }
     }
@@ -103,7 +103,7 @@ dependencyLicenses.enabled = false
 
 repositories {
     mavenLocal()
-    maven { url "https://aws.oss.sonatype.org/content/repositories/snapshots" }
+    maven { url "https://ci.opensearch.org/ci/dbc/snapshots/maven/" }
     mavenCentral()
     maven { url "https://plugins.gradle.org/m2/" }
 }
