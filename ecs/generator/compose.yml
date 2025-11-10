@@ -1,0 +1,11 @@
+services:
+  wcs-generator:
+    image: wazuh-common-schema-generator
+    container_name: wazuh-common-schema-generator
+    build:
+      context: ./../..
+      dockerfile: ${REPO_PATH:-.}/ecs/generator/images/Dockerfile
+    volumes:
+      - ${REPO_PATH:-.}/ecs:/source/ecs
+    environment:
+      - ECS_MODULE=${ECS_MODULE:-""}

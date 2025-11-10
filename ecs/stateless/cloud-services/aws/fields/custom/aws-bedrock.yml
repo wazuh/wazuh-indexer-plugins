@@ -1,0 +1,126 @@
+- name: aws-bedrock
+  title: Aws Bedrock
+  description: aws-bedrock custom fields for WCS integration
+  root: true
+  fields:
+  - name: aws_bedrock.invocation.input.input_body_json
+    type: keyword
+    level: custom
+    description: >-
+      The JSON string representation of the input request body sent to the AWS Bedrock
+      model.
+    example: example-input_body_json
+  - name: aws_bedrock.invocation.input.input_body_s3_path
+    type: keyword
+    level: custom
+    description: The S3 path where the input request body is stored when it exceeds
+      size limits.
+    example: example-input_body_s3_path
+  - name: aws_bedrock.invocation.input.input_content_type
+    type: keyword
+    level: custom
+    description: The content type of the input request body sent to the Bedrock model.
+    example: example-input_content_type
+  - name: aws_bedrock.invocation.input.input_token_count
+    type: long
+    level: custom
+    description: The number of tokens in the input request sent to the AWS Bedrock
+      model.
+    example: 12345
+  - name: aws_bedrock.invocation.model_id
+    type: keyword
+    level: custom
+    description: >-
+      The unique identifier of the AWS Bedrock foundation model used for the invocation.
+    example: example-model_id
+  - name: aws_bedrock.invocation.output.completion_text
+    type: keyword
+    level: custom
+    description: The generated text completion response from the AWS Bedrock model.
+    example: example-completion_text
+  - name: aws_bedrock.invocation.output.output_body_json
+    type: keyword
+    level: custom
+    description: >-
+      The JSON string representation of the output response body from the AWS Bedrock
+      model.
+    example: example-output_body_json
+  - name: aws_bedrock.invocation.output.output_body_s3_path
+    type: keyword
+    level: custom
+    description: >-
+      The S3 path where the output response body is stored when it exceeds size limits.
+    example: example-output_body_s3_path
+  - name: aws_bedrock.invocation.output.output_content_type
+    type: keyword
+    level: custom
+    description: The content type of the output response body from the Bedrock model.
+    example: example-output_content_type
+  - name: aws_bedrock.invocation.output.output_token_count
+    type: long
+    level: custom
+    description: The number of tokens in the output response from the AWS Bedrock
+      model.
+    example: 12345
+  - name: aws_bedrock.invocation.request_id
+    type: keyword
+    level: custom
+    description: The unique identifier for the specific AWS Bedrock model invocation
+      request.
+    example: example-request_id
+  - name: aws_bedrock.invocation.schema_type
+    type: keyword
+    level: custom
+    description: The schema type identifier for the AWS Bedrock invocation log format.
+    example: example-schema_type
+  - name: aws_bedrock.invocation.schema_version
+    type: keyword
+    level: custom
+    description: The version number of the AWS Bedrock invocation log schema used.
+    example: example-schema_version
+  - name: aws_bedrock.invocation.model.type
+    type: keyword
+    level: custom
+    description: >-
+      The type or family of the AI model used (e.g. anthropic amazon cohere meta ai21).
+    example: example-type
+  - name: aws_bedrock.invocation.model.version
+    type: keyword
+    level: custom
+    description: The version identifier of the AI model used for the request.
+    example: example-version
+  - name: aws_bedrock.invocation.performance.response_time
+    type: long
+    level: custom
+    description: The response time in milliseconds for the AI model invocation request.
+    example: 12345
+  - name: aws_bedrock.invocation.policy.action
+    type: keyword
+    level: custom
+    description: The action taken by AI governance policies during the model invocation.
+    example: example-action
+  - name: aws_bedrock.invocation.policy.violation
+    type: object
+    level: custom
+    description: Details about policy violations detected during the AI model invocation.
+  - name: aws_bedrock.invocation.response.timestamp
+    type: date
+    level: custom
+    description: The timestamp when the AI model response was generated.
+    example: '2023-01-01T00:00:00.000Z'
+  - name: aws_bedrock.invocation.user.id
+    type: keyword
+    level: custom
+    description: The identifier of the user or principal making the AI model request.
+    example: example-id
+  - name: aws_bedrock.invocation.compliance.violation_code
+    type: keyword
+    level: custom
+    description: The specific code identifying the type of compliance violation detected.
+    example: example-violation_code
+  - name: aws_bedrock.invocation.compliance.violation_detected
+    type: boolean
+    level: custom
+    description: >-
+      Indicates whether a compliance violation was detected during AI model processing.
+    example: true

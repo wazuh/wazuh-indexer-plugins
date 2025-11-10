@@ -61,7 +61,8 @@ public class IndexStateManagementTests extends OpenSearchTestCase {
         doReturn(adminClient).when(this.client).admin();
         doReturn(this.indicesAdminClient).when(adminClient).indices();
 
-        this.ismIndex = spy(new IndexStateManagement(".opendistro-ism-config", "ism-template"));
+        this.ismIndex =
+                spy(new IndexStateManagement(IndexStateManagement.ISM_INDEX_NAME, "ism-template"));
         this.ismIndex.setClient(this.client);
         this.ismIndex.setIndexUtils(this.indexUtils);
         this.ismIndex.setClusterService(clusterService);
@@ -78,19 +79,21 @@ public class IndexStateManagementTests extends OpenSearchTestCase {
         template.put("settings", Settings.builder().build());
         template.put("mappings", Map.of());
 
-        doReturn(false).when(this.ismIndex).indexExists(".opendistro-ism-config");
+        doReturn(false).when(this.ismIndex).indexExists(IndexStateManagement.ISM_INDEX_NAME);
         doReturn(template).when(this.indexUtils).fromFile("ism-template.json");
         doReturn(template.get("mappings")).when(this.indexUtils).get(template, "mappings");
 
         CreateIndexResponse createResponse = mock(CreateIndexResponse.class);
-        doReturn(".opendistro-ism-config").when(createResponse).index();
+        doReturn(IndexStateManagement.ISM_INDEX_NAME).when(createResponse).index();
 
         ActionFuture actionFuture = mock(ActionFuture.class);
 
         doReturn(actionFuture).when(this.indicesAdminClient).create(any(CreateIndexRequest.class));
 
         Map<String, Object> policyFile = Map.of("policy", "definition");
-        doReturn(policyFile).when(this.indexUtils).fromFile("wazuh-alerts-rollover-policy.json");
+        doReturn(policyFile)
+                .when(this.indexUtils)
+                .fromFile(IndexStateManagement.STREAM_ROLLOVER_POLICY_PATH);
 
         doReturn(actionFuture).when(this.client).index(any(IndexRequest.class));
 
@@ -107,7 +110,7 @@ public class IndexStateManagementTests extends OpenSearchTestCase {
      * index creation.
      */
     public void testIndexAlreadyExists_SkipsCreation() {
-        doReturn(true).when(this.ismIndex).indexExists(".opendistro-ism-config");
+        doReturn(true).when(this.ismIndex).indexExists(IndexStateManagement.ISM_INDEX_NAME);
 
         doReturn(mock(ActionFuture.class)).when(this.client).index(any(IndexRequest.class));
 
@@ -123,10 +126,10 @@ public class IndexStateManagementTests extends OpenSearchTestCase {
      * @throws IOException if there is an error reading the policy file
      */
     public void testPolicyFileMissing_LogsError() throws IOException {
-        doReturn(true).when(this.ismIndex).indexExists(".opendistro-ism-config");
+        doReturn(true).when(this.ismIndex).indexExists(IndexStateManagement.ISM_INDEX_NAME);
         doThrow(new IOException("file not found"))
                 .when(indexUtils)
-                .fromFile("wazuh-alerts-rollover-policy.json");
+                .fromFile(IndexStateManagement.STREAM_ROLLOVER_POLICY_PATH);
 
         this.ismIndex.initialize();
 
@@ -141,10 +144,12 @@ public class IndexStateManagementTests extends OpenSearchTestCase {
      * @throws IOException if there is an error reading the policy file
      */
     public void testPolicyAlreadyExists_LogsInfo() throws IOException {
-        doReturn(true).when(this.ismIndex).indexExists(".opendistro-ism-config");
+        doReturn(true).when(this.ismIndex).indexExists(IndexStateManagement.ISM_INDEX_NAME);
 
         Map<String, Object> policyFile = Map.of("policy", "definition");
-        doReturn(policyFile).when(indexUtils).fromFile("wazuh-alerts-rollover-policy.json");
+        doReturn(policyFile)
+                .when(indexUtils)
+                .fromFile(IndexStateManagement.STREAM_ROLLOVER_POLICY_PATH);
         doThrow(new ResourceAlreadyExistsException("already exists"))
                 .when(this.client)
                 .index(any(IndexRequest.class));

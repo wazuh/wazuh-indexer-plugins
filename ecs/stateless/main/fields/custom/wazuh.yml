@@ -1,0 +1,64 @@
+---
+- name: wazuh
+  title: Wazuh
+  description: >
+    Wazuh Inc. custom fields
+  fields:
+    - name: integration.name
+      type: keyword
+      level: custom
+      description: >
+        Name of the Wazuh integration.
+      example: "Cisco Aironet"
+    - name: integration.decoders
+      type: keyword
+      description: >
+        List of Wazuh decoders applied to the event.
+      normalize:
+        - array
+      level: custom
+      example: '["json", "syslog"]'
+    - name: integration.rules
+      type: keyword
+      level: custom
+      description: >
+        List of Wazuh rules applied to the event.
+      normalize:
+        - array
+      example: '["1002", "2003"]'
+    - name: integration.category
+      type: keyword
+      level: custom
+      description: >
+        Wazuh integration category.
+      example: "security"
+    - name: cluster.name
+      type: keyword
+      level: custom
+      description: >
+        Wazuh cluster name.
+      example: "wazuh-cluster-1"
+    - name: cluster.node
+      type: keyword
+      level: custom
+      description: >
+        Wazuh cluster node name.
+      example: "wazuh-cluster-node-1"
+    - name: protocol.location
+      type: keyword
+      level: custom
+      description: >
+        Source of the log as retrieved by the Wazuh Agent.
+      example: "/var/log/auth.log"
+    - name: protocol.queue
+      type: byte
+      level: custom
+      description: >
+        Ingestion queue for the log.
+      example: 1
+    - name: schema.version
+      type: keyword
+      level: custom
+      description: >
+        Wazuh schema version.
+      example: "1.7.0"

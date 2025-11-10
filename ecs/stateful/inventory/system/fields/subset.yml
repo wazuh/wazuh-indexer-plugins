@@ -1,0 +1,53 @@
+---
+name: wazuh-states-inventory-system
+fields:
+  base:
+    fields:
+      message: {}
+  agent:
+    fields:
+      groups: []
+      id: {}
+      name: {}
+      version: {}
+      host:
+        fields:
+          architecture: {}
+          hostname: {}
+          ip: {}
+          os:
+            fields:
+              name: {}
+              platform: {}
+              type: {}
+              version: {}
+  checksum:
+    fields: "*"
+  host:
+    fields:
+      architecture: {}
+      hostname: {}
+      os:
+        fields:
+          build: {}
+          codename: {}
+          distribution:
+            fields:
+              release: {}
+          full: {}
+          kernel:
+            fields:
+              name: {}
+              release: {}
+              version: {}
+          major: {}
+          minor: {}
+          name: {}
+          patch: {}
+          platform: {}
+          type: {}
+          version: {}
+  state:
+    fields: "*"
+  wazuh:
+    fields: "*"

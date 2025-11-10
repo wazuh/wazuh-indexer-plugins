@@ -5,7 +5,7 @@
 [![Chat](https://img.shields.io/badge/chat-on%20forums-blue)](https://groups.google.com/forum/#!forum/wazuh)
 [![Slack](https://img.shields.io/badge/slack-join-blue.svg)](https://wazuh.com/community/join-us-on-slack)
 [![Documentation](https://img.shields.io/badge/documentation-reference-blue)](https://documentation.wazuh.com)
-[![Index templates generator](https://github.com/wazuh/wazuh-indexer-plugins/actions/workflows/5_builderpackage_templates.yml/badge.svg)](https://github.com/wazuh/wazuh-indexer-plugins/actions/workflows/5_builderpackage_templates.yml)
+[![Index templates generator](https://github.com/wazuh/wazuh-indexer-plugins/actions/workflows/5_builderpackage_schema.yml/badge.svg)](https://github.com/wazuh/wazuh-indexer-plugins/actions/workflows/5_builderpackage_templates.yml)
 [![Deploy GH pages](https://github.com/wazuh/wazuh-indexer-plugins/actions/workflows/5_builderpackage_docs.yml/badge.svg)](https://github.com/wazuh/wazuh-indexer-plugins/actions/workflows/5_builderpackage_docs.yml)
 [![Build](https://github.com/wazuh/wazuh-indexer-plugins/actions/workflows/5_builderpackage_plugins.yml/badge.svg)](https://github.com/wazuh/wazuh-indexer-plugins/actions/workflows/5_builderpackage_plugins.yml)
 [![Test](https://github.com/wazuh/wazuh-indexer-plugins/actions/workflows/5_testintegration_gradlecheck.yml/badge.svg)](https://github.com/wazuh/wazuh-indexer-plugins/actions/workflows/5_testintegration_gradlecheck.yml)

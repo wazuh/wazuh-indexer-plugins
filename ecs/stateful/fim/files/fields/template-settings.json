@@ -1,0 +1,49 @@
+{
+  "index_patterns": [
+    "wazuh-states-fim-files*"
+  ],
+  "priority": 1,
+  "template": {
+    "settings": {
+      "index": {
+        "number_of_shards": "1",
+        "number_of_replicas": "0",
+        "refresh_interval": "2s",
+        "query.default_field": [
+          "agent.groups ",
+          "agent.host.architecture ",
+          "agent.host.hostname ",
+          "agent.host.ip ",
+          "agent.host.os.name ",
+          "agent.host.os.platform ",
+          "agent.host.os.type ",
+          "agent.host.os.version ",
+          "agent.id ",
+          "agent.name ",
+          "agent.version ",
+          "checksum.hash.sha1",
+          "file.attributes",
+          "file.device",
+          "file.gid",
+          "file.group",
+          "file.hash.md5",
+          "file.hash.sha1",
+          "file.hash.sha256",
+          "file.inode",
+          "file.mtime",
+          "file.owner",
+          "file.path",
+          "file.path.fields.text",
+          "file.permissions",
+          "file.size",
+          "file.uid",
+          "state.document_version",
+          "state.modified_at",
+          "wazuh.cluster.name",
+          "wazuh.cluster.node",
+          "wazuh.schema.version"
+        ]
+      }
+    }
+  }
+}

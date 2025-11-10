@@ -20,15 +20,12 @@ import com.carrotsearch.randomizedtesting.annotations.ThreadLeakScope;
 
 import org.apache.hc.core5.http.ParseException;
 import org.apache.hc.core5.http.io.entity.EntityUtils;
-import org.opensearch.action.admin.cluster.health.ClusterHealthRequest;
-import org.opensearch.action.admin.cluster.health.ClusterHealthResponse;
 import org.opensearch.action.admin.cluster.node.info.NodeInfo;
 import org.opensearch.action.admin.cluster.node.info.NodesInfoRequest;
 import org.opensearch.action.admin.cluster.node.info.NodesInfoResponse;
 import org.opensearch.action.admin.cluster.node.info.PluginsAndModules;
 import org.opensearch.client.Request;
 import org.opensearch.client.Response;
-import org.opensearch.cluster.health.ClusterHealthStatus;
 import org.opensearch.plugins.Plugin;
 import org.opensearch.plugins.PluginInfo;
 import org.opensearch.test.OpenSearchIntegTestCase;
@@ -63,6 +60,9 @@ public class SetupPluginIT extends OpenSearchIntegTestCase {
      * @throws ParseException Thrown if there is an issue parsing the response.
      */
     public void testPluginInstalled() throws IOException, ParseException {
+        // Wait for initialization to complete.
+        this.ensureGreen();
+
         Response response = getRestClient().performRequest(new Request("GET", "/_cat/plugins"));
         String body = EntityUtils.toString(response.getEntity(), StandardCharsets.UTF_8);
 
@@ -72,10 +72,8 @@ public class SetupPluginIT extends OpenSearchIntegTestCase {
 
     /** Test to verify that the Wazuh Indexer Setup plugin is installed and the cluster is healthy. */
     public void testPluginsAreInstalled() {
-        ClusterHealthRequest request = new ClusterHealthRequest();
-        ClusterHealthResponse response =
-                OpenSearchIntegTestCase.client().admin().cluster().health(request).actionGet();
-        Assert.assertEquals(ClusterHealthStatus.GREEN, response.getStatus());
+        // Wait for initialization to complete.
+        this.ensureGreen();
 
         NodesInfoRequest nodesInfoRequest = new NodesInfoRequest();
         nodesInfoRequest.addMetric(NodesInfoRequest.Metric.PLUGINS.metricName());
@@ -94,10 +92,8 @@ public class SetupPluginIT extends OpenSearchIntegTestCase {
 
     /** Test to verify that the ISM plugin is installed and the cluster is healthy. */
     public void testISMPluginInstalled() {
-        ClusterHealthRequest request = new ClusterHealthRequest();
-        ClusterHealthResponse response =
-                OpenSearchIntegTestCase.client().admin().cluster().health(request).actionGet();
-        Assert.assertEquals(ClusterHealthStatus.GREEN, response.getStatus());
+        // Wait for initialization to complete.
+        this.ensureGreen();
 
         NodesInfoRequest nodesInfoRequest = new NodesInfoRequest();
         nodesInfoRequest.addMetric(NodesInfoRequest.Metric.PLUGINS.metricName());
