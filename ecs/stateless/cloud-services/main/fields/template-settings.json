@@ -3,6 +3,7 @@
     "wazuh-events-v5-cloud-services-*"
   ],
   "priority": 1,
+  "data_stream": {},
   "template": {
     "settings": {
       "plugins.index_state_management.rollover_alias": "wazuh-events-v5-cloud-services",
