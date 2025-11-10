@@ -29,6 +29,9 @@ runs:
         if echo "$changed_files" | grep -q "^plugins/setup/"; then
             affected_projects+=('"setup"')
         fi
+        if echo "$changed_files" | grep -q "^plugins/content-manager/"; then
+            affected_projects+=('"content-manager"')
+        fi
 
         # Join the array elements into a comma-separated string
         affected_projects_str=$(echo "${affected_projects[@]}" | tr ' ' ',')
