@@ -26,7 +26,6 @@ import java.util.ArrayList;
 import java.util.List;
 
 import com.wazuh.contentmanager.client.CTIClient;
-import com.wazuh.contentmanager.client.CommandManagerClient;
 import com.wazuh.contentmanager.index.ContentIndex;
 import com.wazuh.contentmanager.index.ContextIndex;
 import com.wazuh.contentmanager.model.cti.*;
@@ -43,7 +42,6 @@ import static org.mockito.Mockito.*;
 public class ContentUpdaterTests extends OpenSearchIntegTestCase {
     private ContextIndex contextIndex;
     private ContentIndex contentIndex;
-    private CommandManagerClient commandClient;
     private CTIClient ctiClient;
     private Privileged privilegedSpy;
     private ConsumerInfo consumerInfo;
@@ -62,7 +60,6 @@ public class ContentUpdaterTests extends OpenSearchIntegTestCase {
     public void setup() throws Exception {
         super.setUp();
         this.ctiClient = mock(CTIClient.class);
-        this.commandClient = mock(CommandManagerClient.class);
 
         Settings settings = Settings.builder().put("content_manager.max_changes", 1000).build();
         this.mockEnvironment = mock(Environment.class);
@@ -77,7 +74,6 @@ public class ContentUpdaterTests extends OpenSearchIntegTestCase {
                 Mockito.spy(
                         new ContentUpdater(
                                 this.ctiClient,
-                                this.commandClient,
                                 this.contextIndex,
                                 this.contentIndex,
                                 this.privilegedSpy,

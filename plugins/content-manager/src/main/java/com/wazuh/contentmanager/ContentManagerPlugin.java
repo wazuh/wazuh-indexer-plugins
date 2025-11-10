@@ -126,8 +126,6 @@ public class ContentManagerPlugin extends Plugin implements ClusterPlugin {
     @Override
     public List<Setting<?>> getSettings() {
         return Arrays.asList(
-                PluginSettings.INDEXER_USERNAME,
-                PluginSettings.INDEXER_PASSWORD,
                 PluginSettings.CONSUMER_ID,
                 PluginSettings.CONTEXT_ID,
                 PluginSettings.CLIENT_TIMEOUT,

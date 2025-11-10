@@ -4,15 +4,15 @@ import java.util.concurrent.Callable
 
 buildscript {
     ext {
-        opensearch_version = System.getProperty("opensearch.version", "3.0.0-SNAPSHOT")
+        opensearch_version = System.getProperty("opensearch.version", "3.3.2-SNAPSHOT")
         opensearch_build = opensearch_version.replace("-SNAPSHOT","") + ".0"
-        wazuh_version = System.getProperty("version", "6.0.0")
+        wazuh_version = System.getProperty("version", "5.0.0")
         revision = System.getProperty("revision", "0")
     }
 
     repositories {
         mavenLocal()
-        maven { url "https://aws.oss.sonatype.org/content/repositories/snapshots" }
+        maven { url "https://ci.opensearch.org/ci/dbc/snapshots/maven/" }
         mavenCentral()
         maven { url "https://plugins.gradle.org/m2/" }
     }
@@ -82,14 +82,11 @@ dependencies {
     implementation "org.apache.httpcomponents.client5:httpclient5:5.4.4"
     implementation "org.apache.httpcomponents.core5:httpcore5-h2:5.3.4"
     implementation "org.apache.httpcomponents.core5:httpcore5:5.3.4"
-    implementation "org.apache.logging.log4j:log4j-slf4j-impl:2.23.1"
-    implementation "org.slf4j:slf4j-api:1.7.36"
+    implementation "org.apache.logging.log4j:log4j-slf4j-impl:2.25.2"
+    implementation "org.slf4j:slf4j-api:2.0.17"
 
     // ZipArchive dependencies used for integration tests
     zipArchive group: 'org.opensearch.plugin', name: 'opensearch-job-scheduler', version: "${opensearch_build}"
-    // Uncomment this line to load the command-manager plugin from the local Maven repository.
-    // Keep it commented to allow GitHub Workflows to run the tests.
-    // zipArchive group: 'com.wazuh', name:'wazuh-indexer-command-manager', version: "${wazuh_version}.${revision}"
 }
 
 // No need to validate license headers since spotless checks and applies it
@@ -109,7 +106,7 @@ dependencyLicenses.enabled = false
 
 repositories {
     mavenLocal()
-    maven { url "https://aws.oss.sonatype.org/content/repositories/snapshots" }
+    maven { url "https://ci.opensearch.org/ci/dbc/snapshots/maven/" }
     mavenCentral()
     maven { url "https://plugins.gradle.org/m2/" }
 }
@@ -137,9 +134,6 @@ integTest {
 }
 
 testClusters.integTest {
-    // add customized keystore
-    keystore 'indexer.username', 'admin'
-    keystore 'indexer.password', 'admin'
     // Installs all registered zipArchive dependencies on integTest cluster nodes
     configurations.zipArchive.asFileTree.each {
       plugin(provider(new Callable<RegularFile>(){

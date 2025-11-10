@@ -19,8 +19,6 @@ package com.wazuh.contentmanager.utils;
 import java.security.AccessController;
 
 import com.wazuh.contentmanager.client.CTIClient;
-import com.wazuh.contentmanager.client.CommandManagerClient;
-import com.wazuh.contentmanager.model.command.Command;
 import com.wazuh.contentmanager.model.cti.Changes;
 import com.wazuh.contentmanager.model.cti.ConsumerInfo;
 
@@ -37,15 +35,6 @@ public class Privileged {
     @SuppressWarnings("removal")
     public <T> T doPrivilegedRequest(java.security.PrivilegedAction<T> request) {
         return AccessController.doPrivileged(request);
-    }
-
-    /** Posts a command to the command manager API on a successful snapshot operation. */
-    public void postUpdateCommand(CommandManagerClient client, ConsumerInfo current) {
-        this.doPrivilegedRequest(
-                () -> {
-                    client.post(Command.create(String.valueOf(current.getOffset())));
-                    return null;
-                });
     }
 
     /**

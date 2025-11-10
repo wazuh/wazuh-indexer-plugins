@@ -28,7 +28,6 @@ import java.util.Locale;
 import java.util.concurrent.Semaphore;
 
 import com.wazuh.contentmanager.client.CTIClient;
-import com.wazuh.contentmanager.client.CommandManagerClient;
 import com.wazuh.contentmanager.index.ContentIndex;
 import com.wazuh.contentmanager.index.ContextIndex;
 import com.wazuh.contentmanager.model.cti.ConsumerInfo;
@@ -39,7 +38,6 @@ import com.wazuh.contentmanager.updater.ContentUpdater;
 public class SnapshotManager {
     private static final Logger log = LogManager.getLogger(SnapshotManager.class);
     private final CTIClient ctiClient;
-    private CommandManagerClient commandClient;
     private final Environment environment;
     private final ContextIndex contextIndex;
     private final ContentIndex contentIndex;
@@ -78,14 +76,12 @@ public class SnapshotManager {
     @VisibleForTesting
     protected SnapshotManager(
             CTIClient ctiClient,
-            CommandManagerClient client,
             Environment environment,
             ContextIndex contextIndex,
             ContentIndex contentIndex,
             Privileged privileged,
             PluginSettings pluginSettings) {
         this.ctiClient = ctiClient;
-        this.commandClient = client;
         this.environment = environment;
         this.contextIndex = contextIndex;
         this.contentIndex = contentIndex;
@@ -118,8 +114,6 @@ public class SnapshotManager {
                             // Update the offset.
                             consumerInfo.setOffset(offset);
                             this.contextIndex.index(consumerInfo);
-                            // Send command.
-                            privileged.postUpdateCommand(this.commandClient, consumerInfo);
                             // Remove snapshot.
                             Files.deleteIfExists(snapshotZip);
                             Files.deleteIfExists(snapshotJson);
@@ -205,7 +199,6 @@ public class SnapshotManager {
             ContentUpdater updater =
                     new ContentUpdater(
                             this.ctiClient,
-                            this.commandClient,
                             this.contextIndex,
                             this.contentIndex,
                             this.privileged);
@@ -218,9 +211,6 @@ public class SnapshotManager {
     public void initialize() {
         try {
             this.semaphore.acquire();
-            // The Command Manager client needs the cluster to be up (depends on PluginSettings),
-            // so we initialize it here once the node is up and ready.
-            this.commandClient = this.privileged.doPrivilegedRequest(CommandManagerClient::getInstance);
             ConsumerInfo consumerInfo = this.initConsumer();
             this.indexSnapshot(consumerInfo);
             semaphore.release();

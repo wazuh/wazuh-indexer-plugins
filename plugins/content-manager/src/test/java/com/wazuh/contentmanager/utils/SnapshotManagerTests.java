@@ -30,7 +30,6 @@ import java.nio.file.Path;
 import java.util.Iterator;
 
 import com.wazuh.contentmanager.client.CTIClient;
-import com.wazuh.contentmanager.client.CommandManagerClient;
 import com.wazuh.contentmanager.index.ContentIndex;
 import com.wazuh.contentmanager.index.ContextIndex;
 import com.wazuh.contentmanager.model.cti.ConsumerInfo;
@@ -45,7 +44,6 @@ import static org.mockito.Mockito.*;
 public class SnapshotManagerTests extends OpenSearchTestCase {
     private ContextIndex contextIndex;
     private ContentIndex contentIndex;
-    private CommandManagerClient commandClient;
     private CTIClient ctiClient;
     private Privileged privilegedSpy;
     private ConsumerInfo consumerInfo;
@@ -71,7 +69,6 @@ public class SnapshotManagerTests extends OpenSearchTestCase {
                 PluginSettings.getInstance(this.mockEnvironment.settings(), this.mockClusterService);
 
         this.ctiClient = mock(CTIClient.class);
-        this.commandClient = mock(CommandManagerClient.class);
         this.contextIndex = mock(ContextIndex.class);
         this.contentIndex = mock(ContentIndex.class);
         this.privilegedSpy = Mockito.spy(Privileged.class);
@@ -79,7 +76,6 @@ public class SnapshotManagerTests extends OpenSearchTestCase {
                 Mockito.spy(
                         new SnapshotManager(
                                 this.ctiClient,
-                                this.commandClient,
                                 this.mockEnvironment,
                                 this.contextIndex,
                                 this.contentIndex,

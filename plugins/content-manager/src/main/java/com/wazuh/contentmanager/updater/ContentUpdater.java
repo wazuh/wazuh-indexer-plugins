@@ -20,7 +20,6 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import com.wazuh.contentmanager.client.CTIClient;
-import com.wazuh.contentmanager.client.CommandManagerClient;
 import com.wazuh.contentmanager.index.ContentIndex;
 import com.wazuh.contentmanager.index.ContextIndex;
 import com.wazuh.contentmanager.model.cti.Changes;
@@ -34,7 +33,6 @@ public class ContentUpdater {
     private static final Logger log = LogManager.getLogger(ContentUpdater.class);
     private final ContextIndex contextIndex;
     private final ContentIndex contentIndex;
-    private final CommandManagerClient commandClient;
     private final CTIClient ctiClient;
     private final Privileged privileged;
     private final PluginSettings pluginSettings;
@@ -61,13 +59,11 @@ public class ContentUpdater {
      */
     public ContentUpdater(
             CTIClient ctiClient,
-            CommandManagerClient client,
             ContextIndex contextIndex,
             ContentIndex contentIndex,
             Privileged privileged) {
         this.contextIndex = contextIndex;
         this.contentIndex = contentIndex;
-        this.commandClient = client;
         this.ctiClient = ctiClient;
         this.pluginSettings = PluginSettings.getInstance();
         this.privileged = privileged;
@@ -83,14 +79,12 @@ public class ContentUpdater {
     @VisibleForTesting
     public ContentUpdater(
             CTIClient ctiClient,
-            CommandManagerClient client,
             ContextIndex contextIndex,
             ContentIndex contentIndex,
             Privileged privileged,
             PluginSettings pluginSettings) {
         this.contextIndex = contextIndex;
         this.contentIndex = contentIndex;
-        this.commandClient = client;
         this.ctiClient = ctiClient;
         this.pluginSettings = pluginSettings;
         this.privileged = privileged;
@@ -103,8 +97,7 @@ public class ContentUpdater {
      * the CTI API for a list of changes to apply to the content. These changes are applied
      * sequentially. A maximum of {@link PluginSettings#MAX_CHANGES} changes are applied on each
      * iteration. When the update is completed, the value of "offset" is updated and equal to
-     * "lastOffset" {@link ContextIndex#index(ConsumerInfo)}, and a command is generated for the
-     * Command Manager {@link Privileged#postUpdateCommand(CommandManagerClient, ConsumerInfo)}. If
+     * "lastOffset" {@link ContextIndex#index(ConsumerInfo)}. If
      * the update fails, the "offset" is set to 0 to force a recovery from a snapshot.
      *
      * @return true if the updates were successfully applied, false otherwise.
@@ -152,7 +145,6 @@ public class ContentUpdater {
         // Update consumer info.
         consumerInfo.setLastOffset(currentOffset);
         this.contextIndex.index(consumerInfo);
-        this.privileged.postUpdateCommand(this.commandClient, consumerInfo);
         log.info("[{}] updated to offset [{}]", ContentIndex.INDEX_NAME, consumerInfo.getOffset());
         return true;
     }

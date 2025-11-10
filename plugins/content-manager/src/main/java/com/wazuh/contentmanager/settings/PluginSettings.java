@@ -51,6 +51,7 @@ public class PluginSettings {
     public static final String CTI_URL = "https://cti.wazuh.com";
 
     /** The CTI API URL from the configuration file */
+    // TODO: Change to the new CTI_API_URL
     public static final Setting<String> CTI_API_URL =
             Setting.simpleString(
                     "content_manager.cti.api",
@@ -144,14 +145,6 @@ public class PluginSettings {
                     Setting.Property.NodeScope,
                     Setting.Property.Filtered);
 
-    /** Command Manager authentication user. */
-    public static final Setting<SecureString> INDEXER_USERNAME =
-            SecureSetting.secureString("indexer.username", null);
-
-    /** Command Manager authentication password. */
-    public static final Setting<SecureString> INDEXER_PASSWORD =
-            SecureSetting.secureString("indexer.password", null);
-
     /** Maximum number of documents processed per indexing job. */
     public static final Setting<Integer> JOB_MAX_DOCS =
             Setting.intSetting(
@@ -177,9 +170,6 @@ public class PluginSettings {
     private final String contextId;
     private final ClusterService clusterService;
 
-    private final SecureString username;
-    private final SecureString password;
-
     private final int ctiClientMaxAttempts;
     private final int ctiClientSleepTime;
     private final int maximumItemsPerBulk;
@@ -196,8 +186,6 @@ public class PluginSettings {
      */
     private PluginSettings(@NonNull final Settings settings, ClusterService clusterService) {
         this.ctiBaseUrl = CTI_API_URL.get(settings);
-        this.username = INDEXER_USERNAME.get(settings);
-        this.password = INDEXER_PASSWORD.get(settings);
 
         if (validateConsumerId(CONSUMER_ID.get(settings))) {
             this.consumerId = CONSUMER_ID.get(settings);
@@ -283,33 +271,6 @@ public class PluginSettings {
      */
     public String getContextId() {
         return this.contextId;
-    }
-
-    /**
-     * Getter method for the Command Manager API URL
-     *
-     * @return a string with the Content Manager full URL
-     */
-    public String getClusterBaseUrl() {
-        return ClusterInfo.getClusterBaseUrl(this.clusterService);
-    }
-
-    /**
-     * Indexer's username getter.
-     *
-     * @return a string with the Indexer's authentication username.
-     */
-    public String getUsername() {
-        return this.username.toString();
-    }
-
-    /**
-     * Indexer's password getter.
-     *
-     * @return a string with the Indexer's authentication password.
-     */
-    public String getPassword() {
-        return this.password.toString();
     }
 
     /*

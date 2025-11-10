@@ -66,7 +66,7 @@ public class ContentIndex {
     private static final Logger log = LogManager.getLogger(ContentIndex.class);
 
     /** Content index name. */
-    public static final String INDEX_NAME = "wazuh-cve";
+    public static final String INDEX_NAME = "wazuh-ruleset";
 
     private final Client client;
     private final PluginSettings pluginSettings;
@@ -223,16 +223,8 @@ public class ContentIndex {
         try (BufferedReader reader = new BufferedReader(new FileReader(path, StandardCharsets.UTF_8))) {
             while ((line = reader.readLine()) != null) {
                 json = JsonParser.parseString(line).getAsJsonObject();
-                // Not every line in the snapshot is a CVE. We filter out the
-                // content by the "name" field of the current JSON object, if
-                // it starts with "CVE-". Any other case is skipped.
-                String name = json.get(ContentIndex.JSON_NAME_KEY).getAsString();
-                if (name.startsWith("CVE-")) {
-                    items.add(json);
-                    lineCount++;
-                } else {
-                    log.debug("Skipping non CVE element [{}]", name);
-                }
+                items.add(json);
+                lineCount++;
 
                 // Index items (MAX_DOCUMENTS reached)
                 if (lineCount == this.pluginSettings.getMaxItemsPerBulk()) {
