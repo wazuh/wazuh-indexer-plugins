@@ -17,7 +17,6 @@ buildscript {
     }
 
     dependencies {
-      classpath "org.opensearch.gradle:build-tools:${opensearch_version.replace('-SNAPSHOT', '')}"
       classpath "org.opensearch.gradle:build-tools:${opensearch_version}"
     }
 }
