@@ -3,7 +3,7 @@
     "wazuh-monitoring*"
   ],
   "priority": 1,
-  "templrate": {
+  "template": {
     "settings": {
       "index": {
         "number_of_replicas": "0",

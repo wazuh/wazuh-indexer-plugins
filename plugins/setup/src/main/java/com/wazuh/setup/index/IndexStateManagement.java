@@ -25,11 +25,14 @@ import org.opensearch.action.index.IndexRequest;
 import org.opensearch.core.xcontent.MediaTypeRegistry;
 
 import java.io.IOException;
+import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
 import com.wazuh.setup.settings.PluginSettings;
+import com.wazuh.setup.utils.IndexTemplate;
+import tools.jackson.databind.ObjectMapper;
 
 /**
  * Initializes the Index State Management internal index <code>.opendistro-ism-config</code>.
@@ -119,12 +122,16 @@ public class IndexStateManagement extends Index {
                 // For some reason the index template is not applied to the ISM internal index
                 // ".opendistro-ism-config", so we explicitly set the index mappings and settings
                 // as part of the CreateIndexRequest.
-                Map<String, Object> templateFile = this.indexUtils.fromFile(this.template + ".json");
+                // Read JSON index template
+                ObjectMapper mapper = new ObjectMapper();
+                InputStream is =
+                        StreamIndex.class.getClassLoader().getResourceAsStream(this.template + ".json");
+                IndexTemplate indexTemplate = mapper.readValue(is, IndexTemplate.class);
 
                 CreateIndexRequest request =
                         new CreateIndexRequest(index)
-                                .mapping(this.indexUtils.get(templateFile, "mappings"))
-                                .settings(this.indexUtils.get(templateFile, "settings"));
+                                .mapping(indexTemplate.getMappings())
+                                .settings(indexTemplate.getSettings());
                 CreateIndexResponse createIndexResponse =
                         this.client
                                 .admin()
@@ -136,8 +143,6 @@ public class IndexStateManagement extends Index {
                         createIndexResponse.index(),
                         createIndexResponse.isAcknowledged());
             }
-        } catch (IOException e) {
-            log.error("Error reading index template from filesystem {}", this.template);
         } catch (ResourceAlreadyExistsException e) {
             log.info("Index {} already exists. Skipping.", index);
         } catch (

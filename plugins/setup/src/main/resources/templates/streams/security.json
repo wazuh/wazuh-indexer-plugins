@@ -3,6 +3,7 @@
     "wazuh-events-v5-security-*"
   ],
   "priority": 1,
+  "data_stream": {},
   "template": {
     "settings": {
       "index": {

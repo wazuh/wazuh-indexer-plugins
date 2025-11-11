@@ -19,9 +19,8 @@ package com.wazuh.setup.index;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.opensearch.ResourceAlreadyExistsException;
-import org.opensearch.action.admin.indices.alias.Alias;
-import org.opensearch.action.admin.indices.create.CreateIndexRequest;
-import org.opensearch.action.admin.indices.create.CreateIndexResponse;
+import org.opensearch.action.admin.indices.datastream.CreateDataStreamAction;
+import org.opensearch.action.support.clustermanager.AcknowledgedResponse;
 
 import com.wazuh.setup.settings.PluginSettings;
 
@@ -47,29 +46,14 @@ public class StreamIndex extends WazuhIndex {
     }
 
     /**
-     * Overrides {@link Index#createIndex(String)} to include the {@link #alias} to the index creation
-     * request.
+     * Overrides {@link Index#createIndex(String)} to create a Data Stream instead.
      *
-     * @param index Name of the index to create.
-     * @see Alias
+     * @param index Name of the data stream to create.
      */
     @Override
     public void createIndex(String index) {
         try {
-            if (!this.indexExists(index)) {
-                CreateIndexRequest request =
-                        new CreateIndexRequest(index).alias(new Alias(this.alias).writeIndex(true));
-                CreateIndexResponse createIndexResponse =
-                        this.client
-                                .admin()
-                                .indices()
-                                .create(request)
-                                .actionGet(PluginSettings.getTimeout(this.clusterService.getSettings()));
-                log.info(
-                        "Index created successfully: {} {}",
-                        createIndexResponse.index(),
-                        createIndexResponse.isAcknowledged());
-            }
+            this.createDataStream(index);
         } catch (ResourceAlreadyExistsException e) {
             log.info("Index {} already exists. Skipping.", index);
         } catch (
@@ -85,5 +69,23 @@ public class StreamIndex extends WazuhIndex {
             this.indexUtils.sleep(PluginSettings.getBackoff(this.clusterService.getSettings()));
             this.createIndex(index);
         }
+    }
+
+    /**
+     * Creates a Data Stream.
+     *
+     * @param name name of the data stream to create.
+     */
+    public void createDataStream(String name) {
+        CreateDataStreamAction.Request request = new CreateDataStreamAction.Request(name);
+
+        AcknowledgedResponse response =
+                this.client
+                        .admin()
+                        .indices()
+                        .createDataStream(request)
+                        .actionGet(PluginSettings.getTimeout(this.clusterService.getSettings()));
+
+        log.info("Data Stream created successfully: {} {}", name, response.isAcknowledged());
     }
 }

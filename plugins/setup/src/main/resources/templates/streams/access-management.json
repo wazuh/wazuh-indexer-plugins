@@ -3,6 +3,7 @@
     "wazuh-events-v5-access-management-*"
   ],
   "priority": 1,
+  "data_stream": {},
   "template": {
     "settings": {
       "index": {

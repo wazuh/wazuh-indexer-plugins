@@ -1,8 +1,9 @@
 {
   "index_patterns": [
-    "wazuh-archives-v5-*"
+    "wazuh-archives-v5*"
   ],
   "priority": 1,
+  "data_stream": {},
   "template": {
     "settings": {
       "index": {
