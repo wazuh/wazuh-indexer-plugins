@@ -7,9 +7,6 @@ on:
     types: [opened, synchronize, reopened, ready_for_review]
     paths:
       - "**.java"
-  push:
-    paths:
-      - "**.java"
 
 # Cancel in-progress runs for the same branch
 concurrency:
