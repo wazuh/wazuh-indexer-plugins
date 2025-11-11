@@ -30,8 +30,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
+import com.wazuh.setup.model.IndexTemplate;
 import com.wazuh.setup.settings.PluginSettings;
-import com.wazuh.setup.utils.IndexTemplate;
 import tools.jackson.databind.ObjectMapper;
 
 /**
@@ -80,7 +80,7 @@ public class IndexStateManagement extends Index {
     private void indexPolicy(String policy) {
         try {
             Map<String, Object> policyFile;
-            policyFile = this.indexUtils.fromFile(STREAM_ROLLOVER_POLICY_PATH);
+            policyFile = this.jsonUtils.fromFile(STREAM_ROLLOVER_POLICY_PATH);
 
             IndexRequest indexRequest =
                     new IndexRequest(this.index)
@@ -105,7 +105,7 @@ public class IndexStateManagement extends Index {
             }
             log.warn("Operation to create the policy [{}] timed out. Retrying...", policy);
             this.retry_index_creation = false;
-            this.indexUtils.sleep(PluginSettings.getBackoff(this.clusterService.getSettings()));
+            this.sleep(PluginSettings.getBackoff(this.clusterService.getSettings()));
             this.indexPolicy(policy);
         }
     }
@@ -155,7 +155,7 @@ public class IndexStateManagement extends Index {
             }
             log.warn("Operation to create the index [{}] timed out. Retrying...", index);
             this.retry_index_creation = false;
-            this.indexUtils.sleep(PluginSettings.getBackoff(this.clusterService.getSettings()));
+            this.sleep(PluginSettings.getBackoff(this.clusterService.getSettings()));
             this.createIndex(index);
         }
     }

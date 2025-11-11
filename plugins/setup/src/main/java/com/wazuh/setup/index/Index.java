@@ -31,9 +31,9 @@ import org.opensearch.transport.client.Client;
 import java.io.IOException;
 import java.io.InputStream;
 
+import com.wazuh.setup.model.IndexTemplate;
 import com.wazuh.setup.settings.PluginSettings;
-import com.wazuh.setup.utils.IndexTemplate;
-import com.wazuh.setup.utils.IndexUtils;
+import com.wazuh.setup.utils.JsonUtils;
 import tools.jackson.databind.ObjectMapper;
 
 /**
@@ -48,7 +48,7 @@ public abstract class Index implements IndexInitializer {
     // Dependencies.
     Client client;
     ClusterService clusterService;
-    IndexUtils indexUtils;
+    JsonUtils jsonUtils;
 
     // Properties.
     String index;
@@ -90,12 +90,12 @@ public abstract class Index implements IndexInitializer {
     }
 
     /**
-     * Sets the IndexUtils instance.
+     * Sets the JsonUtils instance.
      *
-     * @param indexUtils the IndexUtils instance to set.
+     * @param jsonUtils the JsonUtils instance to set.
      */
-    public void setIndexUtils(IndexUtils indexUtils) {
-        this.indexUtils = indexUtils;
+    public void setUtils(JsonUtils jsonUtils) {
+        this.jsonUtils = jsonUtils;
     }
 
     /**
@@ -140,7 +140,7 @@ public abstract class Index implements IndexInitializer {
             }
             log.warn("Operation to create the index [{}] timed out. Retrying...", index);
             this.retry_index_creation = false;
-            this.indexUtils.sleep(PluginSettings.getBackoff(this.clusterService.getSettings()));
+            this.sleep(PluginSettings.getBackoff(this.clusterService.getSettings()));
             this.createIndex(index);
         }
     }
@@ -194,7 +194,7 @@ public abstract class Index implements IndexInitializer {
             }
             log.warn("Operation to create the index template [{}] timed out. Retrying...", template);
             this.retry_template_creation = false;
-            this.indexUtils.sleep(PluginSettings.getBackoff(this.clusterService.getSettings()));
+            this.sleep(PluginSettings.getBackoff(this.clusterService.getSettings()));
             this.createTemplate(template);
         }
     }
@@ -206,5 +206,18 @@ public abstract class Index implements IndexInitializer {
     public void initialize() {
         this.createTemplate(this.template);
         this.createIndex(this.index);
+    }
+
+    /**
+     * Utility method to wrap up the call to {@link Thread#sleep(long)} on a try-catch block.
+     *
+     * @param millis sleep interval in milliseconds.
+     */
+    void sleep(long millis) {
+        try {
+            Thread.sleep(millis);
+        } catch (InterruptedException ex) {
+            throw new RuntimeException(ex);
+        }
     }
 }

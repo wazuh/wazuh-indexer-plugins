@@ -14,7 +14,7 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-package com.wazuh.setup.utils;
+package com.wazuh.setup.model;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 
@@ -29,8 +29,7 @@ import java.util.Map;
 /**
  * Index Template Data Transfer Object.
  *
- * <p>Fill-in values automatically using Jackson Databind. TODO consider use the Tree Model instead
- * of direct binding. Better for highly nested structures.
+ * <p>Fill-in values automatically using Jackson Databind.
  */
 public class IndexTemplate {
 
@@ -38,7 +37,6 @@ public class IndexTemplate {
     private List<String> indexPatterns;
 
     private long priority;
-    private Map<String, Object> template;
     private Map<String, Object> settings;
     private Map<String, Object> mappings;
 
@@ -52,26 +50,58 @@ public class IndexTemplate {
         this.mappings = (Map<String, Object>) template.get("mappings");
     }
 
+    /**
+     * Index pattern getter.
+     *
+     * @return returns the list of index patters this index template applies to, or null.
+     */
     public List<String> getIndexPatterns() {
         return this.indexPatterns;
     }
 
+    /**
+     * Index template priority getter.
+     *
+     * @return returns the priority of the index template, or null.
+     */
     public long getPriority() {
         return this.priority;
     }
 
+    /**
+     * Index settings getter.
+     *
+     * @return returns the index settings to apply to indices matching the index pattern, or null.
+     */
     public Map<String, Object> getSettings() {
         return this.settings;
     }
 
+    /**
+     * Index mappings getter.
+     *
+     * @return returns the index mappings for the indices matching the index pattern, or null.
+     */
     public Map<String, Object> getMappings() {
         return this.mappings;
     }
 
+    /**
+     * Data Stream getter.
+     *
+     * @return returns the "data_stream" property of the index template, or null.
+     */
     public Map<String, Object> getDataStream() {
         return this.dataStream;
     }
 
+    /**
+     * Builds up a ComposableIndexTemplate resulting from the properties of the index template.
+     *
+     * @param settings index template settings as a string.
+     * @param compressedMapping index template mappings a CompressedXContent instance.
+     * @return instance of ComposableIndexTemplate.
+     */
     public ComposableIndexTemplate getComposableIndexTemplate(
             Settings settings, CompressedXContent compressedMapping) {
         ComposableIndexTemplate.DataStreamTemplate dataStreamTemplate =

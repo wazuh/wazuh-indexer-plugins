@@ -32,7 +32,7 @@ import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 
-import com.wazuh.setup.utils.IndexUtils;
+import com.wazuh.setup.utils.JsonUtils;
 
 import static org.mockito.Mockito.*;
 
@@ -42,7 +42,7 @@ public class IndexStateManagementTests extends OpenSearchTestCase {
     private IndexStateManagement ismIndex;
     private Client client;
     private IndicesAdminClient indicesAdminClient;
-    private IndexUtils indexUtils;
+    private JsonUtils jsonUtils;
 
     @Override
     public void setUp() throws Exception {
@@ -51,7 +51,7 @@ public class IndexStateManagementTests extends OpenSearchTestCase {
         this.client = mock(Client.class);
         AdminClient adminClient = mock(AdminClient.class);
         this.indicesAdminClient = mock(IndicesAdminClient.class);
-        this.indexUtils = mock(IndexUtils.class);
+        this.jsonUtils = mock(JsonUtils.class);
 
         // Default settings
         ClusterService clusterService = mock(ClusterService.class);
@@ -64,7 +64,7 @@ public class IndexStateManagementTests extends OpenSearchTestCase {
         this.ismIndex =
                 spy(new IndexStateManagement(IndexStateManagement.ISM_INDEX_NAME, "ism-template"));
         this.ismIndex.setClient(this.client);
-        this.ismIndex.setIndexUtils(this.indexUtils);
+        this.ismIndex.setUtils(this.jsonUtils);
         this.ismIndex.setClusterService(clusterService);
     }
 
@@ -80,8 +80,8 @@ public class IndexStateManagementTests extends OpenSearchTestCase {
         template.put("mappings", Map.of());
 
         doReturn(false).when(this.ismIndex).indexExists(IndexStateManagement.ISM_INDEX_NAME);
-        doReturn(template).when(this.indexUtils).fromFile("ism-template.json");
-        doReturn(template.get("mappings")).when(this.indexUtils).get(template, "mappings");
+        doReturn(template).when(this.jsonUtils).fromFile("ism-template.json");
+        doReturn(template.get("mappings")).when(this.jsonUtils).get(template, "mappings");
 
         CreateIndexResponse createResponse = mock(CreateIndexResponse.class);
         doReturn(IndexStateManagement.ISM_INDEX_NAME).when(createResponse).index();
@@ -92,7 +92,7 @@ public class IndexStateManagementTests extends OpenSearchTestCase {
 
         Map<String, Object> policyFile = Map.of("policy", "definition");
         doReturn(policyFile)
-                .when(this.indexUtils)
+                .when(this.jsonUtils)
                 .fromFile(IndexStateManagement.STREAM_ROLLOVER_POLICY_PATH);
 
         doReturn(actionFuture).when(this.client).index(any(IndexRequest.class));
@@ -128,7 +128,7 @@ public class IndexStateManagementTests extends OpenSearchTestCase {
     public void testPolicyFileMissing_LogsError() throws IOException {
         doReturn(true).when(this.ismIndex).indexExists(IndexStateManagement.ISM_INDEX_NAME);
         doThrow(new IOException("file not found"))
-                .when(indexUtils)
+                .when(jsonUtils)
                 .fromFile(IndexStateManagement.STREAM_ROLLOVER_POLICY_PATH);
 
         this.ismIndex.initialize();
@@ -147,9 +147,7 @@ public class IndexStateManagementTests extends OpenSearchTestCase {
         doReturn(true).when(this.ismIndex).indexExists(IndexStateManagement.ISM_INDEX_NAME);
 
         Map<String, Object> policyFile = Map.of("policy", "definition");
-        doReturn(policyFile)
-                .when(indexUtils)
-                .fromFile(IndexStateManagement.STREAM_ROLLOVER_POLICY_PATH);
+        doReturn(policyFile).when(jsonUtils).fromFile(IndexStateManagement.STREAM_ROLLOVER_POLICY_PATH);
         doThrow(new ResourceAlreadyExistsException("already exists"))
                 .when(this.client)
                 .index(any(IndexRequest.class));

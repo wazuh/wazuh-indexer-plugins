@@ -43,7 +43,7 @@ import com.wazuh.setup.index.IndexStateManagement;
 import com.wazuh.setup.index.StateIndex;
 import com.wazuh.setup.index.StreamIndex;
 import com.wazuh.setup.settings.PluginSettings;
-import com.wazuh.setup.utils.IndexUtils;
+import com.wazuh.setup.utils.JsonUtils;
 
 /**
  * Main class of the Indexer Setup plugin. This plugin is responsible for the creation of the index
@@ -87,14 +87,13 @@ public class SetupPlugin extends Plugin implements ClusterPlugin {
         // ISM index
         this.indices.add(new IndexStateManagement(IndexStateManagement.ISM_INDEX_NAME, "templates/ism-config"));
         // Stream indices
-        this.indices.add(new StreamIndex("wazuh-alerts-v5", "templates/streams/alerts", null)); // TODO clean-up
-        this.indices.add(new StreamIndex("wazuh-archives-v5-000001", "templates/streams/archives", null)); // TODO clean-up
+        this.indices.add(new StreamIndex("wazuh-alerts-v5", "templates/streams/alerts"));
+        this.indices.add(new StreamIndex("wazuh-archives-v5-000001", "templates/streams/archives"));
         // Decoder indices
         for (String category : this.categories) {
             this.indices.add(new StreamIndex(
                 "wazuh-events-v5-" + category + "-000001",
-                "templates/streams/" + category,
-                null // TODO clean-up
+                "templates/streams/" + category
             ));
         }
 
@@ -122,12 +121,12 @@ public class SetupPlugin extends Plugin implements ClusterPlugin {
         // spotless:on
 
         // Inject dependencies
-        IndexUtils utils = new IndexUtils();
+        JsonUtils utils = new JsonUtils();
         this.indices.forEach(
                 index -> {
                     index.setClient(client);
                     index.setClusterService(clusterService);
-                    index.setIndexUtils(utils);
+                    index.setUtils(utils);
                 });
 
         return Collections.emptyList();

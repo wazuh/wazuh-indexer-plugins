@@ -29,7 +29,7 @@ import org.opensearch.transport.client.AdminClient;
 import org.opensearch.transport.client.Client;
 import org.opensearch.transport.client.IndicesAdminClient;
 
-import com.wazuh.setup.utils.IndexUtils;
+import com.wazuh.setup.utils.JsonUtils;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
@@ -56,10 +56,10 @@ public class StreamIndexTests extends OpenSearchTestCase {
         Settings settings = Settings.builder().build();
         doReturn(settings).when(clusterService).getSettings();
 
-        this.streamIndex = new StreamIndex("stream-index", "stream-template", "stream-alias");
+        this.streamIndex = new StreamIndex("stream-index", "stream-template");
         this.streamIndex.setClient(client);
         this.streamIndex.setClusterService(clusterService);
-        this.streamIndex.setIndexUtils(mock(IndexUtils.class));
+        this.streamIndex.setUtils(mock(JsonUtils.class));
 
         doReturn(adminClient).when(client).admin();
         doReturn(this.indicesAdminClient).when(adminClient).indices();

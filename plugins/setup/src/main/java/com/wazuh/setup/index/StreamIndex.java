@@ -31,18 +31,14 @@ import com.wazuh.setup.settings.PluginSettings;
 public class StreamIndex extends WazuhIndex {
     private static final Logger log = LogManager.getLogger(StreamIndex.class);
 
-    private final String alias;
-
     /**
      * Constructor.
      *
      * @param index index name.
      * @param template index template name.
-     * @param alias index alias name for advanced management such as automatic rollover.
      */
-    public StreamIndex(String index, String template, String alias) {
+    public StreamIndex(String index, String template) {
         super(index, template);
-        this.alias = alias;
     }
 
     /**
@@ -55,18 +51,19 @@ public class StreamIndex extends WazuhIndex {
         try {
             this.createDataStream(index);
         } catch (ResourceAlreadyExistsException e) {
-            log.info("Index {} already exists. Skipping.", index);
-        } catch (
-                Exception
-                        e) { // TimeoutException may be raised by actionGet(), but we cannot catch that one.
-            // Exit condition. Re-attempt to create the index also failed. Original exception is rethrown.
+            log.info("Data stream {} already exists. Skipping.", index);
+        } catch (Exception e) {
+            // TimeoutException may be raised by actionGet(), but we cannot catch that one.
+            // Exit condition. Re-attempt to create the data stream also failed. Original exception is
+            // rethrown.
             if (!this.retry_index_creation) {
-                log.error("Initialization of index [{}] finally failed. The node will shut down.", index);
+                log.error(
+                        "Initialization of data stream [{}] finally failed. The node will shut down.", index);
                 throw e;
             }
-            log.warn("Operation to create the index [{}] timed out. Retrying...", index);
+            log.warn("Operation to create the data stream [{}] timed out. Retrying...", index);
             this.retry_index_creation = false;
-            this.indexUtils.sleep(PluginSettings.getBackoff(this.clusterService.getSettings()));
+            this.sleep(PluginSettings.getBackoff(this.clusterService.getSettings()));
             this.createIndex(index);
         }
     }

@@ -34,7 +34,7 @@ import java.io.IOException;
 import java.util.List;
 import java.util.Map;
 
-import com.wazuh.setup.utils.IndexUtils;
+import com.wazuh.setup.utils.JsonUtils;
 
 import static org.mockito.Mockito.*;
 
@@ -44,7 +44,7 @@ public class IndexTests extends OpenSearchTestCase {
     private Index index;
     private IndicesAdminClient indicesAdminClient;
     private RoutingTable routingTable;
-    private IndexUtils indexUtils;
+    private JsonUtils jsonUtils;
 
     @Override
     public void setUp() throws Exception {
@@ -56,7 +56,7 @@ public class IndexTests extends OpenSearchTestCase {
         ClusterService clusterService = mock(ClusterService.class);
         this.routingTable = mock(RoutingTable.class);
         ClusterState clusterState = mock(ClusterState.class);
-        this.indexUtils = mock(IndexUtils.class);
+        this.jsonUtils = mock(JsonUtils.class);
 
         // Default settings
         Settings settings = Settings.builder().build();
@@ -66,7 +66,7 @@ public class IndexTests extends OpenSearchTestCase {
         this.index = new Index("test-index", "test-template") {};
         this.index.setClient(client);
         this.index.setClusterService(clusterService);
-        this.index.setIndexUtils(indexUtils);
+        this.index.setUtils(jsonUtils);
 
         doReturn(adminClient).when(client).admin();
         doReturn(this.indicesAdminClient).when(adminClient).indices();
@@ -110,8 +110,8 @@ public class IndexTests extends OpenSearchTestCase {
                         "mappings", Map.of(),
                         "index_patterns", List.of("test-*"));
 
-        doReturn(templateMap).when(this.indexUtils).fromFile("test-template.json");
-        doReturn(templateMap.get("mappings")).when(this.indexUtils).get(templateMap, "mappings");
+        doReturn(templateMap).when(this.jsonUtils).fromFile("test-template.json");
+        doReturn(templateMap.get("mappings")).when(this.jsonUtils).get(templateMap, "mappings");
 
         AcknowledgedResponse ackResponse = mock(AcknowledgedResponse.class);
         ActionFuture actionFuture = mock(ActionFuture.class);
@@ -130,7 +130,7 @@ public class IndexTests extends OpenSearchTestCase {
      * @throws IOException if there is an error reading the template file
      */
     public void testCreateTemplateIOException() throws IOException {
-        doThrow(new IOException("test")).when(this.indexUtils).fromFile("test-template.json");
+        doThrow(new IOException("test")).when(this.jsonUtils).fromFile("test-template.json");
 
         this.index.createTemplate("test-template");
 
