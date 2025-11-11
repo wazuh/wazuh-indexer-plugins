@@ -30,6 +30,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Add WCS integration fields to stateless indices [(#621)](https://github.com/wazuh/wazuh-indexer-plugins/pull/621)
 - Implement pre-processing ECS sources types sanitization [(#628)](https://github.com/wazuh/wazuh-indexer-plugins/pull/628)
 - Add Security Compliance fields to the WCS [(#643)](https://github.com/wazuh/wazuh-indexer-plugins/pull/643)
+- Initialize indexer content manager [(#651)](https://github.com/wazuh/wazuh-indexer-plugins/pull/651)
 
 ### Dependencies
 - Upgrade to Gradle 8.14.3 [(#649)](https://github.com/wazuh/wazuh-indexer-plugins/pull/649)
