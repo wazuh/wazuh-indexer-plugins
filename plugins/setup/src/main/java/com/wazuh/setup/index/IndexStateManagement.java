@@ -16,6 +16,8 @@
  */
 package com.wazuh.setup.index;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.opensearch.ResourceAlreadyExistsException;
@@ -32,7 +34,6 @@ import java.util.Map;
 
 import com.wazuh.setup.model.IndexTemplate;
 import com.wazuh.setup.settings.PluginSettings;
-import tools.jackson.databind.ObjectMapper;
 
 /**
  * Initializes the Index State Management internal index <code>.opendistro-ism-config</code>.
@@ -145,6 +146,11 @@ public class IndexStateManagement extends Index {
             }
         } catch (ResourceAlreadyExistsException e) {
             log.info("Index {} already exists. Skipping.", index);
+        } catch (IOException e) {
+            log.error(
+                    "Error reading index template from filesystem [{}]. Caused by: {}",
+                    this.template,
+                    e.toString());
         } catch (
                 Exception
                         e) { // TimeoutException may be raised by actionGet(), but we cannot catch that one.

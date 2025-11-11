@@ -16,6 +16,8 @@
  */
 package com.wazuh.setup.index;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.opensearch.ResourceAlreadyExistsException;
@@ -34,7 +36,6 @@ import java.io.InputStream;
 import com.wazuh.setup.model.IndexTemplate;
 import com.wazuh.setup.settings.PluginSettings;
 import com.wazuh.setup.utils.JsonUtils;
-import tools.jackson.databind.ObjectMapper;
 
 /**
  * Abstract class with the required logic to create indices. In our context, an index always require
