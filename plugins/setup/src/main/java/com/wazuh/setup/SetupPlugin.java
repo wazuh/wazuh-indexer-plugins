@@ -16,17 +16,22 @@
  */
 package com.wazuh.setup;
 
+import com.wazuh.setup.rest.RestSetupAction;
 import org.opensearch.cluster.metadata.IndexNameExpressionResolver;
 import org.opensearch.cluster.node.DiscoveryNode;
+import org.opensearch.cluster.node.DiscoveryNodes;
 import org.opensearch.cluster.service.ClusterService;
-import org.opensearch.common.settings.Setting;
+import org.opensearch.common.settings.*;
 import org.opensearch.core.common.io.stream.NamedWriteableRegistry;
 import org.opensearch.core.xcontent.NamedXContentRegistry;
 import org.opensearch.env.Environment;
 import org.opensearch.env.NodeEnvironment;
+import org.opensearch.plugins.ActionPlugin;
 import org.opensearch.plugins.ClusterPlugin;
 import org.opensearch.plugins.Plugin;
 import org.opensearch.repositories.RepositoriesService;
+import org.opensearch.rest.RestController;
+import org.opensearch.rest.RestHandler;
 import org.opensearch.script.ScriptService;
 import org.opensearch.threadpool.ThreadPool;
 import org.opensearch.transport.client.Client;
@@ -49,7 +54,7 @@ import com.wazuh.setup.utils.IndexUtils;
  * Main class of the Indexer Setup plugin. This plugin is responsible for the creation of the index
  * templates and indices required by Wazuh to work properly.
  */
-public class SetupPlugin extends Plugin implements ClusterPlugin {
+public class SetupPlugin extends Plugin implements ClusterPlugin, ActionPlugin {
 
     private final List<Index> indices = new ArrayList<>();
     // spotless:off
@@ -65,6 +70,7 @@ public class SetupPlugin extends Plugin implements ClusterPlugin {
         "system-activity",
         "other" // No integration in this category yet
     };
+    private ThreadPool threadPool;
     // spotless:on
 
     /** Default constructor */
@@ -83,6 +89,8 @@ public class SetupPlugin extends Plugin implements ClusterPlugin {
             NamedWriteableRegistry namedWriteableRegistry,
             IndexNameExpressionResolver indexNameExpressionResolver,
             Supplier<RepositoriesService> repositoriesServiceSupplier) {
+
+        this.threadPool = threadPool;
         // spotless:off
         // ISM index
         this.indices.add(new IndexStateManagement(IndexStateManagement.ISM_INDEX_NAME, "templates/ism-config"));
@@ -144,5 +152,20 @@ public class SetupPlugin extends Plugin implements ClusterPlugin {
     @Override
     public List<Setting<?>> getSettings() {
         return List.of(PluginSettings.TIMEOUT, PluginSettings.BACKOFF);
+    }
+
+    @Override
+    public List<RestHandler> getRestHandlers(
+        Settings settings,
+        RestController restController,
+        ClusterSettings clusterSettings,
+        IndexScopedSettings indexScopedSettings,
+        SettingsFilter settingsFilter,
+        IndexNameExpressionResolver indexNameExpressionResolver,
+        Supplier<DiscoveryNodes> nodesInCluster
+    ) {
+        return List.of(
+            new RestSetupAction(this.threadPool)
+        );
     }
 }
