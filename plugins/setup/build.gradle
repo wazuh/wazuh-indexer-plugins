@@ -1,5 +1,6 @@
 import org.opensearch.gradle.test.RestIntegTestTask
 import java.util.concurrent.Callable
+import java.util.stream.Collectors
 import java.nio.file.Files
 import java.nio.charset.StandardCharsets
 import org.opensearch.gradle.testclusters.OpenSearchCluster
@@ -137,9 +138,11 @@ def getPlugin(pluginName) {
 }
 
 def waitForClusterSetup(OpenSearchCluster cluster) {
+  String unicastUris = cluster.nodes.stream().flatMap { node ->
+    node.getAllTransportPortURI().stream()
+  }.collect(Collectors.joining("\n"))
   cluster.nodes.forEach { node ->
     try {
-      String unicastUris = "127.0.0.1:37319"
       Files.write(node.getConfigDir().resolve("unicast_hosts.txt"), unicastUris.getBytes(StandardCharsets.UTF_8))
     } catch (IOException e) {
       throw new java.io.UncheckedIOException("Failed to write configuration files for " + this, e)
