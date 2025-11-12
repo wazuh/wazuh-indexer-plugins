@@ -1,5 +1,7 @@
 import org.opensearch.gradle.test.RestIntegTestTask
 import java.util.concurrent.Callable
+import org.opensearch.gradle.test.RestIntegTestTask
+import org.opensearch.gradle.testclusters.OpenSearchCluster
 
 buildscript {
     ext {
@@ -147,7 +149,6 @@ integTest {
     }
 }
 
-
 testClusters.integTest {
     plugin(getPlugin("opensearch-job-scheduler"))
     plugin(getPlugin("opensearch-index-management"))
@@ -155,7 +156,7 @@ testClusters.integTest {
     // Apparently, "INTEG_TEST" distribution does not contain every type parsers.
     // We need to use "ARCHIVE" to prevent the following MapperParsingException when creating index templates:
     // > Failed to parse mapping [_doc]: No handler for type [scaled_float] declared on field [usage]
-    testDistribution = "INTEG_TEST"
+    testDistribution = "ARCHIVE"
     // This installs our plugin into the testClusters
     plugin(project.tasks.bundlePlugin.archiveFile)
 
@@ -165,8 +166,14 @@ testClusters.integTest {
     }
 }
 
-
 run {
+    doFirst {
+        // There seems to be an issue when running multi node run or integ tasks with unicast_hosts
+        // not being written, the waitForAllConditions ensures it's written
+        getClusters().forEach { cluster ->
+          cluster.waitForAllConditions()
+        }
+    }
     useCluster testClusters.integTest
 }
 
