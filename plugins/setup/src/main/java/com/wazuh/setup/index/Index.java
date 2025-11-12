@@ -155,7 +155,7 @@ public abstract class Index implements IndexInitializer {
         try {
             // Read JSON index template
             ObjectMapper mapper = new ObjectMapper();
-            InputStream is = StreamIndex.class.getClassLoader().getResourceAsStream(template + ".json");
+            InputStream is = this.getClass().getClassLoader().getResourceAsStream(template + ".json");
             IndexTemplate indexTemplate = mapper.readValue(is, IndexTemplate.class);
 
             // Create a V2 template (ComposableIndexTemplate)

@@ -39,7 +39,9 @@ public class JsonUtils {
      * @param filename name of the JSON file to read from the resources folder
      * @return the JSON file as a map
      * @throws IOException file not found or could not be read
+     * @deprecated Use jackson's ObjectMapper instead.
      */
+    @Deprecated
     public Map<String, Object> fromFile(@NonNull String filename) throws IOException {
         InputStream is = JsonUtils.class.getClassLoader().getResourceAsStream(filename);
 

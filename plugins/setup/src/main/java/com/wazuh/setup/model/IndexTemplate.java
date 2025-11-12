@@ -33,6 +33,9 @@ import java.util.Map;
  */
 public class IndexTemplate {
 
+    /** Default constructor */
+    public IndexTemplate() {}
+
     @JsonProperty("index_patterns")
     private List<String> indexPatterns;
 

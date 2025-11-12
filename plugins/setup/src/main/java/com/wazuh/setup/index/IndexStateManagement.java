@@ -42,7 +42,7 @@ import com.wazuh.setup.settings.PluginSettings;
 public class IndexStateManagement extends Index {
     private static final Logger log = LogManager.getLogger(IndexStateManagement.class);
 
-    // ISM index name
+    /** ISM index name */
     public static final String ISM_INDEX_NAME = ".opendistro-ism-config";
 
     // ISM policies names (filename without extension)
@@ -78,9 +78,10 @@ public class IndexStateManagement extends Index {
      *
      * @param policy policy name to create.
      */
-    private void indexPolicy(String policy) {
+    void indexPolicy(String policy) {
         try {
             Map<String, Object> policyFile;
+
             policyFile = this.jsonUtils.fromFile(STREAM_ROLLOVER_POLICY_PATH);
 
             IndexRequest indexRequest =
@@ -126,7 +127,7 @@ public class IndexStateManagement extends Index {
                 // Read JSON index template
                 ObjectMapper mapper = new ObjectMapper();
                 InputStream is =
-                        StreamIndex.class.getClassLoader().getResourceAsStream(this.template + ".json");
+                        this.getClass().getClassLoader().getResourceAsStream(this.template + ".json");
                 IndexTemplate indexTemplate = mapper.readValue(is, IndexTemplate.class);
 
                 CreateIndexRequest request =
