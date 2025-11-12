@@ -1,6 +1,7 @@
 import org.opensearch.gradle.test.RestIntegTestTask
 import java.util.concurrent.Callable
-import org.opensearch.gradle.test.RestIntegTestTask
+import java.nio.file.Files
+import java.nio.charset.StandardCharsets
 import org.opensearch.gradle.testclusters.OpenSearchCluster
 
 buildscript {
@@ -135,6 +136,19 @@ def getPlugin(pluginName) {
     })
 }
 
+def waitForClusterSetup(OpenSearchCluster cluster) {
+  cluster.nodes.forEach { node ->
+    try {
+      String unicastUris = "127.0.0.1:37319"
+      Files.write(node.getConfigDir().resolve("unicast_hosts.txt"), unicastUris.getBytes(StandardCharsets.UTF_8))
+    } catch (IOException e) {
+      throw new java.io.UncheckedIOException("Failed to write configuration files for " + this, e)
+    }
+  }
+
+  cluster.waitForAllConditions()
+}
+
 task integTest(type: RestIntegTestTask) {
   description = "Run tests against a cluster"
   testClassesDirs = sourceSets.test.output.classesDirs
@@ -146,6 +160,14 @@ integTest {
     // The --debug-jvm command-line option makes the cluster debuggable; this makes the tests debuggable
     if (System.getProperty("test.debug") != null) {
         jvmArgs '-agentlib:jdwp=transport=dt_socket,server=y,suspend=y,address=*:5005'
+    }
+
+  // There seems to be an issue when running multi node run or integ tasks with unicast_hosts
+  // not being written, the waitForAllConditions ensures it's written
+    doFirst {
+      getClusters().forEach { cluster ->
+        waitForClusterSetup(cluster)
+      }
     }
 }
 
