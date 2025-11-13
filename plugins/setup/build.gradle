@@ -147,15 +147,13 @@ integTest {
     }
 }
 
-
-testClusters.integTest {
+testClusters {
+  integTest {
     plugin(getPlugin("opensearch-job-scheduler"))
     plugin(getPlugin("opensearch-index-management"))
 
-    // Apparently, "INTEG_TEST" distribution does not contain every type parsers.
-    // We need to use "ARCHIVE" to prevent the following MapperParsingException when creating index templates:
-    // > Failed to parse mapping [_doc]: No handler for type [scaled_float] declared on field [usage]
-    testDistribution = "ARCHIVE"
+    testDistribution = "INTEG_TEST"
+
     // This installs our plugin into the testClusters
     plugin(project.tasks.bundlePlugin.archiveFile)
 
@@ -163,11 +161,25 @@ testClusters.integTest {
     if (System.getProperty("cluster.debug") != null) {
         jvmArgs '-agentlib:jdwp=transport=dt_socket,server=y,suspend=y,address=*:5005'
     }
+  }
+
+  runCluster {
+    plugin(getPlugin("opensearch-job-scheduler"))
+    plugin(getPlugin("opensearch-index-management"))
+
+    testDistribution = "ARCHIVE"
+
+    plugin(project.tasks.bundlePlugin.archiveFile)
+
+    if (System.getProperty("run.cluster.debug") != null) {
+      jvmArgs '-agentlib:jdwp=transport=dt_socket,server=y,suspend=y,address=*:5005'
+    }
+  }
 }
 
 
 run {
-    useCluster testClusters.integTest
+  useCluster testClusters.runCluster
 }
 
 // updateVersion: Task to auto update version to the next development iteration
@@ -180,4 +192,3 @@ task updateVersion {
         ant.replaceregexp(file: 'build.gradle', match: '"opensearch.version", "\\d.*"', replace: '"opensearch.version", "' + newVersion.tokenize('-')[0] + '-SNAPSHOT"', flags: 'g', byline: true)
     }
 }
-
