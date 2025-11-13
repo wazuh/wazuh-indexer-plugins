@@ -1,0 +1,25 @@
+openapi: "3.0.3"
+info:
+  title: Wazuh Indexer Content Manager API
+  version: "1.0"
+servers:
+  - url: http://127.0.0.1:9200/_plugins/_content_manager
+paths:
+  /updater:
+    get:
+      summary: Launch the Content Updater module
+      tags:
+        - "update"
+      operationId: updater
+      parameters:
+        - name: "from_offset"
+          in: query
+          description: The offset from which the updater will start
+          required: false
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: OK
+        "500":
+          description: Internal server error (boom!)
