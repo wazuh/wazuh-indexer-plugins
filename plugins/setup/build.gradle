@@ -181,7 +181,7 @@ testClusters.integTest {
     // Apparently, "INTEG_TEST" distribution does not contain every type parsers.
     // We need to use "ARCHIVE" to prevent the following MapperParsingException when creating index templates:
     // > Failed to parse mapping [_doc]: No handler for type [scaled_float] declared on field [usage]
-    testDistribution = "ARCHIVE"
+    testDistribution = gradle.startParameter.getTaskNames().contains("integTest") ? "INTEG_TEST" : "ARCHIVE"
     // This installs our plugin into the testClusters
     plugin(project.tasks.bundlePlugin.archiveFile)
 
