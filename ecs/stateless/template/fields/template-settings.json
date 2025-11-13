@@ -1,5 +1,5 @@
 {
-  "index_patterns": ["wazuh-events-v5-<integration-name>-*"],
+  "index_patterns": ["wazuh-events-v5-<integration-name>*"],
   "priority": "<priority>",
   "data_stream": {},
   "template": {

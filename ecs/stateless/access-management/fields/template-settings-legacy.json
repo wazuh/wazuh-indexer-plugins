@@ -1,6 +1,6 @@
 {
   "index_patterns": [
-    "wazuh-events-v5-access-management-*"
+    "wazuh-events-v5-access-management*"
   ],
   "order": 1,
   "settings": {

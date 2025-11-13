@@ -1,6 +1,6 @@
 {
   "index_patterns": [
-    "wazuh-events-v5-applications-*"
+    "wazuh-events-v5-applications*"
   ],
   "order": 1,
   "settings": {

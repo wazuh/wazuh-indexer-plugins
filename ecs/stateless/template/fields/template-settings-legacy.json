@@ -1,5 +1,5 @@
 {
-  "index_patterns": ["wazuh-events-v5-<integration-name>-*"],
+  "index_patterns": ["wazuh-events-v5-<integration-name>*"],
   "order": "<priority>",
   "settings": {
     "plugins.index_state_management.rollover_alias": "wazuh-events-v5-<integration-name>",

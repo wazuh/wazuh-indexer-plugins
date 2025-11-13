@@ -88,11 +88,11 @@ public class SetupPlugin extends Plugin implements ClusterPlugin {
         this.indices.add(new IndexStateManagement(IndexStateManagement.ISM_INDEX_NAME, "templates/ism-config"));
         // Stream indices
         this.indices.add(new StreamIndex("wazuh-alerts-v5", "templates/streams/alerts"));
-        this.indices.add(new StreamIndex("wazuh-archives-v5-000001", "templates/streams/archives"));
+        this.indices.add(new StreamIndex("wazuh-archives-v5", "templates/streams/archives"));
         // Decoder indices
         for (String category : this.categories) {
             this.indices.add(new StreamIndex(
-                "wazuh-events-v5-" + category + "-000001",
+                "wazuh-events-v5-" + category,
                 "templates/streams/" + category
             ));
         }
