@@ -100,6 +100,18 @@ public abstract class Index implements IndexInitializer {
     }
 
     /**
+     * Converts a template path to kebab-case name.
+     * Removes the "templates/" prefix and converts remaining slashes to hyphens.
+     *
+     * @param templatePath the template path (e.g., "templates/streams/alerts")
+     * @return the kebab-case name (e.g., "streams-alerts")
+     */
+    private String toKebabCase(String templatePath) {
+        templatePath = templatePath.replaceFirst("^templates/", "");
+        return templatePath.replace("/", "-");
+    }
+
+    /**
      * Returns whether the index exists.
      *
      * @param indexName the name of the index to check.
@@ -165,9 +177,12 @@ public abstract class Index implements IndexInitializer {
             ComposableIndexTemplate composableTemplate =
                     indexTemplate.getComposableIndexTemplate(settings, compressedMapping);
 
+            // Convert template path to kebab-case name
+            String templateName = toKebabCase(template);
+
             // Use the V2 API to put the template
             PutComposableIndexTemplateAction.Request request =
-                    new PutComposableIndexTemplateAction.Request(template)
+                    new PutComposableIndexTemplateAction.Request(templateName)
                             .indexTemplate(composableTemplate)
                             .create(false);
 
@@ -181,7 +196,7 @@ public abstract class Index implements IndexInitializer {
                     template,
                     e.toString());
         } catch (ResourceAlreadyExistsException e) {
-            log.info("Index template {} already exists. Skipping.", template);
+            log.info("Index template {} already exists. Skipping.", toKebabCase(template));
         } catch (
                 Exception
                         e) { // TimeoutException may be raised by actionGet(), but we cannot catch that one.
