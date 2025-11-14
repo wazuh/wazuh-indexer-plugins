@@ -104,7 +104,7 @@ public abstract class Index implements IndexInitializer {
      * Removes the "templates/" prefix and converts remaining slashes to hyphens.
      *
      * @param templatePath the template path (e.g., "templates/streams/alerts")
-     * @return the kebab-case name (e.g., "streams-alerts")
+     * @return the template name (e.g., "streams-alerts")
      */
     private String getTemplateName(String templatePath) {
         templatePath = templatePath.replaceFirst("^templates/", "");
