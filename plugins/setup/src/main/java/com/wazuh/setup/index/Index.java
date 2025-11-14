@@ -100,6 +100,18 @@ public abstract class Index implements IndexInitializer {
     }
 
     /**
+     * Sanitizes a template path to obtain the template name.
+     * Removes the "templates/" prefix and converts remaining slashes to hyphens.
+     *
+     * @param templatePath the template path (e.g., "templates/streams/alerts")
+     * @return the template name (e.g., "streams-alerts")
+     */
+    private String getTemplateName(String templatePath) {
+        templatePath = templatePath.replaceFirst("^templates/", "");
+        return templatePath.replace("/", "-");
+    }
+
+    /**
      * Returns whether the index exists.
      *
      * @param indexName the name of the index to check.
@@ -152,6 +164,9 @@ public abstract class Index implements IndexInitializer {
      * @param template name of the index template to create.
      */
     public void createTemplate(String template) {
+        // Get the template name
+        String templateName = this.getTemplateName(template);
+        
         try {
             // Read JSON index template
             ObjectMapper mapper = new ObjectMapper();
@@ -167,7 +182,7 @@ public abstract class Index implements IndexInitializer {
 
             // Use the V2 API to put the template
             PutComposableIndexTemplateAction.Request request =
-                    new PutComposableIndexTemplateAction.Request(template)
+                    new PutComposableIndexTemplateAction.Request(templateName)
                             .indexTemplate(composableTemplate)
                             .create(false);
 
@@ -181,7 +196,7 @@ public abstract class Index implements IndexInitializer {
                     template,
                     e.toString());
         } catch (ResourceAlreadyExistsException e) {
-            log.info("Index template {} already exists. Skipping.", template);
+            log.info("Index template {} already exists. Skipping.", templateName);
         } catch (
                 Exception
                         e) { // TimeoutException may be raised by actionGet(), but we cannot catch that one.
