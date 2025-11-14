@@ -53,12 +53,10 @@ function detect_modified_modules() {
   modified_files=$(git diff --name-only origin/"$BASE_BRANCH")
   for file in $modified_files; do
     if [[ $file == ecs/state* && ( $file == *.yml || $file == *.json ) ]]; then
-      matched=false
       # Try to match the file to one of the known module keys for exact detection
       for key in "${!module_to_file[@]}"; do
         if [[ $file == ecs/$key/* || $file == ecs/$key ]]; then
           ecs_module="$key"
-          matched=true
           break
         fi
       done
@@ -157,7 +155,7 @@ function copy_files() {
   echo "---> Index templates"
   local destination_file
   local resources_path="plugins/setup/src/main/resources"
-  local mappings_path="mappings/${ECS_VERSION}/generated/elasticsearch/legacy/template.json"
+  local mappings_path="mappings/${ECS_VERSION}/generated/elasticsearch/legacy/opensearch-template.json"
   for ecs_module in "${modules_to_update[@]}"; do
     # Copying index templates to the initialization plugin resources folder
     destination_file=${module_to_file[$ecs_module]}

@@ -16,9 +16,7 @@
  */
 package com.wazuh.setup.index;
 
-import org.opensearch.action.admin.indices.alias.Alias;
-import org.opensearch.action.admin.indices.create.CreateIndexRequest;
-import org.opensearch.action.admin.indices.create.CreateIndexResponse;
+import org.opensearch.action.support.clustermanager.AcknowledgedResponse;
 import org.opensearch.cluster.ClusterState;
 import org.opensearch.cluster.routing.RoutingTable;
 import org.opensearch.cluster.service.ClusterService;
@@ -29,7 +27,7 @@ import org.opensearch.transport.client.AdminClient;
 import org.opensearch.transport.client.Client;
 import org.opensearch.transport.client.IndicesAdminClient;
 
-import com.wazuh.setup.utils.IndexUtils;
+import com.wazuh.setup.utils.JsonUtils;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
@@ -37,9 +35,9 @@ import static org.mockito.Mockito.*;
 /** Unit tests for the {@link StreamIndex} class. */
 public class StreamIndexTests extends OpenSearchTestCase {
 
+    private static final String STREAM_INDEX = "stream-index";
     private StreamIndex streamIndex;
     private IndicesAdminClient indicesAdminClient;
-    private RoutingTable routingTable;
 
     @Override
     public void setUp() throws Exception {
@@ -49,57 +47,56 @@ public class StreamIndexTests extends OpenSearchTestCase {
         AdminClient adminClient = mock(AdminClient.class);
         this.indicesAdminClient = mock(IndicesAdminClient.class);
         ClusterService clusterService = mock(ClusterService.class);
-        this.routingTable = mock(RoutingTable.class);
+        RoutingTable routingTable = mock(RoutingTable.class);
         ClusterState clusterState = mock(ClusterState.class);
 
         // Default settings
         Settings settings = Settings.builder().build();
         doReturn(settings).when(clusterService).getSettings();
 
-        this.streamIndex = new StreamIndex("stream-index", "stream-template", "stream-alias");
+        this.streamIndex = new StreamIndex(STREAM_INDEX, "stream-template");
         this.streamIndex.setClient(client);
         this.streamIndex.setClusterService(clusterService);
-        this.streamIndex.setIndexUtils(mock(IndexUtils.class));
+        this.streamIndex.setUtils(mock(JsonUtils.class));
 
         doReturn(adminClient).when(client).admin();
         doReturn(this.indicesAdminClient).when(adminClient).indices();
         doReturn(clusterState).when(clusterService).state();
-        doReturn(this.routingTable).when(clusterState).getRoutingTable();
+        doReturn(routingTable).when(clusterState).getRoutingTable();
     }
 
     /**
-     * Verifies that createIndex adds the alias and calls the create method when the index does not
-     * exist.
+     * Verifies that createIndex handles ResourceAlreadyExistsException gracefully when the data
+     * stream already exists.
      */
-    public void testCreateIndexWithAlias() {
-        doReturn(false).when(this.routingTable).hasIndex("stream-index");
-
-        CreateIndexResponse response = mock(CreateIndexResponse.class);
-        doReturn("stream-index").when(response).index();
+    public void testCreateIndexWhenAlreadyExists() {
+        // Mock createDataStream to throw ResourceAlreadyExistsException
         ActionFuture actionFuture = mock(ActionFuture.class);
-        doReturn(response).when(actionFuture).actionGet(anyLong());
-        doReturn(actionFuture).when(this.indicesAdminClient).create(any(CreateIndexRequest.class));
+        doThrow(new org.opensearch.ResourceAlreadyExistsException("Data stream already exists"))
+                .when(actionFuture)
+                .actionGet(anyLong());
+        doReturn(actionFuture).when(this.indicesAdminClient).createDataStream(any());
 
-        this.streamIndex.createIndex("stream-index");
+        // Should not throw exception - it should be caught and logged
+        this.streamIndex.createIndex(STREAM_INDEX);
 
-        verify(this.indicesAdminClient)
-                .create(
-                        argThat(
-                                req -> {
-                                    Alias alias = req.aliases().stream().findFirst().orElse(null);
-                                    return req.index().equals("stream-index")
-                                            && alias != null
-                                            && "stream-alias".equals(alias.name())
-                                            && Boolean.TRUE.equals(alias.writeIndex());
-                                }));
+        // Verify createDataStream was called once
+        verify(this.indicesAdminClient).createDataStream(any());
     }
 
-    /** Verifies that createIndex skips index creation if the index already exists. */
-    public void testCreateIndexWhenAlreadyExists() {
-        doReturn(true).when(this.routingTable).hasIndex("stream-index");
+    /** Verifies that createIndex successfully creates a data stream when it doesn't exist. */
+    public void testCreateIndexSuccess() {
+        // Mock successful data stream creation
+        AcknowledgedResponse response = mock(AcknowledgedResponse.class);
+        //        doReturn(true).when(response).isAcknowledged();
 
-        this.streamIndex.createIndex("stream-index");
+        ActionFuture actionFuture = mock(ActionFuture.class);
+        doReturn(response).when(actionFuture).actionGet(anyLong());
+        doReturn(actionFuture).when(this.indicesAdminClient).createDataStream(any());
 
-        verify(this.indicesAdminClient, never()).create(any());
+        this.streamIndex.createIndex(STREAM_INDEX);
+
+        // Verify createDataStream was called
+        verify(this.indicesAdminClient).createDataStream(any());
     }
 }

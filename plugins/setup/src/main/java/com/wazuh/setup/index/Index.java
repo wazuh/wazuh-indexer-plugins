@@ -16,22 +16,26 @@
  */
 package com.wazuh.setup.index;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.opensearch.ResourceAlreadyExistsException;
 import org.opensearch.action.admin.indices.create.CreateIndexRequest;
 import org.opensearch.action.admin.indices.create.CreateIndexResponse;
-import org.opensearch.action.admin.indices.template.put.PutIndexTemplateRequest;
-import org.opensearch.action.support.clustermanager.AcknowledgedResponse;
+import org.opensearch.action.admin.indices.template.put.PutComposableIndexTemplateAction;
+import org.opensearch.cluster.metadata.ComposableIndexTemplate;
 import org.opensearch.cluster.service.ClusterService;
+import org.opensearch.common.compress.CompressedXContent;
+import org.opensearch.common.settings.Settings;
 import org.opensearch.transport.client.Client;
 
 import java.io.IOException;
-import java.util.List;
-import java.util.Map;
+import java.io.InputStream;
 
+import com.wazuh.setup.model.IndexTemplate;
 import com.wazuh.setup.settings.PluginSettings;
-import com.wazuh.setup.utils.IndexUtils;
+import com.wazuh.setup.utils.JsonUtils;
 
 /**
  * Abstract class with the required logic to create indices. In our context, an index always require
@@ -45,7 +49,7 @@ public abstract class Index implements IndexInitializer {
     // Dependencies.
     Client client;
     ClusterService clusterService;
-    IndexUtils indexUtils;
+    JsonUtils jsonUtils;
 
     // Properties.
     String index;
@@ -87,12 +91,12 @@ public abstract class Index implements IndexInitializer {
     }
 
     /**
-     * Sets the IndexUtils instance.
+     * Sets the JsonUtils instance.
      *
-     * @param indexUtils the IndexUtils instance to set.
+     * @param jsonUtils the JsonUtils instance to set.
      */
-    public void setIndexUtils(IndexUtils indexUtils) {
-        this.indexUtils = indexUtils;
+    public void setUtils(JsonUtils jsonUtils) {
+        this.jsonUtils = jsonUtils;
     }
 
     /**
@@ -137,42 +141,45 @@ public abstract class Index implements IndexInitializer {
             }
             log.warn("Operation to create the index [{}] timed out. Retrying...", index);
             this.retry_index_creation = false;
-            this.indexUtils.sleep(PluginSettings.getBackoff(this.clusterService.getSettings()));
+            this.sleep(PluginSettings.getBackoff(this.clusterService.getSettings()));
             this.createIndex(index);
         }
     }
 
     /**
-     * Creates an index template.
+     * Creates an index template (v2).
      *
      * @param template name of the index template to create.
      */
     public void createTemplate(String template) {
         try {
-            Map<String, Object> templateFile = this.indexUtils.fromFile(template + ".json");
+            // Read JSON index template
+            ObjectMapper mapper = new ObjectMapper();
+            InputStream is = this.getClass().getClassLoader().getResourceAsStream(template + ".json");
+            IndexTemplate indexTemplate = mapper.readValue(is, IndexTemplate.class);
 
-            PutIndexTemplateRequest putIndexTemplateRequest =
-                    new PutIndexTemplateRequest()
-                            .mapping(this.indexUtils.get(templateFile, "mappings"))
-                            .settings(this.indexUtils.get(templateFile, "settings"))
-                            .order((int) templateFile.getOrDefault("order", 0))
-                            .name(template)
-                            .patterns((List<String>) templateFile.get("index_patterns"));
+            // Create a V2 template (ComposableIndexTemplate)
+            String indexMappings = mapper.writeValueAsString(indexTemplate.getMappings());
+            CompressedXContent compressedMapping = new CompressedXContent(indexMappings);
+            Settings settings = Settings.builder().loadFromMap(indexTemplate.getSettings()).build();
+            ComposableIndexTemplate composableTemplate =
+                    indexTemplate.getComposableIndexTemplate(settings, compressedMapping);
 
-            AcknowledgedResponse createIndexTemplateResponse =
-                    this.client
-                            .admin()
-                            .indices()
-                            .putTemplate(putIndexTemplateRequest)
-                            .actionGet(PluginSettings.getTimeout(this.clusterService.getSettings()));
+            // Use the V2 API to put the template
+            PutComposableIndexTemplateAction.Request request =
+                    new PutComposableIndexTemplateAction.Request(template)
+                            .indexTemplate(composableTemplate)
+                            .create(false);
 
-            log.info(
-                    "Index template created successfully: {} {}",
-                    template,
-                    createIndexTemplateResponse.isAcknowledged());
-
+            // Put index template
+            this.client
+                    .execute(PutComposableIndexTemplateAction.INSTANCE, request)
+                    .actionGet(PluginSettings.getTimeout(this.clusterService.getSettings()));
         } catch (IOException e) {
-            log.error("Error reading index template from filesystem {}", template);
+            log.error(
+                    "Error reading index template from filesystem [{}]. Caused by: {}",
+                    template,
+                    e.toString());
         } catch (ResourceAlreadyExistsException e) {
             log.info("Index template {} already exists. Skipping.", template);
         } catch (
@@ -188,7 +195,7 @@ public abstract class Index implements IndexInitializer {
             }
             log.warn("Operation to create the index template [{}] timed out. Retrying...", template);
             this.retry_template_creation = false;
-            this.indexUtils.sleep(PluginSettings.getBackoff(this.clusterService.getSettings()));
+            this.sleep(PluginSettings.getBackoff(this.clusterService.getSettings()));
             this.createTemplate(template);
         }
     }
@@ -200,5 +207,18 @@ public abstract class Index implements IndexInitializer {
     public void initialize() {
         this.createTemplate(this.template);
         this.createIndex(this.index);
+    }
+
+    /**
+     * Utility method to wrap up the call to {@link Thread#sleep(long)} on a try-catch block.
+     *
+     * @param millis sleep interval in milliseconds.
+     */
+    void sleep(long millis) {
+        try {
+            Thread.sleep(millis);
+        } catch (InterruptedException ex) {
+            throw new RuntimeException(ex);
+        }
     }
 }

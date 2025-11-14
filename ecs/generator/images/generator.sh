@@ -74,14 +74,28 @@ generate_mappings() {
   fi
 
   # Transform legacy index template for OpenSearch compatibility
-  jq '{
-    "index_patterns": .index_patterns,
-    "priority": .order,
-    "template": {
-      "settings": .settings,
-      "mappings": .mappings
-    }
-  }' "$in_file" >"$out_dir/generated/elasticsearch/legacy/opensearch-template.json"
+  if [[ "$ecs_module" =~ "stateless/" ]]; then
+    # Transform time-series templates to use data streams
+    jq '{
+      "index_patterns": .index_patterns,
+      "priority": .order,
+      "data_stream": {},
+      "template": {
+        "settings": .settings,
+        "mappings": .mappings
+      }
+    }' "$in_file" >"$out_dir/generated/elasticsearch/legacy/opensearch-template.json"
+  else
+    # Stateful templates remain unchanged except for the formatting
+    jq '{
+      "index_patterns": .index_patterns,
+      "priority": .order,
+      "template": {
+        "settings": .settings,
+        "mappings": .mappings
+      }
+    }' "$in_file" >"$out_dir/generated/elasticsearch/legacy/opensearch-template.json"
+  fi
 
   echo "Mappings saved to $out_dir"
 }

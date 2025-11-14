@@ -1,6 +1,6 @@
 {
   "index_patterns": [
-    "wazuh-events-v5-cloud-services-aws-*"
+    "wazuh-events-v5-cloud-services-aws*"
   ],
   "order": 10,
   "settings": {

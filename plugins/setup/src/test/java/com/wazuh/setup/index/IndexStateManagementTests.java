@@ -29,10 +29,9 @@ import org.opensearch.transport.client.Client;
 import org.opensearch.transport.client.IndicesAdminClient;
 
 import java.io.IOException;
-import java.util.HashMap;
 import java.util.Map;
 
-import com.wazuh.setup.utils.IndexUtils;
+import com.wazuh.setup.utils.JsonUtils;
 
 import static org.mockito.Mockito.*;
 
@@ -42,7 +41,7 @@ public class IndexStateManagementTests extends OpenSearchTestCase {
     private IndexStateManagement ismIndex;
     private Client client;
     private IndicesAdminClient indicesAdminClient;
-    private IndexUtils indexUtils;
+    private JsonUtils jsonUtils;
 
     @Override
     public void setUp() throws Exception {
@@ -51,7 +50,7 @@ public class IndexStateManagementTests extends OpenSearchTestCase {
         this.client = mock(Client.class);
         AdminClient adminClient = mock(AdminClient.class);
         this.indicesAdminClient = mock(IndicesAdminClient.class);
-        this.indexUtils = mock(IndexUtils.class);
+        this.jsonUtils = mock(JsonUtils.class);
 
         // Default settings
         ClusterService clusterService = mock(ClusterService.class);
@@ -62,9 +61,9 @@ public class IndexStateManagementTests extends OpenSearchTestCase {
         doReturn(this.indicesAdminClient).when(adminClient).indices();
 
         this.ismIndex =
-                spy(new IndexStateManagement(IndexStateManagement.ISM_INDEX_NAME, "ism-template"));
+                spy(new IndexStateManagement(IndexStateManagement.ISM_INDEX_NAME, "templates/ism-config"));
         this.ismIndex.setClient(this.client);
-        this.ismIndex.setIndexUtils(this.indexUtils);
+        this.ismIndex.setUtils(this.jsonUtils);
         this.ismIndex.setClusterService(clusterService);
     }
 
@@ -75,33 +74,33 @@ public class IndexStateManagementTests extends OpenSearchTestCase {
      * @throws IOException if an error occurs while reading the policy file
      */
     public void testInitialize_CreatesIndexAndPolicies() throws IOException {
-        Map<String, Object> template = new HashMap<>();
-        template.put("settings", Settings.builder().build());
-        template.put("mappings", Map.of());
-
+        // Mock indexExists to return false so createIndex is called
         doReturn(false).when(this.ismIndex).indexExists(IndexStateManagement.ISM_INDEX_NAME);
-        doReturn(template).when(this.indexUtils).fromFile("ism-template.json");
-        doReturn(template.get("mappings")).when(this.indexUtils).get(template, "mappings");
 
+        // Mock the CreateIndexResponse
         CreateIndexResponse createResponse = mock(CreateIndexResponse.class);
         doReturn(IndexStateManagement.ISM_INDEX_NAME).when(createResponse).index();
 
-        ActionFuture actionFuture = mock(ActionFuture.class);
+        ActionFuture<CreateIndexResponse> createIndexFuture = mock(ActionFuture.class);
+        doReturn(createResponse).when(createIndexFuture).actionGet(anyLong());
+        doReturn(createIndexFuture).when(this.indicesAdminClient).create(any(CreateIndexRequest.class));
 
-        doReturn(actionFuture).when(this.indicesAdminClient).create(any(CreateIndexRequest.class));
-
+        // Mock the policy file loading
         Map<String, Object> policyFile = Map.of("policy", "definition");
         doReturn(policyFile)
-                .when(this.indexUtils)
+                .when(this.jsonUtils)
                 .fromFile(IndexStateManagement.STREAM_ROLLOVER_POLICY_PATH);
 
-        doReturn(actionFuture).when(this.client).index(any(IndexRequest.class));
-
-        doReturn(createResponse).when(actionFuture).actionGet(anyLong());
+        // Mock the policy indexing
+        ActionFuture indexFuture = mock(ActionFuture.class);
+        doReturn(indexFuture).when(this.client).index(any(IndexRequest.class));
+        doReturn(null).when(indexFuture).actionGet(anyLong());
 
         this.ismIndex.initialize();
 
+        // Verify that the index was created with the correct request
         verify(this.indicesAdminClient).create(any(CreateIndexRequest.class));
+        // Verify that the policy was indexed
         verify(this.client).index(any(IndexRequest.class));
     }
 
@@ -128,7 +127,7 @@ public class IndexStateManagementTests extends OpenSearchTestCase {
     public void testPolicyFileMissing_LogsError() throws IOException {
         doReturn(true).when(this.ismIndex).indexExists(IndexStateManagement.ISM_INDEX_NAME);
         doThrow(new IOException("file not found"))
-                .when(indexUtils)
+                .when(jsonUtils)
                 .fromFile(IndexStateManagement.STREAM_ROLLOVER_POLICY_PATH);
 
         this.ismIndex.initialize();
@@ -147,9 +146,7 @@ public class IndexStateManagementTests extends OpenSearchTestCase {
         doReturn(true).when(this.ismIndex).indexExists(IndexStateManagement.ISM_INDEX_NAME);
 
         Map<String, Object> policyFile = Map.of("policy", "definition");
-        doReturn(policyFile)
-                .when(indexUtils)
-                .fromFile(IndexStateManagement.STREAM_ROLLOVER_POLICY_PATH);
+        doReturn(policyFile).when(jsonUtils).fromFile(IndexStateManagement.STREAM_ROLLOVER_POLICY_PATH);
         doThrow(new ResourceAlreadyExistsException("already exists"))
                 .when(this.client)
                 .index(any(IndexRequest.class));
@@ -157,5 +154,15 @@ public class IndexStateManagementTests extends OpenSearchTestCase {
         this.ismIndex.initialize();
 
         // Verifies that exception is caught and logged
+    }
+
+    /**
+     * Verifies that IOException while reading a file is caught and logged.
+     *
+     * @throws IOException if there is an error reading the file
+     */
+    public void testFileIOException() throws IOException {
+        doThrow(new IOException("Test failed successfully")).when(this.jsonUtils).fromFile(anyString());
+        this.ismIndex.indexPolicy("test-template");
     }
 }

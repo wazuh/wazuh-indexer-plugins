@@ -1,6 +1,6 @@
 {
   "index_patterns": [
-    "wazuh-alerts-v5-*"
+    "wazuh-alerts-v5*"
   ],
   "order": 1,
   "settings": {

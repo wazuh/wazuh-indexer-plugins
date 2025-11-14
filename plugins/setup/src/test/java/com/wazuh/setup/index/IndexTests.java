@@ -18,7 +18,6 @@ package com.wazuh.setup.index;
 
 import org.opensearch.action.admin.indices.create.CreateIndexRequest;
 import org.opensearch.action.admin.indices.create.CreateIndexResponse;
-import org.opensearch.action.admin.indices.template.put.PutIndexTemplateRequest;
 import org.opensearch.action.support.clustermanager.AcknowledgedResponse;
 import org.opensearch.cluster.ClusterState;
 import org.opensearch.cluster.routing.RoutingTable;
@@ -30,11 +29,7 @@ import org.opensearch.transport.client.AdminClient;
 import org.opensearch.transport.client.Client;
 import org.opensearch.transport.client.IndicesAdminClient;
 
-import java.io.IOException;
-import java.util.List;
-import java.util.Map;
-
-import com.wazuh.setup.utils.IndexUtils;
+import com.wazuh.setup.utils.JsonUtils;
 
 import static org.mockito.Mockito.*;
 
@@ -42,21 +37,22 @@ import static org.mockito.Mockito.*;
 public class IndexTests extends OpenSearchTestCase {
 
     private Index index;
+    private Client client;
     private IndicesAdminClient indicesAdminClient;
     private RoutingTable routingTable;
-    private IndexUtils indexUtils;
+    private JsonUtils jsonUtils;
 
     @Override
     public void setUp() throws Exception {
         super.setUp();
 
-        Client client = mock(Client.class);
+        this.client = mock(Client.class);
         AdminClient adminClient = mock(AdminClient.class);
         this.indicesAdminClient = mock(IndicesAdminClient.class);
         ClusterService clusterService = mock(ClusterService.class);
         this.routingTable = mock(RoutingTable.class);
         ClusterState clusterState = mock(ClusterState.class);
-        this.indexUtils = mock(IndexUtils.class);
+        this.jsonUtils = mock(JsonUtils.class);
 
         // Default settings
         Settings settings = Settings.builder().build();
@@ -64,11 +60,11 @@ public class IndexTests extends OpenSearchTestCase {
 
         // Concrete implementation of abstract class
         this.index = new Index("test-index", "test-template") {};
-        this.index.setClient(client);
+        this.index.setClient(this.client);
         this.index.setClusterService(clusterService);
-        this.index.setIndexUtils(indexUtils);
+        this.index.setUtils(jsonUtils);
 
-        doReturn(adminClient).when(client).admin();
+        doReturn(adminClient).when(this.client).admin();
         doReturn(this.indicesAdminClient).when(adminClient).indices();
         doReturn(clusterState).when(clusterService).state();
         doReturn(this.routingTable).when(clusterState).getRoutingTable();
@@ -98,43 +94,21 @@ public class IndexTests extends OpenSearchTestCase {
         verify(this.indicesAdminClient, never()).create(any());
     }
 
-    /**
-     * Verifies that template creation is successful when valid data is returned from file.
-     *
-     * @throws IOException if there is an error reading the template file
-     */
-    public void testCreateTemplateSuccess() throws IOException {
-        Map<String, Object> templateMap =
-                Map.of(
-                        "settings", Settings.builder().build(),
-                        "mappings", Map.of(),
-                        "index_patterns", List.of("test-*"));
-
-        doReturn(templateMap).when(this.indexUtils).fromFile("test-template.json");
-        doReturn(templateMap.get("mappings")).when(this.indexUtils).get(templateMap, "mappings");
-
+    /** Verifies that template creation is successful when valid data is returned from file. */
+    public void testCreateTemplateSuccess() {
+        // Mock the response for client.execute()
         AcknowledgedResponse ackResponse = mock(AcknowledgedResponse.class);
         ActionFuture actionFuture = mock(ActionFuture.class);
         doReturn(ackResponse).when(actionFuture).actionGet(anyLong());
-        doReturn(actionFuture)
-                .when(this.indicesAdminClient)
-                .putTemplate(any(PutIndexTemplateRequest.class));
-        this.index.createTemplate("test-template");
 
-        verify(this.indicesAdminClient).putTemplate(any(PutIndexTemplateRequest.class));
-    }
+        // Mock client.execute() which is what createTemplate actually uses
+        doReturn(actionFuture).when(this.client).execute(any(), any());
 
-    /**
-     * Verifies that IOException while reading template file is caught and logged.
-     *
-     * @throws IOException if there is an error reading the template file
-     */
-    public void testCreateTemplateIOException() throws IOException {
-        doThrow(new IOException("test")).when(this.indexUtils).fromFile("test-template.json");
+        // Call createTemplate with a real template file that exists
+        this.index.createTemplate("templates/ism-config");
 
-        this.index.createTemplate("test-template");
-
-        // Expect error to be logged but not thrown
+        // Verify that client.execute was called
+        verify(this.client).execute(any(), any());
     }
 
     /** Verifies that initialize() invokes both createTemplate and createIndex in order. */

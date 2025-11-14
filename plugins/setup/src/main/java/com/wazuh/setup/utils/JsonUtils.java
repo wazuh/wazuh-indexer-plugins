@@ -27,35 +27,24 @@ import java.util.Map;
 
 import reactor.util.annotation.NonNull;
 
-/** Util functions to parse and manage index templates files. */
-public class IndexUtils {
+/** Util functions to parse and manage JSON files. */
+public class JsonUtils {
 
     /** Default constructor */
-    public IndexUtils() {}
+    public JsonUtils() {}
 
     /**
-     * Read index template file from the resources folder and returns its JSON content as a map.
+     * Read JSON file from the resources folder and returns its JSON content as a map.
      *
-     * @param filename name of the index template to read from the resources folder
-     * @return the JSON index template as a map
+     * @param filename name of the JSON file to read from the resources folder
+     * @return the JSON file as a map
      * @throws IOException file not found or could not be read
+     * @deprecated Use jackson's ObjectMapper instead.
      */
+    @Deprecated
     public Map<String, Object> fromFile(@NonNull String filename) throws IOException {
-        InputStream is = IndexUtils.class.getClassLoader().getResourceAsStream(filename);
-        return this.toMap(is);
-    }
+        InputStream is = JsonUtils.class.getClassLoader().getResourceAsStream(filename);
 
-    /**
-     * Convert from a JSON InputStream into a String, Object map.
-     *
-     * <p>Used to convert the JSON index templates to the required format.
-     *
-     * @param is: the JSON formatted InputStream
-     * @return a map with the json string contents.
-     * @throws IOException thrown by {@link JsonXContent#createParser(NamedXContentRegistry,
-     *     DeprecationHandler, InputStream)}
-     */
-    public Map<String, Object> toMap(InputStream is) throws IOException {
         XContentParser parser =
                 JsonXContent.jsonXContent.createParser(
                         NamedXContentRegistry.EMPTY, DeprecationHandler.THROW_UNSUPPORTED_OPERATION, is);
@@ -64,29 +53,14 @@ public class IndexUtils {
     }
 
     /**
-     * Cast map's element to a String, Object map.
+     * Return JSON node by key.
      *
-     * <p>Used to retrieve the settings and mappings from the index templates, which are a JSON object
-     * themselves.
-     *
-     * @param map the index template as a map.
+     * @param map the parent JSON node where the key to retrieve is.
      * @param key the element's key to retrieve and cast.
      * @return a String, Object map
      */
+    @SuppressWarnings("unchecked")
     public Map<String, Object> get(Map<String, Object> map, String key) {
         return (Map<String, Object>) map.get(key);
-    }
-
-    /**
-     * Utility method to wrap up the call to {@link Thread#sleep(long)} on a try-catch block.
-     *
-     * @param millis sleep interval in milliseconds.
-     */
-    public void sleep(long millis) {
-        try {
-            Thread.sleep(millis);
-        } catch (InterruptedException ex) {
-            throw new RuntimeException(ex);
-        }
     }
 }

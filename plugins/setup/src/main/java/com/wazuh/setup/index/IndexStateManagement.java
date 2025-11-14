@@ -16,6 +16,8 @@
  */
 package com.wazuh.setup.index;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.opensearch.ResourceAlreadyExistsException;
@@ -25,10 +27,12 @@ import org.opensearch.action.index.IndexRequest;
 import org.opensearch.core.xcontent.MediaTypeRegistry;
 
 import java.io.IOException;
+import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
+import com.wazuh.setup.model.IndexTemplate;
 import com.wazuh.setup.settings.PluginSettings;
 
 /**
@@ -38,7 +42,7 @@ import com.wazuh.setup.settings.PluginSettings;
 public class IndexStateManagement extends Index {
     private static final Logger log = LogManager.getLogger(IndexStateManagement.class);
 
-    // ISM index name
+    /** ISM index name */
     public static final String ISM_INDEX_NAME = ".opendistro-ism-config";
 
     // ISM policies names (filename without extension)
@@ -74,10 +78,11 @@ public class IndexStateManagement extends Index {
      *
      * @param policy policy name to create.
      */
-    private void indexPolicy(String policy) {
+    void indexPolicy(String policy) {
         try {
             Map<String, Object> policyFile;
-            policyFile = this.indexUtils.fromFile(STREAM_ROLLOVER_POLICY_PATH);
+
+            policyFile = this.jsonUtils.fromFile(STREAM_ROLLOVER_POLICY_PATH);
 
             IndexRequest indexRequest =
                     new IndexRequest(this.index)
@@ -102,7 +107,7 @@ public class IndexStateManagement extends Index {
             }
             log.warn("Operation to create the policy [{}] timed out. Retrying...", policy);
             this.retry_index_creation = false;
-            this.indexUtils.sleep(PluginSettings.getBackoff(this.clusterService.getSettings()));
+            this.sleep(PluginSettings.getBackoff(this.clusterService.getSettings()));
             this.indexPolicy(policy);
         }
     }
@@ -119,12 +124,16 @@ public class IndexStateManagement extends Index {
                 // For some reason the index template is not applied to the ISM internal index
                 // ".opendistro-ism-config", so we explicitly set the index mappings and settings
                 // as part of the CreateIndexRequest.
-                Map<String, Object> templateFile = this.indexUtils.fromFile(this.template + ".json");
+                // Read JSON index template
+                ObjectMapper mapper = new ObjectMapper();
+                InputStream is =
+                        this.getClass().getClassLoader().getResourceAsStream(this.template + ".json");
+                IndexTemplate indexTemplate = mapper.readValue(is, IndexTemplate.class);
 
                 CreateIndexRequest request =
                         new CreateIndexRequest(index)
-                                .mapping(this.indexUtils.get(templateFile, "mappings"))
-                                .settings(this.indexUtils.get(templateFile, "settings"));
+                                .mapping(indexTemplate.getMappings())
+                                .settings(indexTemplate.getSettings());
                 CreateIndexResponse createIndexResponse =
                         this.client
                                 .admin()
@@ -136,10 +145,13 @@ public class IndexStateManagement extends Index {
                         createIndexResponse.index(),
                         createIndexResponse.isAcknowledged());
             }
-        } catch (IOException e) {
-            log.error("Error reading index template from filesystem {}", this.template);
         } catch (ResourceAlreadyExistsException e) {
             log.info("Index {} already exists. Skipping.", index);
+        } catch (IOException e) {
+            log.error(
+                    "Error reading index template from filesystem [{}]. Caused by: {}",
+                    this.template,
+                    e.toString());
         } catch (
                 Exception
                         e) { // TimeoutException may be raised by actionGet(), but we cannot catch that one.
@@ -150,7 +162,7 @@ public class IndexStateManagement extends Index {
             }
             log.warn("Operation to create the index [{}] timed out. Retrying...", index);
             this.retry_index_creation = false;
-            this.indexUtils.sleep(PluginSettings.getBackoff(this.clusterService.getSettings()));
+            this.sleep(PluginSettings.getBackoff(this.clusterService.getSettings()));
             this.createIndex(index);
         }
     }
