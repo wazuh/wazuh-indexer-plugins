@@ -100,13 +100,13 @@ public abstract class Index implements IndexInitializer {
     }
 
     /**
-     * Converts a template path to kebab-case name.
+     * Sanitizes a template path to obtain the template name.
      * Removes the "templates/" prefix and converts remaining slashes to hyphens.
      *
      * @param templatePath the template path (e.g., "templates/streams/alerts")
      * @return the kebab-case name (e.g., "streams-alerts")
      */
-    private String toKebabCase(String templatePath) {
+    private String getTemplateName(String templatePath) {
         templatePath = templatePath.replaceFirst("^templates/", "");
         return templatePath.replace("/", "-");
     }
@@ -164,6 +164,9 @@ public abstract class Index implements IndexInitializer {
      * @param template name of the index template to create.
      */
     public void createTemplate(String template) {
+        // Get the template name
+        String templateName = this.getTemplateName(template);
+        
         try {
             // Read JSON index template
             ObjectMapper mapper = new ObjectMapper();
@@ -176,9 +179,6 @@ public abstract class Index implements IndexInitializer {
             Settings settings = Settings.builder().loadFromMap(indexTemplate.getSettings()).build();
             ComposableIndexTemplate composableTemplate =
                     indexTemplate.getComposableIndexTemplate(settings, compressedMapping);
-
-            // Convert template path to kebab-case name
-            String templateName = toKebabCase(template);
 
             // Use the V2 API to put the template
             PutComposableIndexTemplateAction.Request request =
@@ -196,7 +196,7 @@ public abstract class Index implements IndexInitializer {
                     template,
                     e.toString());
         } catch (ResourceAlreadyExistsException e) {
-            log.info("Index template {} already exists. Skipping.", toKebabCase(template));
+            log.info("Index template {} already exists. Skipping.", templateName);
         } catch (
                 Exception
                         e) { // TimeoutException may be raised by actionGet(), but we cannot catch that one.
