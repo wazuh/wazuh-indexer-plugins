@@ -12,10 +12,14 @@ This directory contains the configuration for an Imposter mock server.
 ```
 imposter/
 ├── README.md
-├── config/
-│   └── imposter.yml        # Imposter configuration
-└── definitions/
-    └── cti-auth.yml        # OpenAPI specification
+├── imposter-config.yml          # Main Imposter configuration
+├── test-scenarios.sh            # Automated test script
+├── definitions/
+│   └── cti-auth.yml            # OpenAPI specification
+└── scripts/
+    ├── token-response.groovy           # Token request logic
+    ├── token-exchange-response.groovy  # Token exchange logic
+    └── catalog-response.groovy         # Catalog endpoint logic
 ```
 
 ## Quick Start
@@ -26,7 +30,7 @@ From the `imposter/` directory, run:
 
 ```bash
 docker run -it --rm -p 8080:8080 \
-  -v $(pwd)/config:/opt/imposter/config \
+  -v $(pwd):/opt/imposter/config \
   -v $(pwd)/definitions:/opt/imposter/definitions \
   outofcoffee/imposter
 ```
@@ -162,14 +166,14 @@ To modify the mock responses:
 ```bash
 # Use a different port
 docker run -it --rm -p 9090:8080 \
-  -v $(pwd)/config:/opt/imposter/config \
+  -v $(pwd):/opt/imposter/config \
   -v $(pwd)/definitions:/opt/imposter/definitions \
   outofcoffee/imposter
 ```
 
 **Cannot find OpenAPI spec:**
 - Ensure both `config` and `definitions` directories are mounted
-- Verify the relative path in `imposter.yml` matches your structure
+- Verify the relative path in `imposter-config.yml` matches your structure
 
 ## Resources
 
