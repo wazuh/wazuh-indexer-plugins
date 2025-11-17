@@ -1,0 +1,23 @@
+plugin: openapi
+specFile: definitions/cti-auth.yml
+
+# Custom resource configuration for conditional responses
+resources:
+  # Token endpoint - conditional responses based on device_code
+  - path: /api/v1/instances/token
+    method: POST
+    response:
+      scriptFile: scripts/token-response.groovy
+
+  # Token exchange endpoint - conditional responses based on Authorization header
+  - path: /api/v1/instances/token/exchange
+    method: POST
+    response:
+      scriptFile: scripts/token-exchange-response.groovy
+
+  # Catalog endpoint - conditional responses based on verify parameter
+  - path: /api/v1/catalog/contexts/{context}/consumers/{consumer}/changes
+    method: GET
+    response:
+      scriptFile: scripts/catalog-response.groovy
+
