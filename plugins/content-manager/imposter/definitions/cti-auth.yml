@@ -167,7 +167,7 @@ paths:
           description: HMAC signature with format "timestamp-signature"
           schema:
             type: string
-            example: 1761383411-kJ9b8w%2BQ7kzRmF...
+            example: 1761383411-kJ9b8w%2BQ7kzRmF
       responses:
         '200':
           $ref: '#/components/responses/CatalogSuccess'
@@ -272,7 +272,7 @@ components:
           type: string
           format: uri
           description: The HMAC-signed URL for accessing the protected resource.
-          example: https://cti.wazuh.com/api/v1/catalog/contexts/misp/consumer/virustotal/changes?verify=1761383411-kJ9b8w%2BQ7kzRmF...
+          example: https://cti.wazuh.com/api/v1/catalog/contexts/misp/consumer/virustotal/changes?verify=1761383411-kJ9b8w%2BQ7kzRmF
         issued_token_type:
           type: string
           description: The type of token that was issued.
@@ -423,7 +423,7 @@ components:
             success:
               summary: HMAC-signed URL issued
               value:
-                access_token: https://cti.wazuh.com/api/v1/catalog/contexts/misp/consumer/virustotal/changes?verify=1761383411-kJ9b8w%2BQ7kzRmF...
+                access_token: https://cti.wazuh.com/api/v1/catalog/contexts/misp/consumer/virustotal/changes?verify=1761383411-kJ9b8w%2BQ7kzRmF
                 issued_token_type: urn:wazuh:params:oauth:token-type:signed_url
                 expires_in: 300
 

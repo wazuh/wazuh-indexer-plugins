@@ -84,7 +84,7 @@ curl -X POST http://localhost:8080/api/v1/instances/token/exchange \
 ```json
 {
   "issued_token_type": "urn:wazuh:params:oauth:token-type:signed_url",
-  "access_token": "https://cti.wazuh.com/api/v1/catalog/contexts/misp/consumers/virustotal/changes?from_offset=0&to_offset=1000&with_empties=true&verify=1761383411-kJ9b8w%2BQ7kzRmF...",
+  "access_token": "https://cti.wazuh.com/api/v1/catalog/contexts/misp/consumers/virustotal/changes?from_offset=0&to_offset=1000&with_empties=true&verify=1761383411-kJ9b8w%2BQ7kzRmF",
   "token_type": "N_A",
   "expires_in": 3600
 }
@@ -95,14 +95,14 @@ curl -X POST http://localhost:8080/api/v1/instances/token/exchange \
 Download consumer changes using a signed URL:
 
 ```bash
-curl -X GET "http://localhost:8080/api/v1/catalog/contexts/misp/consumers/virustotal/changes?from_offset=0&to_offset=1000&with_empties=true&verify=1761383411-kJ9b8w%2BQ7kzRmF..."
+curl -X GET "http://localhost:8080/api/v1/catalog/contexts/misp/consumers/virustotal/changes?from_offset=0&to_offset=1000&with_empties=true&verify=1761383411-kJ9b8w%2BQ7kzRmF"
 ```
 
 **Expected Response (200 OK):**
 ```json
 {
   "content_type": "application/zip",
-  "signature": "kJ9b8w+Q7kzRmF...",
+  "signature": "kJ9b8w+Q7kzRmF",
   "url": "https://cdn.wazuh.com/misp/virustotal/changes_0_1000.zip"
 }
 ```
