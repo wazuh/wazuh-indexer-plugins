@@ -1,0 +1,2 @@
+plugin: openapi
+specFile: ../definitions/cti-auth.yml
