@@ -12,14 +12,12 @@ This directory contains the configuration for an Imposter mock server.
 ```
 imposter/
 ├── README.md
-├── imposter-config.yml          # Main Imposter configuration
-├── test-scenarios.sh            # Automated test script
-├── definitions/
-│   └── cti-auth.yml            # OpenAPI specification
+├── imposter-config.yml                 # Main Imposter configuration
+├── openapi.yml                         # OpenAPI specification
 └── scripts/
-    ├── token-response.groovy           # Token request logic
-    ├── token-exchange-response.groovy  # Token exchange logic
-    └── catalog-response.groovy         # Catalog endpoint logic
+    ├── tokenResponse.groovy            # Token request logic
+    ├── tokenExchangeResponse.groovy    # Token exchange logic
+    └── catalogResponse.groovy          # Catalog endpoint logic
 ```
 
 ## Quick Start
@@ -27,20 +25,20 @@ imposter/
 ### 1. Start the Mock Server
 
 From the `imposter/` directory, run:
-
 ```bash
 docker run -it --rm -p 8080:8080 \
   -v $(pwd):/opt/imposter/config \
-  -v $(pwd)/definitions:/opt/imposter/definitions \
   outofcoffee/imposter
 ```
+> [!NOTE]
+> The container could be executed from any directory, but ensure the paths to the configuration and definitions are correct.
 
 The server will start on `http://localhost:8080`.
 
 ### 2. Verify the Server is Running
 
 ```bash
-curl http://localhost:8080/_status
+curl http://localhost:8080/system/status
 ```
 
 ## Available Endpoints
@@ -77,22 +75,22 @@ curl -X POST http://localhost:8080/api/v1/instances/token/exchange \
   -d "grant_type=urn:ietf:params:oauth:grant-type:token-exchange" \
   -d "subject_token_type=urn:ietf:params:oauth:token-type:access_token" \
   -d "requested_token_type=urn:wazuh:params:oauth:token-type:signed_url" \
-  -d "resource=https://cti.wazuh.com/api/v1/catalog/contexts/misp/consumer/virustotal/changes"
+  -d "resource=https://localhost:4040/api/v1/catalog/contexts/misp/consumer/virustotal/changes"
 ```
 
 **Expected Response (200 OK):**
 ```json
 {
   "issued_token_type": "urn:wazuh:params:oauth:token-type:signed_url",
-  "access_token": "https://cti.wazuh.com/api/v1/catalog/contexts/misp/consumers/virustotal/changes?from_offset=0&to_offset=1000&with_empties=true&verify=1761383411-kJ9b8w%2BQ7kzRmF",
+  "access_token": "https://localhost:4040/api/v1/catalog/contexts/misp/consumers/virustotal/changes?from_offset=0&to_offset=1000&with_empties=true&verify=1761383411-kJ9b8w%2BQ7kzRmF",
   "token_type": "N_A",
   "expires_in": 3600
 }
 ```
 
-### 3. Catalog Download (Consumer Changes)
+### 3. Catalog Download (Use Token)
 
-Download consumer changes using a signed URL:
+Download catalog using a signed URL:
 
 ```bash
 curl -X GET "http://localhost:8080/api/v1/catalog/contexts/misp/consumers/virustotal/changes?from_offset=0&to_offset=1000&with_empties=true&verify=1761383411-kJ9b8w%2BQ7kzRmF"

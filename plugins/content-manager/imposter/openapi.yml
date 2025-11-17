@@ -14,14 +14,20 @@ info:
     url: https://www.apache.org/licenses/LICENSE-2.0.html
 
 servers:
-  - url: https://console.wazuh.com
-    description: Console API - Production
-  - url: http://localhost:4051
+  - url: http://{consoleAddress}:{consolePort}
     description: Console API - Development
-  - url: https://cti.wazuh.com
-    description: CTI API - Production
-  - url: http://localhost:4040
+    variables:
+      consoleAddress:
+        default: localhost
+      consolePort:
+        default: '8080'
+  - url: http://{ctiAddress}:{ctiPort}
     description: CTI API - Development
+    variables:
+      ctiAddress:
+        default: localhost
+      ctiPort:
+        default: '8080'
 
 tags:
   - name: CTI Console
@@ -31,9 +37,6 @@ tags:
 
 paths:
   /api/v1/instances/token:
-    servers:
-      - url: https://console.wazuh.com
-      - url: http://localhost:4051
     post:
       summary: Token Request
       description: |
@@ -64,9 +67,6 @@ paths:
           $ref: '#/components/responses/TokenError'
 
   /api/v1/instances/token/exchange:
-    servers:
-      - url: https://console.wazuh.com
-      - url: http://localhost:4051
     post:
       summary: Token Exchange Request
       description: |
@@ -92,7 +92,7 @@ paths:
                   grant_type: urn:ietf:params:oauth:grant-type:token-exchange
                   subject_token_type: urn:ietf:params:oauth:token-type:access_token
                   requested_token_type: urn:wazuh:params:oauth:token-type:signed_url
-                  resource: https://cti.wazuh.com/api/v1/catalog/contexts/misp/consumer/virustotal/changes
+                  resource: https://localhost:8080/api/v1/catalog/contexts/misp/consumer/virustotal/changes
       responses:
         '200':
           $ref: '#/components/responses/TokenExchangeSuccess'
@@ -102,9 +102,6 @@ paths:
           $ref: '#/components/responses/Unauthorized'
 
   /api/v1/catalog/contexts/{context}/consumers/{consumer}/changes:
-    servers:
-      - url: https://cti.wazuh.com
-      - url: http://localhost:4040
     get:
       summary: Catalog Download (Consumer Changes)
       description: |
@@ -257,7 +254,7 @@ components:
           type: string
           format: uri
           description: The full URL of the resource to access.
-          example: https://cti.wazuh.com/api/v1/catalog/contexts/misp/consumer/virustotal/changes
+          example: https://localhost:8080/api/v1/catalog/contexts/misp/consumer/virustotal/changes
       required:
         - grant_type
         - subject_token_type
@@ -272,7 +269,7 @@ components:
           type: string
           format: uri
           description: The HMAC-signed URL for accessing the protected resource.
-          example: https://cti.wazuh.com/api/v1/catalog/contexts/misp/consumer/virustotal/changes?verify=1761383411-kJ9b8w%2BQ7kzRmF
+          example: https://localhost:8080/api/v1/catalog/contexts/misp/consumer/virustotal/changes?verify=1761383411-kJ9b8w%2BQ7kzRmF
         issued_token_type:
           type: string
           description: The type of token that was issued.
@@ -423,7 +420,7 @@ components:
             success:
               summary: HMAC-signed URL issued
               value:
-                access_token: https://cti.wazuh.com/api/v1/catalog/contexts/misp/consumer/virustotal/changes?verify=1761383411-kJ9b8w%2BQ7kzRmF
+                access_token: https://localhost:8080/api/v1/catalog/contexts/misp/consumer/virustotal/changes?verify=1761383411-kJ9b8w%2BQ7kzRmF
                 issued_token_type: urn:wazuh:params:oauth:token-type:signed_url
                 expires_in: 300
 

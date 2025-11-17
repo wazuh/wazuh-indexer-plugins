@@ -1,5 +1,5 @@
 plugin: openapi
-specFile: definitions/cti-auth.yml
+specFile: openapi.yml
 
 # Custom resource configuration for conditional responses
 resources:
@@ -7,17 +7,16 @@ resources:
   - path: /api/v1/instances/token
     method: POST
     response:
-      scriptFile: scripts/token-response.groovy
+      scriptFile: scripts/tokenResponse.groovy
 
   # Token exchange endpoint - conditional responses based on Authorization header
   - path: /api/v1/instances/token/exchange
     method: POST
     response:
-      scriptFile: scripts/token-exchange-response.groovy
+      scriptFile: scripts/tokenExchangeResponse.groovy
 
   # Catalog endpoint - conditional responses based on verify parameter
   - path: /api/v1/catalog/contexts/{context}/consumers/{consumer}/changes
     method: GET
     response:
-      scriptFile: scripts/catalog-response.groovy
-
+      scriptFile: scripts/catalogResponse.groovy

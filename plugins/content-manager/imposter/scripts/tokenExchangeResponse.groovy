@@ -28,7 +28,7 @@ else if (!resource) {
         .withContent('{"error": "invalid_request", "error_description": "Missing required parameter resource"}')
 }
 // Check for invalid resource endpoint
-else if (resource && !resource.contains("cti.wazuh.com")) {
+else if (resource && !resource.contains("localhost:4040")) {
     respond()
         .withStatusCode(400)
         .withHeader("Cache-Control", "no-store")
@@ -42,5 +42,5 @@ else {
         .withStatusCode(200)
         .withHeader("Cache-Control", "no-store")
         .withHeader("Content-Type", "application/json")
-        .withContent('{"access_token": "https://cti.wazuh.com/api/v1/catalog/contexts/misp/consumers/virustotal/changes?from_offset=0&to_offset=1000&with_empties=true&verify=1761383411-kJ9b8w%2BQ7kzRmF", "issued_token_type": "urn:wazuh:params:oauth:token-type:signed_url", "expires_in": 300}')
+        .withContent('{"access_token": "https://localhost:4040/api/v1/catalog/contexts/misp/consumers/virustotal/changes?from_offset=0&to_offset=1000&with_empties=true&verify=1761383411-kJ9b8w%2BQ7kzRmF", "issued_token_type": "urn:wazuh:params:oauth:token-type:signed_url", "expires_in": 300}')
 }
