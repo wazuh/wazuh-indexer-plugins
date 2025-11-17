@@ -28,6 +28,7 @@ import org.opensearch.core.xcontent.NamedXContentRegistry;
 import org.opensearch.env.Environment;
 import org.opensearch.env.NodeEnvironment;
 import org.opensearch.plugins.ClusterPlugin;
+import org.opensearch.plugins.ActionPlugin;
 import org.opensearch.plugins.Plugin;
 import org.opensearch.repositories.RepositoriesService;
 import org.opensearch.script.ScriptService;
@@ -42,15 +43,19 @@ import com.wazuh.contentmanager.index.ContextIndex;
 import com.wazuh.contentmanager.settings.PluginSettings;
 import com.wazuh.contentmanager.utils.Privileged;
 import com.wazuh.contentmanager.utils.SnapshotManager;
+import org.opensearch.rest.RestHandler;
+import java.util.List;
+import java.util.Collections;
 
 /** Main class of the Content Manager Plugin */
-public class ContentManagerPlugin extends Plugin implements ClusterPlugin {
+public class ContentManagerPlugin extends Plugin implements ClusterPlugin, ActionPlugin {
     private static final Logger log = LogManager.getLogger(ContentManagerPlugin.class);
     private ContextIndex contextIndex;
     private ContentIndex contentIndex;
     private SnapshotManager snapshotManager;
     private ThreadPool threadPool;
     private ClusterService clusterService;
+    private com.wazuh.contentmanager.rest.ContentManagerService contentManagerService;
 
     @Override
     public Collection<Object> createComponents(
@@ -72,6 +77,7 @@ public class ContentManagerPlugin extends Plugin implements ClusterPlugin {
         this.contentIndex = new ContentIndex(client);
         this.snapshotManager =
                 new SnapshotManager(environment, this.contextIndex, this.contentIndex, new Privileged());
+        this.contentManagerService = new com.wazuh.contentmanager.rest.ContentManagerService(this.threadPool);
         return Collections.emptyList();
     }
 
@@ -98,6 +104,20 @@ public class ContentManagerPlugin extends Plugin implements ClusterPlugin {
                         }
                     });
         }
+    }
+
+    public List<RestHandler> getRestHandlers(
+        Settings settings,
+        org.opensearch.rest.RestController restController,
+        org.opensearch.common.settings.ClusterSettings clusterSettings,
+        org.opensearch.common.settings.IndexScopedSettings indexScopedSettings,
+        org.opensearch.common.settings.SettingsFilter settingsFilter,
+        org.opensearch.cluster.metadata.IndexNameExpressionResolver indexNameExpressionResolver,
+        java.util.function.Supplier<org.opensearch.cluster.node.DiscoveryNodes> nodesInCluster) {
+    return List.of(
+        new com.wazuh.contentmanager.rest.SubscriptionRestHandler(contentManagerService),
+        new com.wazuh.contentmanager.rest.UpdateRestHandler(contentManagerService)
+    );
     }
 
     /**

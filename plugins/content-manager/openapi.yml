@@ -1,25 +1,335 @@
-openapi: "3.0.3"
+openapi: 3.0.0
 info:
-  title: Wazuh Indexer Content Manager API
-  version: "1.0"
+  title: Indexer Content Manager API
+  description: |
+    API for content management and subscription handling for the Wazuh Indexer Content Manager.
+    This API enables Cyber Threat Intelligence (CTI) subscription registration, credential management,
+    and on-demand content updates for threat intelligence feeds.
+  version: 1.0.0
+  license:
+    name: Apache 2.0
+    url: https://www.apache.org/licenses/LICENSE-2.0.html
 servers:
-  - url: http://127.0.0.1:9200/_plugins/_content_manager
+  - url: "http://localhost:9200/_plugins/content-manager"
+    description: Wazuh Indexer Content Manager Plugin
+    variables:
+      protocol:
+        enum:
+          - "http"
+          - "https"
+        default: "https"
+      wazuh.indexer:
+        default: localhost
+      port:
+        default: "9200"
+
+tags:
+  - name: Subscription Management
+    description: Operations for managing CTI subscriptions and credentials
+  - name: Content Updates
+    description: Operations for triggering content updates
+
+security:
+  - bearerAuth: []
+
 paths:
-  /updater:
-    get:
-      summary: Launch the Content Updater module
+  /subscription:
+    description: CTI registration & CTI credentials retrieval
+    post:
+      summary: Register CTI Subscription
+      description: |
+        Register a new Cyber Threat Intelligence subscription using device code authentication flow.
+        This endpoint initiates the subscription process and must be called with valid device code
+        credentials obtained from the CTI provider. The registration process is asynchronous and
+        may take several seconds to complete.
+      operationId: registerSubscription
       tags:
-        - "update"
-      operationId: updater
-      parameters:
-        - name: "from_offset"
-          in: query
-          description: The offset from which the updater will start
-          required: false
+        - Subscription Management
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SubscriptionPostRequest'
+            examples:
+              registration:
+                summary: Example subscription registration
+                value:
+                  device_code: "GmRhmhcxhwAzkoEqiMEg_DnyEysNkuNhszIySk9eS"
+                  client_id: "a17c21ed"
+                  expires_in: 1800
+                  interval: 5
+      responses:
+        '201': 
+          $ref: '#/components/responses/SubscriptionCreated'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+    get:
+      summary: Retrieve CTI Credentials
+      description: |
+        Retrieve the access token and credentials for an active CTI subscription.
+        The access token should be used as a Bearer token for subsequent API calls to CTI services.
+      operationId: getCredentials
+      tags:
+        - Subscription Management
+      responses:
+        '200':
+          $ref: '#/components/responses/GetCredentialsSuccess'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+    delete:
+      summary: Delete CTI Subscription
+      description: |
+        Delete an existing CTI subscription and revoke all associated credentials.
+        This operation is irreversible and will immediately terminate access to threat intelligence feeds.
+      operationId: deleteSubscription
+      tags:
+        - Subscription Management
+      responses:
+        '200':
+          $ref: '#/components/responses/SubscriptionDeleted'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /update:
+    description: On demand content update
+    post:
+      summary: Initiate On-Demand Content Update
+      description: |
+        Trigger an immediate update of threat intelligence content from subscribed CTI feeds.
+        This operation is asynchronous and returns immediately with a task identifier.
+        The update process runs in the background and may take several minutes to complete
+        depending on the volume of new threat intelligence data.
+        
+        **Rate Limiting**: This endpoint is rate-limited to prevent excessive API calls.
+        The default limit is 10 requests per hour.
+      operationId: updateContent
+      tags:
+        - Content Updates
+      responses:
+        '202':
+          $ref: '#/components/responses/UpdateAccepted'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
+
+components:
+  # --- Data Schemas ---
+  schemas:
+    SubscriptionPostRequest:
+      type: object
+      description: Input parameters for registering a CTI subscription.
+      properties:
+        device_code:
+          type: string
+          description: The device code for registration.
+          example: "GmRhmhcxhwAzkoEqiMEg_DnyEysNkuNhszIySk9eS"
+        client_id:
+          type: string
+          description: The client ID.
+          example: "a17c21ed"
+        expires_in:
+          type: integer
+          description: Expiration time in seconds.
+          example: 1800
+        interval:
+          type: integer
+          description: Polling interval in seconds.
+          example: 5
+      required:
+        - device_code
+        - client_id
+        - expires_in
+        - interval
+
+    SubscriptionGetResponse:
+      type: object
+      description: Response schema for retrieving CTI credentials.
+      properties:
+        access_token:
+          type: string
+          description: Access token for authentication.
+          example: "AYjcyMzY3ZDhiNmJkNTY"
+        token_type:
+          type: string
+          description: Type of the token.
+          example: "Bearer"
+      required:
+        - access_token
+        - token_type
+
+    ErrorResponse:
+      type: object
+      description: Standard error response schema.
+      properties:
+        error:
+          type: string
+      required:
+        - error
+
+  # --- Responses schemas ---
+  responses:
+    # --- Success Responses ---
+    SubscriptionCreated:
+      description: Created - Subscription registered successfully.
+
+    GetCredentialsSuccess:
+      description: OK - Credentials retrieved successfully.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/SubscriptionGetResponse'
+          examples:
+            credentials:
+              summary: Valid credentials response
+              value:
+                access_token: "AYjcyMzY3ZDhiNmJkNTY"
+                token_type: "Bearer"
+
+    SubscriptionDeleted:
+      description: OK - Subscription deleted successfully.
+
+    UpdateAccepted:
+      description: Accepted - The update request has been accepted for processing.
+      headers:
+        X-RateLimit-Limit:
+          description: The maximum number of requests allowed per hour.
           schema:
             type: integer
-      responses:
-        "200":
-          description: OK
-        "500":
-          description: Internal server error (boom!)
+            example: 10
+        X-RateLimit-Remaining:
+          description: The number of requests remaining in the current window.
+          schema:
+            type: integer
+            example: 7
+        X-RateLimit-Reset:
+          description: The time at which the current rate limit window resets (Unix timestamp).
+          schema:
+            type: integer
+            example: 1699963200
+
+    # --- Error Responses ---
+    BadRequest:
+      description: Bad Request - Invalid input parameters.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          examples:
+            missing_parameter:
+              summary: Missing required parameter
+              value:
+                error: "Required parameter 'client_id' is missing."
+
+    Unauthorized:
+      description: Unauthorized - Authentication failed or credentials are invalid.
+
+    NotFound:
+      description: Not Found - The requested resource does not exist.
+
+    Conflict:
+      description: Conflict - Undergoing content update.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          examples:
+            undergoing_update:
+              summary: Content update in progress
+              value:
+                error: "A content update is already in progress."
+
+    TooManyRequests:
+      description: Too Many Requests - Rate limit exceeded.
+      headers:
+        X-RateLimit-Limit:
+          description: The maximum number of requests allowed per hour.
+          schema:
+            type: integer
+            example: 10
+        X-RateLimit-Remaining:
+          description: The number of requests remaining (will be 0).
+          schema:
+            type: integer
+            example: 0
+        X-RateLimit-Reset:
+          description: The time at which the current rate limit window resets (Unix timestamp).
+          schema:
+            type: integer
+            example: 1699963200
+        Retry-After:
+          description: Number of seconds to wait before retrying.
+          schema:
+            type: integer
+            example: 3600
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          examples:
+            rate_limit_exceeded:
+              summary: Rate limit exceeded
+              value:
+                error: "Too many update requests. Please try again later."
+
+    InternalServerError:
+      description: Internal Server Error - Server encountered an unexpected error.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          examples:
+            internal_error:
+              summary: Internal server error
+              value:
+                error: "An unexpected error occurred while processing your request."
+    ServiceUnavailable:
+      description: Service Unavailable - Service is temporarily unavailable.
+      headers:
+        Retry-After:
+          description: Number of seconds to wait before retrying.
+          schema:
+            type: integer
+            example: 60
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          examples:
+            cti_unavailable:
+              summary: CTI service unavailable
+              value:
+                error: "The CTI service is temporarily unavailable."
+    
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: |
+        Bearer token authentication using JWT (JSON Web Token).
+        Include the token in the Authorization header as: `Authorization: Bearer <token>`
+        
+        Tokens can be obtained through the Wazuh authentication system.
