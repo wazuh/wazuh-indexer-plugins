@@ -61,7 +61,7 @@ public class SubscriptionRestHandler extends BaseRestHandler {
                 if (request.method() == POST) {
                     XContentParser parser = request.contentParser();
                     String deviceCode = null, clientId = null;
-                    int expiresIn = 0, interval = 0;
+                    Integer expiresIn = null, interval = null;
                     while (!parser.isClosed()) {
                         XContentParser.Token token = parser.nextToken();
                         if (token == null) break;
@@ -73,9 +73,19 @@ public class SubscriptionRestHandler extends BaseRestHandler {
                             else if ("interval".equals(fieldName)) interval = parser.intValue();
                         }
                     }
-                    if (deviceCode == null || clientId == null) {
-                        XContentBuilder b = XContentFactory.jsonBuilder();
-                        b.startObject().field("error", "Required parameter 'client_id' is missing.").endObject();
+                    // Collect missing parameters for all required fields
+                    boolean anyMissing = false;
+                    XContentBuilder b = XContentFactory.jsonBuilder();
+                    b.startObject();
+                    b.field("error", "Required parameters missing");
+                    b.startArray("missing_parameters");
+                    if (deviceCode == null) { b.value("device_code"); anyMissing = true; }
+                    if (clientId == null) { b.value("client_id"); anyMissing = true; }
+                    if (expiresIn == null) { b.value("expires_in"); anyMissing = true; }
+                    if (interval == null) { b.value("interval"); anyMissing = true; }
+                    b.endArray();
+                    b.endObject();
+                    if (anyMissing) {
                         channel.sendResponse(new BytesRestResponse(RestStatus.BAD_REQUEST, b));
                         return;
                     }
