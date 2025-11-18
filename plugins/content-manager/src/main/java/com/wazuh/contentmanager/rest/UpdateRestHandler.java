@@ -43,22 +43,27 @@ public class UpdateRestHandler extends BaseRestHandler {
                     XContentBuilder b = XContentFactory.jsonBuilder();
                     b.startObject().field("error", "Too many update requests. Please try again later.").endObject();
                     BytesRestResponse resp = new BytesRestResponse(RestStatus.TOO_MANY_REQUESTS, b);
-                    resp.addHeader("X-RateLimit-Limit", String.valueOf(10));
+                    resp.addHeader("X-RateLimit-Limit", String.valueOf(ContentManagerService.RATE_LIMIT));
                     resp.addHeader("X-RateLimit-Remaining", String.valueOf(0));
                     resp.addHeader("X-RateLimit-Reset", String.valueOf(service.getRateLimitReset()));
                     channel.sendResponse(resp);
                     return;
                 }
-
+                
+                // TODO: Implement the actual update logic.
                 XContentBuilder b = XContentFactory.jsonBuilder();
                 BytesRestResponse resp = new BytesRestResponse(RestStatus.ACCEPTED, b);
-                resp.addHeader("X-RateLimit-Limit", String.valueOf(10));
-                resp.addHeader("X-RateLimit-Remaining", String.valueOf(Math.max(0, 10 - 1)));
+                resp.addHeader("X-RateLimit-Limit", String.valueOf(ContentManagerService.RATE_LIMIT));
+                resp.addHeader("X-RateLimit-Remaining", String.valueOf(Math.max(0, ContentManagerService.RATE_LIMIT - 1)));
                 resp.addHeader("X-RateLimit-Reset", String.valueOf(service.getRateLimitReset()));
                 channel.sendResponse(resp);
             } catch (Exception e) {
                 XContentBuilder b = XContentFactory.jsonBuilder();
-                b.startObject().field("error", "An unexpected error occurred while processing your request.").endObject();
+                b.startObject()
+                        .field("error", "An unexpected error occurred while processing your request.")
+                        .field("exception", e.getClass().getSimpleName())
+                        .field("message", e.getMessage() == null ? "no message" : e.getMessage())
+                        .endObject();
                 channel.sendResponse(new BytesRestResponse(RestStatus.INTERNAL_SERVER_ERROR, b));
             }
         };

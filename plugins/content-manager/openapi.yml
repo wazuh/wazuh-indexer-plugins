@@ -10,7 +10,7 @@ info:
     name: Apache 2.0
     url: https://www.apache.org/licenses/LICENSE-2.0.html
 servers:
-  - url: "http://localhost:9200/_plugins/content-manager"
+  - url: "{protocol}://{wazuh.indexer}:{port}/_plugins/content-manager"
     description: Wazuh Indexer Content Manager Plugin
     variables:
       protocol:

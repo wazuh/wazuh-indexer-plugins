@@ -15,7 +15,7 @@ public class ContentManagerService {
     private final Map<String, Subscription> subscriptionStore = new ConcurrentHashMap<>();
 
     // simple rate limiting: allow 2 requests per hour
-    private final int RATE_LIMIT = 2;
+    public static final int RATE_LIMIT = 2;
     private AtomicInteger used = new AtomicInteger(0);
     private long windowReset = Instant.now().getEpochSecond() + 3600;
 
@@ -36,18 +36,24 @@ public class ContentManagerService {
 
     public long getRateLimitReset() { return windowReset; }
 
+    // TODO: Implement correctly
     public void saveSubscription(Subscription s) {
         subscriptionStore.put("default", s);
     }
 
+    // TODO: Implement correctly
     public Subscription getSubscription() {
         return subscriptionStore.get("default");
     }
 
+    // TODO: Implement correctly
     public void deleteSubscription() {
         subscriptionStore.remove("default");
     }
 
+    // Right now this class is here just as a basic implementation placeholder.
+    // In the future it can be changed to be part of model folder if desired to keep it
+    // or deleted and replaced with a different mechanism to store subscription data.
     public static class Subscription {
         public final String deviceCode;
         public final String clientId;

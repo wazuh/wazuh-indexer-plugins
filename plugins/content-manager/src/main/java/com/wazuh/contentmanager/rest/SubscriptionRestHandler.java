@@ -79,6 +79,7 @@ public class SubscriptionRestHandler extends BaseRestHandler {
                         channel.sendResponse(new BytesRestResponse(RestStatus.BAD_REQUEST, b));
                         return;
                     }
+                    // TODO: Implement authentication here, this is just a placeholder.
                     ContentManagerService.Subscription s = new ContentManagerService.Subscription(deviceCode, clientId, expiresIn, interval);
                     service.saveSubscription(s);
                     channel.sendResponse(new BytesRestResponse(RestStatus.CREATED, ""));
@@ -88,6 +89,7 @@ public class SubscriptionRestHandler extends BaseRestHandler {
                         channel.sendResponse(new BytesRestResponse(RestStatus.NOT_FOUND, ""));
                         return;
                     }
+                    // TODO: Replace with real token retrieval logic, this is just a placeholder.
                     XContentBuilder b = XContentFactory.jsonBuilder();
                     b.startObject().field("access_token", "mock-token").field("token_type", "Bearer").endObject();
                     channel.sendResponse(new BytesRestResponse(RestStatus.OK, b));
@@ -97,6 +99,7 @@ public class SubscriptionRestHandler extends BaseRestHandler {
                         channel.sendResponse(new BytesRestResponse(RestStatus.NOT_FOUND, ""));
                         return;
                     }
+                    // TODO: Implement the real deletion mechanism, this is just a placeholder.
                     service.deleteSubscription();
                     channel.sendResponse(new BytesRestResponse(RestStatus.OK, ""));
                 } else {
@@ -104,7 +107,11 @@ public class SubscriptionRestHandler extends BaseRestHandler {
                 }
             } catch (Exception e) {
                 XContentBuilder b = XContentFactory.jsonBuilder();
-                b.startObject().field("error", "An unexpected error occurred while processing your request.").endObject();
+                b.startObject()
+                        .field("error", "An unexpected error occurred while processing your request.")
+                        .field("exception", e.getClass().getSimpleName())
+                        .field("message", e.getMessage() == null ? "no message" : e.getMessage())
+                        .endObject();
                 channel.sendResponse(new BytesRestResponse(RestStatus.INTERNAL_SERVER_ERROR, b));
             }
         };
