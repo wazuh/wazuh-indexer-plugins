@@ -101,6 +101,25 @@ paths:
         '401':
           $ref: '#/components/responses/Unauthorized'
 
+  /api/v1/instances/me:
+    get:
+      summary: Get current instance details
+      description: |
+        Retrieve the current instance's organization and plan details.
+
+        Returns information about the organization and the plans associated with the instance,
+        including available products and resources.
+      operationId: getInstanceMe
+      tags:
+        - CTI Console
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          $ref: '#/components/responses/InstanceMeSuccess'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
   /api/v1/catalog/contexts/{context}/consumers/{consumer}/changes:
     get:
       summary: Catalog Download (Consumer Changes)
@@ -358,6 +377,94 @@ components:
       required:
         - data
 
+    InstanceMeResponse:
+      type: object
+      description: Response containing instance details.
+      properties:
+        data:
+          type: object
+          properties:
+            organization:
+              type: object
+              properties:
+                avatar:
+                  type: string
+                  format: uri
+                  description: URL to the organization's avatar image.
+                  example: "https://acme.sl/avatar.png"
+                name:
+                  type: string
+                  description: Organization name.
+                  example: "ACME S.L."
+            plans:
+              type: array
+              description: List of plans associated with the instance.
+              items:
+                $ref: '#/components/schemas/Plan'
+      required:
+        - data
+
+    Plan:
+      type: object
+      description: A plan with associated products.
+      properties:
+        name:
+          type: string
+          description: Plan name.
+          example: "Pro Plan Deluxe"
+        description:
+          type: string
+          description: Plan description.
+          example: "Lorem ipsum…"
+        products:
+          type: array
+          description: List of products included in the plan.
+          items:
+            $ref: '#/components/schemas/Product'
+      required:
+        - name
+        - description
+        - products
+
+    Product:
+      type: object
+      description: A product included in a plan.
+      properties:
+        type:
+          type: string
+          description: Product type identifier.
+          example: "catalog:consumer:vulnerabilities"
+        identifier:
+          type: string
+          description: Unique product identifier.
+          example: "vulnerabilities-pro"
+        name:
+          type: string
+          description: Product name.
+          example: "Vulnerabilities Pro"
+        description:
+          type: string
+          description: Product description.
+          example: "Vulnerabilities updated as soon as they are added to the catalog"
+        resource:
+          type: string
+          format: uri
+          description: Resource URL for catalog products.
+          example: "https://cti.wazuh.com/api/v1/catalog/plans/pro/contexts/vulnerabilities/consumer/realtime"
+        email:
+          type: string
+          format: email
+          description: Contact email for assistance products.
+          example: "cloud@wazuh.com"
+        phone:
+          type: string
+          description: Contact phone for assistance products.
+          example: "+34 123 456 789"
+      required:
+        - type
+        - identifier
+        - name
+
     ErrorResponse:
       type: object
       description: Standard error response.
@@ -459,6 +566,61 @@ components:
                     resource: indicator/12345
                     offset: 44
                     version: 3
+
+    InstanceMeSuccess:
+      description: OK - Instance details retrieved successfully.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/InstanceMeResponse'
+          examples:
+            pro_plan:
+              summary: Pro Plan response
+              value:
+                data:
+                  organization:
+                    avatar: "https://acme.sl/avatar.png"
+                    name: "ACME S.L."
+                  plans:
+                    - name: "Pro Plan Deluxe"
+                      description: "Lorem ipsum…"
+                      products:
+                        - type: "catalog:consumer:vulnerabilities"
+                          identifier: "vulnerabilities-pro"
+                          name: "Vulnerabilities Pro"
+                          description: "Vulnerabilities updated as soon as they are added to the catalog"
+                          resource: "https://cti.wazuh.com/api/v1/catalog/plans/pro/contexts/vulnerabilities/consumer/realtime"
+                        - type: "catalog:consumer:iocs"
+                          identifier: "bad-guy-ips-pro"
+                          name: "Bad Guy IPs"
+                          description: "Dolor sit amet…"
+                          resource: "https://cti.wazuh.com/api/v1/catalog/plans/pro/contexts/bad-guy-ips/consumer/realtime"
+            cloud_plan:
+              summary: Cloud Plan with Pro Products
+              value:
+                data:
+                  organization:
+                    avatar: "https://acme.sl/avatar.png"
+                    name: "ACME S.L."
+                  plans:
+                    - name: "Wazuh Cloud"
+                      description: "Managed instances in AWS by Wazuh's professional staf that…"
+                      products:
+                        - identifier: "assistance-24h"
+                          type: "cloud:assistance:wazuh"
+                          name: "Technical assistance 24h"
+                          email: "cloud@wazuh.com"
+                          phone: "+34 123 456 789"
+                        - identifier: "vulnerabilities-pro"
+                          type: "catalog:consumer:vulnerabilities"
+                          name: "Vulnerabilities Pro"
+                          description: "Vulnerabilities updated as soon as they are added to the catalog"
+                          resource: "https://cti.wazuh.com/api/v1/catalog/plans/pro/contexts/vulnerabilities/consumer/realtime"
+                        - identifier: "bad-guy-ips-pro"
+                          type: "catalog:consumer:iocs"
+                          name: "Bad Guy IPs"
+                          description: "Dolor sit amet…"
+                          resource: "https://cti.wazuh.com/api/v1/catalog/plans/pro/contexts/bad-guy-ips/consumer/realtime"
 
     # Error Responses
     TokenError:

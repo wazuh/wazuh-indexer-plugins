@@ -15,6 +15,12 @@ resources:
     response:
       scriptFile: scripts/tokenExchangeResponse.groovy
 
+  # Instance me endpoint - conditional responses based on Authorization token
+  - path: /api/v1/instances/me
+    method: GET
+    response:
+      scriptFile: scripts/instanceMeResponse.groovy
+
   # Catalog endpoint - conditional responses based on verify parameter
   - path: /api/v1/catalog/contexts/{context}/consumers/{consumer}/changes
     method: GET

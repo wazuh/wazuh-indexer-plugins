@@ -17,6 +17,7 @@ imposter/
 └── scripts/
     ├── tokenResponse.groovy            # Token request logic
     ├── tokenExchangeResponse.groovy    # Token exchange logic
+    ├── instanceMeResponse.groovy       # Instance me logic
     └── catalogResponse.groovy          # Catalog endpoint logic
 ```
 
@@ -88,7 +89,100 @@ curl -X POST http://localhost:8080/api/v1/instances/token/exchange \
 }
 ```
 
-### 3. Catalog Download (Use Token)
+### 3. Instance Me (Get Plan Details)
+
+Get current instance details and plan information:
+
+**Pro Plan Response:**
+```bash
+curl -X GET http://localhost:8080/api/v1/instances/me \
+  -H "Authorization: Bearer pro_token" \
+  -H "Content-Type: application/json"
+```
+
+**Expected Response (200 OK):**
+```json
+{
+  "data": {
+    "organization": {
+      "avatar": "https://acme.sl/avatar.png",
+      "name": "ACME S.L."
+    },
+    "plans": [
+      {
+        "name": "Pro Plan Deluxe",
+        "description": "Lorem ipsum…",
+        "products": [
+          {
+            "type": "catalog:consumer:vulnerabilities",
+            "identifier": "vulnerabilities-pro",
+            "name": "Vulnerabilities Pro",
+            "description": "Vulnerabilities updated as soon as they are added to the catalog",
+            "resource": "https://cti.wazuh.com/api/v1/catalog/plans/pro/contexts/vulnerabilities/consumer/realtime"
+          },
+          {
+            "type": "catalog:consumer:iocs",
+            "identifier": "bad-guy-ips-pro",
+            "name": "Bad Guy IPs",
+            "description": "Dolor sit amet…",
+            "resource": "https://cti.wazuh.com/api/v1/catalog/plans/pro/contexts/bad-guy-ips/consumer/realtime"
+          }
+        ]
+      }
+    ]
+  }
+}
+```
+
+**Cloud Plan Response:**
+```bash
+curl -X GET http://localhost:8080/api/v1/instances/me \
+  -H "Authorization: Bearer cloud_token" \
+  -H "Content-Type: application/json"
+```
+
+**Expected Response (200 OK):**
+```json
+{
+  "data": {
+    "organization": {
+      "avatar": "https://acme.sl/avatar.png",
+      "name": "ACME S.L."
+    },
+    "plans": [
+      {
+        "name": "Wazuh Cloud",
+        "description": "Managed instances in AWS by Wazuh's professional staf that…",
+        "products": [
+          {
+            "identifier": "assistance-24h",
+            "type": "cloud:assistance:wazuh",
+            "name": "Technical assistance 24h",
+            "email": "cloud@wazuh.com",
+            "phone": "+34 123 456 789"
+          },
+          {
+            "identifier": "vulnerabilities-pro",
+            "type": "catalog:consumer:vulnerabilities",
+            "name": "Vulnerabilities Pro",
+            "description": "Vulnerabilities updated as soon as they are added to the catalog",
+            "resource": "https://cti.wazuh.com/api/v1/catalog/plans/pro/contexts/vulnerabilities/consumer/realtime"
+          },
+          {
+            "identifier": "bad-guy-ips-pro",
+            "type": "catalog:consumer:iocs",
+            "name": "Bad Guy IPs",
+            "description": "Dolor sit amet…",
+            "resource": "https://cti.wazuh.com/api/v1/catalog/plans/pro/contexts/bad-guy-ips/consumer/realtime"
+          }
+        ]
+      }
+    ]
+  }
+}
+```
+
+### 4. Catalog Download (Use Token)
 
 Download catalog using a signed URL:
 
@@ -139,6 +233,21 @@ curl -X POST http://localhost:8080/api/v1/instances/token/exchange \
 {
   "error": "invalid_token",
   "error_description": "The access token is invalid or expired"
+}
+```
+
+### Missing Authorization Header (Instance Me)
+
+```bash
+curl -X GET http://localhost:8080/api/v1/instances/me \
+  -H "Content-Type: application/json"
+```
+
+**Expected Response (401 Unauthorized):**
+```json
+{
+  "error": "unauthorized_client",
+  "error_description": "The provided token is invalid or expired"
 }
 ```
 
