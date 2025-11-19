@@ -40,6 +40,11 @@ import java.util.function.Supplier;
 
 import com.wazuh.contentmanager.index.ContentIndex;
 import com.wazuh.contentmanager.index.ContextIndex;
+import com.wazuh.contentmanager.rest.RestDeleteSubscriptionAction;
+import com.wazuh.contentmanager.rest.RestGetSubscriptionAction;
+import com.wazuh.contentmanager.rest.RestPostSubscriptionAction;
+import com.wazuh.contentmanager.rest.RestPostUpdateAction;
+import com.wazuh.contentmanager.services.ContentManagerService;
 import com.wazuh.contentmanager.settings.PluginSettings;
 import com.wazuh.contentmanager.utils.Privileged;
 import com.wazuh.contentmanager.utils.SnapshotManager;
@@ -55,7 +60,12 @@ public class ContentManagerPlugin extends Plugin implements ClusterPlugin, Actio
     private SnapshotManager snapshotManager;
     private ThreadPool threadPool;
     private ClusterService clusterService;
-    private com.wazuh.contentmanager.rest.ContentManagerService contentManagerService;
+    private ContentManagerService contentManagerService;
+
+    // Rest API endpoints
+    public static final String PLUGINS_BASE_URI = "/_plugins/content-manager";
+    public static final String SUBSCRIPTION_URI = PLUGINS_BASE_URI + "/subscription";
+    public static final String UPDATE_URI = PLUGINS_BASE_URI + "/update";
 
     @Override
     public Collection<Object> createComponents(
@@ -77,7 +87,7 @@ public class ContentManagerPlugin extends Plugin implements ClusterPlugin, Actio
         this.contentIndex = new ContentIndex(client);
         this.snapshotManager =
                 new SnapshotManager(environment, this.contextIndex, this.contentIndex, new Privileged());
-        this.contentManagerService = new com.wazuh.contentmanager.rest.ContentManagerService(this.threadPool);
+        this.contentManagerService = new ContentManagerService(this.threadPool);
         return Collections.emptyList();
     }
 
@@ -114,10 +124,12 @@ public class ContentManagerPlugin extends Plugin implements ClusterPlugin, Actio
         org.opensearch.common.settings.SettingsFilter settingsFilter,
         org.opensearch.cluster.metadata.IndexNameExpressionResolver indexNameExpressionResolver,
         java.util.function.Supplier<org.opensearch.cluster.node.DiscoveryNodes> nodesInCluster) {
-    return List.of(
-        new com.wazuh.contentmanager.rest.SubscriptionRestHandler(contentManagerService),
-        new com.wazuh.contentmanager.rest.UpdateRestHandler(contentManagerService)
-    );
+        return List.of(
+            new RestGetSubscriptionAction(contentManagerService),
+            new RestPostSubscriptionAction(contentManagerService),
+            new RestDeleteSubscriptionAction(contentManagerService),
+            new RestPostUpdateAction(contentManagerService)
+        );
     }
 
     /**
