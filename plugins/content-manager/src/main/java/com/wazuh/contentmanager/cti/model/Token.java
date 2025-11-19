@@ -25,6 +25,7 @@ public class Token implements Writeable, ToXContent {
         String accessToken = null;
         Integer expiresIn = null;
 
+        xcp.nextToken();
         while (xcp.nextToken() != XContentParser.Token.END_OBJECT) {
             String fieldName = xcp.currentName();
             xcp.nextToken();

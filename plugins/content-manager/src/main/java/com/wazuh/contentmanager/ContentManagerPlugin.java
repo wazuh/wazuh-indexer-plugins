@@ -16,6 +16,8 @@
  */
 package com.wazuh.contentmanager;
 
+import com.wazuh.contentmanager.cti.model.Token;
+import com.wazuh.contentmanager.cti.service.CtiAuthServiceImpl;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.opensearch.transport.client.Client;
@@ -98,6 +100,9 @@ public class ContentManagerPlugin extends Plugin implements ClusterPlugin {
                         }
                     });
         }
+        CtiAuthServiceImpl authService = new CtiAuthServiceImpl();
+        Token token = authService.getToken("client_id", "device_code");
+        log.info(token);
     }
 
     /**
