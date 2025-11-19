@@ -58,10 +58,14 @@ public class HttpClient {
 
     private static final Object LOCK = new Object();
 
-    /** Singleton instance of the HTTP client. */
+    /**
+     * Singleton instance of the HTTP client.
+     */
     protected static CloseableHttpAsyncClient httpClient;
 
-    /** Base URI for API requests */
+    /**
+     * Base URI for API requests
+     */
     protected final URI apiUri;
 
     /**
@@ -86,18 +90,18 @@ public class HttpClient {
             if (httpClient == null) {
                 try {
                     SSLContext sslContext =
-                            SSLContextBuilder.create()
-                                    .loadTrustMaterial(null, (chains, authType) -> true)
-                                    .build();
+                        SSLContextBuilder.create()
+                            .loadTrustMaterial(null, (chains, authType) -> true)
+                            .build();
 
                     httpClient =
-                            HttpAsyncClients.custom()
-                                    .setConnectionManager(
-                                            PoolingAsyncClientConnectionManagerBuilder.create()
-                                                    .setTlsStrategy(
-                                                            ClientTlsStrategyBuilder.create().setSslContext(sslContext).build())
-                                                    .build())
-                                    .build();
+                        HttpAsyncClients.custom()
+                            .setConnectionManager(
+                                PoolingAsyncClientConnectionManagerBuilder.create()
+                                    .setTlsStrategy(
+                                        ClientTlsStrategyBuilder.create().setSslContext(sslContext).build())
+                                    .build())
+                            .build();
                     httpClient.start();
                 } catch (NoSuchAlgorithmException | KeyStoreException | KeyManagementException e) {
                     log.error("Error initializing HTTP client: {}", e.getMessage());
@@ -110,19 +114,19 @@ public class HttpClient {
     /**
      * Sends an HTTP request with the specified parameters.
      *
-     * @param method The HTTP method (e.g., GET, POST, PUT, DELETE).
-     * @param endpoint The endpoint to append to the base API URI.
-     * @param requestBody The request body (optional, applicable for POST/PUT).
+     * @param method          The HTTP method (e.g., GET, POST, PUT, DELETE).
+     * @param endpoint        The endpoint to append to the base API URI.
+     * @param requestBody     The request body (optional, applicable for POST/PUT).
      * @param queryParameters The query parameters (optional).
-     * @param headers The headers to include in the request (optional).
+     * @param headers         The headers to include in the request (optional).
      * @return A SimpleHttpResponse containing the response details.
      */
     protected SimpleHttpResponse sendRequest(
-            @NonNull Method method,
-            String endpoint,
-            String requestBody,
-            Map<String, String> queryParameters,
-            Header... headers) {
+        @NonNull Method method,
+        String endpoint,
+        String requestBody,
+        Map<String, String> queryParameters,
+        Header... headers) {
         URI _apiUri;
         if (httpClient == null) {
             startHttpAsyncClient();
@@ -151,12 +155,12 @@ public class HttpClient {
             SimpleHttpRequest request = builder.setHttpHost(httpHost).setPath(_apiUri.getPath()).build();
             log.debug("Request sent: [{}]", request);
             return httpClient
-                    .execute(
-                            SimpleRequestProducer.create(request),
-                            SimpleResponseConsumer.create(),
-                            new HttpResponseCallback(
-                                    request, "Failed to execute outgoing " + method + " request"))
-                    .get(PluginSettings.getInstance().getClientTimeout(), TimeUnit.SECONDS);
+                .execute(
+                    SimpleRequestProducer.create(request),
+                    SimpleResponseConsumer.create(),
+                    new HttpResponseCallback(
+                        request, "Failed to execute outgoing " + method + " request"))
+                .get(PluginSettings.getInstance().getClientTimeout(), TimeUnit.SECONDS);
         } catch (InterruptedException | ExecutionException | TimeoutException e) {
             log.error("HTTP {} request failed: {}", method, e.getMessage());
             Thread.currentThread().interrupt();
