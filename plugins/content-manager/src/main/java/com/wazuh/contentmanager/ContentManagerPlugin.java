@@ -102,7 +102,12 @@ public class ContentManagerPlugin extends Plugin implements ClusterPlugin {
         }
         CtiAuthServiceImpl authService = new CtiAuthServiceImpl();
         Token token = authService.getToken("client_id", "device_code");
-        log.info(token);
+        log.info("Permanent token {}", token);
+        Token resourceToken = authService.getResourceToken(
+            token.getAccessToken(),
+            "https://localhost:4040/api/v1/catalog/contexts/foo/consumer/bar"
+        );
+        log.info("Resource token {}", resourceToken);
     }
 
     /**

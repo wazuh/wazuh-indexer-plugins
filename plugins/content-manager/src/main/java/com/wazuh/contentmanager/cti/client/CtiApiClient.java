@@ -7,8 +7,7 @@ import org.apache.hc.client5.http.impl.async.HttpAsyncClients;
 import org.apache.hc.client5.http.impl.nio.PoolingAsyncClientConnectionManagerBuilder;
 import org.apache.hc.client5.http.ssl.ClientTlsStrategyBuilder;
 import org.apache.hc.core5.http.ContentType;
-import org.apache.hc.core5.http.HttpException;
-import org.apache.hc.core5.http.HttpHost;
+import org.apache.hc.core5.http.HttpHeaders;
 import org.apache.hc.core5.reactor.IOReactorConfig;
 import org.apache.hc.core5.ssl.SSLContextBuilder;
 import org.apache.hc.core5.util.Timeout;
@@ -17,6 +16,7 @@ import javax.net.ssl.SSLContext;
 import java.security.KeyManagementException;
 import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
+import java.util.List;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
@@ -68,13 +68,13 @@ public class CtiApiClient {
         this.client.start();
     }
 
-    public String getToken(String clientId, String deviceCode) throws ExecutionException, InterruptedException, TimeoutException {
+    public SimpleHttpResponse getToken(String clientId, String deviceCode) throws ExecutionException, InterruptedException, TimeoutException {
         String grantType = "grant_type=urn:ietf:params:oauth:grant-type:device_code";
         String formBody = String.format("%s&client_id=%s&device_code=%s", grantType, clientId, deviceCode);
 
         SimpleHttpRequest request = SimpleRequestBuilder
             .post(TOKEN_URI)
-//            .addHeader(HttpHeaders.CONTENT_TYPE, ContentType.APPLICATION_FORM_URLENCODED.toString())
+            .addHeader(HttpHeaders.CONTENT_TYPE, ContentType.APPLICATION_FORM_URLENCODED.toString())
             .setBody(formBody, ContentType.APPLICATION_FORM_URLENCODED)
             .build();
 
@@ -84,7 +84,31 @@ public class CtiApiClient {
             new HttpResponseCallback(
                 request, "Outgoing request failed"
             ));
-            SimpleHttpResponse response = future.get(5, TimeUnit.SECONDS);
-            return response.getBodyText();
+        return future.get(5, TimeUnit.SECONDS);
+    }
+
+    public SimpleHttpResponse getResourceToken(String permanentToken, String resource) throws ExecutionException, InterruptedException, TimeoutException {
+        String formBody = String.join("&", List.of(
+            "grant_type=urn:ietf:params:oauth:grant-type:token-exchange",
+            "subject_token_type=urn:ietf:params:oauth:token-type:access_token",
+            "requested_token_type=urn:wazuh:params:oauth:token-type:signed_url",
+            "resource=" + resource
+        ));
+        String token = String.format("Bearer %s", permanentToken);
+
+        SimpleHttpRequest request = SimpleRequestBuilder
+            .post(RESOURCE_URI)
+            .addHeader(HttpHeaders.CONTENT_TYPE, ContentType.APPLICATION_FORM_URLENCODED.toString())
+            .setHeader(HttpHeaders.AUTHORIZATION, token)
+            .setBody(formBody, ContentType.APPLICATION_FORM_URLENCODED)
+            .build();
+
+        final Future<SimpleHttpResponse> future = client.execute(
+            SimpleRequestProducer.create(request),
+            SimpleResponseConsumer.create(),
+            new HttpResponseCallback(
+                request, "Outgoing request failed"
+            ));
+        return future.get(5, TimeUnit.SECONDS);
     }
 }

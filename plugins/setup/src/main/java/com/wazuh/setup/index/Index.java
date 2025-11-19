@@ -100,8 +100,8 @@ public abstract class Index implements IndexInitializer {
     }
 
     /**
-     * Sanitizes a template path to obtain the template name.
-     * Removes the "templates/" prefix and converts remaining slashes to hyphens.
+     * Sanitizes a template path to obtain the template name. Removes the "templates/" prefix and
+     * converts remaining slashes to hyphens.
      *
      * @param templatePath the template path (e.g., "templates/streams/alerts")
      * @return the template name (e.g., "streams-alerts")
@@ -166,7 +166,7 @@ public abstract class Index implements IndexInitializer {
     public void createTemplate(String template) {
         // Get the template name
         String templateName = this.getTemplateName(template);
-        
+
         try {
             // Read JSON index template
             ObjectMapper mapper = new ObjectMapper();
