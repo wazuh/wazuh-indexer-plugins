@@ -1,0 +1,13 @@
+services:
+  imposter:
+    ports: []  # Remove port exposure when using nginx
+
+  nginx:
+    image: nginx:alpine
+    ports:
+      - "8443:443"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx/certs:/etc/nginx/certs:ro
+    depends_on:
+      - imposter

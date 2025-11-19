@@ -5,16 +5,22 @@ This directory contains the configuration for an Imposter mock server.
 ## Prerequisites
 
 - Docker installed on your machine
-- Port 8080 available
+- Ports 8080 & 8443 available
 
 ## Directory Structure
 
 ```
 imposter/
-├── README.md
+├── start-imposter.sh                   # Startup script for HTTP/HTTPS modes
+├── README.md                           # This file
 ├── imposter-config.yml                 # Main Imposter configuration
 ├── openapi.yml                         # OpenAPI specification
-└── scripts/
+├── images/                             # Docker Compose configurations
+│   ├── docker-compose.yml              # Base HTTP configuration
+│   ├── docker-compose.ssl.yml          # SSL/HTTPS override configuration
+│   └── nginx/                          # nginx reverse proxy for SSL
+│       └── nginx.conf                  # nginx SSL configuration
+└── scripts/                            # Groovy response scripts
     ├── tokenResponse.groovy            # Token request logic
     ├── tokenExchangeResponse.groovy    # Token exchange logic
     ├── instanceMeResponse.groovy       # Instance me logic
@@ -23,7 +29,33 @@ imposter/
 
 ## Quick Start
 
-### 1. Start the Mock Server
+### Option 1: Using the Startup Script (Recommended)
+
+#### HTTP Mode (Default)
+
+From the `imposter/` directory, run:
+```bash
+./start-imposter.sh
+```
+
+The server will start on `http://localhost:8080`.
+
+#### HTTPS Mode with SSL
+
+For HTTPS with self-signed certificates:
+```bash
+./start-imposter.sh --enable-ssl
+```
+
+The server will start on `https://localhost:8443`.
+
+> [!NOTE]
+> The SSL mode will automatically:
+> - Generate self-signed certificates for localhost
+> - Start nginx as a reverse proxy with SSL termination
+> - Proxy requests to the Imposter container
+
+### Option 2: Using Docker Directly
 
 From the `imposter/` directory, run:
 ```bash
@@ -38,11 +70,20 @@ The server will start on `http://localhost:8080`.
 
 ### 2. Verify the Server is Running
 
+**HTTP Mode:**
 ```bash
 curl http://localhost:8080/system/status
 ```
 
+**HTTPS Mode:**
+```bash
+curl -k https://localhost:8443/system/status
+```
+
 ## Available Endpoints
+
+> [!NOTE]
+> All examples below use HTTP (`http://localhost:8080`). If running in HTTPS mode, replace with `https://localhost:8443` and add the `-k` flag to curl commands.
 
 ### 1. Token Request (CTI Authentication)
 
@@ -118,14 +159,14 @@ curl -X GET http://localhost:8080/api/v1/instances/me \
             "identifier": "vulnerabilities-pro",
             "name": "Vulnerabilities Pro",
             "description": "Vulnerabilities updated as soon as they are added to the catalog",
-            "resource": "https://cti.wazuh.com/api/v1/catalog/plans/pro/contexts/vulnerabilities/consumer/realtime"
+            "resource": "https://localhost:8080/api/v1/catalog/plans/pro/contexts/vulnerabilities/consumer/realtime"
           },
           {
             "type": "catalog:consumer:iocs",
             "identifier": "bad-guy-ips-pro",
             "name": "Bad Guy IPs",
             "description": "Dolor sit amet…",
-            "resource": "https://cti.wazuh.com/api/v1/catalog/plans/pro/contexts/bad-guy-ips/consumer/realtime"
+            "resource": "https://localhost:8080/api/v1/catalog/plans/pro/contexts/bad-guy-ips/consumer/realtime"
           }
         ]
       }
@@ -166,14 +207,14 @@ curl -X GET http://localhost:8080/api/v1/instances/me \
             "type": "catalog:consumer:vulnerabilities",
             "name": "Vulnerabilities Pro",
             "description": "Vulnerabilities updated as soon as they are added to the catalog",
-            "resource": "https://cti.wazuh.com/api/v1/catalog/plans/pro/contexts/vulnerabilities/consumer/realtime"
+            "resource": "https://localhost:8080/api/v1/catalog/plans/pro/contexts/vulnerabilities/consumer/realtime"
           },
           {
             "identifier": "bad-guy-ips-pro",
             "type": "catalog:consumer:iocs",
             "name": "Bad Guy IPs",
             "description": "Dolor sit amet…",
-            "resource": "https://cti.wazuh.com/api/v1/catalog/plans/pro/contexts/bad-guy-ips/consumer/realtime"
+            "resource": "https://localhost:8080/api/v1/catalog/plans/pro/contexts/bad-guy-ips/consumer/realtime"
           }
         ]
       }

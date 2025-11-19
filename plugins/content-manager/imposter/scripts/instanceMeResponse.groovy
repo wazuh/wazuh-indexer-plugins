@@ -44,14 +44,14 @@ if (token.toLowerCase().contains('cloud')) {
             "type": "catalog:consumer:vulnerabilities",
             "name": "Vulnerabilities Pro",
             "description": "Vulnerabilities updated as soon as they are added to the catalog",
-            "resource": "https://cti.wazuh.com/api/v1/catalog/plans/pro/contexts/vulnerabilities/consumer/realtime"
+            "resource": "https://localhost:8080/api/v1/catalog/plans/pro/contexts/vulnerabilities/consumer/realtime"
           },
           {
             "identifier": "bad-guy-ips-pro",
             "type": "catalog:consumer:iocs",
             "name": "Bad Guy IPs",
             "description": "Dolor sit amet…",
-            "resource": "https://cti.wazuh.com/api/v1/catalog/plans/pro/contexts/bad-guy-ips/consumer/realtime"
+            "resource": "https://localhost:8080/api/v1/catalog/plans/pro/contexts/bad-guy-ips/consumer/realtime"
           }
         ]
       }
@@ -82,14 +82,14 @@ else {
             "identifier": "vulnerabilities-pro",
             "name": "Vulnerabilities Pro",
             "description": "Vulnerabilities updated as soon as they are added to the catalog",
-            "resource": "https://cti.wazuh.com/api/v1/catalog/plans/pro/contexts/vulnerabilities/consumer/realtime"
+            "resource": "https://localhost:8080/api/v1/catalog/plans/pro/contexts/vulnerabilities/consumer/realtime"
           },
           {
             "type": "catalog:consumer:iocs",
             "identifier": "bad-guy-ips-pro",
             "name": "Bad Guy IPs",
             "description": "Dolor sit amet…",
-            "resource": "https://cti.wazuh.com/api/v1/catalog/plans/pro/contexts/bad-guy-ips/consumer/realtime"
+            "resource": "https://localhost:8080/api/v1/catalog/plans/pro/contexts/bad-guy-ips/consumer/realtime"
           }
         ]
       }
