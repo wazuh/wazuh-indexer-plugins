@@ -14,20 +14,17 @@ info:
     url: https://www.apache.org/licenses/LICENSE-2.0.html
 
 servers:
-  - url: http://{consoleAddress}:{consolePort}
-    description: Console API - Development
+  - url: "{protocol}://{address}:{port}"
     variables:
-      consoleAddress:
+      address:
         default: localhost
-      consolePort:
-        default: '8080'
-  - url: http://{ctiAddress}:{ctiPort}
-    description: CTI API - Development
-    variables:
-      ctiAddress:
-        default: localhost
-      ctiPort:
-        default: '8080'
+      port:
+        default: '8443'
+      protocol:
+        enum:
+          - "http"
+          - "https"
+        default: "https"
 
 tags:
   - name: CTI Console
