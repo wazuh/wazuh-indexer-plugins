@@ -1,7 +1,9 @@
 services:
   imposter:
+    image: outofcoffee/imposter-openapi
+    volumes:
+      - ../:/opt/imposter/config
     ports: []  # Remove port exposure when using nginx
-
   nginx:
     image: nginx:alpine
     ports:

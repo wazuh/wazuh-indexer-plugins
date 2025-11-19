@@ -1,7 +1,0 @@
-services:
-  imposter:
-    image: outofcoffee/imposter-openapi
-    volumes:
-      - ../:/opt/imposter/config
-    ports:
-      - "8080:8080"
