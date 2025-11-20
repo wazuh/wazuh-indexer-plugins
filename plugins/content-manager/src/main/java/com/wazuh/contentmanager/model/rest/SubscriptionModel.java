@@ -43,6 +43,9 @@ public class SubscriptionModel {
      * @return The current subscription instance, or null if no subscription exists
      */
     public static synchronized SubscriptionModel getInstance() {
+        if (instance == null) {
+            throw new IllegalStateException("SubscriptionModel have not been initialized.");
+        }
         return instance;
     }
 
@@ -65,7 +68,7 @@ public class SubscriptionModel {
     public int getExpiresIn() {
         return expiresIn;
     }
-    
+
     public int getInterval() {
         return interval;
     }

@@ -30,13 +30,14 @@ import static org.opensearch.rest.RestRequest.Method.DELETE;
  */
 public class RestDeleteSubscriptionAction extends BaseRestHandler {
     private final ContentManagerService service;
+    private static final String ENDPOINT_NAME = "content_manager_subscription_delete";
 
     public RestDeleteSubscriptionAction(ContentManagerService service) {
         this.service = service;
     }
 
     @Override
-    public String getName() { return "content_manager_subscription_delete"; }
+    public String getName() { return ENDPOINT_NAME; }
 
     @Override
     public List<Route> routes() {
@@ -68,7 +69,7 @@ public class RestDeleteSubscriptionAction extends BaseRestHandler {
                     return;
                 }
                 service.deleteSubscription();
-                
+
                 XContentBuilder builder = XContentFactory.jsonBuilder();
                 builder.startObject()
                         .field("status", RestStatus.OK.getStatus())

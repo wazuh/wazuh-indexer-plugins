@@ -1,7 +1,7 @@
 package com.wazuh.contentmanager.model.rest;
 
 public class Credentials {
-    private static Credentials instance;
+    private static volatile Credentials instance;
 
     private String accessToken;
     private String tokenType;
@@ -18,14 +18,10 @@ public class Credentials {
      * @param tokenType the token type (e.g., "Bearer")
      * @return the singleton instance
      */
-    public static synchronized Credentials createOrUpdate(String accessToken, String tokenType) {
-        if (instance == null) {
-            instance = new Credentials(accessToken, tokenType);
-        } else {
-            instance.accessToken = accessToken;
-            instance.tokenType = tokenType;
-        }
-        return instance;
+    public static Credentials createOrUpdate(String accessToken, String tokenType) {
+        Credentials newInstance = new Credentials(accessToken, tokenType);
+        instance = newInstance;
+        return newInstance;
     }
 
     /**
@@ -33,13 +29,13 @@ public class Credentials {
      *
      * @return the singleton instance, or null if not yet created
      */
-    public static synchronized Credentials getInstance() {
+    public static Credentials getInstance() {
+        if (instance == null) {
+            throw new IllegalStateException("Credentials have not been initialized.");
+        }
         return instance;
     }
 
     public String getAccessToken() { return accessToken; }
     public String getTokenType() { return tokenType; }
-
-    public void setAccessToken(String accessToken) { this.accessToken = accessToken; }
-    public void setTokenType(String tokenType) { this.tokenType = tokenType; }
 }
