@@ -1,0 +1,8 @@
+# Ignore SSL certificates and keys
+*.pem
+*.key
+*.crt
+*.csr
+
+# Ignore OpenSSL temporary files
+*.cnf
