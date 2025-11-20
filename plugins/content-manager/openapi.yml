@@ -31,6 +31,7 @@ tags:
 
 security:
   - bearerAuth: []
+  - basicAuth: []
 
 paths:
   /subscription:
@@ -333,3 +334,10 @@ components:
         Include the token in the Authorization header as: `Authorization: Bearer <token>`
         
         Tokens can be obtained through the Wazuh authentication system.
+    basicAuth:
+      type: http
+      scheme: basic
+      description: |
+        **Secure Basic Authentication**.
+        Clients must provide username and password encoded in Base64.
+        
