@@ -13,8 +13,8 @@ import java.util.concurrent.atomic.AtomicInteger;
 public class ContentManagerService {
     private final ThreadPool threadPool;
 
-    // simple rate limiting: allow 2 requests per hour
-    public static final int RATE_LIMIT = 200;
+    // Rate limiting:  allow 2 requests per hour
+    public static final int RATE_LIMIT = 2;
     private AtomicInteger used = new AtomicInteger(0);
     private long windowReset = Instant.now().getEpochSecond() + 3600;
 
@@ -23,17 +23,50 @@ public class ContentManagerService {
     }
 
     public synchronized boolean canTriggerUpdate() {
+        return canTriggerUpdate(null);
+    }
+
+    /**
+     * Allows callers (tests) to provide an override rate limit for this invocation.
+     * If overrideLimit is null the configured/default limit is used.
+     */
+    public synchronized boolean canTriggerUpdate(Integer overrideLimit) {
+        int effectiveLimit = (overrideLimit != null && overrideLimit > 0) ? overrideLimit : getRateLimit();
         long now = Instant.now().getEpochSecond();
         if (now >= windowReset) {
             used.set(0);
             windowReset = now + 3600;
         }
-        if (used.get() >= RATE_LIMIT) return false;
+        if (used.get() >= effectiveLimit) return false;
         used.incrementAndGet();
         return true;
     }
 
     public long getRateLimitReset() { return windowReset; }
+
+    /**
+     * Resets the rate limit counter. This method is primarily intended for testing purposes
+     * to ensure tests start with a clean state.
+     */
+    public synchronized void resetRateLimit() {
+        used.set(0);
+        windowReset = Instant.now().getEpochSecond() + 3600;
+    }
+
+    /**
+     * Returns the effective rate limit used by the service. Reads the system property
+     * `content.manager.rate_limit` if present, otherwise falls back to the default.
+     */
+    public static int getRateLimit() {
+        String prop = System.getProperty("content.manager.rate_limit");
+        if (prop != null) {
+            try {
+                int v = Integer.parseInt(prop);
+                if (v > 0) return v;
+            } catch (NumberFormatException ignored) { }
+        }
+        return RATE_LIMIT;
+    }
 
     /**
      * Retrieves the current subscription from the SubscriptionModel singleton.
@@ -46,8 +79,10 @@ public class ContentManagerService {
 
     /**
      * Deletes the current subscription from the SubscriptionModel singleton.
+     * Also resets the rate limit counter to ensure tests start with a clean state.
      */
     public void deleteSubscription() {
         SubscriptionModel.deleteInstance();
+        resetRateLimit();
     }
 }

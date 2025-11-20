@@ -1,0 +1,71 @@
+---
+"Test subscription GET returns 404 when no subscription exists":
+  - skip:
+      features: headers
+  - do:
+      catch: missing
+      content_manager_subscription_get: {}
+
+  - match: { status: 404 }
+  - match: { message: "Subscription not found" }
+
+---
+"Test subscription GET returns 200 with credentials after subscription created":
+  - skip:
+      features: headers
+  - do:
+      headers:
+        Content-Type: application/json
+      content_manager_subscription_post:
+        body: |
+          {
+            "device_code": "test-device-code",
+            "client_id": "test-client-id",
+            "expires_in": 3600,
+            "interval": 5
+          }
+
+  - match: { status: 201 }
+
+  - do:
+      content_manager_subscription_get: {}
+
+  - match: { access_token: "temporary_access_token" }
+  - match: { token_type: "Bearer" }
+
+  - do:
+      content_manager_subscription_delete: {}
+
+  - match: { status: 200 }
+  - match: { message: "Subscription deleted successfully" }
+
+---
+"Test subscription GET returns 404 after subscription deleted":
+  - skip:
+      features: headers
+  - do:
+      headers:
+        Content-Type: application/json
+      content_manager_subscription_post:
+        body: |
+          {
+            "device_code": "test-device-code",
+            "client_id": "test-client-id",
+            "expires_in": 3600,
+            "interval": 5
+          }
+
+  - match: { status: 201 }
+
+  - do:
+      content_manager_subscription_delete: {}
+
+  - match: { status: 200 }
+  - match: { message: "Subscription deleted successfully" }
+
+  - do:
+      catch: missing
+      content_manager_subscription_get: {}
+
+  - match: { status: 404 }
+  - match: { message: "Subscription not found" }

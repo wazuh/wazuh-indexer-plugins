@@ -1,0 +1,17 @@
+{
+  "content_manager_subscription_delete":{
+    "documentation":{
+      "url":"https://github.com/wazuh/wazuh-indexer-plugins",
+      "description":"Delete the current CTI subscription"
+    },
+    "stability":"experimental",
+    "url":{
+      "paths":[
+        {
+          "path":"/_plugins/content-manager/subscription",
+          "methods":["DELETE"]
+        }
+      ]
+    }
+  }
+}

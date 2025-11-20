@@ -38,10 +38,17 @@ import static org.opensearch.rest.RestRequest.Method.POST;
 public class RestPostUpdateAction extends BaseRestHandler {
     private final ContentManagerService service;
 
-    // TODO: Remove this temporary mechanism once the actual update logic is implemented
-    // This is only for testing the 409 Conflict error when concurrent requests arrive
+    // TODO: Delete once real concurrency control is implemented
+    // Mechanism for conflict testing
     private volatile boolean isUpdateInProgress = false;
-    private static final long SIMULATED_UPDATE_DURATION_MS = 5000;
+
+    private static final long DEFAULT_UPDATE_DURATION_MS = 0;
+
+    /**
+        * Hidden header used to control the simulated duration from integration tests.
+        * Allows artificially extending the processing time to test race conditions.
+     */
+    public static final String TEST_HEADER_DURATION = "X-Wazuh-Test-Simulated-Duration";
 
     // TODO: Remove this temporary mechanism once the actual external service is implemented
     // This is only for testing the 503 Service Unavailable error
@@ -58,78 +65,95 @@ public class RestPostUpdateAction extends BaseRestHandler {
     @Override
     public List<Route> routes() {
         return List.of(
-                // POST /_plugins/content-manager/update
-                new NamedRoute.Builder()
-                        .path(ContentManagerPlugin.UPDATE_URI)
-                        .method(POST)
-                        .uniqueName("plugin:content_manager/update")
-                        .build()
+            // POST /_plugins/content-manager/update
+            new NamedRoute.Builder()
+                .path(ContentManagerPlugin.UPDATE_URI)
+                .method(POST)
+                .uniqueName("plugin:content_manager/update")
+                .build()
         );
     }
+
     @Override
     public RestChannelConsumer prepareRequest(RestRequest request, NodeClient client) {
         return channel -> {
             try {
-                // Check if subscription exists (404 Not Found)
+                // 1. Check if subscription exists (404 Not Found)
                 if (service.getSubscription() == null) {
                     ErrorResponse error = new ErrorResponse(
-                            "Subscription not found. Please create a subscription before attempting to update.",
-                            RestStatus.NOT_FOUND.getStatus()
+                        "Subscription not found. Please create a subscription before attempting to update.",
+                        RestStatus.NOT_FOUND.getStatus()
                     );
                     XContentBuilder builder = XContentFactory.jsonBuilder();
                     builder.startObject()
-                            .field("message", error.getMessage())
-                            .field("status", error.getStatus())
-                            .endObject();
+                        .field("message", error.getMessage())
+                        .field("status", error.getStatus())
+                        .endObject();
                     channel.sendResponse(new BytesRestResponse(RestStatus.NOT_FOUND, builder));
                     return;
                 }
 
-                if (!service.canTriggerUpdate()) {
+                // 2. Conflict Check (409 Conflict)
+                // TODO: Implement actual concurrency control
+                if (isUpdateInProgress) {
                     ErrorResponse error = new ErrorResponse(
-                            "Too many update requests. Please try again later.",
-                            RestStatus.TOO_MANY_REQUESTS.getStatus()
+                        "An update operation is already in progress. Please wait for it to complete.",
+                        RestStatus.CONFLICT.getStatus()
                     );
                     XContentBuilder builder = XContentFactory.jsonBuilder();
                     builder.startObject()
-                            .field("message", error.getMessage())
-                            .field("status", error.getStatus())
-                            .endObject();
+                        .field("message", error.getMessage())
+                        .field("status", error.getStatus())
+                        .endObject();
+                    channel.sendResponse(new BytesRestResponse(RestStatus.CONFLICT, builder));
+                    return;
+                }
+
+                // 3. Rate Limit Check (429 Too Many Requests)
+                // Allow tests to override the rate limit via the header `X-Wazuh-Test-Rate-Limit`.
+                String testRateLimitHeader = request.header("X-Wazuh-Test-Rate-Limit");
+                Integer testRateLimit = null;
+                if (testRateLimitHeader != null) {
+                    try {
+                        testRateLimit = Integer.parseInt(testRateLimitHeader);
+                    } catch (NumberFormatException ignored) { }
+                }
+
+                if (!service.canTriggerUpdate(testRateLimit)) {
+                    ErrorResponse error = new ErrorResponse(
+                        "Too many update requests. Please try again later.",
+                        RestStatus.TOO_MANY_REQUESTS.getStatus()
+                    );
+                    XContentBuilder builder = XContentFactory.jsonBuilder();
+                    builder.startObject()
+                        .field("message", error.getMessage())
+                        .field("status", error.getStatus())
+                        .endObject();
                     BytesRestResponse response = new BytesRestResponse(RestStatus.TOO_MANY_REQUESTS, builder);
-                    response.addHeader("X-RateLimit-Limit", String.valueOf(ContentManagerService.RATE_LIMIT));
+                    int effectiveLimit = (testRateLimit != null && testRateLimit > 0) ? testRateLimit : ContentManagerService.getRateLimit();
+                    response.addHeader("X-RateLimit-Limit", String.valueOf(effectiveLimit));
                     response.addHeader("X-RateLimit-Remaining", String.valueOf(0));
                     response.addHeader("X-RateLimit-Reset", String.valueOf(service.getRateLimitReset()));
                     channel.sendResponse(response);
                     return;
                 }
 
-                // TODO: Remove this conflict detection once the actual update logic is implemented
-                // This simulates a conflict when another update is already in progress
-                if (isUpdateInProgress) {
-                    ErrorResponse error = new ErrorResponse(
-                            "An update operation is already in progress. Please wait for it to complete.",
-                            RestStatus.CONFLICT.getStatus()
-                    );
-                    XContentBuilder builder = XContentFactory.jsonBuilder();
-                    builder.startObject()
-                            .field("message", error.getMessage())
-                            .field("status", error.getStatus())
-                            .endObject();
-                    channel.sendResponse(new BytesRestResponse(RestStatus.CONFLICT, builder));
-                    return;
-                }
+                // 4. External Service Check (503 Service Unavailable)
+                // TODO: Replace this simulation with actual external service availability check
+                String simulateExternalError = request.header("X-Wazuh-Test-Simulate-External-Service-Error");
+                boolean simulateExternal = (simulateExternalError != null && simulateExternalError.equalsIgnoreCase("true"))
+                    || SIMULATE_EXTERNAL_SERVICE_ERROR;
 
-                // TODO: Remove this external service error simulation
-                if (SIMULATE_EXTERNAL_SERVICE_ERROR) {
+                if (simulateExternal) {
                     ErrorResponse error = new ErrorResponse(
-                            "External service is currently unavailable. Unable to fetch update information.",
-                            RestStatus.SERVICE_UNAVAILABLE.getStatus()
+                        "CTI API is currently unavailable. Unable to fetch update information.",
+                        RestStatus.SERVICE_UNAVAILABLE.getStatus()
                     );
                     XContentBuilder builder = XContentFactory.jsonBuilder();
                     builder.startObject()
-                            .field("message", error.getMessage())
-                            .field("status", error.getStatus())
-                            .endObject();
+                        .field("message", error.getMessage())
+                        .field("status", error.getStatus())
+                        .endObject();
                     channel.sendResponse(new BytesRestResponse(RestStatus.SERVICE_UNAVAILABLE, builder));
                     return;
                 }
@@ -138,10 +162,13 @@ public class RestPostUpdateAction extends BaseRestHandler {
                 // Mark update as in progress
                 isUpdateInProgress = true;
 
+                // Determine duration
+                long simulationDuration = getSimulatedDuration(request);
+
                 // Simulate a long-running update operation
                 new Thread(() -> {
                     try {
-                        Thread.sleep(SIMULATED_UPDATE_DURATION_MS);
+                        Thread.sleep(simulationDuration);
                     } catch (InterruptedException e) {
                         Thread.currentThread().interrupt();
                     } finally {
@@ -151,25 +178,43 @@ public class RestPostUpdateAction extends BaseRestHandler {
 
                 XContentBuilder builder = XContentFactory.jsonBuilder();
                 builder.startObject()
-                        .field("status", "update accepted")
-                        .endObject();
+                    .field("status", "update accepted")
+                    .endObject();
                 BytesRestResponse response = new BytesRestResponse(RestStatus.ACCEPTED, builder);
-                response.addHeader("X-RateLimit-Limit", String.valueOf(ContentManagerService.RATE_LIMIT));
-                response.addHeader("X-RateLimit-Remaining", String.valueOf(Math.max(0, ContentManagerService.RATE_LIMIT - 1)));
+                int effectiveLimit = (testRateLimit != null && testRateLimit > 0) ? testRateLimit : ContentManagerService.getRateLimit();
+                response.addHeader("X-RateLimit-Limit", String.valueOf(effectiveLimit));
+                response.addHeader("X-RateLimit-Remaining", String.valueOf(Math.max(0, effectiveLimit - 1)));
                 response.addHeader("X-RateLimit-Reset", String.valueOf(service.getRateLimitReset()));
                 channel.sendResponse(response);
             } catch (Exception e) {
                 ErrorResponse error = new ErrorResponse(
-                        e.getMessage() != null ? e.getMessage() : "An unexpected error occurred while processing your request.",
-                        RestStatus.INTERNAL_SERVER_ERROR.getStatus()
+                    e.getMessage() != null ? e.getMessage() : "An unexpected error occurred while processing your request.",
+                    RestStatus.INTERNAL_SERVER_ERROR.getStatus()
                 );
                 XContentBuilder builder = XContentFactory.jsonBuilder();
                 builder.startObject()
-                        .field("message", error.getMessage())
-                        .field("status", error.getStatus())
-                        .endObject();
+                    .field("message", error.getMessage())
+                    .field("status", error.getStatus())
+                    .endObject();
                 channel.sendResponse(new BytesRestResponse(RestStatus.INTERNAL_SERVER_ERROR, builder));
             }
         };
+    }
+
+    // TODO: Remove this temporary mechanism once the actual external service is implemented
+    /**
+     * Extracts the simulated duration from the request header.
+     * Returns the default duration if the header is missing or invalid.
+     */
+    private long getSimulatedDuration(RestRequest request) {
+        String headerValue = request.header(TEST_HEADER_DURATION);
+        if (headerValue != null) {
+            try {
+                return Long.parseLong(headerValue);
+            } catch (NumberFormatException ignored) {
+                // Ignore and use default
+            }
+        }
+        return DEFAULT_UPDATE_DURATION_MS;
     }
 }

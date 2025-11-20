@@ -119,6 +119,12 @@ dependencies {
     implementation 'com.google.code.gson:gson:2.8.9'
 }
 
+// Ensure the yamlRestTest source set can access plugin main and test classes
+dependencies {
+    yamlRestTestImplementation sourceSets.main.output
+    yamlRestTestImplementation sourceSets.test.output
+}
+
 task integTest(type: RestIntegTestTask) {
     description = "Run tests against a cluster"
     testClassesDirs = sourceSets.test.output.classesDirs

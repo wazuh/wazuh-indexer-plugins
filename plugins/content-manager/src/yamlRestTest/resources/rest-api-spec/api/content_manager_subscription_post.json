@@ -1,0 +1,20 @@
+{
+  "content_manager_subscription_post":{
+    "documentation":{
+      "url":"https://github.com/wazuh/wazuh-indexer-plugins",
+      "description":"Create a new CTI subscription"
+    },
+    "stability":"experimental",
+    "url":{
+      "paths":[
+        {
+          "path":"/_plugins/content-manager/subscription",
+          "methods":["POST"]
+        }
+      ]
+    },
+    "body":{
+      "description":"The subscription details"
+    }
+  }
+}

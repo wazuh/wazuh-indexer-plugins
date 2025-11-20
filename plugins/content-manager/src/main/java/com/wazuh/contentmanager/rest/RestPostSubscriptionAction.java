@@ -97,7 +97,12 @@ public class RestPostSubscriptionAction extends BaseRestHandler {
                 // TODO: This is a temporary placeholder. Replace with actual credentials from authentication flow.
                 Credentials.createOrUpdate("temporary_access_token", "Bearer");
                 
-                channel.sendResponse(new BytesRestResponse(RestStatus.CREATED, ""));
+                XContentBuilder builder = XContentFactory.jsonBuilder();
+                builder.startObject()
+                        .field("status", RestStatus.CREATED.getStatus())
+                        .field("message", "Subscription created successfully")
+                        .endObject();
+                channel.sendResponse(new BytesRestResponse(RestStatus.CREATED, builder));
             } catch (Exception e) {
                 ErrorResponse error = new ErrorResponse(
                         e.getMessage() != null ? e.getMessage() : "An unexpected error occurred while processing your request.",

@@ -68,7 +68,13 @@ public class RestDeleteSubscriptionAction extends BaseRestHandler {
                     return;
                 }
                 service.deleteSubscription();
-                channel.sendResponse(new BytesRestResponse(RestStatus.OK, ""));
+                
+                XContentBuilder builder = XContentFactory.jsonBuilder();
+                builder.startObject()
+                        .field("status", RestStatus.OK.getStatus())
+                        .field("message", "Subscription deleted successfully")
+                        .endObject();
+                channel.sendResponse(new BytesRestResponse(RestStatus.OK, builder));
             } catch (Exception e) {
                 ErrorResponse error = new ErrorResponse(
                         e.getMessage() != null ? e.getMessage() : "An unexpected error occurred while processing your request.",

@@ -1,0 +1,93 @@
+---
+"Test subscription POST returns 400 when required parameters are missing":
+  - skip:
+      features: headers
+  - do:
+      headers:
+        Content-Type: application/json
+      catch: bad_request
+      content_manager_subscription_post:
+        body: |
+          {}
+
+  - match: { status: 400 }
+  - match: { message: "Required parameters missing: device_code, client_id, expires_in, interval" }
+
+
+---
+"Test subscription POST returns 201 with valid subscription":
+  - skip:
+      features: headers
+  - do:
+      headers:
+        Content-Type: application/json
+      content_manager_subscription_post:
+        body: |
+          {
+            "device_code": "test-device-code",
+            "client_id": "test-client-id",
+            "expires_in": 3600,
+            "interval": 5
+          }
+
+  - match: { status: 201 }
+  - match: { message: "Subscription created successfully" }
+
+  - do:
+      content_manager_subscription_delete: {}
+
+  - match: { status: 200 }
+  - match: { message: "Subscription deleted successfully" }
+
+
+---
+"Test subscription POST is idempotent (second call also returns 201)":
+  - skip:
+      features: headers
+  - do:
+      headers:
+        Content-Type: application/json
+      content_manager_subscription_post:
+        body: |
+          {
+            "device_code": "test-device-code",
+            "client_id": "test-client-id",
+            "expires_in": 3600,
+            "interval": 5
+          }
+
+  - match: { status: 201 }
+  - match: { message: "Subscription created successfully" }
+
+  # Call again with same data
+  - do:
+      headers:
+        Content-Type: application/json
+      content_manager_subscription_post:
+        body: |
+          {
+            "device_code": "test-device-code",
+            "client_id": "test-client-id",
+            "expires_in": 3600,
+            "interval": 5
+          }
+
+  - match: { status: 201 }
+  - match: { message: "Subscription created successfully" }
+
+  - do:
+      content_manager_subscription_delete: {}
+
+  - match: { status: 200 }
+  - match: { message: "Subscription deleted successfully" }
+
+---
+"Test subscription POST returns 500 when no body is provided":
+  - skip:
+      features: headers
+  - do:
+      catch: request
+      content_manager_subscription_post: {}
+
+  - match: { status: 500 }
+  - match: { message: "request body is required" }

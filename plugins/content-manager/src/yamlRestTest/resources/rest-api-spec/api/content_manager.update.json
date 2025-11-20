@@ -1,0 +1,19 @@
+{
+  "content_manager.update":{
+    "documentation":{
+      "url":"https://github.com/wazuh/wazuh-indexer-plugins",
+      "description":"Trigger a CTI content update operation"
+    },
+    "stability":"experimental",
+    "url":{
+      "paths":[
+        {
+          "path":"/_plugins/content-manager/update",
+          "methods":[
+            "POST"
+          ]
+        }
+      ]
+    }
+  }
+}
