@@ -1,5 +1,6 @@
 package com.wazuh.contentmanager.services;
 
+import com.wazuh.contentmanager.model.rest.Credentials;
 import com.wazuh.contentmanager.model.rest.SubscriptionModel;
 import org.opensearch.threadpool.ThreadPool;
 
@@ -12,6 +13,11 @@ import java.util.concurrent.atomic.AtomicInteger;
  */
 public class ContentManagerService {
     private final ThreadPool threadPool;
+
+    // Stored subscription instance (replaces previous SubscriptionModel singleton)
+    private SubscriptionModel subscription;
+    // Stored credentials instance (replaces previous Credentials singleton)
+    private Credentials credentials;
 
     // Rate limiting:  allow 2 requests per hour
     public static final int RATE_LIMIT = 2;
@@ -74,7 +80,7 @@ public class ContentManagerService {
      * @return The current subscription, or null if no subscription exists
      */
     public SubscriptionModel getSubscription() {
-        return SubscriptionModel.getInstance();
+        return subscription;
     }
 
     /**
@@ -82,7 +88,22 @@ public class ContentManagerService {
      * Also resets the rate limit counter to ensure tests start with a clean state.
      */
     public void deleteSubscription() {
-        SubscriptionModel.deleteInstance();
+        this.subscription = null;
         resetRateLimit();
+    }
+
+    /**
+     * Creates or updates the stored subscription instance.
+     */
+    public void setSubscription(String deviceCode, String clientId, int expiresIn, int interval) {
+        this.subscription = new SubscriptionModel(deviceCode, clientId, expiresIn, interval);
+    }
+
+    public Credentials getCredentials() {
+        return credentials;
+    }
+
+    public void setCredentials(String accessToken, String tokenType) {
+        this.credentials = new Credentials(accessToken, tokenType);
     }
 }

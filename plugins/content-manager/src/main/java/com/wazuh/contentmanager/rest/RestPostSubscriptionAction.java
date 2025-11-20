@@ -1,9 +1,7 @@
 package com.wazuh.contentmanager.rest;
 
 import com.wazuh.contentmanager.ContentManagerPlugin;
-import com.wazuh.contentmanager.model.rest.Credentials;
 import com.wazuh.contentmanager.model.rest.ErrorResponse;
-import com.wazuh.contentmanager.model.rest.SubscriptionModel;
 import com.wazuh.contentmanager.services.ContentManagerService;
 import org.opensearch.transport.client.node.NodeClient;
 import org.opensearch.common.xcontent.XContentFactory;
@@ -91,11 +89,11 @@ public class RestPostSubscriptionAction extends BaseRestHandler {
                     return;
                 }
 
-                // Create or update the subscription using the singleton pattern
-                SubscriptionModel.createOrUpdate(deviceCode, clientId, expiresIn, interval);
+                // Create or update the subscription via the service
+                service.setSubscription(deviceCode, clientId, expiresIn, interval);
                 
                 // TODO: This is a temporary placeholder. Replace with actual credentials from authentication flow.
-                Credentials.createOrUpdate("temporary_access_token", "Bearer");
+                service.setCredentials("temporary_access_token", "Bearer");
                 
                 XContentBuilder builder = XContentFactory.jsonBuilder();
                 builder.startObject()

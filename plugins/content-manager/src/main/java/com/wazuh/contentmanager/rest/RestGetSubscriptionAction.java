@@ -69,7 +69,7 @@ public class RestGetSubscriptionAction extends BaseRestHandler {
                     return;
                 }
 
-                Credentials credentials = Credentials.getInstance();
+                Credentials credentials = service.getCredentials();
                 if (credentials == null) {
                     ErrorResponse error = new ErrorResponse(
                             "Credentials not found",
