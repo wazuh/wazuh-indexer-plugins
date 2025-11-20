@@ -1,6 +1,11 @@
 plugin: openapi
 specFile: openapi.yml
 
+# Enable stores for stateful behavior (retry system)
+stores:
+  - name: token_requests
+    type: memory
+
 # Custom resource configuration for conditional responses
 resources:
   # Token endpoint - conditional responses based on device_code

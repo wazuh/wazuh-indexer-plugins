@@ -78,6 +78,8 @@ curl -k -X POST https://localhost:8443/api/v1/instances/token \
   -d "device_code=NGU5OWFiNjQ5YmQwNGY3YTdmZTEyNzQ3YzQ1YSA"
 ```
 
+Note that as it follows the real implementation, it returns the "pending" state a few times before returning the access token.
+
 **Expected Response (200 OK):**
 ```json
 {
@@ -86,6 +88,17 @@ curl -k -X POST https://localhost:8443/api/v1/instances/token \
   "expires_in": 3600
 }
 ```
+
+> [!TIP]
+> Use different `device_code` values to test different authentication flows:
+>
+> | `device_code`      | Behavior                                                                                     |
+> |--------------------|----------------------------------------------------------------------------------------------|
+> | `` (default)       | Returns `authorization_pending` for the first 4 requests, then grants the token.             |
+> | `pending_rejected` | Returns `authorization_pending` for the first 4 requests, then returns `access_denied`       |
+> | `pending`          | Always returns `authorization_pending` (simulates a user who hasn't completed authorization) |
+> | `expired`          | Always returns `expired_token` error                                                         |
+> | `granted`          | Immediately returns an access token without pending state                                    |
 
 ### 2. Token Exchange (Get Signed URL)
 
