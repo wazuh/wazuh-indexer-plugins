@@ -228,9 +228,42 @@ curl -k -X GET "https://localhost:8443/api/v1/catalog/contexts/misp/consumers/vi
 **Expected Response (200 OK):**
 ```json
 {
-  "content_type": "application/zip",
-  "signature": "kJ9b8w+Q7kzRmF",
-  "url": "https://cdn.wazuh.com/misp/virustotal/changes_0_1000.zip"
+  "data": [
+    {
+      "type": "create",
+      "context": "misp",
+      "resource": "indicator/12345",
+      "offset": 42,
+      "version": 1,
+      "payload": {
+        "type": "ip-address",
+        "value": "192.168.1.100",
+        "threat_level": "high",
+        "timestamp": "2025-11-17T10:30:00Z"
+      }
+    },
+    {
+      "type": "update",
+      "context": "misp",
+      "resource": "indicator/12345",
+      "offset": 43,
+      "version": 2,
+      "operations": [
+        {
+          "op": "replace",
+          "path": "/threat_level",
+          "value": "critical"
+        }
+      ]
+    },
+    {
+      "type": "delete",
+      "context": "misp",
+      "resource": "indicator/12345",
+      "offset": 44,
+      "version": 3
+    }
+  ]
 }
 ```
 
