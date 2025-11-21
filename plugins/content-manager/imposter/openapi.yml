@@ -1,0 +1,728 @@
+openapi: 3.0.0
+info:
+  title: Wazuh Console & CTI Mock API
+  description: |
+    Mock API for testing Wazuh instance OAuth flows and CTI catalog access.
+
+    This specification covers:
+    - Token Request (Device Authorization Grant)
+    - Token Exchange (for HMAC-signed URLs)
+    - Catalog Download (CTI consumer changes access)
+  version: 1.0.0
+  license:
+    name: Apache 2.0
+    url: https://www.apache.org/licenses/LICENSE-2.0.html
+
+servers:
+  - url: "{protocol}://{address}:{port}"
+    variables:
+      address:
+        default: localhost
+      port:
+        default: '8443'
+      protocol:
+        enum:
+          - "http"
+          - "https"
+        default: "https"
+
+tags:
+  - name: CTI Console
+    description: CTI Console endpoints
+  - name: CTI API
+    description: Wazuh CTI resource endpoints
+
+paths:
+  /api/v1/instances/token:
+    post:
+      summary: Token Request
+      description: |
+        Poll for access token using device code from authorization flow.
+
+        This endpoint should be polled at the interval specified in the authorization response
+        until the user completes authorization or the device code expires.
+      operationId: tokenRequest
+      tags:
+        - CTI Console
+      requestBody:
+        required: true
+        content:
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/TokenRequest'
+            examples:
+              valid_request:
+                summary: Valid token request
+                value:
+                  grant_type: urn:ietf:params:oauth:grant-type:device_code
+                  client_id: a17c21ed
+                  device_code: NGU5OWFiNjQ5YmQwNGY3YTdmZTEyNzQ3YzQ1YSA
+      responses:
+        '200':
+          $ref: '#/components/responses/TokenSuccess'
+        '400':
+          $ref: '#/components/responses/TokenError'
+
+  /api/v1/instances/token/exchange:
+    post:
+      summary: Token Exchange Request
+      description: |
+        Exchange access token for HMAC-signed URL to access CTI resources.
+
+        The signed URL is valid for 300 seconds (5 minutes) and grants access
+        to the specific resource specified in the request.
+      operationId: tokenExchange
+      tags:
+        - CTI Console
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/TokenExchangeRequest'
+            examples:
+              catalog_access:
+                summary: Request access to CTI catalog consumer changes
+                value:
+                  grant_type: urn:ietf:params:oauth:grant-type:token-exchange
+                  subject_token_type: urn:ietf:params:oauth:token-type:access_token
+                  requested_token_type: urn:wazuh:params:oauth:token-type:signed_url
+                  resource: https://localhost:8080/api/v1/catalog/contexts/misp/consumer/virustotal/changes
+      responses:
+        '200':
+          $ref: '#/components/responses/TokenExchangeSuccess'
+        '400':
+          $ref: '#/components/responses/TokenExchangeError'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /api/v1/instances/me:
+    get:
+      summary: Get current instance details
+      description: |
+        Retrieve the current instance's organization and plan details.
+
+        Returns information about the organization and the plans associated with the instance,
+        including available products and resources.
+      operationId: getInstanceMe
+      tags:
+        - CTI Console
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          $ref: '#/components/responses/InstanceMeSuccess'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /api/v1/catalog/contexts/{context}/consumers/{consumer}/changes:
+    get:
+      summary: Catalog Download (Consumer Changes)
+      description: |
+        Download CTI catalog consumer changes using HMAC-signed URL.
+
+        This endpoint validates the HMAC signature in the query parameters
+        and returns the requested threat intelligence changes.
+
+        The URL must include valid `verify` parameter with timestamp and signature.
+
+        **Notes:**
+        - `from_offset` and `to_offset` are mandatory
+        - Maximum number of returned changes is 1000
+        - Empty update changes are not returned if `with_empties=false`
+        - Empty creation changes are always returned
+        - No authorization header needed when using signed URL
+      operationId: catalogDownload
+      tags:
+        - CTI API
+      parameters:
+        - name: context
+          in: path
+          required: true
+          description: The context name (e.g., "misp", "otx", "threatfox")
+          schema:
+            type: string
+            example: misp
+        - name: consumer
+          in: path
+          required: true
+          description: The consumer name (e.g., "virustotal", "alienvault")
+          schema:
+            type: string
+            example: virustotal
+        - name: from_offset
+          in: query
+          required: true
+          description: Offset of the last asked resource (offset excluded)
+          schema:
+            type: integer
+            example: 0
+        - name: to_offset
+          in: query
+          required: true
+          description: Offset of the last resource to return (offset included)
+          schema:
+            type: integer
+            example: 1000
+        - name: with_empties
+          in: query
+          required: false
+          description: If false, empty update changes are not returned (default true)
+          schema:
+            type: boolean
+            default: true
+            example: true
+        - name: verify
+          in: query
+          required: true
+          description: HMAC signature with format "timestamp-signature"
+          schema:
+            type: string
+            example: 1761383411-kJ9b8w%2BQ7kzRmF
+      responses:
+        '200':
+          $ref: '#/components/responses/CatalogSuccess'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '422':
+          $ref: '#/components/responses/UnprocessableEntity'
+
+components:
+  # --- Data Schemas ---
+  schemas:
+    TokenRequest:
+      type: object
+      description: Request parameters for polling to obtain access token.
+      properties:
+        grant_type:
+          type: string
+          description: OAuth 2.0 grant type for device authorization.
+          enum:
+            - urn:ietf:params:oauth:grant-type:device_code
+          example: urn:ietf:params:oauth:grant-type:device_code
+        client_id:
+          type: string
+          description: The instance UID.
+          example: a17c21ed
+        device_code:
+          type: string
+          description: The device verification code from authorization response.
+          example: NGU5OWFiNjQ5YmQwNGY3YTdmZTEyNzQ3YzQ1YSA
+      required:
+        - grant_type
+        - client_id
+        - device_code
+
+    TokenResponse:
+      type: object
+      description: Response containing OAuth 2.0 access token.
+      properties:
+        access_token:
+          type: string
+          description: The OAuth 2.0 access token.
+          example: AYjcyMzY3ZDhiNmJkNTY
+        refresh_token:
+          type: string
+          description: The refresh token for obtaining new access tokens.
+          example: RjY2NjM5NzA2OWJjuE7c
+        token_type:
+          type: string
+          description: The type of token issued.
+          enum:
+            - Bearer
+          example: Bearer
+        expires_in:
+          type: integer
+          description: The lifetime of the access token in seconds.
+          example: 3600
+      required:
+        - access_token
+        - token_type
+        - expires_in
+
+    TokenExchangeRequest:
+      type: object
+      description: Request parameters for exchanging access token for signed URL.
+      properties:
+        grant_type:
+          type: string
+          description: OAuth 2.0 grant type for token exchange.
+          enum:
+            - urn:ietf:params:oauth:grant-type:token-exchange
+          example: urn:ietf:params:oauth:grant-type:token-exchange
+        subject_token_type:
+          type: string
+          description: The type of the subject token being exchanged.
+          enum:
+            - urn:ietf:params:oauth:token-type:access_token
+          example: urn:ietf:params:oauth:token-type:access_token
+        requested_token_type:
+          type: string
+          description: The type of token being requested.
+          enum:
+            - urn:wazuh:params:oauth:token-type:signed_url
+          example: urn:wazuh:params:oauth:token-type:signed_url
+        resource:
+          type: string
+          format: uri
+          description: The full URL of the resource to access.
+          example: https://localhost:8080/api/v1/catalog/contexts/misp/consumer/virustotal/changes
+      required:
+        - grant_type
+        - subject_token_type
+        - requested_token_type
+        - resource
+
+    TokenExchangeResponse:
+      type: object
+      description: Response containing HMAC-signed URL for resource access.
+      properties:
+        access_token:
+          type: string
+          format: uri
+          description: The HMAC-signed URL for accessing the protected resource.
+          example: https://localhost:8080/api/v1/catalog/contexts/misp/consumer/virustotal/changes?verify=1761383411-kJ9b8w%2BQ7kzRmF
+        issued_token_type:
+          type: string
+          description: The type of token that was issued.
+          enum:
+            - urn:wazuh:params:oauth:token-type:signed_url
+          example: urn:wazuh:params:oauth:token-type:signed_url
+        expires_in:
+          type: integer
+          description: The lifetime of the signed URL in seconds.
+          example: 300
+      required:
+        - access_token
+        - issued_token_type
+        - expires_in
+
+    CatalogChange:
+      type: object
+      description: A single change entry in the catalog.
+      properties:
+        type:
+          type: string
+          description: The type of change operation.
+          enum:
+            - create
+            - update
+            - delete
+          example: create
+        context:
+          type: string
+          description: The context name.
+          example: misp
+        resource:
+          type: string
+          description: The resource identifier.
+          example: indicator/12345
+        offset:
+          type: integer
+          description: The offset number of this change.
+          example: 42
+        version:
+          type: integer
+          description: The version number of the resource.
+          example: 1
+        payload:
+          type: object
+          description: The resource payload (for create operations).
+          example:
+            type: "ip-address"
+            value: "192.168.1.100"
+            threat_level: "high"
+            timestamp: "2025-11-17T10:30:00Z"
+        operations:
+          type: array
+          description: JSON Patch operations (for update operations).
+          items:
+            type: object
+            properties:
+              op:
+                type: string
+                enum: [add, remove, replace, move, copy, test]
+              path:
+                type: string
+              value:
+                type: object
+                description: The value to set (type depends on the operation)
+          example:
+            - op: replace
+              path: /threat_level
+              value: critical
+      required:
+        - type
+        - context
+        - resource
+        - offset
+        - version
+
+    CatalogChangesResponse:
+      type: object
+      description: Response containing catalog changes.
+      properties:
+        data:
+          type: array
+          description: Array of catalog changes.
+          items:
+            $ref: '#/components/schemas/CatalogChange'
+      required:
+        - data
+
+    InstanceMeResponse:
+      type: object
+      description: Response containing instance details.
+      properties:
+        data:
+          type: object
+          properties:
+            organization:
+              type: object
+              properties:
+                avatar:
+                  type: string
+                  format: uri
+                  description: URL to the organization's avatar image.
+                  example: "https://acme.sl/avatar.png"
+                name:
+                  type: string
+                  description: Organization name.
+                  example: "ACME S.L."
+            plans:
+              type: array
+              description: List of plans associated with the instance.
+              items:
+                $ref: '#/components/schemas/Plan'
+      required:
+        - data
+
+    Plan:
+      type: object
+      description: A plan with associated products.
+      properties:
+        name:
+          type: string
+          description: Plan name.
+          example: "Pro Plan Deluxe"
+        description:
+          type: string
+          description: Plan description.
+          example: "Lorem ipsum…"
+        products:
+          type: array
+          description: List of products included in the plan.
+          items:
+            $ref: '#/components/schemas/Product'
+      required:
+        - name
+        - description
+        - products
+
+    Product:
+      type: object
+      description: A product included in a plan.
+      properties:
+        type:
+          type: string
+          description: Product type identifier.
+          example: "catalog:consumer:vulnerabilities"
+        identifier:
+          type: string
+          description: Unique product identifier.
+          example: "vulnerabilities-pro"
+        name:
+          type: string
+          description: Product name.
+          example: "Vulnerabilities Pro"
+        description:
+          type: string
+          description: Product description.
+          example: "Vulnerabilities updated as soon as they are added to the catalog"
+        resource:
+          type: string
+          format: uri
+          description: Resource URL for catalog products.
+          example: "https://localhost:8080/api/v1/catalog/plans/pro/contexts/vulnerabilities/consumer/realtime"
+        email:
+          type: string
+          format: email
+          description: Contact email for assistance products.
+          example: "cloud@wazuh.com"
+        phone:
+          type: string
+          description: Contact phone for assistance products.
+          example: "+34 123 456 789"
+      required:
+        - type
+        - identifier
+        - name
+
+    ErrorResponse:
+      type: object
+      description: Standard error response.
+      properties:
+        error:
+          type: string
+          description: The error code.
+          example: invalid_request
+        error_description:
+          type: string
+          description: Human-readable error description.
+          example: Missing required parameter
+        errors:
+          type: object
+          description: Detailed validation errors by field.
+          additionalProperties:
+            type: array
+            items:
+              type: string
+          example:
+            from_offset: ["must be less than to_offset"]
+      required:
+        - error
+
+  # --- Response Schemas ---
+  responses:
+    # Success Responses
+    TokenSuccess:
+      description: OK - Access token granted.
+      headers:
+        Cache-Control:
+          schema:
+            type: string
+            example: no-store
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/TokenResponse'
+          examples:
+            success:
+              summary: Access token granted
+              value:
+                access_token: AYjcyMzY3ZDhiNmJkNTY
+                refresh_token: RjY2NjM5NzA2OWJjuE7c
+                token_type: Bearer
+                expires_in: 3600
+
+    TokenExchangeSuccess:
+      description: OK - Token exchange successful.
+      headers:
+        Cache-Control:
+          schema:
+            type: string
+            example: no-store
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/TokenExchangeResponse'
+          examples:
+            success:
+              summary: HMAC-signed URL issued
+              value:
+                access_token: https://localhost:8080/api/v1/catalog/contexts/misp/consumer/virustotal/changes?verify=1761383411-kJ9b8w%2BQ7kzRmF
+                issued_token_type: urn:wazuh:params:oauth:token-type:signed_url
+                expires_in: 300
+
+    CatalogSuccess:
+      description: OK - Catalog changes retrieved successfully.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/CatalogChangesResponse'
+          examples:
+            mixed_changes:
+              summary: Catalog changes with create, update, and delete operations
+              value:
+                data:
+                  - type: create
+                    context: misp
+                    resource: indicator/12345
+                    offset: 42
+                    version: 1
+                    payload:
+                      type: "ip-address"
+                      value: "192.168.1.100"
+                      threat_level: "high"
+                      timestamp: "2025-11-17T10:30:00Z"
+                  - type: update
+                    context: misp
+                    resource: indicator/12345
+                    offset: 43
+                    version: 2
+                    operations:
+                      - op: replace
+                        path: /threat_level
+                        value: critical
+                  - type: delete
+                    context: misp
+                    resource: indicator/12345
+                    offset: 44
+                    version: 3
+
+    InstanceMeSuccess:
+      description: OK - Instance details retrieved successfully.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/InstanceMeResponse'
+          examples:
+            pro_plan:
+              summary: Pro Plan response
+              value:
+                data:
+                  organization:
+                    avatar: "https://acme.sl/avatar.png"
+                    name: "ACME S.L."
+                  plans:
+                    - name: "Pro Plan Deluxe"
+                      description: "Lorem ipsum…"
+                      products:
+                        - type: "catalog:consumer:vulnerabilities"
+                          identifier: "vulnerabilities-pro"
+                          name: "Vulnerabilities Pro"
+                          description: "Vulnerabilities updated as soon as they are added to the catalog"
+                          resource: "https://localhost:8080/api/v1/catalog/plans/pro/contexts/vulnerabilities/consumer/realtime"
+                        - type: "catalog:consumer:iocs"
+                          identifier: "bad-guy-ips-pro"
+                          name: "Bad Guy IPs"
+                          description: "Dolor sit amet…"
+                          resource: "https://localhost:8080/api/v1/catalog/plans/pro/contexts/bad-guy-ips/consumer/realtime"
+            cloud_plan:
+              summary: Cloud Plan with Pro Products
+              value:
+                data:
+                  organization:
+                    avatar: "https://acme.sl/avatar.png"
+                    name: "ACME S.L."
+                  plans:
+                    - name: "Wazuh Cloud"
+                      description: "Managed instances in AWS by Wazuh's professional staf that…"
+                      products:
+                        - identifier: "assistance-24h"
+                          type: "cloud:assistance:wazuh"
+                          name: "Technical assistance 24h"
+                          email: "cloud@wazuh.com"
+                          phone: "+34 123 456 789"
+                        - identifier: "vulnerabilities-pro"
+                          type: "catalog:consumer:vulnerabilities"
+                          name: "Vulnerabilities Pro"
+                          description: "Vulnerabilities updated as soon as they are added to the catalog"
+                          resource: "https://localhost:8080/api/v1/catalog/plans/pro/contexts/vulnerabilities/consumer/realtime"
+                        - identifier: "bad-guy-ips-pro"
+                          type: "catalog:consumer:iocs"
+                          name: "Bad Guy IPs"
+                          description: "Dolor sit amet…"
+                          resource: "https://localhost:8080/api/v1/catalog/plans/pro/contexts/bad-guy-ips/consumer/realtime"
+
+    # Error Responses
+    TokenError:
+      description: Bad Request - Token request failed.
+      headers:
+        Cache-Control:
+          schema:
+            type: string
+            example: no-store
+        Pragma:
+          schema:
+            type: string
+            example: no-cache
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          examples:
+            authorization_pending:
+              summary: User has not yet authorized
+              value:
+                error: authorization_pending
+            expired_token:
+              summary: Device code has expired
+              value:
+                error: expired_token
+                error_description: The device code has expired
+
+    TokenExchangeError:
+      description: Bad Request - Token exchange failed.
+      headers:
+        Cache-Control:
+          schema:
+            type: string
+            example: no-store
+        Pragma:
+          schema:
+            type: string
+            example: no-cache
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          examples:
+            invalid_request:
+              summary: Missing required parameter
+              value:
+                error: invalid_request
+                error_description: Missing required parameter resource
+            invalid_target:
+              summary: Invalid resource endpoint
+              value:
+                error: invalid_target
+                error_description: The resource parameter refers to an invalid endpoint
+
+    Unauthorized:
+      description: Unauthorized - Authentication failed or token is invalid.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          examples:
+            invalid_token:
+              summary: Invalid or expired token
+              value:
+                error: unauthorized_client
+                error_description: The provided token is invalid or expired
+
+    Forbidden:
+      description: Forbidden - HMAC signature validation failed.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          examples:
+            invalid_signature:
+              summary: Invalid HMAC signature
+              value:
+                error: access_denied
+                error_description: Invalid or expired HMAC signature
+
+    UnprocessableEntity:
+      description: Unprocessable Entity - Invalid parameters.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          examples:
+            invalid_offset_range:
+              summary: Invalid offset range
+              value:
+                errors:
+                  from_offset: ["must be less than to_offset"]
+            too_many_changes:
+              summary: Too many changes requested
+              value:
+                errors:
+                  to_offset: ["range exceeds maximum of 1000 changes"]
+
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: |
+        OAuth 2.0 Bearer token authentication.
+        Include the access token in the Authorization header:
+        `Authorization: Bearer <access_token>`

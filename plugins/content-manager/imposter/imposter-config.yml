@@ -1,0 +1,33 @@
+plugin: openapi
+specFile: openapi.yml
+
+# Enable stores for stateful behavior (retry system)
+stores:
+  - name: token_requests
+    type: memory
+
+# Custom resource configuration for conditional responses
+resources:
+  # Token endpoint - conditional responses based on device_code
+  - path: /api/v1/instances/token
+    method: POST
+    response:
+      scriptFile: scripts/tokenResponse.groovy
+
+  # Token exchange endpoint - conditional responses based on Authorization header
+  - path: /api/v1/instances/token/exchange
+    method: POST
+    response:
+      scriptFile: scripts/tokenExchangeResponse.groovy
+
+  # Instance me endpoint - conditional responses based on Authorization token
+  - path: /api/v1/instances/me
+    method: GET
+    response:
+      scriptFile: scripts/instanceMeResponse.groovy
+
+  # Catalog endpoint - conditional responses based on verify parameter
+  - path: /api/v1/catalog/contexts/{context}/consumers/{consumer}/changes
+    method: GET
+    response:
+      scriptFile: scripts/catalogResponse.groovy
