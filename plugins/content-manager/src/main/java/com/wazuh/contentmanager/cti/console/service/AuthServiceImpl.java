@@ -1,7 +1,5 @@
 package com.wazuh.contentmanager.cti.console.service;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.wazuh.contentmanager.cti.console.client.ApiClient;
 import com.wazuh.contentmanager.cti.console.model.Token;
 import org.apache.hc.client5.http.async.methods.SimpleHttpResponse;
 import org.apache.logging.log4j.LogManager;
@@ -15,18 +13,14 @@ import java.util.concurrent.TimeoutException;
 /**
  * Implementation of the AuthService interface.
  */
-public class AuthServiceImpl implements AuthService {
+public class AuthServiceImpl extends AbstractService implements AuthService {
     private static final Logger log = LogManager.getLogger(AuthServiceImpl.class);
-
-    private final ApiClient client;
-    private final ObjectMapper mapper;
 
     /**
      * Default constructor
      */
     public AuthServiceImpl() {
-        this.client = new ApiClient();
-        this.mapper = new ObjectMapper();
+        super();
     }
 
     /**

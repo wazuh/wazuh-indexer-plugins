@@ -2,8 +2,6 @@ package com.wazuh.contentmanager.cti.console.service;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.wazuh.contentmanager.cti.console.client.ApiClient;
 import com.wazuh.contentmanager.cti.console.model.Plan;
 import org.apache.hc.client5.http.async.methods.SimpleHttpResponse;
 import org.apache.logging.log4j.LogManager;
@@ -17,18 +15,14 @@ import java.util.concurrent.TimeoutException;
 /**
  * Implementation of the PlansService interface.
  */
-public class PlansServiceImpl implements PlansService {
+public class PlansServiceImpl extends AbstractService implements PlansService {
     private static final Logger log = LogManager.getLogger(PlansServiceImpl.class);
-
-    private final ApiClient client;
-    private final ObjectMapper mapper;
 
     /**
      * Default constructor.
      */
     public PlansServiceImpl() {
-        this.client = new ApiClient();
-        this.mapper = new ObjectMapper();
+        super();
     }
 
     /**
