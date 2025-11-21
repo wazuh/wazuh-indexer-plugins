@@ -39,7 +39,7 @@ public class PlansServiceImpl implements PlansService {
     public List<Plan> getPlans(String permanentToken) {
         try {
             // Perform request
-            SimpleHttpResponse response = this.client.getProducts(permanentToken);
+            SimpleHttpResponse response = this.client.getPlans(permanentToken);
 
             if (response.getCode() == 200) {
                 // Parse response

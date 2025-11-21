@@ -123,7 +123,7 @@ public class ApiClient {
         SimpleHttpRequest request = SimpleRequestBuilder
             .post(RESOURCE_URI)
             .addHeader(HttpHeaders.CONTENT_TYPE, ContentType.APPLICATION_FORM_URLENCODED.toString())
-            .setHeader(HttpHeaders.AUTHORIZATION, token)
+            .addHeader(HttpHeaders.AUTHORIZATION, token)
             .setBody(formBody, ContentType.APPLICATION_FORM_URLENCODED)
             .build();
 
@@ -137,20 +137,21 @@ public class ApiClient {
     }
 
     /**
-     * Perform an HTTP GET request to the CTI Console to obtain the list of products the instance is subscribed to.
+     * Perform an HTTP GET request to the CTI Console to obtain the list of plans the instance is subscribed to.
      * @param permanentToken permanent token for the instance.
      * @return HTTP response.
      * @throws ExecutionException request failed.
      * @throws InterruptedException request failed / interrupted.
      * @throws TimeoutException request timed out.
      */
-    public SimpleHttpResponse getProducts(String permanentToken) throws ExecutionException, InterruptedException, TimeoutException {
+    public SimpleHttpResponse getPlans(String permanentToken) throws ExecutionException, InterruptedException, TimeoutException {
         String token = String.format("Bearer %s", permanentToken);
 
         SimpleHttpRequest request = SimpleRequestBuilder
             .get(PRODUCTS_URI)
             .addHeader(HttpHeaders.CONTENT_TYPE, ContentType.APPLICATION_JSON.toString())
-            .setHeader(HttpHeaders.AUTHORIZATION, token)
+            .addHeader(HttpHeaders.AUTHORIZATION, token)
+            .addHeader("wazuh-tag", "v5.0.0") // TODO make dynamic
             .build();
 
         final Future<SimpleHttpResponse> future = client.execute(
