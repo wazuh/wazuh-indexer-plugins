@@ -1,6 +1,6 @@
 package com.wazuh.contentmanager.services;
 
-import com.wazuh.contentmanager.model.rest.Credentials;
+import com.wazuh.contentmanager.model.rest.Token;
 import com.wazuh.contentmanager.model.rest.SubscriptionModel;
 import org.opensearch.threadpool.ThreadPool;
 
@@ -16,8 +16,8 @@ public class ContentManagerService {
 
     // Stored subscription instance (replaces previous SubscriptionModel singleton)
     private SubscriptionModel subscription;
-    // Stored credentials instance (replaces previous Credentials singleton)
-    private Credentials credentials;
+    // Stored token instance (replaces previous Token singleton)
+    private Token token;
 
     // Rate limiting:  allow 2 requests per hour
     public static final int RATE_LIMIT = 2;
@@ -99,11 +99,11 @@ public class ContentManagerService {
         this.subscription = new SubscriptionModel(deviceCode, clientId, expiresIn, interval);
     }
 
-    public Credentials getCredentials() {
-        return credentials;
+    public Token getToken() {
+        return token;
     }
 
-    public void setCredentials(String accessToken, String tokenType) {
-        this.credentials = new Credentials(accessToken, tokenType);
+    public void setToken(String accessToken, String tokenType) {
+        this.token = new Token(accessToken, tokenType);
     }
 }

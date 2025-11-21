@@ -92,8 +92,8 @@ public class RestPostSubscriptionAction extends BaseRestHandler {
                 // Create or update the subscription via the service
                 service.setSubscription(deviceCode, clientId, expiresIn, interval);
                 
-                // TODO: This is a temporary placeholder. Replace with actual credentials from authentication flow.
-                service.setCredentials("temporary_access_token", "Bearer");
+                // TODO: This is a temporary placeholder. Replace with actual token from authentication flow.
+                service.setToken("temporary_access_token", "Bearer");
                 
                 XContentBuilder builder = XContentFactory.jsonBuilder();
                 builder.startObject()

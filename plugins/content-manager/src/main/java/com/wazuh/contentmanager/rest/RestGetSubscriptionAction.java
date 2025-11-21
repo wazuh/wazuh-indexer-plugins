@@ -1,7 +1,7 @@
 package com.wazuh.contentmanager.rest;
 
 import com.wazuh.contentmanager.ContentManagerPlugin;
-import com.wazuh.contentmanager.model.rest.Credentials;
+import com.wazuh.contentmanager.model.rest.Token;
 import com.wazuh.contentmanager.model.rest.ErrorResponse;
 import com.wazuh.contentmanager.model.rest.SubscriptionModel;
 import com.wazuh.contentmanager.services.ContentManagerService;
@@ -21,7 +21,7 @@ import static org.opensearch.rest.RestRequest.Method.GET;
 /**
  * GET /_plugins/content-manager/subscription
  *
- * Retrieves the current CTI subscription credentials.
+ * Retrieves the current CTI subscription token.
  *
  * Possible HTTP responses:
  * - 200 OK: Subscription found, returns access token and token type
@@ -69,10 +69,10 @@ public class RestGetSubscriptionAction extends BaseRestHandler {
                     return;
                 }
 
-                Credentials credentials = service.getCredentials();
-                if (credentials == null) {
+                Token token = service.getToken();
+                if (token == null) {
                     ErrorResponse error = new ErrorResponse(
-                            "Credentials not found",
+                            "Token not found",
                             RestStatus.NOT_FOUND.getStatus()
                     );
                     XContentBuilder builder = XContentFactory.jsonBuilder();
@@ -86,8 +86,8 @@ public class RestGetSubscriptionAction extends BaseRestHandler {
 
                 XContentBuilder builder = XContentFactory.jsonBuilder();
                 builder.startObject()
-                        .field("access_token", credentials.getAccessToken())
-                        .field("token_type", credentials.getTokenType())
+                        .field("access_token", token.getAccessToken())
+                        .field("token_type", token.getTokenType())
                         .endObject();
                 channel.sendResponse(new BytesRestResponse(RestStatus.OK, builder));
             } catch (Exception e) {

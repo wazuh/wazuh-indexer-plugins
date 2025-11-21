@@ -10,7 +10,7 @@
   - match: { message: "Subscription not found" }
 
 ---
-"Test subscription GET returns 200 with credentials after subscription created":
+"Test subscription GET returns 200 with token after subscription created":
   - skip:
       features: headers
   - do:
