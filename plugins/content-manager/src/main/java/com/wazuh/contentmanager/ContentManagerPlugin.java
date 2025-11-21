@@ -16,8 +16,11 @@
  */
 package com.wazuh.contentmanager;
 
-import com.wazuh.contentmanager.cti.model.Token;
-import com.wazuh.contentmanager.cti.service.CtiAuthServiceImpl;
+import com.wazuh.contentmanager.cti.console.model.Plan;
+import com.wazuh.contentmanager.cti.console.model.Product;
+import com.wazuh.contentmanager.cti.console.model.Token;
+import com.wazuh.contentmanager.cti.console.service.AuthServiceImpl;
+import com.wazuh.contentmanager.cti.console.service.PlansServiceImpl;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.opensearch.transport.client.Client;
@@ -100,12 +103,30 @@ public class ContentManagerPlugin extends Plugin implements ClusterPlugin {
                         }
                     });
         }
-        CtiAuthServiceImpl authService = new CtiAuthServiceImpl();
-        Token token = authService.getToken("client_id", "device_code");
+
+        // Example 1. Obtain permanent token - Success.
+        AuthServiceImpl authService = new AuthServiceImpl();
+        Token token = authService.getToken("client_id", "granted");
         log.info("Permanent token {}", token);
+
+        // Example 2. Obtain available plans
+        PlansServiceImpl productsService = new PlansServiceImpl();
+        List<Plan> plans = productsService.getPlans(token.getAccessToken());
+        log.info("Plans: {}", plans);
+
+        // Example 3. Obtain resource token.
+        Product vulnsPro = plans.stream()
+            .filter(plan -> plan.getName().equals("Pro Plan Deluxe"))
+            .toList()
+            .getFirst()
+            .getProducts().stream()
+            .filter(product -> product.getIdentifier().equals("vulnerabilities-pro"))
+            .toList()
+            .getFirst();
+
         Token resourceToken = authService.getResourceToken(
             token.getAccessToken(),
-            "https://localhost:4040/api/v1/catalog/contexts/foo/consumer/bar"
+            vulnsPro.getResource()
         );
         log.info("Resource token {}", resourceToken);
     }

@@ -1,4 +1,4 @@
-package com.wazuh.contentmanager.cti.client;
+package com.wazuh.contentmanager.cti.console.client;
 
 import com.wazuh.contentmanager.utils.http.HttpResponseCallback;
 import org.apache.hc.client5.http.async.methods.*;
@@ -22,7 +22,10 @@ import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
-public class CtiApiClient {
+/**
+ * CTI Console API client.
+ */
+public class ApiClient {
 
     private static final String BASE_URI = "https://localhost:8443";
     private static final String API_PREFIX = "/api/v1";
@@ -32,18 +35,21 @@ public class CtiApiClient {
 
     private CloseableHttpAsyncClient client;
 
+    private final int TIMEOUT = 5;
+
     /**
      * Constructs an CtiApiClient instance.
      */
-    public CtiApiClient() {
-//        super(URI.create(API_URI));
-
+    public ApiClient() {
         this.buildClient();
     }
 
+    /**
+     * Builds and starts the Http client.
+     */
     private void buildClient() {
         IOReactorConfig ioReactorConfig = IOReactorConfig.custom()
-            .setSoTimeout(Timeout.ofSeconds(5))
+            .setSoTimeout(Timeout.ofSeconds(TIMEOUT))
             .build();
 
         SSLContext sslContext;
@@ -68,6 +74,15 @@ public class CtiApiClient {
         this.client.start();
     }
 
+    /**
+     * Perform an HTTP POST request to the CTI Console to obtain a permanent token for this XDR/SIEM Wazuh instance
+     * @param clientId unique client identifier for the instance.
+     * @param deviceCode unique device code provided by the CTI Console during the registration of the instance.
+     * @return HTTP response.
+     * @throws ExecutionException request failed.
+     * @throws InterruptedException request failed / interrupted.
+     * @throws TimeoutException request timed out.
+     */
     public SimpleHttpResponse getToken(String clientId, String deviceCode) throws ExecutionException, InterruptedException, TimeoutException {
         String grantType = "grant_type=urn:ietf:params:oauth:grant-type:device_code";
         String formBody = String.format("%s&client_id=%s&device_code=%s", grantType, clientId, deviceCode);
@@ -84,9 +99,18 @@ public class CtiApiClient {
             new HttpResponseCallback(
                 request, "Outgoing request failed"
             ));
-        return future.get(5, TimeUnit.SECONDS);
+        return future.get(TIMEOUT, TimeUnit.SECONDS);
     }
 
+    /***
+     * Perform an HTTP POST request to the CTI Console to obtain a temporary HMAC-signed URL token for the given resource.
+     * @param permanentToken permanent token for the instance.
+     * @param resource resource to request the access token to.
+     * @return HTTP response.
+     * @throws ExecutionException request failed.
+     * @throws InterruptedException request failed / interrupted.
+     * @throws TimeoutException request timed out.
+     */
     public SimpleHttpResponse getResourceToken(String permanentToken, String resource) throws ExecutionException, InterruptedException, TimeoutException {
         String formBody = String.join("&", List.of(
             "grant_type=urn:ietf:params:oauth:grant-type:token-exchange",
@@ -109,6 +133,32 @@ public class CtiApiClient {
             new HttpResponseCallback(
                 request, "Outgoing request failed"
             ));
-        return future.get(5, TimeUnit.SECONDS);
+        return future.get(TIMEOUT, TimeUnit.SECONDS);
+    }
+
+    /**
+     * Perform an HTTP GET request to the CTI Console to obtain the list of products the instance is subscribed to.
+     * @param permanentToken permanent token for the instance.
+     * @return HTTP response.
+     * @throws ExecutionException request failed.
+     * @throws InterruptedException request failed / interrupted.
+     * @throws TimeoutException request timed out.
+     */
+    public SimpleHttpResponse getProducts(String permanentToken) throws ExecutionException, InterruptedException, TimeoutException {
+        String token = String.format("Bearer %s", permanentToken);
+
+        SimpleHttpRequest request = SimpleRequestBuilder
+            .get(PRODUCTS_URI)
+            .addHeader(HttpHeaders.CONTENT_TYPE, ContentType.APPLICATION_JSON.toString())
+            .setHeader(HttpHeaders.AUTHORIZATION, token)
+            .build();
+
+        final Future<SimpleHttpResponse> future = client.execute(
+            SimpleRequestProducer.create(request),
+            SimpleResponseConsumer.create(),
+            new HttpResponseCallback(
+                request, "Outgoing request failed"
+            ));
+        return future.get(TIMEOUT, TimeUnit.SECONDS);
     }
 }
