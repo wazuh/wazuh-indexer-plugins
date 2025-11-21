@@ -27,7 +27,7 @@ import java.util.List;
 
 import com.wazuh.contentmanager.client.CTIClient;
 import com.wazuh.contentmanager.index.ContentIndex;
-import com.wazuh.contentmanager.index.ContextIndex;
+import com.wazuh.contentmanager.index.CTIConsumers;
 import com.wazuh.contentmanager.model.cti.*;
 import com.wazuh.contentmanager.settings.PluginSettings;
 import com.wazuh.contentmanager.utils.Privileged;
@@ -40,7 +40,7 @@ import static org.mockito.Mockito.*;
 /** Tests of the Content Manager's updater */
 @OpenSearchIntegTestCase.ClusterScope(scope = OpenSearchIntegTestCase.Scope.SUITE)
 public class ContentUpdaterTests extends OpenSearchIntegTestCase {
-    private ContextIndex contextIndex;
+    private CTIConsumers CTIConsumers;
     private ContentIndex contentIndex;
     private CTIClient ctiClient;
     private Privileged privilegedSpy;
@@ -67,14 +67,14 @@ public class ContentUpdaterTests extends OpenSearchIntegTestCase {
         this.pluginSettings =
                 PluginSettings.getInstance(this.mockEnvironment.settings(), this.mockClusterService);
 
-        this.contextIndex = mock(ContextIndex.class);
+        this.CTIConsumers = mock(CTIConsumers.class);
         this.contentIndex = mock(ContentIndex.class);
         this.privilegedSpy = Mockito.spy(Privileged.class);
         this.updater =
                 Mockito.spy(
                         new ContentUpdater(
                                 this.ctiClient,
-                                this.contextIndex,
+                                this.CTIConsumers,
                                 this.contentIndex,
                                 this.privilegedSpy,
                                 this.pluginSettings));
@@ -84,7 +84,7 @@ public class ContentUpdaterTests extends OpenSearchIntegTestCase {
     /** Test Fetch and apply no new updates */
     public void testUpdateNoChanges() {
         // Mock current and latest offset.
-        doReturn(this.consumerInfo).when(this.contextIndex).get(anyString(), anyString());
+        doReturn(this.consumerInfo).when(this.CTIConsumers).get(anyString(), anyString());
         // Act
         this.updater.update();
         // Assert applyChangesToContextIndex is not called.
@@ -103,7 +103,7 @@ public class ContentUpdaterTests extends OpenSearchIntegTestCase {
                 .getChanges(any(CTIClient.class), anyLong(), anyLong());
         // Mock ContentIndex.patch
         doReturn(true).when(this.updater).applyChanges(any());
-        doReturn(this.consumerInfo).when(this.contextIndex).get(anyString(), anyString());
+        doReturn(this.consumerInfo).when(this.CTIConsumers).get(anyString(), anyString());
         // Act
         doNothing().when(this.consumerInfo).setOffset(anyLong());
         doNothing().when(this.consumerInfo).setLastOffset(anyLong());
@@ -122,7 +122,7 @@ public class ContentUpdaterTests extends OpenSearchIntegTestCase {
         doReturn(null).when(this.privilegedSpy).getChanges(any(CTIClient.class), anyLong(), anyLong());
         doNothing().when(this.consumerInfo).setOffset(anyLong());
         doNothing().when(this.consumerInfo).setLastOffset(anyLong());
-        doReturn(this.consumerInfo).when(this.contextIndex).get(anyString(), anyString());
+        doReturn(this.consumerInfo).when(this.CTIConsumers).get(anyString(), anyString());
         // Act
         boolean updated = this.updater.update();
         // Assert
@@ -143,7 +143,7 @@ public class ContentUpdaterTests extends OpenSearchIntegTestCase {
         doReturn(false).when(this.updater).applyChanges(any());
         doNothing().when(this.consumerInfo).setOffset(anyLong());
         doNothing().when(this.consumerInfo).setLastOffset(anyLong());
-        doReturn(this.consumerInfo).when(this.contextIndex).get(anyString(), anyString());
+        doReturn(this.consumerInfo).when(this.CTIConsumers).get(anyString(), anyString());
         // Act
         boolean updated = this.updater.update();
         // Assert

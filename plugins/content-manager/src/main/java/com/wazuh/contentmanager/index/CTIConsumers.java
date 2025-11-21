@@ -21,10 +21,14 @@ import org.apache.logging.log4j.Logger;
 import org.opensearch.action.DocWriteResponse;
 import org.opensearch.action.get.GetRequest;
 import org.opensearch.action.get.GetResponse;
+import org.opensearch.action.admin.indices.create.CreateIndexRequest;
+import org.opensearch.action.admin.indices.create.CreateIndexResponse;
 import org.opensearch.action.index.IndexRequest;
 import org.opensearch.action.index.IndexResponse;
 import org.opensearch.transport.client.Client;
 import org.opensearch.common.xcontent.XContentFactory;
+import org.opensearch.common.xcontent.XContentType;
+import org.opensearch.common.settings.Settings;
 import org.opensearch.core.xcontent.ToXContent;
 
 import java.io.IOException;
@@ -40,11 +44,11 @@ import com.wazuh.contentmanager.settings.PluginSettings;
 import com.wazuh.contentmanager.utils.ClusterInfo;
 
 /** Class to manage the Context index. */
-public class ContextIndex {
-    private static final Logger log = LogManager.getLogger(ContextIndex.class);
+public class CTIConsumers {
+    private static final Logger log = LogManager.getLogger(CTIConsumers.class);
 
     /** The name of the Contexts index */
-    public static final String INDEX_NAME = "wazuh-context";
+    public static final String INDEX_NAME = ".cti-consumers";
 
     private final Client client;
 
@@ -61,7 +65,7 @@ public class ContextIndex {
      *
      * @param client OpenSearch client used for indexing and search operations.
      */
-    public ContextIndex(Client client) {
+    public CTIConsumers(Client client) {
         this.client = client;
         this.pluginSettings = PluginSettings.getInstance();
     }
@@ -76,7 +80,7 @@ public class ContextIndex {
         try {
             IndexRequest indexRequest =
                     new IndexRequest()
-                            .index(ContextIndex.INDEX_NAME)
+                            .index(CTIConsumers.INDEX_NAME)
                             .source(
                                     consumerInfo.toXContent(XContentFactory.jsonBuilder(), ToXContent.EMPTY_PARAMS))
                             .id(consumerInfo.getContext());
@@ -112,13 +116,13 @@ public class ContextIndex {
     @SuppressWarnings("unchecked")
     public ConsumerInfo get(String context, String consumer) {
         // Avoid faulty requests if the cluster is unstable.
-        if (!ClusterInfo.indexStatusCheck(this.client, ContextIndex.INDEX_NAME)) {
+        if (!ClusterInfo.indexStatusCheck(this.client, CTIConsumers.INDEX_NAME)) {
             throw new RuntimeException("Index not ready");
         }
         try {
             GetResponse getResponse =
                     this.client
-                            .get(new GetRequest(ContextIndex.INDEX_NAME, context).preference("_local"))
+                            .get(new GetRequest(CTIConsumers.INDEX_NAME, context).preference("_local"))
                             .get(this.pluginSettings.getClientTimeout(), TimeUnit.SECONDS);
 
             Map<String, Object> source = (Map<String, Object>) getResponse.getSourceAsMap().get(consumer);
@@ -129,12 +133,12 @@ public class ContextIndex {
             }
 
             // Update consumer info (internal state)
-            long offset = ContextIndex.asLong(source.get(ConsumerInfo.OFFSET));
-            long lastOffset = ContextIndex.asLong(source.get(ConsumerInfo.LAST_OFFSET));
+            long offset = CTIConsumers.asLong(source.get(ConsumerInfo.OFFSET));
+            long lastOffset = CTIConsumers.asLong(source.get(ConsumerInfo.LAST_OFFSET));
             String snapshot = (String) source.get(ConsumerInfo.LAST_SNAPSHOT_LINK);
             this.consumerInfo = new ConsumerInfo(consumer, context, offset, lastOffset, snapshot);
             log.info(
-                    "Fetched consumer from the [{}] index: {}", ContextIndex.INDEX_NAME, this.consumerInfo);
+                    "Fetched consumer from the [{}] index: {}", CTIConsumers.INDEX_NAME, this.consumerInfo);
         } catch (InterruptedException | ExecutionException | TimeoutException e) {
             log.error("Failed to fetch consumer [{}][{}]: {}", context, consumer, e.getMessage());
         }
@@ -154,27 +158,41 @@ public class ContextIndex {
     }
 
     /**
-     * Checks whether the {@link ContextIndex#INDEX_NAME} index exists.
+     * Checks whether the {@link CTIConsumers#INDEX_NAME} index exists.
      *
      * @see ClusterInfo#indexExists(Client, String)
      * @return true if the index exists, false otherwise.
      */
     public boolean exists() {
-        return ClusterInfo.indexExists(this.client, ContextIndex.INDEX_NAME);
+        return ClusterInfo.indexExists(this.client, CTIConsumers.INDEX_NAME);
     }
 
-    /** Creates the {@link ContextIndex#INDEX_NAME} index, if it does not exist. */
+    /** Creates the {@link CTIConsumers#INDEX_NAME} index, if it does not exist. */
     public void createIndex() {
         if (!this.exists()) {
-            boolean result =
-                    this.index(
-                            new ConsumerInfo(
-                                    this.pluginSettings.getConsumerId(),
-                                    this.pluginSettings.getContextId(),
-                                    0,
-                                    0,
-                                    null));
-            log.info("Index initialized: {}", result);
+            try {
+                CreateIndexRequest request = new CreateIndexRequest(CTIConsumers.INDEX_NAME);
+                Settings settings = Settings.builder().put("index.number_of_replicas", 0).build();
+                request.settings(settings);
+                String mapping = "{\n"
+                    + "  \"properties\": {\n"
+                    + "    \"rules_consumer\": {\n"
+                    + "      \"properties\": {\n"
+                    + "        \"current_offset\": { \"type\": \"long\" },\n"
+                    + "        \"latest_offset\": { \"type\": \"long\" },\n"
+                    + "        \"snapshot_link\": { \"type\": \"keyword\" }\n"
+                    + "      }\n"
+                    + "    }\n"
+                    + "  }\n"
+                    + "}";
+
+                request.mapping(mapping, XContentType.JSON);
+
+                CreateIndexResponse response = this.client.admin().indices().create(request).actionGet();
+                log.info("Index created: {} acknowledged={}", response.index(), response.isAcknowledged());
+            } catch (Exception e) {
+                log.warn("Index creation attempt failed: {}", e.getMessage());
+            }
         }
     }
 }

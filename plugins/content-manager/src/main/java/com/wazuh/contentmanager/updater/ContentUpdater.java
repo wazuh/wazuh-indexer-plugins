@@ -21,7 +21,7 @@ import org.apache.logging.log4j.Logger;
 
 import com.wazuh.contentmanager.client.CTIClient;
 import com.wazuh.contentmanager.index.ContentIndex;
-import com.wazuh.contentmanager.index.ContextIndex;
+import com.wazuh.contentmanager.index.CTIConsumers;
 import com.wazuh.contentmanager.model.cti.Changes;
 import com.wazuh.contentmanager.model.cti.ConsumerInfo;
 import com.wazuh.contentmanager.settings.PluginSettings;
@@ -31,7 +31,7 @@ import com.wazuh.contentmanager.utils.VisibleForTesting;
 /** Class responsible for managing content updates by fetching and applying changes in chunks. */
 public class ContentUpdater {
     private static final Logger log = LogManager.getLogger(ContentUpdater.class);
-    private final ContextIndex contextIndex;
+    private final CTIConsumers CTIConsumers;
     private final ContentIndex contentIndex;
     private final CTIClient ctiClient;
     private final Privileged privileged;
@@ -54,15 +54,15 @@ public class ContentUpdater {
      * Constructor. Mainly used for testing purposes. Dependency injection.
      *
      * @param ctiClient the CTIClient to interact with the CTI API.
-     * @param contextIndex An object that handles context and consumer information.
+     * @param CTIConsumers An object that handles context and consumer information.
      * @param contentIndex An object that handles content index interactions.
      */
     public ContentUpdater(
             CTIClient ctiClient,
-            ContextIndex contextIndex,
+            CTIConsumers CTIConsumers,
             ContentIndex contentIndex,
             Privileged privileged) {
-        this.contextIndex = contextIndex;
+        this.CTIConsumers = CTIConsumers;
         this.contentIndex = contentIndex;
         this.ctiClient = ctiClient;
         this.pluginSettings = PluginSettings.getInstance();
@@ -79,11 +79,11 @@ public class ContentUpdater {
     @VisibleForTesting
     public ContentUpdater(
             CTIClient ctiClient,
-            ContextIndex contextIndex,
+            CTIConsumers CTIConsumers,
             ContentIndex contentIndex,
             Privileged privileged,
             PluginSettings pluginSettings) {
-        this.contextIndex = contextIndex;
+        this.CTIConsumers = CTIConsumers;
         this.contentIndex = contentIndex;
         this.ctiClient = ctiClient;
         this.pluginSettings = pluginSettings;
@@ -97,7 +97,7 @@ public class ContentUpdater {
      * the CTI API for a list of changes to apply to the content. These changes are applied
      * sequentially. A maximum of {@link PluginSettings#MAX_CHANGES} changes are applied on each
      * iteration. When the update is completed, the value of "offset" is updated and equal to
-     * "lastOffset" {@link ContextIndex#index(ConsumerInfo)}. If
+     * "lastOffset" {@link CTIConsumers#index(ConsumerInfo)}. If
      * the update fails, the "offset" is set to 0 to force a recovery from a snapshot.
      *
      * @return true if the updates were successfully applied, false otherwise.
@@ -105,7 +105,7 @@ public class ContentUpdater {
      */
     public boolean update() throws ContentUpdateException {
         ConsumerInfo consumerInfo =
-                this.contextIndex.get(
+                this.CTIConsumers.get(
                         this.pluginSettings.getContextId(), this.pluginSettings.getConsumerId());
         long currentOffset = consumerInfo.getOffset();
         long lastOffset = consumerInfo.getLastOffset();
@@ -126,7 +126,7 @@ public class ContentUpdater {
             if (changes == null) {
                 log.error("Updated interrupted on offset [{}]", currentOffset);
                 consumerInfo.setOffset(currentOffset);
-                this.contextIndex.index(consumerInfo);
+                this.CTIConsumers.index(consumerInfo);
                 return false;
             }
             // Update failed. Force initialization from a snapshot.
@@ -134,7 +134,7 @@ public class ContentUpdater {
                 log.error("Updated finally failed on offset [{}]", currentOffset);
                 consumerInfo.setOffset(0);
                 consumerInfo.setLastOffset(0);
-                this.contextIndex.index(consumerInfo);
+                this.CTIConsumers.index(consumerInfo);
                 return false;
             }
 
@@ -144,7 +144,7 @@ public class ContentUpdater {
 
         // Update consumer info.
         consumerInfo.setLastOffset(currentOffset);
-        this.contextIndex.index(consumerInfo);
+        this.CTIConsumers.index(consumerInfo);
         log.info("[{}] updated to offset [{}]", ContentIndex.INDEX_NAME, consumerInfo.getOffset());
         return true;
     }

@@ -35,10 +35,11 @@ import org.opensearch.threadpool.ThreadPool;
 import org.opensearch.watcher.ResourceWatcherService;
 
 import java.util.*;
+import java.util.concurrent.Semaphore;
 import java.util.function.Supplier;
 
 import com.wazuh.contentmanager.index.ContentIndex;
-import com.wazuh.contentmanager.index.ContextIndex;
+import com.wazuh.contentmanager.index.CTIConsumers;
 import com.wazuh.contentmanager.settings.PluginSettings;
 import com.wazuh.contentmanager.utils.Privileged;
 import com.wazuh.contentmanager.utils.SnapshotManager;
@@ -46,7 +47,10 @@ import com.wazuh.contentmanager.utils.SnapshotManager;
 /** Main class of the Content Manager Plugin */
 public class ContentManagerPlugin extends Plugin implements ClusterPlugin {
     private static final Logger log = LogManager.getLogger(ContentManagerPlugin.class);
-    private ContextIndex contextIndex;
+    /** Semaphore to ensure the context index creation is only triggered once. */
+    private static final Semaphore indexCreationSemaphore = new Semaphore(1);
+
+    private CTIConsumers CTIConsumers;
     private ContentIndex contentIndex;
     private SnapshotManager snapshotManager;
     private ThreadPool threadPool;
@@ -68,10 +72,10 @@ public class ContentManagerPlugin extends Plugin implements ClusterPlugin {
         PluginSettings.getInstance(environment.settings(), clusterService);
         this.threadPool = threadPool;
         this.clusterService = clusterService;
-        this.contextIndex = new ContextIndex(client);
+        this.CTIConsumers = new CTIConsumers(client);
         this.contentIndex = new ContentIndex(client);
         this.snapshotManager =
-                new SnapshotManager(environment, this.contextIndex, this.contentIndex, new Privileged());
+                new SnapshotManager(environment, this.CTIConsumers, this.contentIndex, new Privileged());
         return Collections.emptyList();
     }
 
@@ -86,17 +90,8 @@ public class ContentManagerPlugin extends Plugin implements ClusterPlugin {
     public void onNodeStarted(DiscoveryNode localNode) {
         // Only cluster managers are responsible for the initialization.
         if (localNode.isClusterManagerNode()) {
-            if (this.clusterService.state().routingTable().hasIndex(ContentIndex.INDEX_NAME)) {
-                this.start();
-            }
-
-            // To be removed once we include the Job Scheduler.
-            this.clusterService.addListener(
-                    event -> {
-                        if (event.indicesCreated().contains(ContentIndex.INDEX_NAME)) {
-                            this.start();
-                        }
-                    });
+            log.info("Starting Content Manager plugin initialization");
+            this.start();
         }
     }
 
@@ -114,8 +109,18 @@ public class ContentManagerPlugin extends Plugin implements ClusterPlugin {
                     .generic()
                     .execute(
                             () -> {
-                                this.contextIndex.createIndex();
-                                this.snapshotManager.initialize();
+                                if (indexCreationSemaphore.tryAcquire()) {
+                                    try {
+                                        this.CTIConsumers.createIndex();
+                                    } catch (Exception e) {
+                                        indexCreationSemaphore.release();
+                                        log.error("Failed to create .cti-consumers index, due to: {}", e.getMessage(), e);
+                                    }
+                                } else {
+                                    log.debug(".cti-consumers index creation already triggered");
+                                }
+                                // TODO: Once initialize method is adapted to the new design, uncomment the following line
+                                //this.snapshotManager.initialize();
                             });
         } catch (Exception e) {
             // Log or handle exception
