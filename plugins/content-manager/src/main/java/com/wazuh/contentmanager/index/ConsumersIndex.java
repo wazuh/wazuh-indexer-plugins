@@ -180,7 +180,6 @@ public class ConsumersIndex {
             String mappingJson = this.loadMappingFromResources();
 
             CreateIndexRequest request = new CreateIndexRequest(ConsumersIndex.INDEX_NAME);
-            request.timeout(TimeValue.timeValueSeconds(this.pluginSettings.getClientTimeout()));
 
             // Index settings
             request.settings(Settings.builder().put("index.number_of_replicas", 0).build());
@@ -190,7 +189,7 @@ public class ConsumersIndex {
             .admin()
             .indices()
             .create(request)
-            .actionGet(TimeUnit.SECONDS.toMillis(this.pluginSettings.getClientTimeout()));
+            .actionGet(this.pluginSettings.getClientTimeout(), TimeUnit.SECONDS);
             log.info("Index created: {} acknowledged={}", response.index(), response.isAcknowledged());
 
         } catch (Exception e) {
