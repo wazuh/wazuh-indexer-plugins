@@ -10,7 +10,6 @@ import org.apache.hc.client5.http.async.methods.SimpleHttpResponse;
 import org.apache.hc.core5.http.ContentType;
 import org.junit.After;
 import org.junit.Before;
-import org.junit.Test;
 import org.mockito.Mock;
 import org.opensearch.test.OpenSearchTestCase;
 
@@ -64,7 +63,6 @@ public class CtiConsoleTests extends OpenSearchTestCase {
      * @throws InterruptedException ignored
      * @throws TimeoutException ignored
      */
-    @Test
     public void testOnTokenChanged() throws ExecutionException, InterruptedException, TimeoutException {
         // Mock client response upon request
         String response = "{\"access_token\": \"AYjcyMzY3ZDhiNmJkNTY\", \"refresh_token\": \"RjY2NjM5NzA2OWJjuE7c\", \"token_type\": \"Bearer\", \"expires_in\": 3600}";
@@ -87,7 +85,6 @@ public class CtiConsoleTests extends OpenSearchTestCase {
      * @throws InterruptedException ignored
      * @throws TimeoutException ignored
      */
-    @Test
     public void testGetToken() throws ExecutionException, InterruptedException, TimeoutException {
         String responsePending = "{\"error\": \"authorization_pending\"}";
         String response = "{\"access_token\": \"AYjcyMzY3ZDhiNmJkNTY\", \"refresh_token\": \"RjY2NjM5NzA2OWJjuE7c\", \"token_type\": \"Bearer\", \"expires_in\": 3600}";

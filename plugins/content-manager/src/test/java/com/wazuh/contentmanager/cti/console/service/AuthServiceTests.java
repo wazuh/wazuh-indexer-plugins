@@ -54,7 +54,6 @@ public class AuthServiceTests extends OpenSearchTestCase {
      * @throws InterruptedException ignored
      * @throws TimeoutException ignored
      */
-    @Test
     public void testGetTokenSuccess() throws ExecutionException, InterruptedException, TimeoutException {
         // Mock client response upon request
         String response = "{\"access_token\": \"AYjcyMzY3ZDhiNmJkNTY\", \"refresh_token\": \"RjY2NjM5NzA2OWJjuE7c\", \"token_type\": \"Bearer\", \"expires_in\": 3600}";
@@ -81,7 +80,6 @@ public class AuthServiceTests extends OpenSearchTestCase {
      * @throws InterruptedException ignored
      * @throws TimeoutException ignored
      */
-    @Test
     public void testGetTokenFailure() throws ExecutionException, InterruptedException, TimeoutException {
         Token token;
         String response = "{\"error\": \"invalid_request\", \"error_description\": \"Missing or invalid parameter: client_id\"}";
@@ -108,7 +106,6 @@ public class AuthServiceTests extends OpenSearchTestCase {
      * @throws InterruptedException ignored
      * @throws TimeoutException ignored
      */
-    @Test
     public void testGetResourceTokenSuccess() throws ExecutionException, InterruptedException, TimeoutException {
         // Mock client response upon request
         String response = "{\"access_token\": \"https://localhost:8443/api/v1/catalog/contexts/misp/consumers/virustotal/changes?from_offset=0&to_offset=1000&with_empties=true&verify=1761383411-kJ9b8w%2BQ7kzRmF\", \"issued_token_type\": \"urn:wazuh:params:oauth:token-type:signed_url\", \"expires_in\": 300}";
@@ -135,7 +132,6 @@ public class AuthServiceTests extends OpenSearchTestCase {
      * @throws InterruptedException ignored
      * @throws TimeoutException ignored
      */
-    @Test
     public void testGetResourceTokenFailure() throws ExecutionException, InterruptedException, TimeoutException {
         Token token;
         String response = "{\"error\": \"invalid_target\", \"error_description\": \"The resource parameter refers to an invalid endpoint\"}";

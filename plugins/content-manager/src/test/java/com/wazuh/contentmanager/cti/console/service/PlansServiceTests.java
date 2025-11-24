@@ -56,7 +56,6 @@ public class PlansServiceTests extends OpenSearchTestCase {
      * @throws InterruptedException ignored
      * @throws TimeoutException ignored
      */
-    @Test
     public void testGetPlansSuccess() throws ExecutionException, InterruptedException, TimeoutException {
         // Mock client response upon request
         String response = """
@@ -120,7 +119,6 @@ public class PlansServiceTests extends OpenSearchTestCase {
      * @throws InterruptedException ignored
      * @throws TimeoutException ignored
      */
-    @Test
     public void testGetPlansFailure() throws ExecutionException, InterruptedException, TimeoutException {
         List<Plan> plans;
         String response = "{\"error\": \"unauthorized_client\", \"error_description\": \"The provided token is invalid or expired\"}";
