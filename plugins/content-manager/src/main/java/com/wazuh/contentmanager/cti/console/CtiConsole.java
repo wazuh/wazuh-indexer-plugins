@@ -8,6 +8,9 @@ import org.apache.logging.log4j.Logger;
 import org.opensearch.common.util.concurrent.FutureUtils;
 
 import java.util.concurrent.*;
+import java.util.concurrent.locks.Condition;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
 
 /**
  * CTI Console main class. Contains and manages CTI Console internal state and services.
@@ -37,9 +40,14 @@ public class CtiConsole implements TokenListener {
     private ScheduledFuture<?> getTokenTaskFuture;
 
     /**
-     * Lock object for synchronizing token retrieval.
+     * Lock for synchronizing token retrieval.
      */
-    private final Object tokenLock = new Object();
+    private final Lock tokenLock = new ReentrantLock();
+
+    /**
+     * Condition to signal when token is obtained.
+     */
+    private final Condition tokenAvailable = tokenLock.newCondition();
 
     /**
      * Thread executor.
@@ -82,7 +90,8 @@ public class CtiConsole implements TokenListener {
 
     @Override
     public void onTokenChanged(Token t) {
-        synchronized (tokenLock) {
+        tokenLock.lock();
+        try {
             this.token = t;
             log.info("Permanent token changed: {}", this.token); // TODO do not log the token
 
@@ -90,8 +99,10 @@ public class CtiConsole implements TokenListener {
             FutureUtils.cancel(this.getTokenTaskFuture);
             this.executor.shutdown();
 
-            // Notify all waiting threads that the token has been obtained
-            tokenLock.notifyAll();
+            // Signal all waiting threads that the token has been obtained
+            tokenAvailable.signalAll();
+        } finally {
+            tokenLock.unlock();
         }
     }
 
@@ -140,17 +151,18 @@ public class CtiConsole implements TokenListener {
      * @throws InterruptedException if the waiting thread is interrupted.
      */
     public Token waitForToken(long timeoutMillis) throws InterruptedException {
-        synchronized (this.tokenLock) {
-            long startTime = System.currentTimeMillis();
-            long remainingTime = timeoutMillis;
+        tokenLock.lock();
+        try {
+            long remainingNanos = TimeUnit.MILLISECONDS.toNanos(timeoutMillis);
 
             // Wait until token is obtained or timeout expires
-            while (this.token == null && remainingTime > 0) {
-                this.tokenLock.wait(remainingTime);
-                remainingTime = timeoutMillis - (System.currentTimeMillis() - startTime);
+            while (this.token == null && remainingNanos > 0) {
+                remainingNanos = tokenAvailable.awaitNanos(remainingNanos);
             }
 
             return this.token;
+        } finally {
+            tokenLock.unlock();
         }
     }
 
@@ -162,11 +174,14 @@ public class CtiConsole implements TokenListener {
      * @throws InterruptedException if the waiting thread is interrupted.
      */
     public Token waitForToken() throws InterruptedException {
-        synchronized (this.tokenLock) {
+        tokenLock.lock();
+        try {
             while (this.token == null) {
-                this.tokenLock.wait();
+                tokenAvailable.await();
             }
             return this.token;
+        } finally {
+            tokenLock.unlock();
         }
     }
 }
