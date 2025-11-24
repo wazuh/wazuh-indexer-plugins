@@ -1,12 +1,17 @@
 package com.wazuh.contentmanager.cti.console.service;
 
+import com.wazuh.contentmanager.cti.console.TokenListener;
 import com.wazuh.contentmanager.cti.console.model.Token;
 import org.apache.hc.client5.http.async.methods.SimpleHttpResponse;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeoutException;
 
 
@@ -15,12 +20,16 @@ import java.util.concurrent.TimeoutException;
  */
 public class AuthServiceImpl extends AbstractService implements AuthService {
     private static final Logger log = LogManager.getLogger(AuthServiceImpl.class);
+    public final ScheduledExecutorService executor;
+    private final List<TokenListener> listeners;
 
     /**
      * Default constructor
      */
     public AuthServiceImpl() {
         super();
+        this.executor = Executors.newSingleThreadScheduledExecutor();
+        this.listeners = new ArrayList<>();
     }
 
     /**
@@ -29,6 +38,7 @@ public class AuthServiceImpl extends AbstractService implements AuthService {
      * @param deviceCode unique device code provided by the CTI Console during the registration of the instance.
      * @return access token.
      */
+    // TODO replace parameters with SubscriptionModel from https://github.com/wazuh/wazuh-indexer-plugins/pull/662
     @Override
     public Token getToken(String clientId, String deviceCode) {
         try {
@@ -37,7 +47,11 @@ public class AuthServiceImpl extends AbstractService implements AuthService {
 
             if (response.getCode() == 200) {
                 // Parse response
-                return this.mapper.readValue(response.getBodyText(), Token.class);
+                Token token = this.mapper.readValue(response.getBodyText(), Token.class);
+                // Notify listeners
+                listeners.forEach(listener -> listener.onTokenChanged(token));
+                // Return token
+                return token;
             } else {
                 log.warn("Operation to fetch a permanent token failed: { \"status_code\": {}, \"message\": {} }", response.getCode(), response.getBodyText());
             }
@@ -72,5 +86,10 @@ public class AuthServiceImpl extends AbstractService implements AuthService {
             log.error("Failed to parse resource token: {}", e.getMessage());
         }
         return null;
+    }
+
+    @Override
+    public void addListener(TokenListener listener) {
+        this.listeners.add(listener);
     }
 }
