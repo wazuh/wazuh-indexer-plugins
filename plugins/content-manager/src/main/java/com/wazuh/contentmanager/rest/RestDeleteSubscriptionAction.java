@@ -2,7 +2,7 @@ package com.wazuh.contentmanager.rest;
 
 import com.wazuh.contentmanager.ContentManagerPlugin;
 import com.wazuh.contentmanager.model.rest.ErrorResponse;
-import com.wazuh.contentmanager.model.rest.SubscriptionModel;
+import com.wazuh.contentmanager.model.rest.Subscription;
 import com.wazuh.contentmanager.services.ContentManagerService;
 import org.opensearch.transport.client.node.NodeClient;
 import org.opensearch.common.xcontent.XContentFactory;
@@ -31,6 +31,7 @@ import static org.opensearch.rest.RestRequest.Method.DELETE;
 public class RestDeleteSubscriptionAction extends BaseRestHandler {
     private final ContentManagerService service;
     private static final String ENDPOINT_NAME = "content_manager_subscription_delete";
+    private static final String ENDPOINT_UNIQUE_NAME = "plugin:content_manager/subscription_delete";
 
     public RestDeleteSubscriptionAction(ContentManagerService service) {
         this.service = service;
@@ -45,7 +46,7 @@ public class RestDeleteSubscriptionAction extends BaseRestHandler {
                 new NamedRoute.Builder()
                         .path(ContentManagerPlugin.SUBSCRIPTION_URI)
                         .method(DELETE)
-                        .uniqueName("plugin:content_manager/subscription_delete")
+                        .uniqueName(ENDPOINT_UNIQUE_NAME)
                         .build()
         );
     }
@@ -54,7 +55,7 @@ public class RestDeleteSubscriptionAction extends BaseRestHandler {
     public RestChannelConsumer prepareRequest(RestRequest request, NodeClient client) {
         return channel -> {
             try {
-                SubscriptionModel subscription = service.getSubscription();
+                Subscription subscription = service.getSubscription();
                 if (subscription == null) {
                     ErrorResponse error = new ErrorResponse(
                             "Subscription not found",

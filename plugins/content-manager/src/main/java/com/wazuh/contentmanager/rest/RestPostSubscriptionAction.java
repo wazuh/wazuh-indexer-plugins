@@ -21,7 +21,7 @@ import static org.opensearch.rest.RestRequest.Method.POST;
 /**
  * POST /_plugins/content-manager/subscription
  *
- * Creates or updates the CTI subscription (singleton).
+ * Creates or updates the CTI subscription.
  *
  * Possible HTTP responses:
  * - 201 Created: Subscription successfully created or updated
@@ -31,13 +31,15 @@ import static org.opensearch.rest.RestRequest.Method.POST;
  */
 public class RestPostSubscriptionAction extends BaseRestHandler {
     private final ContentManagerService service;
+    private static final String ENDPOINT_NAME = "content_manager_subscription_post";
+    private static final String ENDPOINT_UNIQUE_NAME = "plugin:content_manager/subscription_post";
 
     public RestPostSubscriptionAction(ContentManagerService service) {
         this.service = service;
     }
 
     @Override
-    public String getName() { return "content_manager_subscription_post"; }
+    public String getName() { return ENDPOINT_NAME; }
 
     @Override
     public List<Route> routes() {
@@ -45,7 +47,7 @@ public class RestPostSubscriptionAction extends BaseRestHandler {
                 new NamedRoute.Builder()
                         .path(ContentManagerPlugin.SUBSCRIPTION_URI)
                         .method(POST)
-                        .uniqueName("plugin:content_manager/subscription_post")
+                        .uniqueName(ENDPOINT_UNIQUE_NAME)
                         .build()
         );
     }
@@ -61,11 +63,14 @@ public class RestPostSubscriptionAction extends BaseRestHandler {
                     XContentParser.Token token = parser.nextToken();
                     if (token == null) break;
                     if (token.isValue()) {
-                        String fieldName = parser.currentName();
-                        if ("device_code".equals(fieldName)) deviceCode = parser.text();
-                        else if ("client_id".equals(fieldName)) clientId = parser.text();
-                        else if ("expires_in".equals(fieldName)) expiresIn = parser.intValue();
-                        else if ("interval".equals(fieldName)) interval = parser.intValue();
+                    String fieldName = parser.currentName();
+                        switch (fieldName) {
+                            case "device_code" -> deviceCode = parser.text();
+                            case "client_id" -> clientId = parser.text();
+                            case "expires_in" -> expiresIn = parser.intValue();
+                            case "interval" -> interval = parser.intValue();
+                            default -> { }
+                        }
                     }
                 }
 

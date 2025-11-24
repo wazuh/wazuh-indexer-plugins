@@ -37,6 +37,8 @@ import static org.opensearch.rest.RestRequest.Method.POST;
  */
 public class RestPostUpdateAction extends BaseRestHandler {
     private final ContentManagerService service;
+    private static final String ENDPOINT_NAME = "content_manager_subscription_update";
+    private static final String ENDPOINT_UNIQUE_NAME = "plugin:content_manager/subscription_update";
 
     // TODO: Delete once real concurrency control is implemented
     // Mechanism for conflict testing
@@ -60,7 +62,7 @@ public class RestPostUpdateAction extends BaseRestHandler {
     }
 
     @Override
-    public String getName() { return "content_manager_update"; }
+    public String getName() { return ENDPOINT_NAME; }
 
     @Override
     public List<Route> routes() {
@@ -69,7 +71,7 @@ public class RestPostUpdateAction extends BaseRestHandler {
             new NamedRoute.Builder()
                 .path(ContentManagerPlugin.UPDATE_URI)
                 .method(POST)
-                .uniqueName("plugin:content_manager/update")
+                .uniqueName(ENDPOINT_UNIQUE_NAME)
                 .build()
         );
     }

@@ -1,7 +1,7 @@
 package com.wazuh.contentmanager.services;
 
+import com.wazuh.contentmanager.model.rest.Subscription;
 import com.wazuh.contentmanager.model.rest.Token;
-import com.wazuh.contentmanager.model.rest.SubscriptionModel;
 import org.opensearch.threadpool.ThreadPool;
 
 import java.time.Instant;
@@ -9,14 +9,14 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * Service to manage CTI subscription operations and handle update rate-limiting.
- * Delegates subscription storage to the SubscriptionModel singleton.
+ * Delegates subscription storage to the Subscription class.
  */
 public class ContentManagerService {
     private final ThreadPool threadPool;
 
-    // Stored subscription instance (replaces previous SubscriptionModel singleton)
-    private SubscriptionModel subscription;
-    // Stored token instance (replaces previous Token singleton)
+    // Stored subscription instance 
+    private Subscription subscription;
+    // Stored token instance
     private Token token;
 
     // Rate limiting:  allow 2 requests per hour
@@ -75,16 +75,16 @@ public class ContentManagerService {
     }
 
     /**
-     * Retrieves the current subscription from the SubscriptionModel singleton.
+     * Retrieves the current subscription from the Subscription class.
      *
      * @return The current subscription, or null if no subscription exists
      */
-    public SubscriptionModel getSubscription() {
+    public Subscription getSubscription() {
         return subscription;
     }
 
     /**
-     * Deletes the current subscription from the SubscriptionModel singleton.
+     * Deletes the current subscription from the Subscription class.
      * Also resets the rate limit counter to ensure tests start with a clean state.
      */
     public void deleteSubscription() {
@@ -96,7 +96,7 @@ public class ContentManagerService {
      * Creates or updates the stored subscription instance.
      */
     public void setSubscription(String deviceCode, String clientId, int expiresIn, int interval) {
-        this.subscription = new SubscriptionModel(deviceCode, clientId, expiresIn, interval);
+        this.subscription = new Subscription(deviceCode, clientId, expiresIn, interval);
     }
 
     public Token getToken() {
