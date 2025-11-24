@@ -84,7 +84,7 @@ dependencies {
     implementation "org.slf4j:slf4j-api:2.0.17"
 
     // Http Client
-    implementation "org.apache.httpcomponents.client5:httpclient5:5.4.4"
+    implementation "org.apache.httpcomponents.client5:httpclient5:5.5.1"
     implementation "org.apache.httpcomponents.core5:httpcore5-h2:5.3.4"
     implementation "org.apache.httpcomponents.core5:httpcore5:5.3.4"
 
