@@ -1,0 +1,8 @@
+{
+  "properties": {
+    "name": { "type": "keyword" },
+    "offset": { "type": "long" },
+    "last_offset": { "type": "long" },
+    "last_snapshot_link": { "type": "keyword" }
+  }
+}

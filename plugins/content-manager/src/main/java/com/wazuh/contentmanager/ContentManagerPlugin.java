@@ -39,7 +39,7 @@ import java.util.concurrent.Semaphore;
 import java.util.function.Supplier;
 
 import com.wazuh.contentmanager.index.ContentIndex;
-import com.wazuh.contentmanager.index.CTIConsumers;
+import com.wazuh.contentmanager.index.ConsumersIndex;
 import com.wazuh.contentmanager.settings.PluginSettings;
 import com.wazuh.contentmanager.utils.Privileged;
 import com.wazuh.contentmanager.utils.SnapshotManager;
@@ -50,7 +50,7 @@ public class ContentManagerPlugin extends Plugin implements ClusterPlugin {
     /** Semaphore to ensure the context index creation is only triggered once. */
     private static final Semaphore indexCreationSemaphore = new Semaphore(1);
 
-    private CTIConsumers CTIConsumers;
+    private ConsumersIndex ConsumersIndex;
     private ContentIndex contentIndex;
     private SnapshotManager snapshotManager;
     private ThreadPool threadPool;
@@ -72,10 +72,10 @@ public class ContentManagerPlugin extends Plugin implements ClusterPlugin {
         PluginSettings.getInstance(environment.settings(), clusterService);
         this.threadPool = threadPool;
         this.clusterService = clusterService;
-        this.CTIConsumers = new CTIConsumers(client);
+        this.ConsumersIndex = new ConsumersIndex(client);
         this.contentIndex = new ContentIndex(client);
         this.snapshotManager =
-                new SnapshotManager(environment, this.CTIConsumers, this.contentIndex, new Privileged());
+                new SnapshotManager(environment, this.ConsumersIndex, this.contentIndex, new Privileged());
         return Collections.emptyList();
     }
 
@@ -111,13 +111,13 @@ public class ContentManagerPlugin extends Plugin implements ClusterPlugin {
                             () -> {
                                 if (indexCreationSemaphore.tryAcquire()) {
                                     try {
-                                        this.CTIConsumers.createIndex();
+                                        this.ConsumersIndex.createIndex();
                                     } catch (Exception e) {
                                         indexCreationSemaphore.release();
-                                        log.error("Failed to create .cti-consumers index, due to: {}", e.getMessage(), e);
+                                        log.error("Failed to create {} index, due to: {}", ConsumersIndex.INDEX_NAME, e.getMessage(), e);
                                     }
                                 } else {
-                                    log.debug(".cti-consumers index creation already triggered");
+                                    log.debug("{} index creation already triggered", ConsumersIndex.INDEX_NAME);
                                 }
                                 // TODO: Once initialize method is adapted to the new design, uncomment the following line
                                 //this.snapshotManager.initialize();

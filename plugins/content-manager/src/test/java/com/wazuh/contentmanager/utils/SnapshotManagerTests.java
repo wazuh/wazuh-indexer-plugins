@@ -31,7 +31,7 @@ import java.util.Iterator;
 
 import com.wazuh.contentmanager.client.CTIClient;
 import com.wazuh.contentmanager.index.ContentIndex;
-import com.wazuh.contentmanager.index.CTIConsumers;
+import com.wazuh.contentmanager.index.ConsumersIndex;
 import com.wazuh.contentmanager.model.cti.ConsumerInfo;
 import com.wazuh.contentmanager.settings.PluginSettings;
 import org.mockito.InjectMocks;
@@ -42,7 +42,7 @@ import static org.mockito.Mockito.*;
 
 /** Class to handle unzip tests */
 public class SnapshotManagerTests extends OpenSearchTestCase {
-    private CTIConsumers CTIConsumers;
+    private ConsumersIndex ConsumersIndex;
     private ContentIndex contentIndex;
     private CTIClient ctiClient;
     private Privileged privilegedSpy;
@@ -69,7 +69,7 @@ public class SnapshotManagerTests extends OpenSearchTestCase {
                 PluginSettings.getInstance(this.mockEnvironment.settings(), this.mockClusterService);
 
         this.ctiClient = mock(CTIClient.class);
-        this.CTIConsumers = mock(CTIConsumers.class);
+        this.ConsumersIndex = mock(ConsumersIndex.class);
         this.contentIndex = mock(ContentIndex.class);
         this.privilegedSpy = Mockito.spy(Privileged.class);
         this.snapshotManager =
@@ -77,7 +77,7 @@ public class SnapshotManagerTests extends OpenSearchTestCase {
                         new SnapshotManager(
                                 this.ctiClient,
                                 this.mockEnvironment,
-                                this.CTIConsumers,
+                                this.ConsumersIndex,
                                 this.contentIndex,
                                 this.privilegedSpy,
                                 this.pluginSettings));
@@ -98,13 +98,13 @@ public class SnapshotManagerTests extends OpenSearchTestCase {
 
         // Mocks
         doReturn(consumerInfo).when(this.ctiClient).getConsumerInfo();
-        doReturn(this.consumerInfo).when(this.CTIConsumers).get(anyString(), anyString());
-        doReturn(true).when(this.CTIConsumers).index(consumerInfo);
+        doReturn(this.consumerInfo).when(this.ConsumersIndex).get(anyString(), anyString());
+        doReturn(true).when(this.ConsumersIndex).index(consumerInfo);
         doReturn(DocWriteResponse.Result.CREATED).when(response).getResult();
 
         // Act &6 Assert
         this.snapshotManager.initConsumer();
-        verify(this.CTIConsumers).index(any(ConsumerInfo.class));
+        verify(this.ConsumersIndex).index(any(ConsumerInfo.class));
     }
 
     /**
@@ -120,8 +120,8 @@ public class SnapshotManagerTests extends OpenSearchTestCase {
 
         // Mocks
         doReturn(consumerInfo).when(this.ctiClient).getConsumerInfo();
-        doReturn(this.consumerInfo).when(this.CTIConsumers).get(anyString(), anyString());
-        doReturn(false).when(this.CTIConsumers).index(consumerInfo);
+        doReturn(this.consumerInfo).when(this.ConsumersIndex).get(anyString(), anyString());
+        doReturn(false).when(this.ConsumersIndex).index(consumerInfo);
         doReturn(DocWriteResponse.Result.NOT_FOUND).when(response).getResult();
 
         // Act && Assert
@@ -134,7 +134,7 @@ public class SnapshotManagerTests extends OpenSearchTestCase {
      * @throws IOException rethrown from unzip()
      */
     public void testSuccessfulIndexSnapshot() throws IOException {
-        doReturn(this.consumerInfo).when(this.CTIConsumers).get(anyString(), anyString());
+        doReturn(this.consumerInfo).when(this.ConsumersIndex).get(anyString(), anyString());
         Path snapshotZip = mock(Path.class);
         doReturn("http://example.com/file.zip").when(this.consumerInfo).getLastSnapshotLink();
         doReturn(snapshotZip).when(this.ctiClient).download(anyString(), any(Environment.class));

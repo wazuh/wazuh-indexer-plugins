@@ -31,7 +31,10 @@ import org.opensearch.common.xcontent.XContentType;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.core.xcontent.ToXContent;
 
+import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
 import java.util.Locale;
 import java.util.Map;
 import java.util.NoSuchElementException;
@@ -44,11 +47,13 @@ import com.wazuh.contentmanager.settings.PluginSettings;
 import com.wazuh.contentmanager.utils.ClusterInfo;
 
 /** Class to manage the Context index. */
-public class CTIConsumers {
-    private static final Logger log = LogManager.getLogger(CTIConsumers.class);
+public class ConsumersIndex {
+    private static final Logger log = LogManager.getLogger(ConsumersIndex.class);
 
     /** The name of the Contexts index */
     public static final String INDEX_NAME = ".cti-consumers";
+    /** Path of the index mapping file */
+    private static final String MAPPING_PATH = "/mappings/consumers-mapping.json";
 
     private final Client client;
 
@@ -65,7 +70,7 @@ public class CTIConsumers {
      *
      * @param client OpenSearch client used for indexing and search operations.
      */
-    public CTIConsumers(Client client) {
+    public ConsumersIndex(Client client) {
         this.client = client;
         this.pluginSettings = PluginSettings.getInstance();
     }
@@ -80,7 +85,7 @@ public class CTIConsumers {
         try {
             IndexRequest indexRequest =
                     new IndexRequest()
-                            .index(CTIConsumers.INDEX_NAME)
+                            .index(ConsumersIndex.INDEX_NAME)
                             .source(
                                     consumerInfo.toXContent(XContentFactory.jsonBuilder(), ToXContent.EMPTY_PARAMS))
                             .id(consumerInfo.getContext());
@@ -106,6 +111,7 @@ public class CTIConsumers {
         return false;
     }
 
+    /** TODO: Review ConsumerInfo class and adapt mappings accordingly */
     /**
      * Searches for the given consumer within a context.
      *
@@ -116,13 +122,13 @@ public class CTIConsumers {
     @SuppressWarnings("unchecked")
     public ConsumerInfo get(String context, String consumer) {
         // Avoid faulty requests if the cluster is unstable.
-        if (!ClusterInfo.indexStatusCheck(this.client, CTIConsumers.INDEX_NAME)) {
+        if (!ClusterInfo.indexStatusCheck(this.client, ConsumersIndex.INDEX_NAME)) {
             throw new RuntimeException("Index not ready");
         }
         try {
             GetResponse getResponse =
                     this.client
-                            .get(new GetRequest(CTIConsumers.INDEX_NAME, context).preference("_local"))
+                            .get(new GetRequest(ConsumersIndex.INDEX_NAME, context).preference("_local"))
                             .get(this.pluginSettings.getClientTimeout(), TimeUnit.SECONDS);
 
             Map<String, Object> source = (Map<String, Object>) getResponse.getSourceAsMap().get(consumer);
@@ -133,12 +139,12 @@ public class CTIConsumers {
             }
 
             // Update consumer info (internal state)
-            long offset = CTIConsumers.asLong(source.get(ConsumerInfo.OFFSET));
-            long lastOffset = CTIConsumers.asLong(source.get(ConsumerInfo.LAST_OFFSET));
+            long offset = ConsumersIndex.asLong(source.get(ConsumerInfo.OFFSET));
+            long lastOffset = ConsumersIndex.asLong(source.get(ConsumerInfo.LAST_OFFSET));
             String snapshot = (String) source.get(ConsumerInfo.LAST_SNAPSHOT_LINK);
             this.consumerInfo = new ConsumerInfo(consumer, context, offset, lastOffset, snapshot);
             log.info(
-                    "Fetched consumer from the [{}] index: {}", CTIConsumers.INDEX_NAME, this.consumerInfo);
+                    "Fetched consumer from the [{}] index: {}", ConsumersIndex.INDEX_NAME, this.consumerInfo);
         } catch (InterruptedException | ExecutionException | TimeoutException e) {
             log.error("Failed to fetch consumer [{}][{}]: {}", context, consumer, e.getMessage());
         }
@@ -158,41 +164,47 @@ public class CTIConsumers {
     }
 
     /**
-     * Checks whether the {@link CTIConsumers#INDEX_NAME} index exists.
+     * Checks whether the {@link ConsumersIndex#INDEX_NAME} index exists.
      *
      * @see ClusterInfo#indexExists(Client, String)
      * @return true if the index exists, false otherwise.
      */
     public boolean exists() {
-        return ClusterInfo.indexExists(this.client, CTIConsumers.INDEX_NAME);
+        return ClusterInfo.indexExists(this.client, ConsumersIndex.INDEX_NAME);
     }
 
-    /** Creates the {@link CTIConsumers#INDEX_NAME} index, if it does not exist. */
-    public void createIndex() {
-        if (!this.exists()) {
-            try {
-                CreateIndexRequest request = new CreateIndexRequest(CTIConsumers.INDEX_NAME);
-                Settings settings = Settings.builder().put("index.number_of_replicas", 0).build();
-                request.settings(settings);
-                String mapping = "{\n"
-                    + "  \"properties\": {\n"
-                    + "    \"rules_consumer\": {\n"
-                    + "      \"properties\": {\n"
-                    + "        \"current_offset\": { \"type\": \"long\" },\n"
-                    + "        \"latest_offset\": { \"type\": \"long\" },\n"
-                    + "        \"snapshot_link\": { \"type\": \"keyword\" }\n"
-                    + "      }\n"
-                    + "    }\n"
-                    + "  }\n"
-                    + "}";
+    /** Creates the {@link ConsumersIndex#INDEX_NAME} index. */
+   public void createIndex() {
+        try {
+            String mappingJson = loadMappingFromResources();
 
-                request.mapping(mapping, XContentType.JSON);
+            CreateIndexRequest request = new CreateIndexRequest(ConsumersIndex.INDEX_NAME);
 
-                CreateIndexResponse response = this.client.admin().indices().create(request).actionGet();
-                log.info("Index created: {} acknowledged={}", response.index(), response.isAcknowledged());
-            } catch (Exception e) {
-                log.warn("Index creation attempt failed: {}", e.getMessage());
+            // Index settings
+            request.settings(Settings.builder().put("index.number_of_replicas", 0).build());
+            request.mapping(mappingJson, XContentType.JSON);
+
+            CreateIndexResponse response = this.client.admin().indices().create(request).actionGet();
+            log.info("Index created: {} acknowledged={}", response.index(), response.isAcknowledged());
+
+        } catch (Exception e) {
+            log.warn("Index creation attempt failed: {}", e.getMessage());
+        }
+    }
+
+    /**
+     * Loads the index mapping from the resources folder.
+     *
+     * @return the mapping as a JSON string.
+     * @throws IOException if reading the resource fails.
+     */
+    private String loadMappingFromResources() throws IOException {
+
+        try (InputStream is = this.getClass().getResourceAsStream(MAPPING_PATH)) {
+            if (is == null) {
+                throw new FileNotFoundException("Mapping file not found at: " + MAPPING_PATH);
             }
+            return new String(is.readAllBytes(), StandardCharsets.UTF_8);
         }
     }
 }
