@@ -8,7 +8,7 @@ import com.wazuh.contentmanager.cti.console.client.ApiClient;
  */
 public abstract class AbstractService {
 
-    final ApiClient client;
+    ApiClient client;
     final ObjectMapper mapper;
 
     /**
@@ -17,5 +17,23 @@ public abstract class AbstractService {
     public AbstractService() {
         this.client = new ApiClient();
         this.mapper = new ObjectMapper();
+    }
+
+    /**
+     * Use for testing only.
+     * @param c mocked client.
+     */
+    public void setClient(ApiClient c) {
+        this.close();
+        this.client = c;
+    }
+
+    /**
+     * Closes the underlying HTTP client. Should be called when the service is no longer needed.
+     */
+    public void close() {
+        if (this.client != null) {
+            this.client.close();
+        }
     }
 }

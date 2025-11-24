@@ -2,6 +2,7 @@ package com.wazuh.contentmanager.cti.console;
 
 import com.wazuh.contentmanager.cti.console.model.Token;
 import com.wazuh.contentmanager.cti.console.service.AuthService;
+import com.wazuh.contentmanager.cti.console.service.PlansService;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.opensearch.common.util.concurrent.FutureUtils;
@@ -18,7 +19,12 @@ public class CtiConsole implements TokenListener {
     /**
      * CTI Console authentication service.
      */
-    private final AuthService authService;
+    private AuthService authService;
+
+    /**
+     * CTI Console plans service.
+     */
+    private PlansService plansService;
 
     /**
      * Permanent token of this instance to authenticate to the CTI Console.
@@ -32,11 +38,31 @@ public class CtiConsole implements TokenListener {
 
     /**
      * Default constructor.
+     */
+    public CtiConsole() { }
+
+    /**
+     * Sets the plan service for this CTI Console instance.
+     * @param plansService plans service implementation.
+     */
+    public void setPlansService(PlansService plansService) {
+        // Gracefully close existing http client
+        if (this.plansService != null) {
+            this.plansService.close();
+        }
+        this.plansService = plansService;
+    }
+
+    /**
+     * Sets the authentication service for this CTI Console instance.
      * @param authService authentication service implementation.
      */
-    public CtiConsole(AuthService authService) {
+    public void setAuthService(AuthService authService) {
+        // Gracefully close existing http client
+        if (this.authService != null) {
+            this.authService.close();
+        }
         this.authService = authService;
-        this.token = null;
 
         // Pass the instance as a listener for token changes.
         this.authService.addListener(this);
@@ -45,7 +71,7 @@ public class CtiConsole implements TokenListener {
     @Override
     public void onTokenChanged(Token t) {
         this.token = t;
-        log.info("Permanent token changed: {}", this.token);
+        log.info("Permanent token changed: {}", this.token); // TODO do not log the token
 
         // Cancel polling
         FutureUtils.cancel(this.getTokenTaskFuture);
@@ -57,7 +83,7 @@ public class CtiConsole implements TokenListener {
      */
     private void getToken(int interval/* TODO sub details */) {
         ScheduledExecutorService executor  = Executors.newSingleThreadScheduledExecutor(r -> new Thread(r, TASK_NAME));
-        Runnable getTokenTask = () -> this.authService.getToken("client_id", "polling");;
+        Runnable getTokenTask = () -> this.authService.getToken("client_id", "polling");
         this.getTokenTaskFuture = executor.scheduleAtFixedRate(getTokenTask, interval, interval, TimeUnit.SECONDS);
     }
 

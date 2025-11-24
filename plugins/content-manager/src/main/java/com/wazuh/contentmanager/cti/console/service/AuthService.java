@@ -1,9 +1,10 @@
 package com.wazuh.contentmanager.cti.console.service;
 
 import com.wazuh.contentmanager.cti.console.TokenListener;
+import com.wazuh.contentmanager.cti.console.client.ClosableHttpClient;
 import com.wazuh.contentmanager.cti.console.model.Token;
 
-public interface AuthService {
+public interface AuthService extends ClosableHttpClient {
 
     Token getToken(String clientId, String deviceCode);
     Token getResourceToken(String permanentToken, String resource);

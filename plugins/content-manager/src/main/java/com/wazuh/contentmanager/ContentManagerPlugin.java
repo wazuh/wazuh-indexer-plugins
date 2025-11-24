@@ -112,7 +112,8 @@ public class ContentManagerPlugin extends Plugin implements ClusterPlugin {
         /*
         // Use case 1. Polling
         AuthServiceImpl authService = new AuthServiceImpl();
-        this.ctiConsole = new CtiConsole(authService);
+        this.ctiConsole = new CtiConsole();
+        this.ctiConsole.setAuthService(authService);
         this.ctiConsole.onPostSubscriptionRequest();
 
         while (!this.ctiConsole.isTokenTaskCompleted()) {}

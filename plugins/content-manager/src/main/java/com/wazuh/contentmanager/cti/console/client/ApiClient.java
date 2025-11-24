@@ -8,6 +8,7 @@ import org.apache.hc.client5.http.impl.nio.PoolingAsyncClientConnectionManagerBu
 import org.apache.hc.client5.http.ssl.ClientTlsStrategyBuilder;
 import org.apache.hc.core5.http.ContentType;
 import org.apache.hc.core5.http.HttpHeaders;
+import org.apache.hc.core5.io.CloseMode;
 import org.apache.hc.core5.reactor.IOReactorConfig;
 import org.apache.hc.core5.ssl.SSLContextBuilder;
 import org.apache.hc.core5.util.Timeout;
@@ -73,6 +74,13 @@ public class ApiClient {
             .build();
 
         this.client.start();
+    }
+
+    /**
+     * Closes the underlying HTTP asynchronous client. Used in tests
+     */
+    public void close() {
+        this.client.close(CloseMode.GRACEFUL);
     }
 
     /**
