@@ -16,6 +16,7 @@
  */
 package com.wazuh.contentmanager;
 
+import com.wazuh.contentmanager.cti.console.CtiConsole;
 import com.wazuh.contentmanager.index.ConsumersIndex;
 import com.wazuh.contentmanager.index.ContentIndex;
 import com.wazuh.contentmanager.settings.PluginSettings;
@@ -82,7 +83,7 @@ public class ContentManagerPlugin extends Plugin implements ClusterPlugin {
         this.consumersIndex = new ConsumersIndex(client);
         this.contentIndex = new ContentIndex(client);
         this.snapshotManager =
-                new SnapshotManager(environment, this.contextIndex, this.contentIndex, new Privileged());
+                new SnapshotManager(environment, this.consumersIndex, this.contentIndex, new Privileged());
 //        this.ctiConsole = new CtiConsole(new AuthServiceImpl());
         return Collections.emptyList();
     }
