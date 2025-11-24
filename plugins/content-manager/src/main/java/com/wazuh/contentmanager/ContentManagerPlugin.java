@@ -109,6 +109,7 @@ public class ContentManagerPlugin extends Plugin implements ClusterPlugin {
                     });
         }
 
+        /*
         // Use case 1. Polling
         AuthServiceImpl authService = new AuthServiceImpl();
         this.ctiConsole = new CtiConsole(authService);
@@ -139,6 +140,7 @@ public class ContentManagerPlugin extends Plugin implements ClusterPlugin {
             );
             log.info("Resource token {}", resourceToken);
         }
+        */
     }
 
     /**
