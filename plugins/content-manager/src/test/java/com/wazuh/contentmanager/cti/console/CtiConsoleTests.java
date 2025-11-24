@@ -79,6 +79,9 @@ public class CtiConsoleTests extends OpenSearchTestCase {
     }
 
     /**
+     * Tests the token retrieval mechanism with wait/notify synchronization.
+     * The test verifies that the calling thread properly waits for the token to be obtained
+     * through the polling mechanism and is notified when the token becomes available.
      *
      * @throws ExecutionException ignored
      * @throws InterruptedException ignored
@@ -97,13 +100,13 @@ public class CtiConsoleTests extends OpenSearchTestCase {
 
         // Start polling
         this.console.onPostSubscriptionRequest();
-//        wait();
 
-        // Thread should be waked up when the token is set.
-        if (this.console.isTokenTaskCompleted()) {
-            assertNotNull(this.console.getToken());
-            assertEquals("AYjcyMzY3ZDhiNmJkNTY", this.console.getToken().getAccessToken());
-        }
+        // Wait for the token with a timeout
+        Token token = this.console.waitForToken();
+
+        // Verify the token was obtained
         assertTrue(this.console.isTokenTaskCompleted());
+        assertNotNull(token);
+        assertEquals("AYjcyMzY3ZDhiNmJkNTY", token.getAccessToken());
     }
 }

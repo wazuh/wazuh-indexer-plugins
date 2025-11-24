@@ -37,9 +37,21 @@ public class CtiConsole implements TokenListener {
     private ScheduledFuture<?> getTokenTaskFuture;
 
     /**
+     * Lock object for synchronizing token retrieval.
+     */
+    private final Object tokenLock = new Object();
+
+    /**
+     * Thread executor.
+     */
+    private final ScheduledExecutorService executor;
+
+    /**
      * Default constructor.
      */
-    public CtiConsole() { }
+    public CtiConsole() {
+        this.executor = Executors.newSingleThreadScheduledExecutor(r -> new Thread(r, TASK_NAME));
+    }
 
     /**
      * Sets the plan service for this CTI Console instance.
@@ -70,11 +82,17 @@ public class CtiConsole implements TokenListener {
 
     @Override
     public void onTokenChanged(Token t) {
-        this.token = t;
-        log.info("Permanent token changed: {}", this.token); // TODO do not log the token
+        synchronized (tokenLock) {
+            this.token = t;
+            log.info("Permanent token changed: {}", this.token); // TODO do not log the token
 
-        // Cancel polling
-        FutureUtils.cancel(this.getTokenTaskFuture);
+            // Cancel polling
+            FutureUtils.cancel(this.getTokenTaskFuture);
+            this.executor.shutdown();
+
+            // Notify all waiting threads that the token has been obtained
+            tokenLock.notifyAll();
+        }
     }
 
     /**
@@ -82,9 +100,8 @@ public class CtiConsole implements TokenListener {
      * @param interval the period between successive executions.
      */
     private void getToken(int interval/* TODO sub details */) {
-        ScheduledExecutorService executor  = Executors.newSingleThreadScheduledExecutor(r -> new Thread(r, TASK_NAME));
         Runnable getTokenTask = () -> this.authService.getToken("client_id", "polling");
-        this.getTokenTaskFuture = executor.scheduleAtFixedRate(getTokenTask, interval, interval, TimeUnit.SECONDS);
+        this.getTokenTaskFuture = this.executor.scheduleAtFixedRate(getTokenTask, interval, interval, TimeUnit.SECONDS);
     }
 
     /**
@@ -109,5 +126,47 @@ public class CtiConsole implements TokenListener {
      */
     public boolean isTokenTaskCompleted() {
         return this.getTokenTaskFuture.isDone();
+    }
+
+    /**
+     * Waits for the token to be obtained from the CTI Console with a timeout.
+     * This method blocks the calling thread until either:
+     * - A token is successfully obtained (returns the token)
+     * - The timeout expires (returns null)
+     * - The thread is interrupted (throws InterruptedException)
+     *
+     * @param timeoutMillis maximum time to wait in milliseconds.
+     * @return the obtained token, or null if timeout expires or token is not obtained.
+     * @throws InterruptedException if the waiting thread is interrupted.
+     */
+    public Token waitForToken(long timeoutMillis) throws InterruptedException {
+        synchronized (this.tokenLock) {
+            long startTime = System.currentTimeMillis();
+            long remainingTime = timeoutMillis;
+
+            // Wait until token is obtained or timeout expires
+            while (this.token == null && remainingTime > 0) {
+                this.tokenLock.wait(remainingTime);
+                remainingTime = timeoutMillis - (System.currentTimeMillis() - startTime);
+            }
+
+            return this.token;
+        }
+    }
+
+    /**
+     * Waits indefinitely for the token to be obtained from the CTI Console.
+     * This method blocks the calling thread until a token is successfully obtained or interrupted.
+     *
+     * @return the obtained token.
+     * @throws InterruptedException if the waiting thread is interrupted.
+     */
+    public Token waitForToken() throws InterruptedException {
+        synchronized (this.tokenLock) {
+            while (this.token == null) {
+                this.tokenLock.wait();
+            }
+            return this.token;
+        }
     }
 }
