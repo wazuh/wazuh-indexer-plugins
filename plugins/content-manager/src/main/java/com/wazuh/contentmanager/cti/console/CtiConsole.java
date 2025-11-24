@@ -32,7 +32,7 @@ public class CtiConsole implements TokenListener {
     /**
      * Permanent token of this instance to authenticate to the CTI Console.
      */
-    private Token token;
+    private volatile Token token;
 
     /**
      * Used to cancel the periodic task to obtain a token when completed or expired.

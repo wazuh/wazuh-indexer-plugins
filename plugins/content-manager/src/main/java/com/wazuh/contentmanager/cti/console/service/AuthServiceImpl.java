@@ -7,8 +7,8 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeoutException;
 
@@ -25,7 +25,7 @@ public class AuthServiceImpl extends AbstractService implements AuthService {
      */
     public AuthServiceImpl() {
         super();
-        this.listeners = new ArrayList<>();
+        this.listeners = new CopyOnWriteArrayList<>();
     }
 
     /**
