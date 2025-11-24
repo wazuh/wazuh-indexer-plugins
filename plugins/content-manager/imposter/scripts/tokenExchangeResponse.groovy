@@ -28,7 +28,7 @@ else if (!resource) {
         .withContent('{"error": "invalid_request", "error_description": "Missing required parameter resource"}')
 }
 // Check for invalid resource endpoint
-else if (resource && !resource.contains("localhost:8443")) {
+else if (resource && resource.contains("invalid_target")) {
     respond()
         .withStatusCode(400)
         .withHeader("Cache-Control", "no-store")

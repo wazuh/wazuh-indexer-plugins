@@ -16,6 +16,7 @@
  */
 package com.wazuh.contentmanager;
 
+import com.wazuh.contentmanager.cti.console.CtiConsole;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.opensearch.transport.client.Client;
@@ -36,10 +37,11 @@ import org.opensearch.threadpool.ThreadPool;
 import org.opensearch.watcher.ResourceWatcherService;
 
 import java.util.*;
+import java.util.concurrent.Semaphore;
 import java.util.function.Supplier;
 
 import com.wazuh.contentmanager.index.ContentIndex;
-import com.wazuh.contentmanager.index.ContextIndex;
+import com.wazuh.contentmanager.index.ConsumersIndex;
 import com.wazuh.contentmanager.rest.RestDeleteSubscriptionAction;
 import com.wazuh.contentmanager.rest.RestGetSubscriptionAction;
 import com.wazuh.contentmanager.rest.RestPostSubscriptionAction;
@@ -55,12 +57,17 @@ import java.util.Collections;
 /** Main class of the Content Manager Plugin */
 public class ContentManagerPlugin extends Plugin implements ClusterPlugin, ActionPlugin {
     private static final Logger log = LogManager.getLogger(ContentManagerPlugin.class);
-    private ContextIndex contextIndex;
+    /**
+     * Semaphore to ensure the context index creation is only triggered once.
+     */
+    private static final Semaphore indexCreationSemaphore = new Semaphore(1);
+    private ConsumersIndex consumersIndex;
     private ContentIndex contentIndex;
     private SnapshotManager snapshotManager;
     private ThreadPool threadPool;
     private ClusterService clusterService;
     private ContentManagerService contentManagerService;
+    private CtiConsole ctiConsole;
 
     // Rest API endpoints
     public static final String PLUGINS_BASE_URI = "/_plugins/content-manager";
@@ -69,24 +76,24 @@ public class ContentManagerPlugin extends Plugin implements ClusterPlugin, Actio
 
     @Override
     public Collection<Object> createComponents(
-            Client client,
-            ClusterService clusterService,
-            ThreadPool threadPool,
-            ResourceWatcherService resourceWatcherService,
-            ScriptService scriptService,
-            NamedXContentRegistry xContentRegistry,
-            Environment environment,
-            NodeEnvironment nodeEnvironment,
-            NamedWriteableRegistry namedWriteableRegistry,
-            IndexNameExpressionResolver indexNameExpressionResolver,
-            Supplier<RepositoriesService> repositoriesServiceSupplier) {
+        Client client,
+        ClusterService clusterService,
+        ThreadPool threadPool,
+        ResourceWatcherService resourceWatcherService,
+        ScriptService scriptService,
+        NamedXContentRegistry xContentRegistry,
+        Environment environment,
+        NodeEnvironment nodeEnvironment,
+        NamedWriteableRegistry namedWriteableRegistry,
+        IndexNameExpressionResolver indexNameExpressionResolver,
+        Supplier<RepositoriesService> repositoriesServiceSupplier) {
         PluginSettings.getInstance(environment.settings(), clusterService);
         this.threadPool = threadPool;
         this.clusterService = clusterService;
-        this.contextIndex = new ContextIndex(client);
+        this.consumersIndex = new ConsumersIndex(client);
         this.contentIndex = new ContentIndex(client);
         this.snapshotManager =
-                new SnapshotManager(environment, this.contextIndex, this.contentIndex, new Privileged());
+            new SnapshotManager(environment, this.consumersIndex, this.contentIndex, new Privileged());
         this.contentManagerService = new ContentManagerService(this.threadPool);
         return Collections.emptyList();
     }
@@ -102,18 +109,41 @@ public class ContentManagerPlugin extends Plugin implements ClusterPlugin, Actio
     public void onNodeStarted(DiscoveryNode localNode) {
         // Only cluster managers are responsible for the initialization.
         if (localNode.isClusterManagerNode()) {
-            if (this.clusterService.state().routingTable().hasIndex(ContentIndex.INDEX_NAME)) {
-                this.start();
-            }
-
-            // To be removed once we include the Job Scheduler.
-            this.clusterService.addListener(
-                    event -> {
-                        if (event.indicesCreated().contains(ContentIndex.INDEX_NAME)) {
-                            this.start();
-                        }
-                    });
+            this.start();
         }
+        /*
+        // Use case 1. Polling
+        AuthServiceImpl authService = new AuthServiceImpl();
+        this.ctiConsole = new CtiConsole();
+        this.ctiConsole.setAuthService(authService);
+        this.ctiConsole.onPostSubscriptionRequest();
+
+        while (!this.ctiConsole.isTokenTaskCompleted()) {}
+        if (this.ctiConsole.isTokenTaskCompleted()) {
+            Token token = this.ctiConsole.getToken();
+
+            // Use case 2. Obtain available plans
+            PlansServiceImpl productsService = new PlansServiceImpl();
+            List<Plan> plans = productsService.getPlans(token.getAccessToken());
+            log.info("Plans: {}", plans);
+
+            // Use case 3. Obtain resource token.
+            Product vulnsPro = plans.stream()
+                .filter(plan -> plan.getName().equals("Pro Plan Deluxe"))
+                .toList()
+                .getFirst()
+                .getProducts().stream()
+                .filter(product -> product.getIdentifier().equals("vulnerabilities-pro"))
+                .toList()
+                .getFirst();
+
+            Token resourceToken = authService.getResourceToken(
+                token.getAccessToken(),
+                vulnsPro.getResource()
+            );
+            log.info("Resource token {}", resourceToken);
+        }
+        */
     }
 
     public List<RestHandler> getRestHandlers(
@@ -143,12 +173,22 @@ public class ContentManagerPlugin extends Plugin implements ClusterPlugin, Actio
     private void start() {
         try {
             this.threadPool
-                    .generic()
-                    .execute(
-                            () -> {
-                                this.contextIndex.createIndex();
-                                this.snapshotManager.initialize();
-                            });
+                .generic()
+                .execute(
+                    () -> {
+                        if (indexCreationSemaphore.tryAcquire()) {
+                            try {
+                                this.consumersIndex.createIndex();
+                            } catch (Exception e) {
+                                indexCreationSemaphore.release();
+                                log.error("Failed to create {} index, due to: {}", ConsumersIndex.INDEX_NAME, e.getMessage(), e);
+                            }
+                        } else {
+                            log.debug("{} index creation already triggered", ConsumersIndex.INDEX_NAME);
+                        }
+                        // TODO: Once initialize method is adapted to the new design, uncomment the following line
+                        //this.snapshotManager.initialize();
+                    });
         } catch (Exception e) {
             // Log or handle exception
             log.error("Error initializing snapshot helper: {}", e.getMessage(), e);
@@ -158,16 +198,16 @@ public class ContentManagerPlugin extends Plugin implements ClusterPlugin, Actio
     @Override
     public List<Setting<?>> getSettings() {
         return Arrays.asList(
-                PluginSettings.CONSUMER_ID,
-                PluginSettings.CONTEXT_ID,
-                PluginSettings.CLIENT_TIMEOUT,
-                PluginSettings.CTI_API_URL,
-                PluginSettings.CTI_CLIENT_MAX_ATTEMPTS,
-                PluginSettings.CTI_CLIENT_SLEEP_TIME,
-                PluginSettings.JOB_MAX_DOCS,
-                PluginSettings.JOB_SCHEDULE,
-                PluginSettings.MAX_CHANGES,
-                PluginSettings.MAX_CONCURRENT_BULKS,
-                PluginSettings.MAX_ITEMS_PER_BULK);
+            PluginSettings.CONSUMER_ID,
+            PluginSettings.CONTEXT_ID,
+            PluginSettings.CLIENT_TIMEOUT,
+            PluginSettings.CTI_API_URL,
+            PluginSettings.CTI_CLIENT_MAX_ATTEMPTS,
+            PluginSettings.CTI_CLIENT_SLEEP_TIME,
+            PluginSettings.JOB_MAX_DOCS,
+            PluginSettings.JOB_SCHEDULE,
+            PluginSettings.MAX_CHANGES,
+            PluginSettings.MAX_CONCURRENT_BULKS,
+            PluginSettings.MAX_ITEMS_PER_BULK);
     }
 }
