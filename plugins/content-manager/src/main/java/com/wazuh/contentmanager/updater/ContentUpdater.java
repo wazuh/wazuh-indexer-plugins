@@ -31,7 +31,7 @@ import com.wazuh.contentmanager.utils.VisibleForTesting;
 /** Class responsible for managing content updates by fetching and applying changes in chunks. */
 public class ContentUpdater {
     private static final Logger log = LogManager.getLogger(ContentUpdater.class);
-    private final ConsumersIndex ConsumersIndex;
+    private final ConsumersIndex consumersIndex;
     private final ContentIndex contentIndex;
     private final CTIClient ctiClient;
     private final Privileged privileged;
@@ -54,15 +54,15 @@ public class ContentUpdater {
      * Constructor. Mainly used for testing purposes. Dependency injection.
      *
      * @param ctiClient the CTIClient to interact with the CTI API.
-     * @param ConsumersIndex An object that handles context and consumer information.
+     * @param consumersIndex An object that handles context and consumer information.
      * @param contentIndex An object that handles content index interactions.
      */
     public ContentUpdater(
             CTIClient ctiClient,
-            ConsumersIndex ConsumersIndex,
+            ConsumersIndex consumersIndex,
             ContentIndex contentIndex,
             Privileged privileged) {
-        this.ConsumersIndex = ConsumersIndex;
+        this.consumersIndex = consumersIndex;
         this.contentIndex = contentIndex;
         this.ctiClient = ctiClient;
         this.pluginSettings = PluginSettings.getInstance();
@@ -79,11 +79,11 @@ public class ContentUpdater {
     @VisibleForTesting
     public ContentUpdater(
             CTIClient ctiClient,
-            ConsumersIndex ConsumersIndex,
+            ConsumersIndex consumersIndex,
             ContentIndex contentIndex,
             Privileged privileged,
             PluginSettings pluginSettings) {
-        this.ConsumersIndex = ConsumersIndex;
+        this.consumersIndex = consumersIndex;
         this.contentIndex = contentIndex;
         this.ctiClient = ctiClient;
         this.pluginSettings = pluginSettings;
@@ -105,7 +105,7 @@ public class ContentUpdater {
      */
     public boolean update() throws ContentUpdateException {
         ConsumerInfo consumerInfo =
-                this.ConsumersIndex.get(
+                this.consumersIndex.get(
                         this.pluginSettings.getContextId(), this.pluginSettings.getConsumerId());
         long currentOffset = consumerInfo.getOffset();
         long lastOffset = consumerInfo.getLastOffset();
@@ -126,7 +126,7 @@ public class ContentUpdater {
             if (changes == null) {
                 log.error("Updated interrupted on offset [{}]", currentOffset);
                 consumerInfo.setOffset(currentOffset);
-                this.ConsumersIndex.index(consumerInfo);
+                this.consumersIndex.index(consumerInfo);
                 return false;
             }
             // Update failed. Force initialization from a snapshot.
@@ -134,7 +134,7 @@ public class ContentUpdater {
                 log.error("Updated finally failed on offset [{}]", currentOffset);
                 consumerInfo.setOffset(0);
                 consumerInfo.setLastOffset(0);
-                this.ConsumersIndex.index(consumerInfo);
+                this.consumersIndex.index(consumerInfo);
                 return false;
             }
 
@@ -144,7 +144,7 @@ public class ContentUpdater {
 
         // Update consumer info.
         consumerInfo.setLastOffset(currentOffset);
-        this.ConsumersIndex.index(consumerInfo);
+        this.consumersIndex.index(consumerInfo);
         log.info("[{}] updated to offset [{}]", ContentIndex.INDEX_NAME, consumerInfo.getOffset());
         return true;
     }

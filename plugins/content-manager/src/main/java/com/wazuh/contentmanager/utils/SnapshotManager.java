@@ -39,7 +39,7 @@ public class SnapshotManager {
     private static final Logger log = LogManager.getLogger(SnapshotManager.class);
     private final CTIClient ctiClient;
     private final Environment environment;
-    private final ConsumersIndex ConsumersIndex;
+    private final ConsumersIndex consumersIndex;
     private final ContentIndex contentIndex;
     private final Privileged privileged;
     private final Semaphore semaphore = new Semaphore(1);
@@ -49,16 +49,16 @@ public class SnapshotManager {
      * Constructor.
      *
      * @param environment Needed for snapshot file handling.
-     * @param ConsumersIndex Handles context and consumer related metadata.
+     * @param consumersIndex Handles context and consumer related metadata.
      * @param contentIndex Handles indexed content.
      */
     public SnapshotManager(
             Environment environment,
-            ConsumersIndex ConsumersIndex,
+            ConsumersIndex consumersIndex,
             ContentIndex contentIndex,
             Privileged privileged) {
         this.environment = environment;
-        this.ConsumersIndex = ConsumersIndex;
+        this.consumersIndex = consumersIndex;
         this.contentIndex = contentIndex;
         this.privileged = privileged;
         this.ctiClient = privileged.doPrivilegedRequest(CTIClient::getInstance);
@@ -70,20 +70,20 @@ public class SnapshotManager {
      *
      * @param ctiClient Instance of CTIClient.
      * @param environment Needed for snapshot file handling.
-     * @param ConsumersIndex Handles context and consumer related metadata.
+     * @param consumersIndex Handles context and consumer related metadata.
      * @param contentIndex Handles indexed content.
      */
     @VisibleForTesting
     protected SnapshotManager(
             CTIClient ctiClient,
             Environment environment,
-            ConsumersIndex ConsumersIndex,
+            ConsumersIndex consumersIndex,
             ContentIndex contentIndex,
             Privileged privileged,
             PluginSettings pluginSettings) {
         this.ctiClient = ctiClient;
         this.environment = environment;
-        this.ConsumersIndex = ConsumersIndex;
+        this.consumersIndex = consumersIndex;
         this.contentIndex = contentIndex;
         this.privileged = privileged;
         this.pluginSettings = pluginSettings;
@@ -113,7 +113,7 @@ public class SnapshotManager {
                             long offset = this.contentIndex.fromSnapshot(snapshotJson.toString());
                             // Update the offset.
                             consumerInfo.setOffset(offset);
-                            this.ConsumersIndex.index(consumerInfo);
+                            this.consumersIndex.index(consumerInfo);
                             // Remove snapshot.
                             Files.deleteIfExists(snapshotZip);
                             Files.deleteIfExists(snapshotJson);
@@ -160,7 +160,7 @@ public class SnapshotManager {
      */
     protected ConsumerInfo initConsumer() throws IOException {
         ConsumerInfo current =
-                this.ConsumersIndex.get(
+                this.consumersIndex.get(
                         this.pluginSettings.getContextId(), this.pluginSettings.getConsumerId());
         ConsumerInfo latest = this.ctiClient.getConsumerInfo();
         log.debug("Current consumer info: {}", current);
@@ -169,7 +169,7 @@ public class SnapshotManager {
         // Consumer is not yet initialized. Initialize to latest.
         if (current == null || current.getOffset() == 0) {
             log.debug("Initializing consumer: {}", latest);
-            if (this.ConsumersIndex.index(latest)) {
+            if (this.consumersIndex.index(latest)) {
                 log.info(
                         "Successfully initialized consumer [{}][{}]", latest.getContext(), latest.getName());
             } else {
@@ -194,12 +194,12 @@ public class SnapshotManager {
             log.info("Consumer already initialized (offset {} != 0). Skipping...", current.getOffset());
             current.setLastOffset(latest.getLastOffset());
             current.setLastSnapshotLink(latest.getLastSnapshotLink());
-            this.ConsumersIndex.index(current);
+            this.consumersIndex.index(current);
             // Start content update.
             ContentUpdater updater =
                     new ContentUpdater(
                             this.ctiClient,
-                            this.ConsumersIndex,
+                            this.consumersIndex,
                             this.contentIndex,
                             this.privileged);
             updater.update();

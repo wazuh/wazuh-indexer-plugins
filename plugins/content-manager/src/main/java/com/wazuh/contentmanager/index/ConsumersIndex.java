@@ -29,6 +29,7 @@ import org.opensearch.transport.client.Client;
 import org.opensearch.common.xcontent.XContentFactory;
 import org.opensearch.common.xcontent.XContentType;
 import org.opensearch.common.settings.Settings;
+import org.opensearch.common.unit.TimeValue;
 import org.opensearch.core.xcontent.ToXContent;
 
 import java.io.FileNotFoundException;
@@ -176,15 +177,20 @@ public class ConsumersIndex {
     /** Creates the {@link ConsumersIndex#INDEX_NAME} index. */
    public void createIndex() {
         try {
-            String mappingJson = loadMappingFromResources();
+            String mappingJson = this.loadMappingFromResources();
 
             CreateIndexRequest request = new CreateIndexRequest(ConsumersIndex.INDEX_NAME);
+            request.timeout(TimeValue.timeValueSeconds(this.pluginSettings.getClientTimeout()));
 
             // Index settings
             request.settings(Settings.builder().put("index.number_of_replicas", 0).build());
             request.mapping(mappingJson, XContentType.JSON);
 
-            CreateIndexResponse response = this.client.admin().indices().create(request).actionGet();
+        CreateIndexResponse response = this.client
+            .admin()
+            .indices()
+            .create(request)
+            .actionGet(TimeUnit.SECONDS.toMillis(this.pluginSettings.getClientTimeout()));
             log.info("Index created: {} acknowledged={}", response.index(), response.isAcknowledged());
 
         } catch (Exception e) {
@@ -201,9 +207,6 @@ public class ConsumersIndex {
     private String loadMappingFromResources() throws IOException {
 
         try (InputStream is = this.getClass().getResourceAsStream(MAPPING_PATH)) {
-            if (is == null) {
-                throw new FileNotFoundException("Mapping file not found at: " + MAPPING_PATH);
-            }
             return new String(is.readAllBytes(), StandardCharsets.UTF_8);
         }
     }

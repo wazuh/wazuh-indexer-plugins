@@ -50,7 +50,7 @@ public class ContentManagerPlugin extends Plugin implements ClusterPlugin {
     /** Semaphore to ensure the context index creation is only triggered once. */
     private static final Semaphore indexCreationSemaphore = new Semaphore(1);
 
-    private ConsumersIndex ConsumersIndex;
+    private ConsumersIndex consumersIndex;
     private ContentIndex contentIndex;
     private SnapshotManager snapshotManager;
     private ThreadPool threadPool;
@@ -72,10 +72,10 @@ public class ContentManagerPlugin extends Plugin implements ClusterPlugin {
         PluginSettings.getInstance(environment.settings(), clusterService);
         this.threadPool = threadPool;
         this.clusterService = clusterService;
-        this.ConsumersIndex = new ConsumersIndex(client);
+        this.consumersIndex = new ConsumersIndex(client);
         this.contentIndex = new ContentIndex(client);
         this.snapshotManager =
-                new SnapshotManager(environment, this.ConsumersIndex, this.contentIndex, new Privileged());
+                new SnapshotManager(environment, this.consumersIndex, this.contentIndex, new Privileged());
         return Collections.emptyList();
     }
 
@@ -111,13 +111,13 @@ public class ContentManagerPlugin extends Plugin implements ClusterPlugin {
                             () -> {
                                 if (indexCreationSemaphore.tryAcquire()) {
                                     try {
-                                        this.ConsumersIndex.createIndex();
+                                        this.consumersIndex.createIndex();
                                     } catch (Exception e) {
                                         indexCreationSemaphore.release();
-                                        log.error("Failed to create {} index, due to: {}", ConsumersIndex.INDEX_NAME, e.getMessage(), e);
+                                        log.error("Failed to create {} index, due to: {}", consumersIndex.INDEX_NAME, e.getMessage(), e);
                                     }
                                 } else {
-                                    log.debug("{} index creation already triggered", ConsumersIndex.INDEX_NAME);
+                                    log.debug("{} index creation already triggered", consumersIndex.INDEX_NAME);
                                 }
                                 // TODO: Once initialize method is adapted to the new design, uncomment the following line
                                 //this.snapshotManager.initialize();
