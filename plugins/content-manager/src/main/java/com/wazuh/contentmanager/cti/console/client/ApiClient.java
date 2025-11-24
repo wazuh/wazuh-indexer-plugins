@@ -17,6 +17,7 @@ import java.security.KeyManagementException;
 import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
 import java.util.List;
+import java.util.Locale;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
@@ -85,7 +86,7 @@ public class ApiClient {
      */
     public SimpleHttpResponse getToken(String clientId, String deviceCode) throws ExecutionException, InterruptedException, TimeoutException {
         String grantType = "grant_type=urn:ietf:params:oauth:grant-type:device_code";
-        String formBody = String.format("%s&client_id=%s&device_code=%s", grantType, clientId, deviceCode);
+        String formBody = String.format(Locale.ROOT, "%s&client_id=%s&device_code=%s", grantType, clientId, deviceCode);
 
         SimpleHttpRequest request = SimpleRequestBuilder
             .post(TOKEN_URI)
@@ -118,7 +119,7 @@ public class ApiClient {
             "requested_token_type=urn:wazuh:params:oauth:token-type:signed_url",
             "resource=" + resource
         ));
-        String token = String.format("Bearer %s", permanentToken);
+        String token = String.format(Locale.ROOT, "Bearer %s", permanentToken);
 
         SimpleHttpRequest request = SimpleRequestBuilder
             .post(RESOURCE_URI)
@@ -145,7 +146,7 @@ public class ApiClient {
      * @throws TimeoutException request timed out.
      */
     public SimpleHttpResponse getPlans(String permanentToken) throws ExecutionException, InterruptedException, TimeoutException {
-        String token = String.format("Bearer %s", permanentToken);
+        String token = String.format(Locale.ROOT, "Bearer %s", permanentToken);
 
         SimpleHttpRequest request = SimpleRequestBuilder
             .get(PRODUCTS_URI)

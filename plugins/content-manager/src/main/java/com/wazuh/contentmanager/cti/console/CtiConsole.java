@@ -4,17 +4,16 @@ import com.wazuh.contentmanager.cti.console.model.Token;
 import com.wazuh.contentmanager.cti.console.service.AuthService;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.opensearch.common.util.concurrent.FutureUtils;
 
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.ScheduledFuture;
-import java.util.concurrent.TimeUnit;
+import java.util.concurrent.*;
 
 /**
  * CTI Console main class. Contains and manages CTI Console internal state and services.
  */
 public class CtiConsole implements TokenListener {
     private static final Logger log = LogManager.getLogger(CtiConsole.class);
+    private static final String TASK_NAME = "CTI Console Periodic Task";
 
     /**
      * CTI Console authentication service.
@@ -49,7 +48,7 @@ public class CtiConsole implements TokenListener {
         log.info("Permanent token changed: {}", this.token);
 
         // Cancel polling
-        this.getTokenTaskFuture.cancel(true);
+        FutureUtils.cancel(this.getTokenTaskFuture);
     }
 
     /**
@@ -57,7 +56,7 @@ public class CtiConsole implements TokenListener {
      * @param interval the period between successive executions.
      */
     private void getToken(int interval/* TODO sub details */) {
-        ScheduledExecutorService executor  = Executors.newSingleThreadScheduledExecutor();
+        ScheduledExecutorService executor  = Executors.newSingleThreadScheduledExecutor(r -> new Thread(r, TASK_NAME));
         Runnable getTokenTask = () -> this.authService.getToken("client_id", "polling");;
         this.getTokenTaskFuture = executor.scheduleAtFixedRate(getTokenTask, interval, interval, TimeUnit.SECONDS);
     }

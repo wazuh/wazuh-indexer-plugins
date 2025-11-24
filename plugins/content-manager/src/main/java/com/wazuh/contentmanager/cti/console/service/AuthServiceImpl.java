@@ -20,7 +20,6 @@ import java.util.concurrent.TimeoutException;
  */
 public class AuthServiceImpl extends AbstractService implements AuthService {
     private static final Logger log = LogManager.getLogger(AuthServiceImpl.class);
-    public final ScheduledExecutorService executor;
     private final List<TokenListener> listeners;
 
     /**
@@ -28,7 +27,6 @@ public class AuthServiceImpl extends AbstractService implements AuthService {
      */
     public AuthServiceImpl() {
         super();
-        this.executor = Executors.newSingleThreadScheduledExecutor();
         this.listeners = new ArrayList<>();
     }
 
