@@ -33,6 +33,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Initialize indexer content manager [(#651)](https://github.com/wazuh/wazuh-indexer-plugins/pull/651)
 - Implement Imposter mock server for CTI API [#661](https://github.com/wazuh/wazuh-indexer-plugins/pull/661)
 - Implement authentication in CTI Console [#666](https://github.com/wazuh/wazuh-indexer-plugins/pull/666)
+- Initialize consumers metadata index on start [(#668)](https://github.com/wazuh/wazuh-indexer-plugins/pull/668)
 
 ### Dependencies
 - Upgrade to Gradle 8.14.3 [(#649)](https://github.com/wazuh/wazuh-indexer-plugins/pull/649)
