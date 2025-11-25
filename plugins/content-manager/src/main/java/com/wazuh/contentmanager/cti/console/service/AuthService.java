@@ -7,7 +7,7 @@ import com.wazuh.contentmanager.cti.console.model.Token;
 public interface AuthService extends ClosableHttpClient {
 
     Token getToken(String clientId, String deviceCode);
-    Token getResourceToken(String permanentToken, String resource);
+    Token getResourceToken(Token permanentToken, String resource);
 
     void addListener(TokenListener listener);
 }

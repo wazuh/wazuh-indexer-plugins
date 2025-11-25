@@ -66,7 +66,7 @@ public class AuthServiceImpl extends AbstractService implements AuthService {
      * @return resource access token
      */
     @Override
-    public Token getResourceToken(String permanentToken, String resource) {
+    public Token getResourceToken(Token permanentToken, String resource) {
         try {
             // Perform request
             SimpleHttpResponse response = this.client.getResourceToken(permanentToken, resource);

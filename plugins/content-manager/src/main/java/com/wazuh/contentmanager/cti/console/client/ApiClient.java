@@ -121,14 +121,14 @@ public class ApiClient {
      * @throws InterruptedException request failed / interrupted.
      * @throws TimeoutException request timed out.
      */
-    public SimpleHttpResponse getResourceToken(String permanentToken, String resource) throws ExecutionException, InterruptedException, TimeoutException {
+    public SimpleHttpResponse getResourceToken(Token permanentToken, String resource) throws ExecutionException, InterruptedException, TimeoutException {
         String formBody = String.join("&", List.of(
             "grant_type=urn:ietf:params:oauth:grant-type:token-exchange",
             "subject_token_type=urn:ietf:params:oauth:token-type:access_token",
             "requested_token_type=urn:wazuh:params:oauth:token-type:signed_url",
             "resource=" + resource
         ));
-        String token = String.format(Locale.ROOT, "Bearer %s", permanentToken);
+        String token = String.format(Locale.ROOT, "%s %s", permanentToken.getTokenType(), permanentToken.getAccessToken());
 
         SimpleHttpRequest request = SimpleRequestBuilder
             .post(RESOURCE_URI)
