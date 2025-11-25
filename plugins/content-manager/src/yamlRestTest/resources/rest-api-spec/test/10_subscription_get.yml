@@ -7,7 +7,7 @@
       content_manager_subscription_get: {}
 
   - match: { status: 404 }
-  - match: { message: "Subscription not found" }
+  - match: { message: "Token not found" }
 
 ---
 "Test subscription GET returns 200 with token after subscription created":

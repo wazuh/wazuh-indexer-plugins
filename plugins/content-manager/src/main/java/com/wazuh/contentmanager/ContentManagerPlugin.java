@@ -158,7 +158,7 @@ public class ContentManagerPlugin extends Plugin implements ClusterPlugin, Actio
         org.opensearch.cluster.metadata.IndexNameExpressionResolver indexNameExpressionResolver,
         java.util.function.Supplier<org.opensearch.cluster.node.DiscoveryNodes> nodesInCluster) {
         return List.of(
-            new RestGetSubscriptionAction(contentManagerService),
+            new RestGetSubscriptionAction(this.ctiConsole),
             new RestPostSubscriptionAction(this.ctiConsole),
             new RestDeleteSubscriptionAction(contentManagerService),
             new RestPostUpdateAction(contentManagerService)

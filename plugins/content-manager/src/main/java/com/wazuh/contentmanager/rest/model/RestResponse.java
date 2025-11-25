@@ -9,8 +9,12 @@ import org.opensearch.core.xcontent.XContentBuilder;
 import java.io.IOException;
 
 /**
- * General error response model for REST API endpoints.
- * Provides a standardized error format across all API responses.
+ * General response model for REST API endpoints.
+ *
+ * <p>This class provides a standardized format for API responses that include
+ * a human-readable message and an HTTP status code. It can be serialized to
+ * OpenSearch XContent via the {@link org.opensearch.core.xcontent.ToXContent}
+ * interface implementation.
  */
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class RestResponse implements ToXContent {
@@ -87,10 +91,28 @@ public class RestResponse implements ToXContent {
             '}';
     }
 
+    /**
+     * Serializes this RestResponse into an {@link XContentBuilder} using JSON
+     * format.
+     *
+     * @return an {@link XContentBuilder} containing the JSON representation
+     *         of this RestResponse
+     * @throws IOException if an I/O error occurs while building the content
+     */
     public XContentBuilder toXContent() throws IOException {
         return this.toXContent(XContentFactory.jsonBuilder(), null);
     }
 
+    /**
+     * Writes the fields of this RestResponse into the provided
+     * {@link XContentBuilder}. The resulting structure is a JSON object with
+     * the keys {@code message} and {@code status}.
+     *
+     * @param builder the XContent builder to write into
+     * @param params  optional parameters (may be ignored)
+     * @return the same {@link XContentBuilder} instance passed as {@code builder}
+     * @throws IOException if an I/O error occurs while writing to the builder
+     */
     @Override
     public XContentBuilder toXContent(XContentBuilder builder, Params params) throws IOException {
         builder.startObject()

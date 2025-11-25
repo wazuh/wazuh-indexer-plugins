@@ -1,6 +1,7 @@
 package com.wazuh.contentmanager.rest.services;
 
 import com.wazuh.contentmanager.ContentManagerPlugin;
+import com.wazuh.contentmanager.cti.console.CtiConsole;
 import com.wazuh.contentmanager.cti.console.model.Subscription;
 import com.wazuh.contentmanager.cti.console.model.Token;
 import com.wazuh.contentmanager.rest.model.RestResponse;
@@ -25,17 +26,17 @@ import static org.opensearch.rest.RestRequest.Method.GET;
  *
  * Possible HTTP responses:
  * - 200 OK: Subscription found, returns access token and token type
- * - 404 Not Found: No subscription exists
+ * - 404 Not Found: The token does not exist
  * - 401 Unauthorized: The endpoint is being accessed by a different user, the expected user is wazuh-server
  * - 500 Internal Server Error: Unexpected error during processing
  */
 public class RestGetSubscriptionAction extends BaseRestHandler {
-    private final ContentManagerService service;
     private static final String ENDPOINT_NAME = "content_manager_subscription_get";
     private static final String ENDPOINT_UNIQUE_NAME = "plugin:content_manager/subscription_get";
+    private final CtiConsole ctiConsole;
 
-    public RestGetSubscriptionAction(ContentManagerService service) {
-        this.service = service;
+    public RestGetSubscriptionAction(CtiConsole console) {
+        this.ctiConsole = console;
     }
 
     @Override
@@ -56,53 +57,22 @@ public class RestGetSubscriptionAction extends BaseRestHandler {
     public RestChannelConsumer prepareRequest(RestRequest request, NodeClient client) {
         return channel -> {
             try {
-                Subscription subscription = service.getSubscription();
-                if (subscription == null) {
-                    RestResponse error = new RestResponse(
-                            "Subscription not found",
-                            RestStatus.NOT_FOUND.getStatus()
-                    );
-                    XContentBuilder builder = XContentFactory.jsonBuilder();
-                    builder.startObject()
-                            .field("message", error.getMessage())
-                            .field("status", error.getStatus())
-                            .endObject();
-                    channel.sendResponse(new BytesRestResponse(RestStatus.NOT_FOUND, builder));
-                    return;
-                }
-
-                Token token = service.getToken();
+                Token token = this.ctiConsole.getToken();
                 if (token == null) {
                     RestResponse error = new RestResponse(
                             "Token not found",
                             RestStatus.NOT_FOUND.getStatus()
                     );
-                    XContentBuilder builder = XContentFactory.jsonBuilder();
-                    builder.startObject()
-                            .field("message", error.getMessage())
-                            .field("status", error.getStatus())
-                            .endObject();
-                    channel.sendResponse(new BytesRestResponse(RestStatus.NOT_FOUND, builder));
+                    channel.sendResponse(new BytesRestResponse(RestStatus.NOT_FOUND, error.toXContent()));
                     return;
                 }
-
-                XContentBuilder builder = XContentFactory.jsonBuilder();
-                builder.startObject()
-                        .field("access_token", token.getAccessToken())
-                        .field("token_type", token.getTokenType())
-                        .endObject();
-                channel.sendResponse(new BytesRestResponse(RestStatus.OK, builder));
+                channel.sendResponse(new BytesRestResponse(RestStatus.OK, token.toXContent()));
             } catch (Exception e) {
                 RestResponse error = new RestResponse(
                         e.getMessage() != null ? e.getMessage() : "An unexpected error occurred while processing your request.",
                         RestStatus.INTERNAL_SERVER_ERROR.getStatus()
                 );
-                XContentBuilder builder = XContentFactory.jsonBuilder();
-                builder.startObject()
-                        .field("message", error.getMessage())
-                        .field("status", error.getStatus())
-                        .endObject();
-                channel.sendResponse(new BytesRestResponse(RestStatus.INTERNAL_SERVER_ERROR, builder));
+                channel.sendResponse(new BytesRestResponse(RestStatus.INTERNAL_SERVER_ERROR, error.toXContent()));
             }
         };
     }
