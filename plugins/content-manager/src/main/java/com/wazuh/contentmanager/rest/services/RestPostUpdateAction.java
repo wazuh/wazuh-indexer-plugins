@@ -24,8 +24,6 @@ import static org.opensearch.rest.RestRequest.Method.POST;
  * - 404 Not Found: No subscription exists (subscription required before updating)
  * - 401 Unauthorized: The endpoint is being accessed by a different user, the expected user is wazuh-server
  * - 409 Conflict: Another update operation is already in progress
- * - 429 Too Many Requests: Rate limit exceeded (includes X-RateLimit-* headers)
- * - 503 Service Unavailable: External CTI service is unavailable
  * - 500 Internal Server Error: Unexpected error during processing
  *
  * Response headers (for rate limiting):
@@ -83,33 +81,11 @@ public class RestPostUpdateAction extends BaseRestHandler {
                 }
 
                 // 3. Rate Limit Check (429 Too Many Requests)
-                /** It stores all the information needed about the update without using the service:
+                /**
                  * - X-RateLimit-Limit: Maximum number of requests allowed per hour
                  * - X-RateLimit-Remaining: Number of requests remaining in current window
                  * - X-RateLimit-Reset: Unix timestamp when the rate limit window resets
-                 *
-                 * Rate limit should be 2 Updates per hour
                  */
-                //TODO: Add RateLimit logic and implement real check
-                if ( 1 == 2) {
-                    RestResponse error = new RestResponse(
-                        "Too many update requests. Please try again later.",
-                        RestStatus.TOO_MANY_REQUESTS.getStatus()
-                    );
-                    BytesRestResponse response = new BytesRestResponse(RestStatus.TOO_MANY_REQUESTS, error.toXContent());
-                    return;
-                }
-
-                // 4. External Service Check (503 Service Unavailable)
-                // TODO: Add external service availability check using a ping to the BASE_URI from ApiClient
-                if (1 == 2) {
-                    RestResponse error = new RestResponse(
-                        "CTI API is currently unavailable. Unable to fetch update information.",
-                        RestStatus.SERVICE_UNAVAILABLE.getStatus()
-                    );
-                    channel.sendResponse(new BytesRestResponse(RestStatus.SERVICE_UNAVAILABLE, error.toXContent()));
-                    return;
-                }
 
                 // TODO: Add actual update logic
                 RestResponse response = new RestResponse("Update accepted", RestStatus.ACCEPTED.getStatus());
