@@ -1,4 +1,4 @@
-package com.wazuh.contentmanager.model;
+package com.wazuh.contentmanager.rest.model;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;

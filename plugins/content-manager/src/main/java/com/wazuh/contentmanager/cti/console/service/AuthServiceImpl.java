@@ -2,7 +2,7 @@ package com.wazuh.contentmanager.cti.console.service;
 
 import com.wazuh.contentmanager.cti.console.TokenListener;
 import com.wazuh.contentmanager.cti.console.model.Token;
-import com.wazuh.contentmanager.model.Subscription;
+import com.wazuh.contentmanager.cti.console.model.Subscription;
 import org.apache.hc.client5.http.async.methods.SimpleHttpResponse;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;

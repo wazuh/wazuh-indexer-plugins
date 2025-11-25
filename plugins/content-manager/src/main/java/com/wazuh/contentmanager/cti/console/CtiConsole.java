@@ -3,7 +3,7 @@ package com.wazuh.contentmanager.cti.console;
 import com.wazuh.contentmanager.cti.console.model.Token;
 import com.wazuh.contentmanager.cti.console.service.AuthService;
 import com.wazuh.contentmanager.cti.console.service.PlansService;
-import com.wazuh.contentmanager.model.Subscription;
+import com.wazuh.contentmanager.cti.console.model.Subscription;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.opensearch.common.util.concurrent.FutureUtils;

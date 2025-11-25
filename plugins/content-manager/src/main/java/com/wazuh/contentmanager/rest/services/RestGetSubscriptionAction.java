@@ -1,9 +1,9 @@
-package com.wazuh.contentmanager.rest;
+package com.wazuh.contentmanager.rest.services;
 
 import com.wazuh.contentmanager.ContentManagerPlugin;
-import com.wazuh.contentmanager.model.Subscription;
+import com.wazuh.contentmanager.cti.console.model.Subscription;
 import com.wazuh.contentmanager.cti.console.model.Token;
-import com.wazuh.contentmanager.model.ErrorResponse;
+import com.wazuh.contentmanager.rest.model.ErrorResponse;
 import com.wazuh.contentmanager.services.ContentManagerService;
 import org.opensearch.transport.client.node.NodeClient;
 import org.opensearch.common.xcontent.XContentFactory;

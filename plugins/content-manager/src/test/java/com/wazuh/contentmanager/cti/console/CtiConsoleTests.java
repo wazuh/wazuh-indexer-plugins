@@ -6,7 +6,7 @@ import com.wazuh.contentmanager.cti.console.service.AuthService;
 import com.wazuh.contentmanager.cti.console.service.AuthServiceImpl;
 import com.wazuh.contentmanager.cti.console.service.PlansService;
 import com.wazuh.contentmanager.cti.console.service.PlansServiceImpl;
-import com.wazuh.contentmanager.model.Subscription;
+import com.wazuh.contentmanager.cti.console.model.Subscription;
 import org.apache.hc.client5.http.async.methods.SimpleHttpResponse;
 import org.apache.hc.core5.http.ContentType;
 import org.junit.After;

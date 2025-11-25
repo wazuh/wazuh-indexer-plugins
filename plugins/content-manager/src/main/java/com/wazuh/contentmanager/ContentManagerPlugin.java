@@ -42,10 +42,10 @@ import java.util.function.Supplier;
 
 import com.wazuh.contentmanager.index.ContentIndex;
 import com.wazuh.contentmanager.index.ConsumersIndex;
-import com.wazuh.contentmanager.rest.RestDeleteSubscriptionAction;
-import com.wazuh.contentmanager.rest.RestGetSubscriptionAction;
-import com.wazuh.contentmanager.rest.RestPostSubscriptionAction;
-import com.wazuh.contentmanager.rest.RestPostUpdateAction;
+import com.wazuh.contentmanager.rest.services.RestDeleteSubscriptionAction;
+import com.wazuh.contentmanager.rest.services.RestGetSubscriptionAction;
+import com.wazuh.contentmanager.rest.services.RestPostSubscriptionAction;
+import com.wazuh.contentmanager.rest.services.RestPostUpdateAction;
 import com.wazuh.contentmanager.services.ContentManagerService;
 import com.wazuh.contentmanager.settings.PluginSettings;
 import com.wazuh.contentmanager.utils.Privileged;

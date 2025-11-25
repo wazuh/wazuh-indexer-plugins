@@ -1,6 +1,6 @@
 package com.wazuh.contentmanager.services;
 
-import com.wazuh.contentmanager.model.Subscription;
+import com.wazuh.contentmanager.cti.console.model.Subscription;
 import com.wazuh.contentmanager.cti.console.model.Token;
 import org.opensearch.threadpool.ThreadPool;
 
