@@ -3,6 +3,7 @@ package com.wazuh.contentmanager.cti.console;
 import com.wazuh.contentmanager.cti.console.model.Token;
 import com.wazuh.contentmanager.cti.console.service.AuthService;
 import com.wazuh.contentmanager.cti.console.service.PlansService;
+import com.wazuh.contentmanager.model.Subscription;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.opensearch.common.util.concurrent.FutureUtils;
@@ -108,19 +109,19 @@ public class CtiConsole implements TokenListener {
 
     /**
      * Starts a periodic task to obtain a permanent token from the CTI Console.
-     * @param interval the period between successive executions.
+     * @param s subscription details, including the period between successive executions.
      */
-    private void getToken(int interval/* TODO sub details */) {
-        Runnable getTokenTask = () -> this.authService.getToken("client_id", "polling");
-        this.getTokenTaskFuture = this.executor.scheduleAtFixedRate(getTokenTask, interval, interval, TimeUnit.SECONDS);
+    private void getToken(Subscription s) {
+        Runnable getTokenTask = () -> this.authService.getToken(s);
+        this.getTokenTaskFuture = this.executor.scheduleAtFixedRate(getTokenTask, s.getInterval(), s.getInterval(), TimeUnit.SECONDS);
     }
 
     /**
      * Triggers the mechanism to obtain a permanent token from the CTI Console.
      * This method is meant to be called by the Rest handler.
      */
-    public void onPostSubscriptionRequest (/* TODO sub details */) {
-        this.getToken(5);
+    public void onPostSubscriptionRequest (Subscription s) {
+        this.getToken(s);
     }
 
     /**

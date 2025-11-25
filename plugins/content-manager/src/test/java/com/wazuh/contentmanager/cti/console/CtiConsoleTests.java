@@ -6,6 +6,7 @@ import com.wazuh.contentmanager.cti.console.service.AuthService;
 import com.wazuh.contentmanager.cti.console.service.AuthServiceImpl;
 import com.wazuh.contentmanager.cti.console.service.PlansService;
 import com.wazuh.contentmanager.cti.console.service.PlansServiceImpl;
+import com.wazuh.contentmanager.model.Subscription;
 import org.apache.hc.client5.http.async.methods.SimpleHttpResponse;
 import org.apache.hc.core5.http.ContentType;
 import org.junit.After;
@@ -69,7 +70,8 @@ public class CtiConsoleTests extends OpenSearchTestCase {
         when(this.mockClient.getToken(anyString(), anyString()))
             .thenReturn(SimpleHttpResponse.create(200, response.getBytes(StandardCharsets.UTF_8), ContentType.APPLICATION_JSON));
 
-        Token tokenA = this.authService.getToken("anyClientID", "anyDeviceCode");
+        Subscription subscription = new Subscription("anyClientID", "anyDeviceCode", 3600, 5);
+        Token tokenA = this.authService.getToken(subscription);
 
         // Ensure onTokenChanged is invoked, and the token in the CtiConsole instance is updated.
         Token tokenB = this.console.getToken();
@@ -96,7 +98,8 @@ public class CtiConsoleTests extends OpenSearchTestCase {
             .thenReturn(httpResponsePending, httpResponsePending, httpResponsePending, httpResponse);
 
         // Start polling
-        this.console.onPostSubscriptionRequest();
+        Subscription subscription = new Subscription("anyClientID", "anyDeviceCode", 3600, 5);
+        this.console.onPostSubscriptionRequest(subscription);
 
         // Wait for the token with a timeout
         Token token = this.console.waitForToken();

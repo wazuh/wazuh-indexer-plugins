@@ -2,6 +2,7 @@ package com.wazuh.contentmanager.cti.console.service;
 
 import com.wazuh.contentmanager.cti.console.TokenListener;
 import com.wazuh.contentmanager.cti.console.model.Token;
+import com.wazuh.contentmanager.model.Subscription;
 import org.apache.hc.client5.http.async.methods.SimpleHttpResponse;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -30,16 +31,14 @@ public class AuthServiceImpl extends AbstractService implements AuthService {
 
     /**
      * Obtains a permanent token for the instance from CTI Console.
-     * @param clientId unique client identifier for the instance.
-     * @param deviceCode unique device code provided by the CTI Console during the registration of the instance.
+     * @param s registration details of the instance.
      * @return access token.
      */
-    // TODO replace parameters with SubscriptionModel from https://github.com/wazuh/wazuh-indexer-plugins/pull/662
     @Override
-    public Token getToken(String clientId, String deviceCode) {
+    public Token getToken(Subscription s) {
         try {
             // Perform request
-            SimpleHttpResponse response = this.client.getToken(clientId, deviceCode);
+            SimpleHttpResponse response = this.client.getToken(s.getClientId(), s.getDeviceCode());
 
             if (response.getCode() == 200) {
                 // Parse response
