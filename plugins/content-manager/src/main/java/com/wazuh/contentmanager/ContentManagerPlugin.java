@@ -160,7 +160,7 @@ public class ContentManagerPlugin extends Plugin implements ClusterPlugin, Actio
         return List.of(
             new RestGetSubscriptionAction(this.ctiConsole),
             new RestPostSubscriptionAction(this.ctiConsole),
-            new RestDeleteSubscriptionAction(contentManagerService),
+            new RestDeleteSubscriptionAction(this.ctiConsole),
             new RestPostUpdateAction(contentManagerService)
         );
     }

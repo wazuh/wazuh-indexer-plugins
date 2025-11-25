@@ -185,4 +185,12 @@ public class CtiConsole implements TokenListener {
             tokenLock.unlock();
         }
     }
+
+
+    /**
+     * Deletes the permanent token stored in this CTI Console instance.
+    */
+    public void deleteToken() {
+        this.token = null;
+    }
 }

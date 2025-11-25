@@ -1,9 +1,10 @@
 package com.wazuh.contentmanager.rest.services;
 
 import com.wazuh.contentmanager.ContentManagerPlugin;
+import com.wazuh.contentmanager.cti.console.CtiConsole;
+import com.wazuh.contentmanager.cti.console.model.Token;
 import com.wazuh.contentmanager.rest.model.RestResponse;
 import com.wazuh.contentmanager.cti.console.model.Subscription;
-import com.wazuh.contentmanager.services.ContentManagerService;
 import org.opensearch.transport.client.node.NodeClient;
 import org.opensearch.common.xcontent.XContentFactory;
 import org.opensearch.core.rest.RestStatus;
@@ -29,12 +30,12 @@ import static org.opensearch.rest.RestRequest.Method.DELETE;
  * - 500 Internal Server Error: Unexpected error during processing
  */
 public class RestDeleteSubscriptionAction extends BaseRestHandler {
-    private final ContentManagerService service;
     private static final String ENDPOINT_NAME = "content_manager_subscription_delete";
     private static final String ENDPOINT_UNIQUE_NAME = "plugin:content_manager/subscription_delete";
+    private final CtiConsole ctiConsole;
 
-    public RestDeleteSubscriptionAction(ContentManagerService service) {
-        this.service = service;
+    public RestDeleteSubscriptionAction( CtiConsole ctiConsole) {
+        this.ctiConsole = ctiConsole;
     }
 
     @Override
@@ -55,39 +56,26 @@ public class RestDeleteSubscriptionAction extends BaseRestHandler {
     public RestChannelConsumer prepareRequest(RestRequest request, NodeClient client) {
         return channel -> {
             try {
-                Subscription subscription = service.getSubscription();
-                if (subscription == null) {
+                Token token = ctiConsole.getToken();
+                if (token == null) {
                     RestResponse error = new RestResponse(
-                            "Subscription not found",
+                            "Token not found",
                             RestStatus.NOT_FOUND.getStatus()
                     );
-                    XContentBuilder builder = XContentFactory.jsonBuilder();
-                    builder.startObject()
-                            .field("message", error.getMessage())
-                            .field("status", error.getStatus())
-                            .endObject();
-                    channel.sendResponse(new BytesRestResponse(RestStatus.NOT_FOUND, builder));
+                    channel.sendResponse(new BytesRestResponse(RestStatus.NOT_FOUND, error.toXContent()));
                     return;
                 }
-                service.deleteSubscription();
 
-                XContentBuilder builder = XContentFactory.jsonBuilder();
-                builder.startObject()
-                        .field("status", RestStatus.OK.getStatus())
-                        .field("message", "Subscription deleted successfully")
-                        .endObject();
-                channel.sendResponse(new BytesRestResponse(RestStatus.OK, builder));
+                ctiConsole.deleteToken();
+
+                RestResponse response = new RestResponse("Subscription deleted successfully", RestStatus.OK.getStatus());
+                channel.sendResponse(new BytesRestResponse(RestStatus.OK, response.toXContent()));
             } catch (Exception e) {
                 RestResponse error = new RestResponse(
                         e.getMessage() != null ? e.getMessage() : "An unexpected error occurred while processing your request.",
                         RestStatus.INTERNAL_SERVER_ERROR.getStatus()
                 );
-                XContentBuilder builder = XContentFactory.jsonBuilder();
-                builder.startObject()
-                        .field("message", error.getMessage())
-                        .field("status", error.getStatus())
-                        .endObject();
-                channel.sendResponse(new BytesRestResponse(RestStatus.INTERNAL_SERVER_ERROR, builder));
+                channel.sendResponse(new BytesRestResponse(RestStatus.INTERNAL_SERVER_ERROR, error.toXContent()));
             }
         };
     }
