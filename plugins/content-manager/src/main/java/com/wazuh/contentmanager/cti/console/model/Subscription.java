@@ -8,13 +8,18 @@ import com.fasterxml.jackson.annotation.JsonProperty;
  */
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class Subscription {
-    @JsonProperty("device_code")
+    public static final String DEVICE_CODE = "device_code";
+    public static final String CLIENT_ID = "client_id";
+    public static final String EXPIRES_IN = "expires_in";
+    public static final String INTERVAL = "interval";
+
+    @JsonProperty(DEVICE_CODE)
     private String deviceCode;
-    @JsonProperty("client_id")
+    @JsonProperty(CLIENT_ID)
     private String clientId;
-    @JsonProperty("expires_in")
+    @JsonProperty(EXPIRES_IN)
     private int expiresIn;
-    @JsonProperty("interval")
+    @JsonProperty(INTERVAL)
     private int interval;
 
     /**
@@ -31,10 +36,10 @@ public class Subscription {
      * @param interval   polling interval in seconds to check subscription status
      */
     public Subscription(String deviceCode, String clientId, int expiresIn, int interval) {
-        this.deviceCode = deviceCode;
-        this.clientId = clientId;
-        this.expiresIn = expiresIn;
-        this.interval = interval;
+        this.setDeviceCode(deviceCode);
+        this.setClientId(clientId);
+        this.setExpiresIn(expiresIn);
+        this.setInterval(interval);
     }
 
     /**

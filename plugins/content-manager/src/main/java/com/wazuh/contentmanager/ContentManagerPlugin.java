@@ -95,6 +95,9 @@ public class ContentManagerPlugin extends Plugin implements ClusterPlugin, Actio
         this.snapshotManager =
             new SnapshotManager(environment, this.consumersIndex, this.contentIndex, new Privileged());
         this.contentManagerService = new ContentManagerService(this.threadPool);
+
+        // Content Manager 5.0
+        this.ctiConsole = new CtiConsole();
         return Collections.emptyList();
     }
 
@@ -156,7 +159,7 @@ public class ContentManagerPlugin extends Plugin implements ClusterPlugin, Actio
         java.util.function.Supplier<org.opensearch.cluster.node.DiscoveryNodes> nodesInCluster) {
         return List.of(
             new RestGetSubscriptionAction(contentManagerService),
-            new RestPostSubscriptionAction(contentManagerService),
+            new RestPostSubscriptionAction(this.ctiConsole),
             new RestDeleteSubscriptionAction(contentManagerService),
             new RestPostUpdateAction(contentManagerService)
         );

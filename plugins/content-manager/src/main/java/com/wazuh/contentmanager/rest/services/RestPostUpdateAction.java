@@ -1,7 +1,7 @@
 package com.wazuh.contentmanager.rest.services;
 
 import com.wazuh.contentmanager.ContentManagerPlugin;
-import com.wazuh.contentmanager.rest.model.ErrorResponse;
+import com.wazuh.contentmanager.rest.model.RestResponse;
 import com.wazuh.contentmanager.services.ContentManagerService;
 import org.opensearch.transport.client.node.NodeClient;
 import org.opensearch.common.xcontent.XContentFactory;
@@ -82,7 +82,7 @@ public class RestPostUpdateAction extends BaseRestHandler {
             try {
                 // 1. Check if subscription exists (404 Not Found)
                 if (service.getSubscription() == null) {
-                    ErrorResponse error = new ErrorResponse(
+                    RestResponse error = new RestResponse(
                         "Subscription not found. Please create a subscription before attempting to update.",
                         RestStatus.NOT_FOUND.getStatus()
                     );
@@ -98,7 +98,7 @@ public class RestPostUpdateAction extends BaseRestHandler {
                 // 2. Conflict Check (409 Conflict)
                 // TODO: Implement actual concurrency control
                 if (isUpdateInProgress) {
-                    ErrorResponse error = new ErrorResponse(
+                    RestResponse error = new RestResponse(
                         "An update operation is already in progress. Please wait for it to complete.",
                         RestStatus.CONFLICT.getStatus()
                     );
@@ -122,7 +122,7 @@ public class RestPostUpdateAction extends BaseRestHandler {
                 }
 
                 if (!service.canTriggerUpdate(testRateLimit)) {
-                    ErrorResponse error = new ErrorResponse(
+                    RestResponse error = new RestResponse(
                         "Too many update requests. Please try again later.",
                         RestStatus.TOO_MANY_REQUESTS.getStatus()
                     );
@@ -147,7 +147,7 @@ public class RestPostUpdateAction extends BaseRestHandler {
                     || SIMULATE_EXTERNAL_SERVICE_ERROR;
 
                 if (simulateExternal) {
-                    ErrorResponse error = new ErrorResponse(
+                    RestResponse error = new RestResponse(
                         "CTI API is currently unavailable. Unable to fetch update information.",
                         RestStatus.SERVICE_UNAVAILABLE.getStatus()
                     );
@@ -189,7 +189,7 @@ public class RestPostUpdateAction extends BaseRestHandler {
                 response.addHeader("X-RateLimit-Reset", String.valueOf(service.getRateLimitReset()));
                 channel.sendResponse(response);
             } catch (Exception e) {
-                ErrorResponse error = new ErrorResponse(
+                RestResponse error = new RestResponse(
                     e.getMessage() != null ? e.getMessage() : "An unexpected error occurred while processing your request.",
                     RestStatus.INTERNAL_SERVER_ERROR.getStatus()
                 );

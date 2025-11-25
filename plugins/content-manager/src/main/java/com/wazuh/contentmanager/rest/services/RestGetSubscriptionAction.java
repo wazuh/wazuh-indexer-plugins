@@ -3,7 +3,7 @@ package com.wazuh.contentmanager.rest.services;
 import com.wazuh.contentmanager.ContentManagerPlugin;
 import com.wazuh.contentmanager.cti.console.model.Subscription;
 import com.wazuh.contentmanager.cti.console.model.Token;
-import com.wazuh.contentmanager.rest.model.ErrorResponse;
+import com.wazuh.contentmanager.rest.model.RestResponse;
 import com.wazuh.contentmanager.services.ContentManagerService;
 import org.opensearch.transport.client.node.NodeClient;
 import org.opensearch.common.xcontent.XContentFactory;
@@ -58,7 +58,7 @@ public class RestGetSubscriptionAction extends BaseRestHandler {
             try {
                 Subscription subscription = service.getSubscription();
                 if (subscription == null) {
-                    ErrorResponse error = new ErrorResponse(
+                    RestResponse error = new RestResponse(
                             "Subscription not found",
                             RestStatus.NOT_FOUND.getStatus()
                     );
@@ -73,7 +73,7 @@ public class RestGetSubscriptionAction extends BaseRestHandler {
 
                 Token token = service.getToken();
                 if (token == null) {
-                    ErrorResponse error = new ErrorResponse(
+                    RestResponse error = new RestResponse(
                             "Token not found",
                             RestStatus.NOT_FOUND.getStatus()
                     );
@@ -93,7 +93,7 @@ public class RestGetSubscriptionAction extends BaseRestHandler {
                         .endObject();
                 channel.sendResponse(new BytesRestResponse(RestStatus.OK, builder));
             } catch (Exception e) {
-                ErrorResponse error = new ErrorResponse(
+                RestResponse error = new RestResponse(
                         e.getMessage() != null ? e.getMessage() : "An unexpected error occurred while processing your request.",
                         RestStatus.INTERNAL_SERVER_ERROR.getStatus()
                 );
