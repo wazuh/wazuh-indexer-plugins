@@ -46,7 +46,6 @@ import com.wazuh.contentmanager.rest.services.RestDeleteSubscriptionAction;
 import com.wazuh.contentmanager.rest.services.RestGetSubscriptionAction;
 import com.wazuh.contentmanager.rest.services.RestPostSubscriptionAction;
 import com.wazuh.contentmanager.rest.services.RestPostUpdateAction;
-import com.wazuh.contentmanager.services.ContentManagerService;
 import com.wazuh.contentmanager.settings.PluginSettings;
 import com.wazuh.contentmanager.utils.Privileged;
 import com.wazuh.contentmanager.utils.SnapshotManager;
@@ -66,7 +65,6 @@ public class ContentManagerPlugin extends Plugin implements ClusterPlugin, Actio
     private SnapshotManager snapshotManager;
     private ThreadPool threadPool;
     private ClusterService clusterService;
-    private ContentManagerService contentManagerService;
     private CtiConsole ctiConsole;
 
     // Rest API endpoints
@@ -94,7 +92,6 @@ public class ContentManagerPlugin extends Plugin implements ClusterPlugin, Actio
         this.contentIndex = new ContentIndex(client);
         this.snapshotManager =
             new SnapshotManager(environment, this.consumersIndex, this.contentIndex, new Privileged());
-        this.contentManagerService = new ContentManagerService(this.threadPool);
 
         // Content Manager 5.0
         this.ctiConsole = new CtiConsole();
@@ -161,7 +158,7 @@ public class ContentManagerPlugin extends Plugin implements ClusterPlugin, Actio
             new RestGetSubscriptionAction(this.ctiConsole),
             new RestPostSubscriptionAction(this.ctiConsole),
             new RestDeleteSubscriptionAction(this.ctiConsole),
-            new RestPostUpdateAction(contentManagerService)
+            new RestPostUpdateAction(this.ctiConsole)
         );
     }
 
