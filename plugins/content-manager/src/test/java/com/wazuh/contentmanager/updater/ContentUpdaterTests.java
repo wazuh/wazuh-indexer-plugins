@@ -16,6 +16,10 @@
  */
 package com.wazuh.contentmanager.updater;
 
+import com.wazuh.contentmanager.cti.catalog.model.Changes;
+import com.wazuh.contentmanager.cti.catalog.model.ConsumerInfo;
+import com.wazuh.contentmanager.cti.catalog.model.Offset;
+import com.wazuh.contentmanager.cti.catalog.model.Operation;
 import org.opensearch.cluster.service.ClusterService;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.env.Environment;
@@ -28,7 +32,6 @@ import java.util.List;
 import com.wazuh.contentmanager.client.CTIClient;
 import com.wazuh.contentmanager.index.ContentIndex;
 import com.wazuh.contentmanager.index.ConsumersIndex;
-import com.wazuh.contentmanager.model.cti.*;
 import com.wazuh.contentmanager.settings.PluginSettings;
 import com.wazuh.contentmanager.utils.Privileged;
 import org.mockito.InjectMocks;

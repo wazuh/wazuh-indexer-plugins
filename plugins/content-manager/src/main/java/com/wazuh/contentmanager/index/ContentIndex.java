@@ -52,9 +52,9 @@ import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
-import com.wazuh.contentmanager.model.cti.Changes;
-import com.wazuh.contentmanager.model.cti.Offset;
-import com.wazuh.contentmanager.model.cti.Operation;
+import com.wazuh.contentmanager.cti.catalog.model.Changes;
+import com.wazuh.contentmanager.cti.catalog.model.Offset;
+import com.wazuh.contentmanager.cti.catalog.model.Operation;
 import com.wazuh.contentmanager.settings.PluginSettings;
 import com.wazuh.contentmanager.utils.JsonPatch;
 import com.wazuh.contentmanager.utils.XContentUtils;

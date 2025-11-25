@@ -30,7 +30,7 @@ import java.util.concurrent.Semaphore;
 import com.wazuh.contentmanager.client.CTIClient;
 import com.wazuh.contentmanager.index.ContentIndex;
 import com.wazuh.contentmanager.index.ConsumersIndex;
-import com.wazuh.contentmanager.model.cti.ConsumerInfo;
+import com.wazuh.contentmanager.cti.catalog.model.ConsumerInfo;
 import com.wazuh.contentmanager.settings.PluginSettings;
 import com.wazuh.contentmanager.updater.ContentUpdater;
 

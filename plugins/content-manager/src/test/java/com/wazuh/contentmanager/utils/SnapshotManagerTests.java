@@ -32,7 +32,7 @@ import java.util.Iterator;
 import com.wazuh.contentmanager.client.CTIClient;
 import com.wazuh.contentmanager.index.ContentIndex;
 import com.wazuh.contentmanager.index.ConsumersIndex;
-import com.wazuh.contentmanager.model.cti.ConsumerInfo;
+import com.wazuh.contentmanager.cti.catalog.model.ConsumerInfo;
 import com.wazuh.contentmanager.settings.PluginSettings;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;

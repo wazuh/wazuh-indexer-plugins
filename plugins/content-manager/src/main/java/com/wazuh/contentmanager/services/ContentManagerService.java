@@ -1,6 +1,6 @@
 package com.wazuh.contentmanager.services;
 
-import com.wazuh.contentmanager.model.rest.Subscription;
+import com.wazuh.contentmanager.model.Subscription;
 import com.wazuh.contentmanager.model.rest.Token;
 import org.opensearch.threadpool.ThreadPool;
 
@@ -14,7 +14,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 public class ContentManagerService {
     private final ThreadPool threadPool;
 
-    // Stored subscription instance 
+    // Stored subscription instance
     private Subscription subscription;
     // Stored token instance
     private Token token;

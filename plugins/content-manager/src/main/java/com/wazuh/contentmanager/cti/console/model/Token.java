@@ -10,6 +10,9 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 public class Token {
     @JsonProperty("access_token")
     private String accessToken;
+    @JsonProperty("token_type")
+    private String tokenType;
+
 
     /**
      * Default constructor.
@@ -22,6 +25,15 @@ public class Token {
      */
     public String getAccessToken() {
         return this.accessToken;
+    }
+
+    /**
+     * Returns the token type (e.g., "Bearer").
+     *
+     * @return the token type string, may be null
+     */
+    public String getTokenType() {
+        return this.tokenType;
     }
 
 

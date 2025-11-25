@@ -1,7 +1,7 @@
 package com.wazuh.contentmanager.rest;
 
 import com.wazuh.contentmanager.ContentManagerPlugin;
-import com.wazuh.contentmanager.model.rest.ErrorResponse;
+import com.wazuh.contentmanager.model.ErrorResponse;
 import com.wazuh.contentmanager.services.ContentManagerService;
 import org.opensearch.transport.client.node.NodeClient;
 import org.opensearch.common.xcontent.XContentFactory;
@@ -96,10 +96,10 @@ public class RestPostSubscriptionAction extends BaseRestHandler {
 
                 // Create or update the subscription via the service
                 service.setSubscription(deviceCode, clientId, expiresIn, interval);
-                
+
                 // TODO: This is a temporary placeholder. Replace with actual token from authentication flow.
                 service.setToken("temporary_access_token", "Bearer");
-                
+
                 XContentBuilder builder = XContentFactory.jsonBuilder();
                 builder.startObject()
                         .field("status", RestStatus.CREATED.getStatus())

@@ -1,7 +1,7 @@
 package com.wazuh.contentmanager.rest;
 
 import com.wazuh.contentmanager.ContentManagerPlugin;
-import com.wazuh.contentmanager.model.rest.ErrorResponse;
+import com.wazuh.contentmanager.model.ErrorResponse;
 import com.wazuh.contentmanager.services.ContentManagerService;
 import org.opensearch.transport.client.node.NodeClient;
 import org.opensearch.common.xcontent.XContentFactory;

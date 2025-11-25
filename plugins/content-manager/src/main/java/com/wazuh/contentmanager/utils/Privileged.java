@@ -19,8 +19,7 @@ package com.wazuh.contentmanager.utils;
 import java.security.AccessController;
 
 import com.wazuh.contentmanager.client.CTIClient;
-import com.wazuh.contentmanager.model.cti.Changes;
-import com.wazuh.contentmanager.model.cti.ConsumerInfo;
+import com.wazuh.contentmanager.cti.catalog.model.Changes;
 
 /** Privileged utility class for executing privileged HTTP requests. */
 public class Privileged {
