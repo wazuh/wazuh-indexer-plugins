@@ -2,7 +2,7 @@
 
 This document describes the Content Manager plugin REST API used to manage CTI subscriptions and trigger content updates. The API is implemented under the path prefix `/_plugins/content-manager` and exposes the following endpoints:
 
-- `POST /_plugins/content-manager/subscription` — create or update the singleton subscription
+- `POST /_plugins/content-manager/subscription` — create or update the subscription
 - `GET  /_plugins/content-manager/subscription` — retrieve current subscription credentials
 - `DELETE /_plugins/content-manager/subscription` — delete the subscription
 - `POST /_plugins/content-manager/update` — trigger a content update (async)
@@ -26,7 +26,7 @@ All responses use JSON. When applicable, endpoints return standard HTTP status c
 
 **POST /_plugins/content-manager/subscription**
 
-Create or update the singleton CTI subscription. The subscription stores device flow information used later to obtain tokens.
+Create or update the CTI subscription. The subscription stores device flow information used later to obtain tokens.
 
 Request body (application/json):
 
@@ -105,7 +105,7 @@ Example response (200):
 
 **DELETE /_plugins/content-manager/subscription**
 
-Delete the singleton subscription and any stored credentials.
+Delete the subscription and any stored credentials.
 
 Responses:
 
@@ -199,7 +199,6 @@ Body:
 
 Notes and implementation details:
 
-- The subscription is implemented as a singleton model in the plugin; only one subscription may exist at a time.
 - The update endpoint currently uses an in-memory concurrency guard for conflict detection; production implementations should replace this with a cluster-wide lock or task queue.
 - Rate limiting and testing headers facilitate integration tests and local development. Test headers should not be used in production.
 
