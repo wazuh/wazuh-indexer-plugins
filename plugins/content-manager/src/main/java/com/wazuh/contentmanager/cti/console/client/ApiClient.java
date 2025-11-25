@@ -1,5 +1,6 @@
 package com.wazuh.contentmanager.cti.console.client;
 
+import com.wazuh.contentmanager.cti.console.model.Token;
 import com.wazuh.contentmanager.utils.http.HttpResponseCallback;
 import org.apache.hc.client5.http.async.methods.*;
 import org.apache.hc.client5.http.impl.async.CloseableHttpAsyncClient;
@@ -153,8 +154,8 @@ public class ApiClient {
      * @throws InterruptedException request failed / interrupted.
      * @throws TimeoutException request timed out.
      */
-    public SimpleHttpResponse getPlans(String permanentToken) throws ExecutionException, InterruptedException, TimeoutException {
-        String token = String.format(Locale.ROOT, "Bearer %s", permanentToken);
+    public SimpleHttpResponse getPlans(Token permanentToken) throws ExecutionException, InterruptedException, TimeoutException {
+        String token = String.format(Locale.ROOT, "%s %s", permanentToken.getTokenType(), permanentToken.getAccessToken());
 
         SimpleHttpRequest request = SimpleRequestBuilder
             .get(PRODUCTS_URI)
