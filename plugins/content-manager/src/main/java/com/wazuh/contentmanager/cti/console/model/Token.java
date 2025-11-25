@@ -20,6 +20,17 @@ public class Token {
     public Token() { }
 
     /**
+     * Creates a Token instance with the provided access token and token type.
+     *
+     * @param accessToken the access token issued by the CTI provider
+     * @param tokenType   the type of the token (e.g., "Bearer")
+     */
+    public Token(String accessToken, String tokenType) {
+        this.accessToken = accessToken;
+        this.tokenType = tokenType;
+    }
+
+    /**
      * Getter for accessToken.
      * @return Access Token.
      */
@@ -37,10 +48,16 @@ public class Token {
     }
 
 
+    /**
+     * Returns a compact string representation of this Token for logging.
+     *
+     * @return string representation containing accessToken and tokenType
+     */
     @Override
     public String toString() {
         return "Token{" +
             "accessToken='" + accessToken + '\'' +
+            ", tokenType='" + tokenType + '\'' +
             '}';
     }
 }

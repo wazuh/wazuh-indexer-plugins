@@ -4,7 +4,7 @@
       "url":"https://github.com/wazuh/wazuh-indexer-plugins",
       "description":"Delete the current CTI subscription"
     },
-    "stability":"experimental",
+    "stability":"beta",
     "url":{
       "paths":[
         {

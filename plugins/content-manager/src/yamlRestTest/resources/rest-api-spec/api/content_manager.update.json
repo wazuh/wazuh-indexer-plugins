@@ -4,7 +4,7 @@
       "url":"https://github.com/wazuh/wazuh-indexer-plugins",
       "description":"Trigger a CTI content update operation"
     },
-    "stability":"experimental",
+    "stability":"beta",
     "url":{
       "paths":[
         {
