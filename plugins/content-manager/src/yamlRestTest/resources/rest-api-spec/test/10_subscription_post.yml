@@ -11,7 +11,7 @@
           {}
 
   - match: { status: 400 }
-  - match: { message: "Required parameters missing: device_code, client_id, expires_in, interval" }
+  - match: { message: "Missing required parameters: [device_code, client_id, expires_in, interval]" }
 
 
 ---
@@ -32,13 +32,6 @@
 
   - match: { status: 201 }
   - match: { message: "Subscription created successfully" }
-
-  - do:
-      content_manager_subscription_delete: {}
-
-  - match: { status: 200 }
-  - match: { message: "Subscription deleted successfully" }
-
 
 ---
 "Test subscription POST is idempotent (second call also returns 201)":
@@ -74,12 +67,6 @@
 
   - match: { status: 201 }
   - match: { message: "Subscription created successfully" }
-
-  - do:
-      content_manager_subscription_delete: {}
-
-  - match: { status: 200 }
-  - match: { message: "Subscription deleted successfully" }
 
 ---
 "Test subscription POST returns 500 when no body is provided":

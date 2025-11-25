@@ -16,11 +16,11 @@ public class SubscriptionParser extends Subscription {
         Integer expiresIn = null;
         Integer interval = null;
 
-        while (!parser.isClosed()) {
-            XContentParser.Token token = parser.nextToken();
-
-            if (token.isValue()) {
+        XContentParser.Token token;
+        while ((token = parser.nextToken()) != null) {
+            if (token == XContentParser.Token.FIELD_NAME) {
                 String fieldName = parser.currentName();
+                parser.nextToken();
                 switch (fieldName) {
                     case Subscription.DEVICE_CODE -> deviceCode = parser.text();
                     case Subscription.CLIENT_ID -> clientId = parser.text();
@@ -53,9 +53,6 @@ public class SubscriptionParser extends Subscription {
 
         // Return new instance of Subscription
         return new Subscription(deviceCode, clientId, expiresIn, interval);
-
-        // Create or update the subscription via the service
-//        service.setSubscription(deviceCode, clientId, expiresIn, interval);
     }
 
 }
