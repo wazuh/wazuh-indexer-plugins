@@ -27,8 +27,8 @@ public class RestGetSubscriptionActionTests extends OpenSearchTestCase {
     @Override
     public void setUp() throws Exception {
         super.setUp();
-        console = mock(CtiConsole.class);
-        action = new RestGetSubscriptionAction(console);
+        this.console = mock(CtiConsole.class);
+        this.action = new RestGetSubscriptionAction(this.console);
     }
 
     /** Test the {@link RestGetSubscriptionAction#handleRequest()} method when the token is created (mock).
@@ -37,10 +37,10 @@ public class RestGetSubscriptionActionTests extends OpenSearchTestCase {
     public void testGetToken200() throws IOException {
         // Mock
         Token token = new Token("test_token", "test_type");
-        when(console.getToken()).thenReturn(token);
+        when(this.console.getToken()).thenReturn(token);
 
         // Act
-        BytesRestResponse bytesRestResponse = action.handleRequest();
+        BytesRestResponse bytesRestResponse = this.action.handleRequest();
 
         // Assert
         assertTrue(bytesRestResponse.content().utf8ToString().contains(token.getAccessToken()));
@@ -53,10 +53,10 @@ public class RestGetSubscriptionActionTests extends OpenSearchTestCase {
      */
     public void testGetToken404() throws IOException {
         // Mock
-        when(console.getToken()).thenReturn(null);
+        when(this.console.getToken()).thenReturn(null);
 
         // Act
-        BytesRestResponse bytesRestResponse = action.handleRequest();
+        BytesRestResponse bytesRestResponse = this.action.handleRequest();
 
         // Expected response
         RestResponse expectedResponse = new RestResponse("Token not found", RestStatus.NOT_FOUND.getStatus());

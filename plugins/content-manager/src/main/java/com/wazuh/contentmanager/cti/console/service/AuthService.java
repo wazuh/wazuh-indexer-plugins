@@ -7,8 +7,8 @@ import com.wazuh.contentmanager.cti.console.model.Subscription;
 
 public interface AuthService extends ClosableHttpClient {
 
-    Token getToken(Subscription s);
-    Token getResourceToken(Token t, String resource);
+    Token getToken(Subscription subscription);
+    Token getResourceToken(Token token, String resource);
 
     void addListener(TokenListener listener);
 }

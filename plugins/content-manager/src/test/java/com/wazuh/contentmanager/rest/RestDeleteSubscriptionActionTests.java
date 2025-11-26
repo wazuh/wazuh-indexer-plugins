@@ -26,8 +26,8 @@ public class RestDeleteSubscriptionActionTests extends OpenSearchTestCase {
     @Override
     public void setUp() throws Exception {
         super.setUp();
-        console = mock(CtiConsole.class);
-        action = new RestDeleteSubscriptionAction(console);
+        this.console = mock(CtiConsole.class);
+        this.action = new RestDeleteSubscriptionAction(this.console);
     }
 
     /** Test the {@link RestDeleteSubscriptionAction#handleRequest()} method when the token is created (mock).
@@ -36,10 +36,10 @@ public class RestDeleteSubscriptionActionTests extends OpenSearchTestCase {
     public void testDeleteToken200() throws IOException {
         // Mock
         Token token = new Token("test_token", "test_type");
-        when(console.getToken()).thenReturn(token);
+        when(this.console.getToken()).thenReturn(token);
 
         // Act
-        BytesRestResponse bytesRestResponse = action.handleRequest();
+        BytesRestResponse bytesRestResponse = this.action.handleRequest();
 
         // Expected response
         RestResponse expectedResponse = new RestResponse("Subscription deleted successfully", RestStatus.OK.getStatus());
@@ -55,10 +55,10 @@ public class RestDeleteSubscriptionActionTests extends OpenSearchTestCase {
      */
     public void testDeleteToken404() throws IOException {
         // Mock
-        when(console.getToken()).thenReturn(null);
+        when(this.console.getToken()).thenReturn(null);
 
         // Act
-        BytesRestResponse bytesRestResponse = action.handleRequest();
+        BytesRestResponse bytesRestResponse = this.action.handleRequest();
 
         // Expected response
         RestResponse expectedResponse = new RestResponse("Token not found", RestStatus.NOT_FOUND.getStatus());

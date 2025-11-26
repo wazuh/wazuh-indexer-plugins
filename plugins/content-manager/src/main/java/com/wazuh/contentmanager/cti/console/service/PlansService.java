@@ -8,5 +8,5 @@ import java.util.List;
 
 public interface PlansService extends ClosableHttpClient {
 
-    List<Plan> getPlans(Token t);
+    List<Plan> getPlans(Token token);
 }

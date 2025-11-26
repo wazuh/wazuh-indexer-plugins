@@ -90,10 +90,10 @@ public class CtiConsole implements TokenListener {
     }
 
     @Override
-    public void onTokenChanged(Token t) {
+    public void onTokenChanged(Token token) {
         tokenLock.lock();
         try {
-            this.token = t;
+            this.token = token;
             log.info("Permanent token changed: {}", this.token); // TODO do not log the token
 
             // Cancel polling
@@ -109,19 +109,19 @@ public class CtiConsole implements TokenListener {
 
     /**
      * Starts a periodic task to obtain a permanent token from the CTI Console.
-     * @param s subscription details, including the period between successive executions.
+     * @param subscription subscription details, including the period between successive executions.
      */
-    private void getToken(Subscription s) {
-        Runnable getTokenTask = () -> this.authService.getToken(s);
-        this.getTokenTaskFuture = this.executor.scheduleAtFixedRate(getTokenTask, s.getInterval(), s.getInterval(), TimeUnit.SECONDS);
+    private void getToken(Subscription subscription) {
+        Runnable getTokenTask = () -> this.authService.getToken(subscription);
+        this.getTokenTaskFuture = this.executor.scheduleAtFixedRate(getTokenTask, subscription.getInterval(), subscription.getInterval(), TimeUnit.SECONDS);
     }
 
     /**
      * Triggers the mechanism to obtain a permanent token from the CTI Console.
      * This method is meant to be called by the Rest handler.
      */
-    public void onPostSubscriptionRequest (Subscription s) {
-        this.getToken(s);
+    public void onPostSubscriptionRequest (Subscription subscription) {
+        this.getToken(subscription);
     }
 
     /**

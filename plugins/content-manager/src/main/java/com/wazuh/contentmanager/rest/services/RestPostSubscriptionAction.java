@@ -3,9 +3,7 @@ package com.wazuh.contentmanager.rest.services;
 import com.wazuh.contentmanager.ContentManagerPlugin;
 import com.wazuh.contentmanager.cti.console.CtiConsole;
 import com.wazuh.contentmanager.cti.console.model.Subscription;
-import com.wazuh.contentmanager.cti.console.model.Token;
 import com.wazuh.contentmanager.rest.model.RestResponse;
-import com.wazuh.contentmanager.rest.model.SubscriptionParser;
 import org.opensearch.transport.client.node.NodeClient;
 import org.opensearch.core.rest.RestStatus;
 import org.opensearch.rest.BaseRestHandler;
@@ -79,7 +77,7 @@ public class RestPostSubscriptionAction extends BaseRestHandler {
     public RestChannelConsumer prepareRequest(RestRequest request, NodeClient client) {
         return channel -> {
             // Parse subscription details and create a new instance of Subscription DTO.
-            Subscription subscription = SubscriptionParser.parse(request.contentParser());
+            Subscription subscription = Subscription.parse(request.contentParser());
 
             // Send response from handleRequest method which process the request.
             channel.sendResponse(this.handleRequest(subscription));

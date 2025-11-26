@@ -2,6 +2,11 @@ package com.wazuh.contentmanager.cti.console.model;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import org.opensearch.core.xcontent.XContentParser;
+
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * Subscription model for managing CTI subscription data.
@@ -41,6 +46,70 @@ public class Subscription {
         this.setExpiresIn(expiresIn);
         this.setInterval(interval);
     }
+
+
+    /**
+     * Parse a {@link Subscription} from the provided {@link org.opensearch.core.xcontent.XContentParser}.
+     *
+     * The parser expects the following top-level fields to be present in the
+     * XContent object: {@code device_code}, {@code client_id}, {@code expires_in}
+     * and {@code interval}. If any required field is missing an
+     * {@link IllegalArgumentException} is thrown.
+     *
+     * @param parser the XContent parser positioned at the start of an object
+     * @return a new {@code Subscription} instance populated with parsed values
+     * @throws IOException if an I/O error occurs while reading from the parser
+     * @throws IllegalArgumentException if required fields are missing
+     */
+    public static Subscription parse(XContentParser parser) throws IOException {
+        String deviceCode = null;
+        String clientId = null;
+        Integer expiresIn = null;
+        Integer interval = null;
+
+        XContentParser.Token token;
+        // Move to the next token, which should be the start of the object's fields
+        while ((token = parser.nextToken()) != null) {
+            if (token == XContentParser.Token.FIELD_NAME) {
+                String fieldName = parser.currentName();
+                parser.nextToken(); // Move to the value token
+                switch (fieldName) {
+                    case DEVICE_CODE -> deviceCode = parser.text();
+                    case CLIENT_ID -> clientId = parser.text();
+                    case EXPIRES_IN -> expiresIn = parser.intValue();
+                    case INTERVAL -> interval = parser.intValue();
+                    default -> { /* ignore unknown fields */ }
+                }
+            } else if (token == XContentParser.Token.END_OBJECT) {
+                // Break out once the object is fully parsed
+                break;
+            }
+        }
+
+        // Check for missing params
+        List<String> missingParams = new ArrayList<>();
+        if (deviceCode == null) {
+            missingParams.add(DEVICE_CODE);
+        }
+        if (clientId == null) {
+            missingParams.add(CLIENT_ID);
+        }
+        if (expiresIn == null) {
+            missingParams.add(EXPIRES_IN);
+        }
+        if (interval == null) {
+            missingParams.add(INTERVAL);
+        }
+
+        // Throw error if required params are missing.
+        if (!missingParams.isEmpty()) {
+            throw new IllegalArgumentException("Missing required parameters: " + missingParams);
+        }
+
+        // Return new instance of Subscription
+        return new Subscription(deviceCode, clientId, expiresIn, interval);
+    }
+
 
     /**
      * Returns the device code for the subscription.

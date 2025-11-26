@@ -90,7 +90,7 @@ public class RestDeleteSubscriptionAction extends BaseRestHandler {
      */
     public BytesRestResponse handleRequest() throws IOException {
         try {
-            Token token = ctiConsole.getToken();
+            Token token = this.ctiConsole.getToken();
             if (token == null) {
                 RestResponse error = new RestResponse(
                     "Token not found",
@@ -99,7 +99,7 @@ public class RestDeleteSubscriptionAction extends BaseRestHandler {
                 return new BytesRestResponse(RestStatus.NOT_FOUND, error.toXContent());
             }
 
-            ctiConsole.deleteToken();
+            this.ctiConsole.deleteToken();
 
             RestResponse response = new RestResponse("Subscription deleted successfully", RestStatus.OK.getStatus());
             return new BytesRestResponse(RestStatus.OK, response.toXContent());

@@ -26,8 +26,8 @@ public class RestPostSubscriptionActionTests extends OpenSearchTestCase {
     @Override
     public void setUp() throws Exception {
         super.setUp();
-        console = mock(CtiConsole.class);
-        action = new RestPostSubscriptionAction(console);
+        this.console = mock(CtiConsole.class);
+        this.action = new RestPostSubscriptionAction(this.console);
     }
 
     /** Test the {@link RestPostSubscriptionAction#handleRequest(Subscription)} method when the request is complete.
@@ -38,7 +38,7 @@ public class RestPostSubscriptionActionTests extends OpenSearchTestCase {
         Subscription subscription = new Subscription();
 
         //Act
-        BytesRestResponse bytesRestResponse = action.handleRequest(subscription);
+        BytesRestResponse bytesRestResponse = this.action.handleRequest(subscription);
 
         // Expected response
         RestResponse expectedResponse = new RestResponse("Subscription created successfully", RestStatus.CREATED.getStatus());
@@ -56,10 +56,10 @@ public class RestPostSubscriptionActionTests extends OpenSearchTestCase {
     public void testPostToken400() throws IOException {
         // Mock
         Subscription subscription = new Subscription();
-        doThrow(new IllegalArgumentException("Missing required parameters")).when(console).onPostSubscriptionRequest(subscription);
+        doThrow(new IllegalArgumentException("Missing required parameters")).when(this.console).onPostSubscriptionRequest(subscription);
 
         //Act
-        BytesRestResponse bytesRestResponse = action.handleRequest(subscription);
+        BytesRestResponse bytesRestResponse = this.action.handleRequest(subscription);
 
         // Expected response
         RestResponse expectedResponse = new RestResponse("Missing required parameters", RestStatus.BAD_REQUEST.getStatus());

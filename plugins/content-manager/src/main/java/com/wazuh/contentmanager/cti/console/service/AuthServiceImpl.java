@@ -31,14 +31,14 @@ public class AuthServiceImpl extends AbstractService implements AuthService {
 
     /**
      * Obtains a permanent token for the instance from CTI Console.
-     * @param s registration details of the instance.
+     * @param subscription registration details of the instance.
      * @return access token.
      */
     @Override
-    public Token getToken(Subscription s) {
+    public Token getToken(Subscription subscription) {
         try {
             // Perform request
-            SimpleHttpResponse response = this.client.getToken(s.getClientId(), s.getDeviceCode());
+            SimpleHttpResponse response = this.client.getToken(subscription.getClientId(), subscription.getDeviceCode());
 
             if (response.getCode() == 200) {
                 // Parse response
