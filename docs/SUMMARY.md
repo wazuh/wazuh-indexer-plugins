@@ -15,6 +15,7 @@
   - [Setup](dev/plugins/setup.md)
   - [Security](dev/plugins/security.md)
   - [Reporting](dev/plugins/reporting.md)
+  - [Content Manager](dev/plugins/content-manager.md)
 
 # Reference Manual
 - [Introduction]()
