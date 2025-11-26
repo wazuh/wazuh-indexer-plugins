@@ -40,15 +40,15 @@ import java.util.*;
 import java.util.concurrent.Semaphore;
 import java.util.function.Supplier;
 
-import com.wazuh.contentmanager.index.ContentIndex;
-import com.wazuh.contentmanager.index.ConsumersIndex;
+import com.wazuh.contentmanager.cti.catalog.index.index.ContentIndex;
+import com.wazuh.contentmanager.cti.catalog.index.index.ConsumersIndex;
 import com.wazuh.contentmanager.rest.services.RestDeleteSubscriptionAction;
 import com.wazuh.contentmanager.rest.services.RestGetSubscriptionAction;
 import com.wazuh.contentmanager.rest.services.RestPostSubscriptionAction;
 import com.wazuh.contentmanager.rest.services.RestPostUpdateAction;
 import com.wazuh.contentmanager.settings.PluginSettings;
 import com.wazuh.contentmanager.utils.Privileged;
-import com.wazuh.contentmanager.utils.SnapshotManager;
+import com.wazuh.contentmanager.cti.catalog.service.SnapshotManager;
 import org.opensearch.rest.RestHandler;
 import java.util.List;
 import java.util.Collections;
@@ -166,7 +166,7 @@ public class ContentManagerPlugin extends Plugin implements ClusterPlugin, Actio
      * Initialize. The initialization consists of:
      *
      * <pre>
-     *     1. fetching the latest consumer's information from the CTI API.
+     *     1. create required indices if they do not exist.
      *     2. initialize from a snapshot if the local consumer does not exist, or its offset is 0.
      * </pre>
      */
@@ -187,13 +187,25 @@ public class ContentManagerPlugin extends Plugin implements ClusterPlugin, Actio
                             log.debug("{} index creation already triggered", ConsumersIndex.INDEX_NAME);
                         }
                         // TODO: Once initialize method is adapted to the new design, uncomment the following line
-                        //this.snapshotManager.initialize();
+                        this.snapshotManager.initialize();
                     });
         } catch (Exception e) {
             // Log or handle exception
             log.error("Error initializing snapshot helper: {}", e.getMessage(), e);
         }
     }
+
+
+    // Job
+    // =========================================================================
+    // 1. GetLocalConsumer(consumer): obtain local offset for the given consumer
+    //   1.1 If the consumer does not exist, create it.
+    // 2. Update
+    //   2.1 GetRemoteConsumer(consumer): fetch remote offset for the given consumer
+    //   2.2 If local_offset == 0 -> init from snapshot
+    //   2.3 If local_offset != remote_offset -> update consumer (changes)
+
+
 
     @Override
     public List<Setting<?>> getSettings() {
