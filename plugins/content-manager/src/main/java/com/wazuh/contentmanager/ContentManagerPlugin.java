@@ -16,6 +16,11 @@
  */
 package com.wazuh.contentmanager;
 
+import com.wazuh.contentmanager.cti.catalog.CtiCatalog;
+import com.wazuh.contentmanager.cti.catalog.model.LocalConsumer;
+import com.wazuh.contentmanager.cti.catalog.model.RemoteConsumer;
+import com.wazuh.contentmanager.cti.catalog.service.ConsumerService;
+import com.wazuh.contentmanager.cti.catalog.service.ConsumerServiceImpl;
 import com.wazuh.contentmanager.cti.console.CtiConsole;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -37,7 +42,10 @@ import org.opensearch.threadpool.ThreadPool;
 import org.opensearch.watcher.ResourceWatcherService;
 
 import java.util.*;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.Semaphore;
+import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
 
 import com.wazuh.contentmanager.cti.catalog.index.index.ContentIndex;
@@ -111,39 +119,10 @@ public class ContentManagerPlugin extends Plugin implements ClusterPlugin, Actio
         if (localNode.isClusterManagerNode()) {
             this.start();
         }
-        /*
-        // Use case 1. Polling
-        AuthServiceImpl authService = new AuthServiceImpl();
-        this.ctiConsole = new CtiConsole();
-        this.ctiConsole.setAuthService(authService);
-        this.ctiConsole.onPostSubscriptionRequest();
 
-        while (!this.ctiConsole.isTokenTaskCompleted()) {}
-        if (this.ctiConsole.isTokenTaskCompleted()) {
-            Token token = this.ctiConsole.getToken();
-
-            // Use case 2. Obtain available plans
-            PlansServiceImpl productsService = new PlansServiceImpl();
-            List<Plan> plans = productsService.getPlans(token.getAccessToken());
-            log.info("Plans: {}", plans);
-
-            // Use case 3. Obtain resource token.
-            Product vulnsPro = plans.stream()
-                .filter(plan -> plan.getName().equals("Pro Plan Deluxe"))
-                .toList()
-                .getFirst()
-                .getProducts().stream()
-                .filter(product -> product.getIdentifier().equals("vulnerabilities-pro"))
-                .toList()
-                .getFirst();
-
-            Token resourceToken = authService.getResourceToken(
-                token.getAccessToken(),
-                vulnsPro.getResource()
-            );
-            log.info("Resource token {}", resourceToken);
-        }
-        */
+        Runnable scheduledTask = this::job;
+        ScheduledExecutorService executor = Executors.newSingleThreadScheduledExecutor(r -> new Thread(r, "Scheduled task"));
+        executor.scheduleAtFixedRate(scheduledTask, 30, 30, TimeUnit.SECONDS);
     }
 
     public List<RestHandler> getRestHandlers(
@@ -180,14 +159,15 @@ public class ContentManagerPlugin extends Plugin implements ClusterPlugin, Actio
                             try {
                                 this.consumersIndex.createIndex();
                             } catch (Exception e) {
-                                indexCreationSemaphore.release();
                                 log.error("Failed to create {} index, due to: {}", ConsumersIndex.INDEX_NAME, e.getMessage(), e);
+                            } finally {
+                                indexCreationSemaphore.release();
                             }
                         } else {
                             log.debug("{} index creation already triggered", ConsumersIndex.INDEX_NAME);
                         }
                         // TODO: Once initialize method is adapted to the new design, uncomment the following line
-                        this.snapshotManager.initialize();
+//                        this.snapshotManager.initialize();
                     });
         } catch (Exception e) {
             // Log or handle exception
@@ -204,7 +184,17 @@ public class ContentManagerPlugin extends Plugin implements ClusterPlugin, Actio
     //   2.1 GetRemoteConsumer(consumer): fetch remote offset for the given consumer
     //   2.2 If local_offset == 0 -> init from snapshot
     //   2.3 If local_offset != remote_offset -> update consumer (changes)
+    public void job() {
+        String context = "rules_development_0.0.1";
+        String consumer = "rules_consumer";
 
+        ConsumerService consumerService = new ConsumerServiceImpl(context, consumer, this.consumersIndex);
+        LocalConsumer localConsumer = consumerService.getLocalConsumer();
+        RemoteConsumer remoteConsumer = consumerService.getRemoteConsumer();
+
+        log.info("Local consumer: {}", localConsumer);
+        log.info("Remote consumer: {}", remoteConsumer);
+    }
 
 
     @Override

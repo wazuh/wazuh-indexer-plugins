@@ -16,6 +16,7 @@
  */
 package com.wazuh.contentmanager.cti.catalog.index.index;
 
+import com.wazuh.contentmanager.cti.catalog.model.LocalConsumer;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.opensearch.action.DocWriteResponse;
@@ -25,6 +26,7 @@ import org.opensearch.action.admin.indices.create.CreateIndexRequest;
 import org.opensearch.action.admin.indices.create.CreateIndexResponse;
 import org.opensearch.action.index.IndexRequest;
 import org.opensearch.action.index.IndexResponse;
+import org.opensearch.common.action.ActionFuture;
 import org.opensearch.transport.client.Client;
 import org.opensearch.common.xcontent.XContentFactory;
 import org.opensearch.common.xcontent.XContentType;
@@ -108,6 +110,35 @@ public class ConsumersIndex {
                     e.getMessage());
         }
         return false;
+    }
+
+    public IndexResponse setConsumer(LocalConsumer consumer) throws ExecutionException, InterruptedException, TimeoutException, IOException {
+        // Avoid faulty requests if the cluster is unstable.
+        if (!ClusterInfo.indexStatusCheck(this.client, INDEX_NAME)) {
+            throw new RuntimeException("Index not ready");
+        }
+        // Composed ID
+        String id = String.format(Locale.ROOT, "%s_%s", consumer.getContext(), consumer.getName());
+        IndexRequest request = new IndexRequest()
+            .index(INDEX_NAME)
+            .id(id)
+            .source(consumer.toXContent());
+
+        return this.client.index(request).get(this.pluginSettings.getClientTimeout(), TimeUnit.SECONDS);
+    }
+
+    public GetResponse getConsumer(String context, String consumer) throws ExecutionException, InterruptedException, TimeoutException {
+        // Avoid faulty requests if the cluster is unstable.
+        if (!ClusterInfo.indexStatusCheck(this.client, INDEX_NAME)) {
+            throw new RuntimeException("Index not ready");
+        }
+        // Composed ID
+        String id = String.format(Locale.ROOT, "%s_%s", context, consumer);
+        GetRequest request = new GetRequest().index(INDEX_NAME).id(id).preference("_local");
+
+        ActionFuture<GetResponse> future = this.client.get(request);
+
+        return future.get(this.pluginSettings.getClientTimeout(), TimeUnit.SECONDS);
     }
 
     /** TODO: Review ConsumerInfo class and adapt mappings accordingly */
