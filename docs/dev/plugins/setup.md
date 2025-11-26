@@ -66,15 +66,12 @@ public class SetupPlugin extends Plugin implements ClusterPlugin {
 > curl -X GET <indexer-IP>:9200/_cat/indices?v
 > ```
 Alternatively, use the Developer Tools console from the Wazuh Dashboard, or your browser.
-
-
 ## 🔁 Creating a New ISM (Index State Management) Policy
 ### 1. Add Rollover Alias to the Index Template
 Edit the existing index template JSON file and add the following setting:
 ```json
 "plugins.index_state_management.rollover_alias": "<index-name>"
 ```
-
 ### 2. Define the ISM Policy
 Refer to the [OpenSearch ISM Policies documentation](https://docs.opensearch.org/docs/latest/im-plugin/ism/policies/) for more details.
 

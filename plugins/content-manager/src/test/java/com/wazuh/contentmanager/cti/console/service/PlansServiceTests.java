@@ -2,11 +2,11 @@ package com.wazuh.contentmanager.cti.console.service;
 
 import com.wazuh.contentmanager.cti.console.client.ApiClient;
 import com.wazuh.contentmanager.cti.console.model.Plan;
+import com.wazuh.contentmanager.cti.console.model.Token;
 import org.apache.hc.client5.http.async.methods.SimpleHttpResponse;
 import org.apache.hc.core5.http.ContentType;
 import org.junit.After;
 import org.junit.Before;
-import org.junit.Test;
 import org.mockito.Mock;
 import org.opensearch.test.OpenSearchTestCase;
 
@@ -96,10 +96,10 @@ public class PlansServiceTests extends OpenSearchTestCase {
                 ]
               }
             }""";
-        when(this.mockClient.getPlans(anyString()))
+        when(this.mockClient.getPlans(any(Token.class)))
             .thenReturn(SimpleHttpResponse.create(200, response.getBytes(StandardCharsets.UTF_8), ContentType.APPLICATION_JSON));
 
-        List<Plan> plans = this.plansService.getPlans("anyToken");
+        List<Plan> plans = this.plansService.getPlans(new Token("anyToken", "Bearer"));
 
         // plans must not be null, or empty
         assertNotNull(plans);
@@ -124,14 +124,14 @@ public class PlansServiceTests extends OpenSearchTestCase {
         String response = "{\"error\": \"unauthorized_client\", \"error_description\": \"The provided token is invalid or expired\"}";
 
         // When CTI replies with an error code, token must be null. No exception raised
-        when(this.mockClient.getPlans(anyString()))
+        when(this.mockClient.getPlans(any(Token.class)))
             .thenReturn(SimpleHttpResponse.create(400, response.getBytes(StandardCharsets.UTF_8), ContentType.APPLICATION_JSON));
-        plans = this.plansService.getPlans("anyToken");
+        plans = this.plansService.getPlans(new Token("anyToken", "Bearer"));
         assertNull(plans);
 
         // When CTI does not reply, token must be null and exceptions are raised.
-        when(this.mockClient.getPlans(anyString())).thenThrow(ExecutionException.class);
-        plans = this.plansService.getPlans("anyToken");
+        when(this.mockClient.getPlans(any(Token.class))).thenThrow(ExecutionException.class);
+        plans = this.plansService.getPlans(new Token("anyToken", "Bearer"));
         assertNull(plans);
     }
 }

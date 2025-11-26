@@ -3,6 +3,7 @@ package com.wazuh.contentmanager.cti.console;
 import com.wazuh.contentmanager.cti.console.model.Token;
 import com.wazuh.contentmanager.cti.console.service.AuthService;
 import com.wazuh.contentmanager.cti.console.service.PlansService;
+import com.wazuh.contentmanager.cti.console.model.Subscription;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.opensearch.common.util.concurrent.FutureUtils;
@@ -89,10 +90,10 @@ public class CtiConsole implements TokenListener {
     }
 
     @Override
-    public void onTokenChanged(Token t) {
+    public void onTokenChanged(Token token) {
         tokenLock.lock();
         try {
-            this.token = t;
+            this.token = token;
             log.info("Permanent token changed: {}", this.token); // TODO do not log the token
 
             // Cancel polling
@@ -108,19 +109,19 @@ public class CtiConsole implements TokenListener {
 
     /**
      * Starts a periodic task to obtain a permanent token from the CTI Console.
-     * @param interval the period between successive executions.
+     * @param subscription subscription details, including the period between successive executions.
      */
-    private void getToken(int interval/* TODO sub details */) {
-        Runnable getTokenTask = () -> this.authService.getToken("client_id", "polling");
-        this.getTokenTaskFuture = this.executor.scheduleAtFixedRate(getTokenTask, interval, interval, TimeUnit.SECONDS);
+    private void getToken(Subscription subscription) {
+        Runnable getTokenTask = () -> this.authService.getToken(subscription);
+        this.getTokenTaskFuture = this.executor.scheduleAtFixedRate(getTokenTask, subscription.getInterval(), subscription.getInterval(), TimeUnit.SECONDS);
     }
 
     /**
      * Triggers the mechanism to obtain a permanent token from the CTI Console.
      * This method is meant to be called by the Rest handler.
      */
-    public void onPostSubscriptionRequest (/* TODO sub details */) {
-        this.getToken(5);
+    public void onPostSubscriptionRequest (Subscription subscription) {
+        this.getToken(subscription);
     }
 
     /**
@@ -183,5 +184,13 @@ public class CtiConsole implements TokenListener {
         } finally {
             tokenLock.unlock();
         }
+    }
+
+
+    /**
+     * Deletes the permanent token stored in this CTI Console instance.
+    */
+    public void deleteToken() {
+        this.token = null;
     }
 }

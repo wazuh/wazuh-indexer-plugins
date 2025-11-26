@@ -17,52 +17,60 @@
 package com.wazuh.contentmanager;
 
 import com.wazuh.contentmanager.cti.console.CtiConsole;
-import com.wazuh.contentmanager.index.ConsumersIndex;
-import com.wazuh.contentmanager.index.ContentIndex;
-import com.wazuh.contentmanager.settings.PluginSettings;
-import com.wazuh.contentmanager.utils.Privileged;
-import com.wazuh.contentmanager.utils.SnapshotManager;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.opensearch.transport.client.Client;
 import org.opensearch.cluster.metadata.IndexNameExpressionResolver;
 import org.opensearch.cluster.node.DiscoveryNode;
 import org.opensearch.cluster.service.ClusterService;
-import org.opensearch.common.settings.Setting;
+import org.opensearch.common.settings.*;
 import org.opensearch.core.common.io.stream.NamedWriteableRegistry;
 import org.opensearch.core.xcontent.NamedXContentRegistry;
 import org.opensearch.env.Environment;
 import org.opensearch.env.NodeEnvironment;
 import org.opensearch.plugins.ClusterPlugin;
+import org.opensearch.plugins.ActionPlugin;
 import org.opensearch.plugins.Plugin;
 import org.opensearch.repositories.RepositoriesService;
 import org.opensearch.script.ScriptService;
 import org.opensearch.threadpool.ThreadPool;
-import org.opensearch.transport.client.Client;
 import org.opensearch.watcher.ResourceWatcherService;
 
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.List;
+import java.util.*;
 import java.util.concurrent.Semaphore;
 import java.util.function.Supplier;
 
-/**
- * Main class of the Content Manager Plugin
- */
-public class ContentManagerPlugin extends Plugin implements ClusterPlugin {
+import com.wazuh.contentmanager.index.ContentIndex;
+import com.wazuh.contentmanager.index.ConsumersIndex;
+import com.wazuh.contentmanager.rest.services.RestDeleteSubscriptionAction;
+import com.wazuh.contentmanager.rest.services.RestGetSubscriptionAction;
+import com.wazuh.contentmanager.rest.services.RestPostSubscriptionAction;
+import com.wazuh.contentmanager.rest.services.RestPostUpdateAction;
+import com.wazuh.contentmanager.settings.PluginSettings;
+import com.wazuh.contentmanager.utils.Privileged;
+import com.wazuh.contentmanager.utils.SnapshotManager;
+import org.opensearch.rest.RestHandler;
+import java.util.List;
+import java.util.Collections;
+
+/** Main class of the Content Manager Plugin */
+public class ContentManagerPlugin extends Plugin implements ClusterPlugin, ActionPlugin {
     private static final Logger log = LogManager.getLogger(ContentManagerPlugin.class);
     /**
      * Semaphore to ensure the context index creation is only triggered once.
      */
     private static final Semaphore indexCreationSemaphore = new Semaphore(1);
-
     private ConsumersIndex consumersIndex;
     private ContentIndex contentIndex;
     private SnapshotManager snapshotManager;
     private ThreadPool threadPool;
     private ClusterService clusterService;
     private CtiConsole ctiConsole;
+
+    // Rest API endpoints
+    public static final String PLUGINS_BASE_URI = "/_plugins/content-manager";
+    public static final String SUBSCRIPTION_URI = PLUGINS_BASE_URI + "/subscription";
+    public static final String UPDATE_URI = PLUGINS_BASE_URI + "/update";
 
     @Override
     public Collection<Object> createComponents(
@@ -83,8 +91,10 @@ public class ContentManagerPlugin extends Plugin implements ClusterPlugin {
         this.consumersIndex = new ConsumersIndex(client);
         this.contentIndex = new ContentIndex(client);
         this.snapshotManager =
-                new SnapshotManager(environment, this.consumersIndex, this.contentIndex, new Privileged());
-//        this.ctiConsole = new CtiConsole(new AuthServiceImpl());
+            new SnapshotManager(environment, this.consumersIndex, this.contentIndex, new Privileged());
+
+        // Content Manager 5.0
+        this.ctiConsole = new CtiConsole();
         return Collections.emptyList();
     }
 
@@ -99,10 +109,8 @@ public class ContentManagerPlugin extends Plugin implements ClusterPlugin {
     public void onNodeStarted(DiscoveryNode localNode) {
         // Only cluster managers are responsible for the initialization.
         if (localNode.isClusterManagerNode()) {
-            log.info("Starting Content Manager plugin initialization");
             this.start();
         }
-
         /*
         // Use case 1. Polling
         AuthServiceImpl authService = new AuthServiceImpl();
@@ -136,6 +144,22 @@ public class ContentManagerPlugin extends Plugin implements ClusterPlugin {
             log.info("Resource token {}", resourceToken);
         }
         */
+    }
+
+    public List<RestHandler> getRestHandlers(
+        Settings settings,
+        org.opensearch.rest.RestController restController,
+        org.opensearch.common.settings.ClusterSettings clusterSettings,
+        org.opensearch.common.settings.IndexScopedSettings indexScopedSettings,
+        org.opensearch.common.settings.SettingsFilter settingsFilter,
+        org.opensearch.cluster.metadata.IndexNameExpressionResolver indexNameExpressionResolver,
+        java.util.function.Supplier<org.opensearch.cluster.node.DiscoveryNodes> nodesInCluster) {
+        return List.of(
+            new RestGetSubscriptionAction(this.ctiConsole),
+            new RestPostSubscriptionAction(this.ctiConsole),
+            new RestDeleteSubscriptionAction(this.ctiConsole),
+            new RestPostUpdateAction(this.ctiConsole)
+        );
     }
 
     /**

@@ -3,6 +3,7 @@ package com.wazuh.contentmanager.cti.console.service;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.wazuh.contentmanager.cti.console.model.Plan;
+import com.wazuh.contentmanager.cti.console.model.Token;
 import org.apache.hc.client5.http.async.methods.SimpleHttpResponse;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -27,13 +28,13 @@ public class PlansServiceImpl extends AbstractService implements PlansService {
 
     /**
      * Obtains the list of plans the instance is subscribed to, including all associated products.
-     * @param permanentToken access token
+     * @param token permanent token
      * @return list of plans the instance has access to.
      */
-    public List<Plan> getPlans(String permanentToken) {
+    public List<Plan> getPlans(Token token) {
         try {
             // Perform request
-            SimpleHttpResponse response = this.client.getPlans(permanentToken);
+            SimpleHttpResponse response = this.client.getPlans(token);
 
             if (response.getCode() == 200) {
                 // Parse response

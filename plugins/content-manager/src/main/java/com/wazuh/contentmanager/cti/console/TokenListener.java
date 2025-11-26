@@ -6,5 +6,5 @@ import java.util.EventListener;
 
 public interface TokenListener extends EventListener {
 
-    void onTokenChanged(Token t);
+    void onTokenChanged(Token token);
 }
