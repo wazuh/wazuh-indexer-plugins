@@ -133,8 +133,6 @@ paths:
           $ref: '#/components/responses/TooManyRequests'
         '500':
           $ref: '#/components/responses/InternalServerError'
-        '503':
-          $ref: '#/components/responses/ServiceUnavailable'
 
 components:
   # --- Data Schemas ---
@@ -181,7 +179,7 @@ components:
         - access_token
         - token_type
 
-    ErrorResponse:
+    RestResponse:
       type: object
       description: Standard error response schema.
       properties:
@@ -237,7 +235,7 @@ components:
       content:
         application/json:
           schema:
-            $ref: '#/components/schemas/ErrorResponse'
+            $ref: '#/components/schemas/RestResponse'
           examples:
             missing_parameter:
               summary: Missing required parameter
@@ -255,7 +253,7 @@ components:
       content:
         application/json:
           schema:
-            $ref: '#/components/schemas/ErrorResponse'
+            $ref: '#/components/schemas/RestResponse'
           examples:
             undergoing_update:
               summary: Content update in progress
@@ -288,7 +286,7 @@ components:
       content:
         application/json:
           schema:
-            $ref: '#/components/schemas/ErrorResponse'
+            $ref: '#/components/schemas/RestResponse'
           examples:
             rate_limit_exceeded:
               summary: Rate limit exceeded
@@ -300,29 +298,12 @@ components:
       content:
         application/json:
           schema:
-            $ref: '#/components/schemas/ErrorResponse'
+            $ref: '#/components/schemas/RestResponse'
           examples:
             internal_error:
               summary: Internal server error
               value:
                 error: "An unexpected error occurred while processing your request."
-    ServiceUnavailable:
-      description: Service Unavailable - Service is temporarily unavailable.
-      headers:
-        Retry-After:
-          description: Number of seconds to wait before retrying.
-          schema:
-            type: integer
-            example: 60
-      content:
-        application/json:
-          schema:
-            $ref: '#/components/schemas/ErrorResponse'
-          examples:
-            cti_unavailable:
-              summary: CTI service unavailable
-              value:
-                error: "The CTI service is temporarily unavailable."
     
   securitySchemes:
     bearerAuth:

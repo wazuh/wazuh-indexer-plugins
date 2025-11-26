@@ -7,7 +7,7 @@ This document describes the Content Manager plugin REST API used to manage CTI s
 - `DELETE /_plugins/content-manager/subscription` — delete the subscription
 - `POST /_plugins/content-manager/update` — trigger a content update (async)
 
-All responses use JSON. When applicable, endpoints return standard HTTP status codes and error objects of the form:
+All responses use JSON. When applicable, endpoints return standard HTTP status codes and rest responses objects of the form:
 
 ```
 {
@@ -144,15 +144,7 @@ Behavior and status codes:
 	- Another update is currently in progress
 - 429 Too Many Requests
 	- Rate limit exceeded. Response includes `X-RateLimit-Limit`, `X-RateLimit-Remaining` (often 0), and `X-RateLimit-Reset` headers.
-- 503 Service Unavailable
-	- External CTI service is currently unavailable
 - 500 Internal Server Error
-
-Special testing headers (for integration tests only):
-
-- `X-Wazuh-Test-Rate-Limit`: integer override for the configured rate limit (allows test to simulate limits)
-- `X-Wazuh-Test-Simulate-External-Service-Error`: set to `true` to simulate an external service outage (returns 503)
-- `X-Wazuh-Test-Simulated-Duration`: server-side simulated processing duration in milliseconds (used to test concurrency/race conditions)
 
 Example request:
 
@@ -199,8 +191,6 @@ Body:
 
 Notes and implementation details:
 
-- The update endpoint currently uses an in-memory concurrency guard for conflict detection; production implementations should replace this with a cluster-wide lock or task queue.
-- Rate limiting and testing headers facilitate integration tests and local development. Test headers should not be used in production.
+- Since the development is in early stages, the 429 Response for the `POST /_plugins/content-manager/update` has not been implemented yet.
 
-If you need sample curl commands or additional example workflows (e.g., full device-flow authentication exchange), ask and we will add them.
 

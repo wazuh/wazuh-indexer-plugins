@@ -8,8 +8,28 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
+/**
+ * Utility parser that reads a Subscription object from an XContent stream. 
+ * This class extends {@link com.wazuh.contentmanager.cti.console.model.Subscription}
+ * solely to expose a convenient static parser and does not add additional
+ * instance state or behavior.
+ */
 public class SubscriptionParser extends Subscription {
 
+    /**
+     * Parse a {@link com.wazuh.contentmanager.cti.console.model.Subscription} from the provided
+     * {@link org.opensearch.core.xcontent.XContentParser}.
+     *
+     * The parser expects the following top-level fields to be present in the
+     * XContent object: {@code device_code}, {@code client_id}, {@code expires_in}
+     * and {@code interval}. If any required field is missing an
+     * {@link IllegalArgumentException} is thrown.
+     *
+     * @param parser the XContent parser positioned at the start of an object
+     * @return a new {@code Subscription} instance populated with parsed values
+     * @throws IOException if an I/O error occurs while reading from the parser
+     * @throws IllegalArgumentException if required fields are missing
+     */
     public static Subscription parse(XContentParser parser) throws IOException {
         String deviceCode = null;
         String clientId = null;

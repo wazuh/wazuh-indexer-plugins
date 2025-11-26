@@ -32,13 +32,28 @@ public class RestDeleteSubscriptionAction extends BaseRestHandler {
     private static final String ENDPOINT_UNIQUE_NAME = "plugin:content_manager/subscription_delete";
     private final CtiConsole ctiConsole;
 
+    /**
+     * Create a new REST action.
+     *
+     * @param ctiConsole the CTI console used to access and delete subscription tokens
+     */
     public RestDeleteSubscriptionAction( CtiConsole ctiConsole) {
         this.ctiConsole = ctiConsole;
     }
 
+    /**
+     * Return a short identifier for this handler.
+     *
+     * @return a short identifier for this handler
+     */
     @Override
     public String getName() { return ENDPOINT_NAME; }
 
+    /**
+     * Define the routes handled by this action.
+     *
+     * @return the list of routes exposed by this handler (DELETE subscription)
+     */
     @Override
     public List<Route> routes() {
         return List.of(
@@ -50,6 +65,15 @@ public class RestDeleteSubscriptionAction extends BaseRestHandler {
         );
     }
 
+    /**
+     * Prepare the request by returning a channel consumer that executes the
+     * deletion and sends the corresponding response. This endpoint ignores
+     * request body and query parameters.
+     *
+     * @param request the incoming REST request
+     * @param client the node client (unused)
+     * @return a consumer that will be executed to produce a response
+     */
     @Override
     public RestChannelConsumer prepareRequest(RestRequest request, NodeClient client) {
         return channel -> {
@@ -57,6 +81,13 @@ public class RestDeleteSubscriptionAction extends BaseRestHandler {
         };
     }
 
+    /**
+     * Execute the delete-subscription operation.
+     *
+     *
+     * @return a {@link BytesRestResponse} representing the HTTP response
+     * @throws IOException propagated if an I/O error occurs while building the response
+     */
     public BytesRestResponse handleRequest() throws IOException {
         try {
             Token token = ctiConsole.getToken();

@@ -32,13 +32,28 @@ public class RestGetSubscriptionAction extends BaseRestHandler {
     private static final String ENDPOINT_UNIQUE_NAME = "plugin:content_manager/subscription_get";
     private final CtiConsole ctiConsole;
 
+    /**
+     * Construct the REST handler.
+     *
+     * @param console the CTI console used to retrieve the token
+     */
     public RestGetSubscriptionAction(CtiConsole console) {
         this.ctiConsole = console;
     }
 
+    /**
+     * Return a short name identifying this handler.
+     *
+     * @return a short name identifying this handler
+     */
     @Override
     public String getName() { return ENDPOINT_NAME; }
 
+    /**
+     * Return the route configuration for this handler.
+     *
+     * @return the route configuration for this handler
+     */
     @Override
     public List<Route> routes() {
         return List.of(
@@ -50,6 +65,15 @@ public class RestGetSubscriptionAction extends BaseRestHandler {
         );
     }
 
+    /**
+     * Prepare the request by returning a consumer that executes the lookup
+     * and sends the appropriate response. Query parameters and request body
+     * are ignored for this endpoint.
+     *
+     * @param request the incoming REST request
+     * @param client the node client (unused)
+     * @return a RestChannelConsumer that produces the response
+     */
     @Override
     public RestChannelConsumer prepareRequest(RestRequest request, NodeClient client) {
         return channel -> {
@@ -57,6 +81,12 @@ public class RestGetSubscriptionAction extends BaseRestHandler {
         };
     }
 
+    /**
+     * Execute the get-subscription operation.
+     *
+     * @return a BytesRestResponse containing the token information or error
+     * @throws IOException if an I/O error occurs while building the response
+     */
     public BytesRestResponse handleRequest() throws IOException {
         try {
             Token token = this.ctiConsole.getToken();

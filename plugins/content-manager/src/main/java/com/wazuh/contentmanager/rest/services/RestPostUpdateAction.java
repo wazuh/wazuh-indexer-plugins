@@ -26,6 +26,7 @@ import static org.opensearch.rest.RestRequest.Method.POST;
  * - 404 Not Found: No subscription exists (subscription required before updating)
  * - 401 Unauthorized: The endpoint is being accessed by a different user, the expected user is wazuh-server
  * - 409 Conflict: Another update operation is already in progress
+ * - 429 Too Many Requests: Rate limit exceeded
  * - 500 Internal Server Error: Unexpected error during processing
  *
  * Response headers (for rate limiting):
@@ -38,13 +39,26 @@ public class RestPostUpdateAction extends BaseRestHandler {
     private static final String ENDPOINT_UNIQUE_NAME = "plugin:content_manager/subscription_update";
     private final CtiConsole ctiConsole;
 
+    /**
+     * Construct the update REST handler.
+     *
+     * @param console the CTI console used to check subscription state and trigger updates
+     */
     public RestPostUpdateAction(CtiConsole console) {
         this.ctiConsole = console;
     }
 
+    /**
+     * Return a short identifier for this handler.
+     */
     @Override
     public String getName() { return ENDPOINT_NAME; }
 
+    /**
+     * Return the route configuration for this handler.
+     *
+     * @return route configuration for the update endpoint
+     */
     @Override
     public List<Route> routes() {
         return List.of(
@@ -57,6 +71,13 @@ public class RestPostUpdateAction extends BaseRestHandler {
         );
     }
 
+    /**
+     * Prepare the request by returning a consumer that executes the update operation.
+     *
+     * @param request the incoming REST request
+     * @param client the node client 
+     * @return a consumer that executes the update operation
+     */
     @Override
     public RestChannelConsumer prepareRequest(RestRequest request, NodeClient client) {
         return channel -> {
@@ -64,6 +85,12 @@ public class RestPostUpdateAction extends BaseRestHandler {
         };
     }
 
+    /**
+     * Execute the update operation.
+     *
+     * @return a BytesRestResponse describing the outcome
+     * @throws IOException if an I/O error occurs while building the response
+     */
     public BytesRestResponse handleRequest() throws IOException {
         try {
             // 1. Check if Token exists (404 Not Found)

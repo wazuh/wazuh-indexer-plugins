@@ -34,13 +34,28 @@ public class RestPostSubscriptionAction extends BaseRestHandler {
     private static final String ENDPOINT_UNIQUE_NAME = "plugin:content_manager/subscription_post";
     private final CtiConsole ctiConsole;
 
+    /**
+     * Construct the REST handler.
+     *
+     * @param console the CTI console used to handle subscription requests
+     */
     public RestPostSubscriptionAction(CtiConsole console) {
         this.ctiConsole = console;
     }
 
+    /**
+     * Return a short name identifying this handler.
+     *
+     * @return a short name identifying this handler
+     */
     @Override
     public String getName() { return ENDPOINT_NAME; }
 
+    /**
+     * Return the route configuration for this handler.
+     *
+     * @return route configuration for POST subscription
+     */
     @Override
     public List<Route> routes() {
         return List.of(
@@ -52,6 +67,14 @@ public class RestPostSubscriptionAction extends BaseRestHandler {
         );
     }
 
+    /**
+     * Prepare the request by parsing the incoming subscription payload and
+     * returning a consumer that forwards the parsed DTO to {@link #handleRequest}.
+     *
+     * @param request the incoming REST request containing the subscription payload
+     * @param client the node client (unused)
+     * @return a RestChannelConsumer that processes the request and sends the response
+     */
     @Override
     public RestChannelConsumer prepareRequest(RestRequest request, NodeClient client) {
         return channel -> {
@@ -63,6 +86,14 @@ public class RestPostSubscriptionAction extends BaseRestHandler {
         };
     }
 
+    /**
+     * Handle the subscription creation/update.
+     *
+     *
+     * @param subscription the parsed subscription DTO
+     * @return a BytesRestResponse representing the operation result
+     * @throws IOException if an I/O error occurs while building the response
+     */
     public BytesRestResponse handleRequest(Subscription subscription) throws IOException {
         try {
             // Notify CTI Console about a registration request
