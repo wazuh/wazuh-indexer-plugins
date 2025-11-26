@@ -11,6 +11,7 @@ import org.opensearch.rest.BytesRestResponse;
 import org.opensearch.rest.NamedRoute;
 import org.opensearch.rest.RestRequest;
 
+import java.io.IOException;
 import java.util.List;
 
 import static org.opensearch.rest.RestRequest.Method.DELETE;
@@ -52,28 +53,31 @@ public class RestDeleteSubscriptionAction extends BaseRestHandler {
     @Override
     public RestChannelConsumer prepareRequest(RestRequest request, NodeClient client) {
         return channel -> {
-            try {
-                Token token = ctiConsole.getToken();
-                if (token == null) {
-                    RestResponse error = new RestResponse(
-                            "Token not found",
-                            RestStatus.NOT_FOUND.getStatus()
-                    );
-                    channel.sendResponse(new BytesRestResponse(RestStatus.NOT_FOUND, error.toXContent()));
-                    return;
-                }
-
-                ctiConsole.deleteToken();
-
-                RestResponse response = new RestResponse("Subscription deleted successfully", RestStatus.OK.getStatus());
-                channel.sendResponse(new BytesRestResponse(RestStatus.OK, response.toXContent()));
-            } catch (Exception e) {
-                RestResponse error = new RestResponse(
-                        e.getMessage() != null ? e.getMessage() : "An unexpected error occurred while processing your request.",
-                        RestStatus.INTERNAL_SERVER_ERROR.getStatus()
-                );
-                channel.sendResponse(new BytesRestResponse(RestStatus.INTERNAL_SERVER_ERROR, error.toXContent()));
-            }
+            channel.sendResponse(this.handleRequest());
         };
+    }
+
+    public BytesRestResponse handleRequest() throws IOException {
+        try {
+            Token token = ctiConsole.getToken();
+            if (token == null) {
+                RestResponse error = new RestResponse(
+                    "Token not found",
+                    RestStatus.NOT_FOUND.getStatus()
+                );
+                return new BytesRestResponse(RestStatus.NOT_FOUND, error.toXContent());
+            }
+
+            ctiConsole.deleteToken();
+
+            RestResponse response = new RestResponse("Subscription deleted successfully", RestStatus.OK.getStatus());
+            return new BytesRestResponse(RestStatus.OK, response.toXContent());
+        } catch (Exception e) {
+            RestResponse error = new RestResponse(
+                e.getMessage() != null ? e.getMessage() : "An unexpected error occurred while processing your request.",
+                RestStatus.INTERNAL_SERVER_ERROR.getStatus()
+            );
+            return new BytesRestResponse(RestStatus.INTERNAL_SERVER_ERROR, error.toXContent());
+        }
     }
 }

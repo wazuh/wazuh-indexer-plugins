@@ -3,6 +3,7 @@ package com.wazuh.contentmanager.rest.services;
 import com.wazuh.contentmanager.ContentManagerPlugin;
 import com.wazuh.contentmanager.cti.console.CtiConsole;
 import com.wazuh.contentmanager.cti.console.model.Subscription;
+import com.wazuh.contentmanager.cti.console.model.Token;
 import com.wazuh.contentmanager.rest.model.RestResponse;
 import com.wazuh.contentmanager.rest.model.SubscriptionParser;
 import org.opensearch.transport.client.node.NodeClient;
@@ -12,6 +13,7 @@ import org.opensearch.rest.BytesRestResponse;
 import org.opensearch.rest.NamedRoute;
 import org.opensearch.rest.RestRequest;
 
+import java.io.IOException;
 import java.util.List;
 
 import static org.opensearch.rest.RestRequest.Method.POST;
@@ -53,30 +55,35 @@ public class RestPostSubscriptionAction extends BaseRestHandler {
     @Override
     public RestChannelConsumer prepareRequest(RestRequest request, NodeClient client) {
         return channel -> {
-            try {
-                // Parse subscription details and create a new instance of Subscription DTO.
-                Subscription subscription = SubscriptionParser.parse(request.contentParser());
+            // Parse subscription details and create a new instance of Subscription DTO.
+            Subscription subscription = SubscriptionParser.parse(request.contentParser());
 
-                // Notify CTI Console about a registration request
-                this.ctiConsole.onPostSubscriptionRequest(subscription);
-
-                // Return success
-                RestResponse response = new RestResponse("Subscription created successfully", RestStatus.CREATED.getStatus());
-                channel.sendResponse(new BytesRestResponse(RestStatus.CREATED, response.toXContent()));
-            } catch (IllegalArgumentException e) {
-                RestResponse error = new RestResponse(
-                    e.getMessage(),
-                    RestStatus.BAD_REQUEST.getStatus()
-                );
-                channel.sendResponse(new BytesRestResponse(RestStatus.BAD_REQUEST, error.toXContent()));
-            }
-            catch (Exception e) {
-                RestResponse error = new RestResponse(
-                        e.getMessage() != null ? e.getMessage() : "An unexpected error occurred while processing your request.",
-                        RestStatus.INTERNAL_SERVER_ERROR.getStatus()
-                );
-                channel.sendResponse(new BytesRestResponse(RestStatus.INTERNAL_SERVER_ERROR, error.toXContent()));
-            }
+            // Send response from handleRequest method which process the request.
+            channel.sendResponse(this.handleRequest(subscription));
         };
+    }
+
+    public BytesRestResponse handleRequest(Subscription subscription) throws IOException {
+        try {
+            // Notify CTI Console about a registration request
+            this.ctiConsole.onPostSubscriptionRequest(subscription);
+
+            // Return success
+            RestResponse response = new RestResponse("Subscription created successfully", RestStatus.CREATED.getStatus());
+            return new BytesRestResponse(RestStatus.CREATED, response.toXContent());
+        } catch (IllegalArgumentException e) {
+            RestResponse error = new RestResponse(
+                e.getMessage(),
+                RestStatus.BAD_REQUEST.getStatus()
+            );
+            return new BytesRestResponse(RestStatus.BAD_REQUEST, error.toXContent());
+        }
+        catch (Exception e) {
+            RestResponse error = new RestResponse(
+                e.getMessage() != null ? e.getMessage() : "An unexpected error occurred while processing your request.",
+                RestStatus.INTERNAL_SERVER_ERROR.getStatus()
+            );
+            return new BytesRestResponse(RestStatus.INTERNAL_SERVER_ERROR, error.toXContent());
+        }
     }
 }
