@@ -14,7 +14,6 @@ To verify everything is working correctly, try generating reports following the 
 - Wazuh Dashboard package (debian package based on OpenSearch 3.1.0). Downloaded from [wazuh-dashboard actions](https://github.com/wazuh/wazuh-dashboard/actions/runs/16009728935).
 
 > Note: To test using RPM packages, update the Vagrant configuration and provisioning scripts accordingly (for example, change `generic/ubuntu2204` to `generic/centos7` in the Vagrantfile and replace Debian-specific installation commands with RPM equivalents).
-
 ### Preparing a development environment
 
 Prepare a multi-VM Vagrant environment with the following components:

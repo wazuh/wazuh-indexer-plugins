@@ -37,19 +37,19 @@ sequenceDiagram
     end
 ```
 
-## Schema of the `wazuh-content` index
+## Schema of the `.cti-consumers` index
 
 [ONLINE]
 ```json
 [
   {
-    "_index": "wazuh-content",
-    "_id": "vd_1.0.0",
+    "_index": ".cti-consumers",
+    "_id": "consumer-name",
     "_source": {
-      "vd_4.8.0": {
-        "offset": 75019,
-        "last_offset": 85729
-      }
+      "name": "consumer-name",
+      "local_offset": 75019,
+      "remote_offset": 85729,
+      "snapshot_link": "uri-to-snapshot"
     }
   },
 ]
@@ -58,14 +58,13 @@ sequenceDiagram
 ```json
 [
   {
-    "_index": "wazuh-content",
-    "_id": "vd_1.0.0",
+    "_index": ".cti-consumers",
+    "_id": "consumer-name",
     "_source": {
-      "vd_4.8.0": {
-        "offset": 0,
-        "snapshot": "uri-to-snapshot"
-      }
+      "name": "consumer-name",
+      "local_offset": 0,
+      "snapshot_link": "uri-to-snapshot"
     }
-  }
+  },
 ]
 ```

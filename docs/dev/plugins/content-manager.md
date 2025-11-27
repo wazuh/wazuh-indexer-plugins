@@ -14,7 +14,7 @@ The Content Manager plugin handles:
 
 The plugin manages two main indices:
 - `wazuh-ruleset`: Contains the actual security content (rules, decoders, etc.)
-- `wazuh-context`: Stores consumer information and synchronization state
+- `.cti-consumers`: Stores consumer information and synchronization state
 
 ---
 
@@ -25,7 +25,7 @@ The plugin manages two main indices:
 #### 1. **ContentManagerPlugin**
 Main class located at: `/plugins/content-manager/src/main/java/com/wazuh/contentmanager/ContentManagerPlugin.java`
 
-This is the entry point of the plugin. It initializes when the `wazuh-ruleset` index is created by the setup plugin.
+This is the entry point of the plugin.
 
 #### 2. **ContentIndex**
 Located at: `/plugins/content-manager/src/main/java/com/wazuh/contentmanager/index/ContentIndex.java`
@@ -35,13 +35,14 @@ Manages operations on the `wazuh-ruleset` index:
 - Document patching (add, update, delete)
 - Query and retrieval operations
 
-#### 3. **ContextIndex**
-Located at: `/plugins/content-manager/src/main/java/com/wazuh/contentmanager/index/ContextIndex.java`
+#### 3. **ConsumersIndex**
+Located at: `/plugins/content-manager/src/main/java/com/wazuh/contentmanager/index/ConsumersIndex.java`
 
-Manages the `wazuh-context` index which stores:
-- Consumer ID and context information
-- Current offset (last successfully applied change)
-- Last available offset from the CTI API
+Manages the `.cti-consumers` index which stores:
+- Consumer name
+- Local offset (last successfully applied change)
+- Remote offset (last available offset from the CTI API)
+- Snapshot link from where the index was initialized
 
 #### 4. **ContentUpdater**
 Located at: `/plugins/content-manager/src/main/java/com/wazuh/contentmanager/updater/ContentUpdater.java`
@@ -66,40 +67,6 @@ Handles initial content bootstrapping:
 
 The plugin is configured through the `PluginSettings` class. Settings can be defined in `opensearch.yml`:
 
-### Available Settings
-
-| Setting | Default | Description |
-|---------|---------|-------------|
-| `content_manager.cti.api` | `https://cti.wazuh.com/api/v1` | CTI API base URL |
-| `content_manager.cti.consumer` | `vd_4.8.0` | Consumer ID for tracking |
-| `content_manager.cti.context` | `vd_1.0.0` | Context ID for versioning |
-| `content_manager.cti.client.max_attempts` | `3` | Maximum retry attempts (2-5) |
-| `content_manager.cti.client.sleep_time` | `60` | Initial retry delay in seconds (20-100) |
-| `content_manager.client_timeout` | `10` | Client timeout in seconds |
-| `content_manager.max_changes` | `1000` | Maximum changes per update batch |
-| `content_manager.max_items_per_bulk` | `25` | Items per bulk request |
-| `content_manager.max_concurrent_bulks` | `5` | Concurrent bulk operations |
-| `content_manager.job.max_docs` | `1000` | Maximum documents per job |
-| `content_manager.job.schedule` | `1` | Job schedule interval |
-
-### Example Configuration
-
-```yaml
-# opensearch.yml
-content_manager:
-  cti:
-    api: "https://cti.wazuh.com/api/v1"
-    consumer: "vd_4.8.0"
-    context: "vd_1.0.0"
-    client:
-      max_attempts: 3
-      sleep_time: 60
-  max_changes: 1000
-  max_items_per_bulk: 25
-  client_timeout: 10
-```
-
----
 
 ## 🔄 How Content Synchronization Works
 
@@ -107,27 +74,26 @@ content_manager:
 
 When the plugin starts on a cluster manager node:
 
-1. Waits for the `wazuh-ruleset` index to be created by the setup plugin
-2. Creates the `wazuh-context` index if it doesn't exist
-3. Checks the consumer's offset:
-   - **If offset = 0**: Downloads and indexes a snapshot
-   - **If offset > 0**: Proceeds with incremental updates
+1. Creates the `.cti-consumers` index if it doesn't exist
+2. Checks the consumer's local_offset:
+   - **If local_offset = 0**: Downloads and indexes a snapshot
+   - **If local_offset > 0**: Proceeds with incremental updates
 
 ### 2. **Update Phase**
 
 The update process follows these steps:
 
-1. Fetches current consumer information from `wazuh-context`
-2. Compares `offset` with `lastOffset` from CTI API
+1. Fetches current consumer information from `.cti-consumers`
+2. Compares `local_offset` with `remote_offset` from CTI API
 3. If different, fetches changes in batches (max `content_manager.max_changes`)
 4. Applies changes using JSON Patch operations (add, update, delete)
-5. Updates the offset after successful application
-6. Repeats until `offset == lastOffset`
+5. Updates the local_offset after successful application
+6. Repeats until `local_offset == remote_offset`
 
 ### 3. **Error Handling**
 
-- **Recoverable errors**: Updates offset and retries later
-- **Critical failures**: Resets offset to 0, triggering snapshot re-initialization
+- **Recoverable errors**: Updates local_offset and retries later
+- **Critical failures**: Resets local_offset to 0, triggering snapshot re-initialization
 
 ---
 
@@ -136,7 +102,7 @@ The update process follows these steps:
 ### Check Consumer Status
 
 ```bash
-GET /wazuh-context/_search
+GET /.cti-consumers/_search
 {
   "query": {
     "match_all": {}
@@ -166,11 +132,9 @@ tail -f logs/opensearch.log | grep -E "ContentManager|ContentUpdater|SnapshotMan
 ## 📌 Important Notes
 
 - The plugin only runs on **cluster manager nodes**
-- Requires the **setup plugin** to create the `wazuh-ruleset` index first
 - CTI API must be accessible for content synchronization
 - Offset-based synchronization ensures no content is missed
 - Snapshot initialization provides a fast bootstrap mechanism
-- All operations are performed with appropriate privileges using the `Privileged` wrapper
 
 ---
 

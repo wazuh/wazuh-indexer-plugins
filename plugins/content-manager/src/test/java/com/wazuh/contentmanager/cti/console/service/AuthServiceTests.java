@@ -2,11 +2,11 @@ package com.wazuh.contentmanager.cti.console.service;
 
 import com.wazuh.contentmanager.cti.console.client.ApiClient;
 import com.wazuh.contentmanager.cti.console.model.Token;
+import com.wazuh.contentmanager.cti.console.model.Subscription;
 import org.apache.hc.client5.http.async.methods.SimpleHttpResponse;
 import org.apache.hc.core5.http.ContentType;
 import org.junit.After;
 import org.junit.Before;
-import org.junit.Test;
 import org.mockito.Mock;
 import org.opensearch.test.OpenSearchTestCase;
 
@@ -60,7 +60,8 @@ public class AuthServiceTests extends OpenSearchTestCase {
         when(this.mockClient.getToken(anyString(), anyString()))
             .thenReturn(SimpleHttpResponse.create(200, response.getBytes(StandardCharsets.UTF_8), ContentType.APPLICATION_JSON));
 
-        Token token = this.authService.getToken("anyClientID", "anyDeviceCode");
+        Subscription subscription = new Subscription("anyClientID", "anyDeviceCode", 3600, 5);
+        Token token = this.authService.getToken(subscription);
 
         // Token must not be null
         assertNotNull(token);
@@ -83,16 +84,17 @@ public class AuthServiceTests extends OpenSearchTestCase {
     public void testGetTokenFailure() throws ExecutionException, InterruptedException, TimeoutException {
         Token token;
         String response = "{\"error\": \"invalid_request\", \"error_description\": \"Missing or invalid parameter: client_id\"}";
+        Subscription subscription = new Subscription("anyClientID", "anyDeviceCode", 3600, 5);
 
         // When CTI replies with an error code, token must be null. No exception raised
         when(this.mockClient.getToken(anyString(), anyString()))
             .thenReturn(SimpleHttpResponse.create(400, response.getBytes(StandardCharsets.UTF_8), ContentType.APPLICATION_JSON));
-        token = this.authService.getToken("anyClientID", "anyDeviceCode");
+        token = this.authService.getToken(subscription);
         assertNull(token);
 
         // When CTI does not reply, token must be null and exceptions are raised.
         when(this.mockClient.getToken(anyString(), anyString())).thenThrow(ExecutionException.class);
-        token = this.authService.getToken("anyClientID", "anyDeviceCode");
+        token = this.authService.getToken(subscription);
         assertNull(token);
     }
 
@@ -109,10 +111,10 @@ public class AuthServiceTests extends OpenSearchTestCase {
     public void testGetResourceTokenSuccess() throws ExecutionException, InterruptedException, TimeoutException {
         // Mock client response upon request
         String response = "{\"access_token\": \"https://localhost:8443/api/v1/catalog/contexts/misp/consumers/virustotal/changes?from_offset=0&to_offset=1000&with_empties=true&verify=1761383411-kJ9b8w%2BQ7kzRmF\", \"issued_token_type\": \"urn:wazuh:params:oauth:token-type:signed_url\", \"expires_in\": 300}";
-        when(this.mockClient.getResourceToken(anyString(), anyString()))
+        when(this.mockClient.getResourceToken(any(Token.class), anyString()))
             .thenReturn(SimpleHttpResponse.create(200, response.getBytes(StandardCharsets.UTF_8), ContentType.APPLICATION_JSON));
 
-        Token token = this.authService.getResourceToken("anyToken", "anyResource");
+        Token token = this.authService.getResourceToken(new Token("anyToken", "Bearer"), "anyResource");
 
         // Token must not be null
         assertNotNull(token);
@@ -137,14 +139,14 @@ public class AuthServiceTests extends OpenSearchTestCase {
         String response = "{\"error\": \"invalid_target\", \"error_description\": \"The resource parameter refers to an invalid endpoint\"}";
 
         // When CTI replies with an error code, token must be null. No exception raised
-        when(this.mockClient.getResourceToken(anyString(), anyString()))
+        when(this.mockClient.getResourceToken(any(Token.class), anyString()))
             .thenReturn(SimpleHttpResponse.create(400, response.getBytes(StandardCharsets.UTF_8), ContentType.APPLICATION_JSON));
-        token = this.authService.getResourceToken("anyToken", "anyResource");
+        token = this.authService.getResourceToken(new Token("anyToken", "Bearer"), "anyResource");
         assertNull(token);
 
         // When CTI does not reply, token must be null and exceptions are raised.
-        when(this.mockClient.getResourceToken(anyString(), anyString())).thenThrow(ExecutionException.class);
-        token = this.authService.getResourceToken("anyToken", "anyResource");
+        when(this.mockClient.getResourceToken(any(Token.class), anyString())).thenThrow(ExecutionException.class);
+        token = this.authService.getResourceToken(new Token("anyToken", "Bearer"), "anyResource");
         assertNull(token);
     }
 }

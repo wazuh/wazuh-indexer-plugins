@@ -27,9 +27,9 @@ import org.junit.Before;
 
 import java.util.List;
 
-import com.wazuh.contentmanager.model.cti.Changes;
-import com.wazuh.contentmanager.model.cti.Offset;
-import com.wazuh.contentmanager.model.cti.Operation;
+import com.wazuh.contentmanager.cti.catalog.model.Changes;
+import com.wazuh.contentmanager.cti.catalog.model.Offset;
+import com.wazuh.contentmanager.cti.catalog.model.Operation;
 import com.wazuh.contentmanager.settings.PluginSettings;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
