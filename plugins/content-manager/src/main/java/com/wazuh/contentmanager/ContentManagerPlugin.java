@@ -110,7 +110,6 @@ public class ContentManagerPlugin extends Plugin implements ClusterPlugin, JobSc
                 new SnapshotManager(environment, this.consumersIndex, this.contentIndex, new Privileged());
         ContentJobRunner runner = ContentJobRunner.getInstance();
         runner.registerExecutor(HelloWorldJob.JOB_TYPE, new HelloWorldJob());
-            new SnapshotManager(environment, this.consumersIndex, this.contentIndex, new Privileged());
         // Content Manager 5.0
         this.ctiConsole = new CtiConsole();
         return Collections.emptyList();
@@ -218,10 +217,10 @@ public class ContentManagerPlugin extends Plugin implements ClusterPlugin, JobSc
     // TODO: Change to actual job implementation, this is just an example
     private void scheduleHelloWorldJob() {
         String jobId = "wazuh-hello-world-job";
-        threadPool.generic().execute(() -> {
+        this.threadPool.generic().execute(() -> {
             try {
-                boolean exists = client.admin().indices().prepareExists(JOB_INDEX_NAME).get().isExists() &&
-                    client.prepareGet(JOB_INDEX_NAME, jobId).get().isExists();
+                boolean exists = this.client.admin().indices().prepareExists(JOB_INDEX_NAME).get().isExists() &&
+                    this.client.prepareGet(JOB_INDEX_NAME, jobId).get().isExists();
                 if (!exists) {
                     log.info("Scheduling Hello World Job to run every 1 minute...");
                     ContentJobParameter job = new ContentJobParameter(
@@ -235,7 +234,7 @@ public class ContentManagerPlugin extends Plugin implements ClusterPlugin, JobSc
                     IndexRequest request = new IndexRequest(JOB_INDEX_NAME)
                         .id(jobId)
                         .source(job.toXContent(XContentFactory.jsonBuilder(), null));
-                    client.index(request).actionGet();
+                    this.client.index(request).actionGet();
                     log.info("Hello World Job scheduled successfully.");
                 }
             } catch (Exception e) {

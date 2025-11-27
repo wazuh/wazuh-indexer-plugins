@@ -40,7 +40,7 @@ public class ContentJobRunner implements ScheduledJobRunner {
      * Initialize default jobs.
      */
     private void init() {
-        registerExecutor(HelloWorldJob.JOB_TYPE, new HelloWorldJob());
+        this.registerExecutor(HelloWorldJob.JOB_TYPE, new HelloWorldJob());
     }
 
     /**
@@ -69,7 +69,7 @@ public class ContentJobRunner implements ScheduledJobRunner {
         String type = contentJob.getJobType();
 
         // Retrieve the specific executor for this job type
-        JobExecutor executor = executors.get(type);
+        JobExecutor executor = this.executors.get(type);
 
         if (executor != null) {
             try {

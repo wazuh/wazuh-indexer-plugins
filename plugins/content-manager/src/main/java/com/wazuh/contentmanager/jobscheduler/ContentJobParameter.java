@@ -40,7 +40,7 @@ public class ContentJobParameter implements ScheduledJobParameter {
     }
 
     public String getJobType() {
-        return jobType;
+        return this.jobType;
     }
 
     @Override
