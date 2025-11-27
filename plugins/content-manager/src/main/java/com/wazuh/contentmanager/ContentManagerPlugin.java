@@ -47,11 +47,25 @@ import java.util.List;
 import java.util.concurrent.Semaphore;
 import java.util.function.Supplier;
 
+import com.wazuh.contentmanager.jobscheduler.ContentJobParameter;
+import com.wazuh.contentmanager.jobscheduler.ContentJobRunner;
+import com.wazuh.contentmanager.jobscheduler.jobs.HelloWorldJob;
+import org.opensearch.jobscheduler.spi.JobSchedulerExtension;
+import org.opensearch.jobscheduler.spi.ScheduledJobParser;
+import org.opensearch.jobscheduler.spi.ScheduledJobRunner;
+import org.opensearch.jobscheduler.spi.schedule.IntervalSchedule;
+import org.opensearch.action.index.IndexRequest;
+import org.opensearch.common.xcontent.XContentFactory;
+import java.time.Instant;
+import java.time.temporal.ChronoUnit;
+
 /**
  * Main class of the Content Manager Plugin
  */
-public class ContentManagerPlugin extends Plugin implements ClusterPlugin {
+public class ContentManagerPlugin extends Plugin implements ClusterPlugin, JobSchedulerExtension {
     private static final Logger log = LogManager.getLogger(ContentManagerPlugin.class);
+    private static final String JOB_INDEX_NAME = ".wazuh-content-manager-jobs";
+
     /**
      * Semaphore to ensure the context index creation is only triggered once.
      */
@@ -63,6 +77,7 @@ public class ContentManagerPlugin extends Plugin implements ClusterPlugin {
     private ThreadPool threadPool;
     private ClusterService clusterService;
     private CtiConsole ctiConsole;
+    private Client client;
 
     @Override
     public Collection<Object> createComponents(
@@ -78,6 +93,7 @@ public class ContentManagerPlugin extends Plugin implements ClusterPlugin {
         IndexNameExpressionResolver indexNameExpressionResolver,
         Supplier<RepositoriesService> repositoriesServiceSupplier) {
         PluginSettings.getInstance(environment.settings(), clusterService);
+        this.client = client;
         this.threadPool = threadPool;
         this.clusterService = clusterService;
         this.consumersIndex = new ConsumersIndex(client);
@@ -85,6 +101,8 @@ public class ContentManagerPlugin extends Plugin implements ClusterPlugin {
         this.snapshotManager =
                 new SnapshotManager(environment, this.consumersIndex, this.contentIndex, new Privileged());
 //        this.ctiConsole = new CtiConsole(new AuthServiceImpl());
+        ContentJobRunner runner = ContentJobRunner.getInstance();
+        runner.registerExecutor(HelloWorldJob.JOB_TYPE, new HelloWorldJob());
         return Collections.emptyList();
     }
 
@@ -102,6 +120,7 @@ public class ContentManagerPlugin extends Plugin implements ClusterPlugin {
             log.info("Starting Content Manager plugin initialization");
             this.start();
         }
+        this.scheduleHelloWorldJob();
 
         /*
         // Use case 1. Polling
@@ -171,6 +190,35 @@ public class ContentManagerPlugin extends Plugin implements ClusterPlugin {
         }
     }
 
+    // TODO: Change to actual job implementation, this is just an example
+    private void scheduleHelloWorldJob() {
+        String jobId = "wazuh-hello-world-job";
+        threadPool.generic().execute(() -> {
+            try {
+                boolean exists = client.admin().indices().prepareExists(JOB_INDEX_NAME).get().isExists() &&
+                    client.prepareGet(JOB_INDEX_NAME, jobId).get().isExists();
+                if (!exists) {
+                    log.info("Scheduling Hello World Job to run every 1 minute...");
+                    ContentJobParameter job = new ContentJobParameter(
+                        "Hello World Periodic Task",
+                        HelloWorldJob.JOB_TYPE,
+                        new IntervalSchedule(Instant.now(), 1, ChronoUnit.MINUTES),
+                        true,
+                        Instant.now(),
+                        Instant.now()
+                    );
+                    IndexRequest request = new IndexRequest(JOB_INDEX_NAME)
+                        .id(jobId)
+                        .source(job.toXContent(XContentFactory.jsonBuilder(), null));
+                    client.index(request).actionGet();
+                    log.info("Hello World Job scheduled successfully.");
+                }
+            } catch (Exception e) {
+                log.error("Error scheduling Hello World Job: {}", e.getMessage());
+            }
+        });
+    }
+
     @Override
     public List<Setting<?>> getSettings() {
         return Arrays.asList(
@@ -185,5 +233,25 @@ public class ContentManagerPlugin extends Plugin implements ClusterPlugin {
             PluginSettings.MAX_CHANGES,
             PluginSettings.MAX_CONCURRENT_BULKS,
             PluginSettings.MAX_ITEMS_PER_BULK);
+    }
+
+    @Override
+    public String getJobType() {
+        return "content-manager-job";
+    }
+
+    @Override
+    public String getJobIndex() {
+        return JOB_INDEX_NAME;
+    }
+
+    @Override
+    public ScheduledJobRunner getJobRunner() {
+        return ContentJobRunner.getInstance();
+    }
+
+    @Override
+    public ScheduledJobParser getJobParser() {
+        return (parser, id, jobDocVersion) -> ContentJobParameter.parse(parser);
     }
 }
