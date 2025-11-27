@@ -29,7 +29,6 @@ import org.opensearch.action.index.IndexResponse;
 import org.opensearch.common.action.ActionFuture;
 import org.opensearch.transport.client.Client;
 import org.opensearch.common.xcontent.XContentFactory;
-import org.opensearch.common.xcontent.XContentType;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.core.xcontent.ToXContent;
 
@@ -204,28 +203,36 @@ public class ConsumersIndex {
         return ClusterInfo.indexExists(this.client, ConsumersIndex.INDEX_NAME);
     }
 
-    /** Creates the {@link ConsumersIndex#INDEX_NAME} index. */
-   public void createIndex() {
-        try {
-            String mappingJson = this.loadMappingFromResources();
+    /**
+     * Creates the {@link ConsumersIndex#INDEX_NAME} index.
+     *
+     * @return
+     */
+   public CreateIndexResponse createIndex() throws ExecutionException, InterruptedException, TimeoutException {
+       Settings settings = Settings.builder()
+           .put("index.number_of_replicas", 0)
+           .put("hidden", true)
+           .build();
 
-            CreateIndexRequest request = new CreateIndexRequest(ConsumersIndex.INDEX_NAME);
+       String mappings;
+       try {
+           mappings = this.loadMappingFromResources();
+       } catch (IOException e) {
+           log.error("Could not read mappings for index [{}]", INDEX_NAME);
+           return null;
+       }
 
-            // Index settings
-            request.settings(Settings.builder().put("index.number_of_replicas", 0).build());
-            request.mapping(mappingJson, XContentType.JSON);
+       CreateIndexRequest request = new CreateIndexRequest()
+            .index(INDEX_NAME)
+            .mapping(mappings)
+            .settings(settings);
 
-        CreateIndexResponse response = this.client
+       return this.client
             .admin()
             .indices()
             .create(request)
-            .actionGet(this.pluginSettings.getClientTimeout(), TimeUnit.SECONDS);
-            log.info("Index created: {} acknowledged={}", response.index(), response.isAcknowledged());
-
-        } catch (Exception e) {
-            log.warn("Index creation attempt failed: {}", e.getMessage());
-        }
-    }
+            .get(this.pluginSettings.getClientTimeout(), TimeUnit.SECONDS);
+   }
 
     /**
      * Loads the index mapping from the resources folder.

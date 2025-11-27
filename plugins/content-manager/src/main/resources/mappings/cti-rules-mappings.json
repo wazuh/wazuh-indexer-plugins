@@ -1,4 +1,17 @@
 {
+  "dynamic": "strict",
+  "dynamic_templates": [
+    {
+      "detection_fields": {
+        "path_match": "detection.*",
+        "path_unmatch": "detection.condition",
+        "mapping": {
+          "type": "object",
+          "enabled": false
+        }
+      }
+    }
+  ],
   "properties": {
     "id": {
       "type": "keyword"
@@ -52,30 +65,46 @@
         },
         "service": {
           "type": "keyword"
+        },
+        "definition": {
+          "type": "text"
         }
       }
     },
     "detection": {
       "type": "object",
+      "dynamic": true,
       "properties": {
         "condition": {
-          "type": "keyword"
-        },
-        "keywords": {
           "type": "keyword"
         }
       }
     },
     "related": {
-      "type": "object",
+      "type": "nested",
       "properties": {
         "type": {
           "type": "keyword"
         },
-        "sigma_id": {
+        "id": {
           "type": "keyword"
         }
       }
+    },
+    "fields": {
+      "type": "keyword"
+    },
+    "name": {
+      "type": "keyword"
+    },
+    "taxonomy": {
+      "type": "keyword"
+    },
+    "license": {
+      "type": "keyword"
+    },
+    "scope": {
+      "type": "keyword"
     }
   }
 }

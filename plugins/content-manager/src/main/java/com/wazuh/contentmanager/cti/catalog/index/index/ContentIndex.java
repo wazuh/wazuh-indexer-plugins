@@ -91,7 +91,7 @@ public class ContentIndex {
     public CreateIndexResponse createIndex() throws ExecutionException, InterruptedException, TimeoutException {
         Settings settings = Settings.builder()
             .put("index.number_of_replicas", 0)
-//            .put("hidden", true)
+            .put("hidden", true)
             .build();
 
         String mappings;

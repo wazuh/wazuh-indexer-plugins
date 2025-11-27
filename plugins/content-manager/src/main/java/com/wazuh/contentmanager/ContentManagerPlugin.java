@@ -157,7 +157,11 @@ public class ContentManagerPlugin extends Plugin implements ClusterPlugin, Actio
                     () -> {
                         if (indexCreationSemaphore.tryAcquire()) {
                             try {
-                                this.consumersIndex.createIndex();
+                                CreateIndexResponse response = this.consumersIndex.createIndex();
+
+                                if (response.isAcknowledged()) {
+                                    log.info("Index created: {} acknowledged={}", response.index(), response.isAcknowledged());
+                                }
                             } catch (Exception e) {
                                 log.error("Failed to create {} index, due to: {}", ConsumersIndex.INDEX_NAME, e.getMessage(), e);
                             } finally {
