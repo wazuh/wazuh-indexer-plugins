@@ -21,6 +21,8 @@ import com.google.gson.JsonParser;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.opensearch.OpenSearchTimeoutException;
+import org.opensearch.action.admin.indices.create.CreateIndexRequest;
+import org.opensearch.action.admin.indices.create.CreateIndexResponse;
 import org.opensearch.action.bulk.BulkRequest;
 import org.opensearch.action.bulk.BulkResponse;
 import org.opensearch.action.delete.DeleteRequest;
@@ -28,6 +30,7 @@ import org.opensearch.action.delete.DeleteResponse;
 import org.opensearch.action.get.GetRequest;
 import org.opensearch.action.get.GetResponse;
 import org.opensearch.action.index.IndexRequest;
+import org.opensearch.common.settings.Settings;
 import org.opensearch.transport.client.Client;
 import org.opensearch.common.xcontent.XContentFactory;
 import org.opensearch.common.xcontent.XContentType;
@@ -43,6 +46,7 @@ import org.opensearch.index.reindex.DeleteByQueryRequestBuilder;
 import java.io.BufferedReader;
 import java.io.FileReader;
 import java.io.IOException;
+import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
@@ -71,6 +75,44 @@ public class ContentIndex {
     private final Client client;
     private final PluginSettings pluginSettings;
     private final Semaphore semaphore;
+
+    private String indexName;
+    private String mappingsPath;
+
+    public ContentIndex(Client client, String indexName, String mappingsPath) {
+        this.pluginSettings = PluginSettings.getInstance();
+        this.semaphore = new Semaphore(pluginSettings.getMaximumConcurrentBulks());
+
+        this.client = client;
+        this.indexName = indexName;
+        this.mappingsPath = mappingsPath;
+    }
+
+    public CreateIndexResponse createIndex() throws ExecutionException, InterruptedException, TimeoutException {
+        Settings settings = Settings.builder()
+            .put("index.number_of_replicas", 0)
+//            .put("hidden", true)
+            .build();
+
+        String mappings;
+        try (InputStream is = this.getClass().getResourceAsStream(this.mappingsPath)) {
+            mappings = new String(is.readAllBytes(), StandardCharsets.UTF_8);
+        } catch (IOException e) {
+            log.error("Could not read mappings for index [{}]", this.indexName);
+            return null;
+        }
+
+        CreateIndexRequest request = new CreateIndexRequest()
+            .index(this.indexName)
+            .mapping(mappings)
+            .settings(settings);
+
+        return this.client
+            .admin()
+            .indices()
+            .create(request)
+            .get(this.pluginSettings.getClientTimeout(), TimeUnit.SECONDS);
+    }
 
     /**
      * Constructor for the ContentIndex class.
@@ -258,6 +300,7 @@ public class ContentIndex {
      * Applies a set of changes (create, update, delete) to the content index.
      *
      * @param changes content changes to apply.
+     * @deprecated
      */
     public void patch(Changes changes) {
         ArrayList<Offset> offsets = changes.get();

@@ -24,6 +24,7 @@ import com.wazuh.contentmanager.cti.catalog.service.ConsumerServiceImpl;
 import com.wazuh.contentmanager.cti.console.CtiConsole;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.opensearch.action.admin.indices.create.CreateIndexResponse;
 import org.opensearch.transport.client.Client;
 import org.opensearch.cluster.metadata.IndexNameExpressionResolver;
 import org.opensearch.cluster.node.DiscoveryNode;
@@ -42,10 +43,7 @@ import org.opensearch.threadpool.ThreadPool;
 import org.opensearch.watcher.ResourceWatcherService;
 
 import java.util.*;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.Semaphore;
-import java.util.concurrent.TimeUnit;
+import java.util.concurrent.*;
 import java.util.function.Supplier;
 
 import com.wazuh.contentmanager.cti.catalog.index.index.ContentIndex;
@@ -74,6 +72,7 @@ public class ContentManagerPlugin extends Plugin implements ClusterPlugin, Actio
     private ThreadPool threadPool;
     private ClusterService clusterService;
     private CtiConsole ctiConsole;
+    private Client client;
 
     // Rest API endpoints
     public static final String PLUGINS_BASE_URI = "/_plugins/content-manager";
@@ -103,6 +102,7 @@ public class ContentManagerPlugin extends Plugin implements ClusterPlugin, Actio
 
         // Content Manager 5.0
         this.ctiConsole = new CtiConsole();
+        this.client = client;
         return Collections.emptyList();
     }
 
@@ -185,15 +185,56 @@ public class ContentManagerPlugin extends Plugin implements ClusterPlugin, Actio
     //   2.2 If local_offset == 0 -> init from snapshot
     //   2.3 If local_offset != remote_offset -> update consumer (changes)
     public void job() {
-        String context = "rules_development_0.0.1";
-        String consumer = "rules_consumer";
+        String rulesContext = "rules_development_0.0.1";
+        String rulesConsumer = "rules_development_0.0.1_test";
 
-        ConsumerService consumerService = new ConsumerServiceImpl(context, consumer, this.consumersIndex);
+        ConsumerService consumerService = new ConsumerServiceImpl(rulesContext, rulesConsumer, this.consumersIndex);
         LocalConsumer localConsumer = consumerService.getLocalConsumer();
         RemoteConsumer remoteConsumer = consumerService.getRemoteConsumer();
 
         log.info("Local consumer: {}", localConsumer);
         log.info("Remote consumer: {}", remoteConsumer);
+
+        // Create indices
+        String rulesIndexName = String.format(
+            Locale.ROOT, ".%s-%s-%s",
+            rulesContext,
+            rulesConsumer,
+            "rules"
+        );
+        String rulesIndexMapping = "/mappings/cti-rules-mappings.json";
+        ContentIndex rulesConsumerIndex = new ContentIndex(
+            this.client,
+            rulesIndexName,
+            rulesIndexMapping);
+        try {
+            CreateIndexResponse response = rulesConsumerIndex.createIndex();
+            if (response.isAcknowledged()) {
+                log.info("Index [{}] created successfully", response.index());
+            }
+        } catch (Exception e) {
+            log.error("Failed to create index [{}]: {}", rulesIndexName, e.getMessage());
+        }
+
+        String rulesIntegIndexName = String.format(
+            Locale.ROOT, ".%s-%s-%s",
+            rulesContext,
+            rulesConsumer,
+            "integrations"
+        );
+        String rulesIntegIndexMapping = "/mappings/cti-rules-integrations-mappings.json";
+        ContentIndex rulesIntegrationsConsumerIndex = new ContentIndex(
+            this.client,
+            rulesIntegIndexName,
+            rulesIntegIndexMapping);
+        try {
+            CreateIndexResponse response = rulesIntegrationsConsumerIndex.createIndex();
+            if (response.isAcknowledged()) {
+                log.info("Index [{}] created successfully", response.index());
+            }
+        } catch (ExecutionException | InterruptedException | TimeoutException e) {
+            log.error("Failed to create index [{}]: {}", rulesIntegIndexName, e.getMessage());
+        }
     }
 
 

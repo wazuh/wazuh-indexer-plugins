@@ -1,0 +1,81 @@
+{
+  "properties": {
+    "id": {
+      "type": "keyword"
+    },
+    "sigma_id": {
+      "type": "keyword"
+    },
+    "title": {
+      "type": "keyword"
+    },
+    "description": {
+      "type": "text"
+    },
+    "author": {
+      "type": "keyword"
+    },
+    "date": {
+      "type": "date",
+      "format": "yyyy-MM-dd"
+    },
+    "modified": {
+      "type": "date",
+      "format": "yyyy-MM-dd"
+    },
+    "status": {
+      "type": "keyword"
+    },
+    "level": {
+      "type": "keyword"
+    },
+    "enabled": {
+      "type": "boolean"
+    },
+    "falsepositives": {
+      "type": "keyword"
+    },
+    "tags": {
+      "type": "keyword"
+    },
+    "references": {
+      "type": "keyword"
+    },
+    "logsource": {
+      "type": "object",
+      "properties": {
+        "category": {
+          "type": "keyword"
+        },
+        "product": {
+          "type": "keyword"
+        },
+        "service": {
+          "type": "keyword"
+        }
+      }
+    },
+    "detection": {
+      "type": "object",
+      "properties": {
+        "condition": {
+          "type": "keyword"
+        },
+        "keywords": {
+          "type": "keyword"
+        }
+      }
+    },
+    "related": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "type": "keyword"
+        },
+        "sigma_id": {
+          "type": "keyword"
+        }
+      }
+    }
+  }
+}

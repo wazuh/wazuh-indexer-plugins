@@ -48,6 +48,7 @@ import com.wazuh.contentmanager.settings.PluginSettings;
 import com.wazuh.contentmanager.utils.ClusterInfo;
 
 /** Class to manage the Context index. */
+// TODO remove unused methods: all but setConsumer(), getConsumer() and createIndex()
 public class ConsumersIndex {
     private static final Logger log = LogManager.getLogger(ConsumersIndex.class);
 
@@ -233,7 +234,6 @@ public class ConsumersIndex {
      * @throws IOException if reading the resource fails.
      */
     private String loadMappingFromResources() throws IOException {
-
         try (InputStream is = this.getClass().getResourceAsStream(MAPPING_PATH)) {
             return new String(is.readAllBytes(), StandardCharsets.UTF_8);
         }
