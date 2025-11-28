@@ -17,52 +17,68 @@
 package com.wazuh.contentmanager;
 
 
+import com.wazuh.contentmanager.cti.catalog.index.index.ConsumersIndex;
+import com.wazuh.contentmanager.cti.catalog.index.index.ContentIndex;
 import com.wazuh.contentmanager.cti.catalog.model.LocalConsumer;
 import com.wazuh.contentmanager.cti.catalog.model.RemoteConsumer;
 import com.wazuh.contentmanager.cti.catalog.service.ConsumerService;
 import com.wazuh.contentmanager.cti.catalog.service.ConsumerServiceImpl;
+import com.wazuh.contentmanager.cti.catalog.service.SnapshotManager;
 import com.wazuh.contentmanager.cti.catalog.service.SnapshotServiceImpl;
 import com.wazuh.contentmanager.cti.console.CtiConsole;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
-import org.opensearch.action.admin.indices.create.CreateIndexResponse;
-import org.opensearch.transport.client.Client;
-import org.opensearch.cluster.metadata.IndexNameExpressionResolver;
-import org.opensearch.cluster.node.DiscoveryNode;
-import org.opensearch.cluster.service.ClusterService;
-import org.opensearch.common.settings.*;
-import org.opensearch.core.common.io.stream.NamedWriteableRegistry;
-import org.opensearch.core.xcontent.NamedXContentRegistry;
-import org.opensearch.env.Environment;
-import org.opensearch.env.NodeEnvironment;
-import org.opensearch.plugins.ClusterPlugin;
-import org.opensearch.plugins.ActionPlugin;
-import org.opensearch.plugins.Plugin;
-import org.opensearch.repositories.RepositoriesService;
-import org.opensearch.script.ScriptService;
-import org.opensearch.threadpool.ThreadPool;
-import org.opensearch.watcher.ResourceWatcherService;
-
-import java.util.*;
-import java.util.concurrent.*;
-import java.util.function.Supplier;
-
-import com.wazuh.contentmanager.cti.catalog.index.index.ContentIndex;
-import com.wazuh.contentmanager.cti.catalog.index.index.ConsumersIndex;
+import com.wazuh.contentmanager.jobscheduler.ContentJobParameter;
+import com.wazuh.contentmanager.jobscheduler.ContentJobRunner;
+import com.wazuh.contentmanager.jobscheduler.jobs.HelloWorldJob;
 import com.wazuh.contentmanager.rest.services.RestDeleteSubscriptionAction;
 import com.wazuh.contentmanager.rest.services.RestGetSubscriptionAction;
 import com.wazuh.contentmanager.rest.services.RestPostSubscriptionAction;
 import com.wazuh.contentmanager.rest.services.RestPostUpdateAction;
 import com.wazuh.contentmanager.settings.PluginSettings;
 import com.wazuh.contentmanager.utils.Privileged;
-import com.wazuh.contentmanager.cti.catalog.service.SnapshotManager;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+import org.opensearch.action.admin.indices.create.CreateIndexResponse;
+import org.opensearch.action.index.IndexRequest;
+import org.opensearch.cluster.metadata.IndexNameExpressionResolver;
+import org.opensearch.cluster.node.DiscoveryNode;
+import org.opensearch.cluster.service.ClusterService;
+import org.opensearch.common.settings.Setting;
+import org.opensearch.common.settings.Settings;
+import org.opensearch.common.xcontent.XContentFactory;
+import org.opensearch.core.common.io.stream.NamedWriteableRegistry;
+import org.opensearch.core.xcontent.NamedXContentRegistry;
+import org.opensearch.env.Environment;
+import org.opensearch.env.NodeEnvironment;
+import org.opensearch.jobscheduler.spi.JobSchedulerExtension;
+import org.opensearch.jobscheduler.spi.ScheduledJobParser;
+import org.opensearch.jobscheduler.spi.ScheduledJobRunner;
+import org.opensearch.jobscheduler.spi.schedule.IntervalSchedule;
+import org.opensearch.plugins.ActionPlugin;
+import org.opensearch.plugins.ClusterPlugin;
+import org.opensearch.plugins.Plugin;
+import org.opensearch.repositories.RepositoriesService;
 import org.opensearch.rest.RestHandler;
-import java.util.List;
-import java.util.Collections;
+import org.opensearch.script.ScriptService;
+import org.opensearch.threadpool.ThreadPool;
+import org.opensearch.transport.client.Client;
+import org.opensearch.watcher.ResourceWatcherService;
 
-/** Main class of the Content Manager Plugin */
-public class ContentManagerPlugin extends Plugin implements ClusterPlugin, ActionPlugin {
+import java.time.Instant;
+import java.time.temporal.ChronoUnit;
+import java.util.*;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.Semaphore;
+import java.util.concurrent.TimeUnit;
+import java.util.function.Supplier;
+
+/**
+ * Main class of the Content Manager Plugin
+ */
+public class ContentManagerPlugin extends Plugin implements ClusterPlugin, JobSchedulerExtension, ActionPlugin {
     private static final Logger log = LogManager.getLogger(ContentManagerPlugin.class);
+    private static final String JOB_INDEX_NAME = ".wazuh-content-manager-jobs";
+
     /**
      * Semaphore to ensure the context index creation is only triggered once.
      */
@@ -95,17 +111,20 @@ public class ContentManagerPlugin extends Plugin implements ClusterPlugin, Actio
         IndexNameExpressionResolver indexNameExpressionResolver,
         Supplier<RepositoriesService> repositoriesServiceSupplier) {
         PluginSettings.getInstance(environment.settings(), clusterService);
+        this.client = client;
         this.threadPool = threadPool;
         this.clusterService = clusterService;
         this.environment = environment;
         this.consumersIndex = new ConsumersIndex(client);
-        this.contentIndex = new ContentIndex(client);
-        this.snapshotManager =
-            new SnapshotManager(environment, this.consumersIndex, this.contentIndex, new Privileged());
+//        this.contentIndex = new ContentIndex(client);
+//        this.snapshotManager =
+//                new SnapshotManager(environment, this.consumersIndex, this.contentIndex, new Privileged());
 
         // Content Manager 5.0
         this.ctiConsole = new CtiConsole();
         this.client = client;
+        ContentJobRunner runner = ContentJobRunner.getInstance();
+        runner.registerExecutor(HelloWorldJob.JOB_TYPE, new HelloWorldJob());
         return Collections.emptyList();
     }
 
@@ -122,6 +141,7 @@ public class ContentManagerPlugin extends Plugin implements ClusterPlugin, Actio
         if (localNode.isClusterManagerNode()) {
             this.start();
         }
+        this.scheduleHelloWorldJob();
 
         Runnable scheduledTask = this::job;
         ScheduledExecutorService executor = Executors.newSingleThreadScheduledExecutor(r -> new Thread(r, "Scheduled task"));
@@ -173,8 +193,6 @@ public class ContentManagerPlugin extends Plugin implements ClusterPlugin, Actio
                         } else {
                             log.debug("{} index creation already triggered", ConsumersIndex.INDEX_NAME);
                         }
-                        // TODO: Once initialize method is adapted to the new design, uncomment the following line
-                        // this.snapshotManager.initialize();
                     });
         } catch (Exception e) {
             // Log or handle exception
@@ -337,6 +355,35 @@ public class ContentManagerPlugin extends Plugin implements ClusterPlugin, Actio
     }
 
 
+    // TODO: Change to actual job implementation, this is just an example
+    private void scheduleHelloWorldJob() {
+        String jobId = "wazuh-hello-world-job";
+        this.threadPool.generic().execute(() -> {
+            try {
+                boolean exists = this.client.admin().indices().prepareExists(JOB_INDEX_NAME).get().isExists() &&
+                    this.client.prepareGet(JOB_INDEX_NAME, jobId).get().isExists();
+                if (!exists) {
+                    log.info("Scheduling Hello World Job to run every 1 minute...");
+                    ContentJobParameter job = new ContentJobParameter(
+                        "Hello World Periodic Task",
+                        HelloWorldJob.JOB_TYPE,
+                        new IntervalSchedule(Instant.now(), 1, ChronoUnit.MINUTES),
+                        true,
+                        Instant.now(),
+                        Instant.now()
+                    );
+                    IndexRequest request = new IndexRequest(JOB_INDEX_NAME)
+                        .id(jobId)
+                        .source(job.toXContent(XContentFactory.jsonBuilder(), null));
+                    this.client.index(request).actionGet();
+                    log.info("Hello World Job scheduled successfully.");
+                }
+            } catch (Exception e) {
+                log.error("Error scheduling Hello World Job: {}", e.getMessage());
+            }
+        });
+    }
+
     @Override
     public List<Setting<?>> getSettings() {
         return Arrays.asList(
@@ -351,5 +398,25 @@ public class ContentManagerPlugin extends Plugin implements ClusterPlugin, Actio
             PluginSettings.MAX_CHANGES,
             PluginSettings.MAX_CONCURRENT_BULKS,
             PluginSettings.MAX_ITEMS_PER_BULK);
+    }
+
+    @Override
+    public String getJobType() {
+        return "content-manager-job";
+    }
+
+    @Override
+    public String getJobIndex() {
+        return JOB_INDEX_NAME;
+    }
+
+    @Override
+    public ScheduledJobRunner getJobRunner() {
+        return ContentJobRunner.getInstance();
+    }
+
+    @Override
+    public ScheduledJobParser getJobParser() {
+        return (parser, id, jobDocVersion) -> ContentJobParameter.parse(parser);
     }
 }

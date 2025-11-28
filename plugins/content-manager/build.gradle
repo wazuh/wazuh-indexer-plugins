@@ -6,6 +6,7 @@ buildscript {
     ext {
         opensearch_version = System.getProperty("opensearch.version", "3.3.2-SNAPSHOT")
         opensearch_build = opensearch_version.replace("-SNAPSHOT","") + ".0"
+        job_scheduler_version = System.getProperty("job_scheduler.version", opensearch_build)
         wazuh_version = System.getProperty("version", "5.0.0")
         revision = System.getProperty("revision", "0")
     }
@@ -70,6 +71,7 @@ opensearchplugin {
     name pluginName
     description pluginDescription
     classname "${projectPath}.${pathToPlugin}.${pluginClassName}"
+    extendedPlugins = ['opensearch-job-scheduler']
     licenseFile rootProject.file('LICENSE.txt')
     noticeFile rootProject.file('NOTICE.txt')
 }
@@ -95,6 +97,7 @@ dependencies {
 
     // ZipArchive dependencies used for integration tests
     zipArchive group: 'org.opensearch.plugin', name: 'opensearch-job-scheduler', version: "${opensearch_build}"
+    compileOnly "org.opensearch:opensearch-job-scheduler-spi:${job_scheduler_version}"
 }
 
 // No need to validate license headers since spotless checks and applies it
