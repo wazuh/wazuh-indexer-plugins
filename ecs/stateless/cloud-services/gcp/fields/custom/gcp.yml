@@ -856,13 +856,6 @@
     description: Contains the original virtual machine instance name prior to any
       normalization
     example: example-vminstancename
-  - name: cloud.instance.name
-    type: keyword
-    level: custom
-    description: >-
-      Provides the normalized instance name derived by removing any leading segments
-      from the VM instance name
-    example: example-name
   - name: gcp_dns.vmprojectid
     type: keyword
     level: custom
@@ -891,11 +884,6 @@
     description: Indicates whether the DNS query was authenticated based on the authAnswer
       flag
     example: true
-  - name: service.type
-    type: keyword
-    level: custom
-    description: Indicates the type of service that generated the event
-    example: example-type
   - name: metricset.name
     type: keyword
     level: custom
@@ -1131,12 +1119,6 @@
     description: Name of the destination Virtual Private Cloud network where traffic
       is received
     example: example-vpc_name
-  - name: dns.answers
-    type: nested
-    level: custom
-    description: The DNS class of the resource record
-    normalize:
-    - array
   - name: gcp_audit.event_provider
     type: keyword
     level: custom

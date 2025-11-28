@@ -1280,7 +1280,7 @@
                   "type": "keyword"
                 }
               },
-              "type": "nested"
+              "type": "object"
             },
             "header_flags": {
               "ignore_above": 1024,

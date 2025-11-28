@@ -1511,16 +1511,13 @@ cloud.instance.id:
   type: keyword
 cloud.instance.name:
   dashed_name: cloud-instance-name
-  description: Provides the normalized instance name derived by removing any leading
-    segments from the VM instance name
-  example: example-name
+  description: Instance name of the host machine.
   flat_name: cloud.instance.name
   ignore_above: 1024
-  level: custom
-  name: cloud.instance.name
+  level: extended
+  name: instance.name
   normalize: []
-  short: Provides the normalized instance name derived by removing any leading segments
-    from the VM instance name
+  short: Instance name of the host machine.
   type: keyword
 cloud.machine.type:
   dashed_name: cloud-machine-type
@@ -3326,14 +3323,23 @@ dll.pe.sections.virtual_size:
   type: long
 dns.answers:
   dashed_name: dns-answers
-  description: The DNS class of the resource record
+  description: 'An array containing an object for each answer section returned by
+    the server.
+
+    The main keys that should be present in these objects are defined by ECS. Records
+    that have more information may contain more keys than what ECS defines.
+
+    Not all DNS data sources give all details about DNS answers. At minimum, answer
+    objects must contain the `data` key. If more information is available, map as
+    much of it to ECS as possible, and add any additional fields to the answer objects
+    as custom fields.'
   flat_name: dns.answers
-  level: custom
-  name: dns.answers
+  level: extended
+  name: answers
   normalize:
   - array
-  short: The DNS class of the resource record
-  type: nested
+  short: Array of DNS answers.
+  type: object
 dns.answers.class:
   dashed_name: dns-answers-class
   description: The class of DNS data contained in this resource record.
@@ -19465,14 +19471,20 @@ service.target.version:
   type: keyword
 service.type:
   dashed_name: service-type
-  description: Indicates the type of service that generated the event
-  example: example-type
+  description: 'The type of the service data is collected from.
+
+    The type can be used to group and correlate logs and metrics from one service
+    type.
+
+    Example: If logs or metrics are collected from Elasticsearch, `service.type` would
+    be `elasticsearch`.'
+  example: elasticsearch
   flat_name: service.type
   ignore_above: 1024
-  level: custom
-  name: service.type
+  level: core
+  name: type
   normalize: []
-  short: Indicates the type of service that generated the event
+  short: The type of the service.
   type: keyword
 service.version:
   dashed_name: service-version

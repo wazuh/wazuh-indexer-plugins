@@ -116,7 +116,7 @@ ECS_Version,Indexed,Field_Set,Field,Type,Level,Normalization,Example,Description
 9.1.0,true,cloud,cloud.account.name,keyword,extended,,elastic-dev,The cloud account name.
 9.1.0,true,cloud,cloud.availability_zone,keyword,extended,,us-east-1c,"Availability zone in which this host, resource, or service is located."
 9.1.0,true,cloud,cloud.instance.id,keyword,extended,,i-1234567890abcdef0,Instance ID of the host machine.
-9.1.0,true,cloud,cloud.instance.name,keyword,custom,,example-name,Provides the normalized instance name derived by removing any leading segments from the VM instance name
+9.1.0,true,cloud,cloud.instance.name,keyword,extended,,,Instance name of the host machine.
 9.1.0,true,cloud,cloud.machine.type,keyword,extended,,t2.medium,Machine type of the host machine.
 9.1.0,true,cloud,cloud.origin.account.id,keyword,extended,,666777888999,The cloud account or organization id.
 9.1.0,true,cloud,cloud.origin.account.name,keyword,extended,,elastic-dev,The cloud account name.
@@ -255,7 +255,7 @@ ECS_Version,Indexed,Field_Set,Field,Type,Level,Normalization,Example,Description
 9.1.0,true,dll,dll.pe.sections.physical_size,long,extended,,,PE Section List physical size.
 9.1.0,true,dll,dll.pe.sections.var_entropy,long,extended,,,Variance for Shannon entropy calculation from the section.
 9.1.0,true,dll,dll.pe.sections.virtual_size,long,extended,,,PE Section List virtual size. This is always the same as `physical_size`.
-9.1.0,true,dns,dns.answers,nested,custom,array,,The DNS class of the resource record
+9.1.0,true,dns,dns.answers,object,extended,array,,Array of DNS answers.
 9.1.0,true,dns,dns.answers.class,keyword,extended,,IN,The class of DNS data contained in this resource record.
 9.1.0,true,dns,dns.answers.data,keyword,extended,,10.10.10.10,The data describing the resource.
 9.1.0,true,dns,dns.answers.name,keyword,extended,,www.example.com,The domain name to which this resource record pertains.
@@ -1501,7 +1501,7 @@ ECS_Version,Indexed,Field_Set,Field,Type,Level,Normalization,Example,Description
 9.1.0,true,service,service.target.state,keyword,core,,,Current state of the service.
 9.1.0,true,service,service.target.type,keyword,core,,elasticsearch,The type of the service.
 9.1.0,true,service,service.target.version,keyword,core,,3.2.4,Version of the service.
-9.1.0,true,service,service.type,keyword,custom,,example-type,Indicates the type of service that generated the event
+9.1.0,true,service,service.type,keyword,core,,elasticsearch,The type of the service.
 9.1.0,true,service,service.version,keyword,core,,3.2.4,Version of the service.
 9.1.0,true,source,source.address,keyword,extended,,,Source network address.
 9.1.0,true,source,source.as.number,long,extended,,15169,Unique number allocated to the autonomous system.
