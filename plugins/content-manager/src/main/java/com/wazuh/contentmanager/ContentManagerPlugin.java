@@ -16,11 +16,12 @@
  */
 package com.wazuh.contentmanager;
 
-import com.wazuh.contentmanager.cti.catalog.CtiCatalog;
+import com.wazuh.contentmanager.client.CTIClient;
 import com.wazuh.contentmanager.cti.catalog.model.LocalConsumer;
 import com.wazuh.contentmanager.cti.catalog.model.RemoteConsumer;
 import com.wazuh.contentmanager.cti.catalog.service.ConsumerService;
 import com.wazuh.contentmanager.cti.catalog.service.ConsumerServiceImpl;
+import com.wazuh.contentmanager.cti.catalog.service.SnapshotService;
 import com.wazuh.contentmanager.cti.console.CtiConsole;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -73,6 +74,7 @@ public class ContentManagerPlugin extends Plugin implements ClusterPlugin, Actio
     private ClusterService clusterService;
     private CtiConsole ctiConsole;
     private Client client;
+    private Environment environment;
 
     // Rest API endpoints
     public static final String PLUGINS_BASE_URI = "/_plugins/content-manager";
@@ -95,6 +97,7 @@ public class ContentManagerPlugin extends Plugin implements ClusterPlugin, Actio
         PluginSettings.getInstance(environment.settings(), clusterService);
         this.threadPool = threadPool;
         this.clusterService = clusterService;
+        this.environment = environment;
         this.consumersIndex = new ConsumersIndex(client);
         this.contentIndex = new ContentIndex(client);
         this.snapshotManager =
@@ -145,8 +148,8 @@ public class ContentManagerPlugin extends Plugin implements ClusterPlugin, Actio
      * Initialize. The initialization consists of:
      *
      * <pre>
-     *     1. create required indices if they do not exist.
-     *     2. initialize from a snapshot if the local consumer does not exist, or its offset is 0.
+     * 1. create required indices if they do not exist.
+     * 2. initialize from a snapshot if the local consumer does not exist, or its offset is 0.
      * </pre>
      */
     private void start() {
@@ -171,7 +174,7 @@ public class ContentManagerPlugin extends Plugin implements ClusterPlugin, Actio
                             log.debug("{} index creation already triggered", ConsumersIndex.INDEX_NAME);
                         }
                         // TODO: Once initialize method is adapted to the new design, uncomment the following line
-//                        this.snapshotManager.initialize();
+                        // this.snapshotManager.initialize();
                     });
         } catch (Exception e) {
             // Log or handle exception
@@ -238,6 +241,22 @@ public class ContentManagerPlugin extends Plugin implements ClusterPlugin, Actio
             }
         } catch (ExecutionException | InterruptedException | TimeoutException e) {
             log.error("Failed to create index [{}]: {}", rulesIntegIndexName, e.getMessage());
+        }
+
+        // Initialize snapshot if available
+        if (remoteConsumer.getSnapshotLink() != null && localConsumer.getLocalOffset() == 0 ){
+            log.info("Initializing snapshot from link: {}", remoteConsumer.getSnapshotLink());
+            SnapshotService snapshotService = new SnapshotService(
+                rulesContext,
+                rulesConsumer,
+                CTIClient.getInstance(),
+                this.client,
+                this.environment
+            );
+            snapshotService.initialize(remoteConsumer.getSnapshotLink(), remoteConsumer.getOffset());
+        }
+        else{
+            log.info("Indices already initialized. ");
         }
     }
 
