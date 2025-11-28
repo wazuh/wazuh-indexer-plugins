@@ -35,6 +35,14 @@ public class LocalConsumer extends AbstractConsumer implements ToXContent {
         this.snapshotLink = "";
     }
 
+    public LocalConsumer(String context, String name, long localOffset, long remoteOffset, String snapshotUrl) {
+        this.context = context;
+        this.name  = name;
+        this.localOffset = localOffset;
+        this.remoteOffset = remoteOffset;
+        this.snapshotLink = snapshotUrl;
+    }
+
     public long getLocalOffset() {
         return localOffset;
     }

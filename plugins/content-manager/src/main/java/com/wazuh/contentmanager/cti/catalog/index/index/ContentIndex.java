@@ -114,6 +114,40 @@ public class ContentIndex {
             .get(this.pluginSettings.getClientTimeout(), TimeUnit.SECONDS);
     }
 
+
+    /**
+     * Executes a bulk request using the OpenSearch client with semaphore control.
+     *
+     * @param bulkRequest The request to execute.
+     */
+    public void executeBulk(BulkRequest bulkRequest) {
+        try {
+            this.semaphore.acquire();
+            this.client.bulk(bulkRequest, new ActionListener<>() {
+                @Override
+                public void onResponse(BulkResponse bulkResponse) {
+                    semaphore.release();
+                    if (bulkResponse.hasFailures()) {
+                        log.warn("Bulk indexing finished with failures: {}", bulkResponse.buildFailureMessage());
+                    } else {
+                        log.debug("Bulk indexing successful. Indexed {} documents.", bulkResponse.getItems().length);
+                    }
+                }
+
+                @Override
+                public void onFailure(Exception e) {
+                    semaphore.release();
+                    log.error("Bulk indexing failed completely: {}", e.getMessage());
+                }
+            });
+        } catch (InterruptedException e) {
+            log.error("Interrupted while waiting for semaphore: {}", e.getMessage());
+            Thread.currentThread().interrupt();
+        }
+    }
+
+    // =================================
+
     /**
      * Constructor for the ContentIndex class.
      *
@@ -355,13 +389,13 @@ public class ContentIndex {
         try {
             DeleteByQueryRequestBuilder deleteByQuery =
                     new DeleteByQueryRequestBuilder(this.client, DeleteByQueryAction.INSTANCE);
-            deleteByQuery.source(ContentIndex.INDEX_NAME).filter(QueryBuilders.matchAllQuery());
+            deleteByQuery.source(this.indexName).filter(QueryBuilders.matchAllQuery());
 
             BulkByScrollResponse response = deleteByQuery.get();
             log.debug(
-                    "[{}] wiped. {} documents were removed", ContentIndex.INDEX_NAME, response.getDeleted());
+                    "[{}] wiped. {} documents were removed", this.indexName, response.getDeleted());
         } catch (OpenSearchTimeoutException e) {
-            log.error("[{}] delete query timed out: {}", ContentIndex.INDEX_NAME, e.getMessage());
+            log.error("[{}] delete query timed out: {}", this.indexName, e.getMessage());
         }
     }
 }

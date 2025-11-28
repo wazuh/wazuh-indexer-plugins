@@ -17,12 +17,11 @@
 package com.wazuh.contentmanager;
 
 
-import com.wazuh.contentmanager.client.CTIClient;
 import com.wazuh.contentmanager.cti.catalog.model.LocalConsumer;
 import com.wazuh.contentmanager.cti.catalog.model.RemoteConsumer;
 import com.wazuh.contentmanager.cti.catalog.service.ConsumerService;
 import com.wazuh.contentmanager.cti.catalog.service.ConsumerServiceImpl;
-import com.wazuh.contentmanager.cti.catalog.service.SnapshotService;
+import com.wazuh.contentmanager.cti.catalog.service.SnapshotServiceImpl;
 import com.wazuh.contentmanager.cti.console.CtiConsole;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -193,152 +192,148 @@ public class ContentManagerPlugin extends Plugin implements ClusterPlugin, Actio
     //   2.2 If local_offset == 0 -> init from snapshot
     //   2.3 If local_offset != remote_offset -> update consumer (changes)
     public void job() {
-        rulesConsumer();
-        decodersConsumer();
+        this.rulesConsumer();
+        this.decodersConsumer();
     }
 
+    /**
+     * The ConsumersIndex is unique to the app, as there is only one index.
+     * We need as many ContentIndex instances as resources being handled in a given consumer.
+     *
+     * For each CTI consumer, we need:
+     *  - 1x ConsumerService
+     *  - 1x SnapshotService
+     *  - As many of indices as needed by the CTI consumer. In this case, 2: rules, integrations
+     */
     private void rulesConsumer() {
-        String rulesContext = "rules_development_0.0.1";
-        String rulesConsumer = "rules_development_0.0.1_test";
+        log.info("Starting initialization of rules consumer");
+        String context = "rules_development_0.0.1";
+        String consumer = "rules_development_0.0.1_test";
+        Map<String, String> mappings = new HashMap<>();
+        mappings.put(
+            "rule", "/mappings/cti-rules-mappings.json"
+        );
+        mappings.put(
+            "integration", "/mappings/cti-rules-integrations-mappings.json"
+        );
 
-        ConsumerService consumerService = new ConsumerServiceImpl(rulesContext, rulesConsumer, this.consumersIndex);
+        ConsumerService consumerService = new ConsumerServiceImpl(context, consumer, this.consumersIndex);
         LocalConsumer localConsumer = consumerService.getLocalConsumer();
         RemoteConsumer remoteConsumer = consumerService.getRemoteConsumer();
 
         log.info("Local consumer: {}", localConsumer);
         log.info("Remote consumer: {}", remoteConsumer);
 
-        // Create indices
-        String rulesIndexName = String.format(
-            Locale.ROOT, ".%s-%s-%s",
-            rulesContext,
-            rulesConsumer,
-            "rules"
-        );
-        String rulesIndexMapping = "/mappings/cti-rules-mappings.json";
-        ContentIndex rulesConsumerIndex = new ContentIndex(
-            this.client,
-            rulesIndexName,
-            rulesIndexMapping);
-        try {
-            CreateIndexResponse response = rulesConsumerIndex.createIndex();
-            if (response.isAcknowledged()) {
-                log.info("Index [{}] created successfully", response.index());
-            }
-        } catch (Exception e) {
-            log.error("Failed to create index [{}]: {}", rulesIndexName, e.getMessage());
-        }
+        List<ContentIndex> indices = new ArrayList<>();
+        for (Map.Entry<String, String> entry : mappings.entrySet()) {
+            // Add to the list of indices for the SnapshotService
+            String indexName = this.getIndexName(context, consumer, entry.getKey());
+            ContentIndex index = new ContentIndex(this.client, indexName, entry.getValue());
+            indices.add(index);
 
-        String rulesIntegIndexName = String.format(
-            Locale.ROOT, ".%s-%s-%s",
-            rulesContext,
-            rulesConsumer,
-            "integrations"
-        );
-        String rulesIntegIndexMapping = "/mappings/cti-rules-integrations-mappings.json";
-        ContentIndex rulesIntegrationsConsumerIndex = new ContentIndex(
-            this.client,
-            rulesIntegIndexName,
-            rulesIntegIndexMapping);
-        try {
-            CreateIndexResponse response = rulesIntegrationsConsumerIndex.createIndex();
-            if (response.isAcknowledged()) {
-                log.info("Index [{}] created successfully", response.index());
+            // Create index
+            try {
+                CreateIndexResponse response = index.createIndex();
+                if (response.isAcknowledged()) {
+                    log.info("Index [{}] created successfully", response.index());
+                }
+            } catch (Exception e) {
+                log.error("Failed to create index [{}]: {}", indexName, e.getMessage());
             }
-        } catch (Exception e) {
-            log.error("Failed to create index [{}]: {}", rulesIntegIndexName, e.getMessage());
         }
 
         // Initialize snapshot if available
         if (remoteConsumer.getSnapshotLink() != null && localConsumer.getLocalOffset() == 0 ){
             log.info("Initializing snapshot from link: {}", remoteConsumer.getSnapshotLink());
-            SnapshotService snapshotService = new SnapshotService(
-                rulesContext,
-                rulesConsumer,
-                CTIClient.getInstance(),
-                this.client,
+            SnapshotServiceImpl snapshotService = new SnapshotServiceImpl(
+                context,
+                consumer,
+                indices,
+                this.consumersIndex,
                 this.environment
             );
-            snapshotService.initialize(remoteConsumer.getSnapshotLink(), remoteConsumer.getOffset());
+            snapshotService.initialize(remoteConsumer);
         }
         else{
             log.info("Indices already initialized. ");
         }
+        log.info("Finished initialization of rules consumer");
     }
 
+    /**
+     * The ConsumersIndex is unique to the app, as there is only one index.
+     * We need as many ContentIndex instances as resources being handled in a given consumer.
+     *
+     * For each CTI consumer, we need:
+     *  - 1x ConsumerService
+     *  - 1x SnapshotService
+     *  - As many of indices as needed by the CTI consumer. In this case, 2: rules, integrations
+     */
     private void decodersConsumer() {
-        String decodersContext = "decoders_development_0.0.1";
-        String decodersConsumer = "decoders_development_0.0.1";
+        log.info("Starting initialization of decoders consumer");
+        String context = "decoders_development_0.0.1";
+        String consumer = "decoders_development_0.0.1";
+        Map<String, String> mappings = new HashMap<>();
+        mappings.put(
+            "decoder", "/mappings/cti-decoders-mappings.json"
+        );
+        mappings.put(
+            "kvdb", "/mappings/cti-kvdbs-mappings.json"
+        );
+        mappings.put(
+            "integration", "/mappings/cti-decoders-integrations-mappings.json"
+        );
 
-        ConsumerService consumerService = new ConsumerServiceImpl(decodersContext, decodersConsumer, this.consumersIndex);
+        ConsumerService consumerService = new ConsumerServiceImpl(context, consumer, this.consumersIndex);
         LocalConsumer localConsumer = consumerService.getLocalConsumer();
         RemoteConsumer remoteConsumer = consumerService.getRemoteConsumer();
 
         log.info("Local consumer: {}", localConsumer);
         log.info("Remote consumer: {}", remoteConsumer);
 
-        // Create decoders index
-        String decodersIndexName = String.format(
-            Locale.ROOT, ".%s-%s-%s",
-            decodersContext,
-            decodersConsumer,
-            "decoders"
-        );
-        String decodersIndexMapping = "/mappings/cti-decoders-mappings.json";
-        ContentIndex decodersConsumerIndex = new ContentIndex(
-            this.client,
-            decodersIndexName,
-            decodersIndexMapping);
-        try {
-            CreateIndexResponse response = decodersConsumerIndex.createIndex();
-            if (response.isAcknowledged()) {
-                log.info("Index [{}] created successfully", response.index());
+        List<ContentIndex> indices = new ArrayList<>();
+        for (Map.Entry<String, String> entry : mappings.entrySet()) {
+            // Add to the list of indices for the SnapshotService
+            String indexName = this.getIndexName(context, consumer, entry.getKey());
+            ContentIndex index = new ContentIndex(this.client, indexName, entry.getValue());
+            indices.add(index);
+
+            // Create index
+            try {
+                CreateIndexResponse response = index.createIndex();
+                if (response.isAcknowledged()) {
+                    log.info("Index [{}] created successfully", response.index());
+                }
+            } catch (Exception e) {
+                log.error("Failed to create index [{}]: {}", indexName, e.getMessage());
             }
-        } catch (Exception e) {
-            log.error("Failed to create index [{}]: {}", decodersIndexName, e.getMessage());
         }
 
-        // Create decoders integrations index
-        String decodersIntegIndexName = String.format(
-            Locale.ROOT, ".%s-%s-%s",
-            decodersContext,
-            decodersConsumer,
-            "integrations"
-        );
-        String decodersIntegIndexMapping = "/mappings/cti-decoders-integrations-mappings.json";
-        ContentIndex decodersIntegrationsConsumerIndex = new ContentIndex(
-            this.client,
-            decodersIntegIndexName,
-            decodersIntegIndexMapping);
-        try {
-            CreateIndexResponse response = decodersIntegrationsConsumerIndex.createIndex();
-            if (response.isAcknowledged()) {
-                log.info("Index [{}] created successfully", response.index());
-            }
-        } catch (Exception e) {
-            log.error("Failed to create index [{}]: {}", decodersIntegIndexName, e.getMessage());
+        // Initialize snapshot if available
+        if (remoteConsumer.getSnapshotLink() != null && localConsumer.getLocalOffset() == 0 ){
+            log.info("Initializing snapshot from link: {}", remoteConsumer.getSnapshotLink());
+            SnapshotServiceImpl snapshotService = new SnapshotServiceImpl(
+                context,
+                consumer,
+                indices,
+                this.consumersIndex,
+                this.environment
+            );
+            snapshotService.initialize(remoteConsumer);
         }
+        else{
+            log.info("Indices already initialized. ");
+        }
+        log.info("Finished initialization of decoders consumer");
+    }
 
-        // Create KVDBs index
-        String kvbdsIndexName = String.format(
+    private String getIndexName(String context, String consumer, String type) {
+        return String.format(
             Locale.ROOT, ".%s-%s-%s",
-            decodersContext,
-            decodersConsumer,
-            "kvdbs"
+            context,
+            consumer,
+            type
         );
-        String kvbdsIntegIndexMapping = "/mappings/cti-kvdbs-mappings.json";
-        ContentIndex kvdbsIntegrationsConsumerIndex = new ContentIndex(
-            this.client,
-            kvbdsIndexName,
-            kvbdsIntegIndexMapping);
-        try {
-            CreateIndexResponse response = kvdbsIntegrationsConsumerIndex.createIndex();
-            if (response.isAcknowledged()) {
-                log.info("Index [{}] created successfully", response.index());
-            }
-        } catch (Exception e) {
-            log.error("Failed to create index [{}]: {}", kvbdsIndexName, e.getMessage());
-        }
     }
 
 
