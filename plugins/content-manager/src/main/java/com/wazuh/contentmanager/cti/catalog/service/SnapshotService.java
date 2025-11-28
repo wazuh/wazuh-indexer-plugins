@@ -44,8 +44,7 @@ import java.util.concurrent.Semaphore;
 
 /**
  * Service responsible for handling the download, extraction, and indexing of CTI snapshots.
- * It extracts the inner 'document' from the snapshot payload and indexes it into
- * dynamically named indices based on the payload type.
+ * It extracts the contents of the payload and indexes them at the root.
  */
 public class SnapshotService {
     private static final Logger log = LogManager.getLogger(SnapshotService.class);
@@ -156,8 +155,8 @@ public class SnapshotService {
     }
 
     /**
-     * Reads a JSON snapshot file line by line, extracts the payload document,
-     * and indexes it into the corresponding type index.
+     * Reads a JSON snapshot file line by line, extracts the contents of the payload object,
+     * and indexes them directly at the root.
      *
      * @param filePath Path to the JSON file.
      */
@@ -169,7 +168,6 @@ public class SnapshotService {
         try (BufferedReader reader = Files.newBufferedReader(filePath, StandardCharsets.UTF_8)) {
             while ((line = reader.readLine()) != null) {
                 try {
-                    // Parse root object
                     JsonObject rootJson = JsonParser.parseString(line).getAsJsonObject();
 
                     // 1. Validate and Extract Payload
@@ -194,23 +192,22 @@ public class SnapshotService {
 
                     String indexName = String.format(Locale.ROOT, ".%s-%s-%ss", this.context, this.consumer, type);
 
-                    // 3. Extract the 'document' object to index
+                    // 3. Extract the inner 'document' object for ID retrieval and Preprocessing
                     if (!payload.has(JSON_DOCUMENT_KEY)) {
                         log.warn("Payload missing '{}'. Skipping.", JSON_DOCUMENT_KEY);
                         continue;
                     }
-                    JsonObject documentToIndex = payload.getAsJsonObject(JSON_DOCUMENT_KEY);
+                    JsonObject innerDocument = payload.getAsJsonObject(JSON_DOCUMENT_KEY);
 
-                    // Preprocess documents that don't follow the schema
-                    preprocessDocument(documentToIndex);
+                    // Preprocess the inner document
+                    preprocessDocument(innerDocument);
 
                     // 4. Create Index Request
                     IndexRequest indexRequest = new IndexRequest(indexName)
-                        .source(documentToIndex.toString(), XContentType.JSON);
+                        .source(payload.toString(), XContentType.JSON);
 
-                    // Use the inner document ID if available (e.g., "id": "c86e6f81...")
-                    if (documentToIndex.has(JSON_ID_KEY)) {
-                        indexRequest.id(documentToIndex.get(JSON_ID_KEY).getAsString());
+                    if (innerDocument.has(JSON_ID_KEY)) {
+                        indexRequest.id(innerDocument.get(JSON_ID_KEY).getAsString());
                     }
 
                     bulkRequest.add(indexRequest);
@@ -242,7 +239,7 @@ public class SnapshotService {
      * Preprocesses the document to handle field transformations.
      * Specifically, renames 'related.sigma_id' to 'related.id' to avoid StrictDynamicMappingException.
      *
-     * @param document The JSON document object to process.
+     * @param document The document object to process.
      */
     private void preprocessDocument(JsonObject document) {
         if (!document.has("related")) {
