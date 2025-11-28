@@ -16,7 +16,6 @@
  */
 package com.wazuh.contentmanager;
 
-import com.wazuh.contentmanager.cti.catalog.CtiCatalog;
 import com.wazuh.contentmanager.cti.catalog.model.LocalConsumer;
 import com.wazuh.contentmanager.cti.catalog.model.RemoteConsumer;
 import com.wazuh.contentmanager.cti.catalog.service.ConsumerService;
@@ -189,6 +188,11 @@ public class ContentManagerPlugin extends Plugin implements ClusterPlugin, Actio
     //   2.2 If local_offset == 0 -> init from snapshot
     //   2.3 If local_offset != remote_offset -> update consumer (changes)
     public void job() {
+        rulesConsumer();
+        decodersConsumer();
+    }
+
+    private void rulesConsumer() {
         String rulesContext = "rules_development_0.0.1";
         String rulesConsumer = "rules_development_0.0.1_test";
 
@@ -236,8 +240,83 @@ public class ContentManagerPlugin extends Plugin implements ClusterPlugin, Actio
             if (response.isAcknowledged()) {
                 log.info("Index [{}] created successfully", response.index());
             }
-        } catch (ExecutionException | InterruptedException | TimeoutException e) {
+        } catch (Exception e) {
             log.error("Failed to create index [{}]: {}", rulesIntegIndexName, e.getMessage());
+        }
+    }
+
+    private void decodersConsumer() {
+        String decodersContext = "decoders_development_0.0.1";
+        String decodersConsumer = "decoders_development_0.0.1";
+
+        ConsumerService consumerService = new ConsumerServiceImpl(decodersContext, decodersConsumer, this.consumersIndex);
+        LocalConsumer localConsumer = consumerService.getLocalConsumer();
+        RemoteConsumer remoteConsumer = consumerService.getRemoteConsumer();
+
+        log.info("Local consumer: {}", localConsumer);
+        log.info("Remote consumer: {}", remoteConsumer);
+
+        // Create decoders index
+        String decodersIndexName = String.format(
+            Locale.ROOT, ".%s-%s-%s",
+            decodersContext,
+            decodersConsumer,
+            "decoders"
+        );
+        String decodersIndexMapping = "/mappings/cti-decoders-mappings.json";
+        ContentIndex decodersConsumerIndex = new ContentIndex(
+            this.client,
+            decodersIndexName,
+            decodersIndexMapping);
+        try {
+            CreateIndexResponse response = decodersConsumerIndex.createIndex();
+            if (response.isAcknowledged()) {
+                log.info("Index [{}] created successfully", response.index());
+            }
+        } catch (Exception e) {
+            log.error("Failed to create index [{}]: {}", decodersIndexName, e.getMessage());
+        }
+
+        // Create decoders integrations index
+        String decodersIntegIndexName = String.format(
+            Locale.ROOT, ".%s-%s-%s",
+            decodersContext,
+            decodersConsumer,
+            "integrations"
+        );
+        String decodersIntegIndexMapping = "/mappings/cti-decoders-integrations-mappings.json";
+        ContentIndex decodersIntegrationsConsumerIndex = new ContentIndex(
+            this.client,
+            decodersIntegIndexName,
+            decodersIntegIndexMapping);
+        try {
+            CreateIndexResponse response = decodersIntegrationsConsumerIndex.createIndex();
+            if (response.isAcknowledged()) {
+                log.info("Index [{}] created successfully", response.index());
+            }
+        } catch (Exception e) {
+            log.error("Failed to create index [{}]: {}", decodersIntegIndexName, e.getMessage());
+        }
+
+        // Create KVDBs index
+        String kvbdsIndexName = String.format(
+            Locale.ROOT, ".%s-%s-%s",
+            decodersContext,
+            decodersConsumer,
+            "kvdbs"
+        );
+        String kvbdsIntegIndexMapping = "/mappings/cti-kvdbs-mappings.json";
+        ContentIndex kvdbsIntegrationsConsumerIndex = new ContentIndex(
+            this.client,
+            kvbdsIndexName,
+            kvbdsIntegIndexMapping);
+        try {
+            CreateIndexResponse response = kvdbsIntegrationsConsumerIndex.createIndex();
+            if (response.isAcknowledged()) {
+                log.info("Index [{}] created successfully", response.index());
+            }
+        } catch (Exception e) {
+            log.error("Failed to create index [{}]: {}", kvbdsIndexName, e.getMessage());
         }
     }
 
