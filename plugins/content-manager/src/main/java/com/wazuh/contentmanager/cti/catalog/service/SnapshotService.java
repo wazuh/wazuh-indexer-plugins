@@ -166,7 +166,7 @@ public class SnapshotService {
         int docCount = 0;
         BulkRequest bulkRequest = new BulkRequest();
 
-        try (BufferedReader reader = new BufferedReader(new FileReader(filePath.toFile(), StandardCharsets.UTF_8))) {
+        try (BufferedReader reader = Files.newBufferedReader(filePath, StandardCharsets.UTF_8)) {
             while ((line = reader.readLine()) != null) {
                 try {
                     // Parse root object
