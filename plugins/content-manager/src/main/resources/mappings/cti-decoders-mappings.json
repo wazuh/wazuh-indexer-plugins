@@ -7,6 +7,9 @@
     "integration_id": {
       "type": "keyword"
     },
+    "decoder": {
+      "type": "keyword"
+    },
     "document": {
       "properties": {
         "name": {
