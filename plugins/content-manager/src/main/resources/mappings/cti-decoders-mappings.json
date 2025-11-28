@@ -1,0 +1,87 @@
+{
+  "dynamic": "strict",
+  "properties": {
+    "type": {
+      "type": "keyword"
+    },
+    "integration_id": {
+      "type": "keyword"
+    },
+    "document": {
+      "properties": {
+        "name": {
+          "type": "keyword"
+        },
+        "enabled": {
+          "type": "boolean"
+        },
+        "id": {
+          "type": "keyword"
+        },
+        "metadata": {
+          "type": "object",
+          "properties": {
+            "module": {
+              "type": "keyword"
+            },
+            "title": {
+              "type": "text"
+            },
+            "description": {
+              "type": "text"
+            },
+            "compatibility": {
+              "type": "keyword"
+            },
+            "versions": {
+              "type": "keyword"
+            },
+            "author": {
+              "type": "object",
+              "properties": {
+                "name": {
+                  "type": "keyword"
+                },
+                "email": {
+                  "type": "keyword"
+                },
+                "url": {
+                  "type": "keyword"
+                },
+                "date": {
+                  "type": "keyword"
+                }
+              }
+            },
+            "references": {
+              "type": "keyword"
+            }
+          }
+        },
+        "definitions": {
+          "type": "object",
+          "enabled": false
+        },
+        "check": {
+          "type": "object",
+          "enabled": false
+        },
+        "map": {
+          "type": "object",
+          "enabled": false
+        },
+        "parents": {
+          "type": "keyword"
+        },
+        "normalize": {
+          "type": "object",
+          "enabled": false
+        },
+        "parse": {
+          "type": "object",
+          "enabled": false
+        }
+      }
+    }
+  }
+}
