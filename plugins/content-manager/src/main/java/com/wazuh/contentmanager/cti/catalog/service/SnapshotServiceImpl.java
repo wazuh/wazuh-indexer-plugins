@@ -16,6 +16,9 @@
  */
 package com.wazuh.contentmanager.cti.catalog.service;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
@@ -77,7 +80,6 @@ public class SnapshotServiceImpl implements SnapshotService {
         this.pluginSettings = PluginSettings.getInstance();
 
         this.snapshotClient = new SnapshotClient(this.environment);
-
     }
 
     /**
@@ -184,6 +186,17 @@ public class SnapshotServiceImpl implements SnapshotService {
                     if ("policy".equalsIgnoreCase(type)) {
                         log.debug("Skipping document with type {}.", type);
                         continue;
+                    }
+
+                    if ("decoder".equalsIgnoreCase(type)) {
+                        ObjectMapper jsonMapper = new ObjectMapper();
+                        ObjectMapper yamlMapper = new ObjectMapper(new YAMLFactory());
+                        try {JsonNode jsonNode = jsonMapper.readTree(payload.toString());
+                            String yamlContent = yamlMapper.writeValueAsString(jsonNode);
+                            payload.addProperty("decoder", yamlContent);
+                        } catch (IOException e) {
+                            log.error("Failed to convert decoder payload to YAML: {}", e.getMessage(), e);
+                        }
                     }
 
                     String indexName = this.getIndexName(type);
