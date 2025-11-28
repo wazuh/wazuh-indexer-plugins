@@ -1,5 +1,15 @@
 {
-  "dynamic": "strict",
+  "dynamic": "strict_allow_templates",
+  "dynamic_templates": [
+    {
+      "parse_fields": {
+        "match": "parse|*",
+        "mapping": {
+          "type": "keyword"
+        }
+      }
+    }
+  ],
   "properties": {
     "type": {
       "type": "keyword"
@@ -80,9 +90,8 @@
           "type": "object",
           "enabled": false
         },
-        "parse": {
-          "type": "object",
-          "enabled": false
+        "parse|event.original": {
+          "type": "keyword"
         }
       }
     }
