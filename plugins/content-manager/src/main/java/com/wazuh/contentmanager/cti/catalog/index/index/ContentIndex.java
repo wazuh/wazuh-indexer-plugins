@@ -14,13 +14,15 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-package com.wazuh.contentmanager.index;
+package com.wazuh.contentmanager.cti.catalog.index.index;
 
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.opensearch.OpenSearchTimeoutException;
+import org.opensearch.action.admin.indices.create.CreateIndexRequest;
+import org.opensearch.action.admin.indices.create.CreateIndexResponse;
 import org.opensearch.action.bulk.BulkRequest;
 import org.opensearch.action.bulk.BulkResponse;
 import org.opensearch.action.delete.DeleteRequest;
@@ -28,6 +30,7 @@ import org.opensearch.action.delete.DeleteResponse;
 import org.opensearch.action.get.GetRequest;
 import org.opensearch.action.get.GetResponse;
 import org.opensearch.action.index.IndexRequest;
+import org.opensearch.common.settings.Settings;
 import org.opensearch.transport.client.Client;
 import org.opensearch.common.xcontent.XContentFactory;
 import org.opensearch.common.xcontent.XContentType;
@@ -43,6 +46,7 @@ import org.opensearch.index.reindex.DeleteByQueryRequestBuilder;
 import java.io.BufferedReader;
 import java.io.FileReader;
 import java.io.IOException;
+import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
@@ -56,7 +60,7 @@ import com.wazuh.contentmanager.cti.catalog.model.Changes;
 import com.wazuh.contentmanager.cti.catalog.model.Offset;
 import com.wazuh.contentmanager.cti.catalog.model.Operation;
 import com.wazuh.contentmanager.settings.PluginSettings;
-import com.wazuh.contentmanager.utils.JsonPatch;
+import com.wazuh.contentmanager.cti.catalog.utils.JsonPatch;
 import com.wazuh.contentmanager.utils.XContentUtils;
 
 /** Manages operations for a content index. */
@@ -71,6 +75,78 @@ public class ContentIndex {
     private final Client client;
     private final PluginSettings pluginSettings;
     private final Semaphore semaphore;
+
+    private String indexName;
+    private String mappingsPath;
+
+    public ContentIndex(Client client, String indexName, String mappingsPath) {
+        this.pluginSettings = PluginSettings.getInstance();
+        this.semaphore = new Semaphore(pluginSettings.getMaximumConcurrentBulks());
+
+        this.client = client;
+        this.indexName = indexName;
+        this.mappingsPath = mappingsPath;
+    }
+
+    public CreateIndexResponse createIndex() throws ExecutionException, InterruptedException, TimeoutException {
+        Settings settings = Settings.builder()
+            .put("index.number_of_replicas", 0)
+            .put("hidden", true)
+            .build();
+
+        String mappings;
+        try (InputStream is = this.getClass().getResourceAsStream(this.mappingsPath)) {
+            mappings = new String(is.readAllBytes(), StandardCharsets.UTF_8);
+        } catch (IOException e) {
+            log.error("Could not read mappings for index [{}]", this.indexName);
+            return null;
+        }
+
+        CreateIndexRequest request = new CreateIndexRequest()
+            .index(this.indexName)
+            .mapping(mappings)
+            .settings(settings);
+
+        return this.client
+            .admin()
+            .indices()
+            .create(request)
+            .get(this.pluginSettings.getClientTimeout(), TimeUnit.SECONDS);
+    }
+
+
+    /**
+     * Executes a bulk request using the OpenSearch client with semaphore control.
+     *
+     * @param bulkRequest The request to execute.
+     */
+    public void executeBulk(BulkRequest bulkRequest) {
+        try {
+            this.semaphore.acquire();
+            this.client.bulk(bulkRequest, new ActionListener<>() {
+                @Override
+                public void onResponse(BulkResponse bulkResponse) {
+                    semaphore.release();
+                    if (bulkResponse.hasFailures()) {
+                        log.warn("Bulk indexing finished with failures: {}", bulkResponse.buildFailureMessage());
+                    } else {
+                        log.debug("Bulk indexing successful. Indexed {} documents.", bulkResponse.getItems().length);
+                    }
+                }
+
+                @Override
+                public void onFailure(Exception e) {
+                    semaphore.release();
+                    log.error("Bulk indexing failed completely: {}", e.getMessage());
+                }
+            });
+        } catch (InterruptedException e) {
+            log.error("Interrupted while waiting for semaphore: {}", e.getMessage());
+            Thread.currentThread().interrupt();
+        }
+    }
+
+    // =================================
 
     /**
      * Constructor for the ContentIndex class.
@@ -258,6 +334,7 @@ public class ContentIndex {
      * Applies a set of changes (create, update, delete) to the content index.
      *
      * @param changes content changes to apply.
+     * @deprecated
      */
     public void patch(Changes changes) {
         ArrayList<Offset> offsets = changes.get();
@@ -312,13 +389,13 @@ public class ContentIndex {
         try {
             DeleteByQueryRequestBuilder deleteByQuery =
                     new DeleteByQueryRequestBuilder(this.client, DeleteByQueryAction.INSTANCE);
-            deleteByQuery.source(ContentIndex.INDEX_NAME).filter(QueryBuilders.matchAllQuery());
+            deleteByQuery.source(this.indexName).filter(QueryBuilders.matchAllQuery());
 
             BulkByScrollResponse response = deleteByQuery.get();
             log.debug(
-                    "[{}] wiped. {} documents were removed", ContentIndex.INDEX_NAME, response.getDeleted());
+                    "[{}] wiped. {} documents were removed", this.indexName, response.getDeleted());
         } catch (OpenSearchTimeoutException e) {
-            log.error("[{}] delete query timed out: {}", ContentIndex.INDEX_NAME, e.getMessage());
+            log.error("[{}] delete query timed out: {}", this.indexName, e.getMessage());
         }
     }
 }

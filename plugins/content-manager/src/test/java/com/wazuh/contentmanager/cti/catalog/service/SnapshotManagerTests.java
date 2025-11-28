@@ -14,8 +14,9 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-package com.wazuh.contentmanager.utils;
+package com.wazuh.contentmanager.cti.catalog.service;
 
+import com.wazuh.contentmanager.utils.Privileged;
 import org.opensearch.action.DocWriteResponse;
 import org.opensearch.action.index.IndexResponse;
 import org.opensearch.cluster.service.ClusterService;
@@ -30,8 +31,8 @@ import java.nio.file.Path;
 import java.util.Iterator;
 
 import com.wazuh.contentmanager.client.CTIClient;
-import com.wazuh.contentmanager.index.ContentIndex;
-import com.wazuh.contentmanager.index.ConsumersIndex;
+import com.wazuh.contentmanager.cti.catalog.index.index.ContentIndex;
+import com.wazuh.contentmanager.cti.catalog.index.index.ConsumersIndex;
 import com.wazuh.contentmanager.cti.catalog.model.ConsumerInfo;
 import com.wazuh.contentmanager.settings.PluginSettings;
 import org.mockito.InjectMocks;

@@ -14,14 +14,14 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-package com.wazuh.contentmanager.updater;
+package com.wazuh.contentmanager.cti.catalog.service;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import com.wazuh.contentmanager.client.CTIClient;
-import com.wazuh.contentmanager.index.ContentIndex;
-import com.wazuh.contentmanager.index.ConsumersIndex;
+import com.wazuh.contentmanager.cti.catalog.index.index.ContentIndex;
+import com.wazuh.contentmanager.cti.catalog.index.index.ConsumersIndex;
 import com.wazuh.contentmanager.cti.catalog.model.Changes;
 import com.wazuh.contentmanager.cti.catalog.model.ConsumerInfo;
 import com.wazuh.contentmanager.settings.PluginSettings;

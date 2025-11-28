@@ -16,15 +16,16 @@
  */
 package com.wazuh.contentmanager;
 
-import java.time.Instant;
-import java.time.temporal.ChronoUnit;
-import java.util.*;
-import java.util.concurrent.Semaphore;
-import java.util.function.Supplier;
 
+import com.wazuh.contentmanager.cti.catalog.index.index.ConsumersIndex;
+import com.wazuh.contentmanager.cti.catalog.index.index.ContentIndex;
+import com.wazuh.contentmanager.cti.catalog.model.LocalConsumer;
+import com.wazuh.contentmanager.cti.catalog.model.RemoteConsumer;
+import com.wazuh.contentmanager.cti.catalog.service.ConsumerService;
+import com.wazuh.contentmanager.cti.catalog.service.ConsumerServiceImpl;
+import com.wazuh.contentmanager.cti.catalog.service.SnapshotManager;
+import com.wazuh.contentmanager.cti.catalog.service.SnapshotServiceImpl;
 import com.wazuh.contentmanager.cti.console.CtiConsole;
-import com.wazuh.contentmanager.index.ConsumersIndex;
-import com.wazuh.contentmanager.index.ContentIndex;
 import com.wazuh.contentmanager.jobscheduler.ContentJobParameter;
 import com.wazuh.contentmanager.jobscheduler.ContentJobRunner;
 import com.wazuh.contentmanager.jobscheduler.jobs.HelloWorldJob;
@@ -34,16 +35,15 @@ import com.wazuh.contentmanager.rest.services.RestPostSubscriptionAction;
 import com.wazuh.contentmanager.rest.services.RestPostUpdateAction;
 import com.wazuh.contentmanager.settings.PluginSettings;
 import com.wazuh.contentmanager.utils.Privileged;
-import com.wazuh.contentmanager.utils.SnapshotManager;
-
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-
+import org.opensearch.action.admin.indices.create.CreateIndexResponse;
 import org.opensearch.action.index.IndexRequest;
 import org.opensearch.cluster.metadata.IndexNameExpressionResolver;
 import org.opensearch.cluster.node.DiscoveryNode;
 import org.opensearch.cluster.service.ClusterService;
-import org.opensearch.common.settings.*;
+import org.opensearch.common.settings.Setting;
+import org.opensearch.common.settings.Settings;
 import org.opensearch.common.xcontent.XContentFactory;
 import org.opensearch.core.common.io.stream.NamedWriteableRegistry;
 import org.opensearch.core.xcontent.NamedXContentRegistry;
@@ -63,6 +63,15 @@ import org.opensearch.threadpool.ThreadPool;
 import org.opensearch.transport.client.Client;
 import org.opensearch.watcher.ResourceWatcherService;
 
+import java.time.Instant;
+import java.time.temporal.ChronoUnit;
+import java.util.*;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.Semaphore;
+import java.util.concurrent.TimeUnit;
+import java.util.function.Supplier;
+
 /**
  * Main class of the Content Manager Plugin
  */
@@ -81,6 +90,7 @@ public class ContentManagerPlugin extends Plugin implements ClusterPlugin, JobSc
     private ClusterService clusterService;
     private CtiConsole ctiConsole;
     private Client client;
+    private Environment environment;
 
     // Rest API endpoints
     public static final String PLUGINS_BASE_URI = "/_plugins/content-manager";
@@ -104,14 +114,17 @@ public class ContentManagerPlugin extends Plugin implements ClusterPlugin, JobSc
         this.client = client;
         this.threadPool = threadPool;
         this.clusterService = clusterService;
+        this.environment = environment;
         this.consumersIndex = new ConsumersIndex(client);
-        this.contentIndex = new ContentIndex(client);
-        this.snapshotManager =
-                new SnapshotManager(environment, this.consumersIndex, this.contentIndex, new Privileged());
-        ContentJobRunner runner = ContentJobRunner.getInstance();
-        runner.registerExecutor(HelloWorldJob.JOB_TYPE, new HelloWorldJob());
+//        this.contentIndex = new ContentIndex(client);
+//        this.snapshotManager =
+//                new SnapshotManager(environment, this.consumersIndex, this.contentIndex, new Privileged());
+
         // Content Manager 5.0
         this.ctiConsole = new CtiConsole();
+        this.client = client;
+        ContentJobRunner runner = ContentJobRunner.getInstance();
+        runner.registerExecutor(HelloWorldJob.JOB_TYPE, new HelloWorldJob());
         return Collections.emptyList();
     }
 
@@ -130,39 +143,9 @@ public class ContentManagerPlugin extends Plugin implements ClusterPlugin, JobSc
         }
         this.scheduleHelloWorldJob();
 
-        /*
-        // Use case 1. Polling
-        AuthServiceImpl authService = new AuthServiceImpl();
-        this.ctiConsole = new CtiConsole();
-        this.ctiConsole.setAuthService(authService);
-        this.ctiConsole.onPostSubscriptionRequest();
-
-        while (!this.ctiConsole.isTokenTaskCompleted()) {}
-        if (this.ctiConsole.isTokenTaskCompleted()) {
-            Token token = this.ctiConsole.getToken();
-
-            // Use case 2. Obtain available plans
-            PlansServiceImpl productsService = new PlansServiceImpl();
-            List<Plan> plans = productsService.getPlans(token.getAccessToken());
-            log.info("Plans: {}", plans);
-
-            // Use case 3. Obtain resource token.
-            Product vulnsPro = plans.stream()
-                .filter(plan -> plan.getName().equals("Pro Plan Deluxe"))
-                .toList()
-                .getFirst()
-                .getProducts().stream()
-                .filter(product -> product.getIdentifier().equals("vulnerabilities-pro"))
-                .toList()
-                .getFirst();
-
-            Token resourceToken = authService.getResourceToken(
-                token.getAccessToken(),
-                vulnsPro.getResource()
-            );
-            log.info("Resource token {}", resourceToken);
-        }
-        */
+        Runnable scheduledTask = this::job;
+        ScheduledExecutorService executor = Executors.newSingleThreadScheduledExecutor(r -> new Thread(r, "Scheduled task"));
+        executor.scheduleAtFixedRate(scheduledTask, 30, 30, TimeUnit.SECONDS);
     }
 
     public List<RestHandler> getRestHandlers(
@@ -185,8 +168,8 @@ public class ContentManagerPlugin extends Plugin implements ClusterPlugin, JobSc
      * Initialize. The initialization consists of:
      *
      * <pre>
-     *     1. fetching the latest consumer's information from the CTI API.
-     *     2. initialize from a snapshot if the local consumer does not exist, or its offset is 0.
+     * 1. create required indices if they do not exist.
+     * 2. initialize from a snapshot if the local consumer does not exist, or its offset is 0.
      * </pre>
      */
     private void start() {
@@ -197,22 +180,180 @@ public class ContentManagerPlugin extends Plugin implements ClusterPlugin, JobSc
                     () -> {
                         if (indexCreationSemaphore.tryAcquire()) {
                             try {
-                                this.consumersIndex.createIndex();
+                                CreateIndexResponse response = this.consumersIndex.createIndex();
+
+                                if (response.isAcknowledged()) {
+                                    log.info("Index created: {} acknowledged={}", response.index(), response.isAcknowledged());
+                                }
                             } catch (Exception e) {
-                                indexCreationSemaphore.release();
                                 log.error("Failed to create {} index, due to: {}", ConsumersIndex.INDEX_NAME, e.getMessage(), e);
+                            } finally {
+                                indexCreationSemaphore.release();
                             }
                         } else {
                             log.debug("{} index creation already triggered", ConsumersIndex.INDEX_NAME);
                         }
-                        // TODO: Once initialize method is adapted to the new design, uncomment the following line
-                        //this.snapshotManager.initialize();
                     });
         } catch (Exception e) {
             // Log or handle exception
             log.error("Error initializing snapshot helper: {}", e.getMessage(), e);
         }
     }
+
+
+    // Job
+    // =========================================================================
+    // 1. GetLocalConsumer(consumer): obtain local offset for the given consumer
+    //   1.1 If the consumer does not exist, create it.
+    // 2. Update
+    //   2.1 GetRemoteConsumer(consumer): fetch remote offset for the given consumer
+    //   2.2 If local_offset == 0 -> init from snapshot
+    //   2.3 If local_offset != remote_offset -> update consumer (changes)
+    public void job() {
+        this.rulesConsumer();
+        this.decodersConsumer();
+    }
+
+    /**
+     * The ConsumersIndex is unique to the app, as there is only one index.
+     * We need as many ContentIndex instances as resources being handled in a given consumer.
+     *
+     * For each CTI consumer, we need:
+     *  - 1x ConsumerService
+     *  - 1x SnapshotService
+     *  - As many of indices as needed by the CTI consumer. In this case, 2: rules, integrations
+     */
+    private void rulesConsumer() {
+        log.info("Starting initialization of rules consumer");
+        String context = "rules_development_0.0.1";
+        String consumer = "rules_development_0.0.1_test";
+        Map<String, String> mappings = new HashMap<>();
+        mappings.put(
+            "rule", "/mappings/cti-rules-mappings.json"
+        );
+        mappings.put(
+            "integration", "/mappings/cti-rules-integrations-mappings.json"
+        );
+
+        ConsumerService consumerService = new ConsumerServiceImpl(context, consumer, this.consumersIndex);
+        LocalConsumer localConsumer = consumerService.getLocalConsumer();
+        RemoteConsumer remoteConsumer = consumerService.getRemoteConsumer();
+
+        log.info("Local consumer: {}", localConsumer);
+        log.info("Remote consumer: {}", remoteConsumer);
+
+        List<ContentIndex> indices = new ArrayList<>();
+        for (Map.Entry<String, String> entry : mappings.entrySet()) {
+            // Add to the list of indices for the SnapshotService
+            String indexName = this.getIndexName(context, consumer, entry.getKey());
+            ContentIndex index = new ContentIndex(this.client, indexName, entry.getValue());
+            indices.add(index);
+
+            // Create index
+            try {
+                CreateIndexResponse response = index.createIndex();
+                if (response.isAcknowledged()) {
+                    log.info("Index [{}] created successfully", response.index());
+                }
+            } catch (Exception e) {
+                log.error("Failed to create index [{}]: {}", indexName, e.getMessage());
+            }
+        }
+
+        // Initialize snapshot if available
+        if (remoteConsumer.getSnapshotLink() != null && localConsumer.getLocalOffset() == 0 ){
+            log.info("Initializing snapshot from link: {}", remoteConsumer.getSnapshotLink());
+            SnapshotServiceImpl snapshotService = new SnapshotServiceImpl(
+                context,
+                consumer,
+                indices,
+                this.consumersIndex,
+                this.environment
+            );
+            snapshotService.initialize(remoteConsumer);
+        }
+        else{
+            log.info("Indices already initialized. ");
+        }
+        log.info("Finished initialization of rules consumer");
+    }
+
+    /**
+     * The ConsumersIndex is unique to the app, as there is only one index.
+     * We need as many ContentIndex instances as resources being handled in a given consumer.
+     *
+     * For each CTI consumer, we need:
+     *  - 1x ConsumerService
+     *  - 1x SnapshotService
+     *  - As many of indices as needed by the CTI consumer. In this case, 2: rules, integrations
+     */
+    private void decodersConsumer() {
+        log.info("Starting initialization of decoders consumer");
+        String context = "decoders_development_0.0.1";
+        String consumer = "decoders_development_0.0.1";
+        Map<String, String> mappings = new HashMap<>();
+        mappings.put(
+            "decoder", "/mappings/cti-decoders-mappings.json"
+        );
+        mappings.put(
+            "kvdb", "/mappings/cti-kvdbs-mappings.json"
+        );
+        mappings.put(
+            "integration", "/mappings/cti-decoders-integrations-mappings.json"
+        );
+
+        ConsumerService consumerService = new ConsumerServiceImpl(context, consumer, this.consumersIndex);
+        LocalConsumer localConsumer = consumerService.getLocalConsumer();
+        RemoteConsumer remoteConsumer = consumerService.getRemoteConsumer();
+
+        log.info("Local consumer: {}", localConsumer);
+        log.info("Remote consumer: {}", remoteConsumer);
+
+        List<ContentIndex> indices = new ArrayList<>();
+        for (Map.Entry<String, String> entry : mappings.entrySet()) {
+            // Add to the list of indices for the SnapshotService
+            String indexName = this.getIndexName(context, consumer, entry.getKey());
+            ContentIndex index = new ContentIndex(this.client, indexName, entry.getValue());
+            indices.add(index);
+
+            // Create index
+            try {
+                CreateIndexResponse response = index.createIndex();
+                if (response.isAcknowledged()) {
+                    log.info("Index [{}] created successfully", response.index());
+                }
+            } catch (Exception e) {
+                log.error("Failed to create index [{}]: {}", indexName, e.getMessage());
+            }
+        }
+
+        // Initialize snapshot if available
+        if (remoteConsumer.getSnapshotLink() != null && localConsumer.getLocalOffset() == 0 ){
+            log.info("Initializing snapshot from link: {}", remoteConsumer.getSnapshotLink());
+            SnapshotServiceImpl snapshotService = new SnapshotServiceImpl(
+                context,
+                consumer,
+                indices,
+                this.consumersIndex,
+                this.environment
+            );
+            snapshotService.initialize(remoteConsumer);
+        }
+        else{
+            log.info("Indices already initialized. ");
+        }
+        log.info("Finished initialization of decoders consumer");
+    }
+
+    private String getIndexName(String context, String consumer, String type) {
+        return String.format(
+            Locale.ROOT, ".%s-%s-%s",
+            context,
+            consumer,
+            type
+        );
+    }
+
 
     // TODO: Change to actual job implementation, this is just an example
     private void scheduleHelloWorldJob() {

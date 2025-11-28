@@ -1,0 +1,41 @@
+{
+  "dynamic": "strict",
+  "properties": {
+    "type": {
+      "type": "keyword"
+    },
+    "document": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "keyword"
+        },
+        "title": {
+          "type": "keyword"
+        },
+        "description": {
+          "type": "text"
+        },
+        "author": {
+          "type": "keyword"
+        },
+        "date": {
+          "type": "date",
+          "format": "yyyy-MM-dd"
+        },
+        "documentation": {
+          "type": "keyword"
+        },
+        "enable_rules": {
+          "type": "boolean"
+        },
+        "references": {
+          "type": "keyword"
+        },
+        "rules": {
+          "type": "keyword"
+        }
+      }
+    }
+  }
+}

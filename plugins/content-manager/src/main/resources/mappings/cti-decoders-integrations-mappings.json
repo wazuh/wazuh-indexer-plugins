@@ -1,0 +1,46 @@
+{
+  "dynamic": "strict",
+  "properties": {
+    "type": {
+      "type": "keyword"
+    },
+    "document": {
+      "properties": {
+        "id": {
+          "type": "keyword"
+        },
+        "title": {
+          "type": "keyword"
+        },
+        "category": {
+          "type": "keyword"
+        },
+        "description": {
+          "type": "text"
+        },
+        "author": {
+          "type": "keyword"
+        },
+        "date": {
+          "type": "date",
+          "format": "yyyy-MM-dd"
+        },
+        "documentation": {
+          "type": "keyword"
+        },
+        "enable_decoders": {
+          "type": "boolean"
+        },
+        "references": {
+          "type": "keyword"
+        },
+        "decoders": {
+          "type": "keyword"
+        },
+        "kvdbs": {
+          "type": "keyword"
+        }
+      }
+    }
+  }
+}

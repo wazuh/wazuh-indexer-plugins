@@ -1,0 +1,38 @@
+{
+  "dynamic": "strict",
+  "properties": {
+    "type": {
+      "type": "keyword"
+    },
+    "integration_id": {
+      "type": "keyword"
+    },
+    "document": {
+      "properties": {
+        "title": {
+          "type": "keyword"
+        },
+        "id": {
+          "type": "keyword"
+        },
+        "date": {
+          "type": "date",
+          "format": "yyyy-MM-dd'T'HH:mm:ss'Z'||yyyy-MM-dd'T'HH:mm:ss||epoch_millis"
+        },
+        "author": {
+          "type": "keyword"
+        },
+        "enabled": {
+          "type": "boolean"
+        },
+        "references": {
+          "type": "keyword"
+        },
+        "content": {
+          "type": "object",
+          "enabled": false
+        }
+      }
+    }
+  }
+}

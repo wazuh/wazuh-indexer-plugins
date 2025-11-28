@@ -1,8 +1,19 @@
 {
   "properties": {
-    "name": { "type": "keyword" },
-    "local_offset": { "type": "long" },
-    "remote_offset": { "type": "long" },
-    "snapshot_link": { "type": "keyword" }
+    "context": {
+      "type": "keyword"
+    },
+    "name": {
+      "type": "keyword"
+    },
+    "local_offset": {
+      "type": "long"
+    },
+    "remote_offset": {
+      "type": "long"
+    },
+    "snapshot_link": {
+      "type": "keyword"
+    }
   }
 }
