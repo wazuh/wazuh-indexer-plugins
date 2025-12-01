@@ -34,7 +34,6 @@ import com.wazuh.contentmanager.rest.services.RestGetSubscriptionAction;
 import com.wazuh.contentmanager.rest.services.RestPostSubscriptionAction;
 import com.wazuh.contentmanager.rest.services.RestPostUpdateAction;
 import com.wazuh.contentmanager.settings.PluginSettings;
-import com.wazuh.contentmanager.utils.Privileged;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.opensearch.action.admin.indices.create.CreateIndexResponse;
@@ -84,10 +83,7 @@ public class ContentManagerPlugin extends Plugin implements ClusterPlugin, JobSc
      */
     private static final Semaphore indexCreationSemaphore = new Semaphore(1);
     private ConsumersIndex consumersIndex;
-    private ContentIndex contentIndex;
-    private SnapshotManager snapshotManager;
     private ThreadPool threadPool;
-    private ClusterService clusterService;
     private CtiConsole ctiConsole;
     private Client client;
     private Environment environment;
@@ -113,12 +109,8 @@ public class ContentManagerPlugin extends Plugin implements ClusterPlugin, JobSc
         PluginSettings.getInstance(environment.settings(), clusterService);
         this.client = client;
         this.threadPool = threadPool;
-        this.clusterService = clusterService;
         this.environment = environment;
         this.consumersIndex = new ConsumersIndex(client);
-//        this.contentIndex = new ContentIndex(client);
-//        this.snapshotManager =
-//                new SnapshotManager(environment, this.consumersIndex, this.contentIndex, new Privileged());
 
         // Content Manager 5.0
         this.ctiConsole = new CtiConsole();

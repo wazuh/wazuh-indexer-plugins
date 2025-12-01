@@ -327,7 +327,9 @@ public class SnapshotServiceImpl implements SnapshotService {
      */
     private void cleanup(Path zipFile, Path directory) {
         try {
-            if (zipFile != null) Files.deleteIfExists(zipFile);
+            if (zipFile != null) {
+                Files.deleteIfExists(zipFile);
+            }
             if (directory != null) {
                 Files.walk(directory)
                     .sorted(Comparator.reverseOrder())
