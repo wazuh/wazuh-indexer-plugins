@@ -16,18 +16,12 @@
  */
 package com.wazuh.contentmanager;
 
-
 import com.wazuh.contentmanager.cti.catalog.index.ConsumersIndex;
 import com.wazuh.contentmanager.cti.catalog.index.ContentIndex;
-import com.wazuh.contentmanager.cti.catalog.model.LocalConsumer;
-import com.wazuh.contentmanager.cti.catalog.model.RemoteConsumer;
-import com.wazuh.contentmanager.cti.catalog.service.ConsumerService;
-import com.wazuh.contentmanager.cti.catalog.service.ConsumerServiceImpl;
-import com.wazuh.contentmanager.cti.catalog.service.SnapshotServiceImpl;
 import com.wazuh.contentmanager.cti.console.CtiConsole;
 import com.wazuh.contentmanager.jobscheduler.ContentJobParameter;
 import com.wazuh.contentmanager.jobscheduler.ContentJobRunner;
-import com.wazuh.contentmanager.jobscheduler.jobs.HelloWorldJob;
+import com.wazuh.contentmanager.jobscheduler.jobs.CatalogSyncJob;
 import com.wazuh.contentmanager.rest.services.RestDeleteSubscriptionAction;
 import com.wazuh.contentmanager.rest.services.RestGetSubscriptionAction;
 import com.wazuh.contentmanager.rest.services.RestPostSubscriptionAction;
@@ -64,10 +58,7 @@ import org.opensearch.watcher.ResourceWatcherService;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.*;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.Semaphore;
-import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
 
 /**
@@ -80,7 +71,8 @@ public class ContentManagerPlugin extends Plugin implements ClusterPlugin, JobSc
     /**
      * Semaphore to ensure the context index creation is only triggered once.
      */
-    private static final Semaphore indexCreationSemaphore = new Semaphore(1);
+    private static final Semaphore consumersIndexSemaphore = new Semaphore(1);
+    private static final Semaphore jobIndexSemaphore = new Semaphore(1);
     private ConsumersIndex consumersIndex;
     private ThreadPool threadPool;
     private CtiConsole ctiConsole;
@@ -113,9 +105,10 @@ public class ContentManagerPlugin extends Plugin implements ClusterPlugin, JobSc
 
         // Content Manager 5.0
         this.ctiConsole = new CtiConsole();
-        this.client = client;
         ContentJobRunner runner = ContentJobRunner.getInstance();
-        runner.registerExecutor(HelloWorldJob.JOB_TYPE, new HelloWorldJob());
+        // Register Executors
+        runner.registerExecutor(CatalogSyncJob.JOB_TYPE, new CatalogSyncJob(client, consumersIndex, environment, threadPool));
+
         return Collections.emptyList();
     }
 
@@ -132,11 +125,9 @@ public class ContentManagerPlugin extends Plugin implements ClusterPlugin, JobSc
         if (localNode.isClusterManagerNode()) {
             this.start();
         }
-        this.scheduleHelloWorldJob();
 
-        Runnable scheduledTask = this::job;
-        ScheduledExecutorService executor = Executors.newSingleThreadScheduledExecutor(r -> new Thread(r, "Scheduled task"));
-        executor.scheduleAtFixedRate(scheduledTask, 30, 30, TimeUnit.SECONDS);
+        // Schedule the periodic sync job via OpenSearch Job Scheduler
+        this.scheduleCatalogSyncJob();
     }
 
     public List<RestHandler> getRestHandlers(
@@ -169,7 +160,7 @@ public class ContentManagerPlugin extends Plugin implements ClusterPlugin, JobSc
                 .generic()
                 .execute(
                     () -> {
-                        if (indexCreationSemaphore.tryAcquire()) {
+                        if (consumersIndexSemaphore.tryAcquire()) {
                             try {
                                 CreateIndexResponse response = this.consumersIndex.createIndex();
 
@@ -179,7 +170,7 @@ public class ContentManagerPlugin extends Plugin implements ClusterPlugin, JobSc
                             } catch (Exception e) {
                                 log.error("Failed to create {} index, due to: {}", ConsumersIndex.INDEX_NAME, e.getMessage(), e);
                             } finally {
-                                indexCreationSemaphore.release();
+                                consumersIndexSemaphore.release();
                             }
                         } else {
                             log.debug("{} index creation already triggered", ConsumersIndex.INDEX_NAME);
@@ -192,134 +183,48 @@ public class ContentManagerPlugin extends Plugin implements ClusterPlugin, JobSc
     }
 
 
-    // Job
-    // =========================================================================
-    // 1. GetLocalConsumer(consumer): obtain local offset for the given consumer
-    //   1.1 If the consumer does not exist, create it.
-    // 2. Update
-    //   2.1 GetRemoteConsumer(consumer): fetch remote offset for the given consumer
-    //   2.2 If local_offset == 0 -> init from snapshot
-    //   2.3 If local_offset != remote_offset -> update consumer (changes)
     /**
-     * Periodic job method triggered by the scheduler.
-     * Responsible for executing the synchronization logic for Rules and Decoders consumers.
+     * Schedules the Catalog Sync Job.
      */
-    public void job() {
-        this.rulesConsumer();
-        this.decodersConsumer();
-    }
-
-    /**
-     * The ConsumersIndex is unique to the app, as there is only one index.
-     * We need as many ContentIndex instances as resources being handled in a given consumer.
-     *
-     * For each CTI consumer, we need:
-     *  - 1x ConsumerService
-     *  - 1x SnapshotService
-     *  - As many of indices as needed by the CTI consumer. In this case, 2: rules, integrations
-     */
-    private void rulesConsumer() {
-        String context = "rules_development_0.0.1";
-        String consumer = "rules_development_0.0.1_test";
-        Map<String, String> mappings = new HashMap<>();
-        mappings.put(
-            "rule", "/mappings/cti-rules-mappings.json"
-        );
-        mappings.put(
-            "integration", "/mappings/cti-rules-integrations-mappings.json"
-        );
-        this.initConsumerServices(context, consumer, mappings);
-    }
-
-    /**
-     * The ConsumersIndex is unique to the app, as there is only one index.
-     * We need as many ContentIndex instances as resources being handled in a given consumer.
-     *
-     * For each CTI consumer, we need:
-     *  - 1x ConsumerService
-     *  - 1x SnapshotService
-     *  - As many of indices as needed by the CTI consumer. In this case, 2: rules, integrations
-     */
-    private void decodersConsumer() {
-        String context = "decoders_development_0.0.1";
-        String consumer = "decoders_development_0.0.1";
-        Map<String, String> mappings = new HashMap<>();
-        mappings.put(
-            "decoder", "/mappings/cti-decoders-mappings.json"
-        );
-        mappings.put(
-            "kvdb", "/mappings/cti-kvdbs-mappings.json"
-        );
-        mappings.put(
-            "integration", "/mappings/cti-decoders-integrations-mappings.json"
-        );
-       this.initConsumerServices(context, consumer, mappings);
-    }
-
-    private String getIndexName(String context, String consumer, String type) {
-        return String.format(
-            Locale.ROOT, ".%s-%s-%s",
-            context,
-            consumer,
-            type
-        );
-    }
-
-    private void initConsumerServices(String context, String consumer, Map<String, String> mappings) {
-        ConsumerService consumerService = new ConsumerServiceImpl(context, consumer, this.consumersIndex);
-        LocalConsumer localConsumer = consumerService.getLocalConsumer();
-        RemoteConsumer remoteConsumer = consumerService.getRemoteConsumer();
-
-        log.info("Local consumer: {}", localConsumer);
-        log.info("Remote consumer: {}", remoteConsumer);
-
-        List<ContentIndex> indices = new ArrayList<>();
-        for (Map.Entry<String, String> entry : mappings.entrySet()) {
-            // Add to the list of indices for the SnapshotService
-            String indexName = this.getIndexName(context, consumer, entry.getKey());
-            ContentIndex index = new ContentIndex(this.client, indexName, entry.getValue());
-            indices.add(index);
-
-            // Create index
-            try {
-                CreateIndexResponse response = index.createIndex();
-                if (response.isAcknowledged()) {
-                    log.info("Index [{}] created successfully", response.index());
-                }
-            } catch (Exception e) {
-                log.error("Failed to create index [{}]: {}", indexName, e.getMessage());
-            }
-        }
-
-        // Initialize snapshot if available
-        if (remoteConsumer.getSnapshotLink() != null && localConsumer.getLocalOffset() == 0 ){
-            log.info("Initializing snapshot from link: {}", remoteConsumer.getSnapshotLink());
-            SnapshotServiceImpl snapshotService = new SnapshotServiceImpl(
-                context,
-                consumer,
-                indices,
-                this.consumersIndex,
-                this.environment
-            );
-            snapshotService.initialize(remoteConsumer);
-        }
-        else{
-            log.info("Indices already initialized. ");
-        }
-    }
-
-    // TODO: Change to actual job implementation, this is just an example
-    private void scheduleHelloWorldJob() {
-        String jobId = "wazuh-hello-world-job";
+    private void scheduleCatalogSyncJob() {
+        String jobId = "wazuh-catalog-sync-job";
         this.threadPool.generic().execute(() -> {
             try {
-                boolean exists = this.client.admin().indices().prepareExists(JOB_INDEX_NAME).get().isExists() &&
-                    this.client.prepareGet(JOB_INDEX_NAME, jobId).get().isExists();
-                if (!exists) {
-                    log.info("Scheduling Hello World Job to run every 1 minute...");
+                // 1. Check if the index exists; if not, create it with specific settings.
+                boolean indexExists = this.client.admin().indices().prepareExists(JOB_INDEX_NAME).get().isExists();
+
+                if (!indexExists) {
+                    if (jobIndexSemaphore.tryAcquire()) {
+                        try {
+                            if (!this.client.admin().indices().prepareExists(JOB_INDEX_NAME).get().isExists()) {
+                                Settings settings = Settings.builder()
+                                    .put("index.number_of_replicas", 0)
+                                    .put("index.hidden", true)
+                                    .build();
+
+                                this.client.admin().indices().prepareCreate(JOB_INDEX_NAME)
+                                    .setSettings(settings)
+                                    .get();
+
+                                log.info("Created job index {}.", JOB_INDEX_NAME);
+                            }
+                        } catch (Exception e) {
+                            log.warn("Could not create index {}: {}", JOB_INDEX_NAME, e.getMessage());
+                        } finally {
+                            jobIndexSemaphore.release();
+                        }
+                    } else {
+                        log.debug("{} index creation already triggered.", JOB_INDEX_NAME);
+                    }
+                }
+
+                // 2. Check if the job document exists; if not, index it.
+                boolean jobExists = this.client.prepareGet(JOB_INDEX_NAME, jobId).get().isExists();
+
+                if (!jobExists) {
                     ContentJobParameter job = new ContentJobParameter(
-                        "Hello World Periodic Task",
-                        HelloWorldJob.JOB_TYPE,
+                        "Catalog Sync Periodic Task",
+                        CatalogSyncJob.JOB_TYPE,
                         new IntervalSchedule(Instant.now(), 1, ChronoUnit.MINUTES),
                         true,
                         Instant.now(),
@@ -329,10 +234,10 @@ public class ContentManagerPlugin extends Plugin implements ClusterPlugin, JobSc
                         .id(jobId)
                         .source(job.toXContent(XContentFactory.jsonBuilder(), null));
                     this.client.index(request).actionGet();
-                    log.info("Hello World Job scheduled successfully.");
+                    log.info("Catalog Sync Job scheduled successfully.");
                 }
             } catch (Exception e) {
-                log.error("Error scheduling Hello World Job: {}", e.getMessage());
+                log.error("Error scheduling Catalog Sync Job: {}", e.getMessage());
             }
         });
     }
