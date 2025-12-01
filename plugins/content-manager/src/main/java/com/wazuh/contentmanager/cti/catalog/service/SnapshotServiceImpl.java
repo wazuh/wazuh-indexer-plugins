@@ -167,7 +167,11 @@ public class SnapshotServiceImpl implements SnapshotService {
         List<String> orderKeys = Arrays.asList(
             "name",
             "metadata",
+            "parents",
             "definitions",
+            "check",
+            "parse|event.original",
+            "parse|message",
             // "parse|*" // is dynamic
             "normalize"
         );
