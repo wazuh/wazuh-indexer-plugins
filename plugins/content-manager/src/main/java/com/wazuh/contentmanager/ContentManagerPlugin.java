@@ -224,7 +224,6 @@ public class ContentManagerPlugin extends Plugin implements ClusterPlugin, JobSc
      *  - As many of indices as needed by the CTI consumer. In this case, 2: rules, integrations
      */
     private void rulesConsumer() {
-        log.info("Starting initialization of rules consumer");
         String context = "rules_development_0.0.1";
         String consumer = "rules_development_0.0.1_test";
         Map<String, String> mappings = new HashMap<>();
@@ -234,48 +233,7 @@ public class ContentManagerPlugin extends Plugin implements ClusterPlugin, JobSc
         mappings.put(
             "integration", "/mappings/cti-rules-integrations-mappings.json"
         );
-
-        ConsumerService consumerService = new ConsumerServiceImpl(context, consumer, this.consumersIndex);
-        LocalConsumer localConsumer = consumerService.getLocalConsumer();
-        RemoteConsumer remoteConsumer = consumerService.getRemoteConsumer();
-
-        log.info("Local consumer: {}", localConsumer);
-        log.info("Remote consumer: {}", remoteConsumer);
-
-        List<ContentIndex> indices = new ArrayList<>();
-        for (Map.Entry<String, String> entry : mappings.entrySet()) {
-            // Add to the list of indices for the SnapshotService
-            String indexName = this.getIndexName(context, consumer, entry.getKey());
-            ContentIndex index = new ContentIndex(this.client, indexName, entry.getValue());
-            indices.add(index);
-
-            // Create index
-            try {
-                CreateIndexResponse response = index.createIndex();
-                if (response.isAcknowledged()) {
-                    log.info("Index [{}] created successfully", response.index());
-                }
-            } catch (Exception e) {
-                log.error("Failed to create index [{}]: {}", indexName, e.getMessage());
-            }
-        }
-
-        // Initialize snapshot if available
-        if (remoteConsumer.getSnapshotLink() != null && localConsumer.getLocalOffset() == 0 ){
-            log.info("Initializing snapshot from link: {}", remoteConsumer.getSnapshotLink());
-            SnapshotServiceImpl snapshotService = new SnapshotServiceImpl(
-                context,
-                consumer,
-                indices,
-                this.consumersIndex,
-                this.environment
-            );
-            snapshotService.initialize(remoteConsumer);
-        }
-        else{
-            log.info("Indices already initialized. ");
-        }
-        log.info("Finished initialization of rules consumer");
+        this.initConsumerServices(context, consumer, mappings);
     }
 
     /**
@@ -288,7 +246,6 @@ public class ContentManagerPlugin extends Plugin implements ClusterPlugin, JobSc
      *  - As many of indices as needed by the CTI consumer. In this case, 2: rules, integrations
      */
     private void decodersConsumer() {
-        log.info("Starting initialization of decoders consumer");
         String context = "decoders_development_0.0.1";
         String consumer = "decoders_development_0.0.1";
         Map<String, String> mappings = new HashMap<>();
@@ -301,7 +258,19 @@ public class ContentManagerPlugin extends Plugin implements ClusterPlugin, JobSc
         mappings.put(
             "integration", "/mappings/cti-decoders-integrations-mappings.json"
         );
+       this.initConsumerServices(context, consumer, mappings);
+    }
 
+    private String getIndexName(String context, String consumer, String type) {
+        return String.format(
+            Locale.ROOT, ".%s-%s-%s",
+            context,
+            consumer,
+            type
+        );
+    }
+
+    private void initConsumerServices(String context, String consumer, Map<String, String> mappings) {
         ConsumerService consumerService = new ConsumerServiceImpl(context, consumer, this.consumersIndex);
         LocalConsumer localConsumer = consumerService.getLocalConsumer();
         RemoteConsumer remoteConsumer = consumerService.getRemoteConsumer();
@@ -342,18 +311,7 @@ public class ContentManagerPlugin extends Plugin implements ClusterPlugin, JobSc
         else{
             log.info("Indices already initialized. ");
         }
-        log.info("Finished initialization of decoders consumer");
     }
-
-    private String getIndexName(String context, String consumer, String type) {
-        return String.format(
-            Locale.ROOT, ".%s-%s-%s",
-            context,
-            consumer,
-            type
-        );
-    }
-
 
     // TODO: Change to actual job implementation, this is just an example
     private void scheduleHelloWorldJob() {
