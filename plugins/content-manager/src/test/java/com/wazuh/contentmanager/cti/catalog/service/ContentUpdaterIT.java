@@ -46,8 +46,8 @@ import java.util.concurrent.TimeoutException;
 
 import com.wazuh.contentmanager.ContentManagerPlugin;
 import com.wazuh.contentmanager.client.CTIClient;
-import com.wazuh.contentmanager.cti.catalog.index.index.ContentIndex;
-import com.wazuh.contentmanager.cti.catalog.index.index.ConsumersIndex;
+import com.wazuh.contentmanager.cti.catalog.index.ContentIndex;
+import com.wazuh.contentmanager.cti.catalog.index.ConsumersIndex;
 import com.wazuh.contentmanager.settings.PluginSettings;
 import com.wazuh.contentmanager.utils.Privileged;
 import org.mockito.InjectMocks;

@@ -17,7 +17,6 @@
 package com.wazuh.contentmanager.cti.catalog.index;
 
 import com.google.gson.JsonObject;
-import com.wazuh.contentmanager.cti.catalog.index.index.ContentIndex;
 import org.opensearch.action.get.GetResponse;
 import org.opensearch.transport.client.Client;
 import org.opensearch.cluster.service.ClusterService;

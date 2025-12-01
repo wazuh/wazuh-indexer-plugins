@@ -31,8 +31,8 @@ import java.nio.file.Path;
 import java.util.Iterator;
 
 import com.wazuh.contentmanager.client.CTIClient;
-import com.wazuh.contentmanager.cti.catalog.index.index.ContentIndex;
-import com.wazuh.contentmanager.cti.catalog.index.index.ConsumersIndex;
+import com.wazuh.contentmanager.cti.catalog.index.ContentIndex;
+import com.wazuh.contentmanager.cti.catalog.index.ConsumersIndex;
 import com.wazuh.contentmanager.cti.catalog.model.ConsumerInfo;
 import com.wazuh.contentmanager.settings.PluginSettings;
 import org.mockito.InjectMocks;
