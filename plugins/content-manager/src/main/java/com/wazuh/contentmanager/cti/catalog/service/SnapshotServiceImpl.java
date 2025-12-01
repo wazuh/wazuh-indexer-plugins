@@ -54,7 +54,6 @@ public class SnapshotServiceImpl implements SnapshotService {
     private static final String JSON_PAYLOAD_KEY = "payload";
     private static final String JSON_TYPE_KEY = "type";
     private static final String JSON_DOCUMENT_KEY = "document";
-    private static final String JSON_INTEGRATION_ID_KEY = "integration_id";
     private static final String JSON_ID_KEY = "id";
 
     private final String context;
@@ -160,6 +159,10 @@ public class SnapshotServiceImpl implements SnapshotService {
         int docCount = 0;
         BulkRequest bulkRequest = new BulkRequest();
 
+        // Mappers to transform decoders to YAML representation.
+        ObjectMapper jsonMapper = new ObjectMapper();
+        ObjectMapper yamlMapper = new ObjectMapper(new YAMLFactory());
+
         try (BufferedReader reader = Files.newBufferedReader(filePath, StandardCharsets.UTF_8)) {
             while ((line = reader.readLine()) != null) {
                 try {
@@ -186,24 +189,39 @@ public class SnapshotServiceImpl implements SnapshotService {
                     }
 
                     if ("decoder".equalsIgnoreCase(type)) {
-                        ObjectMapper jsonMapper = new ObjectMapper();
-                        ObjectMapper yamlMapper = new ObjectMapper(new YAMLFactory());
-
                         try {
-                            JsonNode rootNode = jsonMapper.readTree(payload.toString());
+                            JsonNode docNode = jsonMapper.readTree(payload.toString()).get(JSON_DOCUMENT_KEY);
 
-                            Map<String, Object> orderedMap = new LinkedHashMap<>();
+                            if (docNode != null && docNode.isObject()) {
+                                Map<String, Object> orderedDecoderMap = new LinkedHashMap<>();
 
-                            // Order the fields of the YAML String as:
-                            // 1 - integration_id
-                            // 2 - type
-                            // 3 - document
-                            orderedMap.put(JSON_INTEGRATION_ID_KEY, rootNode.get(JSON_INTEGRATION_ID_KEY));
-                            orderedMap.put(JSON_TYPE_KEY, rootNode.get(JSON_TYPE_KEY));
-                            orderedMap.put(JSON_DOCUMENT_KEY, rootNode.get(JSON_DOCUMENT_KEY));
+                                List<String> orderKeys = Arrays.asList(
+                                    "name",
+                                    "metadata",
+                                    "definitions",
+                                    // "parse|*" // is dynamic
+                                    "normalize"
+                                );
+                                // Add JSON nodes in the expected order, if they exist.
+                                for (String key : orderKeys) {
+                                    if (docNode.has(key)) {
+                                        orderedDecoderMap.put(key, docNode.get(key));
+                                    }
+                                }
 
-                            String yamlContent = yamlMapper.writeValueAsString(orderedMap);
-                            payload.addProperty("decoder", yamlContent);
+                                // Add remaining JSON nodes.
+                                Iterator<Map.Entry<String, JsonNode>> fields = docNode.fields();
+                                while (fields.hasNext()) {
+                                    Map.Entry<String, JsonNode> field = fields.next();
+                                    if (!orderKeys.contains(field.getKey())) {
+                                        orderedDecoderMap.put(field.getKey(), field.getValue());
+                                    }
+                                }
+
+                                // Add YAML representation to the document
+                                String yamlContent = yamlMapper.writeValueAsString(orderedDecoderMap);
+                                payload.addProperty("decoder", yamlContent);
+                            }
                         } catch (IOException e) {
                             log.error("Failed to convert decoder payload to YAML: {}", e.getMessage(), e);
                         }
