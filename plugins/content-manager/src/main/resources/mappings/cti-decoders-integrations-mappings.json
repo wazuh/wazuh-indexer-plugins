@@ -1,4 +1,5 @@
 {
+  "enabled": false,
   "dynamic": "strict",
   "properties": {
     "type": {
