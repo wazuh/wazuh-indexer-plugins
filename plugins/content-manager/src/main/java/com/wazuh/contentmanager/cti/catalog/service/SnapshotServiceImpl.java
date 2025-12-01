@@ -16,6 +16,9 @@
  */
 package com.wazuh.contentmanager.cti.catalog.service;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
@@ -36,12 +39,9 @@ import org.opensearch.env.Environment;
 
 import java.io.BufferedReader;
 import java.io.IOException;
-import java.net.URISyntaxException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.*;
-import java.util.Comparator;
-import java.util.List;
-import java.util.Locale;
+import java.util.*;
 
 /**
  * Service responsible for handling the download, extraction, and indexing of CTI snapshots.
@@ -77,7 +77,6 @@ public class SnapshotServiceImpl implements SnapshotService {
         this.pluginSettings = PluginSettings.getInstance();
 
         this.snapshotClient = new SnapshotClient(this.environment);
-
     }
 
     /**
@@ -133,7 +132,6 @@ public class SnapshotServiceImpl implements SnapshotService {
                     this.processSnapshotFile(entry);
                 }
             }
-//        } catch (IOException | URISyntaxException e) {
         } catch (Exception e) {
             log.error("Error processing snapshot: {}", e.getMessage());
         } finally {
@@ -161,6 +159,19 @@ public class SnapshotServiceImpl implements SnapshotService {
         int docCount = 0;
         BulkRequest bulkRequest = new BulkRequest();
 
+        // Mappers to transform decoders to YAML representation.
+        ObjectMapper jsonMapper = new ObjectMapper();
+        ObjectMapper yamlMapper = new ObjectMapper(new YAMLFactory());
+
+        // Order in decoder's fields
+        List<String> orderKeys = Arrays.asList(
+            "name",
+            "metadata",
+            "definitions",
+            // "parse|*" // is dynamic
+            "normalize"
+        );
+
         try (BufferedReader reader = Files.newBufferedReader(filePath, StandardCharsets.UTF_8)) {
             while ((line = reader.readLine()) != null) {
                 try {
@@ -184,6 +195,38 @@ public class SnapshotServiceImpl implements SnapshotService {
                     if ("policy".equalsIgnoreCase(type)) {
                         log.debug("Skipping document with type {}.", type);
                         continue;
+                    }
+
+                    if ("decoder".equalsIgnoreCase(type)) {
+                        try {
+                            JsonNode docNode = jsonMapper.readTree(payload.toString()).get(JSON_DOCUMENT_KEY);
+
+                            if (docNode != null && docNode.isObject()) {
+                                Map<String, Object> orderedDecoderMap = new LinkedHashMap<>();
+
+                                // Add JSON nodes in the expected order, if they exist.
+                                for (String key : orderKeys) {
+                                    if (docNode.has(key)) {
+                                        orderedDecoderMap.put(key, docNode.get(key));
+                                    }
+                                }
+
+                                // Add remaining JSON nodes.
+                                Iterator<Map.Entry<String, JsonNode>> fields = docNode.fields();
+                                while (fields.hasNext()) {
+                                    Map.Entry<String, JsonNode> field = fields.next();
+                                    if (!orderKeys.contains(field.getKey())) {
+                                        orderedDecoderMap.put(field.getKey(), field.getValue());
+                                    }
+                                }
+
+                                // Add YAML representation to the document
+                                String yamlContent = yamlMapper.writeValueAsString(orderedDecoderMap);
+                                payload.addProperty("decoder", yamlContent);
+                            }
+                        } catch (IOException e) {
+                            log.error("Failed to convert decoder payload to YAML: {}", e.getMessage(), e);
+                        }
                     }
 
                     String indexName = this.getIndexName(type);
