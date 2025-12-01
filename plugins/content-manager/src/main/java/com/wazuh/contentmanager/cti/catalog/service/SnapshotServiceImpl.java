@@ -163,6 +163,15 @@ public class SnapshotServiceImpl implements SnapshotService {
         ObjectMapper jsonMapper = new ObjectMapper();
         ObjectMapper yamlMapper = new ObjectMapper(new YAMLFactory());
 
+        // Order in decoder's fields
+        List<String> orderKeys = Arrays.asList(
+            "name",
+            "metadata",
+            "definitions",
+            // "parse|*" // is dynamic
+            "normalize"
+        );
+
         try (BufferedReader reader = Files.newBufferedReader(filePath, StandardCharsets.UTF_8)) {
             while ((line = reader.readLine()) != null) {
                 try {
@@ -195,13 +204,6 @@ public class SnapshotServiceImpl implements SnapshotService {
                             if (docNode != null && docNode.isObject()) {
                                 Map<String, Object> orderedDecoderMap = new LinkedHashMap<>();
 
-                                List<String> orderKeys = Arrays.asList(
-                                    "name",
-                                    "metadata",
-                                    "definitions",
-                                    // "parse|*" // is dynamic
-                                    "normalize"
-                                );
                                 // Add JSON nodes in the expected order, if they exist.
                                 for (String key : orderKeys) {
                                     if (docNode.has(key)) {
