@@ -39,12 +39,9 @@ import org.opensearch.env.Environment;
 
 import java.io.BufferedReader;
 import java.io.IOException;
-import java.net.URISyntaxException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.*;
-import java.util.Comparator;
-import java.util.List;
-import java.util.Locale;
+import java.util.*;
 
 /**
  * Service responsible for handling the download, extraction, and indexing of CTI snapshots.
@@ -57,6 +54,7 @@ public class SnapshotServiceImpl implements SnapshotService {
     private static final String JSON_PAYLOAD_KEY = "payload";
     private static final String JSON_TYPE_KEY = "type";
     private static final String JSON_DOCUMENT_KEY = "document";
+    private static final String JSON_INTEGRATION_ID_KEY = "integration_id";
     private static final String JSON_ID_KEY = "id";
 
     private final String context;
@@ -135,7 +133,6 @@ public class SnapshotServiceImpl implements SnapshotService {
                     this.processSnapshotFile(entry);
                 }
             }
-//        } catch (IOException | URISyntaxException e) {
         } catch (Exception e) {
             log.error("Error processing snapshot: {}", e.getMessage());
         } finally {
@@ -191,8 +188,21 @@ public class SnapshotServiceImpl implements SnapshotService {
                     if ("decoder".equalsIgnoreCase(type)) {
                         ObjectMapper jsonMapper = new ObjectMapper();
                         ObjectMapper yamlMapper = new ObjectMapper(new YAMLFactory());
-                        try {JsonNode jsonNode = jsonMapper.readTree(payload.toString());
-                            String yamlContent = yamlMapper.writeValueAsString(jsonNode);
+
+                        try {
+                            JsonNode rootNode = jsonMapper.readTree(payload.toString());
+
+                            Map<String, Object> orderedMap = new LinkedHashMap<>();
+
+                            // Order the fields of the YAML String as:
+                            // 1 - integration_id
+                            // 2 - type
+                            // 3 - document
+                            orderedMap.put(JSON_INTEGRATION_ID_KEY, rootNode.get(JSON_INTEGRATION_ID_KEY));
+                            orderedMap.put(JSON_TYPE_KEY, rootNode.get(JSON_TYPE_KEY));
+                            orderedMap.put(JSON_DOCUMENT_KEY, rootNode.get(JSON_DOCUMENT_KEY));
+
+                            String yamlContent = yamlMapper.writeValueAsString(orderedMap);
                             payload.addProperty("decoder", yamlContent);
                         } catch (IOException e) {
                             log.error("Failed to convert decoder payload to YAML: {}", e.getMessage(), e);
