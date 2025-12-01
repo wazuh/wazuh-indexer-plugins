@@ -17,13 +17,12 @@
 package com.wazuh.contentmanager;
 
 
-import com.wazuh.contentmanager.cti.catalog.index.index.ConsumersIndex;
-import com.wazuh.contentmanager.cti.catalog.index.index.ContentIndex;
+import com.wazuh.contentmanager.cti.catalog.index.ConsumersIndex;
+import com.wazuh.contentmanager.cti.catalog.index.ContentIndex;
 import com.wazuh.contentmanager.cti.catalog.model.LocalConsumer;
 import com.wazuh.contentmanager.cti.catalog.model.RemoteConsumer;
 import com.wazuh.contentmanager.cti.catalog.service.ConsumerService;
 import com.wazuh.contentmanager.cti.catalog.service.ConsumerServiceImpl;
-import com.wazuh.contentmanager.cti.catalog.service.SnapshotManager;
 import com.wazuh.contentmanager.cti.catalog.service.SnapshotServiceImpl;
 import com.wazuh.contentmanager.cti.console.CtiConsole;
 import com.wazuh.contentmanager.jobscheduler.ContentJobParameter;
@@ -201,6 +200,10 @@ public class ContentManagerPlugin extends Plugin implements ClusterPlugin, JobSc
     //   2.1 GetRemoteConsumer(consumer): fetch remote offset for the given consumer
     //   2.2 If local_offset == 0 -> init from snapshot
     //   2.3 If local_offset != remote_offset -> update consumer (changes)
+    /**
+     * Periodic job method triggered by the scheduler.
+     * Responsible for executing the synchronization logic for Rules and Decoders consumers.
+     */
     public void job() {
         this.rulesConsumer();
         this.decodersConsumer();
