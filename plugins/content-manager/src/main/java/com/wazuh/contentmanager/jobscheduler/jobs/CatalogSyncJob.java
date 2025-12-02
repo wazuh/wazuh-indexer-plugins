@@ -36,6 +36,14 @@ public class CatalogSyncJob implements JobExecutor {
     private final Environment environment;
     private final ThreadPool threadPool;
 
+    /**
+     * Constructs a new CatalogSyncJob.
+     *
+     * @param client         The OpenSearch client used for administrative index operations (create/check).
+     * @param consumersIndex The wrapper for accessing and managing the internal Consumers index.
+     * @param environment    The OpenSearch environment settings, used for path resolution.
+     * @param threadPool     The thread pool manager, used to offload blocking tasks to the generic executor.
+     */
     public CatalogSyncJob(Client client, ConsumersIndex consumersIndex, Environment environment, ThreadPool threadPool) {
         this.client = client;
         this.consumersIndex = consumersIndex;
@@ -43,6 +51,11 @@ public class CatalogSyncJob implements JobExecutor {
         this.threadPool = threadPool;
     }
 
+    /**
+     * Triggers the execution of the synchronization job.
+     *
+     * @param context The execution context provided by the Job Scheduler, containing metadata like the Job ID.
+     */
     @Override
     public void execute(JobExecutionContext context) {
         // Offload execution to the generic thread pool to allow blocking operations
@@ -57,6 +70,9 @@ public class CatalogSyncJob implements JobExecutor {
         });
     }
 
+    /**
+     * Orchestrates the synchronization process specifically for the Rules consumer.
+     */
     private void rulesConsumer() {
         String context = "rules_development_0.0.1";
         String consumer = "rules_development_0.0.1_test";
@@ -71,6 +87,9 @@ public class CatalogSyncJob implements JobExecutor {
         log.info("Rules Consumer correctly synchronized.");
     }
 
+    /**
+     * Orchestrates the synchronization process specifically for the Decoders consumer.
+     */
     private void decodersConsumer() {
         String context = "decoders_development_0.0.1";
         String consumer = "decoders_development_0.0.1";
@@ -88,6 +107,14 @@ public class CatalogSyncJob implements JobExecutor {
         log.info("Decoders Consumer correctly synchronized.");
     }
 
+    /**
+     * Generates a standardized OpenSearch index name based on the provided parameters.
+     *
+     * @param context  The context identifier (e.g., version info).
+     * @param consumer The consumer identifier.
+     * @param type     The specific content type (e.g., "rule", "decoder").
+     * @return A formatted string representing the system index name.
+     */
     private String getIndexName(String context, String consumer, String type) {
         return String.format(
             Locale.ROOT, ".%s-%s-%s",
@@ -97,6 +124,21 @@ public class CatalogSyncJob implements JobExecutor {
         );
     }
 
+    /**
+     * The core logic for synchronizing consumer services.
+     *
+     * This method performs the following actions:
+     * 1. Retrieve the Local and Remote consumer metadata.
+     * 2. Iterate through the requested mappings to check if indices exist.
+     * 3. Create indices using the provided mapping files if they are missing.
+     * 4. Compare local offsets with remote offsets to determine if a Snapshot initialization is required.
+     * 5. Triggers a full snapshot download if the local consumer is new or empty.
+     * 6. Triggers the update process if the offsets from local and remote consumers differ.
+     *
+     * @param context  The versioned context string.
+     * @param consumer The specific consumer identifier.
+     * @param mappings A map associating content types to their JSON mapping file paths.
+     */
     private void syncConsumerServices(String context, String consumer, Map<String, String> mappings) {
         ConsumerService consumerService = new ConsumerServiceImpl(context, consumer, this.consumersIndex);
         LocalConsumer localConsumer = consumerService.getLocalConsumer(); // Blocking call

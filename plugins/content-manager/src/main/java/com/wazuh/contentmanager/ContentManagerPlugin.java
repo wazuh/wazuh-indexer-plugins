@@ -58,7 +58,6 @@ import org.opensearch.watcher.ResourceWatcherService;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.*;
-import java.util.concurrent.Semaphore;
 import java.util.function.Supplier;
 
 /**
@@ -67,12 +66,8 @@ import java.util.function.Supplier;
 public class ContentManagerPlugin extends Plugin implements ClusterPlugin, JobSchedulerExtension, ActionPlugin {
     private static final Logger log = LogManager.getLogger(ContentManagerPlugin.class);
     private static final String JOB_INDEX_NAME = ".wazuh-content-manager-jobs";
+    private static final String JOB_ID = "wazuh-catalog-sync-job";
 
-    /**
-     * Semaphore to ensure the context index creation is only triggered once.
-     */
-    private static final Semaphore consumersIndexSemaphore = new Semaphore(1);
-    private static final Semaphore jobIndexSemaphore = new Semaphore(1);
     private ConsumersIndex consumersIndex;
     private ThreadPool threadPool;
     private CtiConsole ctiConsole;
@@ -160,20 +155,14 @@ public class ContentManagerPlugin extends Plugin implements ClusterPlugin, JobSc
                 .generic()
                 .execute(
                     () -> {
-                        if (consumersIndexSemaphore.tryAcquire()) {
-                            try {
-                                CreateIndexResponse response = this.consumersIndex.createIndex();
+                        try {
+                            CreateIndexResponse response = this.consumersIndex.createIndex();
 
-                                if (response.isAcknowledged()) {
-                                    log.info("Index created: {} acknowledged={}", response.index(), response.isAcknowledged());
-                                }
-                            } catch (Exception e) {
-                                log.error("Failed to create {} index, due to: {}", ConsumersIndex.INDEX_NAME, e.getMessage(), e);
-                            } finally {
-                                consumersIndexSemaphore.release();
+                            if (response.isAcknowledged()) {
+                                log.info("Index created: {} acknowledged={}", response.index(), response.isAcknowledged());
                             }
-                        } else {
-                            log.debug("{} index creation already triggered", ConsumersIndex.INDEX_NAME);
+                        } catch (Exception e) {
+                            log.error("Failed to create {} index, due to: {}", ConsumersIndex.INDEX_NAME, e.getMessage(), e);
                         }
                     });
         } catch (Exception e) {
@@ -187,39 +176,30 @@ public class ContentManagerPlugin extends Plugin implements ClusterPlugin, JobSc
      * Schedules the Catalog Sync Job.
      */
     private void scheduleCatalogSyncJob() {
-        String jobId = "wazuh-catalog-sync-job";
         this.threadPool.generic().execute(() -> {
             try {
                 // 1. Check if the index exists; if not, create it with specific settings.
                 boolean indexExists = this.client.admin().indices().prepareExists(JOB_INDEX_NAME).get().isExists();
 
                 if (!indexExists) {
-                    if (jobIndexSemaphore.tryAcquire()) {
-                        try {
-                            if (!this.client.admin().indices().prepareExists(JOB_INDEX_NAME).get().isExists()) {
-                                Settings settings = Settings.builder()
-                                    .put("index.number_of_replicas", 0)
-                                    .put("index.hidden", true)
-                                    .build();
+                    try {
+                        Settings settings = Settings.builder()
+                            .put("index.number_of_replicas", 0)
+                            .put("index.hidden", true)
+                            .build();
 
-                                this.client.admin().indices().prepareCreate(JOB_INDEX_NAME)
-                                    .setSettings(settings)
-                                    .get();
+                        this.client.admin().indices().prepareCreate(JOB_INDEX_NAME)
+                            .setSettings(settings)
+                            .get();
 
-                                log.info("Created job index {}.", JOB_INDEX_NAME);
-                            }
-                        } catch (Exception e) {
-                            log.warn("Could not create index {}: {}", JOB_INDEX_NAME, e.getMessage());
-                        } finally {
-                            jobIndexSemaphore.release();
-                        }
-                    } else {
-                        log.debug("{} index creation already triggered.", JOB_INDEX_NAME);
+                        log.info("Created job index {}.", JOB_INDEX_NAME);
+                    } catch (Exception e) {
+                        log.warn("Could not create index {}: {}", JOB_INDEX_NAME, e.getMessage());
                     }
                 }
 
                 // 2. Check if the job document exists; if not, index it.
-                boolean jobExists = this.client.prepareGet(JOB_INDEX_NAME, jobId).get().isExists();
+                boolean jobExists = this.client.prepareGet(JOB_INDEX_NAME, JOB_ID).get().isExists();
 
                 if (!jobExists) {
                     ContentJobParameter job = new ContentJobParameter(
@@ -231,7 +211,7 @@ public class ContentManagerPlugin extends Plugin implements ClusterPlugin, JobSc
                         Instant.now()
                     );
                     IndexRequest request = new IndexRequest(JOB_INDEX_NAME)
-                        .id(jobId)
+                        .id(JOB_ID)
                         .source(job.toXContent(XContentFactory.jsonBuilder(), null));
                     this.client.index(request).actionGet();
                     log.info("Catalog Sync Job scheduled successfully.");

@@ -71,7 +71,7 @@ public class SnapshotServiceImplTests extends OpenSearchTestCase {
     public void setUp() throws Exception {
         super.setUp();
         this.closeable = MockitoAnnotations.openMocks(this);
-        this.tempDir = createTempDir();
+        this.tempDir = OpenSearchTestCase.createTempDir();
 
         // Setup Environment mock to return our temp dir
         Settings settings = Settings.builder()
