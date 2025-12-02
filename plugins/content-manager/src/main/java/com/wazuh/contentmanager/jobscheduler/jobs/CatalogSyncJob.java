@@ -83,7 +83,12 @@ public class CatalogSyncJob implements JobExecutor {
         mappings.put(
             "integration", "/mappings/cti-rules-integrations-mappings.json"
         );
-        this.syncConsumerServices(context, consumer, mappings);
+
+        Map<String, String> aliases = new HashMap<>();
+        aliases.put("rule", ".cti-rules");
+        aliases.put("integration", ".cti-integration-rules");
+
+        this.syncConsumerServices(context, consumer, mappings, aliases);
         log.info("Rules Consumer correctly synchronized.");
     }
 
@@ -103,7 +108,13 @@ public class CatalogSyncJob implements JobExecutor {
         mappings.put(
             "integration", "/mappings/cti-decoders-integrations-mappings.json"
         );
-        this.syncConsumerServices(context, consumer, mappings);
+
+        Map<String, String> aliases = new HashMap<>();
+        aliases.put("decoder", ".cti-decoders");
+        aliases.put("kvdb", ".cti-kvdbs");
+        aliases.put("integration", ".cti-integration-decoders");
+
+        this.syncConsumerServices(context, consumer, mappings, aliases);
         log.info("Decoders Consumer correctly synchronized.");
     }
 
@@ -138,20 +149,19 @@ public class CatalogSyncJob implements JobExecutor {
      * @param context  The versioned context string.
      * @param consumer The specific consumer identifier.
      * @param mappings A map associating content types to their JSON mapping file paths.
+     * @param aliases  A map associating content types to their OpenSearch alias names.
      */
-    private void syncConsumerServices(String context, String consumer, Map<String, String> mappings) {
+    private void syncConsumerServices(String context, String consumer, Map<String, String> mappings, Map<String, String> aliases) {
         ConsumerService consumerService = new ConsumerServiceImpl(context, consumer, this.consumersIndex);
-        LocalConsumer localConsumer = consumerService.getLocalConsumer(); // Blocking call
-        RemoteConsumer remoteConsumer = consumerService.getRemoteConsumer(); // Blocking call
-
-        log.info("Local consumer: {}", localConsumer);
-        log.info("Remote consumer: {}", remoteConsumer);
+        LocalConsumer localConsumer = consumerService.getLocalConsumer();
+        RemoteConsumer remoteConsumer = consumerService.getRemoteConsumer();
 
         List<ContentIndex> indices = new ArrayList<>();
 
         for (Map.Entry<String, String> entry : mappings.entrySet()) {
             String indexName = this.getIndexName(context, consumer, entry.getKey());
-            ContentIndex index = new ContentIndex(this.client, indexName, entry.getValue());
+            String alias = aliases.get(entry.getKey());
+            ContentIndex index = new ContentIndex(this.client, indexName, entry.getValue(), alias);
             indices.add(index);
 
             // Check if index exists to avoid creation exception
@@ -159,15 +169,13 @@ public class CatalogSyncJob implements JobExecutor {
 
             if (!indexExists) {
                 try {
-                    CreateIndexResponse response = index.createIndex(); // Blocking call
+                    CreateIndexResponse response = index.createIndex();
                     if (response.isAcknowledged()) {
                         log.info("Index [{}] created successfully", response.index());
                     }
                 } catch (Exception e) {
                     log.error("Failed to create index [{}]: {}", indexName, e.getMessage());
                 }
-            } else {
-                log.info("Index [{}] already exists. Skipping creation.", indexName);
             }
         }
 
@@ -180,11 +188,9 @@ public class CatalogSyncJob implements JobExecutor {
                 this.consumersIndex,
                 this.environment
             );
-            snapshotService.initialize(remoteConsumer); // Blocking call
+            snapshotService.initialize(remoteConsumer);
         } else if (remoteConsumer != null && localConsumer.getLocalOffset() != remoteConsumer.getOffset()) {
             // TODO: Implement offset based update process
-        } else {
-            log.info("Indices already initialized or remote consumer unavailable.");
         }
     }
 }

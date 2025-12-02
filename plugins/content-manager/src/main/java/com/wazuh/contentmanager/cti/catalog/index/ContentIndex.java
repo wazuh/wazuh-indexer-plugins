@@ -21,6 +21,7 @@ import com.google.gson.JsonParser;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.opensearch.OpenSearchTimeoutException;
+import org.opensearch.action.admin.indices.alias.Alias;
 import org.opensearch.action.admin.indices.create.CreateIndexRequest;
 import org.opensearch.action.admin.indices.create.CreateIndexResponse;
 import org.opensearch.action.bulk.BulkRequest;
@@ -79,6 +80,7 @@ public class ContentIndex {
     private final Semaphore semaphore;
     private String indexName;
     private String mappingsPath;
+    private String alias;
 
     /**
      * Constructs a ContentIndex manager with specific settings.
@@ -93,6 +95,19 @@ public class ContentIndex {
         this.client = client;
         this.indexName = indexName;
         this.mappingsPath = mappingsPath;
+    }
+
+    /**
+     * Constructs a ContentIndex manager with specific settings and an alias.
+     *
+     * @param client       The OpenSearch client.
+     * @param indexName    The name of the index to manage.
+     * @param mappingsPath The classpath resource path to the index mappings file.
+     * @param alias        The alias to assign to the index.
+     */
+    public ContentIndex(Client client, String indexName, String mappingsPath, String alias) {
+        this(client, indexName, mappingsPath);
+        this.alias = alias;
     }
 
     /**
@@ -121,6 +136,10 @@ public class ContentIndex {
             .index(this.indexName)
             .mapping(mappings)
             .settings(settings);
+
+        if (this.alias != null && !this.alias.isEmpty()) {
+            request.alias(new Alias(this.alias));
+        }
 
         return this.client
             .admin()
