@@ -36,6 +36,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Implement authentication in CTI Console [#666](https://github.com/wazuh/wazuh-indexer-plugins/pull/666)
 - Initialize consumers metadata index on start [(#668)](https://github.com/wazuh/wazuh-indexer-plugins/pull/668)
 - Add job scheduler basic logic [(#671)](https://github.com/wazuh/wazuh-indexer-plugins/pull/671)
+- Init content from snapshot [(#670)](https://github.com/wazuh/wazuh-indexer-plugins/pull/670)
 
 ### Dependencies
 - Upgrade to Gradle 8.14.3 [(#649)](https://github.com/wazuh/wazuh-indexer-plugins/pull/649)

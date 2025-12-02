@@ -27,7 +27,7 @@ import org.opensearch.common.settings.Settings;
 import java.util.Locale;
 
 /**
- * ClusterInfoHelper provides utility methods for retrieving cluster-related information, such as
+ * ClusterInfo provides utility methods for retrieving cluster-related information, such as
  * security settings and the cluster base URL.
  */
 public class ClusterInfo {
@@ -42,7 +42,7 @@ public class ClusterInfo {
 
         // Check if security plugins have HTTPS enabled
         return settings.getAsBoolean("plugins.security.ssl.http.enabled", false)
-                || settings.getAsBoolean("xpack.security.http.ssl.enabled", false);
+            || settings.getAsBoolean("xpack.security.http.ssl.enabled", false);
     }
 
     /**
@@ -71,7 +71,7 @@ public class ClusterInfo {
      */
     public static boolean indexStatusCheck(Client client, String index) {
         ClusterHealthResponse response =
-                client.admin().cluster().prepareHealth().setIndices(index).setWaitForYellowStatus().get();
+            client.admin().cluster().prepareHealth().setIndices(index).setWaitForYellowStatus().get();
         return response.getStatus() != ClusterHealthStatus.RED;
     }
 

@@ -1,0 +1,121 @@
+{
+  "dynamic": "strict",
+  "dynamic_templates": [
+    {
+      "detection_fields": {
+        "path_match": "document.detection.*",
+        "path_unmatch": "document.detection.condition",
+        "mapping": {
+          "type": "object",
+          "enabled": false
+        }
+      }
+    }
+  ],
+  "properties": {
+    "integration_id": {
+      "type": "keyword"
+    },
+    "type": {
+      "type": "keyword"
+    },
+    "document": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "keyword"
+        },
+        "sigma_id": {
+          "type": "keyword"
+        },
+        "title": {
+          "type": "keyword"
+        },
+        "description": {
+          "type": "text"
+        },
+        "author": {
+          "type": "keyword"
+        },
+        "date": {
+          "type": "date",
+          "format": "yyyy-MM-dd"
+        },
+        "modified": {
+          "type": "date",
+          "format": "yyyy-MM-dd"
+        },
+        "status": {
+          "type": "keyword"
+        },
+        "level": {
+          "type": "keyword"
+        },
+        "enabled": {
+          "type": "boolean"
+        },
+        "falsepositives": {
+          "type": "keyword"
+        },
+        "tags": {
+          "type": "keyword"
+        },
+        "references": {
+          "type": "keyword"
+        },
+        "logsource": {
+          "type": "object",
+          "properties": {
+            "category": {
+              "type": "keyword"
+            },
+            "product": {
+              "type": "keyword"
+            },
+            "service": {
+              "type": "keyword"
+            },
+            "definition": {
+              "type": "text"
+            }
+          }
+        },
+        "detection": {
+          "type": "object",
+          "dynamic": true,
+          "properties": {
+            "condition": {
+              "type": "keyword"
+            }
+          }
+        },
+        "related": {
+          "type": "nested",
+          "properties": {
+            "type": {
+              "type": "keyword"
+            },
+            "id": {
+              "type": "keyword"
+            }
+          }
+        },
+        "fields": {
+          "type": "keyword"
+        },
+        "name": {
+          "type": "keyword"
+        },
+        "taxonomy": {
+          "type": "keyword"
+        },
+        "license": {
+          "type": "keyword"
+        },
+        "scope": {
+          "type": "keyword"
+        }
+      }
+    }
+  }
+}

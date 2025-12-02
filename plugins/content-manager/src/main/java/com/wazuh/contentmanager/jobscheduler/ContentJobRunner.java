@@ -1,6 +1,5 @@
 package com.wazuh.contentmanager.jobscheduler;
 
-import com.wazuh.contentmanager.jobscheduler.jobs.HelloWorldJob;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.opensearch.jobscheduler.spi.JobExecutionContext;
@@ -29,7 +28,6 @@ public class ContentJobRunner implements ScheduledJobRunner {
     public static synchronized ContentJobRunner getInstance() {
         if (INSTANCE == null) {
             INSTANCE = new ContentJobRunner();
-            INSTANCE.init();
         }
         return INSTANCE;
     }
@@ -40,7 +38,6 @@ public class ContentJobRunner implements ScheduledJobRunner {
      * Initialize default jobs.
      */
     private void init() {
-        this.registerExecutor(HelloWorldJob.JOB_TYPE, new HelloWorldJob());
     }
 
     /**

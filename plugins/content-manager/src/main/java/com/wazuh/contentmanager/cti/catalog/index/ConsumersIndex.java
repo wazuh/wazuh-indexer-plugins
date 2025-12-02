@@ -14,8 +14,9 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-package com.wazuh.contentmanager.index;
+package com.wazuh.contentmanager.cti.catalog.index;
 
+import com.wazuh.contentmanager.cti.catalog.model.LocalConsumer;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.opensearch.action.DocWriteResponse;
@@ -25,9 +26,9 @@ import org.opensearch.action.admin.indices.create.CreateIndexRequest;
 import org.opensearch.action.admin.indices.create.CreateIndexResponse;
 import org.opensearch.action.index.IndexRequest;
 import org.opensearch.action.index.IndexResponse;
+import org.opensearch.common.action.ActionFuture;
 import org.opensearch.transport.client.Client;
 import org.opensearch.common.xcontent.XContentFactory;
-import org.opensearch.common.xcontent.XContentType;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.core.xcontent.ToXContent;
 
@@ -46,6 +47,7 @@ import com.wazuh.contentmanager.settings.PluginSettings;
 import com.wazuh.contentmanager.utils.ClusterInfo;
 
 /** Class to manage the Context index. */
+// TODO remove unused methods: all but setConsumer(), getConsumer() and createIndex()
 public class ConsumersIndex {
     private static final Logger log = LogManager.getLogger(ConsumersIndex.class);
 
@@ -110,6 +112,57 @@ public class ConsumersIndex {
         return false;
     }
 
+    /**
+     * Indexes a local consumer object into the cluster.
+     *
+     * @param consumer The {@link LocalConsumer} object containing the data to be indexed.
+     * @return The {@link IndexResponse} indicating the result of the operation.
+     * @throws ExecutionException   If the client failed to execute the request.
+     * @throws InterruptedException If the current thread was interrupted while waiting for the response.
+     * @throws TimeoutException     If the operation exceeded the configured client timeout.
+     * @throws IOException          If there is an error serializing the consumer to XContent.
+     * @throws RuntimeException     If the target index is not currently ready or available.
+     */
+    public IndexResponse setConsumer(LocalConsumer consumer) throws ExecutionException, InterruptedException, TimeoutException, IOException {
+        // Avoid faulty requests if the cluster is unstable.
+        if (!ClusterInfo.indexStatusCheck(this.client, INDEX_NAME)) {
+            throw new RuntimeException("Index not ready");
+        }
+        // Composed ID
+        String id = String.format(Locale.ROOT, "%s_%s", consumer.getContext(), consumer.getName());
+        IndexRequest request = new IndexRequest()
+            .index(INDEX_NAME)
+            .id(id)
+            .source(consumer.toXContent());
+
+        return this.client.index(request).get(this.pluginSettings.getClientTimeout(), TimeUnit.SECONDS);
+    }
+
+    /**
+     * Retrieves a consumer document from the index by its composite identifier.
+     *
+     * @param context  The context identifier of the consumer.
+     * @param consumer The name identifier of the consumer.
+     * @return A {@link GetResponse} containing the document source and metadata.
+     * @throws ExecutionException   If the client failed to execute the request.
+     * @throws InterruptedException If the current thread was interrupted while waiting for the response.
+     * @throws TimeoutException     If the operation exceeded the configured client timeout.
+     * @throws RuntimeException     If the target index is not currently ready or available.
+     */
+    public GetResponse getConsumer(String context, String consumer) throws ExecutionException, InterruptedException, TimeoutException {
+        // Avoid faulty requests if the cluster is unstable.
+        if (!ClusterInfo.indexStatusCheck(this.client, INDEX_NAME)) {
+            throw new RuntimeException("Index not ready");
+        }
+        // Composed ID
+        String id = String.format(Locale.ROOT, "%s_%s", context, consumer);
+        GetRequest request = new GetRequest().index(INDEX_NAME).id(id).preference("_local");
+
+        ActionFuture<GetResponse> future = this.client.get(request);
+
+        return future.get(this.pluginSettings.getClientTimeout(), TimeUnit.SECONDS);
+    }
+
     /** TODO: Review ConsumerInfo class and adapt mappings accordingly */
     /**
      * Searches for the given consumer within a context.
@@ -172,28 +225,36 @@ public class ConsumersIndex {
         return ClusterInfo.indexExists(this.client, ConsumersIndex.INDEX_NAME);
     }
 
-    /** Creates the {@link ConsumersIndex#INDEX_NAME} index. */
-   public void createIndex() {
-        try {
-            String mappingJson = this.loadMappingFromResources();
+    /**
+     * Creates the {@link ConsumersIndex#INDEX_NAME} index.
+     *
+     * @return
+     */
+   public CreateIndexResponse createIndex() throws ExecutionException, InterruptedException, TimeoutException {
+       Settings settings = Settings.builder()
+           .put("index.number_of_replicas", 0)
+           .put("hidden", true)
+           .build();
 
-            CreateIndexRequest request = new CreateIndexRequest(ConsumersIndex.INDEX_NAME);
+       String mappings;
+       try {
+           mappings = this.loadMappingFromResources();
+       } catch (IOException e) {
+           log.error("Could not read mappings for index [{}]", INDEX_NAME);
+           return null;
+       }
 
-            // Index settings
-            request.settings(Settings.builder().put("index.number_of_replicas", 0).build());
-            request.mapping(mappingJson, XContentType.JSON);
+       CreateIndexRequest request = new CreateIndexRequest()
+            .index(INDEX_NAME)
+            .mapping(mappings)
+            .settings(settings);
 
-        CreateIndexResponse response = this.client
+       return this.client
             .admin()
             .indices()
             .create(request)
-            .actionGet(this.pluginSettings.getClientTimeout(), TimeUnit.SECONDS);
-            log.info("Index created: {} acknowledged={}", response.index(), response.isAcknowledged());
-
-        } catch (Exception e) {
-            log.warn("Index creation attempt failed: {}", e.getMessage());
-        }
-    }
+            .get(this.pluginSettings.getClientTimeout(), TimeUnit.SECONDS);
+   }
 
     /**
      * Loads the index mapping from the resources folder.
@@ -202,7 +263,6 @@ public class ConsumersIndex {
      * @throws IOException if reading the resource fails.
      */
     private String loadMappingFromResources() throws IOException {
-
         try (InputStream is = this.getClass().getResourceAsStream(MAPPING_PATH)) {
             return new String(is.readAllBytes(), StandardCharsets.UTF_8);
         }

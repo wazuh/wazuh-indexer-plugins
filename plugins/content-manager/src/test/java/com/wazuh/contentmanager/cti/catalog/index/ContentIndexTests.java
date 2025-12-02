@@ -14,7 +14,7 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-package com.wazuh.contentmanager.index;
+package com.wazuh.contentmanager.cti.catalog.index;
 
 import com.google.gson.JsonObject;
 import org.opensearch.action.get.GetResponse;
