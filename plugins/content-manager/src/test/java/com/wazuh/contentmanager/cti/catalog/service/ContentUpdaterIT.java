@@ -22,6 +22,7 @@ import com.wazuh.contentmanager.cti.catalog.model.Changes;
 import com.wazuh.contentmanager.cti.catalog.model.ConsumerInfo;
 import com.wazuh.contentmanager.cti.catalog.model.Offset;
 import com.wazuh.contentmanager.cti.catalog.model.Operation;
+import org.apache.lucene.tests.util.LuceneTestCase.AwaitsFix;
 import org.opensearch.action.admin.indices.refresh.RefreshRequest;
 import org.opensearch.action.support.WriteRequest;
 import org.opensearch.transport.client.Client;
@@ -56,6 +57,7 @@ import org.mockito.Mockito;
 
 import static org.mockito.Mockito.*;
 
+@AwaitsFix(bugUrl = "https://github.com/wazuh/wazuh-indexer/issues/1250")
 @ThreadLeakScope(ThreadLeakScope.Scope.NONE)
 @OpenSearchIntegTestCase.ClusterScope(scope = OpenSearchIntegTestCase.Scope.SUITE)
 public class ContentUpdaterIT extends OpenSearchIntegTestCase {
