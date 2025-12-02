@@ -1,6 +1,6 @@
 package com.wazuh.contentmanager.cti.catalog.service;
 
-import com.wazuh.contentmanager.cti.catalog.index.index.ConsumersIndex;
+import com.wazuh.contentmanager.cti.catalog.index.ConsumersIndex;
 import com.wazuh.contentmanager.cti.catalog.model.LocalConsumer;
 import com.wazuh.contentmanager.cti.catalog.model.RemoteConsumer;
 import org.apache.hc.client5.http.async.methods.SimpleHttpResponse;
@@ -14,6 +14,11 @@ import java.io.IOException;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeoutException;
 
+/**
+ * Implementation of the ConsumerService.
+ * Manages the retrieval and persistence of Local and Remote consumer states using
+ * internal indices and the CTI API client.
+ */
 public class ConsumerServiceImpl extends AbstractService implements ConsumerService {
     private static final Logger log = LogManager.getLogger(ConsumerServiceImpl.class);
 
@@ -24,12 +29,25 @@ public class ConsumerServiceImpl extends AbstractService implements ConsumerServ
     private final String consumer;
     private final ConsumersIndex consumerIndex;
 
+    /**
+     * Constructs a ConsumerServiceImpl.
+     *
+     * @param context       The context identifier.
+     * @param consumer      The consumer identifier.
+     * @param consumerIndex The index service for storing consumer metadata.
+     */
     public ConsumerServiceImpl(String context, String consumer, ConsumersIndex consumerIndex) {
         this.context = context;
         this.consumer = consumer;
         this.consumerIndex = consumerIndex;
     }
 
+    /**
+     * Retrieves the local consumer state from the internal index.
+     * If the consumer does not exist locally, it attempts to initialize it.
+     *
+     * @return The {@link LocalConsumer} object, or null if retrieval/parsing fails.
+     */
     @Override
     public LocalConsumer getLocalConsumer() {
         try {
@@ -46,6 +64,11 @@ public class ConsumerServiceImpl extends AbstractService implements ConsumerServ
         return null;
     }
 
+    /**
+     * Retrieves the remote consumer state from the CTI API.
+     *
+     * @return The {@link RemoteConsumer} object, or null if the API call fails.
+     */
     @Override
     public RemoteConsumer getRemoteConsumer() {
         try {
@@ -63,6 +86,11 @@ public class ConsumerServiceImpl extends AbstractService implements ConsumerServ
         return null;
     }
 
+    /**
+     * Creates or updates the default local consumer state in the internal index.
+     *
+     * @return The initialized {@link LocalConsumer}, or null if persistence fails.
+     */
     public LocalConsumer setConsumer() {
         // Default consumer. Initialize.
         LocalConsumer consumer = new LocalConsumer(this.context, this.consumer);

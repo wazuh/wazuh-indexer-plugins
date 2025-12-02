@@ -1,6 +1,5 @@
 package com.wazuh.contentmanager.cti.catalog.client;
 
-import com.wazuh.contentmanager.cti.catalog.service.SnapshotServiceImpl;
 import org.apache.hc.client5.http.classic.methods.HttpGet;
 import org.apache.hc.client5.http.impl.classic.CloseableHttpClient;
 import org.apache.hc.client5.http.impl.classic.CloseableHttpResponse;
@@ -19,6 +18,9 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
 
+/**
+ * Client responsible for downloading CTI snapshots from a remote source.
+ */
 public class SnapshotClient {
 
     private static final Logger log = LogManager.getLogger(SnapshotClient.class);

@@ -9,10 +9,15 @@ import org.opensearch.core.xcontent.XContentBuilder;
 import java.io.IOException;
 
 /**
- * Local Consumer DTO.
+ * Data Transfer Object representing the local state of a CTI Catalog Consumer.
+
+ * This class tracks the synchronization status of a specific content context. It maintains
+ * the {@code localOffset} versus the {@code remoteOffset}, along with a link to the snapshot
+ * for bulk updates.
  */
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class LocalConsumer extends AbstractConsumer implements ToXContent {
+
     @JsonProperty("local_offset")
     private long localOffset;
     @JsonProperty("remote_offset")
@@ -21,12 +26,18 @@ public class LocalConsumer extends AbstractConsumer implements ToXContent {
     private String snapshotLink;
 
     /**
-     * Default constructor
+     * Default constructor.
      */
     public LocalConsumer() {
         super();
     }
 
+    /**
+     * Constructs a new LocalConsumer with a basic identity.
+     *
+     * @param context The context identifier (e.g., "rules_development").
+     * @param name    The consumer name.
+     */
     public LocalConsumer (String context, String name) {
         this.context = context;
         this.name  = name;
@@ -35,6 +46,15 @@ public class LocalConsumer extends AbstractConsumer implements ToXContent {
         this.snapshotLink = "";
     }
 
+    /**
+     * Constructs a LocalConsumer with full state details.
+     *
+     * @param context      The context identifier.
+     * @param name         The consumer name.
+     * @param localOffset  The current offset processed locally.
+     * @param remoteOffset The last known offset available remotely.
+     * @param snapshotUrl  The URL of the snapshot associated with this state.
+     */
     public LocalConsumer(String context, String name, long localOffset, long remoteOffset, String snapshotUrl) {
         this.context = context;
         this.name  = name;
@@ -43,14 +63,29 @@ public class LocalConsumer extends AbstractConsumer implements ToXContent {
         this.snapshotLink = snapshotUrl;
     }
 
+    /**
+     * Gets the local synchronization offset.
+     *
+     * @return The sequence number of the last processed item.
+     */
     public long getLocalOffset() {
         return localOffset;
     }
 
+    /**
+     * Gets the remote synchronization offset.
+     *
+     * @return The sequence number of the latest item available upstream.
+     */
     public long getRemoteOffset() {
         return remoteOffset;
     }
 
+    /**
+     * Gets the snapshot download URL.
+     *
+     * @return A string containing the URL, or empty if not set.
+     */
     public String getSnapshotLink() {
         return snapshotLink;
     }
@@ -66,10 +101,24 @@ public class LocalConsumer extends AbstractConsumer implements ToXContent {
             '}';
     }
 
+    /**
+     * Serializes the consumer object to a new XContentBuilder (JSON).
+     *
+     * @return The XContentBuilder containing the JSON representation.
+     * @throws IOException If an I/O error occurs during building.
+     */
     public XContentBuilder toXContent() throws IOException {
         return this.toXContent(XContentFactory.jsonBuilder(), null);
     }
 
+    /**
+     * Serializes the consumer properties into an XContentBuilder.
+     *
+     * @param builder The builder to write to.
+     * @param params  Parameters for the XContent generation (unused here).
+     * @return The builder with the consumer fields appended.
+     * @throws IOException If an I/O error occurs during building.
+     */
     @Override
     public XContentBuilder toXContent(XContentBuilder builder, Params params) throws IOException {
         builder.startObject()

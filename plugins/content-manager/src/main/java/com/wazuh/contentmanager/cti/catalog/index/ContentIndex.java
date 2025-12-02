@@ -14,7 +14,7 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-package com.wazuh.contentmanager.cti.catalog.index.index;
+package com.wazuh.contentmanager.cti.catalog.index;
 
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
@@ -63,31 +63,46 @@ import com.wazuh.contentmanager.settings.PluginSettings;
 import com.wazuh.contentmanager.cti.catalog.utils.JsonPatch;
 import com.wazuh.contentmanager.utils.XContentUtils;
 
-/** Manages operations for a content index. */
+/**
+ * Manages operations for the Wazuh CTI Content Index.
+ */
 public class ContentIndex {
     private static final String JSON_NAME_KEY = "name";
     private static final String JSON_OFFSET_KEY = "offset";
     private static final Logger log = LogManager.getLogger(ContentIndex.class);
 
-    /** Content index name. */
+    //TODO: Delete
     public static final String INDEX_NAME = "wazuh-ruleset";
 
     private final Client client;
     private final PluginSettings pluginSettings;
     private final Semaphore semaphore;
-
     private String indexName;
     private String mappingsPath;
 
+    /**
+     * Constructs a ContentIndex manager with specific settings.
+     *
+     * @param client       The OpenSearch client.
+     * @param indexName    The name of the index to manage.
+     * @param mappingsPath The classpath resource path to the index mappings file.
+     */
     public ContentIndex(Client client, String indexName, String mappingsPath) {
         this.pluginSettings = PluginSettings.getInstance();
         this.semaphore = new Semaphore(pluginSettings.getMaximumConcurrentBulks());
-
         this.client = client;
         this.indexName = indexName;
         this.mappingsPath = mappingsPath;
     }
 
+    /**
+     * Creates the content index with specific settings and mappings.
+     *
+     * @return A {@link CreateIndexResponse} indicating success, or {@code null} if mappings could not be read.
+     * @throws ExecutionException   If the creation request fails.
+     * @throws InterruptedException If the thread is interrupted while waiting for the response.
+     * @throws TimeoutException     If the operation exceeds the configured client timeout.
+     */
     public CreateIndexResponse createIndex() throws ExecutionException, InterruptedException, TimeoutException {
         Settings settings = Settings.builder()
             .put("index.number_of_replicas", 0)
@@ -116,7 +131,7 @@ public class ContentIndex {
 
 
     /**
-     * Executes a bulk request using the OpenSearch client with semaphore control.
+     * Executes a bulk request using the semaphore.
      *
      * @param bulkRequest The request to execute.
      */
@@ -146,10 +161,8 @@ public class ContentIndex {
         }
     }
 
-    // =================================
-
     /**
-     * Constructor for the ContentIndex class.
+     * Constructs a ContentIndex manager using default plugin settings.
      *
      * @param client the OpenSearch Client to interact with the cluster
      */
@@ -160,10 +173,10 @@ public class ContentIndex {
     }
 
     /**
-     * This constructor is only used on tests.
+     * Constructs a ContentIndex manager with injected settings (testing).
      *
-     * @param client Client (mocked).
-     * @param pluginSettings PluginSettings (mocked).
+     * @param client         Client.
+     * @param pluginSettings PluginSettings.
      */
     public ContentIndex(Client client, PluginSettings pluginSettings) {
         this.pluginSettings = pluginSettings;
@@ -175,57 +188,55 @@ public class ContentIndex {
      * Searches for an element in the {@link ContentIndex#INDEX_NAME} by its ID.
      *
      * @param resourceId the ID of the element to retrieve.
-     * @return the element as a JsonObject instance, or null.
-     * @throws InterruptedException if the operation is interrupted.
-     * @throws ExecutionException if an error occurs during execution.
-     * @throws TimeoutException if the operation times out.
-     * @throws IllegalArgumentException if the content is not found.
+     * @return the element as a JsonObject instance.
+     * @throws InterruptedException     if the operation is interrupted.
+     * @throws ExecutionException       if an error occurs during execution.
+     * @throws TimeoutException         if the operation times out.
+     * @throws IllegalArgumentException if the content is not found in the index.
      */
     public JsonObject getById(String resourceId)
-            throws InterruptedException, ExecutionException, TimeoutException, IllegalArgumentException {
+        throws InterruptedException, ExecutionException, TimeoutException, IllegalArgumentException {
         GetResponse response =
-                this.client
-                        .get(new GetRequest(ContentIndex.INDEX_NAME, resourceId))
-                        .get(this.pluginSettings.getClientTimeout(), TimeUnit.SECONDS);
+            this.client
+                .get(new GetRequest(ContentIndex.INDEX_NAME, resourceId))
+                .get(this.pluginSettings.getClientTimeout(), TimeUnit.SECONDS);
         if (response.isExists()) {
             return JsonParser.parseString(response.getSourceAsString()).getAsJsonObject();
         }
         throw new IllegalArgumentException(
-                String.format(
-                        Locale.ROOT,
-                        "Document with ID [%s] not found in the [%s] index",
-                        resourceId,
-                        ContentIndex.INDEX_NAME));
+            String.format(
+                Locale.ROOT,
+                "Document with ID [%s] not found in the [%s] index",
+                resourceId,
+                ContentIndex.INDEX_NAME));
     }
 
     /**
-     * Indexes a single Offset document.
+     * Indexes a single Offset document synchronously.
      *
      * @param document {@link Offset} document to index.
-     * @throws StrictDynamicMappingException index operation failed because the document does not
-     *     match the index mappings.
-     * @throws ExecutionException index operation failed to execute.
-     * @throws InterruptedException index operation was interrupted.
-     * @throws TimeoutException index operation timed out.
-     * @throws IOException operation failed caused by the creation of the JSON builder by the
-     *     XContentFactory.
+     * @throws StrictDynamicMappingException if the document does not match the index mappings.
+     * @throws ExecutionException            if the index operation failed to execute.
+     * @throws InterruptedException          if the index operation was interrupted.
+     * @throws TimeoutException              if the index operation timed out.
+     * @throws IOException                   if XContentBuilder creation fails.
      */
     public void index(Offset document)
-            throws StrictDynamicMappingException,
-                    ExecutionException,
-                    InterruptedException,
-                    TimeoutException,
-                    IOException {
+        throws StrictDynamicMappingException,
+        ExecutionException,
+        InterruptedException,
+        TimeoutException,
+        IOException {
         IndexRequest indexRequest =
-                new IndexRequest()
-                        .index(ContentIndex.INDEX_NAME)
-                        .source(document.toXContent(XContentFactory.jsonBuilder(), ToXContent.EMPTY_PARAMS))
-                        .id(document.getResource());
+            new IndexRequest()
+                .index(ContentIndex.INDEX_NAME)
+                .source(document.toXContent(XContentFactory.jsonBuilder(), ToXContent.EMPTY_PARAMS))
+                .id(document.getResource());
         this.client.index(indexRequest).get(this.pluginSettings.getClientTimeout(), TimeUnit.SECONDS);
     }
 
     /**
-     * Indexes a list of JSON documents in bulk.
+     * Indexes a list of JSON documents in bulk asynchronously.
      *
      * @param documents list of JSON documents to be indexed.
      */
@@ -233,60 +244,58 @@ public class ContentIndex {
         BulkRequest bulkRequest = new BulkRequest(ContentIndex.INDEX_NAME);
         for (JsonObject document : documents) {
             bulkRequest.add(
-                    new IndexRequest()
-                            .id(document.get(ContentIndex.JSON_NAME_KEY).getAsString())
-                            .source(document.toString(), XContentType.JSON));
+                new IndexRequest()
+                    .id(document.get(ContentIndex.JSON_NAME_KEY).getAsString())
+                    .source(document.toString(), XContentType.JSON));
         }
 
         this.client.bulk(
-                bulkRequest,
-                new ActionListener<>() {
-                    @Override
-                    public void onResponse(BulkResponse bulkResponse) {
-                        semaphore.release();
-                        if (bulkResponse.hasFailures()) {
-                            log.error("Bulk index operation failed: {}", bulkResponse.buildFailureMessage());
-                        } else {
-                            log.debug("Bulk index operation succeeded in {} ms", bulkResponse.getTook().millis());
-                        }
+            bulkRequest,
+            new ActionListener<>() {
+                @Override
+                public void onResponse(BulkResponse bulkResponse) {
+                    semaphore.release();
+                    if (bulkResponse.hasFailures()) {
+                        log.error("Bulk index operation failed: {}", bulkResponse.buildFailureMessage());
+                    } else {
+                        log.debug("Bulk index operation succeeded in {} ms", bulkResponse.getTook().millis());
                     }
+                }
 
-                    @Override
-                    public void onFailure(Exception e) {
-                        semaphore.release();
-                        log.error("Bulk index operation failed: {}", e.getMessage(), e);
-                    }
-                });
+                @Override
+                public void onFailure(Exception e) {
+                    semaphore.release();
+                    log.error("Bulk index operation failed: {}", e.getMessage(), e);
+                }
+            });
     }
 
     /**
-     * Deletes a document from the index.
+     * Deletes a document from the index asynchronously.
      *
      * @param id ID of the document to delete.
      */
     public void delete(String id) {
         this.client.delete(
-                new DeleteRequest(ContentIndex.INDEX_NAME, id),
-                new ActionListener<>() {
-                    @Override
-                    public void onResponse(DeleteResponse response) {
-                        log.info("Deleted CTI Catalog Content {} from index", id);
-                    }
+            new DeleteRequest(ContentIndex.INDEX_NAME, id),
+            new ActionListener<>() {
+                @Override
+                public void onResponse(DeleteResponse response) {
+                    log.info("Deleted CTI Catalog Content {} from index", id);
+                }
 
-                    @Override
-                    public void onFailure(Exception e) {
-                        log.error("Failed to delete CTI Catalog Content {}: {}", id, e.getMessage(), e);
-                    }
-                });
+                @Override
+                public void onFailure(Exception e) {
+                    log.error("Failed to delete CTI Catalog Content {}: {}", id, e.getMessage(), e);
+                }
+            });
     }
 
     /**
-     * Initializes the index from a local snapshot. The snapshot file (in NDJSON format) is split in
-     * chunks of {@link PluginSettings#MAX_ITEMS_PER_BULK} elements. These are bulk indexed using
-     * {@link ContentIndex#index(List)}.
+     * Initializes the index from a local snapshot file.
      *
      * @param path path to the CTI snapshot JSON file to be indexed.
-     * @return offset number of the last indexed resource of the snapshot. 0 on error.
+     * @return The offset number of the last indexed resource of the snapshot, or 0 on error/empty.
      */
     public long fromSnapshot(String path) {
         long startTime = System.currentTimeMillis();
@@ -326,15 +335,16 @@ public class ContentIndex {
         log.info("Snapshot indexing finished successfully in {} ms", estimatedTime);
 
         return items.isEmpty()
-                ? 0
-                : items.get(items.size() - 1).get(ContentIndex.JSON_OFFSET_KEY).getAsLong();
+            ? 0
+            : items.get(items.size() - 1).get(ContentIndex.JSON_OFFSET_KEY).getAsLong();
     }
 
     /**
      * Applies a set of changes (create, update, delete) to the content index.
      *
      * @param changes content changes to apply.
-     * @deprecated
+     * @throws RuntimeException if the patching process is interrupted or fails.
+     * @deprecated Use of this specific patch implementation may be replaced by newer synchronization methods.
      */
     public void patch(Changes changes) {
         ArrayList<Offset> offsets = changes.get();
@@ -344,10 +354,10 @@ public class ContentIndex {
         }
 
         log.info(
-                "Patching [{}] from offset [{}] to [{}]",
-                ContentIndex.INDEX_NAME,
-                changes.getFirst().getOffset(),
-                changes.getLast().getOffset());
+            "Patching [{}] from offset [{}] to [{}]",
+            ContentIndex.INDEX_NAME,
+            changes.getFirst().getOffset(),
+            changes.getLast().getOffset());
         for (Offset change : offsets) {
             String id = change.getResource();
             try {
@@ -384,16 +394,18 @@ public class ContentIndex {
         }
     }
 
-    /** Clears all documents from the {@link ContentIndex#INDEX_NAME} index. */
+    /**
+     * Clears all documents from the {@link ContentIndex#INDEX_NAME} index using a "delete by query" operation.
+     */
     public void clear() {
         try {
             DeleteByQueryRequestBuilder deleteByQuery =
-                    new DeleteByQueryRequestBuilder(this.client, DeleteByQueryAction.INSTANCE);
+                new DeleteByQueryRequestBuilder(this.client, DeleteByQueryAction.INSTANCE);
             deleteByQuery.source(this.indexName).filter(QueryBuilders.matchAllQuery());
 
             BulkByScrollResponse response = deleteByQuery.get();
             log.debug(
-                    "[{}] wiped. {} documents were removed", this.indexName, response.getDeleted());
+                "[{}] wiped. {} documents were removed", this.indexName, response.getDeleted());
         } catch (OpenSearchTimeoutException e) {
             log.error("[{}] delete query timed out: {}", this.indexName, e.getMessage());
         }

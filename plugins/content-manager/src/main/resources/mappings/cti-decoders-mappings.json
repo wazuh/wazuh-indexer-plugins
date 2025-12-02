@@ -1,5 +1,4 @@
 {
-  "enabled": false,
   "dynamic": "strict_allow_templates",
   "dynamic_templates": [
     {

@@ -14,7 +14,7 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-package com.wazuh.contentmanager.cti.catalog.index.index;
+package com.wazuh.contentmanager.cti.catalog.index;
 
 import com.wazuh.contentmanager.cti.catalog.model.LocalConsumer;
 import org.apache.logging.log4j.LogManager;
@@ -112,6 +112,17 @@ public class ConsumersIndex {
         return false;
     }
 
+    /**
+     * Indexes a local consumer object into the cluster.
+     *
+     * @param consumer The {@link LocalConsumer} object containing the data to be indexed.
+     * @return The {@link IndexResponse} indicating the result of the operation.
+     * @throws ExecutionException   If the client failed to execute the request.
+     * @throws InterruptedException If the current thread was interrupted while waiting for the response.
+     * @throws TimeoutException     If the operation exceeded the configured client timeout.
+     * @throws IOException          If there is an error serializing the consumer to XContent.
+     * @throws RuntimeException     If the target index is not currently ready or available.
+     */
     public IndexResponse setConsumer(LocalConsumer consumer) throws ExecutionException, InterruptedException, TimeoutException, IOException {
         // Avoid faulty requests if the cluster is unstable.
         if (!ClusterInfo.indexStatusCheck(this.client, INDEX_NAME)) {
@@ -127,6 +138,17 @@ public class ConsumersIndex {
         return this.client.index(request).get(this.pluginSettings.getClientTimeout(), TimeUnit.SECONDS);
     }
 
+    /**
+     * Retrieves a consumer document from the index by its composite identifier.
+     *
+     * @param context  The context identifier of the consumer.
+     * @param consumer The name identifier of the consumer.
+     * @return A {@link GetResponse} containing the document source and metadata.
+     * @throws ExecutionException   If the client failed to execute the request.
+     * @throws InterruptedException If the current thread was interrupted while waiting for the response.
+     * @throws TimeoutException     If the operation exceeded the configured client timeout.
+     * @throws RuntimeException     If the target index is not currently ready or available.
+     */
     public GetResponse getConsumer(String context, String consumer) throws ExecutionException, InterruptedException, TimeoutException {
         // Avoid faulty requests if the cluster is unstable.
         if (!ClusterInfo.indexStatusCheck(this.client, INDEX_NAME)) {

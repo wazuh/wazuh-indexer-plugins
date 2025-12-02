@@ -22,14 +22,29 @@ public class RemoteConsumer extends AbstractConsumer {
         this.snapshotLink = data.get("last_snapshot_link").asText("");
     }
 
+    /**
+     * Gets the last known offset of the remote consumer.
+     *
+     * @return The offset value.
+     */
     public long getOffset() {
         return offset;
     }
 
+    /**
+     * Gets the link to the latest snapshot.
+     *
+     * @return The snapshot URL string.
+     */
     public String getSnapshotLink() {
         return snapshotLink;
     }
 
+    /**
+     * Returns a string representation of the RemoteConsumer object.
+     *
+     * @return A string describing the internal state of the consumer.
+     */
     @Override
     public String toString() {
         return "RemoteConsumer{" +

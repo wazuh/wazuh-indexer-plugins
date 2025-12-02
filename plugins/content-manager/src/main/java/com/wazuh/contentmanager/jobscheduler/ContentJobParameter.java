@@ -39,6 +39,11 @@ public class ContentJobParameter implements ScheduledJobParameter {
         this.enabledTime = enabledTime;
     }
 
+    /**
+     * Gets the job type identifier.
+     *
+     * @return The job type string (e.g., "hello-world-task").
+     */
     public String getJobType() {
         return this.jobType;
     }

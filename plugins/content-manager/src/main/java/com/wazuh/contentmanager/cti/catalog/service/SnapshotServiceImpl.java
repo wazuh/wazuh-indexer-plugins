@@ -24,8 +24,8 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import com.wazuh.contentmanager.cti.catalog.client.SnapshotClient;
-import com.wazuh.contentmanager.cti.catalog.index.index.ConsumersIndex;
-import com.wazuh.contentmanager.cti.catalog.index.index.ContentIndex;
+import com.wazuh.contentmanager.cti.catalog.index.ConsumersIndex;
+import com.wazuh.contentmanager.cti.catalog.index.ContentIndex;
 import com.wazuh.contentmanager.cti.catalog.model.LocalConsumer;
 import com.wazuh.contentmanager.cti.catalog.model.RemoteConsumer;
 import com.wazuh.contentmanager.cti.catalog.utils.Unzip;
@@ -49,6 +49,15 @@ import java.util.*;
  */
 public class SnapshotServiceImpl implements SnapshotService {
     private static final Logger log = LogManager.getLogger(SnapshotServiceImpl.class);
+
+    // Mappers and Keys for YAML enrichment
+    private static final ObjectMapper JSON_MAPPER = new ObjectMapper();
+    private static final ObjectMapper YAML_MAPPER = new ObjectMapper(new YAMLFactory());
+
+    private static final List<String> DECODER_ORDER_KEYS = Arrays.asList(
+        "name", "metadata", "parents", "definitions", "check",
+        "parse|event.original", "parse|message", "normalize"
+    );
 
     // Keys to navigate the JSON structure
     private static final String JSON_PAYLOAD_KEY = "payload";
@@ -159,23 +168,6 @@ public class SnapshotServiceImpl implements SnapshotService {
         int docCount = 0;
         BulkRequest bulkRequest = new BulkRequest();
 
-        // Mappers to transform decoders to YAML representation.
-        ObjectMapper jsonMapper = new ObjectMapper();
-        ObjectMapper yamlMapper = new ObjectMapper(new YAMLFactory());
-
-        // Order in decoder's fields
-        List<String> orderKeys = Arrays.asList(
-            "name",
-            "metadata",
-            "parents",
-            "definitions",
-            "check",
-            "parse|event.original",
-            "parse|message",
-            // "parse|*" // is dynamic
-            "normalize"
-        );
-
         try (BufferedReader reader = Files.newBufferedReader(filePath, StandardCharsets.UTF_8)) {
             while ((line = reader.readLine()) != null) {
                 try {
@@ -202,35 +194,7 @@ public class SnapshotServiceImpl implements SnapshotService {
                     }
 
                     if ("decoder".equalsIgnoreCase(type)) {
-                        try {
-                            JsonNode docNode = jsonMapper.readTree(payload.toString()).get(JSON_DOCUMENT_KEY);
-
-                            if (docNode != null && docNode.isObject()) {
-                                Map<String, Object> orderedDecoderMap = new LinkedHashMap<>();
-
-                                // Add JSON nodes in the expected order, if they exist.
-                                for (String key : orderKeys) {
-                                    if (docNode.has(key)) {
-                                        orderedDecoderMap.put(key, docNode.get(key));
-                                    }
-                                }
-
-                                // Add remaining JSON nodes.
-                                Iterator<Map.Entry<String, JsonNode>> fields = docNode.fields();
-                                while (fields.hasNext()) {
-                                    Map.Entry<String, JsonNode> field = fields.next();
-                                    if (!orderKeys.contains(field.getKey())) {
-                                        orderedDecoderMap.put(field.getKey(), field.getValue());
-                                    }
-                                }
-
-                                // Add YAML representation to the document
-                                String yamlContent = yamlMapper.writeValueAsString(orderedDecoderMap);
-                                payload.addProperty("decoder", yamlContent);
-                            }
-                        } catch (IOException e) {
-                            log.error("Failed to convert decoder payload to YAML: {}", e.getMessage(), e);
-                        }
+                        this.enrichDecoderWithYaml(payload);
                     }
 
                     String indexName = this.getIndexName(type);
@@ -275,6 +239,44 @@ public class SnapshotServiceImpl implements SnapshotService {
 
         } catch (IOException e) {
             log.error("Error reading snapshot file [{}]: {}", filePath, e.getMessage());
+        }
+    }
+
+    /**
+     * Parses the decoder payload, reorders keys based on a predefined list,
+     * and adds a YAML representation of the decoder to the payload.
+     *
+     * @param payload The JSON object containing the decoder data.
+     */
+    private void enrichDecoderWithYaml(JsonObject payload) {
+        try {
+            JsonNode docNode = JSON_MAPPER.readTree(payload.toString()).get(JSON_DOCUMENT_KEY);
+
+            if (docNode != null && docNode.isObject()) {
+                Map<String, Object> orderedDecoderMap = new LinkedHashMap<>();
+
+                // Add JSON nodes in the expected order, if they exist.
+                for (String key : DECODER_ORDER_KEYS) {
+                    if (docNode.has(key)) {
+                        orderedDecoderMap.put(key, docNode.get(key));
+                    }
+                }
+
+                // Add remaining JSON nodes.
+                Iterator<Map.Entry<String, JsonNode>> fields = docNode.fields();
+                while (fields.hasNext()) {
+                    Map.Entry<String, JsonNode> field = fields.next();
+                    if (!DECODER_ORDER_KEYS.contains(field.getKey())) {
+                        orderedDecoderMap.put(field.getKey(), field.getValue());
+                    }
+                }
+
+                // Add YAML representation to the document
+                String yamlContent = YAML_MAPPER.writeValueAsString(orderedDecoderMap);
+                payload.addProperty("decoder", yamlContent);
+            }
+        } catch (IOException e) {
+            log.error("Failed to convert decoder payload to YAML: {}", e.getMessage(), e);
         }
     }
 
