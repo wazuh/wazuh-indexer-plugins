@@ -51,8 +51,8 @@ public class SnapshotServiceImpl implements SnapshotService {
     private static final Logger log = LogManager.getLogger(SnapshotServiceImpl.class);
 
     // Mappers and Keys for YAML enrichment
-    private static final ObjectMapper JSON_MAPPER = new ObjectMapper();
-    private static final ObjectMapper YAML_MAPPER = new ObjectMapper(new YAMLFactory());
+    private final ObjectMapper jsonMapper;
+    private final ObjectMapper yamlMapper;
 
     private static final List<String> DECODER_ORDER_KEYS = Arrays.asList(
         "name", "metadata", "parents", "definitions", "check",
@@ -84,6 +84,8 @@ public class SnapshotServiceImpl implements SnapshotService {
         this.consumersIndex = consumersIndex;
         this.environment = environment;
         this.pluginSettings = PluginSettings.getInstance();
+        this.jsonMapper = new ObjectMapper();
+        this.yamlMapper = new ObjectMapper(new YAMLFactory());
 
         this.snapshotClient = new SnapshotClient(this.environment);
     }
@@ -250,7 +252,7 @@ public class SnapshotServiceImpl implements SnapshotService {
      */
     private void enrichDecoderWithYaml(JsonObject payload) {
         try {
-            JsonNode docNode = JSON_MAPPER.readTree(payload.toString()).get(JSON_DOCUMENT_KEY);
+            JsonNode docNode = this.jsonMapper.readTree(payload.toString()).get(JSON_DOCUMENT_KEY);
 
             if (docNode != null && docNode.isObject()) {
                 Map<String, Object> orderedDecoderMap = new LinkedHashMap<>();
@@ -272,7 +274,7 @@ public class SnapshotServiceImpl implements SnapshotService {
                 }
 
                 // Add YAML representation to the document
-                String yamlContent = YAML_MAPPER.writeValueAsString(orderedDecoderMap);
+                String yamlContent = this.yamlMapper.writeValueAsString(orderedDecoderMap);
                 payload.addProperty("decoder", yamlContent);
             }
         } catch (IOException e) {
@@ -298,12 +300,12 @@ public class SnapshotServiceImpl implements SnapshotService {
         JsonElement relatedElement = document.get("related");
 
         if (relatedElement.isJsonObject()) {
-            sanitizeRelatedObject(relatedElement.getAsJsonObject());
+            this.sanitizeRelatedObject(relatedElement.getAsJsonObject());
         } else if (relatedElement.isJsonArray()) {
             JsonArray relatedArray = relatedElement.getAsJsonArray();
             for (JsonElement element : relatedArray) {
                 if (element.isJsonObject()) {
-                    sanitizeRelatedObject(element.getAsJsonObject());
+                    this.sanitizeRelatedObject(element.getAsJsonObject());
                 }
             }
         }
