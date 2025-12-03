@@ -98,6 +98,9 @@ dependencies {
     // ZipArchive dependencies used for integration tests
     zipArchive group: 'org.opensearch.plugin', name: 'opensearch-job-scheduler', version: "${opensearch_build}"
     compileOnly "org.opensearch:opensearch-job-scheduler-spi:${job_scheduler_version}"
+    implementation group: 'com.wazuh', name: 'wazuh-indexer-common', version: "${version}"
+    zipArchive group: 'org.opensearch.plugin', name:'alerting', version: "${opensearch_build}"
+    zipArchive group: 'org.opensearch', name: 'wazuh-indexer-security-analytics', version: "${version}"
 }
 
 // No need to validate license headers since spotless checks and applies it
@@ -142,6 +145,9 @@ task integTest(type: RestIntegTestTask) {
     classpath = sourceSets.test.runtimeClasspath
 }
 tasks.named("check").configure { dependsOn(integTest) }
+
+// Explicitly declare dependency to fix errors on publishToMavenLocal
+tasks.named("publishNebulaPublicationToMavenLocal").configure { dependsOn("generatePomFileForPluginZipPublication") }
 
 integTest {
     // The --debug-jvm command-line option makes the cluster debuggable; this makes the tests debuggable
