@@ -27,45 +27,20 @@ import java.io.IOException;
 
 /**
  * Class representing a JSON Patch operation.
- *
- * <p>This class implements the ToXContentObject interface, allowing it to be serialized to XContent
- * format. It is used to define operations that can be applied to a JSON document, such as adding,
- * removing, or replacing elements.
  */
 public class Operation implements ToXContentObject {
     public static final String OP = "op";
     public static final String PATH = "path";
     public static final String FROM = "from";
     public static final String VALUE = "value";
-    private final String op; // TODO replace with Operation.Type
+
+    private final String op;
     private final String path;
     private final String from;
     private final Object value;
 
     private static final Logger log = LogManager.getLogger(Operation.class);
 
-    /**
-     * This enumeration represents the types of supported operations of the Content Manager plugin
-     * from the JSON Patch operations set. Check the <a
-     * href="https://datatracker.ietf.org/doc/html/rfc6902#page-4">RFC 6902</a>.
-     */
-    public enum Type {
-        TEST,
-        REMOVE,
-        ADD,
-        REPLACE,
-        MOVE,
-        COPY
-    }
-
-    /**
-     * Constructor.
-     *
-     * @param op Operation type (add, remove, replace).
-     * @param path Path to the element to be modified.
-     * @param from Source path for move operations.
-     * @param value Value to be added or replaced.
-     */
     public Operation(String op, String path, String from, Object value) {
         this.op = op;
         this.path = path;
@@ -73,85 +48,45 @@ public class Operation implements ToXContentObject {
         this.value = value;
     }
 
-    /**
-     * Parses a JSON object to create a PatchOperation instance.
-     *
-     * @param parser The XContentParser to parse the JSON object.
-     * @return A PatchOperation instance.
-     * @throws IllegalArgumentException if the JSON object is invalid.
-     * @throws IOException if an I/O error occurs during parsing.
-     */
-    public static Operation parse(XContentParser parser)
-            throws IllegalArgumentException, IOException {
+    public static Operation parse(XContentParser parser) throws IOException {
         String op = null;
         String path = null;
         String from = null;
         Object value = null;
-        // Make sure we are at the start
-        XContentParserUtils.ensureExpectedToken(
-                XContentParser.Token.START_OBJECT, parser.currentToken(), parser);
-        // Iterate over the object and add each Offset object to changes array
+
+        XContentParserUtils.ensureExpectedToken(XContentParser.Token.START_OBJECT, parser.currentToken(), parser);
+
         while (parser.nextToken() != XContentParser.Token.END_OBJECT) {
-            String fieldName = parser.currentName(); // Get key
-            parser.nextToken(); // Move to value
+            String fieldName = parser.currentName();
+            parser.nextToken();
             switch (fieldName) {
-                case OP:
-                    op = parser.text();
-                    break;
-                case PATH:
-                    path = parser.text();
-                    break;
-                    // "from" is only used for "copy" and "move" operations,
-                    // which are currently un-supported.
-                case FROM:
-                    from = parser.text();
-                    break;
-                case VALUE:
-                    // value can be anything.
+                case OP -> op = parser.text();
+                case PATH -> path = parser.text();
+                case FROM -> from = parser.text();
+                case VALUE -> {
                     switch (parser.currentToken()) {
-                        case START_OBJECT:
-                            value = parser.map();
-                            break;
-                        case START_ARRAY:
-                            value = parser.list();
-                            break;
-                        case VALUE_STRING:
-                            value = parser.text();
-                            break;
-                        default:
-                            parser.skipChildren();
-                            break;
+                        case START_OBJECT -> value = parser.map();
+                        case START_ARRAY -> value = parser.list();
+                        case VALUE_STRING -> value = parser.text();
+                        case VALUE_NUMBER -> value = parser.numberValue();
+                        case VALUE_BOOLEAN -> value = parser.booleanValue();
+                        case VALUE_NULL -> value = null;
+                        default -> parser.skipChildren();
                     }
-                    break;
-                default:
-                    log.error("Unknown field [{}] parsing a JSON Patch operation", fieldName);
-                    parser.skipChildren();
-                    break;
+                }
+                default -> parser.skipChildren();
             }
         }
-
         return new Operation(op, path, from, value);
     }
 
-    /**
-     * Outputs an XContentBuilder object ready to be printed or manipulated
-     *
-     * @param builder the received builder object
-     * @param params We don't really use this one
-     * @return an XContentBuilder object ready to be printed
-     * @throws IOException rethrown from Offset's toXContent
-     */
     @Override
     public XContentBuilder toXContent(XContentBuilder builder, Params params) throws IOException {
         builder.startObject();
         builder.field(OP, this.op);
         builder.field(PATH, this.path);
-        if (this.from != null) {
-            builder.field(FROM, this.from);
-        }
-        if (this.value != null) {
-            builder.field(VALUE, this.value);
-        }
+        if (this.from != null) builder.field(FROM, this.from);
+        if (this.value != null) builder.field(VALUE, this.value);
         return builder.endObject();
     }
 }

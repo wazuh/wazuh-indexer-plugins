@@ -47,7 +47,7 @@ import java.util.*;
  * Service responsible for handling the download, extraction, and indexing of CTI snapshots.
  * It extracts the contents of the payload and indexes them at the root.
  */
-public class SnapshotServiceImpl implements SnapshotService {
+public class SnapshotServiceImpl extends AbstractService implements SnapshotService {
     private static final Logger log = LogManager.getLogger(SnapshotServiceImpl.class);
 
     // Mappers and Keys for YAML enrichment

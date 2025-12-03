@@ -16,6 +16,7 @@ import javax.net.ssl.SSLContext;
 import java.security.KeyManagementException;
 import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
+import java.util.Locale;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
@@ -103,6 +104,36 @@ public class ApiClient {
     public SimpleHttpResponse getConsumer(String context, String consumer) throws ExecutionException, InterruptedException, TimeoutException {
         SimpleHttpRequest request = SimpleRequestBuilder
             .get(this.buildConsumerURI(context, consumer))
+            .build();
+
+        final Future<SimpleHttpResponse> future = client.execute(
+            SimpleRequestProducer.create(request),
+            SimpleResponseConsumer.create(),
+            new HttpResponseCallback(
+                request, "Outgoing request failed"
+            )
+        );
+
+        return future.get(PluginSettings.getInstance().getClientTimeout(), TimeUnit.SECONDS);
+    }
+
+    /**
+     * Retrieves the changes for a specific consumer within a given context.
+     *
+     * @param context    The context identifier.
+     * @param consumer   The consumer identifier.
+     * @param fromOffset The starting offset (exclusive).
+     * @param toOffset   The ending offset (inclusive).
+     * @return A {@link SimpleHttpResponse} containing the API response.
+     * @throws ExecutionException   If the computation threw an exception.
+     * @throws InterruptedException If the current thread was interrupted while waiting.
+     * @throws TimeoutException     If the wait timed out.
+     */
+    public SimpleHttpResponse getChanges(String context, String consumer, long fromOffset, long toOffset) throws ExecutionException, InterruptedException, TimeoutException {
+        String uri = this.buildConsumerURI(context, consumer) + "/changes?from_offset=" + fromOffset + "&to_offset=" + toOffset;
+
+        SimpleHttpRequest request = SimpleRequestBuilder
+            .get(uri)
             .build();
 
         final Future<SimpleHttpResponse> future = client.execute(

@@ -23,6 +23,9 @@ import org.apache.logging.log4j.Logger;
 
 import com.wazuh.contentmanager.cti.catalog.model.Operation;
 
+import java.util.HashSet;
+import java.util.Map;
+
 /**
  * Utility class for applying JSON Patch operations to JSON documents.
  *
@@ -43,9 +46,8 @@ public class JsonPatch {
         String path = operation.get(Operation.PATH).getAsString();
         JsonElement value = operation.has(Operation.VALUE) ? operation.get(Operation.VALUE) : null;
         String from =
-                operation.has(Operation.FROM) ? operation.get(Operation.FROM).getAsString() : null;
+            operation.has(Operation.FROM) ? operation.get(Operation.FROM).getAsString() : null;
 
-        // TODO replace with Operation.Type
         switch (op) {
             case "add":
                 JsonPatch.addOperation(document, path, value);
@@ -79,6 +81,19 @@ public class JsonPatch {
      * @param value The value to be added.
      */
     private static void addOperation(JsonObject document, String path, JsonElement value) {
+        if (path.isEmpty()) {
+            // Root replacement: clear and add all fields
+            for (String key : new HashSet<>(document.keySet())) {
+                document.remove(key);
+            }
+            if (value != null && value.isJsonObject()) {
+                for (Map.Entry<String, JsonElement> entry : value.getAsJsonObject().entrySet()) {
+                    document.add(entry.getKey(), entry.getValue());
+                }
+            }
+            return;
+        }
+
         JsonElement target = JsonPatch.navigateToParent(document, path);
         if (target instanceof JsonObject) {
             String key = extractKeyFromPath(path);
@@ -93,6 +108,14 @@ public class JsonPatch {
      * @param path The JSON path where the value should be removed.
      */
     private static void removeOperation(JsonObject document, String path) {
+        if (path.isEmpty()) {
+            // Root removal: clear all fields
+            for (String key : new HashSet<>(document.keySet())) {
+                document.remove(key);
+            }
+            return;
+        }
+
         JsonElement target = JsonPatch.navigateToParent(document, path);
         if (target instanceof JsonObject) {
             String key = extractKeyFromPath(path);
@@ -120,7 +143,14 @@ public class JsonPatch {
      * @param toPath The JSON path where the value should be moved.
      */
     private static void moveOperation(JsonObject document, String fromPath, String toPath) {
-        JsonElement value = navigateToParent(document, fromPath);
+        JsonElement parent = navigateToParent(document, fromPath);
+        if (parent == null || !parent.isJsonObject()) return;
+
+        String key = extractKeyFromPath(fromPath);
+        if (!parent.getAsJsonObject().has(key)) return;
+
+        JsonElement value = parent.getAsJsonObject().get(key);
+
         JsonPatch.removeOperation(document, fromPath);
         JsonPatch.addOperation(document, toPath, value);
     }

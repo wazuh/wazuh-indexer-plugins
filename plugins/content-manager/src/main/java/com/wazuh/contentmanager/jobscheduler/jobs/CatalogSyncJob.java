@@ -1,5 +1,6 @@
 package com.wazuh.contentmanager.jobscheduler.jobs;
 
+import com.wazuh.contentmanager.cti.catalog.client.ApiClient;
 import com.wazuh.contentmanager.cti.catalog.index.ConsumersIndex;
 import com.wazuh.contentmanager.cti.catalog.index.ContentIndex;
 import com.wazuh.contentmanager.cti.catalog.model.LocalConsumer;
@@ -7,6 +8,7 @@ import com.wazuh.contentmanager.cti.catalog.model.RemoteConsumer;
 import com.wazuh.contentmanager.cti.catalog.service.ConsumerService;
 import com.wazuh.contentmanager.cti.catalog.service.ConsumerServiceImpl;
 import com.wazuh.contentmanager.cti.catalog.service.SnapshotServiceImpl;
+import com.wazuh.contentmanager.cti.catalog.service.UpdateServiceImpl;
 import com.wazuh.contentmanager.jobscheduler.JobExecutor;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -157,12 +159,14 @@ public class CatalogSyncJob implements JobExecutor {
         RemoteConsumer remoteConsumer = consumerService.getRemoteConsumer();
 
         List<ContentIndex> indices = new ArrayList<>();
+        Map<String, ContentIndex> indicesMap = new HashMap<>();
 
         for (Map.Entry<String, String> entry : mappings.entrySet()) {
             String indexName = this.getIndexName(context, consumer, entry.getKey());
             String alias = aliases.get(entry.getKey());
             ContentIndex index = new ContentIndex(this.client, indexName, entry.getValue(), alias);
             indices.add(index);
+            indicesMap.put(entry.getKey(), index);
 
             // Check if index exists to avoid creation exception
             boolean indexExists = this.client.admin().indices().prepareExists(indexName).get().isExists();
@@ -189,8 +193,18 @@ public class CatalogSyncJob implements JobExecutor {
                 this.environment
             );
             snapshotService.initialize(remoteConsumer);
+            snapshotService.close();
         } else if (remoteConsumer != null && localConsumer.getLocalOffset() != remoteConsumer.getOffset()) {
-            // TODO: Implement offset based update process
+            log.info("Starting offset-based update for consumer [{}]", consumer);
+            UpdateServiceImpl updateService = new UpdateServiceImpl(
+                context,
+                consumer,
+                new ApiClient(),
+                this.consumersIndex,
+                indicesMap
+            );
+            updateService.update(localConsumer.getLocalOffset(), remoteConsumer.getOffset());
+            updateService.close();
         }
     }
 }
