@@ -1,9 +1,9 @@
 package com.wazuh.contentmanager.rest.services;
 
-import com.wazuh.contentmanager.ContentManagerPlugin;
 import com.wazuh.contentmanager.jobscheduler.jobs.CatalogSyncJob;
 import com.wazuh.contentmanager.cti.console.CtiConsole;
 import com.wazuh.contentmanager.rest.model.RestResponse;
+import com.wazuh.contentmanager.settings.PluginSettings;
 import org.opensearch.rest.NamedRoute;
 import org.opensearch.transport.client.node.NodeClient;
 import org.opensearch.core.rest.RestStatus;
@@ -61,7 +61,7 @@ public class RestPostUpdateAction extends BaseRestHandler {
         return List.of(
             // POST /_plugins/content-manager/update
             new NamedRoute.Builder()
-                .path(ContentManagerPlugin.UPDATE_URI)
+                .path(PluginSettings.UPDATE_URI)
                 .method(POST)
                 .uniqueName(ENDPOINT_UNIQUE_NAME)
                 .build()

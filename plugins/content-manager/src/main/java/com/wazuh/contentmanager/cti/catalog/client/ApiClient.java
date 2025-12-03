@@ -29,14 +29,15 @@ import java.util.concurrent.TimeoutException;
  */
 public class ApiClient {
 
-    private static final String BASE_URI = "https://cti-pre.wazuh.com";
-    private static final String API_PREFIX = "/api/v1";
+    private final String baseUri;
     private CloseableHttpAsyncClient client;
 
     /**
      * Constructs an ApiClient instance and initializes the underlying HTTP client.
      */
     public ApiClient() {
+        // Retrieve base URI from PluginSettings
+        this.baseUri = PluginSettings.getInstance().getCtiBaseUrl();
         this.buildClient();
     }
 
@@ -87,7 +88,7 @@ public class ApiClient {
      * @return A string representing the full absolute URL for the resource.
      */
     private String buildConsumerURI(String context, String consumer) {
-        return BASE_URI + API_PREFIX + "/catalog/contexts/" + context + "/consumers/" + consumer;
+        return this.baseUri + "/catalog/contexts/" + context + "/consumers/" + consumer;
     }
 
     /**

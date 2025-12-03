@@ -57,8 +57,6 @@ public class UpdateServiceImpl extends AbstractService implements UpdateService 
      * @param indices        A map of content type to {@link ContentIndex} managers.
      */
     public UpdateServiceImpl(String context, String consumerName, ApiClient client, ConsumersIndex consumersIndex, Map<String, ContentIndex> indices) {
-        // AbstractService constructor runs first and creates a real ApiClient.
-        // We must close it to prevent thread leaks when injecting a mock client.
         if (this.client != null) {
             this.client.close();
         }

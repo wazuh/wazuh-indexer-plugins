@@ -124,8 +124,6 @@ public class ConsumersIndex {
 
     /**
      * Creates the {@link ConsumersIndex#INDEX_NAME} index.
-     *
-     * @return
      */
     public CreateIndexResponse createIndex() throws ExecutionException, InterruptedException, TimeoutException {
         Settings settings = Settings.builder()
