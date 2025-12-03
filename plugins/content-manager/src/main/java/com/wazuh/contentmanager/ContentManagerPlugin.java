@@ -73,6 +73,7 @@ public class ContentManagerPlugin extends Plugin implements ClusterPlugin, JobSc
     private CtiConsole ctiConsole;
     private Client client;
     private Environment environment;
+    private CatalogSyncJob catalogSyncJob;
 
     // Rest API endpoints
     public static final String PLUGINS_BASE_URI = "/_plugins/content-manager";
@@ -101,8 +102,12 @@ public class ContentManagerPlugin extends Plugin implements ClusterPlugin, JobSc
         // Content Manager 5.0
         this.ctiConsole = new CtiConsole();
         ContentJobRunner runner = ContentJobRunner.getInstance();
+
+        // Initialize CatalogSyncJob
+        this.catalogSyncJob = new CatalogSyncJob(client, consumersIndex, environment, threadPool);
+
         // Register Executors
-        runner.registerExecutor(CatalogSyncJob.JOB_TYPE, new CatalogSyncJob(client, consumersIndex, environment, threadPool));
+        runner.registerExecutor(CatalogSyncJob.JOB_TYPE, this.catalogSyncJob);
 
         return Collections.emptyList();
     }
@@ -137,8 +142,7 @@ public class ContentManagerPlugin extends Plugin implements ClusterPlugin, JobSc
             new RestGetSubscriptionAction(this.ctiConsole),
             new RestPostSubscriptionAction(this.ctiConsole),
             new RestDeleteSubscriptionAction(this.ctiConsole),
-            new RestPostUpdateAction(this.ctiConsole)
-        );
+            new RestPostUpdateAction(this.ctiConsole, this.catalogSyncJob));
     }
 
     /**

@@ -23,6 +23,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.concurrent.Semaphore;
 
 /**
  * Job responsible for executing the synchronization logic for Rules and Decoders consumers.
@@ -32,6 +33,9 @@ public class CatalogSyncJob implements JobExecutor {
 
     // Identifier used to route this specific job type
     public static final String JOB_TYPE = "consumer-sync-task";
+
+    // Semaphore to control concurrency
+    private final Semaphore semaphore = new Semaphore(1);
 
     private final Client client;
     private final ConsumersIndex consumersIndex;
@@ -54,22 +58,69 @@ public class CatalogSyncJob implements JobExecutor {
     }
 
     /**
-     * Triggers the execution of the synchronization job.
+     * Triggers the execution of the synchronization job via the Job Scheduler.
      *
      * @param context The execution context provided by the Job Scheduler, containing metadata like the Job ID.
      */
     @Override
     public void execute(JobExecutionContext context) {
+        if (!semaphore.tryAcquire()) {
+            log.warn("CatalogSyncJob (ID: {}) skipped because synchronization is already running.", context.getJobId());
+            return;
+        }
+
         // Offload execution to the generic thread pool to allow blocking operations
         this.threadPool.generic().execute(() -> {
             try {
                 log.info("Executing Consumer Sync Job (ID: {})", context.getJobId());
-                this.rulesConsumer();
-                this.decodersConsumer();
+                this.performSynchronization();
             } catch (Exception e) {
                 log.error("Error executing Consumer Sync Job (ID: {}): {}", context.getJobId(), e.getMessage(), e);
+            } finally {
+                semaphore.release();
             }
         });
+    }
+
+    /**
+     * Checks if the synchronization job is currently running.
+     *
+     * @return true if running, false otherwise.
+     */
+    public boolean isRunning() {
+        return semaphore.availablePermits() == 0;
+    }
+
+    /**
+     * Attempts to trigger the synchronization process manually.
+     *
+     * @return true if the job was successfully started, false if it is already running.
+     */
+    public boolean trigger() {
+        if (!semaphore.tryAcquire()) {
+            log.warn("Attempted to trigger CatalogSyncJob manually while it is already running.");
+            return false;
+        }
+        this.threadPool.generic().execute(() -> {
+            try {
+                log.info("Executing Manually Triggered Consumer Sync Job");
+                this.performSynchronization();
+            } catch (Exception e) {
+                log.error("Error executing Manual Consumer Sync Job: {}", e.getMessage(), e);
+            } finally {
+                semaphore.release();
+            }
+        });
+
+        return true;
+    }
+
+    /**
+     * Centralized synchronization logic used by both execute() and trigger().
+     */
+    private void performSynchronization() {
+        this.rulesConsumer();
+        this.decodersConsumer();
     }
 
     /**
