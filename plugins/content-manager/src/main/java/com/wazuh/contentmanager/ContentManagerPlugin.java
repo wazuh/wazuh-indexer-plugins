@@ -16,6 +16,12 @@
  */
 package com.wazuh.contentmanager;
 
+import com.wazuh.common.action.UpdateRulesAction;
+import com.wazuh.common.action.UpdateRulesRequest;
+import java.time.Instant;
+import java.time.temporal.ChronoUnit;
+import java.util.*;
+import java.util.function.Supplier;
 import com.wazuh.contentmanager.cti.catalog.index.ConsumersIndex;
 import com.wazuh.contentmanager.cti.catalog.index.ContentIndex;
 import com.wazuh.contentmanager.cti.console.CtiConsole;
@@ -29,6 +35,7 @@ import com.wazuh.contentmanager.rest.services.RestPostUpdateAction;
 import com.wazuh.contentmanager.settings.PluginSettings;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.opensearch.action.ActionRequest;
 import org.opensearch.action.admin.indices.create.CreateIndexResponse;
 import org.opensearch.action.index.IndexRequest;
 import org.opensearch.cluster.metadata.IndexNameExpressionResolver;
@@ -55,10 +62,7 @@ import org.opensearch.threadpool.ThreadPool;
 import org.opensearch.transport.client.Client;
 import org.opensearch.watcher.ResourceWatcherService;
 
-import java.time.Instant;
-import java.time.temporal.ChronoUnit;
 import java.util.*;
-import java.util.function.Supplier;
 
 /**
  * Main class of the Content Manager Plugin
@@ -121,6 +125,9 @@ public class ContentManagerPlugin extends Plugin implements ClusterPlugin, JobSc
             this.start();
         }
 
+        String jsonBody = "{\"field\": \"value\"}";
+        ActionRequest actionRequest = new UpdateRulesRequest(jsonBody);
+        client.execute(UpdateRulesAction.INSTANCE, actionRequest);
         // Schedule the periodic sync job via OpenSearch Job Scheduler
         this.scheduleCatalogSyncJob();
     }
