@@ -328,14 +328,6 @@ public class ContentIndex {
      * @param document The document object to preprocess.
      */
     private void preprocessDocument(JsonObject document) {
-        if (document.has("date")) {
-            document.remove("date");
-        }
-
-        if (document.has("enabled")) {
-            document.remove("enabled");
-        }
-
         if (document.has("metadata") && document.get("metadata").isJsonObject()) {
             JsonObject metadata = document.getAsJsonObject("metadata");
             if (metadata.has("custom_fields")) {

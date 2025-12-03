@@ -16,7 +16,6 @@
  */
 package com.wazuh.contentmanager.cti.catalog.service;
 
-import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.wazuh.contentmanager.cti.catalog.client.SnapshotClient;
 import com.wazuh.contentmanager.cti.catalog.index.ConsumersIndex;
@@ -26,7 +25,6 @@ import com.wazuh.contentmanager.cti.catalog.model.RemoteConsumer;
 import com.wazuh.contentmanager.settings.PluginSettings;
 import org.opensearch.action.bulk.BulkRequest;
 import org.opensearch.action.index.IndexRequest;
-import org.opensearch.cluster.service.ClusterService;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.env.Environment;
 import org.opensearch.test.OpenSearchTestCase;
@@ -61,7 +59,6 @@ public class SnapshotServiceImplTests extends OpenSearchTestCase {
     @Mock private ConsumersIndex consumersIndex;
     @Mock private ContentIndex contentIndexMock;
     @Mock private Environment environment;
-    @Mock private ClusterService clusterService;
     @Mock private RemoteConsumer remoteConsumer;
 
     private AutoCloseable closeable;
@@ -80,17 +77,20 @@ public class SnapshotServiceImplTests extends OpenSearchTestCase {
         when(this.environment.tmpDir()).thenReturn(this.tempDir);
         when(this.environment.settings()).thenReturn(settings);
 
-        PluginSettings.getInstance(settings, this.clusterService);
+        PluginSettings.getInstance(settings);
         List<ContentIndex> contentIndices = Collections.singletonList(this.contentIndexMock);
         String context = "test-context";
         String consumer = "test-consumer";
-        this.snapshotService = new SnapshotServiceImpl(context, consumer, contentIndices, consumersIndex, environment);
+        this.snapshotService = new SnapshotServiceImpl(context, consumer, contentIndices, this.consumersIndex, this.environment);
         this.snapshotService.setSnapshotClient(this.snapshotClient);
     }
 
     @After
     @Override
     public void tearDown() throws Exception {
+        if (this.snapshotService != null) {
+            this.snapshotService.close();
+        }
         if (this.closeable != null) {
             this.closeable.close();
         }
@@ -101,12 +101,12 @@ public class SnapshotServiceImplTests extends OpenSearchTestCase {
      * Tests that the initialization aborts gracefully if the snapshot URL is missing.
      */
     public void testInitialize_EmptyUrl() throws IOException, URISyntaxException {
-        when(remoteConsumer.getSnapshotLink()).thenReturn("");
+        when(this.remoteConsumer.getSnapshotLink()).thenReturn("");
 
-        this.snapshotService.initialize(remoteConsumer);
+        this.snapshotService.initialize(this.remoteConsumer);
 
-        verify(snapshotClient, never()).downloadFile(anyString());
-        verify(contentIndexMock, never()).clear();
+        verify(this.snapshotClient, never()).downloadFile(anyString());
+        verify(this.contentIndexMock, never()).clear();
     }
 
     /**
@@ -114,13 +114,13 @@ public class SnapshotServiceImplTests extends OpenSearchTestCase {
      */
     public void testInitialize_DownloadFails() throws IOException, URISyntaxException {
         String url = "http://example.com/snapshot.zip";
-        when(remoteConsumer.getSnapshotLink()).thenReturn(url);
-        when(snapshotClient.downloadFile(url)).thenReturn(null);
+        when(this.remoteConsumer.getSnapshotLink()).thenReturn(url);
+        when(this.snapshotClient.downloadFile(url)).thenReturn(null);
 
-        this.snapshotService.initialize(remoteConsumer);
+        this.snapshotService.initialize(this.remoteConsumer);
 
-        verify(snapshotClient).downloadFile(url);
-        verify(contentIndexMock, never()).clear();
+        verify(this.snapshotClient).downloadFile(url);
+        verify(this.contentIndexMock, never()).clear();
     }
 
     /**
@@ -134,20 +134,20 @@ public class SnapshotServiceImplTests extends OpenSearchTestCase {
         // Mock
         String url = "http://example.com/snapshot.zip";
         long offset = 100L;
-        when(remoteConsumer.getSnapshotLink()).thenReturn(url);
-        when(remoteConsumer.getOffset()).thenReturn(offset);
+        when(this.remoteConsumer.getSnapshotLink()).thenReturn(url);
+        when(this.remoteConsumer.getOffset()).thenReturn(offset);
         Path zipPath = createZipFileWithContent("data.json",
             "{\"payload\": {\"type\": \"kvdb\", \"document\": {\"id\": \"12345678\", \"title\": \"Test Kvdb\"}}}"
         );
-        when(snapshotClient.downloadFile(url)).thenReturn(zipPath);
+        when(this.snapshotClient.downloadFile(url)).thenReturn(zipPath);
 
         // Act
-        this.snapshotService.initialize(remoteConsumer);
+        this.snapshotService.initialize(this.remoteConsumer);
 
         // Assert
-        verify(contentIndexMock).clear();
+        verify(this.contentIndexMock).clear();
         ArgumentCaptor<BulkRequest> bulkCaptor = ArgumentCaptor.forClass(BulkRequest.class);
-        verify(contentIndexMock, atLeastOnce()).executeBulk(bulkCaptor.capture());
+        verify(this.contentIndexMock, atLeastOnce()).executeBulk(bulkCaptor.capture());
 
         BulkRequest request = bulkCaptor.getValue();
         assertEquals(1, request.numberOfActions());
@@ -157,7 +157,7 @@ public class SnapshotServiceImplTests extends OpenSearchTestCase {
         assertEquals("12345678", indexRequest.id());
 
         ArgumentCaptor<LocalConsumer> consumerCaptor = ArgumentCaptor.forClass(LocalConsumer.class);
-        verify(consumersIndex).setConsumer(consumerCaptor.capture());
+        verify(this.consumersIndex).setConsumer(consumerCaptor.capture());
         assertEquals(offset, consumerCaptor.getValue().getLocalOffset());
     }
 
@@ -167,18 +167,18 @@ public class SnapshotServiceImplTests extends OpenSearchTestCase {
     public void testInitialize_SkipPolicyType() throws IOException, URISyntaxException {
         // Mock
         String url = "http://example.com/policy.zip";
-        when(remoteConsumer.getSnapshotLink()).thenReturn(url);
+        when(this.remoteConsumer.getSnapshotLink()).thenReturn(url);
 
         Path zipPath = createZipFileWithContent("policy.json",
             "{\"payload\": {\"type\": \"policy\", \"document\": {\"id\": \"p1\"}}}"
         );
-        when(snapshotClient.downloadFile(url)).thenReturn(zipPath);
+        when(this.snapshotClient.downloadFile(url)).thenReturn(zipPath);
 
         // Act
-        this.snapshotService.initialize(remoteConsumer);
+        this.snapshotService.initialize(this.remoteConsumer);
 
         // Assert
-        verify(contentIndexMock, never()).executeBulk(any(BulkRequest.class));
+        verify(this.contentIndexMock, never()).executeBulk(any(BulkRequest.class));
     }
 
     /**
@@ -187,18 +187,18 @@ public class SnapshotServiceImplTests extends OpenSearchTestCase {
     public void testInitialize_EnrichDecoderWithYaml() throws IOException, URISyntaxException {
         // Mock
         String url = "http://example.com/decoder.zip";
-        when(remoteConsumer.getSnapshotLink()).thenReturn(url);
+        when(this.remoteConsumer.getSnapshotLink()).thenReturn(url);
 
         String jsonContent = "{\"payload\": {\"type\": \"decoder\", \"document\": {\"name\": \"syslog\", \"parent\": \"root\"}}}";
         Path zipPath = createZipFileWithContent("decoder.json", jsonContent);
-        when(snapshotClient.downloadFile(url)).thenReturn(zipPath);
+        when(this.snapshotClient.downloadFile(url)).thenReturn(zipPath);
 
         // Act
-        this.snapshotService.initialize(remoteConsumer);
+        this.snapshotService.initialize(this.remoteConsumer);
 
         // Assert
         ArgumentCaptor<BulkRequest> bulkCaptor = ArgumentCaptor.forClass(BulkRequest.class);
-        verify(contentIndexMock).executeBulk(bulkCaptor.capture());
+        verify(this.contentIndexMock).executeBulk(bulkCaptor.capture());
 
         IndexRequest request = (IndexRequest) bulkCaptor.getValue().requests().getFirst();
         String source = request.source().utf8ToString();
@@ -212,20 +212,20 @@ public class SnapshotServiceImplTests extends OpenSearchTestCase {
     public void testInitialize_PreprocessSigmaId() throws IOException, URISyntaxException {
         // Mock
         String url = "http://example.com/sigma.zip";
-        when(remoteConsumer.getSnapshotLink()).thenReturn(url);
+        when(this.remoteConsumer.getSnapshotLink()).thenReturn(url);
 
         String jsonContent = "{\"payload\": {\"type\": \"rule\", \"document\": {\"id\": \"R1\", \"related\": {\"sigma_id\": \"S-123\", \"type\": \"test-value\"}}}}";
         Path zipPath = createZipFileWithContent("sigma.json", jsonContent);
-        when(snapshotClient.downloadFile(url)).thenReturn(zipPath);
+        when(this.snapshotClient.downloadFile(url)).thenReturn(zipPath);
 
         // Act
-        this.snapshotService.initialize(remoteConsumer);
+        this.snapshotService.initialize(this.remoteConsumer);
 
         // Assert
         ArgumentCaptor<BulkRequest> bulkCaptor = ArgumentCaptor.forClass(BulkRequest.class);
-        verify(contentIndexMock).executeBulk(bulkCaptor.capture());
+        verify(this.contentIndexMock).executeBulk(bulkCaptor.capture());
 
-        IndexRequest request = (IndexRequest) bulkCaptor.getValue().requests().get(0);
+        IndexRequest request = (IndexRequest) bulkCaptor.getValue().requests().getFirst();
         String source = request.source().utf8ToString();
 
         assertFalse("Should not contain sigma_id", source.contains("\"sigma_id\""));
@@ -238,7 +238,7 @@ public class SnapshotServiceImplTests extends OpenSearchTestCase {
     public void testInitialize_InvalidJsonStructure() throws IOException, URISyntaxException {
         // Mock
         String url = "http://example.com/invalid.zip";
-        when(remoteConsumer.getSnapshotLink()).thenReturn(url);
+        when(this.remoteConsumer.getSnapshotLink()).thenReturn(url);
 
         String jsonContent =
                 "{}\n" + // Missing payload
@@ -246,13 +246,13 @@ public class SnapshotServiceImplTests extends OpenSearchTestCase {
                 "{\"payload\": {\"type\": \"valid\", \"no_doc\": {}}}"; // Missing document
 
         Path zipPath = createZipFileWithContent("invalid.json", jsonContent);
-        when(snapshotClient.downloadFile(url)).thenReturn(zipPath);
+        when(this.snapshotClient.downloadFile(url)).thenReturn(zipPath);
 
         // Act
-        this.snapshotService.initialize(remoteConsumer);
+        this.snapshotService.initialize(this.remoteConsumer);
 
         // Assert
-        verify(contentIndexMock, never()).executeBulk(any(BulkRequest.class));
+        verify(this.contentIndexMock, never()).executeBulk(any(BulkRequest.class));
     }
 
     /**
@@ -261,18 +261,18 @@ public class SnapshotServiceImplTests extends OpenSearchTestCase {
     public void testInitialize_PreprocessSigmaIdInArray() throws IOException, URISyntaxException {
         // Mock
         String url = "http://example.com/sigma_array.zip";
-        when(remoteConsumer.getSnapshotLink()).thenReturn(url);
+        when(this.remoteConsumer.getSnapshotLink()).thenReturn(url);
 
         String jsonContent = "{\"payload\": {\"type\": \"rule\", \"document\": {\"id\": \"R2\", \"related\": [{\"sigma_id\": \"999\"}]}}}";
         Path zipPath = createZipFileWithContent("sigma_array.json", jsonContent);
-        when(snapshotClient.downloadFile(url)).thenReturn(zipPath);
+        when(this.snapshotClient.downloadFile(url)).thenReturn(zipPath);
 
         // Act
-        this.snapshotService.initialize(remoteConsumer);
+        this.snapshotService.initialize(this.remoteConsumer);
 
         // Assert
         ArgumentCaptor<BulkRequest> bulkCaptor = ArgumentCaptor.forClass(BulkRequest.class);
-        verify(contentIndexMock).executeBulk(bulkCaptor.capture());
+        verify(this.contentIndexMock).executeBulk(bulkCaptor.capture());
 
         String source = ((IndexRequest) bulkCaptor.getValue().requests().getFirst()).source().utf8ToString();
 
@@ -287,7 +287,7 @@ public class SnapshotServiceImplTests extends OpenSearchTestCase {
     public void testInitialize_SkipInvalidJson() throws IOException, URISyntaxException {
         // Mock
         String url = "http://example.com/corrupt.zip";
-        when(remoteConsumer.getSnapshotLink()).thenReturn(url);
+        when(this.remoteConsumer.getSnapshotLink()).thenReturn(url);
 
         String jsonContent =
             "{\"payload\": {\"type\": \"reputation\", \"document\": {\"id\": \"1\", \"ip\": \"1.1.1.1\"}}}\n" +
@@ -295,14 +295,14 @@ public class SnapshotServiceImplTests extends OpenSearchTestCase {
                 "{\"payload\": {\"type\": \"reputation\", \"document\": {\"id\": \"2\", \"ip\": \"2.2.2.2\"}}}";
 
         Path zipPath = createZipFileWithContent("mixed.json", jsonContent);
-        when(snapshotClient.downloadFile(url)).thenReturn(zipPath);
+        when(this.snapshotClient.downloadFile(url)).thenReturn(zipPath);
 
         // Act
-        this.snapshotService.initialize(remoteConsumer);
+        this.snapshotService.initialize(this.remoteConsumer);
 
         // Assert
         ArgumentCaptor<BulkRequest> bulkCaptor = ArgumentCaptor.forClass(BulkRequest.class);
-        verify(contentIndexMock, atLeastOnce()).executeBulk(bulkCaptor.capture());
+        verify(this.contentIndexMock, atLeastOnce()).executeBulk(bulkCaptor.capture());
 
         // We expect exactly 2 valid actions (Line 1 and Line 3), skipping Line 2
         int totalActions = bulkCaptor.getAllValues().stream()
@@ -318,20 +318,20 @@ public class SnapshotServiceImplTests extends OpenSearchTestCase {
     public void testInitialize_DecoderYamlKeyOrdering() throws IOException, URISyntaxException {
         // Mock
         String url = "http://example.com/decoder_order.zip";
-        when(remoteConsumer.getSnapshotLink()).thenReturn(url);
+        when(this.remoteConsumer.getSnapshotLink()).thenReturn(url);
 
         String jsonContent = "{\"payload\": {\"type\": \"decoder\", \"document\": " +
             "{\"check\": \"some_regex\", \"name\": \"ssh-decoder\", \"parents\": [\"root\"]}}}";
 
         Path zipPath = createZipFileWithContent("decoder_order.json", jsonContent);
-        when(snapshotClient.downloadFile(url)).thenReturn(zipPath);
+        when(this.snapshotClient.downloadFile(url)).thenReturn(zipPath);
 
         // Act
-        this.snapshotService.initialize(remoteConsumer);
+        this.snapshotService.initialize(this.remoteConsumer);
 
         // Assert
         ArgumentCaptor<BulkRequest> bulkCaptor = ArgumentCaptor.forClass(BulkRequest.class);
-        verify(contentIndexMock).executeBulk(bulkCaptor.capture());
+        verify(this.contentIndexMock).executeBulk(bulkCaptor.capture());
 
         IndexRequest request = (IndexRequest) bulkCaptor.getValue().requests().getFirst();
         String source = request.source().utf8ToString();

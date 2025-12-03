@@ -157,8 +157,11 @@ public class ConsumersIndex {
      * @return the mapping as a JSON string.
      * @throws IOException if reading the resource fails.
      */
-    private String loadMappingFromResources() throws IOException {
+    protected String loadMappingFromResources() throws IOException {
         try (InputStream is = this.getClass().getResourceAsStream(MAPPING_PATH)) {
+            if (is == null) {
+                throw new java.io.FileNotFoundException("Mapping file not found: " + MAPPING_PATH);
+            }
             return new String(is.readAllBytes(), StandardCharsets.UTF_8);
         }
     }
