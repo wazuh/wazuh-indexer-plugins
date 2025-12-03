@@ -26,7 +26,6 @@ import com.google.gson.JsonParser;
 import com.wazuh.contentmanager.cti.catalog.model.Operation;
 import com.wazuh.contentmanager.cti.catalog.utils.JsonPatch;
 import com.wazuh.contentmanager.settings.PluginSettings;
-import com.wazuh.contentmanager.utils.XContentUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.opensearch.OpenSearchTimeoutException;
@@ -41,8 +40,11 @@ import org.opensearch.action.get.GetRequest;
 import org.opensearch.action.get.GetResponse;
 import org.opensearch.action.index.IndexRequest;
 import org.opensearch.common.settings.Settings;
+import org.opensearch.common.xcontent.XContentFactory;
 import org.opensearch.common.xcontent.XContentType;
 import org.opensearch.core.action.ActionListener;
+import org.opensearch.core.xcontent.ToXContent;
+import org.opensearch.core.xcontent.XContentBuilder;
 import org.opensearch.index.query.QueryBuilders;
 import org.opensearch.index.reindex.BulkByScrollResponse;
 import org.opensearch.index.reindex.DeleteByQueryAction;
@@ -69,7 +71,7 @@ public class ContentIndex {
     private final Semaphore semaphore;
     private final String indexName;
     private final String mappingsPath;
-    private String alias;
+    private final String alias;
 
     private final ObjectMapper jsonMapper;
     private final ObjectMapper yamlMapper;
@@ -125,7 +127,6 @@ public class ContentIndex {
 
     public void create(String id, JsonObject payload) throws IOException {
         processPayload(payload);
-        JsonObject document = payload.getAsJsonObject("document");
         IndexRequest request = new IndexRequest(this.indexName)
             .id(id)
             .source(payload.toString(), XContentType.JSON);
@@ -148,7 +149,10 @@ public class ContentIndex {
         // 2. Patch
         JsonObject currentDoc = JsonParser.parseString(response.getSourceAsString()).getAsJsonObject();
         for (Operation op : operations) {
-            JsonPatch.applyOperation(currentDoc, XContentUtils.xContentObjectToJson(op));
+            XContentBuilder builder = XContentFactory.jsonBuilder();
+            op.toXContent(builder, ToXContent.EMPTY_PARAMS);
+            JsonObject opJson = JsonParser.parseString(builder.toString()).getAsJsonObject();
+            JsonPatch.applyOperation(currentDoc, opJson);
         }
 
         // 3. Process (enrich/normalize)
@@ -242,14 +246,33 @@ public class ContentIndex {
     }
 
     private void preprocessDocument(JsonObject document) {
-        if (!document.has("related")) return;
-        JsonElement relatedElement = document.get("related");
-        if (relatedElement.isJsonObject()) {
-            sanitizeRelatedObject(relatedElement.getAsJsonObject());
-        } else if (relatedElement.isJsonArray()) {
-            JsonArray relatedArray = relatedElement.getAsJsonArray();
-            for (JsonElement element : relatedArray) {
-                if (element.isJsonObject()) sanitizeRelatedObject(element.getAsJsonObject());
+        if (document.has("date")) {
+            document.remove("date");
+        }
+
+        if (document.has("enabled")) {
+            document.remove("enabled");
+        }
+
+        if (document.has("metadata") && document.get("metadata").isJsonObject()) {
+            JsonObject metadata = document.getAsJsonObject("metadata");
+            if (metadata.has("custom_fields")) {
+                metadata.remove("custom_fields");
+            }
+            if (metadata.has("dataset")) {
+                metadata.remove("dataset");
+            }
+        }
+
+        if (document.has("related")) {
+            JsonElement relatedElement = document.get("related");
+            if (relatedElement.isJsonObject()) {
+                sanitizeRelatedObject(relatedElement.getAsJsonObject());
+            } else if (relatedElement.isJsonArray()) {
+                JsonArray relatedArray = relatedElement.getAsJsonArray();
+                for (JsonElement element : relatedArray) {
+                    if (element.isJsonObject()) sanitizeRelatedObject(element.getAsJsonObject());
+                }
             }
         }
     }

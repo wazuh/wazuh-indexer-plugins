@@ -17,37 +17,29 @@
 package com.wazuh.contentmanager.cti.catalog.index;
 
 import com.wazuh.contentmanager.cti.catalog.model.LocalConsumer;
+import com.wazuh.contentmanager.settings.PluginSettings;
+import com.wazuh.contentmanager.utils.ClusterInfo;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.opensearch.action.DocWriteResponse;
-import org.opensearch.action.get.GetRequest;
-import org.opensearch.action.get.GetResponse;
 import org.opensearch.action.admin.indices.create.CreateIndexRequest;
 import org.opensearch.action.admin.indices.create.CreateIndexResponse;
+import org.opensearch.action.get.GetRequest;
+import org.opensearch.action.get.GetResponse;
 import org.opensearch.action.index.IndexRequest;
 import org.opensearch.action.index.IndexResponse;
 import org.opensearch.common.action.ActionFuture;
-import org.opensearch.transport.client.Client;
-import org.opensearch.common.xcontent.XContentFactory;
 import org.opensearch.common.settings.Settings;
-import org.opensearch.core.xcontent.ToXContent;
+import org.opensearch.transport.client.Client;
 
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.Locale;
-import java.util.Map;
-import java.util.NoSuchElementException;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
-import com.wazuh.contentmanager.cti.catalog.model.ConsumerInfo;
-import com.wazuh.contentmanager.settings.PluginSettings;
-import com.wazuh.contentmanager.utils.ClusterInfo;
-
 /** Class to manage the Context index. */
-// TODO remove unused methods: all but setConsumer(), getConsumer() and createIndex()
 public class ConsumersIndex {
     private static final Logger log = LogManager.getLogger(ConsumersIndex.class);
 
@@ -57,13 +49,6 @@ public class ConsumersIndex {
     private static final String MAPPING_PATH = "/mappings/consumers-mapping.json";
 
     private final Client client;
-
-    /**
-     * This instance of ConsumerInfo comprehends the internal state of this class. The ContextIndex
-     * class is responsible for maintaining its internal state update at all times.
-     */
-    private ConsumerInfo consumerInfo;
-
     private final PluginSettings pluginSettings;
 
     /**
@@ -74,42 +59,6 @@ public class ConsumersIndex {
     public ConsumersIndex(Client client) {
         this.client = client;
         this.pluginSettings = PluginSettings.getInstance();
-    }
-
-    /**
-     * Index CTI API consumer information.
-     *
-     * @param consumerInfo Model containing information parsed from the CTI API.
-     * @return the IndexResponse from the indexing operation, or null.
-     */
-    public boolean index(ConsumerInfo consumerInfo) {
-        try {
-            IndexRequest indexRequest =
-                    new IndexRequest()
-                            .index(ConsumersIndex.INDEX_NAME)
-                            .source(
-                                    consumerInfo.toXContent(XContentFactory.jsonBuilder(), ToXContent.EMPTY_PARAMS))
-                            .id(consumerInfo.getContext());
-
-            IndexResponse indexResponse =
-                    this.client
-                            .index(indexRequest)
-                            .get(this.pluginSettings.getClientTimeout(), TimeUnit.SECONDS);
-            if (indexResponse.getResult() == DocWriteResponse.Result.CREATED
-                    || indexResponse.getResult() == DocWriteResponse.Result.UPDATED) {
-                // Update consumer info (internal state).
-                this.consumerInfo = consumerInfo;
-                return true;
-            }
-        } catch (IOException e) {
-            log.error("Failed to create JSON content builder: {}", e.getMessage());
-        } catch (InterruptedException | ExecutionException | TimeoutException e) {
-            log.error(
-                    "Failed to index Consumer [{}] information due to: {}",
-                    consumerInfo.getContext(),
-                    e.getMessage());
-        }
-        return false;
     }
 
     /**
@@ -163,58 +112,6 @@ public class ConsumersIndex {
         return future.get(this.pluginSettings.getClientTimeout(), TimeUnit.SECONDS);
     }
 
-    /** TODO: Review ConsumerInfo class and adapt mappings accordingly */
-    /**
-     * Searches for the given consumer within a context.
-     *
-     * @param context ID (name) of the context.
-     * @param consumer ID (name) of the consumer.
-     * @return the required consumer as an instance of {@link ConsumerInfo}, or null.
-     */
-    @SuppressWarnings("unchecked")
-    public ConsumerInfo get(String context, String consumer) {
-        // Avoid faulty requests if the cluster is unstable.
-        if (!ClusterInfo.indexStatusCheck(this.client, ConsumersIndex.INDEX_NAME)) {
-            throw new RuntimeException("Index not ready");
-        }
-        try {
-            GetResponse getResponse =
-                    this.client
-                            .get(new GetRequest(ConsumersIndex.INDEX_NAME, context).preference("_local"))
-                            .get(this.pluginSettings.getClientTimeout(), TimeUnit.SECONDS);
-
-            Map<String, Object> source = (Map<String, Object>) getResponse.getSourceAsMap().get(consumer);
-            if (source == null) {
-                throw new NoSuchElementException(
-                        String.format(
-                                Locale.ROOT, "Consumer [%s] not found in context [%s]", consumer, context));
-            }
-
-            // Update consumer info (internal state)
-            long offset = ConsumersIndex.asLong(source.get(ConsumerInfo.OFFSET));
-            long lastOffset = ConsumersIndex.asLong(source.get(ConsumerInfo.LAST_OFFSET));
-            String snapshot = (String) source.get(ConsumerInfo.LAST_SNAPSHOT_LINK);
-            this.consumerInfo = new ConsumerInfo(consumer, context, offset, lastOffset, snapshot);
-            log.info(
-                    "Fetched consumer from the [{}] index: {}", ConsumersIndex.INDEX_NAME, this.consumerInfo);
-        } catch (InterruptedException | ExecutionException | TimeoutException e) {
-            log.error("Failed to fetch consumer [{}][{}]: {}", context, consumer, e.getMessage());
-        }
-
-        // May be null if the request fails and was not initialized on previously.
-        return this.consumerInfo;
-    }
-
-    /**
-     * Utility method to parse an object value to primitive long.
-     *
-     * @param o the object to parse.
-     * @return the value as primitive long.
-     */
-    private static long asLong(Object o) {
-        return o instanceof Number ? ((Number) o).longValue() : Long.parseLong(o.toString());
-    }
-
     /**
      * Checks whether the {@link ConsumersIndex#INDEX_NAME} index exists.
      *
@@ -230,31 +127,31 @@ public class ConsumersIndex {
      *
      * @return
      */
-   public CreateIndexResponse createIndex() throws ExecutionException, InterruptedException, TimeoutException {
-       Settings settings = Settings.builder()
-           .put("index.number_of_replicas", 0)
-           .put("hidden", true)
-           .build();
+    public CreateIndexResponse createIndex() throws ExecutionException, InterruptedException, TimeoutException {
+        Settings settings = Settings.builder()
+            .put("index.number_of_replicas", 0)
+            .put("hidden", true)
+            .build();
 
-       String mappings;
-       try {
-           mappings = this.loadMappingFromResources();
-       } catch (IOException e) {
-           log.error("Could not read mappings for index [{}]", INDEX_NAME);
-           return null;
-       }
+        String mappings;
+        try {
+            mappings = this.loadMappingFromResources();
+        } catch (IOException e) {
+            log.error("Could not read mappings for index [{}]", INDEX_NAME);
+            return null;
+        }
 
-       CreateIndexRequest request = new CreateIndexRequest()
+        CreateIndexRequest request = new CreateIndexRequest()
             .index(INDEX_NAME)
             .mapping(mappings)
             .settings(settings);
 
-       return this.client
+        return this.client
             .admin()
             .indices()
             .create(request)
             .get(this.pluginSettings.getClientTimeout(), TimeUnit.SECONDS);
-   }
+    }
 
     /**
      * Loads the index mapping from the resources folder.

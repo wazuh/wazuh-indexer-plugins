@@ -24,10 +24,12 @@ import com.wazuh.contentmanager.cti.catalog.index.ContentIndex;
 import com.wazuh.contentmanager.cti.catalog.model.Changes;
 import com.wazuh.contentmanager.cti.catalog.model.LocalConsumer;
 import com.wazuh.contentmanager.cti.catalog.model.Offset;
-import com.wazuh.contentmanager.utils.XContentUtils;
 import org.apache.hc.client5.http.async.methods.SimpleHttpResponse;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.opensearch.common.xcontent.XContentType;
+import org.opensearch.core.xcontent.DeprecationHandler;
+import org.opensearch.core.xcontent.NamedXContentRegistry;
 import org.opensearch.core.xcontent.XContentParser;
 
 import java.util.Map;
@@ -63,7 +65,10 @@ public class UpdateServiceImpl extends AbstractService implements UpdateService 
                 return;
             }
 
-            try (XContentParser parser = XContentUtils.createJSONParser(response.getBodyBytes())) {
+            try (XContentParser parser = XContentType.JSON.xContent().createParser(
+                NamedXContentRegistry.EMPTY,
+                DeprecationHandler.THROW_UNSUPPORTED_OPERATION,
+                response.getBodyBytes())) {
                 Changes changes = Changes.parse(parser);
                 long lastAppliedOffset = fromOffset;
 
