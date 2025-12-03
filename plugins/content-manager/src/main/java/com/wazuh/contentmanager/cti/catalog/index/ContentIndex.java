@@ -62,6 +62,10 @@ import java.util.concurrent.TimeoutException;
 
 /**
  * Manages operations for a specific Wazuh CTI Content Index.
+ * <p>
+ * This class handles the lifecycle of the index (creation, deletion) as well as
+ * CRUD operations for documents, including specialized logic for parsing
+ * and sanitizing CTI content payloads.
  */
 public class ContentIndex {
     private static final Logger log = LogManager.getLogger(ContentIndex.class);
@@ -80,10 +84,25 @@ public class ContentIndex {
         "parse|event.original", "parse|message", "normalize"
     );
 
+    /**
+     * Constructs a new ContentIndex manager.
+     *
+     * @param client       The OpenSearch client used to communicate with the cluster.
+     * @param indexName    The name of the index to manage.
+     * @param mappingsPath The classpath resource path to the JSON mapping file.
+     */
     public ContentIndex(Client client, String indexName, String mappingsPath) {
         this(client, indexName, mappingsPath, null);
     }
 
+    /**
+     * Constructs a new ContentIndex manager with an alias.
+     *
+     * @param client       The OpenSearch client used to communicate with the cluster.
+     * @param indexName    The name of the index to manage.
+     * @param mappingsPath The classpath resource path to the JSON mapping file.
+     * @param alias        The alias to associate with the index (can be null).
+     */
     public ContentIndex(Client client, String indexName, String mappingsPath, String alias) {
         this.pluginSettings = PluginSettings.getInstance();
         this.semaphore = new Semaphore(pluginSettings.getMaximumConcurrentBulks());
@@ -95,6 +114,16 @@ public class ContentIndex {
         this.yamlMapper = new ObjectMapper(new YAMLFactory());
     }
 
+    /**
+     * Creates the index in OpenSearch using the configured mappings and settings.
+     * <p>
+     * Applies specific settings (hidden=true, replicas=0) and registers an alias if one is defined.
+     *
+     * @return The response from the create index operation, or null if mappings could not be read.
+     * @throws ExecutionException   If the client execution fails.
+     * @throws InterruptedException If the thread is interrupted while waiting.
+     * @throws TimeoutException     If the operation exceeds the client timeout setting.
+     */
     public CreateIndexResponse createIndex() throws ExecutionException, InterruptedException, TimeoutException {
         Settings settings = Settings.builder()
             .put("index.number_of_replicas", 0)
@@ -121,10 +150,25 @@ public class ContentIndex {
         return this.client.admin().indices().create(request).get(this.pluginSettings.getClientTimeout(), TimeUnit.SECONDS);
     }
 
+    /**
+     * Checks if a document with the specified ID exists in the index.
+     *
+     * @param id The ID of the document to check.
+     * @return true if the document exists, false otherwise.
+     */
     public boolean exists(String id) {
         return this.client.prepareGet(this.indexName, id).setFetchSource(false).get().isExists();
     }
 
+    /**
+     * Indexes a new document or overwrites an existing one.
+     * <p>
+     * The payload is pre-processed (sanitized and enriched) before being indexed.
+     *
+     * @param id      The unique identifier for the document.
+     * @param payload The JSON object representing the document content.
+     * @throws IOException If the indexing operation fails.
+     */
     public void create(String id, JsonObject payload) throws IOException {
         processPayload(payload);
         IndexRequest request = new IndexRequest(this.indexName)
@@ -139,6 +183,13 @@ public class ContentIndex {
         }
     }
 
+    /**
+     * Updates an existing document by applying a list of patch operations.
+     *
+     * @param id         The ID of the document to update.
+     * @param operations The list of operations to apply to the document.
+     * @throws Exception If the document does not exist, or if patching/indexing fails.
+     */
     public void update(String id, List<Operation> operations) throws Exception {
         // 1. Fetch
         GetResponse response = this.client.get(new GetRequest(this.indexName, id)).get(this.pluginSettings.getClientTimeout(), TimeUnit.SECONDS);
@@ -155,7 +206,7 @@ public class ContentIndex {
             JsonPatch.applyOperation(currentDoc, opJson);
         }
 
-        // 3. Process (enrich/normalize)
+        // 3. Process
         processPayload(currentDoc);
 
         // 4. Index
@@ -165,6 +216,11 @@ public class ContentIndex {
         this.client.index(request).get(this.pluginSettings.getClientTimeout(), TimeUnit.SECONDS);
     }
 
+    /**
+     * Asynchronously deletes a document from the index.
+     *
+     * @param id The ID of the document to delete.
+     */
     public void delete(String id) {
         this.client.delete(new DeleteRequest(this.indexName, id), new ActionListener<>() {
             @Override
@@ -178,6 +234,11 @@ public class ContentIndex {
         });
     }
 
+    /**
+     * Executes a bulk request asynchronously.
+     *
+     * @param bulkRequest The BulkRequest containing multiple index/delete operations.
+     */
     public void executeBulk(BulkRequest bulkRequest) {
         try {
             this.semaphore.acquire();
@@ -201,6 +262,9 @@ public class ContentIndex {
         }
     }
 
+    /**
+     * Deletes all documents in the index using a "match_all" query.
+     */
     public void clear() {
         try {
             DeleteByQueryRequestBuilder deleteByQuery = new DeleteByQueryRequestBuilder(this.client, DeleteByQueryAction.INSTANCE);
@@ -212,6 +276,11 @@ public class ContentIndex {
         }
     }
 
+    /**
+     * Orchestrates the enrichment and sanitization of a payload.
+     *
+     * @param payload The JSON payload to process.
+     */
     private void processPayload(JsonObject payload) {
         if (payload.has("type") && "decoder".equalsIgnoreCase(payload.get("type").getAsString())) {
             enrichDecoderWithYaml(payload);
@@ -221,6 +290,11 @@ public class ContentIndex {
         }
     }
 
+    /**
+     * Generates a YAML representation for decoder documents.
+     *
+     * @param payload The payload containing the decoder definition.
+     */
     private void enrichDecoderWithYaml(JsonObject payload) {
         try {
             if (!payload.has("document")) return;
@@ -245,6 +319,14 @@ public class ContentIndex {
         }
     }
 
+    /**
+     * Sanitizes the document by removing internal or unnecessary fields.
+     * <p>
+     * This removes fields like 'date', 'enabled', and internal metadata, and
+     * normalizes 'related' objects.
+     *
+     * @param document The document object to preprocess.
+     */
     private void preprocessDocument(JsonObject document) {
         if (document.has("date")) {
             document.remove("date");
@@ -277,6 +359,11 @@ public class ContentIndex {
         }
     }
 
+    /**
+     * Normalizes a "related" object.
+     *
+     * @param relatedObj The related object to sanitize.
+     */
     private void sanitizeRelatedObject(JsonObject relatedObj) {
         if (relatedObj.has("sigma_id")) {
             relatedObj.add("id", relatedObj.get("sigma_id"));

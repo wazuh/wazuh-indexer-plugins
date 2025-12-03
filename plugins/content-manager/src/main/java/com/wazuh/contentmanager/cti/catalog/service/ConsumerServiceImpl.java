@@ -22,9 +22,6 @@ import java.util.concurrent.TimeoutException;
 public class ConsumerServiceImpl extends AbstractService implements ConsumerService {
     private static final Logger log = LogManager.getLogger(ConsumerServiceImpl.class);
 
-//    private static final String CONTEXT = "rules_development_0.0.1";
-//    private static final String CONSUMER = "rules_consumer";
-
     private final String context;
     private final String consumer;
     private final ConsumersIndex consumerIndex;
@@ -92,7 +89,6 @@ public class ConsumerServiceImpl extends AbstractService implements ConsumerServ
      * @return The initialized {@link LocalConsumer}, or null if persistence fails.
      */
     public LocalConsumer setConsumer() {
-        // Default consumer. Initialize.
         LocalConsumer consumer = new LocalConsumer(this.context, this.consumer);
 
         try {

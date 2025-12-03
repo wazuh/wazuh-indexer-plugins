@@ -154,7 +154,7 @@ public class ConsumersIndex {
     }
 
     /**
-     * Loads the index mapping from the resources folder.
+     * Loads the index mapping from the 'resources' folder.
      *
      * @return the mapping as a JSON string.
      * @throws IOException if reading the resource fails.

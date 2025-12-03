@@ -26,6 +26,10 @@ import java.util.*;
 
 /**
  * Data Transfer Object representing a change offset from the CTI API.
+ * <p>
+ * This class encapsulates a single synchronization event, defining what action
+ * took place (Create, Update, Delete), which resource was affected, and the
+ * data associated with that change (either a full payload or a list of patch operations).
  */
 public class Offset implements ToXContentObject {
     private static final String CONTEXT = "context";
@@ -46,6 +50,17 @@ public class Offset implements ToXContentObject {
 
     public enum Type { CREATE, UPDATE, DELETE }
 
+    /**
+     * Constructs a new Offset instance.
+     *
+     * @param context    The context or category of the content (e.g., catalog ID).
+     * @param offset     The sequential ID of this event. Defaults to 0 if null.
+     * @param resource   The unique identifier of the specific resource being modified.
+     * @param type       The type of modification (CREATE, UPDATE, DELETE).
+     * @param version    The version number of the resource. Defaults to 0 if null.
+     * @param operations A list of patch operations (typically used with UPDATE).
+     * @param payload    The full resource content (typically used with CREATE).
+     */
     public Offset(String context, Long offset, String resource, Type type, Long version, List<Operation> operations, Map<String, Object> payload) {
         this.context = context;
         this.offset = offset != null ? offset : 0;
@@ -56,6 +71,13 @@ public class Offset implements ToXContentObject {
         this.payload = payload;
     }
 
+    /**
+     * Parses an XContent stream to create an {@code Offset} instance.
+     *
+     * @param parser The {@link XContentParser} to read from.
+     * @return A populated {@code Offset} object.
+     * @throws IOException If an I/O error occurs or the JSON structure is invalid.
+     */
     public static Offset parse(XContentParser parser) throws IOException {
         String context = null;
         Long offset = null;
@@ -93,12 +115,49 @@ public class Offset implements ToXContentObject {
         return new Offset(context, offset, resource, type, version, operations, payload);
     }
 
+    /**
+     * Gets the unique identifier of the resource affected by this change.
+     *
+     * @return The resource ID string.
+     */
     public String getResource() { return resource; }
+
+    /**
+     * Gets the type of modification performed.
+     *
+     * @return The {@link Type} enum value (CREATE, UPDATE, DELETE).
+     */
     public Type getType() { return type; }
+
+    /**
+     * Gets the list of patch operations associated with this change.
+     *
+     * @return A list of {@link Operation} objects, or an empty list if none exist.
+     */
     public List<Operation> getOperations() { return operations; }
+
+    /**
+     * Gets the sequential offset ID of this change event.
+     *
+     * @return The offset value as a long.
+     */
     public long getOffset() { return offset; }
+
+    /**
+     * Gets the full content payload of the resource.
+     *
+     * @return A Map representing the resource JSON, or null if not present.
+     */
     public Map<String, Object> getPayload() { return payload; }
 
+    /**
+     * Serializes this object into an {@link XContentBuilder}.
+     *
+     * @param builder The builder to write to.
+     * @param params  Contextual parameters for the serialization.
+     * @return The builder instance for chaining.
+     * @throws IOException If an error occurs while writing to the builder.
+     */
     @Override
     public XContentBuilder toXContent(XContentBuilder builder, Params params) throws IOException {
         builder.startObject();

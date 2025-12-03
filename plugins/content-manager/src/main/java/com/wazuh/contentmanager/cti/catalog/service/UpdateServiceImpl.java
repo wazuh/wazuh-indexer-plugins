@@ -27,6 +27,7 @@ import com.wazuh.contentmanager.cti.catalog.model.Offset;
 import org.apache.hc.client5.http.async.methods.SimpleHttpResponse;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.opensearch.action.get.GetResponse;
 import org.opensearch.common.xcontent.XContentType;
 import org.opensearch.core.xcontent.DeprecationHandler;
 import org.opensearch.core.xcontent.NamedXContentRegistry;
@@ -46,7 +47,22 @@ public class UpdateServiceImpl extends AbstractService implements UpdateService 
     private final String consumerName;
     private final Gson gson;
 
+    /**
+     * Constructs a new UpdateServiceImpl.
+     *
+     * @param context        The context string (e.g., catalog ID) for the consumer.
+     * @param consumerName   The name of the consumer entity.
+     * @param client         The API client used to fetch changes.
+     * @param consumersIndex The index responsible for storing consumer state (offsets).
+     * @param indices        A map of content type to {@link ContentIndex} managers.
+     */
     public UpdateServiceImpl(String context, String consumerName, ApiClient client, ConsumersIndex consumersIndex, Map<String, ContentIndex> indices) {
+        // AbstractService constructor runs first and creates a real ApiClient.
+        // We must close it to prevent thread leaks when injecting a mock client.
+        if (this.client != null) {
+            this.client.close();
+        }
+
         this.client = client;
         this.consumersIndex = consumersIndex;
         this.indices = indices;
@@ -55,6 +71,19 @@ public class UpdateServiceImpl extends AbstractService implements UpdateService 
         this.gson = new Gson();
     }
 
+    /**
+     *
+     * Performs a content update within the specified offset range.
+     *
+     * Implementation details:
+     * 1. Fetches the changes JSON from the API for the given range.
+     * 2. Parses the response into {@link Changes} and {@link Offset} objects.
+     * 3. Iterates through offsets, skipping specific internal resources ("policy").
+     * 4. Delegates specific operations to {@link #applyOffset(Offset)}.
+     * 5. Updates the {@link LocalConsumer} record in the index with the last successfully applied offset.
+     *
+     * If an exception occurs, the consumer state is reset to prevent data corruption or stuck states.
+     */
     @Override
     public void update(long fromOffset, long toOffset) {
         log.info("Starting content update for consumer [{}] from [{}] to [{}]", consumerName, fromOffset, toOffset);
@@ -84,8 +113,11 @@ public class UpdateServiceImpl extends AbstractService implements UpdateService 
 
                 // Update consumer state
                 LocalConsumer consumer = new LocalConsumer(context, consumerName);
-                LocalConsumer current = consumersIndex.getConsumer(context, consumerName) != null ?
-                    this.mapper.readValue(consumersIndex.getConsumer(context, consumerName).getSourceAsString(), LocalConsumer.class) : consumer;
+
+                // Properly handle the GetResponse to check if the document exists before parsing
+                GetResponse getResponse = consumersIndex.getConsumer(context, consumerName);
+                LocalConsumer current = (getResponse != null && getResponse.isExists()) ?
+                    this.mapper.readValue(getResponse.getSourceAsString(), LocalConsumer.class) : consumer;
 
                 LocalConsumer updated = new LocalConsumer(context, consumerName, lastAppliedOffset, current.getRemoteOffset(), current.getSnapshotLink());
                 consumersIndex.setConsumer(updated);
@@ -98,6 +130,12 @@ public class UpdateServiceImpl extends AbstractService implements UpdateService 
         }
     }
 
+    /**
+     * Applies a specific change offset to the appropriate content index.
+     *
+     * @param offset The {@link Offset} containing the type of change and data.
+     * @throws Exception If the indexing operation fails.
+     */
     private void applyOffset(Offset offset) throws Exception {
         String id = offset.getResource();
 
@@ -133,6 +171,12 @@ public class UpdateServiceImpl extends AbstractService implements UpdateService 
         }
     }
 
+    /**
+     * Locates the {@link ContentIndex} that contains the document with the specified ID.
+     *
+     * @param id The document ID to search for.
+     * @return The matching {@link ContentIndex}, or null if not found.
+     */
     private ContentIndex findIndexForId(String id) {
         for (ContentIndex idx : indices.values()) {
             if (idx.exists(id)) {
@@ -142,10 +186,12 @@ public class UpdateServiceImpl extends AbstractService implements UpdateService 
         return null;
     }
 
+    /**
+     * Resets the local consumer offset to 0.
+     */
     private void resetConsumer() {
         log.warn("Resetting consumer [{}] offset to 0 due to update failure.", consumerName);
         try {
-            // Retrieve current link to preserve it if possible, otherwise just reset
             LocalConsumer reset = new LocalConsumer(context, consumerName, 0, 0, "");
             consumersIndex.setConsumer(reset);
         } catch (Exception e) {

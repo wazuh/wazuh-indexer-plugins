@@ -25,19 +25,42 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
-/** ToXContentObject model to parse and build CTI API changes query replies. */
+/**
+ * This class acts as a wrapper for a list of {@link Offset} objects.
+ */
 public class Changes implements ToXContentObject {
     private static final String JSON_DATA_KEY = "data";
     private final List<Offset> list;
 
+    /**
+     * Constructs a new Changes object with the specified list of offsets.
+     *
+     * @param list The list of {@link Offset} objects. If null, an empty list is initialized.
+     */
     public Changes(List<Offset> list) {
         this.list = list != null ? list : new ArrayList<>();
     }
 
+    /**
+     * Retrieves the list of changes.
+     *
+     * @return The list of {@link Offset} objects.
+     */
     public List<Offset> get() {
         return this.list;
     }
 
+    /**
+     * Parses an XContent stream to create a {@code Changes} instance.
+     * <p>
+     * This method expects the parser to be positioned at the start of a JSON object.
+     * It looks for a field named "data" (defined by {@code JSON_DATA_KEY}), which
+     * must be an array of {@link Offset} objects.
+     *
+     * @param parser The {@link XContentParser} to read from.
+     * @return A populated {@code Changes} object.
+     * @throws IOException If an I/O error occurs or the content structure is invalid.
+     */
     public static Changes parse(XContentParser parser) throws IOException {
         List<Offset> changes = new ArrayList<>();
         XContentParserUtils.ensureExpectedToken(XContentParser.Token.START_OBJECT, parser.nextToken(), parser);
@@ -56,6 +79,14 @@ public class Changes implements ToXContentObject {
         return new Changes(changes);
     }
 
+    /**
+     * Serializes this object into an {@link XContentBuilder}.
+     *
+     * @param builder The builder to write to.
+     * @param params  Contextual parameters for the serialization.
+     * @return The builder instance for chaining.
+     * @throws IOException If an error occurs while writing to the builder.
+     */
     @Override
     public XContentBuilder toXContent(XContentBuilder builder, Params params) throws IOException {
         builder.startObject();

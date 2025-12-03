@@ -16,6 +16,7 @@
  */
 package com.wazuh.contentmanager.cti.catalog.utils;
 
+import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import org.apache.logging.log4j.LogManager;
@@ -82,7 +83,6 @@ public class JsonPatch {
      */
     private static void addOperation(JsonObject document, String path, JsonElement value) {
         if (path.isEmpty()) {
-            // Root replacement: clear and add all fields
             for (String key : new HashSet<>(document.keySet())) {
                 document.remove(key);
             }
@@ -109,7 +109,6 @@ public class JsonPatch {
      */
     private static void removeOperation(JsonObject document, String path) {
         if (path.isEmpty()) {
-            // Root removal: clear all fields
             for (String key : new HashSet<>(document.keySet())) {
                 document.remove(key);
             }
@@ -175,11 +174,8 @@ public class JsonPatch {
             return;
         }
 
-        // Get the actual value to copy
         JsonElement valueToCopy = parent.getAsJsonObject().get(fromKey);
-        // Deep copy to avoid reference issues
         JsonElement copiedValue = valueToCopy.deepCopy();
-        // Now add the copied value to the new location
         JsonPatch.addOperation(document, toPath, copiedValue);
     }
 
@@ -212,15 +208,28 @@ public class JsonPatch {
         String[] parts = path.split("/");
         JsonElement current = document;
 
-        for (int i = 1; i < parts.length - 1; i++) { // Navigate to parent object
+        for (int i = 1; i < parts.length - 1; i++) {
+            String part = parts[i];
+
             if (current.isJsonObject()) {
                 JsonObject obj = current.getAsJsonObject();
-                if (!obj.has(parts[i])) {
-                    return null; // Path does not exist
+                if (!obj.has(part)) {
+                    return null;
                 }
-                current = obj.get(parts[i]);
+                current = obj.get(part);
+            } else if (current.isJsonArray()) {
+                JsonArray arr = current.getAsJsonArray();
+                try {
+                    int index = Integer.parseInt(part);
+                    if (index < 0 || index >= arr.size()) {
+                        return null;
+                    }
+                    current = arr.get(index);
+                } catch (NumberFormatException e) {
+                    return null;
+                }
             } else {
-                return null; // Trying to navigate inside a non-object
+                return null;
             }
         }
         return current;

@@ -41,6 +41,14 @@ public class Operation implements ToXContentObject {
 
     private static final Logger log = LogManager.getLogger(Operation.class);
 
+    /**
+     * Constructs a new JSON Patch Operation.
+     *
+     * @param op    The operation to perform (e.g., "add", "replace", "remove").
+     * @param path  A JSON Pointer string indicating the location to perform the operation.
+     * @param from  A JSON Pointer string indicating the location to move/copy from (optional, depends on 'op').
+     * @param value The value to be added, replaced, or tested (optional, depends on 'op').
+     */
     public Operation(String op, String path, String from, Object value) {
         this.op = op;
         this.path = path;
@@ -48,6 +56,13 @@ public class Operation implements ToXContentObject {
         this.value = value;
     }
 
+    /**
+     * Parses an XContent stream to create an {@code Operation} instance.
+     *
+     * @param parser The {@link XContentParser} to read from.
+     * @return A populated {@code Operation} object.
+     * @throws IOException If an I/O error occurs or the content structure is invalid.
+     */
     public static Operation parse(XContentParser parser) throws IOException {
         String op = null;
         String path = null;
@@ -80,6 +95,14 @@ public class Operation implements ToXContentObject {
         return new Operation(op, path, from, value);
     }
 
+    /**
+     * Serializes this operation into an {@link XContentBuilder}.
+     *
+     * @param builder The builder to write to.
+     * @param params  Contextual parameters for the serialization.
+     * @return The builder instance for chaining.
+     * @throws IOException If an error occurs while writing to the builder.
+     */
     @Override
     public XContentBuilder toXContent(XContentBuilder builder, Params params) throws IOException {
         builder.startObject();
