@@ -16,6 +16,8 @@
  */
 package com.wazuh.contentmanager;
 
+import com.wazuh.common.action.UpdateRulesAction;
+import com.wazuh.common.action.UpdateRulesRequest;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.*;
@@ -39,6 +41,7 @@ import com.wazuh.contentmanager.utils.SnapshotManager;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import org.opensearch.action.ActionRequest;
 import org.opensearch.action.index.IndexRequest;
 import org.opensearch.cluster.metadata.IndexNameExpressionResolver;
 import org.opensearch.cluster.node.DiscoveryNode;
@@ -163,6 +166,9 @@ public class ContentManagerPlugin extends Plugin implements ClusterPlugin, JobSc
             log.info("Resource token {}", resourceToken);
         }
         */
+        String jsonBody = "{\"field\": \"value\"}";
+        ActionRequest actionRequest = new UpdateRulesRequest(jsonBody);
+        client.execute(UpdateRulesAction.INSTANCE, actionRequest);
     }
 
     public List<RestHandler> getRestHandlers(
