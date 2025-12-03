@@ -32,9 +32,9 @@ public class PluginSettings {
     private static final Logger log = LogManager.getLogger(PluginSettings.class);
 
     /** Settings default values */
-    private static final String DEFAULT_CONSUMER_ID = "vd_4.8.0";
+    private static final String DEFAULT_CONSUMER_ID = "rules_consumer";
 
-    private static final String DEFAULT_CONTEXT_ID = "vd_1.0.0";
+    private static final String DEFAULT_CONTEXT_ID = "rules_development_0.0.1";
     private static final int DEFAULT_CTI_MAX_ATTEMPTS = 3;
     private static final int DEFAULT_CTI_SLEEP_TIME = 60;
     private static final int DEFAULT_MAX_ITEMS_PER_BULK = 25;
@@ -48,7 +48,8 @@ public class PluginSettings {
     private static PluginSettings INSTANCE;
 
     /** Base Wazuh CTI URL */
-    public static final String CTI_URL = "https://cti.wazuh.com";
+    // https://cti-pre.wazuh.com/api/v1/catalog/contexts/rules_development_0.0.1/consumers/rules_consumer
+    public static final String CTI_URL = "https://cti-pre.wazuh.com";
 
     /** The CTI API URL from the configuration file */
     // TODO: Change to the new CTI_API_URL

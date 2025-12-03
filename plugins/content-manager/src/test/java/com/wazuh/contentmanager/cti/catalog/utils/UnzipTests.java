@@ -14,7 +14,7 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-package com.wazuh.contentmanager.utils;
+package com.wazuh.contentmanager.cti.catalog.utils;
 
 import org.opensearch.common.settings.Settings;
 import org.opensearch.env.Environment;
@@ -28,8 +28,6 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
-
-import static org.mockito.Mockito.*;
 
 /** Class to handle unzip tests */
 public class UnzipTests extends OpenSearchTestCase {

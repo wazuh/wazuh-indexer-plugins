@@ -14,7 +14,7 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-package com.wazuh.contentmanager.updater;
+package com.wazuh.contentmanager.cti.catalog.service;
 
 import com.carrotsearch.randomizedtesting.annotations.ThreadLeakScope;
 
@@ -22,6 +22,7 @@ import com.wazuh.contentmanager.cti.catalog.model.Changes;
 import com.wazuh.contentmanager.cti.catalog.model.ConsumerInfo;
 import com.wazuh.contentmanager.cti.catalog.model.Offset;
 import com.wazuh.contentmanager.cti.catalog.model.Operation;
+import org.apache.lucene.tests.util.LuceneTestCase.AwaitsFix;
 import org.opensearch.action.admin.indices.refresh.RefreshRequest;
 import org.opensearch.action.support.WriteRequest;
 import org.opensearch.transport.client.Client;
@@ -46,8 +47,8 @@ import java.util.concurrent.TimeoutException;
 
 import com.wazuh.contentmanager.ContentManagerPlugin;
 import com.wazuh.contentmanager.client.CTIClient;
-import com.wazuh.contentmanager.index.ContentIndex;
-import com.wazuh.contentmanager.index.ConsumersIndex;
+import com.wazuh.contentmanager.cti.catalog.index.ContentIndex;
+import com.wazuh.contentmanager.cti.catalog.index.ConsumersIndex;
 import com.wazuh.contentmanager.settings.PluginSettings;
 import com.wazuh.contentmanager.utils.Privileged;
 import org.mockito.InjectMocks;
@@ -56,6 +57,7 @@ import org.mockito.Mockito;
 
 import static org.mockito.Mockito.*;
 
+@AwaitsFix(bugUrl = "https://github.com/wazuh/wazuh-indexer/issues/1250")
 @ThreadLeakScope(ThreadLeakScope.Scope.NONE)
 @OpenSearchIntegTestCase.ClusterScope(scope = OpenSearchIntegTestCase.Scope.SUITE)
 public class ContentUpdaterIT extends OpenSearchIntegTestCase {
