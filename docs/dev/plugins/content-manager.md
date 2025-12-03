@@ -1,20 +1,23 @@
 # Wazuh Indexer Content Manager Plugin — Development Guide
 
-This document describes how to extend and configure the Wazuh Indexer Content Manager plugin, which is responsible for managing and synchronizing security content from the Wazuh CTI API.
+This document describes how to extend and configure the Wazuh Indexer Content Manager plugin (v5.0), which is responsible for managing and synchronizing security content (Rules and Decoders) from the Wazuh CTI API.
 
 ---
 
 ## 📋 Overview
 
 The Content Manager plugin handles:
-- **Content synchronization** from the Wazuh CTI API
-- **Snapshot initialization** for a zip file
-- **Incremental updates** using offset-based change tracking
+- **Authentication** Manages subscriptions and tokens with the CTI Console.
+- **Job Scheduling** Periodically checks for updates using the OpenSearch Job Scheduler.
+- **Content Synchronization** Keeps local indices in sync with the Wazuh CTI Catalog.
+- **Snapshot Initialization** Downloads and indexes full content via zip snapshots.
+- **Incremental Updates** Applies JSON Patch operations based on offsets.
 - **Context management** to maintain synchronization state
 
-The plugin manages two main indices:
-- `wazuh-ruleset`: Contains the actual security content (rules, decoders, etc.)
+The plugin manages several indices:
 - `.cti-consumers`: Stores consumer information and synchronization state
+- `.wazuh-content-manager-jobs`: Stores job scheduler metadata.
+- Content Indices: Indices for specific content types following the naming `.<context>-<consumer>-<type>`.
 
 ---
 
@@ -25,47 +28,67 @@ The plugin manages two main indices:
 #### 1. **ContentManagerPlugin**
 Main class located at: `/plugins/content-manager/src/main/java/com/wazuh/contentmanager/ContentManagerPlugin.java`
 
-This is the entry point of the plugin.
+This is the entry point of the plugin:
+- Registers REST handlers for subscription and update management.
+- Initializes the `CatalogSyncJob` and schedules it via the OpenSearch Job Scheduler.
+- Initializes the `CtiConsole` for authentication management.
 
-#### 2. **ContentIndex**
-Located at: `/plugins/content-manager/src/main/java/com/wazuh/contentmanager/index/ContentIndex.java`
+#### 2. **CatalogSyncJob**
+Located at: `/plugins/content-manager/src/main/java/com/wazuh/contentmanager/jobscheduler/jobs/CatalogSyncJob.java`
 
-Manages operations on the `wazuh-ruleset` index:
-- Bulk indexing operations
-- Document patching (add, update, delete)
-- Query and retrieval operations
+This class acts as the orchestrator (J`obExecutor`). It is responsible for:
+- Executing the synchronization logic for Rules and Decoders consumers.
+- Managing concurrency using semaphores to prevent overlapping jobs.
+- Determining whether to trigger a Snapshot Initialization or an Incremental Update based on consumer offsets.
 
-#### 3. **ConsumersIndex**
-Located at: `/plugins/content-manager/src/main/java/com/wazuh/contentmanager/index/ConsumersIndex.java`
+#### 3. **Services**
+The logic is split into specialized services:
 
-Manages the `.cti-consumers` index which stores:
-- Consumer name
-- Local offset (last successfully applied change)
-- Remote offset (last available offset from the CTI API)
-- Snapshot link from where the index was initialized
+##### 3.1 **ConsumerService**
+Located at: `/plugins/content-manager/src/main/java/com/wazuh/contentmanager/cti/catalog/service/ConsumerServiceImpl.java`
 
-#### 4. **ContentUpdater**
-Located at: `/plugins/content-manager/src/main/java/com/wazuh/contentmanager/updater/ContentUpdater.java`
+Retrieves `LocalConsumer` state from `.cti-consumers` and `RemoteConsumer` state from the CTI API.
 
-Orchestrates the update process by:
-- Fetching changes from the CTI API
-- Applying changes incrementally
-- Updating offset information
-- Handling update failures
+##### 3.2 **SnapshotService**
+Located at: `/plugins/content-manager/src/main/java/com/wazuh/contentmanager/cti/catalog/service/SnapshotServiceImpl.java`
 
-#### 5. **SnapshotManager**
-Located at: `/plugins/content-manager/src/main/java/com/wazuh/contentmanager/utils/SnapshotManager.java`
+Handles downloading zip snapshots, unzipping, parsing JSON files, and bulk indexing content when a consumer is new or reset.
 
-Handles initial content bootstrapping:
-- Downloads snapshots from the CTI API
-- Decompresses and indexes snapshot content
-- Triggers after initialization or on offset reset
+##### 3.3 **UpdateService**
+Located at: `/plugins/content-manager/src/main/java/com/wazuh/contentmanager/cti/catalog/service/UpdateServiceImpl.java`
+
+Fetches specific changes (offsets) from the CTI API and applies them using JSON Patch (`Operation` class).
+
+##### 3.4 **AuthService**
+Located at: `/plugins/content-manager/src/main/java/com/wazuh/contentmanager/cti/console/service/AuthServiceImpl.java`
+
+Manages the exchange of device codes for permanent access tokens.
+
+#### 4. **Indices Management**
+
+##### 4.1 **ConsumersIndex**
+Located at: `/plugins/content-manager/src/main/java/com/wazuh/contentmanager/cti/catalog/index/ConsumersIndex.java`
+
+Wraps operations for the `.cti-consumers` index.
+
+##### 4.2 **ContentIndex**
+Located at: `/plugins/content-manager/src/main/java/com/wazuh/contentmanager/cti/catalog/index/ContentIndex.java`
+
+Manages operations for content indices. 
 
 ---
 
 ## ⚙️ Configuration Settings
 
 The plugin is configured through the `PluginSettings` class. Settings can be defined in `opensearch.yml`:
+
+| Setting                                 | Default                            | Description                                                                  |
+|-----------------------------------------|------------------------------------|------------------------------------------------------------------------------|
+| `content_manager.cti.api`               | `https://cti-pre.wazuh.com/api/v1` | Base URL for the Wazuh CTI API.                                              |
+| `content_manager.catalog.sync_interval` | `1`                                | Interval (in minutes) for the periodic synchronization job.                  |
+| `content_manager.max_items_per_bulk`    | `25`                               | Maximum number of documents per bulk request during snapshot initialization. |
+| `content_manager.max_concurrent_bulks`  | `5`                                | Maximum number of concurrent bulk requests.                                  |
+| `content_manager.client.timeout`        | `10`                               | Timeout (in seconds) for HTTP and Indexing operations.                       |
 
 
 ## 🔄 How Content Synchronization Works
@@ -92,8 +115,37 @@ The update process follows these steps:
 
 ### 3. **Error Handling**
 
-- **Recoverable errors**: Updates local_offset and retries later
-- **Critical failures**: Resets local_offset to 0, triggering snapshot re-initialization
+Resets local_offset to 0, triggering snapshot re-initialization
+
+## 📡 REST API
+
+### Subscription Management
+
+#### GET /subscription
+
+Retrieves the current subscription token. 
+
+`GET /_plugins/content-manager/subscription`
+
+#### POST /subscription 
+
+Creates or updates a subscription. 
+
+`POST /_plugins/content-manager/subscription { "device_code": "...", "client_id": "...", "expires_in": 3600, "interval": 5 }`
+
+#### DELETE /subscription
+
+Deletes the current token/subscription. 
+
+`DELETE /_plugins/content-manager/subscription`
+
+### Update Trigger
+
+#### POST /update 
+
+Manually triggers the `CatalogSyncJob`. 
+
+`POST /_plugins/content-manager/update`
 
 ---
 
@@ -113,7 +165,7 @@ GET /.cti-consumers/_search
 ### Check Content Index
 
 ```bash
-GET /wazuh-ruleset/_search
+GET /.cti-rules/_search
 {
   "size": 10
 }
@@ -121,10 +173,10 @@ GET /wazuh-ruleset/_search
 
 ### Monitor Plugin Logs
 
-Look for entries from `ContentManagerPlugin`, `ContentUpdater`, and `SnapshotManager` in the OpenSearch logs.
+Look for entries from `ContentManagerPlugin`, `CatalogSyncJob`, `SnapshotServiceImpl`  and `UpdateServiceImpl` in the OpenSearch logs.
 
 ```bash
-tail -f logs/opensearch.log | grep -E "ContentManager|ContentUpdater|SnapshotManager"
+tail -f logs/opensearch.log | grep -E "ContentManager|CatalogSyncJob|SnapshotServiceImpl|UpdateServiceImpl"
 ```
 
 ---
@@ -134,7 +186,6 @@ tail -f logs/opensearch.log | grep -E "ContentManager|ContentUpdater|SnapshotMan
 - The plugin only runs on **cluster manager nodes**
 - CTI API must be accessible for content synchronization
 - Offset-based synchronization ensures no content is missed
-- Snapshot initialization provides a fast bootstrap mechanism
 
 ---
 
