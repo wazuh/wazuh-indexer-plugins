@@ -1,5 +1,5 @@
 {
-  "dynamic": "strict_allow_templates",
+  "dynamic": "true",
   "dynamic_templates": [
     {
       "parse_fields": {

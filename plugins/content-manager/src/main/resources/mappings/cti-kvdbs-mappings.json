@@ -1,5 +1,5 @@
 {
-  "dynamic": "strict",
+  "dynamic": "true",
   "properties": {
     "type": {
       "type": "keyword"
@@ -16,8 +16,7 @@
           "type": "keyword"
         },
         "date": {
-          "type": "date",
-          "format": "yyyy-MM-dd'T'HH:mm:ss'Z'||yyyy-MM-dd'T'HH:mm:ss||epoch_millis"
+          "type": "date"
         },
         "author": {
           "type": "keyword"
