@@ -16,11 +16,6 @@
  */
 package com.wazuh.contentmanager.cti.catalog.service;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
-import com.google.gson.JsonArray;
-import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import com.wazuh.contentmanager.cti.catalog.client.SnapshotClient;
@@ -50,15 +45,6 @@ import java.util.*;
 public class SnapshotServiceImpl implements SnapshotService {
     private static final Logger log = LogManager.getLogger(SnapshotServiceImpl.class);
 
-    // Mappers and Keys for YAML enrichment
-    private final ObjectMapper jsonMapper;
-    private final ObjectMapper yamlMapper;
-
-    private static final List<String> DECODER_ORDER_KEYS = Arrays.asList(
-        "name", "metadata", "parents", "definitions", "check",
-        "parse|event.original", "parse|message", "normalize"
-    );
-
     // Keys to navigate the JSON structure
     private static final String JSON_PAYLOAD_KEY = "payload";
     private static final String JSON_TYPE_KEY = "type";
@@ -84,8 +70,6 @@ public class SnapshotServiceImpl implements SnapshotService {
         this.consumersIndex = consumersIndex;
         this.environment = environment;
         this.pluginSettings = PluginSettings.getInstance();
-        this.jsonMapper = new ObjectMapper();
-        this.yamlMapper = new ObjectMapper(new YAMLFactory());
 
         this.snapshotClient = new SnapshotClient(this.environment);
     }
@@ -190,33 +174,33 @@ public class SnapshotServiceImpl implements SnapshotService {
                     String type = payload.get(JSON_TYPE_KEY).getAsString();
 
                     // Skip policy type documents
+                    // TODO: Change to index policy documents
                     if ("policy".equalsIgnoreCase(type)) {
                         log.debug("Skipping document with type {}.", type);
                         continue;
                     }
 
-                    if ("decoder".equalsIgnoreCase(type)) {
-                        this.enrichDecoderWithYaml(payload);
+                    // 3. Delegate Processing to ContentIndex
+                    // We use the first index instance to process the payload because logic is stateless/shared.
+                    if (!this.contentIndex.isEmpty()) {
+                        this.contentIndex.getFirst().processPayload(payload);
+                    } else {
+                        log.error("No ContentIndex available to process payload.");
+                        return;
                     }
 
                     String indexName = this.getIndexName(type);
-
-                    // 3. Extract the inner 'document' object for ID retrieval and Preprocessing
-                    if (!payload.has(JSON_DOCUMENT_KEY)) {
-                        log.warn("Payload missing '{}'. Skipping.", JSON_DOCUMENT_KEY);
-                        continue;
-                    }
-                    JsonObject innerDocument = payload.getAsJsonObject(JSON_DOCUMENT_KEY);
-
-                    // Preprocess the inner document
-                    this.preprocessDocument(innerDocument);
 
                     // 4. Create Index Request
                     IndexRequest indexRequest = new IndexRequest(indexName)
                         .source(payload.toString(), XContentType.JSON);
 
-                    if (innerDocument.has(JSON_ID_KEY)) {
-                        indexRequest.id(innerDocument.get(JSON_ID_KEY).getAsString());
+                    // Retrieve ID from the inner 'document' object (now inside the modified payload)
+                    if (payload.has(JSON_DOCUMENT_KEY)) {
+                        JsonObject innerDocument = payload.getAsJsonObject(JSON_DOCUMENT_KEY);
+                        if (innerDocument.has(JSON_ID_KEY)) {
+                            indexRequest.id(innerDocument.get(JSON_ID_KEY).getAsString());
+                        }
                     }
 
                     bulkRequest.add(indexRequest);
@@ -244,86 +228,8 @@ public class SnapshotServiceImpl implements SnapshotService {
         }
     }
 
-    /**
-     * Parses the decoder payload, reorders keys based on a predefined list,
-     * and adds a YAML representation of the decoder to the payload.
-     *
-     * @param payload The JSON object containing the decoder data.
-     */
-    private void enrichDecoderWithYaml(JsonObject payload) {
-        try {
-            JsonNode docNode = this.jsonMapper.readTree(payload.toString()).get(JSON_DOCUMENT_KEY);
-
-            if (docNode != null && docNode.isObject()) {
-                Map<String, Object> orderedDecoderMap = new LinkedHashMap<>();
-
-                // Add JSON nodes in the expected order, if they exist.
-                for (String key : DECODER_ORDER_KEYS) {
-                    if (docNode.has(key)) {
-                        orderedDecoderMap.put(key, docNode.get(key));
-                    }
-                }
-
-                // Add remaining JSON nodes.
-                Iterator<Map.Entry<String, JsonNode>> fields = docNode.fields();
-                while (fields.hasNext()) {
-                    Map.Entry<String, JsonNode> field = fields.next();
-                    if (!DECODER_ORDER_KEYS.contains(field.getKey())) {
-                        orderedDecoderMap.put(field.getKey(), field.getValue());
-                    }
-                }
-
-                // Add YAML representation to the document
-                String yamlContent = this.yamlMapper.writeValueAsString(orderedDecoderMap);
-                payload.addProperty("decoder", yamlContent);
-            }
-        } catch (IOException e) {
-            log.error("Failed to convert decoder payload to YAML: {}", e.getMessage(), e);
-        }
-    }
-
     private String getIndexName(String type) {
         return String.format(Locale.ROOT, ".%s-%s-%s", this.context, this.consumer, type);
-    }
-
-    /**
-     * Preprocesses the document to handle field transformations.
-     * Specifically, renames 'related.sigma_id' to 'related.id' to avoid StrictDynamicMappingException.
-     *
-     * @param document The document object to process.
-     */
-    private void preprocessDocument(JsonObject document) {
-        if (!document.has("related")) {
-            return;
-        }
-
-        JsonElement relatedElement = document.get("related");
-
-        if (relatedElement.isJsonObject()) {
-            this.sanitizeRelatedObject(relatedElement.getAsJsonObject());
-        } else if (relatedElement.isJsonArray()) {
-            JsonArray relatedArray = relatedElement.getAsJsonArray();
-            for (JsonElement element : relatedArray) {
-                if (element.isJsonObject()) {
-                    this.sanitizeRelatedObject(element.getAsJsonObject());
-                }
-            }
-        }
-    }
-
-    /**
-     * Helper method to perform the actual rename/delete logic on a specific related object.
-     *
-     * @param relatedObj The specific related object (either standalone or from an array).
-     */
-    private void sanitizeRelatedObject(JsonObject relatedObj) {
-        if (relatedObj.has("sigma_id")) {
-            JsonElement sigmaIdValue = relatedObj.get("sigma_id");
-            // Move value to 'id'
-            relatedObj.add("id", sigmaIdValue);
-            // Remove the original 'sigma_id' field
-            relatedObj.remove("sigma_id");
-        }
     }
 
     /**

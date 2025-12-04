@@ -54,6 +54,7 @@ import org.opensearch.transport.client.Client;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
 import java.util.*;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Semaphore;
@@ -83,6 +84,8 @@ public class ContentIndex {
         "name", "metadata", "parents", "definitions", "check",
         "parse|event.original", "parse|message", "normalize"
     );
+
+    private enum spaceName { free, paid, custom }
 
     /**
      * Constructs a new ContentIndex manager.
@@ -281,13 +284,47 @@ public class ContentIndex {
      *
      * @param payload The JSON payload to process.
      */
-    private void processPayload(JsonObject payload) {
+    public void processPayload(JsonObject payload) {
+        // 1. Enrich decoder if type is 'decoder'
         if (payload.has("type") && "decoder".equalsIgnoreCase(payload.get("type").getAsString())) {
             this.enrichDecoderWithYaml(payload);
         }
-        if (payload.has("document")) {
-            this.preprocessDocument(payload.getAsJsonObject("document"));
+
+        JsonObject document = null;
+        String decoder = null;
+
+        // 2. Extract and sanitize the document
+        if (payload.has("document") && payload.get("document").isJsonObject()) {
+            document = payload.getAsJsonObject("document");
+            preprocessDocument(document);
         }
+
+        // 3. Extract decoder YAML if present
+        if (payload.has("decoder") && !payload.get("decoder").isJsonNull()) {
+            decoder = payload.get("decoder").getAsString();
+        }
+
+        // 4. Calculate checksum based on the sanitized document content
+        String hash = (document != null) ? this.calculateSha256(document) : null;
+
+        // 5. Clear existing fields to remove unwanted metadata
+        List<String> keysToRemove = new ArrayList<>(payload.keySet());
+        for (String key : keysToRemove) {
+            payload.remove(key);
+        }
+
+        // 6. Rebuild the payload with only 'document', 'hash.sha256', and 'decoder'
+        if (document != null) {
+            payload.add("document", document);
+        }
+        if (hash != null) {
+            payload.addProperty("hash.sha256", hash);
+        }
+        if (decoder != null) {
+            payload.addProperty("decoder", decoder);
+        }
+        // TODO: Once CTI is ready change to actual real logic
+        payload.addProperty("space.name", spaceName.free.toString());
     }
 
     /**
@@ -360,6 +397,32 @@ public class ContentIndex {
         if (relatedObj.has("sigma_id")) {
             relatedObj.add("id", relatedObj.get("sigma_id"));
             relatedObj.remove("sigma_id");
+        }
+    }
+
+    /**
+     * Calculates the SHA-256 checksum of a JSON Object.
+     *
+     * @param json The JSON object to hash.
+     * @return The hex string representation of the hash.
+     */
+    private String calculateSha256(JsonObject json) {
+        try {
+            MessageDigest digest = MessageDigest.getInstance("SHA-256");
+            byte[] encodedhash = digest.digest(json.toString().getBytes(StandardCharsets.UTF_8));
+
+            StringBuilder hexString = new StringBuilder(2 * encodedhash.length);
+            for (byte b : encodedhash) {
+                String hex = Integer.toHexString(0xff & b);
+                if (hex.length() == 1) {
+                    hexString.append('0');
+                }
+                hexString.append(hex);
+            }
+            return hexString.toString();
+        } catch (Exception e) {
+            log.error("Failed to calculate SHA-256 hash", e);
+            return null;
         }
     }
 }
