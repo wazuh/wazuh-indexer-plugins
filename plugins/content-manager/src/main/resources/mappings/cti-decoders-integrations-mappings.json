@@ -1,12 +1,12 @@
 {
   "dynamic": "true",
   "properties": {
-    "type": {
-      "type": "keyword"
-    },
     "document": {
       "properties": {
         "id": {
+          "type": "keyword"
+        },
+        "parent_decoder": {
           "type": "keyword"
         },
         "title": {
@@ -40,6 +40,12 @@
           "type": "keyword"
         }
       }
+    },
+    "hash.sha256": {
+      "type": "keyword"
+    },
+    "space.name": {
+      "type": "keyword"
     }
   }
 }
