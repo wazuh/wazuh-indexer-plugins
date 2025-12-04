@@ -40,9 +40,6 @@
       "properties": {
         "name": {
           "type": "keyword"
-        },
-        "hash.sha256": {
-          "type": "keyword"
         }
       }
     }
