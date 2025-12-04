@@ -50,6 +50,8 @@ public class SnapshotServiceImpl extends AbstractService implements SnapshotServ
     private static final String JSON_TYPE_KEY = "type";
     private static final String JSON_DOCUMENT_KEY = "document";
     private static final String JSON_ID_KEY = "id";
+    private static final String POLICY_TYPE = "policy";
+    private static final String POLICY_INDEX = ".cti-policies";
 
     private final String context;
     private final String consumer;
@@ -118,8 +120,16 @@ public class SnapshotServiceImpl extends AbstractService implements SnapshotServ
             // 3. Unzip
             Unzip.unzip(snapshotZip, outputDir);
 
-            // 4. Clear indices
-            this.contentIndex.forEach(ContentIndex::clear);
+            // 4. Clear indices or delete specific policy doc
+            this.contentIndex.forEach(idx -> {
+                if (POLICY_INDEX.equals(idx.getIndexName())) {
+                    // Do not wipe shared policy index; remove only this consumer's policy
+                    String policyId = (this.context + "_" + this.consumer);
+                    idx.delete(policyId);
+                } else {
+                    idx.clear();
+                }
+            });
 
             // 5. Process and Index Files
             try (DirectoryStream<Path> stream = Files.newDirectoryStream(outputDir, "*.json")) {
@@ -173,13 +183,6 @@ public class SnapshotServiceImpl extends AbstractService implements SnapshotServ
                     }
                     String type = payload.get(JSON_TYPE_KEY).getAsString();
 
-                    // Skip policy type documents
-                    // TODO: Change to index policy documents
-                    if ("policy".equalsIgnoreCase(type)) {
-                        log.debug("Skipping document with type {}.", type);
-                        continue;
-                    }
-
                     // 3. Delegate Processing to ContentIndex
                     // We use the first index instance to process the payload because logic is stateless/shared.
                     if (!this.contentIndex.isEmpty()) {
@@ -195,8 +198,10 @@ public class SnapshotServiceImpl extends AbstractService implements SnapshotServ
                     IndexRequest indexRequest = new IndexRequest(indexName)
                         .source(payload.toString(), XContentType.JSON);
 
-                    // Retrieve ID from the inner 'document' object (now inside the modified payload)
-                    if (payload.has(JSON_DOCUMENT_KEY)) {
+                    // Determine ID
+                    if (POLICY_TYPE.equalsIgnoreCase(type)) {
+                        indexRequest.id(this.context + "_" + this.consumer);
+                    } else if (payload.has(JSON_DOCUMENT_KEY)) {
                         JsonObject innerDocument = payload.getAsJsonObject(JSON_DOCUMENT_KEY);
                         if (innerDocument.has(JSON_ID_KEY)) {
                             indexRequest.id(innerDocument.get(JSON_ID_KEY).getAsString());
@@ -229,7 +234,10 @@ public class SnapshotServiceImpl extends AbstractService implements SnapshotServ
     }
 
     private String getIndexName(String type) {
-        return String.format(Locale.ROOT, ".%s-%s-%s", this.context, this.consumer, type);
+        if (POLICY_TYPE.equalsIgnoreCase(type)) {
+            return POLICY_INDEX;
+        }
+        return ("." + this.context + "-" +this.consumer + "-" +type);
     }
 
     /**
