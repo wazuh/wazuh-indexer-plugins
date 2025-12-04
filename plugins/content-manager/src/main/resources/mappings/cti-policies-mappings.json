@@ -1,0 +1,42 @@
+{
+  "dynamic": "true",
+  "properties": {
+    "document": {
+      "properties": {
+        "root_decoder": {
+          "type": "keyword"
+        },
+        "date": {
+          "type": "date"
+        },
+        "modified": {
+          "type": "date"
+        },
+        "author": {
+          "type": "keyword"
+        },
+        "description": {
+          "type": "text"
+        },
+        "references": {
+          "type": "keyword"
+        },
+        "documentation": {
+          "type": "keyword"
+        },
+        "integrations": {
+          "type": "keyword"
+        },
+        "title": {
+          "type": "keyword"
+        }
+      }
+    },
+    "hash.sha256": {
+      "type": "keyword"
+    },
+    "space.name": {
+      "type": "keyword"
+    }
+  }
+}

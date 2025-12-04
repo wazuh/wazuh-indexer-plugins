@@ -77,7 +77,7 @@ public class UpdateServiceImpl extends AbstractService implements UpdateService 
      * Implementation details:
      * 1. Fetches the changes JSON from the API for the given range.
      * 2. Parses the response into {@link Changes} and {@link Offset} objects.
-     * 3. Iterates through offsets, skipping specific internal resources ("policy").
+     * 3. Iterates through offsets.
      * 4. Delegates specific operations to {@link #applyOffset(Offset)}.
      * 5. Updates the {@link LocalConsumer} record in the index with the last successfully applied offset.
      *
@@ -102,12 +102,7 @@ public class UpdateServiceImpl extends AbstractService implements UpdateService 
                 long lastAppliedOffset = fromOffset;
 
                 for (Offset offset : changes.get()) {
-                    if ("policy".equals(offset.getResource())) {
-                        lastAppliedOffset = offset.getOffset();
-                        continue;
-                    }
-
-                    this.applyOffset(offset);
+                    applyOffset(offset);
                     lastAppliedOffset = offset.getOffset();
                 }
 
@@ -139,6 +134,11 @@ public class UpdateServiceImpl extends AbstractService implements UpdateService 
     private void applyOffset(Offset offset) throws Exception {
         String id = offset.getResource();
         ContentIndex index;
+
+        // Handle specific ID generation for policies
+        if ("policy".equals(id)) {
+            id = (this.context + "_" + this.consumerName);
+        }
 
         switch (offset.getType()) {
             case CREATE:

@@ -118,6 +118,14 @@ public class ContentIndex {
     }
 
     /**
+     * Returns the name of the index managed by this instance.
+     * @return The index name.
+     */
+    public String getIndexName() {
+        return this.indexName;
+    }
+
+    /**
      * Creates the index in OpenSearch using the configured mappings and settings.
      * <p>
      * Applies specific settings (hidden=true, replicas=0) and registers an alias if one is defined.
