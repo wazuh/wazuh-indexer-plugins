@@ -44,8 +44,15 @@
     "hash.sha256": {
       "type": "keyword"
     },
-    "space.name": {
-      "type": "keyword"
+    "space": {
+      "properties": {
+        "name": {
+          "type": "keyword"
+        },
+        "hash.sha256": {
+          "type": "keyword"
+        }
+      }
     }
   }
 }
