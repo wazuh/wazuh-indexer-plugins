@@ -1,6 +1,6 @@
 # Wazuh Indexer Content Manager Plugin — Development Guide
 
-This document describes how to extend and configure the Wazuh Indexer Content Manager plugin (v5.0), which is responsible for managing and synchronizing security content (Rules and Decoders) from the Wazuh CTI API.
+This document describes how to extend and configure the Wazuh Indexer Content Manager plugin, which is responsible for managing and synchronizing security content from the Wazuh CTI API.
 
 ---
 
@@ -36,8 +36,8 @@ This is the entry point of the plugin:
 #### 2. **CatalogSyncJob**
 Located at: `/plugins/content-manager/src/main/java/com/wazuh/contentmanager/jobscheduler/jobs/CatalogSyncJob.java`
 
-This class acts as the orchestrator (J`obExecutor`). It is responsible for:
-- Executing the synchronization logic for Rules and Decoders consumers.
+This class acts as the orchestrator (`JobExecutor`). It is responsible for:
+- Executing the content synchronization logic
 - Managing concurrency using semaphores to prevent overlapping jobs.
 - Determining whether to trigger a Snapshot Initialization or an Incremental Update based on consumer offsets.
 
@@ -85,7 +85,7 @@ The plugin is configured through the `PluginSettings` class. Settings can be def
 | Setting                                 | Default                            | Description                                                                  |
 |-----------------------------------------|------------------------------------|------------------------------------------------------------------------------|
 | `content_manager.cti.api`               | `https://cti-pre.wazuh.com/api/v1` | Base URL for the Wazuh CTI API.                                              |
-| `content_manager.catalog.sync_interval` | `1`                                | Interval (in minutes) for the periodic synchronization job.                  |
+| `content_manager.catalog.sync_interval` | `60`                               | Interval (in minutes) for the periodic synchronization job.                  |
 | `content_manager.max_items_per_bulk`    | `25`                               | Maximum number of documents per bulk request during snapshot initialization. |
 | `content_manager.max_concurrent_bulks`  | `5`                                | Maximum number of concurrent bulk requests.                                  |
 | `content_manager.client.timeout`        | `10`                               | Timeout (in seconds) for HTTP and Indexing operations.                       |

@@ -64,7 +64,7 @@ public class CatalogSyncJob implements JobExecutor {
      */
     @Override
     public void execute(JobExecutionContext context) {
-        if (!semaphore.tryAcquire()) {
+        if (!this.semaphore.tryAcquire()) {
             log.warn("CatalogSyncJob (ID: {}) skipped because synchronization is already running.", context.getJobId());
             return;
         }
@@ -77,7 +77,7 @@ public class CatalogSyncJob implements JobExecutor {
             } catch (Exception e) {
                 log.error("Error executing Consumer Sync Job (ID: {}): {}", context.getJobId(), e.getMessage(), e);
             } finally {
-                semaphore.release();
+                this.semaphore.release();
             }
         });
     }
@@ -88,7 +88,7 @@ public class CatalogSyncJob implements JobExecutor {
      * @return true if running, false otherwise.
      */
     public boolean isRunning() {
-        return semaphore.availablePermits() == 0;
+        return this.semaphore.availablePermits() == 0;
     }
 
     /**
@@ -97,7 +97,7 @@ public class CatalogSyncJob implements JobExecutor {
      * @return true if the job was successfully started, false if it is already running.
      */
     public boolean trigger() {
-        if (!semaphore.tryAcquire()) {
+        if (!this.semaphore.tryAcquire()) {
             log.warn("Attempted to trigger CatalogSyncJob manually while it is already running.");
             return false;
         }
@@ -108,7 +108,7 @@ public class CatalogSyncJob implements JobExecutor {
             } catch (Exception e) {
                 log.error("Error executing Manual Consumer Sync Job: {}", e.getMessage(), e);
             } finally {
-                semaphore.release();
+                this.semaphore.release();
             }
         });
 
@@ -253,7 +253,6 @@ public class CatalogSyncJob implements JobExecutor {
                 this.environment
             );
             snapshotService.initialize(remoteConsumer);
-            snapshotService.close();
         } else if (remoteConsumer != null && localConsumer.getLocalOffset() != remoteConsumer.getOffset()) {
             log.info("Starting offset-based update for consumer [{}]", consumer);
             UpdateServiceImpl updateService = new UpdateServiceImpl(

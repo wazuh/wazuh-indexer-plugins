@@ -100,7 +100,7 @@ public class RestPostUpdateAction extends BaseRestHandler {
             }
 
             // 2. Conflict Check (409 Conflict)
-            if (catalogSyncJob.isRunning()) {
+            if (this.catalogSyncJob.isRunning()) {
                 RestResponse error = new RestResponse(
                     "An update operation is already in progress. Please wait for it to complete.",
                     RestStatus.CONFLICT.getStatus()
@@ -116,7 +116,7 @@ public class RestPostUpdateAction extends BaseRestHandler {
              */
 
             // 4. Update Accepted (202 ACCEPTED)
-            catalogSyncJob.trigger();
+            this.catalogSyncJob.trigger();
             RestResponse response = new RestResponse("Update accepted", RestStatus.ACCEPTED.getStatus());
             return new BytesRestResponse(RestStatus.ACCEPTED, response.toXContent());
         } catch (Exception e) {

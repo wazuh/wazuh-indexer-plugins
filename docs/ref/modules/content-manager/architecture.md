@@ -8,7 +8,7 @@ The Content Manager plugin operates within the Wazuh Indexer environment. It is 
 The plugin exposes a set of REST endpoints under `/_plugins/content-manager/` to manage subscriptions and trigger updates. These handlers interact with the `CtiConsole` and `CatalogSyncJob` to perform operations.
 
 ### 2. CTI Console
-The `CtiConsole` acts as the authentication manager. It handles the storage and retrieval of authentication tokens required to communicate with the remote Wazuh CTI API.
+The `CtiConsole` acts as the authentication manager. It handles the storage and retrieval of authentication tokens required to communicate with the remote Wazuh CTI Console API.
 
 ### 3. Job Scheduler & Sync Job
 The plugin implements the `JobSchedulerExtension` to register the `CatalogSyncJob`. This job runs periodically (configured via `content_manager.catalog.sync_interval`) to synchronize content. It manages synchronization for different contexts, such as `rules` and `decoders`.

@@ -206,33 +206,28 @@ public class JsonPatch {
      */
     private static JsonElement navigateToParent(JsonObject document, String path) {
         String[] parts = path.split("/");
-        JsonElement current = document;
 
-        for (int i = 1; i < parts.length - 1; i++) {
-            String part = parts[i];
+        return java.util.Arrays.stream(parts, 1, parts.length - 1)
+            .reduce((JsonElement) document, (current, part) -> {
+                if (current == null) return null;
 
-            if (current.isJsonObject()) {
-                JsonObject obj = current.getAsJsonObject();
-                if (!obj.has(part)) {
-                    return null;
+                if (current.isJsonObject()) {
+                    JsonObject obj = current.getAsJsonObject();
+                    return obj.has(part) ? obj.get(part) : null;
                 }
-                current = obj.get(part);
-            } else if (current.isJsonArray()) {
-                JsonArray arr = current.getAsJsonArray();
-                try {
-                    int index = Integer.parseInt(part);
-                    if (index < 0 || index >= arr.size()) {
+
+                if (current.isJsonArray()) {
+                    try {
+                        int index = Integer.parseInt(part);
+                        JsonArray arr = current.getAsJsonArray();
+                        return (index >= 0 && index < arr.size()) ? arr.get(index) : null;
+                    } catch (NumberFormatException e) {
                         return null;
                     }
-                    current = arr.get(index);
-                } catch (NumberFormatException e) {
-                    return null;
                 }
-            } else {
+
                 return null;
-            }
-        }
-        return current;
+            }, (a, b) -> a);
     }
 
     /**
