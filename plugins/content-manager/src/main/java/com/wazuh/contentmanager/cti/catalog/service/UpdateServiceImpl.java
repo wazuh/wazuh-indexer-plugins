@@ -93,6 +93,7 @@ public class UpdateServiceImpl extends AbstractService implements UpdateService 
                 return;
             }
 
+            // TODO: Study if it can be changed to Jackson Databind and if so apply the necessary changes
             try (XContentParser parser = XContentType.JSON.xContent().createParser(
                 NamedXContentRegistry.EMPTY,
                 DeprecationHandler.THROW_UNSUPPORTED_OPERATION,
@@ -142,6 +143,7 @@ public class UpdateServiceImpl extends AbstractService implements UpdateService 
         switch (offset.getType()) {
             case CREATE:
                 if (offset.getPayload() != null) {
+                    // TODO: Change the Offset logic to use JsonNode and use Jackson Object Mapper to obtain the payload
                     JsonObject payload = this.gson.toJsonTree(offset.getPayload()).getAsJsonObject();
                     if (payload.has("type")) {
                         String type = payload.get("type").getAsString();
