@@ -25,9 +25,11 @@ import java.io.IOException;
 import java.util.*;
 
 /**
- * ToXContentObject model to parse and build CTI API changes.
- *
- * <p>This class represents an offset in the context of a content change operation.
+ * Data Transfer Object representing a change offset from the CTI API.
+ * <p>
+ * This class encapsulates a single synchronization event, defining what action
+ * took place (Create, Update, Delete), which resource was affected, and the
+ * data associated with that change (either a full payload or a list of patch operations).
  */
 public class Offset implements ToXContentObject {
     private static final String CONTEXT = "context";
@@ -37,6 +39,7 @@ public class Offset implements ToXContentObject {
     private static final String VERSION = "version";
     private static final String OPERATIONS = "operations";
     private static final String PAYLOAD = "payload";
+
     private final String context;
     private final long offset;
     private final String resource;
@@ -45,35 +48,20 @@ public class Offset implements ToXContentObject {
     private final List<Operation> operations;
     private final Map<String, Object> payload;
 
-    /**
-     * Type of change represented by the offset. Possible values are defined in <a
-     * href="https://github.com/wazuh/cti/blob/main/docs/ref/catalog.md#fetching-consumer-changes">catalog.md</a>.
-     */
-    public enum Type {
-        CREATE,
-        UPDATE,
-        DELETE
-    }
+    public enum Type { CREATE, UPDATE, DELETE }
 
     /**
-     * Constructor.
+     * Constructs a new Offset instance.
      *
-     * @param context Name of the context
-     * @param offset Offset number of the record
-     * @param resource Name of the resource
-     * @param type OperationType of operation to be performed
-     * @param version Version Number
-     * @param operations JSON Patch payload data
-     * @param payload JSON Patch payload data
+     * @param context    The context or category of the content (e.g., catalog ID).
+     * @param offset     The sequential ID of this event. Defaults to 0 if null.
+     * @param resource   The unique identifier of the specific resource being modified.
+     * @param type       The type of modification (CREATE, UPDATE, DELETE).
+     * @param version    The version number of the resource. Defaults to 0 if null.
+     * @param operations A list of patch operations (typically used with UPDATE).
+     * @param payload    The full resource content (typically used with CREATE).
      */
-    public Offset(
-            String context,
-            Long offset,
-            String resource,
-            Offset.Type type,
-            Long version,
-            List<Operation> operations,
-            Map<String, Object> payload) {
+    public Offset(String context, long offset, String resource, Type type, long version, List<Operation> operations, Map<String, Object> payload) {
         this.context = context;
         this.offset = offset;
         this.resource = resource;
@@ -84,204 +72,106 @@ public class Offset implements ToXContentObject {
     }
 
     /**
-     * Builds an Offset instance from the content of an XContentParser.
+     * Parses an XContent stream to create an {@code Offset} instance.
      *
-     * @param parser The XContentParser parser holding the data.
-     * @return A new Offset instance.
-     * @throws IOException if an I/O error occurs during parsing.
-     * @throws IllegalArgumentException unexpected token found during parsing.
+     * @param parser The {@link XContentParser} to read from.
+     * @return A populated {@code Offset} object.
+     * @throws IOException If an I/O error occurs or the JSON structure is invalid.
      */
-    public static Offset parse(XContentParser parser) throws IOException, IllegalArgumentException {
+    public static Offset parse(XContentParser parser) throws IOException {
         String context = null;
-        long offset = 0;
+        Long offset = null;
         String resource = null;
-        Offset.Type type = null;
-        long version = 0;
+        Type type = null;
+        Long version = null;
         List<Operation> operations = new ArrayList<>();
-        Map<String, Object> payload = new HashMap<>();
+        Map<String, Object> payload = null;
 
         while (parser.nextToken() != XContentParser.Token.END_OBJECT) {
             if (parser.currentToken() == XContentParser.Token.FIELD_NAME) {
                 String fieldName = parser.currentName();
                 parser.nextToken();
                 switch (fieldName) {
-                    case CONTEXT:
-                        context = parser.text();
-                        break;
-                    case OFFSET:
-                        offset = parser.longValue();
-                        break;
-                    case RESOURCE:
-                        resource = parser.text();
-                        break;
-                    case TYPE:
-                        String opType = parser.text().trim().toUpperCase(Locale.ROOT);
-                        type = Offset.Type.valueOf(opType);
-                        break;
-                    case VERSION:
-                        version = parser.longValue();
-                        break;
-                    case OPERATIONS:
-                        XContentParserUtils.ensureExpectedToken(
-                                XContentParser.Token.START_ARRAY, parser.currentToken(), parser);
+                    case CONTEXT -> context = parser.text();
+                    case OFFSET -> offset = parser.longValue();
+                    case RESOURCE -> resource = parser.text();
+                    case TYPE -> type = Type.valueOf(parser.text().trim().toUpperCase(Locale.ROOT));
+                    case VERSION -> version = parser.longValue();
+                    case OPERATIONS -> {
+                        XContentParserUtils.ensureExpectedToken(XContentParser.Token.START_ARRAY, parser.currentToken(), parser);
                         while (parser.nextToken() != XContentParser.Token.END_ARRAY) {
                             operations.add(Operation.parse(parser));
                         }
-                        break;
-                    case PAYLOAD:
-                        XContentParserUtils.ensureExpectedToken(
-                                XContentParser.Token.START_OBJECT, parser.currentToken(), parser);
-                        payload = Offset.parseObject(parser);
-                        break;
-                    default:
-                        parser.skipChildren();
-                        break;
+                    }
+                    case PAYLOAD -> {
+                        if (parser.currentToken() == XContentParser.Token.START_OBJECT) {
+                            payload = parser.map();
+                        }
+                    }
+                    default -> parser.skipChildren();
                 }
             }
         }
-
-        return new Offset(context, offset, resource, type, version, operations, payload);
+        return new Offset(context, offset != null ? offset : 0, resource, type, version != null ? version : 0, operations, payload);
     }
 
     /**
-     * @param parser
-     * @return
-     * @throws IOException
-     */
-    private static Map<String, Object> parseObject(XContentParser parser) throws IOException {
-        Map<String, Object> result = new HashMap<>();
-
-        while (parser.nextToken() != XContentParser.Token.END_OBJECT) {
-            if (parser.currentToken() == XContentParser.Token.FIELD_NAME) {
-                String fieldName = parser.currentName();
-                switch (parser.nextToken()) {
-                    case START_OBJECT:
-                        result.put(fieldName, Offset.parseObject(parser));
-                        break;
-                    case START_ARRAY:
-                        result.put(fieldName, Offset.parseArray(parser));
-                        break;
-                    case VALUE_STRING:
-                        result.put(fieldName, parser.text());
-                        break;
-                    case VALUE_NUMBER:
-                        result.put(fieldName, parser.numberValue());
-                        break;
-                    case VALUE_BOOLEAN:
-                        result.put(fieldName, parser.booleanValue());
-                        break;
-                    case VALUE_NULL:
-                        result.put(fieldName, null);
-                        break;
-                    default:
-                        parser.skipChildren();
-                        break;
-                }
-            }
-        }
-
-        return result;
-    }
-
-    /**
-     * A method to parse arrays recursively
+     * Gets the unique identifier of the resource affected by this change.
      *
-     * @param parser an XContentParser containing an array
-     * @return the parsed list as a List
-     * @throws IOException rethrown from parseObject
+     * @return The resource ID string.
      */
-    private static List<Object> parseArray(XContentParser parser) throws IOException {
-        List<Object> array = new ArrayList<>();
-
-        while (parser.nextToken() != XContentParser.Token.END_ARRAY) {
-            switch (parser.currentToken()) {
-                case START_OBJECT:
-                    array.add(Offset.parseObject(parser));
-                    break;
-                case START_ARRAY:
-                    array.add(Offset.parseArray(parser));
-                    break;
-                case VALUE_STRING:
-                    array.add(parser.text());
-                    break;
-                case VALUE_NUMBER:
-                    array.add(parser.numberValue());
-                    break;
-                case VALUE_BOOLEAN:
-                    array.add(parser.booleanValue());
-                    break;
-                case VALUE_NULL:
-                    array.add(null);
-                    break;
-                default:
-                    parser.skipChildren();
-                    break;
-            }
-        }
-
-        return array;
-    }
+    public String getResource() { return resource; }
 
     /**
-     * Returns the resource's name.
+     * Gets the type of modification performed.
      *
-     * @return the resource name.
+     * @return The {@link Type} enum value (CREATE, UPDATE, DELETE).
      */
-    public String getResource() {
-        return this.resource;
-    }
+    public Type getType() { return type; }
 
     /**
-     * Getter for the type
+     * Gets the list of patch operations associated with this change.
      *
-     * @return the type as a String
+     * @return A list of {@link Operation} objects, or an empty list if none exist.
      */
-    public Offset.Type getType() {
-        return this.type;
-    }
+    public List<Operation> getOperations() { return operations; }
 
     /**
-     * Getter for the operations
+     * Gets the sequential offset ID of this change event.
      *
-     * @return the operations as a List of JsonPatch
+     * @return The offset value as a long.
      */
-    public List<Operation> getOperations() {
-        return this.operations;
-    }
+    public long getOffset() { return offset; }
 
     /**
-     * {@link Offset#offset} getter.
+     * Gets the full content payload of the resource.
      *
-     * @return the number identifier of the change.
+     * @return A Map representing the resource JSON, or null if not present.
      */
-    public long getOffset() {
-        return this.offset;
-    }
+    public Map<String, Object> getPayload() { return payload; }
 
     /**
-     * Outputs an XContentBuilder object ready to be printed or manipulated
+     * Serializes this object into an {@link XContentBuilder}.
      *
-     * @param builder the received builder object
-     * @param params We don't really use this one
-     * @return an XContentBuilder object ready to be printed
-     * @throws IOException rethrown from Offset's toXContent
+     * @param builder The builder to write to.
+     * @param params  Contextual parameters for the serialization.
+     * @return The builder instance for chaining.
+     * @throws IOException If an error occurs while writing to the builder.
      */
     @Override
     public XContentBuilder toXContent(XContentBuilder builder, Params params) throws IOException {
         builder.startObject();
-        builder.field(CONTEXT, this.context);
-        builder.field(OFFSET, this.offset);
-        builder.field(RESOURCE, this.resource);
-        builder.field(TYPE, this.type);
-        builder.field(VERSION, this.version);
-        builder.startArray(OPERATIONS);
-        if (this.operations != null) {
-            for (Operation operation : this.operations) {
-                operation.toXContent(builder, ToXContentObject.EMPTY_PARAMS);
-            }
+        if (context != null) builder.field(CONTEXT, context);
+        builder.field(OFFSET, offset);
+        if (resource != null) builder.field(RESOURCE, resource);
+        if (type != null) builder.field(TYPE, type);
+        builder.field(VERSION, version);
+        if (operations != null) {
+            builder.startArray(OPERATIONS);
+            for (Operation op : operations) op.toXContent(builder, params);
+            builder.endArray();
         }
-        builder.endArray();
-        builder.field(PAYLOAD, this.payload);
+        if (payload != null) builder.field(PAYLOAD, payload);
         return builder.endObject();
     }
 }

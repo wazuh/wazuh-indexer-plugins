@@ -1,5 +1,5 @@
 {
-  "dynamic": "strict",
+  "dynamic": "true",
   "properties": {
     "type": {
       "type": "keyword"
@@ -20,8 +20,7 @@
           "type": "keyword"
         },
         "date": {
-          "type": "date",
-          "format": "yyyy-MM-dd"
+          "type": "date"
         },
         "documentation": {
           "type": "keyword"

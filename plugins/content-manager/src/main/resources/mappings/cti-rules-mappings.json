@@ -1,5 +1,5 @@
 {
-  "dynamic": "strict",
+  "dynamic": "true",
   "dynamic_templates": [
     {
       "detection_fields": {
@@ -38,12 +38,10 @@
           "type": "keyword"
         },
         "date": {
-          "type": "date",
-          "format": "yyyy-MM-dd"
+          "type": "date"
         },
         "modified": {
-          "type": "date",
-          "format": "yyyy-MM-dd"
+          "type": "date"
         },
         "status": {
           "type": "keyword"

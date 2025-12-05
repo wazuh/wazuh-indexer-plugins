@@ -1,9 +1,9 @@
 package com.wazuh.contentmanager.rest.services;
 
-import com.wazuh.contentmanager.ContentManagerPlugin;
 import com.wazuh.contentmanager.cti.console.CtiConsole;
 import com.wazuh.contentmanager.cti.console.model.Token;
 import com.wazuh.contentmanager.rest.model.RestResponse;
+import com.wazuh.contentmanager.settings.PluginSettings;
 import org.opensearch.transport.client.node.NodeClient;
 import org.opensearch.core.rest.RestStatus;
 import org.opensearch.rest.BaseRestHandler;
@@ -57,11 +57,11 @@ public class RestGetSubscriptionAction extends BaseRestHandler {
     @Override
     public List<Route> routes() {
         return List.of(
-                new NamedRoute.Builder()
-                        .path(ContentManagerPlugin.SUBSCRIPTION_URI)
-                        .method(GET)
-                        .uniqueName(ENDPOINT_UNIQUE_NAME)
-                        .build()
+            new NamedRoute.Builder()
+                .path(PluginSettings.SUBSCRIPTION_URI)
+                .method(GET)
+                .uniqueName(ENDPOINT_UNIQUE_NAME)
+                .build()
         );
     }
 

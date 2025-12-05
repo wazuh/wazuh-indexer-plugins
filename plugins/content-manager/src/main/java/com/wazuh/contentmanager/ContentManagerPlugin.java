@@ -17,7 +17,6 @@
 package com.wazuh.contentmanager;
 
 import com.wazuh.contentmanager.cti.catalog.index.ConsumersIndex;
-import com.wazuh.contentmanager.cti.catalog.index.ContentIndex;
 import com.wazuh.contentmanager.cti.console.CtiConsole;
 import com.wazuh.contentmanager.jobscheduler.ContentJobParameter;
 import com.wazuh.contentmanager.jobscheduler.ContentJobRunner;
@@ -73,12 +72,25 @@ public class ContentManagerPlugin extends Plugin implements ClusterPlugin, JobSc
     private CtiConsole ctiConsole;
     private Client client;
     private Environment environment;
+    private CatalogSyncJob catalogSyncJob;
 
-    // Rest API endpoints
-    public static final String PLUGINS_BASE_URI = "/_plugins/content-manager";
-    public static final String SUBSCRIPTION_URI = PLUGINS_BASE_URI + "/subscription";
-    public static final String UPDATE_URI = PLUGINS_BASE_URI + "/update";
-
+    /**
+     * Initializes the plugin components, including the CTI console, consumer index helpers,
+     * and the catalog synchronization job.
+     *
+     * @param client                        The OpenSearch client.
+     * @param clusterService                The cluster service for managing cluster state.
+     * @param threadPool                    The thread pool for executing asynchronous tasks.
+     * @param resourceWatcherService        Service for watching resource changes.
+     * @param scriptService                 Service for executing scripts.
+     * @param xContentRegistry              Registry for XContent parsers.
+     * @param environment                   The node environment settings.
+     * @param nodeEnvironment               The node environment information.
+     * @param namedWriteableRegistry        Registry for named writeables.
+     * @param indexNameExpressionResolver   Resolver for index name expressions.
+     * @param repositoriesServiceSupplier   Supplier for the repositories service.
+     * @return A collection of constructed components (empty in this implementation as components are stored internally).
+     */
     @Override
     public Collection<Object> createComponents(
         Client client,
@@ -92,7 +104,7 @@ public class ContentManagerPlugin extends Plugin implements ClusterPlugin, JobSc
         NamedWriteableRegistry namedWriteableRegistry,
         IndexNameExpressionResolver indexNameExpressionResolver,
         Supplier<RepositoriesService> repositoriesServiceSupplier) {
-        PluginSettings.getInstance(environment.settings(), clusterService);
+        PluginSettings.getInstance(environment.settings());
         this.client = client;
         this.threadPool = threadPool;
         this.environment = environment;
@@ -101,18 +113,21 @@ public class ContentManagerPlugin extends Plugin implements ClusterPlugin, JobSc
         // Content Manager 5.0
         this.ctiConsole = new CtiConsole();
         ContentJobRunner runner = ContentJobRunner.getInstance();
+
+        // Initialize CatalogSyncJob
+        this.catalogSyncJob = new CatalogSyncJob(this.client, this.consumersIndex, this.environment, this.threadPool);
+
         // Register Executors
-        runner.registerExecutor(CatalogSyncJob.JOB_TYPE, new CatalogSyncJob(client, consumersIndex, environment, threadPool));
+        runner.registerExecutor(CatalogSyncJob.JOB_TYPE, this.catalogSyncJob);
 
         return Collections.emptyList();
     }
 
     /**
-     * The initialization requires the existence of the {@link ContentIndex#INDEX_NAME} index. For
-     * this reason, we use a ClusterStateListener to listen for the creation of this index by the
-     * "setup" plugin, to then proceed with the initialization.
+     * Triggers the internal {@link #start()} method if the current node is a Cluster Manager to
+     * initialize indices. It also ensures the periodic catalog sync job is scheduled.
      *
-     * @param localNode local Node info
+     * @param localNode The local node discovery information.
      */
     @Override
     public void onNodeStarted(DiscoveryNode localNode) {
@@ -125,6 +140,18 @@ public class ContentManagerPlugin extends Plugin implements ClusterPlugin, JobSc
         this.scheduleCatalogSyncJob();
     }
 
+    /**
+     * Registers the REST handlers for the Content Manager API.
+     *
+     * @param settings                      The node settings.
+     * @param restController                The REST controller.
+     * @param clusterSettings               The cluster settings.
+     * @param indexScopedSettings           The index scoped settings.
+     * @param settingsFilter                The settings filter.
+     * @param indexNameExpressionResolver   The index name resolver.
+     * @param nodesInCluster                Supplier for nodes in the cluster.
+     * @return A list of REST handlers.
+     */
     public List<RestHandler> getRestHandlers(
         Settings settings,
         org.opensearch.rest.RestController restController,
@@ -137,17 +164,11 @@ public class ContentManagerPlugin extends Plugin implements ClusterPlugin, JobSc
             new RestGetSubscriptionAction(this.ctiConsole),
             new RestPostSubscriptionAction(this.ctiConsole),
             new RestDeleteSubscriptionAction(this.ctiConsole),
-            new RestPostUpdateAction(this.ctiConsole)
-        );
+            new RestPostUpdateAction(this.ctiConsole, this.catalogSyncJob));
     }
 
     /**
-     * Initialize. The initialization consists of:
-     *
-     * <pre>
-     * 1. create required indices if they do not exist.
-     * 2. initialize from a snapshot if the local consumer does not exist, or its offset is 0.
-     * </pre>
+     * Performs initialization tasks for the plugin.
      */
     private void start() {
         try {
@@ -173,7 +194,15 @@ public class ContentManagerPlugin extends Plugin implements ClusterPlugin, JobSc
 
 
     /**
-     * Schedules the Catalog Sync Job.
+     * Schedules the Catalog Sync Job within the OpenSearch Job Scheduler.
+     * <p>
+     * This method performs two main checks asynchronously:
+     *
+     * - Ensures the job index ({@value #JOB_INDEX_NAME}) exists.
+     * - Ensures the specific job document ({@value #JOB_ID}) exists.
+     *
+     * If either is missing, it creates them. The job is configured to run based on the
+     * interval defined in PluginSettings.
      */
     private void scheduleCatalogSyncJob() {
         this.threadPool.generic().execute(() -> {
@@ -205,7 +234,10 @@ public class ContentManagerPlugin extends Plugin implements ClusterPlugin, JobSc
                     ContentJobParameter job = new ContentJobParameter(
                         "Catalog Sync Periodic Task",
                         CatalogSyncJob.JOB_TYPE,
-                        new IntervalSchedule(Instant.now(), 1, ChronoUnit.MINUTES),
+                        new IntervalSchedule(
+                            Instant.now(),
+                            PluginSettings.getInstance().getCatalogSyncInterval(),
+                            ChronoUnit.MINUTES),
                         true,
                         Instant.now(),
                         Instant.now()
@@ -222,37 +254,56 @@ public class ContentManagerPlugin extends Plugin implements ClusterPlugin, JobSc
         });
     }
 
+    /**
+     * Retrieves the list of settings defined by this plugin.
+     *
+     * @return A list of {@link Setting} objects including client timeout, API URL, bulk operation limits, and sync interval.
+     */
     @Override
     public List<Setting<?>> getSettings() {
         return Arrays.asList(
-            PluginSettings.CONSUMER_ID,
-            PluginSettings.CONTEXT_ID,
             PluginSettings.CLIENT_TIMEOUT,
             PluginSettings.CTI_API_URL,
-            PluginSettings.CTI_CLIENT_MAX_ATTEMPTS,
-            PluginSettings.CTI_CLIENT_SLEEP_TIME,
-            PluginSettings.JOB_MAX_DOCS,
-            PluginSettings.JOB_SCHEDULE,
-            PluginSettings.MAX_CHANGES,
             PluginSettings.MAX_CONCURRENT_BULKS,
-            PluginSettings.MAX_ITEMS_PER_BULK);
+            PluginSettings.MAX_ITEMS_PER_BULK,
+            PluginSettings.CATALOG_SYNC_INTERVAL);
     }
 
+    /**
+     * Returns the job type identifier for the Job Scheduler extension.
+     *
+     * @return The string identifier for content manager jobs.
+     */
     @Override
     public String getJobType() {
         return "content-manager-job";
     }
 
+    /**
+     * Returns the name of the index used to store job metadata.
+     *
+     * @return The job index name.
+     */
     @Override
     public String getJobIndex() {
         return JOB_INDEX_NAME;
     }
 
+    /**
+     * Returns the runner instance responsible for executing the scheduled jobs.
+     *
+     * @return The {@link ContentJobRunner} singleton instance.
+     */
     @Override
     public ScheduledJobRunner getJobRunner() {
         return ContentJobRunner.getInstance();
     }
 
+    /**
+     * Returns the parser responsible for deserializing job parameters from XContent.
+     *
+     * @return A {@link ScheduledJobParser} for {@link ContentJobParameter}.
+     */
     @Override
     public ScheduledJobParser getJobParser() {
         return (parser, id, jobDocVersion) -> ContentJobParameter.parse(parser);

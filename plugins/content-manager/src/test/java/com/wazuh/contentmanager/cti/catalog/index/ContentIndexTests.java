@@ -1,133 +1,215 @@
-/*
- * Copyright (C) 2024, Wazuh Inc.
- *
- * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU Affero General Public License as
- * published by the Free Software Foundation, either version 3 of the
- * License, or (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU Affero General Public License for more details.
- *
- * You should have received a copy of the GNU Affero General Public License
- * along with this program.  If not, see <https://www.gnu.org/licenses/>.
- */
 package com.wazuh.contentmanager.cti.catalog.index;
 
 import com.google.gson.JsonObject;
-import org.opensearch.action.get.GetResponse;
-import org.opensearch.transport.client.Client;
-import org.opensearch.cluster.service.ClusterService;
-import org.opensearch.common.settings.Settings;
-import org.opensearch.env.Environment;
-import org.opensearch.test.OpenSearchIntegTestCase;
-import org.junit.Before;
-
-import java.util.List;
-
-import com.wazuh.contentmanager.cti.catalog.model.Changes;
-import com.wazuh.contentmanager.cti.catalog.model.Offset;
+import com.google.gson.JsonParser;
 import com.wazuh.contentmanager.cti.catalog.model.Operation;
 import com.wazuh.contentmanager.settings.PluginSettings;
-import org.mockito.InjectMocks;
+import org.junit.After;
+import org.junit.Before;
+import org.mockito.Answers;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
-import org.mockito.Mockito;
+import org.mockito.MockitoAnnotations;
+import org.opensearch.action.delete.DeleteRequest;
+import org.opensearch.action.get.GetRequest;
+import org.opensearch.action.get.GetResponse;
+import org.opensearch.action.index.IndexRequest;
+import org.opensearch.action.index.IndexResponse;
+import org.opensearch.action.support.PlainActionFuture;
+import org.opensearch.common.settings.Settings;
+import org.opensearch.test.OpenSearchTestCase;
+import org.opensearch.transport.client.Client;
+
+import java.util.ArrayList;
+import java.util.List;
 
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.doNothing;
-import static org.mockito.Mockito.doReturn;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 
-@OpenSearchIntegTestCase.ClusterScope(scope = OpenSearchIntegTestCase.Scope.SUITE)
-public class ContentIndexTests extends OpenSearchIntegTestCase {
-    private ContentIndex contentUpdaterSpy;
+public class ContentIndexTests extends OpenSearchTestCase {
 
-    @Mock private Environment mockEnvironment;
-    @Mock private ClusterService mockClusterService;
-    @InjectMocks private PluginSettings pluginSettings;
+    private ContentIndex contentIndex;
+    private AutoCloseable closeable;
+    private Client client;
+
+    @Mock private IndexResponse indexResponse;
+    @Mock private GetResponse getResponse;
+
+    private static final String INDEX_NAME = ".test-index";
+    private static final String MAPPINGS_PATH = "/mappings/test-mapping.json";
+
+    @Before
+    @Override
+    public void setUp() throws Exception {
+        super.setUp();
+        this.closeable = MockitoAnnotations.openMocks(this);
+        this.client = mock(Client.class, Answers.RETURNS_DEEP_STUBS);
+
+        Settings settings = Settings.builder().build();
+        PluginSettings.getInstance(settings);
+
+        this.contentIndex = new ContentIndex(this.client, INDEX_NAME, MAPPINGS_PATH);
+    }
+
+    @After
+    @Override
+    public void tearDown() throws Exception {
+        if (this.closeable != null) {
+            this.closeable.close();
+        }
+        super.tearDown();
+    }
 
     /**
-     * Set up the tests
-     *
-     * @throws Exception rethrown from parent method
+     * Test creating an Integration.
+     * Validates that fields are removed during preprocessing.
      */
-    @Before
-    public void setup() throws Exception {
-        super.setUp();
-
-        Settings settings =
-                Settings.builder()
-                        .put("content_manager.max_concurrent_bulks", 5)
-                        .put("content_manager.max_items_per_bulk", 25)
-                        .put("content_manager.client.timeout", "10")
-                        .build();
-
-        this.mockEnvironment = mock(Environment.class);
-        when(this.mockEnvironment.settings()).thenReturn(settings);
-        this.pluginSettings =
-                PluginSettings.getInstance(this.mockEnvironment.settings(), this.mockClusterService);
-
-        Client client = mock(Client.class);
-        ContentIndex contentIndex = new ContentIndex(client, this.pluginSettings);
-        this.contentUpdaterSpy = Mockito.spy(contentIndex);
-    }
-
-    /** Test the {@link ContentIndex#patch} method with an Offset with Create content type. */
-    public void testPatchCreate() throws Exception {
+    public void testCreate_Integration_Processing() {
         // Mock
-        doNothing().when(this.contentUpdaterSpy).index((Offset) any());
-        // Arrange
-        Offset offset = new Offset("test", 1L, "test", Offset.Type.CREATE, 1L, null, null);
+        PlainActionFuture<IndexResponse> future = PlainActionFuture.newFuture();
+        future.onResponse(this.indexResponse);
+        when(this.client.index(any(IndexRequest.class))).thenReturn(future);
+
+        String jsonPayload = "{" +
+            "\"type\": \"integration\"," +
+            "\"document\": {" +
+            "  \"id\": \"f0c91fac-d749-4ef0-bdfa-0b3632adf32d\"," +
+            "  \"date\": \"2025-11-26\"," +
+            "  \"kvdbs\": []," +
+            "  \"title\": \"wazuh-fim\"," +
+            "  \"author\": \"Wazuh Inc.\"," +
+            "  \"category\": \"System Activity\"," +
+            "  \"enable_decoders\": true" +
+            "}" +
+            "}";
+        JsonObject payload = JsonParser.parseString(jsonPayload).getAsJsonObject();
+        String id = "f0c91fac-d749-4ef0-bdfa-0b3632adf32d";
+
         // Act
-        this.contentUpdaterSpy.patch(new Changes(List.of(offset)));
+        try {
+            this.contentIndex.create(id, payload);
+        } catch (Exception e) {
+            fail("Create should not throw exception: " + e.getMessage());
+        }
+
         // Assert
-        verify(this.contentUpdaterSpy, times(1)).patch(any());
+        ArgumentCaptor<IndexRequest> captor = ArgumentCaptor.forClass(IndexRequest.class);
+        verify(this.client).index(captor.capture());
+
+        IndexRequest request = captor.getValue();
+        assertEquals(INDEX_NAME, request.index());
+        assertEquals(id, request.id());
+
+        JsonObject source = JsonParser.parseString(request.source().utf8ToString()).getAsJsonObject();
+        JsonObject doc = source.getAsJsonObject("document");
+        assertTrue("Title should exist", doc.has("title"));
     }
 
-    /** Test the {@link ContentIndex#patch} method with an Offset with Update content type. */
-    public void testPatchUpdate() throws Exception {
-        // Mock a GetResponse that returns a valid existing document
-        GetResponse mockResponse = mock(GetResponse.class);
-        when(mockResponse.isExists()).thenReturn(true);
-        // Mock JsonObject
-        JsonObject json = new JsonObject();
-        json.addProperty("field", "value");
-        doReturn(json).when(this.contentUpdaterSpy).getById(any());
-        // Mock index() to avoid actual client call
-        doNothing().when(this.contentUpdaterSpy).index((Offset) any());
-        // Arrange
-        Offset offset =
-                new Offset(
-                        "test",
-                        1L,
-                        "test",
-                        Offset.Type.UPDATE,
-                        1L,
-                        List.of(new Operation("replace", "/field", null, "new_value")),
-                        null);
+    /**
+     * Test creating a Decoder.
+     * Validates that the YAML enrichment is generated.
+     */
+    public void testCreate_Decoder_YamlEnrichment() {
+        // Mock
+        PlainActionFuture<IndexResponse> future = PlainActionFuture.newFuture();
+        future.onResponse(this.indexResponse);
+        when(this.client.index(any(IndexRequest.class))).thenReturn(future);
+
+        String jsonPayload = "{" +
+            "\"type\": \"decoder\"," +
+            "\"document\": {" +
+            "  \"id\": \"2ebb3a6b-c4a3-47fb-aae5-a0d9bd8cbfed\"," +
+            "  \"name\": \"decoder/wazuh-fim/0\"," +
+            "  \"check\": \"starts_with($event.original, \\\"8:syscheck:\\\")\"," +
+            "  \"enabled\": true," +
+            "  \"parents\": [\"decoder/integrations/0\"]" +
+            "}" +
+            "}";
+        JsonObject payload = JsonParser.parseString(jsonPayload).getAsJsonObject();
+        String id = "2ebb3a6b-c4a3-47fb-aae5-a0d9bd8cbfed";
+
         // Act
-        this.contentUpdaterSpy.patch(new Changes(List.of(offset)));
+        try {
+            this.contentIndex.create(id, payload);
+        } catch (Exception e) {
+            fail("Create should not throw exception: " + e.getMessage());
+        }
+
         // Assert
-        verify(this.contentUpdaterSpy, times(1)).index((Offset) any());
+        ArgumentCaptor<IndexRequest> captor = ArgumentCaptor.forClass(IndexRequest.class);
+        verify(this.client).index(captor.capture());
+
+        JsonObject source = JsonParser.parseString(captor.getValue().source().utf8ToString()).getAsJsonObject();
+
+        assertTrue("Should contain 'decoder' field", source.has("decoder"));
+        String yaml = source.get("decoder").getAsString();
+        assertTrue(yaml.contains("name: \"decoder/wazuh-fim/0\""));
+        assertTrue(yaml.contains("check: \"starts_with($event.original, \\\"8:syscheck:\\\")\""));
     }
 
-    /** Test the {@link ContentIndex#patch} method with an Offset with Delete content type. */
-    public void testPatchDelete() {
-        // Mock a GetResponse that returns a valid existing document
-        GetResponse mockResponse = mock(GetResponse.class);
-        when(mockResponse.isExists()).thenReturn(true);
-        // Mock this.delete() to avoid actual client call
-        doNothing().when(this.contentUpdaterSpy).delete(any());
-        // Arrange
-        Offset offset = new Offset("test", 1L, "test", Offset.Type.DELETE, 1L, null, null);
+    /**
+     * Test updating a document.
+     * Simulates fetching an existing document, applying operations, and re-indexing.
+     */
+    public void testUpdate_Operations() throws Exception {
+        String id = "58dc8e10-0b69-4b81-a851-7a767e831fff";
+
+        // Mock
+        String originalDocJson = "{" +
+            "\"type\": \"decoder\"," +
+            "\"document\": {" +
+            "  \"normalize\": [{" +
+            "    \"map\": [" +
+            "       { \"springboot.gc.last_info.time.start\": \"old_value\" }" +
+            "    ]" +
+            "  }]" +
+            "}" +
+            "}";
+
+        PlainActionFuture<GetResponse> getFuture = PlainActionFuture.newFuture();
+        getFuture.onResponse(this.getResponse);
+        when(this.client.get(any(GetRequest.class))).thenReturn(getFuture);
+        when(this.getResponse.isExists()).thenReturn(true);
+        when(this.getResponse.getSourceAsString()).thenReturn(originalDocJson);
+
+        PlainActionFuture<IndexResponse> indexFuture = PlainActionFuture.newFuture();
+        indexFuture.onResponse(this.indexResponse);
+        when(this.client.index(any(IndexRequest.class))).thenReturn(indexFuture);
+
+        List<Operation> operations = new ArrayList<>();
+        operations.add(new Operation("add", "/document/normalize/0/map/0/springboot.gc.last_info.time.duration", null, "new_duration"));
+
         // Act
-        this.contentUpdaterSpy.patch(new Changes(List.of(offset)));
+        this.contentIndex.update(id, operations);
+
         // Assert
-        verify(this.contentUpdaterSpy, times(1)).delete(any());
+        ArgumentCaptor<IndexRequest> captor = ArgumentCaptor.forClass(IndexRequest.class);
+        verify(this.client).index(captor.capture());
+
+        JsonObject updatedDoc = JsonParser.parseString(captor.getValue().source().utf8ToString()).getAsJsonObject();
+
+        JsonObject mapItem = updatedDoc.getAsJsonObject("document")
+            .getAsJsonArray("normalize").get(0).getAsJsonObject()
+            .getAsJsonArray("map").get(0).getAsJsonObject();
+
+        assertTrue("New field should be added", mapItem.has("springboot.gc.last_info.time.duration"));
+        assertEquals("new_duration", mapItem.get("springboot.gc.last_info.time.duration").getAsString());
+    }
+
+    /**
+     * Test delete operation.
+     */
+    public void testDelete() {
+        String id = "test-id";
+
+        // Act
+        this.contentIndex.delete(id);
+
+        // Assert
+        ArgumentCaptor<DeleteRequest> captor = ArgumentCaptor.forClass(DeleteRequest.class);
+        verify(this.client).delete(captor.capture(), any());
+
+        assertEquals(INDEX_NAME, captor.getValue().index());
+        assertEquals(id, captor.getValue().id());
     }
 }
