@@ -207,7 +207,7 @@ public class ContentIndex {
         }
 
         // 3. Process
-        processPayload(currentDoc);
+        this.processPayload(currentDoc);
 
         // 4. Index
         IndexRequest request = new IndexRequest(this.indexName)
@@ -253,7 +253,7 @@ public class ContentIndex {
                 @Override
                 public void onFailure(Exception e) {
                     semaphore.release();
-                    log.error("Bulk indexing failed completely: {}", e.getMessage());
+                    log.error("Bulk index operation failed: {}", e.getMessage());
                 }
             });
         } catch (InterruptedException e) {

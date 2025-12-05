@@ -27,6 +27,7 @@ import com.wazuh.contentmanager.cti.catalog.model.Offset;
 import org.apache.hc.client5.http.async.methods.SimpleHttpResponse;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.opensearch.ResourceNotFoundException;
 import org.opensearch.action.get.GetResponse;
 import org.opensearch.common.xcontent.XContentType;
 import org.opensearch.core.xcontent.DeprecationHandler;
@@ -44,19 +45,19 @@ public class UpdateServiceImpl extends AbstractService implements UpdateService 
     private final ConsumersIndex consumersIndex;
     private final Map<String, ContentIndex> indices;
     private final String context;
-    private final String consumerName;
+    private final String consumer;
     private final Gson gson;
 
     /**
      * Constructs a new UpdateServiceImpl.
      *
      * @param context        The context string (e.g., catalog ID) for the consumer.
-     * @param consumerName   The name of the consumer entity.
+     * @param consumer       The name of the consumer entity.
      * @param client         The API client used to fetch changes.
      * @param consumersIndex The index responsible for storing consumer state (offsets).
      * @param indices        A map of content type to {@link ContentIndex} managers.
      */
-    public UpdateServiceImpl(String context, String consumerName, ApiClient client, ConsumersIndex consumersIndex, Map<String, ContentIndex> indices) {
+    public UpdateServiceImpl(String context, String consumer, ApiClient client, ConsumersIndex consumersIndex, Map<String, ContentIndex> indices) {
         if (this.client != null) {
             this.client.close();
         }
@@ -65,7 +66,7 @@ public class UpdateServiceImpl extends AbstractService implements UpdateService 
         this.consumersIndex = consumersIndex;
         this.indices = indices;
         this.context = context;
-        this.consumerName = consumerName;
+        this.consumer = consumer;
         this.gson = new Gson();
     }
 
@@ -84,9 +85,9 @@ public class UpdateServiceImpl extends AbstractService implements UpdateService 
      */
     @Override
     public void update(long fromOffset, long toOffset) {
-        log.info("Starting content update for consumer [{}] from [{}] to [{}]", consumerName, fromOffset, toOffset);
+        log.info("Starting content update for consumer [{}] from [{}] to [{}]", this.consumer, fromOffset, toOffset);
         try {
-            SimpleHttpResponse response = this.client.getChanges(context, consumerName, fromOffset, toOffset);
+            SimpleHttpResponse response = this.client.getChanges(this.context, this.consumer, fromOffset, toOffset);
             if (response.getCode() != 200) {
                 log.error("Failed to fetch changes: {} {}", response.getCode(), response.getBodyText());
                 return;
@@ -110,17 +111,17 @@ public class UpdateServiceImpl extends AbstractService implements UpdateService 
                 }
 
                 // Update consumer state
-                LocalConsumer consumer = new LocalConsumer(context, consumerName);
+                LocalConsumer consumer = new LocalConsumer(this.context, this.consumer);
 
                 // Properly handle the GetResponse to check if the document exists before parsing
-                GetResponse getResponse = consumersIndex.getConsumer(context, consumerName);
+                GetResponse getResponse = this.consumersIndex.getConsumer(this.context, this.consumer);
                 LocalConsumer current = (getResponse != null && getResponse.isExists()) ?
                     this.mapper.readValue(getResponse.getSourceAsString(), LocalConsumer.class) : consumer;
 
-                LocalConsumer updated = new LocalConsumer(context, consumerName, lastAppliedOffset, current.getRemoteOffset(), current.getSnapshotLink());
-                consumersIndex.setConsumer(updated);
+                LocalConsumer updated = new LocalConsumer(this.context, this.consumer, lastAppliedOffset, current.getRemoteOffset(), current.getSnapshotLink());
+                this.consumersIndex.setConsumer(updated);
 
-                log.info("Successfully updated consumer [{}] to offset [{}]", consumerName, lastAppliedOffset);
+                log.info("Successfully updated consumer [{}] to offset [{}]", consumer, lastAppliedOffset);
             }
         } catch (Exception e) {
             log.error("Error during content update: {}", e.getMessage(), e);
@@ -136,14 +137,15 @@ public class UpdateServiceImpl extends AbstractService implements UpdateService 
      */
     private void applyOffset(Offset offset) throws Exception {
         String id = offset.getResource();
+        ContentIndex index;
 
         switch (offset.getType()) {
             case CREATE:
                 if (offset.getPayload() != null) {
-                    JsonObject payload = gson.toJsonTree(offset.getPayload()).getAsJsonObject();
+                    JsonObject payload = this.gson.toJsonTree(offset.getPayload()).getAsJsonObject();
                     if (payload.has("type")) {
                         String type = payload.get("type").getAsString();
-                        ContentIndex index = indices.get(type);
+                        index = this.indices.get(type);
                         if (index != null) {
                             index.create(id, payload);
                         } else {
@@ -153,7 +155,7 @@ public class UpdateServiceImpl extends AbstractService implements UpdateService 
                 }
                 break;
             case UPDATE:
-                ContentIndex index = findIndexForId(id);
+                index = this.findIndexForId(id);
                 if (index != null) {
                     index.update(id, offset.getOperations());
                 } else {
@@ -161,10 +163,13 @@ public class UpdateServiceImpl extends AbstractService implements UpdateService 
                 }
                 break;
             case DELETE:
-                ContentIndex delIndex = findIndexForId(id);
-                if (delIndex != null) {
-                    delIndex.delete(id);
+                index = this.findIndexForId(id);
+                if (index != null) {
+                    index.delete(id);
                 }
+                break;
+            default:
+                log.warn("Unsupported JSON patch operation [{}]", offset.getType());
                 break;
         }
     }
@@ -173,24 +178,25 @@ public class UpdateServiceImpl extends AbstractService implements UpdateService 
      * Locates the {@link ContentIndex} that contains the document with the specified ID.
      *
      * @param id The document ID to search for.
-     * @return The matching {@link ContentIndex}, or null if not found.
+     * @return The matching {@link ContentIndex}.
+     * @throws ResourceNotFoundException If no {@link ContentIndex} contains the document with the specified ID.
      */
-    private ContentIndex findIndexForId(String id) {
-        for (ContentIndex idx : indices.values()) {
-            if (idx.exists(id)) {
-                return idx;
+    private ContentIndex findIndexForId(String id) throws ResourceNotFoundException {
+        for (ContentIndex index : indices.values()) {
+            if (index.exists(id)) {
+                return index;
             }
         }
-        return null;
+        throw new ResourceNotFoundException("Document with ID '" + id + "' could not be found in any ContentIndex.");
     }
 
     /**
      * Resets the local consumer offset to 0.
      */
     private void resetConsumer() {
-        log.warn("Resetting consumer [{}] offset to 0 due to update failure.", consumerName);
+        log.info("Resetting consumer [{}] offset to 0 due to update failure.", consumer);
         try {
-            LocalConsumer reset = new LocalConsumer(context, consumerName, 0, 0, "");
+            LocalConsumer reset = new LocalConsumer(context, consumer, 0, 0, "");
             consumersIndex.setConsumer(reset);
         } catch (Exception e) {
             log.error("Failed to reset consumer: {}", e.getMessage());

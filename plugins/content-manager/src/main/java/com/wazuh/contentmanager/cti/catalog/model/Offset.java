@@ -61,12 +61,12 @@ public class Offset implements ToXContentObject {
      * @param operations A list of patch operations (typically used with UPDATE).
      * @param payload    The full resource content (typically used with CREATE).
      */
-    public Offset(String context, Long offset, String resource, Type type, Long version, List<Operation> operations, Map<String, Object> payload) {
+    public Offset(String context, long offset, String resource, Type type, long version, List<Operation> operations, Map<String, Object> payload) {
         this.context = context;
-        this.offset = offset != null ? offset : 0;
+        this.offset = offset;
         this.resource = resource;
         this.type = type;
-        this.version = version != null ? version : 0;
+        this.version = version;
         this.operations = operations;
         this.payload = payload;
     }
@@ -112,7 +112,7 @@ public class Offset implements ToXContentObject {
                 }
             }
         }
-        return new Offset(context, offset, resource, type, version, operations, payload);
+        return new Offset(context, offset != null ? offset : 0, resource, type, version != null ? version : 0, operations, payload);
     }
 
     /**

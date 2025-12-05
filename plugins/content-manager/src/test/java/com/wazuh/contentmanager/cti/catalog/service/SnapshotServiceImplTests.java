@@ -88,9 +88,6 @@ public class SnapshotServiceImplTests extends OpenSearchTestCase {
     @After
     @Override
     public void tearDown() throws Exception {
-        if (this.snapshotService != null) {
-            this.snapshotService.close();
-        }
         if (this.closeable != null) {
             this.closeable.close();
         }

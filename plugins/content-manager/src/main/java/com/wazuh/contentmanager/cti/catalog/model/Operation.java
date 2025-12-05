@@ -108,8 +108,12 @@ public class Operation implements ToXContentObject {
         builder.startObject();
         builder.field(OP, this.op);
         builder.field(PATH, this.path);
-        if (this.from != null) builder.field(FROM, this.from);
-        if (this.value != null) builder.field(VALUE, this.value);
+        if (this.from != null) {
+            builder.field(FROM, this.from);
+        }
+        if (this.value != null) {
+            builder.field(VALUE, this.value);
+        }
         return builder.endObject();
     }
 }
