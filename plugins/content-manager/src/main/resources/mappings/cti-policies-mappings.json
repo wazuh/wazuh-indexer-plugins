@@ -3,40 +3,31 @@
   "properties": {
     "document": {
       "properties": {
-        "id": {
-          "type": "keyword"
-        },
-        "parent_decoder": {
-          "type": "keyword"
-        },
-        "title": {
-          "type": "keyword"
-        },
-        "category": {
-          "type": "keyword"
-        },
-        "description": {
-          "type": "text"
-        },
-        "author": {
+        "root_decoder": {
           "type": "keyword"
         },
         "date": {
           "type": "date"
         },
-        "documentation": {
+        "modified": {
+          "type": "date"
+        },
+        "author": {
           "type": "keyword"
         },
-        "enable_decoders": {
-          "type": "boolean"
+        "description": {
+          "type": "text"
         },
         "references": {
           "type": "keyword"
         },
-        "decoders": {
+        "documentation": {
           "type": "keyword"
         },
-        "kvdbs": {
+        "integrations": {
+          "type": "keyword"
+        },
+        "title": {
           "type": "keyword"
         }
       }

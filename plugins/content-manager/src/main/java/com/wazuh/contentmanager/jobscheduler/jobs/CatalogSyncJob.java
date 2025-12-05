@@ -136,6 +136,9 @@ public class CatalogSyncJob implements JobExecutor {
         mappings.put(
             "integration", "/mappings/cti-rules-integrations-mappings.json"
         );
+        mappings.put(
+            "policy", "/mappings/cti-policies-mappings.json"
+        );
 
         Map<String, String> aliases = new HashMap<>();
         aliases.put("rule", ".cti-rules");
@@ -161,6 +164,9 @@ public class CatalogSyncJob implements JobExecutor {
         mappings.put(
             "integration", "/mappings/cti-decoders-integrations-mappings.json"
         );
+        mappings.put(
+            "policy", "/mappings/cti-policies-mappings.json"
+        );
 
         Map<String, String> aliases = new HashMap<>();
         aliases.put("decoder", ".cti-decoders");
@@ -180,6 +186,9 @@ public class CatalogSyncJob implements JobExecutor {
      * @return A formatted string representing the system index name.
      */
     private String getIndexName(String context, String consumer, String type) {
+        if ("policy".equals(type)) {
+            return ".cti-policies";
+        }
         return String.format(
             Locale.ROOT, ".%s-%s-%s",
             context,

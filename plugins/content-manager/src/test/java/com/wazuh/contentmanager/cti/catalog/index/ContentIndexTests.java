@@ -148,6 +148,90 @@ public class ContentIndexTests extends OpenSearchTestCase {
     }
 
     /**
+     * Test creating a Rule with Sigma ID.
+     * Validates that sigma_id is renamed to id in related object.
+     */
+    public void testCreate_Rule_SigmaIdProcessing() {
+        // Mock
+        PlainActionFuture<IndexResponse> future = PlainActionFuture.newFuture();
+        future.onResponse(this.indexResponse);
+        when(this.client.index(any(IndexRequest.class))).thenReturn(future);
+
+        String jsonPayload = "{" +
+            "\"type\": \"rule\"," +
+            "\"document\": {" +
+            "  \"id\": \"R1\"," +
+            "  \"related\": {" +
+            "    \"sigma_id\": \"S-123\"," +
+            "    \"type\": \"test-value\"" +
+            "  }" +
+            "}" +
+            "}";
+        JsonObject payload = JsonParser.parseString(jsonPayload).getAsJsonObject();
+        String id = "R1";
+
+        // Act
+        try {
+            this.contentIndex.create(id, payload);
+        } catch (Exception e) {
+            fail("Create should not throw exception: " + e.getMessage());
+        }
+
+        // Assert
+        ArgumentCaptor<IndexRequest> captor = ArgumentCaptor.forClass(IndexRequest.class);
+        verify(this.client).index(captor.capture());
+
+        JsonObject source = JsonParser.parseString(captor.getValue().source().utf8ToString()).getAsJsonObject();
+        JsonObject related = source.getAsJsonObject("document").getAsJsonObject("related");
+
+        assertFalse("Should not contain sigma_id", related.has("sigma_id"));
+        assertTrue("Should contain id", related.has("id"));
+        assertEquals("S-123", related.get("id").getAsString());
+    }
+
+    /**
+     * Test creating a Rule with Sigma ID in related array.
+     * Validates that sigma_id is renamed to id in related array objects.
+     */
+    public void testCreate_Rule_SigmaIdArrayProcessing() {
+        // Mock
+        PlainActionFuture<IndexResponse> future = PlainActionFuture.newFuture();
+        future.onResponse(this.indexResponse);
+        when(this.client.index(any(IndexRequest.class))).thenReturn(future);
+
+        String jsonPayload = "{" +
+            "\"type\": \"rule\"," +
+            "\"document\": {" +
+            "  \"id\": \"R2\"," +
+            "  \"related\": [{" +
+            "    \"sigma_id\": \"999\"" +
+            "  }]" +
+            "}" +
+            "}";
+        JsonObject payload = JsonParser.parseString(jsonPayload).getAsJsonObject();
+        String id = "R2";
+
+        // Act
+        try {
+            this.contentIndex.create(id, payload);
+        } catch (Exception e) {
+            fail("Create should not throw exception: " + e.getMessage());
+        }
+
+        // Assert
+        ArgumentCaptor<IndexRequest> captor = ArgumentCaptor.forClass(IndexRequest.class);
+        verify(this.client).index(captor.capture());
+
+        JsonObject source = JsonParser.parseString(captor.getValue().source().utf8ToString()).getAsJsonObject();
+        JsonObject relatedItem = source.getAsJsonObject("document")
+            .getAsJsonArray("related").get(0).getAsJsonObject();
+
+        assertFalse("Should not contain sigma_id", relatedItem.has("sigma_id"));
+        assertTrue("Should contain id", relatedItem.has("id"));
+        assertEquals("999", relatedItem.get("id").getAsString());
+    }
+
+    /**
      * Test updating a document.
      * Simulates fetching an existing document, applying operations, and re-indexing.
      */
