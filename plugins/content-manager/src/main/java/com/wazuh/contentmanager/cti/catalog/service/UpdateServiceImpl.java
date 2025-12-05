@@ -156,17 +156,11 @@ public class UpdateServiceImpl extends AbstractService implements UpdateService 
                 break;
             case UPDATE:
                 index = this.findIndexForId(id);
-                if (index != null) {
-                    index.update(id, offset.getOperations());
-                } else {
-                    log.warn("Resource [{}] not found in any index for update.", id);
-                }
+                index.update(id, offset.getOperations());
                 break;
             case DELETE:
                 index = this.findIndexForId(id);
-                if (index != null) {
-                    index.delete(id);
-                }
+                index.delete(id);
                 break;
             default:
                 log.warn("Unsupported JSON patch operation [{}]", offset.getType());
