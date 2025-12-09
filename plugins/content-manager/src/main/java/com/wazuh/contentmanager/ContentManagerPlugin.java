@@ -16,12 +16,17 @@
  */
 package com.wazuh.contentmanager;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.wazuh.common.action.UpdateRulesAction;
 import com.wazuh.common.action.UpdateRulesRequest;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.*;
 import java.util.function.Supplier;
+
+import com.wazuh.common.action.UpdateRulesResponse;
 import com.wazuh.contentmanager.cti.catalog.index.ConsumersIndex;
 import com.wazuh.contentmanager.cti.catalog.index.ContentIndex;
 import com.wazuh.contentmanager.cti.console.CtiConsole;
@@ -38,12 +43,14 @@ import org.apache.logging.log4j.Logger;
 import org.opensearch.action.ActionRequest;
 import org.opensearch.action.admin.indices.create.CreateIndexResponse;
 import org.opensearch.action.index.IndexRequest;
+import org.opensearch.action.support.WriteRequest;
 import org.opensearch.cluster.metadata.IndexNameExpressionResolver;
 import org.opensearch.cluster.node.DiscoveryNode;
 import org.opensearch.cluster.service.ClusterService;
 import org.opensearch.common.settings.Setting;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.common.xcontent.XContentFactory;
+import org.opensearch.core.action.ActionListener;
 import org.opensearch.core.common.io.stream.NamedWriteableRegistry;
 import org.opensearch.core.xcontent.NamedXContentRegistry;
 import org.opensearch.env.Environment;
@@ -57,6 +64,7 @@ import org.opensearch.plugins.ClusterPlugin;
 import org.opensearch.plugins.Plugin;
 import org.opensearch.repositories.RepositoriesService;
 import org.opensearch.rest.RestHandler;
+import org.opensearch.rest.RestRequest;
 import org.opensearch.script.ScriptService;
 import org.opensearch.threadpool.ThreadPool;
 import org.opensearch.transport.client.Client;
@@ -125,9 +133,77 @@ public class ContentManagerPlugin extends Plugin implements ClusterPlugin, JobSc
             this.start();
         }
 
-        String jsonBody = "{\"field\": \"value\"}";
-        ActionRequest actionRequest = new UpdateRulesRequest(jsonBody);
-        client.execute(UpdateRulesAction.INSTANCE, actionRequest);
+//        String jsonBody = "{\"field\": \"asdasdasdas\"}";
+        // Transport layer PoC
+        String rule = """
+            {
+                "author": "Florian Roth (Nextron Systems)",
+                "date": "2018-02-20",
+                "description": "Detects suspicious DNS error messages that indicate a fatal or suspicious error that could be caused by exploiting attempts",
+                "detection": {
+                    "condition": "keywords",
+                    "keywords": [
+                        " dropping source port zero packet from ",
+                        " denied AXFR from ",
+                        " exiting (due to fatal error)"
+                    ]
+                },
+                "enabled": true,
+                "falsepositives": [
+                    "Unknown"
+                ],
+                "id": "2fb9680c-6f75-49c3-8bae-8608cf89bcce",
+                "level": "high",
+                "logsource": {
+                    "product": "linux",
+                    "service": "syslog"
+                },
+                "modified": "2022-10-05",
+                "references": [
+                    "https://github.com/ossec/ossec-hids/blob/1ecffb1b884607cb12e619f9ab3c04f530801083/etc/rules/named_rules.xml"
+                ],
+                "sigma_id": "c8e35e96-19ce-4f16-aeb6-fd5588dc5365",
+                "status": "test",
+                "tags": [
+                    "attack.initial-access",
+                    "attack.t1190"
+                ],
+                "title": "Suspicious Named Error"
+            }
+            """;
+        String ruleId = "c8e35e96-19ce-4f16-aeb6-fd5588dc5365";
+
+        ObjectMapper mapper = new ObjectMapper();
+        ObjectNode json = mapper.createObjectNode();
+        json.put("ruleId", ruleId);
+        json.put("refreshPolicy", WriteRequest.RefreshPolicy.IMMEDIATE.ordinal());
+        json.put("logType", "linux");
+        json.put("method", RestRequest.Method.POST.ordinal());
+        json.put("rule", rule);
+        json.put("forced", false);
+
+        String jsonString = null;
+        try {
+            jsonString = mapper.writeValueAsString(json);
+        } catch (JsonProcessingException e) {
+            throw new RuntimeException(e);
+        }
+
+        UpdateRulesRequest request = new UpdateRulesRequest(jsonString);
+
+        log.info("Sending UpdateRulesRequest to TransportUpdateRulesAction");
+        client.execute(UpdateRulesAction.INSTANCE, request, new ActionListener<UpdateRulesResponse>() {
+                @Override
+                public void onResponse(UpdateRulesResponse updateRulesResponse) {
+                    log.info("Received UpdateRulesResponse from TransportUpdateRulesAction");
+                }
+
+                @Override
+                public void onFailure(Exception e) {
+                    log.info("Failed to receive UpdateRulesResponse: {}", e.getMessage());
+                }
+            }
+        );
         // Schedule the periodic sync job via OpenSearch Job Scheduler
         this.scheduleCatalogSyncJob();
     }
