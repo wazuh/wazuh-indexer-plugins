@@ -166,7 +166,7 @@ public class ContentIndex {
      * @throws IOException If the indexing operation fails.
      */
     public void create(String id, JsonObject payload) throws IOException {
-        JsonObject processedPayload = processPayload(payload);
+        JsonObject processedPayload = this.processPayload(payload);
         IndexRequest request = new IndexRequest(this.indexName)
             .id(id)
             .source(processedPayload.toString(), XContentType.JSON);
