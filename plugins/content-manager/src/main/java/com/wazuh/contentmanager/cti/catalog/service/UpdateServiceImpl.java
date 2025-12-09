@@ -102,7 +102,7 @@ public class UpdateServiceImpl extends AbstractService implements UpdateService 
                 long lastAppliedOffset = fromOffset;
 
                 for (Offset offset : changes.get()) {
-                    applyOffset(offset);
+                    this.applyOffset(offset);
                     lastAppliedOffset = offset.getOffset();
                 }
 
