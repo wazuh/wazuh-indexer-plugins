@@ -190,7 +190,7 @@ public class CatalogSyncJob implements JobExecutor {
 
     /**
      * The core logic for synchronizing consumer services.
-     *
+     * <p>
      * This method performs the following actions:
      * 1. Retrieve the Local and Remote consumer metadata.
      * 2. Iterate through the requested mappings to check if indices exist.

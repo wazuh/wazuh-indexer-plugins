@@ -105,7 +105,7 @@ public class ContentIndex {
      */
     public ContentIndex(Client client, String indexName, String mappingsPath, String alias) {
         this.pluginSettings = PluginSettings.getInstance();
-        this.semaphore = new Semaphore(pluginSettings.getMaximumConcurrentBulks());
+        this.semaphore = new Semaphore(this.pluginSettings.getMaximumConcurrentBulks());
         this.client = client;
         this.indexName = indexName;
         this.mappingsPath = mappingsPath;
@@ -170,7 +170,7 @@ public class ContentIndex {
      * @throws IOException If the indexing operation fails.
      */
     public void create(String id, JsonObject payload) throws IOException {
-        processPayload(payload);
+        this.processPayload(payload);
         IndexRequest request = new IndexRequest(this.indexName)
             .id(id)
             .source(payload.toString(), XContentType.JSON);
@@ -225,7 +225,7 @@ public class ContentIndex {
         this.client.delete(new DeleteRequest(this.indexName, id), new ActionListener<>() {
             @Override
             public void onResponse(DeleteResponse response) {
-                log.debug("Deleted {} from {}", id, indexName);
+                log.debug("Deleted {} from {}", id, ContentIndex.this.indexName);
             }
             @Override
             public void onFailure(Exception e) {
@@ -245,14 +245,14 @@ public class ContentIndex {
             this.client.bulk(bulkRequest, new ActionListener<>() {
                 @Override
                 public void onResponse(BulkResponse bulkResponse) {
-                    semaphore.release();
+                    ContentIndex.this.semaphore.release();
                     if (bulkResponse.hasFailures()) {
                         log.warn("Bulk indexing finished with failures: {}", bulkResponse.buildFailureMessage());
                     }
                 }
                 @Override
                 public void onFailure(Exception e) {
-                    semaphore.release();
+                    ContentIndex.this.semaphore.release();
                     log.error("Bulk index operation failed: {}", e.getMessage());
                 }
             });
@@ -283,10 +283,10 @@ public class ContentIndex {
      */
     private void processPayload(JsonObject payload) {
         if (payload.has("type") && "decoder".equalsIgnoreCase(payload.get("type").getAsString())) {
-            enrichDecoderWithYaml(payload);
+            this.enrichDecoderWithYaml(payload);
         }
         if (payload.has("document")) {
-            preprocessDocument(payload.getAsJsonObject("document"));
+            this.preprocessDocument(payload.getAsJsonObject("document"));
         }
     }
 
@@ -341,11 +341,11 @@ public class ContentIndex {
         if (document.has("related")) {
             JsonElement relatedElement = document.get("related");
             if (relatedElement.isJsonObject()) {
-                sanitizeRelatedObject(relatedElement.getAsJsonObject());
+                this.sanitizeRelatedObject(relatedElement.getAsJsonObject());
             } else if (relatedElement.isJsonArray()) {
                 JsonArray relatedArray = relatedElement.getAsJsonArray();
                 for (JsonElement element : relatedArray) {
-                    if (element.isJsonObject()) sanitizeRelatedObject(element.getAsJsonObject());
+                    if (element.isJsonObject()) this.sanitizeRelatedObject(element.getAsJsonObject());
                 }
             }
         }

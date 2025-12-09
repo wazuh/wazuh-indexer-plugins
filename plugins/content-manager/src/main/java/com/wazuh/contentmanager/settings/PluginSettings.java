@@ -36,7 +36,7 @@ public class PluginSettings {
     private static final int DEFAULT_MAX_ITEMS_PER_BULK = 25;
     private static final int DEFAULT_MAX_CONCURRENT_BULKS = 5;
     private static final int DEFAULT_CLIENT_TIMEOUT = 10;
-    private static final int DEFAULT_CATALOG_SYNC_INTERVAL = 1;
+    private static final int DEFAULT_CATALOG_SYNC_INTERVAL = 60;
 
     /** Singleton instance. */
     private static PluginSettings INSTANCE;

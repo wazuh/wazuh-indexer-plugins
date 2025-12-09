@@ -107,7 +107,7 @@ public class UpdateServiceImpl extends AbstractService implements UpdateService 
                         continue;
                     }
 
-                    applyOffset(offset);
+                    this.applyOffset(offset);
                     lastAppliedOffset = offset.getOffset();
                 }
 
@@ -126,7 +126,7 @@ public class UpdateServiceImpl extends AbstractService implements UpdateService 
             }
         } catch (Exception e) {
             log.error("Error during content update: {}", e.getMessage(), e);
-            resetConsumer();
+            this.resetConsumer();
         }
     }
 
@@ -178,7 +178,7 @@ public class UpdateServiceImpl extends AbstractService implements UpdateService 
      * @throws ResourceNotFoundException If no {@link ContentIndex} contains the document with the specified ID.
      */
     private ContentIndex findIndexForId(String id) throws ResourceNotFoundException {
-        for (ContentIndex index : indices.values()) {
+        for (ContentIndex index : this.indices.values()) {
             if (index.exists(id)) {
                 return index;
             }
@@ -190,10 +190,10 @@ public class UpdateServiceImpl extends AbstractService implements UpdateService 
      * Resets the local consumer offset to 0.
      */
     private void resetConsumer() {
-        log.info("Resetting consumer [{}] offset to 0 due to update failure.", consumer);
+        log.info("Resetting consumer [{}] offset to 0 due to update failure.", this.consumer);
         try {
-            LocalConsumer reset = new LocalConsumer(context, consumer, 0, 0, "");
-            consumersIndex.setConsumer(reset);
+            LocalConsumer reset = new LocalConsumer(this.context, this.consumer, 0, 0, "");
+            this.consumersIndex.setConsumer(reset);
         } catch (Exception e) {
             log.error("Failed to reset consumer: {}", e.getMessage());
         }
