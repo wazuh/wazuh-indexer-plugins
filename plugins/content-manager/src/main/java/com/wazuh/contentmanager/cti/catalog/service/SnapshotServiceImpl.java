@@ -173,6 +173,11 @@ public class SnapshotServiceImpl implements SnapshotService {
                     }
                     String type = payload.get(JSON_TYPE_KEY).getAsString();
 
+                    // TODO: Delete once the consumer is changed
+                    if (this.context.equals("rules_development_0.0.1") && this.consumer.equals("rules_development_0.0.1_test") && "policy".equals(type)) {
+                        continue;
+                    }
+
                     // 3. Delegate Processing to ContentIndex
                     // We use the first index instance to process the payload because logic is stateless/shared.
                     JsonObject processedPayload;

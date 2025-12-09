@@ -142,6 +142,12 @@ public class UpdateServiceImpl extends AbstractService implements UpdateService 
                     JsonObject payload = this.gson.toJsonTree(offset.getPayload()).getAsJsonObject();
                     if (payload.has("type")) {
                         String type = payload.get("type").getAsString();
+
+                        // TODO: Delete once the consumer is changed
+                        if (this.context.equals("rules_development_0.0.1") && this.consumer.equals("rules_development_0.0.1_test") && "policy".equals(type)) {
+                            break;
+                        }
+
                         index = this.indices.get(type);
                         if (index != null) {
                             index.create(id, payload);
