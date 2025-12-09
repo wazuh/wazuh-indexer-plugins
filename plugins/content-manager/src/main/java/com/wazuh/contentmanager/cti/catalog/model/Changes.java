@@ -16,7 +16,6 @@
  */
 package com.wazuh.contentmanager.cti.catalog.model;
 
-import org.opensearch.core.common.ParsingException;
 import org.opensearch.core.xcontent.ToXContentObject;
 import org.opensearch.core.xcontent.XContentBuilder;
 import org.opensearch.core.xcontent.XContentParser;
@@ -26,94 +25,74 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
-/** ToXContentObject model to parse and build CTI API changes query replies. */
+/**
+ * This class acts as a wrapper for a list of {@link Offset} objects.
+ */
 public class Changes implements ToXContentObject {
     private static final String JSON_DATA_KEY = "data";
-    private final ArrayList<Offset> list;
-
-    /** Constructor. */
-    public Changes() {
-        this.list = new ArrayList<>();
-    }
+    private final List<Offset> list;
 
     /**
-     * Constructor.
+     * Constructs a new Changes object with the specified list of offsets.
      *
-     * @param list a List of Offset objects, each containing a JSON patch.
+     * @param list The list of {@link Offset} objects. If null, an empty list is initialized.
      */
     public Changes(List<Offset> list) {
-        this.list = new ArrayList<>(list);
+        this.list = list != null ? list : new ArrayList<>();
     }
 
     /**
-     * Get the list of changes.
+     * Retrieves the list of changes.
      *
-     * @return A list of Offset objects
+     * @return The list of {@link Offset} objects.
      */
-    public ArrayList<Offset> get() {
+    public List<Offset> get() {
         return this.list;
     }
 
     /**
-     * Get first element of the changes list.
+     * Parses an XContent stream to create a {@code Changes} instance.
+     * <p>
+     * This method expects the parser to be positioned at the start of a JSON object.
+     * It looks for a field named "data" (defined by {@code JSON_DATA_KEY}), which
+     * must be an array of {@link Offset} objects.
      *
-     * @return first {@link Offset} element in the list, or null.
+     * @param parser The {@link XContentParser} to read from.
+     * @return A populated {@code Changes} object.
+     * @throws IOException If an I/O error occurs or the content structure is invalid.
      */
-    public Offset getFirst() {
-        return !this.list.isEmpty() ? this.list.get(0) : null;
-    }
-
-    /**
-     * Get last element of the changes list.
-     *
-     * @return last {@link Offset} element in the list, or null.
-     */
-    public Offset getLast() {
-        return !this.list.isEmpty() ? this.list.get(this.list.size() - 1) : null;
-    }
-
-    /**
-     * Parses the data[] object from the CTI API changes response body.
-     *
-     * @param parser The received parser object.
-     * @return a ContentChanges object with all inner array values parsed.
-     * @throws IOException rethrown from the inner parse() methods.
-     * @throws IllegalArgumentException rethrown from the inner parse() methods.
-     * @throws ParsingException rethrown from ensureExpectedToken().
-     */
-    public static Changes parse(XContentParser parser)
-            throws IOException, IllegalArgumentException, ParsingException {
+    public static Changes parse(XContentParser parser) throws IOException {
         List<Offset> changes = new ArrayList<>();
-        // Make sure we are at the start
-        XContentParserUtils.ensureExpectedToken(
-                XContentParser.Token.START_OBJECT, parser.nextToken(), parser);
-        // Check that we are indeed reading the "data" array
-        XContentParserUtils.ensureFieldName(parser, parser.nextToken(), JSON_DATA_KEY);
-        // Check we are at the start of the array
-        XContentParserUtils.ensureExpectedToken(
-                XContentParser.Token.START_ARRAY, parser.nextToken(), parser);
-        // Iterate over the array and add each Offset object to changes list
-        while (parser.nextToken() != XContentParser.Token.END_ARRAY) {
-            changes.add(Offset.parse(parser));
+        XContentParserUtils.ensureExpectedToken(XContentParser.Token.START_OBJECT, parser.nextToken(), parser);
+
+        while (parser.nextToken() != XContentParser.Token.END_OBJECT) {
+            if (JSON_DATA_KEY.equals(parser.currentName())) {
+                parser.nextToken();
+                XContentParserUtils.ensureExpectedToken(XContentParser.Token.START_ARRAY, parser.currentToken(), parser);
+                while (parser.nextToken() != XContentParser.Token.END_ARRAY) {
+                    changes.add(Offset.parse(parser));
+                }
+            } else {
+                parser.skipChildren();
+            }
         }
         return new Changes(changes);
     }
 
     /**
-     * Outputs an XContentBuilder object ready to be printed or manipulated
+     * Serializes this object into an {@link XContentBuilder}.
      *
-     * @param builder the received builder object
-     * @param params Unused params
-     * @return an XContentBuilder object ready to be printed
-     * @throws IOException rethrown from Offset's toXContent
+     * @param builder The builder to write to.
+     * @param params  Contextual parameters for the serialization.
+     * @return The builder instance for chaining.
+     * @throws IOException If an error occurs while writing to the builder.
      */
     @Override
     public XContentBuilder toXContent(XContentBuilder builder, Params params) throws IOException {
         builder.startObject();
-        builder.startArray(Changes.JSON_DATA_KEY);
-        // For each Offset in the data field, add them to an XContentBuilder array
+        builder.startArray(JSON_DATA_KEY);
         for (Offset change : this.list) {
-            change.toXContent(builder, ToXContentObject.EMPTY_PARAMS);
+            change.toXContent(builder, params);
         }
         builder.endArray();
         return builder.endObject();

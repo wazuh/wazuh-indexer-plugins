@@ -1,5 +1,6 @@
 package com.wazuh.contentmanager.jobscheduler.jobs;
 
+import com.wazuh.contentmanager.cti.catalog.client.ApiClient;
 import com.wazuh.contentmanager.cti.catalog.index.ConsumersIndex;
 import com.wazuh.contentmanager.cti.catalog.index.ContentIndex;
 import com.wazuh.contentmanager.cti.catalog.model.LocalConsumer;
@@ -7,6 +8,7 @@ import com.wazuh.contentmanager.cti.catalog.model.RemoteConsumer;
 import com.wazuh.contentmanager.cti.catalog.service.ConsumerService;
 import com.wazuh.contentmanager.cti.catalog.service.ConsumerServiceImpl;
 import com.wazuh.contentmanager.cti.catalog.service.SnapshotServiceImpl;
+import com.wazuh.contentmanager.cti.catalog.service.UpdateServiceImpl;
 import com.wazuh.contentmanager.jobscheduler.JobExecutor;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -21,6 +23,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.concurrent.Semaphore;
 
 /**
  * Job responsible for executing the synchronization logic for Rules and Decoders consumers.
@@ -30,6 +33,9 @@ public class CatalogSyncJob implements JobExecutor {
 
     // Identifier used to route this specific job type
     public static final String JOB_TYPE = "consumer-sync-task";
+
+    // Semaphore to control concurrency
+    private final Semaphore semaphore = new Semaphore(1);
 
     private final Client client;
     private final ConsumersIndex consumersIndex;
@@ -52,22 +58,69 @@ public class CatalogSyncJob implements JobExecutor {
     }
 
     /**
-     * Triggers the execution of the synchronization job.
+     * Triggers the execution of the synchronization job via the Job Scheduler.
      *
      * @param context The execution context provided by the Job Scheduler, containing metadata like the Job ID.
      */
     @Override
     public void execute(JobExecutionContext context) {
+        if (!this.semaphore.tryAcquire()) {
+            log.warn("CatalogSyncJob (ID: {}) skipped because synchronization is already running.", context.getJobId());
+            return;
+        }
+
         // Offload execution to the generic thread pool to allow blocking operations
         this.threadPool.generic().execute(() -> {
             try {
                 log.info("Executing Consumer Sync Job (ID: {})", context.getJobId());
-                this.rulesConsumer();
-                this.decodersConsumer();
+                this.performSynchronization();
             } catch (Exception e) {
                 log.error("Error executing Consumer Sync Job (ID: {}): {}", context.getJobId(), e.getMessage(), e);
+            } finally {
+                this.semaphore.release();
             }
         });
+    }
+
+    /**
+     * Checks if the synchronization job is currently running.
+     *
+     * @return true if running, false otherwise.
+     */
+    public boolean isRunning() {
+        return this.semaphore.availablePermits() == 0;
+    }
+
+    /**
+     * Attempts to trigger the synchronization process manually.
+     *
+     * @return true if the job was successfully started, false if it is already running.
+     */
+    public boolean trigger() {
+        if (!this.semaphore.tryAcquire()) {
+            log.warn("Attempted to trigger CatalogSyncJob manually while it is already running.");
+            return false;
+        }
+        this.threadPool.generic().execute(() -> {
+            try {
+                log.info("Executing Manually Triggered Consumer Sync Job");
+                this.performSynchronization();
+            } catch (Exception e) {
+                log.error("Error executing Manual Consumer Sync Job: {}", e.getMessage(), e);
+            } finally {
+                this.semaphore.release();
+            }
+        });
+
+        return true;
+    }
+
+    /**
+     * Centralized synchronization logic used by both execute() and trigger().
+     */
+    private void performSynchronization() {
+        this.rulesConsumer();
+        this.decodersConsumer();
     }
 
     /**
@@ -137,7 +190,7 @@ public class CatalogSyncJob implements JobExecutor {
 
     /**
      * The core logic for synchronizing consumer services.
-     *
+     * <p>
      * This method performs the following actions:
      * 1. Retrieve the Local and Remote consumer metadata.
      * 2. Iterate through the requested mappings to check if indices exist.
@@ -157,12 +210,14 @@ public class CatalogSyncJob implements JobExecutor {
         RemoteConsumer remoteConsumer = consumerService.getRemoteConsumer();
 
         List<ContentIndex> indices = new ArrayList<>();
+        Map<String, ContentIndex> indicesMap = new HashMap<>();
 
         for (Map.Entry<String, String> entry : mappings.entrySet()) {
             String indexName = this.getIndexName(context, consumer, entry.getKey());
             String alias = aliases.get(entry.getKey());
             ContentIndex index = new ContentIndex(this.client, indexName, entry.getValue(), alias);
             indices.add(index);
+            indicesMap.put(entry.getKey(), index);
 
             // Check if index exists to avoid creation exception
             boolean indexExists = this.client.admin().indices().prepareExists(indexName).get().isExists();
@@ -190,7 +245,16 @@ public class CatalogSyncJob implements JobExecutor {
             );
             snapshotService.initialize(remoteConsumer);
         } else if (remoteConsumer != null && localConsumer.getLocalOffset() != remoteConsumer.getOffset()) {
-            // TODO: Implement offset based update process
+            log.info("Starting offset-based update for consumer [{}]", consumer);
+            UpdateServiceImpl updateService = new UpdateServiceImpl(
+                context,
+                consumer,
+                new ApiClient(),
+                this.consumersIndex,
+                indicesMap
+            );
+            updateService.update(localConsumer.getLocalOffset(), remoteConsumer.getOffset());
+            updateService.close();
         }
     }
 }

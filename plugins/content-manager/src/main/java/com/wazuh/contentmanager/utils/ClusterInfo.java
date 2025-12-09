@@ -21,46 +21,12 @@ import org.opensearch.action.admin.indices.exists.indices.IndicesExistsRequest;
 import org.opensearch.action.admin.indices.exists.indices.IndicesExistsResponse;
 import org.opensearch.transport.client.Client;
 import org.opensearch.cluster.health.ClusterHealthStatus;
-import org.opensearch.cluster.service.ClusterService;
-import org.opensearch.common.settings.Settings;
-
-import java.util.Locale;
 
 /**
  * ClusterInfo provides utility methods for retrieving cluster-related information, such as
  * security settings and the cluster base URL.
  */
 public class ClusterInfo {
-    /**
-     * Checks if the OpenSearch cluster is using HTTPS for communication.
-     *
-     * @param clusterService The ClusterService instance providing cluster settings.
-     * @return true if HTTPS is enabled, false otherwise.
-     */
-    public static boolean isHttpsEnabled(ClusterService clusterService) {
-        Settings settings = clusterService.getSettings();
-
-        // Check if security plugins have HTTPS enabled
-        return settings.getAsBoolean("plugins.security.ssl.http.enabled", false)
-            || settings.getAsBoolean("xpack.security.http.ssl.enabled", false);
-    }
-
-    /**
-     * Retrieves the base URL of the OpenSearch cluster with the appropriate protocol (HTTP/HTTPS).
-     *
-     * @param clusterService The ClusterService instance providing cluster state and nodes.
-     * @return The cluster base URL in the format "http(s)://[IP]:[PORT]".
-     */
-    public static String getClusterBaseUrl(ClusterService clusterService) {
-        String protocol = ClusterInfo.isHttpsEnabled(clusterService) ? "https" : "http";
-        String host = "127.0.0.1";
-        String port = "9200";
-        if (clusterService.state().nodes().getClusterManagerNode() != null) {
-            host = clusterService.getSettings().get("network.host", host);
-            port = clusterService.getSettings().get("http.port", port);
-        }
-        return String.format(Locale.ROOT, "%s://%s:%s", protocol, host, port);
-    }
 
     /**
      * Checks if a given index is ready for operations.

@@ -1,14 +1,14 @@
 package com.wazuh.contentmanager.rest.services;
 
-import com.wazuh.contentmanager.ContentManagerPlugin;
+import com.wazuh.contentmanager.jobscheduler.jobs.CatalogSyncJob;
 import com.wazuh.contentmanager.cti.console.CtiConsole;
-import com.wazuh.contentmanager.cti.console.model.Subscription;
 import com.wazuh.contentmanager.rest.model.RestResponse;
+import com.wazuh.contentmanager.settings.PluginSettings;
+import org.opensearch.rest.NamedRoute;
 import org.opensearch.transport.client.node.NodeClient;
 import org.opensearch.core.rest.RestStatus;
 import org.opensearch.rest.BaseRestHandler;
 import org.opensearch.rest.BytesRestResponse;
-import org.opensearch.rest.NamedRoute;
 import org.opensearch.rest.RestRequest;
 
 import java.io.IOException;
@@ -38,14 +38,11 @@ public class RestPostUpdateAction extends BaseRestHandler {
     private static final String ENDPOINT_NAME = "content_manager_subscription_update";
     private static final String ENDPOINT_UNIQUE_NAME = "plugin:content_manager/subscription_update";
     private final CtiConsole ctiConsole;
+    private final CatalogSyncJob catalogSyncJob;
 
-    /**
-     * Construct the update REST handler.
-     *
-     * @param console the CTI console used to check subscription state and trigger updates
-     */
-    public RestPostUpdateAction(CtiConsole console) {
+    public RestPostUpdateAction(CtiConsole console, CatalogSyncJob catalogSyncJob) {
         this.ctiConsole = console;
+        this.catalogSyncJob = catalogSyncJob;
     }
 
     /**
@@ -64,7 +61,7 @@ public class RestPostUpdateAction extends BaseRestHandler {
         return List.of(
             // POST /_plugins/content-manager/update
             new NamedRoute.Builder()
-                .path(ContentManagerPlugin.UPDATE_URI)
+                .path(PluginSettings.UPDATE_URI)
                 .method(POST)
                 .uniqueName(ENDPOINT_UNIQUE_NAME)
                 .build()
@@ -75,7 +72,7 @@ public class RestPostUpdateAction extends BaseRestHandler {
      * Prepare the request by returning a consumer that executes the update operation.
      *
      * @param request the incoming REST request
-     * @param client the node client 
+     * @param client the node client
      * @return a consumer that executes the update operation
      */
     @Override
@@ -103,8 +100,7 @@ public class RestPostUpdateAction extends BaseRestHandler {
             }
 
             // 2. Conflict Check (409 Conflict)
-            // TODO: Implement actual concurrency control
-            if (1 == 2) {
+            if (this.catalogSyncJob.isRunning()) {
                 RestResponse error = new RestResponse(
                     "An update operation is already in progress. Please wait for it to complete.",
                     RestStatus.CONFLICT.getStatus()
@@ -119,9 +115,10 @@ public class RestPostUpdateAction extends BaseRestHandler {
              * - X-RateLimit-Reset: Unix timestamp when the rate limit window resets
              */
 
-            // TODO: Add actual update logic
+            // 4. Update Accepted (202 ACCEPTED)
+            this.catalogSyncJob.trigger();
             RestResponse response = new RestResponse("Update accepted", RestStatus.ACCEPTED.getStatus());
-           return new BytesRestResponse(RestStatus.ACCEPTED, response.toXContent());
+            return new BytesRestResponse(RestStatus.ACCEPTED, response.toXContent());
         } catch (Exception e) {
             RestResponse error = new RestResponse(
                 e.getMessage() != null ? e.getMessage() : "An unexpected error occurred while processing your request.",

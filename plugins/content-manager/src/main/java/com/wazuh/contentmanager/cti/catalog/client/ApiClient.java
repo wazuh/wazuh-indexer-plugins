@@ -29,14 +29,15 @@ import java.util.concurrent.TimeoutException;
  */
 public class ApiClient {
 
-    private static final String BASE_URI = "https://cti-pre.wazuh.com";
-    private static final String API_PREFIX = "/api/v1";
+    private final String baseUri;
     private CloseableHttpAsyncClient client;
 
     /**
      * Constructs an ApiClient instance and initializes the underlying HTTP client.
      */
     public ApiClient() {
+        // Retrieve base URI from PluginSettings
+        this.baseUri = PluginSettings.getInstance().getCtiBaseUrl();
         this.buildClient();
     }
 
@@ -87,7 +88,7 @@ public class ApiClient {
      * @return A string representing the full absolute URL for the resource.
      */
     private String buildConsumerURI(String context, String consumer) {
-        return BASE_URI + API_PREFIX + "/catalog/contexts/" + context + "/consumers/" + consumer;
+        return this.baseUri + "/catalog/contexts/" + context + "/consumers/" + consumer;
     }
 
     /**
@@ -110,6 +111,36 @@ public class ApiClient {
             SimpleResponseConsumer.create(),
             new HttpResponseCallback(
                 request, "Outgoing request failed"
+            )
+        );
+
+        return future.get(PluginSettings.getInstance().getClientTimeout(), TimeUnit.SECONDS);
+    }
+
+    /**
+     * Retrieves the changes for a specific consumer within a given context.
+     *
+     * @param context    The context identifier.
+     * @param consumer   The consumer identifier.
+     * @param fromOffset The starting offset (exclusive).
+     * @param toOffset   The ending offset (inclusive).
+     * @return A {@link SimpleHttpResponse} containing the API response.
+     * @throws ExecutionException   If the computation threw an exception.
+     * @throws InterruptedException If the current thread was interrupted while waiting.
+     * @throws TimeoutException     If the wait timed out.
+     */
+    public SimpleHttpResponse getChanges(String context, String consumer, long fromOffset, long toOffset) throws ExecutionException, InterruptedException, TimeoutException {
+        String uri = this.buildConsumerURI(context, consumer) + "/changes?from_offset=" + fromOffset + "&to_offset=" + toOffset;
+
+        SimpleHttpRequest request = SimpleRequestBuilder
+            .get(uri)
+            .build();
+
+        final Future<SimpleHttpResponse> future = client.execute(
+            SimpleRequestProducer.create(request),
+            SimpleResponseConsumer.create(),
+            new HttpResponseCallback(
+                request, "Failed to send request to CTI service"
             )
         );
 
