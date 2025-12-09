@@ -83,6 +83,9 @@ public class SnapshotServiceImplTests extends OpenSearchTestCase {
         String consumer = "test-consumer";
         this.snapshotService = new SnapshotServiceImpl(context, consumer, contentIndices, this.consumersIndex, this.environment);
         this.snapshotService.setSnapshotClient(this.snapshotClient);
+
+        when(this.contentIndexMock.processPayload(any(JsonObject.class)))
+            .thenAnswer(invocation -> invocation.getArgument(0));
     }
 
     @After
@@ -160,8 +163,7 @@ public class SnapshotServiceImplTests extends OpenSearchTestCase {
     }
 
     /**
-     * Tests that documents with type "policy" are indexed into the specific policy index
-     * with a composite ID, instead of being skipped.
+     * Tests that documents with type "policy" are indexed correctly.
      */
     public void testInitialize_IndexesPolicyType() throws IOException, URISyntaxException {
         // Mock
@@ -183,8 +185,8 @@ public class SnapshotServiceImplTests extends OpenSearchTestCase {
 
         IndexRequest request = (IndexRequest) bulkCaptor.getValue().requests().getFirst();
 
-        assertEquals(".cti-policies", request.index());
-        assertEquals("test-context_test-consumer", request.id());
+        assertEquals(".test-context-test-consumer-policy", request.index());
+        assertEquals("p1", request.id());
     }
 
     /**

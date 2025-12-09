@@ -16,14 +16,12 @@
  */
 package com.wazuh.contentmanager.cti.catalog.index;
 
-import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
-import com.google.gson.JsonArray;
-import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
+import com.wazuh.contentmanager.cti.catalog.model.Decoder;
 import com.wazuh.contentmanager.cti.catalog.model.Operation;
+import com.wazuh.contentmanager.cti.catalog.model.Resource;
 import com.wazuh.contentmanager.cti.catalog.utils.JsonPatch;
 import com.wazuh.contentmanager.settings.PluginSettings;
 import org.apache.logging.log4j.LogManager;
@@ -54,20 +52,12 @@ import org.opensearch.transport.client.Client;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
-import java.security.MessageDigest;
-import java.util.*;
+import java.util.List;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
-/**
- * Manages operations for a specific Wazuh CTI Content Index.
- * <p>
- * This class handles the lifecycle of the index (creation, deletion) as well as
- * CRUD operations for documents, including specialized logic for parsing
- * and sanitizing CTI content payloads.
- */
 public class ContentIndex {
     private static final Logger log = LogManager.getLogger(ContentIndex.class);
 
@@ -79,13 +69,9 @@ public class ContentIndex {
     private final String alias;
 
     private final ObjectMapper jsonMapper;
-    private final ObjectMapper yamlMapper;
-    private static final List<String> DECODER_ORDER_KEYS = Arrays.asList(
-        "name", "metadata", "parents", "definitions", "check",
-        "parse|event.original", "parse|message", "normalize"
-    );
 
-    private enum spaceName { free, paid, custom }
+    private static final String JSON_TYPE_KEY = "type";
+    private static final String JSON_DECODER_KEY = "decoder";
 
     /**
      * Constructs a new ContentIndex manager.
@@ -114,7 +100,6 @@ public class ContentIndex {
         this.mappingsPath = mappingsPath;
         this.alias = alias;
         this.jsonMapper = new ObjectMapper();
-        this.yamlMapper = new ObjectMapper(new YAMLFactory());
     }
 
     /**
@@ -181,10 +166,10 @@ public class ContentIndex {
      * @throws IOException If the indexing operation fails.
      */
     public void create(String id, JsonObject payload) throws IOException {
-        this.processPayload(payload);
+        JsonObject processedPayload = processPayload(payload);
         IndexRequest request = new IndexRequest(this.indexName)
             .id(id)
-            .source(payload.toString(), XContentType.JSON);
+            .source(processedPayload.toString(), XContentType.JSON);
 
         try {
             this.client.index(request).get(this.pluginSettings.getClientTimeout(), TimeUnit.SECONDS);
@@ -218,12 +203,12 @@ public class ContentIndex {
         }
 
         // 3. Process
-        this.processPayload(currentDoc);
+        JsonObject processedDoc = this.processPayload(currentDoc);
 
         // 4. Index
         IndexRequest request = new IndexRequest(this.indexName)
             .id(id)
-            .source(currentDoc.toString(), XContentType.JSON);
+            .source(processedDoc.toString(), XContentType.JSON);
         this.client.index(request).get(this.pluginSettings.getClientTimeout(), TimeUnit.SECONDS);
     }
 
@@ -288,149 +273,29 @@ public class ContentIndex {
     }
 
     /**
-     * Orchestrates the enrichment and sanitization of a payload.
+     * Orchestrates the enrichment and sanitization of a payload using Domain Models.
      *
      * @param payload The JSON payload to process.
+     * @return A new JsonObject containing the processed payload.
      */
-    public void processPayload(JsonObject payload) {
-        // 1. Enrich decoder if type is 'decoder'
-        if (payload.has("type") && "decoder".equalsIgnoreCase(payload.get("type").getAsString())) {
-            this.enrichDecoderWithYaml(payload);
-        }
-
-        JsonObject document = null;
-        String decoder = null;
-
-        // 2. Extract and sanitize the document
-        if (payload.has("document") && payload.get("document").isJsonObject()) {
-            document = payload.getAsJsonObject("document");
-            preprocessDocument(document);
-        }
-
-        // 3. Extract decoder YAML if present
-        if (payload.has("decoder") && !payload.get("decoder").isJsonNull()) {
-            decoder = payload.get("decoder").getAsString();
-        }
-
-        // 4. Calculate checksum based on the sanitized document content
-        String hash = (document != null) ? this.calculateSha256(document) : null;
-
-        // 5. Clear existing fields to remove unwanted metadata
-        List<String> keysToRemove = new ArrayList<>(payload.keySet());
-        for (String key : keysToRemove) {
-            payload.remove(key);
-        }
-
-        // 6. Rebuild the payload with only 'document', 'hash.sha256', and 'decoder'
-        if (document != null) {
-            payload.add("document", document);
-        }
-        if (hash != null) {
-            payload.addProperty("hash.sha256", hash);
-        }
-        if (decoder != null) {
-            payload.addProperty("decoder", decoder);
-        }
-        // TODO: Once CTI is ready change to actual real logic
-        payload.addProperty("space.name", spaceName.free.toString());
-    }
-
-    /**
-     * Generates a YAML representation for decoder documents.
-     *
-     * @param payload The payload containing the decoder definition.
-     */
-    private void enrichDecoderWithYaml(JsonObject payload) {
+    public JsonObject processPayload(JsonObject payload) {
         try {
-            if (!payload.has("document")) return;
-            JsonNode docNode = this.jsonMapper.readTree(payload.get("document").toString());
+            Resource resource;
 
-            if (docNode != null && docNode.isObject()) {
-                Map<String, Object> orderedDecoderMap = new LinkedHashMap<>();
-                for (String key : DECODER_ORDER_KEYS) {
-                    if (docNode.has(key)) orderedDecoderMap.put(key, docNode.get(key));
-                }
-                Iterator<Map.Entry<String, JsonNode>> fields = docNode.fields();
-                while (fields.hasNext()) {
-                    Map.Entry<String, JsonNode> field = fields.next();
-                    if (!DECODER_ORDER_KEYS.contains(field.getKey())) {
-                        orderedDecoderMap.put(field.getKey(), field.getValue());
-                    }
-                }
-                payload.addProperty("decoder", this.yamlMapper.writeValueAsString(orderedDecoderMap));
+            // 1. Delegate parsing logic to the appropriate Model
+            if (payload.has(JSON_TYPE_KEY) && JSON_DECODER_KEY.equalsIgnoreCase(payload.get(JSON_TYPE_KEY).getAsString())) {
+                resource = Decoder.fromPayload(payload);
+            } else {
+                resource = Resource.fromPayload(payload);
             }
+
+            // 2. Convert Model back to JsonObject for OpenSearch indexing
+            String jsonString = this.jsonMapper.writeValueAsString(resource);
+            return JsonParser.parseString(jsonString).getAsJsonObject();
+
         } catch (IOException e) {
-            log.error("Failed to convert decoder payload to YAML: {}", e.getMessage(), e);
-        }
-    }
-
-    /**
-     * Sanitizes the document by removing internal or unnecessary fields.
-     * <p>
-     * This removes fields like 'date', 'enabled', and internal metadata, and
-     * normalizes 'related' objects.
-     *
-     * @param document The document object to preprocess.
-     */
-    private void preprocessDocument(JsonObject document) {
-        if (document.has("metadata") && document.get("metadata").isJsonObject()) {
-            JsonObject metadata = document.getAsJsonObject("metadata");
-            if (metadata.has("custom_fields")) {
-                metadata.remove("custom_fields");
-            }
-            if (metadata.has("dataset")) {
-                metadata.remove("dataset");
-            }
-        }
-
-        if (document.has("related")) {
-            JsonElement relatedElement = document.get("related");
-            if (relatedElement.isJsonObject()) {
-                this.sanitizeRelatedObject(relatedElement.getAsJsonObject());
-            } else if (relatedElement.isJsonArray()) {
-                JsonArray relatedArray = relatedElement.getAsJsonArray();
-                for (JsonElement element : relatedArray) {
-                    if (element.isJsonObject()) this.sanitizeRelatedObject(element.getAsJsonObject());
-                }
-            }
-        }
-    }
-
-    /**
-     * Normalizes a "related" object.
-     *
-     * @param relatedObj The related object to sanitize.
-     */
-    private void sanitizeRelatedObject(JsonObject relatedObj) {
-        if (relatedObj.has("sigma_id")) {
-            relatedObj.add("id", relatedObj.get("sigma_id"));
-            relatedObj.remove("sigma_id");
-        }
-    }
-
-    /**
-     * Calculates the SHA-256 checksum of a JSON Object.
-     *
-     * @param json The JSON object to hash.
-     * @return The hex string representation of the hash.
-     */
-    private String calculateSha256(JsonObject json) {
-        try {
-            MessageDigest digest = MessageDigest.getInstance("SHA-256");
-            byte[] encodedhash = digest.digest(json.toString().getBytes(StandardCharsets.UTF_8));
-
-            StringBuilder hexString = new StringBuilder(2 * encodedhash.length);
-            for (byte b : encodedhash) {
-                String hex = Integer.toHexString(0xff & b);
-                if (hex.length() == 1) {
-                    hexString.append('0');
-                }
-                hexString.append(hex);
-            }
-            return hexString.toString();
-        } catch (Exception e) {
-            log.error("Failed to calculate SHA-256 hash", e);
-            return null;
+            log.error("Failed to process payload via models: {}", e.getMessage(), e);
+            return new JsonObject();
         }
     }
 }
