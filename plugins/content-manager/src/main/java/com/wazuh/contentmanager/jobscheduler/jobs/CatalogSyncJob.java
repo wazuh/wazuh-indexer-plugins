@@ -24,6 +24,7 @@ import org.opensearch.env.Environment;
 import org.opensearch.index.query.QueryBuilders;
 import org.opensearch.jobscheduler.spi.JobExecutionContext;
 import org.opensearch.search.SearchHit;
+import org.opensearch.search.builder.SearchSourceBuilder;
 import org.opensearch.threadpool.ThreadPool;
 import org.opensearch.transport.client.Client;
 
@@ -140,6 +141,7 @@ public class CatalogSyncJob implements JobExecutor {
     private void rulesConsumer() {
         String context = "rules_development_0.0.1";
         String consumer = "rules_development_0.0.1_test";
+
         Map<String, String> mappings = new HashMap<>();
         mappings.put(
             "rule", "/mappings/cti-rules-mappings.json"
@@ -147,15 +149,10 @@ public class CatalogSyncJob implements JobExecutor {
         mappings.put(
             "integration", "/mappings/cti-rules-integrations-mappings.json"
         );
-        // TODO: Delete once the consumer is changed
-        // mappings.put(
-        //    "policy", "/mappings/cti-policies-mappings.json"
-        // );
 
         Map<String, String> aliases = new HashMap<>();
         aliases.put("rule", ".cti-rules");
         aliases.put("integration", ".cti-integration-rules");
-        // aliases.put("policy", ".cti-policies");
 
         this.syncConsumerServices(context, consumer, mappings, aliases);
         log.info("Rules Consumer correctly synchronized.");
@@ -167,6 +164,7 @@ public class CatalogSyncJob implements JobExecutor {
     private void decodersConsumer() {
         String context = "decoders_development_0.0.1";
         String consumer = "decoders_development_0.0.1";
+
         Map<String, String> mappings = new HashMap<>();
         mappings.put(
             "decoder", "/mappings/cti-decoders-mappings.json"
@@ -187,12 +185,11 @@ public class CatalogSyncJob implements JobExecutor {
         aliases.put("integration", ".cti-integration-decoders");
         aliases.put("policy", ".cti-policies");
 
-        boolean updated = this.syncConsumerServices(context, consumer, mappings, aliases);
+        boolean isConsumerUpdated = this.syncConsumerServices(context, consumer, mappings, aliases);
 
         // Only calculate hashes if there was an update
-        if (updated) {
+        if (isConsumerUpdated) {
             log.info("Changes detected in Decoders Consumer. Refreshing indices and calculating hashes...");
-
             try {
                 this.client.admin().indices().prepareRefresh(
                     this.getIndexName(context, consumer, "decoder"),
@@ -205,7 +202,7 @@ public class CatalogSyncJob implements JobExecutor {
             }
 
             // Calculate and update hash of hashes
-            this.calculateAndStorePolicyHashes(context, consumer);
+            this.hashPolicy(context, consumer);
         } else {
             log.info("No changes in Decoders Consumer. Skipping hash calculation.");
         }
@@ -308,8 +305,9 @@ public class CatalogSyncJob implements JobExecutor {
     /**
      * Calculates the aggregate hash (hash of hashes) and update the policies.
      */
-    private void calculateAndStorePolicyHashes(String context, String consumer) {
+    private void hashPolicy(String context, String consumer) {
         try {
+            // Space hash is generated in this order
             String policyIndex = this.getIndexName(context, consumer, "policy");
             String integrationIndex = this.getIndexName(context, consumer, "integration");
             String decoderIndex = this.getIndexName(context, consumer, "decoder");
@@ -332,20 +330,18 @@ public class CatalogSyncJob implements JobExecutor {
             for (SearchHit hit : response.getHits().getHits()) {
                 Map<String, Object> source = hit.getSourceAsMap();
 
-                Map<String, Object> currentSpace = (Map<String, Object>) source.get("space");
-                if (currentSpace != null) {
-                    String spaceName = (String) currentSpace.get("name");
-                    if (Space.DRAFT.toString().toLowerCase(Locale.ROOT).equals(spaceName) ||
-                        Space.TESTING.toString().toLowerCase(Locale.ROOT).equals(spaceName)) {
+                Map<String, Object> space = (Map<String, Object>) source.get("space");
+                if (space != null) {
+                    String spaceName = (String) space.get("name");
+                    if (Space.DRAFT.equals(spaceName) || Space.TESTING.equals(spaceName)) {
                         log.info("Skipping hash calculation for policy [{}] because it is in space [{}]", hit.getId(), spaceName);
                         continue;
                     }
                 }
 
-                List<String> accumulatedHashes = new ArrayList<>();
-
                 // 1. Policy Hash
-                accumulatedHashes.add(this.extractHash(source));
+                List<String> spaceHashes = new ArrayList<>();
+                spaceHashes.add(this.getHash(source));
 
                 Map<String, Object> document = (Map<String, Object>) source.get("document");
                 if (document != null && document.containsKey("integrations")) {
@@ -353,52 +349,60 @@ public class CatalogSyncJob implements JobExecutor {
 
                     for (String integrationId : integrationIds) {
                         Map<String, Object> integrationSource = this.getDocumentSource(integrationIndex, integrationId);
-                        if (integrationSource == null) continue;
+                        if (integrationSource == null) {
+                            continue;
+                        }
 
                         // 2. Integration Hash
-                        accumulatedHashes.add(this.extractHash(integrationSource));
+                        spaceHashes.add(this.getHash(integrationSource));
 
-                        Map<String, Object> intDoc = (Map<String, Object>) integrationSource.get("document");
-                        if (intDoc != null) {
+                        Map<String, Object> integration = (Map<String, Object>) integrationSource.get("document");
+                        if (integration != null) {
                             // 3. Decoders Hash
-                            if (intDoc.containsKey("decoders")) {
-                                List<String> decoderIds = (List<String>) intDoc.get("decoders");
+                            if (integration.containsKey("decoders")) {
+                                List<String> decoderIds = (List<String>) integration.get("decoders");
                                 for (String id : decoderIds) {
-                                    Map<String, Object> s = this.getDocumentSource(decoderIndex, id);
-                                    if (s != null) accumulatedHashes.add(this.extractHash(s));
+                                    Map<String, Object> decoderSource = this.getDocumentSource(decoderIndex, id);
+                                    if (decoderSource != null) {
+                                        spaceHashes.add(this.getHash(decoderSource));
+                                    }
                                 }
                             }
 
                             // 4. KVDBs Hash
-                            if (intDoc.containsKey("kvdbs")) {
-                                List<String> kvdbIds = (List<String>) intDoc.get("kvdbs");
+                            if (integration.containsKey("kvdbs")) {
+                                List<String> kvdbIds = (List<String>) integration.get("kvdbs");
                                 for (String id : kvdbIds) {
-                                    Map<String, Object> s = this.getDocumentSource(kvdbIndex, id);
-                                    if (s != null) accumulatedHashes.add(this.extractHash(s));
+                                    Map<String, Object> kvdbSource = this.getDocumentSource(kvdbIndex, id);
+                                    if (kvdbSource != null) {
+                                        spaceHashes.add(this.getHash(kvdbSource));
+                                    }
                                 }
                             }
 
                             // 5. Rules Hash
-                            if (intDoc.containsKey("rules")) {
-                                List<String> ruleIds = (List<String>) intDoc.get("rules");
+                            if (integration.containsKey("rules")) {
+                                List<String> ruleIds = (List<String>) integration.get("rules");
                                 for (String id : ruleIds) {
-                                    Map<String, Object> s = this.getDocumentSource(ruleIndex, id);
-                                    if (s != null) accumulatedHashes.add(this.extractHash(s));
+                                    Map<String, Object> ruleSource = this.getDocumentSource(ruleIndex, id);
+                                    if (ruleSource != null) {
+                                        spaceHashes.add(this.getHash(ruleSource));
+                                    }
                                 }
                             }
                         }
                     }
                 }
 
-                // Calculate Final Hash
-                String finalHash = this.calculateSha256(accumulatedHashes);
+                // Calculate space Hash
+                String spaceHash = this.hash(String.join("", spaceHashes));
 
                 // Prepare Update
                 Map<String, Object> updateMap = new HashMap<>();
                 Map<String, Object> spaceMap = (Map<String, Object>) source.getOrDefault("space", new HashMap<>());
                 Map<String, Object> hashMap = (Map<String, Object>) spaceMap.getOrDefault("hash", new HashMap<>());
 
-                hashMap.put("sha256", finalHash);
+                hashMap.put("sha256", spaceHash);
                 spaceMap.put("hash", hashMap);
                 updateMap.put("space", spaceMap);
 
@@ -438,7 +442,7 @@ public class CatalogSyncJob implements JobExecutor {
     /**
      * Helper to extract sha256 hash from document source.
      */
-    private String extractHash(Map<String, Object> source) {
+    private String getHash(Map<String, Object> source) {
         if (source.containsKey("hash")) {
             Map<String, Object> hashObj = (Map<String, Object>) source.get("hash");
             return (String) hashObj.getOrDefault("sha256", "");
@@ -449,17 +453,14 @@ public class CatalogSyncJob implements JobExecutor {
     /**
      * Computes SHA-256 hash of a list of strings concatenated.
      */
-    private String calculateSha256(List<String> inputs) {
+    private String hash(String payload) {
         try {
-            MessageDigest digest = MessageDigest.getInstance("SHA-256");
-            StringBuilder combined = new StringBuilder();
-            for (String s : inputs) {
-                if (s != null) combined.append(s);
-            }
-            byte[] encodedhash = digest.digest(combined.toString().getBytes(StandardCharsets.UTF_8));
+            byte[] hash = MessageDigest
+                .getInstance("SHA-256")
+                .digest(payload.getBytes(StandardCharsets.UTF_8));
 
-            StringBuilder hexString = new StringBuilder(2 * encodedhash.length);
-            for (byte b : encodedhash) {
+            StringBuilder hexString = new StringBuilder(2 * hash.length);
+            for (byte b : hash) {
                 String hex = Integer.toHexString(0xff & b);
                 if (hex.length() == 1) {
                     hexString.append('0');
@@ -468,7 +469,7 @@ public class CatalogSyncJob implements JobExecutor {
             }
             return hexString.toString();
         } catch (Exception e) {
-            log.error("Error calculating SHA-256", e);
+            log.error("Error hashing content", e);
             return "";
         }
     }
