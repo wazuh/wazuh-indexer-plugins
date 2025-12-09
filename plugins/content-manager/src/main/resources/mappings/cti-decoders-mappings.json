@@ -11,15 +11,6 @@
     }
   ],
   "properties": {
-    "type": {
-      "type": "keyword"
-    },
-    "integration_id": {
-      "type": "keyword"
-    },
-    "decoder": {
-      "type": "keyword"
-    },
     "document": {
       "properties": {
         "name": {
@@ -91,6 +82,22 @@
           "enabled": false
         },
         "parse|event.original": {
+          "type": "keyword"
+        }
+      }
+    },
+    "hash": {
+      "type": "object",
+      "properties": {
+        "sha256": {
+          "type": "keyword"
+        }
+      }
+    },
+    "space": {
+      "type": "object",
+      "properties": {
+        "name": {
           "type": "keyword"
         }
       }

@@ -13,12 +13,6 @@
     }
   ],
   "properties": {
-    "integration_id": {
-      "type": "keyword"
-    },
-    "type": {
-      "type": "keyword"
-    },
     "document": {
       "type": "object",
       "properties": {
@@ -111,6 +105,22 @@
           "type": "keyword"
         },
         "scope": {
+          "type": "keyword"
+        }
+      }
+    },
+    "hash": {
+      "type": "object",
+      "properties": {
+        "sha256": {
+          "type": "keyword"
+        }
+      }
+    },
+    "space": {
+      "type": "object",
+      "properties": {
+        "name": {
           "type": "keyword"
         }
       }

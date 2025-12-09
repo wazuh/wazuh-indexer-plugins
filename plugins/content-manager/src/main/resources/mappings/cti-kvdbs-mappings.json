@@ -1,12 +1,6 @@
 {
   "dynamic": "true",
   "properties": {
-    "type": {
-      "type": "keyword"
-    },
-    "integration_id": {
-      "type": "keyword"
-    },
     "document": {
       "properties": {
         "title": {
@@ -30,6 +24,22 @@
         "content": {
           "type": "object",
           "enabled": false
+        }
+      }
+    },
+    "hash": {
+      "type": "object",
+      "properties": {
+        "sha256": {
+          "type": "keyword"
+        }
+      }
+    },
+    "space": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "keyword"
         }
       }
     }

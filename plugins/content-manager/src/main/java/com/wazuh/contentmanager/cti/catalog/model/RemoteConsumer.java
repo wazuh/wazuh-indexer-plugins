@@ -28,7 +28,7 @@ public class RemoteConsumer extends AbstractConsumer {
      * @return The offset value.
      */
     public long getOffset() {
-        return offset;
+        return this.offset;
     }
 
     /**
@@ -37,7 +37,7 @@ public class RemoteConsumer extends AbstractConsumer {
      * @return The snapshot URL string.
      */
     public String getSnapshotLink() {
-        return snapshotLink;
+        return this.snapshotLink;
     }
 
     /**
@@ -48,10 +48,10 @@ public class RemoteConsumer extends AbstractConsumer {
     @Override
     public String toString() {
         return "RemoteConsumer{" +
-            "offset=" + offset +
-            ", snapshotLink='" + snapshotLink + '\'' +
-            ", context='" + context + '\'' +
-            ", name='" + name + '\'' +
+            "offset=" + this.offset +
+            ", snapshotLink='" + this.snapshotLink + '\'' +
+            ", context='" + this.context + '\'' +
+            ", name='" + this.name + '\'' +
             '}';
     }
 }

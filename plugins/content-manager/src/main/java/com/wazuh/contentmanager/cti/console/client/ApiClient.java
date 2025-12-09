@@ -1,7 +1,7 @@
 package com.wazuh.contentmanager.cti.console.client;
 
 import com.wazuh.contentmanager.cti.console.model.Token;
-import com.wazuh.contentmanager.client.HttpResponseCallback;
+import com.wazuh.contentmanager.cti.catalog.utils.HttpResponseCallback;
 import org.apache.hc.client5.http.async.methods.*;
 import org.apache.hc.client5.http.impl.async.CloseableHttpAsyncClient;
 import org.apache.hc.client5.http.impl.async.HttpAsyncClients;

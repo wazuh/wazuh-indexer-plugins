@@ -16,7 +16,7 @@
  */
 package com.wazuh.contentmanager.cti.catalog.service;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.gson.JsonObject;
 import com.wazuh.contentmanager.cti.catalog.client.SnapshotClient;
 import com.wazuh.contentmanager.cti.catalog.index.ConsumersIndex;
 import com.wazuh.contentmanager.cti.catalog.index.ContentIndex;
@@ -83,6 +83,9 @@ public class SnapshotServiceImplTests extends OpenSearchTestCase {
         String consumer = "test-consumer";
         this.snapshotService = new SnapshotServiceImpl(context, consumer, contentIndices, this.consumersIndex, this.environment);
         this.snapshotService.setSnapshotClient(this.snapshotClient);
+
+        when(this.contentIndexMock.processPayload(any(JsonObject.class)))
+            .thenAnswer(invocation -> invocation.getArgument(0));
     }
 
     @After
@@ -143,6 +146,7 @@ public class SnapshotServiceImplTests extends OpenSearchTestCase {
 
         // Assert
         verify(this.contentIndexMock).clear();
+        verify(this.contentIndexMock).processPayload(any(JsonObject.class));
         ArgumentCaptor<BulkRequest> bulkCaptor = ArgumentCaptor.forClass(BulkRequest.class);
         verify(this.contentIndexMock, atLeastOnce()).executeBulk(bulkCaptor.capture());
 
@@ -159,9 +163,9 @@ public class SnapshotServiceImplTests extends OpenSearchTestCase {
     }
 
     /**
-     * Tests that documents with type "policy" are skipped.
+     * Tests that documents with type "policy" are indexed correctly.
      */
-    public void testInitialize_SkipPolicyType() throws IOException, URISyntaxException {
+    public void testInitialize_IndexesPolicyType() throws IOException, URISyntaxException {
         // Mock
         String url = "http://example.com/policy.zip";
         when(this.remoteConsumer.getSnapshotLink()).thenReturn(url);
@@ -175,11 +179,18 @@ public class SnapshotServiceImplTests extends OpenSearchTestCase {
         this.snapshotService.initialize(this.remoteConsumer);
 
         // Assert
-        verify(this.contentIndexMock, never()).executeBulk(any(BulkRequest.class));
+        verify(this.contentIndexMock).processPayload(any(JsonObject.class));
+        ArgumentCaptor<BulkRequest> bulkCaptor = ArgumentCaptor.forClass(BulkRequest.class);
+        verify(this.contentIndexMock).executeBulk(bulkCaptor.capture());
+
+        IndexRequest request = (IndexRequest) bulkCaptor.getValue().requests().getFirst();
+
+        assertEquals(".test-context-test-consumer-policy", request.index());
+        assertEquals("p1", request.id());
     }
 
     /**
-     * Tests that type "decoder" documents are enriched with a YAML field.
+     * Tests that type "decoder" documents are delegated to ContentIndex for processing.
      */
     public void testInitialize_EnrichDecoderWithYaml() throws IOException, URISyntaxException {
         // Mock
@@ -194,17 +205,13 @@ public class SnapshotServiceImplTests extends OpenSearchTestCase {
         this.snapshotService.initialize(this.remoteConsumer);
 
         // Assert
-        ArgumentCaptor<BulkRequest> bulkCaptor = ArgumentCaptor.forClass(BulkRequest.class);
-        verify(this.contentIndexMock).executeBulk(bulkCaptor.capture());
-
-        IndexRequest request = (IndexRequest) bulkCaptor.getValue().requests().getFirst();
-        String source = request.source().utf8ToString();
-
-        assertTrue("Should contain 'decoder' field", source.contains("\"decoder\":"));
+        // Verify delegation to ContentIndex.processPayload
+        verify(this.contentIndexMock).processPayload(any(JsonObject.class));
+        verify(this.contentIndexMock).executeBulk(any(BulkRequest.class));
     }
 
     /**
-     * Tests preprocessing: 'related.sigma_id' should be renamed to 'related.id'.
+     * Tests preprocessing: Verifies that payload processing is delegated.
      */
     public void testInitialize_PreprocessSigmaId() throws IOException, URISyntaxException {
         // Mock
@@ -219,14 +226,8 @@ public class SnapshotServiceImplTests extends OpenSearchTestCase {
         this.snapshotService.initialize(this.remoteConsumer);
 
         // Assert
-        ArgumentCaptor<BulkRequest> bulkCaptor = ArgumentCaptor.forClass(BulkRequest.class);
-        verify(this.contentIndexMock).executeBulk(bulkCaptor.capture());
-
-        IndexRequest request = (IndexRequest) bulkCaptor.getValue().requests().getFirst();
-        String source = request.source().utf8ToString();
-
-        assertFalse("Should not contain sigma_id", source.contains("\"sigma_id\""));
-        assertTrue("Should contain id with value S-123", source.contains("\"id\":\"S-123\""));
+        verify(this.contentIndexMock).processPayload(any(JsonObject.class));
+        verify(this.contentIndexMock).executeBulk(any(BulkRequest.class));
     }
 
     /**
@@ -238,9 +239,8 @@ public class SnapshotServiceImplTests extends OpenSearchTestCase {
         when(this.remoteConsumer.getSnapshotLink()).thenReturn(url);
 
         String jsonContent =
-                "{}\n" + // Missing payload
-                "{\"payload\": {}}\n" + // Missing type
-                "{\"payload\": {\"type\": \"valid\", \"no_doc\": {}}}"; // Missing document
+            "{}\n" +
+                "{\"payload\": {}}";
 
         Path zipPath = createZipFileWithContent("invalid.json", jsonContent);
         when(this.snapshotClient.downloadFile(url)).thenReturn(zipPath);
@@ -253,7 +253,7 @@ public class SnapshotServiceImplTests extends OpenSearchTestCase {
     }
 
     /**
-     * Tests preprocessing with related array, objects inside array should also be sanitized.
+     * Tests preprocessing with related array: Verifies that payload processing is delegated.
      */
     public void testInitialize_PreprocessSigmaIdInArray() throws IOException, URISyntaxException {
         // Mock
@@ -268,13 +268,8 @@ public class SnapshotServiceImplTests extends OpenSearchTestCase {
         this.snapshotService.initialize(this.remoteConsumer);
 
         // Assert
-        ArgumentCaptor<BulkRequest> bulkCaptor = ArgumentCaptor.forClass(BulkRequest.class);
-        verify(this.contentIndexMock).executeBulk(bulkCaptor.capture());
-
-        String source = ((IndexRequest) bulkCaptor.getValue().requests().getFirst()).source().utf8ToString();
-
-        assertFalse("Should not contain sigma_id", source.contains("\"sigma_id\""));
-        assertTrue("Should contain id with value 999", source.contains("999"));
+        verify(this.contentIndexMock).processPayload(any(JsonObject.class));
+        verify(this.contentIndexMock).executeBulk(any(BulkRequest.class));
     }
 
     /**
@@ -298,6 +293,7 @@ public class SnapshotServiceImplTests extends OpenSearchTestCase {
         this.snapshotService.initialize(this.remoteConsumer);
 
         // Assert
+        verify(this.contentIndexMock, atLeastOnce()).processPayload(any(JsonObject.class));
         ArgumentCaptor<BulkRequest> bulkCaptor = ArgumentCaptor.forClass(BulkRequest.class);
         verify(this.contentIndexMock, atLeastOnce()).executeBulk(bulkCaptor.capture());
 
@@ -310,9 +306,9 @@ public class SnapshotServiceImplTests extends OpenSearchTestCase {
     }
 
     /**
-     * Tests that the generated YAML for decoders strictly respects the order defined in DECODER_ORDER_KEYS.
+     * Tests delegation for decoder YAML processing.
      */
-    public void testInitialize_DecoderYamlKeyOrdering() throws IOException, URISyntaxException {
+    public void testInitialize_DecoderYamlDelegation() throws IOException, URISyntaxException {
         // Mock
         String url = "http://example.com/decoder_order.zip";
         when(this.remoteConsumer.getSnapshotLink()).thenReturn(url);
@@ -327,18 +323,8 @@ public class SnapshotServiceImplTests extends OpenSearchTestCase {
         this.snapshotService.initialize(this.remoteConsumer);
 
         // Assert
-        ArgumentCaptor<BulkRequest> bulkCaptor = ArgumentCaptor.forClass(BulkRequest.class);
-        verify(this.contentIndexMock).executeBulk(bulkCaptor.capture());
-
-        IndexRequest request = (IndexRequest) bulkCaptor.getValue().requests().getFirst();
-        String source = request.source().utf8ToString();
-        String yamlContent = new ObjectMapper().readTree(source).path("decoder").asText();
-
-        assertTrue("YAML content should contain 'name'", yamlContent.contains("name"));
-        assertTrue("Field 'name' should appear before 'parents'",
-            yamlContent.indexOf("name") < yamlContent.indexOf("parents"));
-        assertTrue("Field 'parents' should appear before 'check'",
-            yamlContent.indexOf("parents") < yamlContent.indexOf("check"));
+        verify(this.contentIndexMock).processPayload(any(JsonObject.class));
+        verify(this.contentIndexMock).executeBulk(any(BulkRequest.class));
     }
 
     /**

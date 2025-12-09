@@ -120,35 +120,35 @@ public class Offset implements ToXContentObject {
      *
      * @return The resource ID string.
      */
-    public String getResource() { return resource; }
+    public String getResource() { return this.resource; }
 
     /**
      * Gets the type of modification performed.
      *
      * @return The {@link Type} enum value (CREATE, UPDATE, DELETE).
      */
-    public Type getType() { return type; }
+    public Type getType() { return this.type; }
 
     /**
      * Gets the list of patch operations associated with this change.
      *
      * @return A list of {@link Operation} objects, or an empty list if none exist.
      */
-    public List<Operation> getOperations() { return operations; }
+    public List<Operation> getOperations() { return this.operations; }
 
     /**
      * Gets the sequential offset ID of this change event.
      *
      * @return The offset value as a long.
      */
-    public long getOffset() { return offset; }
+    public long getOffset() { return this.offset; }
 
     /**
      * Gets the full content payload of the resource.
      *
      * @return A Map representing the resource JSON, or null if not present.
      */
-    public Map<String, Object> getPayload() { return payload; }
+    public Map<String, Object> getPayload() { return this.payload; }
 
     /**
      * Serializes this object into an {@link XContentBuilder}.
@@ -161,17 +161,27 @@ public class Offset implements ToXContentObject {
     @Override
     public XContentBuilder toXContent(XContentBuilder builder, Params params) throws IOException {
         builder.startObject();
-        if (context != null) builder.field(CONTEXT, context);
-        builder.field(OFFSET, offset);
-        if (resource != null) builder.field(RESOURCE, resource);
-        if (type != null) builder.field(TYPE, type);
-        builder.field(VERSION, version);
-        if (operations != null) {
+        if (this.context != null) {
+            builder.field(CONTEXT, this.context);
+        }
+        builder.field(OFFSET, this.offset);
+        if (this.resource != null) {
+            builder.field(RESOURCE, this.resource);
+        }
+        if (this.type != null) {
+            builder.field(TYPE, this.type);
+        }
+        builder.field(VERSION, this.version);
+        if (this.operations != null) {
             builder.startArray(OPERATIONS);
-            for (Operation op : operations) op.toXContent(builder, params);
+            for (Operation op : this.operations) {
+                op.toXContent(builder, params);
+            }
             builder.endArray();
         }
-        if (payload != null) builder.field(PAYLOAD, payload);
+        if (this.payload != null) {
+            builder.field(PAYLOAD, this.payload);
+        }
         return builder.endObject();
     }
 }

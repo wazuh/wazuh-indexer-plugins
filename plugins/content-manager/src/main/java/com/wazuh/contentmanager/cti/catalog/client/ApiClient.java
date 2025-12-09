@@ -1,6 +1,6 @@
 package com.wazuh.contentmanager.cti.catalog.client;
 
-import com.wazuh.contentmanager.client.HttpResponseCallback;
+import com.wazuh.contentmanager.cti.catalog.utils.HttpResponseCallback;
 import com.wazuh.contentmanager.settings.PluginSettings;
 import org.apache.hc.client5.http.async.methods.*;
 import org.apache.hc.client5.http.impl.async.CloseableHttpAsyncClient;

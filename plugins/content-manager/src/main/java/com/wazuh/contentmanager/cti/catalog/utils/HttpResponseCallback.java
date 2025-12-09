@@ -14,7 +14,7 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-package com.wazuh.contentmanager.client;
+package com.wazuh.contentmanager.cti.catalog.utils;
 
 import org.apache.hc.client5.http.async.methods.SimpleHttpRequest;
 import org.apache.hc.client5.http.async.methods.SimpleHttpResponse;
@@ -50,18 +50,17 @@ public class HttpResponseCallback implements FutureCallback<SimpleHttpResponse> 
 
     @Override
     public void completed(SimpleHttpResponse response) {
-        log.debug("{}->{}", httpRequest, new StatusLine(response));
+        log.debug("{}->{}", this.httpRequest, new StatusLine(response));
         log.debug("Got response: {} {}", response.getCode(), response.getBodyText());
     }
 
     @Override
     public void failed(Exception ex) {
-        log.error("{}->{}", httpRequest, ex);
-        // throw new HttpException(errorMessage, ex);
+        log.error("{}->{}", this.httpRequest, ex);
     }
 
     @Override
     public void cancelled() {
-        log.debug("{} cancelled", httpRequest);
+        log.debug("{} cancelled", this.httpRequest);
     }
 }

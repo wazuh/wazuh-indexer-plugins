@@ -136,10 +136,15 @@ public class CatalogSyncJob implements JobExecutor {
         mappings.put(
             "integration", "/mappings/cti-rules-integrations-mappings.json"
         );
+        // TODO: Delete once the consumer is changed
+        // mappings.put(
+        //    "policy", "/mappings/cti-policies-mappings.json"
+        // );
 
         Map<String, String> aliases = new HashMap<>();
         aliases.put("rule", ".cti-rules");
         aliases.put("integration", ".cti-integration-rules");
+        // aliases.put("policy", ".cti-policies");
 
         this.syncConsumerServices(context, consumer, mappings, aliases);
         log.info("Rules Consumer correctly synchronized.");
@@ -161,11 +166,15 @@ public class CatalogSyncJob implements JobExecutor {
         mappings.put(
             "integration", "/mappings/cti-decoders-integrations-mappings.json"
         );
+        mappings.put(
+            "policy", "/mappings/cti-policies-mappings.json"
+        );
 
         Map<String, String> aliases = new HashMap<>();
         aliases.put("decoder", ".cti-decoders");
         aliases.put("kvdb", ".cti-kvdbs");
         aliases.put("integration", ".cti-integration-decoders");
+        aliases.put("policy", ".cti-policies");
 
         this.syncConsumerServices(context, consumer, mappings, aliases);
         log.info("Decoders Consumer correctly synchronized.");

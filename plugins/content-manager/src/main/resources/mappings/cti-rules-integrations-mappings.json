@@ -1,9 +1,6 @@
 {
   "dynamic": "true",
   "properties": {
-    "type": {
-      "type": "keyword"
-    },
     "document": {
       "type": "object",
       "properties": {
@@ -32,6 +29,22 @@
           "type": "keyword"
         },
         "rules": {
+          "type": "keyword"
+        }
+      }
+    },
+    "hash": {
+      "type": "object",
+      "properties": {
+        "sha256": {
+          "type": "keyword"
+        }
+      }
+    },
+    "space": {
+      "type": "object",
+      "properties": {
+        "name": {
           "type": "keyword"
         }
       }

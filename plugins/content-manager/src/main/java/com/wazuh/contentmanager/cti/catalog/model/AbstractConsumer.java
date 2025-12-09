@@ -19,7 +19,7 @@ public abstract class AbstractConsumer {
      * @return The context string.
      */
     public String getContext() {
-        return context;
+        return this.context;
     }
 
     /**
@@ -28,6 +28,6 @@ public abstract class AbstractConsumer {
      * @return The name string.
      */
     public String getName() {
-        return name;
+        return this.name;
     }
 }
