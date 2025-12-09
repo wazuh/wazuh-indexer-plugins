@@ -109,11 +109,21 @@
         }
       }
     },
-    "hash.sha256": {
-      "type": "keyword"
+    "hash": {
+      "type": "object",
+      "properties": {
+        "sha256": {
+          "type": "keyword"
+        }
+      }
     },
-    "space.name": {
-      "type": "keyword"
+    "space": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "keyword"
+        }
+      }
     }
   }
 }

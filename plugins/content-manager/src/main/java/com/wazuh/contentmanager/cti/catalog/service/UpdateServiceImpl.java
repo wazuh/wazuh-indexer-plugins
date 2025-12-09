@@ -135,11 +135,6 @@ public class UpdateServiceImpl extends AbstractService implements UpdateService 
         String id = offset.getResource();
         ContentIndex index;
 
-        // Handle specific ID generation for policies
-        if ("policy".equals(id)) {
-            id = (this.context + "_" + this.consumerName);
-        }
-
         switch (offset.getType()) {
             case CREATE:
                 if (offset.getPayload() != null) {
