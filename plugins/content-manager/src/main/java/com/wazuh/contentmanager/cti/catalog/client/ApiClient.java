@@ -140,7 +140,7 @@ public class ApiClient {
             SimpleRequestProducer.create(request),
             SimpleResponseConsumer.create(),
             new HttpResponseCallback(
-                request, "Outgoing request failed"
+                request, "Failed to send request to CTI service"
             )
         );
 
