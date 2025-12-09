@@ -21,7 +21,7 @@ import java.util.Map;
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class Resource {
     private static final Logger log = LogManager.getLogger(Resource.class);
-    private static final Gson gson = new Gson();
+    private static final Gson GSON = new Gson();
 
     // JSON Key Constants
     private static final String JSON_DOCUMENT_KEY = "document";
@@ -70,7 +70,7 @@ public class Resource {
             JsonObject rawDoc = payload.getAsJsonObject(JSON_DOCUMENT_KEY).deepCopy();
             preprocessDocument(rawDoc);
 
-            resource.setDocument(gson.fromJson(rawDoc, Map.class));
+            resource.setDocument(GSON.fromJson(rawDoc, Map.class));
 
             // 2. Calculate Hash
             String hashStr = calculateSha256(rawDoc);
@@ -162,7 +162,7 @@ public class Resource {
      * @return A Map representing the document.
      */
     public Map<String, Object> getDocument() {
-        return document;
+        return this.document;
     }
 
     /**
@@ -180,7 +180,7 @@ public class Resource {
      * @return A Map containing hash algorithms and values.
      */
     public Map<String, String> getHash() {
-        return hash;
+        return this.hash;
     }
 
     /**
@@ -198,7 +198,7 @@ public class Resource {
      * @return A Map containing space details.
      */
     public Map<String, String> getSpace() {
-        return space;
+        return this.space;
     }
 
     /**
@@ -213,9 +213,9 @@ public class Resource {
     @Override
     public String toString() {
         return "Resource{" +
-            "document=" + document +
-            ", hash=" + hash +
-            ", space=" + space +
+            "document=" + this.document +
+            ", hash=" + this.hash +
+            ", space=" + this.space +
             '}';
     }
 }

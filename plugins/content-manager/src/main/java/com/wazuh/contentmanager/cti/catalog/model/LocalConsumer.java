@@ -69,7 +69,7 @@ public class LocalConsumer extends AbstractConsumer implements ToXContent {
      * @return The sequence number of the last processed item.
      */
     public long getLocalOffset() {
-        return localOffset;
+        return this.localOffset;
     }
 
     /**
@@ -78,7 +78,7 @@ public class LocalConsumer extends AbstractConsumer implements ToXContent {
      * @return The sequence number of the latest item available upstream.
      */
     public long getRemoteOffset() {
-        return remoteOffset;
+        return this.remoteOffset;
     }
 
     /**
@@ -87,17 +87,17 @@ public class LocalConsumer extends AbstractConsumer implements ToXContent {
      * @return A string containing the URL, or empty if not set.
      */
     public String getSnapshotLink() {
-        return snapshotLink;
+        return this.snapshotLink;
     }
 
     @Override
     public String toString() {
         return "LocalConsumer{" +
-            "localOffset=" + localOffset +
-            ", remoteOffset=" + remoteOffset +
-            ", snapshotLink='" + snapshotLink + '\'' +
-            ", context='" + context + '\'' +
-            ", name='" + name + '\'' +
+            "localOffset=" + this.localOffset +
+            ", remoteOffset=" + this.remoteOffset +
+            ", snapshotLink='" + this.snapshotLink + '\'' +
+            ", context='" + this.context + '\'' +
+            ", name='" + this.name + '\'' +
             '}';
     }
 
