@@ -48,7 +48,7 @@ public class CtiConsole implements TokenListener {
     /**
      * Condition to signal when token is obtained.
      */
-    private final Condition tokenAvailable = tokenLock.newCondition();
+    private final Condition tokenAvailable = this.tokenLock.newCondition();
 
     /**
      * Thread executor.
@@ -91,7 +91,7 @@ public class CtiConsole implements TokenListener {
 
     @Override
     public void onTokenChanged(Token token) {
-        tokenLock.lock();
+        this.tokenLock.lock();
         try {
             this.token = token;
             log.info("Permanent token changed: {}", this.token); // TODO do not log the token
@@ -101,9 +101,9 @@ public class CtiConsole implements TokenListener {
             this.executor.shutdown();
 
             // Signal all waiting threads that the token has been obtained
-            tokenAvailable.signalAll();
+            this.tokenAvailable.signalAll();
         } finally {
-            tokenLock.unlock();
+            this.tokenLock.unlock();
         }
     }
 
@@ -152,18 +152,18 @@ public class CtiConsole implements TokenListener {
      * @throws InterruptedException if the waiting thread is interrupted.
      */
     public Token waitForToken(long timeoutMillis) throws InterruptedException {
-        tokenLock.lock();
+        this.tokenLock.lock();
         try {
             long remainingNanos = TimeUnit.MILLISECONDS.toNanos(timeoutMillis);
 
             // Wait until token is obtained or timeout expires
             while (this.token == null && remainingNanos > 0) {
-                remainingNanos = tokenAvailable.awaitNanos(remainingNanos);
+                remainingNanos = this.tokenAvailable.awaitNanos(remainingNanos);
             }
 
             return this.token;
         } finally {
-            tokenLock.unlock();
+            this.tokenLock.unlock();
         }
     }
 
@@ -175,14 +175,14 @@ public class CtiConsole implements TokenListener {
      * @throws InterruptedException if the waiting thread is interrupted.
      */
     public Token waitForToken() throws InterruptedException {
-        tokenLock.lock();
+        this.tokenLock.lock();
         try {
             while (this.token == null) {
-                tokenAvailable.await();
+                this.tokenAvailable.await();
             }
             return this.token;
         } finally {
-            tokenLock.unlock();
+            this.tokenLock.unlock();
         }
     }
 

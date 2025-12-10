@@ -191,10 +191,10 @@ public class Subscription {
     @Override
     public String toString() {
         return "{" +
-            "deviceCode='" + deviceCode + '\'' +
-            ", clientId='" + clientId + '\'' +
-            ", expiresIn=" + expiresIn +
-            ", interval=" + interval +
+            "deviceCode='" + this.deviceCode + '\'' +
+            ", clientId='" + this.clientId + '\'' +
+            ", expiresIn=" + this.expiresIn +
+            ", interval=" + this.interval +
             '}';
     }
 }

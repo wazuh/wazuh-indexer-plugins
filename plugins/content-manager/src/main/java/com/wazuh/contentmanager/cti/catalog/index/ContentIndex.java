@@ -94,7 +94,7 @@ public class ContentIndex {
      */
     public ContentIndex(Client client, String indexName, String mappingsPath, String alias) {
         this.pluginSettings = PluginSettings.getInstance();
-        this.semaphore = new Semaphore(pluginSettings.getMaximumConcurrentBulks());
+        this.semaphore = new Semaphore(this.pluginSettings.getMaximumConcurrentBulks());
         this.client = client;
         this.indexName = indexName;
         this.mappingsPath = mappingsPath;
@@ -166,7 +166,7 @@ public class ContentIndex {
      * @throws IOException If the indexing operation fails.
      */
     public void create(String id, JsonObject payload) throws IOException {
-        JsonObject processedPayload = processPayload(payload);
+        JsonObject processedPayload = this.processPayload(payload);
         IndexRequest request = new IndexRequest(this.indexName)
             .id(id)
             .source(processedPayload.toString(), XContentType.JSON);
@@ -221,7 +221,7 @@ public class ContentIndex {
         this.client.delete(new DeleteRequest(this.indexName, id), new ActionListener<>() {
             @Override
             public void onResponse(DeleteResponse response) {
-                log.debug("Deleted {} from {}", id, indexName);
+                log.debug("Deleted {} from {}", id, ContentIndex.this.indexName);
             }
             @Override
             public void onFailure(Exception e) {
@@ -241,14 +241,14 @@ public class ContentIndex {
             this.client.bulk(bulkRequest, new ActionListener<>() {
                 @Override
                 public void onResponse(BulkResponse bulkResponse) {
-                    semaphore.release();
+                    ContentIndex.this.semaphore.release();
                     if (bulkResponse.hasFailures()) {
                         log.warn("Bulk indexing finished with failures: {}", bulkResponse.buildFailureMessage());
                     }
                 }
                 @Override
                 public void onFailure(Exception e) {
-                    semaphore.release();
+                    ContentIndex.this.semaphore.release();
                     log.error("Bulk index operation failed: {}", e.getMessage());
                 }
             });

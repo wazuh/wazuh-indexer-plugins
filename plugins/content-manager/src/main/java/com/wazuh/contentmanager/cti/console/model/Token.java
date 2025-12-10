@@ -69,8 +69,8 @@ public class Token implements ToXContent {
     @Override
     public String toString() {
         return "Token{" +
-            "accessToken='" + accessToken + '\'' +
-            ", tokenType='" + tokenType + '\'' +
+            "accessToken='" + this.accessToken + '\'' +
+            ", tokenType='" + this.tokenType + '\'' +
             '}';
     }
 

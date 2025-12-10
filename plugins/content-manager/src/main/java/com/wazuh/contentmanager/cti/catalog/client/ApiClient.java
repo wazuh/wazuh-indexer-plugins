@@ -1,6 +1,6 @@
 package com.wazuh.contentmanager.cti.catalog.client;
 
-import com.wazuh.contentmanager.client.HttpResponseCallback;
+import com.wazuh.contentmanager.cti.catalog.utils.HttpResponseCallback;
 import com.wazuh.contentmanager.settings.PluginSettings;
 import org.apache.hc.client5.http.async.methods.*;
 import org.apache.hc.client5.http.impl.async.CloseableHttpAsyncClient;
@@ -106,7 +106,7 @@ public class ApiClient {
             .get(this.buildConsumerURI(context, consumer))
             .build();
 
-        final Future<SimpleHttpResponse> future = client.execute(
+        final Future<SimpleHttpResponse> future = this.client.execute(
             SimpleRequestProducer.create(request),
             SimpleResponseConsumer.create(),
             new HttpResponseCallback(
@@ -136,7 +136,7 @@ public class ApiClient {
             .get(uri)
             .build();
 
-        final Future<SimpleHttpResponse> future = client.execute(
+        final Future<SimpleHttpResponse> future = this.client.execute(
             SimpleRequestProducer.create(request),
             SimpleResponseConsumer.create(),
             new HttpResponseCallback(

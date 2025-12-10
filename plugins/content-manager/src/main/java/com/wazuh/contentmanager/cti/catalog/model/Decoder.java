@@ -96,7 +96,7 @@ public class Decoder extends Resource {
      * @return The decoder content in YAML format.
      */
     public String getDecoder() {
-        return decoder;
+        return this.decoder;
     }
 
     /**
@@ -111,7 +111,7 @@ public class Decoder extends Resource {
     @Override
     public String toString() {
         return "Decoder{" +
-            "decoder='" + decoder + '\'' +
+            "decoder='" + this.decoder + '\'' +
             ", " + super.toString() +
             '}';
     }

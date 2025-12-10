@@ -228,7 +228,7 @@ public class SnapshotServiceImpl implements SnapshotService {
     }
 
     private String getIndexName(String type) {
-        return ("." + this.context + "-" +this.consumer + "-" +type);
+        return String.format(Locale.ROOT, ".%s-%s-%s", this.context, this.consumer, type);
     }
 
     /**
