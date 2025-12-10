@@ -39,8 +39,6 @@ public class Operation implements ToXContentObject {
     private final String from;
     private final Object value;
 
-    private static final Logger log = LogManager.getLogger(Operation.class);
-
     /**
      * Constructs a new JSON Patch Operation.
      *

@@ -57,7 +57,6 @@ public class HttpResponseCallback implements FutureCallback<SimpleHttpResponse> 
     @Override
     public void failed(Exception ex) {
         log.error("{}->{}", this.httpRequest, ex);
-        // throw new HttpException(errorMessage, ex);
     }
 
     @Override

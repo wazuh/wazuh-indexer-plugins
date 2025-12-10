@@ -54,7 +54,7 @@ public class Resource {
      */
     public static Resource fromPayload(JsonObject payload) {
         Resource resource = new Resource();
-        populateResource(resource, payload);
+        Resource.populateResource(resource, payload);
         return resource;
     }
 
@@ -68,12 +68,12 @@ public class Resource {
         // 1. Process Document
         if (payload.has(JSON_DOCUMENT_KEY) && payload.get(JSON_DOCUMENT_KEY).isJsonObject()) {
             JsonObject rawDoc = payload.getAsJsonObject(JSON_DOCUMENT_KEY).deepCopy();
-            preprocessDocument(rawDoc);
+            Resource.preprocessDocument(rawDoc);
 
             resource.setDocument(GSON.fromJson(rawDoc, Map.class));
 
             // 2. Calculate Hash
-            String hashStr = calculateSha256(rawDoc);
+            String hashStr = Resource.calculateSha256(rawDoc);
             if (hashStr != null) {
                 Map<String, String> hashMap = new HashMap<>();
                 hashMap.put("sha256", hashStr);
@@ -108,11 +108,13 @@ public class Resource {
         if (document.has(JSON_RELATED_KEY)) {
             JsonElement relatedElement = document.get(JSON_RELATED_KEY);
             if (relatedElement.isJsonObject()) {
-                sanitizeRelatedObject(relatedElement.getAsJsonObject());
+                Resource.sanitizeRelatedObject(relatedElement.getAsJsonObject());
             } else if (relatedElement.isJsonArray()) {
                 JsonArray relatedArray = relatedElement.getAsJsonArray();
                 for (JsonElement element : relatedArray) {
-                    if (element.isJsonObject()) sanitizeRelatedObject(element.getAsJsonObject());
+                    if (element.isJsonObject()) {
+                        Resource.sanitizeRelatedObject(element.getAsJsonObject());
+                    }
                 }
             }
         }
