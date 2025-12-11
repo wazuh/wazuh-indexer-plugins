@@ -5,6 +5,7 @@ import com.wazuh.contentmanager.cti.catalog.index.ConsumersIndex;
 import com.wazuh.contentmanager.cti.catalog.index.ContentIndex;
 import com.wazuh.contentmanager.cti.catalog.model.LocalConsumer;
 import com.wazuh.contentmanager.cti.catalog.model.RemoteConsumer;
+import com.wazuh.contentmanager.cti.catalog.model.Space;
 import com.wazuh.contentmanager.cti.catalog.service.ConsumerService;
 import com.wazuh.contentmanager.cti.catalog.service.ConsumerServiceImpl;
 import com.wazuh.contentmanager.cti.catalog.service.SnapshotServiceImpl;
@@ -13,11 +14,22 @@ import com.wazuh.contentmanager.jobscheduler.JobExecutor;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.opensearch.action.admin.indices.create.CreateIndexResponse;
+import org.opensearch.action.bulk.BulkRequest;
+import org.opensearch.action.get.GetResponse;
+import org.opensearch.action.search.SearchRequest;
+import org.opensearch.action.search.SearchResponse;
+import org.opensearch.action.update.UpdateRequest;
+import org.opensearch.common.xcontent.XContentType;
 import org.opensearch.env.Environment;
+import org.opensearch.index.query.QueryBuilders;
 import org.opensearch.jobscheduler.spi.JobExecutionContext;
+import org.opensearch.search.SearchHit;
+import org.opensearch.search.builder.SearchSourceBuilder;
 import org.opensearch.threadpool.ThreadPool;
 import org.opensearch.transport.client.Client;
 
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -33,6 +45,17 @@ public class CatalogSyncJob implements JobExecutor {
 
     // Identifier used to route this specific job type
     public static final String JOB_TYPE = "consumer-sync-task";
+    public static final String DECODERS = "decoders";
+    public static final String KVDBS = "kvdbs";
+    public static final String RULES = "rules";
+    public static final String INTEGRATIONS = "integrations";
+    public static final String DOCUMENT = "document";
+    public static final String POLICY = "policy";
+    public static final String SPACE = "space";
+    public static final String RULE = "rule";
+    public static final String KVDB = "kvdb";
+    public static final String DECODER = "decoder";
+    public static final String INTEGRATION = "integration";
 
     // Semaphore to control concurrency
     private final Semaphore semaphore = new Semaphore(1);
@@ -129,22 +152,18 @@ public class CatalogSyncJob implements JobExecutor {
     private void rulesConsumer() {
         String context = "rules_development_0.0.1";
         String consumer = "rules_development_0.0.1_test";
+
         Map<String, String> mappings = new HashMap<>();
         mappings.put(
-            "rule", "/mappings/cti-rules-mappings.json"
+            RULE, "/mappings/cti-rules-mappings.json"
         );
         mappings.put(
-            "integration", "/mappings/cti-rules-integrations-mappings.json"
+            INTEGRATION, "/mappings/cti-rules-integrations-mappings.json"
         );
-        // TODO: Delete once the consumer is changed
-        // mappings.put(
-        //    "policy", "/mappings/cti-policies-mappings.json"
-        // );
 
         Map<String, String> aliases = new HashMap<>();
-        aliases.put("rule", ".cti-rules");
-        aliases.put("integration", ".cti-integration-rules");
-        // aliases.put("policy", ".cti-policies");
+        aliases.put(RULE, ".cti-rules");
+        aliases.put(INTEGRATION, ".cti-integration-rules");
 
         this.syncConsumerServices(context, consumer, mappings, aliases);
         log.info("Rules Consumer correctly synchronized.");
@@ -156,27 +175,49 @@ public class CatalogSyncJob implements JobExecutor {
     private void decodersConsumer() {
         String context = "decoders_development_0.0.1";
         String consumer = "decoders_development_0.0.1";
+
         Map<String, String> mappings = new HashMap<>();
         mappings.put(
-            "decoder", "/mappings/cti-decoders-mappings.json"
+            DECODER, "/mappings/cti-decoders-mappings.json"
         );
         mappings.put(
-            "kvdb", "/mappings/cti-kvdbs-mappings.json"
+            KVDB, "/mappings/cti-kvdbs-mappings.json"
         );
         mappings.put(
-            "integration", "/mappings/cti-decoders-integrations-mappings.json"
+            INTEGRATION, "/mappings/cti-decoders-integrations-mappings.json"
         );
         mappings.put(
-            "policy", "/mappings/cti-policies-mappings.json"
+            POLICY, "/mappings/cti-policies-mappings.json"
         );
 
         Map<String, String> aliases = new HashMap<>();
-        aliases.put("decoder", ".cti-decoders");
-        aliases.put("kvdb", ".cti-kvdbs");
-        aliases.put("integration", ".cti-integration-decoders");
-        aliases.put("policy", ".cti-policies");
+        aliases.put(DECODER, ".cti-decoders");
+        aliases.put(KVDB, ".cti-kvdbs");
+        aliases.put(INTEGRATION, ".cti-integration-decoders");
+        aliases.put(POLICY, ".cti-policies");
 
-        this.syncConsumerServices(context, consumer, mappings, aliases);
+        boolean isConsumerUpdated = this.syncConsumerServices(context, consumer, mappings, aliases);
+
+        // Only calculate hashes if there was an update
+        if (isConsumerUpdated) {
+            log.info("Changes detected in Decoders Consumer. Refreshing indices and calculating hashes...");
+            try {
+                this.client.admin().indices().prepareRefresh(
+                    this.getIndexName(context, consumer, DECODER),
+                    this.getIndexName(context, consumer, KVDB),
+                    this.getIndexName(context, consumer, INTEGRATION),
+                    this.getIndexName(context, consumer, POLICY)
+                ).get();
+            } catch (Exception e) {
+                log.warn("Error refreshing indices before hash calculation: {}", e.getMessage());
+            }
+
+            // Calculate and update hash of hashes
+            this.hashPolicy(context, consumer);
+        } else {
+            log.info("No changes in Decoders Consumer. Skipping hash calculation.");
+        }
+
         log.info("Decoders Consumer correctly synchronized.");
     }
 
@@ -212,8 +253,9 @@ public class CatalogSyncJob implements JobExecutor {
      * @param consumer The specific consumer identifier.
      * @param mappings A map associating content types to their JSON mapping file paths.
      * @param aliases  A map associating content types to their OpenSearch alias names.
+     * @return true if an update or initialization occurred, false otherwise.
      */
-    private void syncConsumerServices(String context, String consumer, Map<String, String> mappings, Map<String, String> aliases) {
+    private boolean syncConsumerServices(String context, String consumer, Map<String, String> mappings, Map<String, String> aliases) {
         ConsumerService consumerService = new ConsumerServiceImpl(context, consumer, this.consumersIndex);
         LocalConsumer localConsumer = consumerService.getLocalConsumer();
         RemoteConsumer remoteConsumer = consumerService.getRemoteConsumer();
@@ -253,6 +295,7 @@ public class CatalogSyncJob implements JobExecutor {
                 this.environment
             );
             snapshotService.initialize(remoteConsumer);
+            return true;
         } else if (remoteConsumer != null && localConsumer.getLocalOffset() != remoteConsumer.getOffset()) {
             log.info("Starting offset-based update for consumer [{}]", consumer);
             UpdateServiceImpl updateService = new UpdateServiceImpl(
@@ -264,6 +307,176 @@ public class CatalogSyncJob implements JobExecutor {
             );
             updateService.update(localConsumer.getLocalOffset(), remoteConsumer.getOffset());
             updateService.close();
+            return true;
+        }
+
+        return false;
+    }
+
+    /**
+     * Calculates the aggregate hash (hash of hashes) and update the policies.
+     */
+    private void hashPolicy(String context, String consumer) {
+        try {
+            // Space hash is generated in this order
+            String policyIndex = this.getIndexName(context, consumer, POLICY);
+            String integrationIndex = this.getIndexName(context, consumer, INTEGRATION);
+            String decoderIndex = this.getIndexName(context, consumer, DECODER);
+            String kvdbIndex = this.getIndexName(context, consumer, KVDB);
+            String ruleIndex = this.getIndexName(context, consumer, RULE);
+
+            // Verify policy index exists
+            if (!this.client.admin().indices().prepareExists(policyIndex).get().isExists()) {
+                log.warn("Policy index [{}] does not exist. Skipping hash calculation.", policyIndex);
+                return;
+            }
+
+            // Fetch all policies
+            SearchRequest searchRequest = new SearchRequest(policyIndex);
+            searchRequest.source().query(QueryBuilders.matchAllQuery()).size(5); // One policy for each space
+            SearchResponse response = this.client.search(searchRequest).actionGet();
+
+            BulkRequest bulkUpdateRequest = new BulkRequest();
+
+            for (SearchHit hit : response.getHits().getHits()) {
+                Map<String, Object> source = hit.getSourceAsMap();
+
+                Map<String, Object> space = (Map<String, Object>) source.get(SPACE);
+                if (space != null) {
+                    String spaceName = (String) space.get("name");
+                    if (Space.DRAFT.equals(spaceName) || Space.TESTING.equals(spaceName)) {
+                        log.info("Skipping hash calculation for policy [{}] because it is in space [{}]", hit.getId(), spaceName);
+                        continue;
+                    }
+                }
+
+                // 1. Policy Hash
+                List<String> spaceHashes = new ArrayList<>();
+                spaceHashes.add(this.getHash(source));
+
+                Map<String, Object> document = (Map<String, Object>) source.get(DOCUMENT);
+                if (document != null && document.containsKey(INTEGRATIONS)) {
+                    List<String> integrationIds = (List<String>) document.get(INTEGRATIONS);
+
+                    for (String integrationId : integrationIds) {
+                        Map<String, Object> integrationSource = this.getDocumentSource(integrationIndex, integrationId);
+                        if (integrationSource == null) {
+                            continue;
+                        }
+
+                        // 2. Integration Hash
+                        spaceHashes.add(this.getHash(integrationSource));
+
+                        Map<String, Object> integration = (Map<String, Object>) integrationSource.get(DOCUMENT);
+                        if (integration != null) {
+                            // 3. Decoders Hash
+                            this.addHashes(integration, DECODERS, decoderIndex, spaceHashes);
+
+                            // 4. KVDBs Hash
+                            this.addHashes(integration, KVDBS, kvdbIndex, spaceHashes);
+
+                            // 5. Rules Hash
+                            this.addHashes(integration, RULES, ruleIndex, spaceHashes);
+                        }
+                    }
+                }
+
+                // Calculate space Hash
+                String spaceHash = this.hash(String.join("", spaceHashes));
+
+                // Prepare Update
+                Map<String, Object> updateMap = new HashMap<>();
+                Map<String, Object> spaceMap = (Map<String, Object>) source.getOrDefault(SPACE, new HashMap<>());
+                Map<String, Object> hashMap = (Map<String, Object>) spaceMap.getOrDefault("hash", new HashMap<>());
+
+                hashMap.put("sha256", spaceHash);
+                spaceMap.put("hash", hashMap);
+                updateMap.put(SPACE, spaceMap);
+
+                bulkUpdateRequest.add(new UpdateRequest(policyIndex, hit.getId())
+                    .doc(updateMap, XContentType.JSON));
+            }
+
+            if (bulkUpdateRequest.numberOfActions() > 0) {
+                this.client.bulk(bulkUpdateRequest).actionGet();
+                log.info("Updated policy hashes for consumer [{}]", consumer);
+            }
+
+        } catch (Exception e) {
+            log.error("Error calculating policy hashes: {}", e.getMessage(), e);
+        }
+    }
+
+    /**
+     * Add all the hashes of the same resource type in the given integration to the spaceHashes array.
+     * @param integration integration to walk
+     * @param resource resource type (rule, decoder, kvdb)
+     * @param resourceIndex resouce index
+     * @param spaceHashes space hashes array
+     */
+    private void addHashes(Map<String, Object> integration, String resource, String resourceIndex, List<String> spaceHashes) {
+        if (integration.containsKey(resource)) {
+            List<String> kvdbIds = (List<String>) integration.get(resource);
+            for (String id : kvdbIds) {
+                Map<String, Object> kvdbSource = this.getDocumentSource(resourceIndex, id);
+                if (kvdbSource != null) {
+                    spaceHashes.add(this.getHash(kvdbSource));
+                }
+            }
+        }
+    }
+
+    /**
+     * Helper to get document source by ID from an index.
+     * Returns null if index or document does not exist.
+     */
+    private Map<String, Object> getDocumentSource(String index, String id) {
+        try {
+            GetResponse response = this.client.prepareGet(index, id).get();
+            if (response.isExists()) {
+                return response.getSourceAsMap();
+            }
+            else{
+                log.info("Document [{}] not found in index [{}]", id, index);
+            }
+        } catch (Exception e) {
+            log.info("Error retrieving document [{}] from index [{}]: {}", id, index, e.getMessage());
+        }
+        return null;
+    }
+
+    /**
+     * Helper to extract sha256 hash from document source.
+     */
+    private String getHash(Map<String, Object> source) {
+        if (source.containsKey("hash")) {
+            Map<String, Object> hashObj = (Map<String, Object>) source.get("hash");
+            return (String) hashObj.getOrDefault("sha256", "");
+        }
+        return "";
+    }
+
+    /**
+     * Computes SHA-256 hash of a list of strings concatenated.
+     */
+    private String hash(String payload) {
+        try {
+            byte[] hash = MessageDigest
+                .getInstance("SHA-256")
+                .digest(payload.getBytes(StandardCharsets.UTF_8));
+
+            StringBuilder hexString = new StringBuilder(2 * hash.length);
+            for (byte b : hash) {
+                String hex = Integer.toHexString(0xff & b);
+                if (hex.length() == 1) {
+                    hexString.append('0');
+                }
+                hexString.append(hex);
+            }
+            return hexString.toString();
+        } catch (Exception e) {
+            log.error("Error hashing content", e);
+            return "";
         }
     }
 }
