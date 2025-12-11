@@ -152,7 +152,7 @@ public class CatalogSyncJob implements JobExecutor {
      */
     private void performSynchronization() {
         this.rulesConsumer();
-        //this.decodersConsumer();
+        this.decodersConsumer();
     }
 
     /**
