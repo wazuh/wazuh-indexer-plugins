@@ -72,15 +72,6 @@ function map_stateful_modules() {
 }
 
 # ====
-# Map stateless main module
-# ====
-function map_stateless_main() {
-  if [[ -d "ecs/stateless/main" ]]; then
-    all_modules["stateless/main"]="templates/streams/alerts.json"
-  fi
-}
-
-# ====
 # Map third-party stateless modules (only main module directories, not subdirectories)
 # ====
 function map_stateless_modules() {
@@ -158,7 +149,7 @@ function main() {
 
   # Map all modules
   map_stateful_modules
-  map_stateless_main
+
   map_stateless_modules
 
   # Sort and output

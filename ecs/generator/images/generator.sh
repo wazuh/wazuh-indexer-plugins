@@ -63,16 +63,6 @@ generate_mappings() {
 
   local in_file="$out_dir/generated/elasticsearch/legacy/template.json"
 
-  # The stateless/main module is the one for the "wazuh-alerts" index template
-  # We need to generate another template for "wazuh-archives" index
-  if [[ "$ecs_module" == "stateless/main" ]]; then
-    # Generate the template for `wazuh-archives`
-    echo "Generating template for 'wazuh-archives'"
-    archives_file="$out_dir/generated/elasticsearch/legacy/template-archives.json"
-    cp "$in_file" "$archives_file"
-    sed -i 's/wazuh-alerts/wazuh-archives/g' "$archives_file"
-  fi
-
   # Transform legacy index template for OpenSearch compatibility
   if [[ "$ecs_module" =~ "stateless/" ]]; then
     # Transform time-series templates to use data streams

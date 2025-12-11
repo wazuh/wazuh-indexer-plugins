@@ -29,7 +29,7 @@
     "ism_template": [
       {
         "index_patterns": [
-          "wazuh-alerts-*", "wazuh-archives-*", "wazuh-events-*"
+          "wazuh-events-*"
         ],
         "priority": 50,
         "last_updated_time": 1577990934044
