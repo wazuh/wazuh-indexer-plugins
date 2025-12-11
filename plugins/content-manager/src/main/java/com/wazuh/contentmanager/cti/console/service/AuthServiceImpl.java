@@ -44,7 +44,7 @@ public class AuthServiceImpl extends AbstractService implements AuthService {
                 // Parse response
                 Token token = this.mapper.readValue(response.getBodyText(), Token.class);
                 // Notify listeners
-                listeners.forEach(listener -> listener.onTokenChanged(token));
+                this.listeners.forEach(listener -> listener.onTokenChanged(token));
                 // Return token
                 return token;
             } else {

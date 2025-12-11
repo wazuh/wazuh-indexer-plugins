@@ -52,7 +52,7 @@ public class ApiClient {
      */
     private void buildClient() {
         IOReactorConfig ioReactorConfig = IOReactorConfig.custom()
-            .setSoTimeout(Timeout.ofSeconds(TIMEOUT))
+            .setSoTimeout(Timeout.ofSeconds(this.TIMEOUT))
             .build();
 
         SSLContext sslContext;
@@ -103,13 +103,13 @@ public class ApiClient {
             .setBody(formBody, ContentType.APPLICATION_FORM_URLENCODED)
             .build();
 
-        final Future<SimpleHttpResponse> future = client.execute(
+        final Future<SimpleHttpResponse> future = this.client.execute(
             SimpleRequestProducer.create(request),
             SimpleResponseConsumer.create(),
             new HttpResponseCallback(
                 request, "Outgoing request failed"
             ));
-        return future.get(TIMEOUT, TimeUnit.SECONDS);
+        return future.get(this.TIMEOUT, TimeUnit.SECONDS);
     }
 
     /***
@@ -137,13 +137,13 @@ public class ApiClient {
             .setBody(formBody, ContentType.APPLICATION_FORM_URLENCODED)
             .build();
 
-        final Future<SimpleHttpResponse> future = client.execute(
+        final Future<SimpleHttpResponse> future = this.client.execute(
             SimpleRequestProducer.create(request),
             SimpleResponseConsumer.create(),
             new HttpResponseCallback(
                 request, "Outgoing request failed"
             ));
-        return future.get(TIMEOUT, TimeUnit.SECONDS);
+        return future.get(this.TIMEOUT, TimeUnit.SECONDS);
     }
 
     /**
@@ -164,12 +164,12 @@ public class ApiClient {
             .addHeader("wazuh-tag", "v5.0.0") // TODO make dynamic
             .build();
 
-        final Future<SimpleHttpResponse> future = client.execute(
+        final Future<SimpleHttpResponse> future = this.client.execute(
             SimpleRequestProducer.create(request),
             SimpleResponseConsumer.create(),
             new HttpResponseCallback(
                 request, "Outgoing request failed"
             ));
-        return future.get(TIMEOUT, TimeUnit.SECONDS);
+        return future.get(this.TIMEOUT, TimeUnit.SECONDS);
     }
 }

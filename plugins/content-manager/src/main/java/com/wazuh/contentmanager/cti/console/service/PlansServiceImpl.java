@@ -38,7 +38,7 @@ public class PlansServiceImpl extends AbstractService implements PlansService {
 
             if (response.getCode() == 200) {
                 // Parse response
-                JsonNode root = mapper.readTree(response.getBodyText()).get("data").get("plans");
+                JsonNode root = this.mapper.readTree(response.getBodyText()).get("data").get("plans");
 
                 return this.mapper.readValue(root.toString(), new TypeReference<List<Plan>>() {});
             } else {

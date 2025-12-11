@@ -106,7 +106,7 @@ public class ApiClient {
             .get(this.buildConsumerURI(context, consumer))
             .build();
 
-        final Future<SimpleHttpResponse> future = client.execute(
+        final Future<SimpleHttpResponse> future = this.client.execute(
             SimpleRequestProducer.create(request),
             SimpleResponseConsumer.create(),
             new HttpResponseCallback(
@@ -136,11 +136,11 @@ public class ApiClient {
             .get(uri)
             .build();
 
-        final Future<SimpleHttpResponse> future = client.execute(
+        final Future<SimpleHttpResponse> future = this.client.execute(
             SimpleRequestProducer.create(request),
             SimpleResponseConsumer.create(),
             new HttpResponseCallback(
-                request, "Failed to send request to CTI service"
+                request, "Outgoing request failed"
             )
         );
 

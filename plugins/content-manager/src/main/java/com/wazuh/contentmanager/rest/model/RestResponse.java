@@ -86,8 +86,8 @@ public class RestResponse implements ToXContent {
      */
     public String toString() {
         return "{" +
-            "message='" + message + '\'' +
-            ", status=" + status +
+            "message='" + this.message + '\'' +
+            ", status=" + this.status +
             '}';
     }
 
