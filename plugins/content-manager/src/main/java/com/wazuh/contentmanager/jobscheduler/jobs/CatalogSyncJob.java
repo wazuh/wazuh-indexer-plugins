@@ -45,6 +45,17 @@ public class CatalogSyncJob implements JobExecutor {
 
     // Identifier used to route this specific job type
     public static final String JOB_TYPE = "consumer-sync-task";
+    public static final String DECODERS = "decoders";
+    public static final String KVDBS = "kvdbs";
+    public static final String RULES = "rules";
+    public static final String INTEGRATIONS = "integrations";
+    public static final String DOCUMENT = "document";
+    public static final String POLICY = "policy";
+    public static final String SPACE = "space";
+    public static final String RULE = "rule";
+    public static final String KVDB = "kvdb";
+    public static final String DECODER = "decoder";
+    public static final String INTEGRATION = "integration";
 
     // Semaphore to control concurrency
     private final Semaphore semaphore = new Semaphore(1);
@@ -144,15 +155,15 @@ public class CatalogSyncJob implements JobExecutor {
 
         Map<String, String> mappings = new HashMap<>();
         mappings.put(
-            "rule", "/mappings/cti-rules-mappings.json"
+            RULE, "/mappings/cti-rules-mappings.json"
         );
         mappings.put(
-            "integration", "/mappings/cti-rules-integrations-mappings.json"
+            INTEGRATION, "/mappings/cti-rules-integrations-mappings.json"
         );
 
         Map<String, String> aliases = new HashMap<>();
-        aliases.put("rule", ".cti-rules");
-        aliases.put("integration", ".cti-integration-rules");
+        aliases.put(RULE, ".cti-rules");
+        aliases.put(INTEGRATION, ".cti-integration-rules");
 
         this.syncConsumerServices(context, consumer, mappings, aliases);
         log.info("Rules Consumer correctly synchronized.");
@@ -167,23 +178,23 @@ public class CatalogSyncJob implements JobExecutor {
 
         Map<String, String> mappings = new HashMap<>();
         mappings.put(
-            "decoder", "/mappings/cti-decoders-mappings.json"
+            DECODER, "/mappings/cti-decoders-mappings.json"
         );
         mappings.put(
-            "kvdb", "/mappings/cti-kvdbs-mappings.json"
+            KVDB, "/mappings/cti-kvdbs-mappings.json"
         );
         mappings.put(
-            "integration", "/mappings/cti-decoders-integrations-mappings.json"
+            INTEGRATION, "/mappings/cti-decoders-integrations-mappings.json"
         );
         mappings.put(
-            "policy", "/mappings/cti-policies-mappings.json"
+            POLICY, "/mappings/cti-policies-mappings.json"
         );
 
         Map<String, String> aliases = new HashMap<>();
-        aliases.put("decoder", ".cti-decoders");
-        aliases.put("kvdb", ".cti-kvdbs");
-        aliases.put("integration", ".cti-integration-decoders");
-        aliases.put("policy", ".cti-policies");
+        aliases.put(DECODER, ".cti-decoders");
+        aliases.put(KVDB, ".cti-kvdbs");
+        aliases.put(INTEGRATION, ".cti-integration-decoders");
+        aliases.put(POLICY, ".cti-policies");
 
         boolean isConsumerUpdated = this.syncConsumerServices(context, consumer, mappings, aliases);
 
@@ -192,10 +203,10 @@ public class CatalogSyncJob implements JobExecutor {
             log.info("Changes detected in Decoders Consumer. Refreshing indices and calculating hashes...");
             try {
                 this.client.admin().indices().prepareRefresh(
-                    this.getIndexName(context, consumer, "decoder"),
-                    this.getIndexName(context, consumer, "kvdb"),
-                    this.getIndexName(context, consumer, "integration"),
-                    this.getIndexName(context, consumer, "policy")
+                    this.getIndexName(context, consumer, DECODER),
+                    this.getIndexName(context, consumer, KVDB),
+                    this.getIndexName(context, consumer, INTEGRATION),
+                    this.getIndexName(context, consumer, POLICY)
                 ).get();
             } catch (Exception e) {
                 log.warn("Error refreshing indices before hash calculation: {}", e.getMessage());
@@ -308,11 +319,11 @@ public class CatalogSyncJob implements JobExecutor {
     private void hashPolicy(String context, String consumer) {
         try {
             // Space hash is generated in this order
-            String policyIndex = this.getIndexName(context, consumer, "policy");
-            String integrationIndex = this.getIndexName(context, consumer, "integration");
-            String decoderIndex = this.getIndexName(context, consumer, "decoder");
-            String kvdbIndex = this.getIndexName(context, consumer, "kvdb");
-            String ruleIndex = this.getIndexName(context, consumer, "rule");
+            String policyIndex = this.getIndexName(context, consumer, POLICY);
+            String integrationIndex = this.getIndexName(context, consumer, INTEGRATION);
+            String decoderIndex = this.getIndexName(context, consumer, DECODER);
+            String kvdbIndex = this.getIndexName(context, consumer, KVDB);
+            String ruleIndex = this.getIndexName(context, consumer, RULE);
 
             // Verify policy index exists
             if (!this.client.admin().indices().prepareExists(policyIndex).get().isExists()) {
@@ -330,7 +341,7 @@ public class CatalogSyncJob implements JobExecutor {
             for (SearchHit hit : response.getHits().getHits()) {
                 Map<String, Object> source = hit.getSourceAsMap();
 
-                Map<String, Object> space = (Map<String, Object>) source.get("space");
+                Map<String, Object> space = (Map<String, Object>) source.get(SPACE);
                 if (space != null) {
                     String spaceName = (String) space.get("name");
                     if (Space.DRAFT.equals(spaceName) || Space.TESTING.equals(spaceName)) {
@@ -343,9 +354,9 @@ public class CatalogSyncJob implements JobExecutor {
                 List<String> spaceHashes = new ArrayList<>();
                 spaceHashes.add(this.getHash(source));
 
-                Map<String, Object> document = (Map<String, Object>) source.get("document");
-                if (document != null && document.containsKey("integrations")) {
-                    List<String> integrationIds = (List<String>) document.get("integrations");
+                Map<String, Object> document = (Map<String, Object>) source.get(DOCUMENT);
+                if (document != null && document.containsKey(INTEGRATIONS)) {
+                    List<String> integrationIds = (List<String>) document.get(INTEGRATIONS);
 
                     for (String integrationId : integrationIds) {
                         Map<String, Object> integrationSource = this.getDocumentSource(integrationIndex, integrationId);
@@ -356,40 +367,16 @@ public class CatalogSyncJob implements JobExecutor {
                         // 2. Integration Hash
                         spaceHashes.add(this.getHash(integrationSource));
 
-                        Map<String, Object> integration = (Map<String, Object>) integrationSource.get("document");
+                        Map<String, Object> integration = (Map<String, Object>) integrationSource.get(DOCUMENT);
                         if (integration != null) {
                             // 3. Decoders Hash
-                            if (integration.containsKey("decoders")) {
-                                List<String> decoderIds = (List<String>) integration.get("decoders");
-                                for (String id : decoderIds) {
-                                    Map<String, Object> decoderSource = this.getDocumentSource(decoderIndex, id);
-                                    if (decoderSource != null) {
-                                        spaceHashes.add(this.getHash(decoderSource));
-                                    }
-                                }
-                            }
+                            this.addHashes(integration, DECODERS, decoderIndex, spaceHashes);
 
                             // 4. KVDBs Hash
-                            if (integration.containsKey("kvdbs")) {
-                                List<String> kvdbIds = (List<String>) integration.get("kvdbs");
-                                for (String id : kvdbIds) {
-                                    Map<String, Object> kvdbSource = this.getDocumentSource(kvdbIndex, id);
-                                    if (kvdbSource != null) {
-                                        spaceHashes.add(this.getHash(kvdbSource));
-                                    }
-                                }
-                            }
+                            this.addHashes(integration, KVDBS, kvdbIndex, spaceHashes);
 
                             // 5. Rules Hash
-                            if (integration.containsKey("rules")) {
-                                List<String> ruleIds = (List<String>) integration.get("rules");
-                                for (String id : ruleIds) {
-                                    Map<String, Object> ruleSource = this.getDocumentSource(ruleIndex, id);
-                                    if (ruleSource != null) {
-                                        spaceHashes.add(this.getHash(ruleSource));
-                                    }
-                                }
-                            }
+                            this.addHashes(integration, RULES, ruleIndex, spaceHashes);
                         }
                     }
                 }
@@ -399,12 +386,12 @@ public class CatalogSyncJob implements JobExecutor {
 
                 // Prepare Update
                 Map<String, Object> updateMap = new HashMap<>();
-                Map<String, Object> spaceMap = (Map<String, Object>) source.getOrDefault("space", new HashMap<>());
+                Map<String, Object> spaceMap = (Map<String, Object>) source.getOrDefault(SPACE, new HashMap<>());
                 Map<String, Object> hashMap = (Map<String, Object>) spaceMap.getOrDefault("hash", new HashMap<>());
 
                 hashMap.put("sha256", spaceHash);
                 spaceMap.put("hash", hashMap);
-                updateMap.put("space", spaceMap);
+                updateMap.put(SPACE, spaceMap);
 
                 bulkUpdateRequest.add(new UpdateRequest(policyIndex, hit.getId())
                     .doc(updateMap, XContentType.JSON));
@@ -417,6 +404,25 @@ public class CatalogSyncJob implements JobExecutor {
 
         } catch (Exception e) {
             log.error("Error calculating policy hashes: {}", e.getMessage(), e);
+        }
+    }
+
+    /**
+     * Add all the hashes of the same resource type in the given integration to the spaceHashes array.
+     * @param integration integration to walk
+     * @param resource resource type (rule, decoder, kvdb)
+     * @param resourceIndex resouce index
+     * @param spaceHashes space hashes array
+     */
+    private void addHashes(Map<String, Object> integration, String resource, String resourceIndex, List<String> spaceHashes) {
+        if (integration.containsKey(resource)) {
+            List<String> kvdbIds = (List<String>) integration.get(resource);
+            for (String id : kvdbIds) {
+                Map<String, Object> kvdbSource = this.getDocumentSource(resourceIndex, id);
+                if (kvdbSource != null) {
+                    spaceHashes.add(this.getHash(kvdbSource));
+                }
+            }
         }
     }
 
