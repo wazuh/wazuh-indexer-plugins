@@ -102,7 +102,7 @@ dependencies {
   compileOnly "org.opensearch:opensearch-job-scheduler-spi:${job_scheduler_version}"
 
   zipArchive group: 'org.opensearch.plugin', name:'alerting', version: "${opensearch_build}" // Dependency of SAP
-  zipArchive files('../wazuh-indexer-security-analytics/build/distributions/wazuh-indexer-security-analytics-3.3.2.0.zip')
+  zipArchive files('lib/wazuh-indexer-security-analytics-5.0.0.0.zip')
 }
 
 // No need to validate license headers since spotless checks and applies it
@@ -157,21 +157,28 @@ integTest {
 
 testClusters.integTest {
   // Installs all registered zipArchive dependencies on integTest cluster nodes
-  configurations.zipArchive.asFileTree.each {
-    plugin(provider(new Callable<RegularFile>(){
+  def resolvePlugin = { String fileNameFragment ->
+    provider(new Callable<RegularFile>() {
       @Override
       RegularFile call() throws Exception {
         return new RegularFile() {
           @Override
           File getAsFile() {
-            return it
+            def file = configurations.zipArchive.find { it.name.contains(fileNameFragment) }
+            if (file == null) {
+              throw new GradleException("Could not find plugin containing '${fileNameFragment}' in zipArchive configuration.")
+            }
+            return file
           }
         }
       }
-    }))
+    })
   }
+
   testDistribution = "ARCHIVE"
-  // This installs our plugin into the testClusters
+  plugin(resolvePlugin("opensearch-job-scheduler"))
+  plugin resolvePlugin('alerting')
+  plugin(resolvePlugin("wazuh-indexer-security-analytics"))
   plugin(project.tasks.bundlePlugin.archiveFile)
 }
 
