@@ -3,24 +3,24 @@ import org.opensearch.gradle.test.RestIntegTestTask
 import java.util.concurrent.Callable
 
 buildscript {
-    ext {
-        opensearch_version = System.getProperty("opensearch.version", "3.3.2-SNAPSHOT")
-        opensearch_build = opensearch_version.replace("-SNAPSHOT","") + ".0"
-        job_scheduler_version = System.getProperty("job_scheduler.version", opensearch_build)
-        wazuh_version = System.getProperty("version", "5.0.0")
-        revision = System.getProperty("revision", "0")
-    }
+  ext {
+    opensearch_version = System.getProperty("opensearch.version", "3.3.2-SNAPSHOT")
+    opensearch_build = opensearch_version.replace("-SNAPSHOT","") + ".0"
+    job_scheduler_version = System.getProperty("job_scheduler.version", opensearch_build)
+    wazuh_version = System.getProperty("version", "5.0.0")
+    revision = System.getProperty("revision", "0")
+  }
 
-    repositories {
-        mavenLocal()
-        maven { url "https://ci.opensearch.org/ci/dbc/snapshots/maven/" }
-        mavenCentral()
-        maven { url "https://plugins.gradle.org/m2/" }
-    }
+  repositories {
+    mavenLocal()
+    maven { url "https://ci.opensearch.org/ci/dbc/snapshots/maven/" }
+    mavenCentral()
+    maven { url "https://plugins.gradle.org/m2/" }
+  }
 
-    dependencies {
-        classpath "org.opensearch.gradle:build-tools:${opensearch_version}"
-    }
+  dependencies {
+    classpath "org.opensearch.gradle:build-tools:${opensearch_version}"
+  }
 }
 
 apply plugin: 'java'
@@ -38,42 +38,42 @@ def pathToPlugin = 'contentmanager'
 def pluginClassName = 'ContentManagerPlugin'
 
 publishing {
-    publications {
-        pluginZip(MavenPublication) { publication ->
-            pom {
-                name = pluginName
-                description = pluginDescription
-                licenses {
-                    license {
-                        name = "GNU Affero General Public License (AGPL) version 3.0"
-                        url = "http://www.gnu.org/licenses/agpl-3.0.txt"
-                    }
-                }
-                developers {
-                    developer {
-                        name = "Wazuh"
-                        url = "https://wazuh.com"
-                    }
-                }
-            }
+  publications {
+    pluginZip(MavenPublication) { publication ->
+      pom {
+        name = pluginName
+        description = pluginDescription
+        licenses {
+          license {
+            name = "GNU Affero General Public License (AGPL) version 3.0"
+            url = "http://www.gnu.org/licenses/agpl-3.0.txt"
+          }
         }
+        developers {
+          developer {
+            name = "Wazuh"
+            url = "https://wazuh.com"
+          }
+        }
+      }
     }
+  }
 }
 
 allprojects {
-    group = "${projectPath}"
-    version = "${wazuh_version}" + ".${revision}"
-    targetCompatibility = JavaVersion.VERSION_21
-    sourceCompatibility = JavaVersion.VERSION_21
+  group = "${projectPath}"
+  version = "${wazuh_version}" + ".${revision}"
+  targetCompatibility = JavaVersion.VERSION_21
+  sourceCompatibility = JavaVersion.VERSION_21
 }
 
 opensearchplugin {
-    name pluginName
-    description pluginDescription
-    classname "${projectPath}.${pathToPlugin}.${pluginClassName}"
-    extendedPlugins = ['opensearch-job-scheduler']
-    licenseFile rootProject.file('LICENSE.txt')
-    noticeFile rootProject.file('NOTICE.txt')
+  name pluginName
+  description pluginDescription
+  classname "${projectPath}.${pathToPlugin}.${pluginClassName}"
+  extendedPlugins = ['opensearch-job-scheduler', 'wazuh-indexer-security-analytics']
+  licenseFile rootProject.file('LICENSE.txt')
+  noticeFile rootProject.file('NOTICE.txt')
 }
 
 configurations {
@@ -81,24 +81,28 @@ configurations {
 }
 
 dependencies {
-    // log4j
-    implementation "org.apache.logging.log4j:log4j-slf4j-impl:2.25.2"
-    implementation "org.slf4j:slf4j-api:2.0.17"
+  // log4j
+  compileOnly "org.apache.logging.log4j:log4j-slf4j-impl:2.25.2"
+  compileOnly "org.slf4j:slf4j-api:2.0.17"
 
-    // Http Client
-    implementation "org.apache.httpcomponents.client5:httpclient5:5.4.4"
-    implementation "org.apache.httpcomponents.core5:httpcore5-h2:5.3.4"
-    implementation "org.apache.httpcomponents.core5:httpcore5:5.3.4"
+  // Http Client
+  compileOnly "org.apache.httpcomponents.client5:httpclient5:5.4.4"
+  compileOnly "org.apache.httpcomponents.core5:httpcore5-h2:5.3.4"
+  compileOnly "org.apache.httpcomponents.core5:httpcore5:5.3.4"
 
-    // Use Jackson provided by OpenSearch (2.18.2) - only for compile time
-    compileOnly 'com.fasterxml.jackson.core:jackson-core:2.18.2'
-    implementation 'com.fasterxml.jackson.core:jackson-databind:2.18.2'
-    implementation 'com.fasterxml.jackson.core:jackson-annotations:2.18.2'
-    implementation 'com.fasterxml.jackson.dataformat:jackson-dataformat-yaml:2.18.2'
+  // Use Jackson provided by OpenSearch (2.18.2) - only for compile time
+  compileOnly 'com.fasterxml.jackson.core:jackson-core:2.18.2'
+  compileOnly 'com.fasterxml.jackson.core:jackson-databind:2.18.2'
+  compileOnly 'com.fasterxml.jackson.core:jackson-annotations:2.18.2'
+  compileOnly 'com.fasterxml.jackson.dataformat:jackson-dataformat-yaml:2.18.2'
 
-    // ZipArchive dependencies used for integration tests
-    zipArchive group: 'org.opensearch.plugin', name: 'opensearch-job-scheduler', version: "${opensearch_build}"
-    compileOnly "org.opensearch:opensearch-job-scheduler-spi:${job_scheduler_version}"
+  compileOnly files('./lib/wazuh-indexer-security-analytics-commons.jar')
+  // ZipArchive dependencies used for integration tests
+  zipArchive group: 'org.opensearch.plugin', name: 'opensearch-job-scheduler', version: "${opensearch_build}"
+  compileOnly "org.opensearch:opensearch-job-scheduler-spi:${job_scheduler_version}"
+
+  zipArchive group: 'org.opensearch.plugin', name:'alerting', version: "${opensearch_build}" // Dependency of SAP
+  zipArchive files('lib/wazuh-indexer-security-analytics-5.0.0.0.zip')
 }
 
 // No need to validate license headers since spotless checks and applies it
@@ -117,72 +121,78 @@ thirdPartyAudit.enabled = false
 dependencyLicenses.enabled = false
 
 repositories {
-    mavenLocal()
-    maven { url "https://ci.opensearch.org/ci/dbc/snapshots/maven/" }
-    mavenCentral()
-    maven { url "https://plugins.gradle.org/m2/" }
+  mavenLocal()
+  maven { url "https://ci.opensearch.org/ci/dbc/snapshots/maven/" }
+  mavenCentral()
+  maven { url "https://plugins.gradle.org/m2/" }
 }
 
 test {
-    include '**/*Tests.class'
+  include '**/*Tests.class'
 }
 
 dependencies {
-    implementation 'com.google.code.gson:gson:2.8.9'
+  implementation 'com.google.code.gson:gson:2.8.9'
 }
 
 // Ensure the yamlRestTest source set can access plugin main and test classes
 dependencies {
-    yamlRestTestImplementation sourceSets.main.output
-    yamlRestTestImplementation sourceSets.test.output
+  yamlRestTestImplementation sourceSets.main.output
+  yamlRestTestImplementation sourceSets.test.output
 }
 
 task integTest(type: RestIntegTestTask) {
-    description = "Run tests against a cluster"
-    testClassesDirs = sourceSets.test.output.classesDirs
-    classpath = sourceSets.test.runtimeClasspath
+  description = "Run tests against a cluster"
+  testClassesDirs = sourceSets.test.output.classesDirs
+  classpath = sourceSets.test.runtimeClasspath
 }
 tasks.named("check").configure { dependsOn(integTest) }
 
 integTest {
-    // The --debug-jvm command-line option makes the cluster debuggable; this makes the tests debuggable
-    if (System.getProperty("test.debug") != null) {
-        jvmArgs '-agentlib:jdwp=transport=dt_socket,server=y,suspend=y,address=*:5005'
-    }
+  // The --debug-jvm command-line option makes the cluster debuggable; this makes the tests debuggable
+  if (System.getProperty("test.debug") != null) {
+    jvmArgs '-agentlib:jdwp=transport=dt_socket,server=y,suspend=y,address=*:5005'
+  }
 }
 
 testClusters.integTest {
-    // Installs all registered zipArchive dependencies on integTest cluster nodes
-    configurations.zipArchive.asFileTree.each {
-      plugin(provider(new Callable<RegularFile>(){
-        @Override
-        RegularFile call() throws Exception {
-          return new RegularFile() {
-            @Override
-            File getAsFile() {
-              return it
+  // Installs all registered zipArchive dependencies on integTest cluster nodes
+  def resolvePlugin = { String fileNameFragment ->
+    provider(new Callable<RegularFile>() {
+      @Override
+      RegularFile call() throws Exception {
+        return new RegularFile() {
+          @Override
+          File getAsFile() {
+            def file = configurations.zipArchive.find { it.name.contains(fileNameFragment) }
+            if (file == null) {
+              throw new GradleException("Could not find plugin containing '${fileNameFragment}' in zipArchive configuration.")
             }
+            return file
           }
         }
-      }))
-    }
-    testDistribution = "ARCHIVE"
-    // This installs our plugin into the testClusters
-    plugin(project.tasks.bundlePlugin.archiveFile)
+      }
+    })
+  }
+
+  testDistribution = "ARCHIVE"
+  plugin(resolvePlugin("opensearch-job-scheduler"))
+  plugin resolvePlugin('alerting')
+  plugin(resolvePlugin("wazuh-indexer-security-analytics"))
+  plugin(project.tasks.bundlePlugin.archiveFile)
 }
 
 run {
-    useCluster testClusters.integTest
+  useCluster testClusters.integTest
 }
 
 // updateVersion: Task to auto update version to the next development iteration
 task updateVersion {
-    onlyIf { System.getProperty('newVersion') }
-    doLast {
-        ext.newVersion = System.getProperty('newVersion')
-        println "Setting version to ${newVersion}."
-        // String tokenization to support -SNAPSHOT
-        ant.replaceregexp(file: 'build.gradle', match: '"opensearch.version", "\\d.*"', replace: '"opensearch.version", "' + newVersion.tokenize('-')[0] + '-SNAPSHOT"', flags: 'g', byline: true)
-    }
+  onlyIf { System.getProperty('newVersion') }
+  doLast {
+    ext.newVersion = System.getProperty('newVersion')
+    println "Setting version to ${newVersion}."
+    // String tokenization to support -SNAPSHOT
+    ant.replaceregexp(file: 'build.gradle', match: '"opensearch.version", "\\d.*"', replace: '"opensearch.version", "' + newVersion.tokenize('-')[0] + '-SNAPSHOT"', flags: 'g', byline: true)
+  }
 }
-

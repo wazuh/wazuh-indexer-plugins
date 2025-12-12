@@ -1,5 +1,7 @@
 package com.wazuh.contentmanager.jobscheduler.jobs;
 
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
 import com.wazuh.contentmanager.cti.catalog.client.ApiClient;
 import com.wazuh.contentmanager.cti.catalog.index.ConsumersIndex;
 import com.wazuh.contentmanager.cti.catalog.index.ContentIndex;
@@ -11,6 +13,8 @@ import com.wazuh.contentmanager.cti.catalog.service.ConsumerServiceImpl;
 import com.wazuh.contentmanager.cti.catalog.service.SnapshotServiceImpl;
 import com.wazuh.contentmanager.cti.catalog.service.UpdateServiceImpl;
 import com.wazuh.contentmanager.jobscheduler.JobExecutor;
+import com.wazuh.securityanalytics.action.*;
+import com.wazuh.securityanalytics.model.Integration;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.opensearch.action.admin.indices.create.CreateIndexResponse;
@@ -18,6 +22,7 @@ import org.opensearch.action.bulk.BulkRequest;
 import org.opensearch.action.get.GetResponse;
 import org.opensearch.action.search.SearchRequest;
 import org.opensearch.action.search.SearchResponse;
+import org.opensearch.action.support.WriteRequest;
 import org.opensearch.action.update.UpdateRequest;
 import org.opensearch.common.xcontent.XContentType;
 import org.opensearch.env.Environment;
@@ -36,6 +41,10 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.concurrent.Semaphore;
+import java.util.concurrent.TimeUnit;
+
+import static org.opensearch.rest.RestRequest.Method.POST;
+
 
 /**
  * Job responsible for executing the synchronization logic for Rules and Decoders consumers.
@@ -167,6 +176,130 @@ public class CatalogSyncJob implements JobExecutor {
 
         this.syncConsumerServices(context, consumer, mappings, aliases);
         log.info("Rules Consumer correctly synchronized.");
+
+        try {
+            this.client.admin().indices().prepareRefresh(
+                this.getIndexName(context, consumer, "rule"),
+                this.getIndexName(context, consumer, "integration")
+            ).get();
+        } catch (Exception e) {
+            log.warn("Error refreshing indices before sending them to SAP: {}", e.getMessage());
+        }
+
+        String integrationIndex = this.getIndexName(context, consumer, "integration");
+        String ruleIndex = this.getIndexName(context, consumer, "rule");
+
+        this.processIntegrations(integrationIndex);
+        this.processRules(ruleIndex);
+    }
+
+    private void processIntegrations(String indexName) {
+        try {
+            if (!this.client.admin().indices().prepareExists(indexName).get().isExists()) {
+                log.warn("Integration index [{}] does not exist, skipping integration sync.", indexName);
+                return;
+            }
+
+            SearchRequest searchRequest = new SearchRequest(indexName);
+            SearchSourceBuilder searchSourceBuilder = new SearchSourceBuilder();
+            searchSourceBuilder.query(QueryBuilders.matchAllQuery());
+            searchSourceBuilder.size(10000);
+            searchRequest.source(searchSourceBuilder);
+
+            SearchResponse searchResponse = this.client.search(searchRequest).actionGet();
+
+            for (SearchHit hit : searchResponse.getHits().getHits()) {
+                try {
+                    JsonObject source = JsonParser.parseString(hit.getSourceAsString()).getAsJsonObject();
+                    if (source.has("document")) {
+                        JsonObject doc = source.getAsJsonObject("document");
+                        String id = doc.get("id").getAsString();
+                        String name = doc.has("title") ? doc.get("title").getAsString() : "";
+                        String description = doc.has("description") ? doc.get("description").getAsString() : "";
+                        String category = doc.has("category") ? doc.get("category").getAsString() : null;
+
+                        WIndexIntegrationRequest request = new WIndexIntegrationRequest(
+                            id,
+                            WriteRequest.RefreshPolicy.IMMEDIATE,
+                            POST,
+                            new Integration(
+                                id,
+                                null,
+                                name,
+                                description,
+                                category,
+                                "Standard",
+                                new HashMap<>()
+                            )
+                        );
+
+                        WIndexIntegrationResponse response = this.client.execute(WIndexIntegrationAction.INSTANCE, request).get(5, TimeUnit.SECONDS);
+                        log.debug("Integration [{}] synced successfully. Response ID: {}", id, response.getId());
+                    }
+                } catch (Exception e) {
+                    log.error("Failed to sync integration from hit [{}]: {}", hit.getId(), e.getMessage());
+                }
+            }
+        } catch (Exception e) {
+            log.error("Error processing integrations from index [{}]: {}", indexName, e.getMessage());
+        }
+    }
+
+    private void processRules(String indexName) {
+        try {
+            if (!this.client.admin().indices().prepareExists(indexName).get().isExists()) {
+                log.warn("Rule index [{}] does not exist, skipping rule sync.", indexName);
+                return;
+            }
+
+            SearchRequest searchRequest = new SearchRequest(indexName);
+            SearchSourceBuilder searchSourceBuilder = new SearchSourceBuilder();
+            searchSourceBuilder.query(QueryBuilders.matchAllQuery());
+            searchSourceBuilder.size(10000);
+            searchRequest.source(searchSourceBuilder);
+
+            SearchResponse searchResponse = this.client.search(searchRequest).actionGet();
+
+            for (SearchHit hit : searchResponse.getHits().getHits()) {
+                try {
+                    JsonObject source = JsonParser.parseString(hit.getSourceAsString()).getAsJsonObject();
+
+                    if (source.has("document")) {
+                        // Extract the actual rule content
+                        JsonObject doc = source.getAsJsonObject("document");
+
+                        String id = doc.get("id").getAsString();
+
+                        // Determine product for the rule request
+                        String product = "linux"; // Default
+                        if (doc.has("logsource")) {
+                            JsonObject logsource = doc.getAsJsonObject("logsource");
+                            if (logsource.has("product")) {
+                                product = logsource.get("product").getAsString();
+                            } else if (logsource.has("category")) {
+                                product = logsource.get("category").getAsString();
+                            }
+                        }
+
+                        WIndexRuleRequestImpl ruleRequest = new WIndexRuleRequestImpl(
+                            id,
+                            WriteRequest.RefreshPolicy.IMMEDIATE,
+                            product,
+                            POST,
+                            doc.toString(),
+                            false
+                        );
+
+                        WIndexRuleResponse response = this.client.execute(WIndexRuleAction.INSTANCE, ruleRequest).get(5, TimeUnit.SECONDS);
+                        log.debug("Rule [{}] synced successfully. Response ID: {}", id, response.getId());
+                    }
+                } catch (Exception e) {
+                    log.error("Failed to sync rule from hit [{}]: {}", hit.getId(), e.getMessage());
+                }
+            }
+        } catch (Exception e) {
+            log.error("Error processing rules from index [{}]: {}", indexName, e.getMessage());
+        }
     }
 
     /**
