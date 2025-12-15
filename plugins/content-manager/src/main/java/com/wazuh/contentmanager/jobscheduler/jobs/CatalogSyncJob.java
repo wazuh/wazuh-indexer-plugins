@@ -147,36 +147,8 @@ public class CatalogSyncJob implements JobExecutor {
      * Centralized synchronization logic used by both execute() and trigger().
      */
     private void performSynchronization() {
-        // this.rulesConsumer();
-        // this.decodersConsumer();
-
-       Map<String, List<String>> integrations = new HashMap<>();
-       integrations.put(
-           "windows",
-           Arrays.asList(
-               "5cdce666-fee5-4c7e-9484-e2d3ef7ba0f6",
-               "60680ffc-56a7-4040-8533-75cbc4c69bce",
-               "a9825e9d-f3d0-4476-957d-920c243584ef",
-               "c5523064-b046-4c2a-a4a7-2a613a06691e",
-               "95c43965-d91f-42a0-a8e3-d399c0292840",
-               "ae83b304-84ca-444f-a28b-7a77ce7ef88b",
-               "2c8e22df-31d1-406d-b58e-e757a1efa726",
-               "377d7ed1-0202-4651-84fb-96406effc31e",
-               "f3935f15-dc84-48de-af5c-6bfdf3736810",
-               "27f9cc32-9a8d-47c2-bfe7-d0b1e8d00d3f",
-               "3567b27f-4fe8-4c32-9f81-633c98588428",
-               "8f11d910-1648-4de8-8e2e-2e4f077f558f",
-               "bfe0a622-192d-4468-b48c-bcb759878b12",
-               "702bf901-a71e-4d51-9a44-e7dca2788eef",
-               "6014cc0b-b52d-4bce-b137-83e867b5d7c8",
-               "7eb28e2a-10ef-45e0-ad81-382e36a189bd",
-               "23a97c95-be7d-48e7-8e95-2be6af7f01f5",
-               "1385141b-e35b-4470-bbaa-2a6adfb1ebd4",
-               "ca53283a-81fc-49bb-910b-cab514736aea",
-               "d453e70f-f62a-4eb9-810c-ea176097ce00"
-           )
-       );
-       this.createOrUpdateDetectors(integrations);
+        this.rulesConsumer();
+        this.decodersConsumer();
     }
 
     /**
