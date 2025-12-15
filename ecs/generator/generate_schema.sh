@@ -161,14 +161,6 @@ function copy_files() {
     destination_file=${module_to_file[$ecs_module]}
     cp "$repo_path/ecs/$ecs_module/$mappings_path" "$resources_path/$destination_file"
     echo "  - '$destination_file' updated"
-
-    # Generate archives index template from the alerts one
-    if [ "$ecs_module" == "stateless/main" ]; then
-      destination_file="$resources_path/templates/streams/archives.json"
-      echo "  - Generate template for module '$ecs_module/archives' to '$destination_file'"
-      cp "$repo_path/ecs/$ecs_module/$mappings_path" "$destination_file"
-      sed -i 's/wazuh-alerts/wazuh-archives/g' "$destination_file"
-    fi
   done
 
   echo "---> CSV documentation"
