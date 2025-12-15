@@ -188,25 +188,63 @@ public class CatalogSyncJob implements JobExecutor {
 
             Map<String, List<String>> integrations = this.processIntegrations(integrationIndex);
             this.processRules(ruleIndex);
-            this.createOrUpdateDetectors(integrations);
+            this.createOrUpdateDetectors(integrations, integrationIndex);
         }
     }
 
-    private void createOrUpdateDetectors(Map<String, List<String>> integrations) {
+    private void createOrUpdateDetectors(Map<String, List<String>> integrations, String indexName) {
         log.info("Creating detectors for integrations... : {}", integrations.keySet());
         try {
-            for (Map.Entry<String, List<String>> item : integrations.entrySet()) {
-                WIndexDetectorRequest request = new WIndexDetectorRequest(
-                    item.getKey(),
-                    item.getValue(),
-                    WriteRequest.RefreshPolicy.IMMEDIATE);
+            if (!this.client.admin().indices().prepareExists(indexName).get().isExists()) {
+                log.warn("Integration index [{}] does not exist, skipping treat detectors sync.", indexName);
+            }
 
-                this.client.execute(WIndexDetectorAction.INSTANCE, request).get(1, TimeUnit.SECONDS);
-                log.info("Threat Detector for integration [{}] created", item.getKey());
+            SearchRequest searchRequest = new SearchRequest(indexName);
+            SearchSourceBuilder searchSourceBuilder = new SearchSourceBuilder();
+            searchSourceBuilder.query(QueryBuilders.matchAllQuery());
+            searchSourceBuilder.size(10000);
+            searchRequest.source(searchSourceBuilder);
+
+            SearchResponse searchResponse = this.client.search(searchRequest).actionGet();
+            for (SearchHit hit : searchResponse.getHits().getHits()) {
+                try {
+                    JsonObject source = JsonParser.parseString(hit.getSourceAsString()).getAsJsonObject();
+                    if (source.has("document")) {
+                        JsonObject doc = source.getAsJsonObject("document");
+                        String name = doc.has("title") ? doc.get("title").getAsString() : "";
+                        List<String> rules = new ArrayList<>();
+                        if (doc.has("rules")) {
+                            doc.get("rules").getAsJsonArray().forEach(item -> rules.add(item.getAsString()));
+                        }
+
+                        WIndexDetectorRequest request = new WIndexDetectorRequest(
+                            name,
+                            rules,
+                            WriteRequest.RefreshPolicy.IMMEDIATE);
+                        this.client.execute(WIndexDetectorAction.INSTANCE, request).get(1, TimeUnit.SECONDS);
+                        log.info("Integration [{}] synced successfully.", name);
+                    }
+                } catch (Exception e) {
+                    log.error("Failed to sync Threat Detector from hit [{}]: {}", hit.getId(), e.getMessage());
+                }
             }
         } catch (Exception e) {
-            log.error("Failed to create Threat Detector due to: {}", e.getMessage());
+            log.error("Error reading integrations from index [{}]: {}", indexName, e.getMessage());
         }
+
+//        try {
+//            for (Map.Entry<String, List<String>> item : integrations.entrySet()) {
+//                WIndexDetectorRequest request = new WIndexDetectorRequest(
+//                    item.getKey(),
+//                    item.getValue(),
+//                    WriteRequest.RefreshPolicy.IMMEDIATE);
+//
+//                this.client.execute(WIndexDetectorAction.INSTANCE, request).get(1, TimeUnit.SECONDS);
+//                log.info("Threat Detector for integration [{}] created", item.getKey());
+//            }
+//        } catch (Exception e) {
+//            log.error("Failed to create Threat Detector due to: {}", e.getMessage());
+//        }
     }
 
     private Map<String, List<String>> processIntegrations(String indexName) {
@@ -220,7 +258,7 @@ public class CatalogSyncJob implements JobExecutor {
             SearchRequest searchRequest = new SearchRequest(indexName);
             SearchSourceBuilder searchSourceBuilder = new SearchSourceBuilder();
             searchSourceBuilder.query(QueryBuilders.matchAllQuery());
-            searchSourceBuilder.size(10000); // TODO revert
+            searchSourceBuilder.size(10000);
             searchRequest.source(searchSourceBuilder);
 
             SearchResponse searchResponse = this.client.search(searchRequest).actionGet();
