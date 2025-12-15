@@ -86,9 +86,6 @@ public class SetupPlugin extends Plugin implements ClusterPlugin {
         // spotless:off
         // ISM index
         this.indices.add(new IndexStateManagement(IndexStateManagement.ISM_INDEX_NAME, "templates/ism-config"));
-        // Stream indices
-        this.indices.add(new StreamIndex("wazuh-alerts-v5", "templates/streams/alerts"));
-        this.indices.add(new StreamIndex("wazuh-archives-v5", "templates/streams/archives"));
         // Decoder indices
         for (String category : this.categories) {
             this.indices.add(new StreamIndex(
