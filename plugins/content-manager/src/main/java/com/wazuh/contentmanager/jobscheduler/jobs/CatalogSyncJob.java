@@ -189,21 +189,39 @@ public class CatalogSyncJob implements JobExecutor {
         String integrationIndex = this.getIndexName(context, consumer, "integration");
         String ruleIndex = this.getIndexName(context, consumer, "rule");
 
-        this.processIntegrations(integrationIndex);
+        Map<String, List<String>> integrations = this.processIntegrations(integrationIndex);
         this.processRules(ruleIndex);
+        this.createOrUpdateDetectors(integrations);
     }
 
-    private void processIntegrations(String indexName) {
+    private void createOrUpdateDetectors(Map<String, List<String>> integrations) {
+        try {
+            for (Map.Entry<String, List<String>> item : integrations.entrySet()) {
+                WIndexDetectorRequest request = new WIndexDetectorRequest(
+                    item.getKey(),
+                    item.getValue(),
+                    WriteRequest.RefreshPolicy.IMMEDIATE);
+
+                this.client.execute(WIndexDetectorAction.INSTANCE, request);
+                log.info("Threat Detector for integration [{}] created", item.getKey());
+            }
+        } catch (Exception e) {
+            log.error("Failed to create Threat Detector due to: {}", e.getMessage());
+        }
+    }
+
+    private Map<String, List<String>> processIntegrations(String indexName) {
+        Map<String, List<String>> integrations = new HashMap<>();
         try {
             if (!this.client.admin().indices().prepareExists(indexName).get().isExists()) {
                 log.warn("Integration index [{}] does not exist, skipping integration sync.", indexName);
-                return;
+                return integrations;
             }
 
             SearchRequest searchRequest = new SearchRequest(indexName);
             SearchSourceBuilder searchSourceBuilder = new SearchSourceBuilder();
             searchSourceBuilder.query(QueryBuilders.matchAllQuery());
-            searchSourceBuilder.size(10000);
+            searchSourceBuilder.size(10); // TODO revert
             searchRequest.source(searchSourceBuilder);
 
             SearchResponse searchResponse = this.client.search(searchRequest).actionGet();
@@ -217,6 +235,10 @@ public class CatalogSyncJob implements JobExecutor {
                         String name = doc.has("title") ? doc.get("title").getAsString() : "";
                         String description = doc.has("description") ? doc.get("description").getAsString() : "";
                         String category = doc.has("category") ? doc.get("category").getAsString() : null;
+                        List<String> rules = new ArrayList<>();
+                        if (doc.has("rules")) {
+                            doc.get("rules").getAsJsonArray().forEach(item -> rules.add(item.getAsString()));
+                        }
 
                         WIndexIntegrationRequest request = new WIndexIntegrationRequest(
                             id,
@@ -229,12 +251,14 @@ public class CatalogSyncJob implements JobExecutor {
                                 description,
                                 category,
                                 "Standard",
+                                rules,
                                 new HashMap<>()
                             )
                         );
 
                         WIndexIntegrationResponse response = this.client.execute(WIndexIntegrationAction.INSTANCE, request).get(5, TimeUnit.SECONDS);
                         log.debug("Integration [{}] synced successfully. Response ID: {}", id, response.getId());
+                        integrations.put(name, rules);
                     }
                 } catch (Exception e) {
                     log.error("Failed to sync integration from hit [{}]: {}", hit.getId(), e.getMessage());
@@ -243,6 +267,7 @@ public class CatalogSyncJob implements JobExecutor {
         } catch (Exception e) {
             log.error("Error processing integrations from index [{}]: {}", indexName, e.getMessage());
         }
+        return integrations;
     }
 
     private void processRules(String indexName) {
@@ -281,7 +306,7 @@ public class CatalogSyncJob implements JobExecutor {
                             }
                         }
 
-                        WIndexRuleRequestImpl ruleRequest = new WIndexRuleRequestImpl(
+                        WIndexRuleRequest ruleRequest = new WIndexRuleRequest(
                             id,
                             WriteRequest.RefreshPolicy.IMMEDIATE,
                             product,
