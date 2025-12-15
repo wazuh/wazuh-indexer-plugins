@@ -138,7 +138,14 @@ public class ContentManagerPlugin extends Plugin implements ClusterPlugin, JobSc
 
         // Schedule the periodic sync job via OpenSearch Job Scheduler
         this.scheduleCatalogSyncJob();
-        this.catalogSyncJob.trigger();
+        
+        // Skip catalog sync trigger during integration tests
+        boolean isTestEnv = "true".equals(System.getProperty("INDEXER_TEST_ENV"));
+        if (!isTestEnv) {
+            this.catalogSyncJob.trigger();
+        } else {
+            log.info("Skipping catalog sync job trigger in test environment");
+        }
     }
 
     /**
