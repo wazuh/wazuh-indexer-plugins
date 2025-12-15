@@ -864,8 +864,7 @@ check.compliance.cmmc:
   ignore_above: 1024
   level: custom
   name: cmmc
-  normalize:
-  - array
+  normalize: []
   original_fieldset: compliance
   short: CMMC compliance.
   type: keyword
@@ -876,8 +875,7 @@ check.compliance.fedramp:
   ignore_above: 1024
   level: custom
   name: fedramp
-  normalize:
-  - array
+  normalize: []
   original_fieldset: compliance
   short: FedRAMP compliance.
   type: keyword
@@ -888,8 +886,7 @@ check.compliance.gdpr:
   ignore_above: 1024
   level: custom
   name: gdpr
-  normalize:
-  - array
+  normalize: []
   original_fieldset: compliance
   short: GDPR compliance.
   type: keyword
@@ -900,8 +897,7 @@ check.compliance.hipaa:
   ignore_above: 1024
   level: custom
   name: hipaa
-  normalize:
-  - array
+  normalize: []
   original_fieldset: compliance
   short: HIPAA compliance.
   type: keyword
@@ -912,8 +908,7 @@ check.compliance.iso_27001:
   ignore_above: 1024
   level: custom
   name: iso_27001
-  normalize:
-  - array
+  normalize: []
   original_fieldset: compliance
   short: ISO 27001 compliance.
   type: keyword
@@ -924,8 +919,7 @@ check.compliance.mitre_attack:
   ignore_above: 1024
   level: custom
   name: mitre_attack
-  normalize:
-  - array
+  normalize: []
   original_fieldset: compliance
   short: MITRE ATT&CK compliance.
   type: keyword
@@ -948,8 +942,7 @@ check.compliance.nis2:
   ignore_above: 1024
   level: custom
   name: nis2
-  normalize:
-  - array
+  normalize: []
   original_fieldset: compliance
   short: NIS2 compliance.
   type: keyword
@@ -960,8 +953,7 @@ check.compliance.nist_800_171:
   ignore_above: 1024
   level: custom
   name: nist_800_171
-  normalize:
-  - array
+  normalize: []
   original_fieldset: compliance
   short: NIST 800-171 compliance.
   type: keyword
@@ -972,8 +964,7 @@ check.compliance.nist_800_53:
   ignore_above: 1024
   level: custom
   name: nist_800_53
-  normalize:
-  - array
+  normalize: []
   original_fieldset: compliance
   short: NIST 800-53 compliance.
   type: keyword
@@ -984,8 +975,7 @@ check.compliance.pci_dss:
   ignore_above: 1024
   level: custom
   name: pci_dss
-  normalize:
-  - array
+  normalize: []
   original_fieldset: compliance
   short: PCI DSS compliance.
   type: keyword
@@ -1042,8 +1032,7 @@ check.compliance.tsc:
   ignore_above: 1024
   level: custom
   name: tsc
-  normalize:
-  - array
+  normalize: []
   original_fieldset: compliance
   short: TSC compliance.
   type: keyword

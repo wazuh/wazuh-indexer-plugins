@@ -13,65 +13,43 @@
       type: keyword
       level: custom
       description: PCI DSS compliance.
-      normalize:
-        - array
     - name: gdpr
       type: keyword
       level: custom
       description: GDPR compliance.
-      normalize:
-        - array
     - name: nist_800_53
       type: keyword
       level: custom
       description: NIST 800-53 compliance.
-      normalize:
-        - array
     - name: nist_800_171
       type: keyword
       level: custom
       description: NIST 800-171 compliance.
-      normalize:
-        - array
     - name: hipaa
       type: keyword
       level: custom
       description: HIPAA compliance.
-      normalize:
-        - array
     - name: cmmc
       type: keyword
       level: custom
       description: CMMC compliance.
-      normalize:
-        - array
     - name: iso_27001
       type: keyword
       level: custom
       description: ISO 27001 compliance.
-      normalize:
-        - array
     - name: nis2
       type: keyword
       level: custom
       description: NIS2 compliance.
-      normalize:
-        - array
     - name: tsc
       type: keyword
       level: custom
       description: TSC compliance.
-      normalize:
-        - array
     - name: mitre_attack
       type: keyword
       level: custom
       description: MITRE ATT&CK compliance.
-      normalize:
-        - array
     - name: fedramp
       type: keyword
       level: custom
       description: FedRAMP compliance.
-      normalize:
-        - array
