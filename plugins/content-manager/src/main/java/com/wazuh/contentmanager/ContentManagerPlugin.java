@@ -138,6 +138,7 @@ public class ContentManagerPlugin extends Plugin implements ClusterPlugin, JobSc
 
         // Schedule the periodic sync job via OpenSearch Job Scheduler
         this.scheduleCatalogSyncJob();
+        this.catalogSyncJob.trigger();
     }
 
     /**
