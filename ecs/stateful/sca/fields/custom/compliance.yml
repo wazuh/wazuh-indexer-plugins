@@ -7,50 +7,8 @@
   reusable:
     top_level: false
     expected:
-       - check
+      - check
   fields:
-    - name: name
-      type: keyword
-      level: custom
-      description: >
-        Framework name (PCI DSS, GDPR, NIST 800-53, etc.).
-      example: "PCI DSS"
-    - name: version
-      type: keyword
-      level: custom
-      description: >
-        Framework version (4.0, 2018, 5.1, etc.).
-      example: "3.2"
-    - name: category
-      type: keyword
-      level: custom
-      description: >
-        Framework category (payment-security, data-protection, etc.).
-      example: "payment-security"
-    - name: publisher
-      type: keyword
-      level: custom
-      description: >
-        Organization that published the framework.
-      example: "PCI Security Standards Council"
-    - name: requirement.id
-      type: keyword
-      level: custom
-      description: >
-        Requirement identifier (11.5, Article 32, AC-3, etc.).
-      example: "11.5"
-    - name: requirement.title
-      type: match_only_text
-      level: custom
-      description: >
-        Human-readable requirement title.
-      example: "Rotate cryptographic keys"
-    - name: requirement.description
-      type: match_only_text
-      level: custom
-      description: >
-        Full requirement description.
-      example: "The organization must rotate encryption keys every 90 days."
     - name: pci_dss
       type: keyword
       level: custom

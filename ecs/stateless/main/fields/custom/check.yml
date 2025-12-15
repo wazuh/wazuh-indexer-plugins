@@ -57,17 +57,6 @@
           - `any`: Any of the rules is sufficient.
           - `none`: None of the rules must be satisfied.
       example: "all"
-    - name: compliance
-      type: keyword
-      level: custom
-      short: CIS compliance standard.
-      description: >
-        CIS compliance standard under which the check is defined. This field indicates the specific compliance standard that the check is associated with, such as CIS benchmarks or other compliance frameworks.
-
-        Note: this field should contain an array of values.
-      normalize:
-        - array
-      example: '["cis:1.1.1","cis_csc:5.2"]'
     - name: rules
       type: keyword
       level: custom

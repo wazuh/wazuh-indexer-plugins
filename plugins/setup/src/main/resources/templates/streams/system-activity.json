@@ -834,8 +834,82 @@
         "check": {
           "properties": {
             "compliance": {
-              "ignore_above": 1024,
-              "type": "keyword"
+              "properties": {
+                "category": {
+                  "ignore_above": 1024,
+                  "type": "keyword"
+                },
+                "cmmc": {
+                  "ignore_above": 1024,
+                  "type": "keyword"
+                },
+                "fedramp": {
+                  "ignore_above": 1024,
+                  "type": "keyword"
+                },
+                "gdpr": {
+                  "ignore_above": 1024,
+                  "type": "keyword"
+                },
+                "hipaa": {
+                  "ignore_above": 1024,
+                  "type": "keyword"
+                },
+                "iso_27001": {
+                  "ignore_above": 1024,
+                  "type": "keyword"
+                },
+                "mitre_attack": {
+                  "ignore_above": 1024,
+                  "type": "keyword"
+                },
+                "name": {
+                  "ignore_above": 1024,
+                  "type": "keyword"
+                },
+                "nis2": {
+                  "ignore_above": 1024,
+                  "type": "keyword"
+                },
+                "nist_800_171": {
+                  "ignore_above": 1024,
+                  "type": "keyword"
+                },
+                "nist_800_53": {
+                  "ignore_above": 1024,
+                  "type": "keyword"
+                },
+                "pci_dss": {
+                  "ignore_above": 1024,
+                  "type": "keyword"
+                },
+                "publisher": {
+                  "ignore_above": 1024,
+                  "type": "keyword"
+                },
+                "requirement": {
+                  "properties": {
+                    "description": {
+                      "type": "match_only_text"
+                    },
+                    "id": {
+                      "ignore_above": 1024,
+                      "type": "keyword"
+                    },
+                    "title": {
+                      "type": "match_only_text"
+                    }
+                  }
+                },
+                "tsc": {
+                  "ignore_above": 1024,
+                  "type": "keyword"
+                },
+                "version": {
+                  "ignore_above": 1024,
+                  "type": "keyword"
+                }
+              }
             },
             "condition": {
               "ignore_above": 1024,
@@ -1242,41 +1316,6 @@
               }
             }
           }
-        },
-        "compliance": {
-          "properties": {
-            "category": {
-              "ignore_above": 1024,
-              "type": "keyword"
-            },
-            "name": {
-              "ignore_above": 1024,
-              "type": "keyword"
-            },
-            "publisher": {
-              "ignore_above": 1024,
-              "type": "keyword"
-            },
-            "requirement": {
-              "properties": {
-                "description": {
-                  "type": "match_only_text"
-                },
-                "id": {
-                  "ignore_above": 1024,
-                  "type": "keyword"
-                },
-                "title": {
-                  "type": "match_only_text"
-                }
-              }
-            },
-            "version": {
-              "ignore_above": 1024,
-              "type": "keyword"
-            }
-          },
-          "type": "nested"
         },
         "container": {
           "properties": {

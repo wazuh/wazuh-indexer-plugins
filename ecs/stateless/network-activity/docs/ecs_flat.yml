@@ -845,21 +845,219 @@ agent.version:
   normalize: []
   short: Version of the agent.
   type: keyword
-check.compliance:
-  dashed_name: check-compliance
-  description: 'CIS compliance standard under which the check is defined. This field
-    indicates the specific compliance standard that the check is associated with,
-    such as CIS benchmarks or other compliance frameworks.
-
-    Note: this field should contain an array of values.'
-  example: '["cis:1.1.1","cis_csc:5.2"]'
-  flat_name: check.compliance
+check.compliance.category:
+  dashed_name: check-compliance-category
+  description: Framework category (payment-security, data-protection, etc.).
+  example: payment-security
+  flat_name: check.compliance.category
   ignore_above: 1024
   level: custom
-  name: compliance
+  name: category
+  normalize: []
+  original_fieldset: compliance
+  short: Framework category (payment-security, data-protection, etc.).
+  type: keyword
+check.compliance.cmmc:
+  dashed_name: check-compliance-cmmc
+  description: CMMC compliance.
+  flat_name: check.compliance.cmmc
+  ignore_above: 1024
+  level: custom
+  name: cmmc
   normalize:
   - array
-  short: CIS compliance standard.
+  original_fieldset: compliance
+  short: CMMC compliance.
+  type: keyword
+check.compliance.fedramp:
+  dashed_name: check-compliance-fedramp
+  description: FedRAMP compliance.
+  flat_name: check.compliance.fedramp
+  ignore_above: 1024
+  level: custom
+  name: fedramp
+  normalize:
+  - array
+  original_fieldset: compliance
+  short: FedRAMP compliance.
+  type: keyword
+check.compliance.gdpr:
+  dashed_name: check-compliance-gdpr
+  description: GDPR compliance.
+  flat_name: check.compliance.gdpr
+  ignore_above: 1024
+  level: custom
+  name: gdpr
+  normalize:
+  - array
+  original_fieldset: compliance
+  short: GDPR compliance.
+  type: keyword
+check.compliance.hipaa:
+  dashed_name: check-compliance-hipaa
+  description: HIPAA compliance.
+  flat_name: check.compliance.hipaa
+  ignore_above: 1024
+  level: custom
+  name: hipaa
+  normalize:
+  - array
+  original_fieldset: compliance
+  short: HIPAA compliance.
+  type: keyword
+check.compliance.iso_27001:
+  dashed_name: check-compliance-iso-27001
+  description: ISO 27001 compliance.
+  flat_name: check.compliance.iso_27001
+  ignore_above: 1024
+  level: custom
+  name: iso_27001
+  normalize:
+  - array
+  original_fieldset: compliance
+  short: ISO 27001 compliance.
+  type: keyword
+check.compliance.mitre_attack:
+  dashed_name: check-compliance-mitre-attack
+  description: MITRE ATT&CK compliance.
+  flat_name: check.compliance.mitre_attack
+  ignore_above: 1024
+  level: custom
+  name: mitre_attack
+  normalize:
+  - array
+  original_fieldset: compliance
+  short: MITRE ATT&CK compliance.
+  type: keyword
+check.compliance.name:
+  dashed_name: check-compliance-name
+  description: Framework name (PCI DSS, GDPR, NIST 800-53, etc.).
+  example: PCI DSS
+  flat_name: check.compliance.name
+  ignore_above: 1024
+  level: custom
+  name: name
+  normalize: []
+  original_fieldset: compliance
+  short: Framework name (PCI DSS, GDPR, NIST 800-53, etc.).
+  type: keyword
+check.compliance.nis2:
+  dashed_name: check-compliance-nis2
+  description: NIS2 compliance.
+  flat_name: check.compliance.nis2
+  ignore_above: 1024
+  level: custom
+  name: nis2
+  normalize:
+  - array
+  original_fieldset: compliance
+  short: NIS2 compliance.
+  type: keyword
+check.compliance.nist_800_171:
+  dashed_name: check-compliance-nist-800-171
+  description: NIST 800-171 compliance.
+  flat_name: check.compliance.nist_800_171
+  ignore_above: 1024
+  level: custom
+  name: nist_800_171
+  normalize:
+  - array
+  original_fieldset: compliance
+  short: NIST 800-171 compliance.
+  type: keyword
+check.compliance.nist_800_53:
+  dashed_name: check-compliance-nist-800-53
+  description: NIST 800-53 compliance.
+  flat_name: check.compliance.nist_800_53
+  ignore_above: 1024
+  level: custom
+  name: nist_800_53
+  normalize:
+  - array
+  original_fieldset: compliance
+  short: NIST 800-53 compliance.
+  type: keyword
+check.compliance.pci_dss:
+  dashed_name: check-compliance-pci-dss
+  description: PCI DSS compliance.
+  flat_name: check.compliance.pci_dss
+  ignore_above: 1024
+  level: custom
+  name: pci_dss
+  normalize:
+  - array
+  original_fieldset: compliance
+  short: PCI DSS compliance.
+  type: keyword
+check.compliance.publisher:
+  dashed_name: check-compliance-publisher
+  description: Organization that published the framework.
+  example: PCI Security Standards Council
+  flat_name: check.compliance.publisher
+  ignore_above: 1024
+  level: custom
+  name: publisher
+  normalize: []
+  original_fieldset: compliance
+  short: Organization that published the framework.
+  type: keyword
+check.compliance.requirement.description:
+  dashed_name: check-compliance-requirement-description
+  description: Full requirement description.
+  example: The organization must rotate encryption keys every 90 days.
+  flat_name: check.compliance.requirement.description
+  level: custom
+  name: requirement.description
+  normalize: []
+  original_fieldset: compliance
+  short: Full requirement description.
+  type: match_only_text
+check.compliance.requirement.id:
+  dashed_name: check-compliance-requirement-id
+  description: Requirement identifier (11.5, Article 32, AC-3, etc.).
+  example: '11.5'
+  flat_name: check.compliance.requirement.id
+  ignore_above: 1024
+  level: custom
+  name: requirement.id
+  normalize: []
+  original_fieldset: compliance
+  short: Requirement identifier (11.5, Article 32, AC-3, etc.).
+  type: keyword
+check.compliance.requirement.title:
+  dashed_name: check-compliance-requirement-title
+  description: Human-readable requirement title.
+  example: Rotate cryptographic keys
+  flat_name: check.compliance.requirement.title
+  level: custom
+  name: requirement.title
+  normalize: []
+  original_fieldset: compliance
+  short: Human-readable requirement title.
+  type: match_only_text
+check.compliance.tsc:
+  dashed_name: check-compliance-tsc
+  description: TSC compliance.
+  flat_name: check.compliance.tsc
+  ignore_above: 1024
+  level: custom
+  name: tsc
+  normalize:
+  - array
+  original_fieldset: compliance
+  short: TSC compliance.
+  type: keyword
+check.compliance.version:
+  dashed_name: check-compliance-version
+  description: Framework version (4.0, 2018, 5.1, etc.).
+  example: '3.2'
+  flat_name: check.compliance.version
+  ignore_above: 1024
+  level: custom
+  name: version
+  normalize: []
+  original_fieldset: compliance
+  short: Framework version (4.0, 2018, 5.1, etc.).
   type: keyword
 check.condition:
   dashed_name: check-condition
@@ -5747,90 +5945,6 @@ cloud.target.service.name:
   normalize: []
   original_fieldset: cloud
   short: The cloud service name.
-  type: keyword
-compliance:
-  dashed_name: compliance
-  description: Array of compliance objects to support multiple frameworks per event.
-  flat_name: compliance
-  level: custom
-  name: compliance
-  normalize: []
-  short: Array of compliance objects to support multiple frameworks per event.
-  type: nested
-compliance.category:
-  dashed_name: compliance-category
-  description: Framework category (payment-security, data-protection, etc.).
-  example: payment-security
-  flat_name: compliance.category
-  ignore_above: 1024
-  level: custom
-  name: compliance.category
-  normalize: []
-  short: Framework category (payment-security, data-protection, etc.).
-  type: keyword
-compliance.name:
-  dashed_name: compliance-name
-  description: Framework name (PCI DSS, GDPR, NIST 800-53, etc.).
-  example: PCI DSS
-  flat_name: compliance.name
-  ignore_above: 1024
-  level: custom
-  name: compliance.name
-  normalize: []
-  short: Framework name (PCI DSS, GDPR, NIST 800-53, etc.).
-  type: keyword
-compliance.publisher:
-  dashed_name: compliance-publisher
-  description: Organization that published the framework.
-  example: PCI Security Standards Council
-  flat_name: compliance.publisher
-  ignore_above: 1024
-  level: custom
-  name: compliance.publisher
-  normalize: []
-  short: Organization that published the framework.
-  type: keyword
-compliance.requirement.description:
-  dashed_name: compliance-requirement-description
-  description: Full requirement description.
-  example: The organization must rotate encryption keys every 90 days.
-  flat_name: compliance.requirement.description
-  level: custom
-  name: compliance.requirement.description
-  normalize: []
-  short: Full requirement description.
-  type: match_only_text
-compliance.requirement.id:
-  dashed_name: compliance-requirement-id
-  description: Requirement identifier (11.5, Article 32, AC-3, etc.).
-  example: '11.5'
-  flat_name: compliance.requirement.id
-  ignore_above: 1024
-  level: custom
-  name: compliance.requirement.id
-  normalize: []
-  short: Requirement identifier (11.5, Article 32, AC-3, etc.).
-  type: keyword
-compliance.requirement.title:
-  dashed_name: compliance-requirement-title
-  description: Human-readable requirement title.
-  example: Rotate cryptographic keys
-  flat_name: compliance.requirement.title
-  level: custom
-  name: compliance.requirement.title
-  normalize: []
-  short: Human-readable requirement title.
-  type: match_only_text
-compliance.version:
-  dashed_name: compliance-version
-  description: Framework version (4.0, 2018, 5.1, etc.).
-  example: '3.2'
-  flat_name: compliance.version
-  ignore_above: 1024
-  level: custom
-  name: compliance.version
-  normalize: []
-  short: Framework version (4.0, 2018, 5.1, etc.).
   type: keyword
 container.cpu.usage:
   dashed_name: container-cpu-usage

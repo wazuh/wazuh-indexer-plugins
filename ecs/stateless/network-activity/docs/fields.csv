@@ -1,6 +1,5 @@
 ECS_Version,Indexed,Field_Set,Field,Type,Level,Normalization,Example,Description
 9.1.0,true,base,@timestamp,date,core,,2016-05-23T08:05:34.853Z,Date/time when the event originated.
-9.1.0,true,base,compliance,nested,custom,,,Array of compliance objects to support multiple frameworks per event.
 9.1.0,true,base,icmp,object,custom,,,An object containing Internet Control Message Protocol (ICMP) related information.
 9.1.0,true,base,igmp,object,custom,,,An object containing Internet Group Management Protocol (IGMP) related information.
 9.1.0,true,base,message,keyword,core,,Hello World,Log message optimized for viewing in a log viewer.
@@ -70,7 +69,24 @@ ECS_Version,Indexed,Field_Set,Field,Type,Level,Normalization,Example,Description
 9.1.0,true,agent,agent.name,keyword,core,,foo,Custom name of the agent.
 9.1.0,true,agent,agent.type,keyword,core,,filebeat,Type of the agent.
 9.1.0,true,agent,agent.version,keyword,core,,6.0.0-rc2,Version of the agent.
-9.1.0,true,check,check.compliance,keyword,custom,array,"[""cis:1.1.1"",""cis_csc:5.2""]",CIS compliance standard.
+9.1.0,true,check,check.compliance.category,keyword,custom,,payment-security,"Framework category (payment-security, data-protection, etc.)."
+9.1.0,true,check,check.compliance.cmmc,keyword,custom,array,,CMMC compliance.
+9.1.0,true,check,check.compliance.fedramp,keyword,custom,array,,FedRAMP compliance.
+9.1.0,true,check,check.compliance.gdpr,keyword,custom,array,,GDPR compliance.
+9.1.0,true,check,check.compliance.hipaa,keyword,custom,array,,HIPAA compliance.
+9.1.0,true,check,check.compliance.iso_27001,keyword,custom,array,,ISO 27001 compliance.
+9.1.0,true,check,check.compliance.mitre_attack,keyword,custom,array,,MITRE ATT&CK compliance.
+9.1.0,true,check,check.compliance.name,keyword,custom,,PCI DSS,"Framework name (PCI DSS, GDPR, NIST 800-53, etc.)."
+9.1.0,true,check,check.compliance.nis2,keyword,custom,array,,NIS2 compliance.
+9.1.0,true,check,check.compliance.nist_800_171,keyword,custom,array,,NIST 800-171 compliance.
+9.1.0,true,check,check.compliance.nist_800_53,keyword,custom,array,,NIST 800-53 compliance.
+9.1.0,true,check,check.compliance.pci_dss,keyword,custom,array,,PCI DSS compliance.
+9.1.0,true,check,check.compliance.publisher,keyword,custom,,PCI Security Standards Council,Organization that published the framework.
+9.1.0,true,check,check.compliance.requirement.description,match_only_text,custom,,The organization must rotate encryption keys every 90 days.,Full requirement description.
+9.1.0,true,check,check.compliance.requirement.id,keyword,custom,,11.5,"Requirement identifier (11.5, Article 32, AC-3, etc.)."
+9.1.0,true,check,check.compliance.requirement.title,match_only_text,custom,,Rotate cryptographic keys,Human-readable requirement title.
+9.1.0,true,check,check.compliance.tsc,keyword,custom,array,,TSC compliance.
+9.1.0,true,check,check.compliance.version,keyword,custom,,3.2,"Framework version (4.0, 2018, 5.1, etc.)."
 9.1.0,true,check,check.condition,keyword,custom,,all,Relationship between the rules.
 9.1.0,true,check,check.description,keyword,custom,,"""The password history setting determines the number of unique new passwords a user must use before an old password can be reused.""",Extended description of the check.
 9.1.0,true,check,check.id,keyword,custom,,26000,The ID of the SCA policy check.
@@ -497,13 +513,6 @@ ECS_Version,Indexed,Field_Set,Field,Type,Level,Normalization,Example,Description
 9.1.0,true,cloud,cloud.target.provider,keyword,extended,,aws,Name of the cloud provider.
 9.1.0,true,cloud,cloud.target.region,keyword,extended,,us-east-1,"Region in which this host, resource, or service is located."
 9.1.0,true,cloud,cloud.target.service.name,keyword,extended,,lambda,The cloud service name.
-9.1.0,true,compliance,compliance.category,keyword,custom,,payment-security,"Framework category (payment-security, data-protection, etc.)."
-9.1.0,true,compliance,compliance.name,keyword,custom,,PCI DSS,"Framework name (PCI DSS, GDPR, NIST 800-53, etc.)."
-9.1.0,true,compliance,compliance.publisher,keyword,custom,,PCI Security Standards Council,Organization that published the framework.
-9.1.0,true,compliance,compliance.requirement.description,match_only_text,custom,,The organization must rotate encryption keys every 90 days.,Full requirement description.
-9.1.0,true,compliance,compliance.requirement.id,keyword,custom,,11.5,"Requirement identifier (11.5, Article 32, AC-3, etc.)."
-9.1.0,true,compliance,compliance.requirement.title,match_only_text,custom,,Rotate cryptographic keys,Human-readable requirement title.
-9.1.0,true,compliance,compliance.version,keyword,custom,,3.2,"Framework version (4.0, 2018, 5.1, etc.)."
 9.1.0,true,container,container.cpu.usage,scaled_float,extended,,,"Percent CPU used, between 0 and 1."
 9.1.0,true,container,container.disk.read.bytes,long,extended,,,The number of bytes read by all disks.
 9.1.0,true,container,container.disk.write.bytes,long,extended,,,The number of bytes written on all disks.
