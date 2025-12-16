@@ -609,10 +609,11 @@ public class CatalogSyncJob implements JobExecutor {
 
     /**
      * Add all the hashes of the same resource type in the given integration to the spaceHashes array.
-     * @param integration integration to walk
-     * @param resource resource type (rule, decoder, kvdb)
+     *
+     * @param integration   integration to walk
+     * @param resource      resource type (rule, decoder, kvdb)
      * @param resourceIndex resouce index
-     * @param spaceHashes space hashes array
+     * @param spaceHashes   space hashes array
      */
     private void addHashes(Map<String, Object> integration, String resource, String resourceIndex, List<String> spaceHashes) {
         if (integration.containsKey(resource)) {
@@ -635,8 +636,7 @@ public class CatalogSyncJob implements JobExecutor {
             GetResponse response = this.client.prepareGet(index, id).get();
             if (response.isExists()) {
                 return response.getSourceAsMap();
-            }
-            else{
+            } else {
                 log.info("Document [{}] not found in index [{}]", id, index);
             }
         } catch (Exception e) {
