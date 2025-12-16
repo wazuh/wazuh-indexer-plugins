@@ -94,21 +94,3 @@ jobs:
           name: ${{ inputs.plugin }}-${{ steps.version.outputs.version }}.${{ inputs.revision }}.zip
           path: plugins/${{ inputs.plugin }}/build/distributions/wazuh-indexer-${{ inputs.plugin }}-${{ steps.version.outputs.version }}.${{ inputs.revision }}.zip
           if-no-files-found: error
-
-  branches:
-    runs-on: ubuntu-24.04
-    outputs:
-      wazuh_plugins_ref: ${{ steps.branches.outputs.wazuh_indexer_plugins_branch }}
-      reporting_plugin_ref:
-        ${{ steps.branches.outputs.wazuh_indexer_reporting_branch
-        }}
-      security_analytics_plugin_ref:
-        ${{ steps.branches.outputs.wazuh_indexer_security_analytics_branch
-        }}
-    steps:
-      - uses: actions/checkout@v5
-      - name: Resolve branches
-        id: branches
-        uses: ./.github/actions/5_builderpackage_indexer_branch_resolver
-        with:
-          branch: ${{ inputs.plugins_ref }}
