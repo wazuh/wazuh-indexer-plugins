@@ -79,17 +79,17 @@ jobs:
         with:
           repository: wazuh/wazuh-indexer-security-analytics
           ref: ${{ inputs.sap-ref }}
-          path: ../sap-repo
+          path: sap-repo
 
       - name: Publish commons library to mavenLocal
-        working-directory: ../sap-repo/commons
+        working-directory: sap-repo/commons
         run: |
           ../gradlew publishToMavenLocal -x check \
             -Dversion=${{ steps.version.outputs.version }} \
             -Drevision=${{ inputs.revision }}
 
       - name: Publish Security Analytics plugin zip to mavenLocal
-        working-directory: ../sap-repo
+        working-directory: sap-repo
         run: |
           ./gradlew publishToMavenLocal -x check \
             -Dversion=${{ steps.version.outputs.version }} \
