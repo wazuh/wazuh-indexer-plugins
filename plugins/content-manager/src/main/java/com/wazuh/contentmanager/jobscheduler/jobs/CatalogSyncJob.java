@@ -121,13 +121,11 @@ public class CatalogSyncJob implements JobExecutor {
 
     /**
      * Attempts to trigger the synchronization process manually.
-     *
-     * @return true if the job was successfully started, false if it is already running.
      */
-    public boolean trigger() {
+    public void trigger() {
         if (!this.semaphore.tryAcquire()) {
             log.warn("Attempted to trigger CatalogSyncJob manually while it is already running.");
-            return false;
+            return;
         }
         this.threadPool.generic().execute(() -> {
             try {
@@ -140,7 +138,6 @@ public class CatalogSyncJob implements JobExecutor {
             }
         });
 
-        return true;
     }
 
     /**

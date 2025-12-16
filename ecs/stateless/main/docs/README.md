@@ -1,8 +1,8 @@
-## `wazuh-alerts-v5` time series index
+## Wazuh template for stateless indices
 
-The `wazuh-alerts-*` indices store events received from monitored endpoints that trigger alerts when they match a detection rule.
+This is the **base template** for all stateless indices. It contains the complete set of Elastic Common Schema (ECS) fields and serves as the foundation to avoid duplication across other stateless index types.
 
-This is a time-based (stateless) index. The `wazuh-archives-v5` index uses the same mappings and settings. The template is generated programatically off the `wazuh-alerts-v5` index.
+All other stateless index templates inherit and reference the field definitions from this template to maintain consistency and reduce redundancy across the creation of the indices process.
 
 ### Fields summary
 
