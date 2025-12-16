@@ -71,10 +71,12 @@ jobs:
         uses: gradle/actions/setup-gradle@v5
 
       - name: Get version
+        if: inputs.plugin == 'content-manager'
         id: version
         run: echo "version=$(jq -r .version<VERSION.json)" >> "$GITHUB_OUTPUT"
 
       - name: Clone Security Analytics repository
+        if: inputs.plugin == 'content-manager'
         uses: actions/checkout@v6
         with:
           repository: wazuh/wazuh-indexer-security-analytics
@@ -82,6 +84,7 @@ jobs:
           path: sap-repo
 
       - name: Publish commons library to mavenLocal
+        if: inputs.plugin == 'content-manager'
         working-directory: sap-repo/commons
         run: |
           ../gradlew publishToMavenLocal -x check \
@@ -89,6 +92,7 @@ jobs:
             -Drevision=${{ inputs.revision }}
 
       - name: Publish Security Analytics plugin zip to mavenLocal
+        if: inputs.plugin == 'content-manager'
         working-directory: sap-repo
         run: |
           ./gradlew publishToMavenLocal -x check \
