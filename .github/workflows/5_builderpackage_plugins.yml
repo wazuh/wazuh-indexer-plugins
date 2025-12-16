@@ -15,6 +15,10 @@ on:
         description: "Name of the plugin to build"
         type: string
         default: "setup"
+      sap-ref:
+        description: "Security Analytics ref to checkout"
+        type: string
+        default: "main"
       id:
         description: "ID used to identify the workflow uniquely."
         type: string
