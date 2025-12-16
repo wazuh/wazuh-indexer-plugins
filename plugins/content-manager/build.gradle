@@ -96,14 +96,12 @@ dependencies {
   compileOnly 'com.fasterxml.jackson.core:jackson-annotations:2.18.2'
   compileOnly 'com.fasterxml.jackson.dataformat:jackson-dataformat-yaml:2.18.2'
 
-  // compileOnly files('./lib/wazuh-indexer-security-analytics-commons.jar')
   compileOnly group: 'com.wazuh', name: 'wazuh-indexer-common', version: "${version}"
   // ZipArchive dependencies used for integration tests
   zipArchive group: 'org.opensearch.plugin', name: 'opensearch-job-scheduler', version: "${opensearch_build}"
   compileOnly "org.opensearch:opensearch-job-scheduler-spi:${job_scheduler_version}"
 
   zipArchive group: 'org.opensearch.plugin', name:'alerting', version: "${opensearch_build}" // Dependency of SAP
-  //zipArchive files('lib/wazuh-indexer-security-analytics-5. 0.0.0.zip')
   zipArchive group: 'org.opensearch', name: 'wazuh-indexer-security-analytics', version: "${version}"
 
 }
@@ -162,32 +160,6 @@ integTest {
 
 testClusters.integTest {
   systemProperty "INDEXER_TEST_ENV", "true"
-  /*
-  // Installs all registered zipArchive dependencies on integTest cluster nodes
-  def resolvePlugin = { String fileNameFragment ->
-    provider(new Callable<RegularFile>() {
-      @Override
-      RegularFile call() throws Exception {
-        return new RegularFile() {
-          @Override
-          File getAsFile() {
-            def file = configurations.zipArchive.find { it.name.contains(fileNameFragment) }
-            if (file == null) {
-              throw new GradleException("Could not find plugin containing '${fileNameFragment}' in zipArchive configuration.")
-            }
-            return file
-          }
-        }
-      }
-    })
-  }
-
-  testDistribution = "ARCHIVE"
-  plugin(resolvePlugin("opensearch-job-scheduler"))
-  plugin resolvePlugin('alerting')
-  plugin(resolvePlugin("wazuh-indexer-security-analytics"))
-  plugin(project.tasks.bundlePlugin.archiveFile)
-  */
 
   // Installs all registered zipArchive dependencies on integTest cluster nodes
   configurations.zipArchive.asFileTree.each {
