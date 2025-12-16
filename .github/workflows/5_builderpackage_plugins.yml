@@ -29,6 +29,10 @@ on:
         description: "Name of the plugin to build"
         type: string
         default: "setup"
+      sap-ref:
+        description: "Security Analytics ref to checkout"
+        type: string
+        default: "main"
       id:
         description: "ID used to identify the workflow uniquely."
         type: string
@@ -67,8 +71,11 @@ jobs:
         run: echo "version=$(jq -r .version<VERSION.json)" >> "$GITHUB_OUTPUT"
 
       - name: Clone Security Analytics repository
-        run: |
-          git clone https://github.com/wazuh/wazuh-indexer-security-analytics.git ../sap-repo
+        uses: actions/checkout@v6
+        with:
+          repository: wazuh/wazuh-indexer-security-analytics
+          ref: ${{ inputs.sap-ref }}
+          path: sap-repo
 
       - name: Publish commons library to mavenLocal
         working-directory: ../sap-repo/commons
