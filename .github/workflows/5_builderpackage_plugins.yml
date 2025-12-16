@@ -76,3 +76,91 @@ jobs:
           name: ${{ inputs.plugin }}-${{ steps.version.outputs.version }}.${{ inputs.revision }}.zip
           path: plugins/${{ inputs.plugin }}/build/distributions/wazuh-indexer-${{ inputs.plugin }}-${{ steps.version.outputs.version }}.${{ inputs.revision }}.zip
           if-no-files-found: error
+
+  branches:
+    runs-on: ubuntu-24.04
+    outputs:
+      wazuh_plugins_ref: ${{ steps.branches.outputs.wazuh_indexer_plugins_branch }}
+      reporting_plugin_ref:
+        ${{ steps.branches.outputs.wazuh_indexer_reporting_branch
+        }}
+      security_analytics_plugin_ref:
+        ${{ steps.branches.outputs.wazuh_indexer_security_analytics_branch
+        }}
+    steps:
+      - uses: actions/checkout@v5
+      - name: Resolve branches
+        id: branches
+        uses: ./.github/actions/5_builderpackage_indexer_branch_resolver
+        with:
+          branch: ${{ inputs.plugins_ref }}
+
+  compatibility-check:
+    runs-on: ubuntu-24.04
+    needs:
+      - get-versions-wazuh-indexer
+      - get-versions-wazuh-indexer-plugins
+      - get-versions-wazuh-indexer-reporting
+      - get-versions-wazuh-indexer-security-analytics
+    steps:
+      - name: Check version compatibility
+        run:
+          "if [[ (\"${{ needs.get-versions-wazuh-indexer.outputs.version }}\" != \"\
+          ${{ needs.get-versions-wazuh-indexer-plugins.outputs.version }}\") || (\"${{\
+          \ needs.get-versions-wazuh-indexer.outputs.version }}\" != \"${{ needs.get-versions-wazuh-indexer-reporting.outputs.version\
+          \ }}\") || (\"${{ needs.get-versions-wazuh-indexer.outputs.version }}\" != \"\
+          ${{ needs.get-versions-wazuh-indexer-security-analytics.outputs.version }}\"\
+          ) ]]; then\n  echo \"The Wazuh Indexer version is not compatible with the plugins,\
+          \ reporting, or security analytics version.\"\n  exit 1\nelif [[ (\"${{ needs.get-versions-wazuh-indexer.outputs.opensearch_version\
+          \ }}\" != \"${{ needs.get-versions-wazuh-indexer-plugins.outputs.opensearch_version\
+          \ }}\") || (\"${{ needs.get-versions-wazuh-indexer.outputs.opensearch_version\
+          \ }}\" != \"${{ needs.get-versions-wazuh-indexer-reporting.outputs.opensearch_version\
+          \ }}\") || (\"${{ needs.get-versions-wazuh-indexer.outputs.opensearch_version\
+          \ }}\" != \"${{ needs.get-versions-wazuh-indexer-security-analytics.outputs.opensearch_version\
+          \ }}\") ]]; then\n  echo \"The Wazuh Indexer Opensearch version is not compatible\
+          \ with the plugins, reporting, or security analytics Opensearch version.\"\n\
+          \  exit 1\nelse\n  echo \"The Wazuh Indexer version and the plugins version\
+          \ are compatible.\"\n  exit 0\nfi\n"
+
+  build-security-analytics-plugin:
+    needs:
+      - compatibility-check
+      - branches
+    if: ${{ needs.branches.outputs.security_analytics_plugin_ref != '' }}
+    runs-on: ubuntu-24.04
+    outputs:
+      hash: ${{ steps.save-hash.outputs.hash }}
+    env:
+      plugin_name: wazuh-indexer-security-analytics
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          repository: wazuh/wazuh-indexer-security-analytics
+          ref: ${{ needs.branches.outputs.security_analytics_plugin_ref }}
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: 21
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v4
+      - name: Get version
+        id: version
+        run: echo "version=$(jq .version -r VERSION.json)" >> "$GITHUB_OUTPUT"
+      - name: Build with Gradle
+        run:
+          ./gradlew build -x integTest -Dversion=${{ steps.version.outputs.version
+          }} -Drevision=${{ inputs.revision }}
+      - run: ls -lR build/distributions
+      - name: Save commit hash
+        id: save-hash
+        run: echo "hash=$(git rev-parse --short HEAD)" >> "$GITHUB_OUTPUT"
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name:
+            ${{ env.plugin_name }}-${{ steps.version.outputs.version }}.${{ inputs.revision
+            }}.zip
+          path:
+            build/distributions/${{ env.plugin_name }}-${{ steps.version.outputs.version
+            }}.${{ inputs.revision }}.zip
+          if-no-files-found: error
