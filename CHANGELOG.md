@@ -41,6 +41,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Implement space-wide content management [(#684)](https://github.com/wazuh/wazuh-indexer-plugins/pull/684)
 - Implement hash of hashes calculation [(#686)](https://github.com/wazuh/wazuh-indexer-plugins/pull/686)
 - Import new content to the Security Analytics plugin [(#690)](https://github.com/wazuh/wazuh-indexer-plugins/pull/690)
+- Initialize content on plugin startup [(#696)](https://github.com/wazuh/wazuh-indexer-plugins/pull/696)
 
 ### Dependencies
 - Upgrade to Gradle 8.14.3 [(#649)](https://github.com/wazuh/wazuh-indexer-plugins/pull/649)

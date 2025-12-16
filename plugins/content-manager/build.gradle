@@ -156,6 +156,8 @@ integTest {
 }
 
 testClusters.integTest {
+  systemProperty "INDEXER_TEST_ENV", "true"
+  
   // Installs all registered zipArchive dependencies on integTest cluster nodes
   def resolvePlugin = { String fileNameFragment ->
     provider(new Callable<RegularFile>() {
