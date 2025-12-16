@@ -87,6 +87,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Fix WCS generator modules detection issues [(#620)](https://github.com/wazuh/wazuh-indexer-plugins/pull/620)
 - Fix verify_integrations script to read the integrations from module_list.txt [(#640)](https://github.com/wazuh/wazuh-indexer-plugins/pull/640)
 - Remove ECS fields from gcp's custom fields definition [(#675)](https://github.com/wazuh/wazuh-indexer-plugins/pull/675)
+- Fix `mdbook-mermaid` build errors [(#699)](https://github.com/wazuh/wazuh-indexer-plugins/pull/699)
 
 ### Security
 - Reduce risk of GITHUB_TOKEN exposure [(#484)](https://github.com/wazuh/wazuh-indexer-plugins/pull/484)
