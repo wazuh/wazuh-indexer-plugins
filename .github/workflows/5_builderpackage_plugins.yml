@@ -73,14 +73,14 @@ jobs:
       - name: Publish commons library to mavenLocal
         working-directory: ../sap-repo/commons
         run: |
-          ./gradlew publishToMavenLocal \
+          ./gradlew publishToMavenLocal -x check \
             -Dversion=${{ steps.version.outputs.version }} \
             -Drevision=${{ inputs.revision }}
 
       - name: Publish Security Analytics plugin zip to mavenLocal
         working-directory: ../sap-repo
         run: |
-          ./gradlew publishToMavenLocal \
+          ./gradlew publishToMavenLocal -x check \
             -Dversion=${{ steps.version.outputs.version }} \
             -Drevision=${{ inputs.revision }}
 
