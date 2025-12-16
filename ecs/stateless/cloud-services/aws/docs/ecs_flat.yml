@@ -8054,207 +8054,620 @@ aws_bedrock.invocation.user.id:
   normalize: []
   short: The identifier of the user or principal making the AI model request.
   type: keyword
-check.compliance.category:
-  dashed_name: check-compliance-category
+check.compliance.cmmc.category:
+  dashed_name: check-compliance-cmmc-category
   description: Framework category (payment-security, data-protection, etc.).
-  example: payment-security
-  flat_name: check.compliance.category
+  flat_name: check.compliance.cmmc.category
   ignore_above: 1024
   level: custom
   name: category
   normalize: []
-  original_fieldset: compliance
+  original_fieldset: compliance_frameworks
   short: Framework category (payment-security, data-protection, etc.).
   type: keyword
-check.compliance.cmmc:
-  dashed_name: check-compliance-cmmc
-  description: CMMC compliance.
-  flat_name: check.compliance.cmmc
-  ignore_above: 1024
-  level: custom
-  name: cmmc
-  normalize: []
-  original_fieldset: compliance
-  short: CMMC compliance.
-  type: keyword
-check.compliance.fedramp:
-  dashed_name: check-compliance-fedramp
-  description: FedRAMP compliance.
-  flat_name: check.compliance.fedramp
-  ignore_above: 1024
-  level: custom
-  name: fedramp
-  normalize: []
-  original_fieldset: compliance
-  short: FedRAMP compliance.
-  type: keyword
-check.compliance.gdpr:
-  dashed_name: check-compliance-gdpr
-  description: GDPR compliance.
-  flat_name: check.compliance.gdpr
-  ignore_above: 1024
-  level: custom
-  name: gdpr
-  normalize: []
-  original_fieldset: compliance
-  short: GDPR compliance.
-  type: keyword
-check.compliance.hipaa:
-  dashed_name: check-compliance-hipaa
-  description: HIPAA compliance.
-  flat_name: check.compliance.hipaa
-  ignore_above: 1024
-  level: custom
-  name: hipaa
-  normalize: []
-  original_fieldset: compliance
-  short: HIPAA compliance.
-  type: keyword
-check.compliance.iso_27001:
-  dashed_name: check-compliance-iso-27001
-  description: ISO 27001 compliance.
-  flat_name: check.compliance.iso_27001
-  ignore_above: 1024
-  level: custom
-  name: iso_27001
-  normalize: []
-  original_fieldset: compliance
-  short: ISO 27001 compliance.
-  type: keyword
-check.compliance.mitre_attack:
-  dashed_name: check-compliance-mitre-attack
-  description: MITRE ATT&CK compliance.
-  flat_name: check.compliance.mitre_attack
-  ignore_above: 1024
-  level: custom
-  name: mitre_attack
-  normalize: []
-  original_fieldset: compliance
-  short: MITRE ATT&CK compliance.
-  type: keyword
-check.compliance.name:
-  dashed_name: check-compliance-name
+check.compliance.cmmc.name:
+  dashed_name: check-compliance-cmmc-name
   description: Framework name (PCI DSS, GDPR, NIST 800-53, etc.).
-  example: PCI DSS
-  flat_name: check.compliance.name
+  flat_name: check.compliance.cmmc.name
   ignore_above: 1024
   level: custom
   name: name
   normalize: []
-  original_fieldset: compliance
+  original_fieldset: compliance_frameworks
   short: Framework name (PCI DSS, GDPR, NIST 800-53, etc.).
   type: keyword
-check.compliance.nis2:
-  dashed_name: check-compliance-nis2
-  description: NIS2 compliance.
-  flat_name: check.compliance.nis2
-  ignore_above: 1024
-  level: custom
-  name: nis2
-  normalize: []
-  original_fieldset: compliance
-  short: NIS2 compliance.
-  type: keyword
-check.compliance.nist_800_171:
-  dashed_name: check-compliance-nist-800-171
-  description: NIST 800-171 compliance.
-  flat_name: check.compliance.nist_800_171
-  ignore_above: 1024
-  level: custom
-  name: nist_800_171
-  normalize: []
-  original_fieldset: compliance
-  short: NIST 800-171 compliance.
-  type: keyword
-check.compliance.nist_800_53:
-  dashed_name: check-compliance-nist-800-53
-  description: NIST 800-53 compliance.
-  flat_name: check.compliance.nist_800_53
-  ignore_above: 1024
-  level: custom
-  name: nist_800_53
-  normalize: []
-  original_fieldset: compliance
-  short: NIST 800-53 compliance.
-  type: keyword
-check.compliance.pci_dss:
-  dashed_name: check-compliance-pci-dss
-  description: PCI DSS compliance.
-  flat_name: check.compliance.pci_dss
-  ignore_above: 1024
-  level: custom
-  name: pci_dss
-  normalize: []
-  original_fieldset: compliance
-  short: PCI DSS compliance.
-  type: keyword
-check.compliance.publisher:
-  dashed_name: check-compliance-publisher
+check.compliance.cmmc.publisher:
+  dashed_name: check-compliance-cmmc-publisher
   description: Organization that published the framework.
-  example: PCI Security Standards Council
-  flat_name: check.compliance.publisher
+  flat_name: check.compliance.cmmc.publisher
   ignore_above: 1024
   level: custom
   name: publisher
   normalize: []
-  original_fieldset: compliance
+  original_fieldset: compliance_frameworks
   short: Organization that published the framework.
   type: keyword
-check.compliance.requirement.description:
-  dashed_name: check-compliance-requirement-description
-  description: Full requirement description.
-  example: The organization must rotate encryption keys every 90 days.
-  flat_name: check.compliance.requirement.description
-  level: custom
-  name: requirement.description
-  normalize: []
-  original_fieldset: compliance
-  short: Full requirement description.
-  type: match_only_text
-check.compliance.requirement.id:
-  dashed_name: check-compliance-requirement-id
+check.compliance.cmmc.requirements:
+  dashed_name: check-compliance-cmmc-requirements
   description: Requirement identifier (11.5, Article 32, AC-3, etc.).
-  example: '11.5'
-  flat_name: check.compliance.requirement.id
+  flat_name: check.compliance.cmmc.requirements
   ignore_above: 1024
   level: custom
-  name: requirement.id
-  normalize: []
-  original_fieldset: compliance
+  name: requirements
+  normalize:
+  - array
+  original_fieldset: compliance_frameworks
   short: Requirement identifier (11.5, Article 32, AC-3, etc.).
   type: keyword
-check.compliance.requirement.title:
-  dashed_name: check-compliance-requirement-title
-  description: Human-readable requirement title.
-  example: Rotate cryptographic keys
-  flat_name: check.compliance.requirement.title
-  level: custom
-  name: requirement.title
-  normalize: []
-  original_fieldset: compliance
-  short: Human-readable requirement title.
-  type: match_only_text
-check.compliance.tsc:
-  dashed_name: check-compliance-tsc
-  description: TSC compliance.
-  flat_name: check.compliance.tsc
-  ignore_above: 1024
-  level: custom
-  name: tsc
-  normalize: []
-  original_fieldset: compliance
-  short: TSC compliance.
-  type: keyword
-check.compliance.version:
-  dashed_name: check-compliance-version
+check.compliance.cmmc.version:
+  dashed_name: check-compliance-cmmc-version
   description: Framework version (4.0, 2018, 5.1, etc.).
-  example: '3.2'
-  flat_name: check.compliance.version
+  flat_name: check.compliance.cmmc.version
   ignore_above: 1024
   level: custom
   name: version
   normalize: []
-  original_fieldset: compliance
+  original_fieldset: compliance_frameworks
+  short: Framework version (4.0, 2018, 5.1, etc.).
+  type: keyword
+check.compliance.fedramp.category:
+  dashed_name: check-compliance-fedramp-category
+  description: Framework category (payment-security, data-protection, etc.).
+  flat_name: check.compliance.fedramp.category
+  ignore_above: 1024
+  level: custom
+  name: category
+  normalize: []
+  original_fieldset: compliance_frameworks
+  short: Framework category (payment-security, data-protection, etc.).
+  type: keyword
+check.compliance.fedramp.name:
+  dashed_name: check-compliance-fedramp-name
+  description: Framework name (PCI DSS, GDPR, NIST 800-53, etc.).
+  flat_name: check.compliance.fedramp.name
+  ignore_above: 1024
+  level: custom
+  name: name
+  normalize: []
+  original_fieldset: compliance_frameworks
+  short: Framework name (PCI DSS, GDPR, NIST 800-53, etc.).
+  type: keyword
+check.compliance.fedramp.publisher:
+  dashed_name: check-compliance-fedramp-publisher
+  description: Organization that published the framework.
+  flat_name: check.compliance.fedramp.publisher
+  ignore_above: 1024
+  level: custom
+  name: publisher
+  normalize: []
+  original_fieldset: compliance_frameworks
+  short: Organization that published the framework.
+  type: keyword
+check.compliance.fedramp.requirements:
+  dashed_name: check-compliance-fedramp-requirements
+  description: Requirement identifier (11.5, Article 32, AC-3, etc.).
+  flat_name: check.compliance.fedramp.requirements
+  ignore_above: 1024
+  level: custom
+  name: requirements
+  normalize:
+  - array
+  original_fieldset: compliance_frameworks
+  short: Requirement identifier (11.5, Article 32, AC-3, etc.).
+  type: keyword
+check.compliance.fedramp.version:
+  dashed_name: check-compliance-fedramp-version
+  description: Framework version (4.0, 2018, 5.1, etc.).
+  flat_name: check.compliance.fedramp.version
+  ignore_above: 1024
+  level: custom
+  name: version
+  normalize: []
+  original_fieldset: compliance_frameworks
+  short: Framework version (4.0, 2018, 5.1, etc.).
+  type: keyword
+check.compliance.gdpr.category:
+  dashed_name: check-compliance-gdpr-category
+  description: Framework category (payment-security, data-protection, etc.).
+  flat_name: check.compliance.gdpr.category
+  ignore_above: 1024
+  level: custom
+  name: category
+  normalize: []
+  original_fieldset: compliance_frameworks
+  short: Framework category (payment-security, data-protection, etc.).
+  type: keyword
+check.compliance.gdpr.name:
+  dashed_name: check-compliance-gdpr-name
+  description: Framework name (PCI DSS, GDPR, NIST 800-53, etc.).
+  flat_name: check.compliance.gdpr.name
+  ignore_above: 1024
+  level: custom
+  name: name
+  normalize: []
+  original_fieldset: compliance_frameworks
+  short: Framework name (PCI DSS, GDPR, NIST 800-53, etc.).
+  type: keyword
+check.compliance.gdpr.publisher:
+  dashed_name: check-compliance-gdpr-publisher
+  description: Organization that published the framework.
+  flat_name: check.compliance.gdpr.publisher
+  ignore_above: 1024
+  level: custom
+  name: publisher
+  normalize: []
+  original_fieldset: compliance_frameworks
+  short: Organization that published the framework.
+  type: keyword
+check.compliance.gdpr.requirements:
+  dashed_name: check-compliance-gdpr-requirements
+  description: Requirement identifier (11.5, Article 32, AC-3, etc.).
+  flat_name: check.compliance.gdpr.requirements
+  ignore_above: 1024
+  level: custom
+  name: requirements
+  normalize:
+  - array
+  original_fieldset: compliance_frameworks
+  short: Requirement identifier (11.5, Article 32, AC-3, etc.).
+  type: keyword
+check.compliance.gdpr.version:
+  dashed_name: check-compliance-gdpr-version
+  description: Framework version (4.0, 2018, 5.1, etc.).
+  flat_name: check.compliance.gdpr.version
+  ignore_above: 1024
+  level: custom
+  name: version
+  normalize: []
+  original_fieldset: compliance_frameworks
+  short: Framework version (4.0, 2018, 5.1, etc.).
+  type: keyword
+check.compliance.hipaa.category:
+  dashed_name: check-compliance-hipaa-category
+  description: Framework category (payment-security, data-protection, etc.).
+  flat_name: check.compliance.hipaa.category
+  ignore_above: 1024
+  level: custom
+  name: category
+  normalize: []
+  original_fieldset: compliance_frameworks
+  short: Framework category (payment-security, data-protection, etc.).
+  type: keyword
+check.compliance.hipaa.name:
+  dashed_name: check-compliance-hipaa-name
+  description: Framework name (PCI DSS, GDPR, NIST 800-53, etc.).
+  flat_name: check.compliance.hipaa.name
+  ignore_above: 1024
+  level: custom
+  name: name
+  normalize: []
+  original_fieldset: compliance_frameworks
+  short: Framework name (PCI DSS, GDPR, NIST 800-53, etc.).
+  type: keyword
+check.compliance.hipaa.publisher:
+  dashed_name: check-compliance-hipaa-publisher
+  description: Organization that published the framework.
+  flat_name: check.compliance.hipaa.publisher
+  ignore_above: 1024
+  level: custom
+  name: publisher
+  normalize: []
+  original_fieldset: compliance_frameworks
+  short: Organization that published the framework.
+  type: keyword
+check.compliance.hipaa.requirements:
+  dashed_name: check-compliance-hipaa-requirements
+  description: Requirement identifier (11.5, Article 32, AC-3, etc.).
+  flat_name: check.compliance.hipaa.requirements
+  ignore_above: 1024
+  level: custom
+  name: requirements
+  normalize:
+  - array
+  original_fieldset: compliance_frameworks
+  short: Requirement identifier (11.5, Article 32, AC-3, etc.).
+  type: keyword
+check.compliance.hipaa.version:
+  dashed_name: check-compliance-hipaa-version
+  description: Framework version (4.0, 2018, 5.1, etc.).
+  flat_name: check.compliance.hipaa.version
+  ignore_above: 1024
+  level: custom
+  name: version
+  normalize: []
+  original_fieldset: compliance_frameworks
+  short: Framework version (4.0, 2018, 5.1, etc.).
+  type: keyword
+check.compliance.iso_27001.category:
+  dashed_name: check-compliance-iso-27001-category
+  description: Framework category (payment-security, data-protection, etc.).
+  flat_name: check.compliance.iso_27001.category
+  ignore_above: 1024
+  level: custom
+  name: category
+  normalize: []
+  original_fieldset: compliance_frameworks
+  short: Framework category (payment-security, data-protection, etc.).
+  type: keyword
+check.compliance.iso_27001.name:
+  dashed_name: check-compliance-iso-27001-name
+  description: Framework name (PCI DSS, GDPR, NIST 800-53, etc.).
+  flat_name: check.compliance.iso_27001.name
+  ignore_above: 1024
+  level: custom
+  name: name
+  normalize: []
+  original_fieldset: compliance_frameworks
+  short: Framework name (PCI DSS, GDPR, NIST 800-53, etc.).
+  type: keyword
+check.compliance.iso_27001.publisher:
+  dashed_name: check-compliance-iso-27001-publisher
+  description: Organization that published the framework.
+  flat_name: check.compliance.iso_27001.publisher
+  ignore_above: 1024
+  level: custom
+  name: publisher
+  normalize: []
+  original_fieldset: compliance_frameworks
+  short: Organization that published the framework.
+  type: keyword
+check.compliance.iso_27001.requirements:
+  dashed_name: check-compliance-iso-27001-requirements
+  description: Requirement identifier (11.5, Article 32, AC-3, etc.).
+  flat_name: check.compliance.iso_27001.requirements
+  ignore_above: 1024
+  level: custom
+  name: requirements
+  normalize:
+  - array
+  original_fieldset: compliance_frameworks
+  short: Requirement identifier (11.5, Article 32, AC-3, etc.).
+  type: keyword
+check.compliance.iso_27001.version:
+  dashed_name: check-compliance-iso-27001-version
+  description: Framework version (4.0, 2018, 5.1, etc.).
+  flat_name: check.compliance.iso_27001.version
+  ignore_above: 1024
+  level: custom
+  name: version
+  normalize: []
+  original_fieldset: compliance_frameworks
+  short: Framework version (4.0, 2018, 5.1, etc.).
+  type: keyword
+check.compliance.mitre_attack.category:
+  dashed_name: check-compliance-mitre-attack-category
+  description: Framework category (payment-security, data-protection, etc.).
+  flat_name: check.compliance.mitre_attack.category
+  ignore_above: 1024
+  level: custom
+  name: category
+  normalize: []
+  original_fieldset: compliance_frameworks
+  short: Framework category (payment-security, data-protection, etc.).
+  type: keyword
+check.compliance.mitre_attack.name:
+  dashed_name: check-compliance-mitre-attack-name
+  description: Framework name (PCI DSS, GDPR, NIST 800-53, etc.).
+  flat_name: check.compliance.mitre_attack.name
+  ignore_above: 1024
+  level: custom
+  name: name
+  normalize: []
+  original_fieldset: compliance_frameworks
+  short: Framework name (PCI DSS, GDPR, NIST 800-53, etc.).
+  type: keyword
+check.compliance.mitre_attack.publisher:
+  dashed_name: check-compliance-mitre-attack-publisher
+  description: Organization that published the framework.
+  flat_name: check.compliance.mitre_attack.publisher
+  ignore_above: 1024
+  level: custom
+  name: publisher
+  normalize: []
+  original_fieldset: compliance_frameworks
+  short: Organization that published the framework.
+  type: keyword
+check.compliance.mitre_attack.requirements:
+  dashed_name: check-compliance-mitre-attack-requirements
+  description: Requirement identifier (11.5, Article 32, AC-3, etc.).
+  flat_name: check.compliance.mitre_attack.requirements
+  ignore_above: 1024
+  level: custom
+  name: requirements
+  normalize:
+  - array
+  original_fieldset: compliance_frameworks
+  short: Requirement identifier (11.5, Article 32, AC-3, etc.).
+  type: keyword
+check.compliance.mitre_attack.version:
+  dashed_name: check-compliance-mitre-attack-version
+  description: Framework version (4.0, 2018, 5.1, etc.).
+  flat_name: check.compliance.mitre_attack.version
+  ignore_above: 1024
+  level: custom
+  name: version
+  normalize: []
+  original_fieldset: compliance_frameworks
+  short: Framework version (4.0, 2018, 5.1, etc.).
+  type: keyword
+check.compliance.nis2.category:
+  dashed_name: check-compliance-nis2-category
+  description: Framework category (payment-security, data-protection, etc.).
+  flat_name: check.compliance.nis2.category
+  ignore_above: 1024
+  level: custom
+  name: category
+  normalize: []
+  original_fieldset: compliance_frameworks
+  short: Framework category (payment-security, data-protection, etc.).
+  type: keyword
+check.compliance.nis2.name:
+  dashed_name: check-compliance-nis2-name
+  description: Framework name (PCI DSS, GDPR, NIST 800-53, etc.).
+  flat_name: check.compliance.nis2.name
+  ignore_above: 1024
+  level: custom
+  name: name
+  normalize: []
+  original_fieldset: compliance_frameworks
+  short: Framework name (PCI DSS, GDPR, NIST 800-53, etc.).
+  type: keyword
+check.compliance.nis2.publisher:
+  dashed_name: check-compliance-nis2-publisher
+  description: Organization that published the framework.
+  flat_name: check.compliance.nis2.publisher
+  ignore_above: 1024
+  level: custom
+  name: publisher
+  normalize: []
+  original_fieldset: compliance_frameworks
+  short: Organization that published the framework.
+  type: keyword
+check.compliance.nis2.requirements:
+  dashed_name: check-compliance-nis2-requirements
+  description: Requirement identifier (11.5, Article 32, AC-3, etc.).
+  flat_name: check.compliance.nis2.requirements
+  ignore_above: 1024
+  level: custom
+  name: requirements
+  normalize:
+  - array
+  original_fieldset: compliance_frameworks
+  short: Requirement identifier (11.5, Article 32, AC-3, etc.).
+  type: keyword
+check.compliance.nis2.version:
+  dashed_name: check-compliance-nis2-version
+  description: Framework version (4.0, 2018, 5.1, etc.).
+  flat_name: check.compliance.nis2.version
+  ignore_above: 1024
+  level: custom
+  name: version
+  normalize: []
+  original_fieldset: compliance_frameworks
+  short: Framework version (4.0, 2018, 5.1, etc.).
+  type: keyword
+check.compliance.nist_800_171.category:
+  dashed_name: check-compliance-nist-800-171-category
+  description: Framework category (payment-security, data-protection, etc.).
+  flat_name: check.compliance.nist_800_171.category
+  ignore_above: 1024
+  level: custom
+  name: category
+  normalize: []
+  original_fieldset: compliance_frameworks
+  short: Framework category (payment-security, data-protection, etc.).
+  type: keyword
+check.compliance.nist_800_171.name:
+  dashed_name: check-compliance-nist-800-171-name
+  description: Framework name (PCI DSS, GDPR, NIST 800-53, etc.).
+  flat_name: check.compliance.nist_800_171.name
+  ignore_above: 1024
+  level: custom
+  name: name
+  normalize: []
+  original_fieldset: compliance_frameworks
+  short: Framework name (PCI DSS, GDPR, NIST 800-53, etc.).
+  type: keyword
+check.compliance.nist_800_171.publisher:
+  dashed_name: check-compliance-nist-800-171-publisher
+  description: Organization that published the framework.
+  flat_name: check.compliance.nist_800_171.publisher
+  ignore_above: 1024
+  level: custom
+  name: publisher
+  normalize: []
+  original_fieldset: compliance_frameworks
+  short: Organization that published the framework.
+  type: keyword
+check.compliance.nist_800_171.requirements:
+  dashed_name: check-compliance-nist-800-171-requirements
+  description: Requirement identifier (11.5, Article 32, AC-3, etc.).
+  flat_name: check.compliance.nist_800_171.requirements
+  ignore_above: 1024
+  level: custom
+  name: requirements
+  normalize:
+  - array
+  original_fieldset: compliance_frameworks
+  short: Requirement identifier (11.5, Article 32, AC-3, etc.).
+  type: keyword
+check.compliance.nist_800_171.version:
+  dashed_name: check-compliance-nist-800-171-version
+  description: Framework version (4.0, 2018, 5.1, etc.).
+  flat_name: check.compliance.nist_800_171.version
+  ignore_above: 1024
+  level: custom
+  name: version
+  normalize: []
+  original_fieldset: compliance_frameworks
+  short: Framework version (4.0, 2018, 5.1, etc.).
+  type: keyword
+check.compliance.nist_800_53.category:
+  dashed_name: check-compliance-nist-800-53-category
+  description: Framework category (payment-security, data-protection, etc.).
+  flat_name: check.compliance.nist_800_53.category
+  ignore_above: 1024
+  level: custom
+  name: category
+  normalize: []
+  original_fieldset: compliance_frameworks
+  short: Framework category (payment-security, data-protection, etc.).
+  type: keyword
+check.compliance.nist_800_53.name:
+  dashed_name: check-compliance-nist-800-53-name
+  description: Framework name (PCI DSS, GDPR, NIST 800-53, etc.).
+  flat_name: check.compliance.nist_800_53.name
+  ignore_above: 1024
+  level: custom
+  name: name
+  normalize: []
+  original_fieldset: compliance_frameworks
+  short: Framework name (PCI DSS, GDPR, NIST 800-53, etc.).
+  type: keyword
+check.compliance.nist_800_53.publisher:
+  dashed_name: check-compliance-nist-800-53-publisher
+  description: Organization that published the framework.
+  flat_name: check.compliance.nist_800_53.publisher
+  ignore_above: 1024
+  level: custom
+  name: publisher
+  normalize: []
+  original_fieldset: compliance_frameworks
+  short: Organization that published the framework.
+  type: keyword
+check.compliance.nist_800_53.requirements:
+  dashed_name: check-compliance-nist-800-53-requirements
+  description: Requirement identifier (11.5, Article 32, AC-3, etc.).
+  flat_name: check.compliance.nist_800_53.requirements
+  ignore_above: 1024
+  level: custom
+  name: requirements
+  normalize:
+  - array
+  original_fieldset: compliance_frameworks
+  short: Requirement identifier (11.5, Article 32, AC-3, etc.).
+  type: keyword
+check.compliance.nist_800_53.version:
+  dashed_name: check-compliance-nist-800-53-version
+  description: Framework version (4.0, 2018, 5.1, etc.).
+  flat_name: check.compliance.nist_800_53.version
+  ignore_above: 1024
+  level: custom
+  name: version
+  normalize: []
+  original_fieldset: compliance_frameworks
+  short: Framework version (4.0, 2018, 5.1, etc.).
+  type: keyword
+check.compliance.pci_dss.category:
+  dashed_name: check-compliance-pci-dss-category
+  description: Framework category (payment-security, data-protection, etc.).
+  flat_name: check.compliance.pci_dss.category
+  ignore_above: 1024
+  level: custom
+  name: category
+  normalize: []
+  original_fieldset: compliance_frameworks
+  short: Framework category (payment-security, data-protection, etc.).
+  type: keyword
+check.compliance.pci_dss.name:
+  dashed_name: check-compliance-pci-dss-name
+  description: Framework name (PCI DSS, GDPR, NIST 800-53, etc.).
+  flat_name: check.compliance.pci_dss.name
+  ignore_above: 1024
+  level: custom
+  name: name
+  normalize: []
+  original_fieldset: compliance_frameworks
+  short: Framework name (PCI DSS, GDPR, NIST 800-53, etc.).
+  type: keyword
+check.compliance.pci_dss.publisher:
+  dashed_name: check-compliance-pci-dss-publisher
+  description: Organization that published the framework.
+  flat_name: check.compliance.pci_dss.publisher
+  ignore_above: 1024
+  level: custom
+  name: publisher
+  normalize: []
+  original_fieldset: compliance_frameworks
+  short: Organization that published the framework.
+  type: keyword
+check.compliance.pci_dss.requirements:
+  dashed_name: check-compliance-pci-dss-requirements
+  description: Requirement identifier (11.5, Article 32, AC-3, etc.).
+  flat_name: check.compliance.pci_dss.requirements
+  ignore_above: 1024
+  level: custom
+  name: requirements
+  normalize:
+  - array
+  original_fieldset: compliance_frameworks
+  short: Requirement identifier (11.5, Article 32, AC-3, etc.).
+  type: keyword
+check.compliance.pci_dss.version:
+  dashed_name: check-compliance-pci-dss-version
+  description: Framework version (4.0, 2018, 5.1, etc.).
+  flat_name: check.compliance.pci_dss.version
+  ignore_above: 1024
+  level: custom
+  name: version
+  normalize: []
+  original_fieldset: compliance_frameworks
+  short: Framework version (4.0, 2018, 5.1, etc.).
+  type: keyword
+check.compliance.tsc.category:
+  dashed_name: check-compliance-tsc-category
+  description: Framework category (payment-security, data-protection, etc.).
+  flat_name: check.compliance.tsc.category
+  ignore_above: 1024
+  level: custom
+  name: category
+  normalize: []
+  original_fieldset: compliance_frameworks
+  short: Framework category (payment-security, data-protection, etc.).
+  type: keyword
+check.compliance.tsc.name:
+  dashed_name: check-compliance-tsc-name
+  description: Framework name (PCI DSS, GDPR, NIST 800-53, etc.).
+  flat_name: check.compliance.tsc.name
+  ignore_above: 1024
+  level: custom
+  name: name
+  normalize: []
+  original_fieldset: compliance_frameworks
+  short: Framework name (PCI DSS, GDPR, NIST 800-53, etc.).
+  type: keyword
+check.compliance.tsc.publisher:
+  dashed_name: check-compliance-tsc-publisher
+  description: Organization that published the framework.
+  flat_name: check.compliance.tsc.publisher
+  ignore_above: 1024
+  level: custom
+  name: publisher
+  normalize: []
+  original_fieldset: compliance_frameworks
+  short: Organization that published the framework.
+  type: keyword
+check.compliance.tsc.requirements:
+  dashed_name: check-compliance-tsc-requirements
+  description: Requirement identifier (11.5, Article 32, AC-3, etc.).
+  flat_name: check.compliance.tsc.requirements
+  ignore_above: 1024
+  level: custom
+  name: requirements
+  normalize:
+  - array
+  original_fieldset: compliance_frameworks
+  short: Requirement identifier (11.5, Article 32, AC-3, etc.).
+  type: keyword
+check.compliance.tsc.version:
+  dashed_name: check-compliance-tsc-version
+  description: Framework version (4.0, 2018, 5.1, etc.).
+  flat_name: check.compliance.tsc.version
+  ignore_above: 1024
+  level: custom
+  name: version
+  normalize: []
+  original_fieldset: compliance_frameworks
   short: Framework version (4.0, 2018, 5.1, etc.).
   type: keyword
 check.condition:
@@ -9291,6 +9704,622 @@ cloud.target.service.name:
   normalize: []
   original_fieldset: cloud
   short: The cloud service name.
+  type: keyword
+compliance.cmmc.category:
+  dashed_name: compliance-cmmc-category
+  description: Framework category (payment-security, data-protection, etc.).
+  flat_name: compliance.cmmc.category
+  ignore_above: 1024
+  level: custom
+  name: category
+  normalize: []
+  original_fieldset: compliance_frameworks
+  short: Framework category (payment-security, data-protection, etc.).
+  type: keyword
+compliance.cmmc.name:
+  dashed_name: compliance-cmmc-name
+  description: Framework name (PCI DSS, GDPR, NIST 800-53, etc.).
+  flat_name: compliance.cmmc.name
+  ignore_above: 1024
+  level: custom
+  name: name
+  normalize: []
+  original_fieldset: compliance_frameworks
+  short: Framework name (PCI DSS, GDPR, NIST 800-53, etc.).
+  type: keyword
+compliance.cmmc.publisher:
+  dashed_name: compliance-cmmc-publisher
+  description: Organization that published the framework.
+  flat_name: compliance.cmmc.publisher
+  ignore_above: 1024
+  level: custom
+  name: publisher
+  normalize: []
+  original_fieldset: compliance_frameworks
+  short: Organization that published the framework.
+  type: keyword
+compliance.cmmc.requirements:
+  dashed_name: compliance-cmmc-requirements
+  description: Requirement identifier (11.5, Article 32, AC-3, etc.).
+  flat_name: compliance.cmmc.requirements
+  ignore_above: 1024
+  level: custom
+  name: requirements
+  normalize:
+  - array
+  original_fieldset: compliance_frameworks
+  short: Requirement identifier (11.5, Article 32, AC-3, etc.).
+  type: keyword
+compliance.cmmc.version:
+  dashed_name: compliance-cmmc-version
+  description: Framework version (4.0, 2018, 5.1, etc.).
+  flat_name: compliance.cmmc.version
+  ignore_above: 1024
+  level: custom
+  name: version
+  normalize: []
+  original_fieldset: compliance_frameworks
+  short: Framework version (4.0, 2018, 5.1, etc.).
+  type: keyword
+compliance.fedramp.category:
+  dashed_name: compliance-fedramp-category
+  description: Framework category (payment-security, data-protection, etc.).
+  flat_name: compliance.fedramp.category
+  ignore_above: 1024
+  level: custom
+  name: category
+  normalize: []
+  original_fieldset: compliance_frameworks
+  short: Framework category (payment-security, data-protection, etc.).
+  type: keyword
+compliance.fedramp.name:
+  dashed_name: compliance-fedramp-name
+  description: Framework name (PCI DSS, GDPR, NIST 800-53, etc.).
+  flat_name: compliance.fedramp.name
+  ignore_above: 1024
+  level: custom
+  name: name
+  normalize: []
+  original_fieldset: compliance_frameworks
+  short: Framework name (PCI DSS, GDPR, NIST 800-53, etc.).
+  type: keyword
+compliance.fedramp.publisher:
+  dashed_name: compliance-fedramp-publisher
+  description: Organization that published the framework.
+  flat_name: compliance.fedramp.publisher
+  ignore_above: 1024
+  level: custom
+  name: publisher
+  normalize: []
+  original_fieldset: compliance_frameworks
+  short: Organization that published the framework.
+  type: keyword
+compliance.fedramp.requirements:
+  dashed_name: compliance-fedramp-requirements
+  description: Requirement identifier (11.5, Article 32, AC-3, etc.).
+  flat_name: compliance.fedramp.requirements
+  ignore_above: 1024
+  level: custom
+  name: requirements
+  normalize:
+  - array
+  original_fieldset: compliance_frameworks
+  short: Requirement identifier (11.5, Article 32, AC-3, etc.).
+  type: keyword
+compliance.fedramp.version:
+  dashed_name: compliance-fedramp-version
+  description: Framework version (4.0, 2018, 5.1, etc.).
+  flat_name: compliance.fedramp.version
+  ignore_above: 1024
+  level: custom
+  name: version
+  normalize: []
+  original_fieldset: compliance_frameworks
+  short: Framework version (4.0, 2018, 5.1, etc.).
+  type: keyword
+compliance.gdpr.category:
+  dashed_name: compliance-gdpr-category
+  description: Framework category (payment-security, data-protection, etc.).
+  flat_name: compliance.gdpr.category
+  ignore_above: 1024
+  level: custom
+  name: category
+  normalize: []
+  original_fieldset: compliance_frameworks
+  short: Framework category (payment-security, data-protection, etc.).
+  type: keyword
+compliance.gdpr.name:
+  dashed_name: compliance-gdpr-name
+  description: Framework name (PCI DSS, GDPR, NIST 800-53, etc.).
+  flat_name: compliance.gdpr.name
+  ignore_above: 1024
+  level: custom
+  name: name
+  normalize: []
+  original_fieldset: compliance_frameworks
+  short: Framework name (PCI DSS, GDPR, NIST 800-53, etc.).
+  type: keyword
+compliance.gdpr.publisher:
+  dashed_name: compliance-gdpr-publisher
+  description: Organization that published the framework.
+  flat_name: compliance.gdpr.publisher
+  ignore_above: 1024
+  level: custom
+  name: publisher
+  normalize: []
+  original_fieldset: compliance_frameworks
+  short: Organization that published the framework.
+  type: keyword
+compliance.gdpr.requirements:
+  dashed_name: compliance-gdpr-requirements
+  description: Requirement identifier (11.5, Article 32, AC-3, etc.).
+  flat_name: compliance.gdpr.requirements
+  ignore_above: 1024
+  level: custom
+  name: requirements
+  normalize:
+  - array
+  original_fieldset: compliance_frameworks
+  short: Requirement identifier (11.5, Article 32, AC-3, etc.).
+  type: keyword
+compliance.gdpr.version:
+  dashed_name: compliance-gdpr-version
+  description: Framework version (4.0, 2018, 5.1, etc.).
+  flat_name: compliance.gdpr.version
+  ignore_above: 1024
+  level: custom
+  name: version
+  normalize: []
+  original_fieldset: compliance_frameworks
+  short: Framework version (4.0, 2018, 5.1, etc.).
+  type: keyword
+compliance.hipaa.category:
+  dashed_name: compliance-hipaa-category
+  description: Framework category (payment-security, data-protection, etc.).
+  flat_name: compliance.hipaa.category
+  ignore_above: 1024
+  level: custom
+  name: category
+  normalize: []
+  original_fieldset: compliance_frameworks
+  short: Framework category (payment-security, data-protection, etc.).
+  type: keyword
+compliance.hipaa.name:
+  dashed_name: compliance-hipaa-name
+  description: Framework name (PCI DSS, GDPR, NIST 800-53, etc.).
+  flat_name: compliance.hipaa.name
+  ignore_above: 1024
+  level: custom
+  name: name
+  normalize: []
+  original_fieldset: compliance_frameworks
+  short: Framework name (PCI DSS, GDPR, NIST 800-53, etc.).
+  type: keyword
+compliance.hipaa.publisher:
+  dashed_name: compliance-hipaa-publisher
+  description: Organization that published the framework.
+  flat_name: compliance.hipaa.publisher
+  ignore_above: 1024
+  level: custom
+  name: publisher
+  normalize: []
+  original_fieldset: compliance_frameworks
+  short: Organization that published the framework.
+  type: keyword
+compliance.hipaa.requirements:
+  dashed_name: compliance-hipaa-requirements
+  description: Requirement identifier (11.5, Article 32, AC-3, etc.).
+  flat_name: compliance.hipaa.requirements
+  ignore_above: 1024
+  level: custom
+  name: requirements
+  normalize:
+  - array
+  original_fieldset: compliance_frameworks
+  short: Requirement identifier (11.5, Article 32, AC-3, etc.).
+  type: keyword
+compliance.hipaa.version:
+  dashed_name: compliance-hipaa-version
+  description: Framework version (4.0, 2018, 5.1, etc.).
+  flat_name: compliance.hipaa.version
+  ignore_above: 1024
+  level: custom
+  name: version
+  normalize: []
+  original_fieldset: compliance_frameworks
+  short: Framework version (4.0, 2018, 5.1, etc.).
+  type: keyword
+compliance.iso_27001.category:
+  dashed_name: compliance-iso-27001-category
+  description: Framework category (payment-security, data-protection, etc.).
+  flat_name: compliance.iso_27001.category
+  ignore_above: 1024
+  level: custom
+  name: category
+  normalize: []
+  original_fieldset: compliance_frameworks
+  short: Framework category (payment-security, data-protection, etc.).
+  type: keyword
+compliance.iso_27001.name:
+  dashed_name: compliance-iso-27001-name
+  description: Framework name (PCI DSS, GDPR, NIST 800-53, etc.).
+  flat_name: compliance.iso_27001.name
+  ignore_above: 1024
+  level: custom
+  name: name
+  normalize: []
+  original_fieldset: compliance_frameworks
+  short: Framework name (PCI DSS, GDPR, NIST 800-53, etc.).
+  type: keyword
+compliance.iso_27001.publisher:
+  dashed_name: compliance-iso-27001-publisher
+  description: Organization that published the framework.
+  flat_name: compliance.iso_27001.publisher
+  ignore_above: 1024
+  level: custom
+  name: publisher
+  normalize: []
+  original_fieldset: compliance_frameworks
+  short: Organization that published the framework.
+  type: keyword
+compliance.iso_27001.requirements:
+  dashed_name: compliance-iso-27001-requirements
+  description: Requirement identifier (11.5, Article 32, AC-3, etc.).
+  flat_name: compliance.iso_27001.requirements
+  ignore_above: 1024
+  level: custom
+  name: requirements
+  normalize:
+  - array
+  original_fieldset: compliance_frameworks
+  short: Requirement identifier (11.5, Article 32, AC-3, etc.).
+  type: keyword
+compliance.iso_27001.version:
+  dashed_name: compliance-iso-27001-version
+  description: Framework version (4.0, 2018, 5.1, etc.).
+  flat_name: compliance.iso_27001.version
+  ignore_above: 1024
+  level: custom
+  name: version
+  normalize: []
+  original_fieldset: compliance_frameworks
+  short: Framework version (4.0, 2018, 5.1, etc.).
+  type: keyword
+compliance.mitre_attack.category:
+  dashed_name: compliance-mitre-attack-category
+  description: Framework category (payment-security, data-protection, etc.).
+  flat_name: compliance.mitre_attack.category
+  ignore_above: 1024
+  level: custom
+  name: category
+  normalize: []
+  original_fieldset: compliance_frameworks
+  short: Framework category (payment-security, data-protection, etc.).
+  type: keyword
+compliance.mitre_attack.name:
+  dashed_name: compliance-mitre-attack-name
+  description: Framework name (PCI DSS, GDPR, NIST 800-53, etc.).
+  flat_name: compliance.mitre_attack.name
+  ignore_above: 1024
+  level: custom
+  name: name
+  normalize: []
+  original_fieldset: compliance_frameworks
+  short: Framework name (PCI DSS, GDPR, NIST 800-53, etc.).
+  type: keyword
+compliance.mitre_attack.publisher:
+  dashed_name: compliance-mitre-attack-publisher
+  description: Organization that published the framework.
+  flat_name: compliance.mitre_attack.publisher
+  ignore_above: 1024
+  level: custom
+  name: publisher
+  normalize: []
+  original_fieldset: compliance_frameworks
+  short: Organization that published the framework.
+  type: keyword
+compliance.mitre_attack.requirements:
+  dashed_name: compliance-mitre-attack-requirements
+  description: Requirement identifier (11.5, Article 32, AC-3, etc.).
+  flat_name: compliance.mitre_attack.requirements
+  ignore_above: 1024
+  level: custom
+  name: requirements
+  normalize:
+  - array
+  original_fieldset: compliance_frameworks
+  short: Requirement identifier (11.5, Article 32, AC-3, etc.).
+  type: keyword
+compliance.mitre_attack.version:
+  dashed_name: compliance-mitre-attack-version
+  description: Framework version (4.0, 2018, 5.1, etc.).
+  flat_name: compliance.mitre_attack.version
+  ignore_above: 1024
+  level: custom
+  name: version
+  normalize: []
+  original_fieldset: compliance_frameworks
+  short: Framework version (4.0, 2018, 5.1, etc.).
+  type: keyword
+compliance.nis2.category:
+  dashed_name: compliance-nis2-category
+  description: Framework category (payment-security, data-protection, etc.).
+  flat_name: compliance.nis2.category
+  ignore_above: 1024
+  level: custom
+  name: category
+  normalize: []
+  original_fieldset: compliance_frameworks
+  short: Framework category (payment-security, data-protection, etc.).
+  type: keyword
+compliance.nis2.name:
+  dashed_name: compliance-nis2-name
+  description: Framework name (PCI DSS, GDPR, NIST 800-53, etc.).
+  flat_name: compliance.nis2.name
+  ignore_above: 1024
+  level: custom
+  name: name
+  normalize: []
+  original_fieldset: compliance_frameworks
+  short: Framework name (PCI DSS, GDPR, NIST 800-53, etc.).
+  type: keyword
+compliance.nis2.publisher:
+  dashed_name: compliance-nis2-publisher
+  description: Organization that published the framework.
+  flat_name: compliance.nis2.publisher
+  ignore_above: 1024
+  level: custom
+  name: publisher
+  normalize: []
+  original_fieldset: compliance_frameworks
+  short: Organization that published the framework.
+  type: keyword
+compliance.nis2.requirements:
+  dashed_name: compliance-nis2-requirements
+  description: Requirement identifier (11.5, Article 32, AC-3, etc.).
+  flat_name: compliance.nis2.requirements
+  ignore_above: 1024
+  level: custom
+  name: requirements
+  normalize:
+  - array
+  original_fieldset: compliance_frameworks
+  short: Requirement identifier (11.5, Article 32, AC-3, etc.).
+  type: keyword
+compliance.nis2.version:
+  dashed_name: compliance-nis2-version
+  description: Framework version (4.0, 2018, 5.1, etc.).
+  flat_name: compliance.nis2.version
+  ignore_above: 1024
+  level: custom
+  name: version
+  normalize: []
+  original_fieldset: compliance_frameworks
+  short: Framework version (4.0, 2018, 5.1, etc.).
+  type: keyword
+compliance.nist_800_171.category:
+  dashed_name: compliance-nist-800-171-category
+  description: Framework category (payment-security, data-protection, etc.).
+  flat_name: compliance.nist_800_171.category
+  ignore_above: 1024
+  level: custom
+  name: category
+  normalize: []
+  original_fieldset: compliance_frameworks
+  short: Framework category (payment-security, data-protection, etc.).
+  type: keyword
+compliance.nist_800_171.name:
+  dashed_name: compliance-nist-800-171-name
+  description: Framework name (PCI DSS, GDPR, NIST 800-53, etc.).
+  flat_name: compliance.nist_800_171.name
+  ignore_above: 1024
+  level: custom
+  name: name
+  normalize: []
+  original_fieldset: compliance_frameworks
+  short: Framework name (PCI DSS, GDPR, NIST 800-53, etc.).
+  type: keyword
+compliance.nist_800_171.publisher:
+  dashed_name: compliance-nist-800-171-publisher
+  description: Organization that published the framework.
+  flat_name: compliance.nist_800_171.publisher
+  ignore_above: 1024
+  level: custom
+  name: publisher
+  normalize: []
+  original_fieldset: compliance_frameworks
+  short: Organization that published the framework.
+  type: keyword
+compliance.nist_800_171.requirements:
+  dashed_name: compliance-nist-800-171-requirements
+  description: Requirement identifier (11.5, Article 32, AC-3, etc.).
+  flat_name: compliance.nist_800_171.requirements
+  ignore_above: 1024
+  level: custom
+  name: requirements
+  normalize:
+  - array
+  original_fieldset: compliance_frameworks
+  short: Requirement identifier (11.5, Article 32, AC-3, etc.).
+  type: keyword
+compliance.nist_800_171.version:
+  dashed_name: compliance-nist-800-171-version
+  description: Framework version (4.0, 2018, 5.1, etc.).
+  flat_name: compliance.nist_800_171.version
+  ignore_above: 1024
+  level: custom
+  name: version
+  normalize: []
+  original_fieldset: compliance_frameworks
+  short: Framework version (4.0, 2018, 5.1, etc.).
+  type: keyword
+compliance.nist_800_53.category:
+  dashed_name: compliance-nist-800-53-category
+  description: Framework category (payment-security, data-protection, etc.).
+  flat_name: compliance.nist_800_53.category
+  ignore_above: 1024
+  level: custom
+  name: category
+  normalize: []
+  original_fieldset: compliance_frameworks
+  short: Framework category (payment-security, data-protection, etc.).
+  type: keyword
+compliance.nist_800_53.name:
+  dashed_name: compliance-nist-800-53-name
+  description: Framework name (PCI DSS, GDPR, NIST 800-53, etc.).
+  flat_name: compliance.nist_800_53.name
+  ignore_above: 1024
+  level: custom
+  name: name
+  normalize: []
+  original_fieldset: compliance_frameworks
+  short: Framework name (PCI DSS, GDPR, NIST 800-53, etc.).
+  type: keyword
+compliance.nist_800_53.publisher:
+  dashed_name: compliance-nist-800-53-publisher
+  description: Organization that published the framework.
+  flat_name: compliance.nist_800_53.publisher
+  ignore_above: 1024
+  level: custom
+  name: publisher
+  normalize: []
+  original_fieldset: compliance_frameworks
+  short: Organization that published the framework.
+  type: keyword
+compliance.nist_800_53.requirements:
+  dashed_name: compliance-nist-800-53-requirements
+  description: Requirement identifier (11.5, Article 32, AC-3, etc.).
+  flat_name: compliance.nist_800_53.requirements
+  ignore_above: 1024
+  level: custom
+  name: requirements
+  normalize:
+  - array
+  original_fieldset: compliance_frameworks
+  short: Requirement identifier (11.5, Article 32, AC-3, etc.).
+  type: keyword
+compliance.nist_800_53.version:
+  dashed_name: compliance-nist-800-53-version
+  description: Framework version (4.0, 2018, 5.1, etc.).
+  flat_name: compliance.nist_800_53.version
+  ignore_above: 1024
+  level: custom
+  name: version
+  normalize: []
+  original_fieldset: compliance_frameworks
+  short: Framework version (4.0, 2018, 5.1, etc.).
+  type: keyword
+compliance.pci_dss.category:
+  dashed_name: compliance-pci-dss-category
+  description: Framework category (payment-security, data-protection, etc.).
+  flat_name: compliance.pci_dss.category
+  ignore_above: 1024
+  level: custom
+  name: category
+  normalize: []
+  original_fieldset: compliance_frameworks
+  short: Framework category (payment-security, data-protection, etc.).
+  type: keyword
+compliance.pci_dss.name:
+  dashed_name: compliance-pci-dss-name
+  description: Framework name (PCI DSS, GDPR, NIST 800-53, etc.).
+  flat_name: compliance.pci_dss.name
+  ignore_above: 1024
+  level: custom
+  name: name
+  normalize: []
+  original_fieldset: compliance_frameworks
+  short: Framework name (PCI DSS, GDPR, NIST 800-53, etc.).
+  type: keyword
+compliance.pci_dss.publisher:
+  dashed_name: compliance-pci-dss-publisher
+  description: Organization that published the framework.
+  flat_name: compliance.pci_dss.publisher
+  ignore_above: 1024
+  level: custom
+  name: publisher
+  normalize: []
+  original_fieldset: compliance_frameworks
+  short: Organization that published the framework.
+  type: keyword
+compliance.pci_dss.requirements:
+  dashed_name: compliance-pci-dss-requirements
+  description: Requirement identifier (11.5, Article 32, AC-3, etc.).
+  flat_name: compliance.pci_dss.requirements
+  ignore_above: 1024
+  level: custom
+  name: requirements
+  normalize:
+  - array
+  original_fieldset: compliance_frameworks
+  short: Requirement identifier (11.5, Article 32, AC-3, etc.).
+  type: keyword
+compliance.pci_dss.version:
+  dashed_name: compliance-pci-dss-version
+  description: Framework version (4.0, 2018, 5.1, etc.).
+  flat_name: compliance.pci_dss.version
+  ignore_above: 1024
+  level: custom
+  name: version
+  normalize: []
+  original_fieldset: compliance_frameworks
+  short: Framework version (4.0, 2018, 5.1, etc.).
+  type: keyword
+compliance.tsc.category:
+  dashed_name: compliance-tsc-category
+  description: Framework category (payment-security, data-protection, etc.).
+  flat_name: compliance.tsc.category
+  ignore_above: 1024
+  level: custom
+  name: category
+  normalize: []
+  original_fieldset: compliance_frameworks
+  short: Framework category (payment-security, data-protection, etc.).
+  type: keyword
+compliance.tsc.name:
+  dashed_name: compliance-tsc-name
+  description: Framework name (PCI DSS, GDPR, NIST 800-53, etc.).
+  flat_name: compliance.tsc.name
+  ignore_above: 1024
+  level: custom
+  name: name
+  normalize: []
+  original_fieldset: compliance_frameworks
+  short: Framework name (PCI DSS, GDPR, NIST 800-53, etc.).
+  type: keyword
+compliance.tsc.publisher:
+  dashed_name: compliance-tsc-publisher
+  description: Organization that published the framework.
+  flat_name: compliance.tsc.publisher
+  ignore_above: 1024
+  level: custom
+  name: publisher
+  normalize: []
+  original_fieldset: compliance_frameworks
+  short: Organization that published the framework.
+  type: keyword
+compliance.tsc.requirements:
+  dashed_name: compliance-tsc-requirements
+  description: Requirement identifier (11.5, Article 32, AC-3, etc.).
+  flat_name: compliance.tsc.requirements
+  ignore_above: 1024
+  level: custom
+  name: requirements
+  normalize:
+  - array
+  original_fieldset: compliance_frameworks
+  short: Requirement identifier (11.5, Article 32, AC-3, etc.).
+  type: keyword
+compliance.tsc.version:
+  dashed_name: compliance-tsc-version
+  description: Framework version (4.0, 2018, 5.1, etc.).
+  flat_name: compliance.tsc.version
+  ignore_above: 1024
+  level: custom
+  name: version
+  normalize: []
+  original_fieldset: compliance_frameworks
+  short: Framework version (4.0, 2018, 5.1, etc.).
   type: keyword
 container.cpu.usage:
   dashed_name: container-cpu-usage

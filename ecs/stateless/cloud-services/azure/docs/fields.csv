@@ -553,24 +553,61 @@ ECS_Version,Indexed,Field_Set,Field,Type,Level,Normalization,Example,Description
 9.1.0,true,azure,azure.subscription_id,keyword,custom,,example-subscription_id,Azure subscription ID where OpenAI service is provisioned for billing/access control
 9.1.0,true,azure,azure.tenant_id,keyword,custom,,example-tenant_id,The tenant ID associated with the Azure Audit Log event
 9.1.0,true,azure,azure.timegrain,keyword,custom,,example-timegrain,"Time granularity for Azure metrics (e.g., ""PT1M"" for 1-minute intervals)"
-9.1.0,true,check,check.compliance.category,keyword,custom,,payment-security,"Framework category (payment-security, data-protection, etc.)."
-9.1.0,true,check,check.compliance.cmmc,keyword,custom,,,CMMC compliance.
-9.1.0,true,check,check.compliance.fedramp,keyword,custom,,,FedRAMP compliance.
-9.1.0,true,check,check.compliance.gdpr,keyword,custom,,,GDPR compliance.
-9.1.0,true,check,check.compliance.hipaa,keyword,custom,,,HIPAA compliance.
-9.1.0,true,check,check.compliance.iso_27001,keyword,custom,,,ISO 27001 compliance.
-9.1.0,true,check,check.compliance.mitre_attack,keyword,custom,,,MITRE ATT&CK compliance.
-9.1.0,true,check,check.compliance.name,keyword,custom,,PCI DSS,"Framework name (PCI DSS, GDPR, NIST 800-53, etc.)."
-9.1.0,true,check,check.compliance.nis2,keyword,custom,,,NIS2 compliance.
-9.1.0,true,check,check.compliance.nist_800_171,keyword,custom,,,NIST 800-171 compliance.
-9.1.0,true,check,check.compliance.nist_800_53,keyword,custom,,,NIST 800-53 compliance.
-9.1.0,true,check,check.compliance.pci_dss,keyword,custom,,,PCI DSS compliance.
-9.1.0,true,check,check.compliance.publisher,keyword,custom,,PCI Security Standards Council,Organization that published the framework.
-9.1.0,true,check,check.compliance.requirement.description,match_only_text,custom,,The organization must rotate encryption keys every 90 days.,Full requirement description.
-9.1.0,true,check,check.compliance.requirement.id,keyword,custom,,11.5,"Requirement identifier (11.5, Article 32, AC-3, etc.)."
-9.1.0,true,check,check.compliance.requirement.title,match_only_text,custom,,Rotate cryptographic keys,Human-readable requirement title.
-9.1.0,true,check,check.compliance.tsc,keyword,custom,,,TSC compliance.
-9.1.0,true,check,check.compliance.version,keyword,custom,,3.2,"Framework version (4.0, 2018, 5.1, etc.)."
+9.1.0,true,check,check.compliance.cmmc.category,keyword,custom,,,"Framework category (payment-security, data-protection, etc.)."
+9.1.0,true,check,check.compliance.cmmc.name,keyword,custom,,,"Framework name (PCI DSS, GDPR, NIST 800-53, etc.)."
+9.1.0,true,check,check.compliance.cmmc.publisher,keyword,custom,,,Organization that published the framework.
+9.1.0,true,check,check.compliance.cmmc.requirements,keyword,custom,array,,"Requirement identifier (11.5, Article 32, AC-3, etc.)."
+9.1.0,true,check,check.compliance.cmmc.version,keyword,custom,,,"Framework version (4.0, 2018, 5.1, etc.)."
+9.1.0,true,check,check.compliance.fedramp.category,keyword,custom,,,"Framework category (payment-security, data-protection, etc.)."
+9.1.0,true,check,check.compliance.fedramp.name,keyword,custom,,,"Framework name (PCI DSS, GDPR, NIST 800-53, etc.)."
+9.1.0,true,check,check.compliance.fedramp.publisher,keyword,custom,,,Organization that published the framework.
+9.1.0,true,check,check.compliance.fedramp.requirements,keyword,custom,array,,"Requirement identifier (11.5, Article 32, AC-3, etc.)."
+9.1.0,true,check,check.compliance.fedramp.version,keyword,custom,,,"Framework version (4.0, 2018, 5.1, etc.)."
+9.1.0,true,check,check.compliance.gdpr.category,keyword,custom,,,"Framework category (payment-security, data-protection, etc.)."
+9.1.0,true,check,check.compliance.gdpr.name,keyword,custom,,,"Framework name (PCI DSS, GDPR, NIST 800-53, etc.)."
+9.1.0,true,check,check.compliance.gdpr.publisher,keyword,custom,,,Organization that published the framework.
+9.1.0,true,check,check.compliance.gdpr.requirements,keyword,custom,array,,"Requirement identifier (11.5, Article 32, AC-3, etc.)."
+9.1.0,true,check,check.compliance.gdpr.version,keyword,custom,,,"Framework version (4.0, 2018, 5.1, etc.)."
+9.1.0,true,check,check.compliance.hipaa.category,keyword,custom,,,"Framework category (payment-security, data-protection, etc.)."
+9.1.0,true,check,check.compliance.hipaa.name,keyword,custom,,,"Framework name (PCI DSS, GDPR, NIST 800-53, etc.)."
+9.1.0,true,check,check.compliance.hipaa.publisher,keyword,custom,,,Organization that published the framework.
+9.1.0,true,check,check.compliance.hipaa.requirements,keyword,custom,array,,"Requirement identifier (11.5, Article 32, AC-3, etc.)."
+9.1.0,true,check,check.compliance.hipaa.version,keyword,custom,,,"Framework version (4.0, 2018, 5.1, etc.)."
+9.1.0,true,check,check.compliance.iso_27001.category,keyword,custom,,,"Framework category (payment-security, data-protection, etc.)."
+9.1.0,true,check,check.compliance.iso_27001.name,keyword,custom,,,"Framework name (PCI DSS, GDPR, NIST 800-53, etc.)."
+9.1.0,true,check,check.compliance.iso_27001.publisher,keyword,custom,,,Organization that published the framework.
+9.1.0,true,check,check.compliance.iso_27001.requirements,keyword,custom,array,,"Requirement identifier (11.5, Article 32, AC-3, etc.)."
+9.1.0,true,check,check.compliance.iso_27001.version,keyword,custom,,,"Framework version (4.0, 2018, 5.1, etc.)."
+9.1.0,true,check,check.compliance.mitre_attack.category,keyword,custom,,,"Framework category (payment-security, data-protection, etc.)."
+9.1.0,true,check,check.compliance.mitre_attack.name,keyword,custom,,,"Framework name (PCI DSS, GDPR, NIST 800-53, etc.)."
+9.1.0,true,check,check.compliance.mitre_attack.publisher,keyword,custom,,,Organization that published the framework.
+9.1.0,true,check,check.compliance.mitre_attack.requirements,keyword,custom,array,,"Requirement identifier (11.5, Article 32, AC-3, etc.)."
+9.1.0,true,check,check.compliance.mitre_attack.version,keyword,custom,,,"Framework version (4.0, 2018, 5.1, etc.)."
+9.1.0,true,check,check.compliance.nis2.category,keyword,custom,,,"Framework category (payment-security, data-protection, etc.)."
+9.1.0,true,check,check.compliance.nis2.name,keyword,custom,,,"Framework name (PCI DSS, GDPR, NIST 800-53, etc.)."
+9.1.0,true,check,check.compliance.nis2.publisher,keyword,custom,,,Organization that published the framework.
+9.1.0,true,check,check.compliance.nis2.requirements,keyword,custom,array,,"Requirement identifier (11.5, Article 32, AC-3, etc.)."
+9.1.0,true,check,check.compliance.nis2.version,keyword,custom,,,"Framework version (4.0, 2018, 5.1, etc.)."
+9.1.0,true,check,check.compliance.nist_800_171.category,keyword,custom,,,"Framework category (payment-security, data-protection, etc.)."
+9.1.0,true,check,check.compliance.nist_800_171.name,keyword,custom,,,"Framework name (PCI DSS, GDPR, NIST 800-53, etc.)."
+9.1.0,true,check,check.compliance.nist_800_171.publisher,keyword,custom,,,Organization that published the framework.
+9.1.0,true,check,check.compliance.nist_800_171.requirements,keyword,custom,array,,"Requirement identifier (11.5, Article 32, AC-3, etc.)."
+9.1.0,true,check,check.compliance.nist_800_171.version,keyword,custom,,,"Framework version (4.0, 2018, 5.1, etc.)."
+9.1.0,true,check,check.compliance.nist_800_53.category,keyword,custom,,,"Framework category (payment-security, data-protection, etc.)."
+9.1.0,true,check,check.compliance.nist_800_53.name,keyword,custom,,,"Framework name (PCI DSS, GDPR, NIST 800-53, etc.)."
+9.1.0,true,check,check.compliance.nist_800_53.publisher,keyword,custom,,,Organization that published the framework.
+9.1.0,true,check,check.compliance.nist_800_53.requirements,keyword,custom,array,,"Requirement identifier (11.5, Article 32, AC-3, etc.)."
+9.1.0,true,check,check.compliance.nist_800_53.version,keyword,custom,,,"Framework version (4.0, 2018, 5.1, etc.)."
+9.1.0,true,check,check.compliance.pci_dss.category,keyword,custom,,,"Framework category (payment-security, data-protection, etc.)."
+9.1.0,true,check,check.compliance.pci_dss.name,keyword,custom,,,"Framework name (PCI DSS, GDPR, NIST 800-53, etc.)."
+9.1.0,true,check,check.compliance.pci_dss.publisher,keyword,custom,,,Organization that published the framework.
+9.1.0,true,check,check.compliance.pci_dss.requirements,keyword,custom,array,,"Requirement identifier (11.5, Article 32, AC-3, etc.)."
+9.1.0,true,check,check.compliance.pci_dss.version,keyword,custom,,,"Framework version (4.0, 2018, 5.1, etc.)."
+9.1.0,true,check,check.compliance.tsc.category,keyword,custom,,,"Framework category (payment-security, data-protection, etc.)."
+9.1.0,true,check,check.compliance.tsc.name,keyword,custom,,,"Framework name (PCI DSS, GDPR, NIST 800-53, etc.)."
+9.1.0,true,check,check.compliance.tsc.publisher,keyword,custom,,,Organization that published the framework.
+9.1.0,true,check,check.compliance.tsc.requirements,keyword,custom,array,,"Requirement identifier (11.5, Article 32, AC-3, etc.)."
+9.1.0,true,check,check.compliance.tsc.version,keyword,custom,,,"Framework version (4.0, 2018, 5.1, etc.)."
 9.1.0,true,check,check.condition,keyword,custom,,all,Relationship between the rules.
 9.1.0,true,check,check.description,keyword,custom,,"""The password history setting determines the number of unique new passwords a user must use before an old password can be reused.""",Extended description of the check.
 9.1.0,true,check,check.id,keyword,custom,,26000,The ID of the SCA policy check.
@@ -649,6 +686,61 @@ ECS_Version,Indexed,Field_Set,Field,Type,Level,Normalization,Example,Description
 9.1.0,true,cloud,cloud.target.provider,keyword,extended,,aws,Name of the cloud provider.
 9.1.0,true,cloud,cloud.target.region,keyword,extended,,us-east-1,"Region in which this host, resource, or service is located."
 9.1.0,true,cloud,cloud.target.service.name,keyword,extended,,lambda,The cloud service name.
+9.1.0,true,compliance,compliance.cmmc.category,keyword,custom,,,"Framework category (payment-security, data-protection, etc.)."
+9.1.0,true,compliance,compliance.cmmc.name,keyword,custom,,,"Framework name (PCI DSS, GDPR, NIST 800-53, etc.)."
+9.1.0,true,compliance,compliance.cmmc.publisher,keyword,custom,,,Organization that published the framework.
+9.1.0,true,compliance,compliance.cmmc.requirements,keyword,custom,array,,"Requirement identifier (11.5, Article 32, AC-3, etc.)."
+9.1.0,true,compliance,compliance.cmmc.version,keyword,custom,,,"Framework version (4.0, 2018, 5.1, etc.)."
+9.1.0,true,compliance,compliance.fedramp.category,keyword,custom,,,"Framework category (payment-security, data-protection, etc.)."
+9.1.0,true,compliance,compliance.fedramp.name,keyword,custom,,,"Framework name (PCI DSS, GDPR, NIST 800-53, etc.)."
+9.1.0,true,compliance,compliance.fedramp.publisher,keyword,custom,,,Organization that published the framework.
+9.1.0,true,compliance,compliance.fedramp.requirements,keyword,custom,array,,"Requirement identifier (11.5, Article 32, AC-3, etc.)."
+9.1.0,true,compliance,compliance.fedramp.version,keyword,custom,,,"Framework version (4.0, 2018, 5.1, etc.)."
+9.1.0,true,compliance,compliance.gdpr.category,keyword,custom,,,"Framework category (payment-security, data-protection, etc.)."
+9.1.0,true,compliance,compliance.gdpr.name,keyword,custom,,,"Framework name (PCI DSS, GDPR, NIST 800-53, etc.)."
+9.1.0,true,compliance,compliance.gdpr.publisher,keyword,custom,,,Organization that published the framework.
+9.1.0,true,compliance,compliance.gdpr.requirements,keyword,custom,array,,"Requirement identifier (11.5, Article 32, AC-3, etc.)."
+9.1.0,true,compliance,compliance.gdpr.version,keyword,custom,,,"Framework version (4.0, 2018, 5.1, etc.)."
+9.1.0,true,compliance,compliance.hipaa.category,keyword,custom,,,"Framework category (payment-security, data-protection, etc.)."
+9.1.0,true,compliance,compliance.hipaa.name,keyword,custom,,,"Framework name (PCI DSS, GDPR, NIST 800-53, etc.)."
+9.1.0,true,compliance,compliance.hipaa.publisher,keyword,custom,,,Organization that published the framework.
+9.1.0,true,compliance,compliance.hipaa.requirements,keyword,custom,array,,"Requirement identifier (11.5, Article 32, AC-3, etc.)."
+9.1.0,true,compliance,compliance.hipaa.version,keyword,custom,,,"Framework version (4.0, 2018, 5.1, etc.)."
+9.1.0,true,compliance,compliance.iso_27001.category,keyword,custom,,,"Framework category (payment-security, data-protection, etc.)."
+9.1.0,true,compliance,compliance.iso_27001.name,keyword,custom,,,"Framework name (PCI DSS, GDPR, NIST 800-53, etc.)."
+9.1.0,true,compliance,compliance.iso_27001.publisher,keyword,custom,,,Organization that published the framework.
+9.1.0,true,compliance,compliance.iso_27001.requirements,keyword,custom,array,,"Requirement identifier (11.5, Article 32, AC-3, etc.)."
+9.1.0,true,compliance,compliance.iso_27001.version,keyword,custom,,,"Framework version (4.0, 2018, 5.1, etc.)."
+9.1.0,true,compliance,compliance.mitre_attack.category,keyword,custom,,,"Framework category (payment-security, data-protection, etc.)."
+9.1.0,true,compliance,compliance.mitre_attack.name,keyword,custom,,,"Framework name (PCI DSS, GDPR, NIST 800-53, etc.)."
+9.1.0,true,compliance,compliance.mitre_attack.publisher,keyword,custom,,,Organization that published the framework.
+9.1.0,true,compliance,compliance.mitre_attack.requirements,keyword,custom,array,,"Requirement identifier (11.5, Article 32, AC-3, etc.)."
+9.1.0,true,compliance,compliance.mitre_attack.version,keyword,custom,,,"Framework version (4.0, 2018, 5.1, etc.)."
+9.1.0,true,compliance,compliance.nis2.category,keyword,custom,,,"Framework category (payment-security, data-protection, etc.)."
+9.1.0,true,compliance,compliance.nis2.name,keyword,custom,,,"Framework name (PCI DSS, GDPR, NIST 800-53, etc.)."
+9.1.0,true,compliance,compliance.nis2.publisher,keyword,custom,,,Organization that published the framework.
+9.1.0,true,compliance,compliance.nis2.requirements,keyword,custom,array,,"Requirement identifier (11.5, Article 32, AC-3, etc.)."
+9.1.0,true,compliance,compliance.nis2.version,keyword,custom,,,"Framework version (4.0, 2018, 5.1, etc.)."
+9.1.0,true,compliance,compliance.nist_800_171.category,keyword,custom,,,"Framework category (payment-security, data-protection, etc.)."
+9.1.0,true,compliance,compliance.nist_800_171.name,keyword,custom,,,"Framework name (PCI DSS, GDPR, NIST 800-53, etc.)."
+9.1.0,true,compliance,compliance.nist_800_171.publisher,keyword,custom,,,Organization that published the framework.
+9.1.0,true,compliance,compliance.nist_800_171.requirements,keyword,custom,array,,"Requirement identifier (11.5, Article 32, AC-3, etc.)."
+9.1.0,true,compliance,compliance.nist_800_171.version,keyword,custom,,,"Framework version (4.0, 2018, 5.1, etc.)."
+9.1.0,true,compliance,compliance.nist_800_53.category,keyword,custom,,,"Framework category (payment-security, data-protection, etc.)."
+9.1.0,true,compliance,compliance.nist_800_53.name,keyword,custom,,,"Framework name (PCI DSS, GDPR, NIST 800-53, etc.)."
+9.1.0,true,compliance,compliance.nist_800_53.publisher,keyword,custom,,,Organization that published the framework.
+9.1.0,true,compliance,compliance.nist_800_53.requirements,keyword,custom,array,,"Requirement identifier (11.5, Article 32, AC-3, etc.)."
+9.1.0,true,compliance,compliance.nist_800_53.version,keyword,custom,,,"Framework version (4.0, 2018, 5.1, etc.)."
+9.1.0,true,compliance,compliance.pci_dss.category,keyword,custom,,,"Framework category (payment-security, data-protection, etc.)."
+9.1.0,true,compliance,compliance.pci_dss.name,keyword,custom,,,"Framework name (PCI DSS, GDPR, NIST 800-53, etc.)."
+9.1.0,true,compliance,compliance.pci_dss.publisher,keyword,custom,,,Organization that published the framework.
+9.1.0,true,compliance,compliance.pci_dss.requirements,keyword,custom,array,,"Requirement identifier (11.5, Article 32, AC-3, etc.)."
+9.1.0,true,compliance,compliance.pci_dss.version,keyword,custom,,,"Framework version (4.0, 2018, 5.1, etc.)."
+9.1.0,true,compliance,compliance.tsc.category,keyword,custom,,,"Framework category (payment-security, data-protection, etc.)."
+9.1.0,true,compliance,compliance.tsc.name,keyword,custom,,,"Framework name (PCI DSS, GDPR, NIST 800-53, etc.)."
+9.1.0,true,compliance,compliance.tsc.publisher,keyword,custom,,,Organization that published the framework.
+9.1.0,true,compliance,compliance.tsc.requirements,keyword,custom,array,,"Requirement identifier (11.5, Article 32, AC-3, etc.)."
+9.1.0,true,compliance,compliance.tsc.version,keyword,custom,,,"Framework version (4.0, 2018, 5.1, etc.)."
 9.1.0,true,container,container.cpu.usage,scaled_float,extended,,,"Percent CPU used, between 0 and 1."
 9.1.0,true,container,container.disk.read.bytes,long,extended,,,The number of bytes read by all disks.
 9.1.0,true,container,container.disk.write.bytes,long,extended,,,The number of bytes written on all disks.
