@@ -91,22 +91,22 @@ public class RestPostUpdateAction extends BaseRestHandler {
     public BytesRestResponse handleRequest() throws IOException {
         try {
             // 1. Check if Token exists (404 Not Found)
-//            if (this.ctiConsole.getToken() == null) {
-//                RestResponse error = new RestResponse(
-//                    "Token not found. Please create a subscription before attempting to update.",
-//                    RestStatus.NOT_FOUND.getStatus()
-//                );
-//                return new BytesRestResponse(RestStatus.NOT_FOUND, error.toXContent());
-//            }
-//
-//            // 2. Conflict Check (409 Conflict)
-//            if (this.catalogSyncJob.isRunning()) {
-//                RestResponse error = new RestResponse(
-//                    "An update operation is already in progress. Please wait for it to complete.",
-//                    RestStatus.CONFLICT.getStatus()
-//                );
-//                return new BytesRestResponse(RestStatus.CONFLICT, error.toXContent());
-//            }
+            if (this.ctiConsole.getToken() == null) {
+                RestResponse error = new RestResponse(
+                    "Token not found. Please create a subscription before attempting to update.",
+                    RestStatus.NOT_FOUND.getStatus()
+                );
+                return new BytesRestResponse(RestStatus.NOT_FOUND, error.toXContent());
+            }
+
+            // 2. Conflict Check (409 Conflict)
+            if (this.catalogSyncJob.isRunning()) {
+                RestResponse error = new RestResponse(
+                    "An update operation is already in progress. Please wait for it to complete.",
+                    RestStatus.CONFLICT.getStatus()
+                );
+                return new BytesRestResponse(RestStatus.CONFLICT, error.toXContent());
+            }
 
             // 3. Rate Limit Check (429 Too Many Requests)
             /**
