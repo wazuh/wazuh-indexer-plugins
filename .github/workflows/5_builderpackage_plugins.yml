@@ -79,7 +79,7 @@ jobs:
         with:
           repository: wazuh/wazuh-indexer-security-analytics
           ref: ${{ inputs.sap-ref }}
-          path: sap-repo
+          path: ../sap-repo
 
       - name: Publish commons library to mavenLocal
         working-directory: ../sap-repo/commons
