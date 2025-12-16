@@ -73,7 +73,7 @@ jobs:
       - name: Publish commons library to mavenLocal
         working-directory: ../sap-repo/commons
         run: |
-          ./gradlew publishToMavenLocal -x check \
+          ../gradlew publishToMavenLocal -x check \
             -Dversion=${{ steps.version.outputs.version }} \
             -Drevision=${{ inputs.revision }}
 
