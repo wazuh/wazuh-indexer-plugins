@@ -35,11 +35,7 @@ import org.opensearch.transport.client.Client;
 
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Locale;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
 
@@ -171,30 +167,94 @@ public class CatalogSyncJob implements JobExecutor {
         aliases.put(RULE, ".cti-rules");
         aliases.put(INTEGRATION, ".cti-integration-rules");
 
-        this.syncConsumerServices(context, consumer, mappings, aliases);
+        boolean isUpdated = this.syncConsumerServices(context, consumer, mappings, aliases);
         log.info("Rules Consumer correctly synchronized.");
 
-        try {
-            this.client.admin().indices().prepareRefresh(
-                this.getIndexName(context, consumer, "rule"),
-                this.getIndexName(context, consumer, "integration")
-            ).get();
-        } catch (Exception e) {
-            log.warn("Error refreshing indices before sending them to SAP: {}", e.getMessage());
+        if (isUpdated) {
+            try {
+                this.client.admin().indices().prepareRefresh(
+                    this.getIndexName(context, consumer, "rule"),
+                    this.getIndexName(context, consumer, "integration")
+                ).get();
+            } catch (Exception e) {
+                log.warn("Error refreshing indices before sending them to SAP: {}", e.getMessage());
+            }
+
+            String integrationIndex = this.getIndexName(context, consumer, "integration");
+            String ruleIndex = this.getIndexName(context, consumer, "rule");
+
+            Map<String, List<String>> integrations = this.processIntegrations(integrationIndex);
+            this.processRules(ruleIndex);
+            this.createOrUpdateDetectors(integrations, integrationIndex);
         }
-
-        String integrationIndex = this.getIndexName(context, consumer, "integration");
-        String ruleIndex = this.getIndexName(context, consumer, "rule");
-
-        this.processIntegrations(integrationIndex);
-        this.processRules(ruleIndex);
     }
 
-    private void processIntegrations(String indexName) {
+    private void createOrUpdateDetectors(Map<String, List<String>> integrations, String indexName) {
+        log.info("Creating detectors for integrations... : {}", integrations.keySet());
+        try {
+            if (!this.client.admin().indices().prepareExists(indexName).get().isExists()) {
+                log.warn("Integration index [{}] does not exist, skipping treat detectors sync.", indexName);
+            }
+
+            SearchRequest searchRequest = new SearchRequest(indexName);
+            SearchSourceBuilder searchSourceBuilder = new SearchSourceBuilder();
+            searchSourceBuilder.query(QueryBuilders.matchAllQuery());
+            searchSourceBuilder.size(10000);
+            searchRequest.source(searchSourceBuilder);
+
+            SearchResponse searchResponse = this.client.search(searchRequest).actionGet();
+            for (SearchHit hit : searchResponse.getHits().getHits()) {
+                try {
+                    JsonObject source = JsonParser.parseString(hit.getSourceAsString()).getAsJsonObject();
+                    if (source.has("document")) {
+                        JsonObject doc = source.getAsJsonObject("document");
+                        String name = doc.has("title") ? doc.get("title").getAsString() : "";
+                        String category = "other";
+                        List<String> rules = new ArrayList<>();
+                        if (doc.has("rules")) {
+                            doc.get("rules").getAsJsonArray().forEach(item -> rules.add(item.getAsString()));
+                        }
+                        if (doc.has("category")) {
+                            category = doc.get("category").getAsString();
+                        }
+
+                        WIndexDetectorRequest request = new WIndexDetectorRequest(
+                            name,
+                            category,
+                            rules,
+                            WriteRequest.RefreshPolicy.IMMEDIATE);
+                        this.client.execute(WIndexDetectorAction.INSTANCE, request).get(1, TimeUnit.SECONDS);
+                        log.info("Integration [{}] synced successfully.", name);
+                    }
+                } catch (Exception e) {
+                    log.error("Failed to sync Threat Detector from hit [{}]: {}", hit.getId(), e.getMessage());
+                }
+            }
+        } catch (Exception e) {
+            log.error("Error reading integrations from index [{}]: {}", indexName, e.getMessage());
+        }
+
+//        try {
+//            for (Map.Entry<String, List<String>> item : integrations.entrySet()) {
+//                WIndexDetectorRequest request = new WIndexDetectorRequest(
+//                    item.getKey(),
+//                    item.getValue(),
+//                    WriteRequest.RefreshPolicy.IMMEDIATE);
+//
+//                this.client.execute(WIndexDetectorAction.INSTANCE, request).get(1, TimeUnit.SECONDS);
+//                log.info("Threat Detector for integration [{}] created", item.getKey());
+//            }
+//        } catch (Exception e) {
+//            log.error("Failed to create Threat Detector due to: {}", e.getMessage());
+//        }
+    }
+
+    private Map<String, List<String>> processIntegrations(String indexName) {
+        Map<String, List<String>> integrations = new HashMap<>();
         try {
             if (!this.client.admin().indices().prepareExists(indexName).get().isExists()) {
                 log.warn("Integration index [{}] does not exist, skipping integration sync.", indexName);
-                return;
+                return integrations;
             }
 
             SearchRequest searchRequest = new SearchRequest(indexName);
@@ -214,6 +274,10 @@ public class CatalogSyncJob implements JobExecutor {
                         String name = doc.has("title") ? doc.get("title").getAsString() : "";
                         String description = doc.has("description") ? doc.get("description").getAsString() : "";
                         String category = doc.has("category") ? doc.get("category").getAsString() : null;
+                        List<String> rules = new ArrayList<>();
+                        if (doc.has("rules")) {
+                            doc.get("rules").getAsJsonArray().forEach(item -> rules.add(item.getAsString()));
+                        }
 
                         WIndexIntegrationRequest request = new WIndexIntegrationRequest(
                             id,
@@ -226,12 +290,14 @@ public class CatalogSyncJob implements JobExecutor {
                                 description,
                                 category,
                                 "Standard",
+                                rules,
                                 new HashMap<>()
                             )
                         );
 
-                        WIndexIntegrationResponse response = this.client.execute(WIndexIntegrationAction.INSTANCE, request).get(5, TimeUnit.SECONDS);
-                        log.debug("Integration [{}] synced successfully. Response ID: {}", id, response.getId());
+                        WIndexIntegrationResponse response = this.client.execute(WIndexIntegrationAction.INSTANCE, request).get(1, TimeUnit.SECONDS);
+                        log.info("Integration [{}] synced successfully. Response ID: {}", id, response.getId());
+                        integrations.put(name, rules);
                     }
                 } catch (Exception e) {
                     log.error("Failed to sync integration from hit [{}]: {}", hit.getId(), e.getMessage());
@@ -240,6 +306,7 @@ public class CatalogSyncJob implements JobExecutor {
         } catch (Exception e) {
             log.error("Error processing integrations from index [{}]: {}", indexName, e.getMessage());
         }
+        return integrations;
     }
 
     private void processRules(String indexName) {
@@ -278,7 +345,7 @@ public class CatalogSyncJob implements JobExecutor {
                             }
                         }
 
-                        WIndexRuleRequestImpl ruleRequest = new WIndexRuleRequestImpl(
+                        WIndexRuleRequest ruleRequest = new WIndexRuleRequest(
                             id,
                             WriteRequest.RefreshPolicy.IMMEDIATE,
                             product,
@@ -287,8 +354,8 @@ public class CatalogSyncJob implements JobExecutor {
                             false
                         );
 
-                        WIndexRuleResponse response = this.client.execute(WIndexRuleAction.INSTANCE, ruleRequest).get(5, TimeUnit.SECONDS);
-                        log.debug("Rule [{}] synced successfully. Response ID: {}", id, response.getId());
+                        WIndexRuleResponse response = this.client.execute(WIndexRuleAction.INSTANCE, ruleRequest).get(1, TimeUnit.SECONDS);
+                        log.info("Rule [{}] synced successfully. Response ID: {}", id, response.getId());
                     }
                 } catch (Exception e) {
                     log.error("Failed to sync rule from hit [{}]: {}", hit.getId(), e.getMessage());
@@ -539,10 +606,11 @@ public class CatalogSyncJob implements JobExecutor {
 
     /**
      * Add all the hashes of the same resource type in the given integration to the spaceHashes array.
-     * @param integration integration to walk
-     * @param resource resource type (rule, decoder, kvdb)
+     *
+     * @param integration   integration to walk
+     * @param resource      resource type (rule, decoder, kvdb)
      * @param resourceIndex resouce index
-     * @param spaceHashes space hashes array
+     * @param spaceHashes   space hashes array
      */
     private void addHashes(Map<String, Object> integration, String resource, String resourceIndex, List<String> spaceHashes) {
         if (integration.containsKey(resource)) {
@@ -565,8 +633,7 @@ public class CatalogSyncJob implements JobExecutor {
             GetResponse response = this.client.prepareGet(index, id).get();
             if (response.isExists()) {
                 return response.getSourceAsMap();
-            }
-            else{
+            } else {
                 log.info("Document [{}] not found in index [{}]", id, index);
             }
         } catch (Exception e) {
