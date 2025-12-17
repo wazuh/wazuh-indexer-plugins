@@ -5,6 +5,6 @@
     Fields related to compliance frameworks and their specific requirements.
   type: group
   reusable:
-    top_level: true
+    top_level: false
     expected:
       - check

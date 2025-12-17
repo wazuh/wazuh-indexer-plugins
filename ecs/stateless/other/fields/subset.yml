@@ -607,4 +607,6 @@ fields:
     fields: "*"
   policy:
     fields: "*"
+  compliance:
+    fields: "*"
   # Integration fields
