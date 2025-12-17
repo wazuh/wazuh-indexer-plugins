@@ -59,13 +59,13 @@ jobs:
         id: resolve
         uses: ./.github/actions/5_builderpackage_indexer_branch_resolver
         with:
-          #branch: ${{ github.ref_name }}
           branch: ${{ github.event_name == 'pull_request' && github.head_ref || github.ref_name }}
 
       - name: Display resolved branches
         run: |
           echo "Security Analytics branch: ${{ steps.resolve.outputs.wazuh_indexer_security_analytics_branch }}"
   build:
+    needs: branches
     runs-on: ubuntu-24.04
     permissions:
       actions: read
