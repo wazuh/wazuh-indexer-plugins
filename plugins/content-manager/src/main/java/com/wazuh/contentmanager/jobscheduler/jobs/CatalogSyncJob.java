@@ -209,13 +209,10 @@ public class CatalogSyncJob implements JobExecutor {
                     if (source.has("document")) {
                         JsonObject doc = source.getAsJsonObject("document");
                         String name = doc.has("title") ? doc.get("title").getAsString() : "";
-                        String category = "other";
+                        String category = doc.get("category").getAsString();
                         List<String> rules = new ArrayList<>();
                         if (doc.has("rules")) {
                             doc.get("rules").getAsJsonArray().forEach(item -> rules.add(item.getAsString()));
-                        }
-                        if (doc.has("category")) {
-                            category = doc.get("category").getAsString();
                         }
 
                         WIndexDetectorRequest request = new WIndexDetectorRequest(
