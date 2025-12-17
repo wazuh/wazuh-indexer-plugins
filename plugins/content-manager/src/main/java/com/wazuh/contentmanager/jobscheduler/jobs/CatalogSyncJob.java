@@ -492,6 +492,20 @@ public class CatalogSyncJob implements JobExecutor {
                 this.environment
             );
             snapshotService.initialize(remoteConsumer);
+
+            // Trigger an update if the content remains outdated after snapshot initialization.
+            if (localConsumer != null && localConsumer.getLocalOffset() < remoteConsumer.getOffset()) {
+                log.info("Snapshot offset [{}] is behind remote offset [{}]. Triggering update.", localConsumer.getLocalOffset(), remoteConsumer.getOffset());
+                UpdateServiceImpl updateService = new UpdateServiceImpl(
+                    context,
+                    consumer,
+                    new ApiClient(),
+                    this.consumersIndex,
+                    indicesMap
+                );
+                updateService.update(localConsumer.getLocalOffset(), remoteConsumer.getOffset());
+                updateService.close();
+            }
             return true;
         } else if (remoteConsumer != null && localConsumer.getLocalOffset() != remoteConsumer.getOffset()) {
             log.info("Starting offset-based update for consumer [{}]", consumer);
