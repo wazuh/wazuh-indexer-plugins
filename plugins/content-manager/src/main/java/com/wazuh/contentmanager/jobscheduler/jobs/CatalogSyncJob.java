@@ -482,7 +482,11 @@ public class CatalogSyncJob implements JobExecutor {
             }
         }
 
-        if (remoteConsumer != null && remoteConsumer.getSnapshotLink() != null && (localConsumer == null || localConsumer.getLocalOffset() == 0)) {
+        boolean updated = false;
+        long currentOffset = localConsumer != null ? localConsumer.getLocalOffset() : 0;
+
+        // Snapshot Initialization
+        if (remoteConsumer != null && remoteConsumer.getSnapshotLink() != null && currentOffset == 0) {
             log.info("Initializing snapshot from link: {}", remoteConsumer.getSnapshotLink());
             SnapshotServiceImpl snapshotService = new SnapshotServiceImpl(
                 context,
@@ -492,9 +496,15 @@ public class CatalogSyncJob implements JobExecutor {
                 this.environment
             );
             snapshotService.initialize(remoteConsumer);
-            return true;
-        } else if (remoteConsumer != null && localConsumer.getLocalOffset() != remoteConsumer.getOffset()) {
-            log.info("Starting offset-based update for consumer [{}]", consumer);
+
+            currentOffset = remoteConsumer.getSnapshotOffset();
+            updated = true;
+        }
+
+        // Update
+        if (remoteConsumer != null && currentOffset < remoteConsumer.getOffset()) {
+            log.info("Performing update for consumer [{}] from offset [{}] to [{}]", consumer, currentOffset, remoteConsumer.getOffset());
+
             UpdateServiceImpl updateService = new UpdateServiceImpl(
                 context,
                 consumer,
@@ -502,12 +512,11 @@ public class CatalogSyncJob implements JobExecutor {
                 this.consumersIndex,
                 indicesMap
             );
-            updateService.update(localConsumer.getLocalOffset(), remoteConsumer.getOffset());
+            updateService.update(currentOffset, remoteConsumer.getOffset());
             updateService.close();
-            return true;
+            updated = true;
         }
-
-        return false;
+        return updated;
     }
 
     /**

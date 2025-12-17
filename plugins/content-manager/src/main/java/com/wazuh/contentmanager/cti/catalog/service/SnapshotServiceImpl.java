@@ -136,7 +136,13 @@ public class SnapshotServiceImpl implements SnapshotService {
 
         // 6. Update Consumer State in .cti-consumers
         try {
-            LocalConsumer updatedConsumer = new LocalConsumer(this.context, this.consumer, offset, offset, snapshotUrl);
+            LocalConsumer updatedConsumer = new LocalConsumer(
+                this.context,
+                this.consumer,
+                consumer.getSnapshotOffset(),
+                consumer.getOffset(),
+                snapshotUrl
+            );
             this.consumersIndex.setConsumer(updatedConsumer);
         } catch (Exception e) {
             log.error("Failed to update consumer state in {}: {}", ConsumersIndex.INDEX_NAME, e.getMessage());
