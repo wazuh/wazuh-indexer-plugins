@@ -15,10 +15,6 @@ on:
         description: "Name of the plugin to build"
         type: string
         default: "setup"
-      sap-ref:
-        description: "Security Analytics ref to checkout"
-        type: string
-        default: "main"
       id:
         description: "ID used to identify the workflow uniquely."
         type: string
@@ -33,10 +29,6 @@ on:
         description: "Name of the plugin to build"
         type: string
         default: "setup"
-      sap-ref:
-        description: "Security Analytics ref to checkout"
-        type: string
-        default: "main"
       id:
         description: "ID used to identify the workflow uniquely."
         type: string
@@ -56,6 +48,22 @@ on:
 #   | https://docs.github.com/en/actions/learn-github-actions/expressions#example
 
 jobs:
+  branches:
+    runs-on: ubuntu-24.04
+    outputs:
+      sap_plugin_ref: ${{ steps.resolve.outputs.wazuh_indexer_security_analytics_branch }}
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Resolve branches
+        id: resolve
+        uses: ./.github/actions/5_builderpackage_indexer_branch_resolver
+        with:
+          branch: ${{ github.ref_name }}
+
+      - name: Display resolved branches
+        run: |
+          echo "Security Analytics branch: ${{ steps.resolve.outputs.wazuh_indexer_security_analytics_branch }}"
   build:
     runs-on: ubuntu-24.04
     permissions:
@@ -80,7 +88,7 @@ jobs:
         uses: actions/checkout@v6
         with:
           repository: wazuh/wazuh-indexer-security-analytics
-          ref: ${{ inputs.sap-ref }}
+          ref: ${{ needs.branches.outputs.sap_plugin_ref }}
           path: sap-repo
 
       - name: Publish commons library to mavenLocal
