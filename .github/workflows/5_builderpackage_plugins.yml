@@ -59,7 +59,8 @@ jobs:
         id: resolve
         uses: ./.github/actions/5_builderpackage_indexer_branch_resolver
         with:
-          branch: ${{ github.ref_name }}
+          #branch: ${{ github.ref_name }}
+          branch: ${{ github.event_name == 'pull_request' && github.head_ref || github.ref_name }}
 
       - name: Display resolved branches
         run: |
