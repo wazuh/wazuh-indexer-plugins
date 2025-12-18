@@ -71,6 +71,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Replace time-series indices with data streams [(#562)](https://github.com/wazuh/wazuh-indexer-plugins/pull/562)
 - Rename index templates [(#659)](https://github.com/wazuh/wazuh-indexer-plugins/pull/659)
 - Resolve SAP dependency in Content Manager's build workflow [(#702)](https://github.com/wazuh/wazuh-indexer-plugins/pull/702)
+- Update build packages documentation[(#708)](https://github.com/wazuh/wazuh-indexer-plugins/pull/708)
 
 ### Deprecated
 -
@@ -91,6 +92,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Fix verify_integrations script to read the integrations from module_list.txt [(#640)](https://github.com/wazuh/wazuh-indexer-plugins/pull/640)
 - Remove ECS fields from gcp's custom fields definition [(#675)](https://github.com/wazuh/wazuh-indexer-plugins/pull/675)
 - Fix `mdbook-mermaid` build errors [(#699)](https://github.com/wazuh/wazuh-indexer-plugins/pull/699)
+- Fix update of policy type documents [(#707)](https://github.com/wazuh/wazuh-indexer-plugins/pull/707)
 
 ### Security
 - Reduce risk of GITHUB_TOKEN exposure [(#484)](https://github.com/wazuh/wazuh-indexer-plugins/pull/484)
