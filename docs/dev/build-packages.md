@@ -38,12 +38,13 @@ Use the `builder.sh` script to build a package.
 Usage: ./builder.sh [args]
 
 Arguments:
--p INDEXER_PLUGINS_BRANCH     [Optional] wazuh-indexer-plugins repo branch, default is 'main'.
--r INDEXER_REPORTING_BRANCH   [Optional] wazuh-indexer-reporting repo branch, default is 'main'.
--R REVISION                   [Optional] Package revision, default is '0'.
--s STAGE                      [Optional] Staging build, default is 'false'.
--d DISTRIBUTION               [Optional] Distribution, default is 'rpm'.
--a ARCHITECTURE               [Optional] Architecture, default is 'x64'.
+-p INDEXER_PLUGINS_BRANCH       [Optional] wazuh-indexer-plugins repo branch, default is 'main'.
+-r INDEXER_REPORTING_BRANCH     [Optional] wazuh-indexer-reporting repo branch, default is 'main'.
+-s SECURITY_ANALYTICS_BRANCH    [Optional] wazuh-indexer-security-analytics repo branch, default is 'main'.
+-R REVISION     [Optional] Package revision, default is '0'.
+-S STAGE        [Optional] Staging build, default is 'false'.
+-d DISTRIBUTION [Optional] Distribution, default is 'rpm'.
+-a ARCHITECTURE [Optional] Architecture, default is 'x64'.
 -D      Destroy the docker environment
 -h      Print help
 ```
@@ -52,7 +53,7 @@ The example below it will generate a wazuh-indexer package for _Debian_ based sy
 
 ```bash
 # Wihtin wazuh-indexer/build-scripts/builder
-bash builder.sh -d deb -a x64 -R 1 -s true
+bash builder.sh -d deb -a x64 -R 1 -S true
 ```
 
 The resulting package will be stored at `wazuh-indexer/artifacts/dist`.
