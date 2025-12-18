@@ -221,7 +221,7 @@ public class CatalogSyncJob implements JobExecutor {
                             rules,
                             WriteRequest.RefreshPolicy.IMMEDIATE);
                         this.client.execute(WIndexDetectorAction.INSTANCE, request).get(1, TimeUnit.SECONDS);
-                        log.info("Integration [{}] synced successfully.", name);
+                        log.info("Detector [{}] synced successfully.", name);
                     }
                 } catch (Exception e) {
                     log.error("Failed to sync Threat Detector from hit [{}]: {}", hit.getId(), e.getMessage());
