@@ -11,6 +11,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 public class RemoteConsumer extends AbstractConsumer {
     private final long offset;
     private final String snapshotLink;
+    private final long snapshotOffset;
 
     /**
      * Default constructor
@@ -20,6 +21,7 @@ public class RemoteConsumer extends AbstractConsumer {
         this.context = data.get("context").asText("");
         this.offset = data.get("last_offset").asLong(0);
         this.snapshotLink = data.get("last_snapshot_link").asText("");
+        this.snapshotOffset = data.get("last_snapshot_offset").asLong(0);
     }
 
     /**
@@ -41,6 +43,15 @@ public class RemoteConsumer extends AbstractConsumer {
     }
 
     /**
+     * Gets the offset associated with the latest snapshot.
+     *
+     * @return The snapshot offset value.
+     */
+    public long getSnapshotOffset() {
+        return this.snapshotOffset;
+    }
+
+    /**
      * Returns a string representation of the RemoteConsumer object.
      *
      * @return A string describing the internal state of the consumer.
@@ -50,6 +61,7 @@ public class RemoteConsumer extends AbstractConsumer {
         return "RemoteConsumer{" +
             "offset=" + this.offset +
             ", snapshotLink='" + this.snapshotLink + '\'' +
+            ", snapshotOffset=" + this.snapshotOffset +
             ", context='" + this.context + '\'' +
             ", name='" + this.name + '\'' +
             '}';

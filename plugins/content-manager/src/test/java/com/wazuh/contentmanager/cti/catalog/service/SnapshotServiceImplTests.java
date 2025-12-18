@@ -136,6 +136,8 @@ public class SnapshotServiceImplTests extends OpenSearchTestCase {
         long offset = 100L;
         when(this.remoteConsumer.getSnapshotLink()).thenReturn(url);
         when(this.remoteConsumer.getOffset()).thenReturn(offset);
+        when(this.remoteConsumer.getSnapshotOffset()).thenReturn(offset);
+
         Path zipPath = createZipFileWithContent("data.json",
             "{\"payload\": {\"type\": \"kvdb\", \"document\": {\"id\": \"12345678\", \"title\": \"Test Kvdb\"}}}"
         );
