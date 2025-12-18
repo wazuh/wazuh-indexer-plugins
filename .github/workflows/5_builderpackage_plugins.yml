@@ -57,7 +57,7 @@ jobs:
 
       - name: Resolve branches
         id: resolve
-        uses: wazuh/wazuh-indexer/.github/actions/5_builderpackage_indexer_branch_resolver/action.yml@main
+        uses: wazuh/wazuh-indexer/.github/actions/5_builderpackage_indexer_branch_resolver@main
         with:
           branch: ${{ github.event_name == 'pull_request' && github.head_ref || github.ref_name }}
 
