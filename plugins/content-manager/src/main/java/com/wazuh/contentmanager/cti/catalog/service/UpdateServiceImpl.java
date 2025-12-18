@@ -34,6 +34,7 @@ import org.opensearch.core.xcontent.DeprecationHandler;
 import org.opensearch.core.xcontent.NamedXContentRegistry;
 import org.opensearch.core.xcontent.XContentParser;
 
+import java.util.Locale;
 import java.util.Map;
 
 /**
@@ -158,6 +159,11 @@ public class UpdateServiceImpl extends AbstractService implements UpdateService 
                 }
                 break;
             case UPDATE:
+                // TODO: Delete once the consumer is changed
+                if (this.context.equals("rules_development_0.0.1") && this.consumer.equals("rules_development_0.0.1_test") && "policy".equals(id)) {
+                    break;
+                }
+
                 index = this.findIndexForId(id);
                 index.update(id, offset.getOperations());
                 break;
@@ -179,6 +185,15 @@ public class UpdateServiceImpl extends AbstractService implements UpdateService 
      * @throws ResourceNotFoundException If no {@link ContentIndex} contains the document with the specified ID.
      */
     private ContentIndex findIndexForId(String id) throws ResourceNotFoundException {
+        // When it is a policy document, it must be treated special, since the id policy doesn't exist
+        if ("policy".equals(id)) {
+            ContentIndex policyIndex = this.indices.get("policy");
+            if (policyIndex != null) {
+                return policyIndex;
+            }
+            throw new ResourceNotFoundException("Policy index not found.");
+        }
+
         for (ContentIndex index : this.indices.values()) {
             if (index.exists(id)) {
                 return index;
