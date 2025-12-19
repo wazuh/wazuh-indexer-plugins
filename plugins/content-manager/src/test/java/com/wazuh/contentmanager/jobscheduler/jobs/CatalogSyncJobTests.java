@@ -32,7 +32,6 @@ public class CatalogSyncJobTests  extends OpenSearchTestCase {
     }
 
 
-    @Test
     public void testGetCategoryOneWord() {
         JsonObject doc = new JsonObject();
         doc.addProperty(CATEGORY, "security");
@@ -41,7 +40,7 @@ public class CatalogSyncJobTests  extends OpenSearchTestCase {
 
         Assert.assertEquals("Security", category);
     }
-    @Test
+
     public void testGetCategoryTwoWords() {
         JsonObject doc = new JsonObject();
         doc.addProperty(CATEGORY, "cloud-services");
@@ -51,7 +50,6 @@ public class CatalogSyncJobTests  extends OpenSearchTestCase {
         Assert.assertEquals("Cloud Services", category);
     }
 
-    @Test
     public void testGetCategoryThreeWords() {
         JsonObject doc = new JsonObject();
         doc.addProperty(CATEGORY, "cloud-services-aws");

@@ -234,6 +234,11 @@ public class CatalogSyncJob implements JobExecutor {
         }
     }
 
+    /**
+     * Retrieves the integration category from the document and returns a cleaned up string.
+     * @param doc Json document
+     * @return capitalized space-separated string
+     */
     public String getCategory(JsonObject doc) {
         String rawCategory = doc.get(CATEGORY).getAsString();
 
