@@ -275,7 +275,9 @@ public class CatalogSyncJob implements JobExecutor {
                         if (doc.has("rules")) {
                             doc.get("rules").getAsJsonArray().forEach(item -> rules.add(item.getAsString()));
                         }
-
+                        if (rules.isEmpty()){
+                            continue;
+                        }
                         WIndexIntegrationRequest request = new WIndexIntegrationRequest(
                             id,
                             WriteRequest.RefreshPolicy.IMMEDIATE,
@@ -286,7 +288,7 @@ public class CatalogSyncJob implements JobExecutor {
                                 name,
                                 description,
                                 category,
-                                "Standard",
+                                "Sigma",
                                 rules,
                                 new HashMap<>()
                             )

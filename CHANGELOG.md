@@ -72,6 +72,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Replace time-series indices with data streams [(#562)](https://github.com/wazuh/wazuh-indexer-plugins/pull/562)
 - Rename index templates [(#659)](https://github.com/wazuh/wazuh-indexer-plugins/pull/659)
 - Update build packages documentation[(#708)](https://github.com/wazuh/wazuh-indexer-plugins/pull/708)
+- Avoid creation of Integrations with no rules associated [(#709)](https://github.com/wazuh/wazuh-indexer-plugins/pull/709)
 
 ### Deprecated
 -
