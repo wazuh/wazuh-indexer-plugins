@@ -25,6 +25,7 @@ import org.opensearch.action.search.SearchResponse;
 import org.opensearch.action.support.WriteRequest;
 import org.opensearch.action.update.UpdateRequest;
 import org.opensearch.common.xcontent.XContentType;
+import org.opensearch.core.common.Strings;
 import org.opensearch.env.Environment;
 import org.opensearch.index.query.QueryBuilders;
 import org.opensearch.jobscheduler.spi.JobExecutionContext;
@@ -61,6 +62,7 @@ public class CatalogSyncJob implements JobExecutor {
     public static final String KVDB = "kvdb";
     public static final String DECODER = "decoder";
     public static final String INTEGRATION = "integration";
+    static final String CATEGORY = "category";
 
     // Semaphore to control concurrency
     private final Semaphore semaphore = new Semaphore(1);
@@ -209,7 +211,7 @@ public class CatalogSyncJob implements JobExecutor {
                     if (source.has("document")) {
                         JsonObject doc = source.getAsJsonObject("document");
                         String name = doc.has("title") ? doc.get("title").getAsString() : "";
-                        String category = doc.get("category").getAsString();
+                        String category = this.getCategory(doc);
                         List<String> rules = new ArrayList<>();
                         if (doc.has("rules")) {
                             doc.get("rules").getAsJsonArray().forEach(item -> rules.add(item.getAsString()));
@@ -230,20 +232,21 @@ public class CatalogSyncJob implements JobExecutor {
         } catch (Exception e) {
             log.error("Error reading integrations from index [{}]: {}", indexName, e.getMessage());
         }
+    }
 
-//        try {
-//            for (Map.Entry<String, List<String>> item : integrations.entrySet()) {
-//                WIndexDetectorRequest request = new WIndexDetectorRequest(
-//                    item.getKey(),
-//                    item.getValue(),
-//                    WriteRequest.RefreshPolicy.IMMEDIATE);
-//
-//                this.client.execute(WIndexDetectorAction.INSTANCE, request).get(1, TimeUnit.SECONDS);
-//                log.info("Threat Detector for integration [{}] created", item.getKey());
-//            }
-//        } catch (Exception e) {
-//            log.error("Failed to create Threat Detector due to: {}", e.getMessage());
-//        }
+    public String getCategory(JsonObject doc) {
+        String rawCategory = doc.get(CATEGORY).getAsString();
+
+        // TODO remove when CTI applies the changes to the categorization.
+        // Remove subcategory. Currently only cloud-services has subcategories (aws, gcp, azure).
+        if (rawCategory.contains("cloud-services")) {
+            rawCategory = rawCategory.substring(0, 14);
+        }
+        return Arrays.stream(
+            rawCategory
+                .split("-"))
+                .reduce("", (current, next) -> current + " " + Strings.capitalize(next))
+                .trim();
     }
 
     private Map<String, List<String>> processIntegrations(String indexName) {
@@ -270,12 +273,12 @@ public class CatalogSyncJob implements JobExecutor {
                         String id = doc.get("id").getAsString();
                         String name = doc.has("title") ? doc.get("title").getAsString() : "";
                         String description = doc.has("description") ? doc.get("description").getAsString() : "";
-                        String category = doc.has("category") ? doc.get("category").getAsString() : null;
+                        String category = this.getCategory(doc);
                         List<String> rules = new ArrayList<>();
                         if (doc.has("rules")) {
                             doc.get("rules").getAsJsonArray().forEach(item -> rules.add(item.getAsString()));
                         }
-                        if (rules.isEmpty()){
+                        if (rules.isEmpty()) {
                             continue;
                         }
                         WIndexIntegrationRequest request = new WIndexIntegrationRequest(
@@ -299,7 +302,7 @@ public class CatalogSyncJob implements JobExecutor {
                         integrations.put(name, rules);
                     }
                 } catch (Exception e) {
-                    log.error("Failed to sync integration from hit [{}]: {}", hit.getId(), e.getMessage());
+                    log.error("Failed to sync integration from hit [{}]: {} {}", hit.getId(), e.getMessage(), e);
                 }
             }
         } catch (Exception e) {
@@ -339,8 +342,8 @@ public class CatalogSyncJob implements JobExecutor {
                             JsonObject logsource = doc.getAsJsonObject("logsource");
                             if (logsource.has("product")) {
                                 product = logsource.get("product").getAsString();
-                            } else if (logsource.has("category")) {
-                                product = logsource.get("category").getAsString();
+                            } else if (logsource.has(CATEGORY)) {
+                                product = logsource.get(CATEGORY).getAsString();
                             }
                         }
 
