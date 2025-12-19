@@ -209,13 +209,10 @@ public class CatalogSyncJob implements JobExecutor {
                     if (source.has("document")) {
                         JsonObject doc = source.getAsJsonObject("document");
                         String name = doc.has("title") ? doc.get("title").getAsString() : "";
-                        String category = "other";
+                        String category = doc.get("category").getAsString();
                         List<String> rules = new ArrayList<>();
                         if (doc.has("rules")) {
                             doc.get("rules").getAsJsonArray().forEach(item -> rules.add(item.getAsString()));
-                        }
-                        if (doc.has("category")) {
-                            category = doc.get("category").getAsString();
                         }
 
                         WIndexDetectorRequest request = new WIndexDetectorRequest(
@@ -224,7 +221,7 @@ public class CatalogSyncJob implements JobExecutor {
                             rules,
                             WriteRequest.RefreshPolicy.IMMEDIATE);
                         this.client.execute(WIndexDetectorAction.INSTANCE, request).get(1, TimeUnit.SECONDS);
-                        log.info("Integration [{}] synced successfully.", name);
+                        log.info("Detector [{}] synced successfully.", name);
                     }
                 } catch (Exception e) {
                     log.error("Failed to sync Threat Detector from hit [{}]: {}", hit.getId(), e.getMessage());
