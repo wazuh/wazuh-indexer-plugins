@@ -211,7 +211,7 @@ public class CatalogSyncJob implements JobExecutor {
                     if (source.has("document")) {
                         JsonObject doc = source.getAsJsonObject("document");
                         String name = doc.has("title") ? doc.get("title").getAsString() : "";
-                        String category = this.getCategory(doc);
+                        String category = this.getCategory(doc, true);
                         List<String> rules = new ArrayList<>();
                         if (doc.has("rules")) {
                             doc.get("rules").getAsJsonArray().forEach(item -> rules.add(item.getAsString()));
@@ -239,8 +239,13 @@ public class CatalogSyncJob implements JobExecutor {
      * @param doc Json document
      * @return capitalized space-separated string
      */
-    public String getCategory(JsonObject doc) {
+    public String getCategory(JsonObject doc, boolean isDetector) {
         String rawCategory = doc.get(CATEGORY).getAsString();
+
+        // Do not pretty print category f
+        if (isDetector) {
+            return rawCategory;
+        }
 
         // TODO remove when CTI applies the changes to the categorization.
         // Remove subcategory. Currently only cloud-services has subcategories (aws, gcp, azure).
@@ -278,7 +283,7 @@ public class CatalogSyncJob implements JobExecutor {
                         String id = doc.get("id").getAsString();
                         String name = doc.has("title") ? doc.get("title").getAsString() : "";
                         String description = doc.has("description") ? doc.get("description").getAsString() : "";
-                        String category = this.getCategory(doc);
+                        String category = this.getCategory(doc, false);
                         List<String> rules = new ArrayList<>();
                         if (doc.has("rules")) {
                             doc.get("rules").getAsJsonArray().forEach(item -> rules.add(item.getAsString()));

@@ -36,7 +36,7 @@ public class CatalogSyncJobTests  extends OpenSearchTestCase {
         JsonObject doc = new JsonObject();
         doc.addProperty(CATEGORY, "security");
 
-        String category = this.job.getCategory(doc);
+        String category = this.job.getCategory(doc, false);
 
         Assert.assertEquals("Security", category);
     }
@@ -45,7 +45,7 @@ public class CatalogSyncJobTests  extends OpenSearchTestCase {
         JsonObject doc = new JsonObject();
         doc.addProperty(CATEGORY, "cloud-services");
 
-        String category = this.job.getCategory(doc);
+        String category = this.job.getCategory(doc, false);
 
         Assert.assertEquals("Cloud Services", category);
     }
@@ -54,9 +54,19 @@ public class CatalogSyncJobTests  extends OpenSearchTestCase {
         JsonObject doc = new JsonObject();
         doc.addProperty(CATEGORY, "cloud-services-aws");
 
-        String category = this.job.getCategory(doc);
+        String category = this.job.getCategory(doc, false);
 
         // Assert subcategory is removed
         Assert.assertEquals("Cloud Services", category);
+    }
+
+    public void testGetCategoryForThreatDetector() {
+        JsonObject doc = new JsonObject();
+        doc.addProperty(CATEGORY, "cloud-services");
+
+        String category = this.job.getCategory(doc, true);
+
+        // Assert subcategory is removed
+        Assert.assertEquals("cloud-services", category);
     }
 }
