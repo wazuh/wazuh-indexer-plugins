@@ -44,7 +44,6 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Initialize content on plugin startup [(#696)](https://github.com/wazuh/wazuh-indexer-plugins/pull/696)
 - Implement threat detectors creation [(#703)](https://github.com/wazuh/wazuh-indexer-plugins/pull/703)
 - Implement complete initialization of content [(#704)](https://github.com/wazuh/wazuh-indexer-plugins/pull/704)
-- Fix integrations not being created under the correct category [#705](https://github.com/wazuh/wazuh-indexer-plugins/pull/705)
 
 ### Dependencies
 - Upgrade to Gradle 8.14.3 [(#649)](https://github.com/wazuh/wazuh-indexer-plugins/pull/649)
@@ -73,6 +72,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Rename index templates [(#659)](https://github.com/wazuh/wazuh-indexer-plugins/pull/659)
 - Update build packages documentation[(#708)](https://github.com/wazuh/wazuh-indexer-plugins/pull/708)
 - Avoid creation of Integrations with no rules associated [(#709)](https://github.com/wazuh/wazuh-indexer-plugins/pull/709)
+- Merge `cloud-services` categories [(#710)](https://github.com/wazuh/wazuh-indexer-plugins/pull/710)
 
 ### Deprecated
 -
@@ -94,6 +94,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Remove ECS fields from gcp's custom fields definition [(#675)](https://github.com/wazuh/wazuh-indexer-plugins/pull/675)
 - Fix `mdbook-mermaid` build errors [(#699)](https://github.com/wazuh/wazuh-indexer-plugins/pull/699)
 - Fix update of policy type documents [(#707)](https://github.com/wazuh/wazuh-indexer-plugins/pull/707)
+- Fix integrations not being created under the correct category [#705](https://github.com/wazuh/wazuh-indexer-plugins/pull/705)
 
 ### Security
 - Reduce risk of GITHUB_TOKEN exposure [(#484)](https://github.com/wazuh/wazuh-indexer-plugins/pull/484)
