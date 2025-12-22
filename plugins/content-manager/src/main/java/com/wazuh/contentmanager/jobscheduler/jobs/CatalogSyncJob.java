@@ -218,6 +218,7 @@ public class CatalogSyncJob implements JobExecutor {
                         }
 
                         WIndexDetectorRequest request = new WIndexDetectorRequest(
+                            hit.getId(),
                             name,
                             category,
                             rules,

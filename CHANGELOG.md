@@ -74,6 +74,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Update build packages documentation[(#708)](https://github.com/wazuh/wazuh-indexer-plugins/pull/708)
 - Avoid creation of Integrations with no rules associated [(#709)](https://github.com/wazuh/wazuh-indexer-plugins/pull/709)
 - Merge `cloud-services` categories [(#710)](https://github.com/wazuh/wazuh-indexer-plugins/pull/710)
+- Send Integration ID to SAP for detector creation [(#712)](https://github.com/wazuh/wazuh-indexer-plugins/pull/712)
 
 ### Deprecated
 -
