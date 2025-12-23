@@ -25,18 +25,28 @@ import com.wazuh.contentmanager.cti.catalog.model.LocalConsumer;
 import com.wazuh.contentmanager.cti.catalog.model.RemoteConsumer;
 import com.wazuh.contentmanager.cti.catalog.utils.Unzip;
 import com.wazuh.contentmanager.settings.PluginSettings;
+import com.wazuh.securityanalytics.action.*;
+import com.wazuh.securityanalytics.model.Integration;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.opensearch.action.bulk.BulkRequest;
 import org.opensearch.action.index.IndexRequest;
+import org.opensearch.action.search.SearchResponse;
+import org.opensearch.action.support.WriteRequest;
 import org.opensearch.common.xcontent.XContentType;
+import org.opensearch.core.common.Strings;
 import org.opensearch.env.Environment;
+import org.opensearch.index.query.QueryBuilders;
+import org.opensearch.search.SearchHit;
+import org.opensearch.transport.client.Client;
 
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.*;
 import java.util.*;
+
+import static org.opensearch.rest.RestRequest.Method.POST;
 
 /**
  * Service responsible for handling the download, extraction, and indexing of CTI snapshots.
@@ -50,6 +60,10 @@ public class SnapshotServiceImpl implements SnapshotService {
     private static final String JSON_TYPE_KEY = "type";
     private static final String JSON_DOCUMENT_KEY = "document";
     private static final String JSON_ID_KEY = "id";
+    private static final String JSON_CATEGORY_KEY = "category";
+    private static final String JSON_PRODUCT_KEY = "product";
+    public static final String JSON_RULES_KEY = "rules";
+    public static final String JSON_LOGSOURCE_KEY = "logsource";
 
     private final String context;
     private final String consumer;
@@ -58,18 +72,21 @@ public class SnapshotServiceImpl implements SnapshotService {
     private SnapshotClient snapshotClient;
     private final Environment environment;
     private final PluginSettings pluginSettings;
+    private final Client client;
 
     public SnapshotServiceImpl(String context,
                                String consumer,
                                List<ContentIndex> contentIndex,
                                ConsumersIndex consumersIndex,
-                               Environment environment) {
+                               Environment environment,
+                               Client client) {
         this.context = context;
         this.consumer = consumer;
         this.contentIndex = contentIndex;
         this.consumersIndex = consumersIndex;
         this.environment = environment;
         this.pluginSettings = PluginSettings.getInstance();
+        this.client = client;
 
         this.snapshotClient = new SnapshotClient(this.environment);
     }
@@ -92,7 +109,6 @@ public class SnapshotServiceImpl implements SnapshotService {
     @Override
     public void initialize(RemoteConsumer consumer) {
         String snapshotUrl = consumer.getSnapshotLink();
-        long offset = consumer.getOffset();
 
         if (snapshotUrl == null || snapshotUrl.isEmpty()) {
             log.warn("Snapshot URL is empty. Skipping initialization.");
@@ -121,12 +137,22 @@ public class SnapshotServiceImpl implements SnapshotService {
             // 4. Clear indices
             this.contentIndex.forEach(ContentIndex::clear);
 
-            // 5. Process and Index Files
+            // 5. Process and Index Files (Locally in ContentIndices)
             try (DirectoryStream<Path> stream = Files.newDirectoryStream(outputDir, "*.json")) {
                 for (Path entry : stream) {
                     this.processSnapshotFile(entry);
                 }
             }
+
+            // Ensure all bulk requests are finished before starting SAP sync
+            if (!this.contentIndex.isEmpty()) {
+                log.info("Waiting for pending bulk updates to finish...");
+                this.contentIndex.getFirst().waitForPendingUpdates();
+            }
+
+            // 6. Sync to SAP (Integrations first, then Rules)
+            this.syncToSapFromLocalIndices();
+
         } catch (Exception e) {
             log.error("Error processing snapshot: {}", e.getMessage());
         } finally {
@@ -134,7 +160,7 @@ public class SnapshotServiceImpl implements SnapshotService {
             this.cleanup(snapshotZip, outputDir);
         }
 
-        // 6. Update Consumer State in .cti-consumers
+        // 7. Update Consumer State in .cti-consumers
         try {
             LocalConsumer updatedConsumer = new LocalConsumer(
                 this.context,
@@ -233,6 +259,155 @@ public class SnapshotServiceImpl implements SnapshotService {
         }
     }
 
+    /**
+     * Orchestrates the synchronization process to the SAP.
+     */
+    private void syncToSapFromLocalIndices() {
+        // Refresh to make docs visible for search
+        for (ContentIndex idx : this.contentIndex) {
+            try {
+                this.client.admin().indices().prepareRefresh(idx.getIndexName()).get();
+            } catch (Exception e) {
+                log.warn("Failed to refresh index [{}]: {}", idx.getIndexName(), e.getMessage());
+            }
+        }
+
+        // Sync Integrations
+        this.syncTypeFromIndex("integration");
+
+        // Sync Rules
+        this.syncTypeFromIndex("rule");
+    }
+
+    /**
+     * Synchronizes all documents associated with a specific type from the local index to the SAP.
+     *
+     * @param type The type identifier used to look up the corresponding index name.
+     */
+    private void syncTypeFromIndex(String type) {
+        String indexName = this.getIndexName(type);
+        try {
+            log.info("Starting SAP sync for type [{}] from local index [{}]...", type, indexName);
+
+            // Search all documents
+            SearchResponse response = this.client.prepareSearch(indexName)
+                .setQuery(QueryBuilders.matchAllQuery())
+                .setSize(10000)
+                .get();
+
+            for (SearchHit hit : response.getHits()) {
+                try {
+                    JsonObject source = JsonParser.parseString(hit.getSourceAsString()).getAsJsonObject();
+                    this.syncToSap(type, source);
+                } catch (Exception e) {
+                    log.error("Failed to sync document [{}] of type [{}] to SAP: {}", hit.getId(), type, e.getMessage());
+                }
+            }
+        } catch (Exception e) {
+            log.error("Error syncing type [{}] from index [{}] to SAP: {}", type, indexName, e.getMessage());
+        }
+    }
+
+    /**
+     * Parses the source JSON and executes a creation request to SAP for 'integration' or 'rule' types.
+     *
+     * @param type The entity type (e.g., "integration", "rule").
+     * @param source The raw JSON source containing the document data.
+     */
+    private void syncToSap(String type, JsonObject source) {
+        try {
+            if (!source.has(JSON_DOCUMENT_KEY)) {
+                return;
+            }
+            JsonObject doc = source.getAsJsonObject(JSON_DOCUMENT_KEY);
+            String id = doc.get(JSON_ID_KEY).getAsString();
+
+            if ("integration".equals(type)) {
+                String name = doc.get("title").getAsString();
+                String description = doc.get("description").getAsString();
+                String category = this.getCategory(doc);
+                List<String> rules = new ArrayList<>();
+
+                if (doc.has(JSON_RULES_KEY)) {
+                    doc.get(JSON_RULES_KEY).getAsJsonArray().forEach(item -> rules.add(item.getAsString()));
+                }
+                if (rules.isEmpty()) {
+                    return;
+                }
+
+                log.info("Creating Integration [{}] in SAP - ID: {}", name, id);
+
+                WIndexIntegrationRequest request = new WIndexIntegrationRequest(
+                    id,
+                    WriteRequest.RefreshPolicy.IMMEDIATE,
+                    POST,
+                    new Integration(
+                        id,
+                        null,
+                        name,
+                        description,
+                        category,
+                        "Sigma",
+                        rules,
+                        new HashMap<>()
+                    )
+                );
+                this.client.execute(WIndexIntegrationAction.INSTANCE, request).actionGet();
+
+            } else if ("rule".equals(type)) {
+                String product = "linux";
+                if (doc.has(JSON_LOGSOURCE_KEY)) {
+                    JsonObject logsource = doc.getAsJsonObject(JSON_LOGSOURCE_KEY);
+                    if (logsource.has(JSON_PRODUCT_KEY)) {
+                        product = logsource.get(JSON_PRODUCT_KEY).getAsString();
+                    } else if (logsource.has(JSON_CATEGORY_KEY)) {
+                        product = logsource.get(JSON_CATEGORY_KEY).getAsString();
+                    }
+                }
+
+                log.info("Creating Rule [{}] in SAP", id);
+
+                WIndexRuleRequest ruleRequest = new WIndexRuleRequest(
+                    id,
+                    WriteRequest.RefreshPolicy.IMMEDIATE,
+                    product,
+                    POST,
+                    doc.toString(),
+                    false
+                );
+                this.client.execute(WIndexRuleAction.INSTANCE, ruleRequest).actionGet();
+            }
+        } catch (Exception e) {
+            log.error("Failed to sync type [{}] to SAP: {}", type, e.getMessage());
+        }
+    }
+
+    /**
+     * Retrieves the integration category from the document and returns a cleaned-up string.
+     * @param doc Json document
+     * @return capitalized space-separated string
+     */
+    public String getCategory(JsonObject doc) {
+        String rawCategory = doc.get(JSON_CATEGORY_KEY).getAsString();
+
+        // TODO remove when CTI applies the changes to the categorization.
+        // Remove subcategory. Currently only cloud-services has subcategories (aws, gcp, azure).
+        if (rawCategory.contains("cloud-services")) {
+            rawCategory = rawCategory.substring(0, 14);
+        }
+        return Arrays.stream(
+            rawCategory
+                .split("-"))
+                .reduce("", (current, next) -> current + " " + Strings.capitalize(next))
+                .trim();
+    }
+
+    /**
+     * Constructs the index name using the pattern {@code .<context>-<consumer>-<type>}.
+     *
+     * @param type The entity type.
+     * @return The formatted, locale-safe index string.
+     */
     private String getIndexName(String type) {
         return String.format(Locale.ROOT, ".%s-%s-%s", this.context, this.consumer, type);
     }

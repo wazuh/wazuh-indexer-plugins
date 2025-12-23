@@ -14,7 +14,6 @@ import com.wazuh.contentmanager.cti.catalog.service.SnapshotServiceImpl;
 import com.wazuh.contentmanager.cti.catalog.service.UpdateServiceImpl;
 import com.wazuh.contentmanager.jobscheduler.JobExecutor;
 import com.wazuh.securityanalytics.action.*;
-import com.wazuh.securityanalytics.model.Integration;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.opensearch.action.admin.indices.create.CreateIndexResponse;
@@ -39,8 +38,6 @@ import java.security.MessageDigest;
 import java.util.*;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
-
-import static org.opensearch.rest.RestRequest.Method.POST;
 
 
 /**
@@ -183,19 +180,20 @@ public class CatalogSyncJob implements JobExecutor {
             }
 
             String integrationIndex = this.getIndexName(context, consumer, "integration");
-            String ruleIndex = this.getIndexName(context, consumer, "rule");
-
-            Map<String, List<String>> integrations = this.processIntegrations(integrationIndex);
-            this.processRules(ruleIndex);
-            this.createOrUpdateDetectors(integrations, integrationIndex);
+            this.createOrUpdateDetectors(integrationIndex);
         }
     }
 
-    private void createOrUpdateDetectors(Map<String, List<String>> integrations, String indexName) {
-        log.info("Creating detectors for integrations... : {}", integrations.keySet());
+    /**
+     * Creates the SAP Detectors for each integration.
+     * @param indexName Index containing each integration (Log type).
+     */
+    private void createOrUpdateDetectors(String indexName) {
+        log.info("Creating detectors for integrations from index: {}", indexName);
         try {
             if (!this.client.admin().indices().prepareExists(indexName).get().isExists()) {
-                log.warn("Integration index [{}] does not exist, skipping treat detectors sync.", indexName);
+                log.warn("Integration index [{}] does not exist, skipping threat detectors sync.", indexName);
+                return;
             }
 
             SearchRequest searchRequest = new SearchRequest(indexName);
@@ -210,14 +208,20 @@ public class CatalogSyncJob implements JobExecutor {
                     JsonObject source = JsonParser.parseString(hit.getSourceAsString()).getAsJsonObject();
                     if (source.has("document")) {
                         JsonObject doc = source.getAsJsonObject("document");
+                        String id = doc.get("id").getAsString();
                         String name = doc.has("title") ? doc.get("title").getAsString() : "";
                         String category = this.getCategory(doc, true);
                         List<String> rules = new ArrayList<>();
                         if (doc.has("rules")) {
                             doc.get("rules").getAsJsonArray().forEach(item -> rules.add(item.getAsString()));
                         }
+                        if (rules.isEmpty()) {
+                            continue;
+                        }
+                        log.info("Creating/Updating Detector [{}] for Integration", name);
 
                         WIndexDetectorRequest request = new WIndexDetectorRequest(
+                            id,
                             name,
                             category,
                             rules,
@@ -257,125 +261,6 @@ public class CatalogSyncJob implements JobExecutor {
                 .split("-"))
                 .reduce("", (current, next) -> current + " " + Strings.capitalize(next))
                 .trim();
-    }
-
-    private Map<String, List<String>> processIntegrations(String indexName) {
-        Map<String, List<String>> integrations = new HashMap<>();
-        try {
-            if (!this.client.admin().indices().prepareExists(indexName).get().isExists()) {
-                log.warn("Integration index [{}] does not exist, skipping integration sync.", indexName);
-                return integrations;
-            }
-
-            SearchRequest searchRequest = new SearchRequest(indexName);
-            SearchSourceBuilder searchSourceBuilder = new SearchSourceBuilder();
-            searchSourceBuilder.query(QueryBuilders.matchAllQuery());
-            searchSourceBuilder.size(10000);
-            searchRequest.source(searchSourceBuilder);
-
-            SearchResponse searchResponse = this.client.search(searchRequest).actionGet();
-
-            for (SearchHit hit : searchResponse.getHits().getHits()) {
-                try {
-                    JsonObject source = JsonParser.parseString(hit.getSourceAsString()).getAsJsonObject();
-                    if (source.has("document")) {
-                        JsonObject doc = source.getAsJsonObject("document");
-                        String id = doc.get("id").getAsString();
-                        String name = doc.has("title") ? doc.get("title").getAsString() : "";
-                        String description = doc.has("description") ? doc.get("description").getAsString() : "";
-                        String category = this.getCategory(doc, false);
-                        List<String> rules = new ArrayList<>();
-                        if (doc.has("rules")) {
-                            doc.get("rules").getAsJsonArray().forEach(item -> rules.add(item.getAsString()));
-                        }
-                        if (rules.isEmpty()) {
-                            continue;
-                        }
-                        WIndexIntegrationRequest request = new WIndexIntegrationRequest(
-                            id,
-                            WriteRequest.RefreshPolicy.IMMEDIATE,
-                            POST,
-                            new Integration(
-                                id,
-                                null,
-                                name,
-                                description,
-                                category,
-                                "Sigma",
-                                rules,
-                                new HashMap<>()
-                            )
-                        );
-
-                        WIndexIntegrationResponse response = this.client.execute(WIndexIntegrationAction.INSTANCE, request).get(1, TimeUnit.SECONDS);
-                        log.info("Integration [{}] synced successfully. Response ID: {}", id, response.getId());
-                        integrations.put(name, rules);
-                    }
-                } catch (Exception e) {
-                    log.error("Failed to sync integration from hit [{}]: {} {}", hit.getId(), e.getMessage(), e);
-                }
-            }
-        } catch (Exception e) {
-            log.error("Error processing integrations from index [{}]: {}", indexName, e.getMessage());
-        }
-        return integrations;
-    }
-
-    private void processRules(String indexName) {
-        try {
-            if (!this.client.admin().indices().prepareExists(indexName).get().isExists()) {
-                log.warn("Rule index [{}] does not exist, skipping rule sync.", indexName);
-                return;
-            }
-
-            SearchRequest searchRequest = new SearchRequest(indexName);
-            SearchSourceBuilder searchSourceBuilder = new SearchSourceBuilder();
-            searchSourceBuilder.query(QueryBuilders.matchAllQuery());
-            searchSourceBuilder.size(10000);
-            searchRequest.source(searchSourceBuilder);
-
-            SearchResponse searchResponse = this.client.search(searchRequest).actionGet();
-
-            for (SearchHit hit : searchResponse.getHits().getHits()) {
-                try {
-                    JsonObject source = JsonParser.parseString(hit.getSourceAsString()).getAsJsonObject();
-
-                    if (source.has("document")) {
-                        // Extract the actual rule content
-                        JsonObject doc = source.getAsJsonObject("document");
-
-                        String id = doc.get("id").getAsString();
-
-                        // Determine product for the rule request
-                        String product = "linux"; // Default
-                        if (doc.has("logsource")) {
-                            JsonObject logsource = doc.getAsJsonObject("logsource");
-                            if (logsource.has("product")) {
-                                product = logsource.get("product").getAsString();
-                            } else if (logsource.has(CATEGORY)) {
-                                product = logsource.get(CATEGORY).getAsString();
-                            }
-                        }
-
-                        WIndexRuleRequest ruleRequest = new WIndexRuleRequest(
-                            id,
-                            WriteRequest.RefreshPolicy.IMMEDIATE,
-                            product,
-                            POST,
-                            doc.toString(),
-                            false
-                        );
-
-                        WIndexRuleResponse response = this.client.execute(WIndexRuleAction.INSTANCE, ruleRequest).get(1, TimeUnit.SECONDS);
-                        log.info("Rule [{}] synced successfully. Response ID: {}", id, response.getId());
-                    }
-                } catch (Exception e) {
-                    log.error("Failed to sync rule from hit [{}]: {}", hit.getId(), e.getMessage());
-                }
-            }
-        } catch (Exception e) {
-            log.error("Error processing rules from index [{}]: {}", indexName, e.getMessage());
-        }
     }
 
     /**
@@ -505,7 +390,8 @@ public class CatalogSyncJob implements JobExecutor {
                 consumer,
                 indices,
                 this.consumersIndex,
-                this.environment
+                this.environment,
+                this.client
             );
             snapshotService.initialize(remoteConsumer);
 
@@ -522,7 +408,8 @@ public class CatalogSyncJob implements JobExecutor {
                 consumer,
                 new ApiClient(),
                 this.consumersIndex,
-                indicesMap
+                indicesMap,
+                this.client
             );
             updateService.update(currentOffset, remoteConsumer.getOffset());
             updateService.close();
