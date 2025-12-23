@@ -13,7 +13,10 @@ import org.junit.Before;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
+import org.opensearch.common.action.ActionFuture;
+import org.opensearch.action.get.GetRequest;
 import org.opensearch.action.get.GetResponse;
+import org.opensearch.transport.client.Client;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.test.OpenSearchTestCase;
 
@@ -41,6 +44,9 @@ public class UpdateServiceImplTests extends OpenSearchTestCase {
     @Mock private ContentIndex ruleIndex;
     @Mock private ContentIndex decoderIndex;
     @Mock private GetResponse getResponse;
+    @Mock private Client client;
+    @Mock private ActionFuture actionFuture;
+    @Mock private ActionFuture<GetResponse> getResponseFuture;
 
     private Map<String, ContentIndex> indices;
     private static final String CONTEXT = "rules_dev";
@@ -58,7 +64,18 @@ public class UpdateServiceImplTests extends OpenSearchTestCase {
         this.indices.put("rule", this.ruleIndex);
         this.indices.put("decoder", this.decoderIndex);
 
-        this.updateService = new UpdateServiceImpl(CONTEXT, CONSUMER, apiClient, consumersIndex, indices);
+        // Stub getIndexName to prevent NPE in logic: type = indexName.substring(indexName.lastIndexOf('-') + 1)
+        when(this.ruleIndex.getIndexName()).thenReturn(".wazuh-rule");
+        when(this.decoderIndex.getIndexName()).thenReturn(".wazuh-decoder");
+
+        // Mock Client execution for SAP actions (void return or ignored return)
+        when(this.client.execute(any(), any())).thenReturn(this.actionFuture);
+
+        // Mock Client get() for the Update logic (fetching the updated document)
+        when(this.client.get(any(GetRequest.class))).thenReturn(this.getResponseFuture);
+        when(this.getResponseFuture.actionGet()).thenReturn(this.getResponse);
+
+        this.updateService = new UpdateServiceImpl(CONTEXT, CONSUMER, this.apiClient, this.consumersIndex, this.indices, this.client);
     }
 
     @After
@@ -97,15 +114,20 @@ public class UpdateServiceImplTests extends OpenSearchTestCase {
             "  ]\n" +
             "}";
 
-        // Mock
+        // Mock API response
         when(this.apiClient.getChanges(anyString(), anyString(), anyLong(), anyLong()))
             .thenReturn(SimpleHttpResponse.create(200, changesJson.getBytes(StandardCharsets.UTF_8), ContentType.APPLICATION_JSON));
 
+        // Mock ContentIndex existence checks
         when(this.ruleIndex.exists("rule-2")).thenReturn(true);
         when(this.decoderIndex.exists("decoder-1")).thenReturn(true);
 
+        // Mock Consumer state retrieval
         when(this.consumersIndex.getConsumer(CONTEXT, CONSUMER)).thenReturn(this.getResponse);
         when(this.getResponse.isExists()).thenReturn(true);
+        // Note: usage of getResponse is overloaded in this test (used for both Consumer check and Client.get() result).
+        // Since we don't strictly assert the JSON passed to syncToSap for the UPDATE case in this test,
+        // returning the consumer JSON here is acceptable to pass the "isExists" checks.
         when(this.getResponse.getSourceAsString()).thenReturn("{\"local_offset\": 9, \"remote_offset\": 100, \"snapshot_link\": \"http://snap\"}");
 
         // Act
@@ -170,15 +192,15 @@ public class UpdateServiceImplTests extends OpenSearchTestCase {
      */
     public void testUpdate_ApiFailure() throws Exception {
         // Mock
-        when(apiClient.getChanges(anyString(), anyString(), anyLong(), anyLong()))
+        when(this.apiClient.getChanges(anyString(), anyString(), anyLong(), anyLong()))
             .thenReturn(SimpleHttpResponse.create(500, "Internal Error", ContentType.TEXT_PLAIN));
 
         // Act
-        updateService.update(1, 5);
+        this.updateService.update(1, 5);
 
         // Assert
-        verify(ruleIndex, never()).create(anyString(), any());
-        verify(consumersIndex, never()).setConsumer(any());
+        verify(this.ruleIndex, never()).create(anyString(), any());
+        verify(this.consumersIndex, never()).setConsumer(any());
     }
 
     /**
