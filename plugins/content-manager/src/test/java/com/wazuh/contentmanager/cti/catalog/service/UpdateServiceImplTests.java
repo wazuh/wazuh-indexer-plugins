@@ -33,6 +33,7 @@ import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.times;
 
 public class UpdateServiceImplTests extends OpenSearchTestCase {
 
@@ -47,6 +48,7 @@ public class UpdateServiceImplTests extends OpenSearchTestCase {
     @Mock private Client client;
     @Mock private ActionFuture actionFuture;
     @Mock private ActionFuture<GetResponse> getResponseFuture;
+    @Mock private SecurityAnalyticsService securityAnalyticsService;
 
     private Map<String, ContentIndex> indices;
     private static final String CONTEXT = "rules_dev";
@@ -75,7 +77,7 @@ public class UpdateServiceImplTests extends OpenSearchTestCase {
         when(this.client.get(any(GetRequest.class))).thenReturn(this.getResponseFuture);
         when(this.getResponseFuture.actionGet()).thenReturn(this.getResponse);
 
-        this.updateService = new UpdateServiceImpl(CONTEXT, CONSUMER, this.apiClient, this.consumersIndex, this.indices, this.client);
+        this.updateService = new UpdateServiceImpl(CONTEXT, CONSUMER, this.apiClient, this.consumersIndex, this.indices, this.client, this.securityAnalyticsService);
     }
 
     @After
@@ -136,6 +138,9 @@ public class UpdateServiceImplTests extends OpenSearchTestCase {
         // Assert
         // Verify CREATE
         verify(this.ruleIndex).create(eq("rule-1"), any(JsonObject.class));
+
+        // Verify delegation to SAP service (called twice: once for CREATE, once for UPDATE)
+        verify(this.securityAnalyticsService, times(2)).upsertRule(any(JsonObject.class));
 
         // Verify UPDATE
         verify(this.ruleIndex).update(eq("rule-2"), any(List.class));

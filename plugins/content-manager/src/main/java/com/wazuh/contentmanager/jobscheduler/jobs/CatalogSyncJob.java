@@ -8,12 +8,8 @@ import com.wazuh.contentmanager.cti.catalog.index.ContentIndex;
 import com.wazuh.contentmanager.cti.catalog.model.LocalConsumer;
 import com.wazuh.contentmanager.cti.catalog.model.RemoteConsumer;
 import com.wazuh.contentmanager.cti.catalog.model.Space;
-import com.wazuh.contentmanager.cti.catalog.service.ConsumerService;
-import com.wazuh.contentmanager.cti.catalog.service.ConsumerServiceImpl;
-import com.wazuh.contentmanager.cti.catalog.service.SnapshotServiceImpl;
-import com.wazuh.contentmanager.cti.catalog.service.UpdateServiceImpl;
+import com.wazuh.contentmanager.cti.catalog.service.*;
 import com.wazuh.contentmanager.jobscheduler.JobExecutor;
-import com.wazuh.securityanalytics.action.*;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.opensearch.action.admin.indices.create.CreateIndexResponse;
@@ -21,7 +17,6 @@ import org.opensearch.action.bulk.BulkRequest;
 import org.opensearch.action.get.GetResponse;
 import org.opensearch.action.search.SearchRequest;
 import org.opensearch.action.search.SearchResponse;
-import org.opensearch.action.support.WriteRequest;
 import org.opensearch.action.update.UpdateRequest;
 import org.opensearch.common.xcontent.XContentType;
 import org.opensearch.core.common.Strings;
@@ -37,7 +32,6 @@ import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.util.*;
 import java.util.concurrent.Semaphore;
-import java.util.concurrent.TimeUnit;
 
 
 /**
@@ -59,7 +53,7 @@ public class CatalogSyncJob implements JobExecutor {
     public static final String KVDB = "kvdb";
     public static final String DECODER = "decoder";
     public static final String INTEGRATION = "integration";
-    static final String CATEGORY = "category";
+    public static final String CATEGORY = "category";
 
     // Semaphore to control concurrency
     private final Semaphore semaphore = new Semaphore(1);
@@ -68,6 +62,7 @@ public class CatalogSyncJob implements JobExecutor {
     private final ConsumersIndex consumersIndex;
     private final Environment environment;
     private final ThreadPool threadPool;
+    private final SecurityAnalyticsService securityAnalyticsService;
 
     /**
      * Constructs a new CatalogSyncJob.
@@ -76,12 +71,14 @@ public class CatalogSyncJob implements JobExecutor {
      * @param consumersIndex The wrapper for accessing and managing the internal Consumers index.
      * @param environment    The OpenSearch environment settings, used for path resolution.
      * @param threadPool     The thread pool manager, used to offload blocking tasks to the generic executor.
+     * @param securityAnalyticsService The service for managing SAP resources.
      */
-    public CatalogSyncJob(Client client, ConsumersIndex consumersIndex, Environment environment, ThreadPool threadPool) {
+    public CatalogSyncJob(Client client, ConsumersIndex consumersIndex, Environment environment, ThreadPool threadPool, SecurityAnalyticsService securityAnalyticsService) {
         this.client = client;
         this.consumersIndex = consumersIndex;
         this.environment = environment;
         this.threadPool = threadPool;
+        this.securityAnalyticsService = securityAnalyticsService;
     }
 
     /**
@@ -207,27 +204,7 @@ public class CatalogSyncJob implements JobExecutor {
                 try {
                     JsonObject source = JsonParser.parseString(hit.getSourceAsString()).getAsJsonObject();
                     if (source.has("document")) {
-                        JsonObject doc = source.getAsJsonObject("document");
-                        String id = doc.get("id").getAsString();
-                        String name = doc.has("title") ? doc.get("title").getAsString() : "";
-                        String category = this.getCategory(doc, true);
-                        List<String> rules = new ArrayList<>();
-                        if (doc.has("rules")) {
-                            doc.get("rules").getAsJsonArray().forEach(item -> rules.add(item.getAsString()));
-                        }
-                        if (rules.isEmpty()) {
-                            continue;
-                        }
-                        log.info("Creating/Updating Detector [{}] for Integration", name);
-
-                        WIndexDetectorRequest request = new WIndexDetectorRequest(
-                            id,
-                            name,
-                            category,
-                            rules,
-                            WriteRequest.RefreshPolicy.IMMEDIATE);
-                        this.client.execute(WIndexDetectorAction.INSTANCE, request).get(1, TimeUnit.SECONDS);
-                        log.info("Detector [{}] synced successfully.", name);
+                        this.securityAnalyticsService.upsertDetector(source, true);
                     }
                 } catch (Exception e) {
                     log.error("Failed to sync Threat Detector from hit [{}]: {}", hit.getId(), e.getMessage());
@@ -241,6 +218,7 @@ public class CatalogSyncJob implements JobExecutor {
     /**
      * Retrieves the integration category from the document and returns a cleaned up string.
      * @param doc Json document
+     * @param isDetector whether to return raw category
      * @return capitalized space-separated string
      */
     public String getCategory(JsonObject doc, boolean isDetector) {
@@ -391,7 +369,8 @@ public class CatalogSyncJob implements JobExecutor {
                 indices,
                 this.consumersIndex,
                 this.environment,
-                this.client
+                this.client,
+                this.securityAnalyticsService
             );
             snapshotService.initialize(remoteConsumer);
 
@@ -409,7 +388,8 @@ public class CatalogSyncJob implements JobExecutor {
                 new ApiClient(),
                 this.consumersIndex,
                 indicesMap,
-                this.client
+                this.client,
+                this.securityAnalyticsService
             );
             updateService.update(currentOffset, remoteConsumer.getOffset());
             updateService.close();

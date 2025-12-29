@@ -25,25 +25,19 @@ import com.wazuh.contentmanager.cti.catalog.index.ContentIndex;
 import com.wazuh.contentmanager.cti.catalog.model.Changes;
 import com.wazuh.contentmanager.cti.catalog.model.LocalConsumer;
 import com.wazuh.contentmanager.cti.catalog.model.Offset;
-import com.wazuh.securityanalytics.action.*;
-import com.wazuh.securityanalytics.model.Integration;
 import org.apache.hc.client5.http.async.methods.SimpleHttpResponse;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.opensearch.ResourceNotFoundException;
 import org.opensearch.action.get.GetRequest;
 import org.opensearch.action.get.GetResponse;
-import org.opensearch.action.support.WriteRequest;
-import org.opensearch.common.xcontent.XContentType;
-import org.opensearch.core.common.Strings;
 import org.opensearch.core.xcontent.DeprecationHandler;
 import org.opensearch.core.xcontent.NamedXContentRegistry;
 import org.opensearch.core.xcontent.XContentParser;
+import org.opensearch.common.xcontent.XContentType;
 import org.opensearch.transport.client.Client;
 
 import java.util.*;
-
-import static org.opensearch.rest.RestRequest.Method.POST;
 
 /**
  * Service responsible for keeping the catalog content up-to-date.
@@ -53,12 +47,6 @@ public class UpdateServiceImpl extends AbstractService implements UpdateService 
 
     // Keys to navigate the JSON structure
     private static final String JSON_TYPE_KEY = "type";
-    private static final String JSON_DOCUMENT_KEY = "document";
-    private static final String JSON_ID_KEY = "id";
-    private static final String JSON_CATEGORY_KEY = "category";
-    private static final String JSON_PRODUCT_KEY = "product";
-    public static final String JSON_RULES_KEY = "rules";
-    public static final String JSON_LOGSOURCE_KEY = "logsource";
 
     private final ConsumersIndex consumersIndex;
     private final Map<String, ContentIndex> indices;
@@ -66,6 +54,7 @@ public class UpdateServiceImpl extends AbstractService implements UpdateService 
     private final String consumer;
     private final Gson gson;
     private final Client osClient;
+    private final SecurityAnalyticsService securityAnalyticsService;
 
     /**
      * Constructs a new UpdateServiceImpl.
@@ -77,7 +66,7 @@ public class UpdateServiceImpl extends AbstractService implements UpdateService 
      * @param indices        A map of content type to {@link ContentIndex} managers.
      * @param osClient       The OpenSearch client for SAP actions.
      */
-    public UpdateServiceImpl(String context, String consumer, ApiClient client, ConsumersIndex consumersIndex, Map<String, ContentIndex> indices, Client osClient) {
+    public UpdateServiceImpl(String context, String consumer, ApiClient client, ConsumersIndex consumersIndex, Map<String, ContentIndex> indices, Client osClient, SecurityAnalyticsService securityAnalyticsService) {
         if (this.client != null) {
             this.client.close();
         }
@@ -89,6 +78,7 @@ public class UpdateServiceImpl extends AbstractService implements UpdateService 
         this.consumer = consumer;
         this.gson = new Gson();
         this.osClient = osClient;
+        this.securityAnalyticsService = securityAnalyticsService;
     }
 
     /**
@@ -220,81 +210,12 @@ public class UpdateServiceImpl extends AbstractService implements UpdateService 
      * @param source The raw JSON source containing the document data.
      */
     private void syncToSap(String type, JsonObject source) {
-        try {
-            if (!source.has(JSON_DOCUMENT_KEY)) {
-                return;
-            }
-            JsonObject doc = source.getAsJsonObject(JSON_DOCUMENT_KEY);
-            String id = doc.get(JSON_ID_KEY).getAsString();
-
-            if ("integration".equals(type)) {
-                String name = doc.get("title").getAsString();
-                String description = doc.get("description").getAsString();
-                String category = this.getCategory(doc);
-                List<String> rules = new ArrayList<>();
-
-                if (doc.has(JSON_RULES_KEY)) {
-                    doc.get(JSON_RULES_KEY).getAsJsonArray().forEach(item -> rules.add(item.getAsString()));
-                }
-                if (rules.isEmpty()) {
-                    return;
-                }
-
-                log.info("Creating/Updating Integration [{}] in SAP - ID: {}", name, id);
-
-                WIndexIntegrationRequest request = new WIndexIntegrationRequest(
-                    id,
-                    WriteRequest.RefreshPolicy.IMMEDIATE,
-                    POST,
-                    new Integration(
-                        id,
-                        null,
-                        name,
-                        description,
-                        category,
-                        "Sigma",
-                        rules,
-                        new HashMap<>()
-                    )
-                );
-                this.osClient.execute(WIndexIntegrationAction.INSTANCE, request).actionGet();
-
-                // Detector update
-                WIndexDetectorRequest detectorRequest = new WIndexDetectorRequest(
-                    id,
-                    name,
-                    category,
-                    rules,
-                    WriteRequest.RefreshPolicy.IMMEDIATE
-                );
-                this.osClient.execute(WIndexDetectorAction.INSTANCE, detectorRequest).actionGet();
-                log.info("Updated Detector [{}] for Integration [{}]", id, id);
-
-            } else if ("rule".equals(type)) {
-                String product = "linux";
-                if (doc.has(JSON_LOGSOURCE_KEY)) {
-                    JsonObject logsource = doc.getAsJsonObject(JSON_LOGSOURCE_KEY);
-                    if (logsource.has(JSON_PRODUCT_KEY)) {
-                        product = logsource.get(JSON_PRODUCT_KEY).getAsString();
-                    } else if (logsource.has(JSON_CATEGORY_KEY)) {
-                        product = logsource.get(JSON_CATEGORY_KEY).getAsString();
-                    }
-                }
-
-                log.info("Creating/Updating Rule [{}] in SAP", id);
-
-                WIndexRuleRequest ruleRequest = new WIndexRuleRequest(
-                    id,
-                    WriteRequest.RefreshPolicy.IMMEDIATE,
-                    product,
-                    POST,
-                    doc.toString(),
-                    true
-                );
-                this.osClient.execute(WIndexRuleAction.INSTANCE, ruleRequest).actionGet();
-            }
-        } catch (Exception e) {
-            log.error("Failed to sync type [{}] to SAP: {}", type, e.getMessage());
+        if ("integration".equals(type)) {
+            this.securityAnalyticsService.upsertIntegration(source);
+            // Detector update
+            this.securityAnalyticsService.upsertDetector(source, false);
+        } else if ("rule".equals(type)) {
+            this.securityAnalyticsService.upsertRule(source);
         }
     }
 
@@ -309,42 +230,11 @@ public class UpdateServiceImpl extends AbstractService implements UpdateService 
      * @param id   The unique identifier of the resource to delete.
      */
     private void deleteSapResource(String type, String id) {
-        try {
-            if ("integration".equals(type)) {
-                // Delete detector first
-                log.info("Deleting Detector [{}] from SAP", id);
-                this.osClient.execute(WDeleteDetectorAction.INSTANCE, new WDeleteDetectorRequest(id, WriteRequest.RefreshPolicy.IMMEDIATE)).actionGet();
-
-                // Then delete integration
-                log.info("Deleting Integration [{}] from SAP", id);
-                this.osClient.execute(WDeleteIntegrationAction.INSTANCE, new WDeleteIntegrationRequest(id, WriteRequest.RefreshPolicy.IMMEDIATE)).actionGet();
-            } else if ("rule".equals(type)) {
-                log.info("Deleting Rule [{}] from SAP", id);
-                this.osClient.execute(WDeleteRuleAction.INSTANCE, new WDeleteRuleRequest(id, WriteRequest.RefreshPolicy.IMMEDIATE, true)).actionGet();
-            }
-        } catch (Exception e) {
-            log.error("Failed to delete SAP resource [{}] of type [{}]: {}", id, type, e.getMessage());
+        if ("integration".equals(type)) {
+            this.securityAnalyticsService.deleteIntegration(id);
+        } else if ("rule".equals(type)) {
+            this.securityAnalyticsService.deleteRule(id);
         }
-    }
-
-    /**
-     * Retrieves the integration category from the document and returns a cleaned-up string.
-     * @param doc Json document
-     * @return capitalized space-separated string
-     */
-    public String getCategory(JsonObject doc) {
-        String rawCategory = doc.get(JSON_CATEGORY_KEY).getAsString();
-
-        // TODO remove when CTI applies the changes to the categorization.
-        // Remove subcategory. Currently only cloud-services has subcategories (aws, gcp, azure).
-        if (rawCategory.contains("cloud-services")) {
-            rawCategory = rawCategory.substring(0, 14);
-        }
-        return Arrays.stream(
-            rawCategory
-                .split("-"))
-                .reduce("", (current, next) -> current + " " + Strings.capitalize(next))
-                .trim();
     }
 
     /**

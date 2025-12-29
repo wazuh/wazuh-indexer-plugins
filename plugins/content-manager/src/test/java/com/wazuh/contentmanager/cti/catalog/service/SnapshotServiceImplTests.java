@@ -64,6 +64,7 @@ public class SnapshotServiceImplTests extends OpenSearchTestCase {
     @Mock private RemoteConsumer remoteConsumer;
     @Mock private Client client;
     @Mock private ActionFuture actionFuture;
+    @Mock private SecurityAnalyticsService securityAnalyticsService;
 
     private AutoCloseable closeable;
 
@@ -89,7 +90,7 @@ public class SnapshotServiceImplTests extends OpenSearchTestCase {
         // Mock client behavior
         when(this.client.execute(any(), any())).thenReturn(this.actionFuture);
 
-        this.snapshotService = new SnapshotServiceImpl(context, consumer, contentIndices, this.consumersIndex, this.environment, this.client);
+        this.snapshotService = new SnapshotServiceImpl(context, consumer, contentIndices, this.consumersIndex, this.environment, this.client, this.securityAnalyticsService);
         this.snapshotService.setSnapshotClient(this.snapshotClient);
 
         when(this.contentIndexMock.processPayload(any(JsonObject.class)))

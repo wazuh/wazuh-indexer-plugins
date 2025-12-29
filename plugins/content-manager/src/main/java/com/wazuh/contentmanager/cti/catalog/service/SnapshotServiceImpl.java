@@ -25,16 +25,12 @@ import com.wazuh.contentmanager.cti.catalog.model.LocalConsumer;
 import com.wazuh.contentmanager.cti.catalog.model.RemoteConsumer;
 import com.wazuh.contentmanager.cti.catalog.utils.Unzip;
 import com.wazuh.contentmanager.settings.PluginSettings;
-import com.wazuh.securityanalytics.action.*;
-import com.wazuh.securityanalytics.model.Integration;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.opensearch.action.bulk.BulkRequest;
 import org.opensearch.action.index.IndexRequest;
 import org.opensearch.action.search.SearchResponse;
-import org.opensearch.action.support.WriteRequest;
 import org.opensearch.common.xcontent.XContentType;
-import org.opensearch.core.common.Strings;
 import org.opensearch.env.Environment;
 import org.opensearch.index.query.QueryBuilders;
 import org.opensearch.search.SearchHit;
@@ -45,8 +41,6 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.*;
 import java.util.*;
-
-import static org.opensearch.rest.RestRequest.Method.POST;
 
 /**
  * Service responsible for handling the download, extraction, and indexing of CTI snapshots.
@@ -60,10 +54,6 @@ public class SnapshotServiceImpl implements SnapshotService {
     private static final String JSON_TYPE_KEY = "type";
     private static final String JSON_DOCUMENT_KEY = "document";
     private static final String JSON_ID_KEY = "id";
-    private static final String JSON_CATEGORY_KEY = "category";
-    private static final String JSON_PRODUCT_KEY = "product";
-    public static final String JSON_RULES_KEY = "rules";
-    public static final String JSON_LOGSOURCE_KEY = "logsource";
 
     private final String context;
     private final String consumer;
@@ -73,13 +63,15 @@ public class SnapshotServiceImpl implements SnapshotService {
     private final Environment environment;
     private final PluginSettings pluginSettings;
     private final Client client;
+    private final SecurityAnalyticsService securityAnalyticsService;
 
     public SnapshotServiceImpl(String context,
                                String consumer,
                                List<ContentIndex> contentIndex,
                                ConsumersIndex consumersIndex,
                                Environment environment,
-                               Client client) {
+                               Client client,
+                               SecurityAnalyticsService securityAnalyticsService) {
         this.context = context;
         this.consumer = consumer;
         this.contentIndex = contentIndex;
@@ -87,6 +79,7 @@ public class SnapshotServiceImpl implements SnapshotService {
         this.environment = environment;
         this.pluginSettings = PluginSettings.getInstance();
         this.client = client;
+        this.securityAnalyticsService = securityAnalyticsService;
 
         this.snapshotClient = new SnapshotClient(this.environment);
     }
@@ -309,97 +302,17 @@ public class SnapshotServiceImpl implements SnapshotService {
     }
 
     /**
-     * Parses the source JSON and executes a creation request to SAP for 'integration' or 'rule' types.
+     * Parses the source JSON and delegates to SecurityAnalyticsService.
      *
      * @param type The entity type (e.g., "integration", "rule").
      * @param source The raw JSON source containing the document data.
      */
     private void syncToSap(String type, JsonObject source) {
-        try {
-            if (!source.has(JSON_DOCUMENT_KEY)) {
-                return;
-            }
-            JsonObject doc = source.getAsJsonObject(JSON_DOCUMENT_KEY);
-            String id = doc.get(JSON_ID_KEY).getAsString();
-
-            if ("integration".equals(type)) {
-                String name = doc.get("title").getAsString();
-                String description = doc.get("description").getAsString();
-                String category = this.getCategory(doc);
-                List<String> rules = new ArrayList<>();
-
-                if (doc.has(JSON_RULES_KEY)) {
-                    doc.get(JSON_RULES_KEY).getAsJsonArray().forEach(item -> rules.add(item.getAsString()));
-                }
-                if (rules.isEmpty()) {
-                    return;
-                }
-
-                log.info("Creating Integration [{}] in SAP - ID: {}", name, id);
-
-                WIndexIntegrationRequest request = new WIndexIntegrationRequest(
-                    id,
-                    WriteRequest.RefreshPolicy.IMMEDIATE,
-                    POST,
-                    new Integration(
-                        id,
-                        null,
-                        name,
-                        description,
-                        category,
-                        "Sigma",
-                        rules,
-                        new HashMap<>()
-                    )
-                );
-                this.client.execute(WIndexIntegrationAction.INSTANCE, request).actionGet();
-
-            } else if ("rule".equals(type)) {
-                String product = "linux";
-                if (doc.has(JSON_LOGSOURCE_KEY)) {
-                    JsonObject logsource = doc.getAsJsonObject(JSON_LOGSOURCE_KEY);
-                    if (logsource.has(JSON_PRODUCT_KEY)) {
-                        product = logsource.get(JSON_PRODUCT_KEY).getAsString();
-                    } else if (logsource.has(JSON_CATEGORY_KEY)) {
-                        product = logsource.get(JSON_CATEGORY_KEY).getAsString();
-                    }
-                }
-
-                log.info("Creating Rule [{}] in SAP", id);
-
-                WIndexRuleRequest ruleRequest = new WIndexRuleRequest(
-                    id,
-                    WriteRequest.RefreshPolicy.IMMEDIATE,
-                    product,
-                    POST,
-                    doc.toString(),
-                    false
-                );
-                this.client.execute(WIndexRuleAction.INSTANCE, ruleRequest).actionGet();
-            }
-        } catch (Exception e) {
-            log.error("Failed to sync type [{}] to SAP: {}", type, e.getMessage());
+        if ("integration".equals(type)) {
+            this.securityAnalyticsService.upsertIntegration(source);
+        } else if ("rule".equals(type)) {
+            this.securityAnalyticsService.upsertRule(source);
         }
-    }
-
-    /**
-     * Retrieves the integration category from the document and returns a cleaned-up string.
-     * @param doc Json document
-     * @return capitalized space-separated string
-     */
-    public String getCategory(JsonObject doc) {
-        String rawCategory = doc.get(JSON_CATEGORY_KEY).getAsString();
-
-        // TODO remove when CTI applies the changes to the categorization.
-        // Remove subcategory. Currently only cloud-services has subcategories (aws, gcp, azure).
-        if (rawCategory.contains("cloud-services")) {
-            rawCategory = rawCategory.substring(0, 14);
-        }
-        return Arrays.stream(
-            rawCategory
-                .split("-"))
-                .reduce("", (current, next) -> current + " " + Strings.capitalize(next))
-                .trim();
     }
 
     /**
