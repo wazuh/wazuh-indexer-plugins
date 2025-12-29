@@ -18,6 +18,7 @@ package com.wazuh.contentmanager.cti.catalog.service;
 
 import com.google.gson.Gson;
 import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
 import com.wazuh.contentmanager.cti.catalog.client.ApiClient;
 import com.wazuh.contentmanager.cti.catalog.index.ConsumersIndex;
 import com.wazuh.contentmanager.cti.catalog.index.ContentIndex;
@@ -28,14 +29,15 @@ import org.apache.hc.client5.http.async.methods.SimpleHttpResponse;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.opensearch.ResourceNotFoundException;
+import org.opensearch.action.get.GetRequest;
 import org.opensearch.action.get.GetResponse;
-import org.opensearch.common.xcontent.XContentType;
 import org.opensearch.core.xcontent.DeprecationHandler;
 import org.opensearch.core.xcontent.NamedXContentRegistry;
 import org.opensearch.core.xcontent.XContentParser;
+import org.opensearch.common.xcontent.XContentType;
+import org.opensearch.transport.client.Client;
 
-import java.util.Locale;
-import java.util.Map;
+import java.util.*;
 
 /**
  * Service responsible for keeping the catalog content up-to-date.
@@ -43,11 +45,16 @@ import java.util.Map;
 public class UpdateServiceImpl extends AbstractService implements UpdateService {
     private static final Logger log = LogManager.getLogger(UpdateServiceImpl.class);
 
+    // Keys to navigate the JSON structure
+    private static final String JSON_TYPE_KEY = "type";
+
     private final ConsumersIndex consumersIndex;
     private final Map<String, ContentIndex> indices;
     private final String context;
     private final String consumer;
     private final Gson gson;
+    private final Client osClient;
+    private final SecurityAnalyticsService securityAnalyticsService;
 
     /**
      * Constructs a new UpdateServiceImpl.
@@ -57,8 +64,9 @@ public class UpdateServiceImpl extends AbstractService implements UpdateService 
      * @param client         The API client used to fetch changes.
      * @param consumersIndex The index responsible for storing consumer state (offsets).
      * @param indices        A map of content type to {@link ContentIndex} managers.
+     * @param osClient       The OpenSearch client for SAP actions.
      */
-    public UpdateServiceImpl(String context, String consumer, ApiClient client, ConsumersIndex consumersIndex, Map<String, ContentIndex> indices) {
+    public UpdateServiceImpl(String context, String consumer, ApiClient client, ConsumersIndex consumersIndex, Map<String, ContentIndex> indices, Client osClient, SecurityAnalyticsService securityAnalyticsService) {
         if (this.client != null) {
             this.client.close();
         }
@@ -69,6 +77,8 @@ public class UpdateServiceImpl extends AbstractService implements UpdateService 
         this.context = context;
         this.consumer = consumer;
         this.gson = new Gson();
+        this.osClient = osClient;
+        this.securityAnalyticsService = securityAnalyticsService;
     }
 
     /**
@@ -135,14 +145,15 @@ public class UpdateServiceImpl extends AbstractService implements UpdateService 
     private void applyOffset(Offset offset) throws Exception {
         String id = offset.getResource();
         ContentIndex index;
+        String type;
 
         switch (offset.getType()) {
             case CREATE:
                 if (offset.getPayload() != null) {
                     // TODO: Change the Offset logic to use JsonNode and use Jackson Object Mapper to obtain the payload
                     JsonObject payload = this.gson.toJsonTree(offset.getPayload()).getAsJsonObject();
-                    if (payload.has("type")) {
-                        String type = payload.get("type").getAsString();
+                    if (payload.has(JSON_TYPE_KEY)) {
+                        type = payload.get(JSON_TYPE_KEY).getAsString();
 
                         // TODO: Delete once the consumer is changed
                         if (this.context.equals("rules_development_0.0.1") && this.consumer.equals("rules_development_0.0.1_test") && "policy".equals(type)) {
@@ -152,6 +163,7 @@ public class UpdateServiceImpl extends AbstractService implements UpdateService 
                         index = this.indices.get(type);
                         if (index != null) {
                             index.create(id, payload);
+                            this.syncToSap(type, payload);
                         } else {
                             log.warn("No index mapped for type [{}]", type);
                         }
@@ -166,14 +178,62 @@ public class UpdateServiceImpl extends AbstractService implements UpdateService 
 
                 index = this.findIndexForId(id);
                 index.update(id, offset.getOperations());
+
+                String indexName = index.getIndexName();
+                type = indexName.substring(indexName.lastIndexOf('-') + 1);
+
+                GetResponse response = this.osClient.get(new GetRequest(index.getIndexName(), id)).actionGet();
+                if (response.isExists()) {
+                    JsonObject updatedDoc = JsonParser.parseString(response.getSourceAsString()).getAsJsonObject();
+                    this.syncToSap(type, updatedDoc);
+                }
                 break;
             case DELETE:
                 index = this.findIndexForId(id);
                 index.delete(id);
+
+                String idxName = index.getIndexName();
+                type = idxName.substring(idxName.lastIndexOf('-') + 1);
+
+                this.deleteSapResource(type, id);
                 break;
             default:
                 log.warn("Unsupported JSON patch operation [{}]", offset.getType());
                 break;
+        }
+    }
+
+    /**
+     * Parses the source JSON and executes a creation/update request to SAP for 'integration' or 'rule' types.
+     *
+     * @param type The entity type (e.g., "integration", "rule").
+     * @param source The raw JSON source containing the document data.
+     */
+    private void syncToSap(String type, JsonObject source) {
+        if ("integration".equals(type)) {
+            this.securityAnalyticsService.upsertIntegration(source);
+            // Detector update
+            this.securityAnalyticsService.upsertDetector(source, false);
+        } else if ("rule".equals(type)) {
+            this.securityAnalyticsService.upsertRule(source);
+        }
+    }
+
+    /**
+     * Deletes a resource from SAP based on the provided type and identifier.
+     *
+     * <p>For {@code "integration"} types, this method performs deletes the
+     * associated Detector first, followed by the Integration itself.
+     * For {@code "rule"} types, it performs a standard single deletion.</p>
+     *
+     * @param type The resource type (e.g., "integration", "rule").
+     * @param id   The unique identifier of the resource to delete.
+     */
+    private void deleteSapResource(String type, String id) {
+        if ("integration".equals(type)) {
+            this.securityAnalyticsService.deleteIntegration(id);
+        } else if ("rule".equals(type)) {
+            this.securityAnalyticsService.deleteRule(id);
         }
     }
 

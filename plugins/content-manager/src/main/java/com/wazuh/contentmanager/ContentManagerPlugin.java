@@ -17,6 +17,8 @@
 package com.wazuh.contentmanager;
 
 import com.wazuh.contentmanager.cti.catalog.index.ConsumersIndex;
+import com.wazuh.contentmanager.cti.catalog.service.SecurityAnalyticsService;
+import com.wazuh.contentmanager.cti.catalog.service.SecurityAnalyticsServiceImpl;
 import com.wazuh.contentmanager.cti.console.CtiConsole;
 import com.wazuh.contentmanager.jobscheduler.ContentJobParameter;
 import com.wazuh.contentmanager.jobscheduler.ContentJobRunner;
@@ -73,6 +75,7 @@ public class ContentManagerPlugin extends Plugin implements ClusterPlugin, JobSc
     private Client client;
     private Environment environment;
     private CatalogSyncJob catalogSyncJob;
+    private SecurityAnalyticsService securityAnalyticsService;
 
     /**
      * Initializes the plugin components, including the CTI console, consumer index helpers,
@@ -114,8 +117,10 @@ public class ContentManagerPlugin extends Plugin implements ClusterPlugin, JobSc
         this.ctiConsole = new CtiConsole();
         ContentJobRunner runner = ContentJobRunner.getInstance();
 
+        this.securityAnalyticsService = new SecurityAnalyticsServiceImpl(this.client);
+
         // Initialize CatalogSyncJob
-        this.catalogSyncJob = new CatalogSyncJob(this.client, this.consumersIndex, this.environment, this.threadPool);
+        this.catalogSyncJob = new CatalogSyncJob(this.client, this.consumersIndex, this.environment, this.threadPool, this.securityAnalyticsService);
 
         // Register Executors
         runner.registerExecutor(CatalogSyncJob.JOB_TYPE, this.catalogSyncJob);
@@ -138,7 +143,7 @@ public class ContentManagerPlugin extends Plugin implements ClusterPlugin, JobSc
 
         // Schedule the periodic sync job via OpenSearch Job Scheduler
         this.scheduleCatalogSyncJob();
-        
+
         // Skip catalog sync trigger during integration tests
         boolean isTestEnv = "true".equals(System.getProperty("INDEXER_TEST_ENV"));
         if (!isTestEnv) {
