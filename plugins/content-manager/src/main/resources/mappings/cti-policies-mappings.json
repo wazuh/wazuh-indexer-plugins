@@ -3,6 +3,9 @@
   "properties": {
     "document": {
       "properties": {
+        "id": {
+          "type": "keyword"
+        },
         "root_decoder": {
           "type": "keyword"
         },

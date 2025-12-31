@@ -15,6 +15,12 @@
         "author": {
           "type": "keyword"
         },
+        "description": {
+          "type": "text"
+        },
+        "documentation": {
+          "type": "keyword"
+        },
         "enabled": {
           "type": "boolean"
         },
@@ -24,6 +30,17 @@
         "content": {
           "type": "object",
           "enabled": false
+        },
+        "metadata": {
+          "properties": {
+            "author": {
+              "properties": {
+                "modified": {
+                  "type": "date"
+                }
+              }
+            }
+          }
         }
       }
     },

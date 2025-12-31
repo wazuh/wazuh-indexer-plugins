@@ -22,7 +22,7 @@
         "documentation": {
           "type": "keyword"
         },
-        "enable_rules": {
+        "enabled": {
           "type": "boolean"
         },
         "references": {
@@ -30,6 +30,17 @@
         },
         "rules": {
           "type": "keyword"
+        },
+        "metadata": {
+          "properties": {
+            "author": {
+              "properties": {
+                "modified": {
+                  "type": "date"
+                }
+              }
+            }
+          }
         }
       }
     },
