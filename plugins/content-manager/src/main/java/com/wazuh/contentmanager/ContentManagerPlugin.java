@@ -138,13 +138,10 @@ public class ContentManagerPlugin extends Plugin implements ClusterPlugin, JobSc
 
         // Schedule the periodic sync job via OpenSearch Job Scheduler
         this.scheduleCatalogSyncJob();
-        
-        // Skip catalog sync trigger during integration tests
-        boolean isTestEnv = "true".equals(System.getProperty("INDEXER_TEST_ENV"));
-        if (!isTestEnv) {
+
+        // Trigger update on start if enabled
+        if (PluginSettings.getInstance().isUpdateOnStart()) {
             this.catalogSyncJob.trigger();
-        } else {
-            log.info("Skipping catalog sync job trigger in test environment");
         }
     }
 
@@ -246,7 +243,7 @@ public class ContentManagerPlugin extends Plugin implements ClusterPlugin, JobSc
                             Instant.now(),
                             PluginSettings.getInstance().getCatalogSyncInterval(),
                             ChronoUnit.MINUTES),
-                        true,
+                        PluginSettings.getInstance().isUpdateOnSchedule(),
                         Instant.now(),
                         Instant.now()
                     );
@@ -274,7 +271,9 @@ public class ContentManagerPlugin extends Plugin implements ClusterPlugin, JobSc
             PluginSettings.CTI_API_URL,
             PluginSettings.MAX_CONCURRENT_BULKS,
             PluginSettings.MAX_ITEMS_PER_BULK,
-            PluginSettings.CATALOG_SYNC_INTERVAL);
+            PluginSettings.CATALOG_SYNC_INTERVAL,
+            PluginSettings.UPDATE_ON_START,
+            PluginSettings.UPDATE_ON_SCHEDULE);
     }
 
     /**
