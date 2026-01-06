@@ -3,7 +3,9 @@ package com.wazuh.contentmanager.cti.catalog.processor;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -17,6 +19,7 @@ import org.opensearch.transport.client.Client;
 
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
+import com.google.gson.JsonSyntaxException;
 import com.wazuh.contentmanager.cti.catalog.utils.CategoryFormatter;
 import com.wazuh.securityanalytics.action.WIndexDetectorAction;
 import com.wazuh.securityanalytics.action.WIndexDetectorRequest;
@@ -94,7 +97,7 @@ public class DetectorProcessor {
                 this.client.execute(WIndexDetectorAction.INSTANCE, request).get(1, TimeUnit.SECONDS);
                 log.info("Detector [{}] synced successfully.", name);
             }
-        } catch (Exception e) {
+        } catch (JsonSyntaxException | InterruptedException | ExecutionException | TimeoutException e) {
             log.error("Failed to sync Threat Detector from hit [{}]: {}", hit.getId(), e.getMessage());
         }
     }

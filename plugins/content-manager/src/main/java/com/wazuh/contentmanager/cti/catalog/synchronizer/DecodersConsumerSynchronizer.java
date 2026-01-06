@@ -8,18 +8,23 @@ import org.opensearch.transport.client.Client;
 
 import com.wazuh.contentmanager.cti.catalog.index.ConsumersIndex;
 import com.wazuh.contentmanager.cti.catalog.service.PolicyHashService;
+
 /**
  * Handles synchronization logic specifically for the Decoders consumer.
  * Manages decoder, kvdb, integration, and policy indices.
  */
 public class DecodersConsumerSynchronizer extends ConsumerSynchronizer {
 
-    private final PolicyHashService policyHashService;
     public static final String POLICY = "policy";
     public static final String RULE = "rule";
     public static final String KVDB = "kvdb";
     public static final String DECODER = "decoder";
     public static final String INTEGRATION = "integration";
+
+    private final String CONTEXT = "decoders_development_0.0.1";
+    private final String CONSUMER = "decoders_development_0.0.1";
+
+    private final PolicyHashService policyHashService;
 
     public DecodersConsumerSynchronizer(Client client, ConsumersIndex consumersIndex, Environment environment) {
         super(client, consumersIndex, environment);
@@ -28,12 +33,12 @@ public class DecodersConsumerSynchronizer extends ConsumerSynchronizer {
 
     @Override
     protected String getContext() {
-        return "decoders_development_0.0.1";
+        return CONTEXT;
     }
 
     @Override
     protected String getConsumer() {
-        return "decoders_development_0.0.1";
+        return CONSUMER;
     }
 
     @Override

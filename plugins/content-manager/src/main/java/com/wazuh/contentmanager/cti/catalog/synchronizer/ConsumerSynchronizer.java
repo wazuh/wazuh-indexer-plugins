@@ -140,4 +140,6 @@ public abstract class ConsumerSynchronizer {
         }
         return updated;
     }
+
+    }
 }

@@ -35,6 +35,11 @@ public class RuleProcessor {
         this.client = client;
     }
 
+    /**
+     * Processes rule documents and creates/updates them in the security analytics plugin.
+     *
+     * @param indexName The index containing rule documents.
+     */
     public void process(String indexName) {
         try {
             if (!this.client.admin().indices().prepareExists(indexName).get().isExists()) {

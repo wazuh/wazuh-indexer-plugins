@@ -45,6 +45,12 @@ public class IntegrationProcessor {
         this.client = client;
     }
 
+    /**
+     * Processes integration documents and creates/updates them in the security analytics plugin.
+     *
+     * @param indexName The index containing integration documents.
+     * @return A map of integration names to their associated rule IDs.
+     */
     public Map<String, List<String>> process(String indexName) {
         Map<String, List<String>> integrations = new HashMap<>();
         try {

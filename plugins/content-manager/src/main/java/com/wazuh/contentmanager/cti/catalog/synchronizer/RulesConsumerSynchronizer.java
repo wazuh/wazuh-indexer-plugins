@@ -21,6 +21,9 @@ public class RulesConsumerSynchronizer extends ConsumerSynchronizer {
     public static final String RULE = "rule";
     public static final String INTEGRATION = "integration";
 
+    private final String CONTEXT = "rules_development_0.0.1";
+    private final String CONSUMER = "rules_development_0.0.1_test";
+
     private final IntegrationProcessor integrationProcessor;
     private final RuleProcessor ruleProcessor;
     private final DetectorProcessor detectorProcessor;
@@ -41,12 +44,12 @@ public class RulesConsumerSynchronizer extends ConsumerSynchronizer {
 
     @Override
     protected String getContext() {
-        return "rules_development_0.0.1";
+        return CONTEXT;
     }
 
     @Override
     protected String getConsumer() {
-        return "rules_development_0.0.1_test";
+        return CONSUMER;
     }
 
     @Override
