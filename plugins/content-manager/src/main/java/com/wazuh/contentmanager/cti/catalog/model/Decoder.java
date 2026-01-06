@@ -1,9 +1,26 @@
+/*
+ * Copyright (C) 2024, Wazuh Inc.
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as
+ * published by the Free Software Foundation, either version 3 of the
+ * License, or (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
 package com.wazuh.contentmanager.cti.catalog.model;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
+
 import com.google.gson.JsonObject;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -11,9 +28,7 @@ import org.apache.logging.log4j.Logger;
 import java.io.IOException;
 import java.util.*;
 
-/**
- * Model representing a Decoder resource.
- */
+/** Model representing a Decoder resource. */
 public class Decoder extends Resource {
     private static final Logger log = LogManager.getLogger(Decoder.class);
 
@@ -21,17 +36,21 @@ public class Decoder extends Resource {
     private static final ObjectMapper jsonMapper = new ObjectMapper();
     private static final ObjectMapper yamlMapper = new ObjectMapper(new YAMLFactory());
 
-    private static final List<String> DECODER_ORDER_KEYS = Arrays.asList(
-        "name", "metadata", "parents", "definitions", "check",
-        "parse|event.original", "parse|message", "normalize"
-    );
+    private static final List<String> DECODER_ORDER_KEYS =
+            Arrays.asList(
+                    "name",
+                    "metadata",
+                    "parents",
+                    "definitions",
+                    "check",
+                    "parse|event.original",
+                    "parse|message",
+                    "normalize");
 
     @JsonProperty("decoder")
     private String decoder;
 
-    /**
-     * Default constructor.
-     */
+    /** Default constructor. */
     public Decoder() {
         super();
     }
@@ -59,7 +78,8 @@ public class Decoder extends Resource {
      * Generates a YAML representation for decoder documents.
      *
      * @param payload The source JSON object.
-     * @return A string containing the formatted YAML, or {@code null} if the "document" key is missing or an error occurs.
+     * @return A string containing the formatted YAML, or {@code null} if the "document" key is
+     *     missing or an error occurs.
      */
     private static String toYamlString(JsonObject payload) {
         try {
@@ -110,9 +130,6 @@ public class Decoder extends Resource {
 
     @Override
     public String toString() {
-        return "Decoder{" +
-            "decoder='" + this.decoder + '\'' +
-            ", " + super.toString() +
-            '}';
+        return "Decoder{" + "decoder='" + this.decoder + '\'' + ", " + super.toString() + '}';
     }
 }

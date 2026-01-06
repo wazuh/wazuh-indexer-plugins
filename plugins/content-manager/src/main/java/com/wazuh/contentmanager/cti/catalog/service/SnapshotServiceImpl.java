@@ -18,13 +18,6 @@ package com.wazuh.contentmanager.cti.catalog.service;
 
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
-import com.wazuh.contentmanager.cti.catalog.client.SnapshotClient;
-import com.wazuh.contentmanager.cti.catalog.index.ConsumersIndex;
-import com.wazuh.contentmanager.cti.catalog.index.ContentIndex;
-import com.wazuh.contentmanager.cti.catalog.model.LocalConsumer;
-import com.wazuh.contentmanager.cti.catalog.model.RemoteConsumer;
-import com.wazuh.contentmanager.cti.catalog.utils.Unzip;
-import com.wazuh.contentmanager.settings.PluginSettings;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.opensearch.action.bulk.BulkRequest;
@@ -38,9 +31,17 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.*;
 import java.util.*;
 
+import com.wazuh.contentmanager.cti.catalog.client.SnapshotClient;
+import com.wazuh.contentmanager.cti.catalog.index.ConsumersIndex;
+import com.wazuh.contentmanager.cti.catalog.index.ContentIndex;
+import com.wazuh.contentmanager.cti.catalog.model.LocalConsumer;
+import com.wazuh.contentmanager.cti.catalog.model.RemoteConsumer;
+import com.wazuh.contentmanager.cti.catalog.utils.Unzip;
+import com.wazuh.contentmanager.settings.PluginSettings;
+
 /**
- * Service responsible for handling the download, extraction, and indexing of CTI snapshots.
- * It extracts the contents of the payload and indexes them at the root.
+ * Service responsible for handling the download, extraction, and indexing of CTI snapshots. It
+ * extracts the contents of the payload and indexes them at the root.
  */
 public class SnapshotServiceImpl implements SnapshotService {
     private static final Logger log = LogManager.getLogger(SnapshotServiceImpl.class);
@@ -59,11 +60,12 @@ public class SnapshotServiceImpl implements SnapshotService {
     private final Environment environment;
     private final PluginSettings pluginSettings;
 
-    public SnapshotServiceImpl(String context,
-                               String consumer,
-                               List<ContentIndex> contentIndex,
-                               ConsumersIndex consumersIndex,
-                               Environment environment) {
+    public SnapshotServiceImpl(
+            String context,
+            String consumer,
+            List<ContentIndex> contentIndex,
+            ConsumersIndex consumersIndex,
+            Environment environment) {
         this.context = context;
         this.consumer = consumer;
         this.contentIndex = contentIndex;
@@ -84,10 +86,11 @@ public class SnapshotServiceImpl implements SnapshotService {
     }
 
     /**
-     * Initializes the content by downloading the snapshot from the given link,
-     * unzipping it, and indexing the content into specific indices.
+     * Initializes the content by downloading the snapshot from the given link, unzipping it, and
+     * indexing the content into specific indices.
      *
-     * @param consumer information from the remote consumer. Contains the snapshot link from which the initialization takes place.
+     * @param consumer information from the remote consumer. Contains the snapshot link from which the
+     *     initialization takes place.
      */
     @Override
     public void initialize(RemoteConsumer consumer) {
@@ -99,7 +102,10 @@ public class SnapshotServiceImpl implements SnapshotService {
             return;
         }
 
-        log.info("Starting snapshot initialization for context [{}] consumer [{}]", this.context, this.consumer);
+        log.info(
+                "Starting snapshot initialization for context [{}] consumer [{}]",
+                this.context,
+                this.consumer);
         Path snapshotZip = null;
         Path outputDir = null;
 
@@ -136,22 +142,23 @@ public class SnapshotServiceImpl implements SnapshotService {
 
         // 6. Update Consumer State in .cti-consumers
         try {
-            LocalConsumer updatedConsumer = new LocalConsumer(
-                this.context,
-                this.consumer,
-                consumer.getSnapshotOffset(),
-                consumer.getOffset(),
-                snapshotUrl
-            );
+            LocalConsumer updatedConsumer =
+                    new LocalConsumer(
+                            this.context,
+                            this.consumer,
+                            consumer.getSnapshotOffset(),
+                            consumer.getOffset(),
+                            snapshotUrl);
             this.consumersIndex.setConsumer(updatedConsumer);
         } catch (Exception e) {
-            log.error("Failed to update consumer state in {}: {}", ConsumersIndex.INDEX_NAME, e.getMessage());
+            log.error(
+                    "Failed to update consumer state in {}: {}", ConsumersIndex.INDEX_NAME, e.getMessage());
         }
     }
 
     /**
-     * Reads a JSON snapshot file line by line, extracts the contents of the payload object,
-     * and indexes them directly at the root.
+     * Reads a JSON snapshot file line by line, extracts the contents of the payload object, and
+     * indexes them directly at the root.
      *
      * @param filePath Path to the JSON file.
      */
@@ -180,12 +187,15 @@ public class SnapshotServiceImpl implements SnapshotService {
                     String type = payload.get(JSON_TYPE_KEY).getAsString();
 
                     // TODO: Delete once the consumer is changed
-                    if (this.context.equals("rules_development_0.0.1") && this.consumer.equals("rules_development_0.0.1_test") && "policy".equals(type)) {
+                    if (this.context.equals("rules_development_0.0.1")
+                            && this.consumer.equals("rules_development_0.0.1_test")
+                            && "policy".equals(type)) {
                         continue;
                     }
 
                     // 3. Delegate Processing to ContentIndex
-                    // We use the first index instance to process the payload because logic is stateless/shared.
+                    // We use the first index instance to process the payload because logic is
+                    // stateless/shared.
                     JsonObject processedPayload;
                     if (!this.contentIndex.isEmpty()) {
                         processedPayload = this.contentIndex.getFirst().processPayload(payload);
@@ -197,8 +207,8 @@ public class SnapshotServiceImpl implements SnapshotService {
                     String indexName = this.getIndexName(type);
 
                     // 4. Create Index Request
-                    IndexRequest indexRequest = new IndexRequest(indexName)
-                        .source(processedPayload.toString(), XContentType.JSON);
+                    IndexRequest indexRequest =
+                            new IndexRequest(indexName).source(processedPayload.toString(), XContentType.JSON);
 
                     // Determine ID
                     if (processedPayload.has(JSON_DOCUMENT_KEY)) {
@@ -237,9 +247,7 @@ public class SnapshotServiceImpl implements SnapshotService {
         return String.format(Locale.ROOT, ".%s-%s-%s", this.context, this.consumer, type);
     }
 
-    /**
-     * Deletes temporary files and directories used during the process.
-     */
+    /** Deletes temporary files and directories used during the process. */
     private void cleanup(Path zipFile, Path directory) {
         try {
             if (zipFile != null) {
@@ -247,14 +255,15 @@ public class SnapshotServiceImpl implements SnapshotService {
             }
             if (directory != null) {
                 Files.walk(directory)
-                    .sorted(Comparator.reverseOrder())
-                    .forEach(path -> {
-                        try {
-                            Files.delete(path);
-                        } catch (IOException e) {
-                            log.warn("Failed to delete temp file {}", path);
-                        }
-                    });
+                        .sorted(Comparator.reverseOrder())
+                        .forEach(
+                                path -> {
+                                    try {
+                                        Files.delete(path);
+                                    } catch (IOException e) {
+                                        log.warn("Failed to delete temp file {}", path);
+                                    }
+                                });
             }
         } catch (IOException e) {
             log.warn("Error during cleanup: {}", e.getMessage());

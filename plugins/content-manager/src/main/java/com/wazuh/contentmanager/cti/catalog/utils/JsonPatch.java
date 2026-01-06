@@ -22,10 +22,10 @@ import com.google.gson.JsonObject;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import com.wazuh.contentmanager.cti.catalog.model.Operation;
-
 import java.util.HashSet;
 import java.util.Map;
+
+import com.wazuh.contentmanager.cti.catalog.model.Operation;
 
 /**
  * Utility class for applying JSON Patch operations to JSON documents.
@@ -47,7 +47,7 @@ public class JsonPatch {
         String path = operation.get(Operation.PATH).getAsString();
         JsonElement value = operation.has(Operation.VALUE) ? operation.get(Operation.VALUE) : null;
         String from =
-            operation.has(Operation.FROM) ? operation.get(Operation.FROM).getAsString() : null;
+                operation.has(Operation.FROM) ? operation.get(Operation.FROM).getAsString() : null;
 
         switch (op) {
             case "add":
@@ -208,26 +208,29 @@ public class JsonPatch {
         String[] parts = path.split("/");
 
         return java.util.Arrays.stream(parts, 1, parts.length - 1)
-            .reduce((JsonElement) document, (current, part) -> {
-                if (current == null) return null;
+                .reduce(
+                        (JsonElement) document,
+                        (current, part) -> {
+                            if (current == null) return null;
 
-                if (current.isJsonObject()) {
-                    JsonObject obj = current.getAsJsonObject();
-                    return obj.has(part) ? obj.get(part) : null;
-                }
+                            if (current.isJsonObject()) {
+                                JsonObject obj = current.getAsJsonObject();
+                                return obj.has(part) ? obj.get(part) : null;
+                            }
 
-                if (current.isJsonArray()) {
-                    try {
-                        int index = Integer.parseInt(part);
-                        JsonArray arr = current.getAsJsonArray();
-                        return (index >= 0 && index < arr.size()) ? arr.get(index) : null;
-                    } catch (NumberFormatException e) {
-                        return null;
-                    }
-                }
+                            if (current.isJsonArray()) {
+                                try {
+                                    int index = Integer.parseInt(part);
+                                    JsonArray arr = current.getAsJsonArray();
+                                    return (index >= 0 && index < arr.size()) ? arr.get(index) : null;
+                                } catch (NumberFormatException e) {
+                                    return null;
+                                }
+                            }
 
-                return null;
-            }, (a, b) -> a);
+                            return null;
+                        },
+                        (a, b) -> a);
     }
 
     /**

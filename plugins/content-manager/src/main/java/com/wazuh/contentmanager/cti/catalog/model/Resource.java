@@ -1,7 +1,24 @@
+/*
+ * Copyright (C) 2024, Wazuh Inc.
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as
+ * published by the Free Software Foundation, either version 3 of the
+ * License, or (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
 package com.wazuh.contentmanager.cti.catalog.model;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
+
 import com.google.gson.Gson;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
@@ -15,9 +32,7 @@ import java.util.HashMap;
 import java.util.Locale;
 import java.util.Map;
 
-/**
- * Base model representing a generic catalog resource within the CTI context.
- */
+/** Base model representing a generic catalog resource within the CTI context. */
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class Resource {
     private static final Logger log = LogManager.getLogger(Resource.class);
@@ -40,11 +55,8 @@ public class Resource {
     @JsonProperty("space")
     private Map<String, String> space;
 
-    /**
-     * Default constructor.
-     */
-    public Resource() {
-    }
+    /** Default constructor. */
+    public Resource() {}
 
     /**
      * Factory method to create a {@link Resource} instance from a raw Gson {@link JsonObject}.
@@ -62,7 +74,7 @@ public class Resource {
      * Populates the common fields of a Resource instance.
      *
      * @param resource The resource instance to populate.
-     * @param payload  The source JSON payload.
+     * @param payload The source JSON payload.
      */
     protected static void populateResource(Resource resource, JsonObject payload) {
         // 1. Process Document
@@ -136,7 +148,8 @@ public class Resource {
      * Calculates the SHA-256 checksum of a JSON Object.
      *
      * @param json The JSON object to hash.
-     * @return The Hexadecimal string representation of the SHA-256 hash, or {@code null} if calculation fails.
+     * @return The Hexadecimal string representation of the SHA-256 hash, or {@code null} if
+     *     calculation fails.
      */
     protected static String calculateSha256(JsonObject json) {
         try {
@@ -214,10 +227,13 @@ public class Resource {
 
     @Override
     public String toString() {
-        return "Resource{" +
-            "document=" + this.document +
-            ", hash=" + this.hash +
-            ", space=" + this.space +
-            '}';
+        return "Resource{"
+                + "document="
+                + this.document
+                + ", hash="
+                + this.hash
+                + ", space="
+                + this.space
+                + '}';
     }
 }

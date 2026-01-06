@@ -1,16 +1,31 @@
+/*
+ * Copyright (C) 2024, Wazuh Inc.
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as
+ * published by the Free Software Foundation, either version 3 of the
+ * License, or (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
 package com.wazuh.contentmanager.cti.console.model;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
+
 import org.opensearch.core.xcontent.XContentParser;
 
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
-/**
- * Subscription model for managing CTI subscription data.
- */
+/** Subscription model for managing CTI subscription data. */
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class Subscription {
     public static final String DEVICE_CODE = "device_code";
@@ -20,25 +35,26 @@ public class Subscription {
 
     @JsonProperty(DEVICE_CODE)
     private String deviceCode;
+
     @JsonProperty(CLIENT_ID)
     private String clientId;
+
     @JsonProperty(EXPIRES_IN)
     private int expiresIn;
+
     @JsonProperty(INTERVAL)
     private int interval;
 
-    /**
-     * Default constructor for frameworks that require a no-arg constructor
-     */
-    public Subscription() { }
+    /** Default constructor for frameworks that require a no-arg constructor */
+    public Subscription() {}
 
     /**
      * Constructs a Subscription with all fields set.
      *
      * @param deviceCode the device code returned by the CTI provider
-     * @param clientId   the client identifier associated with the subscription
-     * @param expiresIn  seconds until the device code expires
-     * @param interval   polling interval in seconds to check subscription status
+     * @param clientId the client identifier associated with the subscription
+     * @param expiresIn seconds until the device code expires
+     * @param interval polling interval in seconds to check subscription status
      */
     public Subscription(String deviceCode, String clientId, int expiresIn, int interval) {
         this.setDeviceCode(deviceCode);
@@ -47,14 +63,13 @@ public class Subscription {
         this.setInterval(interval);
     }
 
-
     /**
-     * Parse a {@link Subscription} from the provided {@link org.opensearch.core.xcontent.XContentParser}.
+     * Parse a {@link Subscription} from the provided {@link
+     * org.opensearch.core.xcontent.XContentParser}.
      *
-     * The parser expects the following top-level fields to be present in the
-     * XContent object: {@code device_code}, {@code client_id}, {@code expires_in}
-     * and {@code interval}. If any required field is missing an
-     * {@link IllegalArgumentException} is thrown.
+     * <p>The parser expects the following top-level fields to be present in the XContent object:
+     * {@code device_code}, {@code client_id}, {@code expires_in} and {@code interval}. If any
+     * required field is missing an {@link IllegalArgumentException} is thrown.
      *
      * @param parser the XContent parser positioned at the start of an object
      * @return a new {@code Subscription} instance populated with parsed values
@@ -78,7 +93,9 @@ public class Subscription {
                     case CLIENT_ID -> clientId = parser.text();
                     case EXPIRES_IN -> expiresIn = parser.intValue();
                     case INTERVAL -> interval = parser.intValue();
-                    default -> { /* ignore unknown fields */ }
+                    default -> {
+                        /* ignore unknown fields */
+                    }
                 }
             } else if (token == XContentParser.Token.END_OBJECT) {
                 // Break out once the object is fully parsed
@@ -109,7 +126,6 @@ public class Subscription {
         // Return new instance of Subscription
         return new Subscription(deviceCode, clientId, expiresIn, interval);
     }
-
 
     /**
      * Returns the device code for the subscription.
@@ -190,11 +206,17 @@ public class Subscription {
      */
     @Override
     public String toString() {
-        return "{" +
-            "deviceCode='" + this.deviceCode + '\'' +
-            ", clientId='" + this.clientId + '\'' +
-            ", expiresIn=" + this.expiresIn +
-            ", interval=" + this.interval +
-            '}';
+        return "{"
+                + "deviceCode='"
+                + this.deviceCode
+                + '\''
+                + ", clientId='"
+                + this.clientId
+                + '\''
+                + ", expiresIn="
+                + this.expiresIn
+                + ", interval="
+                + this.interval
+                + '}';
     }
 }

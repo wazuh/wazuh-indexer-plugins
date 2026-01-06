@@ -1,30 +1,45 @@
+/*
+ * Copyright (C) 2024, Wazuh Inc.
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as
+ * published by the Free Software Foundation, either version 3 of the
+ * License, or (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
 package com.wazuh.contentmanager.cti.catalog.processor;
 
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
-
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
+import com.google.gson.JsonSyntaxException;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.opensearch.action.search.SearchRequest;
 import org.opensearch.action.search.SearchResponse;
 import org.opensearch.action.support.WriteRequest;
 import org.opensearch.index.query.QueryBuilders;
-import static org.opensearch.rest.RestRequest.Method.POST;
 import org.opensearch.search.SearchHit;
 import org.opensearch.search.builder.SearchSourceBuilder;
 import org.opensearch.transport.client.Client;
 
-import com.google.gson.JsonObject;
-import com.google.gson.JsonParser;
-import com.google.gson.JsonSyntaxException;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
+
 import com.wazuh.securityanalytics.action.WIndexRuleAction;
 import com.wazuh.securityanalytics.action.WIndexRuleRequest;
 import com.wazuh.securityanalytics.action.WIndexRuleResponse;
 
-/**
- * Processes rule documents from a CTI index and syncs them to the security analytics plugin.
- */
+import static org.opensearch.rest.RestRequest.Method.POST;
+
+/** Processes rule documents from a CTI index and syncs them to the security analytics plugin. */
 public class RuleProcessor {
     private static final Logger log = LogManager.getLogger(RuleProcessor.class);
     static final String CATEGORY = "category";
@@ -76,16 +91,14 @@ public class RuleProcessor {
                             }
                         }
 
-                        WIndexRuleRequest ruleRequest = new WIndexRuleRequest(
-                            id,
-                            WriteRequest.RefreshPolicy.IMMEDIATE,
-                            product,
-                            POST,
-                            doc.toString(),
-                            false
-                        );
+                        WIndexRuleRequest ruleRequest =
+                                new WIndexRuleRequest(
+                                        id, WriteRequest.RefreshPolicy.IMMEDIATE, product, POST, doc.toString(), false);
 
-                        WIndexRuleResponse response = this.client.execute(WIndexRuleAction.INSTANCE, ruleRequest).get(1, TimeUnit.SECONDS);
+                        WIndexRuleResponse response =
+                                this.client
+                                        .execute(WIndexRuleAction.INSTANCE, ruleRequest)
+                                        .get(1, TimeUnit.SECONDS);
                         log.info("Rule [{}] synced successfully. Response ID: {}", id, response.getId());
                     }
                 } catch (JsonSyntaxException e) {

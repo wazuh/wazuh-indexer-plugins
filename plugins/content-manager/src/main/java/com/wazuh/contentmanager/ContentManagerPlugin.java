@@ -16,16 +16,6 @@
  */
 package com.wazuh.contentmanager;
 
-import com.wazuh.contentmanager.cti.catalog.index.ConsumersIndex;
-import com.wazuh.contentmanager.cti.console.CtiConsole;
-import com.wazuh.contentmanager.jobscheduler.ContentJobParameter;
-import com.wazuh.contentmanager.jobscheduler.ContentJobRunner;
-import com.wazuh.contentmanager.jobscheduler.jobs.CatalogSyncJob;
-import com.wazuh.contentmanager.rest.services.RestDeleteSubscriptionAction;
-import com.wazuh.contentmanager.rest.services.RestGetSubscriptionAction;
-import com.wazuh.contentmanager.rest.services.RestPostSubscriptionAction;
-import com.wazuh.contentmanager.rest.services.RestPostUpdateAction;
-import com.wazuh.contentmanager.settings.PluginSettings;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.opensearch.action.admin.indices.create.CreateIndexResponse;
@@ -59,10 +49,20 @@ import java.time.temporal.ChronoUnit;
 import java.util.*;
 import java.util.function.Supplier;
 
-/**
- * Main class of the Content Manager Plugin
- */
-public class ContentManagerPlugin extends Plugin implements ClusterPlugin, JobSchedulerExtension, ActionPlugin {
+import com.wazuh.contentmanager.cti.catalog.index.ConsumersIndex;
+import com.wazuh.contentmanager.cti.console.CtiConsole;
+import com.wazuh.contentmanager.jobscheduler.ContentJobParameter;
+import com.wazuh.contentmanager.jobscheduler.ContentJobRunner;
+import com.wazuh.contentmanager.jobscheduler.jobs.CatalogSyncJob;
+import com.wazuh.contentmanager.rest.services.RestDeleteSubscriptionAction;
+import com.wazuh.contentmanager.rest.services.RestGetSubscriptionAction;
+import com.wazuh.contentmanager.rest.services.RestPostSubscriptionAction;
+import com.wazuh.contentmanager.rest.services.RestPostUpdateAction;
+import com.wazuh.contentmanager.settings.PluginSettings;
+
+/** Main class of the Content Manager Plugin */
+public class ContentManagerPlugin extends Plugin
+        implements ClusterPlugin, JobSchedulerExtension, ActionPlugin {
     private static final Logger log = LogManager.getLogger(ContentManagerPlugin.class);
     private static final String JOB_INDEX_NAME = ".wazuh-content-manager-jobs";
     private static final String JOB_ID = "wazuh-catalog-sync-job";
@@ -75,35 +75,36 @@ public class ContentManagerPlugin extends Plugin implements ClusterPlugin, JobSc
     private CatalogSyncJob catalogSyncJob;
 
     /**
-     * Initializes the plugin components, including the CTI console, consumer index helpers,
-     * and the catalog synchronization job.
+     * Initializes the plugin components, including the CTI console, consumer index helpers, and the
+     * catalog synchronization job.
      *
-     * @param client                        The OpenSearch client.
-     * @param clusterService                The cluster service for managing cluster state.
-     * @param threadPool                    The thread pool for executing asynchronous tasks.
-     * @param resourceWatcherService        Service for watching resource changes.
-     * @param scriptService                 Service for executing scripts.
-     * @param xContentRegistry              Registry for XContent parsers.
-     * @param environment                   The node environment settings.
-     * @param nodeEnvironment               The node environment information.
-     * @param namedWriteableRegistry        Registry for named writeables.
-     * @param indexNameExpressionResolver   Resolver for index name expressions.
-     * @param repositoriesServiceSupplier   Supplier for the repositories service.
-     * @return A collection of constructed components (empty in this implementation as components are stored internally).
+     * @param client The OpenSearch client.
+     * @param clusterService The cluster service for managing cluster state.
+     * @param threadPool The thread pool for executing asynchronous tasks.
+     * @param resourceWatcherService Service for watching resource changes.
+     * @param scriptService Service for executing scripts.
+     * @param xContentRegistry Registry for XContent parsers.
+     * @param environment The node environment settings.
+     * @param nodeEnvironment The node environment information.
+     * @param namedWriteableRegistry Registry for named writeables.
+     * @param indexNameExpressionResolver Resolver for index name expressions.
+     * @param repositoriesServiceSupplier Supplier for the repositories service.
+     * @return A collection of constructed components (empty in this implementation as components are
+     *     stored internally).
      */
     @Override
     public Collection<Object> createComponents(
-        Client client,
-        ClusterService clusterService,
-        ThreadPool threadPool,
-        ResourceWatcherService resourceWatcherService,
-        ScriptService scriptService,
-        NamedXContentRegistry xContentRegistry,
-        Environment environment,
-        NodeEnvironment nodeEnvironment,
-        NamedWriteableRegistry namedWriteableRegistry,
-        IndexNameExpressionResolver indexNameExpressionResolver,
-        Supplier<RepositoriesService> repositoriesServiceSupplier) {
+            Client client,
+            ClusterService clusterService,
+            ThreadPool threadPool,
+            ResourceWatcherService resourceWatcherService,
+            ScriptService scriptService,
+            NamedXContentRegistry xContentRegistry,
+            Environment environment,
+            NodeEnvironment nodeEnvironment,
+            NamedWriteableRegistry namedWriteableRegistry,
+            IndexNameExpressionResolver indexNameExpressionResolver,
+            Supplier<RepositoriesService> repositoriesServiceSupplier) {
         PluginSettings.getInstance(environment.settings());
         this.client = client;
         this.threadPool = threadPool;
@@ -115,7 +116,8 @@ public class ContentManagerPlugin extends Plugin implements ClusterPlugin, JobSc
         ContentJobRunner runner = ContentJobRunner.getInstance();
 
         // Initialize CatalogSyncJob
-        this.catalogSyncJob = new CatalogSyncJob(this.client, this.consumersIndex, this.environment, this.threadPool);
+        this.catalogSyncJob =
+                new CatalogSyncJob(this.client, this.consumersIndex, this.environment, this.threadPool);
 
         // Register Executors
         runner.registerExecutor(CatalogSyncJob.JOB_TYPE, this.catalogSyncJob);
@@ -138,7 +140,7 @@ public class ContentManagerPlugin extends Plugin implements ClusterPlugin, JobSc
 
         // Schedule the periodic sync job via OpenSearch Job Scheduler
         this.scheduleCatalogSyncJob();
-        
+
         // Skip catalog sync trigger during integration tests
         boolean isTestEnv = "true".equals(System.getProperty("INDEXER_TEST_ENV"));
         if (!isTestEnv) {
@@ -151,130 +153,144 @@ public class ContentManagerPlugin extends Plugin implements ClusterPlugin, JobSc
     /**
      * Registers the REST handlers for the Content Manager API.
      *
-     * @param settings                      The node settings.
-     * @param restController                The REST controller.
-     * @param clusterSettings               The cluster settings.
-     * @param indexScopedSettings           The index scoped settings.
-     * @param settingsFilter                The settings filter.
-     * @param indexNameExpressionResolver   The index name resolver.
-     * @param nodesInCluster                Supplier for nodes in the cluster.
+     * @param settings The node settings.
+     * @param restController The REST controller.
+     * @param clusterSettings The cluster settings.
+     * @param indexScopedSettings The index scoped settings.
+     * @param settingsFilter The settings filter.
+     * @param indexNameExpressionResolver The index name resolver.
+     * @param nodesInCluster Supplier for nodes in the cluster.
      * @return A list of REST handlers.
      */
     public List<RestHandler> getRestHandlers(
-        Settings settings,
-        org.opensearch.rest.RestController restController,
-        org.opensearch.common.settings.ClusterSettings clusterSettings,
-        org.opensearch.common.settings.IndexScopedSettings indexScopedSettings,
-        org.opensearch.common.settings.SettingsFilter settingsFilter,
-        org.opensearch.cluster.metadata.IndexNameExpressionResolver indexNameExpressionResolver,
-        java.util.function.Supplier<org.opensearch.cluster.node.DiscoveryNodes> nodesInCluster) {
+            Settings settings,
+            org.opensearch.rest.RestController restController,
+            org.opensearch.common.settings.ClusterSettings clusterSettings,
+            org.opensearch.common.settings.IndexScopedSettings indexScopedSettings,
+            org.opensearch.common.settings.SettingsFilter settingsFilter,
+            org.opensearch.cluster.metadata.IndexNameExpressionResolver indexNameExpressionResolver,
+            java.util.function.Supplier<org.opensearch.cluster.node.DiscoveryNodes> nodesInCluster) {
         return List.of(
-            new RestGetSubscriptionAction(this.ctiConsole),
-            new RestPostSubscriptionAction(this.ctiConsole),
-            new RestDeleteSubscriptionAction(this.ctiConsole),
-            new RestPostUpdateAction(this.ctiConsole, this.catalogSyncJob));
+                new RestGetSubscriptionAction(this.ctiConsole),
+                new RestPostSubscriptionAction(this.ctiConsole),
+                new RestDeleteSubscriptionAction(this.ctiConsole),
+                new RestPostUpdateAction(this.ctiConsole, this.catalogSyncJob));
     }
 
-    /**
-     * Performs initialization tasks for the plugin.
-     */
+    /** Performs initialization tasks for the plugin. */
     private void start() {
         try {
             this.threadPool
-                .generic()
-                .execute(
-                    () -> {
-                        try {
-                            CreateIndexResponse response = this.consumersIndex.createIndex();
+                    .generic()
+                    .execute(
+                            () -> {
+                                try {
+                                    CreateIndexResponse response = this.consumersIndex.createIndex();
 
-                            if (response.isAcknowledged()) {
-                                log.info("Index created: {} acknowledged={}", response.index(), response.isAcknowledged());
-                            }
-                        } catch (Exception e) {
-                            log.error("Failed to create {} index, due to: {}", ConsumersIndex.INDEX_NAME, e.getMessage(), e);
-                        }
-                    });
+                                    if (response.isAcknowledged()) {
+                                        log.info(
+                                                "Index created: {} acknowledged={}",
+                                                response.index(),
+                                                response.isAcknowledged());
+                                    }
+                                } catch (Exception e) {
+                                    log.error(
+                                            "Failed to create {} index, due to: {}",
+                                            ConsumersIndex.INDEX_NAME,
+                                            e.getMessage(),
+                                            e);
+                                }
+                            });
         } catch (Exception e) {
             // Log or handle exception
             log.error("Error initializing snapshot helper: {}", e.getMessage(), e);
         }
     }
 
-
     /**
      * Schedules the Catalog Sync Job within the OpenSearch Job Scheduler.
-     * <p>
-     * This method performs two main checks asynchronously:
      *
-     * - Ensures the job index ({@value #JOB_INDEX_NAME}) exists.
-     * - Ensures the specific job document ({@value #JOB_ID}) exists.
+     * <p>This method performs two main checks asynchronously:
      *
-     * If either is missing, it creates them. The job is configured to run based on the
-     * interval defined in PluginSettings.
+     * <p>- Ensures the job index ({@value #JOB_INDEX_NAME}) exists. - Ensures the specific job
+     * document ({@value #JOB_ID}) exists.
+     *
+     * <p>If either is missing, it creates them. The job is configured to run based on the interval
+     * defined in PluginSettings.
      */
     private void scheduleCatalogSyncJob() {
-        this.threadPool.generic().execute(() -> {
-            try {
-                // 1. Check if the index exists; if not, create it with specific settings.
-                boolean indexExists = this.client.admin().indices().prepareExists(JOB_INDEX_NAME).get().isExists();
+        this.threadPool
+                .generic()
+                .execute(
+                        () -> {
+                            try {
+                                // 1. Check if the index exists; if not, create it with specific settings.
+                                boolean indexExists =
+                                        this.client.admin().indices().prepareExists(JOB_INDEX_NAME).get().isExists();
 
-                if (!indexExists) {
-                    try {
-                        Settings settings = Settings.builder()
-                            .put("index.number_of_replicas", 0)
-                            .put("index.hidden", true)
-                            .build();
+                                if (!indexExists) {
+                                    try {
+                                        Settings settings =
+                                                Settings.builder()
+                                                        .put("index.number_of_replicas", 0)
+                                                        .put("index.hidden", true)
+                                                        .build();
 
-                        this.client.admin().indices().prepareCreate(JOB_INDEX_NAME)
-                            .setSettings(settings)
-                            .get();
+                                        this.client
+                                                .admin()
+                                                .indices()
+                                                .prepareCreate(JOB_INDEX_NAME)
+                                                .setSettings(settings)
+                                                .get();
 
-                        log.info("Created job index {}.", JOB_INDEX_NAME);
-                    } catch (Exception e) {
-                        log.warn("Could not create index {}: {}", JOB_INDEX_NAME, e.getMessage());
-                    }
-                }
+                                        log.info("Created job index {}.", JOB_INDEX_NAME);
+                                    } catch (Exception e) {
+                                        log.warn("Could not create index {}: {}", JOB_INDEX_NAME, e.getMessage());
+                                    }
+                                }
 
-                // 2. Check if the job document exists; if not, index it.
-                boolean jobExists = this.client.prepareGet(JOB_INDEX_NAME, JOB_ID).get().isExists();
+                                // 2. Check if the job document exists; if not, index it.
+                                boolean jobExists = this.client.prepareGet(JOB_INDEX_NAME, JOB_ID).get().isExists();
 
-                if (!jobExists) {
-                    ContentJobParameter job = new ContentJobParameter(
-                        "Catalog Sync Periodic Task",
-                        CatalogSyncJob.JOB_TYPE,
-                        new IntervalSchedule(
-                            Instant.now(),
-                            PluginSettings.getInstance().getCatalogSyncInterval(),
-                            ChronoUnit.MINUTES),
-                        true,
-                        Instant.now(),
-                        Instant.now()
-                    );
-                    IndexRequest request = new IndexRequest(JOB_INDEX_NAME)
-                        .id(JOB_ID)
-                        .source(job.toXContent(XContentFactory.jsonBuilder(), null));
-                    this.client.index(request).actionGet();
-                    log.info("Catalog Sync Job scheduled successfully.");
-                }
-            } catch (Exception e) {
-                log.error("Error scheduling Catalog Sync Job: {}", e.getMessage());
-            }
-        });
+                                if (!jobExists) {
+                                    ContentJobParameter job =
+                                            new ContentJobParameter(
+                                                    "Catalog Sync Periodic Task",
+                                                    CatalogSyncJob.JOB_TYPE,
+                                                    new IntervalSchedule(
+                                                            Instant.now(),
+                                                            PluginSettings.getInstance().getCatalogSyncInterval(),
+                                                            ChronoUnit.MINUTES),
+                                                    true,
+                                                    Instant.now(),
+                                                    Instant.now());
+                                    IndexRequest request =
+                                            new IndexRequest(JOB_INDEX_NAME)
+                                                    .id(JOB_ID)
+                                                    .source(job.toXContent(XContentFactory.jsonBuilder(), null));
+                                    this.client.index(request).actionGet();
+                                    log.info("Catalog Sync Job scheduled successfully.");
+                                }
+                            } catch (Exception e) {
+                                log.error("Error scheduling Catalog Sync Job: {}", e.getMessage());
+                            }
+                        });
     }
 
     /**
      * Retrieves the list of settings defined by this plugin.
      *
-     * @return A list of {@link Setting} objects including client timeout, API URL, bulk operation limits, and sync interval.
+     * @return A list of {@link Setting} objects including client timeout, API URL, bulk operation
+     *     limits, and sync interval.
      */
     @Override
     public List<Setting<?>> getSettings() {
         return Arrays.asList(
-            PluginSettings.CLIENT_TIMEOUT,
-            PluginSettings.CTI_API_URL,
-            PluginSettings.MAX_CONCURRENT_BULKS,
-            PluginSettings.MAX_ITEMS_PER_BULK,
-            PluginSettings.CATALOG_SYNC_INTERVAL);
+                PluginSettings.CLIENT_TIMEOUT,
+                PluginSettings.CTI_API_URL,
+                PluginSettings.MAX_CONCURRENT_BULKS,
+                PluginSettings.MAX_ITEMS_PER_BULK,
+                PluginSettings.CATALOG_SYNC_INTERVAL);
     }
 
     /**

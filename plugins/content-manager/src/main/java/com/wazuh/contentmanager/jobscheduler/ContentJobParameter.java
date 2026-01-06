@@ -1,3 +1,19 @@
+/*
+ * Copyright (C) 2024, Wazuh Inc.
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as
+ * published by the Free Software Foundation, either version 3 of the
+ * License, or (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
 package com.wazuh.contentmanager.jobscheduler;
 
 import org.opensearch.core.xcontent.XContentBuilder;
@@ -11,9 +27,8 @@ import java.io.IOException;
 import java.time.Instant;
 
 /**
- * Represents the data model for a scheduled job.
- * This class handles serialization and deserialization
- * required by the OpenSearch plugin system to store job details.
+ * Represents the data model for a scheduled job. This class handles serialization and
+ * deserialization required by the OpenSearch plugin system to store job details.
  */
 public class ContentJobParameter implements ScheduledJobParameter {
 
@@ -24,13 +39,19 @@ public class ContentJobParameter implements ScheduledJobParameter {
     public static final String ENABLED_FIELD = "enabled";
 
     private final String name;
-    private final String jobType;     // Determines which executor handles this job
-    private final Schedule schedule;  // Defines when the job runs (Cron, Interval, etc.)
+    private final String jobType; // Determines which executor handles this job
+    private final Schedule schedule; // Defines when the job runs (Cron, Interval, etc.)
     private final boolean isEnabled;
     private final Instant lastUpdateTime;
     private final Instant enabledTime;
 
-    public ContentJobParameter(String name, String jobType, Schedule schedule, boolean isEnabled, Instant lastUpdateTime, Instant enabledTime) {
+    public ContentJobParameter(
+            String name,
+            String jobType,
+            Schedule schedule,
+            boolean isEnabled,
+            Instant lastUpdateTime,
+            Instant enabledTime) {
         this.name = name;
         this.jobType = jobType;
         this.schedule = schedule;
@@ -49,19 +70,33 @@ public class ContentJobParameter implements ScheduledJobParameter {
     }
 
     @Override
-    public String getName() { return this.name; }
+    public String getName() {
+        return this.name;
+    }
+
     @Override
-    public Schedule getSchedule() { return this.schedule; }
+    public Schedule getSchedule() {
+        return this.schedule;
+    }
+
     @Override
-    public Instant getLastUpdateTime() { return this.lastUpdateTime; }
+    public Instant getLastUpdateTime() {
+        return this.lastUpdateTime;
+    }
+
     @Override
-    public Instant getEnabledTime() { return this.enabledTime; }
+    public Instant getEnabledTime() {
+        return this.enabledTime;
+    }
+
     @Override
-    public boolean isEnabled() { return this.isEnabled; }
+    public boolean isEnabled() {
+        return this.isEnabled;
+    }
 
     /**
-     * Serializes this object into an XContentBuilder (JSON-like structure).
-     * This is used to save the job definition into the system index.
+     * Serializes this object into an XContentBuilder (JSON-like structure). This is used to save the
+     * job definition into the system index.
      */
     @Override
     public XContentBuilder toXContent(XContentBuilder builder, Params params) throws IOException {
@@ -75,8 +110,8 @@ public class ContentJobParameter implements ScheduledJobParameter {
     }
 
     /**
-     * Static factory method to parse XContent (JSON) back into a ContentJobParameter object.
-     * This is used when loading job definitions from the system index.
+     * Static factory method to parse XContent (JSON) back into a ContentJobParameter object. This is
+     * used when loading job definitions from the system index.
      */
     public static ContentJobParameter parse(XContentParser parser) throws IOException {
         String name = null;

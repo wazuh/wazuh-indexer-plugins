@@ -1,4 +1,26 @@
+/*
+ * Copyright (C) 2024, Wazuh Inc.
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as
+ * published by the Free Software Foundation, either version 3 of the
+ * License, or (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
 package com.wazuh.contentmanager.cti.catalog.synchronizer;
+
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+import org.opensearch.action.admin.indices.create.CreateIndexResponse;
+import org.opensearch.env.Environment;
+import org.opensearch.transport.client.Client;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -8,12 +30,6 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeoutException;
-
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
-import org.opensearch.action.admin.indices.create.CreateIndexResponse;
-import org.opensearch.env.Environment;
-import org.opensearch.transport.client.Client;
 
 import com.wazuh.contentmanager.cti.catalog.client.ApiClient;
 import com.wazuh.contentmanager.cti.catalog.index.ConsumersIndex;
@@ -26,8 +42,8 @@ import com.wazuh.contentmanager.cti.catalog.service.SnapshotServiceImpl;
 import com.wazuh.contentmanager.cti.catalog.service.UpdateServiceImpl;
 
 /**
- * Base class for consumer synchronization logic.
- * Provides common functionality for index creation, snapshot/update handling.
+ * Base class for consumer synchronization logic. Provides common functionality for index creation,
+ * snapshot/update handling.
  */
 public abstract class ConsumerSynchronizer {
     private static final Logger log = LogManager.getLogger(ConsumerSynchronizer.class);
@@ -36,21 +52,24 @@ public abstract class ConsumerSynchronizer {
     protected final ConsumersIndex consumersIndex;
     protected final Environment environment;
 
-    protected ConsumerSynchronizer(Client client, ConsumersIndex consumersIndex, Environment environment) {
+    protected ConsumerSynchronizer(
+            Client client, ConsumersIndex consumersIndex, Environment environment) {
         this.client = client;
         this.consumersIndex = consumersIndex;
         this.environment = environment;
     }
 
     protected abstract String getContext();
+
     protected abstract String getConsumer();
+
     protected abstract Map<String, String> getMappings();
+
     protected abstract Map<String, String> getAliases();
+
     protected abstract void onSyncComplete(boolean isUpdated);
 
-    /**
-     * Main synchronization entry point.
-     */
+    /** Main synchronization entry point. */
     public void synchronize() {
         boolean isUpdated = syncConsumerServices();
         onSyncComplete(isUpdated);
@@ -62,9 +81,7 @@ public abstract class ConsumerSynchronizer {
 
     protected void refreshIndices(String... types) {
         try {
-            String[] indexNames = Arrays.stream(types)
-                .map(this::getIndexName)
-                .toArray(String[]::new);
+            String[] indexNames = Arrays.stream(types).map(this::getIndexName).toArray(String[]::new);
             client.admin().indices().prepareRefresh(indexNames).get();
         } catch (Exception e) {
             log.warn("Error refreshing indices: {}", e.getMessage());
@@ -75,7 +92,8 @@ public abstract class ConsumerSynchronizer {
         String context = this.getContext();
         String consumer = this.getConsumer();
 
-        ConsumerService consumerService = new ConsumerServiceImpl(context, consumer, this.consumersIndex);
+        ConsumerService consumerService =
+                new ConsumerServiceImpl(context, consumer, this.consumersIndex);
         LocalConsumer localConsumer = consumerService.getLocalConsumer();
         RemoteConsumer remoteConsumer = consumerService.getRemoteConsumer();
 
@@ -110,13 +128,9 @@ public abstract class ConsumerSynchronizer {
         // Snapshot Initialization
         if (remoteConsumer != null && remoteConsumer.getSnapshotLink() != null && currentOffset == 0) {
             log.info("Initializing snapshot from link: {}", remoteConsumer.getSnapshotLink());
-            SnapshotServiceImpl snapshotService = new SnapshotServiceImpl(
-                context,
-                consumer,
-                indices,
-                this.consumersIndex,
-                this.environment
-            );
+            SnapshotServiceImpl snapshotService =
+                    new SnapshotServiceImpl(
+                            context, consumer, indices, this.consumersIndex, this.environment);
             snapshotService.initialize(remoteConsumer);
 
             currentOffset = remoteConsumer.getSnapshotOffset();
@@ -125,21 +139,19 @@ public abstract class ConsumerSynchronizer {
 
         // Update
         if (remoteConsumer != null && currentOffset < remoteConsumer.getOffset()) {
-            log.info("Performing update for consumer [{}] from offset [{}] to [{}]", consumer, currentOffset, remoteConsumer.getOffset());
+            log.info(
+                    "Performing update for consumer [{}] from offset [{}] to [{}]",
+                    consumer,
+                    currentOffset,
+                    remoteConsumer.getOffset());
 
-            UpdateServiceImpl updateService = new UpdateServiceImpl(
-                context,
-                consumer,
-                new ApiClient(),
-                this.consumersIndex,
-                indicesMap
-            );
+            UpdateServiceImpl updateService =
+                    new UpdateServiceImpl(
+                            context, consumer, new ApiClient(), this.consumersIndex, indicesMap);
             updateService.update(currentOffset, remoteConsumer.getOffset());
             updateService.close();
             updated = true;
         }
         return updated;
-    }
-
     }
 }

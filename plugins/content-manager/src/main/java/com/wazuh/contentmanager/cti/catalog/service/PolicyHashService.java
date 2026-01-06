@@ -1,10 +1,20 @@
+/*
+ * Copyright (C) 2024, Wazuh Inc.
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as
+ * published by the Free Software Foundation, either version 3 of the
+ * License, or (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
 package com.wazuh.contentmanager.cti.catalog.service;
-
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Locale;
-import java.util.Map;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -17,13 +27,19 @@ import org.opensearch.index.query.QueryBuilders;
 import org.opensearch.search.SearchHit;
 import org.opensearch.transport.client.Client;
 
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+
 import com.wazuh.contentmanager.cti.catalog.model.Space;
 import com.wazuh.contentmanager.cti.catalog.utils.HashCalculator;
 import com.wazuh.contentmanager.cti.catalog.utils.IndexHelper;
 
 /**
- * Service responsible for calculating and updating policy hashes.
- * Computes aggregate hashes (hash of hashes) for policies based on their integrations.
+ * Service responsible for calculating and updating policy hashes. Computes aggregate hashes (hash
+ * of hashes) for policies based on their integrations.
  */
 public class PolicyHashService {
 
@@ -55,7 +71,7 @@ public class PolicyHashService {
     /**
      * Calculates and updates the aggregate hash for all policies in the given consumer context.
      *
-     * @param context  The context identifier.
+     * @param context The context identifier.
      * @param consumer The consumer identifier.
      */
     public void calculateAndUpdate(String context, String consumer) {
@@ -84,7 +100,10 @@ public class PolicyHashService {
                 if (space != null) {
                     String spaceName = (String) space.get("name");
                     if (Space.DRAFT.equals(spaceName) || Space.TESTING.equals(spaceName)) {
-                        log.info("Skipping hash calculation for policy [{}] because it is in space [{}]", hit.getId(), spaceName);
+                        log.info(
+                                "Skipping hash calculation for policy [{}] because it is in space [{}]",
+                                hit.getId(),
+                                spaceName);
                         continue;
                     }
                 }
@@ -97,7 +116,8 @@ public class PolicyHashService {
                     List<String> integrationIds = (List<String>) document.get(INTEGRATIONS);
 
                     for (String integrationId : integrationIds) {
-                        Map<String, Object> integrationSource = IndexHelper.getDocumentSource(this.client, integrationIndex, integrationId);
+                        Map<String, Object> integrationSource =
+                                IndexHelper.getDocumentSource(this.client, integrationIndex, integrationId);
                         if (integrationSource == null) {
                             continue;
                         }
@@ -116,15 +136,17 @@ public class PolicyHashService {
                 String spaceHash = HashCalculator.sha256(String.join("", spaceHashes));
 
                 Map<String, Object> updateMap = new HashMap<>();
-                Map<String, Object> spaceMap = (Map<String, Object>) source.getOrDefault(SPACE, new HashMap<>());
-                Map<String, Object> hashMap = (Map<String, Object>) spaceMap.getOrDefault("hash", new HashMap<>());
+                Map<String, Object> spaceMap =
+                        (Map<String, Object>) source.getOrDefault(SPACE, new HashMap<>());
+                Map<String, Object> hashMap =
+                        (Map<String, Object>) spaceMap.getOrDefault("hash", new HashMap<>());
 
                 hashMap.put("sha256", spaceHash);
                 spaceMap.put("hash", hashMap);
                 updateMap.put(SPACE, spaceMap);
 
-                bulkUpdateRequest.add(new UpdateRequest(policyIndex, hit.getId())
-                    .doc(updateMap, XContentType.JSON));
+                bulkUpdateRequest.add(
+                        new UpdateRequest(policyIndex, hit.getId()).doc(updateMap, XContentType.JSON));
             }
 
             if (bulkUpdateRequest.numberOfActions() > 0) {
@@ -140,16 +162,21 @@ public class PolicyHashService {
     /**
      * Adds hashes from resources of a specific type within an integration to the hash list.
      *
-     * @param integration   The integration document.
-     * @param resource      The resource type (decoders, kvdbs, rules).
+     * @param integration The integration document.
+     * @param resource The resource type (decoders, kvdbs, rules).
      * @param resourceIndex The index containing the resources.
-     * @param spaceHashes   The list to add hashes to.
+     * @param spaceHashes The list to add hashes to.
      */
-    private void addHashes(Map<String, Object> integration, String resource, String resourceIndex, List<String> spaceHashes) {
+    private void addHashes(
+            Map<String, Object> integration,
+            String resource,
+            String resourceIndex,
+            List<String> spaceHashes) {
         if (integration.containsKey(resource)) {
             List<String> resourceIds = (List<String>) integration.get(resource);
             for (String id : resourceIds) {
-                Map<String, Object> resourceSource = IndexHelper.getDocumentSource(this.client, resourceIndex, id);
+                Map<String, Object> resourceSource =
+                        IndexHelper.getDocumentSource(this.client, resourceIndex, id);
                 if (resourceSource != null) {
                     spaceHashes.add(HashCalculator.extractHash(resourceSource));
                 }
@@ -160,9 +187,9 @@ public class PolicyHashService {
     /**
      * Generates a standardized index name.
      *
-     * @param context  The context identifier.
+     * @param context The context identifier.
      * @param consumer The consumer identifier.
-     * @param type     The content type.
+     * @param type The content type.
      * @return The formatted index name.
      */
     private String getIndexName(String context, String consumer, String type) {

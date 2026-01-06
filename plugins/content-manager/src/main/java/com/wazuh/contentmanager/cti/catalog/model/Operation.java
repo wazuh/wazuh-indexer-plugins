@@ -16,8 +16,6 @@
  */
 package com.wazuh.contentmanager.cti.catalog.model;
 
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
 import org.opensearch.core.xcontent.ToXContentObject;
 import org.opensearch.core.xcontent.XContentBuilder;
 import org.opensearch.core.xcontent.XContentParser;
@@ -25,9 +23,7 @@ import org.opensearch.core.xcontent.XContentParserUtils;
 
 import java.io.IOException;
 
-/**
- * Class representing a JSON Patch operation.
- */
+/** Class representing a JSON Patch operation. */
 public class Operation implements ToXContentObject {
     public static final String OP = "op";
     public static final String PATH = "path";
@@ -42,9 +38,10 @@ public class Operation implements ToXContentObject {
     /**
      * Constructs a new JSON Patch Operation.
      *
-     * @param op    The operation to perform (e.g., "add", "replace", "remove").
-     * @param path  A JSON Pointer string indicating the location to perform the operation.
-     * @param from  A JSON Pointer string indicating the location to move/copy from (optional, depends on 'op').
+     * @param op The operation to perform (e.g., "add", "replace", "remove").
+     * @param path A JSON Pointer string indicating the location to perform the operation.
+     * @param from A JSON Pointer string indicating the location to move/copy from (optional, depends
+     *     on 'op').
      * @param value The value to be added, replaced, or tested (optional, depends on 'op').
      */
     public Operation(String op, String path, String from, Object value) {
@@ -67,7 +64,8 @@ public class Operation implements ToXContentObject {
         String from = null;
         Object value = null;
 
-        XContentParserUtils.ensureExpectedToken(XContentParser.Token.START_OBJECT, parser.currentToken(), parser);
+        XContentParserUtils.ensureExpectedToken(
+                XContentParser.Token.START_OBJECT, parser.currentToken(), parser);
 
         while (parser.nextToken() != XContentParser.Token.END_OBJECT) {
             String fieldName = parser.currentName();
@@ -97,7 +95,7 @@ public class Operation implements ToXContentObject {
      * Serializes this operation into an {@link XContentBuilder}.
      *
      * @param builder The builder to write to.
-     * @param params  Contextual parameters for the serialization.
+     * @param params Contextual parameters for the serialization.
      * @return The builder instance for chaining.
      * @throws IOException If an error occurs while writing to the builder.
      */
