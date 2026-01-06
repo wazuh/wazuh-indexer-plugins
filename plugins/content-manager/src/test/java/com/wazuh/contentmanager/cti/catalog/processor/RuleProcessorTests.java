@@ -21,7 +21,6 @@ import org.opensearch.action.admin.indices.exists.indices.IndicesExistsResponse;
 import org.opensearch.action.search.SearchRequest;
 import org.opensearch.action.search.SearchResponse;
 import org.opensearch.common.action.ActionFuture;
-import org.opensearch.search.SearchHit;
 import org.opensearch.search.SearchHits;
 import org.opensearch.test.OpenSearchTestCase;
 import org.opensearch.transport.client.AdminClient;
@@ -52,7 +51,6 @@ public class RuleProcessorTests extends OpenSearchTestCase {
     @Mock private IndicesExistsResponse indicesExistsResponse;
     @Mock private ActionFuture<SearchResponse> searchFuture;
     @Mock private SearchResponse searchResponse;
-    @Mock private SearchHits searchHits;
 
     @Before
     @Override
@@ -92,8 +90,8 @@ public class RuleProcessorTests extends OpenSearchTestCase {
 
         when(client.search(any(SearchRequest.class))).thenReturn(searchFuture);
         when(searchFuture.actionGet()).thenReturn(searchResponse);
-        when(searchResponse.getHits()).thenReturn(searchHits);
-        when(searchHits.getHits()).thenReturn(new SearchHit[0]);
+        SearchHits emptyHits = SearchHits.empty();
+        when(searchResponse.getHits()).thenReturn(emptyHits);
 
         // Should not throw any exception
         ruleProcessor.process("test-index");
