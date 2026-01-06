@@ -1,13 +1,21 @@
+/*
+ * Copyright (C) 2024, Wazuh Inc.
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as
+ * published by the Free Software Foundation, either version 3 of the
+ * License, or (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
 package com.wazuh.contentmanager.cti.catalog.index;
 
-import com.wazuh.contentmanager.cti.catalog.model.LocalConsumer;
-import com.wazuh.contentmanager.settings.PluginSettings;
-import org.junit.After;
-import org.junit.Before;
-import org.mockito.Answers;
-import org.mockito.ArgumentCaptor;
-import org.mockito.Mock;
-import org.mockito.MockitoAnnotations;
 import org.opensearch.action.admin.cluster.health.ClusterHealthResponse;
 import org.opensearch.action.admin.indices.create.CreateIndexRequest;
 import org.opensearch.action.admin.indices.create.CreateIndexResponse;
@@ -22,6 +30,15 @@ import org.opensearch.cluster.health.ClusterHealthStatus;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.test.OpenSearchTestCase;
 import org.opensearch.transport.client.Client;
+import org.junit.After;
+import org.junit.Before;
+
+import com.wazuh.contentmanager.cti.catalog.model.LocalConsumer;
+import com.wazuh.contentmanager.settings.PluginSettings;
+import org.mockito.Answers;
+import org.mockito.ArgumentCaptor;
+import org.mockito.Mock;
+import org.mockito.MockitoAnnotations;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -60,12 +77,19 @@ public class ConsumersIndexTests extends OpenSearchTestCase {
     }
 
     /**
-     * Tests that setConsumer constructs the correct ID (context_name) and performs the index operation.
+     * Tests that setConsumer constructs the correct ID (context_name) and performs the index
+     * operation.
      */
     public void testSetConsumer_Success() throws Exception {
         // Mock
-        when(this.client.admin().cluster().prepareHealth().setIndices(anyString()).setWaitForYellowStatus().get())
-            .thenReturn(this.clusterHealthResponse);
+        when(this.client
+                        .admin()
+                        .cluster()
+                        .prepareHealth()
+                        .setIndices(anyString())
+                        .setWaitForYellowStatus()
+                        .get())
+                .thenReturn(this.clusterHealthResponse);
         when(this.clusterHealthResponse.getStatus()).thenReturn(ClusterHealthStatus.GREEN);
 
         PlainActionFuture<IndexResponse> future = PlainActionFuture.newFuture();
@@ -73,7 +97,8 @@ public class ConsumersIndexTests extends OpenSearchTestCase {
         when(this.client.index(any(IndexRequest.class))).thenReturn(future);
 
         // Act
-        LocalConsumer consumer = new LocalConsumer("test_context", "test_consumer", 100L, 200L, "http://snapshot");
+        LocalConsumer consumer =
+                new LocalConsumer("test_context", "test_consumer", 100L, 200L, "http://snapshot");
         this.consumersIndex.setConsumer(consumer);
 
         // Assert
@@ -85,29 +110,38 @@ public class ConsumersIndexTests extends OpenSearchTestCase {
         assertEquals("test_context_test_consumer", request.id());
     }
 
-    /**
-     * Tests that setConsumer throws a RuntimeException if the cluster status is RED.
-     */
+    /** Tests that setConsumer throws a RuntimeException if the cluster status is RED. */
     public void testSetConsumer_IndexNotReady() {
         // Mock
-        when(this.client.admin().cluster().prepareHealth().setIndices(anyString()).setWaitForYellowStatus().get())
-            .thenReturn(this.clusterHealthResponse);
+        when(this.client
+                        .admin()
+                        .cluster()
+                        .prepareHealth()
+                        .setIndices(anyString())
+                        .setWaitForYellowStatus()
+                        .get())
+                .thenReturn(this.clusterHealthResponse);
         when(this.clusterHealthResponse.getStatus()).thenReturn(ClusterHealthStatus.RED);
 
         LocalConsumer consumer = new LocalConsumer("ctx", "name");
 
         // Act and Assert
-        RuntimeException ex = assertThrows(RuntimeException.class, () -> this.consumersIndex.setConsumer(consumer));
+        RuntimeException ex =
+                assertThrows(RuntimeException.class, () -> this.consumersIndex.setConsumer(consumer));
         assertEquals("Index not ready", ex.getMessage());
     }
 
-    /**
-     * Tests getConsumer retrieves the correct document ID based on context and consumer name.
-     */
+    /** Tests getConsumer retrieves the correct document ID based on context and consumer name. */
     public void testGetConsumer_Success() throws Exception {
         // Mock
-        when(this.client.admin().cluster().prepareHealth().setIndices(anyString()).setWaitForYellowStatus().get())
-            .thenReturn(this.clusterHealthResponse);
+        when(this.client
+                        .admin()
+                        .cluster()
+                        .prepareHealth()
+                        .setIndices(anyString())
+                        .setWaitForYellowStatus()
+                        .get())
+                .thenReturn(this.clusterHealthResponse);
         when(this.clusterHealthResponse.getStatus()).thenReturn(ClusterHealthStatus.YELLOW);
 
         PlainActionFuture<GetResponse> future = PlainActionFuture.newFuture();
@@ -126,13 +160,11 @@ public class ConsumersIndexTests extends OpenSearchTestCase {
         assertEquals("my_context_my_consumer", request.id());
     }
 
-    /**
-     * Tests exists() delegates correctly to the IndicesExistsRequest.
-     */
+    /** Tests exists() delegates correctly to the IndicesExistsRequest. */
     public void testExists() {
         // Mock
         when(this.client.admin().indices().exists(any(IndicesExistsRequest.class)).actionGet())
-            .thenReturn(this.indicesExistsResponse);
+                .thenReturn(this.indicesExistsResponse);
         when(this.indicesExistsResponse.isExists()).thenReturn(true);
 
         // Clear invocations to ensure verify only counts the actual method call
@@ -143,14 +175,13 @@ public class ConsumersIndexTests extends OpenSearchTestCase {
 
         // Assert
         assertTrue(result);
-        ArgumentCaptor<IndicesExistsRequest> captor = ArgumentCaptor.forClass(IndicesExistsRequest.class);
+        ArgumentCaptor<IndicesExistsRequest> captor =
+                ArgumentCaptor.forClass(IndicesExistsRequest.class);
         verify(this.client.admin().indices()).exists(captor.capture());
-        assertArrayEquals(new String[]{ConsumersIndex.INDEX_NAME}, captor.getValue().indices());
+        assertArrayEquals(new String[] {ConsumersIndex.INDEX_NAME}, captor.getValue().indices());
     }
 
-    /**
-     * Tests createIndex().
-     */
+    /** Tests createIndex(). */
     public void testCreateIndex() throws Exception {
         // Mock
         PlainActionFuture<CreateIndexResponse> future = PlainActionFuture.newFuture();

@@ -1,16 +1,33 @@
+/*
+ * Copyright (C) 2024, Wazuh Inc.
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as
+ * published by the Free Software Foundation, either version 3 of the
+ * License, or (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
 package com.wazuh.contentmanager.rest;
+
+import org.opensearch.core.rest.RestStatus;
+import org.opensearch.rest.BytesRestResponse;
+import org.opensearch.test.OpenSearchTestCase;
+import org.junit.Before;
+
+import java.io.IOException;
 
 import com.wazuh.contentmanager.cti.console.CtiConsole;
 import com.wazuh.contentmanager.cti.console.model.Token;
 import com.wazuh.contentmanager.jobscheduler.jobs.CatalogSyncJob;
 import com.wazuh.contentmanager.rest.model.RestResponse;
 import com.wazuh.contentmanager.rest.services.RestPostUpdateAction;
-import org.junit.Before;
-import org.opensearch.core.rest.RestStatus;
-import org.opensearch.rest.BytesRestResponse;
-import org.opensearch.test.OpenSearchTestCase;
-
-import java.io.IOException;
 
 import static org.mockito.Mockito.*;
 
@@ -33,8 +50,9 @@ public class RestPostUpdateActionTests extends OpenSearchTestCase {
         this.action = new RestPostUpdateAction(this.console, this.catalogSyncJob);
     }
 
-    /** Test the {@link RestPostUpdateAction#handleRequest()} method when the token is created (mock).
-     *  The expected response is: {200, Token}
+    /**
+     * Test the {@link RestPostUpdateAction#handleRequest()} method when the token is created (mock).
+     * The expected response is: {200, Token}
      */
     public void testHandleRequest_Accepted() throws IOException {
         // Mock
@@ -46,7 +64,8 @@ public class RestPostUpdateActionTests extends OpenSearchTestCase {
         BytesRestResponse bytesRestResponse = this.action.handleRequest();
 
         // Expected response
-        RestResponse expectedResponse = new RestResponse("Update accepted", RestStatus.ACCEPTED.getStatus());
+        RestResponse expectedResponse =
+                new RestResponse("Update accepted", RestStatus.ACCEPTED.getStatus());
 
         // Assert
         assertEquals(RestStatus.ACCEPTED, bytesRestResponse.status());
@@ -57,8 +76,9 @@ public class RestPostUpdateActionTests extends OpenSearchTestCase {
         verify(this.catalogSyncJob, times(1)).trigger();
     }
 
-    /** Test the {@link RestPostUpdateAction#handleRequest()} method when the token has not been created (mock).
-     *  The expected response is: {404, RestResponse}
+    /**
+     * Test the {@link RestPostUpdateAction#handleRequest()} method when the token has not been
+     * created (mock). The expected response is: {404, RestResponse}
      */
     public void testHandleRequest_NoToken() throws IOException {
         // Mock
@@ -68,7 +88,8 @@ public class RestPostUpdateActionTests extends OpenSearchTestCase {
         BytesRestResponse bytesRestResponse = this.action.handleRequest();
 
         // Expected response
-        RestResponse expectedResponse = new RestResponse("Token not found", RestStatus.NOT_FOUND.getStatus());
+        RestResponse expectedResponse =
+                new RestResponse("Token not found", RestStatus.NOT_FOUND.getStatus());
 
         // Assert
         assertEquals(RestStatus.NOT_FOUND, bytesRestResponse.status());
@@ -79,8 +100,9 @@ public class RestPostUpdateActionTests extends OpenSearchTestCase {
         verify(this.catalogSyncJob, never()).trigger();
     }
 
-    /** Test the {@link RestPostUpdateAction#handleRequest()} method when there is already a request being performed.
-     *  The expected response is: {409, RestResponse}
+    /**
+     * Test the {@link RestPostUpdateAction#handleRequest()} method when there is already a request
+     * being performed. The expected response is: {409, RestResponse}
      */
     public void testHandleRequest_Conflict() throws IOException {
         // Mock
@@ -92,7 +114,9 @@ public class RestPostUpdateActionTests extends OpenSearchTestCase {
         BytesRestResponse bytesRestResponse = this.action.handleRequest();
 
         // Expected response
-        RestResponse expectedResponse = new RestResponse("An update operation is already in progress", RestStatus.CONFLICT.getStatus());
+        RestResponse expectedResponse =
+                new RestResponse(
+                        "An update operation is already in progress", RestStatus.CONFLICT.getStatus());
 
         // Assert
         assertEquals(RestStatus.CONFLICT, bytesRestResponse.status());
@@ -103,8 +127,9 @@ public class RestPostUpdateActionTests extends OpenSearchTestCase {
         verify(this.catalogSyncJob, never()).trigger();
     }
 
-    /** Test the {@link RestPostUpdateAction#handleRequest()} method when the rate limit is exceeded.
-     *  The expected response is: {429, RestResponse}
+    /**
+     * Test the {@link RestPostUpdateAction#handleRequest()} method when the rate limit is exceeded.
+     * The expected response is: {429, RestResponse}
      */
     public void testGetToken429() throws IOException {
         // TODO

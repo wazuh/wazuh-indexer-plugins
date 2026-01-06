@@ -1,26 +1,43 @@
+/*
+ * Copyright (C) 2024, Wazuh Inc.
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as
+ * published by the Free Software Foundation, either version 3 of the
+ * License, or (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
 package com.wazuh.contentmanager.cti.catalog.service;
 
 import com.google.gson.JsonObject;
-import com.wazuh.contentmanager.cti.catalog.client.ApiClient;
-import com.wazuh.contentmanager.cti.catalog.index.ConsumersIndex;
-import com.wazuh.contentmanager.cti.catalog.index.ContentIndex;
-import com.wazuh.contentmanager.cti.catalog.model.LocalConsumer;
-import com.wazuh.contentmanager.settings.PluginSettings;
 import org.apache.hc.client5.http.async.methods.SimpleHttpResponse;
 import org.apache.hc.core5.http.ContentType;
-import org.junit.After;
-import org.junit.Before;
-import org.mockito.ArgumentCaptor;
-import org.mockito.Mock;
-import org.mockito.MockitoAnnotations;
 import org.opensearch.action.get.GetResponse;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.test.OpenSearchTestCase;
+import org.junit.After;
+import org.junit.Before;
 
 import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+
+import com.wazuh.contentmanager.cti.catalog.client.ApiClient;
+import com.wazuh.contentmanager.cti.catalog.index.ConsumersIndex;
+import com.wazuh.contentmanager.cti.catalog.index.ContentIndex;
+import com.wazuh.contentmanager.cti.catalog.model.LocalConsumer;
+import com.wazuh.contentmanager.settings.PluginSettings;
+import org.mockito.ArgumentCaptor;
+import org.mockito.Mock;
+import org.mockito.MockitoAnnotations;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
@@ -58,7 +75,8 @@ public class UpdateServiceImplTests extends OpenSearchTestCase {
         this.indices.put("rule", this.ruleIndex);
         this.indices.put("decoder", this.decoderIndex);
 
-        this.updateService = new UpdateServiceImpl(CONTEXT, CONSUMER, apiClient, consumersIndex, indices);
+        this.updateService =
+                new UpdateServiceImpl(CONTEXT, CONSUMER, apiClient, consumersIndex, indices);
     }
 
     @After
@@ -70,43 +88,46 @@ public class UpdateServiceImplTests extends OpenSearchTestCase {
         super.tearDown();
     }
 
-    /**
-     * Tests a successful update flow containing CREATE, UPDATE, and DELETE operations.
-     */
+    /** Tests a successful update flow containing CREATE, UPDATE, and DELETE operations. */
     public void testUpdate_Success() throws Exception {
         // Response
-        String changesJson = "{\n" +
-            "  \"data\": [\n" +
-            "    {\n" +
-            "      \"offset\": 10,\n" +
-            "      \"resource\": \"rule-1\",\n" +
-            "      \"type\": \"CREATE\",\n" +
-            "      \"payload\": { \"type\": \"rule\", \"id\": \"rule-1\", \"name\": \"Rule One\" }\n" +
-            "    },\n" +
-            "    {\n" +
-            "      \"offset\": 11,\n" +
-            "      \"resource\": \"rule-2\",\n" +
-            "      \"type\": \"UPDATE\",\n" +
-            "      \"operations\": [ { \"op\": \"replace\", \"path\": \"/name\", \"value\": \"Updated Rule\" } ]\n" +
-            "    },\n" +
-            "    {\n" +
-            "      \"offset\": 12,\n" +
-            "      \"resource\": \"decoder-1\",\n" +
-            "      \"type\": \"DELETE\"\n" +
-            "    }\n" +
-            "  ]\n" +
-            "}";
+        String changesJson =
+                "{\n"
+                        + "  \"data\": [\n"
+                        + "    {\n"
+                        + "      \"offset\": 10,\n"
+                        + "      \"resource\": \"rule-1\",\n"
+                        + "      \"type\": \"CREATE\",\n"
+                        + "      \"payload\": { \"type\": \"rule\", \"id\": \"rule-1\", \"name\": \"Rule One\" }\n"
+                        + "    },\n"
+                        + "    {\n"
+                        + "      \"offset\": 11,\n"
+                        + "      \"resource\": \"rule-2\",\n"
+                        + "      \"type\": \"UPDATE\",\n"
+                        + "      \"operations\": [ { \"op\": \"replace\", \"path\": \"/name\", \"value\": \"Updated Rule\" } ]\n"
+                        + "    },\n"
+                        + "    {\n"
+                        + "      \"offset\": 12,\n"
+                        + "      \"resource\": \"decoder-1\",\n"
+                        + "      \"type\": \"DELETE\"\n"
+                        + "    }\n"
+                        + "  ]\n"
+                        + "}";
 
         // Mock
         when(this.apiClient.getChanges(anyString(), anyString(), anyLong(), anyLong()))
-            .thenReturn(SimpleHttpResponse.create(200, changesJson.getBytes(StandardCharsets.UTF_8), ContentType.APPLICATION_JSON));
+                .thenReturn(
+                        SimpleHttpResponse.create(
+                                200, changesJson.getBytes(StandardCharsets.UTF_8), ContentType.APPLICATION_JSON));
 
         when(this.ruleIndex.exists("rule-2")).thenReturn(true);
         when(this.decoderIndex.exists("decoder-1")).thenReturn(true);
 
         when(this.consumersIndex.getConsumer(CONTEXT, CONSUMER)).thenReturn(this.getResponse);
         when(this.getResponse.isExists()).thenReturn(true);
-        when(this.getResponse.getSourceAsString()).thenReturn("{\"local_offset\": 9, \"remote_offset\": 100, \"snapshot_link\": \"http://snap\"}");
+        when(this.getResponse.getSourceAsString())
+                .thenReturn(
+                        "{\"local_offset\": 9, \"remote_offset\": 100, \"snapshot_link\": \"http://snap\"}");
 
         // Act
         this.updateService.update(9, 12);
@@ -130,24 +151,25 @@ public class UpdateServiceImplTests extends OpenSearchTestCase {
         assertEquals(CONSUMER, updated.getName());
     }
 
-    /**
-     * Tests that "policy" resources are skipped but the offset is still tracked.
-     */
+    /** Tests that "policy" resources are skipped but the offset is still tracked. */
     public void testUpdate_SkipPolicy() throws Exception {
         // Response
-        String changesJson = "{\n" +
-            "  \"data\": [\n" +
-            "    {\n" +
-            "      \"offset\": 20,\n" +
-            "      \"resource\": \"policy-1\",\n" +
-            "      \"type\": \"CREATE\",\n" +
-            "      \"payload\": { \"type\": \"policy\", \"content\": \"...\" }\n" +
-            "    }\n" +
-            "  ]\n" +
-            "}";
+        String changesJson =
+                "{\n"
+                        + "  \"data\": [\n"
+                        + "    {\n"
+                        + "      \"offset\": 20,\n"
+                        + "      \"resource\": \"policy-1\",\n"
+                        + "      \"type\": \"CREATE\",\n"
+                        + "      \"payload\": { \"type\": \"policy\", \"content\": \"...\" }\n"
+                        + "    }\n"
+                        + "  ]\n"
+                        + "}";
 
         when(this.apiClient.getChanges(anyString(), anyString(), anyLong(), anyLong()))
-            .thenReturn(SimpleHttpResponse.create(200, changesJson.getBytes(StandardCharsets.UTF_8), ContentType.APPLICATION_JSON));
+                .thenReturn(
+                        SimpleHttpResponse.create(
+                                200, changesJson.getBytes(StandardCharsets.UTF_8), ContentType.APPLICATION_JSON));
 
         // Mock
         when(this.consumersIndex.getConsumer(CONTEXT, CONSUMER)).thenReturn(this.getResponse);
@@ -165,13 +187,11 @@ public class UpdateServiceImplTests extends OpenSearchTestCase {
         assertEquals(20, consumerCaptor.getValue().getLocalOffset());
     }
 
-    /**
-     * Tests handling of API failures.
-     */
+    /** Tests handling of API failures. */
     public void testUpdate_ApiFailure() throws Exception {
         // Mock
         when(apiClient.getChanges(anyString(), anyString(), anyLong(), anyLong()))
-            .thenReturn(SimpleHttpResponse.create(500, "Internal Error", ContentType.TEXT_PLAIN));
+                .thenReturn(SimpleHttpResponse.create(500, "Internal Error", ContentType.TEXT_PLAIN));
 
         // Act
         updateService.update(1, 5);
@@ -181,28 +201,30 @@ public class UpdateServiceImplTests extends OpenSearchTestCase {
         verify(consumersIndex, never()).setConsumer(any());
     }
 
-    /**
-     * Tests that the consumer state is reset to 0 if an exception occurs during processing.
-     */
+    /** Tests that the consumer state is reset to 0 if an exception occurs during processing. */
     public void testUpdate_ExceptionResetsConsumer() throws Exception {
         // Response
-        String changesJson = "{\n" +
-            "  \"data\": [\n" +
-            "    {\n" +
-            "      \"offset\": 30,\n" +
-            "      \"resource\": \"rule-bad\",\n" +
-            "      \"type\": \"CREATE\",\n" +
-            "      \"payload\": { \"type\": \"rule\" }\n" +
-            "    }\n" +
-            "  ]\n" +
-            "}";
+        String changesJson =
+                "{\n"
+                        + "  \"data\": [\n"
+                        + "    {\n"
+                        + "      \"offset\": 30,\n"
+                        + "      \"resource\": \"rule-bad\",\n"
+                        + "      \"type\": \"CREATE\",\n"
+                        + "      \"payload\": { \"type\": \"rule\" }\n"
+                        + "    }\n"
+                        + "  ]\n"
+                        + "}";
 
         // Mock
         when(this.apiClient.getChanges(anyString(), anyString(), anyLong(), anyLong()))
-            .thenReturn(SimpleHttpResponse.create(200, changesJson.getBytes(StandardCharsets.UTF_8), ContentType.APPLICATION_JSON));
+                .thenReturn(
+                        SimpleHttpResponse.create(
+                                200, changesJson.getBytes(StandardCharsets.UTF_8), ContentType.APPLICATION_JSON));
 
         doThrow(new RuntimeException("Simulated Indexing Failure"))
-            .when(this.ruleIndex).create(anyString(), any());
+                .when(this.ruleIndex)
+                .create(anyString(), any());
 
         // Act
         this.updateService.update(29, 30);
@@ -215,25 +237,26 @@ public class UpdateServiceImplTests extends OpenSearchTestCase {
         assertEquals(CONSUMER, resetConsumer.getName());
     }
 
-    /**
-     * Tests CREATE operation when the 'type' in payload doesn't map to any known index.
-     */
+    /** Tests CREATE operation when the 'type' in payload doesn't map to any known index. */
     public void testUpdate_UnknownType_Create() throws Exception {
         // Response
-        String changesJson = "{\n" +
-            "  \"data\": [\n" +
-            "    {\n" +
-            "      \"offset\": 40,\n" +
-            "      \"resource\": \"unknown-1\",\n" +
-            "      \"type\": \"CREATE\",\n" +
-            "      \"payload\": { \"type\": \"unknown_thing\", \"data\": \"...\" }\n" +
-            "    }\n" +
-            "  ]\n" +
-            "}";
+        String changesJson =
+                "{\n"
+                        + "  \"data\": [\n"
+                        + "    {\n"
+                        + "      \"offset\": 40,\n"
+                        + "      \"resource\": \"unknown-1\",\n"
+                        + "      \"type\": \"CREATE\",\n"
+                        + "      \"payload\": { \"type\": \"unknown_thing\", \"data\": \"...\" }\n"
+                        + "    }\n"
+                        + "  ]\n"
+                        + "}";
 
         // Mock
         when(this.apiClient.getChanges(anyString(), anyString(), anyLong(), anyLong()))
-            .thenReturn(SimpleHttpResponse.create(200, changesJson.getBytes(StandardCharsets.UTF_8), ContentType.APPLICATION_JSON));
+                .thenReturn(
+                        SimpleHttpResponse.create(
+                                200, changesJson.getBytes(StandardCharsets.UTF_8), ContentType.APPLICATION_JSON));
 
         when(this.consumersIndex.getConsumer(CONTEXT, CONSUMER)).thenReturn(this.getResponse);
         when(this.getResponse.isExists()).thenReturn(true);
@@ -251,24 +274,25 @@ public class UpdateServiceImplTests extends OpenSearchTestCase {
         assertEquals(40, captor.getValue().getLocalOffset());
     }
 
-    /**
-     * Tests UPDATE/DELETE operation when the resource ID is not found in any index.
-     */
+    /** Tests UPDATE/DELETE operation when the resource ID is not found in any index. */
     public void testUpdate_ResourceNotFound() throws Exception {
         // Response
-        String changesJson = "{\n" +
-            "  \"data\": [\n" +
-            "    {\n" +
-            "      \"offset\": 50,\n" +
-            "      \"resource\": \"fake-id\",\n" +
-            "      \"type\": \"DELETE\"\n" +
-            "    }\n" +
-            "  ]\n" +
-            "}";
+        String changesJson =
+                "{\n"
+                        + "  \"data\": [\n"
+                        + "    {\n"
+                        + "      \"offset\": 50,\n"
+                        + "      \"resource\": \"fake-id\",\n"
+                        + "      \"type\": \"DELETE\"\n"
+                        + "    }\n"
+                        + "  ]\n"
+                        + "}";
 
         // Mock
         when(this.apiClient.getChanges(anyString(), anyString(), anyLong(), anyLong()))
-            .thenReturn(SimpleHttpResponse.create(200, changesJson.getBytes(StandardCharsets.UTF_8), ContentType.APPLICATION_JSON));
+                .thenReturn(
+                        SimpleHttpResponse.create(
+                                200, changesJson.getBytes(StandardCharsets.UTF_8), ContentType.APPLICATION_JSON));
 
         when(this.ruleIndex.exists("fake-id")).thenReturn(false);
         when(this.decoderIndex.exists("fake-id")).thenReturn(false);
