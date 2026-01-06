@@ -9,6 +9,3 @@ rootProject.name = "wazuh-indexer-plugins"
 
 include(":wazuh-indexer-setup")
 project(":wazuh-indexer-setup").projectDir = "plugins/setup/" as File
-
-include(":wazuh-indexer-content-manager")
-project(":wazuh-indexer-content-manager").projectDir = "plugins/content-manager/" as File
