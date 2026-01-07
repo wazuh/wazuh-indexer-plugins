@@ -66,68 +66,75 @@ public class IndexHelperTests extends OpenSearchTestCase {
         super.tearDown();
     }
 
+    /** Tests that getDocumentSource returns source map when document exists. */
     public void testGetDocumentSourceReturnsSourceWhenDocumentExists() {
         Map<String, Object> expectedSource = new HashMap<>();
         expectedSource.put("field", "value");
 
-        when(client.prepareGet(anyString(), anyString())).thenReturn(getRequestBuilder);
-        when(getRequestBuilder.get()).thenReturn(getResponse);
-        when(getResponse.isExists()).thenReturn(true);
-        when(getResponse.getSourceAsMap()).thenReturn(expectedSource);
+        when(this.client.prepareGet(anyString(), anyString())).thenReturn(this.getRequestBuilder);
+        when(this.getRequestBuilder.get()).thenReturn(this.getResponse);
+        when(this.getResponse.isExists()).thenReturn(true);
+        when(this.getResponse.getSourceAsMap()).thenReturn(expectedSource);
 
-        Map<String, Object> result = IndexHelper.getDocumentSource(client, "test-index", "doc-id");
+        Map<String, Object> result = IndexHelper.getDocumentSource(this.client, "test-index", "doc-id");
 
         Assert.assertNotNull(result);
         Assert.assertEquals("value", result.get("field"));
     }
 
+    /** Tests that getDocumentSource returns null when document does not exist. */
     public void testGetDocumentSourceReturnsNullWhenDocumentDoesNotExist() {
-        when(client.prepareGet(anyString(), anyString())).thenReturn(getRequestBuilder);
-        when(getRequestBuilder.get()).thenReturn(getResponse);
-        when(getResponse.isExists()).thenReturn(false);
+        when(this.client.prepareGet(anyString(), anyString())).thenReturn(this.getRequestBuilder);
+        when(this.getRequestBuilder.get()).thenReturn(this.getResponse);
+        when(this.getResponse.isExists()).thenReturn(false);
 
-        Map<String, Object> result = IndexHelper.getDocumentSource(client, "test-index", "doc-id");
+        Map<String, Object> result = IndexHelper.getDocumentSource(this.client, "test-index", "doc-id");
 
         Assert.assertNull(result);
     }
 
+    /** Tests that getDocumentSource returns null when an exception occurs. */
     public void testGetDocumentSourceReturnsNullOnException() {
-        when(client.prepareGet(anyString(), anyString()))
+        when(this.client.prepareGet(anyString(), anyString()))
                 .thenThrow(new RuntimeException("Test exception"));
 
-        Map<String, Object> result = IndexHelper.getDocumentSource(client, "test-index", "doc-id");
+        Map<String, Object> result = IndexHelper.getDocumentSource(this.client, "test-index", "doc-id");
 
         Assert.assertNull(result);
     }
 
+    /** Tests that indexExists returns true when index exists. */
     public void testIndexExistsReturnsTrue() {
-        when(client.admin()).thenReturn(adminClient);
-        when(adminClient.indices()).thenReturn(indicesAdminClient);
-        when(indicesAdminClient.prepareExists(anyString())).thenReturn(indicesExistsRequestBuilder);
-        when(indicesExistsRequestBuilder.get()).thenReturn(indicesExistsResponse);
-        when(indicesExistsResponse.isExists()).thenReturn(true);
-
-        boolean result = IndexHelper.indexExists(client, "test-index");
+        when(this.client.admin()).thenReturn(this.adminClient);
+        when(this.adminClient.indices()).thenReturn(this.indicesAdminClient);
+        when(this.indicesAdminClient.prepareExists(anyString()))
+                .thenReturn(this.indicesExistsRequestBuilder);
+        when(this.indicesExistsRequestBuilder.get()).thenReturn(this.indicesExistsResponse);
+        when(this.indicesExistsResponse.isExists()).thenReturn(true);
+        boolean result = IndexHelper.indexExists(this.client, "test-index");
 
         Assert.assertTrue(result);
     }
 
+    /** Tests that indexExists returns false when index does not exist. */
     public void testIndexExistsReturnsFalse() {
-        when(client.admin()).thenReturn(adminClient);
-        when(adminClient.indices()).thenReturn(indicesAdminClient);
-        when(indicesAdminClient.prepareExists(anyString())).thenReturn(indicesExistsRequestBuilder);
-        when(indicesExistsRequestBuilder.get()).thenReturn(indicesExistsResponse);
-        when(indicesExistsResponse.isExists()).thenReturn(false);
+        when(this.client.admin()).thenReturn(this.adminClient);
+        when(this.adminClient.indices()).thenReturn(this.indicesAdminClient);
+        when(this.indicesAdminClient.prepareExists(anyString()))
+                .thenReturn(this.indicesExistsRequestBuilder);
+        when(this.indicesExistsRequestBuilder.get()).thenReturn(this.indicesExistsResponse);
+        when(this.indicesExistsResponse.isExists()).thenReturn(false);
 
-        boolean result = IndexHelper.indexExists(client, "test-index");
+        boolean result = IndexHelper.indexExists(this.client, "test-index");
 
         Assert.assertFalse(result);
     }
 
+    /** Tests that indexExists returns false when an exception occurs. */
     public void testIndexExistsReturnsFalseOnException() {
-        when(client.admin()).thenThrow(new RuntimeException("Test exception"));
+        when(this.client.admin()).thenThrow(new RuntimeException("Test exception"));
 
-        boolean result = IndexHelper.indexExists(client, "test-index");
+        boolean result = IndexHelper.indexExists(this.client, "test-index");
 
         Assert.assertFalse(result);
     }

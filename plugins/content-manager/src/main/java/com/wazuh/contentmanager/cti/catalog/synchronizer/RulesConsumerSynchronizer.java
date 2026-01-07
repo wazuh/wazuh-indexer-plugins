@@ -30,25 +30,36 @@ import com.wazuh.contentmanager.cti.catalog.processor.RuleProcessor;
 
 /**
  * Handles synchronization logic specifically for the Rules consumer. Processes rules and
- * integrations, and creates/updates detectors.
+ * integrations, and creates/updates threat detectors after synchronization completes.
  */
 public class RulesConsumerSynchronizer extends ConsumerSynchronizer {
 
+    /** Content type identifier for rule documents. */
     public static final String RULE = "rule";
+
+    /** Content type identifier for integration documents. */
     public static final String INTEGRATION = "integration";
 
+    /** The context identifier for the rules consumer. */
     private final String CONTEXT = "rules_development_0.0.1";
+
+    /** The consumer name identifier. */
     private final String CONSUMER = "rules_development_0.0.1_test";
 
+    /** Processor for syncing integrations to the security analytics plugin. */
     private final IntegrationProcessor integrationProcessor;
+
+    /** Processor for syncing rules to the security analytics plugin. */
     private final RuleProcessor ruleProcessor;
+
+    /** Processor for creating/updating threat detectors from integrations. */
     private final DetectorProcessor detectorProcessor;
 
     /**
      * Constructs a new RulesConsumerSynchronizer.
      *
      * @param client The OpenSearch client.
-     * @param consumersIndex The consumers index wrapper.
+     * @param consumersIndex The consumers index wrapper for tracking synchronization state.
      * @param environment The OpenSearch environment settings.
      */
     public RulesConsumerSynchronizer(
@@ -61,12 +72,12 @@ public class RulesConsumerSynchronizer extends ConsumerSynchronizer {
 
     @Override
     protected String getContext() {
-        return CONTEXT;
+        return this.CONTEXT;
     }
 
     @Override
     protected String getConsumer() {
-        return CONSUMER;
+        return this.CONSUMER;
     }
 
     @Override
@@ -85,16 +96,22 @@ public class RulesConsumerSynchronizer extends ConsumerSynchronizer {
         return aliases;
     }
 
+    /**
+     * Called after synchronization completes. Refreshes indices and processes rules, integrations,
+     * and detectors if updates were applied.
+     *
+     * @param isUpdated True if any updates were applied during synchronization.
+     */
     @Override
     protected void onSyncComplete(boolean isUpdated) {
         if (isUpdated) {
-            refreshIndices(RULE, INTEGRATION);
-            String integrationIndex = getIndexName(INTEGRATION);
-            String ruleIndex = getIndexName(RULE);
+            this.refreshIndices(RULE, INTEGRATION);
+            String integrationIndex = this.getIndexName(INTEGRATION);
+            String ruleIndex = this.getIndexName(RULE);
 
-            Map<String, List<String>> integrations = integrationProcessor.process(integrationIndex);
-            ruleProcessor.process(ruleIndex);
-            detectorProcessor.process(integrations, integrationIndex);
+            Map<String, List<String>> integrations = this.integrationProcessor.process(integrationIndex);
+            this.ruleProcessor.process(ruleIndex);
+            this.detectorProcessor.process(integrations, integrationIndex);
         }
     }
 }

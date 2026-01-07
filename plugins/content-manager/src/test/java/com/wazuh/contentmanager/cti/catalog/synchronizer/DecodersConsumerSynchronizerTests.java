@@ -44,7 +44,8 @@ public class DecodersConsumerSynchronizerTests extends OpenSearchTestCase {
     public void setUp() throws Exception {
         super.setUp();
         this.closeable = MockitoAnnotations.openMocks(this);
-        this.synchronizer = new DecodersConsumerSynchronizer(client, consumersIndex, environment);
+        this.synchronizer =
+                new DecodersConsumerSynchronizer(this.client, this.consumersIndex, this.environment);
     }
 
     @After
@@ -56,20 +57,23 @@ public class DecodersConsumerSynchronizerTests extends OpenSearchTestCase {
         super.tearDown();
     }
 
+    /** Tests that getContext returns the expected context value. */
     public void testGetContextReturnsExpectedValue() {
-        String context = synchronizer.getContext();
+        String context = this.synchronizer.getContext();
 
         Assert.assertEquals("decoders_development_0.0.1", context);
     }
 
+    /** Tests that getConsumer returns the expected consumer value. */
     public void testGetConsumerReturnsExpectedValue() {
-        String consumer = synchronizer.getConsumer();
+        String consumer = this.synchronizer.getConsumer();
 
         Assert.assertEquals("decoders_development_0.0.1", consumer);
     }
 
+    /** Tests that getMappings returns the expected index mappings. */
     public void testGetMappingsReturnsExpectedMappings() {
-        Map<String, String> mappings = synchronizer.getMappings();
+        Map<String, String> mappings = this.synchronizer.getMappings();
 
         Assert.assertNotNull(mappings);
         Assert.assertEquals(4, mappings.size());
@@ -80,8 +84,9 @@ public class DecodersConsumerSynchronizerTests extends OpenSearchTestCase {
         Assert.assertEquals("/mappings/cti-policies-mappings.json", mappings.get("policy"));
     }
 
+    /** Tests that getAliases returns the expected index aliases. */
     public void testGetAliasesReturnsExpectedAliases() {
-        Map<String, String> aliases = synchronizer.getAliases();
+        Map<String, String> aliases = this.synchronizer.getAliases();
 
         Assert.assertNotNull(aliases);
         Assert.assertEquals(4, aliases.size());
@@ -91,8 +96,9 @@ public class DecodersConsumerSynchronizerTests extends OpenSearchTestCase {
         Assert.assertEquals(".cti-policies", aliases.get("policy"));
     }
 
+    /** Tests that getIndexName formats the index name correctly. */
     public void testGetIndexNameFormatsCorrectly() {
-        String indexName = synchronizer.getIndexName("decoder");
+        String indexName = this.synchronizer.getIndexName("decoder");
 
         Assert.assertEquals(
                 ".decoders_development_0.0.1-decoders_development_0.0.1-decoder", indexName);

@@ -71,7 +71,6 @@ public class ContentManagerPlugin extends Plugin
     private ThreadPool threadPool;
     private CtiConsole ctiConsole;
     private Client client;
-    private Environment environment;
     private CatalogSyncJob catalogSyncJob;
 
     /**
@@ -108,7 +107,6 @@ public class ContentManagerPlugin extends Plugin
         PluginSettings.getInstance(environment.settings());
         this.client = client;
         this.threadPool = threadPool;
-        this.environment = environment;
         this.consumersIndex = new ConsumersIndex(client);
 
         // Content Manager 5.0
@@ -117,7 +115,7 @@ public class ContentManagerPlugin extends Plugin
 
         // Initialize CatalogSyncJob
         this.catalogSyncJob =
-                new CatalogSyncJob(this.client, this.consumersIndex, this.environment, this.threadPool);
+                new CatalogSyncJob(this.client, this.consumersIndex, environment, this.threadPool);
 
         // Register Executors
         runner.registerExecutor(CatalogSyncJob.JOB_TYPE, this.catalogSyncJob);

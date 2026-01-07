@@ -27,21 +27,39 @@ import com.wazuh.contentmanager.cti.catalog.service.PolicyHashService;
 
 /**
  * Handles synchronization logic specifically for the Decoders consumer. Manages decoder, kvdb,
- * integration, and policy indices.
+ * integration, and policy indices. After synchronization completes, calculates and updates policy
+ * hashes.
  */
 public class DecodersConsumerSynchronizer extends ConsumerSynchronizer {
 
+    /** Content type identifier for policy documents. */
     public static final String POLICY = "policy";
-    public static final String RULE = "rule";
+
+    /** Content type identifier for kvdb (key-value database) documents. */
     public static final String KVDB = "kvdb";
+
+    /** Content type identifier for decoder documents. */
     public static final String DECODER = "decoder";
+
+    /** Content type identifier for integration documents. */
     public static final String INTEGRATION = "integration";
 
+    /** The context identifier for the decoders consumer. */
     private final String CONTEXT = "decoders_development_0.0.1";
+
+    /** The consumer name identifier. */
     private final String CONSUMER = "decoders_development_0.0.1";
 
+    /** Service for calculating and updating policy hashes after synchronization. */
     private final PolicyHashService policyHashService;
 
+    /**
+     * Constructs a new DecodersConsumerSynchronizer.
+     *
+     * @param client The OpenSearch client.
+     * @param consumersIndex The consumers index wrapper for tracking synchronization state.
+     * @param environment The OpenSearch environment settings.
+     */
     public DecodersConsumerSynchronizer(
             Client client, ConsumersIndex consumersIndex, Environment environment) {
         super(client, consumersIndex, environment);
@@ -50,12 +68,12 @@ public class DecodersConsumerSynchronizer extends ConsumerSynchronizer {
 
     @Override
     protected String getContext() {
-        return CONTEXT;
+        return this.CONTEXT;
     }
 
     @Override
     protected String getConsumer() {
-        return CONSUMER;
+        return this.CONSUMER;
     }
 
     @Override
@@ -78,11 +96,17 @@ public class DecodersConsumerSynchronizer extends ConsumerSynchronizer {
         return aliases;
     }
 
+    /**
+     * Called after synchronization completes. Refreshes the relevant indices and calculates policy
+     * hashes if updates were applied.
+     *
+     * @param isUpdated True if any updates were applied during synchronization.
+     */
     @Override
     protected void onSyncComplete(boolean isUpdated) {
         if (isUpdated) {
-            refreshIndices(DECODER, KVDB, INTEGRATION, POLICY);
-            policyHashService.calculateAndUpdate(getContext(), getConsumer());
+            this.refreshIndices(DECODER, KVDB, INTEGRATION, POLICY);
+            this.policyHashService.calculateAndUpdate(this.getContext(), this.getConsumer());
         }
     }
 }

@@ -61,7 +61,7 @@ public class DetectorProcessorTests extends OpenSearchTestCase {
     public void setUp() throws Exception {
         super.setUp();
         this.closeable = MockitoAnnotations.openMocks(this);
-        this.detectorProcessor = new DetectorProcessor(client);
+        this.detectorProcessor = new DetectorProcessor(this.client);
     }
 
     @After
@@ -73,57 +73,58 @@ public class DetectorProcessorTests extends OpenSearchTestCase {
         super.tearDown();
     }
 
+    /** Tests that process skips execution when the integration index does not exist. */
     public void testProcessSkipsWhenIndexDoesNotExist() {
         Map<String, List<String>> integrations = new HashMap<>();
         integrations.put("test-integration", List.of("rule-1", "rule-2"));
 
-        when(client.admin()).thenReturn(adminClient);
-        when(adminClient.indices()).thenReturn(indicesAdminClient);
-        when(indicesAdminClient.prepareExists(anyString())).thenReturn(indicesExistsRequestBuilder);
-        when(indicesExistsRequestBuilder.get()).thenReturn(indicesExistsResponse);
-        when(indicesExistsResponse.isExists()).thenReturn(false);
+        when(this.client.admin()).thenReturn(this.adminClient);
+        when(this.adminClient.indices()).thenReturn(this.indicesAdminClient);
+        when(this.indicesAdminClient.prepareExists(anyString()))
+                .thenReturn(this.indicesExistsRequestBuilder);
+        when(this.indicesExistsRequestBuilder.get()).thenReturn(this.indicesExistsResponse);
+        when(this.indicesExistsResponse.isExists()).thenReturn(false);
+        this.detectorProcessor.process(integrations, "non-existent-index");
 
-        detectorProcessor.process(integrations, "non-existent-index");
-
-        verify(client, never()).search(any(SearchRequest.class));
+        verify(this.client, never()).search(any(SearchRequest.class));
     }
 
+    /** Tests that process handles empty search results without throwing exceptions. */
     public void testProcessHandlesEmptySearchResults() {
         Map<String, List<String>> integrations = new HashMap<>();
         integrations.put("test-integration", List.of("rule-1"));
 
-        when(client.admin()).thenReturn(adminClient);
-        when(adminClient.indices()).thenReturn(indicesAdminClient);
-        when(indicesAdminClient.prepareExists(anyString())).thenReturn(indicesExistsRequestBuilder);
-        when(indicesExistsRequestBuilder.get()).thenReturn(indicesExistsResponse);
-        when(indicesExistsResponse.isExists()).thenReturn(true);
-
-        when(client.search(any(SearchRequest.class))).thenReturn(searchFuture);
-        when(searchFuture.actionGet()).thenReturn(searchResponse);
+        when(this.client.admin()).thenReturn(this.adminClient);
+        when(this.adminClient.indices()).thenReturn(this.indicesAdminClient);
+        when(this.indicesAdminClient.prepareExists(anyString()))
+                .thenReturn(this.indicesExistsRequestBuilder);
+        when(this.indicesExistsRequestBuilder.get()).thenReturn(this.indicesExistsResponse);
+        when(this.indicesExistsResponse.isExists()).thenReturn(true);
+        when(this.client.search(any(SearchRequest.class))).thenReturn(this.searchFuture);
+        when(this.searchFuture.actionGet()).thenReturn(this.searchResponse);
         SearchHits emptyHits = SearchHits.empty();
-        when(searchResponse.getHits()).thenReturn(emptyHits);
-
+        when(this.searchResponse.getHits()).thenReturn(emptyHits);
         // Should not throw any exception
-        detectorProcessor.process(integrations, "test-index");
+        this.detectorProcessor.process(integrations, "test-index");
 
-        verify(client).search(any(SearchRequest.class));
+        verify(this.client).search(any(SearchRequest.class));
     }
 
+    /** Tests that process handles an empty integrations map without throwing exceptions. */
     public void testProcessHandlesEmptyIntegrationsMap() {
         Map<String, List<String>> integrations = new HashMap<>();
 
-        when(client.admin()).thenReturn(adminClient);
-        when(adminClient.indices()).thenReturn(indicesAdminClient);
-        when(indicesAdminClient.prepareExists(anyString())).thenReturn(indicesExistsRequestBuilder);
-        when(indicesExistsRequestBuilder.get()).thenReturn(indicesExistsResponse);
-        when(indicesExistsResponse.isExists()).thenReturn(true);
-
-        when(client.search(any(SearchRequest.class))).thenReturn(searchFuture);
-        when(searchFuture.actionGet()).thenReturn(searchResponse);
+        when(this.client.admin()).thenReturn(this.adminClient);
+        when(this.adminClient.indices()).thenReturn(this.indicesAdminClient);
+        when(this.indicesAdminClient.prepareExists(anyString()))
+                .thenReturn(this.indicesExistsRequestBuilder);
+        when(this.indicesExistsRequestBuilder.get()).thenReturn(this.indicesExistsResponse);
+        when(this.indicesExistsResponse.isExists()).thenReturn(true);
+        when(this.client.search(any(SearchRequest.class))).thenReturn(this.searchFuture);
+        when(this.searchFuture.actionGet()).thenReturn(this.searchResponse);
         SearchHits emptyHits2 = SearchHits.empty();
-        when(searchResponse.getHits()).thenReturn(emptyHits2);
-
+        when(this.searchResponse.getHits()).thenReturn(emptyHits2);
         // Should not throw any exception
-        detectorProcessor.process(integrations, "test-index");
+        this.detectorProcessor.process(integrations, "test-index");
     }
 }

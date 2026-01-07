@@ -24,6 +24,7 @@ import org.junit.Assert;
 public class CategoryFormatterTests extends OpenSearchTestCase {
     static final String CATEGORY = "category";
 
+    /** Tests that format capitalizes a single-word category. */
     public void testFormatCategoryOneWord() {
         JsonObject doc = new JsonObject();
         doc.addProperty(CATEGORY, "security");
@@ -33,6 +34,7 @@ public class CategoryFormatterTests extends OpenSearchTestCase {
         Assert.assertEquals("Security", category);
     }
 
+    /** Tests that format converts hyphenated words to title case. */
     public void testFormatCategoryTwoWords() {
         JsonObject doc = new JsonObject();
         doc.addProperty(CATEGORY, "cloud-services");
@@ -42,6 +44,7 @@ public class CategoryFormatterTests extends OpenSearchTestCase {
         Assert.assertEquals("Cloud Services", category);
     }
 
+    /** Tests that format removes subcategory for three-word categories. */
     public void testFormatCategoryThreeWords() {
         JsonObject doc = new JsonObject();
         doc.addProperty(CATEGORY, "cloud-services-aws");
@@ -52,6 +55,7 @@ public class CategoryFormatterTests extends OpenSearchTestCase {
         Assert.assertEquals("Cloud Services", category);
     }
 
+    /** Tests that format returns raw category for threat detectors. */
     public void testFormatCategoryForThreatDetector() {
         JsonObject doc = new JsonObject();
         doc.addProperty(CATEGORY, "cloud-services");

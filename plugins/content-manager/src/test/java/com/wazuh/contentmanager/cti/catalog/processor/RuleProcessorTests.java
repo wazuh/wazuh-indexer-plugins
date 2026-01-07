@@ -57,7 +57,7 @@ public class RuleProcessorTests extends OpenSearchTestCase {
     public void setUp() throws Exception {
         super.setUp();
         this.closeable = MockitoAnnotations.openMocks(this);
-        this.ruleProcessor = new RuleProcessor(client);
+        this.ruleProcessor = new RuleProcessor(this.client);
     }
 
     @After
@@ -69,33 +69,37 @@ public class RuleProcessorTests extends OpenSearchTestCase {
         super.tearDown();
     }
 
+    /** Tests that process skips execution when the rule index does not exist. */
     public void testProcessSkipsWhenIndexDoesNotExist() {
-        when(client.admin()).thenReturn(adminClient);
-        when(adminClient.indices()).thenReturn(indicesAdminClient);
-        when(indicesAdminClient.prepareExists(anyString())).thenReturn(indicesExistsRequestBuilder);
-        when(indicesExistsRequestBuilder.get()).thenReturn(indicesExistsResponse);
-        when(indicesExistsResponse.isExists()).thenReturn(false);
+        when(this.client.admin()).thenReturn(this.adminClient);
+        when(this.adminClient.indices()).thenReturn(this.indicesAdminClient);
+        when(this.indicesAdminClient.prepareExists(anyString()))
+                .thenReturn(this.indicesExistsRequestBuilder);
+        when(this.indicesExistsRequestBuilder.get()).thenReturn(this.indicesExistsResponse);
+        when(this.indicesExistsResponse.isExists()).thenReturn(false);
 
-        ruleProcessor.process("non-existent-index");
+        this.ruleProcessor.process("non-existent-index");
 
-        verify(client, never()).search(any(SearchRequest.class));
+        verify(this.client, never()).search(any(SearchRequest.class));
     }
 
+    /** Tests that process handles empty search results without throwing exceptions. */
     public void testProcessHandlesEmptySearchResults() {
-        when(client.admin()).thenReturn(adminClient);
-        when(adminClient.indices()).thenReturn(indicesAdminClient);
-        when(indicesAdminClient.prepareExists(anyString())).thenReturn(indicesExistsRequestBuilder);
-        when(indicesExistsRequestBuilder.get()).thenReturn(indicesExistsResponse);
-        when(indicesExistsResponse.isExists()).thenReturn(true);
+        when(this.client.admin()).thenReturn(this.adminClient);
+        when(this.adminClient.indices()).thenReturn(this.indicesAdminClient);
+        when(this.indicesAdminClient.prepareExists(anyString()))
+                .thenReturn(this.indicesExistsRequestBuilder);
+        when(this.indicesExistsRequestBuilder.get()).thenReturn(this.indicesExistsResponse);
+        when(this.indicesExistsResponse.isExists()).thenReturn(true);
 
-        when(client.search(any(SearchRequest.class))).thenReturn(searchFuture);
-        when(searchFuture.actionGet()).thenReturn(searchResponse);
+        when(this.client.search(any(SearchRequest.class))).thenReturn(this.searchFuture);
+        when(this.searchFuture.actionGet()).thenReturn(this.searchResponse);
         SearchHits emptyHits = SearchHits.empty();
-        when(searchResponse.getHits()).thenReturn(emptyHits);
+        when(this.searchResponse.getHits()).thenReturn(emptyHits);
 
         // Should not throw any exception
-        ruleProcessor.process("test-index");
+        this.ruleProcessor.process("test-index");
 
-        verify(client).search(any(SearchRequest.class));
+        verify(this.client).search(any(SearchRequest.class));
     }
 }

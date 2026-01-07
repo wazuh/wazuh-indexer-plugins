@@ -25,6 +25,7 @@ import java.util.Map;
 /** Tests for the HashCalculator utility class. */
 public class HashCalculatorTests extends OpenSearchTestCase {
 
+    /** Tests that sha256 returns consistent hash for the same input. */
     public void testSha256ReturnsConsistentHash() {
         String payload = "test-payload";
 
@@ -35,6 +36,7 @@ public class HashCalculatorTests extends OpenSearchTestCase {
         Assert.assertEquals(64, hash1.length()); // SHA-256 produces 64 hex characters
     }
 
+    /** Tests that sha256 produces different hashes for different inputs. */
     public void testSha256DifferentInputsProduceDifferentHashes() {
         String payload1 = "test-payload-1";
         String payload2 = "test-payload-2";
@@ -45,6 +47,7 @@ public class HashCalculatorTests extends OpenSearchTestCase {
         Assert.assertNotEquals(hash1, hash2);
     }
 
+    /** Tests that sha256 returns the known hash for an empty string. */
     public void testSha256EmptyString() {
         String payload = "";
 
@@ -54,6 +57,7 @@ public class HashCalculatorTests extends OpenSearchTestCase {
         Assert.assertEquals("e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855", hash);
     }
 
+    /** Tests that sha256 handles special characters correctly. */
     public void testSha256SpecialCharacters() {
         String payload = "test-with-special-chars-!@#$%^&*()";
 
@@ -63,6 +67,7 @@ public class HashCalculatorTests extends OpenSearchTestCase {
         Assert.assertEquals(64, hash.length());
     }
 
+    /** Tests that extractHash returns the sha256 value from a valid source map. */
     public void testExtractHashFromValidSource() {
         Map<String, Object> source = new HashMap<>();
         Map<String, Object> hashObj = new HashMap<>();
@@ -74,6 +79,7 @@ public class HashCalculatorTests extends OpenSearchTestCase {
         Assert.assertEquals("abc123def456", result);
     }
 
+    /** Tests that extractHash returns empty string when hash field is missing. */
     public void testExtractHashFromSourceWithoutHashField() {
         Map<String, Object> source = new HashMap<>();
         source.put("other", "value");
@@ -83,6 +89,7 @@ public class HashCalculatorTests extends OpenSearchTestCase {
         Assert.assertEquals("", result);
     }
 
+    /** Tests that extractHash returns empty string when hash object is empty. */
     public void testExtractHashFromSourceWithEmptyHashObject() {
         Map<String, Object> source = new HashMap<>();
         Map<String, Object> hashObj = new HashMap<>();
@@ -93,6 +100,7 @@ public class HashCalculatorTests extends OpenSearchTestCase {
         Assert.assertEquals("", result);
     }
 
+    /** Tests that extractHash returns empty string when sha256 key is missing. */
     public void testExtractHashFromSourceWithMissingSha256() {
         Map<String, Object> source = new HashMap<>();
         Map<String, Object> hashObj = new HashMap<>();

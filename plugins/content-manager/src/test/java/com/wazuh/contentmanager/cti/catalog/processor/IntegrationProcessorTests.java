@@ -61,7 +61,7 @@ public class IntegrationProcessorTests extends OpenSearchTestCase {
     public void setUp() throws Exception {
         super.setUp();
         this.closeable = MockitoAnnotations.openMocks(this);
-        this.integrationProcessor = new IntegrationProcessor(client);
+        this.integrationProcessor = new IntegrationProcessor(this.client);
     }
 
     @After
@@ -73,33 +73,36 @@ public class IntegrationProcessorTests extends OpenSearchTestCase {
         super.tearDown();
     }
 
+    /** Tests that process returns an empty map when the index does not exist. */
     public void testProcessReturnsEmptyMapWhenIndexDoesNotExist() {
-        when(client.admin()).thenReturn(adminClient);
-        when(adminClient.indices()).thenReturn(indicesAdminClient);
-        when(indicesAdminClient.prepareExists(anyString())).thenReturn(indicesExistsRequestBuilder);
-        when(indicesExistsRequestBuilder.get()).thenReturn(indicesExistsResponse);
-        when(indicesExistsResponse.isExists()).thenReturn(false);
-
-        Map<String, List<String>> result = integrationProcessor.process("non-existent-index");
+        when(this.client.admin()).thenReturn(this.adminClient);
+        when(this.adminClient.indices()).thenReturn(this.indicesAdminClient);
+        when(this.indicesAdminClient.prepareExists(anyString()))
+                .thenReturn(this.indicesExistsRequestBuilder);
+        when(this.indicesExistsRequestBuilder.get()).thenReturn(this.indicesExistsResponse);
+        when(this.indicesExistsResponse.isExists()).thenReturn(false);
+        Map<String, List<String>> result = this.integrationProcessor.process("non-existent-index");
 
         Assert.assertNotNull(result);
         Assert.assertTrue(result.isEmpty());
-        verify(client, never()).search(any(SearchRequest.class));
+        verify(this.client, never()).search(any(SearchRequest.class));
     }
 
+    /** Tests that process returns an empty map when there are no documents in the index. */
     public void testProcessReturnsEmptyMapWhenNoDocuments() {
-        when(client.admin()).thenReturn(adminClient);
-        when(adminClient.indices()).thenReturn(indicesAdminClient);
-        when(indicesAdminClient.prepareExists(anyString())).thenReturn(indicesExistsRequestBuilder);
-        when(indicesExistsRequestBuilder.get()).thenReturn(indicesExistsResponse);
-        when(indicesExistsResponse.isExists()).thenReturn(true);
+        when(this.client.admin()).thenReturn(this.adminClient);
+        when(this.adminClient.indices()).thenReturn(this.indicesAdminClient);
+        when(this.indicesAdminClient.prepareExists(anyString()))
+                .thenReturn(this.indicesExistsRequestBuilder);
+        when(this.indicesExistsRequestBuilder.get()).thenReturn(this.indicesExistsResponse);
+        when(this.indicesExistsResponse.isExists()).thenReturn(true);
 
-        when(client.search(any(SearchRequest.class))).thenReturn(searchFuture);
-        when(searchFuture.actionGet()).thenReturn(searchResponse);
+        when(this.client.search(any(SearchRequest.class))).thenReturn(this.searchFuture);
+        when(this.searchFuture.actionGet()).thenReturn(this.searchResponse);
         SearchHits emptyHits = SearchHits.empty();
-        when(searchResponse.getHits()).thenReturn(emptyHits);
+        when(this.searchResponse.getHits()).thenReturn(emptyHits);
 
-        Map<String, List<String>> result = integrationProcessor.process("test-index");
+        Map<String, List<String>> result = this.integrationProcessor.process("test-index");
 
         Assert.assertNotNull(result);
         Assert.assertTrue(result.isEmpty());

@@ -118,7 +118,7 @@ public class RestResponse implements ToXContent {
      * structure is a JSON object with the keys {@code message} and {@code status}.
      *
      * @param builder the XContent builder to write into
-     * @param params optional parameters (may be ignored)
+     * @param params optional parameters (ignored in this implementation, required by override)
      * @return the same {@link XContentBuilder} instance passed as {@code builder}
      * @throws IOException if an I/O error occurs while writing to the builder
      */

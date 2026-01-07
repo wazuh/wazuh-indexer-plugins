@@ -21,20 +21,30 @@ import org.opensearch.core.common.Strings;
 
 import java.util.Arrays;
 
-/** Formats category strings from CTI documents. */
+/**
+ * Utility class for formatting category strings from CTI documents. Transforms raw category
+ * identifiers into human-readable format.
+ */
 public class CategoryFormatter {
+
+    /** The JSON field name for category. */
     static final String CATEGORY = "category";
 
+    private CategoryFormatter() {}
+
     /**
-     * Retrieves the integration category from the document and returns a cleaned up string.
+     * Retrieves the integration category from the document and returns a formatted string. For
+     * detectors, returns the raw category unchanged. For other uses, transforms hyphenated categories
+     * into capitalized space-separated words.
      *
-     * @param doc Json document
-     * @return capitalized space-separated string
+     * @param doc The JSON document containing the category field.
+     * @param isDetector If true, returns the raw category without formatting.
+     * @return The formatted category string, or the raw category for detectors.
      */
     public static String format(JsonObject doc, boolean isDetector) {
         String rawCategory = doc.get(CATEGORY).getAsString();
 
-        // Do not pretty print category f
+        // Do not pretty print category for detectors
         if (isDetector) {
             return rawCategory;
         }

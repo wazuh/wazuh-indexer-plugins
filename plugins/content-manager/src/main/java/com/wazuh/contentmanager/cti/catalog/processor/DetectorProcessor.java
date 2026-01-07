@@ -80,7 +80,7 @@ public class DetectorProcessor {
 
             SearchResponse searchResponse = this.client.search(searchRequest).actionGet();
             for (SearchHit hit : searchResponse.getHits().getHits()) {
-                processHit(hit);
+                this.processHit(hit);
             }
         } catch (Exception e) {
             log.error("Error reading integrations from index [{}]: {}", indexName, e.getMessage());

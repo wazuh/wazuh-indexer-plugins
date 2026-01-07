@@ -55,8 +55,8 @@ public class CtiConsoleTests extends OpenSearchTestCase {
         // Note: This creates a real ApiClient internally first, which needs to be closed
         this.authService = new AuthServiceImpl();
         this.plansService = new PlansServiceImpl();
-        this.authService.setClient(mockClient);
-        this.plansService.setClient(mockClient);
+        this.authService.setClient(this.mockClient);
+        this.plansService.setClient(this.mockClient);
 
         this.console = new CtiConsole();
         this.console.setAuthService(this.authService);

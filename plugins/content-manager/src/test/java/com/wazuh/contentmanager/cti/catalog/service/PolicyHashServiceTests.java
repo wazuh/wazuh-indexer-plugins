@@ -60,7 +60,7 @@ public class PolicyHashServiceTests extends OpenSearchTestCase {
     public void setUp() throws Exception {
         super.setUp();
         this.closeable = MockitoAnnotations.openMocks(this);
-        this.policyHashService = new PolicyHashService(client);
+        this.policyHashService = new PolicyHashService(this.client);
     }
 
     @After
@@ -72,42 +72,50 @@ public class PolicyHashServiceTests extends OpenSearchTestCase {
         super.tearDown();
     }
 
+    /** Tests that calculateAndUpdate skips execution when the policy index does not exist. */
     public void testCalculateAndUpdateSkipsWhenPolicyIndexDoesNotExist() {
-        when(client.admin()).thenReturn(adminClient);
-        when(adminClient.indices()).thenReturn(indicesAdminClient);
-        when(indicesAdminClient.prepareExists(anyString())).thenReturn(indicesExistsRequestBuilder);
-        when(indicesExistsRequestBuilder.get()).thenReturn(indicesExistsResponse);
-        when(indicesExistsResponse.isExists()).thenReturn(false);
+        when(this.client.admin()).thenReturn(this.adminClient);
+        when(this.adminClient.indices()).thenReturn(this.indicesAdminClient);
+        when(this.indicesAdminClient.prepareExists(anyString()))
+                .thenReturn(this.indicesExistsRequestBuilder);
+        when(this.indicesExistsRequestBuilder.get()).thenReturn(this.indicesExistsResponse);
+        when(this.indicesExistsResponse.isExists()).thenReturn(false);
 
-        policyHashService.calculateAndUpdate(CONTEXT, CONSUMER);
+        this.policyHashService.calculateAndUpdate(CONTEXT, CONSUMER);
 
-        verify(client, never()).search(any(SearchRequest.class));
+        verify(this.client, never()).search(any(SearchRequest.class));
     }
 
+    /**
+     * Tests that calculateAndUpdate handles empty policy search results without performing bulk
+     * updates.
+     */
     public void testCalculateAndUpdateHandlesEmptyPolicies() {
-        when(client.admin()).thenReturn(adminClient);
-        when(adminClient.indices()).thenReturn(indicesAdminClient);
-        when(indicesAdminClient.prepareExists(anyString())).thenReturn(indicesExistsRequestBuilder);
-        when(indicesExistsRequestBuilder.get()).thenReturn(indicesExistsResponse);
-        when(indicesExistsResponse.isExists()).thenReturn(true);
+        when(this.client.admin()).thenReturn(this.adminClient);
+        when(this.adminClient.indices()).thenReturn(this.indicesAdminClient);
+        when(this.indicesAdminClient.prepareExists(anyString()))
+                .thenReturn(this.indicesExistsRequestBuilder);
+        when(this.indicesExistsRequestBuilder.get()).thenReturn(this.indicesExistsResponse);
+        when(this.indicesExistsResponse.isExists()).thenReturn(true);
 
-        when(client.search(any(SearchRequest.class))).thenReturn(searchFuture);
-        when(searchFuture.actionGet()).thenReturn(searchResponse);
+        when(this.client.search(any(SearchRequest.class))).thenReturn(this.searchFuture);
+        when(this.searchFuture.actionGet()).thenReturn(this.searchResponse);
         SearchHits emptyHits = SearchHits.empty();
-        when(searchResponse.getHits()).thenReturn(emptyHits);
+        when(this.searchResponse.getHits()).thenReturn(emptyHits);
 
         // Should not throw any exception
-        policyHashService.calculateAndUpdate(CONTEXT, CONSUMER);
+        this.policyHashService.calculateAndUpdate(CONTEXT, CONSUMER);
 
-        verify(client).search(any(SearchRequest.class));
+        verify(this.client).search(any(SearchRequest.class));
         // No bulk update should be performed when there are no policies
-        verify(client, never()).bulk(any());
+        verify(this.client, never()).bulk(any());
     }
 
+    /** Tests that calculateAndUpdate handles exceptions gracefully without propagating them. */
     public void testCalculateAndUpdateHandlesException() {
-        when(client.admin()).thenThrow(new RuntimeException("Test exception"));
+        when(this.client.admin()).thenThrow(new RuntimeException("Test exception"));
 
         // Should not throw any exception - it should be caught internally
-        policyHashService.calculateAndUpdate(CONTEXT, CONSUMER);
+        this.policyHashService.calculateAndUpdate(CONTEXT, CONSUMER);
     }
 }

@@ -46,6 +46,11 @@ public class RuleProcessor {
 
     private final Client client;
 
+    /**
+     * Constructs a new RuleProcessor.
+     *
+     * @param client The OpenSearch client.
+     */
     public RuleProcessor(Client client) {
         this.client = client;
     }

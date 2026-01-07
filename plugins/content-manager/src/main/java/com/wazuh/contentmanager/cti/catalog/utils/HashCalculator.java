@@ -24,13 +24,22 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.Map;
 
-/** Utility class for SHA-256 hash calculations. */
+/**
+ * Utility class for SHA-256 hash calculations. Provides methods to compute hashes for content
+ * integrity verification and to extract hash values from document sources.
+ */
 public final class HashCalculator {
     private static final Logger log = LogManager.getLogger(HashCalculator.class);
 
     private HashCalculator() {}
 
-    /** Computes SHA-256 hash of a list of strings concatenated. */
+    /**
+     * Computes the SHA-256 hash of a string payload.
+     *
+     * @param payload The string content to hash.
+     * @return The hexadecimal representation of the SHA-256 hash, or an empty string if hashing
+     *     fails.
+     */
     public static String sha256(String payload) {
         try {
             byte[] hash =
@@ -51,7 +60,14 @@ public final class HashCalculator {
         }
     }
 
-    /** Helper to extract sha256 hash from document source. */
+    /**
+     * Extracts the SHA-256 hash value from a document source map. Looks for a nested "hash" object
+     * containing a "sha256" field.
+     *
+     * @param source The document source as a map.
+     * @return The SHA-256 hash string if present, or an empty string if not found.
+     */
+    @SuppressWarnings("unchecked")
     public static String extractHash(Map<String, Object> source) {
         if (source.containsKey("hash")) {
             Map<String, Object> hashObj = (Map<String, Object>) source.get("hash");

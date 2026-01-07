@@ -44,7 +44,8 @@ public class RulesConsumerSynchronizerTests extends OpenSearchTestCase {
     public void setUp() throws Exception {
         super.setUp();
         this.closeable = MockitoAnnotations.openMocks(this);
-        this.synchronizer = new RulesConsumerSynchronizer(client, consumersIndex, environment);
+        this.synchronizer =
+                new RulesConsumerSynchronizer(this.client, this.consumersIndex, this.environment);
     }
 
     @After
@@ -56,20 +57,23 @@ public class RulesConsumerSynchronizerTests extends OpenSearchTestCase {
         super.tearDown();
     }
 
+    /** Tests that getContext returns the expected context value. */
     public void testGetContextReturnsExpectedValue() {
-        String context = synchronizer.getContext();
+        String context = this.synchronizer.getContext();
 
         Assert.assertEquals("rules_development_0.0.1", context);
     }
 
+    /** Tests that getConsumer returns the expected consumer value. */
     public void testGetConsumerReturnsExpectedValue() {
-        String consumer = synchronizer.getConsumer();
+        String consumer = this.synchronizer.getConsumer();
 
         Assert.assertEquals("rules_development_0.0.1_test", consumer);
     }
 
+    /** Tests that getMappings returns the expected index mappings. */
     public void testGetMappingsReturnsExpectedMappings() {
-        Map<String, String> mappings = synchronizer.getMappings();
+        Map<String, String> mappings = this.synchronizer.getMappings();
 
         Assert.assertNotNull(mappings);
         Assert.assertEquals(2, mappings.size());
@@ -78,8 +82,9 @@ public class RulesConsumerSynchronizerTests extends OpenSearchTestCase {
                 "/mappings/cti-rules-integrations-mappings.json", mappings.get("integration"));
     }
 
+    /** Tests that getAliases returns the expected index aliases. */
     public void testGetAliasesReturnsExpectedAliases() {
-        Map<String, String> aliases = synchronizer.getAliases();
+        Map<String, String> aliases = this.synchronizer.getAliases();
 
         Assert.assertNotNull(aliases);
         Assert.assertEquals(2, aliases.size());
@@ -87,8 +92,9 @@ public class RulesConsumerSynchronizerTests extends OpenSearchTestCase {
         Assert.assertEquals(".cti-integration-rules", aliases.get("integration"));
     }
 
+    /** Tests that getIndexName formats the index name correctly. */
     public void testGetIndexNameFormatsCorrectly() {
-        String indexName = synchronizer.getIndexName("rule");
+        String indexName = this.synchronizer.getIndexName("rule");
 
         Assert.assertEquals(".rules_development_0.0.1-rules_development_0.0.1_test-rule", indexName);
     }

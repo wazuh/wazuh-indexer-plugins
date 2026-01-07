@@ -18,18 +18,42 @@ package com.wazuh.contentmanager.cti.catalog.model;
 
 import java.util.Locale;
 
-/** Enum class that describes all the possible spaces that the content manager will manage */
+/**
+ * Enum representing the content spaces managed by the Content Manager plugin. Each space defines a
+ * different access level or content state for CTI resources.
+ */
 public enum Space {
+    /** Free content available to all users. */
     FREE,
+
+    /** Premium content requiring a paid subscription. */
     PAID,
+
+    /** User-customized content. */
     CUSTOM,
+
+    /** Content space in draft state */
     DRAFT,
+
+    /** Content used for testing purposes. */
     TESTING;
 
+    /**
+     * Returns the lowercase string representation of the space.
+     *
+     * @return The space name in lowercase.
+     */
+    @Override
     public String toString() {
         return this.name().toLowerCase(Locale.ROOT);
     }
 
+    /**
+     * Compares the enum value with a given string representation.
+     *
+     * @param s The string to compare with.
+     * @return True if the string matches the enum value (case-insensitive), false otherwise.
+     */
     public boolean equals(String s) {
         return this.toString().equals(s);
     }

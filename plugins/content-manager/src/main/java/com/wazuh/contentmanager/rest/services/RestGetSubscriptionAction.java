@@ -92,9 +92,7 @@ public class RestGetSubscriptionAction extends BaseRestHandler {
      */
     @Override
     public RestChannelConsumer prepareRequest(RestRequest request, NodeClient client) {
-        return channel -> {
-            channel.sendResponse(this.handleRequest());
-        };
+        return channel -> channel.sendResponse(this.handleRequest());
     }
 
     /**

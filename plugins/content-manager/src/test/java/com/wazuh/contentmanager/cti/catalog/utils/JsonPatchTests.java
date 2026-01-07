@@ -24,6 +24,7 @@ import org.junit.Before;
 
 import com.wazuh.contentmanager.cti.catalog.model.Operation;
 
+/** Tests for the JsonPatch utility class. Validates JSON Patch operations. */
 @OpenSearchIntegTestCase.ClusterScope(scope = OpenSearchIntegTestCase.Scope.SUITE)
 public class JsonPatchTests extends OpenSearchTestCase {
 

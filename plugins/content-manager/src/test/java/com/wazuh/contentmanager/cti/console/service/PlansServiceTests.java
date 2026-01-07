@@ -33,7 +33,7 @@ public class PlansServiceTests extends OpenSearchTestCase {
         // Create service and replace its client with the mock
         // Note: This creates a real ApiClient internally first, which needs to be closed
         this.plansService = new PlansServiceImpl();
-        this.plansService.setClient(mockClient);
+        this.plansService.setClient(this.mockClient);
     }
 
     @Override

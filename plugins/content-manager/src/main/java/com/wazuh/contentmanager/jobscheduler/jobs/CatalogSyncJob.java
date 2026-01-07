@@ -91,7 +91,7 @@ public class CatalogSyncJob implements JobExecutor {
                         () -> {
                             try {
                                 log.info("Executing Consumer Sync Job (ID: {})", context.getJobId());
-                                performSynchronization();
+                                this.performSynchronization();
                             } catch (Exception e) {
                                 log.error(
                                         "Error executing Consumer Sync Job (ID: {}): {}",
@@ -126,7 +126,7 @@ public class CatalogSyncJob implements JobExecutor {
                         () -> {
                             try {
                                 log.info("Executing Manually Triggered Consumer Sync Job");
-                                performSynchronization();
+                                this.performSynchronization();
                             } catch (Exception e) {
                                 log.error("Error executing Manual Consumer Sync Job: {}", e.getMessage(), e);
                             } finally {

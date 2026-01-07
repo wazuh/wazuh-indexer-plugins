@@ -48,6 +48,7 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+/** Tests for the UpdateServiceImpl class. */
 public class UpdateServiceImplTests extends OpenSearchTestCase {
 
     private UpdateServiceImpl updateService;
@@ -59,7 +60,6 @@ public class UpdateServiceImplTests extends OpenSearchTestCase {
     @Mock private ContentIndex decoderIndex;
     @Mock private GetResponse getResponse;
 
-    private Map<String, ContentIndex> indices;
     private static final String CONTEXT = "rules_dev";
     private static final String CONSUMER = "test_consumer";
 
@@ -71,12 +71,12 @@ public class UpdateServiceImplTests extends OpenSearchTestCase {
 
         PluginSettings.getInstance(Settings.EMPTY);
 
-        this.indices = new HashMap<>();
-        this.indices.put("rule", this.ruleIndex);
-        this.indices.put("decoder", this.decoderIndex);
+        Map<String, ContentIndex> indices = new HashMap<>();
+        indices.put("rule", this.ruleIndex);
+        indices.put("decoder", this.decoderIndex);
 
         this.updateService =
-                new UpdateServiceImpl(CONTEXT, CONSUMER, apiClient, consumersIndex, indices);
+                new UpdateServiceImpl(CONTEXT, CONSUMER, this.apiClient, this.consumersIndex, indices);
     }
 
     @After
@@ -92,27 +92,28 @@ public class UpdateServiceImplTests extends OpenSearchTestCase {
     public void testUpdate_Success() throws Exception {
         // Response
         String changesJson =
-                "{\n"
-                        + "  \"data\": [\n"
-                        + "    {\n"
-                        + "      \"offset\": 10,\n"
-                        + "      \"resource\": \"rule-1\",\n"
-                        + "      \"type\": \"CREATE\",\n"
-                        + "      \"payload\": { \"type\": \"rule\", \"id\": \"rule-1\", \"name\": \"Rule One\" }\n"
-                        + "    },\n"
-                        + "    {\n"
-                        + "      \"offset\": 11,\n"
-                        + "      \"resource\": \"rule-2\",\n"
-                        + "      \"type\": \"UPDATE\",\n"
-                        + "      \"operations\": [ { \"op\": \"replace\", \"path\": \"/name\", \"value\": \"Updated Rule\" } ]\n"
-                        + "    },\n"
-                        + "    {\n"
-                        + "      \"offset\": 12,\n"
-                        + "      \"resource\": \"decoder-1\",\n"
-                        + "      \"type\": \"DELETE\"\n"
-                        + "    }\n"
-                        + "  ]\n"
-                        + "}";
+            """
+                {
+                  "data": [
+                    {
+                      "offset": 10,
+                      "resource": "rule-1",
+                      "type": "CREATE",
+                      "payload": { "type": "rule", "id": "rule-1", "name": "Rule One" }
+                    },
+                    {
+                      "offset": 11,
+                      "resource": "rule-2",
+                      "type": "UPDATE",
+                      "operations": [ { "op": "replace", "path": "/name", "value": "Updated Rule" } ]
+                    },
+                    {
+                      "offset": 12,
+                      "resource": "decoder-1",
+                      "type": "DELETE"
+                    }
+                  ]
+                }""";
 
         // Mock
         when(this.apiClient.getChanges(anyString(), anyString(), anyLong(), anyLong()))
@@ -155,16 +156,17 @@ public class UpdateServiceImplTests extends OpenSearchTestCase {
     public void testUpdate_SkipPolicy() throws Exception {
         // Response
         String changesJson =
-                "{\n"
-                        + "  \"data\": [\n"
-                        + "    {\n"
-                        + "      \"offset\": 20,\n"
-                        + "      \"resource\": \"policy-1\",\n"
-                        + "      \"type\": \"CREATE\",\n"
-                        + "      \"payload\": { \"type\": \"policy\", \"content\": \"...\" }\n"
-                        + "    }\n"
-                        + "  ]\n"
-                        + "}";
+            """
+                {
+                  "data": [
+                    {
+                      "offset": 20,
+                      "resource": "policy-1",
+                      "type": "CREATE",
+                      "payload": { "type": "policy", "content": "..." }
+                    }
+                  ]
+                }""";
 
         when(this.apiClient.getChanges(anyString(), anyString(), anyLong(), anyLong()))
                 .thenReturn(
@@ -190,31 +192,32 @@ public class UpdateServiceImplTests extends OpenSearchTestCase {
     /** Tests handling of API failures. */
     public void testUpdate_ApiFailure() throws Exception {
         // Mock
-        when(apiClient.getChanges(anyString(), anyString(), anyLong(), anyLong()))
+        when(this.apiClient.getChanges(anyString(), anyString(), anyLong(), anyLong()))
                 .thenReturn(SimpleHttpResponse.create(500, "Internal Error", ContentType.TEXT_PLAIN));
 
         // Act
-        updateService.update(1, 5);
+        this.updateService.update(1, 5);
 
         // Assert
-        verify(ruleIndex, never()).create(anyString(), any());
-        verify(consumersIndex, never()).setConsumer(any());
+        verify(this.ruleIndex, never()).create(anyString(), any());
+        verify(this.consumersIndex, never()).setConsumer(any());
     }
 
     /** Tests that the consumer state is reset to 0 if an exception occurs during processing. */
     public void testUpdate_ExceptionResetsConsumer() throws Exception {
         // Response
         String changesJson =
-                "{\n"
-                        + "  \"data\": [\n"
-                        + "    {\n"
-                        + "      \"offset\": 30,\n"
-                        + "      \"resource\": \"rule-bad\",\n"
-                        + "      \"type\": \"CREATE\",\n"
-                        + "      \"payload\": { \"type\": \"rule\" }\n"
-                        + "    }\n"
-                        + "  ]\n"
-                        + "}";
+            """
+                {
+                  "data": [
+                    {
+                      "offset": 30,
+                      "resource": "rule-bad",
+                      "type": "CREATE",
+                      "payload": { "type": "rule" }
+                    }
+                  ]
+                }""";
 
         // Mock
         when(this.apiClient.getChanges(anyString(), anyString(), anyLong(), anyLong()))
@@ -241,16 +244,17 @@ public class UpdateServiceImplTests extends OpenSearchTestCase {
     public void testUpdate_UnknownType_Create() throws Exception {
         // Response
         String changesJson =
-                "{\n"
-                        + "  \"data\": [\n"
-                        + "    {\n"
-                        + "      \"offset\": 40,\n"
-                        + "      \"resource\": \"unknown-1\",\n"
-                        + "      \"type\": \"CREATE\",\n"
-                        + "      \"payload\": { \"type\": \"unknown_thing\", \"data\": \"...\" }\n"
-                        + "    }\n"
-                        + "  ]\n"
-                        + "}";
+            """
+                {
+                  "data": [
+                    {
+                      "offset": 40,
+                      "resource": "unknown-1",
+                      "type": "CREATE",
+                      "payload": { "type": "unknown_thing", "data": "..." }
+                    }
+                  ]
+                }""";
 
         // Mock
         when(this.apiClient.getChanges(anyString(), anyString(), anyLong(), anyLong()))
@@ -278,15 +282,16 @@ public class UpdateServiceImplTests extends OpenSearchTestCase {
     public void testUpdate_ResourceNotFound() throws Exception {
         // Response
         String changesJson =
-                "{\n"
-                        + "  \"data\": [\n"
-                        + "    {\n"
-                        + "      \"offset\": 50,\n"
-                        + "      \"resource\": \"fake-id\",\n"
-                        + "      \"type\": \"DELETE\"\n"
-                        + "    }\n"
-                        + "  ]\n"
-                        + "}";
+            """
+                {
+                  "data": [
+                    {
+                      "offset": 50,
+                      "resource": "fake-id",
+                      "type": "DELETE"
+                    }
+                  ]
+                }""";
 
         // Mock
         when(this.apiClient.getChanges(anyString(), anyString(), anyLong(), anyLong()))

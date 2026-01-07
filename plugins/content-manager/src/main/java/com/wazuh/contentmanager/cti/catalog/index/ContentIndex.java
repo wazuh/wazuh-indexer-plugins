@@ -60,6 +60,10 @@ import com.wazuh.contentmanager.cti.catalog.model.Resource;
 import com.wazuh.contentmanager.cti.catalog.utils.JsonPatch;
 import com.wazuh.contentmanager.settings.PluginSettings;
 
+/**
+ * Manages the index for CTI content, providing methods for index creation, document indexing,
+ * updating, deletion, and bulk operations.
+ */
 public class ContentIndex {
     private static final Logger log = LogManager.getLogger(ContentIndex.class);
 
@@ -131,6 +135,7 @@ public class ContentIndex {
 
         String mappings;
         try (InputStream is = this.getClass().getResourceAsStream(this.mappingsPath)) {
+            assert is != null;
             mappings = new String(is.readAllBytes(), StandardCharsets.UTF_8);
         } catch (IOException e) {
             log.error("Could not read mappings for index [{}]", this.indexName);

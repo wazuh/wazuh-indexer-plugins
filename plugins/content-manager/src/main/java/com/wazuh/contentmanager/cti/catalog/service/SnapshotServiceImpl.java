@@ -18,6 +18,7 @@ package com.wazuh.contentmanager.cti.catalog.service;
 
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
+import com.google.gson.JsonSyntaxException;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.opensearch.action.bulk.BulkRequest;
@@ -27,9 +28,12 @@ import org.opensearch.env.Environment;
 
 import java.io.BufferedReader;
 import java.io.IOException;
+import java.net.URISyntaxException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.*;
 import java.util.*;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeoutException;
 
 import com.wazuh.contentmanager.cti.catalog.client.SnapshotClient;
 import com.wazuh.contentmanager.cti.catalog.index.ConsumersIndex;
@@ -60,6 +64,15 @@ public class SnapshotServiceImpl implements SnapshotService {
     private final Environment environment;
     private final PluginSettings pluginSettings;
 
+    /**
+     * Constructs a new SnapshotServiceImpl.
+     *
+     * @param context The context of the snapshot.
+     * @param consumer The consumer identifier.
+     * @param contentIndex The list of content indices to index the snapshot data.
+     * @param consumersIndex The consumers index to update consumer state.
+     * @param environment The OpenSearch environment.
+     */
     public SnapshotServiceImpl(
             String context,
             String consumer,
@@ -79,7 +92,7 @@ public class SnapshotServiceImpl implements SnapshotService {
     /**
      * Used for testing. Inject mocks.
      *
-     * @param client
+     * @param client The SnapshotClient to use.
      */
     public void setSnapshotClient(SnapshotClient client) {
         this.snapshotClient = client;
@@ -95,7 +108,6 @@ public class SnapshotServiceImpl implements SnapshotService {
     @Override
     public void initialize(RemoteConsumer consumer) {
         String snapshotUrl = consumer.getSnapshotLink();
-        long offset = consumer.getOffset();
 
         if (snapshotUrl == null || snapshotUrl.isEmpty()) {
             log.warn("Snapshot URL is empty. Skipping initialization.");
@@ -133,7 +145,7 @@ public class SnapshotServiceImpl implements SnapshotService {
                     this.processSnapshotFile(entry);
                 }
             }
-        } catch (Exception e) {
+        } catch (IOException | URISyntaxException e) {
             log.error("Error processing snapshot: {}", e.getMessage());
         } finally {
             // Cleanup temporary files
@@ -150,7 +162,7 @@ public class SnapshotServiceImpl implements SnapshotService {
                             consumer.getOffset(),
                             snapshotUrl);
             this.consumersIndex.setConsumer(updatedConsumer);
-        } catch (Exception e) {
+        } catch (IOException | InterruptedException | ExecutionException | TimeoutException e) {
             log.error(
                     "Failed to update consumer state in {}: {}", ConsumersIndex.INDEX_NAME, e.getMessage());
         }
@@ -228,7 +240,7 @@ public class SnapshotServiceImpl implements SnapshotService {
                         docCount = 0;
                     }
 
-                } catch (Exception e) {
+                } catch (JsonSyntaxException e) {
                     log.error("Error parsing/indexing JSON line: {}", e.getMessage());
                 }
             }

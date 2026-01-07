@@ -48,7 +48,7 @@ public class AuthServiceTests extends OpenSearchTestCase {
         // Create service and replace its client with the mock
         // Note: This creates a real ApiClient internally first, which needs to be closed
         this.authService = new AuthServiceImpl();
-        this.authService.setClient(mockClient);
+        this.authService.setClient(this.mockClient);
     }
 
     @Override

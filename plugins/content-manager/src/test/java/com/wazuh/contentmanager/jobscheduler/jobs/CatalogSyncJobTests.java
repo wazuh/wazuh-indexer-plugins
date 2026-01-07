@@ -17,7 +17,6 @@
 package com.wazuh.contentmanager.jobscheduler.jobs;
 
 import org.opensearch.env.Environment;
-import org.opensearch.jobscheduler.spi.JobExecutionContext;
 import org.opensearch.test.OpenSearchTestCase;
 import org.opensearch.threadpool.ThreadPool;
 import org.opensearch.transport.client.Client;
@@ -39,14 +38,14 @@ public class CatalogSyncJobTests extends OpenSearchTestCase {
     @Mock private ConsumersIndex consumersIndex;
     @Mock private Environment environment;
     @Mock private ThreadPool threadPool;
-    @Mock private JobExecutionContext context;
 
     @Before
     @Override
     public void setUp() throws Exception {
         super.setUp();
         this.closeable = MockitoAnnotations.openMocks(this);
-        this.catalogSyncJob = new CatalogSyncJob(client, consumersIndex, environment, threadPool);
+        this.catalogSyncJob =
+                new CatalogSyncJob(this.client, this.consumersIndex, this.environment, this.threadPool);
     }
 
     @After
@@ -59,7 +58,7 @@ public class CatalogSyncJobTests extends OpenSearchTestCase {
     }
 
     public void testIsRunningReturnsFalseInitially() {
-        boolean isRunning = catalogSyncJob.isRunning();
+        boolean isRunning = this.catalogSyncJob.isRunning();
 
         Assert.assertFalse(isRunning);
     }

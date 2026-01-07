@@ -43,6 +43,7 @@ import org.mockito.MockitoAnnotations;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
+/** Tests for the ContentIndex class. */
 public class ContentIndexTests extends OpenSearchTestCase {
 
     private ContentIndex contentIndex;

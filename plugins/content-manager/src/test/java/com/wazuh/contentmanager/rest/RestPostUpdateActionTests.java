@@ -114,9 +114,6 @@ public class RestPostUpdateActionTests extends OpenSearchTestCase {
         BytesRestResponse bytesRestResponse = this.action.handleRequest();
 
         // Expected response
-        RestResponse expectedResponse =
-                new RestResponse(
-                        "An update operation is already in progress", RestStatus.CONFLICT.getStatus());
 
         // Assert
         assertEquals(RestStatus.CONFLICT, bytesRestResponse.status());
@@ -131,7 +128,7 @@ public class RestPostUpdateActionTests extends OpenSearchTestCase {
      * Test the {@link RestPostUpdateAction#handleRequest()} method when the rate limit is exceeded.
      * The expected response is: {429, RestResponse}
      */
-    public void testGetToken429() throws IOException {
+    public void testGetToken429() {
         // TODO
     }
 }

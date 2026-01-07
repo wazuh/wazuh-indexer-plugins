@@ -20,22 +20,28 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 
 import com.wazuh.contentmanager.cti.catalog.client.ApiClient;
 
-/** Abstract service class, for generalization. */
+/**
+ * Abstract base class for CTI catalog services. Provides common functionality including an API
+ * client for remote operations and an ObjectMapper for JSON serialization/deserialization.
+ */
 public abstract class AbstractService {
 
+    /** The API client used for remote CTI catalog operations. */
     ApiClient client;
+
+    /** The Jackson ObjectMapper for JSON serialization and deserialization. */
     final ObjectMapper mapper;
 
-    /** Default constructor */
+    /** Default constructor. Initializes the API client and ObjectMapper. */
     public AbstractService() {
         this.client = new ApiClient();
         this.mapper = new ObjectMapper();
     }
 
     /**
-     * Use for testing only.
+     * Sets the API client. Use for testing only to inject mocked clients.
      *
-     * @param c mocked client.
+     * @param c The mocked API client.
      */
     public void setClient(ApiClient c) {
         this.close();

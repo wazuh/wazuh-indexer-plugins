@@ -44,6 +44,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.*;
 
+/** Tests for the ConsumersIndex class. */
 public class ConsumersIndexTests extends OpenSearchTestCase {
 
     private ConsumersIndex consumersIndex;

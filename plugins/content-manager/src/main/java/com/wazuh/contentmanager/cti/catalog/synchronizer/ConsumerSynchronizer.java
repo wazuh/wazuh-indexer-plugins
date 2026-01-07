@@ -42,16 +42,37 @@ import com.wazuh.contentmanager.cti.catalog.service.SnapshotServiceImpl;
 import com.wazuh.contentmanager.cti.catalog.service.UpdateServiceImpl;
 
 /**
- * Base class for consumer synchronization logic. Provides common functionality for index creation,
- * snapshot/update handling.
+ * Base class for consumer synchronization logic. Provides common functionality for synchronizing
+ * content between a remote CTI (Cyber Threat Intelligence) catalog and local OpenSearch indices.
+ * Handles index creation with proper mappings and aliases, snapshot initialization for first-time
+ * synchronization, and incremental updates based on offset tracking.
+ *
+ * <p>Subclasses must implement the abstract methods to define the specific context, consumer name,
+ * mappings, aliases, and post-synchronization behavior.
+ *
+ * @see ConsumerService
+ * @see SnapshotServiceImpl
+ * @see UpdateServiceImpl
  */
 public abstract class ConsumerSynchronizer {
     private static final Logger log = LogManager.getLogger(ConsumerSynchronizer.class);
 
+    /** The OpenSearch client used for index operations. */
     protected final Client client;
+
+    /** The consumers index for tracking synchronization state. */
     protected final ConsumersIndex consumersIndex;
+
+    /** The OpenSearch environment configuration. */
     protected final Environment environment;
 
+    /**
+     * Constructs a new ConsumerSynchronizer.
+     *
+     * @param client The OpenSearch client for index operations.
+     * @param consumersIndex The index for tracking consumer synchronization state.
+     * @param environment The OpenSearch environment configuration.
+     */
     protected ConsumerSynchronizer(
             Client client, ConsumersIndex consumersIndex, Environment environment) {
         this.client = client;
@@ -59,35 +80,92 @@ public abstract class ConsumerSynchronizer {
         this.environment = environment;
     }
 
+    /**
+     * Returns the context name for this synchronizer. The context is used as part of the index naming
+     * convention: .context-consumer-type
+     *
+     * @return The context name (e.g., "wazuh").
+     */
     protected abstract String getContext();
 
+    /**
+     * Returns the consumer name for this synchronizer. The consumer identifies the type of content
+     * being synchronized (e.g., "rules", "decoders").
+     *
+     * @return The consumer name.
+     */
     protected abstract String getConsumer();
 
+    /**
+     * Returns the index mappings for this consumer. The map keys are type identifiers (used in index
+     * naming), and values are the JSON mapping definitions for each index.
+     *
+     * @return A map of type to mapping definition.
+     */
     protected abstract Map<String, String> getMappings();
 
+    /**
+     * Returns the index aliases for this consumer. The map keys are type identifiers (matching those
+     * in getMappings()), and values are the alias names to create for each index.
+     *
+     * @return A map of type to alias name.
+     */
     protected abstract Map<String, String> getAliases();
 
+    /**
+     * Called after synchronization completes. Subclasses should implement this to perform any
+     * post-synchronization tasks such as triggering dependent operations or logging results.
+     *
+     * @param isUpdated True if any updates were applied during synchronization, false if already up
+     *     to date.
+     */
     protected abstract void onSyncComplete(boolean isUpdated);
 
-    /** Main synchronization entry point. */
+    /**
+     * Main synchronization entry point. Orchestrates the synchronization process by performing the
+     * actual sync and calling onSyncComplete with the result.
+     */
     public void synchronize() {
-        boolean isUpdated = syncConsumerServices();
-        onSyncComplete(isUpdated);
+        boolean isUpdated = this.syncConsumerServices();
+        this.onSyncComplete(isUpdated);
     }
 
+    /**
+     * Constructs the index name for a given type. The index name follows the pattern:
+     * .context-consumer-type
+     *
+     * @param type The type identifier for the index.
+     * @return The fully qualified index name.
+     */
     protected String getIndexName(String type) {
-        return String.format(Locale.ROOT, ".%s-%s-%s", getContext(), getConsumer(), type);
+        return String.format(Locale.ROOT, ".%s-%s-%s", this.getContext(), this.getConsumer(), type);
     }
 
+    /**
+     * Refreshes the specified indices to make recent changes searchable. Converts the type
+     * identifiers to index names and issues a refresh request. Any errors during refresh are logged
+     * as warnings but do not interrupt execution.
+     *
+     * @param types The type identifiers of indices to refresh.
+     */
     protected void refreshIndices(String... types) {
         try {
             String[] indexNames = Arrays.stream(types).map(this::getIndexName).toArray(String[]::new);
-            client.admin().indices().prepareRefresh(indexNames).get();
+            this.client.admin().indices().prepareRefresh(indexNames).get();
         } catch (Exception e) {
             log.warn("Error refreshing indices: {}", e.getMessage());
         }
     }
 
+    /**
+     * Performs the core synchronization logic for consumer services. Retrieves local and remote
+     * consumer state, creates any missing indices with their mappings and aliases, initializes from
+     * snapshot if this is a first-time sync (offset = 0), and applies incremental updates if the
+     * remote offset is ahead.
+     *
+     * @return True if any updates were applied (snapshot or incremental), false if already up to
+     *     date.
+     */
     private boolean syncConsumerServices() {
         String context = this.getContext();
         String consumer = this.getConsumer();
@@ -100,9 +178,9 @@ public abstract class ConsumerSynchronizer {
         List<ContentIndex> indices = new ArrayList<>();
         Map<String, ContentIndex> indicesMap = new HashMap<>();
 
-        for (Map.Entry<String, String> entry : getMappings().entrySet()) {
+        for (Map.Entry<String, String> entry : this.getMappings().entrySet()) {
             String indexName = this.getIndexName(entry.getKey());
-            String alias = getAliases().get(entry.getKey());
+            String alias = this.getAliases().get(entry.getKey());
             ContentIndex index = new ContentIndex(this.client, indexName, entry.getValue(), alias);
             indices.add(index);
             indicesMap.put(entry.getKey(), index);

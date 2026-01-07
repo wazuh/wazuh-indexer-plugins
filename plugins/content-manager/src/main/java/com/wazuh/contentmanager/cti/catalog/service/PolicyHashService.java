@@ -76,12 +76,11 @@ public class PolicyHashService {
      */
     public void calculateAndUpdate(String context, String consumer) {
         try {
-            String policyIndex = getIndexName(context, consumer, POLICY);
-            String integrationIndex = getIndexName(context, consumer, INTEGRATION);
-            String decoderIndex = getIndexName(context, consumer, DECODER);
-            String kvdbIndex = getIndexName(context, consumer, KVDB);
-            String ruleIndex = getIndexName(context, consumer, RULE);
-
+            String policyIndex = this.getIndexName(context, consumer, POLICY);
+            String integrationIndex = this.getIndexName(context, consumer, INTEGRATION);
+            String decoderIndex = this.getIndexName(context, consumer, DECODER);
+            String kvdbIndex = this.getIndexName(context, consumer, KVDB);
+            String ruleIndex = this.getIndexName(context, consumer, RULE);
             if (!this.client.admin().indices().prepareExists(policyIndex).get().isExists()) {
                 log.warn("Policy index [{}] does not exist. Skipping hash calculation.", policyIndex);
                 return;
@@ -126,9 +125,9 @@ public class PolicyHashService {
 
                         Map<String, Object> integration = (Map<String, Object>) integrationSource.get(DOCUMENT);
                         if (integration != null) {
-                            addHashes(integration, DECODERS, decoderIndex, spaceHashes);
-                            addHashes(integration, KVDBS, kvdbIndex, spaceHashes);
-                            addHashes(integration, RULES, ruleIndex, spaceHashes);
+                            this.addHashes(integration, DECODERS, decoderIndex, spaceHashes);
+                            this.addHashes(integration, KVDBS, kvdbIndex, spaceHashes);
+                            this.addHashes(integration, RULES, ruleIndex, spaceHashes);
                         }
                     }
                 }
