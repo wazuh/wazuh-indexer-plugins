@@ -34,8 +34,17 @@ import com.wazuh.securityanalytics.action.WIndexDetectorAction;
 import com.wazuh.securityanalytics.action.WIndexDetectorRequest;
 
 /**
- * Processes detector documents and creates/updates threat detectors in the security analytics
- * plugin.
+ * Processes integration documents and creates threat detectors in the security analytics plugin.
+ * Detectors are the operational components that apply rules to incoming log data to identify
+ * potential security threats. This processor creates one detector per integration, associating it
+ * with the integration's rules and category.
+ *
+ * <p>The processor reads integration documents from the CTI index to extract detector
+ * configuration including name, category, and associated rule IDs. Each detector is created with
+ * an immediate refresh policy to ensure it becomes active promptly.
+ *
+ * <p>Processing is performed synchronously with configurable timeouts. The processor tracks
+ * success and failure counts for monitoring and logging purposes.
  */
 public class DetectorProcessor extends AbstractProcessor {
 
@@ -54,10 +63,18 @@ public class DetectorProcessor extends AbstractProcessor {
     }
 
     /**
-     * Processes integrations and creates/updates corresponding detectors.
+     * Creates or updates threat detectors for the provided integrations. Reads integration
+     * documents from the CTI index to extract detector configuration and creates corresponding
+     * detectors in the security analytics plugin using WIndexDetectorAction.
      *
-     * @param integrations Map of integration names to their rule IDs.
-     * @param indexName The index containing integration documents.
+     * <p>The method first logs the integrations being processed, then retrieves all documents from
+     * the index and processes each one to create a detector. Processing statistics are logged upon
+     * completion.
+     *
+     * @param integrations Map of integration names to their associated rule ID lists. Used for
+     *     logging which integrations are being processed.
+     * @param indexName The name of the CTI index containing integration documents with detector
+     *     configuration.
      */
     public void process(Map<String, List<String>> integrations, String indexName) {
         log.info("Creating detectors for integrations: {}", integrations.keySet());
@@ -77,6 +94,12 @@ public class DetectorProcessor extends AbstractProcessor {
         log.info("Detector processing completed: {} succeeded, {} failed", successCount, failCount);
     }
 
+    /**
+     * Processes a single search hit containing an integration document and creates a corresponding
+     * threat detector. Extracts detector name, category, and rule associations from the document.
+     *
+     * @param hit The search hit containing the integration document to process.
+     */
     private void processHit(SearchHit hit) {
         JsonObject source = parseHit(hit);
         if (source == null) {

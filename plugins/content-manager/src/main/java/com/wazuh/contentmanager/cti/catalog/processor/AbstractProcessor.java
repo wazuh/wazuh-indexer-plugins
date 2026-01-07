@@ -32,26 +32,35 @@ import com.wazuh.contentmanager.settings.PluginSettings;
 
 /**
  * Abstract base class for CTI document processors. Provides common functionality for searching
- * indices, iterating over hits, and tracking processing statistics.
+ * indices, parsing search hits, and tracking processing statistics.
+ * Concrete implementations handle specific document types such as rules, integrations, and
+ * detectors.
+ *
+ * <p>This class provides shared utilities including index existence checks, bulk search
+ * operations, JSON parsing, and processing counters. Subclasses implement the specific processing
+ * logic for their document type while leveraging these common capabilities.
+ *
+ * <p>Processing counters track success, failure, and skipped counts across each processing run,
+ * enabling detailed logging and monitoring of synchronization operations.
  */
 public abstract class AbstractProcessor {
 
-    /** Logger instance for the concrete processor class. */
+    /** Logger instance for the concrete processor class. Initialized with the subclass type. */
     protected final Logger log;
 
-    /** OpenSearch client for executing searches and actions. */
+    /** OpenSearch client for executing index operations and search requests. */
     protected final Client client;
 
-    /** Plugin settings for configuration values like timeouts. */
+    /** Plugin settings providing configuration values such as client timeouts. */
     protected final PluginSettings pluginSettings;
 
-    /** Counter for successfully processed documents. */
+    /** Counter tracking the number of documents successfully processed in the current run. */
     protected int successCount;
 
-    /** Counter for failed document processing attempts. */
+    /** Counter tracking the number of documents that failed processing in the current run. */
     protected int failCount;
 
-    /** Counter for skipped documents (missing required fields). */
+    /** Counter tracking documents skipped due to missing required fields in the current run. */
     protected int skippedCount;
 
     /**

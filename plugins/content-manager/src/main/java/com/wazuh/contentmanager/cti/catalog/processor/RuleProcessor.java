@@ -32,9 +32,21 @@ import com.wazuh.securityanalytics.action.WIndexRuleResponse;
 
 import static org.opensearch.rest.RestRequest.Method.POST;
 
-/** Processes rule documents from a CTI index and syncs them to the security analytics plugin. */
+/**
+ * Processes Wazuh rule documents from indices and synchronizes them to the security analytics
+ * plugin. This processor reads rule definitions stored in the rules index, extracts its content
+ * and metadata, and creates or updates corresponding rules in the security analytics system.
+ *
+ * <p>Each rule document is expected to contain a nested "document" field with the Sigma rule
+ * definition including an "id" field and optional "logsource" configuration. The processor
+ * determines the appropriate product category based on the logsource metadata.
+ *
+ * <p>Processing is performed synchronously with configurable timeouts. The processor tracks
+ * success, failure, and skip counts for monitoring and logging purposes.
+ */
 public class RuleProcessor extends AbstractProcessor {
 
+    /** JSON field name for the category attribute in logsource configuration. */
     private static final String CATEGORY = "category";
 
     /**
@@ -52,9 +64,14 @@ public class RuleProcessor extends AbstractProcessor {
     }
 
     /**
-     * Processes rule documents and creates/updates them in the security analytics plugin.
+     * Processes all rule documents from the specified index and synchronizes them to the
+     * security analytics plugin. Each rule is extracted, validated, and indexed using the
+     * WIndexRuleAction.
      *
-     * @param indexName The index containing rule documents.
+     * <p>The method first checks if the source index exists, then retrieves all documents and
+     * processes them individually. Processing statistics are logged upon completion.
+     *
+     * @param indexName The name of the index containing rule documents to process.
      */
     public void process(String indexName) {
         if (!indexExists(indexName)) {
@@ -84,6 +101,12 @@ public class RuleProcessor extends AbstractProcessor {
                 totalHits);
     }
 
+    /**
+     * Processes a single search hit containing a rule document. Extracts the rule definition,
+     * determines the product category, and sends the rule to the security analytics plugin.
+     *
+     * @param hit The search hit containing the rule document to process.
+     */
     private void processHit(SearchHit hit) {
         JsonObject source = parseHit(hit);
         if (source == null) {
@@ -121,6 +144,13 @@ public class RuleProcessor extends AbstractProcessor {
         }
     }
 
+    /**
+     * Determines the product category for a rule based on its logsource configuration. Checks for
+     * product or category fields in the logsource object, defaulting to "linux" if not specified.
+     *
+     * @param doc The rule document JSON object containing logsource configuration.
+     * @return The product category string for the rule.
+     */
     private String determineProduct(JsonObject doc) {
         String product = "linux"; // Default
         if (doc.has("logsource")) {

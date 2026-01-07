@@ -39,7 +39,17 @@ import com.wazuh.securityanalytics.model.Integration;
 import static org.opensearch.rest.RestRequest.Method.POST;
 
 /**
- * Processes integration documents from a CTI index and syncs them to the security analytics plugin.
+ * Processes integration documents from the indices and synchronizes them to the security analytics
+ * plugin. Integrations define collections of related rules that work together for specific use
+ * cases or data sources. This processor extracts integration metadata and associated rule lists,
+ * then creates or updates the corresponding integration definitions.
+ *
+ * <p>Each integration document contains a title, description, category, and list of rule IDs. The
+ * processor builds a mapping of integration names to their rule lists, which is returned for use
+ * by downstream processors such as the DetectorProcessor.
+ *
+ * <p>Integrations without any associated rules are skipped during processing. The processor tracks
+ * success, failure, and skip counts for monitoring and logging purposes.
  */
 public class IntegrationProcessor extends AbstractProcessor {
 
@@ -58,10 +68,17 @@ public class IntegrationProcessor extends AbstractProcessor {
     }
 
     /**
-     * Processes integration documents and creates/updates them in the security analytics plugin.
+     * Processes all integration documents from the specified index and synchronizes them to the
+     * security analytics plugin. Each integration is extracted, validated, and indexed using the
+     * WIndexIntegrationAction.
      *
-     * @param indexName The index containing integration documents.
-     * @return A map of integration names to their associated rule IDs.
+     * <p>The method builds and returns a map of integration names to their associated rule ID
+     * lists. This map is typically used by downstream processors such as DetectorProcessor to
+     * create corresponding detectors.
+     *
+     * @param indexName The name of the index containing integration documents to process.
+     * @return A map where keys are integration names and values are lists of associated rule IDs.
+     *     Returns an empty map if the index does not exist.
      */
     public Map<String, List<String>> process(String indexName) {
         Map<String, List<String>> integrations = new HashMap<>();
@@ -82,6 +99,13 @@ public class IntegrationProcessor extends AbstractProcessor {
         return integrations;
     }
 
+    /**
+     * Processes a single search hit containing an integration document. Extracts integration
+     * metadata and rule associations, then sends the integration to the security analytics plugin.
+     *
+     * @param hit The search hit containing the integration document to process.
+     * @param integrations The map to populate with integration name to rule ID list mappings.
+     */
     private void processHit(SearchHit hit, Map<String, List<String>> integrations) {
         JsonObject source = parseHit(hit);
         if (source == null) {
