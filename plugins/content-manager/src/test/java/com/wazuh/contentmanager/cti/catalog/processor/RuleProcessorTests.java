@@ -21,6 +21,7 @@ import org.opensearch.action.admin.indices.exists.indices.IndicesExistsResponse;
 import org.opensearch.action.search.SearchRequest;
 import org.opensearch.action.search.SearchResponse;
 import org.opensearch.common.action.ActionFuture;
+import org.opensearch.common.settings.Settings;
 import org.opensearch.search.SearchHits;
 import org.opensearch.test.OpenSearchTestCase;
 import org.opensearch.transport.client.AdminClient;
@@ -29,6 +30,7 @@ import org.opensearch.transport.client.IndicesAdminClient;
 import org.junit.After;
 import org.junit.Before;
 
+import com.wazuh.contentmanager.settings.PluginSettings;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 
@@ -57,6 +59,7 @@ public class RuleProcessorTests extends OpenSearchTestCase {
     public void setUp() throws Exception {
         super.setUp();
         this.closeable = MockitoAnnotations.openMocks(this);
+        PluginSettings.getInstance(Settings.EMPTY);
         this.ruleProcessor = new RuleProcessor(this.client);
     }
 

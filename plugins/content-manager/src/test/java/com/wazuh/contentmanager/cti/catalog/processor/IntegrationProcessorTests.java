@@ -21,6 +21,7 @@ import org.opensearch.action.admin.indices.exists.indices.IndicesExistsResponse;
 import org.opensearch.action.search.SearchRequest;
 import org.opensearch.action.search.SearchResponse;
 import org.opensearch.common.action.ActionFuture;
+import org.opensearch.common.settings.Settings;
 import org.opensearch.search.SearchHits;
 import org.opensearch.test.OpenSearchTestCase;
 import org.opensearch.transport.client.AdminClient;
@@ -33,6 +34,7 @@ import org.junit.Before;
 import java.util.List;
 import java.util.Map;
 
+import com.wazuh.contentmanager.settings.PluginSettings;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 
@@ -61,6 +63,7 @@ public class IntegrationProcessorTests extends OpenSearchTestCase {
     public void setUp() throws Exception {
         super.setUp();
         this.closeable = MockitoAnnotations.openMocks(this);
+        PluginSettings.getInstance(Settings.EMPTY);
         this.integrationProcessor = new IntegrationProcessor(this.client);
     }
 

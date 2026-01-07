@@ -34,8 +34,8 @@ import static org.opensearch.rest.RestRequest.Method.POST;
 
 /**
  * Processes Wazuh rule documents from indices and synchronizes them to the security analytics
- * plugin. This processor reads rule definitions stored in the rules index, extracts its content
- * and metadata, and creates or updates corresponding rules in the security analytics system.
+ * plugin. This processor reads rule definitions stored in the rules index, extracts its content and
+ * metadata, and creates or updates corresponding rules in the security analytics system.
  *
  * <p>Each rule document is expected to contain a nested "document" field with the Sigma rule
  * definition including an "id" field and optional "logsource" configuration. The processor
@@ -64,9 +64,8 @@ public class RuleProcessor extends AbstractProcessor {
     }
 
     /**
-     * Processes all rule documents from the specified index and synchronizes them to the
-     * security analytics plugin. Each rule is extracted, validated, and indexed using the
-     * WIndexRuleAction.
+     * Processes all rule documents from the specified index and synchronizes them to the security
+     * analytics plugin. Each rule is extracted, validated, and indexed using the WIndexRuleAction.
      *
      * <p>The method first checks if the source index exists, then retrieves all documents and
      * processes them individually. Processing statistics are logged upon completion.

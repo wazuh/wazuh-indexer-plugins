@@ -45,8 +45,8 @@ import static org.opensearch.rest.RestRequest.Method.POST;
  * then creates or updates the corresponding integration definitions.
  *
  * <p>Each integration document contains a title, description, category, and list of rule IDs. The
- * processor builds a mapping of integration names to their rule lists, which is returned for use
- * by downstream processors such as the DetectorProcessor.
+ * processor builds a mapping of integration names to their rule lists, which is returned for use by
+ * downstream processors such as the DetectorProcessor.
  *
  * <p>Integrations without any associated rules are skipped during processing. The processor tracks
  * success, failure, and skip counts for monitoring and logging purposes.
@@ -72,9 +72,9 @@ public class IntegrationProcessor extends AbstractProcessor {
      * security analytics plugin. Each integration is extracted, validated, and indexed using the
      * WIndexIntegrationAction.
      *
-     * <p>The method builds and returns a map of integration names to their associated rule ID
-     * lists. This map is typically used by downstream processors such as DetectorProcessor to
-     * create corresponding detectors.
+     * <p>The method builds and returns a map of integration names to their associated rule ID lists.
+     * This map is typically used by downstream processors such as DetectorProcessor to create
+     * corresponding detectors.
      *
      * @param indexName The name of the index containing integration documents to process.
      * @return A map where keys are integration names and values are lists of associated rule IDs.
@@ -100,8 +100,8 @@ public class IntegrationProcessor extends AbstractProcessor {
     }
 
     /**
-     * Processes a single search hit containing an integration document. Extracts integration
-     * metadata and rule associations, then sends the integration to the security analytics plugin.
+     * Processes a single search hit containing an integration document. Extracts integration metadata
+     * and rule associations, then sends the integration to the security analytics plugin.
      *
      * @param hit The search hit containing the integration document to process.
      * @param integrations The map to populate with integration name to rule ID list mappings.

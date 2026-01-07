@@ -16,6 +16,7 @@
  */
 package com.wazuh.contentmanager.cti.catalog.synchronizer;
 
+import org.opensearch.common.settings.Settings;
 import org.opensearch.env.Environment;
 import org.opensearch.test.OpenSearchTestCase;
 import org.opensearch.transport.client.Client;
@@ -26,6 +27,7 @@ import org.junit.Before;
 import java.util.Map;
 
 import com.wazuh.contentmanager.cti.catalog.index.ConsumersIndex;
+import com.wazuh.contentmanager.settings.PluginSettings;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 
@@ -44,6 +46,7 @@ public class RulesConsumerSynchronizerTests extends OpenSearchTestCase {
     public void setUp() throws Exception {
         super.setUp();
         this.closeable = MockitoAnnotations.openMocks(this);
+        PluginSettings.getInstance(Settings.EMPTY);
         this.synchronizer =
                 new RulesConsumerSynchronizer(this.client, this.consumersIndex, this.environment);
     }
