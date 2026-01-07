@@ -30,7 +30,7 @@ import com.wazuh.contentmanager.cti.catalog.service.PolicyHashService;
  * integration, and policy indices. After synchronization completes, calculates and updates policy
  * hashes.
  */
-public class DecodersConsumerSynchronizer extends ConsumerSynchronizer {
+public class DecodersConsumerSynchronizer extends AbstractConsumerSynchronizer {
 
     /** Content type identifier for policy documents. */
     public static final String POLICY = "policy";

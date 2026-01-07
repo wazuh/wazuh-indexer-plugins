@@ -27,7 +27,7 @@ import java.util.List;
 import java.util.concurrent.Semaphore;
 
 import com.wazuh.contentmanager.cti.catalog.index.ConsumersIndex;
-import com.wazuh.contentmanager.cti.catalog.synchronizer.ConsumerSynchronizer;
+import com.wazuh.contentmanager.cti.catalog.synchronizer.AbstractConsumerSynchronizer;
 import com.wazuh.contentmanager.cti.catalog.synchronizer.DecodersConsumerSynchronizer;
 import com.wazuh.contentmanager.cti.catalog.synchronizer.RulesConsumerSynchronizer;
 import com.wazuh.contentmanager.jobscheduler.JobExecutor;
@@ -47,7 +47,7 @@ public class CatalogSyncJob implements JobExecutor {
     private final Semaphore semaphore = new Semaphore(1);
 
     private final ThreadPool threadPool;
-    private final List<ConsumerSynchronizer> synchronizers;
+    private final List<AbstractConsumerSynchronizer> synchronizers;
 
     /**
      * Constructs a new CatalogSyncJob.
@@ -140,7 +140,7 @@ public class CatalogSyncJob implements JobExecutor {
      * registered synchronizers and executes them.
      */
     private void performSynchronization() {
-        for (ConsumerSynchronizer synchronizer : this.synchronizers) {
+        for (AbstractConsumerSynchronizer synchronizer : this.synchronizers) {
             try {
                 synchronizer.synchronize();
                 log.info("{} synchronized successfully.", synchronizer.getClass().getSimpleName());

@@ -32,7 +32,7 @@ import com.wazuh.contentmanager.cti.catalog.processor.RuleProcessor;
  * Handles synchronization logic specifically for the Rules consumer. Processes rules and
  * integrations, and creates/updates threat detectors after synchronization completes.
  */
-public class RulesConsumerSynchronizer extends ConsumerSynchronizer {
+public class RulesConsumerSynchronizer extends AbstractConsumerSynchronizer {
 
     /** Content type identifier for rule documents. */
     public static final String RULE = "rule";

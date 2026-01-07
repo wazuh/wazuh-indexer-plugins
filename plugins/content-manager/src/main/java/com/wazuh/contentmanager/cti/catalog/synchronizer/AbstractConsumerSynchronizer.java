@@ -54,8 +54,8 @@ import com.wazuh.contentmanager.cti.catalog.service.UpdateServiceImpl;
  * @see SnapshotServiceImpl
  * @see UpdateServiceImpl
  */
-public abstract class ConsumerSynchronizer {
-    private static final Logger log = LogManager.getLogger(ConsumerSynchronizer.class);
+public abstract class AbstractConsumerSynchronizer {
+    private static final Logger log = LogManager.getLogger(AbstractConsumerSynchronizer.class);
 
     /** The OpenSearch client used for index operations. */
     protected final Client client;
@@ -67,13 +67,13 @@ public abstract class ConsumerSynchronizer {
     protected final Environment environment;
 
     /**
-     * Constructs a new ConsumerSynchronizer.
+     * Constructs a new AbstractConsumerSynchronizer.
      *
      * @param client The OpenSearch client for index operations.
      * @param consumersIndex The index for tracking consumer synchronization state.
      * @param environment The OpenSearch environment configuration.
      */
-    protected ConsumerSynchronizer(
+    protected AbstractConsumerSynchronizer(
             Client client, ConsumersIndex consumersIndex, Environment environment) {
         this.client = client;
         this.consumersIndex = consumersIndex;

@@ -17,16 +17,9 @@
 package com.wazuh.contentmanager.cti.catalog.processor;
 
 import com.google.gson.JsonObject;
-import com.google.gson.JsonParser;
-import com.google.gson.JsonSyntaxException;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
-import org.opensearch.action.search.SearchRequest;
 import org.opensearch.action.search.SearchResponse;
 import org.opensearch.action.support.WriteRequest;
-import org.opensearch.index.query.QueryBuilders;
 import org.opensearch.search.SearchHit;
-import org.opensearch.search.builder.SearchSourceBuilder;
 import org.opensearch.transport.client.Client;
 
 import java.util.ArrayList;
@@ -44,10 +37,7 @@ import com.wazuh.securityanalytics.action.WIndexDetectorRequest;
  * Processes detector documents and creates/updates threat detectors in the security analytics
  * plugin.
  */
-public class DetectorProcessor {
-    private static final Logger log = LogManager.getLogger(DetectorProcessor.class);
-
-    private final Client client;
+public class DetectorProcessor extends AbstractProcessor {
 
     /**
      * Constructs a new DetectorProcessor.
@@ -55,7 +45,12 @@ public class DetectorProcessor {
      * @param client The OpenSearch client.
      */
     public DetectorProcessor(Client client) {
-        this.client = client;
+        super(client);
+    }
+
+    @Override
+    protected String getProcessorName() {
+        return "Detector";
     }
 
     /**
@@ -66,52 +61,53 @@ public class DetectorProcessor {
      */
     public void process(Map<String, List<String>> integrations, String indexName) {
         log.info("Creating detectors for integrations: {}", integrations.keySet());
-        try {
-            if (!this.client.admin().indices().prepareExists(indexName).get().isExists()) {
-                log.warn("Integration index [{}] does not exist, skipping detector sync.", indexName);
-                return;
-            }
 
-            SearchRequest searchRequest = new SearchRequest(indexName);
-            SearchSourceBuilder searchSourceBuilder = new SearchSourceBuilder();
-            searchSourceBuilder.query(QueryBuilders.matchAllQuery());
-            searchSourceBuilder.size(10000);
-            searchRequest.source(searchSourceBuilder);
-
-            SearchResponse searchResponse = this.client.search(searchRequest).actionGet();
-            for (SearchHit hit : searchResponse.getHits().getHits()) {
-                this.processHit(hit);
-            }
-        } catch (Exception e) {
-            log.error("Error reading integrations from index [{}]: {}", indexName, e.getMessage());
+        if (!indexExists(indexName)) {
+            log.warn("Integration index [{}] does not exist, skipping detector sync.", indexName);
+            return;
         }
+
+        resetCounters();
+        SearchResponse searchResponse = searchAll(indexName);
+
+        for (SearchHit hit : searchResponse.getHits().getHits()) {
+            processHit(hit);
+        }
+
+        log.info("Detector processing completed: {} succeeded, {} failed", successCount, failCount);
     }
 
-    /**
-     * Processes a single search hit and creates/updates the corresponding detector.
-     *
-     * @param hit The search hit containing integration data.
-     */
     private void processHit(SearchHit hit) {
-        try {
-            JsonObject source = JsonParser.parseString(hit.getSourceAsString()).getAsJsonObject();
-            if (source.has("document")) {
-                JsonObject doc = source.getAsJsonObject("document");
-                String name = doc.has("title") ? doc.get("title").getAsString() : "";
-                String category = CategoryFormatter.format(doc, true);
-                List<String> rules = new ArrayList<>();
-                if (doc.has("rules")) {
-                    doc.get("rules").getAsJsonArray().forEach(item -> rules.add(item.getAsString()));
-                }
+        JsonObject source = parseHit(hit);
+        if (source == null) {
+            return;
+        }
 
-                WIndexDetectorRequest request =
-                        new WIndexDetectorRequest(
-                                hit.getId(), name, category, rules, WriteRequest.RefreshPolicy.IMMEDIATE);
-                this.client.execute(WIndexDetectorAction.INSTANCE, request).get(1, TimeUnit.SECONDS);
-                log.info("Detector [{}] synced successfully.", name);
-            }
-        } catch (JsonSyntaxException | InterruptedException | ExecutionException | TimeoutException e) {
-            log.error("Failed to sync Threat Detector from hit [{}]: {}", hit.getId(), e.getMessage());
+        JsonObject doc = extractDocument(source, hit.getId());
+        if (doc == null) {
+            return;
+        }
+
+        String name = doc.has("title") ? doc.get("title").getAsString() : "";
+        String category = CategoryFormatter.format(doc, true);
+
+        List<String> rules = new ArrayList<>();
+        if (doc.has("rules")) {
+            doc.get("rules").getAsJsonArray().forEach(item -> rules.add(item.getAsString()));
+        }
+
+        try {
+            WIndexDetectorRequest request =
+                    new WIndexDetectorRequest(
+                            hit.getId(), name, category, rules, WriteRequest.RefreshPolicy.IMMEDIATE);
+            this.client
+                    .execute(WIndexDetectorAction.INSTANCE, request)
+                    .get(this.pluginSettings.getClientTimeout(), TimeUnit.SECONDS);
+            log.debug("Detector [{}] synced successfully.", name);
+            successCount++;
+        } catch (InterruptedException | ExecutionException | TimeoutException e) {
+            log.warn("Failed to sync Threat Detector [{}]: {}", name, e.getMessage());
+            failCount++;
         }
     }
 }
