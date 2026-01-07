@@ -53,7 +53,10 @@
                   "type": "keyword"
                 },
                 "date": {
-                  "type": "keyword"
+                  "type": "date"
+                },
+                "modified": {
+                  "type": "date"
                 }
               }
             },
@@ -70,19 +73,12 @@
           "type": "object",
           "enabled": false
         },
-        "map": {
-          "type": "object",
-          "enabled": false
-        },
         "parents": {
           "type": "keyword"
         },
         "normalize": {
           "type": "object",
           "enabled": false
-        },
-        "parse|event.original": {
-          "type": "keyword"
         }
       }
     },
