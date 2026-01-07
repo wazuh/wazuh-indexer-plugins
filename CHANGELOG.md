@@ -98,6 +98,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Fix `mdbook-mermaid` build errors [(#699)](https://github.com/wazuh/wazuh-indexer-plugins/pull/699)
 - Fix update of policy type documents [(#707)](https://github.com/wazuh/wazuh-indexer-plugins/pull/707)
 - Fix integrations not being created under the correct category [#705](https://github.com/wazuh/wazuh-indexer-plugins/pull/705)
+- Set `GSON` object-to-number policy to `LONG_OR_DOUBLE` in `Resources` model [#721](https://github.com/wazuh/wazuh-indexer-plugins/pull/721)
 
 ### Security
 - Reduce risk of GITHUB_TOKEN exposure [(#484)](https://github.com/wazuh/wazuh-indexer-plugins/pull/484)
