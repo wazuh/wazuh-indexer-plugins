@@ -27,7 +27,7 @@
         "documentation": {
           "type": "keyword"
         },
-        "enable_decoders": {
+        "enabled": {
           "type": "boolean"
         },
         "references": {
@@ -38,6 +38,20 @@
         },
         "kvdbs": {
           "type": "keyword"
+        },
+        "rules": {
+          "type": "keyword"
+        },
+        "metadata": {
+          "properties": {
+            "author": {
+              "properties": {
+                "modified": {
+                  "type": "date"
+                }
+              }
+            }
+          }
         }
       }
     },
