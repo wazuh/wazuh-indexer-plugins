@@ -39,12 +39,12 @@ import com.wazuh.securityanalytics.action.WIndexDetectorRequest;
  * potential security threats. This processor creates one detector per integration, associating it
  * with the integration's rules and category.
  *
- * <p>The processor reads integration documents from the CTI index to extract detector configuration
- * including name, category, and associated rule IDs. Each detector is created with an immediate
- * refresh policy to ensure it becomes active promptly.
+ * <p>The processor reads integration documents from the CTI index to extract detector
+ * configuration including name, category, and associated rule IDs. Each detector is created with
+ * an immediate refresh policy to ensure it becomes active promptly.
  *
- * <p>Processing is performed synchronously with configurable timeouts. The processor tracks success
- * and failure counts for monitoring and logging purposes.
+ * <p>Processing is performed synchronously with configurable timeouts. The processor tracks
+ * success and failure counts for monitoring and logging purposes.
  */
 public class DetectorProcessor extends AbstractProcessor {
 
@@ -63,9 +63,9 @@ public class DetectorProcessor extends AbstractProcessor {
     }
 
     /**
-     * Creates or updates threat detectors for the provided integrations. Reads integration documents
-     * from the CTI index to extract detector configuration and creates corresponding detectors in the
-     * security analytics plugin using WIndexDetectorAction.
+     * Creates or updates threat detectors for the provided integrations. Reads integration
+     * documents from the index to extract detector configuration and creates corresponding
+     * detectors in the security analytics plugin using WIndexDetectorAction.
      *
      * <p>The method first logs the integrations being processed, then retrieves all documents from
      * the index and processes each one to create a detector. Processing statistics are logged upon
@@ -73,7 +73,7 @@ public class DetectorProcessor extends AbstractProcessor {
      *
      * @param integrations Map of integration names to their associated rule ID lists. Used for
      *     logging which integrations are being processed.
-     * @param indexName The name of the CTI index containing integration documents with detector
+     * @param indexName The name of the index containing integration documents with detector
      *     configuration.
      */
     public void process(Map<String, List<String>> integrations, String indexName) {
