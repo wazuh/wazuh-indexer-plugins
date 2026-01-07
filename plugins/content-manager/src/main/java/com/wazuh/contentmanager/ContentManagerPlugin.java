@@ -142,6 +142,8 @@ public class ContentManagerPlugin extends Plugin implements ClusterPlugin, JobSc
         // Trigger update on start if enabled
         if (PluginSettings.getInstance().isUpdateOnStart()) {
             this.catalogSyncJob.trigger();
+        } else {
+            log.info("Skipping catalog sync job trigger");
         }
     }
 

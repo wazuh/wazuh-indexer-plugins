@@ -161,6 +161,7 @@ integTest {
 testClusters.integTest {
   systemProperty "INDEXER_TEST_ENV", "true"
   setting 'content_manager.catalog.update_on_start', 'false'
+  setting 'content_manager.catalog.update_on_schedule', 'false'
 
   // Installs all registered zipArchive dependencies on integTest cluster nodes
   configurations.zipArchive.asFileTree.each {

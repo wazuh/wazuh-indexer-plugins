@@ -21,6 +21,9 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+/**
+ * Unit tests for the {@link ContentManagerPlugin} class.
+ */
 public class ContentManagerPluginTests extends OpenSearchTestCase {
 
     private ContentManagerPlugin plugin;
@@ -31,6 +34,9 @@ public class ContentManagerPluginTests extends OpenSearchTestCase {
     @Mock private DiscoveryNode discoveryNode;
     @Mock private CatalogSyncJob catalogSyncJob;
 
+    /**
+     * Sets up the test environment before each test method.
+     */
     @Before
     @Override
     public void setUp() throws Exception {
@@ -47,6 +53,9 @@ public class ContentManagerPluginTests extends OpenSearchTestCase {
         clearInstance();
     }
 
+    /**
+     * Cleans up the test environment after each test method.
+     */
     @After
     @Override
     public void tearDown() throws Exception {
@@ -60,7 +69,7 @@ public class ContentManagerPluginTests extends OpenSearchTestCase {
     /**
      * Tests that catalogSyncJob.trigger() is called when update_on_start is true (default).
      */
-    public void testOnNodeStarted_TriggerEnabled() {
+    public void testOnNodeStartedTriggerEnabled() {
         // Initialize settings with update_on_start = true
         Settings settings = Settings.builder()
             .put("content_manager.catalog.update_on_start", true)
@@ -77,7 +86,7 @@ public class ContentManagerPluginTests extends OpenSearchTestCase {
     /**
      * Tests that catalogSyncJob.trigger() is NOT called when update_on_start is false.
      */
-    public void testOnNodeStarted_TriggerDisabled() {
+    public void testOnNodeStartedTriggerDisabled() {
         // Initialize settings with update_on_start = false
         Settings settings = Settings.builder()
             .put("content_manager.catalog.update_on_start", false)
