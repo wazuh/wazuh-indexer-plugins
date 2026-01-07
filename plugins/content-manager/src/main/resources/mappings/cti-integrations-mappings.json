@@ -39,6 +39,9 @@
         "kvdbs": {
           "type": "keyword"
         },
+        "rules": {
+          "type": "keyword"
+        },
         "metadata": {
           "properties": {
             "author": {
