@@ -16,6 +16,7 @@
  */
 package com.wazuh.contentmanager.cti.catalog.index;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import com.google.gson.JsonObject;
@@ -135,10 +136,16 @@ public class ContentIndex {
 
         String mappings;
         try (InputStream is = this.getClass().getResourceAsStream(this.mappingsPath)) {
-            assert is != null;
+            if (is == null) {
+                log.error(
+                        "Could not find mappings file [{}] for index [{}]",
+                        this.mappingsPath,
+                        this.indexName);
+                return null;
+            }
             mappings = new String(is.readAllBytes(), StandardCharsets.UTF_8);
         } catch (IOException e) {
-            log.error("Could not read mappings for index [{}]", this.indexName);
+            log.error("Could not read mappings for index [{}]: {}", this.indexName, e.getMessage());
             return null;
         }
 
@@ -188,6 +195,23 @@ public class ContentIndex {
             log.error("Failed to index document [{}]: {}", id, e.getMessage());
             throw new IOException(e);
         }
+    }
+
+    /**
+     * Indexes a new document or overwrites an existing one using Jackson JsonNode.
+     *
+     * <p>The payload is pre-processed (sanitized and enriched) before being indexed. This method
+     * accepts a Jackson JsonNode and converts it to Gson JsonObject for compatibility with existing
+     * processing logic.
+     *
+     * @param id The unique identifier for the document.
+     * @param payload The Jackson JsonNode representing the document content.
+     * @throws IOException If the indexing operation fails.
+     */
+    public void create(String id, JsonNode payload) throws IOException {
+        // Convert Jackson JsonNode to Gson JsonObject for compatibility
+        JsonObject gsonPayload = JsonParser.parseString(payload.toString()).getAsJsonObject();
+        this.create(id, gsonPayload);
     }
 
     /**

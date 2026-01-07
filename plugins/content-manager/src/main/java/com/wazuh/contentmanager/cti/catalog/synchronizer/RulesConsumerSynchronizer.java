@@ -84,7 +84,7 @@ public class RulesConsumerSynchronizer extends AbstractConsumerSynchronizer {
     protected Map<String, String> getMappings() {
         Map<String, String> mappings = new HashMap<>();
         mappings.put(RULE, "/mappings/cti-rules-mappings.json");
-        mappings.put(INTEGRATION, "/mappings/cti-rules-integrations-mappings.json");
+        mappings.put(INTEGRATION, "/mappings/cti-integrations-mappings.json");
         return mappings;
     }
 

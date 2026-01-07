@@ -82,7 +82,7 @@ public class RulesConsumerSynchronizerTests extends OpenSearchTestCase {
         Assert.assertEquals(2, mappings.size());
         Assert.assertEquals("/mappings/cti-rules-mappings.json", mappings.get("rule"));
         Assert.assertEquals(
-                "/mappings/cti-rules-integrations-mappings.json", mappings.get("integration"));
+                "/mappings/cti-integrations-mappings.json", mappings.get("integration"));
     }
 
     /** Tests that getAliases returns the expected index aliases. */

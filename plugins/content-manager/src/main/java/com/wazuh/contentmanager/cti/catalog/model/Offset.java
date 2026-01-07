@@ -16,6 +16,9 @@
  */
 package com.wazuh.contentmanager.cti.catalog.model;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonProperty;
+
 import org.opensearch.core.xcontent.ToXContentObject;
 import org.opensearch.core.xcontent.XContentBuilder;
 import org.opensearch.core.xcontent.XContentParser;
@@ -65,14 +68,15 @@ public class Offset implements ToXContentObject {
      * @param operations A list of patch operations (typically used with UPDATE).
      * @param payload The full resource content (typically used with CREATE).
      */
+    @JsonCreator
     public Offset(
-            String context,
-            long offset,
-            String resource,
-            Type type,
-            long version,
-            List<Operation> operations,
-            Map<String, Object> payload) {
+            @JsonProperty(CONTEXT) String context,
+            @JsonProperty(OFFSET) long offset,
+            @JsonProperty(RESOURCE) String resource,
+            @JsonProperty(TYPE) Type type,
+            @JsonProperty(VERSION) long version,
+            @JsonProperty(OPERATIONS) List<Operation> operations,
+            @JsonProperty(PAYLOAD) Map<String, Object> payload) {
         this.context = context;
         this.offset = offset;
         this.resource = resource;

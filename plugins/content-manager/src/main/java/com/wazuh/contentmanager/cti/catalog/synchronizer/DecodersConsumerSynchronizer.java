@@ -81,7 +81,7 @@ public class DecodersConsumerSynchronizer extends AbstractConsumerSynchronizer {
         Map<String, String> mappings = new HashMap<>();
         mappings.put(DECODER, "/mappings/cti-decoders-mappings.json");
         mappings.put(KVDB, "/mappings/cti-kvdbs-mappings.json");
-        mappings.put(INTEGRATION, "/mappings/cti-decoders-integrations-mappings.json");
+        mappings.put(INTEGRATION, "/mappings/cti-integrations-mappings.json");
         mappings.put(POLICY, "/mappings/cti-policies-mappings.json");
         return mappings;
     }

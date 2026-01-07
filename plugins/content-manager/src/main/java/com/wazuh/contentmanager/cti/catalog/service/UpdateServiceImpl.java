@@ -16,17 +16,13 @@
  */
 package com.wazuh.contentmanager.cti.catalog.service;
 
-import com.google.gson.Gson;
-import com.google.gson.JsonObject;
+import com.fasterxml.jackson.databind.JsonNode;
+
 import org.apache.hc.client5.http.async.methods.SimpleHttpResponse;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.opensearch.ResourceNotFoundException;
 import org.opensearch.action.get.GetResponse;
-import org.opensearch.common.xcontent.XContentType;
-import org.opensearch.core.xcontent.DeprecationHandler;
-import org.opensearch.core.xcontent.NamedXContentRegistry;
-import org.opensearch.core.xcontent.XContentParser;
 
 import java.util.Map;
 
@@ -45,7 +41,6 @@ public class UpdateServiceImpl extends AbstractService implements UpdateService 
     private final Map<String, ContentIndex> indices;
     private final String context;
     private final String consumer;
-    private final Gson gson;
 
     /**
      * Constructs a new UpdateServiceImpl.
@@ -71,7 +66,6 @@ public class UpdateServiceImpl extends AbstractService implements UpdateService 
         this.indices = indices;
         this.context = context;
         this.consumer = consumer;
-        this.gson = new Gson();
     }
 
     /**
@@ -100,43 +94,34 @@ public class UpdateServiceImpl extends AbstractService implements UpdateService 
                 return;
             }
 
-            // TODO: Study if it can be changed to Jackson Databind and if so apply the necessary changes
-            try (XContentParser parser =
-                    XContentType.JSON
-                            .xContent()
-                            .createParser(
-                                    NamedXContentRegistry.EMPTY,
-                                    DeprecationHandler.THROW_UNSUPPORTED_OPERATION,
-                                    response.getBodyBytes())) {
-                Changes changes = Changes.parse(parser);
-                long lastAppliedOffset = fromOffset;
+            Changes changes = this.mapper.readValue(response.getBodyBytes(), Changes.class);
+            long lastAppliedOffset = fromOffset;
 
-                for (Offset offset : changes.get()) {
-                    this.applyOffset(offset);
-                    lastAppliedOffset = offset.getOffset();
-                }
-
-                // Update consumer state
-                LocalConsumer consumer = new LocalConsumer(this.context, this.consumer);
-
-                // Properly handle the GetResponse to check if the document exists before parsing
-                GetResponse getResponse = this.consumersIndex.getConsumer(this.context, this.consumer);
-                LocalConsumer current =
-                        (getResponse != null && getResponse.isExists())
-                                ? this.mapper.readValue(getResponse.getSourceAsString(), LocalConsumer.class)
-                                : consumer;
-
-                LocalConsumer updated =
-                        new LocalConsumer(
-                                this.context,
-                                this.consumer,
-                                lastAppliedOffset,
-                                current.getRemoteOffset(),
-                                current.getSnapshotLink());
-                this.consumersIndex.setConsumer(updated);
-
-                log.info("Successfully updated consumer [{}] to offset [{}]", consumer, lastAppliedOffset);
+            for (Offset offset : changes.get()) {
+                this.applyOffset(offset);
+                lastAppliedOffset = offset.getOffset();
             }
+
+            // Update consumer state
+            LocalConsumer consumer = new LocalConsumer(this.context, this.consumer);
+
+            // Properly handle the GetResponse to check if the document exists before parsing
+            GetResponse getResponse = this.consumersIndex.getConsumer(this.context, this.consumer);
+            LocalConsumer current =
+                    (getResponse != null && getResponse.isExists())
+                            ? this.mapper.readValue(getResponse.getSourceAsString(), LocalConsumer.class)
+                            : consumer;
+
+            LocalConsumer updated =
+                    new LocalConsumer(
+                            this.context,
+                            this.consumer,
+                            lastAppliedOffset,
+                            current.getRemoteOffset(),
+                            current.getSnapshotLink());
+            this.consumersIndex.setConsumer(updated);
+
+            log.info("Successfully updated consumer [{}] to offset [{}]", consumer, lastAppliedOffset);
         } catch (Exception e) {
             log.error("Error during content update: {}", e.getMessage(), e);
             this.resetConsumer();
@@ -156,11 +141,9 @@ public class UpdateServiceImpl extends AbstractService implements UpdateService 
         switch (offset.getType()) {
             case CREATE:
                 if (offset.getPayload() != null) {
-                    // TODO: Change the Offset logic to use JsonNode and use Jackson Object Mapper to obtain
-                    // the payload
-                    JsonObject payload = this.gson.toJsonTree(offset.getPayload()).getAsJsonObject();
+                    JsonNode payload = this.mapper.valueToTree(offset.getPayload());
                     if (payload.has("type")) {
-                        String type = payload.get("type").getAsString();
+                        String type = payload.get("type").asText();
 
                         // TODO: Delete once the consumer is changed
                         if (this.context.equals("rules_development_0.0.1")

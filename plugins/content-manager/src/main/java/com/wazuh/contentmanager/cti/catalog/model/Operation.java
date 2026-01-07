@@ -16,6 +16,9 @@
  */
 package com.wazuh.contentmanager.cti.catalog.model;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonProperty;
+
 import org.opensearch.core.xcontent.ToXContentObject;
 import org.opensearch.core.xcontent.XContentBuilder;
 import org.opensearch.core.xcontent.XContentParser;
@@ -44,7 +47,12 @@ public class Operation implements ToXContentObject {
      *     on 'op').
      * @param value The value to be added, replaced, or tested (optional, depends on 'op').
      */
-    public Operation(String op, String path, String from, Object value) {
+    @JsonCreator
+    public Operation(
+            @JsonProperty(OP) String op,
+            @JsonProperty(PATH) String path,
+            @JsonProperty(FROM) String from,
+            @JsonProperty(VALUE) Object value) {
         this.op = op;
         this.path = path;
         this.from = from;

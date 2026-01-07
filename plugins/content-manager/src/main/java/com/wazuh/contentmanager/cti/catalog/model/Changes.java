@@ -16,6 +16,9 @@
  */
 package com.wazuh.contentmanager.cti.catalog.model;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonProperty;
+
 import org.opensearch.core.xcontent.ToXContentObject;
 import org.opensearch.core.xcontent.XContentBuilder;
 import org.opensearch.core.xcontent.XContentParser;
@@ -28,6 +31,8 @@ import java.util.List;
 /** This class acts as a wrapper for a list of {@link Offset} objects. */
 public class Changes implements ToXContentObject {
     private static final String JSON_DATA_KEY = "data";
+
+    @JsonProperty(JSON_DATA_KEY)
     private final List<Offset> list;
 
     /**
@@ -35,7 +40,8 @@ public class Changes implements ToXContentObject {
      *
      * @param list The list of {@link Offset} objects. If null, an empty list is initialized.
      */
-    public Changes(List<Offset> list) {
+    @JsonCreator
+    public Changes(@JsonProperty(JSON_DATA_KEY) List<Offset> list) {
         this.list = list != null ? list : new ArrayList<>();
     }
 

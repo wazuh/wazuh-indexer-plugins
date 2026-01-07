@@ -16,6 +16,7 @@
  */
 package com.wazuh.contentmanager.cti.catalog.service;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import com.google.gson.JsonObject;
 import org.apache.hc.client5.http.async.methods.SimpleHttpResponse;
 import org.apache.hc.core5.http.ContentType;
@@ -135,7 +136,7 @@ public class UpdateServiceImplTests extends OpenSearchTestCase {
 
         // Assert
         // Verify CREATE
-        verify(this.ruleIndex).create(eq("rule-1"), any(JsonObject.class));
+        verify(this.ruleIndex).create(eq("rule-1"), any(JsonNode.class));
 
         // Verify UPDATE
         verify(this.ruleIndex).update(eq("rule-2"), any(List.class));
@@ -181,8 +182,8 @@ public class UpdateServiceImplTests extends OpenSearchTestCase {
         this.updateService.update(19, 20);
 
         // Assert
-        verify(this.ruleIndex, never()).create(anyString(), any());
-        verify(this.decoderIndex, never()).create(anyString(), any());
+        verify(this.ruleIndex, never()).create(anyString(), any(JsonNode.class));
+        verify(this.decoderIndex, never()).create(anyString(), any(JsonNode.class));
 
         ArgumentCaptor<LocalConsumer> consumerCaptor = ArgumentCaptor.forClass(LocalConsumer.class);
         verify(this.consumersIndex).setConsumer(consumerCaptor.capture());
@@ -199,7 +200,7 @@ public class UpdateServiceImplTests extends OpenSearchTestCase {
         this.updateService.update(1, 5);
 
         // Assert
-        verify(this.ruleIndex, never()).create(anyString(), any());
+        verify(this.ruleIndex, never()).create(anyString(), any(JsonNode.class));
         verify(this.consumersIndex, never()).setConsumer(any());
     }
 
@@ -227,7 +228,7 @@ public class UpdateServiceImplTests extends OpenSearchTestCase {
 
         doThrow(new RuntimeException("Simulated Indexing Failure"))
                 .when(this.ruleIndex)
-                .create(anyString(), any());
+                .create(anyString(), any(JsonNode.class));
 
         // Act
         this.updateService.update(29, 30);
@@ -270,8 +271,8 @@ public class UpdateServiceImplTests extends OpenSearchTestCase {
         this.updateService.update(39, 40);
 
         // Assert
-        verify(this.ruleIndex, never()).create(anyString(), any());
-        verify(this.decoderIndex, never()).create(anyString(), any());
+        verify(this.ruleIndex, never()).create(anyString(), any(JsonNode.class));
+        verify(this.decoderIndex, never()).create(anyString(), any(JsonNode.class));
 
         ArgumentCaptor<LocalConsumer> captor = ArgumentCaptor.forClass(LocalConsumer.class);
         verify(this.consumersIndex).setConsumer(captor.capture());
