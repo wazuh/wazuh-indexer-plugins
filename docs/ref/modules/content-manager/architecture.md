@@ -15,7 +15,7 @@ The plugin implements the `JobSchedulerExtension` to register the `CatalogSyncJo
 
 ## Synchronization Services
 
-The core logic is divided into three services:
+The core logic is divided into four services:
 
 * **Consumer Service (`ConsumerServiceImpl`)**:
     * Manages the state of "Consumers" (entities that consume content, e.g., a Rules consumer).
@@ -33,6 +33,11 @@ The core logic is divided into three services:
     * Fetches a list of changes based on the current offset.
     * Applies operations (CREATE, UPDATE, DELETE) to the content indices.
     * Updates the consumer offset upon success.
+
+* **Security Analytics Service (`SecurityAnalyticsServiceImpl`)**:
+    *  Acts as an interface to execute Security Analytics Plugin actions using the OpenSearch Client.
+    *  Performs upsert and delete operations for Rules, Integrations, and Detectors directly into the Security Analytics plugin.
+    *  Manages dependencies during deletion, ensuring Detectors are removed before their parent Integrations.
 
 ## Data Persistence
 
