@@ -62,11 +62,6 @@ public class IntegrationProcessor extends AbstractProcessor {
         super(client);
     }
 
-    @Override
-    protected String getProcessorName() {
-        return "Integration";
-    }
-
     /**
      * Processes all integration documents from the specified index and synchronizes them to the
      * security analytics plugin. Each integration is extracted, validated, and indexed using the
@@ -83,19 +78,22 @@ public class IntegrationProcessor extends AbstractProcessor {
     public Map<String, List<String>> process(String indexName) {
         Map<String, List<String>> integrations = new HashMap<>();
 
-        if (!indexExists(indexName)) {
-            log.warn("Integration index [{}] does not exist, skipping integration sync.", indexName);
+        if (!this.indexExists(indexName)) {
+            this.log.warn("Integration index [{}] does not exist, skipping integration sync.", indexName);
             return integrations;
         }
 
-        resetCounters();
-        SearchResponse searchResponse = searchAll(indexName);
+        this.resetCounters();
+        SearchResponse searchResponse = this.searchAll(indexName);
 
         for (SearchHit hit : searchResponse.getHits().getHits()) {
-            processHit(hit, integrations);
+            this.processHit(hit, integrations);
         }
 
-        log.info("Integration processing completed: {} succeeded, {} failed", successCount, failCount);
+        this.log.info(
+                "Integration processing completed: {} succeeded, {} failed",
+                this.successCount,
+                this.failCount);
         return integrations;
     }
 
@@ -107,12 +105,12 @@ public class IntegrationProcessor extends AbstractProcessor {
      * @param integrations The map to populate with integration name to rule ID list mappings.
      */
     private void processHit(SearchHit hit, Map<String, List<String>> integrations) {
-        JsonObject source = parseHit(hit);
+        JsonObject source = this.parseHit(hit);
         if (source == null) {
             return;
         }
 
-        JsonObject doc = extractDocument(source, hit.getId());
+        JsonObject doc = this.extractDocument(source, hit.getId());
         if (doc == null) {
             return;
         }
@@ -128,7 +126,7 @@ public class IntegrationProcessor extends AbstractProcessor {
         }
 
         if (rules.isEmpty()) {
-            skippedCount++;
+            this.skippedCount++;
             return;
         }
 
@@ -145,12 +143,12 @@ public class IntegrationProcessor extends AbstractProcessor {
                     this.client
                             .execute(WIndexIntegrationAction.INSTANCE, request)
                             .get(this.pluginSettings.getClientTimeout(), TimeUnit.SECONDS);
-            log.debug("Integration [{}] synced successfully. Response ID: {}", id, response.getId());
+            this.log.debug("Integration [{}] synced successfully. Response ID: {}", id, response.getId());
             integrations.put(name, rules);
-            successCount++;
+            this.successCount++;
         } catch (InterruptedException | ExecutionException | TimeoutException e) {
-            log.warn("Failed to sync integration [{}]: {}", id, e.getMessage());
-            failCount++;
+            this.log.warn("Failed to sync integration [{}]: {}", id, e.getMessage());
+            this.failCount++;
         }
     }
 }

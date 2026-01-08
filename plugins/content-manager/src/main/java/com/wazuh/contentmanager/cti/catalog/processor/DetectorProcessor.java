@@ -57,11 +57,6 @@ public class DetectorProcessor extends AbstractProcessor {
         super(client);
     }
 
-    @Override
-    protected String getProcessorName() {
-        return "Detector";
-    }
-
     /**
      * Creates or updates threat detectors for the provided integrations. Reads integration documents
      * from the index to extract detector configuration and creates corresponding detectors in the
@@ -77,21 +72,24 @@ public class DetectorProcessor extends AbstractProcessor {
      *     configuration.
      */
     public void process(Map<String, List<String>> integrations, String indexName) {
-        log.info("Creating detectors for integrations: {}", integrations.keySet());
+        this.log.info("Creating detectors for integrations: {}", integrations.keySet());
 
-        if (!indexExists(indexName)) {
-            log.warn("Integration index [{}] does not exist, skipping detector sync.", indexName);
+        if (!this.indexExists(indexName)) {
+            this.log.warn("Integration index [{}] does not exist, skipping detector sync.", indexName);
             return;
         }
 
-        resetCounters();
-        SearchResponse searchResponse = searchAll(indexName);
+        this.resetCounters();
+        SearchResponse searchResponse = this.searchAll(indexName);
 
         for (SearchHit hit : searchResponse.getHits().getHits()) {
-            processHit(hit);
+            this.processHit(hit);
         }
 
-        log.info("Detector processing completed: {} succeeded, {} failed", successCount, failCount);
+        this.log.info(
+                "Detector processing completed: {} succeeded, {} failed",
+                this.successCount,
+                this.failCount);
     }
 
     /**
@@ -101,12 +99,12 @@ public class DetectorProcessor extends AbstractProcessor {
      * @param hit The search hit containing the integration document to process.
      */
     private void processHit(SearchHit hit) {
-        JsonObject source = parseHit(hit);
+        JsonObject source = this.parseHit(hit);
         if (source == null) {
             return;
         }
 
-        JsonObject doc = extractDocument(source, hit.getId());
+        JsonObject doc = this.extractDocument(source, hit.getId());
         if (doc == null) {
             return;
         }
@@ -126,11 +124,11 @@ public class DetectorProcessor extends AbstractProcessor {
             this.client
                     .execute(WIndexDetectorAction.INSTANCE, request)
                     .get(this.pluginSettings.getClientTimeout(), TimeUnit.SECONDS);
-            log.debug("Detector [{}] synced successfully.", name);
-            successCount++;
+            this.log.debug("Detector [{}] synced successfully.", name);
+            this.successCount++;
         } catch (InterruptedException | ExecutionException | TimeoutException e) {
-            log.warn("Failed to sync Threat Detector [{}]: {}", name, e.getMessage());
-            failCount++;
+            this.log.warn("Failed to sync Threat Detector [{}]: {}", name, e.getMessage());
+            this.failCount++;
         }
     }
 }

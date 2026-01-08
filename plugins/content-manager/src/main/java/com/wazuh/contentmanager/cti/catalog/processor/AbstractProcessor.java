@@ -70,7 +70,7 @@ public abstract class AbstractProcessor {
     protected AbstractProcessor(Client client) {
         this.client = client;
         this.pluginSettings = PluginSettings.getInstance();
-        this.log = LogManager.getLogger(getClass());
+        this.log = LogManager.getLogger(this.getClass());
     }
 
     /**
@@ -117,7 +117,7 @@ public abstract class AbstractProcessor {
         try {
             return JsonParser.parseString(hit.getSourceAsString()).getAsJsonObject();
         } catch (JsonSyntaxException e) {
-            log.error("Failed to parse JSON from hit [{}]: {}", hit.getId(), e.getMessage());
+            this.log.error("Failed to parse JSON from hit [{}]: {}", hit.getId(), e.getMessage());
             this.failCount++;
             return null;
         }
@@ -132,17 +132,10 @@ public abstract class AbstractProcessor {
      */
     protected JsonObject extractDocument(JsonObject source, String hitId) {
         if (!source.has("document")) {
-            log.warn("Hit [{}] missing 'document' field, skipping", hitId);
+            this.log.warn("Hit [{}] missing 'document' field, skipping", hitId);
             this.skippedCount++;
             return null;
         }
         return source.getAsJsonObject("document");
     }
-
-    /**
-     * Returns the name of the processor for logging purposes.
-     *
-     * @return The processor name.
-     */
-    protected abstract String getProcessorName();
 }

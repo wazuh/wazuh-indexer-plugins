@@ -58,11 +58,6 @@ public class RuleProcessor extends AbstractProcessor {
         super(client);
     }
 
-    @Override
-    protected String getProcessorName() {
-        return "Rule";
-    }
-
     /**
      * Processes all rule documents from the specified index and synchronizes them to the security
      * analytics plugin. Each rule is extracted, validated, and indexed using the WIndexRuleAction.
@@ -73,30 +68,38 @@ public class RuleProcessor extends AbstractProcessor {
      * @param indexName The name of the index containing rule documents to process.
      */
     public void process(String indexName) {
-        if (!indexExists(indexName)) {
-            log.warn("Rule index [{}] does not exist, skipping rule sync.", indexName);
+        if (!this.indexExists(indexName)) {
+            this.log.warn("Rule index [{}] does not exist, skipping rule sync.", indexName);
             return;
         }
 
-        resetCounters();
-        SearchResponse searchResponse = searchAll(indexName);
+        this.resetCounters();
+        SearchResponse searchResponse = this.searchAll(indexName);
+        if (searchResponse == null
+                || searchResponse.getHits() == null
+                || searchResponse.getHits().getTotalHits() == null) {
+            this.log.warn(
+                    "No search response or hits returned for index [{}], skipping rule sync.", indexName);
+            return;
+        }
+
         long totalHits = searchResponse.getHits().getTotalHits().value();
         int hitsReturned = searchResponse.getHits().getHits().length;
-        log.info(
+        this.log.info(
                 "Rule index [{}] contains {} total documents, retrieved {} for processing",
                 indexName,
                 totalHits,
                 hitsReturned);
 
         for (SearchHit hit : searchResponse.getHits().getHits()) {
-            processHit(hit);
+            this.processHit(hit);
         }
 
-        log.info(
+        this.log.info(
                 "Rule processing completed: {} succeeded, {} failed, {} skipped (total hits: {})",
-                successCount,
-                failCount,
-                skippedCount,
+                this.successCount,
+                this.failCount,
+                this.skippedCount,
                 totalHits);
     }
 
@@ -107,24 +110,24 @@ public class RuleProcessor extends AbstractProcessor {
      * @param hit The search hit containing the rule document to process.
      */
     private void processHit(SearchHit hit) {
-        JsonObject source = parseHit(hit);
+        JsonObject source = this.parseHit(hit);
         if (source == null) {
             return;
         }
 
-        JsonObject doc = extractDocument(source, hit.getId());
+        JsonObject doc = this.extractDocument(source, hit.getId());
         if (doc == null) {
             return;
         }
 
         if (!doc.has("id")) {
-            log.warn("Rule document missing 'id' field, skipping: {}", hit.getId());
-            skippedCount++;
+            this.log.warn("Rule document missing 'id' field, skipping: {}", hit.getId());
+            this.skippedCount++;
             return;
         }
 
         String id = doc.get("id").getAsString();
-        String product = determineProduct(doc);
+        String product = this.determineProduct(doc);
 
         try {
             WIndexRuleRequest ruleRequest =
@@ -135,11 +138,11 @@ public class RuleProcessor extends AbstractProcessor {
                     this.client
                             .execute(WIndexRuleAction.INSTANCE, ruleRequest)
                             .get(this.pluginSettings.getClientTimeout(), TimeUnit.SECONDS);
-            log.debug("Rule [{}] synced successfully. Response ID: {}", id, response.getId());
-            successCount++;
+            this.log.debug("Rule [{}] synced successfully. Response ID: {}", id, response.getId());
+            this.successCount++;
         } catch (InterruptedException | ExecutionException | TimeoutException e) {
-            log.warn("Failed to sync rule [{}]: {}", id, e.getMessage());
-            failCount++;
+            this.log.warn("Failed to sync rule [{}]: {}", id, e.getMessage());
+            this.failCount++;
         }
     }
 
