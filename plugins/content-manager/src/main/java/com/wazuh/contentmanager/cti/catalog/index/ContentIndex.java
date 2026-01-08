@@ -138,9 +138,7 @@ public class ContentIndex {
         try (InputStream is = this.getClass().getResourceAsStream(this.mappingsPath)) {
             if (is == null) {
                 log.error(
-                        "Could not find mappings file [{}] for index [{}]",
-                        this.mappingsPath,
-                        this.indexName);
+                        "Could not find mappings file [{}] for index [{}]", this.mappingsPath, this.indexName);
                 return null;
             }
             mappings = new String(is.readAllBytes(), StandardCharsets.UTF_8);

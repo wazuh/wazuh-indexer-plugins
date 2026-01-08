@@ -79,8 +79,7 @@ public class DecodersConsumerSynchronizerTests extends OpenSearchTestCase {
         Assert.assertEquals(4, mappings.size());
         Assert.assertEquals("/mappings/cti-decoders-mappings.json", mappings.get("decoder"));
         Assert.assertEquals("/mappings/cti-kvdbs-mappings.json", mappings.get("kvdb"));
-        Assert.assertEquals(
-                "/mappings/cti-integrations-mappings.json", mappings.get("integration"));
+        Assert.assertEquals("/mappings/cti-integrations-mappings.json", mappings.get("integration"));
         Assert.assertEquals("/mappings/cti-policies-mappings.json", mappings.get("policy"));
     }
 
