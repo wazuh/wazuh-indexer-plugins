@@ -37,6 +37,8 @@ public class PluginSettings {
     private static final int DEFAULT_MAX_CONCURRENT_BULKS = 5;
     private static final int DEFAULT_CLIENT_TIMEOUT = 10;
     private static final int DEFAULT_CATALOG_SYNC_INTERVAL = 60;
+    private static final boolean DEFAULT_UPDATE_ON_START = true;
+    private static final boolean DEFAULT_UPDATE_ON_SCHEDULE = true;
 
     /** Singleton instance. */
     private static PluginSettings INSTANCE;
@@ -47,7 +49,7 @@ public class PluginSettings {
     /** The CTI API URL from the configuration file */
     public static final Setting<String> CTI_API_URL =
         Setting.simpleString(
-            "content_manager.cti.api",
+            "plugins.content_manager.cti.api",
             CTI_URL + "/api/v1",
             Setting.Property.NodeScope,
             Setting.Property.Filtered);
@@ -58,7 +60,7 @@ public class PluginSettings {
      */
     public static final Setting<Integer> MAX_ITEMS_PER_BULK =
         Setting.intSetting(
-            "content_manager.max_items_per_bulk",
+            "plugins.content_manager.max_items_per_bulk",
             DEFAULT_MAX_ITEMS_PER_BULK,
             10,
             25,
@@ -70,7 +72,7 @@ public class PluginSettings {
      */
     public static final Setting<Integer> MAX_CONCURRENT_BULKS =
         Setting.intSetting(
-            "content_manager.max_concurrent_bulks",
+            "plugins.content_manager.max_concurrent_bulks",
             DEFAULT_MAX_CONCURRENT_BULKS,
             1,
             5,
@@ -80,7 +82,7 @@ public class PluginSettings {
     /** Timeout of indexing operations */
     public static final Setting<Long> CLIENT_TIMEOUT =
         Setting.longSetting(
-            "content_manager.client.timeout",
+            "plugins.content_manager.client.timeout",
             DEFAULT_CLIENT_TIMEOUT,
             10,
             50,
@@ -92,10 +94,30 @@ public class PluginSettings {
      */
     public static final Setting<Integer> CATALOG_SYNC_INTERVAL =
         Setting.intSetting(
-            "content_manager.catalog.sync_interval",
+            "plugins.content_manager.catalog.sync_interval",
             DEFAULT_CATALOG_SYNC_INTERVAL,
             1,
             1440,
+            Setting.Property.NodeScope,
+            Setting.Property.Filtered);
+
+    /**
+     * Setting to trigger content update on start.
+     */
+    public static final Setting<Boolean> UPDATE_ON_START =
+        Setting.boolSetting(
+            "plugins.content_manager.catalog.update_on_start",
+            DEFAULT_UPDATE_ON_START,
+            Setting.Property.NodeScope,
+            Setting.Property.Filtered);
+
+    /**
+     * Setting to enable/disable the content update job.
+     */
+    public static final Setting<Boolean> UPDATE_ON_SCHEDULE =
+        Setting.boolSetting(
+            "plugins.content_manager.catalog.update_on_schedule",
+            DEFAULT_UPDATE_ON_SCHEDULE,
             Setting.Property.NodeScope,
             Setting.Property.Filtered);
 
@@ -104,6 +126,8 @@ public class PluginSettings {
     private final int maximumConcurrentBulks;
     private final long clientTimeout;
     private final int catalogSyncInterval;
+    private final boolean updateOnStart;
+    private final boolean updateOnSchedule;
 
     /**
      * Private default constructor
@@ -116,6 +140,8 @@ public class PluginSettings {
         this.maximumConcurrentBulks = MAX_CONCURRENT_BULKS.get(settings);
         this.clientTimeout = CLIENT_TIMEOUT.get(settings);
         this.catalogSyncInterval = CATALOG_SYNC_INTERVAL.get(settings);
+        this.updateOnStart = UPDATE_ON_START.get(settings);
+        this.updateOnSchedule = UPDATE_ON_SCHEDULE.get(settings);
         log.debug("Settings.loaded: {}", this.toString());
     }
 
@@ -192,6 +218,24 @@ public class PluginSettings {
         return this.catalogSyncInterval;
     }
 
+    /**
+     * Retrieves the value for the update on start setting.
+     *
+     * @return a Boolean indicating if the update on start is enabled.
+     */
+    public Boolean isUpdateOnStart() {
+        return this.updateOnStart;
+    }
+
+    /**
+     * Retrieves the value for the update on schedule setting.
+     *
+     * @return a Boolean indicating if the scheduled update is enabled.
+     */
+    public Boolean isUpdateOnSchedule() {
+        return this.updateOnSchedule;
+    }
+
     @Override
     public String toString() {
         return "{"
@@ -209,6 +253,12 @@ public class PluginSettings {
             + ", "
             + "catalogSyncInterval="
             + this.catalogSyncInterval
+            + ", "
+            + "updateOnStart="
+            + this.updateOnStart
+            + ", "
+            + "updateOnSchedule="
+            + this.updateOnSchedule
             + "}";
     }
 }
