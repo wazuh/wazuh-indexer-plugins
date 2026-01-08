@@ -72,7 +72,7 @@ public class ContentManagerPluginTests extends OpenSearchTestCase {
     public void testOnNodeStartedTriggerEnabled() {
         // Initialize settings with update_on_start = true
         Settings settings = Settings.builder()
-            .put("content_manager.catalog.update_on_start", true)
+            .put("plugins.content_manager.catalog.update_on_start", true)
             .build();
         PluginSettings.getInstance(settings);
 
@@ -89,7 +89,7 @@ public class ContentManagerPluginTests extends OpenSearchTestCase {
     public void testOnNodeStartedTriggerDisabled() {
         // Initialize settings with update_on_start = false
         Settings settings = Settings.builder()
-            .put("content_manager.catalog.update_on_start", false)
+            .put("plugins.content_manager.catalog.update_on_start", false)
             .build();
         PluginSettings.getInstance(settings);
 

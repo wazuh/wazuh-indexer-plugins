@@ -66,8 +66,8 @@ public class PluginSettingsTests extends OpenSearchTestCase {
     public void testCustomSettings() {
         // Initialize with custom settings
         Settings settings = Settings.builder()
-            .put("content_manager.catalog.update_on_start", false)
-            .put("content_manager.catalog.update_on_schedule", false)
+            .put("plugins.content_manager.catalog.update_on_start", false)
+            .put("plugins.content_manager.catalog.update_on_schedule", false)
             .build();
 
         PluginSettings pluginSettings = PluginSettings.getInstance(settings);
