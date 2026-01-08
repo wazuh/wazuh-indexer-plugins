@@ -7,15 +7,16 @@ This document describes how to extend and configure the Wazuh Indexer Content Ma
 ## 📋 Overview
 
 The Content Manager plugin handles:
-- **Authentication** Manages subscriptions and tokens with the CTI Console.
-- **Job Scheduling** Periodically checks for updates using the OpenSearch Job Scheduler.
-- **Content Synchronization** Keeps local indices in sync with the Wazuh CTI Catalog.
-- **Snapshot Initialization** Downloads and indexes full content via zip snapshots.
-- **Incremental Updates** Applies JSON Patch operations based on offsets.
-- **Context management** to maintain synchronization state
+- **Authentication:** Manages subscriptions and tokens with the CTI Console.
+- **Job Scheduling:** Periodically checks for updates using the OpenSearch Job Scheduler.
+- **Content Synchronization:** Keeps local indices in sync with the Wazuh CTI Catalog.
+- **Security Analytics Integration:** Pushes ingestion rules and detectors to the Security Analytics engine for immediate activation.
+- **Snapshot Initialization:** Downloads and indexes full content via zip snapshots.
+- **Incremental Updates:** Applies JSON Patch operations based on offsets.
+- **Context management:** Maintains synchronization state.
 
 The plugin manages several indices:
-- `.cti-consumers`: Stores consumer information and synchronization state
+- `.cti-consumers`: Stores consumer information and synchronization state.
 - `.wazuh-content-manager-jobs`: Stores job scheduler metadata.
 - Content Indices: Indices for specific content types following the naming `.<context>-<consumer>-<type>`.
 
@@ -24,6 +25,81 @@ The plugin manages several indices:
 ## 🔧 Plugin Architecture
 
 ### Main Components
+
+```mermaid
+classDiagram
+    class ContentManagerPlugin {
+        +createComponents()
+        +getRestHandlers()
+        +onNodeStarted()
+    }
+
+    class RestLayer {
+        +RestGetSubscriptionAction
+        +RestPostSubscriptionAction
+        +RestDeleteSubscriptionAction
+        +RestPostUpdateAction
+    }
+
+    class CtiConsole {
+        +manageAuthentication()
+    }
+
+    class ContentJobRunner {
+        +registerExecutor()
+    }
+
+    class CatalogSyncJob {
+        +execute()
+        +performSynchronization()
+        -rulesConsumer()
+        -decodersConsumer()
+    }
+
+    class ConsumerService {
+        <<interface>>
+        +getLocalConsumer()
+        +getRemoteConsumer()
+    }
+
+    class SnapshotServiceImpl {
+        +initialize(remoteConsumer)
+    }
+
+    class UpdateServiceImpl {
+        +update(currentOffset, remoteOffset)
+    }
+
+    class SecurityAnalyticsService {
+        <<interface>>
+        +upsertRule(doc)
+        +upsertIntegration(doc)
+        +upsertDetector(doc)
+    }
+
+
+    %% Plugin Initialization
+    ContentManagerPlugin --> CtiConsole : Initializes
+    ContentManagerPlugin --> RestLayer : Registers
+    ContentManagerPlugin --> CatalogSyncJob : Schedules
+    ContentManagerPlugin --> ContentJobRunner : Registers Jobs
+    
+    
+    %% REST Interactions
+    RestLayer --> CtiConsole : Uses
+    RestLayer --> CatalogSyncJob : Triggers manually
+
+    %% Job Dependencies
+    CatalogSyncJob --> ConsumerService : Checks State
+    CatalogSyncJob ..> SnapshotServiceImpl : (if offset == 0)
+    CatalogSyncJob ..> UpdateServiceImpl : (if offset < remote)
+    
+    %% SAP Interactions
+    SnapshotServiceImpl --> SecurityAnalyticsService : Upserts Content
+    UpdateServiceImpl --> SecurityAnalyticsService : Upserts Content
+    CatalogSyncJob --> SecurityAnalyticsService : Upserts Detectors
+
+```
 
 #### 1. **ContentManagerPlugin**
 Main class located at: `/plugins/content-manager/src/main/java/com/wazuh/contentmanager/ContentManagerPlugin.java`
@@ -37,9 +113,10 @@ This is the entry point of the plugin:
 Located at: `/plugins/content-manager/src/main/java/com/wazuh/contentmanager/jobscheduler/jobs/CatalogSyncJob.java`
 
 This class acts as the orchestrator (`JobExecutor`). It is responsible for:
-- Executing the content synchronization logic
+- Executing the content synchronization logic.
 - Managing concurrency using semaphores to prevent overlapping jobs.
 - Determining whether to trigger a Snapshot Initialization or an Incremental Update based on consumer offsets.
+- Triggering post-processing tasks like integrity checks (hash calculation) and detector updates.
 
 #### 3. **Services**
 The logic is split into specialized services:
@@ -52,14 +129,27 @@ Retrieves `LocalConsumer` state from `.cti-consumers` and `RemoteConsumer` state
 ##### 3.2 **SnapshotService**
 Located at: `/plugins/content-manager/src/main/java/com/wazuh/contentmanager/cti/catalog/service/SnapshotServiceImpl.java`
 
-Handles downloading zip snapshots, unzipping, parsing JSON files, and bulk indexing content when a consumer is new or reset.
+Handles downloading zip snapshots, unzipping, parsing JSON files, and bulk indexing content. 
+It iterates through ingested items to upsert rules and integrations into the Security Analytics plugin.
 
 ##### 3.3 **UpdateService**
 Located at: `/plugins/content-manager/src/main/java/com/wazuh/contentmanager/cti/catalog/service/UpdateServiceImpl.java`
 
-Fetches specific changes (offsets) from the CTI API and applies them using JSON Patch (`Operation` class).
+Fetches specific changes (offsets) from the CTI API and applies them using JSON Patch (`Operation` class). 
+It ensures that any modified content is immediately propagated to the Security Analytics plugin.
 
-##### 3.4 **AuthService**
+##### 3.4 **SecurityAnalyticsService**
+Interface defining the bridge to the Security Analytics Plugin (SAP).
+
+Responsible for:
+- `upsertRule(doc)`: Registering detection rules.
+- `upsertIntegration(doc)`: Registering integration definitions.
+- `upsertDetector(doc)`: Activating detectors based on integration rules.
+- `deleteRule(id)`: Deletes a rule using the id of the rule.
+- `deleteIntegration(id)`: Deletes a integration using the id.
+- `deleteDetector(id)`: Deletes a detector using the id.
+
+##### 3.5 **AuthService**
 Located at: `/plugins/content-manager/src/main/java/com/wazuh/contentmanager/cti/console/service/AuthServiceImpl.java`
 
 Manages the exchange of device codes for permanent access tokens.
@@ -90,8 +180,69 @@ The plugin is configured through the `PluginSettings` class. Settings can be def
 | `content_manager.max_concurrent_bulks`  | `5`                                | Maximum number of concurrent bulk requests.                                  |
 | `content_manager.client.timeout`        | `10`                               | Timeout (in seconds) for HTTP and Indexing operations.                       |
 
+---
 
 ## 🔄 How Content Synchronization Works
+
+```mermaid
+sequenceDiagram
+    participant Scheduler as JobScheduler/RestAction
+    participant SyncJob as CatalogSyncJob
+    participant ConsumerSvc as ConsumerService
+    participant CTI as External CTI API
+    participant Snapshot as SnapshotService
+    participant Update as UpdateService
+    participant Indices as Content Indices
+    participant SAP as SecurityAnalyticsService
+
+    Scheduler->>SyncJob: Trigger Execution
+    activate SyncJob
+    
+    SyncJob->>ConsumerSvc: getLocalConsumer()
+    ConsumerSvc-->>SyncJob: Local Offset
+    
+    SyncJob->>ConsumerSvc: getRemoteConsumer()
+    ConsumerSvc->>CTI: GET /consumer
+    CTI-->>ConsumerSvc: Remote Offset & Metadata
+    ConsumerSvc-->>SyncJob: Remote Info
+
+    alt Local Offset == 0 (Initialization)
+        SyncJob->>Snapshot: initialize(remoteConsumer)
+        Snapshot->>CTI: Download Snapshot ZIP
+        Snapshot->>Indices: Bulk Index Content
+        loop For each Item
+            Snapshot->>SAP: upsertRule(doc) / upsertIntegration(doc)
+        end
+        Snapshot-->>SyncJob: Done
+    else Local Offset < Remote Offset (Update)
+        SyncJob->>Update: update(localOffset, remoteOffset)
+        Update->>CTI: Fetch Changes
+        Update->>Indices: Apply JSON Patches
+        loop For each Change
+            Update->>SAP: upsertRule(doc) / upsertIntegration(doc)
+        end
+        Update-->>SyncJob: Done
+    end
+
+    opt Changes Applied
+        SyncJob->>Indices: Refresh Indices
+        
+        par Update Detectors
+            SyncJob->>Indices: Search Integration Rules
+            Indices-->>SyncJob: Rule Documents
+            loop For each Rule/Integration
+                SyncJob->>SAP: upsertDetector(document)
+            end
+        end
+
+        par Calculate Integrity
+            SyncJob->>SyncJob: hashPolicy()
+            note right of SyncJob: Calculates SHA-256 for<br/>Rules, Decoders, Policies
+        end
+    end
+
+    deactivate SyncJob
+```
 
 ### 1. **Initialization Phase**
 
@@ -101,21 +252,33 @@ When the plugin starts on a cluster manager node:
 2. Checks the consumer's local_offset:
    - **If local_offset = 0**: Downloads and indexes a snapshot
    - **If local_offset > 0**: Proceeds with incremental updates
+3.  **SAP Registration:** Iterates through each indexed item and invokes the `SecurityAnalyticsService` to perform an `upsertRule` or `upsertIntegration`, ensuring all content is registered for active detection.
 
 ### 2. **Update Phase**
 
-The update process follows these steps:
+When `local_offset > 0` and `local_offset < remote_offset`:
 
-1. Fetches current consumer information from `.cti-consumers`
-2. Compares `local_offset` with `remote_offset` from CTI API
-3. If different, fetches changes in batches (max `content_manager.max_changes`)
-4. Applies changes using JSON Patch operations (add, update, delete)
-5. Updates the local_offset after successful application
-6. Repeats until `local_offset == remote_offset`
+1.  **Fetch Changes:** Fetches changes in batches.
+2.  **Apply Patch:** Applies JSON Patch operations (add, update, delete).
+3.  **SAP Sync:** Pushes the specific changes to `SecurityAnalyticsService` to update the SAP.
+4.  **Offset Update:** Updates the local_offset after successful application.
 
-### 3. **Error Handling**
+### 3. **Post-Synchronization Phase**
 
-Resets local_offset to 0, triggering snapshot re-initialization
+After changes are applied, the `CatalogSyncJob` performs maintenance:
+
+1.  **Refresh:** Refreshes indices to ensure data is searchable.
+2.  **Update Detectors:**
+    * Searches for Integration Rules in the local index.
+    * Iterates through them and calls `upsertDetector` on the SAP.
+3.  **Integrity Check (`hashPolicy`):**
+    * Calculates SHA-256 hashes for Rules, Decoders, and Policies to ensure local data integrity matches the source.
+
+### 4. **Error Handling**
+
+If a critical error occurs or data corruption is detected, the system resets `local_offset` to 0, triggering a snapshot re-initialization on the next run.
+
+---
 
 ## 📡 REST API
 
@@ -192,4 +355,4 @@ tail -f logs/opensearch.log | grep -E "ContentManager|CatalogSyncJob|SnapshotSer
 ## 🔗 Related Documentation
 
 - [Setup Plugin Guide](./setup.md)
-- [OpenSearch Plugin Development](https://opensearch.org/docs/latest/install-and-configure/plugins/)
+- [OpenSearch Plugin Development](https://opensearch.org/blog/plugins-intro/)
