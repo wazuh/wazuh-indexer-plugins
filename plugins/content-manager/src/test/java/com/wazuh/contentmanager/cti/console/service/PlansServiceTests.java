@@ -17,6 +17,14 @@ import java.util.concurrent.TimeoutException;
 
 import static org.mockito.Mockito.*;
 
+/**
+ * Unit tests for the {@link PlansService} interface and its implementation. This test suite
+ * validates retrieval of CTI service subscription plans and product information.
+ *
+ * <p>Tests verify successful plan retrieval, proper parsing of plan structures with associated
+ * products, handling of malformed responses, and network error scenarios. Mock HTTP clients
+ * simulate CTI API interactions without requiring network connectivity.
+ */
 public class PlansServiceTests extends OpenSearchTestCase {
     private PlansService plansService;
     @Mock private ApiClient mockClient;

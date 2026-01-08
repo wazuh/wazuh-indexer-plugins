@@ -28,7 +28,14 @@ import com.wazuh.contentmanager.cti.catalog.index.ConsumersIndex;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 
-/** Tests for the CatalogSyncJob class. */
+/**
+ * Unit tests for the {@link CatalogSyncJob} class. This test suite validates the scheduled job
+ * responsible for synchronizing the CTI catalog with local indices.
+ *
+ * <p>Tests verify job state management, job type identification, and execution lifecycle. The
+ * catalog sync job is a critical component that ensures local content indices remain synchronized
+ * with the remote CTI catalog by periodically fetching and applying updates.
+ */
 public class CatalogSyncJobTests extends OpenSearchTestCase {
 
     private CatalogSyncJob catalogSyncJob;
@@ -57,12 +64,14 @@ public class CatalogSyncJobTests extends OpenSearchTestCase {
         super.tearDown();
     }
 
+    /** Test that the {@link CatalogSyncJob#isRunning()} method returns false initially. */
     public void testIsRunningReturnsFalseInitially() {
         boolean isRunning = this.catalogSyncJob.isRunning();
 
         Assert.assertFalse(isRunning);
     }
 
+    /** Test that the {@link CatalogSyncJob#JOB_TYPE} constant is correctly defined. */
     public void testJobTypeConstant() {
         Assert.assertEquals("consumer-sync-task", CatalogSyncJob.JOB_TYPE);
     }

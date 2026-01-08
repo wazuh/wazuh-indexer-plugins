@@ -33,6 +33,15 @@ import org.mockito.Mock;
 
 import static org.mockito.Mockito.*;
 
+/**
+ * Unit tests for the {@link AuthService} interface and its implementation. This test suite
+ * validates OAuth 2.0 device authorization flow with the CTI service including token retrieval,
+ * refresh, and error handling.
+ *
+ * <p>Tests cover successful token acquisition, handling of malformed responses, network failures,
+ * and proper cleanup of HTTP client resources. Mock HTTP clients simulate various CTI API response
+ * scenarios without requiring actual network calls.
+ */
 public class AuthServiceTests extends OpenSearchTestCase {
     private AuthService authService;
     @Mock private ApiClient mockClient;

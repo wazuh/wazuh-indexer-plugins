@@ -28,9 +28,16 @@ import java.util.List;
 /** Subscription model for managing CTI subscription data. */
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class Subscription {
+    /** Field name for device code in JSON serialization. */
     public static final String DEVICE_CODE = "device_code";
+
+    /** Field name for client ID in JSON serialization. */
     public static final String CLIENT_ID = "client_id";
+
+    /** Field name for expiration time in JSON serialization. */
     public static final String EXPIRES_IN = "expires_in";
+
+    /** Field name for polling interval in JSON serialization. */
     public static final String INTERVAL = "interval";
 
     @JsonProperty(DEVICE_CODE)
@@ -64,8 +71,7 @@ public class Subscription {
     }
 
     /**
-     * Parse a {@link Subscription} from the provided {@link
-     * org.opensearch.core.xcontent.XContentParser}.
+     * Parse a Subscription from the provided {@link org.opensearch.core.xcontent.XContentParser}.
      *
      * <p>The parser expects the following top-level fields to be present in the XContent object:
      * {@code device_code}, {@code client_id}, {@code expires_in} and {@code interval}. If any

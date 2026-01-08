@@ -38,7 +38,15 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-/** Tests for the PolicyHashService class. */
+/**
+ * Unit tests for the {@link PolicyHashService} class. This test suite verifies the calculation and
+ * update of aggregate policy hashes based on their associated integrations, rules, decoders, and
+ * key-value databases.
+ *
+ * <p>Tests cover scenarios including proper handling of missing indices, hash calculation for
+ * policies with multiple integrations, and correct aggregation of hashes from related resources.
+ * Mock objects simulate OpenSearch client interactions to test hash computation logic in isolation.
+ */
 public class PolicyHashServiceTests extends OpenSearchTestCase {
 
     private PolicyHashService policyHashService;

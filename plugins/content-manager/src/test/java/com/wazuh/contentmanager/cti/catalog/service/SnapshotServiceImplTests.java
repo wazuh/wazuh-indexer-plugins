@@ -47,11 +47,18 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.*;
 
-/** Tests for the SnapshotServiceImpl class. */
+/**
+ * Unit tests for the {@link SnapshotServiceImpl} class. This test suite validates the snapshot
+ * synchronization service responsible for downloading, extracting, and indexing CTI catalog
+ * snapshots.
+ *
+ * <p>Tests cover snapshot download and extraction, bulk indexing of catalog content, consumer
+ * state persistence, error handling for corrupted snapshots, and proper cleanup of temporary
+ * files. Mock objects simulate snapshot client interactions and OpenSearch operations without
+ * requiring network access or a running cluster.
+ */
 public class SnapshotServiceImplTests extends OpenSearchTestCase {
 
     private SnapshotServiceImpl snapshotService;
@@ -99,7 +106,9 @@ public class SnapshotServiceImplTests extends OpenSearchTestCase {
         super.tearDown();
     }
 
-    /** Tests that the initialization aborts gracefully if the snapshot URL is missing. */
+    /** Tests that the initialization aborts gracefully if the snapshot URL is missing.
+     * @throws URISyntaxException
+     * @throws IOException*/
     public void testInitialize_EmptyUrl() throws IOException, URISyntaxException {
         when(this.remoteConsumer.getSnapshotLink()).thenReturn("");
 
@@ -109,7 +118,9 @@ public class SnapshotServiceImplTests extends OpenSearchTestCase {
         verify(this.contentIndexMock, never()).clear();
     }
 
-    /** Tests that the initialization aborts if the download fails (returns null). */
+    /** Tests that the initialization aborts if the download fails (returns null).
+     * @throws URISyntaxException
+     * @throws IOException*/
     public void testInitialize_DownloadFails() throws IOException, URISyntaxException {
         String url = "http://example.com/snapshot.zip";
         when(this.remoteConsumer.getSnapshotLink()).thenReturn(url);
@@ -124,6 +135,11 @@ public class SnapshotServiceImplTests extends OpenSearchTestCase {
     /**
      * Tests a successful initialization flow: 1. Download succeeds. 2. Unzip succeeds. 3. Files are
      * parsed and indexed. 4. Consumer index is updated (check using the local consumer)
+     * @throws TimeoutException
+     * @throws ExecutionException
+     * @throws URISyntaxException
+     * @throws InterruptedException
+     * @throws IOException
      */
     public void testInitialize_Success()
             throws IOException,
@@ -165,7 +181,9 @@ public class SnapshotServiceImplTests extends OpenSearchTestCase {
         assertEquals(offset, consumerCaptor.getValue().getLocalOffset());
     }
 
-    /** Tests that documents with type "policy" are indexed correctly. */
+    /** Tests that documents with type "policy" are indexed correctly.
+     * @throws URISyntaxException
+     * @throws IOException*/
     public void testInitialize_IndexesPolicyType() throws IOException, URISyntaxException {
         // Mock
         String url = "http://example.com/policy.zip";
@@ -190,7 +208,9 @@ public class SnapshotServiceImplTests extends OpenSearchTestCase {
         assertEquals("p1", request.id());
     }
 
-    /** Tests that type "decoder" documents are delegated to ContentIndex for processing. */
+    /** Tests that type "decoder" documents are delegated to ContentIndex for processing.
+     * @throws URISyntaxException
+     * @throws IOException*/
     public void testInitialize_EnrichDecoderWithYaml() throws IOException, URISyntaxException {
         // Mock
         String url = "http://example.com/decoder.zip";
@@ -210,7 +230,9 @@ public class SnapshotServiceImplTests extends OpenSearchTestCase {
         verify(this.contentIndexMock).executeBulk(any(BulkRequest.class));
     }
 
-    /** Tests preprocessing: Verifies that payload processing is delegated. */
+    /** Tests preprocessing: Verifies that payload processing is delegated.
+     * @throws URISyntaxException
+     * @throws IOException*/
     public void testInitialize_PreprocessSigmaId() throws IOException, URISyntaxException {
         // Mock
         String url = "http://example.com/sigma.zip";
@@ -229,7 +251,9 @@ public class SnapshotServiceImplTests extends OpenSearchTestCase {
         verify(this.contentIndexMock).executeBulk(any(BulkRequest.class));
     }
 
-    /** Tests that files without 'payload', 'type', or 'document' are skipped. */
+    /** Tests that files without 'payload', 'type', or 'document' are skipped.
+     * @throws URISyntaxException
+     * @throws IOException*/
     public void testInitialize_InvalidJsonStructure() throws IOException, URISyntaxException {
         // Mock
         String url = "http://example.com/invalid.zip";
@@ -247,7 +271,9 @@ public class SnapshotServiceImplTests extends OpenSearchTestCase {
         verify(this.contentIndexMock, never()).executeBulk(any(BulkRequest.class));
     }
 
-    /** Tests preprocessing with related array: Verifies that payload processing is delegated. */
+    /** Tests preprocessing with related array: Verifies that payload processing is delegated.
+     * @throws URISyntaxException
+     * @throws IOException*/
     public void testInitialize_PreprocessSigmaIdInArray() throws IOException, URISyntaxException {
         // Mock
         String url = "http://example.com/sigma_array.zip";
@@ -269,6 +295,8 @@ public class SnapshotServiceImplTests extends OpenSearchTestCase {
     /**
      * Tests that if a file contains a mix of valid JSON and corrupt lines (parsing errors), the
      * service logs the error, skips the bad line, and continues indexing the valid ones.
+     * @throws URISyntaxException
+     * @throws IOException
      */
     public void testInitialize_SkipInvalidJson() throws IOException, URISyntaxException {
         // Mock
@@ -299,7 +327,9 @@ public class SnapshotServiceImplTests extends OpenSearchTestCase {
         assertEquals("Should index the 2 valid documents and skip the corrupt one", 2, totalActions);
     }
 
-    /** Tests delegation for decoder YAML processing. */
+    /** Tests delegation for decoder YAML processing.
+     * @throws IOException
+     * @throws URISyntaxException*/
     public void testInitialize_DecoderYamlDelegation() throws IOException, URISyntaxException {
         // Mock
         String url = "http://example.com/decoder_order.zip";

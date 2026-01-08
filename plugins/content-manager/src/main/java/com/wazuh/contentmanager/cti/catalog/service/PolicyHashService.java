@@ -45,18 +45,40 @@ public class PolicyHashService {
 
     private static final Logger log = LogManager.getLogger(PolicyHashService.class);
 
+    /** Index name suffix and field identifier for policy documents. */
     public static final String POLICY = "policy";
+
+    /** Index name suffix and field identifier for integration documents. */
     public static final String INTEGRATION = "integration";
+
+    /** Index name suffix and field identifier for decoder documents. */
     public static final String DECODER = "decoder";
+
+    /** Index name suffix and field identifier for key-value database (KVDB) documents. */
     public static final String KVDB = "kvdb";
+
+    /** Index name suffix and field identifier for rule documents. */
     public static final String RULE = "rule";
+
+    /** Field name for the space metadata within documents. */
     public static final String SPACE = "space";
+
+    /** Field name for the main document content within index records. */
     public static final String DOCUMENT = "document";
+
+    /** Field name for the decoders collection within integration documents. */
     public static final String DECODERS = "decoders";
+
+    /** Field name for the key-value databases collection within integration documents. */
     public static final String KVDBS = "kvdbs";
+
+    /** Field name for the rules collection within integration documents. */
     public static final String RULES = "rules";
+
+    /** Field name for the integrations collection within policy documents. */
     public static final String INTEGRATIONS = "integrations";
 
+    /** OpenSearch client for executing index operations and search requests. */
     private final Client client;
 
     /**

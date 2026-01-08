@@ -59,10 +59,10 @@ public class Resource {
     public Resource() {}
 
     /**
-     * Factory method to create a {@link Resource} instance from a raw Gson {@link JsonObject}.
+     * Factory method to create a Resource instance from a raw Gson JsonObject.
      *
      * @param payload The raw JSON object containing the resource data.
-     * @return A fully populated {@link Resource} instance.
+     * @return A fully populated Resource instance.
      */
     public static Resource fromPayload(JsonObject payload) {
         Resource resource = new Resource();

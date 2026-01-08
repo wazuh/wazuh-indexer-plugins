@@ -40,10 +40,16 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 
-import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
-/** Tests for the ContentIndex class. */
+/**
+ * Unit tests for the {@link ContentIndex} class. This test suite validates content index operations
+ * including document creation, updates via JSON Patch operations, deletion, and retrieval.
+ *
+ * <p>Tests verify the correct handling of content documents, application of RFC 6902 JSON Patch
+ * operations for incremental updates, and proper interaction with OpenSearch indices. Mock objects
+ * simulate OpenSearch client behavior to enable testing without a live cluster.
+ */
 public class ContentIndexTests extends OpenSearchTestCase {
 
     private ContentIndex contentIndex;
@@ -252,6 +258,8 @@ public class ContentIndexTests extends OpenSearchTestCase {
     /**
      * Test updating a document. Simulates fetching an existing document, applying operations, and
      * re-indexing.
+     *
+     * @throws Exception
      */
     public void testUpdate_Operations() throws Exception {
         String id = "58dc8e10-0b69-4b81-a851-7a767e831fff";

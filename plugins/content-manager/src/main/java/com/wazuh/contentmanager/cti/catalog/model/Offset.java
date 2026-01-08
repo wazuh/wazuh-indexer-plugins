@@ -51,9 +51,19 @@ public class Offset implements ToXContentObject {
     private final List<Operation> operations;
     private final Map<String, Object> payload;
 
+    /**
+     * Defines the type of modification operation performed on a resource in the CTI catalog. This
+     * enum is used to identify whether a change event represents resource creation, update, or
+     * deletion.
+     */
     public enum Type {
+        /** Indicates a new resource was created in the CTI catalog. */
         CREATE,
+
+        /** Indicates an existing resource was modified in the CTI catalog. */
         UPDATE,
+
+        /** Indicates a resource was removed from the CTI catalog. */
         DELETE
     }
 

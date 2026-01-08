@@ -27,7 +27,11 @@ public class RemoteConsumer extends AbstractConsumer {
     private final String snapshotLink;
     private final long snapshotOffset;
 
-    /** Default constructor */
+    /**
+     * Default constructor
+     *
+     * @param data The JSON node containing consumer data.
+     */
     public RemoteConsumer(@JsonProperty("data") JsonNode data) {
         this.name = data.get("name").asText("");
         this.context = data.get("context").asText("");

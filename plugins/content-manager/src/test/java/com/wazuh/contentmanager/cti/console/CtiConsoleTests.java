@@ -37,6 +37,14 @@ import org.mockito.Mock;
 
 import static org.mockito.Mockito.*;
 
+/**
+ * Unit tests for the {@link CtiConsole} class. This test suite validates the core console
+ * functionality for managing CTI service authentication and token lifecycle.
+ *
+ * <p>Tests verify the observer pattern implementation for token updates, proper integration with
+ * authentication and plans services, and correct token propagation to registered listeners. Mock
+ * HTTP clients simulate CTI API interactions without requiring network connectivity.
+ */
 public class CtiConsoleTests extends OpenSearchTestCase {
     private CtiConsole console;
     private AuthService authService;

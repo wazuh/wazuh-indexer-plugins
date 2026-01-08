@@ -30,6 +30,13 @@ import com.wazuh.contentmanager.rest.services.RestDeleteSubscriptionAction;
 
 import static org.mockito.Mockito.*;
 
+/**
+ * Unit tests for the {@link RestDeleteSubscriptionAction} class. This test suite validates the REST
+ * API endpoint responsible for deleting CTI subscription tokens.
+ *
+ * <p>Tests verify token deletion requests, proper cleanup of authentication state, and appropriate
+ * HTTP response codes for successful deletions and missing token scenarios.
+ */
 public class RestDeleteSubscriptionActionTests extends OpenSearchTestCase {
     private CtiConsole console;
     private RestDeleteSubscriptionAction action;
@@ -50,6 +57,8 @@ public class RestDeleteSubscriptionActionTests extends OpenSearchTestCase {
     /**
      * Test the {@link RestDeleteSubscriptionAction#handleRequest()} method when the token is created
      * (mock). The expected response is: {200, RestResponse}
+     *
+     * @throws IOException
      */
     public void testDeleteToken200() throws IOException {
         // Mock
@@ -76,6 +85,8 @@ public class RestDeleteSubscriptionActionTests extends OpenSearchTestCase {
     /**
      * Test the {@link RestDeleteSubscriptionAction#handleRequest()} method when the token has not
      * been created (mock). The expected response is: {404, RestResponse}
+     *
+     * @throws IOException
      */
     public void testDeleteToken404() throws IOException {
         // Mock

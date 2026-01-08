@@ -31,6 +31,14 @@ import com.wazuh.contentmanager.rest.services.RestPostUpdateAction;
 
 import static org.mockito.Mockito.*;
 
+/**
+ * Unit tests for the {@link RestPostUpdateAction} class. This test suite validates the REST API
+ * endpoint responsible for triggering manual catalog synchronization updates.
+ *
+ * <p>Tests verify proper authentication checks, job triggering logic, and appropriate HTTP response
+ * codes for different scenarios including successful update requests, missing authentication
+ * tokens, and jobs already in progress.
+ */
 public class RestPostUpdateActionTests extends OpenSearchTestCase {
     private CtiConsole console;
     private CatalogSyncJob catalogSyncJob;
@@ -53,6 +61,8 @@ public class RestPostUpdateActionTests extends OpenSearchTestCase {
     /**
      * Test the {@link RestPostUpdateAction#handleRequest()} method when the token is created (mock).
      * The expected response is: {200, Token}
+     *
+     * @throws IOException
      */
     public void testHandleRequest_Accepted() throws IOException {
         // Mock
@@ -79,6 +89,8 @@ public class RestPostUpdateActionTests extends OpenSearchTestCase {
     /**
      * Test the {@link RestPostUpdateAction#handleRequest()} method when the token has not been
      * created (mock). The expected response is: {404, RestResponse}
+     *
+     * @throws IOException
      */
     public void testHandleRequest_NoToken() throws IOException {
         // Mock
@@ -103,6 +115,8 @@ public class RestPostUpdateActionTests extends OpenSearchTestCase {
     /**
      * Test the {@link RestPostUpdateAction#handleRequest()} method when there is already a request
      * being performed. The expected response is: {409, RestResponse}
+     *
+     * @throws IOException
      */
     public void testHandleRequest_Conflict() throws IOException {
         // Mock

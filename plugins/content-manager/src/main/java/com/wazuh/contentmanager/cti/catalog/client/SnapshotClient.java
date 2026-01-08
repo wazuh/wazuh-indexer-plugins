@@ -54,6 +54,8 @@ public class SnapshotClient {
      *
      * @param snapshotURI URI to the file to download.
      * @return The downloaded file's name
+     * @throws IOException If an I/O error occurs during download.
+     * @throws URISyntaxException If the provided URI is invalid.
      */
     public Path downloadFile(String snapshotURI) throws IOException, URISyntaxException {
         try (CloseableHttpClient client = HttpClients.createDefault()) {

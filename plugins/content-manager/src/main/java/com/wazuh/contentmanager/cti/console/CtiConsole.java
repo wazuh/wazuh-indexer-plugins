@@ -123,6 +123,8 @@ public class CtiConsole implements TokenListener {
     /**
      * Triggers the mechanism to obtain a permanent token from the CTI Console. This method is meant
      * to be called by the Rest handler.
+     *
+     * @param subscription subscription details.
      */
     public void onPostSubscriptionRequest(Subscription subscription) {
         this.getToken(subscription);

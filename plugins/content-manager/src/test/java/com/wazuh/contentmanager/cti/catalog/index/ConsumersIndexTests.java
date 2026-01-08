@@ -40,11 +40,17 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.*;
 
-/** Tests for the ConsumersIndex class. */
+/**
+ * Unit tests for the {@link ConsumersIndex} class. This test suite verifies the functionality of
+ * consumer index operations including index creation, document storage, retrieval, and health
+ * monitoring.
+ *
+ * <p>Tests cover scenarios such as successful index creation, consumer data persistence, retrieval
+ * of consumer information, and proper handling of OpenSearch cluster health checks. Mock objects
+ * are used to simulate OpenSearch client interactions without requiring a running cluster.
+ */
 public class ConsumersIndexTests extends OpenSearchTestCase {
 
     private ConsumersIndex consumersIndex;
@@ -80,6 +86,8 @@ public class ConsumersIndexTests extends OpenSearchTestCase {
     /**
      * Tests that setConsumer constructs the correct ID (context_name) and performs the index
      * operation.
+     *
+     * @throws Exception
      */
     public void testSetConsumer_Success() throws Exception {
         // Mock
@@ -132,7 +140,11 @@ public class ConsumersIndexTests extends OpenSearchTestCase {
         assertEquals("Index not ready", ex.getMessage());
     }
 
-    /** Tests getConsumer retrieves the correct document ID based on context and consumer name. */
+    /**
+     * Tests getConsumer retrieves the correct document ID based on context and consumer name.
+     *
+     * @throws Exception
+     */
     public void testGetConsumer_Success() throws Exception {
         // Mock
         when(this.client
@@ -182,7 +194,11 @@ public class ConsumersIndexTests extends OpenSearchTestCase {
         assertArrayEquals(new String[] {ConsumersIndex.INDEX_NAME}, captor.getValue().indices());
     }
 
-    /** Tests createIndex(). */
+    /**
+     * Tests createIndex().
+     *
+     * @throws Exception
+     */
     public void testCreateIndex() throws Exception {
         // Mock
         PlainActionFuture<CreateIndexResponse> future = PlainActionFuture.newFuture();

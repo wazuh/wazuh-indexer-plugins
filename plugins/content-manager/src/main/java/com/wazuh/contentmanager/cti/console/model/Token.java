@@ -108,7 +108,7 @@ public class Token implements ToXContent {
      * structure is a JSON object with the keys {@code access_token} and {@code token_type}.
      *
      * @param builder the XContent builder to write into
-     * @param params optional parameters (may be ignored)
+     * @param params unused for this implementation, maintained for interface compatibility
      * @return the same {@link XContentBuilder} instance passed as {@code builder}
      * @throws IOException if an I/O error occurs while writing to the builder
      */

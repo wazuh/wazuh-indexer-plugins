@@ -126,7 +126,15 @@ public class ConsumersIndex {
         return ClusterInfo.indexExists(this.client, ConsumersIndex.INDEX_NAME);
     }
 
-    /** Creates the {@link ConsumersIndex#INDEX_NAME} index. */
+    /**
+     * Creates the {@link ConsumersIndex#INDEX_NAME} index.
+     *
+     * @return the response of the create index operation.
+     * @throws ExecutionException if the client failed to execute the request.
+     * @throws InterruptedException if the current thread was interrupted while waiting for the
+     *     response.
+     * @throws TimeoutException if the operation exceeded the configured client timeout.
+     */
     public CreateIndexResponse createIndex()
             throws ExecutionException, InterruptedException, TimeoutException {
         Settings settings =

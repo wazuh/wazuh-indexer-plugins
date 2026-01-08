@@ -56,10 +56,10 @@ public class Decoder extends Resource {
     }
 
     /**
-     * Factory method to create a {@link Decoder} instance from a raw JSON payload.
+     * Factory method to create a Decoder instance from a raw JSON payload.
      *
      * @param payload The raw JSON object containing the decoder data.
-     * @return A populated {@link Decoder} object with the generated YAML string.
+     * @return A populated Decoder object with the generated YAML string.
      */
     public static Decoder fromPayload(JsonObject payload) {
         Decoder decoder = new Decoder();

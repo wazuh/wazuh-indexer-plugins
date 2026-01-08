@@ -94,11 +94,6 @@ public class RestResponse implements ToXContent {
     }
 
     @Override
-    /**
-     * Returns a compact string representation of this ErrorResponse.
-     *
-     * @return string representation containing message and status
-     */
     public String toString() {
         return "{" + "message='" + this.message + '\'' + ", status=" + this.status + '}';
     }

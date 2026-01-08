@@ -30,6 +30,13 @@ import com.wazuh.contentmanager.rest.services.RestPostSubscriptionAction;
 
 import static org.mockito.Mockito.*;
 
+/**
+ * Unit tests for the {@link RestPostSubscriptionAction} class. This test suite validates the REST
+ * API endpoint responsible for creating new CTI subscriptions.
+ *
+ * <p>Tests verify subscription creation requests, proper handling of subscription data, and
+ * appropriate HTTP response codes for successful subscription creation and validation errors.
+ */
 public class RestPostSubscriptionActionTests extends OpenSearchTestCase {
     private CtiConsole console;
     private RestPostSubscriptionAction action;
@@ -50,6 +57,8 @@ public class RestPostSubscriptionActionTests extends OpenSearchTestCase {
     /**
      * Test the {@link RestPostSubscriptionAction#handleRequest(Subscription)} method when the request
      * is complete. The expected response is: {201, RestResponse}
+     *
+     * @throws IOException
      */
     public void testPostToken201() throws IOException {
         // Mock
@@ -75,6 +84,8 @@ public class RestPostSubscriptionActionTests extends OpenSearchTestCase {
     /**
      * Test the {@link RestPostSubscriptionAction#handleRequest(Subscription)} method when the token
      * has not been created (mock). The expected response is: {400, RestResponse}
+     *
+     * @throws IOException
      */
     public void testPostToken400() throws IOException {
         // Mock

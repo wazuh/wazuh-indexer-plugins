@@ -36,7 +36,11 @@ public class ContentJobRunner implements ScheduledJobRunner {
     // A thread-safe map to hold registered executors
     private final Map<String, JobExecutor> executors = new ConcurrentHashMap<>();
 
-    /** Singleton accessor method. Ensures only one instance of the runner exists. */
+    /**
+     * Singleton accessor method. Ensures only one instance of the runner exists.
+     *
+     * @return ContentJobRunner instance
+     */
     public static synchronized ContentJobRunner getInstance() {
         if (INSTANCE == null) {
             INSTANCE = new ContentJobRunner();

@@ -31,6 +31,13 @@ import com.wazuh.contentmanager.rest.services.RestGetSubscriptionAction;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
+/**
+ * Unit tests for the {@link RestGetSubscriptionAction} class. This test suite validates the REST
+ * API endpoint responsible for retrieving the current CTI subscription token.
+ *
+ * <p>Tests verify proper token retrieval, correct HTTP response formatting, and appropriate status
+ * codes for scenarios including successful token retrieval and missing token conditions.
+ */
 public class RestGetSubscriptionActionTests extends OpenSearchTestCase {
     private CtiConsole console;
     private RestGetSubscriptionAction action;
@@ -51,6 +58,8 @@ public class RestGetSubscriptionActionTests extends OpenSearchTestCase {
     /**
      * Test the {@link RestGetSubscriptionAction#handleRequest()} method when the token is created
      * (mock). The expected response is: {200, Token}
+     *
+     * @throws IOException
      */
     public void testGetToken200() throws IOException {
         // Mock
@@ -69,6 +78,8 @@ public class RestGetSubscriptionActionTests extends OpenSearchTestCase {
     /**
      * Test the {@link RestGetSubscriptionAction#handleRequest()} method when the token has not been
      * created (mock). The expected response is: {404, RestResponse}
+     *
+     * @throws IOException
      */
     public void testGetToken404() throws IOException {
         // Mock

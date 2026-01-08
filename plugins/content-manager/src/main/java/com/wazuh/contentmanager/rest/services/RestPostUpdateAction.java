@@ -54,6 +54,12 @@ public class RestPostUpdateAction extends BaseRestHandler {
     private final CtiConsole ctiConsole;
     private final CatalogSyncJob catalogSyncJob;
 
+    /**
+     * Constructs a new RestPostUpdateAction.
+     *
+     * @param console The CTI console instance for managing subscriptions and tokens.
+     * @param catalogSyncJob The catalog synchronization job to trigger updates.
+     */
     public RestPostUpdateAction(CtiConsole console, CatalogSyncJob catalogSyncJob) {
         this.ctiConsole = console;
         this.catalogSyncJob = catalogSyncJob;
@@ -120,11 +126,6 @@ public class RestPostUpdateAction extends BaseRestHandler {
             }
 
             // 3. Rate Limit Check (429 Too Many Requests)
-            /**
-             * - X-RateLimit-Limit: Maximum number of requests allowed per hour - X-RateLimit-Remaining:
-             * Number of requests remaining in current window - X-RateLimit-Reset: Unix timestamp when the
-             * rate limit window resets
-             */
 
             // 4. Update Accepted (202 ACCEPTED)
             this.catalogSyncJob.trigger();
