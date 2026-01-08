@@ -47,6 +47,8 @@ public class PluginSettings {
     private static final int DEFAULT_MAX_CONCURRENT_BULKS = 5;
     private static final int DEFAULT_CLIENT_TIMEOUT = 10;
     private static final int DEFAULT_CATALOG_SYNC_INTERVAL = 60;
+    private static final boolean DEFAULT_UPDATE_ON_START = true;
+    private static final boolean DEFAULT_UPDATE_ON_SCHEDULE = true;
 
     /** Singleton instance. */
     private static PluginSettings INSTANCE;
@@ -56,11 +58,11 @@ public class PluginSettings {
 
     /** The CTI API URL from the configuration file */
     public static final Setting<String> CTI_API_URL =
-            Setting.simpleString(
-                    "content_manager.cti.api",
-                    CTI_URL + "/api/v1",
-                    Setting.Property.NodeScope,
-                    Setting.Property.Filtered);
+        Setting.simpleString(
+            "plugins.content_manager.cti.api",
+            CTI_URL + "/api/v1",
+            Setting.Property.NodeScope,
+            Setting.Property.Filtered);
 
     /**
      * OpenSearch setting for the maximum number of elements included in a single bulk request during
@@ -68,13 +70,13 @@ public class PluginSettings {
      * performance and resource usage. Valid range is 10-25 items, with a default of 25.
      */
     public static final Setting<Integer> MAX_ITEMS_PER_BULK =
-            Setting.intSetting(
-                    "content_manager.max_items_per_bulk",
-                    DEFAULT_MAX_ITEMS_PER_BULK,
-                    10,
-                    25,
-                    Setting.Property.NodeScope,
-                    Setting.Property.Filtered);
+        Setting.intSetting(
+            "plugins.content_manager.max_items_per_bulk",
+            DEFAULT_MAX_ITEMS_PER_BULK,
+            10,
+            25,
+            Setting.Property.NodeScope,
+            Setting.Property.Filtered);
 
     /**
      * OpenSearch setting for the maximum number of concurrent bulk operations allowed during
@@ -82,13 +84,23 @@ public class PluginSettings {
      * Valid range is 1-5 concurrent operations, with a default of 5.
      */
     public static final Setting<Integer> MAX_CONCURRENT_BULKS =
-            Setting.intSetting(
-                    "content_manager.max_concurrent_bulks",
-                    DEFAULT_MAX_CONCURRENT_BULKS,
-                    1,
-                    5,
-                    Setting.Property.NodeScope,
-                    Setting.Property.Filtered);
+        Setting.intSetting(
+            "plugins.content_manager.max_concurrent_bulks",
+            DEFAULT_MAX_CONCURRENT_BULKS,
+            1,
+            5,
+            Setting.Property.NodeScope,
+            Setting.Property.Filtered);
+
+    /** Timeout of indexing operations */
+    public static final Setting<Long> CLIENT_TIMEOUT =
+        Setting.longSetting(
+            "plugins.content_manager.client.timeout",
+            DEFAULT_CLIENT_TIMEOUT,
+            10,
+            50,
+            Setting.Property.NodeScope,
+            Setting.Property.Filtered);
 
     /**
      * OpenSearch setting for the timeout duration in seconds for indexing operations. This setting
@@ -110,15 +122,34 @@ public class PluginSettings {
      * range is 1-1440 minutes (1 day), with a default of 60 minutes.
      */
     public static final Setting<Integer> CATALOG_SYNC_INTERVAL =
-            Setting.intSetting(
-                    "content_manager.catalog.sync_interval",
-                    DEFAULT_CATALOG_SYNC_INTERVAL,
-                    1,
-                    1440,
-                    Setting.Property.NodeScope,
-                    Setting.Property.Filtered);
+        Setting.intSetting(
+            "plugins.content_manager.catalog.sync_interval",
+            DEFAULT_CATALOG_SYNC_INTERVAL,
+            1,
+            1440,
+            Setting.Property.NodeScope,
+            Setting.Property.Filtered);
 
-    /** The configured base URL for the CTI API. */
+    /**
+     * Setting to trigger content update on start.
+     */
+    public static final Setting<Boolean> UPDATE_ON_START =
+        Setting.boolSetting(
+            "plugins.content_manager.catalog.update_on_start",
+            DEFAULT_UPDATE_ON_START,
+            Setting.Property.NodeScope,
+            Setting.Property.Filtered);
+
+    /**
+     * Setting to enable/disable the content update job.
+     */
+    public static final Setting<Boolean> UPDATE_ON_SCHEDULE =
+        Setting.boolSetting(
+            "plugins.content_manager.catalog.update_on_schedule",
+            DEFAULT_UPDATE_ON_SCHEDULE,
+            Setting.Property.NodeScope,
+            Setting.Property.Filtered);
+
     private final String ctiBaseUrl;
 
     /** The configured maximum number of items per bulk request. */
@@ -132,6 +163,8 @@ public class PluginSettings {
 
     /** The configured catalog synchronization interval in minutes. */
     private final int catalogSyncInterval;
+    private final boolean updateOnStart;
+    private final boolean updateOnSchedule;
 
     /**
      * Private constructor to initialize plugin settings from OpenSearch cluster configuration. This
@@ -147,6 +180,8 @@ public class PluginSettings {
         this.maximumConcurrentBulks = MAX_CONCURRENT_BULKS.get(settings);
         this.clientTimeout = CLIENT_TIMEOUT.get(settings);
         this.catalogSyncInterval = CATALOG_SYNC_INTERVAL.get(settings);
+        this.updateOnStart = UPDATE_ON_START.get(settings);
+        this.updateOnSchedule = UPDATE_ON_SCHEDULE.get(settings);
         log.debug("Settings.loaded: {}", this.toString());
     }
 
@@ -228,28 +263,46 @@ public class PluginSettings {
     }
 
     /**
-     * Returns a string representation of the plugin settings, including all configured values. This
-     * method is primarily used for debugging and logging purposes.
+     * Retrieves the value for the update on start setting.
      *
-     * @return A JSON-like string containing all plugin setting values.
+     * @return a Boolean indicating if the update on start is enabled.
      */
+    public Boolean isUpdateOnStart() {
+        return this.updateOnStart;
+    }
+
+    /**
+     * Retrieves the value for the update on schedule setting.
+     *
+     * @return a Boolean indicating if the scheduled update is enabled.
+     */
+    public Boolean isUpdateOnSchedule() {
+        return this.updateOnSchedule;
+    }
+
     @Override
     public String toString() {
         return "{"
-                + "ctiBaseUrl='"
-                + this.ctiBaseUrl
-                + "', "
-                + "maximumItemsPerBulk="
-                + this.maximumItemsPerBulk
-                + ", "
-                + "maximumConcurrentBulks="
-                + this.maximumConcurrentBulks
-                + ", "
-                + "clientTimeout="
-                + this.clientTimeout
-                + ", "
-                + "catalogSyncInterval="
-                + this.catalogSyncInterval
-                + "}";
+            + "ctiBaseUrl='"
+            + this.ctiBaseUrl
+            + "', "
+            + "maximumItemsPerBulk="
+            + this.maximumItemsPerBulk
+            + ", "
+            + "maximumConcurrentBulks="
+            + this.maximumConcurrentBulks
+            + ", "
+            + "clientTimeout="
+            + this.clientTimeout
+            + ", "
+            + "catalogSyncInterval="
+            + this.catalogSyncInterval
+            + ", "
+            + "updateOnStart="
+            + this.updateOnStart
+            + ", "
+            + "updateOnSchedule="
+            + this.updateOnSchedule
+            + "}";
     }
 }
