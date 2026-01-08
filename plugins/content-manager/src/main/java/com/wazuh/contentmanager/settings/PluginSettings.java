@@ -49,7 +49,7 @@ public class PluginSettings {
     /** The CTI API URL from the configuration file */
     public static final Setting<String> CTI_API_URL =
         Setting.simpleString(
-            "content_manager.cti.api",
+            "plugins.content_manager.cti.api",
             CTI_URL + "/api/v1",
             Setting.Property.NodeScope,
             Setting.Property.Filtered);
@@ -60,7 +60,7 @@ public class PluginSettings {
      */
     public static final Setting<Integer> MAX_ITEMS_PER_BULK =
         Setting.intSetting(
-            "content_manager.max_items_per_bulk",
+            "plugins.content_manager.max_items_per_bulk",
             DEFAULT_MAX_ITEMS_PER_BULK,
             10,
             25,
@@ -72,7 +72,7 @@ public class PluginSettings {
      */
     public static final Setting<Integer> MAX_CONCURRENT_BULKS =
         Setting.intSetting(
-            "content_manager.max_concurrent_bulks",
+            "plugins.content_manager.max_concurrent_bulks",
             DEFAULT_MAX_CONCURRENT_BULKS,
             1,
             5,
@@ -82,7 +82,7 @@ public class PluginSettings {
     /** Timeout of indexing operations */
     public static final Setting<Long> CLIENT_TIMEOUT =
         Setting.longSetting(
-            "content_manager.client.timeout",
+            "plugins.content_manager.client.timeout",
             DEFAULT_CLIENT_TIMEOUT,
             10,
             50,
@@ -94,7 +94,7 @@ public class PluginSettings {
      */
     public static final Setting<Integer> CATALOG_SYNC_INTERVAL =
         Setting.intSetting(
-            "content_manager.catalog.sync_interval",
+            "plugins.content_manager.catalog.sync_interval",
             DEFAULT_CATALOG_SYNC_INTERVAL,
             1,
             1440,
@@ -106,7 +106,7 @@ public class PluginSettings {
      */
     public static final Setting<Boolean> UPDATE_ON_START =
         Setting.boolSetting(
-            "content_manager.catalog.update_on_start",
+            "plugins.content_manager.catalog.update_on_start",
             DEFAULT_UPDATE_ON_START,
             Setting.Property.NodeScope,
             Setting.Property.Filtered);
@@ -116,7 +116,7 @@ public class PluginSettings {
      */
     public static final Setting<Boolean> UPDATE_ON_SCHEDULE =
         Setting.boolSetting(
-            "content_manager.catalog.update_on_schedule",
+            "plugins.content_manager.catalog.update_on_schedule",
             DEFAULT_UPDATE_ON_SCHEDULE,
             Setting.Property.NodeScope,
             Setting.Property.Filtered);

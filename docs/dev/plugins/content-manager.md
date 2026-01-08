@@ -82,15 +82,15 @@ Manages operations for content indices.
 
 The plugin is configured through the `PluginSettings` class. Settings can be defined in `opensearch.yml`:
 
-| Setting                                      | Default                            | Description                                                                  |
-|----------------------------------------------|------------------------------------|------------------------------------------------------------------------------|
-| `content_manager.cti.api`                    | `https://cti-pre.wazuh.com/api/v1` | Base URL for the Wazuh CTI API.                                              |
-| `content_manager.catalog.sync_interval`      | `60`                               | Interval (in minutes) for the periodic synchronization job.                  |
-| `content_manager.max_items_per_bulk`         | `25`                               | Maximum number of documents per bulk request during snapshot initialization. |
-| `content_manager.max_concurrent_bulks`       | `5`                                | Maximum number of concurrent bulk requests.                                  |
-| `content_manager.client.timeout`             | `10`                               | Timeout (in seconds) for HTTP and Indexing operations.                       |
-| `content_manager.catalog.update_on_start`    | `true`                             | Triggers a content update when the plugin starts.                            |
-| `content_manager.catalog.update_on_schedule` | `true`                             | Enables or disables the periodic content update job.                         |
+| Setting                                              | Default                            | Description                                                                  |
+|------------------------------------------------------|------------------------------------|------------------------------------------------------------------------------|
+| `plugins.content_manager.cti.api`                    | `https://cti-pre.wazuh.com/api/v1` | Base URL for the Wazuh CTI API.                                              |
+| `plugins.content_manager.catalog.sync_interval`      | `60`                               | Interval (in minutes) for the periodic synchronization job.                  |
+| `plugins.content_manager.max_items_per_bulk`         | `25`                               | Maximum number of documents per bulk request during snapshot initialization. |
+| `plugins.content_manager.max_concurrent_bulks`       | `5`                                | Maximum number of concurrent bulk requests.                                  |
+| `plugins.content_manager.client.timeout`             | `10`                               | Timeout (in seconds) for HTTP and Indexing operations.                       |
+| `plugins.content_manager.catalog.update_on_start`    | `true`                             | Triggers a content update when the plugin starts.                            |
+| `plugins.content_manager.catalog.update_on_schedule` | `true`                             | Enables or disables the periodic content update job.                         |
 
 
 ## 🔄 How Content Synchronization Works
