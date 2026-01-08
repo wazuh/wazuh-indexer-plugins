@@ -58,11 +58,11 @@ public class PluginSettings {
 
     /** The CTI API URL from the configuration file */
     public static final Setting<String> CTI_API_URL =
-        Setting.simpleString(
-            "plugins.content_manager.cti.api",
-            CTI_URL + "/api/v1",
-            Setting.Property.NodeScope,
-            Setting.Property.Filtered);
+            Setting.simpleString(
+                    "plugins.content_manager.cti.api",
+                    CTI_URL + "/api/v1",
+                    Setting.Property.NodeScope,
+                    Setting.Property.Filtered);
 
     /**
      * OpenSearch setting for the maximum number of elements included in a single bulk request during
@@ -70,13 +70,13 @@ public class PluginSettings {
      * performance and resource usage. Valid range is 10-25 items, with a default of 25.
      */
     public static final Setting<Integer> MAX_ITEMS_PER_BULK =
-        Setting.intSetting(
-            "plugins.content_manager.max_items_per_bulk",
-            DEFAULT_MAX_ITEMS_PER_BULK,
-            10,
-            25,
-            Setting.Property.NodeScope,
-            Setting.Property.Filtered);
+            Setting.intSetting(
+                    "plugins.content_manager.max_items_per_bulk",
+                    DEFAULT_MAX_ITEMS_PER_BULK,
+                    10,
+                    25,
+                    Setting.Property.NodeScope,
+                    Setting.Property.Filtered);
 
     /**
      * OpenSearch setting for the maximum number of concurrent bulk operations allowed during
@@ -84,32 +84,22 @@ public class PluginSettings {
      * Valid range is 1-5 concurrent operations, with a default of 5.
      */
     public static final Setting<Integer> MAX_CONCURRENT_BULKS =
-        Setting.intSetting(
-            "plugins.content_manager.max_concurrent_bulks",
-            DEFAULT_MAX_CONCURRENT_BULKS,
-            1,
-            5,
-            Setting.Property.NodeScope,
-            Setting.Property.Filtered);
-
-    /** Timeout of indexing operations */
-    public static final Setting<Long> CLIENT_TIMEOUT =
-        Setting.longSetting(
-            "plugins.content_manager.client.timeout",
-            DEFAULT_CLIENT_TIMEOUT,
-            10,
-            50,
-            Setting.Property.NodeScope,
-            Setting.Property.Filtered);
+            Setting.intSetting(
+                    "plugins.content_manager.max_concurrent_bulks",
+                    DEFAULT_MAX_CONCURRENT_BULKS,
+                    1,
+                    5,
+                    Setting.Property.NodeScope,
+                    Setting.Property.Filtered);
 
     /**
-     * OpenSearch setting for the timeout duration in seconds for indexing operations. This setting
-     * defines how long the client will wait for indexing requests to complete before timing out.
-     * Valid range is 10-50 seconds, with a default of 10 seconds.
+     * Setting for the timeout duration in seconds for indexing operations. This setting defines how
+     * long the client will wait for indexing requests to complete before timing out. Valid range is
+     * 10-50 seconds, with a default of 10 seconds.
      */
     public static final Setting<Long> CLIENT_TIMEOUT =
             Setting.longSetting(
-                    "content_manager.client.timeout",
+                    "plugins.content_manager.client.timeout",
                     DEFAULT_CLIENT_TIMEOUT,
                     10,
                     50,
@@ -117,38 +107,34 @@ public class PluginSettings {
                     Setting.Property.Filtered);
 
     /**
-     * OpenSearch setting for the catalog synchronization job interval in minutes. This setting
-     * controls how frequently the plugin synchronizes with the CTI catalog to fetch updates. Valid
-     * range is 1-1440 minutes (1 day), with a default of 60 minutes.
+     * Setting for the catalog synchronization job interval in minutes. It controls how frequently the
+     * plugin synchronizes with the CTI catalog to fetch updates. Valid range is 1-1440 minutes (1
+     * day), with a default of 60 minutes.
      */
     public static final Setting<Integer> CATALOG_SYNC_INTERVAL =
-        Setting.intSetting(
-            "plugins.content_manager.catalog.sync_interval",
-            DEFAULT_CATALOG_SYNC_INTERVAL,
-            1,
-            1440,
-            Setting.Property.NodeScope,
-            Setting.Property.Filtered);
+            Setting.intSetting(
+                    "plugins.content_manager.catalog.sync_interval",
+                    DEFAULT_CATALOG_SYNC_INTERVAL,
+                    1,
+                    1440,
+                    Setting.Property.NodeScope,
+                    Setting.Property.Filtered);
 
-    /**
-     * Setting to trigger content update on start.
-     */
+    /** Setting to trigger content update on start. */
     public static final Setting<Boolean> UPDATE_ON_START =
-        Setting.boolSetting(
-            "plugins.content_manager.catalog.update_on_start",
-            DEFAULT_UPDATE_ON_START,
-            Setting.Property.NodeScope,
-            Setting.Property.Filtered);
+            Setting.boolSetting(
+                    "plugins.content_manager.catalog.update_on_start",
+                    DEFAULT_UPDATE_ON_START,
+                    Setting.Property.NodeScope,
+                    Setting.Property.Filtered);
 
-    /**
-     * Setting to enable/disable the content update job.
-     */
+    /** Setting to enable/disable the content update job. */
     public static final Setting<Boolean> UPDATE_ON_SCHEDULE =
-        Setting.boolSetting(
-            "plugins.content_manager.catalog.update_on_schedule",
-            DEFAULT_UPDATE_ON_SCHEDULE,
-            Setting.Property.NodeScope,
-            Setting.Property.Filtered);
+            Setting.boolSetting(
+                    "plugins.content_manager.catalog.update_on_schedule",
+                    DEFAULT_UPDATE_ON_SCHEDULE,
+                    Setting.Property.NodeScope,
+                    Setting.Property.Filtered);
 
     private final String ctiBaseUrl;
 
@@ -163,6 +149,7 @@ public class PluginSettings {
 
     /** The configured catalog synchronization interval in minutes. */
     private final int catalogSyncInterval;
+
     private final boolean updateOnStart;
     private final boolean updateOnSchedule;
 
@@ -283,26 +270,26 @@ public class PluginSettings {
     @Override
     public String toString() {
         return "{"
-            + "ctiBaseUrl='"
-            + this.ctiBaseUrl
-            + "', "
-            + "maximumItemsPerBulk="
-            + this.maximumItemsPerBulk
-            + ", "
-            + "maximumConcurrentBulks="
-            + this.maximumConcurrentBulks
-            + ", "
-            + "clientTimeout="
-            + this.clientTimeout
-            + ", "
-            + "catalogSyncInterval="
-            + this.catalogSyncInterval
-            + ", "
-            + "updateOnStart="
-            + this.updateOnStart
-            + ", "
-            + "updateOnSchedule="
-            + this.updateOnSchedule
-            + "}";
+                + "ctiBaseUrl='"
+                + this.ctiBaseUrl
+                + "', "
+                + "maximumItemsPerBulk="
+                + this.maximumItemsPerBulk
+                + ", "
+                + "maximumConcurrentBulks="
+                + this.maximumConcurrentBulks
+                + ", "
+                + "clientTimeout="
+                + this.clientTimeout
+                + ", "
+                + "catalogSyncInterval="
+                + this.catalogSyncInterval
+                + ", "
+                + "updateOnStart="
+                + this.updateOnStart
+                + ", "
+                + "updateOnSchedule="
+                + this.updateOnSchedule
+                + "}";
     }
 }

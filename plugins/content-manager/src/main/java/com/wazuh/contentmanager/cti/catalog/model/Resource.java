@@ -38,7 +38,8 @@ import java.util.Map;
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class Resource {
     private static final Logger log = LogManager.getLogger(Resource.class);
-    private static final Gson GSON = new GsonBuilder().setObjectToNumberStrategy(ToNumberPolicy.LONG_OR_DOUBLE).create();
+    private static final Gson GSON =
+            new GsonBuilder().setObjectToNumberStrategy(ToNumberPolicy.LONG_OR_DOUBLE).create();
 
     // JSON Key Constants
     private static final String JSON_DOCUMENT_KEY = "document";

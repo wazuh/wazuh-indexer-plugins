@@ -139,14 +139,8 @@ public class ContentManagerPlugin extends Plugin
         // Schedule the periodic sync job via OpenSearch Job Scheduler
         this.scheduleCatalogSyncJob();
 
-<<<<<<< HEAD
-        // Skip catalog sync trigger during integration tests
-        boolean isTestEnv = "true".equals(System.getProperty("INDEXER_TEST_ENV"));
-        if (!isTestEnv) {
-=======
         // Trigger update on start if enabled
         if (PluginSettings.getInstance().isUpdateOnStart()) {
->>>>>>> main
             this.catalogSyncJob.trigger();
         } else {
             log.info("Skipping catalog sync job trigger");
@@ -165,6 +159,7 @@ public class ContentManagerPlugin extends Plugin
      * @param nodesInCluster Supplier for nodes in the cluster.
      * @return A list of REST handlers.
      */
+    @Override
     public List<RestHandler> getRestHandlers(
             Settings settings,
             org.opensearch.rest.RestController restController,
@@ -255,28 +250,29 @@ public class ContentManagerPlugin extends Plugin
                                 // 2. Check if the job document exists; if not, index it.
                                 boolean jobExists = this.client.prepareGet(JOB_INDEX_NAME, JOB_ID).get().isExists();
 
-                if (!jobExists) {
-                    ContentJobParameter job = new ContentJobParameter(
-                        "Catalog Sync Periodic Task",
-                        CatalogSyncJob.JOB_TYPE,
-                        new IntervalSchedule(
-                            Instant.now(),
-                            PluginSettings.getInstance().getCatalogSyncInterval(),
-                            ChronoUnit.MINUTES),
-                        PluginSettings.getInstance().isUpdateOnSchedule(),
-                        Instant.now(),
-                        Instant.now()
-                    );
-                    IndexRequest request = new IndexRequest(JOB_INDEX_NAME)
-                        .id(JOB_ID)
-                        .source(job.toXContent(XContentFactory.jsonBuilder(), null));
-                    this.client.index(request).actionGet();
-                    log.info("Catalog Sync Job scheduled successfully.");
-                }
-            } catch (Exception e) {
-                log.error("Error scheduling Catalog Sync Job: {}", e.getMessage());
-            }
-        });
+                                if (!jobExists) {
+                                    ContentJobParameter job =
+                                            new ContentJobParameter(
+                                                    "Catalog Sync Periodic Task",
+                                                    CatalogSyncJob.JOB_TYPE,
+                                                    new IntervalSchedule(
+                                                            Instant.now(),
+                                                            PluginSettings.getInstance().getCatalogSyncInterval(),
+                                                            ChronoUnit.MINUTES),
+                                                    PluginSettings.getInstance().isUpdateOnSchedule(),
+                                                    Instant.now(),
+                                                    Instant.now());
+                                    IndexRequest request =
+                                            new IndexRequest(JOB_INDEX_NAME)
+                                                    .id(JOB_ID)
+                                                    .source(job.toXContent(XContentFactory.jsonBuilder(), null));
+                                    this.client.index(request).actionGet();
+                                    log.info("Catalog Sync Job scheduled successfully.");
+                                }
+                            } catch (Exception e) {
+                                log.error("Error scheduling Catalog Sync Job: {}", e.getMessage());
+                            }
+                        });
     }
 
     /**
@@ -288,13 +284,13 @@ public class ContentManagerPlugin extends Plugin
     @Override
     public List<Setting<?>> getSettings() {
         return Arrays.asList(
-            PluginSettings.CLIENT_TIMEOUT,
-            PluginSettings.CTI_API_URL,
-            PluginSettings.MAX_CONCURRENT_BULKS,
-            PluginSettings.MAX_ITEMS_PER_BULK,
-            PluginSettings.CATALOG_SYNC_INTERVAL,
-            PluginSettings.UPDATE_ON_START,
-            PluginSettings.UPDATE_ON_SCHEDULE);
+                PluginSettings.CLIENT_TIMEOUT,
+                PluginSettings.CTI_API_URL,
+                PluginSettings.MAX_CONCURRENT_BULKS,
+                PluginSettings.MAX_ITEMS_PER_BULK,
+                PluginSettings.CATALOG_SYNC_INTERVAL,
+                PluginSettings.UPDATE_ON_START,
+                PluginSettings.UPDATE_ON_SCHEDULE);
     }
 
     /**
@@ -306,14 +302,18 @@ public class ContentManagerPlugin extends Plugin
     public String getJobType() {
         return "content-manager-job";
     }
+
+    /**
+     * Returns the name of the index used to store job metadata.
+     *
+     * @return The job index name.
+     */
+    @Override
     public String getJobIndex() {
         return JOB_INDEX_NAME;
     }
 
-    /**
-     * Returns the runner instance responsible for executing the scheduled jobs.
-     *
-     */
+    /** Returns the runner instance responsible for executing the scheduled jobs. */
     @Override
     public ScheduledJobRunner getJobRunner() {
         return ContentJobRunner.getInstance();
