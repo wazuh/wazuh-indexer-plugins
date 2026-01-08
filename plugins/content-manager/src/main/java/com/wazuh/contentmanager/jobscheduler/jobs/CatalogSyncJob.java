@@ -156,7 +156,7 @@ public class CatalogSyncJob implements JobExecutor {
             RULE, "/mappings/cti-rules-mappings.json"
         );
         mappings.put(
-            INTEGRATION, "/mappings/cti-rules-integrations-mappings.json"
+            INTEGRATION, "/mappings/cti-integrations-mappings.json"
         );
 
         Map<String, String> aliases = new HashMap<>();
@@ -256,7 +256,7 @@ public class CatalogSyncJob implements JobExecutor {
             KVDB, "/mappings/cti-kvdbs-mappings.json"
         );
         mappings.put(
-            INTEGRATION, "/mappings/cti-decoders-integrations-mappings.json"
+            INTEGRATION, "/mappings/cti-integrations-mappings.json"
         );
         mappings.put(
             POLICY, "/mappings/cti-policies-mappings.json"
