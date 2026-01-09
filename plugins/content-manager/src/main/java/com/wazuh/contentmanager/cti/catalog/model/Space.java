@@ -6,7 +6,7 @@ import java.util.Locale;
  * Enum class that describes all the possible spaces that the content manager will manage
  */
 public enum Space {
-    FREE, PAID, CUSTOM, DRAFT, TESTING;
+    STANDARD, CUSTOM, DRAFT, TESTING;
 
     public String toString() {
         return this.name().toLowerCase(Locale.ROOT);
