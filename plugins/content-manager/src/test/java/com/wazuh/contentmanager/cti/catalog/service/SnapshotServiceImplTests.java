@@ -23,8 +23,10 @@ import com.wazuh.contentmanager.cti.catalog.index.ContentIndex;
 import com.wazuh.contentmanager.cti.catalog.model.LocalConsumer;
 import com.wazuh.contentmanager.cti.catalog.model.RemoteConsumer;
 import com.wazuh.contentmanager.settings.PluginSettings;
+import org.opensearch.common.action.ActionFuture;
 import org.opensearch.action.bulk.BulkRequest;
 import org.opensearch.action.index.IndexRequest;
+import org.opensearch.transport.client.Client;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.env.Environment;
 import org.opensearch.test.OpenSearchTestCase;
@@ -60,6 +62,9 @@ public class SnapshotServiceImplTests extends OpenSearchTestCase {
     @Mock private ContentIndex contentIndexMock;
     @Mock private Environment environment;
     @Mock private RemoteConsumer remoteConsumer;
+    @Mock private Client client;
+    @Mock private ActionFuture actionFuture;
+    @Mock private SecurityAnalyticsService securityAnalyticsService;
 
     private AutoCloseable closeable;
 
@@ -81,7 +86,11 @@ public class SnapshotServiceImplTests extends OpenSearchTestCase {
         List<ContentIndex> contentIndices = Collections.singletonList(this.contentIndexMock);
         String context = "test-context";
         String consumer = "test-consumer";
-        this.snapshotService = new SnapshotServiceImpl(context, consumer, contentIndices, this.consumersIndex, this.environment);
+
+        // Mock client behavior
+        when(this.client.execute(any(), any())).thenReturn(this.actionFuture);
+
+        this.snapshotService = new SnapshotServiceImpl(context, consumer, contentIndices, this.consumersIndex, this.environment, this.client, this.securityAnalyticsService);
         this.snapshotService.setSnapshotClient(this.snapshotClient);
 
         when(this.contentIndexMock.processPayload(any(JsonObject.class)))
@@ -138,7 +147,7 @@ public class SnapshotServiceImplTests extends OpenSearchTestCase {
         when(this.remoteConsumer.getOffset()).thenReturn(offset);
         when(this.remoteConsumer.getSnapshotOffset()).thenReturn(offset);
 
-        Path zipPath = createZipFileWithContent("data.json",
+        Path zipPath = this.createZipFileWithContent("data.json",
             "{\"payload\": {\"type\": \"kvdb\", \"document\": {\"id\": \"12345678\", \"title\": \"Test Kvdb\"}}}"
         );
         when(this.snapshotClient.downloadFile(url)).thenReturn(zipPath);
@@ -172,7 +181,7 @@ public class SnapshotServiceImplTests extends OpenSearchTestCase {
         String url = "http://example.com/policy.zip";
         when(this.remoteConsumer.getSnapshotLink()).thenReturn(url);
 
-        Path zipPath = createZipFileWithContent("policy.json",
+        Path zipPath = this.createZipFileWithContent("policy.json",
             "{\"payload\": {\"type\": \"policy\", \"document\": {\"id\": \"p1\"}}}"
         );
         when(this.snapshotClient.downloadFile(url)).thenReturn(zipPath);
@@ -200,7 +209,7 @@ public class SnapshotServiceImplTests extends OpenSearchTestCase {
         when(this.remoteConsumer.getSnapshotLink()).thenReturn(url);
 
         String jsonContent = "{\"payload\": {\"type\": \"decoder\", \"document\": {\"name\": \"syslog\", \"parent\": \"root\"}}}";
-        Path zipPath = createZipFileWithContent("decoder.json", jsonContent);
+        Path zipPath = this.createZipFileWithContent("decoder.json", jsonContent);
         when(this.snapshotClient.downloadFile(url)).thenReturn(zipPath);
 
         // Act
@@ -221,7 +230,7 @@ public class SnapshotServiceImplTests extends OpenSearchTestCase {
         when(this.remoteConsumer.getSnapshotLink()).thenReturn(url);
 
         String jsonContent = "{\"payload\": {\"type\": \"rule\", \"document\": {\"id\": \"R1\", \"related\": {\"sigma_id\": \"S-123\", \"type\": \"test-value\"}}}}";
-        Path zipPath = createZipFileWithContent("sigma.json", jsonContent);
+        Path zipPath = this.createZipFileWithContent("sigma.json", jsonContent);
         when(this.snapshotClient.downloadFile(url)).thenReturn(zipPath);
 
         // Act
@@ -244,7 +253,7 @@ public class SnapshotServiceImplTests extends OpenSearchTestCase {
             "{}\n" +
                 "{\"payload\": {}}";
 
-        Path zipPath = createZipFileWithContent("invalid.json", jsonContent);
+        Path zipPath = this.createZipFileWithContent("invalid.json", jsonContent);
         when(this.snapshotClient.downloadFile(url)).thenReturn(zipPath);
 
         // Act
@@ -263,7 +272,7 @@ public class SnapshotServiceImplTests extends OpenSearchTestCase {
         when(this.remoteConsumer.getSnapshotLink()).thenReturn(url);
 
         String jsonContent = "{\"payload\": {\"type\": \"rule\", \"document\": {\"id\": \"R2\", \"related\": [{\"sigma_id\": \"999\"}]}}}";
-        Path zipPath = createZipFileWithContent("sigma_array.json", jsonContent);
+        Path zipPath = this.createZipFileWithContent("sigma_array.json", jsonContent);
         when(this.snapshotClient.downloadFile(url)).thenReturn(zipPath);
 
         // Act
@@ -288,7 +297,7 @@ public class SnapshotServiceImplTests extends OpenSearchTestCase {
                 "THIS_IS_NOT_JSON_{{}}\n" +
                 "{\"payload\": {\"type\": \"reputation\", \"document\": {\"id\": \"2\", \"ip\": \"2.2.2.2\"}}}";
 
-        Path zipPath = createZipFileWithContent("mixed.json", jsonContent);
+        Path zipPath = this.createZipFileWithContent("mixed.json", jsonContent);
         when(this.snapshotClient.downloadFile(url)).thenReturn(zipPath);
 
         // Act
@@ -318,7 +327,7 @@ public class SnapshotServiceImplTests extends OpenSearchTestCase {
         String jsonContent = "{\"payload\": {\"type\": \"decoder\", \"document\": " +
             "{\"check\": \"some_regex\", \"name\": \"ssh-decoder\", \"parents\": [\"root\"]}}}";
 
-        Path zipPath = createZipFileWithContent("decoder_order.json", jsonContent);
+        Path zipPath = this.createZipFileWithContent("decoder_order.json", jsonContent);
         when(this.snapshotClient.downloadFile(url)).thenReturn(zipPath);
 
         // Act

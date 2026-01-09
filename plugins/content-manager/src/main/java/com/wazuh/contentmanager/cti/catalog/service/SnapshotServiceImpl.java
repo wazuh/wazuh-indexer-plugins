@@ -29,8 +29,12 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.opensearch.action.bulk.BulkRequest;
 import org.opensearch.action.index.IndexRequest;
+import org.opensearch.action.search.SearchResponse;
 import org.opensearch.common.xcontent.XContentType;
 import org.opensearch.env.Environment;
+import org.opensearch.index.query.QueryBuilders;
+import org.opensearch.search.SearchHit;
+import org.opensearch.transport.client.Client;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -58,18 +62,24 @@ public class SnapshotServiceImpl implements SnapshotService {
     private SnapshotClient snapshotClient;
     private final Environment environment;
     private final PluginSettings pluginSettings;
+    private final Client client;
+    private final SecurityAnalyticsService securityAnalyticsService;
 
     public SnapshotServiceImpl(String context,
                                String consumer,
                                List<ContentIndex> contentIndex,
                                ConsumersIndex consumersIndex,
-                               Environment environment) {
+                               Environment environment,
+                               Client client,
+                               SecurityAnalyticsService securityAnalyticsService) {
         this.context = context;
         this.consumer = consumer;
         this.contentIndex = contentIndex;
         this.consumersIndex = consumersIndex;
         this.environment = environment;
         this.pluginSettings = PluginSettings.getInstance();
+        this.client = client;
+        this.securityAnalyticsService = securityAnalyticsService;
 
         this.snapshotClient = new SnapshotClient(this.environment);
     }
@@ -92,7 +102,6 @@ public class SnapshotServiceImpl implements SnapshotService {
     @Override
     public void initialize(RemoteConsumer consumer) {
         String snapshotUrl = consumer.getSnapshotLink();
-        long offset = consumer.getOffset();
 
         if (snapshotUrl == null || snapshotUrl.isEmpty()) {
             log.warn("Snapshot URL is empty. Skipping initialization.");
@@ -121,12 +130,22 @@ public class SnapshotServiceImpl implements SnapshotService {
             // 4. Clear indices
             this.contentIndex.forEach(ContentIndex::clear);
 
-            // 5. Process and Index Files
+            // 5. Process and Index Files (Locally in ContentIndices)
             try (DirectoryStream<Path> stream = Files.newDirectoryStream(outputDir, "*.json")) {
                 for (Path entry : stream) {
                     this.processSnapshotFile(entry);
                 }
             }
+
+            // Ensure all bulk requests are finished before starting SAP sync
+            if (!this.contentIndex.isEmpty()) {
+                log.info("Waiting for pending bulk updates to finish...");
+                this.contentIndex.getFirst().waitForPendingUpdates();
+            }
+
+            // 6. Sync to SAP (Integrations first, then Rules)
+            this.syncToSapFromLocalIndices();
+
         } catch (Exception e) {
             log.error("Error processing snapshot: {}", e.getMessage());
         } finally {
@@ -134,7 +153,7 @@ public class SnapshotServiceImpl implements SnapshotService {
             this.cleanup(snapshotZip, outputDir);
         }
 
-        // 6. Update Consumer State in .cti-consumers
+        // 7. Update Consumer State in .cti-consumers
         try {
             LocalConsumer updatedConsumer = new LocalConsumer(
                 this.context,
@@ -233,6 +252,75 @@ public class SnapshotServiceImpl implements SnapshotService {
         }
     }
 
+    /**
+     * Orchestrates the synchronization process to the SAP.
+     */
+    private void syncToSapFromLocalIndices() {
+        // Refresh to make docs visible for search
+        for (ContentIndex idx : this.contentIndex) {
+            try {
+                this.client.admin().indices().prepareRefresh(idx.getIndexName()).get();
+            } catch (Exception e) {
+                log.warn("Failed to refresh index [{}]: {}", idx.getIndexName(), e.getMessage());
+            }
+        }
+
+        // Sync Integrations
+        this.syncTypeFromIndex("integration");
+
+        // Sync Rules
+        this.syncTypeFromIndex("rule");
+    }
+
+    /**
+     * Synchronizes all documents associated with a specific type from the local index to the SAP.
+     *
+     * @param type The type identifier used to look up the corresponding index name.
+     */
+    private void syncTypeFromIndex(String type) {
+        String indexName = this.getIndexName(type);
+        try {
+            log.info("Starting SAP sync for type [{}] from local index [{}]...", type, indexName);
+
+            // Search all documents
+            SearchResponse response = this.client.prepareSearch(indexName)
+                .setQuery(QueryBuilders.matchAllQuery())
+                .setSize(10000)
+                .get();
+
+            for (SearchHit hit : response.getHits()) {
+                try {
+                    JsonObject source = JsonParser.parseString(hit.getSourceAsString()).getAsJsonObject();
+                    this.syncToSap(type, source);
+                } catch (Exception e) {
+                    log.error("Failed to sync document [{}] of type [{}] to SAP: {}", hit.getId(), type, e.getMessage());
+                }
+            }
+        } catch (Exception e) {
+            log.error("Error syncing type [{}] from index [{}] to SAP: {}", type, indexName, e.getMessage());
+        }
+    }
+
+    /**
+     * Parses the source JSON and delegates to SecurityAnalyticsService.
+     *
+     * @param type The entity type (e.g., "integration", "rule").
+     * @param source The raw JSON source containing the document data.
+     */
+    private void syncToSap(String type, JsonObject source) {
+        if ("integration".equals(type)) {
+            this.securityAnalyticsService.upsertIntegration(source);
+        } else if ("rule".equals(type)) {
+            this.securityAnalyticsService.upsertRule(source);
+        }
+    }
+
+    /**
+     * Constructs the index name using the pattern {@code .<context>-<consumer>-<type>}.
+     *
+     * @param type The entity type.
+     * @return The formatted, locale-safe index string.
+     */
     private String getIndexName(String type) {
         return String.format(Locale.ROOT, ".%s-%s-%s", this.context, this.consumer, type);
     }
