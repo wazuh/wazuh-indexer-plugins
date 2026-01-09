@@ -25,16 +25,15 @@ import java.util.Locale;
 public enum Space {
     /** Standard content space for production-ready CTI resources. */
     STANDARD,
-    
+
     /** Custom content space for user-defined CTI resources. */
     CUSTOM,
-    
+
     /** Draft content space for content under development. */
     DRAFT,
-    
+
     /** Testing content space for experimental or testing resources. */
     TESTING;
-
 
     /**
      * Returns the lowercase string representation of the space.
