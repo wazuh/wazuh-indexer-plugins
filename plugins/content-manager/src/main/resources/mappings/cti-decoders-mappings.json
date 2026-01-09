@@ -3,7 +3,7 @@
   "dynamic_templates": [
     {
       "parse_fields": {
-        "match": "parse|*",
+        "match": ["parse|*"],
         "mapping": {
           "type": "keyword"
         }
