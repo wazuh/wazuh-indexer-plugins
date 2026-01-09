@@ -1,7 +1,21 @@
+/*
+ * Copyright (C) 2024, Wazuh Inc.
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as
+ * published by the Free Software Foundation, either version 3 of the
+ * License, or (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
 package com.wazuh.contentmanager.cti.catalog.client;
 
-import com.wazuh.contentmanager.cti.catalog.utils.HttpResponseCallback;
-import com.wazuh.contentmanager.settings.PluginSettings;
 import org.apache.hc.client5.http.async.methods.*;
 import org.apache.hc.client5.http.impl.async.CloseableHttpAsyncClient;
 import org.apache.hc.client5.http.impl.async.HttpAsyncClients;
@@ -13,6 +27,7 @@ import org.apache.hc.core5.ssl.SSLContextBuilder;
 import org.apache.hc.core5.util.Timeout;
 
 import javax.net.ssl.SSLContext;
+
 import java.security.KeyManagementException;
 import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
@@ -21,20 +36,21 @@ import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
+import com.wazuh.contentmanager.cti.catalog.utils.HttpResponseCallback;
+import com.wazuh.contentmanager.settings.PluginSettings;
+
 /**
  * Client for interacting with the Wazuh CTI Catalog API.
- * <p>
- * This client manages an asynchronous HTTP client to perform requests against
- * the catalog service, specifically handling consumer context retrieval.
+ *
+ * <p>This client manages an asynchronous HTTP client to perform requests against the catalog
+ * service, specifically handling consumer context retrieval.
  */
 public class ApiClient {
 
     private final String baseUri;
     private CloseableHttpAsyncClient client;
 
-    /**
-     * Constructs an ApiClient instance and initializes the underlying HTTP client.
-     */
+    /** Constructs an ApiClient instance and initializes the underlying HTTP client. */
     public ApiClient() {
         // Retrieve base URI from PluginSettings
         this.baseUri = PluginSettings.getInstance().getCtiBaseUrl();
@@ -47,35 +63,33 @@ public class ApiClient {
      * @throws RuntimeException if the SSL context cannot be initialized.
      */
     private void buildClient() {
-        IOReactorConfig ioReactorConfig = IOReactorConfig.custom()
-            .setSoTimeout(Timeout.ofSeconds(PluginSettings.getInstance().getClientTimeout()))
-            .build();
+        IOReactorConfig ioReactorConfig =
+                IOReactorConfig.custom()
+                        .setSoTimeout(Timeout.ofSeconds(PluginSettings.getInstance().getClientTimeout()))
+                        .build();
 
         SSLContext sslContext;
         try {
             sslContext =
-                SSLContextBuilder.create()
-                    .loadTrustMaterial(null, (chains, authType) -> true)
-                    .build();
+                    SSLContextBuilder.create().loadTrustMaterial(null, (chains, authType) -> true).build();
         } catch (NoSuchAlgorithmException | KeyManagementException | KeyStoreException e) {
             throw new RuntimeException("Failed to initialize HttpClient", e);
         }
 
-        this.client = HttpAsyncClients.custom()
-            .setIOReactorConfig(ioReactorConfig)
-            .setConnectionManager(
-                PoolingAsyncClientConnectionManagerBuilder.create()
-                    .setTlsStrategy(
-                        ClientTlsStrategyBuilder.create().setSslContext(sslContext).build())
-                    .build())
-            .build();
+        this.client =
+                HttpAsyncClients.custom()
+                        .setIOReactorConfig(ioReactorConfig)
+                        .setConnectionManager(
+                                PoolingAsyncClientConnectionManagerBuilder.create()
+                                        .setTlsStrategy(
+                                                ClientTlsStrategyBuilder.create().setSslContext(sslContext).build())
+                                        .build())
+                        .build();
 
         this.client.start();
     }
 
-    /**
-     * Closes the underlying HTTP asynchronous client gracefully.
-     */
+    /** Closes the underlying HTTP asynchronous client gracefully. */
     public void close() {
         this.client.close(CloseMode.GRACEFUL);
     }
@@ -83,7 +97,7 @@ public class ApiClient {
     /**
      * Constructs the full URI for a specific consumer within a given context.
      *
-     * @param context  The context identifier (e.g., the specific catalog section).
+     * @param context The context identifier (e.g., the specific catalog section).
      * @param consumer The consumer identifier.
      * @return A string representing the full absolute URL for the resource.
      */
@@ -94,25 +108,23 @@ public class ApiClient {
     /**
      * Retrieves consumer details from the CTI Catalog.
      *
-     * @param context  The context associated with the consumer.
+     * @param context The context associated with the consumer.
      * @param consumer The name or ID of the consumer to retrieve.
      * @return A {@link SimpleHttpResponse} containing the API response.
-     * @throws ExecutionException   If the computation threw an exception.
+     * @throws ExecutionException If the computation threw an exception.
      * @throws InterruptedException If the current thread was interrupted while waiting.
-     * @throws TimeoutException     If the wait timed out.
+     * @throws TimeoutException If the wait timed out.
      */
-    public SimpleHttpResponse getConsumer(String context, String consumer) throws ExecutionException, InterruptedException, TimeoutException {
-        SimpleHttpRequest request = SimpleRequestBuilder
-            .get(this.buildConsumerURI(context, consumer))
-            .build();
+    public SimpleHttpResponse getConsumer(String context, String consumer)
+            throws ExecutionException, InterruptedException, TimeoutException {
+        SimpleHttpRequest request =
+                SimpleRequestBuilder.get(this.buildConsumerURI(context, consumer)).build();
 
-        final Future<SimpleHttpResponse> future = this.client.execute(
-            SimpleRequestProducer.create(request),
-            SimpleResponseConsumer.create(),
-            new HttpResponseCallback(
-                request, "Outgoing request failed"
-            )
-        );
+        final Future<SimpleHttpResponse> future =
+                this.client.execute(
+                        SimpleRequestProducer.create(request),
+                        SimpleResponseConsumer.create(),
+                        new HttpResponseCallback(request, "Outgoing request failed"));
 
         return future.get(PluginSettings.getInstance().getClientTimeout(), TimeUnit.SECONDS);
     }
@@ -120,29 +132,32 @@ public class ApiClient {
     /**
      * Retrieves the changes for a specific consumer within a given context.
      *
-     * @param context    The context identifier.
-     * @param consumer   The consumer identifier.
+     * @param context The context identifier.
+     * @param consumer The consumer identifier.
      * @param fromOffset The starting offset (exclusive).
-     * @param toOffset   The ending offset (inclusive).
+     * @param toOffset The ending offset (inclusive).
      * @return A {@link SimpleHttpResponse} containing the API response.
-     * @throws ExecutionException   If the computation threw an exception.
+     * @throws ExecutionException If the computation threw an exception.
      * @throws InterruptedException If the current thread was interrupted while waiting.
-     * @throws TimeoutException     If the wait timed out.
+     * @throws TimeoutException If the wait timed out.
      */
-    public SimpleHttpResponse getChanges(String context, String consumer, long fromOffset, long toOffset) throws ExecutionException, InterruptedException, TimeoutException {
-        String uri = this.buildConsumerURI(context, consumer) + "/changes?from_offset=" + fromOffset + "&to_offset=" + toOffset;
+    public SimpleHttpResponse getChanges(
+            String context, String consumer, long fromOffset, long toOffset)
+            throws ExecutionException, InterruptedException, TimeoutException {
+        String uri =
+                this.buildConsumerURI(context, consumer)
+                        + "/changes?from_offset="
+                        + fromOffset
+                        + "&to_offset="
+                        + toOffset;
 
-        SimpleHttpRequest request = SimpleRequestBuilder
-            .get(uri)
-            .build();
+        SimpleHttpRequest request = SimpleRequestBuilder.get(uri).build();
 
-        final Future<SimpleHttpResponse> future = this.client.execute(
-            SimpleRequestProducer.create(request),
-            SimpleResponseConsumer.create(),
-            new HttpResponseCallback(
-                request, "Outgoing request failed"
-            )
-        );
+        final Future<SimpleHttpResponse> future =
+                this.client.execute(
+                        SimpleRequestProducer.create(request),
+                        SimpleResponseConsumer.create(),
+                        new HttpResponseCallback(request, "Outgoing request failed"));
 
         return future.get(PluginSettings.getInstance().getClientTimeout(), TimeUnit.SECONDS);
     }

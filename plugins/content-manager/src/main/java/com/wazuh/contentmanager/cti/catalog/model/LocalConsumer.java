@@ -1,7 +1,24 @@
+/*
+ * Copyright (C) 2024, Wazuh Inc.
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as
+ * published by the Free Software Foundation, either version 3 of the
+ * License, or (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
 package com.wazuh.contentmanager.cti.catalog.model;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
+
 import org.opensearch.common.xcontent.XContentFactory;
 import org.opensearch.core.xcontent.ToXContent;
 import org.opensearch.core.xcontent.XContentBuilder;
@@ -10,24 +27,24 @@ import java.io.IOException;
 
 /**
  * Data Transfer Object representing the local state of a CTI Catalog Consumer.
-
- * This class tracks the synchronization status of a specific content context. It maintains
- * the {@code localOffset} versus the {@code remoteOffset}, along with a link to the snapshot
- * for bulk updates.
+ *
+ * <p>This class tracks the synchronization status of a specific content context. It maintains the
+ * {@code localOffset} versus the {@code remoteOffset}, along with a link to the snapshot for bulk
+ * updates.
  */
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class LocalConsumer extends AbstractConsumer implements ToXContent {
 
     @JsonProperty("local_offset")
     private long localOffset;
+
     @JsonProperty("remote_offset")
     private long remoteOffset;
+
     @JsonProperty("snapshot_link")
     private String snapshotLink;
 
-    /**
-     * Default constructor.
-     */
+    /** Default constructor. */
     public LocalConsumer() {
         super();
     }
@@ -36,11 +53,11 @@ public class LocalConsumer extends AbstractConsumer implements ToXContent {
      * Constructs a new LocalConsumer with a basic identity.
      *
      * @param context The context identifier (e.g., "rules_development").
-     * @param name    The consumer name.
+     * @param name The consumer name.
      */
-    public LocalConsumer (String context, String name) {
+    public LocalConsumer(String context, String name) {
         this.context = context;
-        this.name  = name;
+        this.name = name;
         this.localOffset = 0;
         this.remoteOffset = 0;
         this.snapshotLink = "";
@@ -49,15 +66,16 @@ public class LocalConsumer extends AbstractConsumer implements ToXContent {
     /**
      * Constructs a LocalConsumer with full state details.
      *
-     * @param context      The context identifier.
-     * @param name         The consumer name.
-     * @param localOffset  The current offset processed locally.
+     * @param context The context identifier.
+     * @param name The consumer name.
+     * @param localOffset The current offset processed locally.
      * @param remoteOffset The last known offset available remotely.
-     * @param snapshotUrl  The URL of the snapshot associated with this state.
+     * @param snapshotUrl The URL of the snapshot associated with this state.
      */
-    public LocalConsumer(String context, String name, long localOffset, long remoteOffset, String snapshotUrl) {
+    public LocalConsumer(
+            String context, String name, long localOffset, long remoteOffset, String snapshotUrl) {
         this.context = context;
-        this.name  = name;
+        this.name = name;
         this.localOffset = localOffset;
         this.remoteOffset = remoteOffset;
         this.snapshotLink = snapshotUrl;
@@ -92,13 +110,21 @@ public class LocalConsumer extends AbstractConsumer implements ToXContent {
 
     @Override
     public String toString() {
-        return "LocalConsumer{" +
-            "localOffset=" + this.localOffset +
-            ", remoteOffset=" + this.remoteOffset +
-            ", snapshotLink='" + this.snapshotLink + '\'' +
-            ", context='" + this.context + '\'' +
-            ", name='" + this.name + '\'' +
-            '}';
+        return "LocalConsumer{"
+                + "localOffset="
+                + this.localOffset
+                + ", remoteOffset="
+                + this.remoteOffset
+                + ", snapshotLink='"
+                + this.snapshotLink
+                + '\''
+                + ", context='"
+                + this.context
+                + '\''
+                + ", name='"
+                + this.name
+                + '\''
+                + '}';
     }
 
     /**
@@ -115,19 +141,20 @@ public class LocalConsumer extends AbstractConsumer implements ToXContent {
      * Serializes the consumer properties into an XContentBuilder.
      *
      * @param builder The builder to write to.
-     * @param params  Parameters for the XContent generation (unused here).
+     * @param params Parameters for the XContent generation (unused here).
      * @return The builder with the consumer fields appended.
      * @throws IOException If an I/O error occurs during building.
      */
     @Override
     public XContentBuilder toXContent(XContentBuilder builder, Params params) throws IOException {
-        builder.startObject()
-            .field("name", this.name)
-            .field("context", this.context)
-            .field("local_offset", this.localOffset)
-            .field("remote_offset", this.remoteOffset)
-            .field("snapshot_link", this.snapshotLink)
-            .endObject();
+        builder
+                .startObject()
+                .field("name", this.name)
+                .field("context", this.context)
+                .field("local_offset", this.localOffset)
+                .field("remote_offset", this.remoteOffset)
+                .field("snapshot_link", this.snapshotLink)
+                .endObject();
 
         return builder;
     }

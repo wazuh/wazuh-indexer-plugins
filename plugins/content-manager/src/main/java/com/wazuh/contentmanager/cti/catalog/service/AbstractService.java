@@ -1,36 +1,54 @@
+/*
+ * Copyright (C) 2024, Wazuh Inc.
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as
+ * published by the Free Software Foundation, either version 3 of the
+ * License, or (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
 package com.wazuh.contentmanager.cti.catalog.service;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+
 import com.wazuh.contentmanager.cti.catalog.client.ApiClient;
 
 /**
- * Abstract service class, for generalization.
+ * Abstract base class for CTI catalog services. Provides common functionality including an API
+ * client for remote operations and an ObjectMapper for JSON serialization/deserialization.
  */
 public abstract class AbstractService {
 
+    /** The API client used for remote CTI catalog operations. */
     ApiClient client;
+
+    /** The Jackson ObjectMapper for JSON serialization and deserialization. */
     final ObjectMapper mapper;
 
-    /**
-     * Default constructor
-     */
+    /** Default constructor. Initializes the API client and ObjectMapper. */
     public AbstractService() {
         this.client = new ApiClient();
         this.mapper = new ObjectMapper();
     }
 
     /**
-     * Use for testing only.
-     * @param c mocked client.
+     * Sets the API client. Use for testing only to inject mocked clients.
+     *
+     * @param c The mocked API client.
      */
     public void setClient(ApiClient c) {
         this.close();
         this.client = c;
     }
 
-    /**
-     * Closes the underlying HTTP client. Should be called when the service is no longer needed.
-     */
+    /** Closes the underlying HTTP client. Should be called when the service is no longer needed. */
     public void close() {
         if (this.client != null) {
             this.client.close();

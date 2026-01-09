@@ -1,3 +1,19 @@
+/*
+ * Copyright (C) 2024, Wazuh Inc.
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as
+ * published by the Free Software Foundation, either version 3 of the
+ * License, or (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
 package com.wazuh.contentmanager.cti.catalog.client;
 
 import org.apache.hc.client5.http.classic.methods.HttpGet;
@@ -18,9 +34,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
 
-/**
- * Client responsible for downloading CTI snapshots from a remote source.
- */
+/** Client responsible for downloading CTI snapshots from a remote source. */
 public class SnapshotClient {
 
     private static final Logger log = LogManager.getLogger(SnapshotClient.class);
@@ -28,6 +42,7 @@ public class SnapshotClient {
 
     /**
      * Default constructor.
+     *
      * @param env node's environment
      */
     public SnapshotClient(Environment env) {
@@ -39,6 +54,8 @@ public class SnapshotClient {
      *
      * @param snapshotURI URI to the file to download.
      * @return The downloaded file's name
+     * @throws IOException If an I/O error occurs during download.
+     * @throws URISyntaxException If the provided URI is invalid.
      */
     public Path downloadFile(String snapshotURI) throws IOException, URISyntaxException {
         try (CloseableHttpClient client = HttpClients.createDefault()) {
@@ -55,12 +72,12 @@ public class SnapshotClient {
                     // Write to disk
                     InputStream input = response.getEntity().getContent();
                     try (OutputStream out =
-                             new BufferedOutputStream(
-                                 Files.newOutputStream(
-                                     path,
-                                     StandardOpenOption.CREATE,
-                                     StandardOpenOption.WRITE,
-                                     StandardOpenOption.TRUNCATE_EXISTING))) {
+                            new BufferedOutputStream(
+                                    Files.newOutputStream(
+                                            path,
+                                            StandardOpenOption.CREATE,
+                                            StandardOpenOption.WRITE,
+                                            StandardOpenOption.TRUNCATE_EXISTING))) {
 
                         int bytesRead;
                         byte[] buffer = new byte[1024];

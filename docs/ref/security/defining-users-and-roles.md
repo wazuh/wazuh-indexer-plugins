@@ -27,7 +27,7 @@ Follow these steps:
     * **Index permissions**: choose appropriate actions such as:
         * `read` (to allow read access)
         * `index` (to allow write access)
-    * Optionally, configure [**Document-level security (DLS)**](https://docs.opensearch.org/docs/latest/security/access-control/index/) or [**Field-level security (FLS)**](https://docs.opensearch.org/docs/latest/security/access-control/field-level-security/).
+    * Optionally, configure [**Document-level security (DLS)**](https://docs.opensearch.org/3.3/security/access-control/index/) or [**Field-level security (FLS)**](https://docs.opensearch.org/3.3/security/access-control/field-level-security/).
 6. Click **Create** to save the role.
 
 ### 2. Create a User
@@ -69,5 +69,5 @@ After creating the user and role:
 
 ## Additional Resources
 
-* [OpenSearch Security Plugin - User-Roles Management](https://docs.opensearch.org/latest/security/access-control/users-roles/))
+* [OpenSearch Security Plugin - User-Roles Management](https://docs.opensearch.org/3.3/security/access-control/users-roles/))
 

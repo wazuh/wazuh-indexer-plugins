@@ -16,8 +16,9 @@
  */
 package com.wazuh.contentmanager.cti.catalog.model;
 
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonProperty;
+
 import org.opensearch.core.xcontent.ToXContentObject;
 import org.opensearch.core.xcontent.XContentBuilder;
 import org.opensearch.core.xcontent.XContentParser;
@@ -26,28 +27,66 @@ import org.opensearch.core.xcontent.XContentParserUtils;
 import java.io.IOException;
 
 /**
- * Class representing a JSON Patch operation.
+ * Represents a JSON Patch operation as defined by RFC 6902. This class encapsulates a single
+ * modification instruction that can be applied to a JSON document, supporting operations such as
+ * add, replace, remove, move, copy, and test.
+ *
+ * <p>JSON Patch operations are used to describe changes to documents in a structured format,
+ * enabling efficient transmission and application of incremental updates. Each operation specifies
+ * what action to perform (op), where to perform it (path), and optionally what value to use or
+ * where to copy/move from.
+ *
+ * <p>This class implements ToXContentObject to support serialization and deserialization within the
+ * OpenSearch ecosystem, enabling patch operations to be stored, transmitted, and applied to indexed
+ * documents.
  */
 public class Operation implements ToXContentObject {
+    /** Field name for the operation type in JSON serialization. */
     public static final String OP = "op";
+
+    /** Field name for the target path in JSON serialization. */
     public static final String PATH = "path";
+
+    /** Field name for the source path in move/copy operations in JSON serialization. */
     public static final String FROM = "from";
+
+    /** Field name for the operation value in JSON serialization. */
     public static final String VALUE = "value";
 
+    /** The operation type (e.g., "add", "replace", "remove", "move", "copy", "test"). */
     private final String op;
+
+    /** JSON Pointer string indicating the target location for the operation. */
     private final String path;
+
+    /** JSON Pointer string indicating the source location for move/copy operations. */
     private final String from;
+
+    /** The value to be used in add, replace, or test operations. */
     private final Object value;
 
     /**
-     * Constructs a new JSON Patch Operation.
+     * Constructs a new JSON Patch Operation with the specified parameters.
      *
-     * @param op    The operation to perform (e.g., "add", "replace", "remove").
-     * @param path  A JSON Pointer string indicating the location to perform the operation.
-     * @param from  A JSON Pointer string indicating the location to move/copy from (optional, depends on 'op').
-     * @param value The value to be added, replaced, or tested (optional, depends on 'op').
+     * <p>Different operation types require different parameters. For example, "add" and "replace"
+     * require op, path, and value, while "remove" only requires op and path. The "move" and "copy"
+     * operations require op, path, and from.
+     *
+     * @param op The operation type to perform (e.g., "add", "replace", "remove", "move", "copy",
+     *     "test").
+     * @param path A JSON Pointer string (RFC 6901) indicating the target location to perform the
+     *     operation.
+     * @param from A JSON Pointer string indicating the source location for move/copy operations
+     *     (optional, only used with "move" and "copy" operations).
+     * @param value The value to be added, replaced, or tested (optional, used with "add", "replace",
+     *     and "test" operations).
      */
-    public Operation(String op, String path, String from, Object value) {
+    @JsonCreator
+    public Operation(
+            @JsonProperty(OP) String op,
+            @JsonProperty(PATH) String path,
+            @JsonProperty(FROM) String from,
+            @JsonProperty(VALUE) Object value) {
         this.op = op;
         this.path = path;
         this.from = from;
@@ -67,7 +106,8 @@ public class Operation implements ToXContentObject {
         String from = null;
         Object value = null;
 
-        XContentParserUtils.ensureExpectedToken(XContentParser.Token.START_OBJECT, parser.currentToken(), parser);
+        XContentParserUtils.ensureExpectedToken(
+                XContentParser.Token.START_OBJECT, parser.currentToken(), parser);
 
         while (parser.nextToken() != XContentParser.Token.END_OBJECT) {
             String fieldName = parser.currentName();
@@ -97,7 +137,7 @@ public class Operation implements ToXContentObject {
      * Serializes this operation into an {@link XContentBuilder}.
      *
      * @param builder The builder to write to.
-     * @param params  Contextual parameters for the serialization.
+     * @param params Contextual parameters for the serialization.
      * @return The builder instance for chaining.
      * @throws IOException If an error occurs while writing to the builder.
      */

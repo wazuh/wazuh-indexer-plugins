@@ -1,8 +1,21 @@
+/*
+ * Copyright (C) 2024, Wazuh Inc.
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as
+ * published by the Free Software Foundation, either version 3 of the
+ * License, or (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
 package com.wazuh.contentmanager.cti.catalog.service;
 
-import com.wazuh.contentmanager.cti.catalog.index.ConsumersIndex;
-import com.wazuh.contentmanager.cti.catalog.model.LocalConsumer;
-import com.wazuh.contentmanager.cti.catalog.model.RemoteConsumer;
 import org.apache.hc.client5.http.async.methods.SimpleHttpResponse;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -14,10 +27,13 @@ import java.io.IOException;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeoutException;
 
+import com.wazuh.contentmanager.cti.catalog.index.ConsumersIndex;
+import com.wazuh.contentmanager.cti.catalog.model.LocalConsumer;
+import com.wazuh.contentmanager.cti.catalog.model.RemoteConsumer;
+
 /**
- * Implementation of the ConsumerService.
- * Manages the retrieval and persistence of Local and Remote consumer states using
- * internal indices and the CTI API client.
+ * Implementation of the ConsumerService. Manages the retrieval and persistence of Local and Remote
+ * consumer states using internal indices and the CTI API client.
  */
 public class ConsumerServiceImpl extends AbstractService implements ConsumerService {
     private static final Logger log = LogManager.getLogger(ConsumerServiceImpl.class);
@@ -29,8 +45,8 @@ public class ConsumerServiceImpl extends AbstractService implements ConsumerServ
     /**
      * Constructs a ConsumerServiceImpl.
      *
-     * @param context       The context identifier.
-     * @param consumer      The consumer identifier.
+     * @param context The context identifier.
+     * @param consumer The consumer identifier.
      * @param consumerIndex The index service for storing consumer metadata.
      */
     public ConsumerServiceImpl(String context, String consumer, ConsumersIndex consumerIndex) {
@@ -40,8 +56,8 @@ public class ConsumerServiceImpl extends AbstractService implements ConsumerServ
     }
 
     /**
-     * Retrieves the local consumer state from the internal index.
-     * If the consumer does not exist locally, it attempts to initialize it.
+     * Retrieves the local consumer state from the internal index. If the consumer does not exist
+     * locally, it attempts to initialize it.
      *
      * @return The {@link LocalConsumer} object, or null if retrieval/parsing fails.
      */
@@ -50,9 +66,9 @@ public class ConsumerServiceImpl extends AbstractService implements ConsumerServ
         try {
             GetResponse response = this.consumerIndex.getConsumer(this.context, this.consumer);
 
-            return response.isExists() ?
-                this.mapper.readValue(response.getSourceAsString(), LocalConsumer.class):
-                this.setConsumer();
+            return response.isExists()
+                    ? this.mapper.readValue(response.getSourceAsString(), LocalConsumer.class)
+                    : this.setConsumer();
         } catch (ExecutionException | InterruptedException | TimeoutException e) {
             log.error("Couldn't obtain consumer from internal index: {}", e.getMessage());
         } catch (IOException e) {

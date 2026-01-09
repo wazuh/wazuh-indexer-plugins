@@ -2,7 +2,7 @@
 
 In this section you can find instructions on how to create and restore a backup of your Wazuh Indexer key files, preserving file permissions, ownership, and path. Later, you can move this folder contents back to the corresponding location to restore your certificates and configurations. Backing up these files is useful in cases such as moving your Wazuh installation to another system.
 
-> **Note**: This backup only restores the configuration files, not the data. To backup data stored in the indexer, use [snapshots](https://opensearch.org/docs/latest/tuning-your-cluster/availability-and-recovery/snapshots/snapshot-restore/).
+> **Note**: This backup only restores the configuration files, not the data. To backup data stored in the indexer, use [snapshots](https://docs.opensearch.org/3.3/tuning-your-cluster/availability-and-recovery/snapshots/snapshot-restore/).
 
 ## Creating a backup
 

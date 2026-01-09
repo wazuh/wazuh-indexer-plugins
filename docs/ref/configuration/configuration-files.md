@@ -29,7 +29,7 @@ plugins.setup.backoff: 30
 
 ## Security - Access Control
 
-Wazuh Indexer uses the [OpenSearch Security plugin](https://docs.opensearch.org/docs/latest/security/) to manage access control and security features.
+Wazuh Indexer uses the [OpenSearch Security plugin](https://docs.opensearch.org/3.3/security/) to manage access control and security features.
 
 The configuration files for the security plugin are located under the `/etc/wazuh-indexer/opensearch-security/` directory by default.
 

@@ -16,6 +16,9 @@
  */
 package com.wazuh.contentmanager.cti.catalog.model;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonProperty;
+
 import org.opensearch.core.xcontent.ToXContentObject;
 import org.opensearch.core.xcontent.XContentBuilder;
 import org.opensearch.core.xcontent.XContentParser;
@@ -25,11 +28,11 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
-/**
- * This class acts as a wrapper for a list of {@link Offset} objects.
- */
+/** This class acts as a wrapper for a list of {@link Offset} objects. */
 public class Changes implements ToXContentObject {
     private static final String JSON_DATA_KEY = "data";
+
+    @JsonProperty(JSON_DATA_KEY)
     private final List<Offset> list;
 
     /**
@@ -37,7 +40,8 @@ public class Changes implements ToXContentObject {
      *
      * @param list The list of {@link Offset} objects. If null, an empty list is initialized.
      */
-    public Changes(List<Offset> list) {
+    @JsonCreator
+    public Changes(@JsonProperty(JSON_DATA_KEY) List<Offset> list) {
         this.list = list != null ? list : new ArrayList<>();
     }
 
@@ -52,10 +56,10 @@ public class Changes implements ToXContentObject {
 
     /**
      * Parses an XContent stream to create a {@code Changes} instance.
-     * <p>
-     * This method expects the parser to be positioned at the start of a JSON object.
-     * It looks for a field named "data" (defined by {@code JSON_DATA_KEY}), which
-     * must be an array of {@link Offset} objects.
+     *
+     * <p>This method expects the parser to be positioned at the start of a JSON object. It looks for
+     * a field named "data" (defined by {@code JSON_DATA_KEY}), which must be an array of {@link
+     * Offset} objects.
      *
      * @param parser The {@link XContentParser} to read from.
      * @return A populated {@code Changes} object.
@@ -63,12 +67,14 @@ public class Changes implements ToXContentObject {
      */
     public static Changes parse(XContentParser parser) throws IOException {
         List<Offset> changes = new ArrayList<>();
-        XContentParserUtils.ensureExpectedToken(XContentParser.Token.START_OBJECT, parser.nextToken(), parser);
+        XContentParserUtils.ensureExpectedToken(
+                XContentParser.Token.START_OBJECT, parser.nextToken(), parser);
 
         while (parser.nextToken() != XContentParser.Token.END_OBJECT) {
             if (JSON_DATA_KEY.equals(parser.currentName())) {
                 parser.nextToken();
-                XContentParserUtils.ensureExpectedToken(XContentParser.Token.START_ARRAY, parser.currentToken(), parser);
+                XContentParserUtils.ensureExpectedToken(
+                        XContentParser.Token.START_ARRAY, parser.currentToken(), parser);
                 while (parser.nextToken() != XContentParser.Token.END_ARRAY) {
                     changes.add(Offset.parse(parser));
                 }
@@ -83,7 +89,7 @@ public class Changes implements ToXContentObject {
      * Serializes this object into an {@link XContentBuilder}.
      *
      * @param builder The builder to write to.
-     * @param params  Contextual parameters for the serialization.
+     * @param params Contextual parameters for the serialization.
      * @return The builder instance for chaining.
      * @throws IOException If an error occurs while writing to the builder.
      */
