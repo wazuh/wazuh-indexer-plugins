@@ -23,20 +23,18 @@ import java.util.Locale;
  * different access level or content state for CTI resources.
  */
 public enum Space {
-    /** Free content available to all users. */
-    FREE,
-
-    /** Premium content requiring a paid subscription. */
-    PAID,
-
-    /** User-customized content. */
+    /** Standard content space for production-ready CTI resources. */
+    STANDARD,
+    
+    /** Custom content space for user-defined CTI resources. */
     CUSTOM,
-
-    /** Content space in draft state */
+    
+    /** Draft content space for content under development. */
     DRAFT,
-
-    /** Content used for testing purposes. */
+    
+    /** Testing content space for experimental or testing resources. */
     TESTING;
+
 
     /**
      * Returns the lowercase string representation of the space.

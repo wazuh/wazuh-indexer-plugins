@@ -99,7 +99,7 @@ public class Resource {
         // 3. Set Space
         // TODO: Change To the real logic once CTI is ready
         Map<String, String> spaceMap = new HashMap<>();
-        String spaceName = Space.FREE.toString().toLowerCase(Locale.ROOT);
+        String spaceName = Space.STANDARD.toString();
         spaceMap.put("name", spaceName);
         resource.setSpace(spaceMap);
     }
