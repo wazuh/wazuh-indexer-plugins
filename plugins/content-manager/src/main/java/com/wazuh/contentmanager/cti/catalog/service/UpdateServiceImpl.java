@@ -178,6 +178,15 @@ public class UpdateServiceImpl extends AbstractService implements UpdateService 
                 break;
             case DELETE:
                 index = this.findIndexForId(id);
+                //TODO: If CTI Implements a UUID for policy type documents this can be deleted
+                if ("policy".equals(id)) {
+                    String resolvedId = index.getFirstDocumentId();
+                    if (resolvedId != null) {
+                        id = resolvedId;
+                    } else {
+                        log.warn("Policy document not found in index for update operation.");
+                    }
+                }
                 index.delete(id);
                 break;
             default:
