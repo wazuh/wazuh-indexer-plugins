@@ -44,6 +44,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Initialize content on plugin startup [(#696)](https://github.com/wazuh/wazuh-indexer-plugins/pull/696)
 - Implement threat detectors creation [(#703)](https://github.com/wazuh/wazuh-indexer-plugins/pull/703)
 - Implement complete initialization of content [(#704)](https://github.com/wazuh/wazuh-indexer-plugins/pull/704)
+- Complete content SAP resources management  [(#713)](https://github.com/wazuh/wazuh-indexer-plugins/pull/713)
 - Add new content manager settings [(#717)](https://github.com/wazuh/wazuh-indexer-plugins/pull/717)
 
 ### Dependencies

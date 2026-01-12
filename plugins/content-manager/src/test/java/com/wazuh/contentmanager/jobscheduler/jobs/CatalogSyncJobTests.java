@@ -2,9 +2,9 @@ package com.wazuh.contentmanager.jobscheduler.jobs;
 
 import com.google.gson.JsonObject;
 import com.wazuh.contentmanager.cti.catalog.index.ConsumersIndex;
+import com.wazuh.contentmanager.cti.catalog.service.SecurityAnalyticsService;
 import org.junit.Assert;
 import org.junit.Before;
-import org.junit.Test;
 import org.mockito.Mock;
 import org.opensearch.env.Environment;
 import org.opensearch.test.OpenSearchTestCase;
@@ -22,13 +22,14 @@ public class CatalogSyncJobTests  extends OpenSearchTestCase {
     @Mock private ConsumersIndex consumersIndex;
     @Mock private ThreadPool threadpool;
     @Mock private Environment environment;
+    @Mock private SecurityAnalyticsService securityAnalyticsService;
 
     @Before
     @Override
     public void setUp() throws Exception {
         super.setUp();
 
-        this.job = new CatalogSyncJob(this.client, this.consumersIndex, this.environment, this.threadpool);
+        this.job = new CatalogSyncJob(this.client, this.consumersIndex, this.environment, this.threadpool, this.securityAnalyticsService);
     }
 
 
