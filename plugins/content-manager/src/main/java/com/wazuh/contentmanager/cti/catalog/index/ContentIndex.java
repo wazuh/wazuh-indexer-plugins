@@ -37,6 +37,8 @@ import org.opensearch.action.delete.DeleteResponse;
 import org.opensearch.action.get.GetRequest;
 import org.opensearch.action.get.GetResponse;
 import org.opensearch.action.index.IndexRequest;
+import org.opensearch.action.search.SearchRequest;
+import org.opensearch.action.search.SearchResponse;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.common.xcontent.XContentFactory;
 import org.opensearch.common.xcontent.XContentType;
@@ -47,6 +49,7 @@ import org.opensearch.index.query.QueryBuilders;
 import org.opensearch.index.reindex.BulkByScrollResponse;
 import org.opensearch.index.reindex.DeleteByQueryAction;
 import org.opensearch.index.reindex.DeleteByQueryRequestBuilder;
+import org.opensearch.search.builder.SearchSourceBuilder;
 import org.opensearch.transport.client.Client;
 
 import java.io.IOException;
@@ -297,5 +300,31 @@ public class ContentIndex {
             log.error("Failed to process payload via models: {}", e.getMessage(), e);
             return new JsonObject();
         }
+    }
+
+    /**
+     * Retrieves the ID of the first document found in the index.
+     * Used in Policy index that contains a singleton resource.
+     *
+     * @return The ID of the document, or null if empty.
+     */
+    //TODO: If CTI Implements a UUID for policy type documents this can be deleted
+    public String getFirstDocumentId() {
+        SearchRequest searchRequest = new SearchRequest(this.indexName);
+        SearchSourceBuilder searchSourceBuilder = new SearchSourceBuilder();
+        searchSourceBuilder.query(QueryBuilders.matchAllQuery());
+        searchSourceBuilder.size(1);
+        searchSourceBuilder.fetchSource(false);
+        searchRequest.source(searchSourceBuilder);
+
+        try {
+            SearchResponse response = this.client.search(searchRequest).actionGet(this.pluginSettings.getClientTimeout(), TimeUnit.SECONDS);
+            if (response.getHits().getTotalHits().value() > 0) {
+                return response.getHits().getAt(0).getId();
+            }
+        } catch (Exception e) {
+            log.error("Failed to retrieve document ID from index [{}]: {}", this.indexName, e.getMessage());
+        }
+        return null;
     }
 }
