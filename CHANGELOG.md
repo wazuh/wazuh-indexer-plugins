@@ -80,6 +80,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Update Content Manager docs [(#716)](https://github.com/wazuh/wazuh-indexer-plugins/pull/716)
 - Update CTI field mappings [(#718)](https://github.com/wazuh/wazuh-indexer-plugins/pull/718) [(#725)](https://github.com/wazuh/wazuh-indexer-plugins/pull/725)
 - Update content spaces [(#724)](https://github.com/wazuh/wazuh-indexer-plugins/pull/724)
+- Extend JsonPatch to process JsonArray [(#729)](https://github.com/wazuh/wazuh-indexer-plugins/pull/729)
 
 ### Deprecated
 -
