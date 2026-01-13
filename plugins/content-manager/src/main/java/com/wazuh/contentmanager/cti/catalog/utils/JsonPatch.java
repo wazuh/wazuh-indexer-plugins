@@ -97,7 +97,7 @@ public class JsonPatch {
         }
 
         JsonElement target = JsonPatch.navigateToParent(document, path);
-        String key = extractKeyFromPath(path);
+        String key = JsonPatch.extractKeyFromPath(path);
 
         if (target instanceof JsonObject) {
             ((JsonObject) target).add(key, value);
@@ -141,12 +141,11 @@ public class JsonPatch {
         }
 
         JsonElement target = JsonPatch.navigateToParent(document, path);
-        String key = extractKeyFromPath(path);
+        String key = JsonPatch.extractKeyFromPath(path);
 
         if (target instanceof JsonObject) {
             ((JsonObject) target).remove(key);
-        } else if (target instanceof JsonArray) {
-            JsonArray array = (JsonArray) target;
+        } else if (target instanceof JsonArray array) {
             try {
                 int index = Integer.parseInt(key);
                 if (index >= 0 && index < array.size()) {
@@ -180,10 +179,10 @@ public class JsonPatch {
      * @param toPath The JSON path where the value should be moved.
      */
     private static void moveOperation(JsonObject document, String fromPath, String toPath) {
-        JsonElement parent = navigateToParent(document, fromPath);
+        JsonElement parent = JsonPatch.navigateToParent(document, fromPath);
         if (parent == null) return;
 
-        String key = extractKeyFromPath(fromPath);
+        String key = JsonPatch.extractKeyFromPath(fromPath);
         JsonElement value = null;
 
         if (parent.isJsonObject()) {
@@ -221,7 +220,7 @@ public class JsonPatch {
             return;
         }
 
-        String fromKey = extractKeyFromPath(fromPath);
+        String fromKey = JsonPatch.extractKeyFromPath(fromPath);
         JsonElement valueToCopy = null;
 
         if (parent.isJsonObject()) {
