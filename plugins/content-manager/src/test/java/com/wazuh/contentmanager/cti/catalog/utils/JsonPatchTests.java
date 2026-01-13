@@ -16,6 +16,7 @@
  */
 package com.wazuh.contentmanager.cti.catalog.utils;
 
+import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import org.opensearch.test.OpenSearchIntegTestCase;
 import org.opensearch.test.OpenSearchTestCase;
@@ -51,6 +52,39 @@ public class JsonPatchTests extends OpenSearchTestCase {
         assertEquals("newValue", document.get("newField").getAsString());
     }
 
+    /** Test the add operation on arrays */
+    public void testApplyOperationAddToArray() {
+        JsonObject document = new JsonObject();
+        JsonArray array = new JsonArray();
+        array.add("a");
+        array.add("c");
+        document.add("arr", array);
+
+        // Test Insert at index 1
+        JsonObject insertOp = new JsonObject();
+        insertOp.addProperty(Operation.OP, "add");
+        insertOp.addProperty(Operation.PATH, "/arr/1");
+        insertOp.addProperty(Operation.VALUE, "b");
+        JsonPatch.applyOperation(document, insertOp);
+
+        JsonArray updatedArray = document.getAsJsonArray("arr");
+        assertEquals(3, updatedArray.size());
+        assertEquals("a", updatedArray.get(0).getAsString());
+        assertEquals("b", updatedArray.get(1).getAsString());
+        assertEquals("c", updatedArray.get(2).getAsString());
+
+        // Test Append to end using "-"
+        JsonObject appendOp = new JsonObject();
+        appendOp.addProperty(Operation.OP, "add");
+        appendOp.addProperty(Operation.PATH, "/arr/-");
+        appendOp.addProperty(Operation.VALUE, "d");
+        JsonPatch.applyOperation(document, appendOp);
+
+        updatedArray = document.getAsJsonArray("arr");
+        assertEquals(4, updatedArray.size());
+        assertEquals("d", updatedArray.get(3).getAsString());
+    }
+
     /** Test the remove operation */
     public void testApplyOperationRemove() {
         JsonObject document = new JsonObject();
@@ -60,6 +94,27 @@ public class JsonPatchTests extends OpenSearchTestCase {
         operation.addProperty(Operation.PATH, "/fieldToRemove");
         JsonPatch.applyOperation(document, operation);
         assertFalse(document.has("fieldToRemove"));
+    }
+
+    /** Test the remove operation on arrays */
+    public void testApplyOperationRemoveFromArray() {
+        JsonObject document = new JsonObject();
+        JsonArray array = new JsonArray();
+        array.add("a");
+        array.add("b");
+        array.add("c");
+        document.add("arr", array);
+
+        // Remove index 1 ("b")
+        JsonObject operation = new JsonObject();
+        operation.addProperty(Operation.OP, "remove");
+        operation.addProperty(Operation.PATH, "/arr/1");
+        JsonPatch.applyOperation(document, operation);
+
+        JsonArray updatedArray = document.getAsJsonArray("arr");
+        assertEquals(2, updatedArray.size());
+        assertEquals("a", updatedArray.get(0).getAsString());
+        assertEquals("c", updatedArray.get(1).getAsString());
     }
 
     /** Test the replace operation */
@@ -72,6 +127,27 @@ public class JsonPatchTests extends OpenSearchTestCase {
         operation.addProperty(Operation.VALUE, "newValue");
         JsonPatch.applyOperation(document, operation);
         assertEquals("newValue", document.get("fieldToReplace").getAsString());
+    }
+
+    /** Test the replace operation on arrays */
+    public void testApplyOperationReplaceInArray() {
+        JsonObject document = new JsonObject();
+        JsonArray array = new JsonArray();
+        array.add("a");
+        array.add("b");
+        document.add("arr", array);
+
+        // Replace index 0 ("a") with "z"
+        JsonObject operation = new JsonObject();
+        operation.addProperty(Operation.OP, "replace");
+        operation.addProperty(Operation.PATH, "/arr/0");
+        operation.addProperty(Operation.VALUE, "z");
+        JsonPatch.applyOperation(document, operation);
+
+        JsonArray updatedArray = document.getAsJsonArray("arr");
+        assertEquals(2, updatedArray.size());
+        assertEquals("z", updatedArray.get(0).getAsString());
+        assertEquals("b", updatedArray.get(1).getAsString());
     }
 
     /** Test the move operation */
@@ -87,6 +163,29 @@ public class JsonPatchTests extends OpenSearchTestCase {
         assertTrue(document.has("newField"));
     }
 
+    /** Test the move operation on arrays */
+    public void testApplyOperationMoveInArray() {
+        JsonObject document = new JsonObject();
+        JsonArray array = new JsonArray();
+        array.add("a");
+        array.add("b");
+        array.add("c");
+        document.add("arr", array);
+
+        // Move index 0 ("a") to index 2
+        JsonObject operation = new JsonObject();
+        operation.addProperty(Operation.OP, "move");
+        operation.addProperty(Operation.FROM, "/arr/0");
+        operation.addProperty(Operation.PATH, "/arr/2");
+        JsonPatch.applyOperation(document, operation);
+
+        JsonArray updatedArray = document.getAsJsonArray("arr");
+        assertEquals(3, updatedArray.size());
+        assertEquals("b", updatedArray.get(0).getAsString());
+        assertEquals("c", updatedArray.get(1).getAsString());
+        assertEquals("a", updatedArray.get(2).getAsString());
+    }
+
     /** Test the copy operation */
     public void testApplyOperationCopy() {
         JsonObject document = new JsonObject();
@@ -100,6 +199,28 @@ public class JsonPatchTests extends OpenSearchTestCase {
         assertEquals("value", document.get("newField").getAsString());
     }
 
+    /** Test the copy operation on arrays */
+    public void testApplyOperationCopyInArray() {
+        JsonObject document = new JsonObject();
+        JsonArray array = new JsonArray();
+        array.add("a");
+        array.add("b");
+        document.add("arr", array);
+
+        // Copy index 0 ("a") to end ("-")
+        JsonObject operation = new JsonObject();
+        operation.addProperty(Operation.OP, "copy");
+        operation.addProperty(Operation.FROM, "/arr/0");
+        operation.addProperty(Operation.PATH, "/arr/-");
+        JsonPatch.applyOperation(document, operation);
+
+        JsonArray updatedArray = document.getAsJsonArray("arr");
+        assertEquals(3, updatedArray.size());
+        assertEquals("a", updatedArray.get(0).getAsString());
+        assertEquals("b", updatedArray.get(1).getAsString());
+        assertEquals("a", updatedArray.get(2).getAsString());
+    }
+
     /** Test the test operation */
     public void testApplyOperationTest() {
         JsonObject document = new JsonObject();
@@ -110,6 +231,35 @@ public class JsonPatchTests extends OpenSearchTestCase {
         operation.addProperty(Operation.VALUE, "value");
         JsonPatch.applyOperation(document, operation);
         assertTrue(document.has("fieldToTest"));
+    }
+
+    /** Test the test operation on arrays */
+    public void testApplyOperationTestInArray() {
+        JsonObject document = new JsonObject();
+        JsonArray array = new JsonArray();
+        array.add("a");
+        array.add("b");
+        document.add("arr", array);
+
+        // Test index 1 is "b" (PASS)
+        JsonObject operation = new JsonObject();
+        operation.addProperty(Operation.OP, "test");
+        operation.addProperty(Operation.PATH, "/arr/1");
+        operation.addProperty(Operation.VALUE, "b");
+        JsonPatch.applyOperation(document, operation);
+
+        // Test index 1 is "a" (FAILS)
+        JsonObject failOperation = new JsonObject();
+        failOperation.addProperty(Operation.OP, "test");
+        failOperation.addProperty(Operation.PATH, "/arr/1");
+        failOperation.addProperty(Operation.VALUE, "a");
+
+        try {
+            JsonPatch.applyOperation(document, failOperation);
+            fail("Should have thrown IllegalArgumentException");
+        } catch (IllegalArgumentException ignored) {
+
+        }
     }
 
     /** Test the unsupported operation */
