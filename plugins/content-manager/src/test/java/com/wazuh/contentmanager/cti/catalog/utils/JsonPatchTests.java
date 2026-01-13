@@ -268,7 +268,9 @@ public class JsonPatchTests extends OpenSearchTestCase {
         JsonObject operation = new JsonObject();
         operation.addProperty(Operation.OP, "unsupported");
         operation.addProperty(Operation.PATH, "/field");
-        JsonPatch.applyOperation(document, operation);
-        assertFalse(document.has("field"));
+        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> {
+            JsonPatch.applyOperation(document, operation);
+        });
+        assertEquals("Unsupported JSON Patch operation: unsupported", exception.getMessage());
     }
 }
