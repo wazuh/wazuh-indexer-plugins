@@ -44,6 +44,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Initialize content on plugin startup [(#696)](https://github.com/wazuh/wazuh-indexer-plugins/pull/696)
 - Implement threat detectors creation [(#703)](https://github.com/wazuh/wazuh-indexer-plugins/pull/703)
 - Implement complete initialization of content [(#704)](https://github.com/wazuh/wazuh-indexer-plugins/pull/704)
+- Complete content SAP resources management  [(#713)](https://github.com/wazuh/wazuh-indexer-plugins/pull/713)
 - Add new content manager settings [(#717)](https://github.com/wazuh/wazuh-indexer-plugins/pull/717)
 
 ### Dependencies
@@ -77,7 +78,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Merge `cloud-services` categories [(#710)](https://github.com/wazuh/wazuh-indexer-plugins/pull/710)
 - Send Integration ID to SAP for detector creation [(#712)](https://github.com/wazuh/wazuh-indexer-plugins/pull/712)
 - Update Content Manager docs [(#716)](https://github.com/wazuh/wazuh-indexer-plugins/pull/716)
-- Update CTI field mappings [(#718)](https://github.com/wazuh/wazuh-indexer-plugins/pull/718)
+- Update CTI field mappings [(#718)](https://github.com/wazuh/wazuh-indexer-plugins/pull/718) [(#725)](https://github.com/wazuh/wazuh-indexer-plugins/pull/725)
 - Update content spaces [(#724)](https://github.com/wazuh/wazuh-indexer-plugins/pull/724)
 - Improve Content Manager code quality [(#720)](https://github.com/wazuh/wazuh-indexer-plugins/pull/720)
 

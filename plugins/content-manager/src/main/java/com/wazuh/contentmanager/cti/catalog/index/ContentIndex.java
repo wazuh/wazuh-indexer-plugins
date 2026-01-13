@@ -300,6 +300,16 @@ public class ContentIndex {
         }
     }
 
+    /**
+     * Waits until all pending bulk requests have completed. Use this to ensure all async indexing
+     * operations are finished.
+     */
+    public void waitForPendingUpdates() throws InterruptedException {
+        int permits = this.pluginSettings.getMaximumConcurrentBulks();
+        this.semaphore.acquire(permits);
+        this.semaphore.release(permits);
+    }
+
     /** Deletes all documents in the index using a "match_all" query. */
     public void clear() {
         try {

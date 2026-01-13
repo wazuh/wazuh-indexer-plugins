@@ -1,8 +1,10 @@
 package com.wazuh.contentmanager.cti.console.service;
 
-import com.wazuh.contentmanager.cti.console.client.ApiClient;
-import com.wazuh.contentmanager.cti.console.model.Plan;
-import com.wazuh.contentmanager.cti.console.model.Token;
+import java.nio.charset.StandardCharsets;
+import java.util.List;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeoutException;
+
 import org.apache.hc.client5.http.async.methods.SimpleHttpResponse;
 import org.apache.hc.core5.http.ContentType;
 import org.junit.After;
@@ -10,12 +12,13 @@ import org.junit.Before;
 import org.mockito.Mock;
 import org.opensearch.test.OpenSearchTestCase;
 
-import java.nio.charset.StandardCharsets;
-import java.util.List;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.TimeoutException;
+import com.wazuh.contentmanager.cti.console.client.ApiClient;
+import com.wazuh.contentmanager.cti.console.model.Plan;
+import com.wazuh.contentmanager.cti.console.model.Token;
 
-import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.any;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 /**
  * Unit tests for the {@link PlansService} interface and its implementation. This test suite

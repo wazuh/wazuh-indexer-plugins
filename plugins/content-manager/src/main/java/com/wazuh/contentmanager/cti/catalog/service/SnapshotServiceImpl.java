@@ -28,7 +28,6 @@ import org.opensearch.env.Environment;
 
 import java.io.BufferedReader;
 import java.io.IOException;
-import java.net.URISyntaxException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.*;
 import java.util.*;
@@ -145,7 +144,14 @@ public class SnapshotServiceImpl implements SnapshotService {
                     this.processSnapshotFile(entry);
                 }
             }
-        } catch (IOException | URISyntaxException e) {
+
+            // Ensure all bulk requests are finished
+            if (!this.contentIndex.isEmpty()) {
+                log.info("Waiting for pending bulk updates to finish...");
+                this.contentIndex.getFirst().waitForPendingUpdates();
+            }
+
+        } catch (Exception e) {
             log.error("Error processing snapshot: {}", e.getMessage());
         } finally {
             // Cleanup temporary files
