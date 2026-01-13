@@ -90,6 +90,7 @@ jobs:
         with:
           repository: wazuh/wazuh-indexer-security-analytics
           ref: ${{ needs.branches.outputs.sap_plugin_ref }}
+          path: wazuh-indexer-security-analytics
 
       - name: Publish to Maven Local
         if: inputs.plugin == 'content-manager'
