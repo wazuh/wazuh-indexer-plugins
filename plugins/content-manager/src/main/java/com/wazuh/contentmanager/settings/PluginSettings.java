@@ -40,6 +40,13 @@ public class PluginSettings {
     private static final boolean DEFAULT_UPDATE_ON_START = true;
     private static final boolean DEFAULT_UPDATE_ON_SCHEDULE = true;
 
+    // Default values for Context and Consumers
+    // TODO: Once CTI unifies the context and consumers into one the other can be deleted
+    private static final String DEFAULT_RULES_CONTEXT = "rules_development_0.0.2";
+    private static final String DEFAULT_RULES_CONSUMER = "rules_development_0.0.2_test";
+    private static final String DEFAULT_DECODERS_CONTEXT = "decoders_development_0.0.2";
+    private static final String DEFAULT_DECODERS_CONSUMER = "decoders_development_0.0.2_test";
+
     /** Singleton instance. */
     private static PluginSettings INSTANCE;
 
@@ -121,6 +128,46 @@ public class PluginSettings {
             Setting.Property.NodeScope,
             Setting.Property.Filtered);
 
+    /**
+     * Context for Rules.
+     */
+    public static final Setting<String> RULES_CONTEXT =
+        Setting.simpleString(
+            "plugins.content_manager.catalog.rules.context",
+            DEFAULT_RULES_CONTEXT,
+            Setting.Property.NodeScope,
+            Setting.Property.Filtered);
+
+    /**
+     * Consumer for Rules.
+     */
+    public static final Setting<String> RULES_CONSUMER =
+        Setting.simpleString(
+            "plugins.content_manager.catalog.rules.consumer",
+            DEFAULT_RULES_CONSUMER,
+            Setting.Property.NodeScope,
+            Setting.Property.Filtered);
+
+    /**
+     * Context for Decoders.
+     */
+    public static final Setting<String> DECODERS_CONTEXT =
+        Setting.simpleString(
+            "plugins.content_manager.catalog.decoders.context",
+            DEFAULT_DECODERS_CONTEXT,
+            Setting.Property.NodeScope,
+            Setting.Property.Filtered);
+
+    /**
+     * Consumer for Decoders.
+     */
+    public static final Setting<String> DECODERS_CONSUMER =
+        Setting.simpleString(
+            "plugins.content_manager.catalog.decoders.consumer",
+            DEFAULT_DECODERS_CONSUMER,
+            Setting.Property.NodeScope,
+            Setting.Property.Filtered);
+
     private final String ctiBaseUrl;
     private final int maximumItemsPerBulk;
     private final int maximumConcurrentBulks;
@@ -128,6 +175,10 @@ public class PluginSettings {
     private final int catalogSyncInterval;
     private final boolean updateOnStart;
     private final boolean updateOnSchedule;
+    private final String rulesContext;
+    private final String rulesConsumer;
+    private final String decodersContext;
+    private final String decodersConsumer;
 
     /**
      * Private default constructor
@@ -142,6 +193,10 @@ public class PluginSettings {
         this.catalogSyncInterval = CATALOG_SYNC_INTERVAL.get(settings);
         this.updateOnStart = UPDATE_ON_START.get(settings);
         this.updateOnSchedule = UPDATE_ON_SCHEDULE.get(settings);
+        this.rulesContext = RULES_CONTEXT.get(settings);
+        this.rulesConsumer = RULES_CONSUMER.get(settings);
+        this.decodersContext = DECODERS_CONTEXT.get(settings);
+        this.decodersConsumer = DECODERS_CONSUMER.get(settings);
         log.debug("Settings.loaded: {}", this.toString());
     }
 
@@ -236,6 +291,38 @@ public class PluginSettings {
         return this.updateOnSchedule;
     }
 
+    /**
+     * Retrieves the Rules Context.
+     * @return the context string.
+     */
+    public String getRulesContext() {
+        return this.rulesContext;
+    }
+
+    /**
+     * Retrieves the Rules Consumer.
+     * @return the consumer string.
+     */
+    public String getRulesConsumer() {
+        return this.rulesConsumer;
+    }
+
+    /**
+     * Retrieves the Decoders Context.
+     * @return the context string.
+     */
+    public String getDecodersContext() {
+        return this.decodersContext;
+    }
+
+    /**
+     * Retrieves the Decoders Consumer.
+     * @return the consumer string.
+     */
+    public String getDecodersConsumer() {
+        return this.decodersConsumer;
+    }
+
     @Override
     public String toString() {
         return "{"
@@ -259,6 +346,18 @@ public class PluginSettings {
             + ", "
             + "updateOnSchedule="
             + this.updateOnSchedule
+            + ", "
+            + "rulesContext="
+            +this.rulesContext
+            + ", "
+            + "rulesConsumer="
+            +this.rulesConsumer
+            + ", "
+            + "decodersContext="
+            +this.decodersContext
+            + ", "
+            + "decodersConsumer="
+            +this.decodersConsumer
             + "}";
     }
 }

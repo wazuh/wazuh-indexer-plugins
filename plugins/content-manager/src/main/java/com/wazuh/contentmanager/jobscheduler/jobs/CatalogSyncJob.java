@@ -10,6 +10,7 @@ import com.wazuh.contentmanager.cti.catalog.model.RemoteConsumer;
 import com.wazuh.contentmanager.cti.catalog.model.Space;
 import com.wazuh.contentmanager.cti.catalog.service.*;
 import com.wazuh.contentmanager.jobscheduler.JobExecutor;
+import com.wazuh.contentmanager.settings.PluginSettings;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.opensearch.action.admin.indices.create.CreateIndexResponse;
@@ -148,8 +149,8 @@ public class CatalogSyncJob implements JobExecutor {
      * Orchestrates the synchronization process specifically for the Rules consumer.
      */
     private void rulesConsumer() {
-        String context = "rules_development_0.0.2";
-        String consumer = "rules_development_0.0.2_test";
+        String context = PluginSettings.getInstance().getRulesContext();
+        String consumer = PluginSettings.getInstance().getRulesConsumer();
 
         Map<String, String> mappings = new HashMap<>();
         mappings.put(
@@ -245,8 +246,8 @@ public class CatalogSyncJob implements JobExecutor {
      * Orchestrates the synchronization process specifically for the Decoders consumer.
      */
     private void decodersConsumer() {
-        String context = "decoders_development_0.0.2";
-        String consumer = "decoders_development_0.0.2_test";
+        String context = PluginSettings.getInstance().getDecodersContext();
+        String consumer = PluginSettings.getInstance().getDecodersConsumer();
 
         Map<String, String> mappings = new HashMap<>();
         mappings.put(
