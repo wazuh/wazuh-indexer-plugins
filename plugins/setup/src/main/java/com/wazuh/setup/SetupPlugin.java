@@ -56,6 +56,7 @@ import com.wazuh.setup.utils.JsonUtils;
 public class SetupPlugin extends Plugin implements ClusterPlugin {
 
     private static final Logger log = LogManager.getLogger(SetupPlugin.class);
+    public static final String CLUSTER_DEFAULT_NUMBER_OF_REPLICAS = "cluster.default_number_of_replicas";
     private final List<Index> indices = new ArrayList<>();
     private Client client;
     private ClusterService clusterService;
@@ -145,12 +146,12 @@ public class SetupPlugin extends Plugin implements ClusterPlugin {
 
             // Apply cluster.default_number_of_replicas from opensearch.yml settings if present
             try {
-                String defaultReplicas = this.clusterService.getSettings().get("cluster.default_number_of_replicas");
-                if (defaultReplicas != null) {
+                String defaultNumberOfReplicas = this.clusterService.getSettings().get(CLUSTER_DEFAULT_NUMBER_OF_REPLICAS);
+                if (defaultNumberOfReplicas != null) {
                     ClusterUpdateSettingsRequest request = new ClusterUpdateSettingsRequest();
-                    request.persistentSettings(Settings.builder().put("cluster.default_number_of_replicas", defaultReplicas).build());
+                    request.persistentSettings(Settings.builder().put(CLUSTER_DEFAULT_NUMBER_OF_REPLICAS, defaultNumberOfReplicas).build());
                     this.client.admin().cluster().updateSettings(request).actionGet(PluginSettings.getTimeout(this.clusterService.getSettings()));
-                    log.info("Successfully updated cluster.default_number_of_replicas to {}", defaultReplicas);
+                    log.info("Successfully updated cluster.default_number_of_replicas to {}", defaultNumberOfReplicas);
                 }
             } catch (Exception e) {
                 log.error("Failed to update cluster.default_number_of_replicas", e);
