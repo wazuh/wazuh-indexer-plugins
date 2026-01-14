@@ -148,8 +148,8 @@ public class CatalogSyncJob implements JobExecutor {
      * Orchestrates the synchronization process specifically for the Rules consumer.
      */
     private void rulesConsumer() {
-        String context = "rules_development_0.0.1";
-        String consumer = "rules_development_0.0.1_test";
+        String context = "rules_development_0.0.2";
+        String consumer = "rules_development_0.0.2_test";
 
         Map<String, String> mappings = new HashMap<>();
         mappings.put(
@@ -245,8 +245,8 @@ public class CatalogSyncJob implements JobExecutor {
      * Orchestrates the synchronization process specifically for the Decoders consumer.
      */
     private void decodersConsumer() {
-        String context = "decoders_development_0.0.1";
-        String consumer = "decoders_development_0.0.1";
+        String context = "decoders_development_0.0.2";
+        String consumer = "decoders_development_0.0.2_test";
 
         Map<String, String> mappings = new HashMap<>();
         mappings.put(

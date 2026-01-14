@@ -156,7 +156,7 @@ public class UpdateServiceImpl extends AbstractService implements UpdateService 
                         type = payload.get(JSON_TYPE_KEY).getAsString();
 
                         // TODO: Delete once the consumer is changed
-                        if (this.context.equals("rules_development_0.0.1") && this.consumer.equals("rules_development_0.0.1_test") && "policy".equals(type)) {
+                        if (this.context.equals("rules_development_0.0.2") && this.consumer.equals("rules_development_0.0.2_test") && "policy".equals(type)) {
                             break;
                         }
 
@@ -172,7 +172,7 @@ public class UpdateServiceImpl extends AbstractService implements UpdateService 
                 break;
             case UPDATE:
                 // TODO: Delete once the consumer is changed
-                if (this.context.equals("rules_development_0.0.1") && this.consumer.equals("rules_development_0.0.1_test") && "policy".equals(id)) {
+                if (this.context.equals("rules_development_0.0.2") && this.consumer.equals("rules_development_0.0.2_test") && "policy".equals(id)) {
                     break;
                 }
 

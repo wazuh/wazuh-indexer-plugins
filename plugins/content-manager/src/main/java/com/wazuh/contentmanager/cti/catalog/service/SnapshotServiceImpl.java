@@ -199,7 +199,7 @@ public class SnapshotServiceImpl implements SnapshotService {
                     String type = payload.get(JSON_TYPE_KEY).getAsString();
 
                     // TODO: Delete once the consumer is changed
-                    if (this.context.equals("rules_development_0.0.1") && this.consumer.equals("rules_development_0.0.1_test") && "policy".equals(type)) {
+                    if (this.context.equals("rules_development_0.0.2") && this.consumer.equals("rules_development_0.0.2_test") && "policy".equals(type)) {
                         continue;
                     }
 
