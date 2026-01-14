@@ -16,10 +16,14 @@
  */
 package com.wazuh.setup;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+import org.opensearch.action.admin.cluster.settings.ClusterUpdateSettingsRequest;
 import org.opensearch.cluster.metadata.IndexNameExpressionResolver;
 import org.opensearch.cluster.node.DiscoveryNode;
 import org.opensearch.cluster.service.ClusterService;
 import org.opensearch.common.settings.Setting;
+import org.opensearch.common.settings.Settings;
 import org.opensearch.core.common.io.stream.NamedWriteableRegistry;
 import org.opensearch.core.xcontent.NamedXContentRegistry;
 import org.opensearch.env.Environment;
@@ -51,7 +55,10 @@ import com.wazuh.setup.utils.JsonUtils;
  */
 public class SetupPlugin extends Plugin implements ClusterPlugin {
 
+    private static final Logger log = LogManager.getLogger(SetupPlugin.class);
     private final List<Index> indices = new ArrayList<>();
+    private Client client;
+    private ClusterService clusterService;
     // spotless:off
     private final String[] categories = {
         "access-management", // No integration in this category yet
@@ -83,6 +90,8 @@ public class SetupPlugin extends Plugin implements ClusterPlugin {
             NamedWriteableRegistry namedWriteableRegistry,
             IndexNameExpressionResolver indexNameExpressionResolver,
             Supplier<RepositoriesService> repositoriesServiceSupplier) {
+        this.client = client;
+        this.clusterService = clusterService;
         // spotless:off
         // ISM index
         this.indices.add(new IndexStateManagement(IndexStateManagement.ISM_INDEX_NAME, "templates/ism-config"));
@@ -133,6 +142,20 @@ public class SetupPlugin extends Plugin implements ClusterPlugin {
     public void onNodeStarted(DiscoveryNode localNode) {
         // Initialize the indices only if this node is the cluster manager node.
         if (localNode.isClusterManagerNode()) {
+
+            // Apply cluster.default_number_of_replicas from opensearch.yml settings if present
+            try {
+                String defaultReplicas = this.clusterService.getSettings().get("cluster.default_number_of_replicas");
+                if (defaultReplicas != null) {
+                    ClusterUpdateSettingsRequest request = new ClusterUpdateSettingsRequest();
+                    request.persistentSettings(Settings.builder().put("cluster.default_number_of_replicas", defaultReplicas).build());
+                    this.client.admin().cluster().updateSettings(request).actionGet(PluginSettings.getTimeout(this.clusterService.getSettings()));
+                    log.info("Successfully updated cluster.default_number_of_replicas to {}", defaultReplicas);
+                }
+            } catch (Exception e) {
+                log.error("Failed to update cluster.default_number_of_replicas", e);
+            }
+
             this.indices.forEach(Index::initialize);
         }
     }
