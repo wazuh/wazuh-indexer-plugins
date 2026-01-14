@@ -24,7 +24,9 @@ import org.apache.logging.log4j.Logger;
 
 import com.wazuh.contentmanager.cti.catalog.model.Operation;
 
+import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -69,8 +71,8 @@ public class JsonPatch {
                 JsonPatch.testOperation(document, path, value);
                 break;
             default:
-                log.warn("Unsupported JSON Patch operation: {}", op);
-                break;
+                log.error("Unsupported JSON Patch operation: {}", op);
+                throw new IllegalArgumentException("Unsupported JSON Patch operation: " + op);
         }
     }
 
@@ -95,9 +97,37 @@ public class JsonPatch {
         }
 
         JsonElement target = JsonPatch.navigateToParent(document, path);
+        String key = JsonPatch.extractKeyFromPath(path);
+
         if (target instanceof JsonObject) {
-            String key = extractKeyFromPath(path);
             ((JsonObject) target).add(key, value);
+        } else if (target instanceof JsonArray array) {
+            if ("-".equals(key)) {
+                array.add(value);
+            } else {
+                try {
+                    int index = Integer.parseInt(key);
+                    if (index >= 0 && index <= array.size()) {
+                        List<JsonElement> tail = new ArrayList<>();
+                        while (array.size() > index) {
+                            tail.add(array.remove(index));
+                        }
+                        array.add(value);
+                        for (JsonElement tailElement : tail) {
+                            array.add(tailElement);
+                        }
+                    } else {
+                        log.error("Index out of bounds for add operation: {}", index);
+                        throw new IndexOutOfBoundsException("Index out of bounds for add operation: " + index);
+                    }
+                } catch (NumberFormatException e) {
+                    log.error("Invalid array index for add operation: {}", key);
+                    throw new IllegalArgumentException("Invalid array index for add operation: " + key);
+                }
+            }
+        } else {
+            log.error("Target for add operation is not a container");
+            throw new IllegalArgumentException("Target for add operation is not a container");
         }
     }
 
@@ -116,9 +146,30 @@ public class JsonPatch {
         }
 
         JsonElement target = JsonPatch.navigateToParent(document, path);
+        String key = JsonPatch.extractKeyFromPath(path);
+
         if (target instanceof JsonObject) {
-            String key = extractKeyFromPath(path);
+            if (!((JsonObject) target).has(key)) {
+                log.error( "Path not found for remove operation: {}", path);
+                throw new IllegalArgumentException( "Path not found for remove operation: " + path);
+            }
             ((JsonObject) target).remove(key);
+        } else if (target instanceof JsonArray array) {
+            try {
+                int index = Integer.parseInt(key);
+                if (index >= 0 && index < array.size()) {
+                    array.remove(index);
+                } else {
+                    log.error("Index out of bounds for remove operation: {}", index);
+                    throw new IndexOutOfBoundsException("Index out of bounds for remove operation: " + index);
+                }
+            } catch (NumberFormatException e) {
+                log.error("Invalid array index for remove operation: {}", key);
+                throw new IllegalArgumentException("Invalid array index for remove operation: " + key);
+            }
+        } else {
+            log.error("Target for remove operation is not a container");
+            throw new IllegalArgumentException("Target for remove operation is not a container");
         }
     }
 
@@ -142,13 +193,41 @@ public class JsonPatch {
      * @param toPath The JSON path where the value should be moved.
      */
     private static void moveOperation(JsonObject document, String fromPath, String toPath) {
-        JsonElement parent = navigateToParent(document, fromPath);
-        if (parent == null || !parent.isJsonObject()) return;
+        JsonElement parent = JsonPatch.navigateToParent(document, fromPath);
+        if (parent == null) {
+            log.error("Invalid 'from' path for move operation: {}", fromPath);
+            throw new IllegalArgumentException("Invalid 'from' path for move operation: " + fromPath);
+        }
 
-        String key = extractKeyFromPath(fromPath);
-        if (!parent.getAsJsonObject().has(key)) return;
+        String key = JsonPatch.extractKeyFromPath(fromPath);
+        JsonElement value = null;
 
-        JsonElement value = parent.getAsJsonObject().get(key);
+        if (parent.isJsonObject()) {
+            if (!parent.getAsJsonObject().has(key)) {
+                log.error("Source key '{}' does not exist in 'from' path '{}', in move operation", key, fromPath);
+                throw new IllegalArgumentException("Source key '" + key + "' does not exist in 'from' path '" + fromPath + "', in move operation");
+            }
+            value = parent.getAsJsonObject().get(key);
+        } else if (parent.isJsonArray()) {
+            try {
+                int index = Integer.parseInt(key);
+                JsonArray array = parent.getAsJsonArray();
+                if (index >= 0 && index < array.size()) {
+                    value = array.get(index);
+                } else {
+                    log.error("Index out of bounds for move operation: {}", index);
+                    throw new IndexOutOfBoundsException("Index out of bounds for move operation: " + index);
+                }
+            } catch (NumberFormatException e) {
+                log.error("Invalid array index for move operation: {}", key);
+                throw new IllegalArgumentException("Invalid array index for move operation: " + key);
+            }
+        }
+
+        if (value == null) {
+            log.error("Could not retrieve value to move from: {}", fromPath);
+            throw new IllegalArgumentException("Could not retrieve value to move from: " + fromPath);
+        }
 
         JsonPatch.removeOperation(document, fromPath);
         JsonPatch.addOperation(document, toPath, value);
@@ -163,18 +242,41 @@ public class JsonPatch {
      */
     private static void copyOperation(JsonObject document, String fromPath, String toPath) {
         JsonElement parent = JsonPatch.navigateToParent(document, fromPath);
-        if (parent == null || !parent.isJsonObject()) {
+        if (parent == null) {
             log.error("Invalid 'from' path for copy operation: {}", fromPath);
-            return;
+            throw new IllegalArgumentException("Invalid 'from' path for copy operation: " + fromPath);
         }
 
-        String fromKey = extractKeyFromPath(fromPath);
-        if (!parent.getAsJsonObject().has(fromKey)) {
-            log.error("Source key '{}' does not exist in 'from' path '{}'", fromKey, fromPath);
-            return;
+        String fromKey = JsonPatch.extractKeyFromPath(fromPath);
+        JsonElement valueToCopy = null;
+
+        if (parent.isJsonObject()) {
+            if (!parent.getAsJsonObject().has(fromKey)) {
+                log.error("Source key '{}' does not exist in 'from' path '{}', in copy operation", fromKey, fromPath);
+                throw new IllegalArgumentException("Source key '" + fromKey + "' does not exist in 'from' path '" + fromPath + "', in copy operation");
+            }
+            valueToCopy = parent.getAsJsonObject().get(fromKey);
+        } else if (parent.isJsonArray()) {
+            try {
+                int index = Integer.parseInt(fromKey);
+                JsonArray array = parent.getAsJsonArray();
+                if (index >= 0 && index < array.size()) {
+                    valueToCopy = array.get(index);
+                } else {
+                    log.error("Index out of bounds for copy operation: {}", index);
+                    throw new IndexOutOfBoundsException("Index out of bounds for copy operation: " + index);
+                }
+            } catch (NumberFormatException e) {
+                log.error("Invalid array index for copy operation: {}", fromKey);
+                throw new IllegalArgumentException("Invalid array index for copy operation: " + fromKey);
+            }
         }
 
-        JsonElement valueToCopy = parent.getAsJsonObject().get(fromKey);
+        if (valueToCopy == null) {
+            log.error("Could not retrieve value to copy from: {}", fromPath);
+            throw new IllegalArgumentException("Could not retrieve value to copy from: " + fromPath);
+        }
+
         JsonElement copiedValue = valueToCopy.deepCopy();
         JsonPatch.addOperation(document, toPath, copiedValue);
     }
@@ -189,11 +291,34 @@ public class JsonPatch {
      */
     private static void testOperation(JsonObject document, String path, JsonElement value) {
         JsonElement target = JsonPatch.navigateToParent(document, path);
+        if (target == null) {
+            log.error("Path not found for test operation: {}", path);
+            throw new IllegalArgumentException("Path not found for test operation: " + path);
+        }
+
+        String key = JsonPatch.extractKeyFromPath(path);
+        JsonElement actual = null;
+
         if (target instanceof JsonObject) {
-            String key = JsonPatch.extractKeyFromPath(path);
-            if (!((JsonObject) target).get(key).equals(value)) {
-                throw new IllegalArgumentException("Test operation failed: value does not match");
+            actual = ((JsonObject) target).get(key);
+        } else if (target instanceof JsonArray array) {
+            try {
+                int index = Integer.parseInt(key);
+                if (index >= 0 && index < array.size()) {
+                    actual = array.get(index);
+                } else {
+                    log.error("Index out of bounds for test operation: {}", index);
+                    throw new IndexOutOfBoundsException("Index out of bounds for test operation: " + index);
+                }
+            } catch (NumberFormatException e) {
+                log.error("Invalid array index for test operation: {}", key);
+                throw new IllegalArgumentException("Invalid array index for test operation: " + key);
             }
+        }
+
+        if (actual == null || !actual.equals(value)) {
+            log.error("Test operation failed: value does not match");
+            throw new IllegalArgumentException("Test operation failed: value does not match");
         }
     }
 
@@ -209,7 +334,9 @@ public class JsonPatch {
 
         return java.util.Arrays.stream(parts, 1, parts.length - 1)
             .reduce((JsonElement) document, (current, part) -> {
-                if (current == null) return null;
+                if (current == null) {
+                    return null;
+                }
 
                 if (current.isJsonObject()) {
                     JsonObject obj = current.getAsJsonObject();
