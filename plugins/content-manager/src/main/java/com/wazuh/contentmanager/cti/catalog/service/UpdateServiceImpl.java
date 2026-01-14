@@ -25,6 +25,7 @@ import com.wazuh.contentmanager.cti.catalog.index.ContentIndex;
 import com.wazuh.contentmanager.cti.catalog.model.Changes;
 import com.wazuh.contentmanager.cti.catalog.model.LocalConsumer;
 import com.wazuh.contentmanager.cti.catalog.model.Offset;
+import com.wazuh.contentmanager.settings.PluginSettings;
 import org.apache.hc.client5.http.async.methods.SimpleHttpResponse;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -156,7 +157,9 @@ public class UpdateServiceImpl extends AbstractService implements UpdateService 
                         type = payload.get(JSON_TYPE_KEY).getAsString();
 
                         // TODO: Delete once the consumer is changed
-                        if (this.context.equals("rules_development_0.0.1") && this.consumer.equals("rules_development_0.0.1_test") && "policy".equals(type)) {
+                        if (this.context.equals(PluginSettings.getInstance().getRulesContext()) &&
+                            this.consumer.equals(PluginSettings.getInstance().getRulesConsumer()) &&
+                            "policy".equals(type)) {
                             break;
                         }
 
@@ -172,7 +175,9 @@ public class UpdateServiceImpl extends AbstractService implements UpdateService 
                 break;
             case UPDATE:
                 // TODO: Delete once the consumer is changed
-                if (this.context.equals("rules_development_0.0.1") && this.consumer.equals("rules_development_0.0.1_test") && "policy".equals(id)) {
+                if (this.context.equals(PluginSettings.getInstance().getRulesContext()) &&
+                    this.consumer.equals(PluginSettings.getInstance().getRulesConsumer()) &&
+                    "policy".equals(id)) {
                     break;
                 }
 
