@@ -16,6 +16,7 @@
  */
 package com.wazuh.contentmanager.cti.catalog.synchronizer;
 
+import org.opensearch.common.settings.Settings;
 import org.opensearch.env.Environment;
 import org.opensearch.test.OpenSearchTestCase;
 import org.opensearch.transport.client.Client;
@@ -44,6 +45,7 @@ public class DecodersConsumerSynchronizerTests extends OpenSearchTestCase {
     @Override
     public void setUp() throws Exception {
         super.setUp();
+        PluginSettings.getInstance(Settings.EMPTY);
         this.closeable = MockitoAnnotations.openMocks(this);
         this.synchronizer =
                 new DecodersConsumerSynchronizer(this.client, this.consumersIndex, this.environment);
@@ -102,7 +104,7 @@ public class DecodersConsumerSynchronizerTests extends OpenSearchTestCase {
 
         Assert.assertEquals(
                 "."
-                        + PluginSettings.getInstance().getDecodersConsumer()
+                        + PluginSettings.getInstance().getDecodersContext()
                         + "-"
                         + PluginSettings.getInstance().getDecodersConsumer()
                         + "-decoder",

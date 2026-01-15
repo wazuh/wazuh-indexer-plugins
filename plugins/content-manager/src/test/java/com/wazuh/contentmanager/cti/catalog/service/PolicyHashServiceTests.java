@@ -21,6 +21,7 @@ import org.opensearch.action.admin.indices.exists.indices.IndicesExistsResponse;
 import org.opensearch.action.search.SearchRequest;
 import org.opensearch.action.search.SearchResponse;
 import org.opensearch.common.action.ActionFuture;
+import org.opensearch.common.settings.Settings;
 import org.opensearch.search.SearchHits;
 import org.opensearch.test.OpenSearchTestCase;
 import org.opensearch.transport.client.AdminClient;
@@ -61,15 +62,19 @@ public class PolicyHashServiceTests extends OpenSearchTestCase {
     @Mock private ActionFuture<SearchResponse> searchFuture;
     @Mock private SearchResponse searchResponse;
 
-    private static final String CONTEXT = PluginSettings.getInstance().getDecodersContext();
-    private static final String CONSUMER = PluginSettings.getInstance().getDecodersConsumer();
+    private static String CONTEXT;
+    private static String CONSUMER;
 
     @Before
     @Override
     public void setUp() throws Exception {
         super.setUp();
+        PluginSettings.getInstance(Settings.EMPTY);
         this.closeable = MockitoAnnotations.openMocks(this);
         this.policyHashService = new PolicyHashService(this.client);
+
+        CONTEXT = PluginSettings.getInstance().getDecodersContext();
+        CONSUMER = PluginSettings.getInstance().getDecodersConsumer();
     }
 
     @After
