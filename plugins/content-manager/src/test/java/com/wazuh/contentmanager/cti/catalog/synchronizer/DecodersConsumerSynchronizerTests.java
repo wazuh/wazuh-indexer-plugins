@@ -16,7 +16,6 @@
  */
 package com.wazuh.contentmanager.cti.catalog.synchronizer;
 
-import com.wazuh.contentmanager.settings.PluginSettings;
 import org.opensearch.env.Environment;
 import org.opensearch.test.OpenSearchTestCase;
 import org.opensearch.transport.client.Client;
@@ -27,6 +26,7 @@ import org.junit.Before;
 import java.util.Map;
 
 import com.wazuh.contentmanager.cti.catalog.index.ConsumersIndex;
+import com.wazuh.contentmanager.settings.PluginSettings;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 
@@ -101,6 +101,11 @@ public class DecodersConsumerSynchronizerTests extends OpenSearchTestCase {
         String indexName = this.synchronizer.getIndexName("decoder");
 
         Assert.assertEquals(
-                "." + PluginSettings.getInstance().getDecodersConsumer() + "-" + PluginSettings.getInstance().getDecodersConsumer() + "-decoder", indexName);
+                "."
+                        + PluginSettings.getInstance().getDecodersConsumer()
+                        + "-"
+                        + PluginSettings.getInstance().getDecodersConsumer()
+                        + "-decoder",
+                indexName);
     }
 }

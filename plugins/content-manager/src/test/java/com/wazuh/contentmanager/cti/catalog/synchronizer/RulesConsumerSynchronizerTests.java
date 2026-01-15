@@ -98,6 +98,12 @@ public class RulesConsumerSynchronizerTests extends OpenSearchTestCase {
     public void testGetIndexNameFormatsCorrectly() {
         String indexName = this.synchronizer.getIndexName("rule");
 
-        Assert.assertEquals("." + PluginSettings.getInstance().getRulesContext() + "-" + PluginSettings.getInstance().getRulesConsumer() + "-rule", indexName);
+        Assert.assertEquals(
+                "."
+                        + PluginSettings.getInstance().getRulesContext()
+                        + "-"
+                        + PluginSettings.getInstance().getRulesConsumer()
+                        + "-rule",
+                indexName);
     }
 }

@@ -16,7 +16,6 @@
  */
 package com.wazuh.contentmanager.cti.catalog.synchronizer;
 
-import com.wazuh.contentmanager.settings.PluginSettings;
 import org.opensearch.env.Environment;
 import org.opensearch.transport.client.Client;
 
@@ -28,6 +27,7 @@ import com.wazuh.contentmanager.cti.catalog.index.ConsumersIndex;
 import com.wazuh.contentmanager.cti.catalog.processor.DetectorProcessor;
 import com.wazuh.contentmanager.cti.catalog.processor.IntegrationProcessor;
 import com.wazuh.contentmanager.cti.catalog.processor.RuleProcessor;
+import com.wazuh.contentmanager.settings.PluginSettings;
 
 /**
  * Handles synchronization logic specifically for the Rules consumer. Processes rules and

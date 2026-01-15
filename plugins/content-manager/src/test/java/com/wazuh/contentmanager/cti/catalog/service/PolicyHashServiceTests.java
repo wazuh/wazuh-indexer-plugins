@@ -16,7 +16,6 @@
  */
 package com.wazuh.contentmanager.cti.catalog.service;
 
-import com.wazuh.contentmanager.settings.PluginSettings;
 import org.opensearch.action.admin.indices.exists.indices.IndicesExistsRequestBuilder;
 import org.opensearch.action.admin.indices.exists.indices.IndicesExistsResponse;
 import org.opensearch.action.search.SearchRequest;
@@ -30,6 +29,7 @@ import org.opensearch.transport.client.IndicesAdminClient;
 import org.junit.After;
 import org.junit.Before;
 
+import com.wazuh.contentmanager.settings.PluginSettings;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 

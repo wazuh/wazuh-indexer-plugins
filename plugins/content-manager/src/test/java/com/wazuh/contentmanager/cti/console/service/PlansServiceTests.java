@@ -1,20 +1,36 @@
+/*
+ * Copyright (C) 2024, Wazuh Inc.
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as
+ * published by the Free Software Foundation, either version 3 of the
+ * License, or (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
 package com.wazuh.contentmanager.cti.console.service;
+
+import org.apache.hc.client5.http.async.methods.SimpleHttpResponse;
+import org.apache.hc.core5.http.ContentType;
+import org.opensearch.test.OpenSearchTestCase;
+import org.junit.After;
+import org.junit.Before;
 
 import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeoutException;
 
-import org.apache.hc.client5.http.async.methods.SimpleHttpResponse;
-import org.apache.hc.core5.http.ContentType;
-import org.junit.After;
-import org.junit.Before;
-import org.mockito.Mock;
-import org.opensearch.test.OpenSearchTestCase;
-
 import com.wazuh.contentmanager.cti.console.client.ApiClient;
 import com.wazuh.contentmanager.cti.console.model.Plan;
 import com.wazuh.contentmanager.cti.console.model.Token;
+import org.mockito.Mock;
 
 import static org.mockito.Mockito.any;
 import static org.mockito.Mockito.mock;
@@ -31,7 +47,6 @@ import static org.mockito.Mockito.when;
 public class PlansServiceTests extends OpenSearchTestCase {
     private PlansService plansService;
     @Mock private ApiClient mockClient;
-
 
     @Before
     @Override
@@ -58,17 +73,16 @@ public class PlansServiceTests extends OpenSearchTestCase {
     }
 
     /**
-     * On success:
-     *  - plans must not be null
-     *  - plans must not be empty
-     *  - a plan must contain products
+     * On success: - plans must not be null - plans must not be empty - a plan must contain products
      *
      * @throws ExecutionException ignored
      * @throws InterruptedException ignored
      * @throws TimeoutException ignored
      */
-    public void testGetPlansSuccess() throws ExecutionException, InterruptedException, TimeoutException {
+    public void testGetPlansSuccess()
+            throws ExecutionException, InterruptedException, TimeoutException {
         // Mock client response upon request
+        // spotless:off
         String response = """
             {
               "data": {
@@ -107,8 +121,11 @@ public class PlansServiceTests extends OpenSearchTestCase {
                 ]
               }
             }""";
+        // spotless:on
         when(this.mockClient.getPlans(any(Token.class)))
-            .thenReturn(SimpleHttpResponse.create(200, response.getBytes(StandardCharsets.UTF_8), ContentType.APPLICATION_JSON));
+                .thenReturn(
+                        SimpleHttpResponse.create(
+                                200, response.getBytes(StandardCharsets.UTF_8), ContentType.APPLICATION_JSON));
 
         List<Plan> plans = this.plansService.getPlans(new Token("anyToken", "Bearer"));
 
@@ -121,22 +138,24 @@ public class PlansServiceTests extends OpenSearchTestCase {
     }
 
     /**
-     * Possible failures
-     *  - CTI replies with an error
-     *  - CTI unreachable
-     * in these cases, the method is expected to return null.
+     * Possible failures - CTI replies with an error - CTI unreachable in these cases, the method is
+     * expected to return null.
      *
      * @throws ExecutionException ignored
      * @throws InterruptedException ignored
      * @throws TimeoutException ignored
      */
-    public void testGetPlansFailure() throws ExecutionException, InterruptedException, TimeoutException {
+    public void testGetPlansFailure()
+            throws ExecutionException, InterruptedException, TimeoutException {
         List<Plan> plans;
-        String response = "{\"error\": \"unauthorized_client\", \"error_description\": \"The provided token is invalid or expired\"}";
+        String response =
+                "{\"error\": \"unauthorized_client\", \"error_description\": \"The provided token is invalid or expired\"}";
 
         // When CTI replies with an error code, token must be null. No exception raised
         when(this.mockClient.getPlans(any(Token.class)))
-            .thenReturn(SimpleHttpResponse.create(400, response.getBytes(StandardCharsets.UTF_8), ContentType.APPLICATION_JSON));
+                .thenReturn(
+                        SimpleHttpResponse.create(
+                                400, response.getBytes(StandardCharsets.UTF_8), ContentType.APPLICATION_JSON));
         plans = this.plansService.getPlans(new Token("anyToken", "Bearer"));
         assertNull(plans);
 

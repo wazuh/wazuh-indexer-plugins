@@ -16,28 +16,29 @@
  */
 package com.wazuh.contentmanager.cti.catalog.service;
 
+import com.fasterxml.jackson.databind.JsonNode;
+
+import org.apache.hc.client5.http.async.methods.SimpleHttpResponse;
+import org.apache.hc.core5.http.ContentType;
+import org.opensearch.action.get.GetResponse;
+import org.opensearch.common.settings.Settings;
+import org.opensearch.test.OpenSearchTestCase;
+import org.junit.After;
+import org.junit.Before;
+
 import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import org.apache.hc.client5.http.async.methods.SimpleHttpResponse;
-import org.apache.hc.core5.http.ContentType;
-import org.junit.After;
-import org.junit.Before;
-import org.mockito.ArgumentCaptor;
-import org.mockito.Mock;
-import org.mockito.MockitoAnnotations;
-import org.opensearch.action.get.GetResponse;
-import org.opensearch.common.settings.Settings;
-import org.opensearch.test.OpenSearchTestCase;
-
-import com.fasterxml.jackson.databind.JsonNode;
 import com.wazuh.contentmanager.cti.catalog.client.ApiClient;
 import com.wazuh.contentmanager.cti.catalog.index.ConsumersIndex;
 import com.wazuh.contentmanager.cti.catalog.index.ContentIndex;
 import com.wazuh.contentmanager.cti.catalog.model.LocalConsumer;
 import com.wazuh.contentmanager.settings.PluginSettings;
+import org.mockito.ArgumentCaptor;
+import org.mockito.Mock;
+import org.mockito.MockitoAnnotations;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
@@ -95,10 +96,14 @@ public class UpdateServiceImplTests extends OpenSearchTestCase {
         super.tearDown();
     }
 
-    /** Tests a successful update flow containing CREATE, UPDATE, and DELETE operations.
-     * @throws Exception*/
+    /**
+     * Tests a successful update flow containing CREATE, UPDATE, and DELETE operations.
+     *
+     * @throws Exception
+     */
     public void testUpdate_Success() throws Exception {
         // Response
+        // spotless:off
         String changesJson =
             """
                 {
@@ -122,6 +127,7 @@ public class UpdateServiceImplTests extends OpenSearchTestCase {
                     }
                   ]
                 }""";
+        // spotless:on
 
         // Mock
         when(this.apiClient.getChanges(anyString(), anyString(), anyLong(), anyLong()))
@@ -160,10 +166,14 @@ public class UpdateServiceImplTests extends OpenSearchTestCase {
         assertEquals(CONSUMER, updated.getName());
     }
 
-    /** Tests that "policy" resources are skipped but the offset is still tracked.
-     * @throws Exception*/
+    /**
+     * Tests that "policy" resources are skipped but the offset is still tracked.
+     *
+     * @throws Exception
+     */
     public void testUpdate_SkipPolicy() throws Exception {
         // Response
+        // spotless:off
         String changesJson =
             """
                 {
@@ -176,6 +186,7 @@ public class UpdateServiceImplTests extends OpenSearchTestCase {
                     }
                   ]
                 }""";
+        // spotless:on
 
         when(this.apiClient.getChanges(anyString(), anyString(), anyLong(), anyLong()))
                 .thenReturn(
@@ -198,8 +209,11 @@ public class UpdateServiceImplTests extends OpenSearchTestCase {
         assertEquals(20, consumerCaptor.getValue().getLocalOffset());
     }
 
-    /** Tests handling of API failures.
-     * @throws Exception*/
+    /**
+     * Tests handling of API failures.
+     *
+     * @throws Exception
+     */
     public void testUpdate_ApiFailure() throws Exception {
         // Mock
         when(this.apiClient.getChanges(anyString(), anyString(), anyLong(), anyLong()))
@@ -213,10 +227,14 @@ public class UpdateServiceImplTests extends OpenSearchTestCase {
         verify(this.consumersIndex, never()).setConsumer(any());
     }
 
-    /** Tests that the consumer state is reset to 0 if an exception occurs during processing.
-     * @throws Exception*/
+    /**
+     * Tests that the consumer state is reset to 0 if an exception occurs during processing.
+     *
+     * @throws Exception
+     */
     public void testUpdate_ExceptionResetsConsumer() throws Exception {
         // Response
+        // spotless:off
         String changesJson =
             """
                 {
@@ -229,6 +247,7 @@ public class UpdateServiceImplTests extends OpenSearchTestCase {
                     }
                   ]
                 }""";
+        // spotless:on
 
         // Mock
         when(this.apiClient.getChanges(anyString(), anyString(), anyLong(), anyLong()))
@@ -251,10 +270,14 @@ public class UpdateServiceImplTests extends OpenSearchTestCase {
         assertEquals(CONSUMER, resetConsumer.getName());
     }
 
-    /** Tests CREATE operation when the 'type' in payload doesn't map to any known index.
-     * @throws Exception*/
+    /**
+     * Tests CREATE operation when the 'type' in payload doesn't map to any known index.
+     *
+     * @throws Exception
+     */
     public void testUpdate_UnknownType_Create() throws Exception {
         // Response
+        // spotless:off
         String changesJson =
             """
                 {
@@ -267,6 +290,7 @@ public class UpdateServiceImplTests extends OpenSearchTestCase {
                     }
                   ]
                 }""";
+        // spotless:on
 
         // Mock
         when(this.apiClient.getChanges(anyString(), anyString(), anyLong(), anyLong()))
@@ -290,10 +314,14 @@ public class UpdateServiceImplTests extends OpenSearchTestCase {
         assertEquals(40, captor.getValue().getLocalOffset());
     }
 
-    /** Tests UPDATE/DELETE operation when the resource ID is not found in any index.
-     * @throws Exception*/
+    /**
+     * Tests UPDATE/DELETE operation when the resource ID is not found in any index.
+     *
+     * @throws Exception
+     */
     public void testUpdate_ResourceNotFound() throws Exception {
         // Response
+        // spotless:off
         String changesJson =
             """
                 {
@@ -305,6 +333,7 @@ public class UpdateServiceImplTests extends OpenSearchTestCase {
                     }
                   ]
                 }""";
+        // spotless:on
 
         // Mock
         when(this.apiClient.getChanges(anyString(), anyString(), anyLong(), anyLong()))
