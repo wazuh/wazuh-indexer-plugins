@@ -16,6 +16,7 @@
  */
 package com.wazuh.contentmanager.cti.catalog.synchronizer;
 
+import com.wazuh.contentmanager.settings.PluginSettings;
 import org.opensearch.env.Environment;
 import org.opensearch.transport.client.Client;
 
@@ -45,10 +46,10 @@ public class DecodersConsumerSynchronizer extends AbstractConsumerSynchronizer {
     public static final String INTEGRATION = "integration";
 
     /** The context identifier for the decoders consumer. */
-    private final String CONTEXT = "decoders_development_0.0.1";
+    private final String CONTEXT = PluginSettings.getInstance().getDecodersContext()    ;
 
     /** The consumer name identifier. */
-    private final String CONSUMER = "decoders_development_0.0.1";
+    private final String CONSUMER = PluginSettings.getInstance().getDecodersConsumer();
 
     /** Service for calculating and updating policy hashes after synchronization. */
     private final PolicyHashService policyHashService;

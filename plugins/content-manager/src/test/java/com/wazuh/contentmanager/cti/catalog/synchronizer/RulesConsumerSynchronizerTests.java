@@ -64,14 +64,14 @@ public class RulesConsumerSynchronizerTests extends OpenSearchTestCase {
     public void testGetContextReturnsExpectedValue() {
         String context = this.synchronizer.getContext();
 
-        Assert.assertEquals("rules_development_0.0.1", context);
+        Assert.assertEquals(PluginSettings.getInstance().getRulesContext(), context);
     }
 
     /** Tests that getConsumer returns the expected consumer value. */
     public void testGetConsumerReturnsExpectedValue() {
         String consumer = this.synchronizer.getConsumer();
 
-        Assert.assertEquals("rules_development_0.0.1_test", consumer);
+        Assert.assertEquals(PluginSettings.getInstance().getRulesConsumer(), consumer);
     }
 
     /** Tests that getMappings returns the expected index mappings. */
@@ -98,6 +98,6 @@ public class RulesConsumerSynchronizerTests extends OpenSearchTestCase {
     public void testGetIndexNameFormatsCorrectly() {
         String indexName = this.synchronizer.getIndexName("rule");
 
-        Assert.assertEquals(".rules_development_0.0.1-rules_development_0.0.1_test-rule", indexName);
+        Assert.assertEquals("." + PluginSettings.getInstance().getRulesContext() + "-" + PluginSettings.getInstance().getRulesConsumer() + "-rule", indexName);
     }
 }

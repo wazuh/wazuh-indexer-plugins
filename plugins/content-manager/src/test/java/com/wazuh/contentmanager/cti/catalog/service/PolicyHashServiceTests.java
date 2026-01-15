@@ -16,6 +16,7 @@
  */
 package com.wazuh.contentmanager.cti.catalog.service;
 
+import com.wazuh.contentmanager.settings.PluginSettings;
 import org.opensearch.action.admin.indices.exists.indices.IndicesExistsRequestBuilder;
 import org.opensearch.action.admin.indices.exists.indices.IndicesExistsResponse;
 import org.opensearch.action.search.SearchRequest;
@@ -60,8 +61,8 @@ public class PolicyHashServiceTests extends OpenSearchTestCase {
     @Mock private ActionFuture<SearchResponse> searchFuture;
     @Mock private SearchResponse searchResponse;
 
-    private static final String CONTEXT = "decoders_development_0.0.1";
-    private static final String CONSUMER = "decoders_development_0.0.1";
+    private static final String CONTEXT = PluginSettings.getInstance().getDecodersContext();
+    private static final String CONSUMER = PluginSettings.getInstance().getDecodersConsumer();
 
     @Before
     @Override

@@ -16,6 +16,7 @@
  */
 package com.wazuh.contentmanager.cti.catalog.synchronizer;
 
+import com.wazuh.contentmanager.settings.PluginSettings;
 import org.opensearch.env.Environment;
 import org.opensearch.transport.client.Client;
 
@@ -41,10 +42,10 @@ public class RulesConsumerSynchronizer extends AbstractConsumerSynchronizer {
     public static final String INTEGRATION = "integration";
 
     /** The context identifier for the rules consumer. */
-    private final String CONTEXT = "rules_development_0.0.1";
+    private final String CONTEXT = PluginSettings.getInstance().getRulesContext();
 
     /** The consumer name identifier. */
-    private final String CONSUMER = "rules_development_0.0.1_test";
+    private final String CONSUMER = PluginSettings.getInstance().getRulesConsumer();
 
     /** Processor for syncing integrations to the security analytics plugin. */
     private final IntegrationProcessor integrationProcessor;
