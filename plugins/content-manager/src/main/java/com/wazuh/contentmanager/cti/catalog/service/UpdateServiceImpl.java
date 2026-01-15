@@ -146,13 +146,6 @@ public class UpdateServiceImpl extends AbstractService implements UpdateService 
                     if (payload.has("type")) {
                         String type = payload.get("type").asText();
 
-                        // TODO: Delete once the consumer is changed
-                        if (this.context.equals(PluginSettings.getInstance().getRulesContext())
-                                && this.consumer.equals(PluginSettings.getInstance().getRulesConsumer())
-                                && "policy".equals(type)) {
-                            break;
-                        }
-
                         index = this.indices.get(type);
                         if (index != null) {
                             index.create(id, payload);
@@ -163,12 +156,6 @@ public class UpdateServiceImpl extends AbstractService implements UpdateService 
                 }
                 break;
             case UPDATE:
-                // TODO: Delete once the consumer is changed
-                if (this.context.equals(PluginSettings.getInstance().getRulesContext())
-                        && this.consumer.equals(PluginSettings.getInstance().getRulesConsumer())
-                        && "policy".equals(id)) {
-                    break;
-                }
 
                 index = this.findIndexForId(id);
                 index.update(id, offset.getOperations());
