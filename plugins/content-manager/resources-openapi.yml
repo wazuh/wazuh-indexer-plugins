@@ -160,6 +160,7 @@ paths:
     put:
       tags: [Rules]
       summary: Update Rule
+      description: Updates an existing rule in the draft space and returns its identifier.
       operationId: updateRule
       parameters:
         - $ref: "#/components/parameters/RuleId"
@@ -172,6 +173,10 @@ paths:
       responses:
         "200":
           description: Rule updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ResourceResponse"
 
     delete:
       tags: [Rules]
@@ -206,6 +211,7 @@ paths:
     put:
       tags: [Integrations]
       summary: Update Integration
+      description: Updates an integration metadata and returns its identifier.
       operationId: updateIntegration
       parameters:
         - $ref: "#/components/parameters/IntegrationId"
@@ -218,6 +224,10 @@ paths:
       responses:
         "200":
           description: Integration updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ResourceResponse"
 
     delete:
       tags: [Integrations]
@@ -289,6 +299,7 @@ components:
     bearerAuth:
       type: http
       scheme: bearer
+      bearerFormat: JWT
 
   parameters:
     KvdbId:
@@ -400,8 +411,35 @@ components:
           type: string
           format: uuid
 
+    ErrorResponse:
+      type: object
+      required: [message]
+      additionalProperties: false
+      properties:
+        message:
+          type: string
+          description: Human-readable error description
+        error:
+          type: string
+          description: Short error code or identifier
+        status:
+          type: integer
+          description: HTTP status code
+        details:
+          type: object
+          additionalProperties: true
+          description: Optional structured error details
+
   responses:
     BadRequest:
       description: Bad request
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
     NotFound:
       description: Resource not found
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
