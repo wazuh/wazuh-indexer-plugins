@@ -1,0 +1,407 @@
+openapi: 3.1.0
+
+info:
+  title: Wazuh Content Manager API
+  description: |
+    Internal-only API exposed by the Indexer to manage decoders, kvdbs, rules,
+    integrations, logtest execution, and promotion across spaces.
+  version: 1.0.0
+
+servers:
+  - url: https://localhost:9200
+
+security:
+  - bearerAuth: []
+
+tags:
+  - name: KVDBs
+  - name: Decoders
+  - name: Rules
+  - name: Integrations
+  - name: Logtest
+  - name: Promotion
+
+paths:
+
+  /_plugins/content-manager/kvdbs:
+    post:
+      tags: [KVDBs]
+      summary: Create KVDB
+      description: |
+        Creates a KVDB in the draft space. The server generates the UUID.
+      operationId: createKvdb
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ValidateResourceRequest"
+      responses:
+        "201":
+          description: KVDB created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ResourceResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+
+  /_plugins/content-manager/kvdbs/{kvdb_id}:
+    put:
+      tags: [KVDBs]
+      summary: Update KVDB
+      operationId: updateKvdb
+      parameters:
+        - $ref: "#/components/parameters/KvdbId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ValidateResourceRequest"
+      responses:
+        "200":
+          description: KVDB updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ResourceResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+    delete:
+      tags: [KVDBs]
+      summary: Delete KVDB
+      operationId: deleteKvdb
+      parameters:
+        - $ref: "#/components/parameters/KvdbId"
+      responses:
+        "204":
+          description: KVDB deleted
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /_plugins/content-manager/decoders:
+    post:
+      tags: [Decoders]
+      summary: Create Decoder
+      operationId: createDecoder
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ValidateResourceRequest"
+      responses:
+        "201":
+          description: Decoder created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ResourceResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+
+  /_plugins/content-manager/decoders/{decoder_id}:
+    put:
+      tags: [Decoders]
+      summary: Update Decoder
+      operationId: updateDecoder
+      parameters:
+        - $ref: "#/components/parameters/DecoderId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ValidateResourceRequest"
+      responses:
+        "200":
+          description: Decoder updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ResourceResponse"
+
+    delete:
+      tags: [Decoders]
+      summary: Delete Decoder
+      operationId: deleteDecoder
+      parameters:
+        - $ref: "#/components/parameters/DecoderId"
+      responses:
+        "204":
+          description: Decoder deleted
+
+  /_plugins/content-manager/rules:
+    post:
+      tags: [Rules]
+      summary: Create Rule
+      description: |
+        Payload is identical to POST /_plugins/_security_analytics/rules.
+      operationId: createRule
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ExternalRulePayload"
+      responses:
+        "201":
+          description: Rule created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ResourceResponse"
+
+  /_plugins/content-manager/rules/{rule_id}:
+    put:
+      tags: [Rules]
+      summary: Update Rule
+      operationId: updateRule
+      parameters:
+        - $ref: "#/components/parameters/RuleId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ExternalRulePayload"
+      responses:
+        "200":
+          description: Rule updated
+
+    delete:
+      tags: [Rules]
+      summary: Delete Rule
+      operationId: deleteRule
+      parameters:
+        - $ref: "#/components/parameters/RuleId"
+      responses:
+        "204":
+          description: Rule deleted
+
+  /_plugins/content-manager/integrations:
+    post:
+      tags: [Integrations]
+      summary: Create Integration
+      operationId: createIntegration
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/IntegrationCreateRequest"
+      responses:
+        "201":
+          description: Integration created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ResourceResponse"
+
+  /_plugins/content-manager/integrations/{integration_id}:
+    put:
+      tags: [Integrations]
+      summary: Update Integration
+      operationId: updateIntegration
+      parameters:
+        - $ref: "#/components/parameters/IntegrationId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/IntegrationUpdateRequest"
+      responses:
+        "200":
+          description: Integration updated
+
+    delete:
+      tags: [Integrations]
+      summary: Delete Integration
+      operationId: deleteIntegration
+      parameters:
+        - $ref: "#/components/parameters/IntegrationId"
+      responses:
+        "204":
+          description: Integration deleted
+
+  /_plugins/content-manager/logtest:
+    post:
+      tags: [Logtest]
+      summary: Execute logtest
+      operationId: executeLogtest
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LogtestRequest"
+      responses:
+        "200":
+          description: Logtest result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LogtestResponse"
+
+  /_plugins/content-manager/promote_preview:
+    get:
+      tags: [Promotion]
+      summary: Preview promotion differences
+      operationId: promotePreview
+      parameters:
+        - name: space
+          in: query
+          required: true
+          schema:
+            type: string
+            enum: [draft, test]
+      responses:
+        "200":
+          description: Promotion diff
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PromotionPreviewResponse"
+
+  /_plugins/content-manager/promote:
+    post:
+      tags: [Promotion]
+      summary: Execute promotion
+      operationId: promote
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PromotionRequest"
+      responses:
+        "200":
+          description: Promotion executed
+
+components:
+
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+
+  parameters:
+    KvdbId:
+      name: kvdb_id
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    DecoderId:
+      name: decoder_id
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    RuleId:
+      name: rule_id
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    IntegrationId:
+      name: integration_id
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+
+  schemas:
+
+    ValidateResourceRequest:
+      type: object
+      required: [type, resource]
+      additionalProperties: false
+      properties:
+        type:
+          type: string
+          enum: [kvdb, decoder, integration]
+        resource:
+          type: object
+          additionalProperties: true
+
+    ExternalRulePayload:
+      type: object
+      description: |
+        Pass-through schema. Identical to Security Analytics rules API.
+      additionalProperties: true
+
+    IntegrationCreateRequest:
+      type: object
+      required: [name, description]
+      additionalProperties: false
+      properties:
+        name:
+          type: string
+        description:
+          type: string
+
+    IntegrationUpdateRequest:
+      type: object
+      additionalProperties: true
+
+    LogtestRequest:
+      type: object
+      required: [queue, location, event]
+      additionalProperties: false
+      properties:
+        queue:
+          type: integer
+        location:
+          type: string
+        agent_metadata:
+          type: object
+          additionalProperties: true
+        event:
+          type: string
+        trace_level:
+          type: string
+          enum: [NONE, BASIC, FULL]
+
+    LogtestResponse:
+      type: object
+      additionalProperties: true
+
+    PromotionPreviewResponse:
+      type: object
+      additionalProperties: true
+
+    PromotionRequest:
+      type: object
+      required: [space, full_policy]
+      additionalProperties: false
+      properties:
+        space:
+          type: string
+          enum: [draft, test]
+        full_policy:
+          type: object
+          additionalProperties: true
+
+    ResourceResponse:
+      type: object
+      required: [id]
+      properties:
+        id:
+          type: string
+          format: uuid
+
+  responses:
+    BadRequest:
+      description: Bad request
+    NotFound:
+      description: Resource not found
