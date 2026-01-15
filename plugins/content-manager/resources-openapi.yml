@@ -22,7 +22,7 @@ tags:
   - name: Promotion
 
 paths:
-
+  # KVDB management endpoints
   /_plugins/content-manager/kvdbs:
     post:
       tags: [KVDBs]
@@ -35,7 +35,7 @@ paths:
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/ValidateResourceRequest"
+              $ref: "#/components/schemas/KvdbResource"
       responses:
         "201":
           description: KVDB created
@@ -58,7 +58,7 @@ paths:
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/ValidateResourceRequest"
+              $ref: "#/components/schemas/KvdbResource"
       responses:
         "200":
           description: KVDB updated
@@ -83,6 +83,7 @@ paths:
         "404":
           $ref: "#/components/responses/NotFound"
 
+  # Decoder management endpoints
   /_plugins/content-manager/decoders:
     post:
       tags: [Decoders]
@@ -93,7 +94,7 @@ paths:
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/ValidateResourceRequest"
+              $ref: "#/components/schemas/DecoderResource"
       responses:
         "201":
           description: Decoder created
@@ -116,7 +117,7 @@ paths:
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/ValidateResourceRequest"
+              $ref: "#/components/schemas/DecoderResource"
       responses:
         "200":
           description: Decoder updated
@@ -135,6 +136,7 @@ paths:
         "204":
           description: Decoder deleted
 
+  # Rule management endpoints
   /_plugins/content-manager/rules:
     post:
       tags: [Rules]
@@ -147,7 +149,7 @@ paths:
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/ExternalRulePayload"
+              $ref: "#/components/schemas/RuleResource"
       responses:
         "201":
           description: Rule created
@@ -169,7 +171,7 @@ paths:
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/ExternalRulePayload"
+              $ref: "#/components/schemas/RuleResource"
       responses:
         "200":
           description: Rule updated
@@ -188,6 +190,7 @@ paths:
         "204":
           description: Rule deleted
 
+  # Integration metadata management endpoints
   /_plugins/content-manager/integrations:
     post:
       tags: [Integrations]
@@ -198,7 +201,7 @@ paths:
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/IntegrationCreateRequest"
+              $ref: "#/components/schemas/IntegrationResource"
       responses:
         "201":
           description: Integration created
@@ -220,7 +223,7 @@ paths:
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/IntegrationUpdateRequest"
+              $ref: "#/components/schemas/IntegrationResource"
       responses:
         "200":
           description: Integration updated
@@ -239,6 +242,7 @@ paths:
         "204":
           description: Integration deleted
 
+  # Logtest execution endpoint
   /_plugins/content-manager/logtest:
     post:
       tags: [Logtest]
@@ -258,6 +262,7 @@ paths:
               schema:
                 $ref: "#/components/schemas/LogtestResponse"
 
+  # Promotion endpoints: move content from draft/test into next space
   /_plugins/content-manager/promote_preview:
     get:
       tags: [Promotion]
@@ -294,13 +299,14 @@ paths:
           description: Promotion executed
 
 components:
-
+  # Security scheme: JWT bearer used for internal authentication
   securitySchemes:
     bearerAuth:
       type: http
       scheme: bearer
       bearerFormat: JWT
 
+  # Shared path parameters for resource identifiers (UUIDs)
   parameters:
     KvdbId:
       name: kvdb_id
@@ -331,40 +337,9 @@ components:
         type: string
         format: uuid
 
+  # Schemas defining request/response payloads
   schemas:
-
-    ValidateResourceRequest:
-      type: object
-      required: [type, resource]
-      additionalProperties: false
-      properties:
-        type:
-          type: string
-          enum: [kvdb, decoder, integration]
-        resource:
-          type: object
-          additionalProperties: true
-
-    ExternalRulePayload:
-      type: object
-      description: |
-        Pass-through schema. Identical to Security Analytics rules API.
-      additionalProperties: true
-
-    IntegrationCreateRequest:
-      type: object
-      required: [name, description]
-      additionalProperties: false
-      properties:
-        name:
-          type: string
-        description:
-          type: string
-
-    IntegrationUpdateRequest:
-      type: object
-      additionalProperties: true
-
+    # Request body for logtest execution
     LogtestRequest:
       type: object
       required: [queue, location, event]
@@ -383,14 +358,17 @@ components:
           type: string
           enum: [NONE, BASIC, FULL]
 
+    # Response body for logtest execution results (pass-through)
     LogtestResponse:
       type: object
       additionalProperties: true
 
+    # Response body showing differences during promotion preview
     PromotionPreviewResponse:
       type: object
       additionalProperties: true
 
+    # Request body to execute promotion from a given space with full policy
     PromotionRequest:
       type: object
       required: [space, full_policy]
@@ -403,6 +381,7 @@ components:
           type: object
           additionalProperties: true
 
+    # Standard resource creation/update response containing the generated UUID
     ResourceResponse:
       type: object
       required: [id]
@@ -411,6 +390,7 @@ components:
           type: string
           format: uuid
 
+    # Standardized error response shape used across endpoints
     ErrorResponse:
       type: object
       required: [message]
@@ -430,7 +410,373 @@ components:
           additionalProperties: true
           description: Optional structured error details
 
+    # Integration document schema (metadata + references to related content)
+    IntegrationResource:
+      type: object
+      additionalProperties: false
+      required:
+        - document
+      properties:
+        document:
+          type: object
+          additionalProperties: false
+          required:
+            - id
+            - title
+            - enabled
+          properties:
+            id:
+              type: string
+              format: uuid
+
+            title:
+              type: string
+
+            description:
+              type: string
+
+            author:
+              type: string
+
+            category:
+              type: string
+
+            date:
+              type: string
+              format: date-time
+
+            documentation:
+              type: string
+
+            enabled:
+              type: boolean
+
+            parent_decoder:
+              type: string
+              format: uuid
+              nullable: true
+
+            decoders:
+              type: array
+              items:
+                type: object
+                additionalProperties: true
+              description: |
+                Integration definitions
+
+            kvdbs:
+              type: array
+              items:
+                type: string
+
+            rules:
+              type: array
+              items:
+                type: string
+
+            references:
+              type: array
+              items:
+                type: string
+
+            metadata:
+              type: object
+              additionalProperties: false
+              properties:
+                author:
+                  type: object
+                  additionalProperties: false
+                  properties:
+                    modified:
+                      type: string
+                      format: date-time
+
+    # Decoder document schema (engine-specific definitions and metadata)
+    DecoderResource:
+      type: object
+      additionalProperties: false
+      required:
+        - document
+      properties:
+        document:
+          type: object
+          additionalProperties: false
+          required:
+            - id
+            - name
+            - enabled
+            - metadata
+          properties:
+            id:
+              type: string
+              format: uuid
+
+            name:
+              type: string
+
+            enabled:
+              type: boolean
+
+            parents:
+              type: array
+              items:
+                type: string
+                format: uuid
+
+            definitions:
+              type: array
+              items:
+                type: object
+                additionalProperties: true
+              description: Decoder definitions (engine-specific)
+
+            normalize:
+              type: object
+              additionalProperties: true
+              description: Normalization rules (engine-specific)
+
+            check:
+              type: object
+              additionalProperties: true
+              description: Decoder check logic (engine-specific)
+
+            metadata:
+              type: object
+              additionalProperties: false
+              required:
+                - title
+                - description
+                - author
+              properties:
+                title:
+                  type: string
+
+                description:
+                  type: string
+
+                module:
+                  type: string
+
+                compatibility:
+                  type: array
+                  items:
+                    type: string
+
+                references:
+                  type: array
+                  items:
+                    type: string
+                    format: uri
+
+                versions:
+                  type: array
+                  items:
+                    type: string
+
+                author:
+                  type: object
+                  additionalProperties: false
+                  required:
+                    - name
+                  properties:
+                    name:
+                      type: string
+                    email:
+                      type: string
+                      format: email
+                    url:
+                      type: string
+                      format: uri
+                    date:
+                      type: string
+                      format: date-time
+                    modified:
+                      type: string
+                      format: date-time
+
+    # KVDB document schema (key-value data managed by the engine)
+    KvdbResource:
+      type: object
+      additionalProperties: false
+      required:
+        - document
+      properties:
+        document:
+          type: object
+          additionalProperties: false
+          required:
+            - id
+            - title
+            - enabled
+          properties:
+            id:
+              type: string
+              format: uuid
+
+            title:
+              type: string
+
+            description:
+              type: string
+
+            author:
+              type: string
+
+            date:
+              type: string
+              format: date-time
+
+            documentation:
+              type: string
+
+            enabled:
+              type: boolean
+
+            content:
+              type: object
+              additionalProperties: true
+              description: KVDB key-value content (engine-managed)
+
+            references:
+              type: array
+              items:
+                type: string
+
+            metadata:
+              type: object
+              additionalProperties: false
+              properties:
+                author:
+                  type: object
+                  additionalProperties: false
+                  properties:
+                    modified:
+                      type: string
+                      format: date-time
+
+    # Rule document schema (Sigma-like)
+    RuleResource:
+      type: object
+      additionalProperties: false
+      required:
+        - document
+      properties:
+        document:
+          type: object
+          additionalProperties: false
+          required:
+            - id
+            - name
+            - title
+            - enabled
+            - detection
+            - logsource
+          properties:
+            id:
+              type: string
+              format: uuid
+
+            sigma_id:
+              type: string
+
+            name:
+              type: string
+
+            title:
+              type: string
+
+            description:
+              type: string
+
+            author:
+              type: string
+
+            date:
+              type: string
+              format: date
+
+            modified:
+              type: string
+              format: date
+
+            enabled:
+              type: boolean
+
+            status:
+              type: string
+
+            level:
+              type: string
+
+            license:
+              type: string
+
+            scope:
+              type: string
+
+            tags:
+              type: array
+              items:
+                type: string
+
+            fields:
+              type: array
+              items:
+                type: string
+
+            falsepositives:
+              type: array
+              items:
+                type: string
+
+            references:
+              type: array
+              items:
+                type: string
+
+            detection:
+              type: object
+              additionalProperties: true
+              required:
+                - condition
+              properties:
+                condition:
+                  type: string
+
+            logsource:
+              type: object
+              additionalProperties: false
+              properties:
+                category:
+                  type: string
+                product:
+                  type: string
+                service:
+                  type: string
+                definition:
+                  type: string
+
+            related:
+              type: array
+              items:
+                type: object
+                additionalProperties: false
+                required:
+                  - id
+                  - type
+                properties:
+                  id:
+                    type: string
+                  type:
+                    type: string
+
+            taxonomy:
+              type: object
+              additionalProperties: true
+
+
   responses:
+    # Common error responses
     BadRequest:
       description: Bad request
       content:
