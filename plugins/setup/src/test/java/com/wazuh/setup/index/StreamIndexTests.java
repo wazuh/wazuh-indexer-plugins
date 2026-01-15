@@ -29,7 +29,6 @@ import org.opensearch.transport.client.IndicesAdminClient;
 
 import com.wazuh.setup.utils.JsonUtils;
 
-import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
 /** Unit tests for the {@link StreamIndex} class. */

@@ -1,73 +1,82 @@
+/*
+ * Copyright (C) 2024, Wazuh Inc.
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as
+ * published by the Free Software Foundation, either version 3 of the
+ * License, or (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
 package com.wazuh.contentmanager.jobscheduler.jobs;
 
-import com.google.gson.JsonObject;
-import com.wazuh.contentmanager.cti.catalog.index.ConsumersIndex;
-import com.wazuh.contentmanager.cti.catalog.service.SecurityAnalyticsService;
-import org.junit.Assert;
-import org.junit.Before;
-import org.mockito.Mock;
+import org.opensearch.common.settings.Settings;
 import org.opensearch.env.Environment;
 import org.opensearch.test.OpenSearchTestCase;
 import org.opensearch.threadpool.ThreadPool;
 import org.opensearch.transport.client.Client;
+import org.junit.After;
+import org.junit.Assert;
+import org.junit.Before;
 
-import static com.wazuh.contentmanager.jobscheduler.jobs.CatalogSyncJob.CATEGORY;
+import com.wazuh.contentmanager.cti.catalog.index.ConsumersIndex;
+import com.wazuh.contentmanager.settings.PluginSettings;
+import org.mockito.Mock;
+import org.mockito.MockitoAnnotations;
 
-public class CatalogSyncJobTests  extends OpenSearchTestCase {
+/**
+ * Unit tests for the {@link CatalogSyncJob} class. This test suite validates the scheduled job
+ * responsible for synchronizing the CTI catalog with local indices.
+ *
+ * <p>Tests verify job state management, job type identification, and execution lifecycle. The
+ * catalog sync job is a critical component that ensures local content indices remain synchronized
+ * with the remote CTI catalog by periodically fetching and applying updates.
+ */
+public class CatalogSyncJobTests extends OpenSearchTestCase {
 
-    private CatalogSyncJob job;
+    private CatalogSyncJob catalogSyncJob;
+    private AutoCloseable closeable;
 
-    @Mock
-    Client client;
+    @Mock private Client client;
     @Mock private ConsumersIndex consumersIndex;
-    @Mock private ThreadPool threadpool;
     @Mock private Environment environment;
-    @Mock private SecurityAnalyticsService securityAnalyticsService;
+    @Mock private ThreadPool threadPool;
 
     @Before
     @Override
     public void setUp() throws Exception {
         super.setUp();
+        this.closeable = MockitoAnnotations.openMocks(this);
+        PluginSettings.getInstance(Settings.EMPTY);
 
-        this.job = new CatalogSyncJob(this.client, this.consumersIndex, this.environment, this.threadpool, this.securityAnalyticsService);
+        this.catalogSyncJob =
+                new CatalogSyncJob(this.client, this.consumersIndex, this.environment, this.threadPool);
     }
 
-
-    public void testGetCategoryOneWord() {
-        JsonObject doc = new JsonObject();
-        doc.addProperty(CATEGORY, "security");
-
-        String category = this.job.getCategory(doc, false);
-
-        Assert.assertEquals("Security", category);
+    @After
+    @Override
+    public void tearDown() throws Exception {
+        if (this.closeable != null) {
+            this.closeable.close();
+        }
+        super.tearDown();
     }
 
-    public void testGetCategoryTwoWords() {
-        JsonObject doc = new JsonObject();
-        doc.addProperty(CATEGORY, "cloud-services");
+    /** Test that the {@link CatalogSyncJob#isRunning()} method returns false initially. */
+    public void testIsRunningReturnsFalseInitially() {
+        boolean isRunning = this.catalogSyncJob.isRunning();
 
-        String category = this.job.getCategory(doc, false);
-
-        Assert.assertEquals("Cloud Services", category);
+        Assert.assertFalse(isRunning);
     }
 
-    public void testGetCategoryThreeWords() {
-        JsonObject doc = new JsonObject();
-        doc.addProperty(CATEGORY, "cloud-services-aws");
-
-        String category = this.job.getCategory(doc, false);
-
-        // Assert subcategory is removed
-        Assert.assertEquals("Cloud Services", category);
-    }
-
-    public void testGetCategoryForThreatDetector() {
-        JsonObject doc = new JsonObject();
-        doc.addProperty(CATEGORY, "cloud-services");
-
-        String category = this.job.getCategory(doc, true);
-
-        // Assert subcategory is removed
-        Assert.assertEquals("cloud-services", category);
+    /** Test that the {@link CatalogSyncJob#JOB_TYPE} constant is correctly defined. */
+    public void testJobTypeConstant() {
+        Assert.assertEquals("consumer-sync-task", CatalogSyncJob.JOB_TYPE);
     }
 }

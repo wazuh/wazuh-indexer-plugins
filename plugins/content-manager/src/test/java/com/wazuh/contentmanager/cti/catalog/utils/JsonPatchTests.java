@@ -25,6 +25,7 @@ import org.junit.Before;
 
 import com.wazuh.contentmanager.cti.catalog.model.Operation;
 
+/** Tests for the JsonPatch utility class. Validates JSON Patch operations. */
 @OpenSearchIntegTestCase.ClusterScope(scope = OpenSearchIntegTestCase.Scope.SUITE)
 public class JsonPatchTests extends OpenSearchTestCase {
 
@@ -268,9 +269,12 @@ public class JsonPatchTests extends OpenSearchTestCase {
         JsonObject operation = new JsonObject();
         operation.addProperty(Operation.OP, "unsupported");
         operation.addProperty(Operation.PATH, "/field");
-        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> {
-            JsonPatch.applyOperation(document, operation);
-        });
+        IllegalArgumentException exception =
+                assertThrows(
+                        IllegalArgumentException.class,
+                        () -> {
+                            JsonPatch.applyOperation(document, operation);
+                        });
         assertEquals("Unsupported JSON Patch operation: unsupported", exception.getMessage());
     }
 }

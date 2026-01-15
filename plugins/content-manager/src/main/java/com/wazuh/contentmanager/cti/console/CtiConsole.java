@@ -1,9 +1,21 @@
+/*
+ * Copyright (C) 2024, Wazuh Inc.
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as
+ * published by the Free Software Foundation, either version 3 of the
+ * License, or (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
 package com.wazuh.contentmanager.cti.console;
 
-import com.wazuh.contentmanager.cti.console.model.Token;
-import com.wazuh.contentmanager.cti.console.service.AuthService;
-import com.wazuh.contentmanager.cti.console.service.PlansService;
-import com.wazuh.contentmanager.cti.console.model.Subscription;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.opensearch.common.util.concurrent.FutureUtils;
@@ -13,57 +25,45 @@ import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
-/**
- * CTI Console main class. Contains and manages CTI Console internal state and services.
- */
+import com.wazuh.contentmanager.cti.console.model.Subscription;
+import com.wazuh.contentmanager.cti.console.model.Token;
+import com.wazuh.contentmanager.cti.console.service.AuthService;
+import com.wazuh.contentmanager.cti.console.service.PlansService;
+
+/** CTI Console main class. Contains and manages CTI Console internal state and services. */
 public class CtiConsole implements TokenListener {
     private static final Logger log = LogManager.getLogger(CtiConsole.class);
     private static final String TASK_NAME = "CTI Console Periodic Task";
 
-    /**
-     * CTI Console authentication service.
-     */
+    /** CTI Console authentication service. */
     private AuthService authService;
 
-    /**
-     * CTI Console plans service.
-     */
+    /** CTI Console plans service. */
     private PlansService plansService;
 
-    /**
-     * Permanent token of this instance to authenticate to the CTI Console.
-     */
+    /** Permanent token of this instance to authenticate to the CTI Console. */
     private volatile Token token;
 
-    /**
-     * Used to cancel the periodic task to obtain a token when completed or expired.
-     */
+    /** Used to cancel the periodic task to obtain a token when completed or expired. */
     private ScheduledFuture<?> getTokenTaskFuture;
 
-    /**
-     * Lock for synchronizing token retrieval.
-     */
+    /** Lock for synchronizing token retrieval. */
     private final Lock tokenLock = new ReentrantLock();
 
-    /**
-     * Condition to signal when token is obtained.
-     */
+    /** Condition to signal when token is obtained. */
     private final Condition tokenAvailable = this.tokenLock.newCondition();
 
-    /**
-     * Thread executor.
-     */
+    /** Thread executor. */
     private final ScheduledExecutorService executor;
 
-    /**
-     * Default constructor.
-     */
+    /** Default constructor. */
     public CtiConsole() {
         this.executor = Executors.newSingleThreadScheduledExecutor(r -> new Thread(r, TASK_NAME));
     }
 
     /**
      * Sets the plan service for this CTI Console instance.
+     *
      * @param plansService plans service implementation.
      */
     public void setPlansService(PlansService plansService) {
@@ -76,6 +76,7 @@ public class CtiConsole implements TokenListener {
 
     /**
      * Sets the authentication service for this CTI Console instance.
+     *
      * @param authService authentication service implementation.
      */
     public void setAuthService(AuthService authService) {
@@ -109,23 +110,29 @@ public class CtiConsole implements TokenListener {
 
     /**
      * Starts a periodic task to obtain a permanent token from the CTI Console.
+     *
      * @param subscription subscription details, including the period between successive executions.
      */
     private void getToken(Subscription subscription) {
         Runnable getTokenTask = () -> this.authService.getToken(subscription);
-        this.getTokenTaskFuture = this.executor.scheduleAtFixedRate(getTokenTask, subscription.getInterval(), subscription.getInterval(), TimeUnit.SECONDS);
+        this.getTokenTaskFuture =
+                this.executor.scheduleAtFixedRate(
+                        getTokenTask, subscription.getInterval(), subscription.getInterval(), TimeUnit.SECONDS);
     }
 
     /**
-     * Triggers the mechanism to obtain a permanent token from the CTI Console.
-     * This method is meant to be called by the Rest handler.
+     * Triggers the mechanism to obtain a permanent token from the CTI Console. This method is meant
+     * to be called by the Rest handler.
+     *
+     * @param subscription subscription details.
      */
-    public void onPostSubscriptionRequest (Subscription subscription) {
+    public void onPostSubscriptionRequest(Subscription subscription) {
         this.getToken(subscription);
     }
 
     /**
      * CTI Console token getter.
+     *
      * @return permanent token.
      */
     public Token getToken() {
@@ -133,7 +140,9 @@ public class CtiConsole implements TokenListener {
     }
 
     /**
-     * Returns whether the periodic task to obtain a token has finished. See {@link ScheduledFuture#isDone()}.
+     * Returns whether the periodic task to obtain a token has finished. See {@link
+     * ScheduledFuture#isDone()}.
+     *
      * @return true if the task is done, false otherwise.
      */
     public boolean isTokenTaskCompleted() {
@@ -141,11 +150,9 @@ public class CtiConsole implements TokenListener {
     }
 
     /**
-     * Waits for the token to be obtained from the CTI Console with a timeout.
-     * This method blocks the calling thread until either:
-     * - A token is successfully obtained (returns the token)
-     * - The timeout expires (returns null)
-     * - The thread is interrupted (throws InterruptedException)
+     * Waits for the token to be obtained from the CTI Console with a timeout. This method blocks the
+     * calling thread until either: - A token is successfully obtained (returns the token) - The
+     * timeout expires (returns null) - The thread is interrupted (throws InterruptedException)
      *
      * @param timeoutMillis maximum time to wait in milliseconds.
      * @return the obtained token, or null if timeout expires or token is not obtained.
@@ -168,8 +175,8 @@ public class CtiConsole implements TokenListener {
     }
 
     /**
-     * Waits indefinitely for the token to be obtained from the CTI Console.
-     * This method blocks the calling thread until a token is successfully obtained or interrupted.
+     * Waits indefinitely for the token to be obtained from the CTI Console. This method blocks the
+     * calling thread until a token is successfully obtained or interrupted.
      *
      * @return the obtained token.
      * @throws InterruptedException if the waiting thread is interrupted.
@@ -186,10 +193,7 @@ public class CtiConsole implements TokenListener {
         }
     }
 
-
-    /**
-     * Deletes the permanent token stored in this CTI Console instance.
-    */
+    /** Deletes the permanent token stored in this CTI Console instance. */
     public void deleteToken() {
         this.token = null;
     }

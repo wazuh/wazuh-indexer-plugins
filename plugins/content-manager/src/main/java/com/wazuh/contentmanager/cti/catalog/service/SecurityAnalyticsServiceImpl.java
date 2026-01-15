@@ -1,8 +1,22 @@
+/*
+ * Copyright (C) 2024, Wazuh Inc.
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as
+ * published by the Free Software Foundation, either version 3 of the
+ * License, or (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
 package com.wazuh.contentmanager.cti.catalog.service;
 
 import com.google.gson.JsonObject;
-import com.wazuh.securityanalytics.action.*;
-import com.wazuh.securityanalytics.model.Integration;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.opensearch.action.support.WriteRequest;
@@ -11,11 +25,14 @@ import org.opensearch.transport.client.Client;
 
 import java.util.*;
 
+import com.wazuh.securityanalytics.action.*;
+import com.wazuh.securityanalytics.model.Integration;
+
 import static org.opensearch.rest.RestRequest.Method.POST;
 
 /**
- * Implementation of the SecurityAnalyticsService.
- * Handles the direct execution of SAP actions using the OpenSearch Client.
+ * Implementation of the SecurityAnalyticsService. Handles the direct execution of SAP actions using
+ * the OpenSearch Client.
  */
 public class SecurityAnalyticsServiceImpl implements SecurityAnalyticsService {
     private static final Logger log = LogManager.getLogger(SecurityAnalyticsServiceImpl.class);
@@ -52,7 +69,10 @@ public class SecurityAnalyticsServiceImpl implements SecurityAnalyticsService {
             List<String> rules = new ArrayList<>();
 
             if (innerDoc.has(JSON_RULES_KEY)) {
-                innerDoc.get(JSON_RULES_KEY).getAsJsonArray().forEach(item -> rules.add(item.getAsString()));
+                innerDoc
+                        .get(JSON_RULES_KEY)
+                        .getAsJsonArray()
+                        .forEach(item -> rules.add(item.getAsString()));
             }
             if (rules.isEmpty()) {
                 return;
@@ -60,21 +80,13 @@ public class SecurityAnalyticsServiceImpl implements SecurityAnalyticsService {
 
             log.info("Creating/Updating Integration [{}] in SAP - ID: {}", name, id);
 
-            WIndexIntegrationRequest request = new WIndexIntegrationRequest(
-                id,
-                WriteRequest.RefreshPolicy.IMMEDIATE,
-                POST,
-                new Integration(
-                    id,
-                    null,
-                    name,
-                    description,
-                    category,
-                    "Sigma",
-                    rules,
-                    new HashMap<>()
-                )
-            );
+            WIndexIntegrationRequest request =
+                    new WIndexIntegrationRequest(
+                            id,
+                            WriteRequest.RefreshPolicy.IMMEDIATE,
+                            POST,
+                            new Integration(
+                                    id, null, name, description, category, "Sigma", rules, new HashMap<>()));
             this.client.execute(WIndexIntegrationAction.INSTANCE, request).actionGet();
 
         } catch (Exception e) {
@@ -90,7 +102,11 @@ public class SecurityAnalyticsServiceImpl implements SecurityAnalyticsService {
 
             // Then delete integration
             log.info("Deleting Integration [{}] from SAP", id);
-            this.client.execute(WDeleteIntegrationAction.INSTANCE, new WDeleteIntegrationRequest(id, WriteRequest.RefreshPolicy.IMMEDIATE)).actionGet();
+            this.client
+                    .execute(
+                            WDeleteIntegrationAction.INSTANCE,
+                            new WDeleteIntegrationRequest(id, WriteRequest.RefreshPolicy.IMMEDIATE))
+                    .actionGet();
         } catch (Exception e) {
             log.error("Failed to delete Integration [{}]: {}", id, e.getMessage());
         }
@@ -117,14 +133,9 @@ public class SecurityAnalyticsServiceImpl implements SecurityAnalyticsService {
 
             log.info("Creating/Updating Rule [{}] in SAP", id);
 
-            WIndexRuleRequest ruleRequest = new WIndexRuleRequest(
-                id,
-                WriteRequest.RefreshPolicy.IMMEDIATE,
-                product,
-                POST,
-                innerDoc.toString(),
-                true
-            );
+            WIndexRuleRequest ruleRequest =
+                    new WIndexRuleRequest(
+                            id, WriteRequest.RefreshPolicy.IMMEDIATE, product, POST, innerDoc.toString(), true);
             this.client.execute(WIndexRuleAction.INSTANCE, ruleRequest).actionGet();
         } catch (Exception e) {
             log.error("Failed to upsert Rule: {}", e.getMessage());
@@ -135,7 +146,11 @@ public class SecurityAnalyticsServiceImpl implements SecurityAnalyticsService {
     public void deleteRule(String id) {
         try {
             log.info("Deleting Rule [{}] from SAP", id);
-            this.client.execute(WDeleteRuleAction.INSTANCE, new WDeleteRuleRequest(id, WriteRequest.RefreshPolicy.IMMEDIATE, true)).actionGet();
+            this.client
+                    .execute(
+                            WDeleteRuleAction.INSTANCE,
+                            new WDeleteRuleRequest(id, WriteRequest.RefreshPolicy.IMMEDIATE, true))
+                    .actionGet();
         } catch (Exception e) {
             log.error("Failed to delete Rule [{}]: {}", id, e.getMessage());
         }
@@ -154,7 +169,10 @@ public class SecurityAnalyticsServiceImpl implements SecurityAnalyticsService {
             List<String> rules = new ArrayList<>();
 
             if (innerDoc.has(JSON_RULES_KEY)) {
-                innerDoc.get(JSON_RULES_KEY).getAsJsonArray().forEach(item -> rules.add(item.getAsString()));
+                innerDoc
+                        .get(JSON_RULES_KEY)
+                        .getAsJsonArray()
+                        .forEach(item -> rules.add(item.getAsString()));
             }
             if (rules.isEmpty()) {
                 return;
@@ -162,12 +180,9 @@ public class SecurityAnalyticsServiceImpl implements SecurityAnalyticsService {
 
             log.info("Creating/Updating Detector [{}] for Integration", name);
 
-            WIndexDetectorRequest request = new WIndexDetectorRequest(
-                id,
-                name,
-                category,
-                rules,
-                WriteRequest.RefreshPolicy.IMMEDIATE);
+            WIndexDetectorRequest request =
+                    new WIndexDetectorRequest(
+                            id, name, category, rules, WriteRequest.RefreshPolicy.IMMEDIATE);
             this.client.execute(WIndexDetectorAction.INSTANCE, request).actionGet();
             log.info("Detector [{}] synced successfully.", name);
 
@@ -180,7 +195,11 @@ public class SecurityAnalyticsServiceImpl implements SecurityAnalyticsService {
     public void deleteDetector(String id) {
         try {
             log.info("Deleting Detector [{}] from SAP", id);
-            this.client.execute(WDeleteDetectorAction.INSTANCE, new WDeleteDetectorRequest(id, WriteRequest.RefreshPolicy.IMMEDIATE)).actionGet();
+            this.client
+                    .execute(
+                            WDeleteDetectorAction.INSTANCE,
+                            new WDeleteDetectorRequest(id, WriteRequest.RefreshPolicy.IMMEDIATE))
+                    .actionGet();
         } catch (Exception e) {
             log.error("Failed to delete Detector [{}]: {}", id, e.getMessage());
         }
@@ -205,9 +224,7 @@ public class SecurityAnalyticsServiceImpl implements SecurityAnalyticsService {
         if (rawCategory.contains("cloud-services")) {
             rawCategory = rawCategory.substring(0, 14);
         }
-        return Arrays.stream(
-            rawCategory
-                .split("-"))
+        return Arrays.stream(rawCategory.split("-"))
                 .reduce("", (current, next) -> current + " " + Strings.capitalize(next))
                 .trim();
     }
