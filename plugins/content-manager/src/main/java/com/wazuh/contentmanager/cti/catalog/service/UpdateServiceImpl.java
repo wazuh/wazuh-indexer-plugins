@@ -32,7 +32,6 @@ import com.wazuh.contentmanager.cti.catalog.index.ContentIndex;
 import com.wazuh.contentmanager.cti.catalog.model.Changes;
 import com.wazuh.contentmanager.cti.catalog.model.LocalConsumer;
 import com.wazuh.contentmanager.cti.catalog.model.Offset;
-import com.wazuh.contentmanager.settings.PluginSettings;
 
 /** Service responsible for keeping the catalog content up-to-date. */
 public class UpdateServiceImpl extends AbstractService implements UpdateService {
@@ -156,7 +155,6 @@ public class UpdateServiceImpl extends AbstractService implements UpdateService 
                 }
                 break;
             case UPDATE:
-
                 index = this.findIndexForId(id);
                 index.update(id, offset.getOperations());
                 break;
