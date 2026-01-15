@@ -342,21 +342,37 @@ components:
     # Request body for logtest execution
     LogtestRequest:
       type: object
-      required: [queue, location, event]
       additionalProperties: false
+      required:
+        - queue
+        - location
+        - event
       properties:
         queue:
           type: integer
+          minimum: 0
+          description: Queue number used for logtest execution
+
         location:
           type: string
+          description: Log file path or logical source location
+
         agent_metadata:
           type: object
           additionalProperties: true
+          description: Optional agent metadata passed to the logtest engine
+
         event:
           type: string
+          description: Raw log event to be tested
+
         trace_level:
           type: string
-          enum: [NONE, BASIC, FULL]
+          enum:
+            - NONE
+            - BASIC
+            - FULL
+          description: Trace verbosity level
 
     # Response body for logtest execution results (pass-through)
     LogtestResponse:
@@ -371,15 +387,57 @@ components:
     # Request body to execute promotion from a given space with full policy
     PromotionRequest:
       type: object
-      required: [space, full_policy]
       additionalProperties: false
+      required:
+        - promote_test
+        - full_policy
       properties:
-        space:
-          type: string
-          enum: [draft, test]
+        promote_test:
+          type: boolean
+          description: Whether the policy should be promoted to the test space
+
         full_policy:
           type: object
-          additionalProperties: true
+          additionalProperties: false
+          required:
+            - policy
+            - integrations
+            - kvdbs
+            - decoders
+            - filters
+          properties:
+            policy:
+              type: object
+              additionalProperties: true
+              description: JSON object representing the policy to be validated
+
+            integrations:
+              type: array
+              items:
+                type: object
+                additionalProperties: true
+              description: Integrations used by the policy
+
+            kvdbs:
+              type: array
+              items:
+                type: object
+                additionalProperties: true
+              description: KVDBs used by the policy
+
+            decoders:
+              type: array
+              items:
+                type: object
+                additionalProperties: true
+              description: Decoders used by the policy
+
+            filters:
+              type: array
+              items:
+                type: object
+                additionalProperties: true
+              description: Filters used by the policy
 
     # Standard resource creation/update response containing the generated UUID
     ResourceResponse:
@@ -773,7 +831,6 @@ components:
             taxonomy:
               type: object
               additionalProperties: true
-
 
   responses:
     # Common error responses
