@@ -181,6 +181,10 @@ The plugin is configured through the `PluginSettings` class. Settings can be def
 | `plugins.content_manager.client.timeout`             | `10`                               | Timeout (in seconds) for HTTP and Indexing operations.                       |
 | `plugins.content_manager.catalog.update_on_start`    | `true`                             | Triggers a content update when the plugin starts.                            |
 | `plugins.content_manager.catalog.update_on_schedule` | `true`                             | Enables or disables the periodic content update job.                         |
+| `plugins.content_manager.catalog.rules.context`      | `rules_development_0.0.2`          | Context identifier for the Rules catalog.                                    |
+| `plugins.content_manager.catalog.rules.consumer`     | `rules_development_0.0.2_test`     | Consumer identifier for the Rules catalog.                                   |
+| `plugins.content_manager.catalog.decoders.context`   | `decoders_development_0.0.2`       | Context identifier for the Decoders catalog.                                 |
+| `plugins.content_manager.catalog.decoders.consumer`  | `decoders_development_0.0.2_test`  | Consumer identifier for the Decoders catalog.                                |
 
 ---
 

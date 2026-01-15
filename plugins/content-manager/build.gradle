@@ -98,7 +98,7 @@ dependencies {
   compileOnly 'com.fasterxml.jackson.core:jackson-annotations:2.18.2'
   compileOnly 'com.fasterxml.jackson.dataformat:jackson-dataformat-yaml:2.18.2'
 
-  compileOnly group: 'com.wazuh', name: 'wazuh-indexer-common', version: "${version}"
+  compileOnly group: 'com.wazuh', name: 'wazuh-indexer-security-analytics-commons', version: "${version}"
   // ZipArchive dependencies used for integration tests
   zipArchive group: 'org.opensearch.plugin', name: 'opensearch-job-scheduler', version: "${opensearch_build}"
   compileOnly "org.opensearch:opensearch-job-scheduler-spi:${job_scheduler_version}"

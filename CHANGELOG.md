@@ -46,6 +46,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Implement complete initialization of content [(#704)](https://github.com/wazuh/wazuh-indexer-plugins/pull/704)
 - Complete content SAP resources management  [(#713)](https://github.com/wazuh/wazuh-indexer-plugins/pull/713)
 - Add new content manager settings [(#717)](https://github.com/wazuh/wazuh-indexer-plugins/pull/717)
+- Apply default replicas setting from configuration on startup [(#733)](https://github.com/wazuh/wazuh-indexer-plugins/pull/733)
 
 ### Dependencies
 - Upgrade to Gradle 8.14.3 [(#649)](https://github.com/wazuh/wazuh-indexer-plugins/pull/649)
@@ -80,7 +81,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Update Content Manager docs [(#716)](https://github.com/wazuh/wazuh-indexer-plugins/pull/716)
 - Update CTI field mappings [(#718)](https://github.com/wazuh/wazuh-indexer-plugins/pull/718) [(#725)](https://github.com/wazuh/wazuh-indexer-plugins/pull/725)
 - Update content spaces [(#724)](https://github.com/wazuh/wazuh-indexer-plugins/pull/724)
-- Improve Content Manager code quality [(#720)](https://github.com/wazuh/wazuh-indexer-plugins/pull/720)
+- Extend JsonPatch to process JsonArray [(#729)](https://github.com/wazuh/wazuh-indexer-plugins/pull/729)
 
 ### Deprecated
 -

@@ -14,6 +14,10 @@ The plugin features a retry mechanism to handle transient faults. In case of a t
 
 The backoff time is configurable. Head to [Configuration Files](/ref/configuration/configuration-files.md#initialization-plugin-settings) for more information.
 
+### Replica configuration
+
+During the node initialization, the plugin checks for the presence of the `cluster.default_number_of_replicas` setting in the node configuration. If this setting is defined, the plugin automatically updates the cluster's persistent settings with this value. This ensures that the default number of replicas is consistently applied across the cluster as defined in the configuration file.
+
 ## Class diagram
 
 ```mermaid

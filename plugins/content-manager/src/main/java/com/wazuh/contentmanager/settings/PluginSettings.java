@@ -23,25 +23,16 @@ import org.opensearch.common.settings.Settings;
 
 import reactor.util.annotation.NonNull;
 
-/**
- * Encapsulates configuration settings and constants for the Content Manager plugin. This class
- * provides a centralized location for managing plugin configuration values, including CTI API
- * endpoints, bulk operation limits, timeout values, and synchronization intervals.
- */
+/** This class encapsulates configuration settings and constants for the Content Manager plugin. */
 public class PluginSettings {
-    /** Logger instance for the PluginSettings class. */
     private static final Logger log = LogManager.getLogger(PluginSettings.class);
 
-    /** Base URI for all Content Manager plugin REST API endpoints. */
+    // Rest API endpoints
     public static final String PLUGINS_BASE_URI = "/_plugins/content-manager";
-
-    /** URI endpoint for subscription-related operations. */
     public static final String SUBSCRIPTION_URI = PLUGINS_BASE_URI + "/subscription";
-
-    /** URI endpoint for update-related operations. */
     public static final String UPDATE_URI = PLUGINS_BASE_URI + "/update";
 
-    /** Default maximum number of items to include in a single bulk request. */
+    /** Settings default values */
     private static final int DEFAULT_MAX_ITEMS_PER_BULK = 25;
 
     private static final int DEFAULT_MAX_CONCURRENT_BULKS = 5;
@@ -49,6 +40,13 @@ public class PluginSettings {
     private static final int DEFAULT_CATALOG_SYNC_INTERVAL = 60;
     private static final boolean DEFAULT_UPDATE_ON_START = true;
     private static final boolean DEFAULT_UPDATE_ON_SCHEDULE = true;
+
+    // Default values for Context and Consumers
+    // TODO: Once CTI unifies the context and consumers into one the other can be deleted
+    private static final String DEFAULT_RULES_CONTEXT = "rules_development_0.0.2";
+    private static final String DEFAULT_RULES_CONSUMER = "rules_development_0.0.2_test";
+    private static final String DEFAULT_DECODERS_CONTEXT = "decoders_development_0.0.2";
+    private static final String DEFAULT_DECODERS_CONSUMER = "decoders_development_0.0.2_test";
 
     /** Singleton instance. */
     private static PluginSettings INSTANCE;
@@ -65,9 +63,8 @@ public class PluginSettings {
                     Setting.Property.Filtered);
 
     /**
-     * OpenSearch setting for the maximum number of elements included in a single bulk request during
-     * initialization from a snapshot. This setting controls bulk operation size to balance
-     * performance and resource usage. Valid range is 10-25 items, with a default of 25.
+     * The maximum number of elements that are included in a bulk request during the initialization
+     * from a snapshot.
      */
     public static final Setting<Integer> MAX_ITEMS_PER_BULK =
             Setting.intSetting(
@@ -79,9 +76,7 @@ public class PluginSettings {
                     Setting.Property.Filtered);
 
     /**
-     * OpenSearch setting for the maximum number of concurrent bulk operations allowed during
-     * initialization from a snapshot. This setting limits parallelism to prevent resource exhaustion.
-     * Valid range is 1-5 concurrent operations, with a default of 5.
+     * The maximum number of co-existing bulk operations during the initialization from a snapshot.
      */
     public static final Setting<Integer> MAX_CONCURRENT_BULKS =
             Setting.intSetting(
@@ -92,11 +87,7 @@ public class PluginSettings {
                     Setting.Property.NodeScope,
                     Setting.Property.Filtered);
 
-    /**
-     * Setting for the timeout duration in seconds for indexing operations. This setting defines how
-     * long the client will wait for indexing requests to complete before timing out. Valid range is
-     * 10-50 seconds, with a default of 10 seconds.
-     */
+    /** Timeout of indexing operations */
     public static final Setting<Long> CLIENT_TIMEOUT =
             Setting.longSetting(
                     "plugins.content_manager.client.timeout",
@@ -106,11 +97,7 @@ public class PluginSettings {
                     Setting.Property.NodeScope,
                     Setting.Property.Filtered);
 
-    /**
-     * Setting for the catalog synchronization job interval in minutes. It controls how frequently the
-     * plugin synchronizes with the CTI catalog to fetch updates. Valid range is 1-1440 minutes (1
-     * day), with a default of 60 minutes.
-     */
+    /** The interval in minutes for the catalog synchronization job. */
     public static final Setting<Integer> CATALOG_SYNC_INTERVAL =
             Setting.intSetting(
                     "plugins.content_manager.catalog.sync_interval",
@@ -136,30 +123,54 @@ public class PluginSettings {
                     Setting.Property.NodeScope,
                     Setting.Property.Filtered);
 
+    /** Context for Rules. */
+    public static final Setting<String> RULES_CONTEXT =
+            Setting.simpleString(
+                    "plugins.content_manager.catalog.rules.context",
+                    DEFAULT_RULES_CONTEXT,
+                    Setting.Property.NodeScope,
+                    Setting.Property.Filtered);
+
+    /** Consumer for Rules. */
+    public static final Setting<String> RULES_CONSUMER =
+            Setting.simpleString(
+                    "plugins.content_manager.catalog.rules.consumer",
+                    DEFAULT_RULES_CONSUMER,
+                    Setting.Property.NodeScope,
+                    Setting.Property.Filtered);
+
+    /** Context for Decoders. */
+    public static final Setting<String> DECODERS_CONTEXT =
+            Setting.simpleString(
+                    "plugins.content_manager.catalog.decoders.context",
+                    DEFAULT_DECODERS_CONTEXT,
+                    Setting.Property.NodeScope,
+                    Setting.Property.Filtered);
+
+    /** Consumer for Decoders. */
+    public static final Setting<String> DECODERS_CONSUMER =
+            Setting.simpleString(
+                    "plugins.content_manager.catalog.decoders.consumer",
+                    DEFAULT_DECODERS_CONSUMER,
+                    Setting.Property.NodeScope,
+                    Setting.Property.Filtered);
+
     private final String ctiBaseUrl;
-
-    /** The configured maximum number of items per bulk request. */
     private final int maximumItemsPerBulk;
-
-    /** The configured maximum number of concurrent bulk operations. */
     private final int maximumConcurrentBulks;
-
-    /** The configured client timeout in seconds for indexing operations. */
     private final long clientTimeout;
-
-    /** The configured catalog synchronization interval in minutes. */
     private final int catalogSyncInterval;
-
     private final boolean updateOnStart;
     private final boolean updateOnSchedule;
+    private final String rulesContext;
+    private final String rulesConsumer;
+    private final String decodersContext;
+    private final String decodersConsumer;
 
     /**
-     * Private constructor to initialize plugin settings from OpenSearch cluster configuration. This
-     * constructor extracts all configured values from the provided settings object and caches them as
-     * instance fields for efficient access.
+     * Private default constructor
      *
-     * @param settings The OpenSearch Settings object containing cluster configuration, typically
-     *     obtained during plugin component creation.
+     * @param settings as obtained in createComponents.
      */
     private PluginSettings(@NonNull final Settings settings) {
         this.ctiBaseUrl = CTI_API_URL.get(settings);
@@ -169,16 +180,18 @@ public class PluginSettings {
         this.catalogSyncInterval = CATALOG_SYNC_INTERVAL.get(settings);
         this.updateOnStart = UPDATE_ON_START.get(settings);
         this.updateOnSchedule = UPDATE_ON_SCHEDULE.get(settings);
+        this.rulesContext = RULES_CONTEXT.get(settings);
+        this.rulesConsumer = RULES_CONSUMER.get(settings);
+        this.decodersContext = DECODERS_CONTEXT.get(settings);
+        this.decodersConsumer = DECODERS_CONSUMER.get(settings);
         log.debug("Settings.loaded: {}", this.toString());
     }
 
     /**
-     * Retrieves or initializes the singleton instance of PluginSettings. This method performs lazy
-     * initialization, creating the instance on first access using the provided cluster settings.
+     * Singleton instance accessor. Initializes the settings
      *
-     * @param settings The OpenSearch Settings object containing cluster configuration, typically
-     *     obtained during plugin component creation.
-     * @return The singleton PluginSettings instance.
+     * @param settings as obtained in createComponents.
+     * @return {@link PluginSettings#INSTANCE}
      */
     public static synchronized PluginSettings getInstance(@NonNull final Settings settings) {
         if (INSTANCE == null) {
@@ -188,12 +201,11 @@ public class PluginSettings {
     }
 
     /**
-     * Retrieves the singleton instance of PluginSettings. This method should only be called after the
-     * instance has been initialized via {@link #getInstance(Settings)}.
+     * Singleton instance accessor
      *
-     * @return The singleton PluginSettings instance.
-     * @throws IllegalStateException If the instance has not been initialized with settings.
-     * @see #getInstance(Settings)
+     * @return {@link PluginSettings#INSTANCE}
+     * @throws IllegalStateException if the instance has not been initialized
+     * @see PluginSettings#getInstance(Settings)
      */
     public static synchronized PluginSettings getInstance() {
         if (PluginSettings.INSTANCE == null) {
@@ -203,29 +215,27 @@ public class PluginSettings {
     }
 
     /**
-     * Retrieves the configured base URL for the Cyber Threat Intelligence (CTI) API.
+     * Getter method for the CTI API URL
      *
-     * @return The CTI API base URL string.
+     * @return a string with the base URL
      */
     public String getCtiBaseUrl() {
         return this.ctiBaseUrl;
     }
 
     /**
-     * Retrieves the configured maximum number of documents that can be included in a single bulk
-     * request during content indexing operations.
+     * Retrieves the maximum number of documents that can be indexed.
      *
-     * @return The maximum number of items per bulk request (10-25).
+     * @return an Integer representing the maximum number of documents allowed for content indexing.
      */
     public Integer getMaxItemsPerBulk() {
         return this.maximumItemsPerBulk;
     }
 
     /**
-     * Retrieves the configured maximum number of concurrent bulk operations allowed during content
-     * indexing.
+     * Retrieves the maximum number of concurrent petitions allowed for content indexing.
      *
-     * @return The maximum number of concurrent bulk operations (1-5).
+     * @return an Integer representing the maximum number of concurrent petitions.
      */
     public Integer getMaximumConcurrentBulks() {
         return this.maximumConcurrentBulks;
@@ -267,6 +277,42 @@ public class PluginSettings {
         return this.updateOnSchedule;
     }
 
+    /**
+     * Retrieves the Rules Context.
+     *
+     * @return the context string.
+     */
+    public String getRulesContext() {
+        return this.rulesContext;
+    }
+
+    /**
+     * Retrieves the Rules Consumer.
+     *
+     * @return the consumer string.
+     */
+    public String getRulesConsumer() {
+        return this.rulesConsumer;
+    }
+
+    /**
+     * Retrieves the Decoders Context.
+     *
+     * @return the context string.
+     */
+    public String getDecodersContext() {
+        return this.decodersContext;
+    }
+
+    /**
+     * Retrieves the Decoders Consumer.
+     *
+     * @return the consumer string.
+     */
+    public String getDecodersConsumer() {
+        return this.decodersConsumer;
+    }
+
     @Override
     public String toString() {
         return "{"
@@ -290,6 +336,18 @@ public class PluginSettings {
                 + ", "
                 + "updateOnSchedule="
                 + this.updateOnSchedule
+                + ", "
+                + "rulesContext="
+                + this.rulesContext
+                + ", "
+                + "rulesConsumer="
+                + this.rulesConsumer
+                + ", "
+                + "decodersContext="
+                + this.decodersContext
+                + ", "
+                + "decodersConsumer="
+                + this.decodersConsumer
                 + "}";
     }
 }

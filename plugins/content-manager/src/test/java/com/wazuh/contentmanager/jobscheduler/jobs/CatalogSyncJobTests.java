@@ -16,6 +16,7 @@
  */
 package com.wazuh.contentmanager.jobscheduler.jobs;
 
+import org.opensearch.common.settings.Settings;
 import org.opensearch.env.Environment;
 import org.opensearch.test.OpenSearchTestCase;
 import org.opensearch.threadpool.ThreadPool;
@@ -25,6 +26,7 @@ import org.junit.Assert;
 import org.junit.Before;
 
 import com.wazuh.contentmanager.cti.catalog.index.ConsumersIndex;
+import com.wazuh.contentmanager.settings.PluginSettings;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 
@@ -51,6 +53,8 @@ public class CatalogSyncJobTests extends OpenSearchTestCase {
     public void setUp() throws Exception {
         super.setUp();
         this.closeable = MockitoAnnotations.openMocks(this);
+        PluginSettings.getInstance(Settings.EMPTY);
+
         this.catalogSyncJob =
                 new CatalogSyncJob(this.client, this.consumersIndex, this.environment, this.threadPool);
     }

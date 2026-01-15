@@ -290,7 +290,11 @@ public class ContentManagerPlugin extends Plugin
                 PluginSettings.MAX_ITEMS_PER_BULK,
                 PluginSettings.CATALOG_SYNC_INTERVAL,
                 PluginSettings.UPDATE_ON_START,
-                PluginSettings.UPDATE_ON_SCHEDULE);
+                PluginSettings.UPDATE_ON_SCHEDULE,
+                PluginSettings.RULES_CONTEXT,
+                PluginSettings.RULES_CONSUMER,
+                PluginSettings.DECODERS_CONTEXT,
+                PluginSettings.DECODERS_CONSUMER);
     }
 
     /**
