@@ -93,9 +93,9 @@ dependencies {
   compileOnly "org.apache.httpcomponents.core5:httpcore5:5.3.4"
 
   // Use Jackson provided by OpenSearch (2.18.2) - only for compile time
-  compileOnly 'com.fasterxml.jackson.core:jackson-core:2.18.2'
-  compileOnly 'com.fasterxml.jackson.core:jackson-databind:2.18.2'
-  compileOnly 'com.fasterxml.jackson.core:jackson-annotations:2.18.2'
+  compileOnly 'com.fasterxml.jackson.core:jackson-core:2.20'
+  compileOnly 'com.fasterxml.jackson.core:jackson-databind:2.20'
+  compileOnly 'com.fasterxml.jackson.core:jackson-annotations:2.20'
   compileOnly 'com.fasterxml.jackson.dataformat:jackson-dataformat-yaml:2.18.2'
 
   compileOnly group: 'com.wazuh', name: 'wazuh-indexer-security-analytics-commons', version: "${version}"
