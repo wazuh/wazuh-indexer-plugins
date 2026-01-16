@@ -52,6 +52,6 @@ public enum Space {
      * @return True if the string matches the enum value (case-insensitive), false otherwise.
      */
     public boolean equals(String s) {
-        return this.toString().equals(s);
+        return this.toString().equalsIgnoreCase(s);
     }
 }

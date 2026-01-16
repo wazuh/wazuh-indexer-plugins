@@ -79,9 +79,10 @@ public class RulesConsumerSynchronizerTests extends OpenSearchTestCase {
         Map<String, String> mappings = this.synchronizer.getMappings();
 
         Assert.assertNotNull(mappings);
-        Assert.assertEquals(2, mappings.size());
+        Assert.assertEquals(3, mappings.size());
         Assert.assertEquals("/mappings/cti-rules-mappings.json", mappings.get("rule"));
         Assert.assertEquals("/mappings/cti-integrations-mappings.json", mappings.get("integration"));
+        Assert.assertEquals("/mappings/cti-policies-mappings.json", mappings.get("policy"));
     }
 
     /** Tests that getAliases returns the expected index aliases. */
@@ -89,9 +90,10 @@ public class RulesConsumerSynchronizerTests extends OpenSearchTestCase {
         Map<String, String> aliases = this.synchronizer.getAliases();
 
         Assert.assertNotNull(aliases);
-        Assert.assertEquals(2, aliases.size());
+        Assert.assertEquals(3, aliases.size());
         Assert.assertEquals(".cti-rules", aliases.get("rule"));
         Assert.assertEquals(".cti-integration-rules", aliases.get("integration"));
+        Assert.assertEquals(".cti-rules-policy", aliases.get("policy"));
     }
 
     /** Tests that getIndexName formats the index name correctly. */
