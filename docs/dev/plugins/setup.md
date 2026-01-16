@@ -73,7 +73,7 @@ Edit the existing index template JSON file and add the following setting:
 "plugins.index_state_management.rollover_alias": "<index-name>"
 ```
 ### 2. Define the ISM Policy
-Refer to the [OpenSearch ISM Policies documentation](https://docs.opensearch.org/docs/latest/im-plugin/ism/policies/) for more details.
+Refer to the [OpenSearch ISM Policies documentation](https://docs.opensearch.org/3.3/im-plugin/ism/policies/) for more details.
 
 Here is an example ISM policy:
 ```json

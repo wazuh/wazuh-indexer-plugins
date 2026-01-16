@@ -34,6 +34,7 @@ public class PluginSettings {
 
     /** Settings default values */
     private static final int DEFAULT_MAX_ITEMS_PER_BULK = 25;
+
     private static final int DEFAULT_MAX_CONCURRENT_BULKS = 5;
     private static final int DEFAULT_CLIENT_TIMEOUT = 10;
     private static final int DEFAULT_CATALOG_SYNC_INTERVAL = 60;
@@ -55,118 +56,104 @@ public class PluginSettings {
 
     /** The CTI API URL from the configuration file */
     public static final Setting<String> CTI_API_URL =
-        Setting.simpleString(
-            "plugins.content_manager.cti.api",
-            CTI_URL + "/api/v1",
-            Setting.Property.NodeScope,
-            Setting.Property.Filtered);
+            Setting.simpleString(
+                    "plugins.content_manager.cti.api",
+                    CTI_URL + "/api/v1",
+                    Setting.Property.NodeScope,
+                    Setting.Property.Filtered);
 
     /**
      * The maximum number of elements that are included in a bulk request during the initialization
      * from a snapshot.
      */
     public static final Setting<Integer> MAX_ITEMS_PER_BULK =
-        Setting.intSetting(
-            "plugins.content_manager.max_items_per_bulk",
-            DEFAULT_MAX_ITEMS_PER_BULK,
-            10,
-            25,
-            Setting.Property.NodeScope,
-            Setting.Property.Filtered);
+            Setting.intSetting(
+                    "plugins.content_manager.max_items_per_bulk",
+                    DEFAULT_MAX_ITEMS_PER_BULK,
+                    10,
+                    25,
+                    Setting.Property.NodeScope,
+                    Setting.Property.Filtered);
 
     /**
      * The maximum number of co-existing bulk operations during the initialization from a snapshot.
      */
     public static final Setting<Integer> MAX_CONCURRENT_BULKS =
-        Setting.intSetting(
-            "plugins.content_manager.max_concurrent_bulks",
-            DEFAULT_MAX_CONCURRENT_BULKS,
-            1,
-            5,
-            Setting.Property.NodeScope,
-            Setting.Property.Filtered);
+            Setting.intSetting(
+                    "plugins.content_manager.max_concurrent_bulks",
+                    DEFAULT_MAX_CONCURRENT_BULKS,
+                    1,
+                    5,
+                    Setting.Property.NodeScope,
+                    Setting.Property.Filtered);
 
     /** Timeout of indexing operations */
     public static final Setting<Long> CLIENT_TIMEOUT =
-        Setting.longSetting(
-            "plugins.content_manager.client.timeout",
-            DEFAULT_CLIENT_TIMEOUT,
-            10,
-            50,
-            Setting.Property.NodeScope,
-            Setting.Property.Filtered);
+            Setting.longSetting(
+                    "plugins.content_manager.client.timeout",
+                    DEFAULT_CLIENT_TIMEOUT,
+                    10,
+                    50,
+                    Setting.Property.NodeScope,
+                    Setting.Property.Filtered);
 
-    /**
-     * The interval in minutes for the catalog synchronization job.
-     */
+    /** The interval in minutes for the catalog synchronization job. */
     public static final Setting<Integer> CATALOG_SYNC_INTERVAL =
-        Setting.intSetting(
-            "plugins.content_manager.catalog.sync_interval",
-            DEFAULT_CATALOG_SYNC_INTERVAL,
-            1,
-            1440,
-            Setting.Property.NodeScope,
-            Setting.Property.Filtered);
+            Setting.intSetting(
+                    "plugins.content_manager.catalog.sync_interval",
+                    DEFAULT_CATALOG_SYNC_INTERVAL,
+                    1,
+                    1440,
+                    Setting.Property.NodeScope,
+                    Setting.Property.Filtered);
 
-    /**
-     * Setting to trigger content update on start.
-     */
+    /** Setting to trigger content update on start. */
     public static final Setting<Boolean> UPDATE_ON_START =
-        Setting.boolSetting(
-            "plugins.content_manager.catalog.update_on_start",
-            DEFAULT_UPDATE_ON_START,
-            Setting.Property.NodeScope,
-            Setting.Property.Filtered);
+            Setting.boolSetting(
+                    "plugins.content_manager.catalog.update_on_start",
+                    DEFAULT_UPDATE_ON_START,
+                    Setting.Property.NodeScope,
+                    Setting.Property.Filtered);
 
-    /**
-     * Setting to enable/disable the content update job.
-     */
+    /** Setting to enable/disable the content update job. */
     public static final Setting<Boolean> UPDATE_ON_SCHEDULE =
-        Setting.boolSetting(
-            "plugins.content_manager.catalog.update_on_schedule",
-            DEFAULT_UPDATE_ON_SCHEDULE,
-            Setting.Property.NodeScope,
-            Setting.Property.Filtered);
+            Setting.boolSetting(
+                    "plugins.content_manager.catalog.update_on_schedule",
+                    DEFAULT_UPDATE_ON_SCHEDULE,
+                    Setting.Property.NodeScope,
+                    Setting.Property.Filtered);
 
-    /**
-     * Context for Rules.
-     */
+    /** Context for Rules. */
     public static final Setting<String> RULES_CONTEXT =
-        Setting.simpleString(
-            "plugins.content_manager.catalog.rules.context",
-            DEFAULT_RULES_CONTEXT,
-            Setting.Property.NodeScope,
-            Setting.Property.Filtered);
+            Setting.simpleString(
+                    "plugins.content_manager.catalog.rules.context",
+                    DEFAULT_RULES_CONTEXT,
+                    Setting.Property.NodeScope,
+                    Setting.Property.Filtered);
 
-    /**
-     * Consumer for Rules.
-     */
+    /** Consumer for Rules. */
     public static final Setting<String> RULES_CONSUMER =
-        Setting.simpleString(
-            "plugins.content_manager.catalog.rules.consumer",
-            DEFAULT_RULES_CONSUMER,
-            Setting.Property.NodeScope,
-            Setting.Property.Filtered);
+            Setting.simpleString(
+                    "plugins.content_manager.catalog.rules.consumer",
+                    DEFAULT_RULES_CONSUMER,
+                    Setting.Property.NodeScope,
+                    Setting.Property.Filtered);
 
-    /**
-     * Context for Decoders.
-     */
+    /** Context for Decoders. */
     public static final Setting<String> DECODERS_CONTEXT =
-        Setting.simpleString(
-            "plugins.content_manager.catalog.decoders.context",
-            DEFAULT_DECODERS_CONTEXT,
-            Setting.Property.NodeScope,
-            Setting.Property.Filtered);
+            Setting.simpleString(
+                    "plugins.content_manager.catalog.decoders.context",
+                    DEFAULT_DECODERS_CONTEXT,
+                    Setting.Property.NodeScope,
+                    Setting.Property.Filtered);
 
-    /**
-     * Consumer for Decoders.
-     */
+    /** Consumer for Decoders. */
     public static final Setting<String> DECODERS_CONSUMER =
-        Setting.simpleString(
-            "plugins.content_manager.catalog.decoders.consumer",
-            DEFAULT_DECODERS_CONSUMER,
-            Setting.Property.NodeScope,
-            Setting.Property.Filtered);
+            Setting.simpleString(
+                    "plugins.content_manager.catalog.decoders.consumer",
+                    DEFAULT_DECODERS_CONSUMER,
+                    Setting.Property.NodeScope,
+                    Setting.Property.Filtered);
 
     private final String ctiBaseUrl;
     private final int maximumItemsPerBulk;
@@ -206,8 +193,7 @@ public class PluginSettings {
      * @param settings as obtained in createComponents.
      * @return {@link PluginSettings#INSTANCE}
      */
-    public static synchronized PluginSettings getInstance(
-        @NonNull final Settings settings) {
+    public static synchronized PluginSettings getInstance(@NonNull final Settings settings) {
         if (INSTANCE == null) {
             INSTANCE = new PluginSettings(settings);
         }
@@ -293,6 +279,7 @@ public class PluginSettings {
 
     /**
      * Retrieves the Rules Context.
+     *
      * @return the context string.
      */
     public String getRulesContext() {
@@ -301,6 +288,7 @@ public class PluginSettings {
 
     /**
      * Retrieves the Rules Consumer.
+     *
      * @return the consumer string.
      */
     public String getRulesConsumer() {
@@ -309,6 +297,7 @@ public class PluginSettings {
 
     /**
      * Retrieves the Decoders Context.
+     *
      * @return the context string.
      */
     public String getDecodersContext() {
@@ -317,6 +306,7 @@ public class PluginSettings {
 
     /**
      * Retrieves the Decoders Consumer.
+     *
      * @return the consumer string.
      */
     public String getDecodersConsumer() {
@@ -326,38 +316,38 @@ public class PluginSettings {
     @Override
     public String toString() {
         return "{"
-            + "ctiBaseUrl='"
-            + this.ctiBaseUrl
-            + "', "
-            + "maximumItemsPerBulk="
-            + this.maximumItemsPerBulk
-            + ", "
-            + "maximumConcurrentBulks="
-            + this.maximumConcurrentBulks
-            + ", "
-            + "clientTimeout="
-            + this.clientTimeout
-            + ", "
-            + "catalogSyncInterval="
-            + this.catalogSyncInterval
-            + ", "
-            + "updateOnStart="
-            + this.updateOnStart
-            + ", "
-            + "updateOnSchedule="
-            + this.updateOnSchedule
-            + ", "
-            + "rulesContext="
-            +this.rulesContext
-            + ", "
-            + "rulesConsumer="
-            +this.rulesConsumer
-            + ", "
-            + "decodersContext="
-            +this.decodersContext
-            + ", "
-            + "decodersConsumer="
-            +this.decodersConsumer
-            + "}";
+                + "ctiBaseUrl='"
+                + this.ctiBaseUrl
+                + "', "
+                + "maximumItemsPerBulk="
+                + this.maximumItemsPerBulk
+                + ", "
+                + "maximumConcurrentBulks="
+                + this.maximumConcurrentBulks
+                + ", "
+                + "clientTimeout="
+                + this.clientTimeout
+                + ", "
+                + "catalogSyncInterval="
+                + this.catalogSyncInterval
+                + ", "
+                + "updateOnStart="
+                + this.updateOnStart
+                + ", "
+                + "updateOnSchedule="
+                + this.updateOnSchedule
+                + ", "
+                + "rulesContext="
+                + this.rulesContext
+                + ", "
+                + "rulesConsumer="
+                + this.rulesConsumer
+                + ", "
+                + "decodersContext="
+                + this.decodersContext
+                + ", "
+                + "decodersConsumer="
+                + this.decodersConsumer
+                + "}";
     }
 }

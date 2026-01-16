@@ -361,4 +361,4 @@ tail -f logs/opensearch.log | grep -E "ContentManager|CatalogSyncJob|SnapshotSer
 ## 🔗 Related Documentation
 
 - [Setup Plugin Guide](./setup.md)
-- [OpenSearch Plugin Development](https://opensearch.org/blog/plugins-intro/)
+- [OpenSearch Plugin Development](https://docs.opensearch.org/3.3/install-and-configure/plugins/)

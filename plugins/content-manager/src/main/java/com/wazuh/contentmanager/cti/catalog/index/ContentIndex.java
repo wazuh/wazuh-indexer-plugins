@@ -16,14 +16,11 @@
  */
 package com.wazuh.contentmanager.cti.catalog.index;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
-import com.wazuh.contentmanager.cti.catalog.model.Decoder;
-import com.wazuh.contentmanager.cti.catalog.model.Operation;
-import com.wazuh.contentmanager.cti.catalog.model.Resource;
-import com.wazuh.contentmanager.cti.catalog.utils.JsonPatch;
-import com.wazuh.contentmanager.settings.PluginSettings;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.opensearch.OpenSearchTimeoutException;
@@ -58,6 +55,16 @@ import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
+import com.wazuh.contentmanager.cti.catalog.model.Decoder;
+import com.wazuh.contentmanager.cti.catalog.model.Operation;
+import com.wazuh.contentmanager.cti.catalog.model.Resource;
+import com.wazuh.contentmanager.cti.catalog.utils.JsonPatch;
+import com.wazuh.contentmanager.settings.PluginSettings;
+
+/**
+ * Manages the index for CTI content, providing methods for index creation, document indexing,
+ * updating, deletion, and bulk operations.
+ */
 public class ContentIndex {
     private static final Logger log = LogManager.getLogger(ContentIndex.class);
 
@@ -76,8 +83,8 @@ public class ContentIndex {
     /**
      * Constructs a new ContentIndex manager.
      *
-     * @param client       The OpenSearch client used to communicate with the cluster.
-     * @param indexName    The name of the index to manage.
+     * @param client The OpenSearch client used to communicate with the cluster.
+     * @param indexName The name of the index to manage.
      * @param mappingsPath The classpath resource path to the JSON mapping file.
      */
     public ContentIndex(Client client, String indexName, String mappingsPath) {
@@ -87,10 +94,10 @@ public class ContentIndex {
     /**
      * Constructs a new ContentIndex manager with an alias.
      *
-     * @param client       The OpenSearch client used to communicate with the cluster.
-     * @param indexName    The name of the index to manage.
+     * @param client The OpenSearch client used to communicate with the cluster.
+     * @param indexName The name of the index to manage.
      * @param mappingsPath The classpath resource path to the JSON mapping file.
-     * @param alias        The alias to associate with the index (can be null).
+     * @param alias The alias to associate with the index (can be null).
      */
     public ContentIndex(Client client, String indexName, String mappingsPath, String alias) {
         this.pluginSettings = PluginSettings.getInstance();
@@ -104,6 +111,7 @@ public class ContentIndex {
 
     /**
      * Returns the name of the index managed by this instance.
+     *
      * @return The index name.
      */
     public String getIndexName() {
@@ -112,38 +120,45 @@ public class ContentIndex {
 
     /**
      * Creates the index in OpenSearch using the configured mappings and settings.
-     * <p>
-     * Applies specific settings (hidden=true, replicas=0) and registers an alias if one is defined.
+     *
+     * <p>Applies specific settings (hidden=true, replicas=0) and registers an alias if one is
+     * defined.
      *
      * @return The response from the create index operation, or null if mappings could not be read.
-     * @throws ExecutionException   If the client execution fails.
+     * @throws ExecutionException If the client execution fails.
      * @throws InterruptedException If the thread is interrupted while waiting.
-     * @throws TimeoutException     If the operation exceeds the client timeout setting.
+     * @throws TimeoutException If the operation exceeds the client timeout setting.
      */
-    public CreateIndexResponse createIndex() throws ExecutionException, InterruptedException, TimeoutException {
-        Settings settings = Settings.builder()
-            .put("index.number_of_replicas", 0)
-            .put("hidden", true)
-            .build();
+    public CreateIndexResponse createIndex()
+            throws ExecutionException, InterruptedException, TimeoutException {
+        Settings settings =
+                Settings.builder().put("index.number_of_replicas", 0).put("hidden", true).build();
 
         String mappings;
         try (InputStream is = this.getClass().getResourceAsStream(this.mappingsPath)) {
+            if (is == null) {
+                log.error(
+                        "Could not find mappings file [{}] for index [{}]", this.mappingsPath, this.indexName);
+                return null;
+            }
             mappings = new String(is.readAllBytes(), StandardCharsets.UTF_8);
         } catch (IOException e) {
-            log.error("Could not read mappings for index [{}]", this.indexName);
+            log.error("Could not read mappings for index [{}]: {}", this.indexName, e.getMessage());
             return null;
         }
 
-        CreateIndexRequest request = new CreateIndexRequest()
-            .index(this.indexName)
-            .mapping(mappings)
-            .settings(settings);
+        CreateIndexRequest request =
+                new CreateIndexRequest().index(this.indexName).mapping(mappings).settings(settings);
 
         if (this.alias != null && !this.alias.isEmpty()) {
             request.alias(new Alias(this.alias));
         }
 
-        return this.client.admin().indices().create(request).get(this.pluginSettings.getClientTimeout(), TimeUnit.SECONDS);
+        return this.client
+                .admin()
+                .indices()
+                .create(request)
+                .get(this.pluginSettings.getClientTimeout(), TimeUnit.SECONDS);
     }
 
     /**
@@ -158,18 +173,19 @@ public class ContentIndex {
 
     /**
      * Indexes a new document or overwrites an existing one.
-     * <p>
-     * The payload is pre-processed (sanitized and enriched) before being indexed.
      *
-     * @param id      The unique identifier for the document.
+     * <p>The payload is pre-processed (sanitized and enriched) before being indexed.
+     *
+     * @param id The unique identifier for the document.
      * @param payload The JSON object representing the document content.
      * @throws IOException If the indexing operation fails.
      */
     public void create(String id, JsonObject payload) throws IOException {
         JsonObject processedPayload = this.processPayload(payload);
-        IndexRequest request = new IndexRequest(this.indexName)
-            .id(id)
-            .source(processedPayload.toString(), XContentType.JSON);
+        IndexRequest request =
+                new IndexRequest(this.indexName)
+                        .id(id)
+                        .source(processedPayload.toString(), XContentType.JSON);
 
         try {
             this.client.index(request).get(this.pluginSettings.getClientTimeout(), TimeUnit.SECONDS);
@@ -180,15 +196,35 @@ public class ContentIndex {
     }
 
     /**
+     * Indexes a new document or overwrites an existing one using Jackson JsonNode.
+     *
+     * <p>The payload is pre-processed (sanitized and enriched) before being indexed. This method
+     * accepts a Jackson JsonNode and converts it to Gson JsonObject for compatibility with existing
+     * processing logic.
+     *
+     * @param id The unique identifier for the document.
+     * @param payload The Jackson JsonNode representing the document content.
+     * @throws IOException If the indexing operation fails.
+     */
+    public void create(String id, JsonNode payload) throws IOException {
+        // Convert Jackson JsonNode to Gson JsonObject for compatibility
+        JsonObject gsonPayload = JsonParser.parseString(payload.toString()).getAsJsonObject();
+        this.create(id, gsonPayload);
+    }
+
+    /**
      * Updates an existing document by applying a list of patch operations.
      *
-     * @param id         The ID of the document to update.
+     * @param id The ID of the document to update.
      * @param operations The list of operations to apply to the document.
      * @throws Exception If the document does not exist, or if patching/indexing fails.
      */
     public void update(String id, List<Operation> operations) throws Exception {
         // 1. Fetch
-        GetResponse response = this.client.get(new GetRequest(this.indexName, id)).get(this.pluginSettings.getClientTimeout(), TimeUnit.SECONDS);
+        GetResponse response =
+                this.client
+                        .get(new GetRequest(this.indexName, id))
+                        .get(this.pluginSettings.getClientTimeout(), TimeUnit.SECONDS);
         if (!response.isExists()) {
             throw new IOException("Document [" + id + "] not found for update.");
         }
@@ -206,9 +242,8 @@ public class ContentIndex {
         JsonObject processedDoc = this.processPayload(currentDoc);
 
         // 4. Index
-        IndexRequest request = new IndexRequest(this.indexName)
-            .id(id)
-            .source(processedDoc.toString(), XContentType.JSON);
+        IndexRequest request =
+                new IndexRequest(this.indexName).id(id).source(processedDoc.toString(), XContentType.JSON);
         this.client.index(request).get(this.pluginSettings.getClientTimeout(), TimeUnit.SECONDS);
     }
 
@@ -218,16 +253,19 @@ public class ContentIndex {
      * @param id The ID of the document to delete.
      */
     public void delete(String id) {
-        this.client.delete(new DeleteRequest(this.indexName, id), new ActionListener<>() {
-            @Override
-            public void onResponse(DeleteResponse response) {
-                log.debug("Deleted {} from {}", id, ContentIndex.this.indexName);
-            }
-            @Override
-            public void onFailure(Exception e) {
-                log.error("Failed to delete {}: {}", id, e.getMessage());
-            }
-        });
+        this.client.delete(
+                new DeleteRequest(this.indexName, id),
+                new ActionListener<>() {
+                    @Override
+                    public void onResponse(DeleteResponse response) {
+                        log.debug("Deleted {} from {}", id, ContentIndex.this.indexName);
+                    }
+
+                    @Override
+                    public void onFailure(Exception e) {
+                        log.error("Failed to delete {}: {}", id, e.getMessage());
+                    }
+                });
     }
 
     /**
@@ -238,20 +276,24 @@ public class ContentIndex {
     public void executeBulk(BulkRequest bulkRequest) {
         try {
             this.semaphore.acquire();
-            this.client.bulk(bulkRequest, new ActionListener<>() {
-                @Override
-                public void onResponse(BulkResponse bulkResponse) {
-                    ContentIndex.this.semaphore.release();
-                    if (bulkResponse.hasFailures()) {
-                        log.warn("Bulk indexing finished with failures: {}", bulkResponse.buildFailureMessage());
-                    }
-                }
-                @Override
-                public void onFailure(Exception e) {
-                    ContentIndex.this.semaphore.release();
-                    log.error("Bulk index operation failed: {}", e.getMessage());
-                }
-            });
+            this.client.bulk(
+                    bulkRequest,
+                    new ActionListener<>() {
+                        @Override
+                        public void onResponse(BulkResponse bulkResponse) {
+                            ContentIndex.this.semaphore.release();
+                            if (bulkResponse.hasFailures()) {
+                                log.warn(
+                                        "Bulk indexing finished with failures: {}", bulkResponse.buildFailureMessage());
+                            }
+                        }
+
+                        @Override
+                        public void onFailure(Exception e) {
+                            ContentIndex.this.semaphore.release();
+                            log.error("Bulk index operation failed: {}", e.getMessage());
+                        }
+                    });
         } catch (InterruptedException e) {
             log.error("Interrupted while waiting for semaphore: {}", e.getMessage());
             Thread.currentThread().interrupt();
@@ -259,8 +301,8 @@ public class ContentIndex {
     }
 
     /**
-     * Waits until all pending bulk requests have completed.
-     * Use this to ensure all async indexing operations are finished.
+     * Waits until all pending bulk requests have completed. Use this to ensure all async indexing
+     * operations are finished.
      */
     public void waitForPendingUpdates() throws InterruptedException {
         int permits = this.pluginSettings.getMaximumConcurrentBulks();
@@ -268,12 +310,11 @@ public class ContentIndex {
         this.semaphore.release(permits);
     }
 
-    /**
-     * Deletes all documents in the index using a "match_all" query.
-     */
+    /** Deletes all documents in the index using a "match_all" query. */
     public void clear() {
         try {
-            DeleteByQueryRequestBuilder deleteByQuery = new DeleteByQueryRequestBuilder(this.client, DeleteByQueryAction.INSTANCE);
+            DeleteByQueryRequestBuilder deleteByQuery =
+                    new DeleteByQueryRequestBuilder(this.client, DeleteByQueryAction.INSTANCE);
             deleteByQuery.source(this.indexName).filter(QueryBuilders.matchAllQuery());
             BulkByScrollResponse response = deleteByQuery.get();
             log.debug("[{}] wiped. {} documents removed", this.indexName, response.getDeleted());
@@ -293,7 +334,8 @@ public class ContentIndex {
             Resource resource;
 
             // 1. Delegate parsing logic to the appropriate Model
-            if (payload.has(JSON_TYPE_KEY) && JSON_DECODER_KEY.equalsIgnoreCase(payload.get(JSON_TYPE_KEY).getAsString())) {
+            if (payload.has(JSON_TYPE_KEY)
+                    && JSON_DECODER_KEY.equalsIgnoreCase(payload.get(JSON_TYPE_KEY).getAsString())) {
                 resource = Decoder.fromPayload(payload);
             } else {
                 resource = Resource.fromPayload(payload);

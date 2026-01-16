@@ -22,12 +22,12 @@ import com.google.gson.JsonObject;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import com.wazuh.contentmanager.cti.catalog.model.Operation;
-
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+
+import com.wazuh.contentmanager.cti.catalog.model.Operation;
 
 /**
  * Utility class for applying JSON Patch operations to JSON documents.
@@ -49,7 +49,7 @@ public class JsonPatch {
         String path = operation.get(Operation.PATH).getAsString();
         JsonElement value = operation.has(Operation.VALUE) ? operation.get(Operation.VALUE) : null;
         String from =
-            operation.has(Operation.FROM) ? operation.get(Operation.FROM).getAsString() : null;
+                operation.has(Operation.FROM) ? operation.get(Operation.FROM).getAsString() : null;
 
         switch (op) {
             case "add":
@@ -150,8 +150,8 @@ public class JsonPatch {
 
         if (target instanceof JsonObject) {
             if (!((JsonObject) target).has(key)) {
-                log.error( "Path not found for remove operation: {}", path);
-                throw new IllegalArgumentException( "Path not found for remove operation: " + path);
+                log.error("Path not found for remove operation: {}", path);
+                throw new IllegalArgumentException("Path not found for remove operation: " + path);
             }
             ((JsonObject) target).remove(key);
         } else if (target instanceof JsonArray array) {
@@ -204,8 +204,14 @@ public class JsonPatch {
 
         if (parent.isJsonObject()) {
             if (!parent.getAsJsonObject().has(key)) {
-                log.error("Source key '{}' does not exist in 'from' path '{}', in move operation", key, fromPath);
-                throw new IllegalArgumentException("Source key '" + key + "' does not exist in 'from' path '" + fromPath + "', in move operation");
+                log.error(
+                        "Source key '{}' does not exist in 'from' path '{}', in move operation", key, fromPath);
+                throw new IllegalArgumentException(
+                        "Source key '"
+                                + key
+                                + "' does not exist in 'from' path '"
+                                + fromPath
+                                + "', in move operation");
             }
             value = parent.getAsJsonObject().get(key);
         } else if (parent.isJsonArray()) {
@@ -252,8 +258,16 @@ public class JsonPatch {
 
         if (parent.isJsonObject()) {
             if (!parent.getAsJsonObject().has(fromKey)) {
-                log.error("Source key '{}' does not exist in 'from' path '{}', in copy operation", fromKey, fromPath);
-                throw new IllegalArgumentException("Source key '" + fromKey + "' does not exist in 'from' path '" + fromPath + "', in copy operation");
+                log.error(
+                        "Source key '{}' does not exist in 'from' path '{}', in copy operation",
+                        fromKey,
+                        fromPath);
+                throw new IllegalArgumentException(
+                        "Source key '"
+                                + fromKey
+                                + "' does not exist in 'from' path '"
+                                + fromPath
+                                + "', in copy operation");
             }
             valueToCopy = parent.getAsJsonObject().get(fromKey);
         } else if (parent.isJsonArray()) {
@@ -333,28 +347,31 @@ public class JsonPatch {
         String[] parts = path.split("/");
 
         return java.util.Arrays.stream(parts, 1, parts.length - 1)
-            .reduce((JsonElement) document, (current, part) -> {
-                if (current == null) {
-                    return null;
-                }
+                .reduce(
+                        (JsonElement) document,
+                        (current, part) -> {
+                            if (current == null) {
+                                return null;
+                            }
 
-                if (current.isJsonObject()) {
-                    JsonObject obj = current.getAsJsonObject();
-                    return obj.has(part) ? obj.get(part) : null;
-                }
+                            if (current.isJsonObject()) {
+                                JsonObject obj = current.getAsJsonObject();
+                                return obj.has(part) ? obj.get(part) : null;
+                            }
 
-                if (current.isJsonArray()) {
-                    try {
-                        int index = Integer.parseInt(part);
-                        JsonArray arr = current.getAsJsonArray();
-                        return (index >= 0 && index < arr.size()) ? arr.get(index) : null;
-                    } catch (NumberFormatException e) {
-                        return null;
-                    }
-                }
+                            if (current.isJsonArray()) {
+                                try {
+                                    int index = Integer.parseInt(part);
+                                    JsonArray arr = current.getAsJsonArray();
+                                    return (index >= 0 && index < arr.size()) ? arr.get(index) : null;
+                                } catch (NumberFormatException e) {
+                                    return null;
+                                }
+                            }
 
-                return null;
-            }, (a, b) -> a);
+                            return null;
+                        },
+                        (a, b) -> a);
     }
 
     /**

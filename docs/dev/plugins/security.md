@@ -24,13 +24,13 @@ new-user:
   description: "New user description"
 ```
 OpenSearch's reference:
-- [internal_users.yml](https://docs.opensearch.org/docs/latest/security/configuration/yaml/#internal_usersyml)
+- [internal_users.yml](https://docs.opensearch.org/3.3/security/configuration/yaml/#internal_usersyml)
 ## 2. Adding a new role
 Add the new role to the `roles.wazuh.yml` file located at: `wazuh-indexer/distribution/src/config/security/`.
 - Under `index_permissions.index_patterns`, list the index patterns the role will have effect on.
 - Under `index_permissions.allowed_actions`, list the allowed action groups or indiviual permissions granted to this role.
 
-_The default action groups for `cluster_permissions` and `index_permissions` are listed in the [Default action groups documentation](https://docs.opensearch.org/docs/latest/security/access-control/default-action-groups/)_
+_The default action groups for `cluster_permissions` and `index_permissions` are listed in the [Default action groups documentation](https://docs.opensearch.org/3.3/security/access-control/default-action-groups/)_
 
 ```yaml
 role-read:
@@ -64,9 +64,9 @@ role-write:
 ```
 
 OpenSearch's reference: 
-- [roles.yml](https://docs.opensearch.org/docs/latest/security/configuration/yaml/#rolesyml)
-- [action_groups.yml](https://docs.opensearch.org/docs/latest/security/configuration/yaml/#action_groupsyml)
-- [Default action groups](https://docs.opensearch.org/docs/latest/security/access-control/default-action-groups/)
+- [roles.yml](https://docs.opensearch.org/3.3/security/configuration/yaml/#rolesyml)
+- [action_groups.yml](https://docs.opensearch.org/3.3/security/configuration/yaml/#action_groupsyml)
+- [Default action groups](https://docs.opensearch.org/3.3/security/access-control/default-action-groups/)
 
 ## 3. Adding a new role mapping 
 
@@ -93,7 +93,7 @@ role-write:
 ```
 
 OpenSearch's reference: 
-- [roles_mapping.yml](https://docs.opensearch.org/docs/latest/security/configuration/yaml/#roles_mappingymll)
+- [roles_mapping.yml](https://docs.opensearch.org/3.3/security/configuration/yaml/#roles_mappingymll)
 
 ## Testing the configuration
 
@@ -110,7 +110,7 @@ You can follow any of these paths:
 
 ### B. Applying the new configuration to an existing Wazuh Indexer deployment (using the UI or API)
 
-1. Use the Wazuh Indexer API or the Wazuh Dashboard to create a new security resource. Follow the steps in [Defining users and roles](https://docs.opensearch.org/docs/latest/security/access-control/users-roles).
+1. Use the Wazuh Indexer API or the Wazuh Dashboard to create a new security resource. Follow the steps in [Defining users and roles](https://docs.opensearch.org/3.3/security/access-control/users-roles).
 
 ### C. Applying the new configuration to an existing Wazuh Indexer deployment (using configuration files)
 
@@ -121,6 +121,6 @@ You can follow any of these paths:
 
 The `indexer-security-init.sh` will overwrite your security configuration, including passwords. Use it under your own risk.
 
-Alternatively, apply the new configuration using fine-grained options. See [Applying changes to configuration files](https://docs.opensearch.org/docs/latest/security/configuration/security-admin/)
+Alternatively, apply the new configuration using fine-grained options. See [Applying changes to configuration files](https://docs.opensearch.org/3.3/security/configuration/security-admin/)
 
 </div>
