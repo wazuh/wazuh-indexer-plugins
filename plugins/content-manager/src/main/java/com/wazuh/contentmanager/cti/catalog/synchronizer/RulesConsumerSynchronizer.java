@@ -35,6 +35,9 @@ import com.wazuh.contentmanager.settings.PluginSettings;
  */
 public class RulesConsumerSynchronizer extends AbstractConsumerSynchronizer {
 
+    /** Content type identifier for policy documents. */
+    public static final String POLICY = "policy";
+
     /** Content type identifier for rule documents. */
     public static final String RULE = "rule";
 
@@ -86,6 +89,7 @@ public class RulesConsumerSynchronizer extends AbstractConsumerSynchronizer {
         Map<String, String> mappings = new HashMap<>();
         mappings.put(RULE, "/mappings/cti-rules-mappings.json");
         mappings.put(INTEGRATION, "/mappings/cti-integrations-mappings.json");
+        mappings.put(POLICY, "/mappings/cti-policies-mappings.json");
         return mappings;
     }
 
@@ -94,6 +98,7 @@ public class RulesConsumerSynchronizer extends AbstractConsumerSynchronizer {
         Map<String, String> aliases = new HashMap<>();
         aliases.put(RULE, ".cti-rules");
         aliases.put(INTEGRATION, ".cti-integration-rules");
+        aliases.put(POLICY, ".cti-rules-policy");
         return aliases;
     }
 
@@ -106,7 +111,7 @@ public class RulesConsumerSynchronizer extends AbstractConsumerSynchronizer {
     @Override
     protected void onSyncComplete(boolean isUpdated) {
         if (isUpdated) {
-            this.refreshIndices(RULE, INTEGRATION);
+            this.refreshIndices(RULE, INTEGRATION, POLICY);
             String integrationIndex = this.getIndexName(INTEGRATION);
             String ruleIndex = this.getIndexName(RULE);
 
