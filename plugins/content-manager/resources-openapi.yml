@@ -8,7 +8,18 @@ info:
   version: 1.0.0
 
 servers:
-  - url: https://localhost:9200
+  - url: "{protocol}://{wazuh.indexer}:{port}/_plugins/content-manager"
+    description: Wazuh Indexer Content Manager Plugin
+    variables:
+      protocol:
+        enum:
+          - "http"
+          - "https"
+        default: "https"
+      wazuh.indexer:
+        default: localhost
+      port:
+        default: "9200"
 
 security:
   - bearerAuth: []
@@ -23,7 +34,7 @@ tags:
 
 paths:
   # KVDB management endpoints
-  /_plugins/content-manager/kvdbs:
+  /kvdbs:
     post:
       tags: [KVDBs]
       summary: Create KVDB
@@ -46,7 +57,7 @@ paths:
         "400":
           $ref: "#/components/responses/BadRequest"
 
-  /_plugins/content-manager/kvdbs/{kvdb_id}:
+  /kvdbs/{kvdb_id}:
     put:
       tags: [KVDBs]
       summary: Update KVDB
@@ -84,7 +95,7 @@ paths:
           $ref: "#/components/responses/NotFound"
 
   # Decoder management endpoints
-  /_plugins/content-manager/decoders:
+  /decoders:
     post:
       tags: [Decoders]
       summary: Create Decoder
@@ -105,7 +116,7 @@ paths:
         "400":
           $ref: "#/components/responses/BadRequest"
 
-  /_plugins/content-manager/decoders/{decoder_id}:
+  /decoders/{decoder_id}:
     put:
       tags: [Decoders]
       summary: Update Decoder
@@ -137,7 +148,7 @@ paths:
           description: Decoder deleted
 
   # Rule management endpoints
-  /_plugins/content-manager/rules:
+  /rules:
     post:
       tags: [Rules]
       summary: Create Rule
@@ -158,7 +169,7 @@ paths:
               schema:
                 $ref: "#/components/schemas/ResourceResponse"
 
-  /_plugins/content-manager/rules/{rule_id}:
+  /rules/{rule_id}:
     put:
       tags: [Rules]
       summary: Update Rule
@@ -191,7 +202,7 @@ paths:
           description: Rule deleted
 
   # Integration metadata management endpoints
-  /_plugins/content-manager/integrations:
+  /integrations:
     post:
       tags: [Integrations]
       summary: Create Integration
@@ -210,7 +221,7 @@ paths:
               schema:
                 $ref: "#/components/schemas/ResourceResponse"
 
-  /_plugins/content-manager/integrations/{integration_id}:
+  /integrations/{integration_id}:
     put:
       tags: [Integrations]
       summary: Update Integration
@@ -243,7 +254,7 @@ paths:
           description: Integration deleted
 
   # Logtest execution endpoint
-  /_plugins/content-manager/logtest:
+  /logtest:
     post:
       tags: [Logtest]
       summary: Execute logtest
@@ -256,14 +267,10 @@ paths:
               $ref: "#/components/schemas/LogtestRequest"
       responses:
         "200":
-          description: Logtest result
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/LogtestResponse"
+          $ref: "#/components/responses/LogtestResponse"
 
   # Promotion endpoints: move content from draft/test into next space
-  /_plugins/content-manager/promote_preview:
+  /promote_preview:
     get:
       tags: [Promotion]
       summary: Preview promotion differences
@@ -283,7 +290,7 @@ paths:
               schema:
                 $ref: "#/components/schemas/PromotionPreviewResponse"
 
-  /_plugins/content-manager/promote:
+  /promote:
     post:
       tags: [Promotion]
       summary: Execute promotion
@@ -297,6 +304,10 @@ paths:
       responses:
         "200":
           description: Promotion executed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ResourceResponse"
 
 components:
   # Security scheme: JWT bearer used for internal authentication
@@ -374,11 +385,6 @@ components:
             - FULL
           description: Trace verbosity level
 
-    # Response body for logtest execution results (pass-through)
-    LogtestResponse:
-      type: object
-      additionalProperties: true
-
     # Response body showing differences during promotion preview
     PromotionPreviewResponse:
       type: object
@@ -439,34 +445,6 @@ components:
                 additionalProperties: true
               description: Filters used by the policy
 
-    # Standard resource creation/update response containing the generated UUID
-    ResourceResponse:
-      type: object
-      required: [id]
-      properties:
-        id:
-          type: string
-          format: uuid
-
-    # Standardized error response shape used across endpoints
-    ErrorResponse:
-      type: object
-      required: [message]
-      additionalProperties: false
-      properties:
-        message:
-          type: string
-          description: Human-readable error description
-        error:
-          type: string
-          description: Short error code or identifier
-        status:
-          type: integer
-          description: HTTP status code
-        details:
-          type: object
-          additionalProperties: true
-          description: Optional structured error details
 
     # Integration document schema (metadata + references to related content)
     IntegrationResource:
@@ -832,6 +810,15 @@ components:
               type: object
               additionalProperties: true
 
+    RestResponse:
+      type: object
+      description: Standard error response schema.
+      properties:
+        error:
+          type: string
+      required:
+        - error
+
   responses:
     # Common error responses
     BadRequest:
@@ -839,10 +826,28 @@ components:
       content:
         application/json:
           schema:
-            $ref: "#/components/schemas/ErrorResponse"
+            $ref: "#/components/schemas/RestResponse"
     NotFound:
       description: Resource not found
       content:
         application/json:
           schema:
-            $ref: "#/components/schemas/ErrorResponse"
+            $ref: "#/components/schemas/RestResponse"
+
+    # Response body for logtest execution results (pass-through)
+    LogtestResponse:
+      description: Logtest result
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/RestResponse"
+
+    # Standard resource creation/update response containing the generated UUID
+    ResourceResponse:
+      description: Resource creation or update result
+      type: object
+      required: [id]
+      properties:
+        id:
+          type: string
+          format: uuid
