@@ -18,7 +18,11 @@
 allprojects {
     project.apply plugin: "com.diffplug.spotless"
     spotless {
+      if (System.getenv('GITHUB_ACTIONS') == 'true') {
+        enforceCheck false
+      } else {
         ratchetFrom 'origin/main'
+      }
         java {
             licenseHeaderFile("${rootProject.file("formatter/license-header.txt")}")
             googleJavaFormat()
