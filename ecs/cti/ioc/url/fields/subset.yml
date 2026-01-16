@@ -1,0 +1,22 @@
+---
+name: cti-iocs-domain
+fields:
+  threat:
+    custom:
+      feed:
+        fields:
+          name: {}
+          reference: {}
+      indicator:
+        fields:
+          confidence: {}
+          first_seen: {}
+          last_seen: {}
+          name: {}
+          provider: {}
+          reference: {}
+          type: {}
+      software:
+        fields:
+          name: {}
+          alias: {}
