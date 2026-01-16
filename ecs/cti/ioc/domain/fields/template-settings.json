@@ -1,0 +1,34 @@
+{
+  "index_patterns": [
+    ".iocs_development_*domain"
+  ],
+  "priority": 1,
+  "data_stream": {},
+  "template": {
+    "settings": {
+      "plugins.index_state_management.rollover_alias": ".cti-iocs-domain",
+      "mapping.total_fields.limit": 3000,
+      "mapping.nested_fields.limit": 50,
+      "index": {
+        "number_of_shards": "1",
+        "number_of_replicas": "0",
+        "auto_expand_replicas": "0-1",
+        "refresh_interval": "2s",
+        "query.default_field": [
+          "threat.feed.name",
+          "threat.feed.reference",
+          "threat.indicator.confidence",
+          "threat.indicator.description",
+          "threat.indicator.first_seen",
+          "threat.indicator.last_seen",
+          "threat.indicator.name",
+          "threat.indicator.provider",
+          "threat.indicator.type",
+          "threat.indicator.url.domain",
+          "threat.software.name"
+        ],
+        "max_docvalue_fields_search": 200
+      }
+    }
+  }
+}
