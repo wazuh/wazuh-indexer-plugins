@@ -15,6 +15,7 @@ on:
   push:
     paths:
       - "plugins/**"
+  workflow_dispatch:
 
 jobs:
   analyze:
