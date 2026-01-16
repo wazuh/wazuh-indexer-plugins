@@ -15,7 +15,6 @@ on:
   push:
     paths:
       - "plugins/**"
-  workflow_dispatch:
 
 jobs:
   analyze:
@@ -50,6 +49,20 @@ jobs:
         with:
           distribution: temurin
           java-version: 21
+
+      - name: Checkout Security Analytics
+        uses: actions/checkout@v6
+        with:
+          repository: wazuh/wazuh-indexer-security-analytics
+          path: wazuh-indexer-security-analytics
+
+      - name: Publish to Maven Local Security Analytics Commons
+        working-directory: wazuh-indexer-security-analytics/commons
+        run: ../gradlew publishToMavenLocal -x check -Dversion=5.0.0 -Drevision=0
+
+      - name: Publish to Maven Local Security Analytics
+        working-directory: wazuh-indexer-security-analytics
+        run: ./gradlew publishToMavenLocal -x check -Dversion=5.0.0 -Drevision=0
 
       # Initializes the CodeQL tools for scanning.
       - name: Initialize CodeQL
