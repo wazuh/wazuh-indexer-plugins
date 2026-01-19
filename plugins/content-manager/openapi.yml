@@ -63,7 +63,7 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/SubscriptionPostRequest'
+              $ref: "#/components/schemas/SubscriptionPostRequest"
             examples:
               registration:
                 summary: Example subscription registration
@@ -73,14 +73,14 @@ paths:
                   expires_in: 1800
                   interval: 5
       responses:
-        '201':
-          $ref: '#/components/responses/SubscriptionCreated'
-        '400':
-          $ref: '#/components/responses/BadRequest'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '500':
-          $ref: '#/components/responses/InternalServerError'
+        "201":
+          $ref: "#/components/responses/SubscriptionCreated"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
 
     get:
       summary: Retrieve CTI Credentials
@@ -91,14 +91,14 @@ paths:
       tags:
         - Subscription Management
       responses:
-        '200':
-          $ref: '#/components/responses/GetCredentialsSuccess'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '404':
-          $ref: '#/components/responses/NotFound'
-        '500':
-          $ref: '#/components/responses/InternalServerError'
+        "200":
+          $ref: "#/components/responses/GetCredentialsSuccess"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
     delete:
       summary: Delete CTI Subscription
       description: |
@@ -108,14 +108,14 @@ paths:
       tags:
         - Subscription Management
       responses:
-        '200':
-          $ref: '#/components/responses/SubscriptionDeleted'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '404':
-          $ref: '#/components/responses/NotFound'
-        '500':
-          $ref: '#/components/responses/InternalServerError'
+        "200":
+          $ref: "#/components/responses/SubscriptionDeleted"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
 
   /update:
     description: On demand content update
@@ -133,18 +133,18 @@ paths:
       tags:
         - Content Updates
       responses:
-        '202':
-          $ref: '#/components/responses/UpdateAccepted'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '404':
-          $ref: '#/components/responses/NotFound'
-        '409':
-          $ref: '#/components/responses/Conflict'
-        '429':
-          $ref: '#/components/responses/TooManyRequests'
-        '500':
-          $ref: '#/components/responses/InternalServerError'
+        "202":
+          $ref: "#/components/responses/UpdateAccepted"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
 
   # KVDB management endpoints
   /kvdbs:
@@ -202,8 +202,8 @@ paths:
       parameters:
         - $ref: "#/components/parameters/KvdbId"
       responses:
-        "204":
-          description: KVDB deleted
+        "200":
+          $ref: "#/components/responses/ResourceDeleted"
         "404":
           $ref: "#/components/responses/NotFound"
 
@@ -257,8 +257,10 @@ paths:
       parameters:
         - $ref: "#/components/parameters/DecoderId"
       responses:
-        "204":
-          description: Decoder deleted
+        "200":
+          $ref: "#/components/responses/ResourceDeleted"
+        "404":
+          $ref: "#/components/responses/NotFound"
 
   # Rule management endpoints
   /rules:
@@ -311,8 +313,10 @@ paths:
       parameters:
         - $ref: "#/components/parameters/RuleId"
       responses:
-        "204":
-          description: Rule deleted
+        "200":
+          $ref: "#/components/responses/ResourceDeleted"
+        "404":
+          $ref: "#/components/responses/NotFound"
 
   # Integration metadata management endpoints
   /integrations:
@@ -363,8 +367,10 @@ paths:
       parameters:
         - $ref: "#/components/parameters/IntegrationId"
       responses:
-        "204":
-          description: Integration deleted
+        "200":
+          $ref: "#/components/responses/ResourceDeleted"
+        "404":
+          $ref: "#/components/responses/NotFound"
 
   # Logtest execution endpoint
   /logtest:
@@ -381,6 +387,8 @@ paths:
       responses:
         "200":
           $ref: "#/components/responses/LogtestResponse"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
 
   # Promotion endpoints: move content from draft/test into next space
   /promote_preview:
@@ -397,11 +405,9 @@ paths:
             enum: [draft, test]
       responses:
         "200":
-          description: Promotion diff
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/PromotionPreviewResponse"
+          $ref: "#/components/responses/PromotionPreviewResponse"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
 
   /promote:
     post:
@@ -413,18 +419,21 @@ paths:
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/PromotionRequest"
+              allOf:
+                - $ref: "#/components/schemas/PolicyDiff"
+                - $ref: "#/components/schemas/PromotionSpace"
+                
       responses:
         "200":
           description: Promotion executed
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/ResourceResponse"
-
+                $ref: "#/components/schemas/RestResponse"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
 
 components:
-
   # Shared path parameters for resource identifiers (UUIDs)
   parameters:
     KvdbId:
@@ -536,65 +545,47 @@ components:
           description: Trace verbosity level
 
     # Response body showing differences during promotion preview
-    PromotionPreviewResponse:
+    PolicyDiff:
       type: object
-      additionalProperties: true
+      properties:
+        full_policy:
+          properties:
+            policy:
+              $ref: "#/components/schemas/PromotionDiffItem"
+            integrations:
+              $ref: "#/components/schemas/PromotionDiffItem"
+            kvdbs:
+              $ref: "#/components/schemas/PromotionDiffItem"
+            decoders:
+              $ref: "#/components/schemas/PromotionDiffItem"
+            filters:
+              $ref: "#/components/schemas/PromotionDiffItem"
 
-    # Request body to execute promotion from a given space with full policy
-    PromotionRequest:
+    PromotionDiffItem:
       type: object
       additionalProperties: false
       required:
-        - promote_test
-        - full_policy
+        - id
+        - action
       properties:
-        promote_test:
-          type: boolean
-          description: Whether the policy should be promoted to the test space
+        id:
+          type: string
+          description: Resource identifier (UUID)
+          example: "m98uk4kBlb9cbROIpEj2"
+        action:
+          type: string
+          description: Action to be performed (e.g., "add", "update", "delete")
+          example: "update"
 
-        full_policy:
-          type: object
-          additionalProperties: false
-          required:
-            - policy
-            - integrations
-            - kvdbs
-            - decoders
-            - filters
-          properties:
-            policy:
-              type: object
-              additionalProperties: true
-              description: JSON object representing the policy to be validated
-
-            integrations:
-              type: array
-              items:
-                type: object
-                additionalProperties: true
-              description: Integrations used by the policy
-
-            kvdbs:
-              type: array
-              items:
-                type: object
-                additionalProperties: true
-              description: KVDBs used by the policy
-
-            decoders:
-              type: array
-              items:
-                type: object
-                additionalProperties: true
-              description: Decoders used by the policy
-
-            filters:
-              type: array
-              items:
-                type: object
-                additionalProperties: true
-              description: Filters used by the policy
-
+    # Request body to execute promotion from a given space with full policy
+    PromotionSpace:
+      type: object
+      properties:
+        space:
+          type: string
+          description: The space to promote.
+          enum: [draft, test]
+          example: draft
 
     # Integration document schema (metadata + references to related content)
     IntegrationResource:
@@ -978,7 +969,7 @@ components:
       content:
         application/json:
           schema:
-            $ref: '#/components/schemas/SubscriptionGetResponse'
+            $ref: "#/components/schemas/SubscriptionGetResponse"
           examples:
             credentials:
               summary: Valid credentials response
@@ -1014,7 +1005,7 @@ components:
       content:
         application/json:
           schema:
-            $ref: '#/components/schemas/RestErrorResponse'
+            $ref: "#/components/schemas/RestErrorResponse"
           examples:
             missing_parameter:
               summary: Missing required parameter
@@ -1023,6 +1014,19 @@ components:
 
     Unauthorized:
       description: Unauthorized - Authentication failed or credentials are invalid.
+
+    ResourceDeleted:
+      description: OK - Resource deleted successfully.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/RestResponse"
+          examples:
+            resource_deleted:
+              summary: Resource deletion confirmation
+              value:
+                _id: "m98uk4kBlb9cbROIpEj2"
+                status: "success"
 
     NotFound:
       description: Not Found - The requested resource does not exist.
@@ -1036,7 +1040,7 @@ components:
       content:
         application/json:
           schema:
-            $ref: '#/components/schemas/RestErrorResponse'
+            $ref: "#/components/schemas/RestErrorResponse"
           examples:
             undergoing_update:
               summary: Content update in progress
@@ -1069,7 +1073,7 @@ components:
       content:
         application/json:
           schema:
-            $ref: '#/components/schemas/RestErrorResponse'
+            $ref: "#/components/schemas/RestErrorResponse"
           examples:
             rate_limit_exceeded:
               summary: Rate limit exceeded
@@ -1081,7 +1085,7 @@ components:
       content:
         application/json:
           schema:
-            $ref: '#/components/schemas/RestErrorResponse'
+            $ref: "#/components/schemas/RestErrorResponse"
           examples:
             internal_error:
               summary: Internal server error
@@ -1095,6 +1099,13 @@ components:
         application/json:
           schema:
             $ref: "#/components/schemas/RestResponse"
+
+    PromotionPreviewResponse:
+      description: Promotion preview result
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/PolicyDiff"
 
   securitySchemes:
     bearerAuth:
