@@ -22,9 +22,7 @@ buildscript {
   }
 }
 
-plugins { id "com.diffplug.spotless" version "6.25.0" }
 
-apply from: 'gradle/formatting.gradle'
 apply plugin: 'java'
 apply plugin: 'idea'
 apply plugin: 'eclipse'
