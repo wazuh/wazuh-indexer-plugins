@@ -451,364 +451,339 @@ components:
       type: object
       additionalProperties: false
       required:
-        - document
+        - id
+        - title
+        - enabled
       properties:
-        document:
+        id:
+          type: string
+          format: uuid
+
+        title:
+          type: string
+
+        description:
+          type: string
+
+        author:
+          type: string
+
+        category:
+          type: string
+
+        date:
+          type: string
+          format: date-time
+
+        documentation:
+          type: string
+
+        enabled:
+          type: boolean
+
+        parent_decoder:
+          type: string
+          format: uuid
+
+        decoders:
+          type: array
+          items:
+            type: object
+            additionalProperties: true
+          description: |
+            Integration definitions
+
+        kvdbs:
+          type: array
+          items:
+            type: string
+
+        rules:
+          type: array
+          items:
+            type: string
+
+        references:
+          type: array
+          items:
+            type: string
+
+        metadata:
           type: object
           additionalProperties: false
-          required:
-            - id
-            - title
-            - enabled
           properties:
-            id:
-              type: string
-              format: uuid
-
-            title:
-              type: string
-
-            description:
-              type: string
-
             author:
-              type: string
-
-            category:
-              type: string
-
-            date:
-              type: string
-              format: date-time
-
-            documentation:
-              type: string
-
-            enabled:
-              type: boolean
-
-            parent_decoder:
-              type: string
-              format: uuid
-              nullable: true
-
-            decoders:
-              type: array
-              items:
-                type: object
-                additionalProperties: true
-              description: |
-                Integration definitions
-
-            kvdbs:
-              type: array
-              items:
-                type: string
-
-            rules:
-              type: array
-              items:
-                type: string
-
-            references:
-              type: array
-              items:
-                type: string
-
-            metadata:
               type: object
               additionalProperties: false
               properties:
-                author:
-                  type: object
-                  additionalProperties: false
-                  properties:
-                    modified:
-                      type: string
-                      format: date-time
+                modified:
+                  type: string
+                  format: date-time
 
     # Decoder document schema (engine-specific definitions and metadata)
     DecoderResource:
       type: object
       additionalProperties: false
       required:
-        - document
+        - id
+        - name
+        - enabled
+        - metadata
       properties:
-        document:
+        id:
+          type: string
+          format: uuid
+
+        name:
+          type: string
+
+        enabled:
+          type: boolean
+
+        parents:
+          type: array
+          items:
+            type: string
+            format: uuid
+
+        definitions:
+          type: array
+          items:
+            type: object
+            additionalProperties: true
+          description: Decoder definitions (engine-specific)
+
+        normalize:
+          type: object
+          additionalProperties: true
+          description: Normalization rules (engine-specific)
+
+        check:
+          type: object
+          additionalProperties: true
+          description: Decoder check logic (engine-specific)
+
+        metadata:
           type: object
           additionalProperties: false
           required:
-            - id
-            - name
-            - enabled
-            - metadata
+            - title
+            - description
+            - author
           properties:
-            id:
-              type: string
-              format: uuid
-
-            name:
+            title:
               type: string
 
-            enabled:
-              type: boolean
+            description:
+              type: string
 
-            parents:
+            module:
+              type: string
+
+            compatibility:
               type: array
               items:
                 type: string
-                format: uuid
 
-            definitions:
+            references:
               type: array
               items:
-                type: object
-                additionalProperties: true
-              description: Decoder definitions (engine-specific)
+                type: string
+                format: uri
 
-            normalize:
-              type: object
-              additionalProperties: true
-              description: Normalization rules (engine-specific)
+            versions:
+              type: array
+              items:
+                type: string
 
-            check:
-              type: object
-              additionalProperties: true
-              description: Decoder check logic (engine-specific)
-
-            metadata:
+            author:
               type: object
               additionalProperties: false
               required:
-                - title
-                - description
-                - author
+                - name
               properties:
-                title:
+                name:
                   type: string
-
-                description:
+                email:
                   type: string
-
-                module:
+                  format: email
+                url:
                   type: string
-
-                compatibility:
-                  type: array
-                  items:
-                    type: string
-
-                references:
-                  type: array
-                  items:
-                    type: string
-                    format: uri
-
-                versions:
-                  type: array
-                  items:
-                    type: string
-
-                author:
-                  type: object
-                  additionalProperties: false
-                  required:
-                    - name
-                  properties:
-                    name:
-                      type: string
-                    email:
-                      type: string
-                      format: email
-                    url:
-                      type: string
-                      format: uri
-                    date:
-                      type: string
-                      format: date-time
-                    modified:
-                      type: string
-                      format: date-time
+                  format: uri
+                date:
+                  type: string
+                  format: date-time
+                modified:
+                  type: string
+                  format: date-time
 
     # KVDB document schema (key-value data managed by the engine)
     KvdbResource:
       type: object
       additionalProperties: false
       required:
-        - document
+        - id
+        - title
+        - enabled
       properties:
-        document:
+        id:
+          type: string
+          format: uuid
+
+        title:
+          type: string
+
+        description:
+          type: string
+
+        author:
+          type: string
+
+        date:
+          type: string
+          format: date-time
+
+        documentation:
+          type: string
+
+        enabled:
+          type: boolean
+
+        content:
+          type: object
+          additionalProperties: true
+          description: KVDB key-value content (engine-managed)
+
+        references:
+          type: array
+          items:
+            type: string
+
+        metadata:
           type: object
           additionalProperties: false
-          required:
-            - id
-            - title
-            - enabled
           properties:
-            id:
-              type: string
-              format: uuid
-
-            title:
-              type: string
-
-            description:
-              type: string
-
             author:
-              type: string
-
-            date:
-              type: string
-              format: date-time
-
-            documentation:
-              type: string
-
-            enabled:
-              type: boolean
-
-            content:
-              type: object
-              additionalProperties: true
-              description: KVDB key-value content (engine-managed)
-
-            references:
-              type: array
-              items:
-                type: string
-
-            metadata:
               type: object
               additionalProperties: false
               properties:
-                author:
-                  type: object
-                  additionalProperties: false
-                  properties:
-                    modified:
-                      type: string
-                      format: date-time
+                modified:
+                  type: string
+                  format: date-time
 
     # Rule document schema (Sigma-like)
     RuleResource:
       type: object
       additionalProperties: false
       required:
-        - document
+        - id
+        - name
+        - title
+        - enabled
+        - detection
+        - logsource
       properties:
-        document:
+        id:
+          type: string
+          format: uuid
+
+        sigma_id:
+          type: string
+
+        name:
+          type: string
+
+        title:
+          type: string
+
+        description:
+          type: string
+
+        author:
+          type: string
+
+        date:
+          type: string
+          format: date
+
+        modified:
+          type: string
+          format: date
+
+        enabled:
+          type: boolean
+
+        status:
+          type: string
+
+        level:
+          type: string
+
+        license:
+          type: string
+
+        scope:
+          type: string
+
+        tags:
+          type: array
+          items:
+            type: string
+
+        fields:
+          type: array
+          items:
+            type: string
+
+        falsepositives:
+          type: array
+          items:
+            type: string
+
+        references:
+          type: array
+          items:
+            type: string
+
+        detection:
+          type: object
+          additionalProperties: true
+          required:
+            - condition
+          properties:
+            condition:
+              type: string
+
+        logsource:
           type: object
           additionalProperties: false
-          required:
-            - id
-            - name
-            - title
-            - enabled
-            - detection
-            - logsource
           properties:
-            id:
+            category:
               type: string
-              format: uuid
-
-            sigma_id:
+            product:
               type: string
-
-            name:
+            service:
               type: string
-
-            title:
+            definition:
               type: string
 
-            description:
-              type: string
-
-            author:
-              type: string
-
-            date:
-              type: string
-              format: date
-
-            modified:
-              type: string
-              format: date
-
-            enabled:
-              type: boolean
-
-            status:
-              type: string
-
-            level:
-              type: string
-
-            license:
-              type: string
-
-            scope:
-              type: string
-
-            tags:
-              type: array
-              items:
+        related:
+          type: array
+          items:
+            type: object
+            additionalProperties: false
+            required:
+              - id
+              - type
+            properties:
+              id:
+                type: string
+              type:
                 type: string
 
-            fields:
-              type: array
-              items:
-                type: string
-
-            falsepositives:
-              type: array
-              items:
-                type: string
-
-            references:
-              type: array
-              items:
-                type: string
-
-            detection:
-              type: object
-              additionalProperties: true
-              required:
-                - condition
-              properties:
-                condition:
-                  type: string
-
-            logsource:
-              type: object
-              additionalProperties: false
-              properties:
-                category:
-                  type: string
-                product:
-                  type: string
-                service:
-                  type: string
-                definition:
-                  type: string
-
-            related:
-              type: array
-              items:
-                type: object
-                additionalProperties: false
-                required:
-                  - id
-                  - type
-                properties:
-                  id:
-                    type: string
-                  type:
-                    type: string
-
-            taxonomy:
-              type: object
-              additionalProperties: true
+        taxonomy:
+          type: object
+          additionalProperties: true
 
     RestResponse:
       type: object
@@ -818,6 +793,17 @@ components:
           type: string
       required:
         - error
+
+    # Standard resource creation/update response containing the generated UUID
+    ResourceResponse:
+      type: object
+      description: Resource creation or update result
+      required:
+        - id
+      properties:
+        id:
+          type: string
+          format: uuid
 
   responses:
     # Common error responses
@@ -841,13 +827,3 @@ components:
         application/json:
           schema:
             $ref: "#/components/schemas/RestResponse"
-
-    # Standard resource creation/update response containing the generated UUID
-    ResourceResponse:
-      description: Resource creation or update result
-      type: object
-      required: [id]
-      properties:
-        id:
-          type: string
-          format: uuid
