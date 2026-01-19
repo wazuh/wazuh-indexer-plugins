@@ -948,6 +948,18 @@ components:
 
     RestResponse:
       type: object
+      description: Standard response schema.
+      properties:
+        message:
+          type: string
+        status:
+          type: string
+      required:
+        - message
+        - status
+
+    RestErrorResponse:
+      type: object
       description: Standard error response schema.
       properties:
         error:
@@ -1002,7 +1014,7 @@ components:
       content:
         application/json:
           schema:
-            $ref: '#/components/schemas/RestResponse'
+            $ref: '#/components/schemas/RestErrorResponse'
           examples:
             missing_parameter:
               summary: Missing required parameter
@@ -1017,14 +1029,14 @@ components:
       content:
         application/json:
           schema:
-            $ref: "#/components/schemas/RestResponse"
+            $ref: "#/components/schemas/RestErrorResponse"
 
     Conflict:
       description: Conflict - Undergoing content update.
       content:
         application/json:
           schema:
-            $ref: '#/components/schemas/RestResponse'
+            $ref: '#/components/schemas/RestErrorResponse'
           examples:
             undergoing_update:
               summary: Content update in progress
@@ -1057,7 +1069,7 @@ components:
       content:
         application/json:
           schema:
-            $ref: '#/components/schemas/RestResponse'
+            $ref: '#/components/schemas/RestErrorResponse'
           examples:
             rate_limit_exceeded:
               summary: Rate limit exceeded
@@ -1069,7 +1081,7 @@ components:
       content:
         application/json:
           schema:
-            $ref: '#/components/schemas/RestResponse'
+            $ref: '#/components/schemas/RestErrorResponse'
           examples:
             internal_error:
               summary: Internal server error
