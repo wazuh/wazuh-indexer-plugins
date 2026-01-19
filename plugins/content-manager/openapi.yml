@@ -28,6 +28,18 @@ tags:
     description: Operations for managing CTI subscriptions and credentials
   - name: Content Updates
     description: Operations for triggering content updates
+  - name: KVDBs
+    description: Manage key-value databases used by content
+  - name: Decoders
+    description: Manage decoders for parsing and normalization
+  - name: Rules
+    description: Manage detection rules and analytics
+  - name: Integrations
+    description: Manage integration metadata and related content
+  - name: Logtest
+    description: Execute logtest against sample events
+  - name: Promotion
+    description: Preview and promote content across spaces
 
 security:
   - bearerAuth: []
@@ -61,7 +73,7 @@ paths:
                   expires_in: 1800
                   interval: 5
       responses:
-        '201': 
+        '201':
           $ref: '#/components/responses/SubscriptionCreated'
         '400':
           $ref: '#/components/responses/BadRequest'
@@ -114,7 +126,7 @@ paths:
         This operation is asynchronous and returns immediately with a task identifier.
         The update process runs in the background and may take several minutes to complete
         depending on the volume of new threat intelligence data.
-        
+
         **Rate Limiting**: This endpoint is rate-limited to prevent excessive API calls.
         The default limit is 10 requests per hour.
       operationId: updateContent
@@ -134,7 +146,316 @@ paths:
         '500':
           $ref: '#/components/responses/InternalServerError'
 
+  # KVDB management endpoints
+  /kvdbs:
+    post:
+      tags: [KVDBs]
+      summary: Create KVDB
+      description: |
+        Creates a KVDB in the draft space. The server generates the UUID.
+      operationId: createKvdb
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/KvdbResource"
+      responses:
+        "201":
+          description: KVDB created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ResourceResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+
+  /kvdbs/{kvdb_id}:
+    put:
+      tags: [KVDBs]
+      summary: Update KVDB
+      operationId: updateKvdb
+      parameters:
+        - $ref: "#/components/parameters/KvdbId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/KvdbResource"
+      responses:
+        "200":
+          description: KVDB updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ResourceResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+    delete:
+      tags: [KVDBs]
+      summary: Delete KVDB
+      operationId: deleteKvdb
+      parameters:
+        - $ref: "#/components/parameters/KvdbId"
+      responses:
+        "204":
+          description: KVDB deleted
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  # Decoder management endpoints
+  /decoders:
+    post:
+      tags: [Decoders]
+      summary: Create Decoder
+      operationId: createDecoder
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/DecoderResource"
+      responses:
+        "201":
+          description: Decoder created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ResourceResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+
+  /decoders/{decoder_id}:
+    put:
+      tags: [Decoders]
+      summary: Update Decoder
+      operationId: updateDecoder
+      parameters:
+        - $ref: "#/components/parameters/DecoderId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/DecoderResource"
+      responses:
+        "200":
+          description: Decoder updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ResourceResponse"
+
+    delete:
+      tags: [Decoders]
+      summary: Delete Decoder
+      operationId: deleteDecoder
+      parameters:
+        - $ref: "#/components/parameters/DecoderId"
+      responses:
+        "204":
+          description: Decoder deleted
+
+  # Rule management endpoints
+  /rules:
+    post:
+      tags: [Rules]
+      summary: Create Rule
+      description: |
+        Payload is identical to POST /_plugins/_security_analytics/rules.
+      operationId: createRule
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RuleResource"
+      responses:
+        "201":
+          description: Rule created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ResourceResponse"
+
+  /rules/{rule_id}:
+    put:
+      tags: [Rules]
+      summary: Update Rule
+      description: Updates an existing rule in the draft space and returns its identifier.
+      operationId: updateRule
+      parameters:
+        - $ref: "#/components/parameters/RuleId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RuleResource"
+      responses:
+        "200":
+          description: Rule updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ResourceResponse"
+
+    delete:
+      tags: [Rules]
+      summary: Delete Rule
+      operationId: deleteRule
+      parameters:
+        - $ref: "#/components/parameters/RuleId"
+      responses:
+        "204":
+          description: Rule deleted
+
+  # Integration metadata management endpoints
+  /integrations:
+    post:
+      tags: [Integrations]
+      summary: Create Integration
+      operationId: createIntegration
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/IntegrationResource"
+      responses:
+        "201":
+          description: Integration created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ResourceResponse"
+
+  /integrations/{integration_id}:
+    put:
+      tags: [Integrations]
+      summary: Update Integration
+      description: Updates an integration metadata and returns its identifier.
+      operationId: updateIntegration
+      parameters:
+        - $ref: "#/components/parameters/IntegrationId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/IntegrationResource"
+      responses:
+        "200":
+          description: Integration updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ResourceResponse"
+
+    delete:
+      tags: [Integrations]
+      summary: Delete Integration
+      operationId: deleteIntegration
+      parameters:
+        - $ref: "#/components/parameters/IntegrationId"
+      responses:
+        "204":
+          description: Integration deleted
+
+  # Logtest execution endpoint
+  /logtest:
+    post:
+      tags: [Logtest]
+      summary: Execute logtest
+      operationId: executeLogtest
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LogtestRequest"
+      responses:
+        "200":
+          $ref: "#/components/responses/LogtestResponse"
+
+  # Promotion endpoints: move content from draft/test into next space
+  /promote_preview:
+    get:
+      tags: [Promotion]
+      summary: Preview promotion differences
+      operationId: promotePreview
+      parameters:
+        - name: space
+          in: query
+          required: true
+          schema:
+            type: string
+            enum: [draft, test]
+      responses:
+        "200":
+          description: Promotion diff
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PromotionPreviewResponse"
+
+  /promote:
+    post:
+      tags: [Promotion]
+      summary: Execute promotion
+      operationId: promote
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PromotionRequest"
+      responses:
+        "200":
+          description: Promotion executed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ResourceResponse"
+
+
 components:
+
+  # Shared path parameters for resource identifiers (UUIDs)
+  parameters:
+    KvdbId:
+      name: kvdb_id
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    DecoderId:
+      name: decoder_id
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    RuleId:
+      name: rule_id
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    IntegrationId:
+      name: integration_id
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+
   # --- Data Schemas ---
   schemas:
     SubscriptionPostRequest:
@@ -178,6 +499,452 @@ components:
       required:
         - access_token
         - token_type
+
+    # Request body for logtest execution
+    LogtestRequest:
+      type: object
+      additionalProperties: false
+      required:
+        - queue
+        - location
+        - event
+      properties:
+        queue:
+          type: integer
+          minimum: 0
+          description: Queue number used for logtest execution
+
+        location:
+          type: string
+          description: Log file path or logical source location
+
+        agent_metadata:
+          type: object
+          additionalProperties: true
+          description: Optional agent metadata passed to the logtest engine
+
+        event:
+          type: string
+          description: Raw log event to be tested
+
+        trace_level:
+          type: string
+          enum:
+            - NONE
+            - BASIC
+            - FULL
+          description: Trace verbosity level
+
+    # Response body showing differences during promotion preview
+    PromotionPreviewResponse:
+      type: object
+      additionalProperties: true
+
+    # Request body to execute promotion from a given space with full policy
+    PromotionRequest:
+      type: object
+      additionalProperties: false
+      required:
+        - promote_test
+        - full_policy
+      properties:
+        promote_test:
+          type: boolean
+          description: Whether the policy should be promoted to the test space
+
+        full_policy:
+          type: object
+          additionalProperties: false
+          required:
+            - policy
+            - integrations
+            - kvdbs
+            - decoders
+            - filters
+          properties:
+            policy:
+              type: object
+              additionalProperties: true
+              description: JSON object representing the policy to be validated
+
+            integrations:
+              type: array
+              items:
+                type: object
+                additionalProperties: true
+              description: Integrations used by the policy
+
+            kvdbs:
+              type: array
+              items:
+                type: object
+                additionalProperties: true
+              description: KVDBs used by the policy
+
+            decoders:
+              type: array
+              items:
+                type: object
+                additionalProperties: true
+              description: Decoders used by the policy
+
+            filters:
+              type: array
+              items:
+                type: object
+                additionalProperties: true
+              description: Filters used by the policy
+
+
+    # Integration document schema (metadata + references to related content)
+    IntegrationResource:
+      type: object
+      additionalProperties: false
+      required:
+        - id
+        - title
+        - enabled
+      properties:
+        id:
+          type: string
+          format: uuid
+
+        title:
+          type: string
+
+        description:
+          type: string
+
+        author:
+          type: string
+
+        category:
+          type: string
+
+        date:
+          type: string
+          format: date-time
+
+        documentation:
+          type: string
+
+        enabled:
+          type: boolean
+
+        parent_decoder:
+          type: string
+          format: uuid
+
+        decoders:
+          type: array
+          items:
+            type: object
+            additionalProperties: true
+          description: |
+            Integration definitions
+
+        kvdbs:
+          type: array
+          items:
+            type: string
+
+        rules:
+          type: array
+          items:
+            type: string
+
+        references:
+          type: array
+          items:
+            type: string
+
+        metadata:
+          type: object
+          additionalProperties: false
+          properties:
+            author:
+              type: object
+              additionalProperties: false
+              properties:
+                modified:
+                  type: string
+                  format: date-time
+
+    # Decoder document schema (engine-specific definitions and metadata)
+    DecoderResource:
+      type: object
+      additionalProperties: false
+      required:
+        - id
+        - name
+        - enabled
+        - metadata
+      properties:
+        id:
+          type: string
+          format: uuid
+
+        name:
+          type: string
+
+        enabled:
+          type: boolean
+
+        parents:
+          type: array
+          items:
+            type: string
+            format: uuid
+
+        definitions:
+          type: array
+          items:
+            type: object
+            additionalProperties: true
+          description: Decoder definitions (engine-specific)
+
+        normalize:
+          type: object
+          additionalProperties: true
+          description: Normalization rules (engine-specific)
+
+        check:
+          type: object
+          additionalProperties: true
+          description: Decoder check logic (engine-specific)
+
+        metadata:
+          type: object
+          additionalProperties: false
+          required:
+            - title
+            - description
+            - author
+          properties:
+            title:
+              type: string
+
+            description:
+              type: string
+
+            module:
+              type: string
+
+            compatibility:
+              type: array
+              items:
+                type: string
+
+            references:
+              type: array
+              items:
+                type: string
+                format: uri
+
+            versions:
+              type: array
+              items:
+                type: string
+
+            author:
+              type: object
+              additionalProperties: false
+              required:
+                - name
+              properties:
+                name:
+                  type: string
+                email:
+                  type: string
+                  format: email
+                url:
+                  type: string
+                  format: uri
+                date:
+                  type: string
+                  format: date-time
+                modified:
+                  type: string
+                  format: date-time
+
+    # KVDB document schema (key-value data managed by the engine)
+    KvdbResource:
+      type: object
+      additionalProperties: false
+      required:
+        - id
+        - title
+        - enabled
+      properties:
+        id:
+          type: string
+          format: uuid
+
+        title:
+          type: string
+
+        description:
+          type: string
+
+        author:
+          type: string
+
+        date:
+          type: string
+          format: date-time
+
+        documentation:
+          type: string
+
+        enabled:
+          type: boolean
+
+        content:
+          type: object
+          additionalProperties: true
+          description: KVDB key-value content (engine-managed)
+
+        references:
+          type: array
+          items:
+            type: string
+
+        metadata:
+          type: object
+          additionalProperties: false
+          properties:
+            author:
+              type: object
+              additionalProperties: false
+              properties:
+                modified:
+                  type: string
+                  format: date-time
+
+    # Rule document schema (Sigma-like)
+    RuleResource:
+      type: object
+      additionalProperties: false
+      required:
+        - id
+        - name
+        - title
+        - enabled
+        - detection
+        - logsource
+      properties:
+        id:
+          type: string
+          format: uuid
+
+        sigma_id:
+          type: string
+
+        name:
+          type: string
+
+        title:
+          type: string
+
+        description:
+          type: string
+
+        author:
+          type: string
+
+        date:
+          type: string
+          format: date
+
+        modified:
+          type: string
+          format: date
+
+        enabled:
+          type: boolean
+
+        status:
+          type: string
+
+        level:
+          type: string
+
+        license:
+          type: string
+
+        scope:
+          type: string
+
+        tags:
+          type: array
+          items:
+            type: string
+
+        fields:
+          type: array
+          items:
+            type: string
+
+        falsepositives:
+          type: array
+          items:
+            type: string
+
+        references:
+          type: array
+          items:
+            type: string
+
+        detection:
+          type: object
+          additionalProperties: true
+          required:
+            - condition
+          properties:
+            condition:
+              type: string
+
+        logsource:
+          type: object
+          additionalProperties: false
+          properties:
+            category:
+              type: string
+            product:
+              type: string
+            service:
+              type: string
+            definition:
+              type: string
+
+        related:
+          type: array
+          items:
+            type: object
+            additionalProperties: false
+            required:
+              - id
+              - type
+            properties:
+              id:
+                type: string
+              type:
+                type: string
+
+        taxonomy:
+          type: object
+          additionalProperties: true
+
+    # Standard resource creation/update response containing the generated UUID
+    ResourceResponse:
+      type: object
+      description: Resource creation or update result
+      required:
+        - id
+      properties:
+        id:
+          type: string
+          format: uuid
 
     RestResponse:
       type: object
@@ -247,6 +1014,10 @@ components:
 
     NotFound:
       description: Not Found - The requested resource does not exist.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/RestResponse"
 
     Conflict:
       description: Conflict - Undergoing content update.
@@ -304,7 +1075,15 @@ components:
               summary: Internal server error
               value:
                 error: "An unexpected error occurred while processing your request."
-    
+
+    # Response body for logtest execution results (pass-through)
+    LogtestResponse:
+      description: Logtest result
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/RestResponse"
+
   securitySchemes:
     bearerAuth:
       type: http
@@ -313,7 +1092,7 @@ components:
       description: |
         Bearer token authentication using JWT (JSON Web Token).
         Include the token in the Authorization header as: `Authorization: Bearer <token>`
-        
+
         Tokens can be obtained through the Wazuh authentication system.
     basicAuth:
       type: http
@@ -321,4 +1100,3 @@ components:
       description: |
         **Secure Basic Authentication**.
         Clients must provide username and password encoded in Base64.
-        
