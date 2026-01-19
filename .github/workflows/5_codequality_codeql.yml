@@ -4,12 +4,6 @@ on:
   push:
     paths:
       - "plugins/**"
-  workflow_dispatch:
-    inputs:
-      revision:
-        description: "Revision"
-        type: string
-        default: "0"
 
 jobs:
   analyze:
