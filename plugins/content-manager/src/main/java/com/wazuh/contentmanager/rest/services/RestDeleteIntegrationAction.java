@@ -16,8 +16,6 @@
  */
 package com.wazuh.contentmanager.rest.services;
 
-import com.wazuh.contentmanager.engine.services.EngineService;
-import com.wazuh.contentmanager.settings.PluginSettings;
 import org.opensearch.rest.BaseRestHandler;
 import org.opensearch.rest.BytesRestResponse;
 import org.opensearch.rest.NamedRoute;
@@ -27,20 +25,18 @@ import org.opensearch.transport.client.node.NodeClient;
 import java.io.IOException;
 import java.util.List;
 
+import com.wazuh.contentmanager.engine.services.EngineService;
+
 import static org.opensearch.rest.RestRequest.Method.DELETE;
-import static org.opensearch.rest.RestRequest.Method.POST;
 
 /**
- * TODO !CHANGE_ME
- * DELETE /_plugins/content-manager/integration/{integration_id}
+ * TODO !CHANGE_ME DELETE /_plugins/content-manager/integration/{integration_id}
  *
  * <p>Deletes an integration
  *
- * <p>Possible HTTP responses:
- * - 200 Accepted: Wazuh Engine replied with a successful response.
- * - 400 Bad Request: Wazuh Engine replied with an error response.
- * - 500 Internal Server Error: Unexpected error during processing. Wazuh Engine did not respond.
- *
+ * <p>Possible HTTP responses: - 200 Accepted: Wazuh Engine replied with a successful response. -
+ * 400 Bad Request: Wazuh Engine replied with an error response. - 500 Internal Server Error:
+ * Unexpected error during processing. Wazuh Engine did not respond.
  */
 public class RestDeleteIntegrationAction extends BaseRestHandler {
     private static final String ENDPOINT_NAME = "content_manager_integration_delete";
@@ -71,7 +67,7 @@ public class RestDeleteIntegrationAction extends BaseRestHandler {
     public List<Route> routes() {
         return List.of(
                 new NamedRoute.Builder()
-                        .path(/* TODO create endpoint in PluginsSettings.java  */)
+                        .path(/* TODO create endpoint in PluginsSettings.java  */ )
                         .method(DELETE)
                         .uniqueName(ENDPOINT_UNIQUE_NAME)
                         .build());
@@ -85,10 +81,10 @@ public class RestDeleteIntegrationAction extends BaseRestHandler {
      * @return a consumer that executes the update operation
      */
     @Override
-    protected RestChannelConsumer prepareRequest(RestRequest request, NodeClient client) throws IOException {
+    protected RestChannelConsumer prepareRequest(RestRequest request, NodeClient client)
+            throws IOException {
         return channel -> channel.sendResponse(this.handleRequest(request));
     }
-
 
     /**
      * TODO !CHANGE_ME.
