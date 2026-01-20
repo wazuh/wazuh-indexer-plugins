@@ -3,7 +3,6 @@ name: cti-iocs
 fields:
   base:
     fields:
-      "@timestamp": {}
       message: {}
   threat:
     fields:

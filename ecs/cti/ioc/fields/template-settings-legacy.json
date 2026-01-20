@@ -1,6 +1,6 @@
 {
   "index_patterns": [
-    ".iocs_development_*iocs"
+    ".cti-iocs*"
   ],
   "order": 1,
   "settings": {
