@@ -1,24 +1,29 @@
 ---
 name: cti-iocs-domain
 fields:
+  base:
+    fields:
+      "@timestamp": {}
+      message: {}
   threat:
-    feed:
-      fields:
-        name: { }
-        reference: { }
-    indicator:
-      fields:
-        type: { }
-        url:
-          fields:
-            domain: { }
-        provider: { }
-        confidence: { }
-        first_seen: { }
-        last_seen: { }
-        name: { }
-        description: { }
-    software:
-      fields:
-        name: { }
-        alias: { }
+    fields:
+      feed:
+        fields:
+          name: {}
+          reference: {}
+      indicator:
+        fields:
+          type: {}
+          url:
+            fields:
+              domain: {}
+          provider: {}
+          confidence: {}
+          first_seen: {}
+          last_seen: {}
+          name: {}
+          description: {}
+      software:
+        fields:
+          name: {}
+          alias: {}

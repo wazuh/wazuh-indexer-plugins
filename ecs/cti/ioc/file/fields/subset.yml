@@ -1,21 +1,26 @@
 ---
 name: cti-iocs-file
 fields:
+  base:
+    fields:
+      "@timestamp": {}
+      message: {}
   threat:
-    feed:
-      fields:
-        name: { }
-        reference: { }
-    indicator:
-      fields:
-        confidence: { }
-        description: { }
-        first_seen: { }
-        ip: { }
-        name: { }
-        provider: { }
-        reference: "*"
-        type: { }
-    software:
-      fields:
-        name: { }
+    fields:
+      feed:
+        fields:
+          name: {}
+          reference: {}
+      indicator:
+        fields:
+          confidence: {}
+          description: {}
+          first_seen: {}
+          ip: {}
+          name: {}
+          provider: {}
+          reference: {}
+          type: {}
+      software:
+        fields:
+          name: {}

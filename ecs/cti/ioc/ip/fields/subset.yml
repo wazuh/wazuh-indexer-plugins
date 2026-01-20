@@ -1,8 +1,12 @@
 ---
 name: cti-iocs-domain
 fields:
+  base:
+    fields:
+      "@timestamp": {}
+      message: {}
   threat:
-    custom:
+    fields:
       feed:
         fields:
           name: {}
