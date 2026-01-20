@@ -84,13 +84,13 @@ process_module() {
   fi
 
   # jq filter to count fields
-  JQ_FILTER='def count_fields: (keys_unsorted | length) + ( map( if type == "object" then (.properties | select(.) | count_fields) // 0 + (.fields | select(.) | count_fields) // 0 else 0 end ) | add ); .mappings.properties | count_fields'
+  JQ_FILTER='def count_fields: (keys_unsorted | length) + ( map( if type == "object" then (.properties | select(.) | count_fields) // 0 + (.fields | select(.) | count_fields) // 0 else 0 end ) | add ); .template.mappings.properties | count_fields'
 
   # jq filter to count nested fields
-  JQ_NESTED_FILTER='def count_nested: [ .. | objects | select(.type == "nested") ] | length; .mappings.properties | count_nested'
+  JQ_NESTED_FILTER='def count_nested: [ .. | objects | select(.type == "nested") ] | length; .template.mappings.properties | count_nested'
 
   TOTAL_FIELDS=$(jq -r "$JQ_FILTER" "$REPO_ROOT/$INDEX_TEMPLATE_PATH" 2>/tmp/jq_error.log) || {
-    echo "Error: Could not parse JSON or find .mappings.properties in $INDEX_TEMPLATE_PATH" >&2
+    echo "Error: Could not parse JSON or find .template.mappings.properties in $INDEX_TEMPLATE_PATH" >&2
     cat /tmp/jq_error.log >&2 || true
     rm -f /tmp/jq_error.log
     return 1
@@ -191,7 +191,7 @@ EOF
   echo "Done. Files updated."
 }
 
-# If PROCESS_ALL, read module_list and process only stateless/ modules
+# If PROCESS_ALL, read module_list and process only stateless/ and cti/ modules
 if $PROCESS_ALL; then
   MODULE_LIST_FILE="$REPO_ROOT/ecs/module_list.txt"
   if [[ ! -f "$MODULE_LIST_FILE" ]]; then
@@ -206,17 +206,17 @@ if $PROCESS_ALL; then
   fi
 
   mapfile -t MODULES < <(echo "$modules_block" | grep -oP '\[\K[^\]]+(?=\])' || true)
-  # Keep only stateless/ modules
+  # Keep only stateless/ and cti/ modules
   filtered=()
   for m in "${MODULES[@]:-}"; do
-    if [[ "$m" == stateless/* ]]; then
+    if [[ "$m" == stateless/* || "$m" == cti/* ]]; then
       filtered+=("$m")
     fi
   done
   MODULES=("${filtered[@]}")
 
   if [[ ${#MODULES[@]} -eq 0 ]]; then
-    echo "No stateless/* modules found in $MODULE_LIST_FILE" >&2
+    echo "No stateless/* or cti/* modules found in $MODULE_LIST_FILE" >&2
     exit 1
   fi
 
