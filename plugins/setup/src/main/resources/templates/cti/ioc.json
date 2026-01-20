@@ -68,11 +68,35 @@
                   "properties": {
                     "hash": {
                       "properties": {
+                        "cdhash": {
+                          "ignore_above": 1024,
+                          "type": "keyword"
+                        },
                         "md5": {
                           "ignore_above": 1024,
                           "type": "keyword"
                         },
+                        "sha1": {
+                          "ignore_above": 1024,
+                          "type": "keyword"
+                        },
                         "sha256": {
+                          "ignore_above": 1024,
+                          "type": "keyword"
+                        },
+                        "sha384": {
+                          "ignore_above": 1024,
+                          "type": "keyword"
+                        },
+                        "sha512": {
+                          "ignore_above": 1024,
+                          "type": "keyword"
+                        },
+                        "ssdeep": {
+                          "ignore_above": 1024,
+                          "type": "keyword"
+                        },
+                        "tlsh": {
                           "ignore_above": 1024,
                           "type": "keyword"
                         }

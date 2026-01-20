@@ -4,8 +4,14 @@ ECS_Version,Indexed,Field_Set,Field,Type,Level,Normalization,Example,Description
 9.1.0,true,threat,threat.feed.reference,keyword,extended,,https://otx.alienvault.com,Reference for the threat feed.
 9.1.0,true,threat,threat.indicator.confidence,keyword,extended,,Medium,Indicator confidence rating
 9.1.0,true,threat,threat.indicator.description,keyword,extended,,IP x.x.x.x was observed delivering the Angler EK.,Indicator description
+9.1.0,true,threat,threat.indicator.file.hash.cdhash,keyword,extended,,3783b4052fd474dbe30676b45c329e7a6d44acd9,The Code Directory (CD) hash of an executable.
 9.1.0,true,threat,threat.indicator.file.hash.md5,keyword,extended,,,MD5 hash.
+9.1.0,true,threat,threat.indicator.file.hash.sha1,keyword,extended,,,SHA1 hash.
 9.1.0,true,threat,threat.indicator.file.hash.sha256,keyword,extended,,,SHA256 hash.
+9.1.0,true,threat,threat.indicator.file.hash.sha384,keyword,extended,,,SHA384 hash.
+9.1.0,true,threat,threat.indicator.file.hash.sha512,keyword,extended,,,SHA512 hash.
+9.1.0,true,threat,threat.indicator.file.hash.ssdeep,keyword,extended,,,SSDEEP hash.
+9.1.0,true,threat,threat.indicator.file.hash.tlsh,keyword,extended,,,TLSH hash.
 9.1.0,true,threat,threat.indicator.first_seen,date,extended,,2020-11-05T17:25:47.000Z,Date/time indicator was first reported.
 9.1.0,true,threat,threat.indicator.ip,ip,extended,,1.2.3.4,Indicator IP address
 9.1.0,true,threat,threat.indicator.last_seen,date,extended,,2020-11-05T17:25:47.000Z,Date/time indicator was last reported.
