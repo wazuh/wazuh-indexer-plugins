@@ -12,18 +12,25 @@ fields:
           reference: {}
       indicator:
         fields:
+          confidence: {}
+          description: {}
+          file:
+            fields:
+              hash:
+                fields:
+                  md5: {}
+                  sha256: {}
+          first_seen: {}
+          ip: {}
+          last_seen: {}
+          name: {}
+          port: {}
+          provider: {}
+          reference: {}
           type: {}
           url:
             fields:
               domain: {}
-          provider: {}
-          confidence: {}
-          first_seen: {}
-          last_seen: {}
-          name: {}
-          description: {}
-          ip: {}
-          reference: {}
       software:
         fields:
           name: {}
