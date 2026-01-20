@@ -16,25 +16,22 @@
  */
 package com.wazuh.contentmanager.rest.services;
 
+import static org.opensearch.rest.RestRequest.Method.POST;
+
 import com.wazuh.contentmanager.engine.services.EngineService;
-import com.wazuh.contentmanager.settings.PluginSettings;
+import java.io.IOException;
+import java.util.List;
 import org.opensearch.rest.BaseRestHandler;
 import org.opensearch.rest.BytesRestResponse;
 import org.opensearch.rest.NamedRoute;
 import org.opensearch.rest.RestRequest;
 import org.opensearch.transport.client.node.NodeClient;
 
-import java.io.IOException;
-import java.util.List;
-
-import static org.opensearch.rest.RestRequest.Method.DELETE;
-import static org.opensearch.rest.RestRequest.Method.POST;
-
 /**
  * TODO !CHANGE_ME
- * DELETE /_plugins/content-manager/integration/{integration_id}
+ * POST /_plugins/content-manager/rules
  *
- * <p>Deletes an integration
+ * <p>Creates a rule in the local engine.
  *
  * <p>Possible HTTP responses:
  * - 200 Accepted: Wazuh Engine replied with a successful response.
@@ -42,9 +39,9 @@ import static org.opensearch.rest.RestRequest.Method.POST;
  * - 500 Internal Server Error: Unexpected error during processing. Wazuh Engine did not respond.
  *
  */
-public class RestDeleteIntegrationAction extends BaseRestHandler {
-    private static final String ENDPOINT_NAME = "content_manager_integration_delete";
-    private static final String ENDPOINT_UNIQUE_NAME = "plugin:content_manager/integration_delete";
+public class RestPostRuleAction extends BaseRestHandler {
+    private static final String ENDPOINT_NAME = "content_manager_rule_create";
+    private static final String ENDPOINT_UNIQUE_NAME = "plugin:content_manager/rule_create";
     private final EngineService engine;
 
     /**
@@ -52,7 +49,7 @@ public class RestDeleteIntegrationAction extends BaseRestHandler {
      *
      * @param engine The service instance to communicate with the local engine service.
      */
-    public RestDeleteIntegrationAction(EngineService engine) {
+    public RestPostRuleAction(EngineService engine) {
         this.engine = engine;
     }
 
@@ -71,8 +68,8 @@ public class RestDeleteIntegrationAction extends BaseRestHandler {
     public List<Route> routes() {
         return List.of(
                 new NamedRoute.Builder()
-                        .path(/* TODO create endpoint in PluginsSettings.java  */)
-                        .method(DELETE)
+                        .path(/* TODO create endpoint in PluginsSettings.java */)
+                        .method(POST)
                         .uniqueName(ENDPOINT_UNIQUE_NAME)
                         .build());
     }
