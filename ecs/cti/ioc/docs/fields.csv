@@ -1,5 +1,4 @@
 ECS_Version,Indexed,Field_Set,Field,Type,Level,Normalization,Example,Description
-9.1.0,true,base,@timestamp,date,core,,2016-05-23T08:05:34.853Z,Date/time when the event originated.
 9.1.0,true,base,message,keyword,core,,Hello World,Log message optimized for viewing in a log viewer.
 9.1.0,true,threat,threat.feed.name,keyword,extended,,AlienVault OTX,Name of the threat feed.
 9.1.0,true,threat,threat.feed.reference,keyword,extended,,https://otx.alienvault.com,Reference for the threat feed.
