@@ -18,9 +18,7 @@ package com.wazuh.contentmanager.rest.services;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.wazuh.contentmanager.engine.services.EngineService;
-import com.wazuh.contentmanager.rest.model.RestResponse;
-import com.wazuh.contentmanager.settings.PluginSettings;
+
 import org.opensearch.core.rest.RestStatus;
 import org.opensearch.rest.BaseRestHandler;
 import org.opensearch.rest.BytesRestResponse;
@@ -31,6 +29,10 @@ import org.opensearch.transport.client.node.NodeClient;
 import java.io.IOException;
 import java.util.List;
 
+import com.wazuh.contentmanager.engine.services.EngineService;
+import com.wazuh.contentmanager.rest.model.RestResponse;
+import com.wazuh.contentmanager.settings.PluginSettings;
+
 import static org.opensearch.rest.RestRequest.Method.POST;
 
 /**
@@ -38,11 +40,9 @@ import static org.opensearch.rest.RestRequest.Method.POST;
  *
  * <p>Triggers a log test execution in the local engine.
  *
- * <p>Possible HTTP responses:
- * - 200 Accepted: Wazuh Engine replied with a successful response.
- * - 400 Bad Request: Wazuh Engine replied with an error response.
- * - 500 Internal Server Error: Unexpected error during processing. Wazuh Engine did not respond.
- *
+ * <p>Possible HTTP responses: - 200 Accepted: Wazuh Engine replied with a successful response. -
+ * 400 Bad Request: Wazuh Engine replied with an error response. - 500 Internal Server Error:
+ * Unexpected error during processing. Wazuh Engine did not respond.
  */
 public class RestPostLogtestAction extends BaseRestHandler {
     private static final String ENDPOINT_NAME = "content_manager_logtest";
@@ -104,17 +104,14 @@ public class RestPostLogtestAction extends BaseRestHandler {
             if (this.engine == null) {
                 RestResponse error =
                         new RestResponse(
-                                "Engine instance is null.",
-                                RestStatus.INTERNAL_SERVER_ERROR.getStatus());
+                                "Engine instance is null.", RestStatus.INTERNAL_SERVER_ERROR.getStatus());
                 return new BytesRestResponse(RestStatus.INTERNAL_SERVER_ERROR, error.toXContent());
             }
 
             // 2. Check request's payload exists
             if (!request.hasContent()) {
                 RestResponse error =
-                        new RestResponse(
-                                "JSON request body is required.",
-                                RestStatus.BAD_REQUEST.getStatus());
+                        new RestResponse("JSON request body is required.", RestStatus.BAD_REQUEST.getStatus());
                 return new BytesRestResponse(RestStatus.BAD_REQUEST, error.toXContent());
             }
 
@@ -125,15 +122,14 @@ public class RestPostLogtestAction extends BaseRestHandler {
                 jsonNode = mapper.readTree(request.content().streamInput());
             } catch (IOException ex) {
                 RestResponse error =
-                        new RestResponse(
-                                "Invalid JSON content.",
-                                RestStatus.BAD_REQUEST.getStatus());
+                        new RestResponse("Invalid JSON content.", RestStatus.BAD_REQUEST.getStatus());
                 return new BytesRestResponse(RestStatus.BAD_REQUEST, error.toXContent());
             }
 
             // 4. Logtest accepted
             RestResponse response = this.engine.logtest(jsonNode);
-            return new BytesRestResponse(RestStatus.fromCode(response.getStatus()), response.toXContent());
+            return new BytesRestResponse(
+                    RestStatus.fromCode(response.getStatus()), response.toXContent());
         } catch (Exception e) {
             RestResponse error =
                     new RestResponse(

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2024, Wazuh Inc.
+ * Copyright (C) 2024-2026, Wazuh Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as
@@ -32,7 +32,6 @@ public class PluginSettings {
     public static final String SUBSCRIPTION_URI = PLUGINS_BASE_URI + "/subscription";
     public static final String UPDATE_URI = PLUGINS_BASE_URI + "/update";
     public static final String ENGINE_LOGTEST = PLUGINS_BASE_URI + "/logtest/";
-
 
     /** Settings default values */
     private static final int DEFAULT_MAX_ITEMS_PER_BULK = 25;

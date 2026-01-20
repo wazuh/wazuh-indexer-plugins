@@ -17,13 +17,14 @@
 package com.wazuh.contentmanager.engine.services;
 
 import com.fasterxml.jackson.databind.JsonNode;
+
 import com.wazuh.contentmanager.rest.model.RestResponse;
 
 public interface EngineService {
 
     RestResponse logtest(JsonNode json);
 
-    RestResponse validate(/*resource*/);
+    RestResponse validate(/*resource*/ );
 
-    RestResponse promote(/*space*/);
+    RestResponse promote(/*space*/ );
 }
