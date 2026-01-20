@@ -146,14 +146,14 @@ function sort_and_output_modules() {
     echo "  [stateless/main]=${all_modules[stateless/main]}" >>"$output_file"
   fi
 
-  echo "  # CTI stateless modules" >>"$output_file"
+  echo "  # Third-party stateless modules" >>"$output_file"
 
   # Output other stateless modules (sorted, excluding main)
   for key in $(printf '%s\n' "${!all_modules[@]}" | grep "^stateless/" | grep -v "^stateless/main$" | sort); do
     echo "  [$key]=${all_modules[$key]}" >>"$output_file"
   done
 
-  echo "  # Third-party stateless modules" >>"$output_file"
+  echo "  # CTI stateless modules" >>"$output_file"
 
   # Output CTI IoC modules (sorted, excluding main)
   for key in $(printf '%s\n' "${!all_modules[@]}" | grep "^cti/ioc/" | grep -v "^cti/ioc/main$" | sort); do
