@@ -31,6 +31,8 @@ public class PluginSettings {
     public static final String PLUGINS_BASE_URI = "/_plugins/content-manager";
     public static final String SUBSCRIPTION_URI = PLUGINS_BASE_URI + "/subscription";
     public static final String UPDATE_URI = PLUGINS_BASE_URI + "/update";
+    public static final String ENGINE_LOGTEST = PLUGINS_BASE_URI + "/logtest/";
+
 
     /** Settings default values */
     private static final int DEFAULT_MAX_ITEMS_PER_BULK = 25;
