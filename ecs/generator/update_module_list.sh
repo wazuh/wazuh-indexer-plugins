@@ -108,6 +108,26 @@ function map_stateless_modules() {
 }
 
 # ====
+# Map CTI IoC modules
+# ====
+function map_cti_modules() {
+  # Map first-level directories in stateless (excluding special directories)
+  for dir in ecs/cti/ioc/*; do
+    if [[ -d "$dir" ]]; then
+      local module_name
+      module_name=$(basename "$dir")
+
+      # Skip special directories
+      if [[ "$module_name" == "main" || "$module_name" == "template" || "$module_name" == "mappings" ]]; then
+        continue
+      fi
+      # Regular stateless module
+      all_modules["cti/ioc/$module_name"]="templates/cti/${module_name}.json"
+    fi
+  done
+}
+
+# ====
 # Sort modules by type and name
 # ====
 function sort_and_output_modules() {
@@ -127,6 +147,11 @@ function sort_and_output_modules() {
   fi
 
   echo "  # Third-party stateless modules" >>"$output_file"
+
+  # Output CTI IoC modules (sorted, excluding main)
+  for key in $(printf '%s\n' "${!all_modules[@]}" | grep "^cti/ioc/" | grep -v "^cti/ioc/main$" | sort); do
+    echo "  [$key]=${all_modules[$key]}" >>"$output_file"
+  done
 
   # Output other stateless modules (sorted, excluding main)
   for key in $(printf '%s\n' "${!all_modules[@]}" | grep "^stateless/" | grep -v "^stateless/main$" | sort); do
@@ -151,6 +176,8 @@ function main() {
   map_stateful_modules
 
   map_stateless_modules
+
+  map_cti_modules
 
   # Sort and output
   sort_and_output_modules "$output_file"
