@@ -47,6 +47,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Complete content SAP resources management  [(#713)](https://github.com/wazuh/wazuh-indexer-plugins/pull/713)
 - Add new content manager settings [(#717)](https://github.com/wazuh/wazuh-indexer-plugins/pull/717)
 - Apply default replicas setting from configuration on startup [(#733)](https://github.com/wazuh/wazuh-indexer-plugins/pull/733)
+- Extend OpenAPI document with user-generated content management endpoints [(#736)](https://github.com/wazuh/wazuh-indexer-plugins/pull/736)
 
 ### Dependencies
 - Upgrade to Gradle 8.14.3 [(#649)](https://github.com/wazuh/wazuh-indexer-plugins/pull/649)
@@ -54,7 +55,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 ### Changed
 - Replace dependabot's directories keys with wildcard [(#443)](https://github.com/wazuh/wazuh-indexer-plugins/pull/443)
 - Adapt setup plugin for 5.x [(#450)](https://github.com/wazuh/wazuh-indexer-plugins/pull/450)
-- Third-party integrations maintenance [(#478)](https://github.com/wazuh/wazuh-indexer-plugins/pull/478) [(#540)](https://github.com/wazuh/wazuh-indexer-plugins/pull/540) [(#548)](https://github.com/wazuh/wazuh-indexer-plugins/pull/548) [(#566)](https://github.com/wazuh/wazuh-indexer-plugins/pull/566) [(#583)](https://github.com/wazuh/wazuh-indexer-plugins/pull/583) [(#642)](https://github.com/wazuh/wazuh-indexer-plugins/pull/642) [(#701)](https://github.com/wazuh/wazuh-indexer-plugins/pull/701)
+- Third-party integrations maintenance [(#478)](https://github.com/wazuh/wazuh-indexer-plugins/pull/478) [(#540)](https://github.com/wazuh/wazuh-indexer-plugins/pull/540) [(#548)](https://github.com/wazuh/wazuh-indexer-plugins/pull/548) [(#566)](https://github.com/wazuh/wazuh-indexer-plugins/pull/566) [(#583)](https://github.com/wazuh/wazuh-indexer-plugins/pull/583) [(#642)](https://github.com/wazuh/wazuh-indexer-plugins/pull/642) [(#701)](https://github.com/wazuh/wazuh-indexer-plugins/pull/701) [(#742)](https://github.com/wazuh/wazuh-indexer-plugins/pull/742)
 - Replace and remove deprecated settings [(#476)](https://github.com/wazuh/wazuh-indexer-plugins/pull/476)
 - Migrate WCS changes from 4.x [(#488)](https://github.com/wazuh/wazuh-indexer-plugins/pull/488) [(#552)](https://github.com/wazuh/wazuh-indexer-plugins/pull/552) [(#568)](https://github.com/wazuh/wazuh-indexer-plugins/pull/568)
 - Implement checksum fields into stateful ECS mappings [(#519)](https://github.com/wazuh/wazuh-indexer-plugins/pull/519) [(#569)](https://github.com/wazuh/wazuh-indexer-plugins/pull/569)
@@ -83,6 +84,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Update content spaces [(#724)](https://github.com/wazuh/wazuh-indexer-plugins/pull/724)
 - Extend JsonPatch to process JsonArray [(#729)](https://github.com/wazuh/wazuh-indexer-plugins/pull/729)
 - Improve Content Manager code quality [(#720)](https://github.com/wazuh/wazuh-indexer-plugins/pull/720)
+- Improve spotless implementation [(#740)](https://github.com/wazuh/wazuh-indexer-plugins/pull/740)
 
 ### Deprecated
 -
