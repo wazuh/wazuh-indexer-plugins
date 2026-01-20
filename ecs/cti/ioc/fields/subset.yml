@@ -1,5 +1,5 @@
 ---
-name: cti-ioc
+name: cti-iocs
 fields:
   base:
     fields:
