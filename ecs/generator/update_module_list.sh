@@ -122,7 +122,7 @@ function map_cti_modules() {
         continue
       fi
       # Regular stateless module
-      all_modules["cti/ioc/$module_name"]="templates/cti/${module_name}.json"
+      all_modules["cti/ioc/$module_name"]="templates/cti/ioc/${module_name}.json"
     fi
   done
 }
