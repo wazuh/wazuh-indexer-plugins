@@ -17,15 +17,7 @@ fields:
           file:
             fields:
               hash:
-                fields:
-                  cdhash: {}
-                  md5: {}
-                  sha1: {}
-                  sha256: {}
-                  sha384: {}
-                  sha512: {}
-                  ssdeep: {}
-                  tlsh: {}
+                fields: "*"
           first_seen: {}
           ip: {}
           last_seen: {}
