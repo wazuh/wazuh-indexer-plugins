@@ -52,7 +52,7 @@ function detect_modified_modules() {
   local modified_modules=()
   modified_files=$(git diff --name-only origin/"$BASE_BRANCH")
   for file in $modified_files; do
-    if [[ $file == ecs/state* && ( $file == *.yml || $file == *.json ) ]]; then
+    if [[ ( $file == ecs/state* || $file == ecs/cti* ) && ( $file == *.yml || $file == *.json ) ]]; then
       # Try to match the file to one of the known module keys for exact detection
       for key in "${!module_to_file[@]}"; do
         if [[ $file == ecs/$key/* || $file == ecs/$key ]]; then
