@@ -18,6 +18,11 @@ module_to_file=(
   [stateful/inventory/users]=templates/states/inventory-users.json
   [stateful/sca]=templates/states/sca.json
   [stateful/vulnerabilities]=templates/states/vulnerabilities.json
+  # CTI stateless modules
+  [cti/ioc/domain]=templates/cti/ioc/domain.json
+  [cti/ioc/file]=templates/cti/ioc/file.json
+  [cti/ioc/ip]=templates/cti/ioc/ip.json
+  [cti/ioc/url]=templates/cti/ioc/url.json
   # Third-party stateless modules
   [stateless/access-management]=templates/streams/access-management.json
   [stateless/applications]=templates/streams/applications.json
@@ -29,9 +34,4 @@ module_to_file=(
   [stateless/other]=templates/streams/other.json
   [stateless/security]=templates/streams/security.json
   [stateless/system-activity]=templates/streams/system-activity.json
-  # CTI stateless modules
-  [cti/ioc/domain]=templates/cti/ioc/domain.json
-  [cti/ioc/file]=templates/cti/ioc/file.json
-  [cti/ioc/ip]=templates/cti/ioc/ip.json
-  [cti/ioc/url]=templates/cti/ioc/url.json
 )
