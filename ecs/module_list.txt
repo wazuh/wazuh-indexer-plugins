@@ -19,10 +19,7 @@ module_to_file=(
   [stateful/sca]=templates/states/sca.json
   [stateful/vulnerabilities]=templates/states/vulnerabilities.json
   # CTI stateless modules
-  [cti/ioc/domain]=templates/cti/ioc/domain.json
-  [cti/ioc/file]=templates/cti/ioc/file.json
-  [cti/ioc/ip]=templates/cti/ioc/ip.json
-  [cti/ioc/url]=templates/cti/ioc/url.json
+  [cti/ioc]=templates/cti/ioc.json
   # Third-party stateless modules
   [stateless/access-management]=templates/streams/access-management.json
   [stateless/applications]=templates/streams/applications.json
