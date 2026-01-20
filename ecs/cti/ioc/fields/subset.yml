@@ -1,0 +1,45 @@
+{
+  "name": "cti-iocs",
+  "fields": {
+    "base": {
+      "fields": {
+        "@timestamp": {},
+        "message": {}
+      }
+    },
+    "threat": {
+      "fields": {
+        "feed": {
+          "fields": {
+            "name": {},
+            "reference": {}
+          }
+        },
+        "indicator": {
+          "fields": {
+            "type": {},
+            "url": {
+              "fields": {
+                "domain": {}
+              }
+            },
+            "provider": {},
+            "confidence": {},
+            "first_seen": {},
+            "last_seen": {},
+            "name": {},
+            "description": {},
+            "ip": {},
+            "reference": {}
+          }
+        },
+        "software": {
+          "fields": {
+            "name": {},
+            "alias": {}
+          }
+        }
+      }
+    }
+  }
+}

@@ -1,10 +1,10 @@
 {
   "index_patterns": [
-    ".iocs_development_*url"
+    ".iocs_development_*iocs"
   ],
   "order": 1,
   "settings": {
-    "plugins.index_state_management.rollover_alias": ".cti-iocs-url",
+    "plugins.index_state_management.rollover_alias": ".cti-iocs",
     "mapping.total_fields.limit": 500,
     "mapping.nested_fields.limit": 50,
     "index": {
@@ -18,11 +18,14 @@
         "threat.indicator.confidence",
         "threat.indicator.description",
         "threat.indicator.first_seen",
+        "threat.indicator.ip",
         "threat.indicator.last_seen",
         "threat.indicator.name",
         "threat.indicator.provider",
+        "threat.indicator.reference",
         "threat.indicator.type",
         "threat.indicator.url.domain",
+        "threat.software.alias",
         "threat.software.name"
       ],
       "max_docvalue_fields_search": 200
