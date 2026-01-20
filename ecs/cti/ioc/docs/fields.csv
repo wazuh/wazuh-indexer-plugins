@@ -4,10 +4,13 @@ ECS_Version,Indexed,Field_Set,Field,Type,Level,Normalization,Example,Description
 9.1.0,true,threat,threat.feed.reference,keyword,extended,,https://otx.alienvault.com,Reference for the threat feed.
 9.1.0,true,threat,threat.indicator.confidence,keyword,extended,,Medium,Indicator confidence rating
 9.1.0,true,threat,threat.indicator.description,keyword,extended,,IP x.x.x.x was observed delivering the Angler EK.,Indicator description
+9.1.0,true,threat,threat.indicator.file.hash.md5,keyword,extended,,,MD5 hash.
+9.1.0,true,threat,threat.indicator.file.hash.sha256,keyword,extended,,,SHA256 hash.
 9.1.0,true,threat,threat.indicator.first_seen,date,extended,,2020-11-05T17:25:47.000Z,Date/time indicator was first reported.
 9.1.0,true,threat,threat.indicator.ip,ip,extended,,1.2.3.4,Indicator IP address
 9.1.0,true,threat,threat.indicator.last_seen,date,extended,,2020-11-05T17:25:47.000Z,Date/time indicator was last reported.
 9.1.0,true,threat,threat.indicator.name,keyword,extended,,5.2.75.227,Indicator display name
+9.1.0,true,threat,threat.indicator.port,long,extended,,443,Indicator port
 9.1.0,true,threat,threat.indicator.provider,keyword,extended,,lrz_urlhaus,Indicator provider
 9.1.0,true,threat,threat.indicator.reference,keyword,extended,,https://system.example.com/indicator/0001234,Indicator reference URL
 9.1.0,true,threat,threat.indicator.type,keyword,extended,,ipv4-addr,Type of indicator

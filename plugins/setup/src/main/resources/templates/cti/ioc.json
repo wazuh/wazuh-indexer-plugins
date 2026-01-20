@@ -64,6 +64,22 @@
                   "ignore_above": 1024,
                   "type": "keyword"
                 },
+                "file": {
+                  "properties": {
+                    "hash": {
+                      "properties": {
+                        "md5": {
+                          "ignore_above": 1024,
+                          "type": "keyword"
+                        },
+                        "sha256": {
+                          "ignore_above": 1024,
+                          "type": "keyword"
+                        }
+                      }
+                    }
+                  }
+                },
                 "first_seen": {
                   "type": "date"
                 },
@@ -76,6 +92,9 @@
                 "name": {
                   "ignore_above": 1024,
                   "type": "keyword"
+                },
+                "port": {
+                  "type": "long"
                 },
                 "provider": {
                   "ignore_above": 1024,
