@@ -7,7 +7,7 @@
   "template": {
     "settings": {
       "plugins.index_state_management.rollover_alias": ".cti-iocs-domain",
-      "mapping.total_fields.limit": 3000,
+      "mapping.total_fields.limit": 500,
       "mapping.nested_fields.limit": 50,
       "index": {
         "number_of_shards": "1",
