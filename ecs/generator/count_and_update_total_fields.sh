@@ -84,13 +84,13 @@ process_module() {
   fi
 
   # jq filter to count fields
-  JQ_FILTER='def count_fields: (keys_unsorted | length) + ( map( if type == "object" then (.properties | select(.) | count_fields) // 0 + (.fields | select(.) | count_fields) // 0 else 0 end ) | add ); .mappings.properties | count_fields'
+  JQ_FILTER='def count_fields: (keys_unsorted | length) + ( map( if type == "object" then (.properties | select(.) | count_fields) // 0 + (.fields | select(.) | count_fields) // 0 else 0 end ) | add ); .template.mappings.properties | count_fields'
 
   # jq filter to count nested fields
-  JQ_NESTED_FILTER='def count_nested: [ .. | objects | select(.type == "nested") ] | length; .mappings.properties | count_nested'
+  JQ_NESTED_FILTER='def count_nested: [ .. | objects | select(.type == "nested") ] | length; .template.mappings.properties | count_nested'
 
   TOTAL_FIELDS=$(jq -r "$JQ_FILTER" "$REPO_ROOT/$INDEX_TEMPLATE_PATH" 2>/tmp/jq_error.log) || {
-    echo "Error: Could not parse JSON or find .mappings.properties in $INDEX_TEMPLATE_PATH" >&2
+    echo "Error: Could not parse JSON or find .template.mappings.properties in $INDEX_TEMPLATE_PATH" >&2
     cat /tmp/jq_error.log >&2 || true
     rm -f /tmp/jq_error.log
     return 1
