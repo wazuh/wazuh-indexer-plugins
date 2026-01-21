@@ -19,13 +19,19 @@ package com.wazuh.contentmanager.rest.services;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
+import org.opensearch.common.xcontent.XContentHelper;
+import org.opensearch.core.common.bytes.BytesArray;
 import org.opensearch.core.rest.RestStatus;
+import org.opensearch.core.xcontent.MediaTypeRegistry;
+import org.opensearch.rest.BytesRestResponse;
+import org.opensearch.rest.RestRequest;
 import org.opensearch.test.OpenSearchTestCase;
 import org.junit.Before;
 
 import java.io.IOException;
 
 import com.wazuh.contentmanager.engine.services.EngineService;
+import com.wazuh.contentmanager.engine.services.EngineServiceImpl;
 import com.wazuh.contentmanager.rest.model.RestResponse;
 
 import static org.mockito.Mockito.mock;
@@ -51,7 +57,7 @@ public class RestPostLogtestActionTests extends OpenSearchTestCase {
     @Override
     public void setUp() throws Exception {
         super.setUp();
-        this.engine = mock(EngineService.class);
+        this.engine = mock(EngineServiceImpl.class);
         this.action = new RestPostLogtestAction(this.engine);
     }
 
@@ -61,15 +67,7 @@ public class RestPostLogtestActionTests extends OpenSearchTestCase {
      *
      * @throws IOException
      */
-    public void testPostLogtest200() throws IOException {}
-
-    /**
-     * Test the {@link RestPostLogtestAction#handleRequest(logtest)} method when the logtest has not
-     * been created (mock). The expected response is: {400, RestResponse}
-     *
-     * @throws IOException
-     */
-    public void testPostLogtest400() throws IOException {
+    public void testPostLogtest200() throws IOException {
         JsonNode payload =
                 new ObjectMapper()
                         .readTree(
@@ -81,7 +79,7 @@ public class RestPostLogtestActionTests extends OpenSearchTestCase {
                                         + "}");
 
         RestResponse response = new RestResponse();
-        response.setStatus(RestStatus.BAD_REQUEST.getStatus());
+        response.setStatus(RestStatus.OK.getStatus());
         response.setMessage(
                 "{\n"
                         + "  \"status\": \"ERROR\",\n"
@@ -89,6 +87,52 @@ public class RestPostLogtestActionTests extends OpenSearchTestCase {
                         + "}");
 
         when(this.engine.logtest(payload)).thenReturn(response);
+    }
+
+    /**
+     * Test the {@link RestPostLogtestAction#handleRequest(logtest)} method when the logtest has not
+     * been created (mock). The expected response is: {400, RestResponse}
+     *
+     * @throws IOException
+     */
+    public void testPostLogtest400() throws IOException {
+        // Construct a bad payload to trigger 400 response
+        JsonNode payload =
+                new ObjectMapper()
+                        .readTree(
+                                "{\n"
+                                        + "  \"queue\": 1,\n"
+                                        + "  \"location\": \"syscheck\",\n"
+                                        + "  \"event\": \"File /etc/passwd modified\",\n"
+                                        + "  \"trace_level\": \"ALL\"\n"
+                                        + "}");
+
+        // Mock the 400 response from the Wazuh Engine
+        RestResponse serverResponse = new RestResponse();
+        serverResponse.setStatus(RestStatus.BAD_REQUEST.getStatus());
+        serverResponse.setMessage(
+                "{\n"
+                        + "  \"status\": \"ERROR\",\n"
+                        + "  \"error\": \"agent_metadata is required and must be a JSON object\"\n"
+                        + "}");
+        when(this.engine.logtest(payload)).thenReturn(serverResponse);
+
+        // Create a RestRequest with the bad payload
+        RestRequest request = mock(RestRequest.class);
+        when(request.hasContent()).thenReturn(true);
+        when(request.content()).thenReturn(new BytesArray(payload.toString().getBytes()));
+
+        // Call the method under test
+        RestResponse actualResponse = this.action.handleRequest(request);
+
+        // Assert the response status
+        assertEquals(RestStatus.BAD_REQUEST.getStatus(), actualResponse.getStatus());
+
+        // Assert the response content as JSON objects
+        ObjectMapper mapper = new ObjectMapper();
+        JsonNode expectedJson = mapper.readTree(serverResponse.getMessage());
+        JsonNode actualJson = mapper.readTree(actualResponse.getMessage());
+        assertEquals(expectedJson, actualJson);
     }
 
     /**
