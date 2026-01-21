@@ -65,56 +65,90 @@ public class RestPostLogtestActionTests extends OpenSearchTestCase {
      * Test the {@link RestPostLogtestAction#handleRequest(logtest)} method when the request is
      * complete. The expected response is: {201, RestResponse}
      *
-     * @throws IOException
      */
     public void testPostLogtest200() throws IOException {
+        // Construct a bad payload to trigger 200 response
         JsonNode payload =
-                new ObjectMapper()
-                        .readTree(
-                                "{\n"
-                                        + "  \"queue\": 1,\n"
-                                        + "  \"location\": \"syscheck\",\n"
-                                        + "  \"event\": \"File /etc/passwd modified\",\n"
-                                        + "  \"trace_level\": \"ALL\"\n"
-                                        + "}");
+            new ObjectMapper()
+                .readTree(
+                    """
+                        {
+                          "queue": 1,
+                          "location": "/var/log/auth.log",
+                          "agent_metadata": {},
+                          "event": "Dec 19 12:00:00 host sshd[123]: Failed password for root from 10.0.0.1 port 12345 ssh2",
+                          "trace_level": "NONE"
+                        }
+                        """);
 
-        RestResponse response = new RestResponse();
-        response.setStatus(RestStatus.OK.getStatus());
-        response.setMessage(
-                "{\n"
-                        + "  \"status\": \"ERROR\",\n"
-                        + "  \"error\": \"agent_metadata is required and must be a JSON object\"\n"
-                        + "}");
+        // Mock the 200 response from the Wazuh Engine
+        RestResponse serverResponse = new RestResponse();
+        serverResponse.setStatus(RestStatus.OK.getStatus());
+        serverResponse.setMessage(
+            """
+                {
+                  "status": "OK",
+                  "result": {
+                    "output": "{\\"wazuh\\":{\\"protocol\\":{\\"queue\\":1,\\"location\\":\\"syscheck\\"},\\"integration\\":{\\"category\\":\\"Security\\",\\"name\\":\\"integration/wazuh-core/0\\",\\"decoders\\":[\\"core-wazuh-message\\",\\"integrations\\"]}},\\"name\\":\\"nahuel\\",\\"event\\":{\\"original\\":\\"File /etc/passwd modified\\"},\\"@timestamp\\":\\"2025-12-26T17:33:22Z\\"}",
+                    "asset_traces": [
+                      {
+                        "asset": "decoder/core-wazuh-message/0",
+                        "success": true,
+                        "traces": [
+                          "@timestamp: get_date -> Success"
+                        ]
+                      }
+                    ]
+                  }
+                }
+                """);
+        when(this.engine.logtest(payload)).thenReturn(serverResponse);
 
-        when(this.engine.logtest(payload)).thenReturn(response);
+        // Create a RestRequest with the payload
+        RestRequest request = mock(RestRequest.class);
+        when(request.hasContent()).thenReturn(true);
+        when(request.content()).thenReturn(new BytesArray(payload.toString().getBytes()));
+
+        // Call the method under test
+        RestResponse actualResponse = this.action.handleRequest(request);
+
+        // Assert the response status
+        assertEquals(RestStatus.OK.getStatus(), actualResponse.getStatus());
+
+        // Assert the response content as JSON objects
+        ObjectMapper mapper = new ObjectMapper();
+        JsonNode expectedJson = mapper.readTree(serverResponse.getMessage());
+        JsonNode actualJson = mapper.readTree(actualResponse.getMessage());
+        assertEquals(expectedJson, actualJson);
     }
 
     /**
      * Test the {@link RestPostLogtestAction#handleRequest(logtest)} method when the logtest has not
      * been created (mock). The expected response is: {400, RestResponse}
      *
-     * @throws IOException
      */
     public void testPostLogtest400() throws IOException {
         // Construct a bad payload to trigger 400 response
         JsonNode payload =
                 new ObjectMapper()
                         .readTree(
-                                "{\n"
-                                        + "  \"queue\": 1,\n"
-                                        + "  \"location\": \"syscheck\",\n"
-                                        + "  \"event\": \"File /etc/passwd modified\",\n"
-                                        + "  \"trace_level\": \"ALL\"\n"
-                                        + "}");
+                            """
+                                {
+                                  "queue": 1,
+                                  "location": "syscheck",
+                                  "event": "File /etc/passwd modified",
+                                  "trace_level": "ALL"
+                                }""");
 
         // Mock the 400 response from the Wazuh Engine
         RestResponse serverResponse = new RestResponse();
         serverResponse.setStatus(RestStatus.BAD_REQUEST.getStatus());
         serverResponse.setMessage(
-                "{\n"
-                        + "  \"status\": \"ERROR\",\n"
-                        + "  \"error\": \"agent_metadata is required and must be a JSON object\"\n"
-                        + "}");
+            """
+                {
+                  "status": "ERROR",
+                  "error": "agent_metadata is required and must be a JSON object"
+                }""");
         when(this.engine.logtest(payload)).thenReturn(serverResponse);
 
         // Create a RestRequest with the bad payload
@@ -141,5 +175,49 @@ public class RestPostLogtestActionTests extends OpenSearchTestCase {
      *
      * @throws IOException if an I/O error occurs during the test
      */
-    public void testPostLogtest500() throws IOException {}
+    public void testPostLogtest500() throws IOException {
+        // Construct a bad payload to trigger 500 response
+        // This one is missing a value for location
+        JsonNode payload =
+            new ObjectMapper()
+                .readTree(
+                    """
+                        {
+                          "queue": 1,
+                          "location": "/var/log/auth.log",
+                          "agent_metadata": {},
+                          "event": "Dec 19 12:00:00 host sshd[123]: Failed password for root from 10.0.0.1 port 12345 ssh2",
+                          "trace_level": "NONE"
+                        }
+                        """);
+
+        // Mock the 500 response from the Wazuh Engine
+        RestResponse serverResponse = new RestResponse();
+        serverResponse.setStatus(RestStatus.INTERNAL_SERVER_ERROR.getStatus());
+        serverResponse.setMessage(
+            """
+                {
+                  "status": "ERROR",
+                  "error": "agent_metadata is required and must be a JSON object"
+                }""");
+        when(this.engine.logtest(payload)).thenReturn(serverResponse);
+
+        // Create a RestRequest with the bad payload
+        RestRequest request = mock(RestRequest.class);
+        when(request.hasContent()).thenReturn(true);
+        when(request.content()).thenReturn(new BytesArray(payload.toString().getBytes()));
+
+        // Call the method under test
+        RestResponse actualResponse = this.action.handleRequest(request);
+
+        // Assert the response status
+        assertEquals(RestStatus.INTERNAL_SERVER_ERROR.getStatus(), actualResponse.getStatus());
+
+        // Assert the response content as JSON objects
+        ObjectMapper mapper = new ObjectMapper();
+        JsonNode expectedJson = mapper.readTree(serverResponse.getMessage());
+        JsonNode actualJson = mapper.readTree(actualResponse.getMessage());
+        assertEquals(expectedJson, actualJson);
+
+    }
 }
