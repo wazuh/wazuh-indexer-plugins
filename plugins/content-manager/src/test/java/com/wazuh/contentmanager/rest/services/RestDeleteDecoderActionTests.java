@@ -16,6 +16,7 @@
  */
 package com.wazuh.contentmanager.rest.services;
 
+import org.opensearch.rest.RestRequest;
 import org.opensearch.test.OpenSearchTestCase;
 import org.junit.Before;
 
@@ -50,7 +51,7 @@ public class RestDeleteDecoderActionTests extends OpenSearchTestCase {
     }
 
     /**
-     * Test the {@link RestDeleteDecoderAction#handleRequest(decoder)} method when the request is
+     * Test the {@link RestDeleteDecoderAction#handleRequest(RestRequest)} method when the request is
      * complete. The expected response is: {201, RestResponse}
      *
      * @throws IOException
@@ -58,8 +59,8 @@ public class RestDeleteDecoderActionTests extends OpenSearchTestCase {
     public void testDeleteDecoder201() throws IOException {}
 
     /**
-     * Test the {@link RestDeleteDecoderAction#handleRequest(decoder)} method when the decoder has not
-     * been deleted (mock). The expected response is: {400, RestResponse}
+     * Test the {@link RestDeleteDecoderAction#handleRequest(RestRequest)} method when the decoder has
+     * not been deleted (mock). The expected response is: {400, RestResponse}
      *
      * @throws IOException
      */

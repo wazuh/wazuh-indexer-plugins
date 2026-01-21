@@ -23,19 +23,19 @@ import com.wazuh.contentmanager.rest.model.RestResponse;
 public class EngineServiceImpl implements EngineService {
 
     @Override
-    public RestResponse logtest(JsonNode json) {
+    public RestResponse logtest(JsonNode log) {
         // TODO pending implementation
         return null;
     }
 
     @Override
-    public RestResponse validate() {
+    public RestResponse validate(JsonNode resource) {
         // TODO pending implementation
         return null;
     }
 
     @Override
-    public RestResponse promote() {
+    public RestResponse promote(JsonNode policy) {
         // TODO pending implementation
         return null;
     }

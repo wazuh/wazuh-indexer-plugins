@@ -22,9 +22,9 @@ import com.wazuh.contentmanager.rest.model.RestResponse;
 
 public interface EngineService {
 
-    RestResponse logtest(JsonNode json);
+    RestResponse logtest(JsonNode log);
 
-    RestResponse validate(/*resource*/ );
+    RestResponse validate(JsonNode resource);
 
-    RestResponse promote(/*space*/ );
+    RestResponse promote(JsonNode policy);
 }
