@@ -73,7 +73,7 @@ public class RestPostLogtestAction extends BaseRestHandler {
     public List<Route> routes() {
         return List.of(
                 new NamedRoute.Builder()
-                        .path(PluginSettings.ENGINE_LOGTEST)
+                        .path(PluginSettings.LOGTEST_URI)
                         .method(POST)
                         .uniqueName(ENDPOINT_UNIQUE_NAME)
                         .build());
