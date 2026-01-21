@@ -16,6 +16,7 @@
  */
 package com.wazuh.contentmanager.rest.services;
 
+import org.opensearch.rest.RestRequest;
 import org.opensearch.test.OpenSearchTestCase;
 import org.junit.Before;
 
@@ -50,7 +51,7 @@ public class RestPostPromoteActionTests extends OpenSearchTestCase {
     }
 
     /**
-     * Test the {@link RestPostPromoteAction#handleRequest(promote)} method when the request is
+     * Test the {@link RestPostPromoteAction#handleRequest(RestRequest)} method when the request is
      * complete. The expected response is: {201, RestResponse}
      *
      * @throws IOException
@@ -58,7 +59,7 @@ public class RestPostPromoteActionTests extends OpenSearchTestCase {
     public void testPostPromote201() throws IOException {}
 
     /**
-     * Test the {@link RestPostPromoteAction#handleRequest(promote)} method when the promote has not
+     * Test the {@link RestPostPromoteAction#handleRequest(RestRequest) method when the promote has not
      * been created (mock). The expected response is: {400, RestResponse}
      *
      * @throws IOException
