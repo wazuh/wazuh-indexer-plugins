@@ -21,7 +21,10 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.wazuh.contentmanager.engine.client.EngineSocketClient;
 import com.wazuh.contentmanager.rest.model.RestResponse;
 
+import static org.opensearch.rest.RestRequest.Method.POST;
+
 public class EngineServiceImpl implements EngineService {
+    private static final String LOGTEST = "logtest";
 
     private final EngineSocketClient socket;
 
@@ -42,6 +45,7 @@ public class EngineServiceImpl implements EngineService {
     @Override
     public RestResponse logtest(JsonNode log) {
         // TODO pending implementation
+        this.socket.sendRequest(LOGTEST, POST.name(), log);
         return null;
     }
 

@@ -88,7 +88,7 @@ public class RestPostLogtestAction extends BaseRestHandler {
      */
     @Override
     public RestChannelConsumer prepareRequest(RestRequest request, NodeClient client) {
-        return channel -> channel.sendResponse(new BytesRestResponse(RestStatus.OK, ""));
+        return channel -> channel.sendResponse(this.handleRequest(request));
     }
 
     /**

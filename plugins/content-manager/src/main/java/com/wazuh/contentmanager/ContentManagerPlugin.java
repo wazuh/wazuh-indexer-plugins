@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2024, Wazuh Inc.
+ * Copyright (C) 2024-2026, Wazuh Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as
@@ -51,13 +51,11 @@ import java.util.function.Supplier;
 
 import com.wazuh.contentmanager.cti.catalog.index.ConsumersIndex;
 import com.wazuh.contentmanager.cti.console.CtiConsole;
+import com.wazuh.contentmanager.engine.services.EngineServiceImpl;
 import com.wazuh.contentmanager.jobscheduler.ContentJobParameter;
 import com.wazuh.contentmanager.jobscheduler.ContentJobRunner;
 import com.wazuh.contentmanager.jobscheduler.jobs.CatalogSyncJob;
-import com.wazuh.contentmanager.rest.services.RestDeleteSubscriptionAction;
-import com.wazuh.contentmanager.rest.services.RestGetSubscriptionAction;
-import com.wazuh.contentmanager.rest.services.RestPostSubscriptionAction;
-import com.wazuh.contentmanager.rest.services.RestPostUpdateAction;
+import com.wazuh.contentmanager.rest.services.*;
 import com.wazuh.contentmanager.settings.PluginSettings;
 
 /** Main class of the Content Manager Plugin */
@@ -72,6 +70,7 @@ public class ContentManagerPlugin extends Plugin
     private CtiConsole ctiConsole;
     private Client client;
     private CatalogSyncJob catalogSyncJob;
+    private EngineServiceImpl engine;
 
     /**
      * Initializes the plugin components, including the CTI console, consumer index helpers, and the
@@ -119,6 +118,9 @@ public class ContentManagerPlugin extends Plugin
 
         // Register Executors
         runner.registerExecutor(CatalogSyncJob.JOB_TYPE, this.catalogSyncJob);
+
+        // Initialize Engine service
+        this.engine = new EngineServiceImpl();
 
         return Collections.emptyList();
     }
@@ -169,10 +171,13 @@ public class ContentManagerPlugin extends Plugin
             org.opensearch.cluster.metadata.IndexNameExpressionResolver indexNameExpressionResolver,
             java.util.function.Supplier<org.opensearch.cluster.node.DiscoveryNodes> nodesInCluster) {
         return List.of(
+                // CTI subscription endpoints
                 new RestGetSubscriptionAction(this.ctiConsole),
                 new RestPostSubscriptionAction(this.ctiConsole),
                 new RestDeleteSubscriptionAction(this.ctiConsole),
-                new RestPostUpdateAction(this.ctiConsole, this.catalogSyncJob));
+                new RestPostUpdateAction(this.ctiConsole, this.catalogSyncJob),
+                // User-generated content endpoints
+                new RestPostLogtestAction(this.engine));
     }
 
     /** Performs initialization tasks for the plugin. */

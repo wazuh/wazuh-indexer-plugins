@@ -28,7 +28,7 @@ public class PluginSettings {
     private static final Logger log = LogManager.getLogger(PluginSettings.class);
 
     // Rest API endpoints
-    public static final String PLUGINS_BASE_URI = "/_plugins/content-manager";
+    public static final String PLUGINS_BASE_URI = "/_plugins/_content_manager";
     public static final String SUBSCRIPTION_URI = PLUGINS_BASE_URI + "/subscription";
     public static final String UPDATE_URI = PLUGINS_BASE_URI + "/update";
     public static final String LOGTEST_URI = PLUGINS_BASE_URI + "/logtest";
