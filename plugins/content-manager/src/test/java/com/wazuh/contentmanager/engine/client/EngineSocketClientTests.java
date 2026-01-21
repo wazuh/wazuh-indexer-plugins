@@ -27,7 +27,7 @@ import org.junit.Before;
 import com.wazuh.contentmanager.rest.model.RestResponse;
 
 /**
- * Unit tests for the {@link UnixSocketClient} class.
+ * Unit tests for the {@link EngineSocketClient} class.
  *
  * <p>This test suite validates the Unix socket client functionality including constructor behavior,
  * socket path handling, and error scenarios when the socket doesn't exist.
@@ -35,7 +35,7 @@ import com.wazuh.contentmanager.rest.model.RestResponse;
  * <p>Note: Tests involving actual Unix socket communication require a running Engine service and
  * are better suited for integration tests.
  */
-public class UnixSocketClientTests extends OpenSearchTestCase {
+public class EngineSocketClientTests extends OpenSearchTestCase {
 
     private ObjectMapper objectMapper;
 
@@ -54,7 +54,7 @@ public class UnixSocketClientTests extends OpenSearchTestCase {
 
     /** Test that the default constructor uses the correct default socket path. */
     public void testDefaultConstructorUsesDefaultSocketPath() {
-        UnixSocketClient client = new UnixSocketClient();
+        EngineSocketClient client = new EngineSocketClient();
 
         Assert.assertEquals(
                 "/usr/share/wazuh-indexer/engine/sockets/engine-api.sock", client.socketPath());
@@ -63,7 +63,7 @@ public class UnixSocketClientTests extends OpenSearchTestCase {
     /** Test that the custom socket path constructor sets the path correctly. */
     public void testCustomSocketPathConstructor() {
         String customPath = "/custom/path/socket.sock";
-        UnixSocketClient client = new UnixSocketClient(customPath);
+        EngineSocketClient client = new EngineSocketClient(customPath);
 
         Assert.assertEquals(customPath, client.socketPath());
     }
@@ -71,14 +71,14 @@ public class UnixSocketClientTests extends OpenSearchTestCase {
     /** Test that socketPath() accessor returns the correct value. */
     public void testSocketPathAccessor() {
         String expectedPath = "/test/socket.sock";
-        UnixSocketClient client = new UnixSocketClient(expectedPath);
+        EngineSocketClient client = new EngineSocketClient(expectedPath);
 
         Assert.assertEquals(expectedPath, client.socketPath());
     }
 
     /** Test that sendRequest returns 500 status when socket file does not exist. */
     public void testSendRequestReturns500WhenSocketDoesNotExist() {
-        UnixSocketClient client = new UnixSocketClient("/non/existent/socket.sock");
+        EngineSocketClient client = new EngineSocketClient("/non/existent/socket.sock");
         ObjectNode payload = this.objectMapper.createObjectNode();
 
         RestResponse response = client.sendRequest("/test/endpoint", "POST", payload);
@@ -98,7 +98,7 @@ public class UnixSocketClientTests extends OpenSearchTestCase {
         payload.put("test", "data");
 
         for (String path : testPaths) {
-            UnixSocketClient client = new UnixSocketClient(path);
+            EngineSocketClient client = new EngineSocketClient(path);
             RestResponse response = client.sendRequest("/endpoint", "POST", payload);
 
             Assert.assertEquals(500, response.getStatus());
@@ -110,19 +110,19 @@ public class UnixSocketClientTests extends OpenSearchTestCase {
     /** Test that socketPath is immutable through the record. */
     public void testSocketPathIsImmutable() {
         String originalPath = "/original/path.sock";
-        UnixSocketClient client = new UnixSocketClient(originalPath);
+        EngineSocketClient client = new EngineSocketClient(originalPath);
 
         // Verify the path can't be changed (record immutability)
         Assert.assertEquals(originalPath, client.socketPath());
 
         // Create new client with different path
-        UnixSocketClient client2 = new UnixSocketClient("/different/path.sock");
+        EngineSocketClient client2 = new EngineSocketClient("/different/path.sock");
         Assert.assertNotEquals(client.socketPath(), client2.socketPath());
     }
 
     /** Test sendRequest with empty payload. */
     public void testSendRequestWithEmptyPayload() {
-        UnixSocketClient client = new UnixSocketClient("/non/existent/socket.sock");
+        EngineSocketClient client = new EngineSocketClient("/non/existent/socket.sock");
         ObjectNode emptyPayload = this.objectMapper.createObjectNode();
 
         RestResponse response = client.sendRequest("/test/endpoint", "POST", emptyPayload);
@@ -134,7 +134,7 @@ public class UnixSocketClientTests extends OpenSearchTestCase {
 
     /** Test sendRequest with complex nested JSON payload. */
     public void testSendRequestWithComplexNestedJsonPayload() {
-        UnixSocketClient client = new UnixSocketClient("/non/existent/socket.sock");
+        EngineSocketClient client = new EngineSocketClient("/non/existent/socket.sock");
         ObjectNode payload = this.objectMapper.createObjectNode();
         ObjectNode nested = this.objectMapper.createObjectNode();
         nested.put("key", "value");
@@ -151,7 +151,7 @@ public class UnixSocketClientTests extends OpenSearchTestCase {
     /** Test different HTTP methods with non-existent socket. */
     public void testDifferentHttpMethodsWithNonExistentSocket() {
         String[] methods = {"GET", "POST", "PUT", "DELETE"};
-        UnixSocketClient client = new UnixSocketClient("/non/existent/socket.sock");
+        EngineSocketClient client = new EngineSocketClient("/non/existent/socket.sock");
         ObjectNode payload = this.objectMapper.createObjectNode();
 
         for (String method : methods) {
@@ -164,7 +164,7 @@ public class UnixSocketClientTests extends OpenSearchTestCase {
 
     /** Test sendRequest with special characters in payload. */
     public void testSendRequestWithSpecialCharactersInPayload() {
-        UnixSocketClient client = new UnixSocketClient("/non/existent/socket.sock");
+        EngineSocketClient client = new EngineSocketClient("/non/existent/socket.sock");
         ObjectNode payload = this.objectMapper.createObjectNode();
         payload.put("text", "Special: áéíóú ñ €¥£ \n\t\r");
         payload.put("emoji", "🔒🚀");
@@ -180,7 +180,7 @@ public class UnixSocketClientTests extends OpenSearchTestCase {
         String[] endpoints = {
             "/router/table/get", "/api/v1/logtest", "/validate", "/promote", "/health"
         };
-        UnixSocketClient client = new UnixSocketClient("/non/existent/socket.sock");
+        EngineSocketClient client = new EngineSocketClient("/non/existent/socket.sock");
         ObjectNode payload = this.objectMapper.createObjectNode();
 
         for (String endpoint : endpoints) {
@@ -194,9 +194,9 @@ public class UnixSocketClientTests extends OpenSearchTestCase {
     /** Test record equality. */
     public void testRecordEquality() {
         String path = "/test/socket.sock";
-        UnixSocketClient client1 = new UnixSocketClient(path);
-        UnixSocketClient client2 = new UnixSocketClient(path);
-        UnixSocketClient client3 = new UnixSocketClient("/different/socket.sock");
+        EngineSocketClient client1 = new EngineSocketClient(path);
+        EngineSocketClient client2 = new EngineSocketClient(path);
+        EngineSocketClient client3 = new EngineSocketClient("/different/socket.sock");
 
         // Records with same values should be equal
         Assert.assertEquals(client1, client2);
@@ -209,7 +209,7 @@ public class UnixSocketClientTests extends OpenSearchTestCase {
     /** Test record toString contains socket path. */
     public void testRecordToString() {
         String path = "/test/socket.sock";
-        UnixSocketClient client = new UnixSocketClient(path);
+        EngineSocketClient client = new EngineSocketClient(path);
 
         String toString = client.toString();
         Assert.assertTrue("toString should contain socket path", toString.contains(path));
