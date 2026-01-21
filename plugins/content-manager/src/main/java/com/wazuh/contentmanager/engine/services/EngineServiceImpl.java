@@ -18,13 +18,34 @@ package com.wazuh.contentmanager.engine.services;
 
 import com.fasterxml.jackson.databind.JsonNode;
 
+import com.wazuh.contentmanager.engine.client.EngineSocketClient;
 import com.wazuh.contentmanager.rest.model.RestResponse;
 
+import static org.opensearch.rest.RestRequest.Method.POST;
+
 public class EngineServiceImpl implements EngineService {
+    private static final String LOGTEST = "logtest";
+
+    private final EngineSocketClient socket;
+
+    /** Default constructor. */
+    public EngineServiceImpl() {
+        this.socket = new EngineSocketClient();
+    }
+
+    /**
+     * Parametrized constructor
+     *
+     * @param socket instance of {@link EngineSocketClient}
+     */
+    public EngineServiceImpl(EngineSocketClient socket) {
+        this.socket = socket;
+    }
 
     @Override
     public RestResponse logtest(JsonNode log) {
         // TODO pending implementation
+        this.socket.sendRequest(LOGTEST, POST.name(), log);
         return null;
     }
 
