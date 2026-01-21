@@ -26,6 +26,7 @@ import java.io.IOException;
 import java.util.List;
 
 import com.wazuh.contentmanager.engine.services.EngineService;
+import com.wazuh.contentmanager.settings.PluginSettings;
 
 import static org.opensearch.rest.RestRequest.Method.POST;
 
@@ -67,7 +68,7 @@ public class RestPostIntegrationAction extends BaseRestHandler {
     public List<Route> routes() {
         return List.of(
                 new NamedRoute.Builder()
-                        .path(/* TODO create endpoint in PluginsSettings.java */ )
+                        .path(PluginSettings.INTEGRATIONS_URI)
                         .method(POST)
                         .uniqueName(ENDPOINT_UNIQUE_NAME)
                         .build());

@@ -26,6 +26,7 @@ import java.io.IOException;
 import java.util.List;
 
 import com.wazuh.contentmanager.engine.services.EngineService;
+import com.wazuh.contentmanager.settings.PluginSettings;
 
 import static org.opensearch.rest.RestRequest.Method.DELETE;
 
@@ -67,7 +68,7 @@ public class RestDeleteDecoderAction extends BaseRestHandler {
     public List<Route> routes() {
         return List.of(
                 new NamedRoute.Builder()
-                        .path(/* TODO create endpoint in PluginsSettings.java */ )
+                        .path(PluginSettings.DECODERS_URI + "/{id}")
                         .method(DELETE)
                         .uniqueName(ENDPOINT_UNIQUE_NAME)
                         .build());
