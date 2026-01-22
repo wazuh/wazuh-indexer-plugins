@@ -291,10 +291,8 @@ public class ContentManagerPlugin extends Plugin
                 PluginSettings.CATALOG_SYNC_INTERVAL,
                 PluginSettings.UPDATE_ON_START,
                 PluginSettings.UPDATE_ON_SCHEDULE,
-                PluginSettings.RULES_CONTEXT,
-                PluginSettings.RULES_CONSUMER,
-                PluginSettings.DECODERS_CONTEXT,
-                PluginSettings.DECODERS_CONSUMER);
+                PluginSettings.CONTENT_CONTEXT,
+                PluginSettings.CONTENT_CONSUMER);
     }
 
     /**

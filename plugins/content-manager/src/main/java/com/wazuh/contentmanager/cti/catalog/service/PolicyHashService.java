@@ -30,7 +30,6 @@ import org.opensearch.transport.client.Client;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
 
 import com.wazuh.contentmanager.cti.catalog.model.Space;
@@ -44,21 +43,6 @@ import com.wazuh.contentmanager.cti.catalog.utils.IndexHelper;
 public class PolicyHashService {
 
     private static final Logger log = LogManager.getLogger(PolicyHashService.class);
-
-    /** Index name suffix and field identifier for policy documents. */
-    public static final String POLICY = "policy";
-
-    /** Index name suffix and field identifier for integration documents. */
-    public static final String INTEGRATION = "integration";
-
-    /** Index name suffix and field identifier for decoder documents. */
-    public static final String DECODER = "decoder";
-
-    /** Index name suffix and field identifier for key-value database (KVDB) documents. */
-    public static final String KVDB = "kvdb";
-
-    /** Index name suffix and field identifier for rule documents. */
-    public static final String RULE = "rule";
 
     /** Field name for the space metadata within documents. */
     public static final String SPACE = "space";
@@ -93,16 +77,19 @@ public class PolicyHashService {
     /**
      * Calculates and updates the aggregate hash for all policies in the given consumer context.
      *
-     * @param context The context identifier.
-     * @param consumer The consumer identifier.
+     * @param policyIndex      The index containing policy document.
+     * @param integrationIndex The index containing integration documents.
+     * @param decoderIndex     The index containing decoder documents.
+     * @param kvdbIndex        The index containing kvdb documents.
+     * @param ruleIndex        The index containing rule documents.
      */
-    public void calculateAndUpdate(String context, String consumer) {
+    public void calculateAndUpdate(
+        String policyIndex,
+        String integrationIndex,
+        String decoderIndex,
+        String kvdbIndex,
+        String ruleIndex) {
         try {
-            String policyIndex = this.getIndexName(context, consumer, POLICY);
-            String integrationIndex = this.getIndexName(context, consumer, INTEGRATION);
-            String decoderIndex = this.getIndexName(context, consumer, DECODER);
-            String kvdbIndex = this.getIndexName(context, consumer, KVDB);
-            String ruleIndex = this.getIndexName(context, consumer, RULE);
             if (!this.client.admin().indices().prepareExists(policyIndex).get().isExists()) {
                 log.warn("Policy index [{}] does not exist. Skipping hash calculation.", policyIndex);
                 return;
@@ -172,7 +159,7 @@ public class PolicyHashService {
 
             if (bulkUpdateRequest.numberOfActions() > 0) {
                 this.client.bulk(bulkUpdateRequest).actionGet();
-                log.info("Updated policy hashes for consumer [{}]", consumer);
+                log.info("Updated policy hashes.");
             }
 
         } catch (Exception e) {
@@ -203,17 +190,5 @@ public class PolicyHashService {
                 }
             }
         }
-    }
-
-    /**
-     * Generates a standardized index name.
-     *
-     * @param context The context identifier.
-     * @param consumer The consumer identifier.
-     * @param type The content type.
-     * @return The formatted index name.
-     */
-    private String getIndexName(String context, String consumer, String type) {
-        return String.format(Locale.ROOT, ".%s-%s-%s", context, consumer, type);
     }
 }

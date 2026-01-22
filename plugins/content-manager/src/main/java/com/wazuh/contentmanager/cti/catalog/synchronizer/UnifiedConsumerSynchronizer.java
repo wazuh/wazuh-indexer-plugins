@@ -19,6 +19,7 @@ package com.wazuh.contentmanager.cti.catalog.synchronizer;
 import org.opensearch.env.Environment;
 import org.opensearch.transport.client.Client;
 
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -27,51 +28,47 @@ import com.wazuh.contentmanager.cti.catalog.index.ConsumersIndex;
 import com.wazuh.contentmanager.cti.catalog.processor.DetectorProcessor;
 import com.wazuh.contentmanager.cti.catalog.processor.IntegrationProcessor;
 import com.wazuh.contentmanager.cti.catalog.processor.RuleProcessor;
+import com.wazuh.contentmanager.cti.catalog.service.PolicyHashService;
 import com.wazuh.contentmanager.settings.PluginSettings;
 
 /**
- * Handles synchronization logic specifically for the Rules consumer. Processes rules and
- * integrations, and creates/updates threat detectors after synchronization completes.
+ * Handles synchronization logic for the unified content consumer. Processes rules, decoders, kvdbs,
+ * integrations, and policies. It also handles post-sync operations like creating detectors and
+ * calculating policy hashes.
  */
-public class RulesConsumerSynchronizer extends AbstractConsumerSynchronizer {
+public class UnifiedConsumerSynchronizer extends AbstractConsumerSynchronizer {
 
-    /** Content type identifier for policy documents. */
     public static final String POLICY = "policy";
-
-    /** Content type identifier for rule documents. */
     public static final String RULE = "rule";
-
-    /** Content type identifier for integration documents. */
+    public static final String DECODER = "decoder";
+    public static final String KVDB = "kvdb";
     public static final String INTEGRATION = "integration";
 
-    /** The context identifier for the rules consumer. */
-    private final String CONTEXT = PluginSettings.getInstance().getRulesContext();
+    /** The unified context identifier. */
+    private final String CONTEXT = PluginSettings.getInstance().getContentContext();
 
-    /** The consumer name identifier. */
-    private final String CONSUMER = PluginSettings.getInstance().getRulesConsumer();
+    /** The unified consumer name identifier. */
+    private final String CONSUMER = PluginSettings.getInstance().getContentConsumer();
 
-    /** Processor for syncing integrations to the security analytics plugin. */
     private final IntegrationProcessor integrationProcessor;
-
-    /** Processor for syncing rules to the security analytics plugin. */
     private final RuleProcessor ruleProcessor;
-
-    /** Processor for creating/updating threat detectors from integrations. */
     private final DetectorProcessor detectorProcessor;
+    private final PolicyHashService policyHashService;
 
     /**
-     * Constructs a new RulesConsumerSynchronizer.
+     * Constructs a new UnifiedConsumerSynchronizer.
      *
      * @param client The OpenSearch client.
-     * @param consumersIndex The consumers index wrapper for tracking synchronization state.
+     * @param consumersIndex The consumers index wrapper.
      * @param environment The OpenSearch environment settings.
      */
-    public RulesConsumerSynchronizer(
-            Client client, ConsumersIndex consumersIndex, Environment environment) {
+    public UnifiedConsumerSynchronizer(
+        Client client, ConsumersIndex consumersIndex, Environment environment) {
         super(client, consumersIndex, environment);
         this.integrationProcessor = new IntegrationProcessor(client);
         this.ruleProcessor = new RuleProcessor(client);
         this.detectorProcessor = new DetectorProcessor(client);
+        this.policyHashService = new PolicyHashService(client);
     }
 
     @Override
@@ -88,6 +85,8 @@ public class RulesConsumerSynchronizer extends AbstractConsumerSynchronizer {
     protected Map<String, String> getMappings() {
         Map<String, String> mappings = new HashMap<>();
         mappings.put(RULE, "/mappings/cti-rules-mappings.json");
+        mappings.put(DECODER, "/mappings/cti-decoders-mappings.json");
+        mappings.put(KVDB, "/mappings/cti-kvdbs-mappings.json");
         mappings.put(INTEGRATION, "/mappings/cti-integrations-mappings.json");
         mappings.put(POLICY, "/mappings/cti-policies-mappings.json");
         return mappings;
@@ -95,29 +94,51 @@ public class RulesConsumerSynchronizer extends AbstractConsumerSynchronizer {
 
     @Override
     protected Map<String, String> getAliases() {
-        Map<String, String> aliases = new HashMap<>();
-        aliases.put(RULE, ".cti-rules");
-        aliases.put(INTEGRATION, ".cti-integration-rules");
-        aliases.put(POLICY, ".cti-rules-policy");
-        return aliases;
+        // We use the alias names as the actual index names, so we do not create separate aliases.
+        return Collections.emptyMap();
     }
 
     /**
-     * Called after synchronization completes. Refreshes indices and processes rules, integrations,
-     * and detectors if updates were applied.
+     * Overrides index naming to utilize the alias name convention directly.
      *
-     * @param isUpdated True if any updates were applied during synchronization.
+     * @param type The type identifier for the index.
+     * @return The unified index name.
      */
+    @Override
+    protected String getIndexName(String type) {
+        switch (type) {
+            case RULE:
+                return ".cti-rules";
+            case DECODER:
+                return ".cti-decoders";
+            case KVDB:
+                return ".cti-kvdbs";
+            case INTEGRATION:
+                return ".cti-integrations";
+            case POLICY:
+                return ".cti-policies";
+            default:
+                return super.getIndexName(type);
+        }
+    }
+
     @Override
     protected void onSyncComplete(boolean isUpdated) {
         if (isUpdated) {
-            this.refreshIndices(RULE, INTEGRATION, POLICY);
+            this.refreshIndices(RULE, DECODER, KVDB, INTEGRATION, POLICY);
+
             String integrationIndex = this.getIndexName(INTEGRATION);
             String ruleIndex = this.getIndexName(RULE);
+            String policyIndex = this.getIndexName(POLICY);
+            String decoderIndex = this.getIndexName(DECODER);
+            String kvdbIndex = this.getIndexName(KVDB);
 
             Map<String, List<String>> integrations = this.integrationProcessor.process(integrationIndex);
             this.ruleProcessor.process(ruleIndex);
             this.detectorProcessor.process(integrations, integrationIndex);
+
+            this.policyHashService.calculateAndUpdate(
+                policyIndex, integrationIndex, decoderIndex, kvdbIndex, ruleIndex);
         }
     }
 }

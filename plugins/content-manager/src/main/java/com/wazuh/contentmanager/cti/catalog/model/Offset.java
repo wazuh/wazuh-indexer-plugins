@@ -64,7 +64,18 @@ public class Offset implements ToXContentObject {
         UPDATE,
 
         /** Indicates a resource was removed from the CTI catalog. */
-        DELETE
+        DELETE;
+
+        /**
+         * Parses the type from a string value, case-insensitive.
+         *
+         * @param value The string value to parse.
+         * @return The corresponding Type enum constant.
+         */
+        @JsonCreator
+        public static Type fromString(String value) {
+            return value == null ? null : Type.valueOf(value.toUpperCase(Locale.ROOT));
+        }
     }
 
     /**
@@ -80,13 +91,13 @@ public class Offset implements ToXContentObject {
      */
     @JsonCreator
     public Offset(
-            @JsonProperty(CONTEXT) String context,
-            @JsonProperty(OFFSET) long offset,
-            @JsonProperty(RESOURCE) String resource,
-            @JsonProperty(TYPE) Type type,
-            @JsonProperty(VERSION) long version,
-            @JsonProperty(OPERATIONS) List<Operation> operations,
-            @JsonProperty(PAYLOAD) Map<String, Object> payload) {
+        @JsonProperty(CONTEXT) String context,
+        @JsonProperty(OFFSET) long offset,
+        @JsonProperty(RESOURCE) String resource,
+        @JsonProperty(TYPE) Type type,
+        @JsonProperty(VERSION) long version,
+        @JsonProperty(OPERATIONS) List<Operation> operations,
+        @JsonProperty(PAYLOAD) Map<String, Object> payload) {
         this.context = context;
         this.offset = offset;
         this.resource = resource;
@@ -124,7 +135,7 @@ public class Offset implements ToXContentObject {
                     case VERSION -> version = parser.longValue();
                     case OPERATIONS -> {
                         XContentParserUtils.ensureExpectedToken(
-                                XContentParser.Token.START_ARRAY, parser.currentToken(), parser);
+                            XContentParser.Token.START_ARRAY, parser.currentToken(), parser);
                         while (parser.nextToken() != XContentParser.Token.END_ARRAY) {
                             operations.add(Operation.parse(parser));
                         }
@@ -139,13 +150,13 @@ public class Offset implements ToXContentObject {
             }
         }
         return new Offset(
-                context,
-                offset != null ? offset : 0,
-                resource,
-                type,
-                version != null ? version : 0,
-                operations,
-                payload);
+            context,
+            offset != null ? offset : 0,
+            resource,
+            type,
+            version != null ? version : 0,
+            operations,
+            payload);
     }
 
     /**
