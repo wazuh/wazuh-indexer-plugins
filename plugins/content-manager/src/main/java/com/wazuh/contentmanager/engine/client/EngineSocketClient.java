@@ -125,7 +125,7 @@ public record EngineSocketClient(String socketPath) {
         } catch (Exception e) {
             String errorMsg = "Failed to connect to Engine socket: " + e.getMessage();
             logger.error(errorMsg, e);
-            return new RestResponse(errorMsg, 503);
+            return new RestResponse(errorMsg, 500);
         }
     }
 

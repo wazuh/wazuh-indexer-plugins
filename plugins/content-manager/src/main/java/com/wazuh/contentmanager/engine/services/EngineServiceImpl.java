@@ -45,8 +45,7 @@ public class EngineServiceImpl implements EngineService {
     @Override
     public RestResponse logtest(JsonNode log) {
         // TODO pending implementation
-        this.socket.sendRequest(LOGTEST, POST.name(), log);
-        return null;
+        return this.socket.sendRequest(LOGTEST, POST.name(), log);
     }
 
     @Override
