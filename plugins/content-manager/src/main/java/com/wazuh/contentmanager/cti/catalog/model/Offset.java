@@ -64,7 +64,20 @@ public class Offset implements ToXContentObject {
         UPDATE,
 
         /** Indicates a resource was removed from the CTI catalog. */
-        DELETE
+        DELETE;
+
+        /**
+         * Parses the type from a string value, case-insensitive.
+         *
+         * <p>Used internally by Jackson to deserialize the JSON into the model.
+         *
+         * @param value The string value to parse.
+         * @return The corresponding Type enum constant.
+         */
+        @JsonCreator
+        public static Type fromString(String value) {
+            return value == null ? null : Type.valueOf(value.toUpperCase(Locale.ROOT));
+        }
     }
 
     /**
