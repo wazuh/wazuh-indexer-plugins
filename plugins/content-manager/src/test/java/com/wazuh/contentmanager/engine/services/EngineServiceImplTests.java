@@ -19,6 +19,8 @@ package com.wazuh.contentmanager.engine.services;
 import org.opensearch.test.OpenSearchTestCase;
 import org.junit.Before;
 
+import com.wazuh.contentmanager.engine.client.EngineSocketClient;
+
 import static org.mockito.Mockito.*;
 
 /**
@@ -27,19 +29,21 @@ import static org.mockito.Mockito.*;
  * <p>This class contains test cases for the EngineServiceImpl class, covering logtest, validate,
  * and promote operations for different response scenarios (201, 400, 500).
  */
-class EngineServiceImplTest extends OpenSearchTestCase {
-
-    private EngineServiceImpl engineService;
+public class EngineServiceImplTests extends OpenSearchTestCase {
+    private EngineSocketClient socket;
+    private EngineServiceImpl engine;
 
     /** Sets up the test environment before each test method. */
     @Before
     @Override
     public void setUp() throws Exception {
-        engineService = new EngineServiceImpl();
+        super.setUp();
+        this.socket = mock(EngineSocketClient.class);
+        this.engine = new EngineServiceImpl(this.socket);
     }
 
-    /** Tests the logtest operation for a successful (201) response. */
-    public void testLogtest201() {}
+    /** Tests the logtest operation for a successful (200) response. */
+    public void testLogtest200() {}
 
     /** Tests the logtest operation for a bad request (400) response. */
     public void testLogtest400() {}
@@ -47,8 +51,8 @@ class EngineServiceImplTest extends OpenSearchTestCase {
     /** Tests the logtest operation for an internal server error (500) response. */
     public void testLogtest500() {}
 
-    /** Tests the validate operation for a successful (201) response. */
-    public void testValidate201() {}
+    /** Tests the validate operation for a successful (200) response. */
+    public void testValidate200() {}
 
     /** Tests the validate operation for a bad request (400) response. */
     public void testValidate400() {}
@@ -56,8 +60,8 @@ class EngineServiceImplTest extends OpenSearchTestCase {
     /** Tests the validate operation for an internal server error (500) response. */
     public void testValidate500() {}
 
-    /** Tests the promote operation for a successful (201) response. */
-    public void testPromote201() {}
+    /** Tests the promote operation for a successful (200) response. */
+    public void testPromote200() {}
 
     /** Tests the promote operation for a bad request (400) response. */
     public void testPromote400() {}

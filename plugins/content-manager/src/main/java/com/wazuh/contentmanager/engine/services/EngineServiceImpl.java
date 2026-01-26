@@ -24,7 +24,8 @@ import com.wazuh.contentmanager.rest.model.RestResponse;
 import static org.opensearch.rest.RestRequest.Method.POST;
 
 public class EngineServiceImpl implements EngineService {
-    private static final String LOGTEST = "logtest";
+    public static final String LOGTEST = "logtest";
+    static final String VALIDATE = "/content/validate/resource";
 
     private final EngineSocketClient socket;
 
@@ -44,14 +45,12 @@ public class EngineServiceImpl implements EngineService {
 
     @Override
     public RestResponse logtest(JsonNode log) {
-        // TODO pending implementation
         return this.socket.sendRequest(LOGTEST, POST.name(), log);
     }
 
     @Override
     public RestResponse validate(JsonNode resource) {
-        // TODO pending implementation
-        return null;
+        return this.socket.sendRequest(VALIDATE, POST.name(), resource);
     }
 
     @Override
