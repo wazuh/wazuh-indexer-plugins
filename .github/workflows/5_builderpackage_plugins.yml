@@ -99,7 +99,7 @@ jobs:
           key: maven-sap-${{ github.run_id }}
 
   build:
-    needs: [branches, sap-maven-local-publication]
+    needs: [branches, get-version, sap-maven-local-publication]
     runs-on: ubuntu-24.04
     permissions:
       actions: read
@@ -121,11 +121,11 @@ jobs:
 
       - name: Build with Gradle
         working-directory: ./plugins/${{ inputs.plugin }}
-        run: ./gradlew build -Dversion=${{ steps.version.outputs.version }} -Drevision=${{ inputs.revision }}
+        run: ./gradlew build -Dversion=${{ needs.get-version.outputs.version }} -Drevision=${{ inputs.revision }}
 
       - name: Upload artifact
         uses: actions/upload-artifact@v6
         with:
-          name: ${{ inputs.plugin }}-${{ steps.version.outputs.version }}.${{ inputs.revision }}.zip
-          path: plugins/${{ inputs.plugin }}/build/distributions/wazuh-indexer-${{ inputs.plugin }}-${{ steps.version.outputs.version }}.${{ inputs.revision }}.zip
+          name: ${{ inputs.plugin }}-${{ needs.get-version.outputs.version }}.${{ inputs.revision }}.zip
+          path: plugins/${{ inputs.plugin }}/build/distributions/wazuh-indexer-${{ inputs.plugin }}-${{ needs.get-version.outputs.version }}.${{ inputs.revision }}.zip
           if-no-files-found: error
