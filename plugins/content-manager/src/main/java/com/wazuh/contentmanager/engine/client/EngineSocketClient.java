@@ -46,7 +46,7 @@ public record EngineSocketClient(String socketPath) {
     private static final Logger logger = LogManager.getLogger(EngineSocketClient.class);
     private static final String DEFAULT_SOCKET_PATH =
             "/usr/share/wazuh-indexer/engine/sockets/engine-api.sock";
-    private static final int BUFFER_SIZE = 4096;
+    private static final int BUFFER_SIZE = 8192;
     private static final ObjectMapper objectMapper = new ObjectMapper();
 
     /** Creates a EngineSocketClient with the default socket path. */
@@ -86,6 +86,7 @@ public record EngineSocketClient(String socketPath) {
                 channel.connect(address);
 
                 // Serialize the payload
+                String safeEndpoint = endpoint.startsWith("/") ? endpoint : "/" + endpoint;
                 String jsonPayload = objectMapper.writeValueAsString(payload);
                 byte[] payloadBytes = jsonPayload.getBytes(StandardCharsets.UTF_8);
 
@@ -93,9 +94,10 @@ public record EngineSocketClient(String socketPath) {
                 String request =
                         method
                                 + " "
-                                + endpoint
+                                + safeEndpoint
                                 + " HTTP/1.1\r\n"
                                 + "Host: localhost\r\n"
+                                + "Accept: application/json\r\n"
                                 + "Content-Type: application/json\r\n"
                                 + "Content-Length: "
                                 + payloadBytes.length
@@ -103,29 +105,26 @@ public record EngineSocketClient(String socketPath) {
                                 + "Connection: close\r\n"
                                 + "\r\n";
 
-                // Use Channels API for writing
-                try (OutputStream out = Channels.newOutputStream(channel)) {
-                    out.write(request.getBytes(StandardCharsets.UTF_8));
-                    out.write(payloadBytes);
-                    out.flush();
-                }
+                OutputStream out = Channels.newOutputStream(channel);
+                out.write(request.getBytes(StandardCharsets.UTF_8));
+                out.write(payloadBytes);
+                out.flush();
 
                 // Read response
-                String responseBody = this.readResponse(channel);
+                String rawResponse = this.readResponse(channel);
 
-                // Parse the response
-                return this.parseResponse(responseBody);
-
-            } catch (IOException e) {
-                String errorMsg = "Error communicating with Engine socket: " + e.getMessage();
-                logger.error(errorMsg, e);
-                return new RestResponse(errorMsg, 500);
+                // Parse result
+                return this.parseResponse(rawResponse);
             }
 
+        } catch (IOException e) {
+            String errorMsg = "Error communicating with Engine socket: " + e.getMessage();
+            logger.error(errorMsg, e);
+            return new RestResponse(errorMsg, 500);
         } catch (Exception e) {
             String errorMsg = "Failed to connect to Engine socket: " + e.getMessage();
             logger.error(errorMsg, e);
-            return new RestResponse(errorMsg, 503);
+            return new RestResponse(errorMsg, 500);
         }
     }
 
@@ -153,36 +152,50 @@ public record EngineSocketClient(String socketPath) {
             throw new IOException("Empty response from Engine");
         }
 
-        // Split headers from body
-        String[] parts = rawResponse.toString().split("\r\n\r\n", 2);
-        if (parts.length < 2) {
-            throw new IOException("Invalid HTTP response format");
-        }
-
-        return parts[1];
+        return rawResponse.toString();
     }
 
-    /**
-     * Parses the JSON response body into a RestResponse object.
-     *
-     * @param responseBody the JSON response body
-     * @return a RestResponse with status and message
-     */
-    private RestResponse parseResponse(String responseBody) {
+    private RestResponse parseResponse(String rawResponse) {
+
+        // 1. Split headers and body
+        String[] parts = rawResponse.split("\r\n\r\n", 2);
+        String headers = parts[0];
+        String body = parts.length > 1 ? parts[1] : "";
+
+        // 2. Extract Real HTTP Status Code
+        int httpStatus = 500;
         try {
-            JsonNode jsonResponse = objectMapper.readTree(responseBody);
+            String statusLine = headers.split("\r\n")[0];
+            String[] statusParts = statusLine.split(" ");
+            if (statusParts.length >= 2) {
+                httpStatus = Integer.parseInt(statusParts[1]);
+            }
+        } catch (Exception e) {
+            logger.warn("Failed to parse HTTP status line: {}", headers);
+        }
 
-            // Extract status and message from the response
-            int status = jsonResponse.has("status") ? jsonResponse.get("status").asInt(200) : 200;
-            String message =
-                    jsonResponse.has("message") ? jsonResponse.get("message").asText() : responseBody;
+        // 3. Parse JSON Body
+        try {
+            if (body.trim().isEmpty()) {
+                return new RestResponse("Empty body received from Engine", httpStatus);
+            }
 
-            return new RestResponse(message, status);
+            JsonNode jsonResponse = objectMapper.readTree(body);
+            String message = body;
+
+            if (jsonResponse.has("message")) {
+                message = jsonResponse.get("message").asText();
+            } else if (jsonResponse.has("error")) {
+                message = jsonResponse.get("error").asText();
+            } else if (jsonResponse.has("result")) {
+                message = jsonResponse.get("result").toString();
+            }
+
+            return new RestResponse(message, httpStatus);
 
         } catch (Exception e) {
-            logger.warn("Failed to parse Engine response as JSON: {}", e.getMessage());
-            // If parsing fails, return the raw response
-            return new RestResponse(responseBody, 200);
+            logger.warn("Failed to parse Engine JSON. Raw body: {}", body);
+            return new RestResponse(body, httpStatus);
         }
     }
 
