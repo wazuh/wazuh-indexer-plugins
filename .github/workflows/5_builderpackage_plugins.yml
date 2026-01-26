@@ -65,10 +65,23 @@ jobs:
         run: |
           echo "Security Analytics branch: ${{ steps.resolve.outputs.wazuh_indexer_security_analytics_branch }}"
 
+  get-version:
+    runs-on: ubuntu-24.04
+    needs: branches
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+    if: inputs.plugin == 'content-manager'
+    steps:
+      - uses: actions/checkout@v6
+      - name: Get version
+        id: version
+        run: echo "version=$(jq -r .version<VERSION.json)" >> "$GITHUB_OUTPUT"
+
   # Publish security-analytics-plugin and its commons to Local Maven
   sap-maven-local-publication:
     runs-on: ubuntu-24.04
-    needs: [compatibility-check, branches, get-versions-wazuh-indexer-security-analytics]
+    needs: [branches, get-version]
+    if: inputs.plugin == 'content-manager'
     steps:
       - uses: actions/checkout@v6
         with:
@@ -77,7 +90,7 @@ jobs:
       - name: Publish SAP to Local Maven
         uses: wazuh/wazuh-indexer-security-analytics/.github/actions/5_local_maven_publisher@enhancement/743-implement-GHA-to-publish-to-maven
         with:
-          version: ${{ needs.get-versions-wazuh-indexer-security-analytics.outputs.version }}
+          version: ${{ needs.get-version.outputs.version }}
           revision: ${{ inputs.revision }}
       - name: Cache Maven Local
         uses: actions/cache/save@v5
@@ -86,7 +99,7 @@ jobs:
           key: maven-sap-${{ github.run_id }}
 
   build:
-    needs: branches
+    needs: [branches, sap-maven-local-publication]
     runs-on: ubuntu-24.04
     permissions:
       actions: read
@@ -99,11 +112,6 @@ jobs:
 
       - name: Setup Gradle # Used for caching
         uses: gradle/actions/setup-gradle@v5
-
-      - name: Get version
-        if: inputs.plugin == 'content-manager'
-        id: version
-        run: echo "version=$(jq -r .version<VERSION.json)" >> "$GITHUB_OUTPUT"
 
       - name: Restore Maven Local Cache
         uses: actions/cache/restore@v5
