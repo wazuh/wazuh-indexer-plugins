@@ -177,7 +177,8 @@ public class ContentManagerPlugin extends Plugin
                 new RestDeleteSubscriptionAction(this.ctiConsole),
                 new RestPostUpdateAction(this.ctiConsole, this.catalogSyncJob),
                 // User-generated content endpoints
-                new RestPostLogtestAction(this.engine));
+                new RestPostLogtestAction(this.engine),
+                new RestPostDecoderAction(this.engine));
     }
 
     /** Performs initialization tasks for the plugin. */

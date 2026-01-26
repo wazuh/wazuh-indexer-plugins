@@ -16,14 +16,32 @@
  */
 package com.wazuh.contentmanager.rest.services;
 
+import com.fasterxml.jackson.databind.JsonNode;
+
+import org.opensearch.common.xcontent.XContentType;
+import org.opensearch.core.common.bytes.BytesArray;
+import org.opensearch.core.rest.RestStatus;
+import org.opensearch.core.xcontent.NamedXContentRegistry;
+import org.opensearch.rest.BytesRestResponse;
+import org.opensearch.rest.RestRequest;
 import org.opensearch.test.OpenSearchTestCase;
+import org.opensearch.test.rest.FakeRestRequest;
 import org.junit.Before;
 
 import java.io.IOException;
+import java.util.Map;
 
 import com.wazuh.contentmanager.engine.services.EngineService;
+import com.wazuh.contentmanager.rest.model.RestResponse;
 
+import java.util.UUID;
+
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.verify;
+import org.mockito.ArgumentCaptor;
 
 /**
  * Unit tests for the {@link RestPostDecoderAction} class. This test suite validates the REST API
@@ -35,6 +53,40 @@ import static org.mockito.Mockito.mock;
 public class RestPostDecoderActionTests extends OpenSearchTestCase {
     private EngineService service;
     private RestPostDecoderAction action;
+    private static final String DECODER_PAYLOAD =
+            "{"
+                    + "\"type\": \"decoder\","
+                    + "\"integration\": \"integration-1\","
+                    + "\"resource\": {"
+                    + "  \"name\": \"decoder/example/0\","
+                    + "  \"enabled\": true,"
+                    + "  \"metadata\": {"
+                    + "    \"title\": \"Example decoder\","
+                    + "    \"description\": \"Example decoder description\","
+                    + "    \"author\": {"
+                    + "      \"name\": \"Wazuh\""
+                    + "    }"
+                    + "  }"
+                    + "}"
+                    + "}";
+
+    private static final String DECODER_PAYLOAD_WITH_ID =
+            "{"
+                    + "\"type\": \"decoder\","
+                    + "\"integration\": \"integration-1\","
+                    + "\"resource\": {"
+                    + "  \"id\": \"82e215c4-988a-4f64-8d15-b98b2fc03a4f\","
+                    + "  \"name\": \"decoder/example/0\","
+                    + "  \"enabled\": true,"
+                    + "  \"metadata\": {"
+                    + "    \"title\": \"Example decoder\","
+                    + "    \"description\": \"Example decoder description\","
+                    + "    \"author\": {"
+                    + "      \"name\": \"Wazuh\""
+                    + "    }"
+                    + "  }"
+                    + "}"
+                    + "}";
 
     /**
      * Set up the tests
@@ -51,11 +103,33 @@ public class RestPostDecoderActionTests extends OpenSearchTestCase {
 
     /**
      * Test the {@link RestPostDecoderAction#handleRequest(decoder)} method when the request is
-     * complete. The expected response is: {201, RestResponse}
+     * complete. The expected response is: {200, RestResponse}
      *
      * @throws IOException
      */
-    public void testPostDecoder201() throws IOException {}
+    public void testPostDecoder200() throws IOException {
+        // Mock
+        RestRequest request = buildRequest(DECODER_PAYLOAD, null);
+        RestResponse engineResponse = new RestResponse("Decoder created", RestStatus.OK.getStatus());
+        when(this.service.validate(any(JsonNode.class))).thenReturn(engineResponse);
+
+        // Act
+        BytesRestResponse bytesRestResponse = this.action.handleRequest(request);
+
+        // Assert
+        RestResponse actualResponse = parseResponse(bytesRestResponse);
+        assertEquals(engineResponse, actualResponse);
+        assertEquals(RestStatus.OK, bytesRestResponse.status());
+
+        ArgumentCaptor<JsonNode> payloadCaptor = ArgumentCaptor.forClass(JsonNode.class);
+        verify(this.service).validate(payloadCaptor.capture());
+        JsonNode captured = payloadCaptor.getValue();
+        assertEquals("decoder", captured.get("type").asText());
+        assertEquals("integration-1", captured.get("integration").asText());
+        JsonNode resource = captured.get("resource");
+        assertTrue(resource.hasNonNull("id"));
+        UUID.fromString(resource.get("id").asText());
+    }
 
     /**
      * Test the {@link RestPostDecoderAction#handleRequest(decoder)} method when the decoder has not
@@ -63,7 +137,59 @@ public class RestPostDecoderActionTests extends OpenSearchTestCase {
      *
      * @throws IOException
      */
-    public void testPostDecoder400() throws IOException {}
+    public void testPostDecoder400() throws IOException {
+        // Mock
+        RestRequest request = buildRequest(DECODER_PAYLOAD_WITH_ID, null);
+
+        // Act
+        BytesRestResponse bytesRestResponse = this.action.handleRequest(request);
+
+        // Assert
+        RestResponse expectedResponse =
+                new RestResponse(
+                        "Resource ID must not be provided on create.",
+                        RestStatus.BAD_REQUEST.getStatus());
+        RestResponse actualResponse = parseResponse(bytesRestResponse);
+        assertEquals(expectedResponse, actualResponse);
+        assertEquals(RestStatus.BAD_REQUEST, bytesRestResponse.status());
+        verify(this.service, never()).validate(any(JsonNode.class));
+    }
+
+    /**
+     * Test missing integration field returns 400.
+     *
+     * @throws IOException
+     */
+    public void testPostDecoderMissingIntegration400() throws IOException {
+        RestRequest request =
+                buildRequest(
+                        "{"
+                                + "\"type\": \"decoder\","
+                                + "\"resource\": {"
+                                + "  \"name\": \"decoder/example/0\","
+                                + "  \"enabled\": true,"
+                                + "  \"metadata\": {"
+                                + "    \"title\": \"Example decoder\","
+                                + "    \"description\": \"Example decoder description\","
+                                + "    \"author\": {"
+                                + "      \"name\": \"Wazuh\""
+                                + "    }"
+                                + "  }"
+                                + "}"
+                                + "}",
+                        null);
+
+        BytesRestResponse bytesRestResponse = this.action.handleRequest(request);
+
+        RestResponse expectedResponse =
+                new RestResponse(
+                        "Integration ID is required.",
+                        RestStatus.BAD_REQUEST.getStatus());
+        RestResponse actualResponse = parseResponse(bytesRestResponse);
+        assertEquals(expectedResponse, actualResponse);
+        assertEquals(RestStatus.BAD_REQUEST, bytesRestResponse.status());
+        verify(this.service, never()).validate(any(JsonNode.class));
+    }
 
     /**
      * Test the {@link RestPostDecoderAction#handleRequest(RestRequest)} method when an unexpected
@@ -71,5 +197,41 @@ public class RestPostDecoderActionTests extends OpenSearchTestCase {
      *
      * @throws IOException if an I/O error occurs during the test
      */
-    public void testPostDecoder500() throws IOException {}
+    public void testPostDecoder500() throws IOException {
+        // Mock
+        this.action = new RestPostDecoderAction(null);
+        RestRequest request = buildRequest(DECODER_PAYLOAD, null);
+
+        // Act
+        BytesRestResponse bytesRestResponse = this.action.handleRequest(request);
+
+        // Assert
+        RestResponse expectedResponse =
+                new RestResponse(
+                        "Engine service unavailable.",
+                        RestStatus.INTERNAL_SERVER_ERROR.getStatus());
+        RestResponse actualResponse = parseResponse(bytesRestResponse);
+        assertEquals(expectedResponse, actualResponse);
+        assertEquals(RestStatus.INTERNAL_SERVER_ERROR, bytesRestResponse.status());
+    }
+
+    private RestRequest buildRequest(String payload, String decoderId) {
+        FakeRestRequest.Builder builder =
+                new FakeRestRequest.Builder(NamedXContentRegistry.EMPTY)
+                        .withContent(new BytesArray(payload), XContentType.JSON);
+        if (decoderId != null) {
+            builder.withParams(
+                    Map.of(
+                            "id",
+                            decoderId,
+                            "decoder_id",
+                            decoderId));
+        }
+        return builder.build();
+    }
+
+    private RestResponse parseResponse(BytesRestResponse response) {
+        JsonNode node = FixtureFactory.from(response.content().utf8ToString());
+        return new RestResponse(node.get("message").asText(), node.get("status").asInt());
+    }
 }
