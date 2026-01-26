@@ -42,12 +42,14 @@ import com.wazuh.contentmanager.rest.model.RestResponse;
  * <p>This client handles JSON-based HTTP communication over a Unix socket. Each request opens a new
  * connection that is closed after receiving the response.
  */
-public record EngineSocketClient(String socketPath) {
+public class EngineSocketClient {
     private static final Logger logger = LogManager.getLogger(EngineSocketClient.class);
     private static final String DEFAULT_SOCKET_PATH =
             "/usr/share/wazuh-indexer/engine/sockets/engine-api.sock";
     private static final int BUFFER_SIZE = 8192;
     private static final ObjectMapper objectMapper = new ObjectMapper();
+
+    private final String socketPath;
 
     /** Creates a EngineSocketClient with the default socket path. */
     public EngineSocketClient() {
@@ -59,7 +61,9 @@ public record EngineSocketClient(String socketPath) {
      *
      * @param socketPath the path to the Unix domain socket
      */
-    public EngineSocketClient {}
+    public EngineSocketClient(String socketPath) {
+        this.socketPath = socketPath;
+    }
 
     /**
      * Sends a request to the Engine API through the Unix socket.
@@ -204,8 +208,7 @@ public record EngineSocketClient(String socketPath) {
      *
      * @return the socket path
      */
-    @Override
-    public String socketPath() {
+    public String getSocketPath() {
         return this.socketPath;
     }
 }

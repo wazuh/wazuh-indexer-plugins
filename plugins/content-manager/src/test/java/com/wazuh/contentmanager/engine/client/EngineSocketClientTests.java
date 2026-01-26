@@ -53,27 +53,27 @@ public class EngineSocketClientTests extends OpenSearchTestCase {
     }
 
     /** Test that the default constructor uses the correct default socket path. */
-    public void testDefaultConstructorUsesDefaultSocketPath() {
+    public void testDefaultConstructorUsesDefaultGetSocketPath() {
         EngineSocketClient client = new EngineSocketClient();
 
         Assert.assertEquals(
-                "/usr/share/wazuh-indexer/engine/sockets/engine-api.sock", client.socketPath());
+                "/usr/share/wazuh-indexer/engine/sockets/engine-api.sock", client.getSocketPath());
     }
 
     /** Test that the custom socket path constructor sets the path correctly. */
-    public void testCustomSocketPathConstructor() {
+    public void testCustomGetSocketPathConstructor() {
         String customPath = "/custom/path/socket.sock";
         EngineSocketClient client = new EngineSocketClient(customPath);
 
-        Assert.assertEquals(customPath, client.socketPath());
+        Assert.assertEquals(customPath, client.getSocketPath());
     }
 
     /** Test that socketPath() accessor returns the correct value. */
-    public void testSocketPathAccessor() {
+    public void testGetSocketPathAccessor() {
         String expectedPath = "/test/socket.sock";
         EngineSocketClient client = new EngineSocketClient(expectedPath);
 
-        Assert.assertEquals(expectedPath, client.socketPath());
+        Assert.assertEquals(expectedPath, client.getSocketPath());
     }
 
     /** Test that sendRequest returns 500 status when socket file does not exist. */
@@ -108,16 +108,16 @@ public class EngineSocketClientTests extends OpenSearchTestCase {
     }
 
     /** Test that socketPath is immutable through the record. */
-    public void testSocketPathIsImmutable() {
+    public void testGetSocketPathIsImmutable() {
         String originalPath = "/original/path.sock";
         EngineSocketClient client = new EngineSocketClient(originalPath);
 
         // Verify the path can't be changed (record immutability)
-        Assert.assertEquals(originalPath, client.socketPath());
+        Assert.assertEquals(originalPath, client.getSocketPath());
 
         // Create new client with different path
         EngineSocketClient client2 = new EngineSocketClient("/different/path.sock");
-        Assert.assertNotEquals(client.socketPath(), client2.socketPath());
+        Assert.assertNotEquals(client.getSocketPath(), client2.getSocketPath());
     }
 
     /** Test sendRequest with empty payload. */
