@@ -70,7 +70,6 @@ jobs:
     needs: branches
     outputs:
       version: ${{ steps.version.outputs.version }}
-    if: inputs.plugin == 'content-manager'
     steps:
       - uses: actions/checkout@v6
       - name: Get version
