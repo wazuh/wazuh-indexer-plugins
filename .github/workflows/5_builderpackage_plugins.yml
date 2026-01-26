@@ -64,6 +64,27 @@ jobs:
       - name: Display resolved branches
         run: |
           echo "Security Analytics branch: ${{ steps.resolve.outputs.wazuh_indexer_security_analytics_branch }}"
+
+  # Publish security-analytics-plugin and its commons to Local Maven
+  sap-maven-local-publication:
+    runs-on: ubuntu-24.04
+    needs: [compatibility-check, branches, get-versions-wazuh-indexer-security-analytics]
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          repository: wazuh/wazuh-indexer-security-analytics
+          ref: ${{ needs.branches.outputs.security_analytics_plugin_ref }}
+      - name: Publish SAP to Local Maven
+        uses: wazuh/wazuh-indexer-security-analytics/.github/actions/5_local_maven_publisher@enhancement/743-implement-GHA-to-publish-to-maven
+        with:
+          version: ${{ needs.get-versions-wazuh-indexer-security-analytics.outputs.version }}
+          revision: ${{ inputs.revision }}
+      - name: Cache Maven Local
+        uses: actions/cache/save@v5
+        with:
+          path: ~/.m2/repository
+          key: maven-sap-${{ github.run_id }}
+
   build:
     needs: branches
     runs-on: ubuntu-24.04
@@ -84,24 +105,11 @@ jobs:
         id: version
         run: echo "version=$(jq -r .version<VERSION.json)" >> "$GITHUB_OUTPUT"
 
-      - name: Clone Security Analytics repository
-        if: inputs.plugin == 'content-manager'
-        uses: actions/checkout@v6
+      - name: Restore Maven Local Cache
+        uses: actions/cache/restore@v5
         with:
-          repository: wazuh/wazuh-indexer-security-analytics
-          ref: ${{ needs.branches.outputs.sap_plugin_ref }}
-          path: wazuh-indexer-security-analytics
-
-      - name: Publish to Maven Local
-        if: inputs.plugin == 'content-manager'
-        working-directory: wazuh-indexer-security-analytics
-        run: |
-          ./gradlew wazuh-indexer-security-analytics-commons:publishToMavenLocal -x check \
-            -Dversion=${{ steps.version.outputs.version }} \
-            -Drevision=${{ inputs.revision }}
-          ./gradlew publishToMavenLocal -x check \
-            -Dversion=${{ steps.version.outputs.version }} \
-            -Drevision=${{ inputs.revision }}
+          path: ~/.m2/repository
+          key: maven-sap-${{ github.run_id }}
 
       - name: Build with Gradle
         working-directory: ./plugins/${{ inputs.plugin }}
