@@ -21,7 +21,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 
 import org.opensearch.core.rest.RestStatus;
 import org.opensearch.rest.BaseRestHandler;
-import org.opensearch.rest.BytesRestResponse;
 import org.opensearch.rest.NamedRoute;
 import org.opensearch.rest.RestRequest;
 import org.opensearch.transport.client.node.NodeClient;
@@ -88,25 +87,9 @@ public class RestPostLogtestAction extends BaseRestHandler {
      * @return a consumer that executes the update operation
      */
     @Override
-    public RestChannelConsumer prepareRequest(RestRequest request, NodeClient client)
-            throws IOException {
-        RestResponse restResponse = this.handleRequest(request);
-        try {
-            return channel ->
-                    channel.sendResponse(
-                            new BytesRestResponse(
-                                    RestStatus.fromCode(restResponse.getStatus()), restResponse.toXContent()));
-        } catch (Exception e) {
-            RestResponse error =
-                    new RestResponse(
-                            e.getMessage() != null
-                                    ? e.getMessage()
-                                    : "An unexpected error occurred while processing your request.",
-                            RestStatus.INTERNAL_SERVER_ERROR.getStatus());
-            return channel ->
-                    channel.sendResponse(
-                            new BytesRestResponse(RestStatus.INTERNAL_SERVER_ERROR, error.toXContent()));
-        }
+    public RestChannelConsumer prepareRequest(RestRequest request, NodeClient client) {
+        RestResponse response = this.handleRequest(request);
+        return channel -> channel.sendResponse(response.toBytesRestResponse());
     }
 
     /**
@@ -114,7 +97,6 @@ public class RestPostLogtestAction extends BaseRestHandler {
      *
      * @param request incoming request
      * @return a BytesRestResponse describing the outcome
-     * @throws IOException if an I/O error occurs while building the response
      */
     public RestResponse handleRequest(RestRequest request) {
         // 1. Check if engine service exists
@@ -124,7 +106,7 @@ public class RestPostLogtestAction extends BaseRestHandler {
         }
 
         // 2. Check request's payload exists
-        if (!request.hasContent()) {
+        if (request == null || !request.hasContent()) {
             return new RestResponse("JSON request body is required.", RestStatus.BAD_REQUEST.getStatus());
         }
 
