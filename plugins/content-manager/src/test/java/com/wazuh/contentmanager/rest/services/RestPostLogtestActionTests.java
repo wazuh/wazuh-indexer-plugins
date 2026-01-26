@@ -24,6 +24,8 @@ import org.opensearch.rest.RestRequest;
 import org.opensearch.test.OpenSearchTestCase;
 import org.junit.Before;
 
+import java.nio.charset.StandardCharsets;
+
 import com.wazuh.contentmanager.engine.services.EngineService;
 import com.wazuh.contentmanager.engine.services.EngineServiceImpl;
 import com.wazuh.contentmanager.rest.model.RestResponse;
@@ -103,7 +105,8 @@ public class RestPostLogtestActionTests extends OpenSearchTestCase {
         // Invoke the method under test
         RestRequest request = mock(RestRequest.class);
         when(request.hasContent()).thenReturn(true);
-        when(request.content()).thenReturn(new BytesArray(payload.toString().getBytes()));
+        when(request.content())
+                .thenReturn(new BytesArray(payload.toString().getBytes(StandardCharsets.UTF_8)));
         RestResponse actualResponse = this.action.handleRequest(request);
 
         // Assert the response is expected
@@ -163,7 +166,8 @@ public class RestPostLogtestActionTests extends OpenSearchTestCase {
         // Create a RestRequest with the bad payload
         RestRequest request = mock(RestRequest.class);
         when(request.hasContent()).thenReturn(true);
-        when(request.content()).thenReturn(new BytesArray(payload.toString().getBytes()));
+        when(request.content())
+                .thenReturn(new BytesArray(payload.toString().getBytes(StandardCharsets.UTF_8)));
 
         // Call the method under test
         RestResponse actualResponse = this.action.handleRequest(request);
@@ -212,7 +216,8 @@ public class RestPostLogtestActionTests extends OpenSearchTestCase {
         // Create a RestRequest with the bad payload
         RestRequest request = mock(RestRequest.class);
         when(request.hasContent()).thenReturn(true);
-        when(request.content()).thenReturn(new BytesArray(payload.toString().getBytes()));
+        when(request.content())
+                .thenReturn(new BytesArray(payload.toString().getBytes(StandardCharsets.UTF_8)));
 
         // Call the method under test
         RestResponse actualResponse = this.action.handleRequest(request);
