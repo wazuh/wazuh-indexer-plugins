@@ -16,6 +16,8 @@
  */
 package com.wazuh.contentmanager.rest.services;
 
+import com.wazuh.contentmanager.cti.catalog.service.SecurityAnalyticsService;
+import com.wazuh.contentmanager.rest.model.RestResponse;
 import org.opensearch.rest.BaseRestHandler;
 import org.opensearch.rest.BytesRestResponse;
 import org.opensearch.rest.NamedRoute;
@@ -43,13 +45,15 @@ public class RestPostIntegrationAction extends BaseRestHandler {
     private static final String ENDPOINT_NAME = "content_manager_integration_create";
     private static final String ENDPOINT_UNIQUE_NAME = "plugin:content_manager/integration_create";
     private final EngineService engine;
+    private final SecurityAnalyticsService service;
 
     /**
      * Constructs a new TODO !CHANGE_ME.
      *
      * @param engine The service instance to communicate with the local engine service.
      */
-    public RestPostIntegrationAction(EngineService engine) {
+    public RestPostIntegrationAction(EngineService engine, SecurityAnalyticsService service) {
+        this.service = service;
         this.engine = engine;
     }
 
@@ -94,7 +98,7 @@ public class RestPostIntegrationAction extends BaseRestHandler {
      * @return a BytesRestResponse describing the outcome
      * @throws IOException if an I/O error occurs while building the response
      */
-    public BytesRestResponse handleRequest(RestRequest request) throws IOException {
+    public RestResponse handleRequest(RestRequest request) throws IOException {
         return null;
     }
 }
