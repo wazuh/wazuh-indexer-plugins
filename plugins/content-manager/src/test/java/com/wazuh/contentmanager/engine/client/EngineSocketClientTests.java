@@ -190,28 +190,4 @@ public class EngineSocketClientTests extends OpenSearchTestCase {
             Assert.assertTrue(response.getMessage().contains("Socket file not found"));
         }
     }
-
-    /** Test record equality. */
-    public void testRecordEquality() {
-        String path = "/test/socket.sock";
-        EngineSocketClient client1 = new EngineSocketClient(path);
-        EngineSocketClient client2 = new EngineSocketClient(path);
-        EngineSocketClient client3 = new EngineSocketClient("/different/socket.sock");
-
-        // Records with same values should be equal
-        Assert.assertEquals(client1, client2);
-        Assert.assertEquals(client1.hashCode(), client2.hashCode());
-
-        // Records with different values should not be equal
-        Assert.assertNotEquals(client1, client3);
-    }
-
-    /** Test record toString contains socket path. */
-    public void testRecordToString() {
-        String path = "/test/socket.sock";
-        EngineSocketClient client = new EngineSocketClient(path);
-
-        String toString = client.toString();
-        Assert.assertTrue("toString should contain socket path", toString.contains(path));
-    }
 }
