@@ -16,8 +16,18 @@
  */
 package com.wazuh.contentmanager.rest.services;
 
+import com.fasterxml.jackson.annotation.ObjectIdGenerators.UUIDGenerator;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
 import com.wazuh.contentmanager.cti.catalog.service.SecurityAnalyticsService;
 import com.wazuh.contentmanager.rest.model.RestResponse;
+import com.wazuh.securityanalytics.action.WIndexIntegrationResponse;
+import java.util.UUID;
+import org.opensearch.common.UUIDs;
+import org.opensearch.core.rest.RestStatus;
 import org.opensearch.rest.BaseRestHandler;
 import org.opensearch.rest.BytesRestResponse;
 import org.opensearch.rest.NamedRoute;
@@ -42,6 +52,7 @@ import static org.opensearch.rest.RestRequest.Method.POST;
  * Unexpected error during processing. Wazuh Engine did not respond.
  */
 public class RestPostIntegrationAction extends BaseRestHandler {
+
     private static final String ENDPOINT_NAME = "content_manager_integration_create";
     private static final String ENDPOINT_UNIQUE_NAME = "plugin:content_manager/integration_create";
     private final EngineService engine;
@@ -50,14 +61,17 @@ public class RestPostIntegrationAction extends BaseRestHandler {
     /**
      * Constructs a new TODO !CHANGE_ME.
      *
-     * @param engine The service instance to communicate with the local engine service.
+     * @param engine  The service instance to communicate with the local engine service.
+     * @param service The service instance to communicate with the security analytics service.
      */
     public RestPostIntegrationAction(EngineService engine, SecurityAnalyticsService service) {
         this.service = service;
         this.engine = engine;
     }
 
-    /** Return a short identifier for this handler. */
+    /**
+     * Return a short identifier for this handler.
+     */
     @Override
     public String getName() {
         return ENDPOINT_NAME;
@@ -71,23 +85,23 @@ public class RestPostIntegrationAction extends BaseRestHandler {
     @Override
     public List<Route> routes() {
         return List.of(
-                new NamedRoute.Builder()
-                        .path(PluginSettings.INTEGRATIONS_URI)
-                        .method(POST)
-                        .uniqueName(ENDPOINT_UNIQUE_NAME)
-                        .build());
+            new NamedRoute.Builder()
+                .path(PluginSettings.INTEGRATIONS_URI)
+                .method(POST)
+                .uniqueName(ENDPOINT_UNIQUE_NAME)
+                .build());
     }
 
     /**
      * TODO !CHANGE_ME.
      *
      * @param request the incoming REST request
-     * @param client the node client
+     * @param client  the node client
      * @return a consumer that executes the update operation
      */
     @Override
     protected RestChannelConsumer prepareRequest(RestRequest request, NodeClient client)
-            throws IOException {
+        throws IOException {
         return channel -> channel.sendResponse(this.handleRequest(request));
     }
 
@@ -99,6 +113,69 @@ public class RestPostIntegrationAction extends BaseRestHandler {
      * @throws IOException if an I/O error occurs while building the response
      */
     public RestResponse handleRequest(RestRequest request) throws IOException {
-        return null;
+        // Check if engine service exists
+        if (this.engine == null) {
+            RestResponse error =
+                new RestResponse(
+                    "Engine instance is null.", RestStatus.INTERNAL_SERVER_ERROR.getStatus());
+            return new BytesRestResponse(RestStatus.INTERNAL_SERVER_ERROR, error.toXContent());
+        }
+
+        // Check request's payload exists
+        if (!request.hasContent()) {
+            RestResponse error =
+                new RestResponse("JSON request body is required.",
+                    RestStatus.BAD_REQUEST.getStatus());
+            return new BytesRestResponse(RestStatus.BAD_REQUEST, error.toXContent());
+        }
+
+        // Check request's payload is valid JSON
+        ObjectMapper mapper = new ObjectMapper();
+        JsonNode jsonNode;
+        try {
+            jsonNode = mapper.readTree(request.content().streamInput());
+        } catch (IOException ex) {
+            RestResponse error =
+                new RestResponse("Invalid JSON content.", RestStatus.BAD_REQUEST.getStatus());
+            return new BytesRestResponse(RestStatus.BAD_REQUEST, error.toXContent());
+        }
+
+        // Check that there is no ID field
+        if (!jsonNode.at("/resource/document/id").isMissingNode()) {
+            return new RestResponse("ID field is not allowed in the request body.",
+                RestStatus.BAD_REQUEST.getStatus());
+        }
+
+        // Generate ID
+        String id = UUIDs.base64UUID();
+
+        // Insert ID into /resource/document/id
+        JsonNode documentNode = jsonNode.at("/resource/document");
+        if (documentNode.isObject()) {
+            ((ObjectNode) documentNode).put("id", id);
+        }
+
+        WIndexIntegrationResponse sapResponse = service.upsertIntegration(jsonNode);
+
+        if (sapResponse.getStatus() != RestStatus.OK) {
+            return new RestResponse(
+                "Failed to create Integration, SAP response: " + sapResponse.getStatus(),
+                RestStatus.BAD_REQUEST.getStatus());
+        }
+
+        // Validate integration
+        RestResponse validationResponse = this.engine.validate(jsonNode);
+
+        // If validation failed, delete the created integration in SAP
+        if (validationResponse.getStatus() != RestStatus.OK.getStatus()) {
+            service.deleteIntegration(id);
+            return new RestResponse(
+                "Failed to create Integration, Validation response: "
+                    + validationResponse.getStatus()
+                    + ".", RestStatus.BAD_REQUEST.getStatus());
+        }
+
+        // TODO: Add integration to CTI integration draft space
+        // TODO: Add integration to draft policy
     }
 }

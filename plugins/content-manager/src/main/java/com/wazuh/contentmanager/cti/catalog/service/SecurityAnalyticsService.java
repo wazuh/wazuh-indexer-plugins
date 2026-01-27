@@ -16,7 +16,10 @@
  */
 package com.wazuh.contentmanager.cti.catalog.service;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.google.gson.JsonObject;
+import com.wazuh.securityanalytics.action.WIndexIntegrationResponse;
 
 /**
  * Service interface for managing interactions with the Security Analytics Plugin (SAP). Defines
@@ -29,7 +32,14 @@ public interface SecurityAnalyticsService {
      *
      * @param doc The JSON document containing the integration data.
      */
-    void upsertIntegration(JsonObject doc);
+    WIndexIntegrationResponse upsertIntegration(JsonObject doc);
+
+    /**
+     * Creates or updates an Integration in SAP.
+     *
+     * @param doc The JSON document containing the integration data.
+     */
+    WIndexIntegrationResponse upsertIntegration(JsonNode doc) throws JsonProcessingException;
 
     /**
      * Deletes an Integration from SAP. This typically involves deleting the associated Detector
