@@ -68,6 +68,11 @@ public class RestPostIntegrationAction extends BaseRestHandler {
     private static final String CTI_INTEGRATIONS_INDEX = ".cti-integrations";
 
     private static final String CTI_POLICIES_INDEX = ".cti-policies";
+
+    private static final String DRAFT_SPACE_NAME = "draft";
+
+    private static final ObjectMapper MAPPER = new ObjectMapper();
+
     private final EngineService engine;
     private final SecurityAnalyticsService service;
 
@@ -132,16 +137,22 @@ public class RestPostIntegrationAction extends BaseRestHandler {
                     "Engine instance is null.", RestStatus.INTERNAL_SERVER_ERROR.getStatus());
         }
 
+        // Check if security analytics service exists
+        if (this.service == null) {
+            return new RestResponse(
+                    "Security Analytics service instance is null.",
+                    RestStatus.INTERNAL_SERVER_ERROR.getStatus());
+        }
+
         // Check request's payload exists
         if (!request.hasContent()) {
             return new RestResponse("JSON request body is required.", RestStatus.BAD_REQUEST.getStatus());
         }
 
         // Check request's payload is valid JSON
-        ObjectMapper mapper = new ObjectMapper();
-        JsonNode jsonNode;
+        final JsonNode jsonNode;
         try {
-            jsonNode = mapper.readTree(request.content().streamInput());
+            jsonNode = MAPPER.readTree(request.content().streamInput());
         } catch (IOException ex) {
             return new RestResponse("Invalid JSON content.", RestStatus.BAD_REQUEST.getStatus());
         }
@@ -153,19 +164,25 @@ public class RestPostIntegrationAction extends BaseRestHandler {
         }
 
         // Generate ID
-        String id = UUIDs.base64UUID();
+        final String id = UUIDs.base64UUID();
 
         // Insert ID into /resource/document/id
-        JsonNode documentNode = jsonNode.at("/resource/document");
-        if (documentNode.isObject()) {
-            ((ObjectNode) documentNode).put("id", id);
-        } else {
+        final JsonNode documentNode = jsonNode.at("/resource/document");
+        if (!documentNode.isObject()) {
             return new RestResponse(
                     "Invalid JSON structure: /resource/document must be an object.",
                     RestStatus.BAD_REQUEST.getStatus());
         }
+        final ObjectNode documentObject = (ObjectNode) documentNode;
+        documentObject.put("id", id);
 
-        WIndexIntegrationResponse sapResponse = service.upsertIntegration(jsonNode);
+        // Create integration in SAP
+        final WIndexIntegrationResponse sapResponse = service.upsertIntegration(jsonNode);
+        if (sapResponse == null || sapResponse.getStatus() == null) {
+            return new RestResponse(
+                    "Failed to create Integration, SAP response is null.",
+                    RestStatus.INTERNAL_SERVER_ERROR.getStatus());
+        }
 
         if (sapResponse.getStatus() != RestStatus.OK) {
             return new RestResponse(
@@ -174,7 +191,7 @@ public class RestPostIntegrationAction extends BaseRestHandler {
         }
 
         // Validate integration
-        RestResponse validationResponse = this.engine.validate(jsonNode);
+        final RestResponse validationResponse = this.engine.validate(jsonNode);
 
         // If validation failed, delete the created integration in SAP
         if (validationResponse.getStatus() != RestStatus.OK.getStatus()) {
@@ -187,57 +204,102 @@ public class RestPostIntegrationAction extends BaseRestHandler {
         }
 
         // Insert "draft" into /resource/document/space
-        ((ObjectNode) documentNode).putObject("space").put("name", "draft");
+        documentObject.putObject("space").put("name", DRAFT_SPACE_NAME);
 
-        // Index the integration into CTI integrations index
-        client.index(
-                new IndexRequest(CTI_INTEGRATIONS_INDEX)
-                        .id(id)
-                        .source(jsonNode.toString(), XContentType.JSON)
-                        .setRefreshPolicy(RefreshPolicy.IMMEDIATE));
+        // From here on, we should rollback SAP integration on any error to avoid partial state.
+        try {
+            // Index the integration into CTI integrations index (sync + check response)
+            IndexResponse integrationIndexResponse =
+                    client
+                            .index(
+                                    new IndexRequest(CTI_INTEGRATIONS_INDEX)
+                                            .id(id)
+                                            .source(jsonNode.toString(), XContentType.JSON)
+                                            .setRefreshPolicy(RefreshPolicy.IMMEDIATE))
+                            .actionGet();
 
-        // Search for the the draft policy
-        TermQueryBuilder queryBuilder = new TermQueryBuilder("document.space.name", "draft");
+            if (integrationIndexResponse == null
+                    || integrationIndexResponse.status().getStatus() >= 300) {
+                service.deleteIntegration(id);
+                return new RestResponse(
+                        "Failed to index integration.", RestStatus.INTERNAL_SERVER_ERROR.getStatus());
+            }
 
-        // Run the search
-        SearchResponse searchResponse =
-                client
-                        .search(new SearchRequest().source(new SearchSourceBuilder().query(queryBuilder)))
-                        .actionGet();
+            // Search for the draft policy (scoped to policies index, limit 1)
+            TermQueryBuilder queryBuilder = new TermQueryBuilder("document.space.name", DRAFT_SPACE_NAME);
 
-        // Get the policy document
-        // TODO: This may not find a policy, need to handle that case
-        JsonNode policy = FixtureFactory.from(searchResponse.getHits().getAt(0).getSourceAsString());
+            SearchResponse searchResponse =
+                    client
+                            .search(
+                                    new SearchRequest(CTI_POLICIES_INDEX)
+                                            .source(new SearchSourceBuilder().query(queryBuilder).size(1)))
+                            .actionGet();
 
-        // Get the policy Id
-        String policyId = searchResponse.getHits().getAt(0).getId();
+            if (searchResponse.getHits() == null || searchResponse.getHits().getHits().length == 0) {
+                // Best-effort rollback: SAP integration is removed. Integration doc cannot be removed here
+                // without a DeleteRequest.
+                service.deleteIntegration(id);
+                return new RestResponse(
+                        "Draft policy not found.", RestStatus.INTERNAL_SERVER_ERROR.getStatus());
+            }
 
-        // Get the integrations array
-        JsonNode integrationsArray = policy.get("document").get("integrations");
+            // Get the policy document
+            JsonNode policy = FixtureFactory.from(searchResponse.getHits().getAt(0).getSourceAsString());
 
-        // Validate integrations array
-        if (!integrationsArray.isArray()) {
+            // Get the policy Id
+            String policyId = searchResponse.getHits().getAt(0).getId();
+
+            // Get the integrations array
+            JsonNode integrationsArray = policy.path("document").path("integrations");
+
+            // Validate integrations array
+            if (!integrationsArray.isArray()) {
+                service.deleteIntegration(id);
+                return new RestResponse(
+                        "Invalid draft policy structure: /document/integrations must be an array.",
+                        RestStatus.INTERNAL_SERVER_ERROR.getStatus());
+            }
+
+            // Add the new integration ID to the integrations array (avoid duplicates)
+            boolean alreadyPresent = false;
+            for (JsonNode existing : integrationsArray) {
+                if (id.equals(existing.asText())) {
+                    alreadyPresent = true;
+                    break;
+                }
+            }
+            if (!alreadyPresent) {
+                ((ArrayNode) integrationsArray).add(id);
+            }
+
+            // Prepare to update the integrations array
+            IndexRequest indexRequest =
+                    new IndexRequest(CTI_POLICIES_INDEX)
+                            .id(policyId)
+                            .source(policy.toString(), XContentType.JSON)
+                            .setRefreshPolicy(RefreshPolicy.IMMEDIATE);
+
+            // Index the updated integrations array into the draft policy
+            IndexResponse indexPolicyResponse = client.index(indexRequest).actionGet();
+
+            if (indexPolicyResponse == null || indexPolicyResponse.status().getStatus() >= 300) {
+                service.deleteIntegration(id);
+                return new RestResponse(
+                        "Failed to update draft policy.", RestStatus.INTERNAL_SERVER_ERROR.getStatus());
+            }
+
             return new RestResponse(
-                    "Invalid draft policy structure: /document/integrations must be an array.",
-                    RestStatus.INTERNAL_SERVER_ERROR.getStatus());
+                    "Integration created successfully with ID: " + id + ".", RestStatus.OK.getStatus());
+        } catch (Exception e) {
+            // Best-effort rollback
+            try {
+                service.deleteIntegration(id);
+            } catch (Exception ignored) {
+                // no-op
+            }
+
+            return new RestResponse(
+                    "Unexpected error during processing.", RestStatus.INTERNAL_SERVER_ERROR.getStatus());
         }
-
-        // Add the new integration ID to the integrations array
-        ((ArrayNode) integrationsArray).add(id);
-
-        // Prepare to update the integrations array
-        IndexRequest indexRequest =
-                new IndexRequest(CTI_POLICIES_INDEX)
-                        .id(policyId)
-                        .source(policy.toString(), XContentType.JSON)
-                        .setRefreshPolicy(RefreshPolicy.IMMEDIATE);
-
-        // Index the updated integrations array into the draft policy
-        IndexResponse indexPolicyResponse = client.index(indexRequest).actionGet();
-
-        // Return the response from the engine
-        return new RestResponse(
-                "Integration created successfully with ID: " + id + ".",
-                indexPolicyResponse.status().getStatus());
     }
 }
