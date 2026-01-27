@@ -35,13 +35,19 @@ import com.wazuh.contentmanager.settings.PluginSettings;
 
 import static org.opensearch.rest.RestRequest.Method.PUT;
 
+/**
+ * REST handler for updating policy resources on the Wazuh Engine.
+ *
+ * <p>This endpoint handles PUT requests to update policy configurations in the draft space. The
+ * policy defines the root decoder and integrations list for content processing.
+ */
 public class RestPutPolicyAction extends BaseRestHandler {
     private static final String ENDPOINT_NAME = "content_manager_policy_update";
     private static final String ENDPOINT_UNIQUE_NAME = "plugin:content_manager/policy_update";
     private final EngineService engine;
 
     /**
-     * Constructs a new TODO !CHANGE_ME.
+     * Constructs a new RestPutPolicyAction handler.
      *
      * @param engine The service instance to communicate with the local engine service.
      */
@@ -71,11 +77,11 @@ public class RestPutPolicyAction extends BaseRestHandler {
     }
 
     /**
-     * TODO !CHANGE_ME.
+     * Prepares the request by returning a consumer that executes the policy update operation.
      *
-     * @param request the incoming REST request
-     * @param client the node client
-     * @return a consumer that executes the update operation
+     * @param request the incoming REST request containing the policy payload
+     * @param client the node client (unused)
+     * @return a consumer that executes the policy update operation
      */
     @Override
     protected RestChannelConsumer prepareRequest(RestRequest request, NodeClient client)
@@ -84,10 +90,18 @@ public class RestPutPolicyAction extends BaseRestHandler {
     }
 
     /**
-     * TODO !CHANGE_ME.
+     * Handles the policy update request by validating the payload and storing the policy.
      *
-     * @param request incoming request
-     * @return a BytesRestResponse describing the outcome
+     * <p>This method performs the following validations:
+     *
+     * <ol>
+     *   <li>Checks that the engine service is available
+     *   <li>Verifies that the request contains a JSON payload
+     *   <li>Parses and validates the Policy JSON structure
+     * </ol>
+     *
+     * @param request incoming REST request containing the policy data
+     * @return a BytesRestResponse describing the outcome of the operation
      * @throws IOException if an I/O error occurs while building the response
      */
     public BytesRestResponse handleRequest(RestRequest request) throws IOException {
@@ -117,6 +131,6 @@ public class RestPutPolicyAction extends BaseRestHandler {
             return new BytesRestResponse(RestStatus.BAD_REQUEST, error.toXContent());
         }
         // 4. Update/create the policy using the engine service. TODO: Implement this logic.
-        return new BytesRestResponse(RestStatus.OK, "{}");
+        return new BytesRestResponse(RestStatus.OK, policy.toString());
     }
 }

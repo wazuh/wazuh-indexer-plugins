@@ -29,6 +29,16 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+/**
+ * Model representing a Policy resource within the Engine context.
+ *
+ * <p>A Policy defines the configuration and metadata for content processing, including the root
+ * decoder and associated integrations. Policies exist within different spaces (draft, test, custom,
+ * standard) and their resources can be promoted between spaces.
+ *
+ * <p>The policy acts as a container that references integrations by their IDs and specifies the
+ * root decoder to be used for content processing.
+ */
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class Policy {
     // JSON Key Constants
