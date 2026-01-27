@@ -67,7 +67,7 @@ public class RestPostIntegrationActionTests extends OpenSearchTestCase {
     }
 
     /**
-     * Test the {@link RestPostIntegrationAction#handleRequest(RestRequest)} method when the request
+     * Test the {@link RestPostIntegrationAction#handleRequest(RestRequest, Client)} method when the request
      * is complete. The expected response is: {200, RestResponse}
      *
      * @throws IOException if an I/O error occurs during the test
@@ -130,7 +130,7 @@ public class RestPostIntegrationActionTests extends OpenSearchTestCase {
                 }""", 200));
 
         // Execute the tested method
-        RestResponse response = this.action.handleRequest(request);
+        RestResponse response = this.action.handleRequest(request, );
 
         assertEquals(200, response.getStatus());
         assertEquals("""
@@ -149,7 +149,7 @@ public class RestPostIntegrationActionTests extends OpenSearchTestCase {
     }
 
     /**
-     * Test the {@link RestPostIntegrationAction#handleRequest(RestRequest)} method when the
+     * Test the {@link RestPostIntegrationAction#handleRequest(RestRequest, Client)} method when the
      * integration has not been created (mock). The expected response is: {400, RestResponse}
      *
      * @throws IOException if an I/O error occurs during the test
@@ -216,7 +216,7 @@ public class RestPostIntegrationActionTests extends OpenSearchTestCase {
                     400));
 
         // Execute the tested method
-        RestResponse response = this.action.handleRequest(request);
+        RestResponse response = this.action.handleRequest(request, );
 
         assertEquals(400, response.getStatus());
         assertEquals(
@@ -237,7 +237,7 @@ public class RestPostIntegrationActionTests extends OpenSearchTestCase {
     }
 
     /**
-     * Test the {@link RestPostIntegrationAction#handleRequest(RestRequest)} method when an
+     * Test the {@link RestPostIntegrationAction#handleRequest(RestRequest, Client)} method when an
      * unexpected error occurs. The expected response is: {500, RestResponse}
      */
     public void testPostIntegration500() throws IOException {
@@ -296,7 +296,7 @@ public class RestPostIntegrationActionTests extends OpenSearchTestCase {
                     500));
 
         // Execute the tested method
-        RestResponse response = this.action.handleRequest(request);
+        RestResponse response = this.action.handleRequest(request, );
 
         assertEquals(500, response.getStatus());
         assertEquals("Internal Server Error",

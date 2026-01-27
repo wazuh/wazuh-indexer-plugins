@@ -16,22 +16,32 @@
  */
 package com.wazuh.contentmanager.rest.services;
 
-import com.fasterxml.jackson.annotation.ObjectIdGenerators.UUIDGenerator;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
-import com.google.gson.JsonObject;
-import com.google.gson.JsonParser;
 import com.wazuh.contentmanager.cti.catalog.service.SecurityAnalyticsService;
 import com.wazuh.contentmanager.rest.model.RestResponse;
 import com.wazuh.securityanalytics.action.WIndexIntegrationResponse;
-import java.util.UUID;
+import org.opensearch.action.index.IndexRequest;
+import org.opensearch.action.index.IndexResponse;
+import org.opensearch.action.search.SearchRequest;
+import org.opensearch.action.search.SearchRequestBuilder;
+import org.opensearch.action.search.SearchResponse;
+import org.opensearch.action.support.WriteRequest.RefreshPolicy;
+import org.opensearch.action.update.UpdateRequest;
 import org.opensearch.common.UUIDs;
+import org.opensearch.common.xcontent.XContentType;
 import org.opensearch.core.rest.RestStatus;
+import org.opensearch.core.xcontent.XContent;
+import org.opensearch.index.query.TermQueryBuilder;
 import org.opensearch.rest.BaseRestHandler;
 import org.opensearch.rest.BytesRestResponse;
 import org.opensearch.rest.NamedRoute;
 import org.opensearch.rest.RestRequest;
+import org.opensearch.search.SearchHit;
+import org.opensearch.search.builder.SearchSourceBuilder;
+import org.opensearch.transport.client.Client;
 import org.opensearch.transport.client.node.NodeClient;
 
 import java.io.IOException;
@@ -45,7 +55,7 @@ import static org.opensearch.rest.RestRequest.Method.POST;
 /**
  * TODO !CHANGE_ME POST /_plugins/content-manager/integrations
  *
- * <p>Creates a integration in the local engine.
+ * <p>Creates an integration in the local engine.
  *
  * <p>Possible HTTP responses: - 200 Accepted: Wazuh Engine replied with a successful response. -
  * 400 Bad Request: Wazuh Engine replied with an error response. - 500 Internal Server Error:
@@ -55,6 +65,11 @@ public class RestPostIntegrationAction extends BaseRestHandler {
 
     private static final String ENDPOINT_NAME = "content_manager_integration_create";
     private static final String ENDPOINT_UNIQUE_NAME = "plugin:content_manager/integration_create";
+    /**
+     * @TODO: To be deleted. This needs to be retrieved from a single source of truth.
+     */
+    private static final String CTI_INTEGRATIONS_INDEX = ".cti-integrations";
+    private static final String CTI_POLICIES_INDEX = ".cti-policies";
     private final EngineService engine;
     private final SecurityAnalyticsService service;
 
@@ -102,31 +117,29 @@ public class RestPostIntegrationAction extends BaseRestHandler {
     @Override
     protected RestChannelConsumer prepareRequest(RestRequest request, NodeClient client)
         throws IOException {
-        return channel -> channel.sendResponse(this.handleRequest(request));
+        return channel -> channel.sendResponse(
+            this.handleRequest(request, client).toBytesRestResponse());
     }
 
     /**
      * TODO !CHANGE_ME.
      *
      * @param request incoming request
-     * @return a BytesRestResponse describing the outcome
+     * @param client  the node client
+     * @return a RestResponse describing the outcome
      * @throws IOException if an I/O error occurs while building the response
      */
-    public RestResponse handleRequest(RestRequest request) throws IOException {
+    public RestResponse handleRequest(RestRequest request, Client client) throws IOException {
         // Check if engine service exists
         if (this.engine == null) {
-            RestResponse error =
-                new RestResponse(
-                    "Engine instance is null.", RestStatus.INTERNAL_SERVER_ERROR.getStatus());
-            return new BytesRestResponse(RestStatus.INTERNAL_SERVER_ERROR, error.toXContent());
+            return new RestResponse(
+                "Engine instance is null.", RestStatus.INTERNAL_SERVER_ERROR.getStatus());
         }
 
         // Check request's payload exists
         if (!request.hasContent()) {
-            RestResponse error =
-                new RestResponse("JSON request body is required.",
-                    RestStatus.BAD_REQUEST.getStatus());
-            return new BytesRestResponse(RestStatus.BAD_REQUEST, error.toXContent());
+            return new RestResponse("JSON request body is required.",
+                RestStatus.BAD_REQUEST.getStatus());
         }
 
         // Check request's payload is valid JSON
@@ -135,9 +148,7 @@ public class RestPostIntegrationAction extends BaseRestHandler {
         try {
             jsonNode = mapper.readTree(request.content().streamInput());
         } catch (IOException ex) {
-            RestResponse error =
-                new RestResponse("Invalid JSON content.", RestStatus.BAD_REQUEST.getStatus());
-            return new BytesRestResponse(RestStatus.BAD_REQUEST, error.toXContent());
+            return new RestResponse("Invalid JSON content.", RestStatus.BAD_REQUEST.getStatus());
         }
 
         // Check that there is no ID field
@@ -153,6 +164,10 @@ public class RestPostIntegrationAction extends BaseRestHandler {
         JsonNode documentNode = jsonNode.at("/resource/document");
         if (documentNode.isObject()) {
             ((ObjectNode) documentNode).put("id", id);
+        } else {
+            return new RestResponse(
+                "Invalid JSON structure: /resource/document must be an object.",
+                RestStatus.BAD_REQUEST.getStatus());
         }
 
         WIndexIntegrationResponse sapResponse = service.upsertIntegration(jsonNode);
@@ -175,7 +190,53 @@ public class RestPostIntegrationAction extends BaseRestHandler {
                     + ".", RestStatus.BAD_REQUEST.getStatus());
         }
 
-        // TODO: Add integration to CTI integration draft space
-        // TODO: Add integration to draft policy
+        // Insert "draft" into /resource/document/space
+        ((ObjectNode) documentNode).putObject("space").put("name", "draft");
+
+        // Index the integration into CTI integrations index
+        client.index(new IndexRequest(CTI_INTEGRATIONS_INDEX).id(id)
+            .source(jsonNode.toString(), XContentType.JSON).setRefreshPolicy(
+                RefreshPolicy.IMMEDIATE));
+
+        // Search for the the draft policy
+        TermQueryBuilder queryBuilder = new TermQueryBuilder("document.space.name", "draft");
+
+        // Run the search
+        SearchResponse searchResponse = client.search(
+            new SearchRequest().source(new SearchSourceBuilder().query(queryBuilder))).actionGet();
+
+        // Get the policy document
+        // TODO: This may not find a policy, need to handle that case
+        JsonNode policy = FixtureFactory.from(
+            searchResponse.getHits().getAt(0).getSourceAsString());
+
+        // Get the policy Id
+        String policyId = searchResponse.getHits().getAt(0).getId();
+
+        // Get the integrations array
+        JsonNode integrationsArray = policy.get("document").get("integrations");
+
+        // Validate integrations array
+        if (!integrationsArray.isArray()) {
+            return new RestResponse(
+                "Invalid draft policy structure: /document/integrations must be an array.",
+                RestStatus.INTERNAL_SERVER_ERROR.getStatus());
+        }
+
+        // Add the new integration ID to the integrations array
+        ((ArrayNode) integrationsArray).add(id);
+
+        // Prepare to update the integrations array
+        IndexRequest indexRequest = new IndexRequest(CTI_POLICIES_INDEX).id(policyId)
+            .source(policy.toString(), XContentType.JSON).setRefreshPolicy(RefreshPolicy.IMMEDIATE);
+
+        // Index the updated integrations array into the draft policy
+        IndexResponse indexPolicyResponse = client.index(indexRequest).actionGet();
+
+        // Return the response from the engine
+        return new RestResponse(
+            "Integration created successfully with ID: " + id + ".",
+            indexPolicyResponse.status().getStatus());
+
     }
 }
