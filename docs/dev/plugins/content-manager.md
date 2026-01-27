@@ -288,33 +288,53 @@ If a critical error occurs or data corruption is detected, the system resets `lo
 
 ## 📡 REST API
 
-### Subscription Management
+This API is formally defined in OpenAPI specification ([openapi.yml](https://github.com/wazuh/wazuh-indexer-plugins/blob/main/plugins/content-manager/openapi.yml)).
 
-#### GET /subscription
+### User Generate Content Management Endpoints
 
-Retrieves the current subscription token. 
+#### Logtest
 
-`GET /_plugins/content-manager/subscription`
+The Indexer acts as a middleman between the UI and the Engine. The Indexer's `POST /logtest` endpoints accepts the payload and sends it to the engine exactly as provided. No validation is performed. If the engine responds, the Indexer returns it as the response for its endpoint call. If the engine does not respond, a 500 error is returned.
 
-#### POST /subscription 
+<div class="warning">
 
-Creates or updates a subscription. 
+A testing policy needs to be loaded in the Engine for the logtest to be executed successfully. Load a policy via the policy promotion endpoint.
+</div>
 
-`POST /_plugins/content-manager/subscription { "device_code": "...", "client_id": "...", "expires_in": 3600, "interval": 5 }`
+**Diagrams**
 
-#### DELETE /subscription
+```mermaid
+---
+title: Logtest execution - Sequence diagram
+---
+sequenceDiagram
+    actor User
+    participant UI
+    participant Indexer
+    participant Engine
 
-Deletes the current token/subscription. 
+    User->>UI: run logtest
 
-`DELETE /_plugins/content-manager/subscription`
+    UI->>Indexer: POST /logtest
+    Indexer->>Engine: POST /logtest
+    Engine-->>Indexer: response
+    Indexer-->>UI: response
+```
 
-### Update Trigger
+```mermaid
+---
+title: Logtest execution - Flowchart
+---
+flowchart LR
+    UI-- request -->Indexer
+    subgraph indexer_node [Indexer node]
+    Indexer-->Engine
 
-#### POST /update 
+    Engine -.-> Indexer
+    end
+    Indexer -. response .-> UI
+```
 
-Manually triggers the `CatalogSyncJob`. 
-
-`POST /_plugins/content-manager/update`
 
 ---
 

@@ -21,7 +21,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 
 import org.opensearch.core.rest.RestStatus;
 import org.opensearch.rest.BaseRestHandler;
-import org.opensearch.rest.BytesRestResponse;
 import org.opensearch.rest.NamedRoute;
 import org.opensearch.rest.RestRequest;
 import org.opensearch.transport.client.node.NodeClient;
@@ -45,6 +44,7 @@ import static org.opensearch.rest.RestRequest.Method.POST;
  * Unexpected error during processing. Wazuh Engine did not respond.
  */
 public class RestPostLogtestAction extends BaseRestHandler {
+
     private static final String ENDPOINT_NAME = "content_manager_logtest";
     private static final String ENDPOINT_UNIQUE_NAME = "plugin:content_manager/engine_logtest";
     private final EngineService engine;
@@ -88,7 +88,8 @@ public class RestPostLogtestAction extends BaseRestHandler {
      */
     @Override
     public RestChannelConsumer prepareRequest(RestRequest request, NodeClient client) {
-        return channel -> channel.sendResponse(this.handleRequest(request));
+        RestResponse response = this.handleRequest(request);
+        return channel -> channel.sendResponse(response.toBytesRestResponse());
     }
 
     /**
@@ -96,48 +97,33 @@ public class RestPostLogtestAction extends BaseRestHandler {
      *
      * @param request incoming request
      * @return a BytesRestResponse describing the outcome
-     * @throws IOException if an I/O error occurs while building the response
      */
-    public BytesRestResponse handleRequest(RestRequest request) throws IOException {
+    public RestResponse handleRequest(RestRequest request) {
+        // 1. Check if engine service exists
+        if (this.engine == null) {
+            return new RestResponse(
+                    "Engine instance is null.", RestStatus.INTERNAL_SERVER_ERROR.getStatus());
+        }
+
+        // 2. Check request's payload exists
+        if (request == null || !request.hasContent()) {
+            return new RestResponse("JSON request body is required.", RestStatus.BAD_REQUEST.getStatus());
+        }
+
+        // 3. Check request's payload is valid JSON
+        ObjectMapper mapper = new ObjectMapper();
+        JsonNode jsonNode;
         try {
-            // 1. Check if engine service exists
-            if (this.engine == null) {
-                RestResponse error =
-                        new RestResponse(
-                                "Engine instance is null.", RestStatus.INTERNAL_SERVER_ERROR.getStatus());
-                return new BytesRestResponse(RestStatus.INTERNAL_SERVER_ERROR, error.toXContent());
-            }
+            jsonNode = mapper.readTree(request.content().streamInput());
+        } catch (IOException ex) {
+            return new RestResponse("Invalid JSON content.", RestStatus.BAD_REQUEST.getStatus());
+        }
 
-            // 2. Check request's payload exists
-            if (!request.hasContent()) {
-                RestResponse error =
-                        new RestResponse("JSON request body is required.", RestStatus.BAD_REQUEST.getStatus());
-                return new BytesRestResponse(RestStatus.BAD_REQUEST, error.toXContent());
-            }
-
-            // 3. Check request's payload is valid JSON
-            ObjectMapper mapper = new ObjectMapper();
-            JsonNode jsonNode;
-            try {
-                jsonNode = mapper.readTree(request.content().streamInput());
-            } catch (IOException ex) {
-                RestResponse error =
-                        new RestResponse("Invalid JSON content.", RestStatus.BAD_REQUEST.getStatus());
-                return new BytesRestResponse(RestStatus.BAD_REQUEST, error.toXContent());
-            }
-
-            // 4. Logtest accepted
-            RestResponse response = this.engine.logtest(jsonNode);
-            return new BytesRestResponse(
-                    RestStatus.fromCode(response.getStatus()), response.toXContent());
+        // 4. Logtest accepted
+        try {
+            return this.engine.logtest(jsonNode);
         } catch (Exception e) {
-            RestResponse error =
-                    new RestResponse(
-                            e.getMessage() != null
-                                    ? e.getMessage()
-                                    : "An unexpected error occurred while processing your request.",
-                            RestStatus.INTERNAL_SERVER_ERROR.getStatus());
-            return new BytesRestResponse(RestStatus.INTERNAL_SERVER_ERROR, error.toXContent());
+            return new RestResponse(e.getMessage(), RestStatus.INTERNAL_SERVER_ERROR.getStatus());
         }
     }
 }
