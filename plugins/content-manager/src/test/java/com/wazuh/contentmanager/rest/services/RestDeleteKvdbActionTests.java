@@ -38,6 +38,7 @@ import com.wazuh.contentmanager.cti.catalog.index.ContentIndex;
 public class RestDeleteKvdbActionTests extends OpenSearchTestCase {
     private EngineService service;
     private RestDeleteKvdbAction action;
+    private ContentIndex kvdbIndex;
 
     /**
      * Set up the tests
@@ -49,7 +50,7 @@ public class RestDeleteKvdbActionTests extends OpenSearchTestCase {
     public void setUp() throws Exception {
         super.setUp();
         this.service = mock(EngineService.class);
-        ContentIndex kvdbIndex = mock(ContentIndex.class);
+        this.kvdbIndex = mock(ContentIndex.class);
         this.action = new RestDeleteKvdbAction(this.service, kvdbIndex);
     }
 
@@ -62,7 +63,8 @@ public class RestDeleteKvdbActionTests extends OpenSearchTestCase {
     public void testDeleteKvdb201() throws IOException {
         // given
         RestRequest request = mock(RestRequest.class);
-        when(request.param("id")).thenReturn("kvdb-123");
+        when(request.param("id")).thenReturn("kvdb-201");
+        when(kvdbIndex.exists("kvdb-201")).thenReturn(true);
 
         // when
         BytesRestResponse response = action.handleRequest(request);
@@ -72,6 +74,9 @@ public class RestDeleteKvdbActionTests extends OpenSearchTestCase {
         assertTrue(
             response.content().utf8ToString().contains("KVDB deleted successfully")
         );
+
+        verify(kvdbIndex).exists("kvdb-201");
+        verify(kvdbIndex).delete("kvdb-201");
     }
 
     /**
@@ -95,6 +100,7 @@ public class RestDeleteKvdbActionTests extends OpenSearchTestCase {
                 .utf8ToString()
                 .contains("KVDB id is required")
         );
+        verifyNoInteractions(kvdbIndex);
     }
 
     /**
@@ -106,13 +112,8 @@ public class RestDeleteKvdbActionTests extends OpenSearchTestCase {
     public void testDeleteKvdb404() throws IOException {
         // given
         RestRequest request = mock(RestRequest.class);
-        when(request.param("id")).thenReturn("kvdb-456");
-
-        ContentIndex kvdbIndex = mock(ContentIndex.class);
-        when(kvdbIndex.exists(anyString())).thenReturn(false);
-
-        RestDeleteKvdbAction action =
-            new RestDeleteKvdbAction(this.service, kvdbIndex);
+        when(request.param("id")).thenReturn("kvdb-404");
+        when(kvdbIndex.exists("kvdb-404")).thenReturn(false);
 
         // when
         BytesRestResponse response = action.handleRequest(request);
@@ -122,7 +123,7 @@ public class RestDeleteKvdbActionTests extends OpenSearchTestCase {
         assertTrue(
             response.content().utf8ToString().contains("KVDB not found")
         );
-        verify(kvdbIndex, times(1)).exists(anyString());
+        verify(kvdbIndex).exists("kvdb-404");
         verify(kvdbIndex, never()).delete(anyString());
     }
 
@@ -136,6 +137,8 @@ public class RestDeleteKvdbActionTests extends OpenSearchTestCase {
         // given
         RestRequest request = mock(RestRequest.class);
         when(request.param("id")).thenThrow(new RuntimeException("boom"));
+        when(kvdbIndex.exists(anyString()))
+            .thenThrow(new RuntimeException("boom"));
 
         // when
         BytesRestResponse response = action.handleRequest(request);
