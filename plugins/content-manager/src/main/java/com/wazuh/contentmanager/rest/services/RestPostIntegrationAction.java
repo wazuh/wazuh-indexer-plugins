@@ -178,19 +178,22 @@ public class RestPostIntegrationAction extends BaseRestHandler {
 
         // Create integration in SAP
         final WIndexIntegrationResponse sapResponse = service.upsertIntegration(jsonNode);
+
+        // Check if SAP response is valid
         if (sapResponse == null || sapResponse.getStatus() == null) {
             return new RestResponse(
                     "Failed to create Integration, SAP response is null.",
                     RestStatus.INTERNAL_SERVER_ERROR.getStatus());
         }
 
+        // If SAP response is not OK, return error
         if (sapResponse.getStatus() != RestStatus.OK) {
             return new RestResponse(
                     "Failed to create Integration, SAP response: " + sapResponse.getStatus(),
                     RestStatus.BAD_REQUEST.getStatus());
         }
 
-        // Validate integration
+        // Validate integration with Wazuh Engine
         final RestResponse validationResponse = this.engine.validate(jsonNode);
 
         // If validation failed, delete the created integration in SAP
@@ -203,7 +206,7 @@ public class RestPostIntegrationAction extends BaseRestHandler {
                     RestStatus.BAD_REQUEST.getStatus());
         }
 
-        // Insert "draft" into /resource/document/space
+        // Insert "draft" into /resource/document/space/name
         documentObject.putObject("space").put("name", DRAFT_SPACE_NAME);
 
         // From here on, we should rollback SAP integration on any error to avoid partial state.
@@ -218,8 +221,9 @@ public class RestPostIntegrationAction extends BaseRestHandler {
                                             .setRefreshPolicy(RefreshPolicy.IMMEDIATE))
                             .actionGet();
 
-            if (integrationIndexResponse == null
-                    || integrationIndexResponse.status().getStatus() >= 300) {
+            // Check indexing response. We are expecting for a 200 OK status.
+            if (integrationIndexResponse == null || integrationIndexResponse.status() != RestStatus.OK) {
+                // otherwise, we delete the created SAP integration and return an error.
                 service.deleteIntegration(id);
                 return new RestResponse(
                         "Failed to index integration.", RestStatus.INTERNAL_SERVER_ERROR.getStatus());
@@ -261,18 +265,18 @@ public class RestPostIntegrationAction extends BaseRestHandler {
             }
 
             // Add the new integration ID to the integrations array (avoid duplicates)
-            boolean alreadyPresent = false;
             for (JsonNode existing : integrationsArray) {
                 if (id.equals(existing.asText())) {
-                    alreadyPresent = true;
-                    break;
+                    // Integration ID already exists in the policy
+                    service.deleteIntegration(id);
+                    return new RestResponse(
+                            "Integration ID already exists in the draft policy.",
+                            RestStatus.INTERNAL_SERVER_ERROR.getStatus());
                 }
             }
-            if (!alreadyPresent) {
-                ((ArrayNode) integrationsArray).add(id);
-            }
+            ((ArrayNode) integrationsArray).add(id);
 
-            // Prepare to update the integrations array
+            // Prepare to index the updated integrations array
             IndexRequest indexRequest =
                     new IndexRequest(CTI_POLICIES_INDEX)
                             .id(policyId)
@@ -282,7 +286,7 @@ public class RestPostIntegrationAction extends BaseRestHandler {
             // Index the updated integrations array into the draft policy
             IndexResponse indexPolicyResponse = client.index(indexRequest).actionGet();
 
-            if (indexPolicyResponse == null || indexPolicyResponse.status().getStatus() >= 300) {
+            if (indexPolicyResponse == null || indexPolicyResponse.status() != RestStatus.OK) {
                 service.deleteIntegration(id);
                 return new RestResponse(
                         "Failed to update draft policy.", RestStatus.INTERNAL_SERVER_ERROR.getStatus());
@@ -291,13 +295,7 @@ public class RestPostIntegrationAction extends BaseRestHandler {
             return new RestResponse(
                     "Integration created successfully with ID: " + id + ".", RestStatus.OK.getStatus());
         } catch (Exception e) {
-            // Best-effort rollback
-            try {
-                service.deleteIntegration(id);
-            } catch (Exception ignored) {
-                // no-op
-            }
-
+            service.deleteIntegration(id);
             return new RestResponse(
                     "Unexpected error during processing.", RestStatus.INTERNAL_SERVER_ERROR.getStatus());
         }
