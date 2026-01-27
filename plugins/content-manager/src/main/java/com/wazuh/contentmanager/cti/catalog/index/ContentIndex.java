@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2024, Wazuh Inc.
+ * Copyright (C) 2024-2026, Wazuh Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as
@@ -21,6 +21,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
+import com.google.gson.JsonSyntaxException;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.opensearch.OpenSearchTimeoutException;
@@ -34,16 +35,21 @@ import org.opensearch.action.delete.DeleteResponse;
 import org.opensearch.action.get.GetRequest;
 import org.opensearch.action.get.GetResponse;
 import org.opensearch.action.index.IndexRequest;
+import org.opensearch.action.search.SearchRequest;
+import org.opensearch.action.search.SearchResponse;
 import org.opensearch.common.settings.Settings;
 import org.opensearch.common.xcontent.XContentFactory;
 import org.opensearch.common.xcontent.XContentType;
 import org.opensearch.core.action.ActionListener;
 import org.opensearch.core.xcontent.ToXContent;
 import org.opensearch.core.xcontent.XContentBuilder;
+import org.opensearch.index.query.BoolQueryBuilder;
 import org.opensearch.index.query.QueryBuilders;
 import org.opensearch.index.reindex.BulkByScrollResponse;
 import org.opensearch.index.reindex.DeleteByQueryAction;
 import org.opensearch.index.reindex.DeleteByQueryRequestBuilder;
+import org.opensearch.search.SearchHit;
+import org.opensearch.search.builder.SearchSourceBuilder;
 import org.opensearch.transport.client.Client;
 
 import java.io.IOException;
@@ -189,7 +195,7 @@ public class ContentIndex {
 
         try {
             this.client.index(request).get(this.pluginSettings.getClientTimeout(), TimeUnit.SECONDS);
-        } catch (Exception e) {
+        } catch (InterruptedException | ExecutionException | TimeoutException e) {
             log.error("Failed to index document [{}]: {}", id, e.getMessage());
             throw new IOException(e);
         }
@@ -266,6 +272,57 @@ public class ContentIndex {
                         log.error("Failed to delete {}: {}", id, e.getMessage());
                     }
                 });
+    }
+
+    /**
+     * Searches for a document by a specific field name and value.
+     *
+     * @param key The field name to search for.
+     * @param value The value to match in the specified field.
+     * @return The first matching Resource, or null if no document is found.
+     */
+    public Resource searchByKeyValue(String key, String value) {
+        try {
+            // Build the term query for exact match
+            BoolQueryBuilder queryBuilder =
+                    QueryBuilders.boolQuery().must(QueryBuilders.termQuery(key, value));
+
+            // Create search request
+            SearchSourceBuilder searchSourceBuilder =
+                    new SearchSourceBuilder().query(queryBuilder).size(1); // We only need the first result
+
+            SearchRequest searchRequest = new SearchRequest(this.indexName).source(searchSourceBuilder);
+
+            // Execute search synchronously
+            SearchResponse searchResponse =
+                    this.client
+                            .search(searchRequest)
+                            .get(this.pluginSettings.getClientTimeout(), TimeUnit.SECONDS);
+
+            // Check if we have results
+            if (searchResponse.getHits().getTotalHits() == null
+                    || searchResponse.getHits().getTotalHits().value() == 0L) {
+                log.debug("No document found in [{}] with {}={}", this.indexName, key, value);
+                return null;
+            }
+
+            // Parse the first hit to a Resource
+            SearchHit hit = searchResponse.getHits().getAt(0);
+            JsonObject document = JsonParser.parseString(hit.getSourceAsString()).getAsJsonObject();
+
+            // Determine the appropriate Resource type based on the document
+            if (document.has(JSON_TYPE_KEY)
+                    && JSON_DECODER_KEY.equalsIgnoreCase(document.get(JSON_TYPE_KEY).getAsString())) {
+                return Decoder.fromPayload(document);
+            } else {
+                return Resource.fromPayload(document);
+            }
+
+        } catch (JsonSyntaxException | InterruptedException | ExecutionException | TimeoutException e) {
+            log.error(
+                    "Failed to search by {}={} in [{}]: {}", key, value, this.indexName, e.getMessage());
+            return null;
+        }
     }
 
     /**

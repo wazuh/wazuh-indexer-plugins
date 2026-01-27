@@ -16,8 +16,6 @@
  */
 package com.wazuh.contentmanager.rest.services;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-
 import org.opensearch.core.rest.RestStatus;
 import org.opensearch.rest.BaseRestHandler;
 import org.opensearch.rest.BytesRestResponse;
@@ -29,6 +27,7 @@ import java.io.IOException;
 import java.util.List;
 
 import com.wazuh.contentmanager.engine.services.EngineService;
+import com.wazuh.contentmanager.engine.utils.PolicyHandler;
 import com.wazuh.contentmanager.rest.model.Policy;
 import com.wazuh.contentmanager.rest.model.RestResponse;
 import com.wazuh.contentmanager.settings.PluginSettings;
@@ -70,7 +69,7 @@ public class RestPutPolicyAction extends BaseRestHandler {
     public List<Route> routes() {
         return List.of(
                 new NamedRoute.Builder()
-                        .path(PluginSettings.POLICY_URI + "/{id}")
+                        .path(PluginSettings.POLICY_URI)
                         .method(PUT)
                         .uniqueName(ENDPOINT_UNIQUE_NAME)
                         .build());
@@ -86,7 +85,7 @@ public class RestPutPolicyAction extends BaseRestHandler {
     @Override
     protected RestChannelConsumer prepareRequest(RestRequest request, NodeClient client)
             throws IOException {
-        return channel -> channel.sendResponse(this.handleRequest(request));
+        return channel -> channel.sendResponse(this.handleRequest(request, client));
     }
 
     /**
@@ -104,7 +103,8 @@ public class RestPutPolicyAction extends BaseRestHandler {
      * @return a BytesRestResponse describing the outcome of the operation
      * @throws IOException if an I/O error occurs while building the response
      */
-    public BytesRestResponse handleRequest(RestRequest request) throws IOException {
+    public BytesRestResponse handleRequest(RestRequest request, NodeClient client)
+            throws IOException, Exception {
         // TODO: Move this logic to a common utility method since it's repeated in multiple handlers.
         // 1. Check if engine service exists
         if (this.engine == null) {
@@ -120,17 +120,19 @@ public class RestPutPolicyAction extends BaseRestHandler {
             return new BytesRestResponse(RestStatus.BAD_REQUEST, error.toXContent());
         }
         // 3. Check request's payload is valid Policy JSON
-        ObjectMapper mapper = new ObjectMapper();
-        Policy policy;
-        try {
-            policy = mapper.readValue(request.content().streamInput(), Policy.class);
-        } catch (IOException e) {
+        Policy policy = PolicyHandler.getPolicyFromJson(request.content());
+        if (policy == null) {
             RestResponse error =
                     new RestResponse(
-                            "Invalid Policy JSON content: " + e.getMessage(), RestStatus.BAD_REQUEST.getStatus());
+                            "Invalid Policy JSON content: " + request.content().utf8ToString(),
+                            RestStatus.BAD_REQUEST.getStatus());
             return new BytesRestResponse(RestStatus.BAD_REQUEST, error.toXContent());
         }
-        // 4. Update/create the policy using the engine service. TODO: Implement this logic.
+        if (PolicyHandler.searchPolicyBySpace("draft", client) == null) {
+            PolicyHandler.createDefaultPolicy(client);
+        }
+        // 4. Update the policy using the engine service. TODO: Implement this logic.
+        PolicyHandler.indexPolicy(policy, "draft", client);
         return new BytesRestResponse(RestStatus.OK, policy.toString());
     }
 }
