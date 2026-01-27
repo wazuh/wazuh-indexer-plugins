@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2024-2026, Wazuh Inc.
+ * Copyright (C) 2026, Wazuh Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as
@@ -16,14 +16,31 @@
  */
 package com.wazuh.contentmanager.rest.services;
 
+import org.opensearch.action.index.IndexRequest;
+import org.opensearch.action.index.IndexResponse;
+import org.opensearch.common.action.ActionFuture;
+import org.opensearch.common.xcontent.XContentType;
+import org.opensearch.core.common.bytes.BytesArray;
+import org.opensearch.core.rest.RestStatus;
+import org.opensearch.core.xcontent.NamedXContentRegistry;
+import org.opensearch.rest.BytesRestResponse;
+import org.opensearch.rest.RestRequest;
 import org.opensearch.test.OpenSearchTestCase;
+import org.opensearch.test.rest.FakeRestRequest;
+import org.opensearch.transport.client.Client;
 import org.junit.Before;
 
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.util.Map;
 
-import com.wazuh.contentmanager.engine.services.EngineService;
+import com.wazuh.securityanalytics.action.WIndexRuleAction;
+import com.wazuh.securityanalytics.action.WIndexRuleRequest;
+import com.wazuh.securityanalytics.action.WIndexRuleResponse;
 
-import static org.mockito.Mockito.mock;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.*;
 
 /**
  * Unit tests for the {@link RestPutRuleAction} class. This test suite validates the REST API
@@ -33,8 +50,9 @@ import static org.mockito.Mockito.mock;
  * codes for successful Rule update errors.
  */
 public class RestPutRuleActionTests extends OpenSearchTestCase {
-    private EngineService service;
+
     private RestPutRuleAction action;
+    private Client client;
 
     /**
      * Set up the tests
@@ -45,31 +63,110 @@ public class RestPutRuleActionTests extends OpenSearchTestCase {
     @Override
     public void setUp() throws Exception {
         super.setUp();
-        this.service = mock(EngineService.class);
-        this.action = new RestPutRuleAction(this.service);
+        this.client = mock(Client.class);
+        this.action = new RestPutRuleAction();
     }
 
     /**
-     * Test the {@link RestPutRuleAction#handleRequest(rule)} method when the request is complete. The
-     * expected response is: {201, RestResponse}
+     * Test the {@link RestPutRuleAction#handleRequest(RestRequest, Client)} method when the request
+     * is complete. The expected response is: {200, RestResponse}
      *
      * @throws IOException
      */
-    public void testPutRule201() throws IOException {}
+    public void testPutRule200() throws IOException {
+        // Arrange
+        String ruleId = "1b5a5cfb-a5fc-4db7-b5cc-bf9093a04121";
+
+        // spotless:off
+        String jsonRule = """
+            {
+              "author": "Florian Roth",
+              "date": "2021-05-31",
+              "description": "Updated Description.",
+              "detection": {
+                "condition": "selection",
+                "selection": {
+                  "event.original": [
+                    "exited on signal 6"
+                  ]
+                }
+              },
+              "enabled": true,
+              "level": "medium",
+              "logsource": {
+                "product": "nginx"
+              },
+              "title": "Nginx Core Dump Updated"
+            }
+            """;
+        // spotless:on
+
+        // Mock
+        RestRequest request =
+                new FakeRestRequest.Builder(NamedXContentRegistry.EMPTY)
+                        .withParams(Map.of("id", ruleId))
+                        .withContent(
+                                new BytesArray(jsonRule.getBytes(StandardCharsets.UTF_8)), XContentType.JSON)
+                        .build();
+
+        ActionFuture<WIndexRuleResponse> sapFuture = mock(ActionFuture.class);
+        when(sapFuture.actionGet()).thenReturn(new WIndexRuleResponse(ruleId, 2L, RestStatus.OK));
+        doReturn(sapFuture)
+                .when(this.client)
+                .execute(eq(WIndexRuleAction.INSTANCE), any(WIndexRuleRequest.class));
+
+        ActionFuture<IndexResponse> indexFuture = mock(ActionFuture.class);
+        when(indexFuture.actionGet()).thenReturn(mock(IndexResponse.class));
+        doReturn(indexFuture).when(this.client).index(any(IndexRequest.class));
+
+        // Act
+        BytesRestResponse response = this.action.handleRequest(request, this.client);
+
+        // Assert
+        assertEquals(RestStatus.OK, response.status());
+        verify(this.client, times(1))
+                .execute(eq(WIndexRuleAction.INSTANCE), any(WIndexRuleRequest.class));
+        verify(this.client, times(1)).index(any(IndexRequest.class));
+    }
 
     /**
-     * Test the {@link RestPutRuleAction#handleRequest(rule)} method when the rule has not been
-     * updated (mock). The expected response is: {400, RestResponse}
+     * Test the {@link RestPutRuleAction#handleRequest(RestRequest, Client)} method when the rule has
+     * not been updated (mock). The expected response is: {400, RestResponse}
      *
      * @throws IOException
      */
-    public void testPutRule400() throws IOException {}
+    public void testPutRule400_MissingId() throws IOException {
+        RestRequest request = new FakeRestRequest.Builder(NamedXContentRegistry.EMPTY).build();
+
+        BytesRestResponse response = this.action.handleRequest(request, this.client);
+
+        assertEquals(RestStatus.BAD_REQUEST, response.status());
+    }
 
     /**
-     * Test the {@link RestPutRuleAction#handleRequest(RestRequest)} method when an unexpected error
-     * occurs. The expected response is: {500, RestResponse}
+     * Test the {@link RestPutRuleAction#handleRequest(RestRequest, Client)} method when an unexpected
+     * error occurs. The expected response is: {500, RestResponse}
      *
      * @throws IOException if an I/O error occurs during the test
      */
-    public void testPutRule500() throws IOException {}
+    public void testPutRule500() throws IOException {
+        // Arrange
+        String ruleId = "some-id";
+        String jsonRule = "{}";
+
+        // Mock
+        RestRequest request =
+                new FakeRestRequest.Builder(NamedXContentRegistry.EMPTY)
+                        .withParams(Map.of("id", ruleId))
+                        .withContent(new BytesArray(jsonRule), XContentType.JSON)
+                        .build();
+
+        doThrow(new RuntimeException("Simulated error")).when(this.client).execute(any(), any());
+
+        // Act
+        BytesRestResponse response = this.action.handleRequest(request, this.client);
+
+        // Assert
+        assertEquals(RestStatus.INTERNAL_SERVER_ERROR, response.status());
+    }
 }
