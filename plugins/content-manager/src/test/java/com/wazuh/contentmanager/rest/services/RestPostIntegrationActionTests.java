@@ -19,18 +19,19 @@ package com.wazuh.contentmanager.rest.services;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
-import com.wazuh.contentmanager.cti.catalog.service.SecurityAnalyticsServiceImpl;
-import com.wazuh.contentmanager.rest.model.RestResponse;
-import com.wazuh.securityanalytics.action.WIndexIntegrationAction;
+
 import org.opensearch.core.common.bytes.BytesArray;
 import org.opensearch.rest.RestRequest;
 import org.opensearch.test.OpenSearchTestCase;
+import org.opensearch.transport.client.Client;
 import org.junit.Before;
 
 import java.io.IOException;
 
+import com.wazuh.contentmanager.cti.catalog.service.SecurityAnalyticsServiceImpl;
 import com.wazuh.contentmanager.engine.services.EngineService;
-import org.opensearch.transport.client.Client;
+import com.wazuh.contentmanager.rest.model.RestResponse;
+import com.wazuh.securityanalytics.action.WIndexIntegrationAction;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
@@ -67,8 +68,8 @@ public class RestPostIntegrationActionTests extends OpenSearchTestCase {
     }
 
     /**
-     * Test the {@link RestPostIntegrationAction#handleRequest(RestRequest, Client)} method when the request
-     * is complete. The expected response is: {200, RestResponse}
+     * Test the {@link RestPostIntegrationAction#handleRequest(RestRequest, Client)} method when the
+     * request is complete. The expected response is: {200, RestResponse}
      *
      * @throws IOException if an I/O error occurs during the test
      */
@@ -77,42 +78,52 @@ public class RestPostIntegrationActionTests extends OpenSearchTestCase {
         // Integration JSON document to be created
 
         JsonNode integrationJson =
-            new ObjectMapper()
-                .readTree(
-                    """
-                        {
-                          "document": {
-                            "author": "Wazuh Inc.",
-                            "category": "cloud-services",
-                            "date": "2025-10-08",
-                            "decoders": [
-                              "1cb80fdb-7209-4b96-8bd1-ec15864d0f35"
-                            ],
-                            "description": "This integration supports AWS Fargate logs.",
-                            "documentation": "",
-                            "enabled": true,
-                            "id": "9e301671-382d-4c1a-9abf-3d9d9544789c",
-                            "kvdbs": [],
-                            "references": [
-                              "https://wazuh.com"
-                            ],
-                            "rules": [],
-                            "title": "aws-fargate"
-                          },
-                          "hash": {
-                            "sha256": "3b2fc76ba88ddbf67a3807c53d0f563467a4d5b996b62e68e8ebc322ada846f5"
-                          },
-                          "space": {
-                            "name": "standard"
-                          }
-                        }""");
+                new ObjectMapper()
+                        .readTree(
+                                // spotless:off
+            """
+            {
+              "document": {
+                "author": "Wazuh Inc.",
+                "category": "cloud-services",
+                "date": "2025-10-08",
+                "decoders": [
+                  "1cb80fdb-7209-4b96-8bd1-ec15864d0f35"
+                ],
+                "description": "This integration supports AWS Fargate logs.",
+                "documentation": "",
+                "enabled": true,
+                "id": "9e301671-382d-4c1a-9abf-3d9d9544789c",
+                "kvdbs": [],
+                "references": [
+                  "https://wazuh.com"
+                ],
+                "rules": [],
+                "title": "aws-fargate"
+              },
+              "hash": {
+                "sha256": "3b2fc76ba88ddbf67a3807c53d0f563467a4d5b996b62e68e8ebc322ada846f5"
+              },
+              "space": {
+                "name": "standard"
+              }
+            }"""
+            // spotless:on
+                                );
 
         // Set the expected payload as sent to the Wazuh Engine for validation
-        ObjectNode expectedPayload = (ObjectNode) new ObjectMapper().readTree("""
+        ObjectNode expectedPayload =
+                (ObjectNode)
+                        new ObjectMapper()
+                                .readTree(
+                                        // spotless:off
+            """
             {
               "type": "integration",
               "resource": {}
-            }""");
+            }"""
+            // spotless:on
+                                        );
 
         expectedPayload.set("resource", integrationJson.get("document"));
 
@@ -123,29 +134,38 @@ public class RestPostIntegrationActionTests extends OpenSearchTestCase {
 
         // Make the engine return a successful response for the validation
         when(this.engine.validate(any(JsonNode.class)))
-            .thenReturn(new RestResponse("""
-                {
-                  "status": "OK",
-                  "error": null
-                }""", 200));
-
-        // Execute the tested method
-        RestResponse response = this.action.handleRequest(request, );
-
-        assertEquals(200, response.getStatus());
-        assertEquals("""
+                .thenReturn(
+                        new RestResponse(
+                                // spotless:off
+            """
             {
               "status": "OK",
               "error": null
-            }""", response.getMessage());
+            }"""
+            // spotless:on
+                                ,
+                                200));
+
+        // Execute the tested method
+        RestResponse response = this.action.handleRequest(request, this.client);
+
+        assertEquals(200, response.getStatus());
+        assertEquals(
+                // spotless:off
+            """
+            {
+              "status": "OK",
+              "error": null
+            }"""
+            // spotless:on
+                ,
+                response.getMessage());
 
         // Verify that the engine service validated the expected payload
         verify(this.engine, times(1)).validate(expectedPayload);
 
         // Verify that the client executed the expected action
         verify(this.client, times(1)).execute(any(WIndexIntegrationAction.class), any());
-
-
     }
 
     /**
@@ -158,43 +178,52 @@ public class RestPostIntegrationActionTests extends OpenSearchTestCase {
 
         // Integration JSON document to be created
         JsonNode integrationJson =
-            new ObjectMapper()
-                .readTree(
-                    """
-                        {
-                          "document": {
-                            "author": "Wazuh Inc.",
-                            "category": "cloud-services",
-                            "date": "2025-10-08",
-                            "decoders": [
-                              "1cb80fdb-7209-4b96-8bd1-ec15864d0f35"
-                            ],
-                            "description": "This integration supports AWS Fargate logs.",
-                            "documentation": "",
-                            "enabled": true,
-                            "id": "9e301671-382d-4c1a-9abf-3d9d9544789c",
-                            "kvdbs": [],
-                            "references": [
-                              "https://wazuh.com"
-                            ],
-                            "rules": [],
-                            "title": "aws-fargate"
-                          },
-                          "hash": {
-                            "sha256": "3b2fc76ba88ddbf67a3807c53d0f563467a4d5b996b62e68e8ebc322ada846f5"
-                          },
-                          "space": {
-                            "name": "standard"
-                          }
-                        }""");
+                new ObjectMapper()
+                        .readTree(
+                                // spotless:off
+            """
+            {
+              "document": {
+                "author": "Wazuh Inc.",
+                "category": "cloud-services",
+                "date": "2025-10-08",
+                "decoders": [
+                  "1cb80fdb-7209-4b96-8bd1-ec15864d0f35"
+                ],
+                "description": "This integration supports AWS Fargate logs.",
+                "documentation": "",
+                "enabled": true,
+                "id": "9e301671-382d-4c1a-9abf-3d9d9544789c",
+                "kvdbs": [],
+                "references": [
+                  "https://wazuh.com"
+                ],
+                "rules": [],
+                "title": "aws-fargate"
+              },
+              "hash": {
+                "sha256": "3b2fc76ba88ddbf67a3807c53d0f563467a4d5b996b62e68e8ebc322ada846f5"
+              },
+              "space": {
+                "name": "standard"
+              }
+            }"""
+            // spotless:on
+                                );
 
         // Set the expected payload as sent to the Wazuh Engine for validation
-        ObjectNode expectedPayload = (ObjectNode) new ObjectMapper().readTree(
+        ObjectNode expectedPayload =
+                (ObjectNode)
+                        new ObjectMapper()
+                                .readTree(
+                                        // spotless:off
             """
-                {
-                  "type": "integration",
-                  "resource": {}
-                }""");
+            {
+              "type": "integration",
+              "resource": {}
+            }"""
+            // spotless:on
+                                        );
         expectedPayload.set("resource", integrationJson.get("document"));
 
         // Prepare the request
@@ -204,30 +233,36 @@ public class RestPostIntegrationActionTests extends OpenSearchTestCase {
 
         // Make the engine return a validation error
         when(this.engine.validate(any(JsonNode.class)))
-            .thenReturn(
-                new RestResponse(
-                    """
-                        {
-                          "status": "ERROR",
-                          "error": {
-                            "message": "Validation failed"
-                          }
-                        }""",
-                    400));
+                .thenReturn(
+                        new RestResponse(
+                                // spotless:off
+            """
+            {
+              "status": "ERROR",
+              "error": {
+                "message": "Validation failed"
+              }
+            }"""
+            // spotless:on
+                                ,
+                                400));
 
         // Execute the tested method
-        RestResponse response = this.action.handleRequest(request, );
+        RestResponse response = this.action.handleRequest(request, this.client);
 
         assertEquals(400, response.getStatus());
         assertEquals(
+                // spotless:off
             """
-                {
-                  "status": "ERROR",
-                  "error": {
-                    "message": "Validation failed"
-                  }
-                }""",
-            response.getMessage());
+            {
+              "status": "ERROR",
+              "error": {
+                "message": "Validation failed"
+              }
+            }"""
+            // spotless:on
+                ,
+                response.getMessage());
 
         // Verify that the engine service validated the expected payload
         verify(this.engine, times(1)).validate(expectedPayload);
@@ -244,43 +279,53 @@ public class RestPostIntegrationActionTests extends OpenSearchTestCase {
 
         // Integration JSON document to be created
         JsonNode integrationJson =
-            new ObjectMapper()
-                .readTree(
-                    """
-                        {
-                          "document": {
-                            "author": "Wazuh Inc.",
-                            "category": "cloud-services",
-                            "date": "2025-10-08",
-                            "decoders": [
-                              "1cb80fdb-7209-4b96-8bd1-ec15864d0f35"
-                            ],
-                            "description": "This integration supports AWS Fargate logs.",
-                            "documentation": "",
-                            "enabled": true,
-                            "id": "9e301671-382d-4c1a-9abf-3d9d9544789c",
-                            "kvdbs": [],
-                            "references": [
-                              "https://wazuh.com"
-                            ],
-                            "rules": [],
-                            "title": "aws-fargate"
-                          },
-                          "hash": {
-                            "sha256": "3b2fc76ba88ddbf67a3807c53d0f563467a4d5b996b62e68e8ebc322ada846f5"
-                          },
-                          "space": {
-                            "name": "standard"
-                          }
-                        }""");
+                new ObjectMapper()
+                        .readTree(
+                                // spotless:off
+            """
+            {
+              "document": {
+                "author": "Wazuh Inc.",
+                "category": "cloud-services",
+                "date": "2025-10-08",
+                "decoders": [
+                  "1cb80fdb-7209-4b96-8bd1-ec15864d0f35"
+                ],
+                "description": "This integration supports AWS Fargate logs.",
+                "documentation": "",
+                "enabled": true,
+                "id": "9e301671-382d-4c1a-9abf-3d9d9544789c",
+                "kvdbs": [],
+                "references": [
+                  "https://wazuh.com"
+                ],
+                "rules": [],
+                "title": "aws-fargate"
+              },
+              "hash": {
+                "sha256": "3b2fc76ba88ddbf67a3807c53d0f563467a4d5b996b62e68e8ebc322ada846f5"
+              },
+              "space": {
+                "name": "standard"
+              }
+            }"""
+            // spotless:on
+                                );
 
         // Set the expected payload as sent to the Wazuh Engine for validation
-        ObjectNode expectedPayload = (ObjectNode) new ObjectMapper().readTree(
+        ObjectNode expectedPayload =
+                (ObjectNode)
+                        new ObjectMapper()
+                                .readTree(
+                                        // spotless:off
             """
-                {
-                  "type": "integration",
-                  "resource": {}
-                }""");
+                    {
+                      "type": "integration",
+                      "resource": {}
+                    }
+                """
+            // spotless:on
+                                        );
         expectedPayload.set("resource", integrationJson.get("document"));
 
         // Prepare the request
@@ -290,17 +335,13 @@ public class RestPostIntegrationActionTests extends OpenSearchTestCase {
 
         // Make the engine return a validation error
         when(this.engine.validate(any(JsonNode.class)))
-            .thenReturn(
-                new RestResponse(
-                    "Internal Server Error",
-                    500));
+                .thenReturn(new RestResponse("Internal Server Error", 500));
 
         // Execute the tested method
-        RestResponse response = this.action.handleRequest(request, );
+        RestResponse response = this.action.handleRequest(request, this.client);
 
         assertEquals(500, response.getStatus());
-        assertEquals("Internal Server Error",
-            response.getMessage());
+        assertEquals("Internal Server Error", response.getMessage());
 
         // Verify that the engine service validated the expected payload
         verify(this.engine, times(1)).validate(expectedPayload);
