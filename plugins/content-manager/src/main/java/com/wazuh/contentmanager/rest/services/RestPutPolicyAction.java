@@ -249,7 +249,9 @@ public class RestPutPolicyAction extends BaseRestHandler {
     private void storePolicy(NodeClient client, Policy policy) throws IOException {
         ContentIndex contentIndex = new ContentIndex(client, POLICIES_INDEX, null);
         String policyId = this.findDraftPolicyId(contentIndex);
-        contentIndex.create(policyId, policy.toJson(), Space.DRAFT.toString());
+        JsonObject resourcePayload = new JsonObject();
+        resourcePayload.add("document", policy.toJson());
+        contentIndex.create(policyId, resourcePayload, Space.DRAFT.toString());
         log.info("Policy stored successfully with ID: {}", policyId);
     }
 

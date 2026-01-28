@@ -218,7 +218,7 @@ public class SnapshotServiceImpl implements SnapshotService {
                         log.warn("No ContentIndex found for type [{}]. Skipping.", type);
                         continue;
                     }
-                    // TODO: Handle spaces properly
+                    // Space defined for Wazuh's built-in resources
                     String space = Space.STANDARD.toString();
                     JsonObject processedPayload = indexHandler.processPayload(payload, space);
                     String indexName = indexHandler.getIndexName();

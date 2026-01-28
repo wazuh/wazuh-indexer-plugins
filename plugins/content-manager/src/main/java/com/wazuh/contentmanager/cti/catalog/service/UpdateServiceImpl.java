@@ -138,7 +138,7 @@ public class UpdateServiceImpl extends AbstractService implements UpdateService 
     private void applyOffset(Offset offset) throws Exception {
         String id = offset.getResource();
         ContentIndex index;
-        // TODO: Handle spaces properly
+        // Space defined for Wazuh's built-in resources.
         String space = Space.STANDARD.toString();
 
         switch (offset.getType()) {
@@ -150,7 +150,7 @@ public class UpdateServiceImpl extends AbstractService implements UpdateService 
 
                         index = this.indices.get(type);
                         if (index != null) {
-                            index.create(id, payload, Space.STANDARD.toString());
+                            index.create(id, payload, space);
                         } else {
                             log.warn("No index mapped for type [{}]", type);
                         }
