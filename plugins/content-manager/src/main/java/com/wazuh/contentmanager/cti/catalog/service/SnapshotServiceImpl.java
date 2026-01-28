@@ -57,7 +57,7 @@ public class SnapshotServiceImpl implements SnapshotService {
 
     private final String context;
     private final String consumer;
-    private final List<ContentIndex> contentIndex;
+    private final Map<String, ContentIndex> indicesMap;
     private final ConsumersIndex consumersIndex;
     private SnapshotClient snapshotClient;
     private final Environment environment;
@@ -68,19 +68,19 @@ public class SnapshotServiceImpl implements SnapshotService {
      *
      * @param context The context of the snapshot.
      * @param consumer The consumer identifier.
-     * @param contentIndex The list of content indices to index the snapshot data.
+     * @param indicesMap A map of content types to their corresponding ContentIndex.
      * @param consumersIndex The consumers index to update consumer state.
      * @param environment The OpenSearch environment.
      */
     public SnapshotServiceImpl(
             String context,
             String consumer,
-            List<ContentIndex> contentIndex,
+            Map<String, ContentIndex> indicesMap,
             ConsumersIndex consumersIndex,
             Environment environment) {
         this.context = context;
         this.consumer = consumer;
-        this.contentIndex = contentIndex;
+        this.indicesMap = indicesMap;
         this.consumersIndex = consumersIndex;
         this.environment = environment;
         this.pluginSettings = PluginSettings.getInstance();
@@ -136,7 +136,7 @@ public class SnapshotServiceImpl implements SnapshotService {
             Unzip.unzip(snapshotZip, outputDir);
 
             // 4. Clear indices
-            this.contentIndex.forEach(ContentIndex::clear);
+            this.indicesMap.values().forEach(ContentIndex::clear);
 
             // 5. Process and Index Files
             try (DirectoryStream<Path> stream = Files.newDirectoryStream(outputDir, "*.json")) {
@@ -146,9 +146,9 @@ public class SnapshotServiceImpl implements SnapshotService {
             }
 
             // Ensure all bulk requests are finished
-            if (!this.contentIndex.isEmpty()) {
+            if (!this.indicesMap.isEmpty()) {
                 log.info("Waiting for pending bulk updates to finish...");
-                this.contentIndex.getFirst().waitForPendingUpdates();
+                this.indicesMap.values().iterator().next().waitForPendingUpdates();
             }
 
         } catch (Exception e) {
@@ -185,6 +185,12 @@ public class SnapshotServiceImpl implements SnapshotService {
         int docCount = 0;
         BulkRequest bulkRequest = new BulkRequest();
 
+        // Use any available index to execute the bulk request
+        ContentIndex executorIndex = this.indicesMap.isEmpty() ? null : this.indicesMap.values().iterator().next();
+        if (executorIndex == null) {
+            return;
+        }
+
         try (BufferedReader reader = Files.newBufferedReader(filePath, StandardCharsets.UTF_8)) {
             while ((line = reader.readLine()) != null) {
                 try {
@@ -204,18 +210,15 @@ public class SnapshotServiceImpl implements SnapshotService {
                     }
                     String type = payload.get(JSON_TYPE_KEY).getAsString();
 
-                    // 3. Delegate Processing to ContentIndex
-                    // We use the first index instance to process the payload because logic is
-                    // stateless/shared.
-                    JsonObject processedPayload;
-                    if (!this.contentIndex.isEmpty()) {
-                        processedPayload = this.contentIndex.getFirst().processPayload(payload);
-                    } else {
-                        log.error("No ContentIndex available to process payload.");
-                        return;
+                    // 3. Select correct index based on type
+                    ContentIndex indexHandler = this.indicesMap.get(type);
+                    if (indexHandler == null) {
+                        log.warn("No ContentIndex found for type [{}]. Skipping.", type);
+                        continue;
                     }
 
-                    String indexName = this.getIndexName(type);
+                    JsonObject processedPayload = indexHandler.processPayload(payload);
+                    String indexName = indexHandler.getIndexName();
 
                     // 4. Create Index Request
                     IndexRequest indexRequest =
@@ -234,7 +237,7 @@ public class SnapshotServiceImpl implements SnapshotService {
 
                     // Execute Bulk if limit reached
                     if (docCount >= this.pluginSettings.getMaxItemsPerBulk()) {
-                        this.contentIndex.getFirst().executeBulk(bulkRequest);
+                        executorIndex.executeBulk(bulkRequest);
                         bulkRequest = new BulkRequest();
                         docCount = 0;
                     }
@@ -246,16 +249,12 @@ public class SnapshotServiceImpl implements SnapshotService {
 
             // Index remaining documents
             if (bulkRequest.numberOfActions() > 0) {
-                this.contentIndex.getFirst().executeBulk(bulkRequest);
+                executorIndex.executeBulk(bulkRequest);
             }
 
         } catch (IOException e) {
             log.error("Error reading snapshot file [{}]: {}", filePath, e.getMessage());
         }
-    }
-
-    private String getIndexName(String type) {
-        return String.format(Locale.ROOT, ".%s-%s-%s", this.context, this.consumer, type);
     }
 
     /** Deletes temporary files and directories used during the process. */

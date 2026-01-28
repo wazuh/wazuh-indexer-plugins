@@ -87,6 +87,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Extend JsonPatch to process JsonArray [(#729)](https://github.com/wazuh/wazuh-indexer-plugins/pull/729)
 - Improve Content Manager code quality [(#720)](https://github.com/wazuh/wazuh-indexer-plugins/pull/720)
 - Improve spotless implementation [(#740)](https://github.com/wazuh/wazuh-indexer-plugins/pull/740)
+- Unify CTI context [(#747)](https://github.com/wazuh/wazuh-indexer-plugins/pull/747)
 
 ### Deprecated
 -

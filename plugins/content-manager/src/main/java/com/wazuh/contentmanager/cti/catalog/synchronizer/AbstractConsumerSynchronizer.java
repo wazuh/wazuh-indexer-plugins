@@ -175,14 +175,12 @@ public abstract class AbstractConsumerSynchronizer {
         LocalConsumer localConsumer = consumerService.getLocalConsumer();
         RemoteConsumer remoteConsumer = consumerService.getRemoteConsumer();
 
-        List<ContentIndex> indices = new ArrayList<>();
         Map<String, ContentIndex> indicesMap = new HashMap<>();
 
         for (Map.Entry<String, String> entry : this.getMappings().entrySet()) {
             String indexName = this.getIndexName(entry.getKey());
             String alias = this.getAliases().get(entry.getKey());
             ContentIndex index = new ContentIndex(this.client, indexName, entry.getValue(), alias);
-            indices.add(index);
             indicesMap.put(entry.getKey(), index);
 
             // Check if index exists to avoid creation exception
@@ -208,7 +206,7 @@ public abstract class AbstractConsumerSynchronizer {
             log.info("Initializing snapshot from link: {}", remoteConsumer.getSnapshotLink());
             SnapshotServiceImpl snapshotService =
                     new SnapshotServiceImpl(
-                            context, consumer, indices, this.consumersIndex, this.environment);
+                            context, consumer, indicesMap, this.consumersIndex, this.environment);
             snapshotService.initialize(remoteConsumer);
 
             currentOffset = remoteConsumer.getSnapshotOffset();
