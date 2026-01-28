@@ -27,6 +27,7 @@ import java.util.List;
 
 import com.wazuh.contentmanager.engine.services.EngineService;
 import com.wazuh.contentmanager.settings.PluginSettings;
+import com.wazuh.contentmanager.cti.catalog.index.ContentIndex;
 
 import static org.opensearch.rest.RestRequest.Method.DELETE;
 
@@ -43,14 +44,16 @@ public class RestDeleteKvdbAction extends BaseRestHandler {
     private static final String ENDPOINT_NAME = "content_manager_kvdb_delete";
     private static final String ENDPOINT_UNIQUE_NAME = "plugin:content_manager/kvdb_delete";
     private final EngineService engine;
+    private final ContentIndex kvdbIndex;
 
     /**
      * Constructs a new TODO !CHANGE_ME.
      *
      * @param engine The service instance to communicate with the local engine service.
      */
-    public RestDeleteKvdbAction(EngineService engine) {
+    public RestDeleteKvdbAction(EngineService engine, ContentIndex kvdbIndex) {
         this.engine = engine;
+        this.kvdbIndex = kvdbIndex;
     }
 
     /** Return a short identifier for this handler. */

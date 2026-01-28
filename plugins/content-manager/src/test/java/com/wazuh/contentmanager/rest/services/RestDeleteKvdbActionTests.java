@@ -15,6 +15,10 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 package com.wazuh.contentmanager.rest.services;
+import org.opensearch.rest.RestRequest;
+import org.opensearch.rest.BytesRestResponse;
+import org.opensearch.core.rest.RestStatus;
+import static org.mockito.Mockito.*;
 
 import org.opensearch.test.OpenSearchTestCase;
 import org.junit.Before;
@@ -22,8 +26,7 @@ import org.junit.Before;
 import java.io.IOException;
 
 import com.wazuh.contentmanager.engine.services.EngineService;
-
-import static org.mockito.Mockito.mock;
+import com.wazuh.contentmanager.cti.catalog.index.ContentIndex;
 
 /**
  * Unit tests for the {@link RestDeleteKvdbAction} class. This test suite validates the REST API
@@ -35,6 +38,7 @@ import static org.mockito.Mockito.mock;
 public class RestDeleteKvdbActionTests extends OpenSearchTestCase {
     private EngineService service;
     private RestDeleteKvdbAction action;
+    private ContentIndex kvdbIndex;
 
     /**
      * Set up the tests
@@ -46,24 +50,82 @@ public class RestDeleteKvdbActionTests extends OpenSearchTestCase {
     public void setUp() throws Exception {
         super.setUp();
         this.service = mock(EngineService.class);
-        this.action = new RestDeleteKvdbAction(this.service);
+        this.kvdbIndex = mock(ContentIndex.class);
+        this.action = new RestDeleteKvdbAction(this.service, kvdbIndex);
     }
 
     /**
-     * Test the {@link RestDeleteKvdbAction#handleRequest(kvdb)} method when the request is complete.
+     * Test the {@link RestDeleteKvdbAction#handleRequest(RestRequest)} method when the request is complete.
      * The expected response is: {201, RestResponse}
      *
      * @throws IOException
      */
-    public void testDeleteKvdb201() throws IOException {}
+    public void testDeleteKvdb201() throws IOException {
+        // given
+        RestRequest request = mock(RestRequest.class);
+        when(request.param("id")).thenReturn("kvdb-201");
+        when(kvdbIndex.exists("kvdb-201")).thenReturn(true);
+
+        // when
+        BytesRestResponse response = action.handleRequest(request);
+
+        // then
+        assertEquals(RestStatus.CREATED, response.status());
+        assertTrue(
+            response.content().utf8ToString().contains("KVDB deleted successfully")
+        );
+
+        verify(kvdbIndex).exists("kvdb-201");
+        verify(kvdbIndex).delete("kvdb-201");
+    }
 
     /**
-     * Test the {@link RestDeleteKvdbAction#handleRequest(kvdb)} method when the kvdb has not been
-     * deleted (mock). The expected response is: {400, RestResponse}
+     * Tests the {@link RestDeleteKvdbAction#handleRequest(RestRequest)} method when the kvdb has not been deleted (mock).
+     * The expected response is: {400, RestResponse}
+     *
+     * @throws IOException if an I/O error occurs
+     */
+    public void testDeleteKvdb400() throws IOException {
+        // given
+        RestRequest request = mock(RestRequest.class);
+        when(request.param("id")).thenReturn(null);
+
+        // when
+        BytesRestResponse response = action.handleRequest(request);
+
+        // then
+        assertEquals(RestStatus.BAD_REQUEST, response.status());
+        assertTrue(
+            response.content()
+                .utf8ToString()
+                .contains("KVDB id is required")
+        );
+        verifyNoInteractions(kvdbIndex);
+    }
+
+    /**
+     * Test the {@link RestDeleteKvdbAction#handleRequest(RestRequest)} method when
+     * the kvdb does not exist. The expected response is: {404, RestResponse}
      *
      * @throws IOException
      */
-    public void testDeleteKvdb400() throws IOException {}
+    public void testDeleteKvdb404() throws IOException {
+        // given
+        RestRequest request = mock(RestRequest.class);
+        when(request.param("id")).thenReturn("kvdb-404");
+        when(kvdbIndex.exists("kvdb-404")).thenReturn(false);
+
+        // when
+        BytesRestResponse response = action.handleRequest(request);
+
+        // then
+        assertEquals(RestStatus.NOT_FOUND, response.status());
+        assertTrue(
+            response.content().utf8ToString().contains("KVDB not found")
+        );
+        verify(kvdbIndex).exists("kvdb-404");
+        verify(kvdbIndex, never()).delete(anyString());
+    }
 
     /**
      * Test the {@link RestDeleteKvdbAction#handleRequest(RestRequest)} method when an unexpected
@@ -71,5 +133,17 @@ public class RestDeleteKvdbActionTests extends OpenSearchTestCase {
      *
      * @throws IOException if an I/O error occurs during the test
      */
-    public void testDeleteKvdb500() throws IOException {}
+    public void testDeleteKvdb500() throws IOException {
+        // given
+        RestRequest request = mock(RestRequest.class);
+        when(request.param("id")).thenThrow(new RuntimeException("boom"));
+        when(kvdbIndex.exists(anyString()))
+            .thenThrow(new RuntimeException("boom"));
+
+        // when
+        BytesRestResponse response = action.handleRequest(request);
+
+        // then
+        assertEquals(RestStatus.INTERNAL_SERVER_ERROR, response.status());
+    }
 }
