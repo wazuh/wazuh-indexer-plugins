@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2024, Wazuh Inc.
+ * Copyright (C) 2024-2026, Wazuh Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as
@@ -38,12 +38,6 @@ import com.wazuh.contentmanager.settings.PluginSettings;
  */
 public class UnifiedConsumerSynchronizer extends AbstractConsumerSynchronizer {
 
-    public static final String POLICY = "policy";
-    public static final String RULE = "rule";
-    public static final String DECODER = "decoder";
-    public static final String KVDB = "kvdb";
-    public static final String INTEGRATION = "integration";
-
     /** The unified context identifier. */
     private final String CONTEXT = PluginSettings.getInstance().getContentContext();
 
@@ -63,7 +57,7 @@ public class UnifiedConsumerSynchronizer extends AbstractConsumerSynchronizer {
      * @param environment The OpenSearch environment settings.
      */
     public UnifiedConsumerSynchronizer(
-        Client client, ConsumersIndex consumersIndex, Environment environment) {
+            Client client, ConsumersIndex consumersIndex, Environment environment) {
         super(client, consumersIndex, environment);
         this.integrationProcessor = new IntegrationProcessor(client);
         this.ruleProcessor = new RuleProcessor(client);
@@ -98,30 +92,6 @@ public class UnifiedConsumerSynchronizer extends AbstractConsumerSynchronizer {
         return Collections.emptyMap();
     }
 
-    /**
-     * Overrides index naming to utilize the alias name convention directly.
-     *
-     * @param type The type identifier for the index.
-     * @return The unified index name.
-     */
-    @Override
-    protected String getIndexName(String type) {
-        switch (type) {
-            case RULE:
-                return ".cti-rules";
-            case DECODER:
-                return ".cti-decoders";
-            case KVDB:
-                return ".cti-kvdbs";
-            case INTEGRATION:
-                return ".cti-integrations";
-            case POLICY:
-                return ".cti-policies";
-            default:
-                return super.getIndexName(type);
-        }
-    }
-
     @Override
     protected void onSyncComplete(boolean isUpdated) {
         if (isUpdated) {
@@ -138,7 +108,7 @@ public class UnifiedConsumerSynchronizer extends AbstractConsumerSynchronizer {
             this.detectorProcessor.process(integrations, integrationIndex);
 
             this.policyHashService.calculateAndUpdate(
-                policyIndex, integrationIndex, decoderIndex, kvdbIndex, ruleIndex);
+                    policyIndex, integrationIndex, decoderIndex, kvdbIndex, ruleIndex);
         }
     }
 }

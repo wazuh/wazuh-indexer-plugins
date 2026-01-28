@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2024, Wazuh Inc.
+ * Copyright (C) 2024-2026, Wazuh Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Affero General Public License as
@@ -113,7 +113,11 @@ public class ContentManagerPluginTests extends OpenSearchTestCase {
         field.set(target, value);
     }
 
-    /** Helper to reset PluginSettings singleton. */
+    /**
+     * Helper to reset PluginSettings singleton.
+     *
+     * @throws Exception In case of reflection errors
+     */
     @SuppressForbidden(reason = "Unit test reset")
     public static void clearInstance() throws Exception {
         Field instance = PluginSettings.class.getDeclaredField("INSTANCE");
