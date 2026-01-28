@@ -32,6 +32,7 @@ import org.opensearch.transport.client.node.NodeClient;
 
 import java.io.IOException;
 import java.lang.reflect.Method;
+import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -207,26 +208,31 @@ public class RestPutPolicyAction extends BaseRestHandler {
         fieldsToValidate.put("getDescription", "description");
         fieldsToValidate.put("getDocumentation", "documentation");
         fieldsToValidate.put("getReferences", "references");
-
+        // Collect all null fields
+        List<String> nullFields = new ArrayList<>();
         // Validate each field dynamically
         for (Map.Entry<String, String> entry : fieldsToValidate.entrySet()) {
             String methodName = entry.getKey();
             String fieldName = entry.getValue();
-
             try {
                 Method getter = Policy.class.getMethod(methodName);
                 Object value = getter.invoke(policy);
                 if (value == null) {
-                    return new RestResponse(
-                            "Policy field " + fieldName + " cannot be null.", RestStatus.BAD_REQUEST.getStatus());
+                    nullFields.add(fieldName);
                 }
             } catch (Exception e) {
+                log.error("Error validating field '{}': {}", fieldName, e.getMessage());
                 return new RestResponse(
                         "Internal validation error for field: " + fieldName,
                         RestStatus.INTERNAL_SERVER_ERROR.getStatus());
             }
         }
-
+        // If there are null fields, return error with all missing fields listed
+        if (!nullFields.isEmpty()) {
+            return new RestResponse(
+                    "Invalid request body, missing fields: " + nullFields,
+                    RestStatus.BAD_REQUEST.getStatus());
+        }
         return null;
     }
 
