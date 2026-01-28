@@ -59,7 +59,7 @@ public class RestPutPolicyAction extends BaseRestHandler {
 
     // Index and field constants
     private static final String POLICIES_INDEX = ".cti-policies";
-    private static final String SPACE_FIELD = "space";
+    private static final String SPACE_NAME_FIELD = "space.name";
     private static final String ID_FIELD = "id";
 
     private final EngineService engine;
@@ -262,7 +262,7 @@ public class RestPutPolicyAction extends BaseRestHandler {
      * @return the existing policy ID or a new UUID
      */
     private String findDraftPolicyId(ContentIndex contentIndex) {
-        QueryBuilder queryBuilder = QueryBuilders.termQuery(SPACE_FIELD, Space.DRAFT.toString());
+        QueryBuilder queryBuilder = QueryBuilders.termQuery(SPACE_NAME_FIELD, Space.DRAFT.toString());
         JsonObject resource = contentIndex.searchByQuery(queryBuilder);
 
         if (resource != null && resource.has(ID_FIELD)) {
